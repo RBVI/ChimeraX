@@ -200,6 +200,9 @@ _Toolbars = {
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
                 ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
             ],
+            ("Analysis", False): [
+                ("shortcut:hb", "hbonds.png", "H-bonds", "Show hydrogen bonds"),
+            ],
             ("Coloring", False): [
                 ("shortcut:ce", "colorbyelement.png", "heteroatom", "Color non-carbon atoms by element"),
                 ("shortcut:cc", "colorbychain.png", "chain", "Color by chain"),
@@ -215,10 +218,7 @@ _Toolbars = {
                 ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotide H-bond ladders", {'group': 'rungs'}),
                 ("cmd:nucleotides selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs", {'group': 'rungs'}),
             ],
-            ("Misc", False): [
-                ("shortcut:hb", "hbonds.png", "H-bonds", "Show hydrogen bonds"),
-            ],
-            ("Last action", True): [
+            ("Undo", True): [
                 ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
                 ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
             ],
@@ -227,7 +227,7 @@ _Toolbars = {
     "Graphics": (
         "help:user/tools/graphics.html",
         {
-            #("Last action", True): [
+            #("Undo", True): [
             #    ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
             #    ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
             #],
@@ -295,7 +295,7 @@ _Toolbars = {
                 ("mouse:rotate", None, "Rotate", "Rotate models"),
                 ("mouse:translate", None, "Translate", "Translate models"),
                 ("mouse:zoom", None, "Zoom", "Zoom view"),
-                ("mouse:rotate and select", None, "Rotate and select", "Select and rotate models"),
+                #("mouse:rotate and select", None, "Rotate and select", "Select and rotate models"),
                 ("mouse:translate selected models", None, "Translate Selected", "Translate selected models"),
                 ("mouse:rotate selected models", None, "Rotate Selected", "Rotate selected models"),
                 ("mouse:pivot", None, "Pivot", "Set center of rotation at atom"),
