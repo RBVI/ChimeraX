@@ -11,7 +11,6 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
 def sequence_model(session, targets, *, block=None, multichain=True, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
     hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None, thorough_opt=False,
@@ -28,12 +27,6 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
         seen.add(alignment)
     if block is None:
         block = session.in_script or not session.ui.is_gui
-    from .settings import get_settings
-    settings = get_settings(session)
-    if license_key is None:
-        license_key = settings.license_key
-    else:
-        settings.license_key = license_key
     if fast:
         num_models = 1
     from . import comparative
@@ -45,6 +38,15 @@ def sequence_model(session, targets, *, block=None, multichain=True, custom_scri
             temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
     except comparative.ModelingError as e:
         raise UserError(e)
+
+def score_models(session, structures, *, block=None, license_key=None):
+    '''
+    Fetch Modeller scores for models
+    '''
+    if block is None:
+        block = session.in_script or not session.ui.is_gui
+    from . import scores
+    scores.fetch_scores(session, structures, block=block, license_key=license_key)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg, PasswordArg, IntArg
@@ -61,3 +63,10 @@ def register_command(logger):
         synopsis = 'Use Modeller to generate comparative model'
     )
     register('modeller comparative', desc, sequence_model, logger=logger)
+    from chimerax.atomic import AtomicStructuresArg
+    desc = CmdDesc(
+        required = [('structures', AtomicStructuresArg)],
+        keyword = [('block', BoolArg), ('license_key', PasswordArg)],
+        synopsis = 'Fetch scores for models from Modeller web site'
+    )
+    register('modeller scores', desc, score_models, logger=logger)
