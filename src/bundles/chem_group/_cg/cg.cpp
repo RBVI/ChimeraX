@@ -956,8 +956,18 @@ find_6ring_planar_NR2(const Atom* a, bool symmetric)
 	// check symmetry
 	bool asymmetric = false;
 	auto& neighbors = a->neighbors();
-	auto bonded1 = neighbors[0];
-	auto bonded2 = neighbors[1];
+	const Atom* bonded1 = nullptr;
+	const Atom* bonded2 = nullptr;
+	for (auto ra: ring_atoms) {
+		if (std::find(neighbors.begin(), neighbors.end(), ra) != neighbors.end()) {
+			if (bonded1 == nullptr)
+				bonded1 = ra;
+			else {
+				bonded2 = ra;
+				break;
+			}
+		}
+	}
 	nr2.push_back(bonded1);
 	nr2.push_back(bonded2);
 	if (symmetric) {
