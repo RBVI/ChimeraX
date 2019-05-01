@@ -15,7 +15,7 @@
 def vr(session, enable = None, room_position = None, display = None,
        show_controllers = True, gui = None, click_range = None,
        multishadow_allowed = False, simplify_graphics = True,
-       toolbar_panels = True, icons = False):
+       toolbar_panels = True):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
@@ -60,11 +60,6 @@ def vr(session, enable = None, room_position = None, display = None,
     toolbar_panels : bool
       Whether to hide mouse modes and shortcut toolbars and instead show them as tool panels.
       This is useful for consolidating the controls in the VR gui panel.  Default true.
-    icons : bool
-      Experimental.  Superceded by embedded gui panel.
-      Whether to show a panel of icons when controller trackpad is touched.
-      For demonstrations the icons can be too complex and it is better not to have icons.
-      Default false.
     '''
     
     if enable is None and room_position is None:
@@ -107,9 +102,6 @@ def vr(session, enable = None, room_position = None, display = None,
             c.user_interface.set_gui_tool_name(gui)
         if click_range is not None:
             c.user_interface.set_mouse_mode_click_range(click_range)
-        if icons is not None: 
-            for hc in c.hand_controllers():
-                hc.enable_icon_panel(icons)
 
     if toolbar_panels:
         from chimerax.mouse_modes.tool import MouseModePanel
@@ -135,7 +127,6 @@ def register_vr_command(logger):
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                               ('toolbar_panels', BoolArg),
-                              ('icons', BoolArg),
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
@@ -1246,13 +1237,6 @@ class HandControllerModel(Model):
 
     def tip_position(self):
         return self.scene_position.origin()
-
-    def enable_icon_panel(self, enable):
-        from openvr import k_EButton_SteamVR_Touchpad as touchpad
-        if enable:
-            self._modes[touchpad] = IconPanel()
-        elif touchpad in self._modes:
-            del self._modes[touchpad]
             
     def process_event(self, e, camera):
 
@@ -1671,247 +1655,6 @@ class MoveAtomsMode(HandMode):
         from chimerax.atomic import selected_atoms
         atoms = selected_atoms(camera._session)
         atoms.scene_coords = smove * atoms.scene_coords
-
-class IconPanel(HandMode):
-    def __init__(self):
-        self._icon_drawing = None
-        self._icon_highlight_drawing = None
-        self._icon_size = 128  # pixels
-        self._icon_columns = 0
-        self._icon_rows = 0
-        self._icon_shortcuts = []
-        self._icons_shown = False
-
-    def touch(self):
-        xy = self.touchpad_position()
-        if xy is not None:
-            self.show_icons(highlight_position = xy)
-            self._icons_shown = True
-
-    def untouch(self):
-        self.hide_icons()	# Untouch
-        self._icons_shown = False
-
-    def pressed(self, camera, hand_controller):
-        if self._icons_shown:
-            self.icon_clicked()
-    
-    def icon_clicked(self):
-        xy = self.touchpad_position()
-        if xy is None:
-            return
-        self.run_icon(xy)
-
-    def select_sidechain(self):
-        a = self.closest_atom()
-        if a:
-            # Residue atoms not including backbone.
-            ratoms = a.residue.atoms
-            from numpy import logical_not
-            scatoms = ratoms.filter(logical_not(ratoms.is_backbones()))
-            scatoms.selected = True
-        else:
-            self.session.selection.clear()
-
-    def select_object_old(self):
-        a = self.closest_atom()
-        if a:
-            # Select atom with bottom of touchpad,
-            # or residue with top of touchpad
-            xy = self.touchpad_position()
-            if xy is not None:
-                self.session.selection.clear()
-                x,y = xy
-                if x >= .5:
-                    # Residue atoms not including backbone.
-                    ratoms = a.residue.atoms
-                    from numpy import logical_not
-                    scatoms = ratoms.filter(logical_not(ratoms.is_backbones()))
-                    scatoms.selected = True
-                if y <= 0:
-                    a.selected = True
-                else:
-                    a.residue.atoms.selected = True
-
-    def touchpad_position(self):
-        vrs = self.vr_system
-        success, cs = vrs.getControllerState(self.device_index)
-        if success:
-            a = cs.rAxis[0]
-            return (a.x, a.y)
-        return None
-    
-    def select_atom(self, range = 5.0):
-        a = self.closest_atom(range)
-        self.session.selection.clear()
-        if a is not None:
-            a.selected = True
-        return a
-
-    def closest_atom(self, range = 5.0):
-        atoms = self.displayed_atoms()
-        if len(atoms) == 0:
-            return None
-        xyz = atoms.scene_coords
-        tp = self.tip_position()
-        d = xyz - tp
-        d2 = (d*d).sum(axis = 1)
-        i = d2.argmin()
-        self.session.selection.clear()
-        #print ('closest atom range', d2[i], i, atoms[i], tp, xyz[i], len(atoms))
-        if d2[i] > range*range:
-            return None
-        a = atoms[i]
-        return a
-        
-    def displayed_atoms(self):
-        from chimerax.atomic import Structure, concatenate, Atoms
-        mlist = self.session.models.list(type = Structure)
-        matoms = []
-        for m in mlist:
-            if m.display and m.parents_displayed:
-                ma = m.atoms
-                matoms.append(ma.filter(ma.displays | (ma.hides != 0)))
-        atoms = concatenate(matoms, Atoms)
-        return atoms
-
-    def show_icons(self, highlight_position = None):
-        d = self.icon_drawing()
-        d.display = True
-        if highlight_position:
-            # x,y ranging from -1 to 1
-            x,y = self.icons_position(highlight_position)
-            ihd = self.icon_highlight_drawing()
-            s = self._cone_length
-            aspect = self._icon_rows / self._icon_columns
-            from chimerax.core.geometry import translation
-            ihd.position = translation((s*x,0,-s*(y+1)*aspect))
-            ihd.display = True
-
-    def icons_position(self, xy):
-        # Hard to reach corners on circular pad.
-        # So expand circle a bit.
-        f = 1.2
-        x,y = [min(1.0, max(-1.0, f*v)) for v in xy]
-        return x,y
-
-    def run_icon(self, xy):
-        rows, cols = self._icon_rows, self._icon_columns
-        x,y = self.icons_position(xy)
-        c = int(0.5 * (x + 1) * cols)
-        r = int(0.5 * (1 - y) * rows)
-        i = r*cols + c
-        s = self._icon_shortcuts
-        if i < len(s):
-            k = s[i]
-            if isinstance(k, str):
-                from chimerax.core.commands import run
-                run(self.session, 'ks %s' % k)
-            else:
-                k()	# Python function.  For example, set mouse mode.
-                
-    def icon_drawing(self):
-        d = self._icon_drawing
-        if d:
-            return d
-        
-        from chimerax.core.graphics import Drawing
-        from chimerax.core.graphics.drawing import rgba_drawing
-        self._icon_drawing = d = Drawing('VR icons')
-        d.casts_shadows = False
-        rgba = self.tiled_icons() # numpy uint8 (ny,nx,4) array
-        s = self._cone_length
-        h,w = rgba.shape[:2]
-        self._icons_aspect = aspect = h/w if w > 0 else 1
-        pos = (-s, 0)	# Cone tip is at 0,0
-        size = (2*s, 2*s*aspect)
-        rgba_drawing(d, rgba, pos, size)
-        from chimerax.core.geometry import rotation
-        v = rotation(axis = (1,0,0), angle = -90) * d.vertices
-        d.set_geometry(v, d.normals, d.triangles)
-        self.add_drawing(d)
-        return d
-
-    def icon_highlight_drawing(self):
-        d = self._icon_highlight_drawing
-        if d:
-            return d
-        
-        from chimerax.core.graphics import Drawing
-        self._icon_highlight_drawing = d = Drawing('VR icon highlight')
-        d.casts_shadows = False
-        s = self._cone_length
-        from chimerax.surface import sphere_geometry
-        va, na, ta = sphere_geometry(200)
-        va *= 0.1*s
-        d.set_geometry(va, na, ta)
-        d.color = (0,255,0,255)
-        self.add_drawing(d)
-        return d
-        
-    def hide_icons(self):
-        d = self._icon_drawing
-        if d:
-            d.display = False
-        dh = self._icon_highlight_drawing
-        if dh:
-            dh.display = False
-
-    def icons(self):
-        images = []
-        self._icon_shortcuts = ks = []
-
-        from PyQt5.QtGui import QImage
-
-        from os.path import join, dirname
-        mm_icon_dir = join(dirname(__file__), '..', 'mouse_modes', 'icons')
-        mm = self.session.ui.mouse_modes
-        mt = {'translate':self.move_scene,
-              'zoom':self.zoom,
-              'translate selected models':self.select_and_move}
-        modes = [m for m in mm.modes if m.icon_file and m.name in mt]
-        for mode in modes:
-            icon_path = join(mm_icon_dir, mode.icon_file)
-            images.append(QImage(icon_path))
-            ks.append(mt[mode.name])
-        
-        icon_dir = join(dirname(__file__), '..', 'shortcuts', 'icons')
-        from ..shortcuts.tool import MoleculeDisplayPanel
-        for keys, filename, descrip in MoleculeDisplayPanel.shortcuts:
-            icon_path = join(icon_dir, filename)
-            images.append(QImage(icon_path))
-            ks.append(keys)
-        return images
-
-    def tiled_icons(self):
-        images = self.icons()
-        n = len(images)
-        from math import ceil, sqrt
-        cols = int(ceil(sqrt(n)))
-        rows = (n + cols-1) // cols
-        self._icon_columns, self._icon_rows = cols, rows
-        isize = self._icon_size
-        from PyQt5.QtGui import QImage, QPainter
-        from PyQt5.QtCore import QRect, Qt
-        ti = QImage(cols*isize, rows*isize, QImage.Format_ARGB32)
-        p = QPainter()
-        p.begin(ti)
-        # Set background white for transparent icons
-        p.fillRect(QRect(0,0,cols*isize, rows*isize), Qt.white)
-        for i,im in enumerate(images):
-            r = QRect((i%cols)*isize, (i//cols)*isize, isize, isize)
-            p.drawImage(r, im)
-        from chimerax.core.graphics import qimage_to_numpy
-        rgba = qimage_to_numpy(ti)
-        p.end()
-        return rgba
-
-    def move_scene(self):
-        self._mode = 'move scene'
-    def zoom(self):
-        self._mode = 'zoom'
-    def select_and_move(self):
-        self._mode = 'move atoms'
             
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32
