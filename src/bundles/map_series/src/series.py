@@ -46,7 +46,6 @@ class MapSeries(Model):
   #
   def show_first_map_only(self, maps):
     v0 = maps[0]
-    v0.initialize_thresholds()
     v0.display = True	# Show first map of series
     for v in maps[1:]:
       v.display = False

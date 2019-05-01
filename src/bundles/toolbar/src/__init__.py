@@ -13,7 +13,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def start_tool(session, bi, ti):
         from . import tool
-        if ti.name == "Toolbar":
+        if ti.name == "Tabbed Toolbar":
             return tool.ToolbarTool(session, ti.name)
         raise ValueError("trying to start unknown tool: %s" % ti.name)
 

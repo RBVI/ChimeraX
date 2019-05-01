@@ -151,9 +151,11 @@ def make_molecule_map(atoms, resolution, step, pad, on_grid, cutoff_range,
         session.models.close(vlist)
 
     from . import volume_from_grid_data
-    v = volume_from_grid_data(grid, session, open_model = False,
+    v = volume_from_grid_data(grid, session, style = 'surface', open_model = False,
                               show_dialog = show_dialog)
-    v.initialize_thresholds(mfrac = (display_threshold, 1), replace = True)
+    levels, colors = v.initial_surface_levels(mfrac = (display_threshold,1))
+    v.set_parameters(surface_levels = levels, surface_colors = colors)
+
     tf = on_grid.position if on_grid else atoms[0].structure.position
     v.position = tf
 

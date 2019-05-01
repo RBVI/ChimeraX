@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Tool: Density Map Toolbar</title>
+<title>Toolbar: Map</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,25 +23,18 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#tools">Tool</a>: Density Map Toolbar</h3>
+<h3><a href="toolbar.html">Toolbar</a>: Map</h3>
 <p>
-The <b>Density Map Toolbar</b> provides a series of icons for 
-changing the display of volume models (such as density maps)
-with a single click.
-Like other tools, this interface can be opened from the <b>Tools</b> menu
-(<a href="../window.html#panels">more...</a>).
-See also:
-<a href="graphics.html"><b>Graphics Toolbar</b></a>,
-<a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
-<a href="mousemodes.html"><b>Mouse Modes for Right Button</b></a> toolbar,
-<a href="../images.html">making images</a>
+Icons in the <b>Map</b> tab of the <a href="toolbar.html"><b>Toolbar</b></a>
+act on <a href="volumeviewer.html">volume models</a> such as density maps.
+See also: <a href="../images.html">making images</a>
 </p><p>
 Clicking an icon shows the executed command in the
 <a href="log.html"><b>Log</b></a>. 
 The <a href="../commands/atomspec.html#builtin"><b>selMaps</b></a> 
 specifier indicates the currently <a href="../selection.html">selected</a>
 volume model(s), or if none are selected, all displayed volume models.
-Note there may be alternative commands for performing the same action.
+There may be alternative commands for performing the same action.
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -74,11 +67,25 @@ Note there may be alternative commands for performing the same action.
 <a href="../commands/atomspec.html#builtin">selMaps</a> style mesh</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/mapimage.png" width="35px"></td>
-<td align="center">map as image
-<br>(solid display)</td>
+<td align="center">image display</td> 
 <td align="center">
 <b><a href="../commands/volume.html#general">volume</a>
-<a href="../commands/atomspec.html#builtin">selMaps</a> style solid</b></td>
+<a href="../commands/atomspec.html#builtin">selMaps</a> style image</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/icecube.png" width="35px"></td>
+<td align="center">toggle transparency of surface or mesh</td>
+<td align="center">
+(none, but see the <a href="../commands/volume.html#transparency"><b>transparency</b></a>
+option of <a href="../commands/volume.html"><b>volume</b></a>; applies to
+<a href="../commands/atomspec.html#builtin"><b>selMaps</b></a>)
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/outlinebox.png" width="35px"></td>
+<td align="center">toggle outline box</td>
+<td align="center">
+(none, but see the <a href="../commands/volume.html#outline"><b>showOutlineBox</b></a>
+option of <a href="../commands/volume.html"><b>volume</b></a>; applies to
+<a href="../commands/atomspec.html#builtin"><b>selMaps</b></a>)
 </tr><tr>
 <td align="center"><img src="shortcut-icons/step1.png" width="35px"></td>
 <td align="center">step 1<br>(not subsampled, every point)</td>
@@ -91,6 +98,33 @@ Note there may be alternative commands for performing the same action.
 <td align="center">
 <b><a href="../commands/volume.html#sampling">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a> step 2</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/plane.png" width="35px"></td>
+<td align="center">single Z-plane at the center of the
+<a href="../commands/volume.html#dimensions">current region</a></td>
+<td align="center">
+<b><a href="../commands/volume.html#planes">volume</a>
+<a href="../commands/atomspec.html#builtin">selMaps</a>
+planes z orthoplanes off style image</b>
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/orthoplanes.png" width="35px"></td>
+<td align="center">orthoplanes</td>
+<td align="center">
+(exact <b><a href="../commands/volume.html#general">volume</a></b>
+command depends on the data, but sets 
+<a href="../commands/volume.html#planes"><b>orthoplanes</b></a> 
+at the center of the full data, with
+<b><a href="../commands/volume.html#general">style</a>&nbsp;image&nbsp;<a href="../commands/volume.html#dimensions">region</a>&nbsp;all</b>)
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/fullvolume.png" width="35px"></td>
+<td align="center">full region</td>
+<td align="center">
+<b><a href="../commands/volume.html#dimensions">volume</a>
+<a href="../commands/atomspec.html#builtin">selMaps</a>
+region all orthoplanes off</b>
+</td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/fitmap.png" width="35px"></td>
 <td align="center">fit map in map</td>
@@ -117,51 +151,9 @@ Note there may be alternative commands for performing the same action.
 (where <i>N</i> is the model number of a single 
 <a href="../selection.html">selected</a> map)</td>
 </tr><tr>
-<td align="center"><img src="shortcut-icons/icecube.png" width="35px"></td>
-<td align="center">toggle transparency of surface or mesh</td>
-<td align="center">
-(none, but see the <a href="../commands/volume.html#transparency"><b>transparency</b></a>
-option of <a href="../commands/volume.html"><b>volume</b></a>; applies to
-<a href="../commands/atomspec.html#builtin"><b>selMaps</b></a>)
-</td>
-</tr><tr>
-<td align="center"><img src="shortcut-icons/outlinebox.png" width="35px"></td>
-<td align="center">toggle outline box</td>
-<td align="center">
-(none, but see the <a href="../commands/volume.html#outline"><b>showOutlineBox</b></a>
-option of <a href="../commands/volume.html"><b>volume</b></a>; applies to
-<a href="../commands/atomspec.html#builtin"><b>selMaps</b></a>)
-</tr><tr>
-<td align="center"><img src="shortcut-icons/plane.png" width="35px"></td>
-<td align="center">single Z-plane at the center of the
-<a href="../commands/volume.html#dimensions">current region</a></td>
-<td align="center">
-<b><a href="../commands/volume.html#planes">volume</a>
-<a href="../commands/atomspec.html#builtin">selMaps</a>
-planes z orthoplanes off style solid</b>
-</td>
-</tr><tr>
-<td align="center"><img src="shortcut-icons/orthoplanes.png" width="35px"></td>
-<td align="center">orthoplanes</td>
-<td align="center">
-(exact <b><a href="../commands/volume.html#general">volume</a></b>
-command depends on the data, but sets 
-<a href="../commands/volume.html#planes"><b>orthoplanes</b></a> 
-at the center of the full data, with
-<b><a href="../commands/volume.html#general">style</a>&nbsp;solid&nbsp;<a href="../commands/volume.html#dimensions">region</a>&nbsp;all</b>)
-</td>
-</tr><tr>
-<td align="center"><img src="shortcut-icons/fullvolume.png" width="35px"></td>
-<td align="center">full region</td>
-<td align="center">
-<b><a href="../commands/volume.html#dimensions">volume</a>
-<a href="../commands/atomspec.html#builtin">selMaps</a>
-region all orthoplanes off</b>
-</td>
-</tr><tr>
 <td align="center"><img src="shortcut-icons/xyzslice.png" width="35px"></td>
-<td align="center">2D projection (XYZ)
-<br>(affects solid display only)</td>
+<td align="center">2D-XYZ projection
+<br>(affects image display only)</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a>
@@ -170,7 +162,7 @@ projectionMode 2d-xyz</b>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/perpslice.png" width="35px"></td>
 <td align="center">3D projection
-<br>(affects solid display only)</td>
+<br>(affects image display only)</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a>
@@ -179,7 +171,7 @@ projectionMode 3d</b>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/airways.png" width="35px"></td>
 <td align="center">Airways II preset
-<br>(affects solid display only)</td>
+<br>(affects image display only)</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a>
@@ -189,7 +181,7 @@ projectionMode 3d</b>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/ear.png" width="35px"></td>
 <td align="center">CT_Skin preset
-<br>(affects solid display only)</td>
+<br>(affects image display only)</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a>
@@ -199,7 +191,7 @@ CT_Skin</b>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/initialcurve.png" width="35px"></td>
 <td align="center">initial threshold settings
-<br>(affects solid display only)</td>
+<br>(affects image display only)</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/atomspec.html#builtin">selMaps</a>
@@ -209,5 +201,5 @@ CT_Skin</b>
 </table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2019</address>
+April 2019</address>
 </body></html>

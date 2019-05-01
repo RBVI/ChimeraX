@@ -42,7 +42,6 @@
     <ChimeraXClassifier>Command :: nucleotides style :: General :: Create custom nucleotide style</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: nucleotides style list :: General :: List custom nucleotide styles </ChimeraXClassifier>
     <ChimeraXClassifier>Command :: nucleotides style delete :: General :: Delete custom nucleotide style </ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: nucleotides ndbcolor :: General :: Color residues according to NDB conventions </ChimeraXClassifier>
     -->
   </Classifiers>
 
