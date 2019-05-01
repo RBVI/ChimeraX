@@ -979,7 +979,7 @@ pdb_atom_to_chimera_atom(Structure* as, Residue* res, PDB::Atom& pdb_aname)
 }
 
 static void
-link_up(PDB& link_ssbond, Structure *as, std::set<Atom *> *conect_atoms, PyObject *py_logger)
+link_up(PDB& link_ssbond, Structure *as, PyObject *py_logger)
 {
     int sym1, sym2;
     PDB::Residue pdb_res1, pdb_res2;
@@ -1018,8 +1018,6 @@ link_up(PDB& link_ssbond, Structure *as, std::set<Atom *> *conect_atoms, PyObjec
     }
     if (!a1->connects_to(a2)) {
         as->new_bond(a1, a2);
-        conect_atoms->insert(a1);
-        conect_atoms->insert(a2);
     }
 }
 
@@ -1249,7 +1247,7 @@ start_t = end_t;
 
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
-                link_up(*li, fs, &conect_atoms, py_logger);
+                link_up(*li, fs, py_logger);
             connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs], standard_polymeric_res_names, het_res);
             prune_short_bonds(fs);
             fs->use_best_alt_locs();

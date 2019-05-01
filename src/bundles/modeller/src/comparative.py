@@ -174,9 +174,10 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
 
         target_name = target.name
 
-    from .common import write_modeller_scripts
-    script_path, config_path, temp_dir = write_modeller_scripts(license_key, num_models, het_preserve,
-        water_preserve, hydrogens, fast, None, custom_script, temp_path, thorough_opt, dist_restraints)
+    from .common import write_modeller_scripts, get_license_key
+    script_path, config_path, temp_dir = write_modeller_scripts(get_license_key(session, license_key),
+        num_models, het_preserve, water_preserve, hydrogens, fast, None, custom_script, temp_path,
+        thorough_opt, dist_restraints)
 
     input_file_map = []
 
@@ -222,140 +223,6 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
     with open(name_file, 'w') as f:
         for template_seq in pir_seqs:
             print(template_seq.name, file=f)
-    """
-    template_info = []
-    for alignment, orig_target in targets:
-        if not alignment.associations:
-            raise ModelingError("Alignment %s has no associated chains to use as templates."
-                % alignment.ident)
-        # Copy the target sequence, changing name to conform to Modeller limitations
-        from .common import modeller_copy
-        target = modeller_copy(orig_target)
-        if multichain:
-            # find greatest number of chains associated by any one structure
-            by_structure = {}
-            for chain, aseq in alignment.associations.items():
-                if len(chain.chain_id) > 1:
-                    raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
-                by_structure.setdefault(chain.structure, []).append(
-                    (regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
-            num_chains = max([len(v) for v in by_structure.values()])
-            # Expand out any template chains less than the greatest number
-            expanded_templates = []
-            for structure_templates in by_structure.values():
-                structure_templates.sort(key=lambda x: (x[1].structure.id, x[1].chain_id))
-                orig_len = len(structure_templates)
-                while len(structure_templates) < num_chains:
-                    structure_templates.append(structure_templates[len(structure_templates) % orig_len])
-                expanded_templates.append(structure_templates)
-            # now, all the first-chain templates model the first chain, etc.
-            for chain_templates in zip(*expanded_templates):
-                template_info.append((target, chain_templates))
-        else:
-            target_templates = []
-            template_info.append((target, target_templates))
-            for chain, aseq in alignment.associations.items():
-                if len(chain.chain_id) > 1:
-                    raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")
-                target_templates.append((regularized_seq(aseq, chain), chain, aseq.match_maps[chain]))
-
-    # collate the template info in series of strings that can be joined with '/'
-    target_strings = []
-    templates_strings = []
-    from chimerax.atomic.pdb import standard_polymeric_res_names as std_res_names
-    for target, templates_info in template_info:
-        target_seq = target.characters
-        target_strings.append(target_seq)
-        target_template_strings = []
-        templates_strings.append(target_template_strings)
-        accum_water_het = ""
-        for template, chain, match_map in templates_info:
-            # match_map has the chain-to-aseq original match map
-            # missing positions have already been changed to '-' in template
-            end = chain.existing_residues[-1]
-            template_string = template.characters + accum_water_het
-            accum = ""
-            if not het_preserve and not water_preserve:
-                target_template_strings.append(template_string)
-                continue
-            # add het/water characters and get proper end residue
-            before_end = True
-            for r in chain.structure.residues:
-                if before_end:
-                    before_end = r != end
-                    continue
-                if r.chain_id != chain.chain_id or (r.chain and r.chain != chain):
-                    break
-                end = r
-                if water_preserve and r.name in r.standard_water_names \
-                or het_preserve and r.name not in std_res_names:
-                    char = '.'
-                else:
-                    char = '-'
-                target_seq += char
-                template_string += char
-                accum += '-'
-            accum_water_het += accum
-            for i, tts in enumerate(target_template_strings):
-                target_template_strings[i] = tts + accum
-            target_template_strings.append(template_string)
-    # Insert/append all-'-' strings so that each template is in it's own line
-    insertions = []
-    appendings = []
-    for i in range(len(templates_strings)):
-        insertions.append([])
-        appendings.append([])
-    for i, target_template_strings in enumerate(templates_strings):
-        line_to_add = '-' * len(target_template_strings[0])
-        for appending in appendings[:i]:
-            appending.append(line_to_add)
-        for insertion in insertions[i+1:]:
-            insertion.append(line_to_add)
-    # form the sequences to be written out as a PIR
-    pir_seqs = []
-    from chimerax.atomic import Sequence
-    structures_to_save = set()
-    for i, tmpl_strs in enumerate(templates_strings):
-        for j, tmpl_str in enumerate(tmpl_strs):
-            chain, match_map = template_info[i][1][j][1:]
-            first_assoc_pos = 0
-            while first_assoc_pos not in match_map:
-                first_assoc_pos += 1
-            first_assoc_res = match_map[first_assoc_pos]
-            pir_template = Sequence(name=chain_save_name(chain))
-            pir_seqs.append(pir_template)
-            pir_template.description = "structure:%s:%d%s:%s:+%d:%s::::" % (
-                structure_save_name(chain.structure), first_assoc_res.number, first_assoc_res.insertion_code,
-                chain.chain_id, len(tmpl_str) - tmpl_str.count('-'), chain.chain_id)
-            structures_to_save.add(chain.structure)
-            full_line = tmpl_str
-            prefix = '/'.join(insertions[i])
-            if prefix:
-                full_line = prefix + '/' + full_line
-            suffix = '/'.join(appendings[i])
-            if suffix:
-                full_line = full_line + '/' + suffix
-            pir_template.characters = full_line
-    pir_target = Sequence(name=template_info[0][0].name)
-    # now for something completely different...
-    # write the namelist.dat file, target seq name on first line, templates on remaining lines
-    import os.path
-    name_file = os.path.join(temp_dir.name, "namelist.dat")
-    input_file_map.append(("namelist.dat", "text_file", name_file))
-    with open(name_file, 'w') as f:
-        print(pir_target.name, file=f)
-        for template_seq in pir_seqs:
-            print(template_seq.name, file=f)
-    # carry on...
-    pir_seqs.append(pir_target)
-    pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
-    pir_target.characters = '/'.join(target_strings)
-    pir_file = os.path.join(temp_dir.name, "alignment.ali")
-    aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False)
-    aln.save(pir_file, format_name="pir")
-    session.alignments.destroy_alignment(aln)
-    input_file_map.append(("alignment.ali", "text_file", pir_file))
-    """
 
     config_name = os.path.basename(config_path)
     input_file_map.append((config_name, "text_file", config_path))

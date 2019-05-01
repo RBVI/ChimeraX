@@ -18,6 +18,18 @@ def modeller_copy(seq):
 	mseq.characters = "".join([c.upper() if c.isalpha() else '-' for c in mseq.characters])
 	return mseq
 
+def get_license_key(session, license_key):
+    from .settings import get_settings
+    settings = get_settings(session)
+    if license_key is None:
+        license_key = settings.license_key
+    else:
+        settings.license_key = license_key
+    if license_key is None:
+        from chimerax.core.errors import UserError
+        raise UserError("No Modeller license key provided."
+            " Get a license key by registering at the Modeller web site.")
+    return license_key
 
 def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve, hydrogens, fast, loop_info,
         custom_script, temp_path, thorough_opt, dist_restraints_path):
@@ -51,8 +63,8 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
             '\t<allHydrogen>%s</allHydrogen>\n'
             '\t<veryFast>%s</veryFast>\n'
             '\t<loopInfo>%s</loopInfo>\n'
-            '</modeller9v8>' % (license_key, num_models, int(het_preserve), int(water_preserve), int(hydrogens),
-                int(fast), repr(loop_info)), file=config_file)
+            '</modeller9v8>' % (license_key, num_models, int(het_preserve),
+                int(water_preserve), int(hydrogens), int(fast), repr(loop_info)), file=config_file)
 
     if custom_script:
         return custom_script, config_file.name, temp_dir

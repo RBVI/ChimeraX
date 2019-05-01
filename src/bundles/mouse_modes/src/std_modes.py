@@ -286,7 +286,8 @@ class RotateAndSelectMouseMode(RotateMouseMode):
     while click and drag produces rotation.
     '''
     name = 'rotate and select'
-    icon_file = 'icons/rotatesel.png'
+# Don't specify icon since we don't want this mode shown in the toolbar.
+#    icon_file = 'icons/rotatesel.png'
     click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):

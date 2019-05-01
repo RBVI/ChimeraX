@@ -32,9 +32,10 @@ issue all your new_slot requests, you call the queue's wait() method to wait for
 class HTTPQueue:
     '''Handles all queueing'''
 
-    def __init__(self, session):
+    def __init__(self, session, *, thread_max=10):
         self.server_map = {}
         self.session = session
+        self.thread_max = thread_max
         from threading import Lock
         self.wait_lock = Lock()
 
@@ -44,7 +45,8 @@ class HTTPQueue:
         try:
             server = self.server_map[server_name]
         except KeyError:
-            server = self.server_map[server_name] = HTTPQueueServer(self, server_name)
+            server = self.server_map[server_name] = HTTPQueueServer(self, server_name,
+                thread_max=self.thread_max)
         return server.make_slot()
 
     def wait(self):
@@ -59,11 +61,10 @@ class HTTPQueue:
 class HTTPQueueServer:
     '''Handles all requests to a particular host'''
 
-    thread_max = 10
-
-    def __init__(self, queue, server_name):
+    def __init__(self, queue, server_name, *, thread_max=10):
         self.queue = queue
         self.server_name = server_name
+        self.thread_max = thread_max
         self.slots = set()
         self.requests = []
         self.running = set()
@@ -83,7 +84,7 @@ class HTTPQueueServer:
         self._start_request()
 
     def _start_request(self):
-        while len(self.running) < self.thread_max and self.requests:
+        while (self.thread_max is None or len(self.running) < self.thread_max) and self.requests:
             slot = self.requests.pop(0)
             self.running.add(slot)
             from threading import Thread
