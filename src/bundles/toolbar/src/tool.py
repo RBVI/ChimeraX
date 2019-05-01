@@ -295,7 +295,6 @@ _Toolbars = {
                 ("mouse:rotate", None, "Rotate", "Rotate models"),
                 ("mouse:translate", None, "Translate", "Translate models"),
                 ("mouse:zoom", None, "Zoom", "Zoom view"),
-                ("mouse:rotate and select", None, "Rotate and select", "Select and rotate models"),
                 ("mouse:translate selected models", None, "Translate Selected", "Translate selected models"),
                 ("mouse:rotate selected models", None, "Rotate Selected", "Rotate selected models"),
                 ("mouse:pivot", None, "Pivot", "Set center of rotation at atom"),
