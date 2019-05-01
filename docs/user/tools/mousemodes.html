@@ -26,10 +26,18 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="toolbar.html">Toolbar</a>: Right Mouse</h3>
 <p>
 Icons in the <b>Right Mouse</b> tab of the
-<a href="toolbar.html"><b>Toolbar</b></a>
-allow changing the assignment of the 
-right mouse button (= trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="../icon-clover.png" width="12px"> on Mac).
+<a href="toolbar.html"><b>Toolbar</b></a> allow reassigning the function of:
+</p>
+<ul>
+<li>any hand-controller button in 
+<a href="../vr.html">ChimeraX virtual reality</a>
+<li>the right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+in the <a href="../window.html">ChimeraX graphics window</a>
+</ul>
+<p>
+(On Windows or Linux, right-click elsewhere in the ChimeraX interface raises
+a <a href="../window.html#context-menu">context menu</a>.)
 </p><p>
 With the related
 <a href="../commands/ui.html#mousemode"><b>mousemode</b></a> command,
@@ -37,8 +45,7 @@ functions can be assigned to all mouse buttons (not just the right)
 and to scrolling, alone and in combination with modifier keys.
 See also:
 <a href="markerplacement.html"><b>Marker Placement</b></a>,
-<a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>,
-<a href="#vr">virtual reality</a>
+<a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -91,20 +98,10 @@ drag to rotate</td>
 <td align="center" class="text">rotate models with any part 
 <a href="../selection.html">selected</a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/clip.png" width="35px"></td>
-<td align="center"><b>clip</b> </td>
-<td align="center" class="text">activate and translate front clipping plane,
-+<b>Alt</b> back plane,
-+<b>Shift</b> slab (front and back in same direction),
-+<b>Alt-Shift</b> slab thickness (front and back in opposite directions);
-if only near/far (fixed-orientation) planes already active, move those 
-instead of front/back (rotatable) planes;
-see also <a href="../commands/clip.html"><b>clip</b></a></td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/cliprot.png" width="35px"></td>
-<td align="center"><b>clip rotate</b></td>
-<td align="center" class="text">activate and rotate front/back clipping planes;
-see also <a href="../commands/clip.html"><b>clip</b></a></td>
+<td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
+<td align="center"><b>pivot</b><br>(shift right)</td>
+<td align="center" class="text">set center of rotation to atom;
+see also <a href="../commands/cofr.html"><b>cofr</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/distance.png" width="35px"></td>
 <td align="center"><b>distance</b></td>
@@ -127,15 +124,27 @@ see also <a href="../commands/label.html"><b>label</b></a></td>
 move <a href="../commands/2dlabels.html">2D label</a>;
 see also <a href="../commands/2dlabels.html"><b>2dlabels</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
-<td align="center"><b>pivot</b><br>(shift right)</td>
-<td align="center" class="text">set center of rotation to atom;
-see also <a href="../commands/cofr.html"><b>cofr</b></a></td>
+<td align="center"><img src="mouse-icons/clip.png" width="35px"></td>
+<td align="center"><b>clip</b> </td>
+<td align="center" class="text">activate and translate front clipping plane,
++<b>Alt</b> back plane,
++<b>Shift</b> slab (front and back in same direction),
++<b>Alt-Shift</b> slab thickness (front and back in opposite directions);
+if only near/far (fixed-orientation) planes already active, move those 
+instead of front/back (rotatable) planes;
+see also <a href="../commands/clip.html"><b>clip</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
-<td align="center"><b>bond rotation</b></td>
-<td align="center" class="text">adjust torsion angle (original position
-not retained); see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
+<td align="center"><img src="mouse-icons/cliprot.png" width="35px"></td>
+<td align="center"><b>clip rotate</b></td>
+<td align="center" class="text">activate and rotate front/back clipping planes;
+see also <a href="../commands/clip.html"><b>clip</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
+<td align="center"><b>zone</b></td>
+<td align="center" class="text">
+limit atomic and <a href="volumeviewer.html">volume data</a> display
+to a zone around the clicked residue
+(<a href="mousemodes.html#zone">details...</a>)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/contour.png" width="35px"></td>
 <td align="center"><b>contour level</b></td>
@@ -170,6 +179,30 @@ see also <a href="../commands/volume.html"><b>volume</b></a></td>
 <a href="../trajectories.html#vseries">volume series</a>;
 see also <a href="../commands/vseries.html"><b>vseries</b></a></td>
 </tr><tr>
+<td align="center"><img src="mouse-icons/windowing.png" width="35px"></td>
+<td align="center"><b>windowing</b></td>
+<td align="center" class="text">adjust
+<a href="volumeviewer.html">volume data</a> solid display
+thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
+(moves all thresholds in parallel to higher or lower values),
+horizontal motion adjusts <b><i>window width</i></b>
+(moves thresholds symmetrically farther apart or closer together);
+the dominant type of motion wins out, <i>i.e.</i>, a diagonal motion
+will not change both level and width</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
+<td align="center"><b>bond rotation</b></td>
+<td align="center" class="text">adjust torsion angle (original position not 
+retained); see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
+<td align="center"><b>swapaa</b></td>
+<td align="center" class="text">&ldquo;mutate&rdquo;
+and <a href="../commands/label.html">label</a> the amino acid residue
+under the mouseclick,
+with vertical drag cycling through the 20 standard types
+in arbitrary conformations; original sidechain not retained</td>
+</tr><tr>
 <td align="center"><img src="mouse-icons/tug.png" width="35px"></td>
 <td align="center"><b>tug</b></td>
 <td align="center" class="text">drag atoms and apply OpenMM dynamics
@@ -182,32 +215,6 @@ original coordinates not retained</td>
 jiggle residue and its neighbors with OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
-<td align="center"><b>swapaa</b></td>
-<td align="center" class="text">&ldquo;mutate&rdquo;
-and <a href="../commands/label.html">label</a> the amino acid residue
-under the mouseclick,
-with vertical drag cycling through the 20 standard types
-in arbitrary conformations; original sidechain not retained</td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
-<td align="center"><b>zone</b></td>
-<td align="center" class="text">
-limit atomic and <a href="volumeviewer.html">volume data</a> display
-to a zone around the clicked residue
-(<a href="mousemodes.html#zone">details...</a>)</td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/windowing.png" width="35px"></td>
-<td align="center"><b>windowing</b></td>
-<td align="center" class="text">adjust
-<a href="volumeviewer.html">volume data</a> solid display
-thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
-(moves all thresholds in parallel to higher or lower values),
-horizontal motion adjusts <b><i>window width</i></b>
-(moves thresholds symmetrically farther apart or closer together);
-the dominant type of motion wins out, <i>i.e.</i>, a diagonal motion
-will not change both level and width</td>
 </tr>
 </table>
 
