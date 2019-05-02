@@ -99,7 +99,7 @@ def vr(session, enable = None, room_position = None, display = None,
         if show_controllers is not None:
             c.show_hand_controllers(show_controllers)
         if gui is not None:
-            c.user_interface.set_gui_tool_name(gui)
+            c.user_interface.set_gui_panels([tool_name.strip() for tool_name in gui.split(',')])
         if click_range is not None:
             c.user_interface.set_mouse_mode_click_range(click_range)
 
@@ -713,70 +713,88 @@ class UserInterface:
     def __init__(self, camera, session):
         self._camera = camera
         self._session = session
-        self._width = 0.5		# Billboard width in room coords, meters.
-        self._height = None		# Height in room coords determined by window aspect and width.
-        self._gui_tool_name = None	# Name of tool instance shown in VR gui panel.
-        self._panel_size = None 	# Panel size in Qt device independent pixels
-        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
-        self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
+
         self._mouse_mode_click_range = 5 # In scene units (Angstroms).
         self._update_later = 0		# Redraw panel after this many frames
         self._update_delay = 10		# After click on panel, update after this number of frames
-        self._ui_drawing = None
-        self._last_image_rgba = None
+        self._ui_model = None
+        self._panels = []		# List of Panel, one for each user interface pane
+        self._gui_tool_names = ['Tabbed Toolbar', 'right panels']
+        self._panel_separation = 0.01	# meters
         self._start_ui_move_time = None
         self._last_ui_position = None
         self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
-        self._button_down = None
-        self._button_rise = 0.01	# meters rise when pointer over button
-        self._raised_buttons = {}	# maps highlight_id to widget
+        self._buttons_down = {}		# (HandControllerModel, button) -> Panel
+        self._raised_buttons = {}	# maps highlight_id to (widget, panel)
 
         # Buttons that can be pressed on user interface.
         import openvr
         self.buttons = (openvr.k_EButton_SteamVR_Trigger, openvr.k_EButton_Grip, openvr.k_EButton_SteamVR_Touchpad)
         
     def close(self):
-        ui = self._ui_drawing
+        ui = self._ui_model
         if ui:
             self._session.models.close([ui])
-            self._ui_drawing = None
+            self._ui_model = None
 
     @property
-    def drawing(self):
-        return self._ui_drawing
+    def model(self):
+        return self._ui_model
+
+    @property
+    def panels(self):
+        return self._panels
     
     def shown(self):
-        ui = self._ui_drawing
+        ui = self._ui_model
         if ui is None:
             return False
         if ui.deleted:
-            self._ui_drawing = None
+            self._ui_model = None
             return False
         return ui.display
     
     def show(self, room_position, parent_model):
-        ui = self._ui_drawing
+        ui = self._ui_model
         if ui is None:
-            self._ui_drawing = ui = self._create_ui_drawing(parent_model)
-        self._update_ui_image()
+            self._ui_model = ui = self._create_ui_model(parent_model)
+            self._panels = self._create_panels()
+        self._update_ui_images()
         ui.room_position = room_position
         ui.position = self._camera.room_to_scene * room_position
         ui.display = True
 
-    def size(self):
-        return (self._width, self._height)
+    def _create_panels(self):
+        ui = self._ui_model
+        panels = [Panel(ui, self, tool_name) for tool_name in self._gui_tool_names]
+        np = len(panels)
+        if np > 1:
+            sep = self._panel_separation
+            h = sum(p._height for p in panels) + (np-1)*sep
+            # Stack panels.
+            shift = h/2
+            from chimerax.core.geometry import translation
+            for p in panels:
+                shift -= 0.5*p._height
+                pd = p._panel_drawing
+                pd.position = translation((0,shift,0)) * pd.position
+                shift -= 0.5*p._height + sep
+        return panels
     
     def move(self, room_motion = None):
-        ui = self._ui_drawing
+        ui = self._ui_model
         if ui and ui.display:
             if room_motion:
                 ui.room_position = room_motion * ui.room_position
             ui.position = self._camera.room_to_scene * ui.room_position            
         
     def hide(self):
-        ui = self._ui_drawing
+        ui = self._ui_model
         if ui is not None:
             ui.display = False
+
+    def set_gui_panels(self, tool_names):
+        self._gui_tool_names = tool_names
 
     def process_hand_controller_button_event(self, hand_controller, button, pressed, released):
         b = button
@@ -787,64 +805,62 @@ class UserInterface:
         rp = hc.room_position
         if rp is None:
             return False
-        
-        window_xy, on_panel = self._click_position(rp.origin())
-        if released and self._button_down == (hc, b) and window_xy:
-            # Always release mouse button even if off panel.
-            self._release(window_xy)
-            self._button_down = None
-        elif on_panel:
-            if pressed and self._button_down is None:
-                hand_mode = self._clicked_mouse_mode(window_xy)
-                if hand_mode:
-                    if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
-                        msg = 'No VR support for mouse mode %s' % hand_mode.name
-                    else:
-                        hc._set_hand_mode(b, hand_mode)
-                        msg = 'VR mode %s' % hand_mode.name
-                    self._session.logger.info(msg)
-                    self._show_pressed(window_xy)
-                    self.redraw_ui()	# Show log message
-                else:
-                    self._press(window_xy)
-                    self._button_down = (hc, b)
-            elif released:
-                if self._button_down == (hc, b):
-                    self._release(window_xy)
-                    self._button_down = None
-                else:
-                    self._show_pressed(window_xy, False)
-                    return False # Button released on panel but not pressed on panel
-        else:
+
+        bdown = self._buttons_down
+        if released:
+            if (hc,b) in bdown:
+                # Current button down has been released.
+                panel = bdown[(hc,b)]
+                window_xy, z_offset = panel._panel_click_position(rp.origin())
+                self._release(window_xy)
+                del bdown[(hc,b)]
+                return True
+            else:
+                # Button was released where we never got button press event.
+                # For example button press away from panel, then release on panel.
+                # Ignore release.
+                return False
+        elif pressed:
+            # Button pressed.
+            window_xy, panel = self._click_position(rp.origin())
+            if panel and not self._mouse_mode_pressed(window_xy, hc, b):
+                self._press(window_xy)
+                bdown[(hc,b)] = panel
+                return True
+
+        return False
+
+    def _mouse_mode_pressed(self, window_xy, hand_controller, button):
+        hand_mode = self._clicked_mouse_mode(window_xy)
+        if hand_mode is None:
             return False
+
+        if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
+            msg = 'No VR support for mouse mode %s' % hand_mode.name
+        else:
+            hand_controller._set_hand_mode(button, hand_mode)
+            msg = 'VR mode %s' % hand_mode.name
+        self._session.logger.info(msg)
+        self._show_pressed(window_xy)
+        self.redraw_ui()	# Show log message
         return True
 
     def process_hand_controller_motion(self, hand_controller):
         hc = hand_controller
-        if self._button_down and self._button_down[0] == hc:
-            window_xy, on_panel = self._click_position(hc.room_position.origin())
-            if window_xy is not None:
-                self._drag(window_xy)
-                return True
+        dragged = False
+        for (bhc, b), panel in self._buttons_down.items():
+            if hc == bhc:
+                window_xy, z_offset = panel._panel_click_position(hc.room_position.origin())
+                if window_xy is not None:
+                    self._drag(window_xy)
+                    dragged = True
+        if dragged:
+            return True
 
         # Highlight ui button under pointer
-        if not self._button_down:
-            self._highlight_button(hc.room_position.origin(), hc)
+        self._highlight_button(hc.room_position.origin(), hc)
 
         return False
-    
-    def _click_position(self, room_point):
-        if not self.shown():
-            return None, False
-        ui = self._ui_drawing
-        x,y,z = ui.room_position.inverse() * room_point
-        hw, hh = 0.5*self._width, 0.5*self._height
-        cr = self._ui_click_range
-        on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
-        sx, sy = self._panel_size
-        ox, oy = self._panel_offset
-        px, py = ox + sx * (x + hw) / (2*hw), oy + sy * (hh - y) / (2*hh)
-        return (px,py), on_panel
 
     def _press(self, window_xy):
         return self._click('press', window_xy)
@@ -866,48 +882,6 @@ class UserInterface:
                 self.redraw_ui()
             return True
         return False
-
-    def redraw_ui(self, delay = True):
-        if delay:
-            self._update_later = self._update_delay
-        else:
-            self._update_later = 0
-            self._update_ui_image()
-
-    def update_if_needed(self):
-        if self.shown() and self._update_later:
-            self._update_later -= 1
-            if self._update_later == 0:
-                self._update_ui_image()
-
-    def _clicked_mouse_mode(self, window_xy):
-        w, pos = self._clicked_widget(window_xy)
-        from PyQt5.QtWidgets import QToolButton
-        if isinstance(w, QToolButton):
-            if hasattr(w, 'vr_mode'):
-                if isinstance(w.vr_mode, str):
-                    mouse_mode = self._session.ui.mouse_modes.named_mode(w.vr_mode)
-                else:
-                    mouse_mode = w.vr_mode()
-                return self._hand_mode(mouse_mode)
-            a = w.defaultAction()
-            if hasattr(a, 'vr_mode'):
-                mouse_mode = a.vr_mode()
-                return self._hand_mode(mouse_mode)
-        return None
-
-    def set_mouse_mode_click_range(self, range):
-        self._mouse_mode_click_range = range
-
-    def _hand_mode(self, mouse_mode):
-        name = mouse_mode.name
-        if name == 'zoom':
-            m = ZoomMode()
-        elif name in ('rotate', 'translate'):
-            m = MoveSceneMode()
-        else:
-            m = MouseMode(mouse_mode, self._mouse_mode_click_range)
-        return m
     
     def _post_mouse_event(self, type, window_xy):
         '''Type is "press", "release" or "move".'''
@@ -948,32 +922,91 @@ class UserInterface:
         if w:
             self._show_pressed_button(w, pressed)
 
-    def _show_pressed_button(self, button, pressed = True):
-        if button in self._raised_buttons.values():
-            button._show_pressed = pressed
-            self._update_geometry()	# Show partially depressed button
+    def _show_pressed_button(self, widget, pressed = True):
+        for w, panel in self._raised_buttons.values():
+            if w == widget:
+                widget._show_pressed = pressed
+                panel._update_geometry()	# Show partially depressed button
             
     def _highlight_button(self, room_point, highlight_id):
-        window_xy, on_panel = self._click_position(room_point)
-        if on_panel:
+        window_xy, panel = self._click_position(room_point)
+        if panel:
             widget, wpos = self._clicked_widget(window_xy)
             from PyQt5.QtWidgets import QAbstractButton
             if isinstance(widget, QAbstractButton):
                 rb = self._raised_buttons
                 if highlight_id in rb and widget is rb[highlight_id]:
                     return # Already raised
-                rb[highlight_id] = widget
-                self._update_geometry()
+                rb[highlight_id] = widget, panel
+                panel._update_geometry()
                 return
 
         rb = self._raised_buttons
         if highlight_id in rb:
-            w = rb[highlight_id]
+            w, panel = rb[highlight_id]
             w._show_pressed = False
             del rb[highlight_id]
-            self._update_geometry()
+            panel._update_geometry()
+
+    def redraw_ui(self, delay = True):
+        if delay:
+            self._update_later = self._update_delay
+        else:
+            self._update_later = 0
+            self._update_ui_images()
+
+    def update_if_needed(self):
+        if self.shown() and self._update_later:
+            self._update_later -= 1
+            if self._update_later == 0:
+                self._update_ui_images()
+
+    def _update_ui_images(self):
+        for panel in self._panels:
+            panel._update_image()
+
+    def _clicked_mouse_mode(self, window_xy):
+        w, pos = self._clicked_widget(window_xy)
+        from PyQt5.QtWidgets import QToolButton
+        if isinstance(w, QToolButton):
+            if hasattr(w, 'vr_mode'):
+                if isinstance(w.vr_mode, str):
+                    mouse_mode = self._session.ui.mouse_modes.named_mode(w.vr_mode)
+                else:
+                    mouse_mode = w.vr_mode()
+                return self._hand_mode(mouse_mode)
+            a = w.defaultAction()
+            if hasattr(a, 'vr_mode'):
+                mouse_mode = a.vr_mode()
+                return self._hand_mode(mouse_mode)
+        return None
+
+    def set_mouse_mode_click_range(self, range):
+        self._mouse_mode_click_range = range
+
+    def _hand_mode(self, mouse_mode):
+        name = mouse_mode.name
+        if name == 'zoom':
+            m = ZoomMode()
+        elif name in ('rotate', 'translate'):
+            m = MoveSceneMode()
+        else:
+            m = MouseMode(mouse_mode, self._mouse_mode_click_range)
+        return m
     
-    def _create_ui_drawing(self, parent):
+    def _click_position(self, room_point):
+        if not self.shown():
+            return None, None
+
+        window_xy = panel = min_z_offset = None
+        for p in self._panels:
+            win_xy, z_offset = p._panel_click_position(room_point)
+            if z_offset is not None and (min_z_offset is None or z_offset < min_z_offset):
+                window_xy, panel, min_z_offset = win_xy, p, z_offset
+
+        return window_xy, panel
+    
+    def _create_ui_model(self, parent):
         ses = self._session
         from chimerax.core.models import Model
         m = Model('User interface', ses)
@@ -981,119 +1014,6 @@ class UserInterface:
         m.use_lighting = False
         ses.models.add([m], parent = parent)
         return m
-
-    def _update_ui_image(self):
-        rgba = self._panel_image()
-        lrgba = self._last_image_rgba
-        self._last_image_rgba = rgba
-        if lrgba is None or rgba.shape != lrgba.shape:
-            h,w = rgba.shape[:2]
-            aspect = h/w
-            self._height = aspect * self._width
-            self._update_geometry()
-
-        d = self._ui_drawing
-        if d.texture is not None:
-            # Require OpenGL context for deleting texture.
-            self._session.main_view.render.make_current()
-            d.texture.delete_texture()
-        from chimerax.core.graphics import Texture
-        d.texture = Texture(rgba)
-
-    def _update_geometry(self):
-        # Calculate rectangles for panel and raised buttons
-        w, h = self._width, self._height
-        xmin,ymin,xmax,ymax = -0.5*w,-0.5*h,0.5*w,0.5*h
-        rects = [(xmin,ymin,0,xmax,ymax,0)]
-        zr = self._button_rise
-        rb = self._raised_buttons
-        for widget in rb.values():
-            x0,y0,x1,y1 = self._button_rectangle(widget)
-            z = .5*zr if getattr(widget, '_show_pressed', False) else zr
-            rects.append((x0,y0,z,x1,y1,z))
-
-        # Create geometry for rectangles
-        nr = len(rb) + 1
-        nv = 4*nr
-        nt = 2*nr
-        from numpy import empty, float32, int32
-        v = empty((nv,3), float32)
-        tc = empty((nv,2), float32)
-        t = empty((nt,3), int32)
-        for r, (x0,y0,z0,x1,y1,z1) in enumerate(rects):
-            ov, ot = 4*r, 2*r
-            v[ov:ov+4] = ((x0,y0,z0), (x1,y0,z0), (x1,y1,z0), (x0,y1,z0))
-            tx0, ty0, tx1, ty1 = (x0-xmin)/w, (y0-ymin)/h, (x1-xmin)/w, (y1-ymin)/h
-            tc[ov:ov+4] = ((tx0,ty0), (tx1,ty0), (tx1,ty1), (tx0,ty1))
-            t[ot:ot+2] = ((ov,ov+1,ov+2), (ov,ov+2,ov+3))
-
-        # Update Drawing
-        d = self._ui_drawing
-        d.set_geometry(v, None, t)
-        d.texture_coordinates = tc
-
-    def panel_image_rgba(self):
-        return self._last_image_rgba
-
-    def set_gui_tool_name(self, tool_name):
-        self._gui_tool_name = tool_name
-
-    def _panel_image(self):
-        ui = self._session.ui
-        im = ui.window_image()
-        from chimerax.core.graphics.drawing import qimage_to_numpy
-        rgba = qimage_to_numpy(im)
-        wh,ww = rgba.shape[:2]
-        mw = ui.main_window
-        dpr = mw.devicePixelRatio()
-        x0, y0, w, h = self._panel_rectangle(mw)
-        prgba = rgba[wh-dpr*(y0+h):wh-dpr*y0,dpr*x0:dpr*(x0+w),:]
-        self._panel_offset = (x0, y0)
-        self._panel_size = (w, h)
-        return prgba
-
-    def _panel_rectangle(self, mw):
-        '''
-        Returned coordinates are in pixels relative to the top level window.
-        A y value of zero is at the top with increasing y values going down on screen.
-        '''
-        tw = self._gui_tool_window()
-        if tw is None:
-            gw = mw.graphics_window
-            x0, y0 = gw.x() + gw.width(), gw.y()
-            h = gw.height()
-            w = mw.width() - x0
-# Show entire main window in VR.
-            x0 = y0 = 0
-            w, h = mw.width(), mw.height()
-        else:
-            x0, y0, w, h  = tw.x(), tw.y(), tw.width(), tw.height()
-# TODO: The x,y coords need to be in pixels relative to the ChimeraX main window.
-#       But the code gw.x() or tw.x() gives the corner position relative to the parent
-#       window which may not be the top level window.
-        return x0, y0, w, h
-
-    def _button_rectangle(self, widget):
-        '''Returns coordinates in meters with 0,0 at center of ui panel.'''
-        mw = self._session.ui.main_window
-        x0,y0,w,h = self._panel_rectangle(mw)
-        xc, yc = x0 + 0.5*w, y0 + 0.5*h
-        from PyQt5.QtCore import QPoint
-        wxy0 = widget.mapTo(mw, QPoint(0,0))
-        wx0,wy0 = wxy0.x(), wxy0.y()
-        ww,wh = widget.width(), widget.height()
-        wx1, wy1 = wx0+ww, wy0+wh
-        pw, ph = self._width, self._height
-        rect = (pw*(wx0-xc)/w, -ph*(wy0-yc)/h, pw*(wx1-xc)/w, -ph*(wy1-yc)/h)
-        return rect
-
-    def _gui_tool_window(self):
-        tname = self._gui_tool_name
-        if tname is not None:
-            for ti in self._session.tools.list():
-                if ti.tool_name == tname and hasattr(ti, 'tool_window'):
-                    return ti.tool_window._dock_widget
-        return None
 
     def display_ui(self, button_pressed, hand_room_position, camera_position):
         if button_pressed:
@@ -1103,11 +1023,12 @@ class UserInterface:
                 from time import time
                 self._start_ui_move_time = time()
             else:
-                # Orient horizontally and perpendicular to floor
+                # Orient horizontally and facing camera.
                 view_axis = camera_position.origin() - rp.origin()
                 from chimerax.core.geometry import orthonormal_frame, translation
                 p = orthonormal_frame(view_axis, (0,1,0), origin = rp.origin())
-                p = translation(0.5 * self._width * p.axes()[1]) * p
+                # Offset vertically
+                # p = translation(0.5 * width * p.axes()[1]) * p
                 parent = self._camera._vr_control_model_group()
                 self.show(p, parent)
         else:
@@ -1127,9 +1048,198 @@ class UserInterface:
         self._last_ui_position = rp
 
     def scale_ui(self, scale_factor):
+        from numpy import mean
+        center = mean([p._panel_drawing.position.origin() for p in self._panels], axis = 0)
+        for p in self._panels:
+            p.scale_panel(scale_factor, center)
+
+class Panel:
+    '''The VR user interface consists of one or more rectangular panels.'''
+    initial_widths = {'main window': 1, 'right panel': 0.5, 'Tabbed Toolbar': 1} # Meters
+    def __init__(self, parent, ui, tool_name = 'main window'):
+        self._ui = ui
+        self._gui_tool_name = tool_name	# Name of tool instance shown in VR gui panel.
+        width = Panel.initial_widths.get(tool_name, 0.5)
+        self._width = width		# Billboard width in room coords, meters.
+        x0,y0,w,h = self._panel_rectangle()
+        aspect = h/w
+        self._height = aspect*width	# Height in room coords determined by window aspect and width.
+        self._panel_size = None 	# Panel size in Qt device independent pixels
+        self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
+        self._last_image_rgba = None
+        self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
+        self._button_rise = 0.01	# meters rise when pointer over button
+
+        self._panel_drawing = self._create_panel_drawing(parent)  # Drawing that renders this panel.
+
+    def _create_panel_drawing(self, parent):
+        from chimerax.core.graphics import Drawing
+        d = Drawing('User interface')
+        d.color = (255,255,255,255)
+        d.use_lighting = False
+        parent.add_drawing(d)
+        return d
+
+    @property
+    def name(self):
+        return self._gui_tool_name
+
+    @property
+    def size(self):
+        '''Panel width and height in meters.'''
+        return (self._width, self._height)
+
+    @property
+    def drawing(self):
+        return self._panel_drawing
+    
+    def scale_panel(self, scale_factor, center = None):
+        '''
+        Center is specified in the parent model coordinate system.
+        If center is not specified then panel scales about its geometric center.
+        '''
         self._width *= scale_factor
         self._height *= scale_factor
         self._update_geometry()
+
+        if center is not None:
+            pd = self._panel_drawing
+            shift = (scale_factor-1) * (pd.position.origin() - center)
+            from chimerax.core.geometry import translation
+            pd.position = translation(shift) * pd.position
+            
+    def _panel_click_position(self, room_point):
+        ui = self._panel_drawing
+        scene_point = self._ui._camera.room_to_scene * room_point
+        x,y,z = ui.scene_position.inverse() * scene_point
+        hw, hh = 0.5*self._width, 0.5*self._height
+        cr = self._ui_click_range
+        on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
+        z_offset = (z - cr) if on_panel else None
+        sx, sy = self._panel_size
+        ox, oy = self._panel_offset
+        window_xy = ox + sx * (x + hw) / (2*hw), oy + sy * (hh - y) / (2*hh)
+        return window_xy, z_offset
+
+    def _update_image(self):
+        rgba = self._panel_image()
+        lrgba = self._last_image_rgba
+        self._last_image_rgba = rgba
+        if lrgba is None or rgba.shape != lrgba.shape:
+            h,w = rgba.shape[:2]
+            aspect = h/w
+            self._height = aspect * self._width
+            self._update_geometry()
+
+        d = self._panel_drawing
+        if d.texture is not None:
+            # Require OpenGL context for deleting texture.
+            self._ui._session.main_view.render.make_current()
+            d.texture.delete_texture()
+        from chimerax.core.graphics import Texture
+        d.texture = Texture(rgba)
+
+    def _update_geometry(self):
+        # Calculate rectangles for panel and raised buttons
+        w, h = self._width, self._height
+        xmin,ymin,xmax,ymax = -0.5*w,-0.5*h,0.5*w,0.5*h
+        rects = [(xmin,ymin,0,xmax,ymax,0)]
+        zr = self._button_rise
+        rb = self._ui._raised_buttons
+        for widget, panel in rb.values():
+            if panel is self:
+                x0,y0,x1,y1 = self._button_rectangle(widget)
+                z = .5*zr if getattr(widget, '_show_pressed', False) else zr
+                rects.append((x0,y0,z,x1,y1,z))
+
+        # Create geometry for rectangles
+        nr = len(rects)
+        nv = 4*nr
+        nt = 2*nr
+        from numpy import empty, float32, int32
+        v = empty((nv,3), float32)
+        tc = empty((nv,2), float32)
+        t = empty((nt,3), int32)
+        for r, (x0,y0,z0,x1,y1,z1) in enumerate(rects):
+            ov, ot = 4*r, 2*r
+            v[ov:ov+4] = ((x0,y0,z0), (x1,y0,z0), (x1,y1,z0), (x0,y1,z0))
+            tx0, ty0, tx1, ty1 = (x0-xmin)/w, (y0-ymin)/h, (x1-xmin)/w, (y1-ymin)/h
+            tc[ov:ov+4] = ((tx0,ty0), (tx1,ty0), (tx1,ty1), (tx0,ty1))
+            t[ot:ot+2] = ((ov,ov+1,ov+2), (ov,ov+2,ov+3))
+
+        # Update Drawing
+        d = self._panel_drawing
+        d.set_geometry(v, None, t)
+        d.texture_coordinates = tc
+
+    def panel_image_rgba(self):
+        return self._last_image_rgba
+
+    def set_gui_tool_name(self, tool_name):
+        self._gui_tool_name = tool_name
+
+    def _panel_image(self):
+        ui = self._ui._session.ui
+        im = ui.window_image()
+        from chimerax.core.graphics.drawing import qimage_to_numpy
+        rgba = qimage_to_numpy(im)
+        wh,ww = rgba.shape[:2]
+        dpr = ui.main_window.devicePixelRatio()
+        x0, y0, w, h = self._panel_rectangle()
+        prgba = rgba[wh-dpr*(y0+h):wh-dpr*y0,dpr*x0:dpr*(x0+w),:]
+        self._panel_offset = (x0, y0)
+        self._panel_size = (w, h)
+        return prgba
+
+    def _panel_rectangle(self):
+        '''
+        Returned coordinates are in pixels relative to the top level window.
+        A y value of zero is at the top with increasing y values going down on screen.
+        '''
+        tname = self._gui_tool_name
+        mw = self._ui._session.ui.main_window
+        if tname == 'main window':
+            # Show entire main window in VR.
+            x0, y0, w, h = 0, 0, mw.width(), mw.height()
+        elif tname == 'right panels':
+            gw = mw.graphics_window
+            x0, y0 = gw.x() + gw.width(), gw.y()
+            h = gw.height()
+            w = mw.width() - x0
+        else:
+            tw = self._gui_tool_window()
+            if tw:
+                x0, y0, w, h  = tw.x(), tw.y(), tw.width(), tw.height()
+            else:
+                self._ui._session.logger.warning('Tool panel "%s" for VR gui was not found' % tname)
+                x0, y0, w, h = 0, 0, mw.width(), mw.height()
+# TODO: The x,y coords need to be in pixels relative to the ChimeraX main window.
+#       But the code gw.x() or tw.x() gives the corner position relative to the parent
+#       window which may not be the top level window.
+        return x0, y0, w, h
+
+    def _button_rectangle(self, widget):
+        '''Returns coordinates in meters with 0,0 at center of ui panel.'''
+        mw = self._ui._session.ui.main_window
+        x0,y0,w,h = self._panel_rectangle()
+        xc, yc = x0 + 0.5*w, y0 + 0.5*h
+        from PyQt5.QtCore import QPoint
+        wxy0 = widget.mapTo(mw, QPoint(0,0))
+        wx0,wy0 = wxy0.x(), wxy0.y()
+        ww,wh = widget.width(), widget.height()
+        wx1, wy1 = wx0+ww, wy0+wh
+        pw, ph = self._width, self._height
+        rect = (pw*(wx0-xc)/w, -ph*(wy0-yc)/h, pw*(wx1-xc)/w, -ph*(wy1-yc)/h)
+        return rect
+
+    def _gui_tool_window(self):
+        tname = self._gui_tool_name
+        if tname is not None:
+            for ti in self._ui._session.tools.list():
+                if ti.tool_name == tname and hasattr(ti, 'tool_window'):
+                    return ti.tool_window._dock_widget
+        return None
+
         
 from chimerax.core.models import Model
 class HandControllerModel(Model):
