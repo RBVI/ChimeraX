@@ -194,15 +194,15 @@ class ModellerResultsViewer(ToolInstance):
             return
         self._finalize_init(session, models, attr_names)
 
-    def _finalize_init(self, session, models, attr_names):
+    def _finalize_init(self, session, models, attr_names, scores_fetched=False):
         self.models = models
         self.attr_names = attr_names
         from chimerax.core.models import REMOVE_MODELS
-        self.model_handler = session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)
+        self.handlers = [session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)]
 
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False, statusbar=False)
-        #TODO: self.tool_window.fill_context_menu = self.fill_context_menu
+        self.tool_window.fill_context_menu = self.fill_context_menu
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWidgets import QTableWidget, QVBoxLayout, QAbstractItemView, QWidget, QPushButton
@@ -211,10 +211,8 @@ class ModellerResultsViewer(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
         self.table = QTableWidget()
-        self.table.setColumnCount(3)
         self.table.setSortingEnabled(True)
         self.table.keyPressEvent = session.ui.forward_keystroke
-        self.table.setHorizontalHeaderLabels(["Model"] + [attr_name[9:] for attr_name in attr_names])
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.itemSelectionChanged.connect(self._table_selection_cb)
@@ -223,39 +221,33 @@ class ModellerResultsViewer(ToolInstance):
         layout.setStretchFactor(self.table, 1)
         self._fill_table()
         self.tool_window.manage('side')
+        self.scores_fetched = scores_fetched
+        for m in models:
+            self.handlers.append(m.triggers.add_handler("changes", self._changes_cb))
 
     def delete(self):
-        self.model_handler.remove()
+        for handler in self.handlers:
+            handler.remove()
         self.row_item_lookup = {}
         ToolInstance.delete(self)
 
-    #TODO
-    def fill_context_menu(self, menu, x, y):
-        # avoid having actions destroyed when this routine returns
-        # by stowing a reference in the menu itself
-        from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save As")
-        from chimerax.core import io
-        from chimerax.core.commands import run, quote_if_necessary
-        for fmt in io.formats(open=False):
-            if fmt.category == "Sequence alignment":
-                action = QAction(fmt.name, save_as_menu)
-                action.triggered.connect(lambda arg, fmt=fmt:
-                    run(self.session, "save browse format %s alignment %s"
-                    % (fmt.name, quote_if_necessary(self.alignment.ident))))
-                save_as_menu.addAction(action)
+    def fetch_additional_scores(self):
+        self.scores_fetched = True
+        from chimerax.core.commands import run, concise_model_spec
+        run(self.session, "modeller scores %s" % concise_model_spec(self.session, self.models))
 
-        settings_action = QAction("Settings...", menu)
-        settings_action.triggered.connect(lambda arg: self.show_settings())
-        menu.addAction(settings_action)
-        scf_action = QAction("Load Sequence Coloring File...", menu)
-        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
-        menu.addAction(scf_action)
+    def fill_context_menu(self, menu, x, y):
+        if self.scores_fetched:
+            return
+        from PyQt5.QtWidgets import QAction
+        fetch_action = QAction("Fetch Additional Scores", menu)
+        fetch_action.triggered.connect(lambda arg: self.fetch_additional_scores())
+        menu.addAction(fetch_action)
 
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(session, data['models'], data['attr_names'])
+        inst._finalize_init(session, data['models'], data['attr_names'], data['scores_fetched'])
         return inst
 
     SESSION_SAVE = True
@@ -264,19 +256,38 @@ class ModellerResultsViewer(ToolInstance):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'models': self.models,
-            'attr_names': self.attr_names
+            'attr_names': self.attr_names,
+            'scores_fetched': self.scores_fetched
         }
         return data
 
-    def _fill_table(self):
-        self.table.clearContents()
+    def _changes_cb(self, trig_name, trig_data):
+        structure, changes_obj = trig_data
+        need_update = False
+        if changes_obj.modified_structures():
+            for reason in changes_obj.structure_reasons():
+                if reason.startswith("modeller_") and reason.endswith(" changed"):
+                    need_update = True
+                    attr_name = reason[:-8]
+                    if attr_name not in self.attr_names:
+                        self.attr_names.append(attr_name)
+        if need_update:
+            # atomic changes are already collated, so don't need to delay table update
+            self._fill_table()
+
+    def _fill_table(self, *args):
+        self.table.clear()
+        self.table.setColumnCount(len(self.attr_names)+1)
+        self.table.setHorizontalHeaderLabels(["Model"] + [attr_name[9:].replace('_', ' ')
+            for attr_name in self.attr_names])
         self.table.setRowCount(len(self.models))
         from PyQt5.QtWidgets import QTableWidgetItem
         for row, m in enumerate(self.models):
             item = QTableWidgetItem('#' + m.id_string)
             self.table.setItem(row, 0, item)
             for c, attr_name in enumerate(self.attr_names):
-                self.table.setItem(row, c+1, QTableWidgetItem("%g" % getattr(m, attr_name, "")))
+                self.table.setItem(row, c+1, QTableWidgetItem("%g" % getattr(m, attr_name)
+                    if hasattr(m, attr_name) else ""))
         for i in range(self.table.columnCount()):
             self.table.resizeColumnToContents(i)
 
