@@ -727,16 +727,31 @@ class VRTracking(PointerModels):
         if shown_changed:
             msg['vr gui shown'] = gui_state['shown'] = shown
         if shown:
-            size, rpos, rgba = ui.size(), ui.drawing.room_position, ui.panel_image_rgba()
-            if size != gui_state['size'] or shown_changed:
-                msg['vr gui size'] = gui_state['size'] = size
+            rpos = ui.model.room_position
             if rpos is not gui_state['room position'] or shown_changed:
                 gui_state['room position'] = rpos
                 msg['vr gui position'] = _place_matrix(rpos)
-            if rgba is not gui_state['image'] or shown_changed:
-                gui_state['image'] = rgba
-                msg['vr gui image'] = _encode_numpy_array(rgba)
-                
+
+            pchanges = []	# GUI panel changes
+            for panel in ui.panels:
+                name, size, pos, rgba = panel.name, panel.size, panel.drawing.position, panel.panel_image_rgba()
+                pstate = gui_state.setdefault(('panel', name), {})
+                pchange = {}
+                if 'size' not in pstate or size != pstate['size'] or shown_changed:
+                    pchange['size'] = pstate['size'] = size
+                if 'position' not in pstate or pos != pstate['position'] or shown_changed:
+                    pstate['position'] = pos
+                    pchange['position'] = _place_matrix(pos)
+                if 'image' not in pstate or rgba is not pstate['image'] or shown_changed:
+                    pstate['image'] = rgba
+                    pchange['image'] = _encode_numpy_array(rgba)
+                if pchange:
+                    pchange['name'] = panel.name
+                    pchanges.append(pchange)
+            if pchanges:
+                msg['vr gui panels'] = pchanges
+            # TODO: Need to handle deleted panels
+
         # Tell connected peers my new vr state
         self._meeting._send_message(msg)
 
@@ -828,14 +843,13 @@ class VRPointerModel(Model):
                 h.position = rts * rp
         if 'vr gui shown' in msg:
             self._gui_panel.display = msg['vr gui shown']
-        if 'vr gui size' in msg:
-            self._gui_panel.set_size(msg['vr gui size'])
         if 'vr gui position' in msg:
             g = self._gui_panel
             g.room_position = rp = _matrix_place(msg['vr gui position'])
             g.position = self.room_to_scene * rp
-        if 'vr gui image' in msg:
-            self._gui_panel.update_image(msg['vr gui image'])
+        if 'vr gui panels' in msg:
+            for pchanges in msg['vr gui panels']:
+                self._gui_panel.update_panel(pchanges)
 
 class VRHandModel(Model):
     '''Radius and height in meters.'''
@@ -915,6 +929,32 @@ class VRGUIModel(Model):
     def __init__(self, session, name = 'GUI Panel'):
         Model.__init__(self, name, session)
         self.room_position = None
+        self._panels = {}		# Maps panel name to VRGUIPanel
+
+    def update_panel(self, panel_changes):
+        name = panel_changes['name']
+        panels = self._panels
+        if name in panels:
+            p = panels[name]
+        else:
+            panels[name] = p = VRGUIPanel(name)
+            self.add_drawing(p)
+            
+        if 'size' in panel_changes:
+            p.set_size(panel_changes['size'])
+        if 'position' in panel_changes:
+            p.position = _matrix_place(panel_changes['position'])
+        if 'image' in panel_changes:
+            p.update_image(panel_changes['image'], self.session)
+
+from chimerax.core.graphics import Drawing
+class VRGUIPanel(Drawing):
+    casts_shadows = False
+    pickable = False
+    skip_bounds = True
+
+    def __init__(self, name):
+        Drawing.__init__(self, name)
         self._size = (1,1)		# Meters
 
     def set_size(self, size):
@@ -922,10 +962,10 @@ class VRGUIModel(Model):
         from chimerax.core.graphics.drawing import position_rgba_drawing
         position_rgba_drawing(self, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
         
-    def update_image(self, encoded_rgba):
+    def update_image(self, encoded_rgba, session):
         rw, rh = self._size
         rgba = _decode_numpy_array(encoded_rgba)
-        r = self.session.main_view.render
+        r = session.main_view.render
         r.make_current() # Required for deleting previous texture in rgba_drawing()
         from chimerax.core.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))

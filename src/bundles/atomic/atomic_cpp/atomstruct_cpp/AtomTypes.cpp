@@ -1678,6 +1678,7 @@ clock_t start_t = clock();
         
         bool c2_possible = false;
         std::vector<Atom *> nb_valence1;
+        int num_bonded_Npls = 0;
         for (auto bondee: a->neighbors()) {
             auto bondee_type = bondee->idatm_type();
 
@@ -1695,7 +1696,12 @@ clock_t start_t = clock();
                 break;
             } else if (bondee->neighbors().size() == 1)
                 nb_valence1.push_back(bondee);
+            if (bondee_type == "Npl")
+                ++num_bonded_Npls;
         }
+        if (num_bonded_Npls == 3)
+            // guanidium
+            c2_possible = true;
 
         if (!c2_possible) {
             if (a->neighbors().size() == 3 && nb_valence1.size() > 0) {
