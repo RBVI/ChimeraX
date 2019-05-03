@@ -47,7 +47,9 @@ Sequence::_1Letter_Map Sequence::_nucleic3to1 = {
         {"DT", 'T'},
         {"U", 'U'},
         {"+U", 'U'},
-        {"URA", 'U'}
+        {"URA", 'U'},
+        {"DN", '?'},
+        {"N", '?'}
 };
 Sequence::_1Letter_Map Sequence::_protein3to1 = {
         {"ALA", 'A'},
@@ -81,6 +83,7 @@ Sequence::_1Letter_Map Sequence::_protein3to1 = {
         {"THR", 'T'},
         {"TRP", 'W'},
         {"TYR", 'Y'},
+        {"UNK", '?'},
         {"VAL", 'V'}
 };
 Sequence::_1Letter_Map Sequence::_rname3to1;
