@@ -721,7 +721,7 @@ class UserInterface:
         self._update_delay = 10		# After click on panel, update after this number of frames
         self._ui_model = None
         self._panels = []		# List of Panel, one for each user interface pane
-        self._gui_tool_names = ['Tabbed Toolbar', 'right panels']
+        self._gui_tool_names = ['Toolbar', 'right panels']
         self._panel_separation = 0.01	# meters
         self._start_ui_move_time = None
         self._last_ui_position = None
@@ -1057,7 +1057,7 @@ class UserInterface:
 
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
-    initial_widths = {'main window': 1, 'right panel': 0.5, 'Tabbed Toolbar': 1} # Meters
+    initial_widths = {'main window': 1, 'right panel': 0.5, 'Toolbar': 1} # Meters
     def __init__(self, parent, ui, tool_name = 'main window'):
         self._ui = ui
         self._gui_tool_name = tool_name	# Name of tool instance shown in VR gui panel.
