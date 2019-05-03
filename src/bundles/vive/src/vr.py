@@ -579,6 +579,7 @@ class SteamVRCamera(Camera):
             return
         import openvr
         eye = openvr.Eye_Left if side == 'left' else openvr.Eye_Right
+        # Caution: compositor.submit() changes the OpenGL read framebuffer binding to 0.
         result = self.compositor.submit(eye, texture)
         if self._use_opengl_flush:
             render.flush()
@@ -599,11 +600,12 @@ class SteamVRCamera(Camera):
         Submit right eye texture image to OpenVR. Left eye was already submitted
         by set_render_target() when render target switched to right eye.
         '''
-        fb = render.pop_framebuffer()
-
         if self.number_of_views() == 2 and not self._close:
-            self._submit_eye_image('right', fb.openvr_texture, render)
+            rtex = render.current_framebuffer().openvr_texture
+            self._submit_eye_image('right', rtex, render)
 
+        render.pop_framebuffer()
+        
         if self.desktop_display in ('mirror', 'independent'):
             # Render right eye to ChimeraX window.
             from chimerax.core.graphics.drawing import draw_overlays
