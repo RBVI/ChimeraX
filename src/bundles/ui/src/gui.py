@@ -982,7 +982,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
         from chimerax.core.commands import run
         for menu_label, cmd_args in [("&Clear", "clear"), ("&Invert", "~sel"), ("&All", ""),
-                ("&Broaden\t\N{UPWARDS ARROW}", "up"), ("&Narrow\t\N{DOWNWARDS ARROW}", "down")]:
+                ("&Broaden", "up"), ("&Narrow", "down")]:
             action = QAction(menu_label, self)
             select_menu.addAction(action)
             action.triggered.connect(lambda *args, run=run, ses=self.session, cmd="sel " + cmd_args:

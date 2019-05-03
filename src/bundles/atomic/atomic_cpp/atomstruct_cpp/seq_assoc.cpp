@@ -156,8 +156,8 @@ static unsigned int
 _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     std::vector<int>& offsets, unsigned int max_errors)
 {
-    // find the biggest segment, (but non-all-X segments win over
-    // all-X segments)
+    // find the biggest segment, (but non-all-X/? segments win over
+    // all-X/? segments)
     unsigned int longest;
     bool longest_found = false;
     int seg_num = -1;
@@ -165,7 +165,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     for (auto seg: cm_ap.segments) {
         seg_num++;
         if (std::find_if_not(seg.begin(), seg.end(),
-                [](char c){return c == 'X';}) == seg.end()) {
+                [](char c){return c == 'X' || c == '?';}) == seg.end()) {
             continue;
         }
         if (!longest_found || seg.size() > longest) {
@@ -175,7 +175,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
         }
     }
     if (!longest_found) {
-        // all segments are all-X
+        // all segments are all-X/?
         seg_num = -1;
         for (auto seg: cm_ap.segments) {
             seg_num++;
@@ -220,7 +220,7 @@ _constrained(const Sequence::Contents& aseq, AssocParams& cm_ap,
     for (int offset = left_space; offset < offset_end; ++offset) {
         unsigned int errors = 0;
         for (unsigned int i = 0; i < longest; ++i) {
-            if (seq[i] == aseq[offset+i])
+            if (seq[i] == aseq[offset+i] || seq[i] == '?')
                 continue;
             if (++errors > max_errors) {
                 break;
@@ -400,7 +400,7 @@ gapped_match(const Sequence::Contents& aseq, const StructureSeq& mseq,
                 ++matches;
                 continue;
             }
-            if (gap_char == '.')
+            if (gap_char == '.' || gap_char == '?')
                 continue;
             if (++errors >= tot_errs)
                 break;
@@ -466,8 +466,8 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
     if (!assoc_failure && retvals.num_errors == 0)
         return retvals;
 
-    // prune off 'X' residues and see how that works...
-    if (mseq.front() != 'X' && mseq.back() != 'X') {
+    // prune off 'X/?' residues and see how that works...
+    if (mseq.front() != 'X' && mseq.back() != 'X' && mseq.front() != '?' && mseq.back() != '?') {
         if (assoc_failure)
             throw SA_AssocFailure("bad assoc");
         return retvals;
@@ -475,7 +475,7 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
     StructureSeq no_X = mseq;
     auto no_X_ap = AssocParams(ap.est_len, ap.segments.begin(),
         ap.segments.end(), ap.gaps.begin(), ap.gaps.end());
-    while (no_X.size() > 0 && no_X.front() == 'X') {
+    while (no_X.size() > 0 && (no_X.front() == 'X' || no_X.front() == '?')) {
         no_X.pop_front();
         --no_X_ap.est_len;
     }
@@ -494,7 +494,7 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
     while (offset-- > 0)
         no_X_ap.segments.front().erase(no_X_ap.segments.front().begin());
     unsigned int tail_loss = 0;
-    while (no_X.back() == 'X') {
+    while (no_X.back() == 'X' || no_X.back() == '?') {
         no_X.pop_back();
         --no_X_ap.est_len;
         ++tail_loss;

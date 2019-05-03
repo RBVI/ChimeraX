@@ -550,7 +550,12 @@ cdef class CyAtom:
     def is_missing_heavy_template_neighbors(self, *, chain_start = False, chain_end = False,
             no_template_okay=False):
         if self._deleted: raise RuntimeError("Atom already deleted")
-        return self.cpp_atom.is_missing_heavy_template_neighbors(chain_start, chain_end, no_template_okay)
+        try:
+            return self.cpp_atom.is_missing_heavy_template_neighbors(chain_start, chain_end, no_template_okay)
+        except RuntimeError as e:
+            if str(e).startswith("No residue template"):
+                return False
+            raise
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.

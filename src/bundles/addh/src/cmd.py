@@ -419,9 +419,13 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
         complete_terminal_carboxylate(session, rc)
 
     # ensure that N termini are protonated as N3+ (since Npl will fail)
+    from chimerax.atomic import Sequence
     for nter in real_N+fake_N:
         n = nter.find_atom("N")
         if not n:
+            continue
+        # if residue wasn't templated, leave atom typing alone
+        if Sequence.protein3to1(n.residue.name) == 'X':
             continue
         if not (n.residue.name == "PRO" and n.num_bonds >= 2):
             n.idatm_type = "N3+"
