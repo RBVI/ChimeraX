@@ -768,7 +768,15 @@ class UserInterface:
 
     def _create_panels(self):
         ui = self._ui_model
-        panels = [Panel(ui, self, tool_name) for tool_name in self._gui_tool_names]
+        panels = []
+        for tool_name in self._gui_tool_names:
+            if (tool_name in ('right panels', 'main window')
+                or _find_tool_by_name(tool_name, self._session)):
+                p = Panel(ui, self, tool_name)
+                panels.append(p)
+            else:
+                self._session.logger.warning('VR user interface could not find tool "%s"' % tool_name)
+                
         np = len(panels)
         if np > 1:
             sep = self._panel_separation
@@ -1057,7 +1065,7 @@ class UserInterface:
 
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
-    initial_widths = {'main window': 1, 'right panel': 0.5, 'Toolbar': 1} # Meters
+    initial_widths = {'main window': 1, 'right panels': 0.5, 'Toolbar': 1} # Meters
     def __init__(self, parent, ui, tool_name = 'main window'):
         self._ui = ui
         self._gui_tool_name = tool_name	# Name of tool instance shown in VR gui panel.
@@ -1236,12 +1244,17 @@ class Panel:
 
     def _gui_tool_window(self):
         tname = self._gui_tool_name
-        if tname is not None:
-            for ti in self._ui._session.tools.list():
-                if ti.tool_name == tname and hasattr(ti, 'tool_window'):
-                    return ti.tool_window._dock_widget
-        return None
+        if tname is None:
+            return None
 
+        ti = _find_tool_by_name(tname, self._ui._session)
+        return ti.tool_window._dock_widget if ti else None
+
+def _find_tool_by_name(name, session):
+    for ti in session.tools.list():
+        if ti.tool_name == name and hasattr(ti, 'tool_window') and ti and ti.displayed:
+            return ti
+    return None
         
 from chimerax.core.models import Model
 class HandControllerModel(Model):
