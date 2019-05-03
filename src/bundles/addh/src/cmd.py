@@ -210,6 +210,8 @@ def post_add(session, fake_n, fake_c):
             if nb.element.number == 1:
                 if nb.name == "H":
                     add_nh = False
+                    if fn.name == "PRO":
+                        nb.structure.delete_atom(nb)
                 else:
                     nb.structure.delete_atom(nb)
         if fn.name == "PRO":

@@ -6,7 +6,7 @@
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>Tabbed Toolbar</Synopsis>
+  <Synopsis>Toolbar</Synopsis>
   <Description>Tabbed Toolbar
 
 Provides a Windows ribbon-style toolbar interface
@@ -43,7 +43,7 @@ Provides a Windows ribbon-style toolbar interface
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Tabbed Toolbar :: General :: a Windows ribbon-style toolbar</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Toolbar :: General :: a Windows ribbon-style toolbar</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
