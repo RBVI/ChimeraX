@@ -183,7 +183,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         const char* idatm_type()
         bool in_ribbon()
         bool is_backbone(BackboneExtent)
-        bool is_missing_heavy_template_neighbors(bool, bool, bool)
+        bool is_missing_heavy_template_neighbors(bool, bool, bool) except +
         bool is_ribose()
         bool is_side_connector()
         bool is_side_chain(bool)
