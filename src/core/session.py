@@ -254,8 +254,8 @@ class _SaveManager:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
             except Exception as e:
-                session.logger.report_exception(
-                    'Error while saving session data for "%s": %s' % (type(obj).__name__, str(e)))
+                msg = 'Error while saving session data for "%s": %s' % (type(obj).__name__, str(e))
+                raise RuntimeError(msg)
         elif isinstance(obj, type):
             return None
         if data is None:
@@ -708,28 +708,27 @@ def save(session, path, version=3, uncompressed=False, include_maps=False):
             path += SESSION_SUFFIX
 
         if uncompressed:
-            try:
-                output = _builtin_open(path, 'wb')
-            except IOError as e:
-                raise UserError(e)
+            from .safesave import SaveBinaryFile
+            my_open = SaveBinaryFile
         else:
             # Save compressed files
+            from .safesave import SaveFile
             def my_open(path):
                 import gzip
-                from .safesave import SaveFile
                 f = SaveFile(path, open=lambda path: gzip.GzipFile(path, 'wb'))
                 return f
-            try:
-                output = my_open(path)
-            except IOError as e:
-                raise UserError(e)
+        try:
+            output = my_open(path)
+        except IOError as e:
+            raise UserError(e)
 
     session.session_file_path = path
     try:
         session.save(output, version=version, include_maps=include_maps)
-    except:
+    except Exception as e:
         if my_open is not None:
             output.close("exceptional")
+        session.logger.report_exception()
         raise
     finally:
         if my_open is not None:
