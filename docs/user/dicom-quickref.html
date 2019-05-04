@@ -35,7 +35,7 @@ Overview of ChimeraX features for working with
 <br><a href="#windowing">Thresholds and Windowing</a>
 <br><a href="#rendering">Volume Rendering Options</a>
 <br><a href="#clipping">Cropping and Clipping</a>
-<br><a href="#icons">Density Map Icons</a>
+<br><a href="#icons">Map Icons</a>
 <br><a href="#vr">Virtual Reality</a>
 <br><a href="#data">Sample Data</a>
 </b></blockquote>
@@ -74,24 +74,18 @@ for example:
 <p>
 Each series that is found will be opened as a separate model.
 </p><p>
-For working with DICOM data, you may wish to check/uncheck menu items 
-under <b>Tools... Toolbar</b> to:
+Many icons in the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+across the top of the ChimeraX window are useful for working with DICOM data:
 </p>
 <ul>
-<li>hide the 
-<a href="tools/graphics.html"><b>Graphics Toolbar</b></a> and the
-<a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
-<li>show the <a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-of icons that act on volume models (<a href="#icons">details...</a>)
+<li><a href="tools/densitymaps.html"><b>Map</b></a> icons act on
+volume models (medical image stacks, density maps, <i>etc.</i>):
 <br><img class="iconbar" src="density-icons.png">
-</ul>
-<p>
-The <a href="tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
-toolbar should already be shown, and to make more of its icons easily accessible,
-can be dragged (click on dotted line at its top)
-to a horizontal position across the top of the window.
+<br><br>
+<li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>
+icons assign functions or &ldquo;modes&rdquo; to the mouse/trackpad:
 <br><img class="iconbar" src="mouse-icons.png">
-</p>
+</ul>
 
 <a name="initial"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
@@ -127,7 +121,7 @@ trackpad + <img src="icon-clover.png" width="12px"> on Mac)
   <li>to switch axes:
      <ul>
 <li>show the full region of the data and its outline box
-by clicking the <a href="#icons">density-map icons</a>
+by clicking the <a href="#icons">map icons</a>
 <img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
 <img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
 or using the <a href="tools/volumeviewer.html#context">context menu</a>
@@ -141,12 +135,12 @@ in the <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> window
 <li>Planes along X, Y, <b><i>and</i></b> Z at the same time can be shown
 by choosing the <b>orthoplanes</b> display style in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
-or clicking the <a href="#icons">density-map icon</a>
+or clicking the <a href="#icons">map icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
 <li>To return to Z-planes from orthoplanes or 3D rendering,
 choose the <b>plane</b> display style in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
-or click the <a href="#icons">density-map icon</a>
+or click the <a href="#icons">map icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/plane.png">
 </ul>
 <p>
@@ -157,7 +151,7 @@ The <a href="#windowing">thresholds</a> may need to be adjusted
 to improve the appearance after switching display styles.
 </p><p>
 For full resolution, set the <b>step</b> value to <b>1</b>
-or click the <a href="#icons">density-map icon</a>
+or click the <a href="#icons">map icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/step1.png">.
 Subsampling (<b>step</b> &gt; 1) decreases computational demands and
 may be needed for responsive rendering of large datasets, particularly in
@@ -275,8 +269,8 @@ Initially, the right mouse button (= trackpad + <b>Alt</b> on Windows,
 trackpad + <img src="icon-clover.png" width="12px"> on Mac)
 is also assigned to <b>translate</b> 
 &nbsp;<img class="icon" border=1 src="tools/mouse-icons/translate.png">,
-but clicking any other <a href="tools/mousemodes.html">mouse mode</a> icon
-reassigns it.
+but clicking any other <a href="tools/mousemodes.html"><b>Right Mouse</b></a>
+icon reassigns it:
 <br><img class="iconbar" src="mouse-icons.png">
 </p><p>
 Buttons can also be reassigned with the 
@@ -312,7 +306,7 @@ chosen automatically when a dataset is first shown in the image style.
 The <b>initial</b> settings may be useful for single-plane display
 after using a 3D preset.
 </p><p>
-The <a href="#icons">density-map icons</a>
+The <a href="#icons">map icons</a>
 <img class="icon" border=1 src="tools/shortcut-icons/airways.png">,
 <img class="icon" border=1 src="tools/shortcut-icons/ear.png">, and
 <img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
@@ -381,7 +375,7 @@ that may be useful:
 &ndash; to avoid jumps in brightness during the rotation of image displays,
 render using planes perpendicular to the line of sight
 (default for DICOM, see <a href="commands/volume.html#pmode">details...</a>);
-see also <a href="#icons">density-map icons</a>
+see also <a href="#icons">map icons</a>
 <img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
 <img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
 <li><b>planeSpacing</b> &ndash; plane spacing for 3D projection mode
@@ -480,24 +474,23 @@ or <a href="commands/clip.html"><b>~clip</b></a>
 
 <a name="icons"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
-Density Map Icons</h3>
+Map Icons</h3>
 <p>
-The <a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-(menu: <b>Tools... Toolbar... Density Map Toolbar</b>)
-contains icons that can be clicked to perform some action
-on volume models, including:
+Icons in the <a href="tools/densitymaps.html"><b>Map</b></a>
+tab of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+can be clicked to perform some action on volume models, including:
 </p>
 <ul class="none">
 <li><img class="icon" border=1 src="tools/shortcut-icons/hidemap.png">
 &nbsp;hide
 <li><img class="icon" border=1 src="tools/shortcut-icons/showmap.png">
 &nbsp;show
+<li><img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
+&nbsp;toggle outline box
 <li><img class="icon" border=1 src="tools/shortcut-icons/step1.png">
 &nbsp;step 1
 <li><img class="icon" border=1 src="tools/shortcut-icons/step2.png">
 &nbsp;step 2
-<li><img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
-&nbsp;toggle outline box
 <li><img class="icon" border=1 src="tools/shortcut-icons/plane.png">
 &nbsp;single plane
 <li><img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
@@ -612,5 +605,5 @@ a significant feature of the scan is a tumor in the right lung.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2019</address>
+May 2019</address>
 </body></html>
