@@ -84,7 +84,7 @@ class ModellerScoringJob(Job):
             ("model_file", structure.name.replace(' ', '_') + '.pdb', tf.read())
         ]
         temp_file.close()
-        from chimerax.bug_reporter.post_form import post_multipart
+        from chimerax.webservices.post_form import post_multipart
         submission = post_multipart(modeller_host, "/modeval/job", fields)
         from xml.dom.minidom import parseString
         sub_dom = parseString(submission)

@@ -226,7 +226,7 @@ class BugReporter(ToolInstance):
 
         # Post form data.
         self.status("Contacting CGL....", color="blue")
-        from .post_form import post_multipart_formdata
+        from chimerax.webservices.post_form import post_multipart_formdata
         try:
             errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields)
         except Exception:

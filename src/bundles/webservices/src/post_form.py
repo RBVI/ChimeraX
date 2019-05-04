@@ -36,10 +36,6 @@ def post_multipart_formdata(host, url, fields, ssl=False):
         h = HTTPConnection(realhost)
     h.request('POST', url, body=body, headers={'Content-type': content_type})
     r = h.getresponse()
-#    print ('response status', r.status)
-#    print ('response reason', r.reason)
-#    print ('response msg', r.msg)
-#    print ('response read', r.read())
     return r.status, r.msg, r.getheaders(), r.read()
 
 def encode_multipart_formdata(fields):
@@ -68,6 +64,13 @@ Return (content_type, body) ready for httplib.HTTP instance
     content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
     return content_type, body
 
+# on Windows, guessing the mime type involves consulting the Registry, which is not thread safe...
+import sys, threading
+_lock = None if sys.platform != "win32" else threading.Lock()
+
 def get_content_type(filename):
     import mimetypes
-    return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    if _lock is None:
+        return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+    with _lock:
+        return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
