@@ -520,6 +520,10 @@ class BundleInfo:
         for k in remove_list:
             del sys.modules[k]
 
+    def imported(self, logger):
+        import sys
+        return self.package_name in sys.modules
+
     def get_class(self, class_name, logger):
         """Supported API. Return bundle's class with given name."""
         try:
