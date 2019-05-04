@@ -28,7 +28,7 @@ class OpenFolderDialog(OpenDialog):
         self._format_selector = selector = QComboBox(options_panel)
         from chimerax.core import io
         fmt_names = [fmt.name for fmt in io.formats()
-                     if fmt.open_func and fmt.nicknames and fmt.allow_directory]
+                     if fmt.has_open_func() and fmt.nicknames and fmt.allow_directory]
         selector.addItems(fmt_names)
         options_layout = QHBoxLayout(options_panel)
         options_layout.addWidget(label)
@@ -41,7 +41,7 @@ class OpenFolderDialog(OpenDialog):
         fmt_name = self._format_selector.currentText()
         from chimerax.core import io
         for f in io.formats():
-            if f.name == fmt_name and f.open_func and f.nicknames and f.allow_directory:
+            if f.name == fmt_name and f.has_open_func() and f.nicknames and f.allow_directory:
                 return f.nicknames[0] 
         return None
 
