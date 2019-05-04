@@ -56,7 +56,7 @@ class Alignment(State):
         elif auto_associate:
             # if "session", don't associate with currently open structures (session restore
             # will do that), but allow future auto-association
-            if auto_associate == "session":
+            if auto_associate != "session":
                 from chimerax.atomic import AtomicStructure
                 self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
             # get the auto-association working...
