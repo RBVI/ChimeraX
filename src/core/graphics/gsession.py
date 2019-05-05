@@ -266,13 +266,16 @@ class DrawingState:
     @staticmethod
     def restore_snapshot(session, data):
         d = Drawing('')
-        DrawingState.set_state_from_stanpshot(d, session, data)
+        DrawingState.set_state_from_snapshot(d, session, data)
         return d
 
     @staticmethod
     def set_state_from_snapshot(drawing, session, data):
         d = drawing
-        for k in DrawingState.save_attrs:
+        setattr(d, 'name', data['name'])
+        # need to do vertices, normals, triangles first
+        d.set_geometry(data['vertices'], data['normals'], data['triangles'])
+        for k in DrawingState.save_attrs[4:]:
             if k in data:
                 setattr(d, k, data[k])
         for c in data['children']:
