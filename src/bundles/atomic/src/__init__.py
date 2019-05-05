@@ -37,12 +37,17 @@ from chimerax.core.toolshed import BundleAPI
 
 class _AtomicBundleAPI(BundleAPI):
 
+    KNOWN_CLASSES = {
+        "Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
+        "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
+        "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
+        "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq",
+        "AtomicShapeDrawing",
+    }
+
     @staticmethod
     def get_class(class_name):
-        if class_name in ["Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
-                "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
-                "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
-                "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq"]:
+        if class_name in _AtomicBundleAPI.KNOWN_CLASSES:
             import importlib
             this_mod = importlib.import_module(".", __package__)
             return getattr(this_mod, class_name)

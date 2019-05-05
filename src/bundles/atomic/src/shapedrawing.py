@@ -13,9 +13,10 @@
 
 import numpy
 from chimerax.core.graphics import Drawing, Pick
+from chimerax.core.state import State
 
 
-class AtomicShapeDrawing(Drawing):
+class AtomicShapeDrawing(Drawing, State):
     """Extend Drawing with knowledge of individual shapes
 
     The only additional public API is the :py:meth:`add_shape` method.
@@ -23,12 +24,41 @@ class AtomicShapeDrawing(Drawing):
     If an individual shape corresponds to atom or multiple atoms, then
     when that shape it picked, the atoms are picked too and vice-versa.
     """
+    SESSION_VERSION = 1
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
         self._shapes = []
         self._selected_shapes = set()
         self._selection_handler = None
+
+    def take_snapshot(self, session, flags):
+        from chimerax.core.graphics.gsession import DrawingState
+        data = {}
+        data['version'] = AtomicShapeDrawing.SESSION_VERSION
+        data['drawing'] = DrawingState.take_snapshot(self, session, flags)
+        data['shapes'] = list((s.triangle_range, s.description, s.atoms) for s in self._shapes)
+        data['selected'] = [
+            i for i in range(len(self._shapes))
+            if self._shapes[i] in self._selected_shapes
+        ]
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        from chimerax.core.graphics.gsession import DrawingState
+        d = AtomicShapeDrawing('')
+        DrawingState.set_state_from_snapshot(d, session, data['drawing'])
+        d._shapes = [_AtomicShape(*args) for args in data['shapes']]
+        d._selected_shapes.update([d._shapes[i] for i in data['selected']])
+        if any(s.atoms for s in self._shapes):
+            # After drawing is added to parent, add back the selection handler
+            def post_shape_handler(trigger, trigger_data, drawing=d):
+                from chimerax.core.triggerset import DEREGISTER
+                drawing._add_handler_if_needed()
+                return DEREGISTER
+        session.triggers.add_handler("end restore session", post_shape_handler)
+        return d
 
     def delete(self):
         if self._selection_handler:
