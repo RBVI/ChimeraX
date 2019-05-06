@@ -393,6 +393,8 @@ of ``mac``.
     - **name**: name of manager.  The bundle must implement the
       ``init_manager`` method.  The two positional arguments to
       ``init_manager`` are the session instance and the manager name.
+    - **uiOnly**: set to ``true`` if manager should only be created
+      when the graphical user interface is being used; omit otherwise
     - Other attributes listed in the **Manager** tag are passed
       as keyword arguments to ``init_manager``.
     - ``init_manager`` should create and return an instance of a
@@ -648,3 +650,23 @@ data formats, and selectors.
       keyword, the command will interpret it as the keyword rather
       than the selector.  The bottom line is "choose your selector
       names carefully."
+
+
+*Manager Metadata*
+
+    ``Manager`` :: *name* [:: *keyword:value*]*
+
+    - *name* is a string and may have spaces in it.
+    - *keyword:value* pairs are zero-or more manager-specific options,
+      separated by ``::``.
+
+    For example::
+    
+      Manager :: http_scheme :: guiOnly:true
+
+    Notes:
+
+    - Bundles may provide more than one manager.
+    - The toolshed reserved the following keywords:
+      - **guiOnly**, if present and set to ``true``, means the manager
+        should only be created if the graphical user interface is in use.
