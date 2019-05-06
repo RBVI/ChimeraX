@@ -2680,17 +2680,6 @@ class Command:
                 text, text)
             session.logger.info(msg, is_html=True, add_newline=False)
 
-    def log_error(self, msg):
-        session = self._session()  # resolve back reference
-        if not session.ui.is_gui:
-            session.logger.error(msg)
-        else:
-            from html import escape
-            err_color = 'crimson'
-            msg = '<span style="color:%s;font-weight:bold">%s</span>\n' % (
-                err_color, escape(msg))
-            session.logger.info(msg, is_html=True)
-
     def log_parse_error(self):
         session = self._session()  # resolve back reference
         rest = self.current_text[self.amount_parsed:]
