@@ -106,10 +106,15 @@ class MolecularMotion:
                 if self.match_same:
                         results = segment.segmentHingeSame(sm, m, cf, mhs, log=log)
                 else:
+                        from .segment import AtomPairingError
                         try:
                                 results = segment.segmentHingeExact(sm, m, cf, mhs, log=log)
-                        except ValueError:
-                                results = segment.segmentHingeApproximate(sm, m, cf, mhs, log=log)
+                        except AtomPairingError:
+                                try:
+                                        results = segment.segmentHingeApproximate(sm, m, cf, mhs, log=log)
+                                except AtomPairingError as e:
+                                        from chimerax.core.errors import UserError
+                                        raise UserError(str(e))
                 t1 = time()
                 global ht
                 ht += t1-t0
