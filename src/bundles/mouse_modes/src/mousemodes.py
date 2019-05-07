@@ -273,7 +273,6 @@ class MouseModes:
             ('left', ['control'], 'select'),
             ('middle', [], 'translate'),
             ('right', [], 'translate'),
-            ('right', ['shift'], 'pivot'),
             ('wheel', [], 'zoom'),
             ('pause', [], 'identify object'),
             )
