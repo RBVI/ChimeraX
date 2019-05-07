@@ -368,7 +368,7 @@ class MouseModes:
         m = self.mode(button, modifiers)
         if m and hasattr(m, action):
             f = getattr(m, action)
-            f(MouseEvent(event))
+            f(MouseEvent(event, modifiers=modifiers))
 
     def _event_type(self, event):
         modifiers = self._key_modifiers(event)
@@ -412,6 +412,7 @@ class MouseModes:
                         else:
                             button = 'right'
                             modifiers.remove('alt')
+
         return button, modifiers
 
     def _have_mode(self, button, modifier):
@@ -456,14 +457,18 @@ class MouseEvent:
     Provides an interface to mouse event coordinates and modifier keys
     so that mouse modes do not directly depend on details of the window toolkit.
     '''
-    def __init__(self, event):
-        self._event = event	# Window toolkit event object
-
+    def __init__(self, event, modifiers = None):
+        self._event = event		# Window toolkit event object
+        self._modifiers = modifiers	# List of 'shift', 'alt', 'control', 'command'
+                                        # May differ from event modifiers when modifier used
+                                        # for mouse button emulation.
     def shift_down(self):
         '''
         Supported API.
         Does the mouse event have the shift key down.
         '''
+        if self._modifiers is not None:
+            return 'shift' in self._modifiers
         from PyQt5.QtCore import Qt
         return bool(self._event.modifiers() & Qt.ShiftModifier)
 
@@ -472,6 +477,8 @@ class MouseEvent:
         Supported API.
         Does the mouse event have the alt key down.
         '''
+        if self._modifiers is not None:
+            return 'alt' in self._modifiers
         from PyQt5.QtCore import Qt
         return bool(self._event.modifiers() & Qt.AltModifier)
 
