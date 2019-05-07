@@ -34,96 +34,149 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         to cache.
     '''
 
-    if isinstance(filename, list):
-        models = []
-        for fname in filename:
-            models.extend(open(session, fname, format=format, name=name,
-                               from_database=from_database, ignore_cache=ignore_cache, **kw))
-        return models
-    if ':' in filename:
-        prefix, fname = filename.split(':', maxsplit=1)
+    db_fetches, paths = _db_fetches_and_paths(filename, format, from_database)
+
+    models = []
+
+    # Fetch files from databases.
+    for db_id, db_name, db_format in db_fetches:
+        db_models = _fetch_from_database(session, db_id, db_name, db_format, name, ignore_cache, **kw)
+        models.extend(db_models)
+
+    # Remember fetch in history.  TODO: Handle fetching multiple ids as one history entry.
+    if len(db_fetches) == 1:
+        db_id, db_name, db_format in db_fetches[0]
+        from chimerax.core.filehistory import remember_file
+        remember_file(session, db_id, db_format, models, database=db_name, open_options = kw)
+
+    if paths:
+        # Get correct format name.
+        if format is not None:
+            fmt = format_from_name(format)
+            if fmt:
+                format = fmt.name
+            else:
+                from chimerax.core.errors import UserError
+                raise UserError('Unknown format "%s", or no support for opening this format.' % format)
+
+        # Open local files.
+        try:
+            path_models = session.models.open(paths, format=format, name=name, **kw)
+        except OSError as e:
+            from chimerax.core.errors import UserError
+            raise UserError(e)
+        except TypeError as e:
+            _handle_unexpected_keyword_error(e)
+        models.extend(path_models)
+
+        # Remember in file history
+        if models and len(paths) == 1:
+            # TODO: Handle lists of file names in history.
+            rfmt = None if format is None else fmt.nicknames[0]
+            from chimerax.core.filehistory import remember_file
+            remember_file(session, paths[0], rfmt, models or 'all models', open_options = kw)
+
+    return models
+
+def _db_fetches_and_paths(paths, format, from_database):
+    if isinstance(paths, str):
+        paths = [paths]
+
+    fetches = []
+    fpaths = []
+    for path in paths:
+        f = _db_fetch(path, format, from_database)
+        if f:
+            fetches.append(f)
+        else:
+            p = _expand_path(path)
+            fpaths.extend(p)
+
+    return fetches, fpaths
+
+def _db_fetch(path, format, from_database):
+    # Handle database fetch specifed by database:id
+    if ':' in path:
+        prefix, fname = path.split(':', maxsplit=1)
         from chimerax.core import fetch
         from_database, default_format = fetch.fetch_from_prefix(prefix)
         if from_database is not None:
             if format is None:
                 format = default_format
-            filename = fname
+            return (fname, from_database, format)
+
+    # Handle 4 character PDB id
     elif from_database is None:
-        # Accept 4 character filename without prefix as pdb id.
         from os.path import splitext
-        base, ext = splitext(filename)
-        if not ext and len(filename) == 4 and filename[0].isdigit() and filename[1:].isalnum():
+        base, ext = splitext(path)
+        if not ext and len(path) == 4 and path[0].isdigit() and path[1:].isalnum():
             from_database = 'pdb'
             if format is None:
                 format = 'mmcif'
+            return (path, from_database, format)
 
-    def handle_unknown_kw(f, *args, **kw):
-        try:
-            return f(*args, **kw)
-        except TypeError as e:
-            if 'unexpected keyword' in str(e):
-                # try to distinguish between keywords typed by the user that are not appropriate for
-                # the format and that produce TypeError from similar-looking errors from actual code,
-                # by examining the stack traceback
-                import sys
-                etype, evalue, etraceback = sys.exc_info()
-                import traceback
-                if len(traceback.format_tb(etraceback)) == 4:
-                    from chimerax.core.errors import UserError
-                    raise UserError(str(e))
-            raise
-    from chimerax.core.filehistory import remember_file
-    if from_database is not None:
-        from chimerax.core import fetch
-        if format is not None:
-            db_formats = fetch.database_formats(from_database)
-            if format not in db_formats:
-                from chimerax.core.errors import UserError
-                from chimerax.core.commands import commas, plural_form
-                raise UserError(
-                    'Only %s %s can be fetched from %s database'
-                    % (commas(['"%s"' % f for f in db_formats], 'and'),
-                       plural_form(db_formats, "format"), from_database))
-        models, status = handle_unknown_kw(fetch.fetch_from_database, session, from_database,
-            filename, format=format, name=name, ignore_cache=ignore_cache, **kw)
-        if len(models) > 1:
-            session.models.add_group(models)
-        else:
-            session.models.add(models)
-        remember_file(session, filename, format, models, database=from_database, open_options = kw)
-        session.logger.status(status, log=True)
-        return models
-
-    if format is not None:
-        fmt = format_from_name(format)
-        if fmt:
-            format = fmt.name
-        else:
-            from chimerax.core.errors import UserError
-            raise UserError('Unknown format "%s", or no support for opening this format.' % format)
-
-    from os.path import exists
-    if exists(filename):
-        paths = [filename]
-    else:
-        from glob import glob
-        paths = glob(filename)
-        paths.sort()	# python glob does not sort. Keep series in order.
-        if len(paths) == 0:
-            from chimerax.core.errors import UserError
-            raise UserError('File not found: %s' % filename)
-
-    try:
-        models = handle_unknown_kw(session.models.open, paths, format=format, name=name, **kw)
-    except OSError as e:
-        from chimerax.core.errors import UserError
-        raise UserError(e)
+    # Handle ids with specified database
+    elif from_database:
+        return (path, from_database, format)
     
-    # Remember in file history
-    rfmt = None if format is None else fmt.nicknames[0]
-    remember_file(session, filename, rfmt, models or 'all models', open_options = kw)
+    return None
 
+def _expand_path(path):
+    from os.path import exists
+    if exists(path):
+        return [path]
+
+    from glob import glob
+    paths = glob(path)
+    paths.sort()	# python glob does not sort. Keep series in order.
+    if len(paths) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('File not found: %s' % path)
+    return paths
+
+def _fetch_from_database(session, filename, from_database, format, name, ignore_cache, **kw):
+    _check_db_format(from_database, format)
+    
+    from chimerax.core.fetch import fetch_from_database
+    try:
+        models, status = fetch_from_database(session, from_database, filename,
+                                             format=format, name=name,
+                                             ignore_cache=ignore_cache, **kw)
+    except TypeError as e:
+        _handle_unexpected_keyword_error(e)
+
+    if len(models) > 1:
+        session.models.add_group(models)
+    else:
+        session.models.add(models)
+
+    session.logger.status(status, log=True)
     return models
+
+def _check_db_format(database, format):
+    if format is None:
+        return
+    from chimerax.core.fetch import database_formats
+    db_formats = database_formats(database)
+    if format not in db_formats:
+        from chimerax.core.errors import UserError
+        from chimerax.core.commands import commas, plural_form
+        raise UserError('Only %s %s can be fetched from %s database'
+                        % (commas(['"%s"' % f for f in db_formats], 'and'),
+                           plural_form(db_formats, "format"), database))
+
+def _handle_unexpected_keyword_error(e):
+    if 'unexpected keyword' in str(e):
+        # try to distinguish between keywords typed by the user that are not appropriate for
+        # the format and that produce TypeError from similar-looking errors from actual code,
+        # by examining the stack traceback
+        import sys
+        etype, evalue, etraceback = sys.exc_info()
+        import traceback
+        if len(traceback.format_tb(etraceback)) == 4:
+            from chimerax.core.errors import UserError
+            raise UserError(str(e))
+    raise
 
 def format_from_name(name, open=True, save=False):
     from chimerax.core import io
