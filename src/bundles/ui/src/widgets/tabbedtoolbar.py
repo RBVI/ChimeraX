@@ -117,19 +117,17 @@ class _Section(QWidgetAction):
         if callback is not None:
             action.triggered.connect(callback)
         if group_follow:
-            menu = self._groups[parent][group]
-            menu.addAction(action)
+            button = self._groups[parent][group]
+            button.addAction(action)
             self._actions.append(action)
         else:
-            b.setDefaultAction(action)
             if group_first:
-                b.setPopupMode(b.MenuButtonPopup)
+                b.setPopupMode(b.DelayedPopup)
                 b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
-                from PyQt5.QtWidgets import QMenu
-                m = self._groups[parent][group] = QMenu(parent)
-                b.setMenu(m)
-                m.addAction(action)
+                self._groups[parent][group] = b
+                b.addAction(action)
                 self._actions.append(action)
+            b.setDefaultAction(action)
 
         # print('Font height:', b.fondMetrics().height())  # DEBUG
         # print('Font size:', b.fontInfo().pixelSize())  # DEBUG
