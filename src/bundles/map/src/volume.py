@@ -1745,6 +1745,7 @@ class Volume(Model):
       return None	# Map file not available.
     v = Volume(session, grid_data)
     Model.set_state_from_snapshot(v, session, data['model state'])
+    v._style_when_shown = None		# Don't show surface style by default.
     from .session import set_map_state
     set_map_state(data['volume state'], v)
     v._drawings_need_update()
