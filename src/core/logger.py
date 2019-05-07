@@ -689,6 +689,10 @@ class _EarlyCollator(CollatingLog):
             title = "Startup Messages"
         CollatingLog.log_summary(self, logger, title)
 
+#error_text_format = '<p style="color:crimson;font-weight:bold">%s</p>'
+# although the below isn't HTML5, it avoids the line break in the above
+error_text_format = '<font color="crimson"><b>%s</b></font>'
+
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
     import html2text

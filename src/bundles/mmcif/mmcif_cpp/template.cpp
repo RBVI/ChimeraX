@@ -243,10 +243,15 @@ ExtractTemplate::parse_chem_comp()
         return;
     if (!modres.empty()) {
         char old_code;
-        if (is_peptide)
+        if (is_peptide) {
+            if (modres == "UNK")
+                return;  // sequence code picks what unknown residues should be
             old_code = Sequence::protein3to1(modres);
-        else // if (is_nucleotide)
+        } else { // if (is_nucleotide)
+            if (modres == "N" || modres == "DN")
+                return;  // sequence code picks what unknown residues should be
             old_code = Sequence::nucleic3to1(modres);
+        }
         if (old_code != 'X' && old_code != code)
             std::cerr << "Not changing " << modres <<
                 " sequence abbreviation (old: " << old_code << ", new: " <<
