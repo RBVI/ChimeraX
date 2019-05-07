@@ -269,9 +269,8 @@ class MouseModes:
         right = zoom, wheel = zoom, pause = identify object.
         '''
         standard_modes = (
-            ('left', ['control'], 'select'),
-            ('left', ['control', 'shift'], 'select toggle'),
             ('left', [], 'rotate'),
+            ('left', ['control'], 'select'),
             ('middle', [], 'translate'),
             ('right', [], 'translate'),
             ('right', ['shift'], 'pivot'),
