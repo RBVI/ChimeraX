@@ -407,6 +407,7 @@ class MouseModes:
                         if 'control' in modifiers:
                             button = 'middle'
                             modifiers.remove('control')
+                            modifiers.remove('alt')
                         else:
                             button = 'right'
                             modifiers.remove('alt')
