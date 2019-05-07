@@ -90,6 +90,7 @@ class Series:
   def __init__(self, log = None):
     self.paths = []
     self.attributes = {}
+    self.transfer_syntax = None
     self._file_info = []
     self._multiframe = None
     self._reverse_frames = False
@@ -111,6 +112,10 @@ class Series:
     # Read attributes used for ordering the images.
     self._file_info.append(SeriesFile(path, data))
 
+    # Get image encoding format
+    if self.transfer_syntax is None and hasattr(data.file_meta, 'TransferSyntaxUID'):
+      self.transfer_syntax = data.file_meta.TransferSyntaxUID
+      
   @property
   def name(self):
     attrs = self.attributes
