@@ -329,7 +329,7 @@ class Log(ToolInstance, HtmlLog):
                 msg = msg.replace("\n", "<br>\n")
 
             if level == self.LEVEL_ERROR:
-                from chimerax.core.logger import user_error_format
+                from chimerax.core.logger import error_text_format
                 msg = error_text_format % msg
             elif level == self.LEVEL_WARNING:
                 msg = '<p style="color:darkorange">' + msg + '</p>'

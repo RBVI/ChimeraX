@@ -35,7 +35,7 @@ def run(session, text, *, log=True, downgrade_errors=False):
         else:
             if session.ui.is_gui:
                 # logging at 'error' level would raise dialog, so...
-                from ..logger import user_error_format
+                from ..logger import error_text_format
                 session.logger.info(error_text_format % err, is_html=True)
             else:
                 session.logger.error(str(err))
