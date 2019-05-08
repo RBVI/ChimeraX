@@ -152,6 +152,9 @@ def standard_shortcuts(session):
         ('sB', 'show selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
         ('hB', 'hide selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
         ('hb', 'hbonds selAtoms', 'Show hydrogen bonds', molcat, noarg, mlmenu),
+        ('HB', '~hbonds', 'Hide all hydrogen bonds', molcat, noarg, mlmenu),
+        ('sq', 'sequence chain selAtoms', 'Show polymer sequence', molcat, noarg, mlmenu),
+        ('if', 'interfaces selAtoms', 'Chain interfaces diagram', molcat, noarg, mlmenu),
 
         ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
         ('Sb', 'color selAtoms halfbond false', 'Single color bonds', molcat, noarg, mlmenu),
@@ -160,10 +163,12 @@ def standard_shortcuts(session):
         ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
         ('ce', 'color selAtoms byhet', 'Color non-carbon atoms by element', molcat, noarg, mlmenu),
         ('rc', 'color selAtoms random', 'Random color atoms and residues', molcat, noarg, mlmenu),
-        ('bf', color_by_bfactor, 'Color by bfactor', molcat, atomsarg, mlmenu),
+        ('bf', 'color bfactor selAtoms', 'Color by bfactor', molcat, atomsarg, mlmenu),
+        ('rB', 'rainbow selAtoms', 'Rainbow color N to C-terminus', molcat, noarg, mlmenu),
 
         ('ms', 'show selAtoms surface', 'Show molecular surface', molcat, noarg, mlmenu),
         ('sa', 'sasa selAtoms', 'Compute solvent accesible surface area', molcat, noarg, mlmenu, sep),
+        ('hp', 'mlp selAtoms', 'Show hydrophobicity surface', molcat, noarg, mlmenu),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
 
