@@ -243,12 +243,8 @@ class ModelPanel(ToolInstance):
 
     def _process_models(self):
         models = self.session.models.list()
-        tree_models = []
         sorted_models = sorted(models, key=lambda m: m.id)
-        from chimerax.atomic import AtomicStructure
-        final_models = []
-        for model in sorted_models:
-            final_models.append(model)
+        final_models = list(sorted_models)
         update = True if hasattr(self, 'models') and final_models == self.models else False
         self.models = final_models
         return update
