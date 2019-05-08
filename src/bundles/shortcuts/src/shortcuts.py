@@ -153,7 +153,8 @@ def standard_shortcuts(session):
         ('hB', 'hide selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
         ('hb', 'hbonds selAtoms', 'Show hydrogen bonds', molcat, noarg, mlmenu),
         ('HB', '~hbonds', 'Hide all hydrogen bonds', molcat, noarg, mlmenu),
-        ('sq', 'sequence chain selAtoms', 'Show polymer sequence', molcat, noarg, mlmenu),
+#        ('sq', 'sequence chain selAtoms', 'Show polymer sequence', molcat, noarg, mlmenu),
+        ('sq', show_sequence, 'Show polymer sequence', molcat, atomsarg, mlmenu),
         ('if', 'interfaces selAtoms', 'Chain interfaces diagram', molcat, noarg, mlmenu),
 
         ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
@@ -816,6 +817,22 @@ def molecule_bonds(m, session):
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
 
+def show_sequence(atoms):
+    chains = atoms.residues.unique_chains
+    chains_by_seq = {}
+    for c in chains:
+        chains_by_seq.setdefault(c.characters, []).append(c)
+    for schains in chains_by_seq.values():
+        chains_by_struct = {}
+        for c in schains:
+            chains_by_struct.setdefault(c.structure, []).append(c)
+        seq_chain_spec = ''.join('#%s/%s' % (s.id_string, ','.join(c.chain_id for c in sclist))
+                                 for s,sclist in chains_by_struct.items())
+        # Don't log since sequence commmand syntax has not been finalized.
+        session = schains[0].structure.session
+        from chimerax.core.commands import run
+        run(session, 'sequence chain %s' % seq_chain_spec, log = False)
+
 def list_keyboard_shortcuts(session):
     m = session.main_window
     if m.showing_text() and m.text_id == 'keyboard shortcuts':
@@ -1029,7 +1046,7 @@ def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp
            % unused_file_name(directory, basename, suffix))
     from chimerax.core.commands import run
     run(session, cmd)
-        
+
 def unused_file_name(directory, basename, suffix):
     '''
     Return path in the specified directory with file name basename plus
