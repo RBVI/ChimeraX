@@ -106,6 +106,10 @@ class UI(QApplication):
         import sys
         QApplication.__init__(self, [sys.argv[0]])
 
+        # Improve toolbar icon quality on retina displays
+        from PyQt5.QtCore import Qt
+        self.setAttribute(Qt.AA_UseHighDpiPixmaps)
+
         self.redirect_qt_messages()
 
         self._keystroke_sinks = []
