@@ -1690,7 +1690,7 @@ class Volume(Model):
   #
   def close_surface(self):
 
-    self.remove_all_drawings()
+    self.remove_surfaces()
       
   # ---------------------------------------------------------------------------
   #
