@@ -31,12 +31,9 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="#global"><i>global-search-options</i></a></h3>
 <p>
 The <b>fitmap</b> command performs rigid-body local optimization(s)
-to fit an atomic model or map into a map. Mutually exclusive modes:
-<ul>
-<li><a href="#global">global search</a> with random initial placement
-<li><a href="#sequence">sequential fitting</a> of multiple different structures
-<li><a href="#symmetric">symmetric fitting</a> of copies of the same structure
-</ul>
+to fit an atomic model or map into a map. 
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/fitmap.png"></a>
 The maps usually represent electron density, but other types of
 <a href="../tools/volumeviewer.html">volume data</a> can also be used.
 See also:
@@ -47,9 +44,8 @@ See also:
 <a href="sym.html"><b>sym</b></a>,
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="align.html"><b>align</b></a>,
-<a href="save.html#pdb"><b>save</b> PDB</a>,
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/fitmap.png"></a>
+<a href="save.html#pdb"><b>save</b> PDB</a>
+</p><p>
 </p><p>
 The <i>fit-structure</i>, a <a href="atomspec.html">specified</a> 
 set of atoms or map model, will be fit to <i>ref-map</i> (a map model).
@@ -78,7 +74,14 @@ relative to the reference map is given as a
 <a href="#matrices">transformation matrix</a>
 and as an axis of rotation (a unit vector), point on the axis,
 degrees of rotation, and shift parallel to the axis.
+</p><p>
+The following advanced modes are mutually exclusive:
 </p>
+<ul>
+<li><a href="#global">global search</a> with random initial placement
+<li><a href="#sequence">sequential fitting</a> of multiple different structures
+<li><a href="#symmetric">symmetric fitting</a> of copies of the same structure
+</ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -514,5 +517,5 @@ degrees of rotation, and shift parallel to the axis.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2018</address>
+May 2019</address>
 </body></html>
