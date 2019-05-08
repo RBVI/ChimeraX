@@ -549,6 +549,19 @@ def init(argv, event_loop=True):
         if sess.ui.is_gui and opts.debug:
             print("Initializing core", flush=True)
 
+    # Install any bundles before toolshed is initialized so
+    # the new ones get picked up in this session
+    inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
+    restart_file = os.path.join(inst_dir, "on_restart")
+    restart_install_msgs = []
+    try:
+        with open(restart_file) as f:
+            for line in f:
+                restart_install(line, restart_install_msgs)
+    except IOError:
+        # Nothing to install
+        pass
+
     from chimerax.core import toolshed
     toolshed.init(sess.logger, debug=sess.debug,
                   check_available=opts.get_available_bundles)
@@ -661,13 +674,18 @@ def init(argv, event_loop=True):
             info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
                 is_html=True)
 
+    # Show any messages from installing bundles on restart
+    if restart_install_msgs:
+        for where, msg in restart_install_msgs:
+            if where == "stdout":
+                sess.logger.info(msg)
+            else:
+                sess.logger.warning(msg)
+
     if opts.module:
         import runpy
         import warnings
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
-        has_install = 'install' in sys.argv
-        has_uninstall = 'uninstall' in sys.argv
-        per_user = '--user' in sys.argv
         exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
@@ -680,7 +698,10 @@ def init(argv, event_loop=True):
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
+            has_install = 'install' in sys.argv
+            has_uninstall = 'uninstall' in sys.argv
             if has_install or has_uninstall:
+                per_user = '--user' in sys.argv
                 sess.toolshed.reload(sess.logger, rebuild_cache=True)
                 sess.toolshed.set_install_timestamp(per_user)
             # Do not remove scripts anymore since we may be installing
@@ -813,6 +834,33 @@ def remove_python_scripts(bin_dir):
                     continue
             print('removing (pip installed)', path)
             os.remove(path)
+
+
+def restart_install(line, msgs):
+    # Each line is expected to start with the bundle name/filename
+    # followed by additional pip flags (e.g., --user)
+    from chimerax.core import toolshed
+    import sys, subprocess
+    parts = line.strip().split()
+    bundle = parts[0]
+    pip_args = parts[1:]
+    # Options should match those in toolshed
+    command = ["install", "--upgrade",
+               "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
+               "--upgrade-strategy", "only-if-needed"]
+    command.extend(bundle)
+    command.append(pip_args)
+    cp = subprocess.run([sys.executable, "-m", "pip"] + command,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE)
+    if cp.returncode == 0:
+        msgs.append(("stdout", "Successfully installed %r" % bundle))
+    else:
+        msgs.append(("stderr", "Error installing %r" % bundle))
+    if cp.stdout:
+        msgs.append(("stdout", cp.stdout.decode("utf-8", "backslashreplace")))
+    if cp.stderr:
+        msgs.append(("stderr", cp.stderr.decode("utf-8", "backslashreplace")))
 
 
 if __name__ == '__main__':

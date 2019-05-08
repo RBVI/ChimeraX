@@ -59,7 +59,7 @@ class _Section(QWidgetAction):
     def __init__(self, parent, section_title, show_section_titles, show_button_titles):
         super().__init__(parent)
         self._buttons = []
-        self._groups = {}   # { toolbar-widget: { group-name: menu-widget } }
+        self._groups = {}   # { toolbar-widget: { group-name: qtoolbutton } }
         self._actions = []  # need to keep references to actions in menus
         self.section_title = section_title
         self.compact = False
@@ -92,9 +92,9 @@ class _Section(QWidgetAction):
         if not group:
             group_first = group_follow = False
         else:
-            menus = self._groups.setdefault(parent, {})
-            group_first = group not in menus  # first button in drop down
-            group_follow = not group_first    # subsequent buttons
+            buttons = self._groups.setdefault(parent, {})
+            group_first = group not in buttons  # first button in drop down
+            group_follow = not group_first      # subsequent buttons
         if not group_follow:
             b = QToolButton(parent)
             if vr_mode is not None:

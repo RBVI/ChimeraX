@@ -137,7 +137,7 @@ class MapSeries(Model):
 
     if not cache_rendering:
       v.remove_surfaces()
-      v.close_solid()
+      v.close_image()
 
   # ---------------------------------------------------------------------------
   #
