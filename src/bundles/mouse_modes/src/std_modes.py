@@ -46,12 +46,16 @@ class SelectMouseMode(MouseMode):
 
     def mouse_up(self, event):
         self._undraw_drag_rectangle()
+        mode = self.mode
+        if event.shift_down() and mode == 'replace':
+            mode = 'toggle'
+
         if self._is_drag(event):
             # Select objects in rectangle
-            mouse_drag_select(self.mouse_down_position, event, self.mode, self.session, self.view)
+            mouse_drag_select(self.mouse_down_position, event, mode, self.session, self.view)
         elif not self.double_click:
             # Select object under pointer
-            mouse_select(event, self.mode, self.session, self.view)
+            mouse_select(event, mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
 
     def mouse_double_click(self, event):
