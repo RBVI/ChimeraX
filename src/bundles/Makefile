@@ -29,7 +29,7 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  shell shortcuts show_attr sideview \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa \
-	  test texture toolbar tug ui \
+	  test texture toolbar tug ui uniprot \
 	  viewdockx vive vtk wavefront_obj webservices zone
 
 include $(TOP)/mk/subdir.make
