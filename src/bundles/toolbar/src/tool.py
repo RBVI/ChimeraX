@@ -179,6 +179,10 @@ _Toolbars = {
                 ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
                 ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
             ],
+#            ("Undo", True): [
+#                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
+#                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
+#            ],
         },
     ),
     "Molecule Display": (
@@ -225,19 +229,11 @@ _Toolbars = {
                 ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotide H-bond ladders", {'group': 'rungs'}),
                 ("cmd:nucleotides selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs", {'group': 'rungs'}),
             ],
-            ("Undo", True): [
-                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-            ],
         },
     ),
     "Graphics": (
         "help:user/tools/graphics.html",
         {
-            #("Undo", True): [
-            #    ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-            #    ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-            #],
             ("Background", True): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
                 ("shortcut:gb", "graybg.png", "Gray", "Gray background"),
