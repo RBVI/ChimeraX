@@ -37,19 +37,36 @@ The <b>nucleotides</b> command generates special representations of
 nucleic acids, with choices for <i>mode</i>:
 <ul>
 <li><a href="#atoms"><b>atoms</b></a>
-- atomic representation, no special representations; undo the other modes
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-atoms.png"></a>
+&ndash; atomic representation, no special representations; undo the other modes
 (same as <b>~nucleotides</b>)
 <li><a href="#fill"><b>fill</b></a>
-- atomic representation, but with filled rings
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-fill.png"></a>
+&ndash; atomic representation, but with filled rings
 <li><a href="#ladder"><b>ladder</b></a>
-- continuous or broken rungs depending on 
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-ladder.png"></a>
+&ndash; continuous or broken rungs depending on 
 <a href="hbonds.html#related">hydrogen bond pseudobonds</a>
 <li><a href="#stubs"><b>stubs</b></a>
-- broken rungs 
-<li><a href="#tube"><b>tube/slab</b></a> - tube representation of ribose,
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-stubs.png"></a>
+&ndash; broken rungs 
+<li><a href="#tube"><b>tube/slab</b></a> 
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-box.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-muff.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-elli.png"></a>
+&ndash; tube representation of ribose,
 slab representation of bases (box, muffler, or ellipsoid shape)
 <li><a href="#slab"><b>slab</b></a>
-- filled-ring atomic representation of ribose, slab representation of bases 
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-slab.png"></a>
+&ndash; filled-ring atomic representation of ribose, slab representation of bases 
 </ul>
 <p>
 Each mode may have additional options, detailed below.
@@ -58,11 +75,12 @@ Nucleotide representations are colored according to the
 </p><p>
 See also:
 <a href="preset.html"><b>preset</b></a>,
-<a href="color.html#bynucleotide"><b>color bynucleotide</b></a>,
+<a href="color.html#bynucleotide"><b>color bynucleotide</b></a>
 <a href="cartoon.html"><b>cartoon</b></a>,
 <a href="style.html"><b>style</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
-<a href="struts.html"><b>struts</b></a>
+<a href="struts.html"><b>struts</b></a>,
+<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -90,6 +108,7 @@ alt="slab" title="slab"></td></tr>
 <blockquote>
 Atomic representation, but with filled rings (base and ribose).
 Fill thickness can be adjusted with <a href="style.html"><b>style</b></a>.
+See also:
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -164,7 +183,7 @@ Represent ribose moieties as tubes of the specified <b>radius</b>
 bases as slabs of the specified <b>shape</b>, <b>dimensions</b>, and 
 <b>thickness</b> (default <b>0.5</b> &Aring;). The <b>shape</b> can be:
 <ul>
-<li><b>box</b> (default) - rectangular box
+<li><b>box</b> (default) &ndash; rectangular box
 <table class="clRight" cellpadding="0px" cellspacing="0px">
 <tr><td><img class="outline" src="box.png" width="100px"
 alt="box" title="box"></td>
@@ -173,20 +192,20 @@ alt="muffler" title="muffler"></td>
 <td><img class="outline" src="ellipsoid.png" width="100px"
 alt="ellipsoid" title="ellipsoid"></td></tr>
 </table>
-<li><b>muffler</b> - rectangular in the plane of the base, oval in cross-section
+<li><b>muffler</b> &ndash; rectangular in the plane of the base, oval in cross-section
 (large enough to enclose the corresponding box)
-<li><b>ellipsoid</b> - oval in the plane of the base and oval in cross-section
+<li><b>ellipsoid</b> &ndash; oval in the plane of the base and oval in cross-section
 (large enough to enclose the corresponding box)
 </ul>
 <a name="dimensions"></a>
 The choices for <b>dimensions</b> also specify the location of the slab:
 <ul>
 <li><b>small</b> (default for <b>ellipsoid</b> shape)
-- anchored at the base end of the glycosidic bond
+&ndash; anchored at the base end of the glycosidic bond
 <li><b>long</b> (default for <b>box</b> and <b>muffler</b> shapes)
-- anchored at the base end of the glycosidic bond
-<li><b>big</b>  - anchored at the ribose end of the glycosidic bond (C1')
-<li><b>fat</b> - anchored at the ribose end of the glycosidic bond
+&ndash; anchored at the base end of the glycosidic bond
+<li><b>big</b> &ndash; anchored at the ribose end of the glycosidic bond (C1')
+<li><b>fat</b> &ndash; anchored at the ribose end of the glycosidic bond
 </ul>
 The <b>hideAtoms</b> option indicates whether to hide nucleotide atoms/bonds
 (default <b>true</b>).
@@ -243,5 +262,5 @@ adjusted with <a href="style.html"><b>style</b></a>.
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2019</address>
+May 2019</address>
 </body></html>
