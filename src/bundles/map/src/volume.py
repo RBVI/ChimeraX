@@ -805,7 +805,7 @@ class Volume(Model):
 
     surf_disp = len([s for s in self.surfaces if s.display]) > 0
     image_disp = (self._image and self._image.display)
-    return self.display and (surf_disp or image_disp)
+    return self.display and (surf_disp or image_disp or self._style_when_shown is not None)
     
   # ---------------------------------------------------------------------------
   #

@@ -47,7 +47,7 @@ class Play_Series:
 
     self.normalize_thresholds = normalize_thresholds
 
-    self.rendering_cache_size = rendering_cache_size
+    self.rendering_cache_size = max(rendering_cache_size, len(series))
     self.rendered_times = []       # For limiting cached renderings
     self.rendered_times_table = {}
 
