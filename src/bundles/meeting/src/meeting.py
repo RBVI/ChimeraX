@@ -68,6 +68,10 @@ def meeting(session, host = None, port = 52194, name = None, color = None,
         session.logger.status(msg, log = True)
     else:
         s = meeting_server(session, create = True)
+        if s.started_server:
+            from chimerax.core.errors import UserError
+            raise UserError('To join another meeting you must close'
+                            ' the meeting you started using command "meeting close"')
         s.connect(host, port)
 
     if name is not None:
@@ -223,6 +227,10 @@ class MeetingServer:
         s = self._server
         return s is not None and s.isListening()
 
+    @property
+    def started_server(self):
+        return self._server is not None
+    
     def _available_server_ipv4_addresses(self):
         from PyQt5.QtNetwork import QNetworkInterface, QAbstractSocket
         a = []

@@ -92,6 +92,10 @@ def vseries_play(session, series, direction = 'forward', loop = False, max_frame
             preceding_marker_frames = 0, following_marker_frames = 0,
             color_range = None, cache_frames = 1):
     '''Show a sequence of maps from a volume series.'''
+    if len(series) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No volume series specified')
+    
     from . import play
     p = play.Play_Series(series, session, range = range, start_time = start_time,
                          play_direction = direction,

@@ -23,6 +23,7 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
   # Locate all series in subdirectories
   from .dicom_format import find_dicom_series
   series = find_dicom_series(map_path, log = session.logger, verbose = kw.get('verbose'))
+  series = omit_16bit_lossless_jpeg(series, log = session.logger)
 
   # Open volume models for image series
   image_series = []
@@ -56,9 +57,24 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
   return gmodels, msg
 
 # -----------------------------------------------------------------------------
+#
+def omit_16bit_lossless_jpeg(series, log):
+  # Python Image Library cannot read 16-bit lossless jpeg.
+  keep = []
+  for s in series:
+    if s.transfer_syntax == '1.2.840.10008.1.2.4.70' and s.attributes.get('BitsAllocated') == 16:
+      if log:
+        log.warning('Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg images.' % s.paths[0])
+    else:
+      keep.append(s)
+  return keep
+
+# -----------------------------------------------------------------------------
 # Group into a four level hierarchy: directory, patient id, date, series.
 #
 def group_models(session, paths, models):
+  if len(models) == 0:
+    return []
   from os.path import basename, dirname
   dname = basename(paths[0]) if len(paths) == 1 else basename(dirname(paths[0]))
   from chimerax.core.models import Model

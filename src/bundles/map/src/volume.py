@@ -1745,6 +1745,7 @@ class Volume(Model):
       return None	# Map file not available.
     v = Volume(session, grid_data)
     Model.set_state_from_snapshot(v, session, data['model state'])
+    v._style_when_shown = None		# Don't show surface style by default.
     from .session import set_map_state
     set_map_state(data['volume state'], v)
     v._drawings_need_update()
@@ -1777,10 +1778,36 @@ class VolumeImage(Image3d):
     ro = v.rendering_options
     self.set_options(ro)
     self.set_region(v.region)
+    self._update_colormap()
+
+  # ---------------------------------------------------------------------------
+  #
+  def _update_colormap(self):
     from .image3d import Colormap
-    cmap = Colormap(self._transfer_function(), v.image_brightness_factor,
+    cmap = Colormap(self._transfer_function(), self._volume.image_brightness_factor,
                     self._transparency_thickness())
     self.set_colormap(cmap)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _get_single_color(self):
+    '''Return average color.'''
+    v = self._volume
+    colors = v.image_colors
+    from numpy import array, mean, uint8
+    if len(colors) == 0:
+      c = array((255,255,255,255), uint8)
+    else:
+      c = array([int(r*255) for r in mean(colors, axis=0)], uint8)
+    return c
+  def _set_single_color(self, color):
+    v = self._volume
+    rgba = [[r/255 for r in color]] * len(v.image_levels)
+    if rgba != v.image_colors:
+      v.image_colors = rgba
+      self._update_colormap()
+      v.call_change_callbacks('colors changed')
+  single_color = property(_get_single_color, _set_single_color)
 
   # ---------------------------------------------------------------------------
   #
@@ -1833,7 +1860,6 @@ class VolumeSurface(Surface):
     Surface.__init__(self, name, volume.session)
     self.volume = volume
     self._level = level
-    self.rgba = rgba
     self._mesh = mesh
     self._contour_settings = {}	         	# Settings for current surface geometry
     self._min_status_message_voxels = 2**24	# Show status messages only on big surface calculations
@@ -1851,6 +1877,21 @@ class VolumeSurface(Surface):
     self._use_thread = use_thread
   level = property(_get_level, set_level)
 
+  def _get_rgba(self):
+    return [c/255 for c in self.color]
+  def _set_rgba(self, rgba, use_thread = False):
+    self.color = [int(255*r) for r in rgba]
+  rgba = property(_get_rgba, _set_rgba)
+  '''Float red,green,blue,alpha values in range 0-1'''
+
+  def get_color(self):
+    return Surface.get_color(self)
+  def set_color(self, color):
+    if (color != self.color).any():
+      Surface.set_color(self, color)
+      self.volume.call_change_callbacks('colors changed')
+  color = property(get_color, set_color)
+    
   def _get_show_mesh(self):
     return self._mesh
   def _set_show_mesh(self, show_mesh):

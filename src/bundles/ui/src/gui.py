@@ -631,8 +631,8 @@ class MainWindow(QMainWindow, PlainTextLog):
                 settings_dw.hide()
             for tool_windows in self.tool_instance_to_windows.values():
                 for tw in tool_windows:
-                    if tw.title == "Command Line Interface":
-                        # leave the command line as is
+                    if tw.title in ["Command Line Interface", "Toolbar"]:
+                        # leave the command line and toolbar tool as is
                         continue
                     if tw.floating:
                         continue
