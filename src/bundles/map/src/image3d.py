@@ -472,7 +472,7 @@ class Image3d(Model):
 
     self._remove_planes()
     if not self.deleted and self.parent:
-      self.parent.remove_drawing(self)
+      self.session.models.close([self])
 
   # ---------------------------------------------------------------------------
   #
