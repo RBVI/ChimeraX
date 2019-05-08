@@ -27,9 +27,21 @@ class AtomsArg(AtomSpecArg):
         return atoms, text, rest
 
 
+class ResiduesArg(AtomSpecArg):
+    """Parse command residues specifier"""
+    name = "a residues specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        aspec, text, rest = super().parse(text, session)
+        residues = aspec.evaluate(session).residues
+        residues.spec = str(aspec)
+        return residues, text, rest
+
+
 class UniqueChainsArg(AtomSpecArg):
-    """Parse command atoms specifier"""
-    name = "an atoms specifier"
+    """Parse command chains specifier"""
+    name = "a chains specifier"
 
     @classmethod
     def parse(cls, text, session):
