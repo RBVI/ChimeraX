@@ -1879,7 +1879,7 @@ class VolumeSurface(Surface):
 
   def _get_rgba(self):
     return [c/255 for c in self.color]
-  def _set_rgba(self, rgba, use_thread = False):
+  def _set_rgba(self, rgba):
     self.color = [int(255*r) for r in rgba]
   rgba = property(_get_rgba, _set_rgba)
   '''Float red,green,blue,alpha values in range 0-1'''
