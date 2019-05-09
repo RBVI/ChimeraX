@@ -718,21 +718,13 @@ def hide_surface(session):
                 m.display_positions = logical_and(dp,logical_not(sp))
 
 def toggle_surface_transparency(session):
-    from chimerax.map import Volume
-    from chimerax.core.graphics import Drawing
-    for m in shortcut_surfaces_and_maps(session):
-        if isinstance(m, Volume):
-            for s in m.surfaces:
-                r,g,b,a = s.rgba
-                ta = (0.5 if a == 1 else 1)
-                s.rgba = (r,g,b,ta)
-        else:
-            for d in m.all_drawings():
-                c = d.colors
-                opaque = (c[:,3] == 255)
-                c[:,3] = 255                # Make transparent opaque
-                c[opaque,3] = 128           # and opaque transparent.
-                d.colors = c
+    for m in shortcut_surfaces(session):
+        for d in m.all_drawings():
+            c = d.colors
+            opaque = (c[:,3] == 255)
+            c[:,3] = 255                # Make transparent opaque
+            c[opaque,3] = 128           # and opaque transparent.
+            d.colors = c
 
 def show_surface_transparent(session, alpha = 0.5):
     from chimerax.map import Volume
