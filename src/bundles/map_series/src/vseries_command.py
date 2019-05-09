@@ -307,32 +307,32 @@ def processed_volume(v, subregion = None, step = None, value_type = None, thresh
 # -----------------------------------------------------------------------------
 #
 def vseries_measure(session, series, output = None, centroids = True,
-               color = (.7,.7,.7,1), radius = None):
+                    color = None, radius = None):
     '''Report centroid motion of a map series.'''
+    rgba = (170,170,170,255) if color is None else color.uint8x4()
     from chimerax.surface import surface_volume_and_area
-    from chimerax.core.measure import inertia
+    from chimerax.std_commands import measure_inertia
     meas = []
     for s in series:
         n = s.number_of_times()
+        start_time = s.last_shown_time
         for t in range(n):
-            if t > 0:
-                s.copy_display_parameters(0, t)
-            shown = s.time_shown(t)
+            if t != start_time:
+                s.copy_display_parameters(start_time, t)
             s.show_time(t)
             v = s.maps[t]
+            v.update_drawings()	# Compute surface.  Normally does not happen until rendered.
             level = v.minimum_surface_level
             vol, area, holes = surface_volume_and_area(v)
-            axes, d2, c = inertia.map_inertia([v])
-            elen = inertia.inertia_ellipsoid_size(d2)
+            axes, d2, c = measure_inertia.map_inertia([v])
+            elen = measure_inertia.inertia_ellipsoid_size(d2)
             meas.append((level, c, vol, area, elen))
-            if not shown:
-                s.unshow_time(t, cache_rendering = False)
+        s.show_time(start_time)
 
         if centroids:
             if radius is None:
                 radius = min(v.data.step)
-            mol = create_centroid_path(tuple(m[1] for m in meas), radius, color)
-            session.add_model(mol)
+            create_centroid_path(session, 'centroid path', tuple(m[1] for m in meas), radius, rgba)
 
         # Make text output
         lines = ['# Volume series measurements: %s\n' % s.name,
@@ -360,28 +360,18 @@ def vseries_measure(session, series, output = None, centroids = True,
   
 # -----------------------------------------------------------------------------
 #
-def create_centroid_path(xyz, radius, color):
+def create_centroid_path(session, name, xyz, radius, color):
 
-    # TODO: This is obsolete Hydra code.
-    n = len(xyz)
-    from numpy import zeros, array, float32, arange, empty
-    from chimerax.atomic import atom_dtype, Structure
-    atoms = zeros((n,), atom_dtype)
-    atoms['atom_name'] = b's'
-    atoms['element_number'] = 1
-    atoms['xyz'] = array(xyz, float32)
-    r = empty((n,), float32)
-    r[:] = radius
-    atoms['radius'] = r
-    atoms['residue_name'] = b'S'
-    atoms['residue_number'] = arange(0,n)
-    atoms['chain_id'] = b'A'
-    atoms['atom_color'] = tuple(int(255*c) for c in color)
-    atoms['ribbon_color'] = (255,255,255,255)
-    atoms['atom_shown'] = 1
-    atoms['ribbon_shown'] = 0
-    m = Structure('centroids', atoms)
-    return m
+    from chimerax.markers import MarkerSet, create_link
+    mset = MarkerSet(session, name)
+    mprev = None
+    for p in xyz:
+        m = mset.create_marker(p, color, radius)
+        if mprev:
+            create_link(mprev, m, rgba = color, radius = radius/2)
+        mprev = m
+    session.models.add([mset])
+    return mset
 
 # -----------------------------------------------------------------------------
 #
