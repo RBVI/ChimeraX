@@ -1676,16 +1676,16 @@ class Outline:
         # Depth test GL_LEQUAL results in z-fighting:
         r.set_depth_range(0, 0.9995)
 
-    def finish_rendering_outline(self):
+    def finish_rendering_outline(self, color=(0,1,0,1), pixel_width=1):
         r = self._render
         r.pop_framebuffer()
         r.disable_shader_capabilities(0)
         r.enable_capabilities &= ~r.SHADER_ALL_WHITE
         r.set_depth_range(0, 1)
         t = self._mask_framebuf.color_texture
-        self._draw_texture_mask_outline(t)
+        self._draw_texture_mask_outline(t, color=color, pixel_width=pixel_width)
 
-    def _draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
+    def _draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1), pixel_width=1):
 
         # Render outline of region where texture red > 0.
         # Outline pixels have red = 0 in texture mask but are adjacent
@@ -1693,7 +1693,7 @@ class Outline:
         # The depth buffer is not used.  (Depth buffer was used to handle
         # occlusion in the mask texture passed to this routine.)
         w, h = texture.size
-        dx, dy = 1.0 / w, 1.0 / h
+        dx, dy = pixel_width / w, pixel_width / h
         r = self._render
         tc = r._texture_window(texture, r.SHADER_TEXTURE_OUTLINE)
         p = r.current_shader_program

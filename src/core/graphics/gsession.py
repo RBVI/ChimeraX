@@ -17,7 +17,8 @@ class ViewState:
 
     version = 1
     save_attrs = ['camera', 'lighting', 'material',
-                  'center_of_rotation', 'center_of_rotation_method', 'background_color']
+                  'center_of_rotation', 'center_of_rotation_method',
+                  'background_color', 'highlight_color', 'highlight_thickness']
     silhouette_attrs = ['enabled', 'thickness', 'color', 'depth_jump']
 
     @staticmethod
