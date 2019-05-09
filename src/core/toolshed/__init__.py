@@ -1533,3 +1533,6 @@ def get_help_directories():
     if _toolshed is not None:
         hd.extend(_toolshed._installed_bundle_info.help_directories)
     return hd
+
+def default_toolshed_url():
+    return _RemoteURL
