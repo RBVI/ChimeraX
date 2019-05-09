@@ -1674,7 +1674,7 @@ class Outline:
                                       | r.SHADER_LIGHTING)
         r.enable_capabilities |= r.SHADER_ALL_WHITE
         # Depth test GL_LEQUAL results in z-fighting:
-        r.set_depth_range(0, 0.999999)
+        r.set_depth_range(0, 0.9995)
 
     def finish_rendering_outline(self):
         r = self._render
