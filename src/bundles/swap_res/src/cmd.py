@@ -11,46 +11,45 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def swapaa(session, targets, *, block=None, multichain=True, custom_script=None,
-    dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None, thorough_opt=False,
-    water_preserve=False):
+def swapaa(session, residues, res_type, *, lib=None, criteria="dchp", preserve=None, retain=False, log=True,
+    ignore_other_models=False, density=None, overlap_cutoff=0.6, hbond_allowance=0.4, score_method="num",
+    relax=True, dist_slop=None, angle_slop=None):
     '''
-    Command to generate a comparative model of one or more chains
+    Command to swap amino acid side chains
     '''
     from chimerax.core.errors import UserError
-    seen = set()
-    for alignment, seq in targets:
-        if alignment in seen:
-            raise UserError("Only one target sequence per alignment allowed;"
-                " multiple targets chosen in alignment %s" % alignment)
-        seen.add(alignment)
-    if block is None:
-        block = session.in_script or not session.ui.is_gui
-    if fast:
-        num_models = 1
-    from . import comparative
+    residues = [r for r in residues if r.polymer_type == r.PT_AMINO]
+    if not residues:
+        raise UserError("No amino acid residues specified for swapping")
+
+    # res_type and lib are handled by underlying call
+
+    if type(criteria) == str:
+        for c in criteria:
+            if c not in "dchp":
+                raise UserError("Unknown criteria: '%s'" % c)
+
+    from . import swap_res
     try:
-        comparative.model(session, targets, block=block, multichain=multichain,
-            custom_script=custom_script, dist_restraints=dist_restraints,
-            executable_location=executable_location, fast=fast, het_preserve=het_preserve,
-            hydrogens=hydrogens, license_key=license_key, num_models=num_models, show_gui=show_gui,
-            temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
-    except comparative.ModelingError as e:
+        swap_res.swapaa(session, residues, res_type, lib=lib, criteria=criteria, preserve=preserve,
+            retain=retain, log=log, ignore_other_models=ignore_other_models, density=density,
+            overlap_cutoff=overlap_cutoff, hbond_allowance=hbond_allowance, score_method=score_method,
+            relax=relax, dist_slop=dist_slop, angle_slop=angle_slop)
+    except swap_res.SwapError as e:
         raise UserError(e)
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg, PasswordArg, IntArg
-    from chimerax.core.commands import OpenFileNameArg, OpenFolderNameArg
-    from chimerax.seqalign import AlignSeqPairArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, IntArg, Or, FloatArg, EnumOf
+    from chimerax.atomic import ResiduesArg
+    from chimerax.map import MapArg
     desc = CmdDesc(
-        required = [('targets', ListOf(AlignSeqPairArg))],
-        keyword = [('block', BoolArg), ('multichain', BoolArg), ('custom_script', OpenFileNameArg),
-            ('dist_restraints', OpenFileNameArg), ('executable_location', OpenFileNameArg), ('fast', BoolArg),
-            ('het_preserve', BoolArg), ('hydrogens', BoolArg), ('license_key', PasswordArg),
-            ('num_models', IntArg), ('show_gui', BoolArg), ('temp_path', OpenFolderNameArg),
-            ('thorough_opt', BoolArg), ('water_preserve', BoolArg)
+        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        keyword = [('lib', StringArg), ('criteria', Or(IntArg, StringArg))), ('preserve', FloatArg),
+            ('retain', BoolArg), ('log', BoolArg), ('ignore_other_models', BoolArg), ('density', MapArg),
+            ('overlap_cutoff', FloatArg), ('hbond_allowance', FloatArg),
+            ('score_method', EnumOf(('sum', 'num')), ('relax', BoolArg), ('dist_slop', FloatArg),
+            ('angle_slop', FloatArg)
         ],
-        synopsis = 'Use Modeller to generate comparative model'
+        synopsis = 'Swap amino acid side chain(s)'
     )
     register('swapaa', desc, swapaa, logger=logger)
