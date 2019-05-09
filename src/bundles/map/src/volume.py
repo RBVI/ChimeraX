@@ -1891,6 +1891,13 @@ class VolumeSurface(Surface):
       Surface.set_color(self, color)
       self.volume.call_change_callbacks('colors changed')
   color = property(get_color, set_color)
+
+  def _get_colors(self):
+    return Surface.get_colors(self)
+  def _set_colors(self, colors):
+    Surface.set_colors(self, colors)
+    self.volume.call_change_callbacks('colors changed')
+  colors = property(_get_colors, _set_colors)
     
   def _get_show_mesh(self):
     return self._mesh
