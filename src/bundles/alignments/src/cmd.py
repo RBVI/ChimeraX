@@ -44,6 +44,22 @@ class AlignSeqPairArg(Annotation):
             align_id, seq_id = "", token
         else:
             align_id, seq_id = token.split(':', 1)
+        if not align_id:
+            aln_seq = None
+            for aln in session.alignments.alignments:
+                try:
+                    seq = get_alignment_sequence(aln, seq_id)
+                except MissingSequence:
+                    pass
+                else:
+                    if aln_seq is None:
+                        aln_seq = (aln, seq)
+                    else:
+                        raise AnnotationError("Multiple sequences match '%s'; please also specify the"
+                            " alignment by prepending 'alignment-ID:'" % token)
+            if aln_seq:
+                return aln_seq, text, rest
+            raise AnnotationError("No sequences match '%s'" % token)
         alignment = get_alignment_by_id(session, align_id)
         seq = get_alignment_sequence(alignment, seq_id)
         return (alignment, seq), text, rest
@@ -63,6 +79,8 @@ class AlignmentArg(Annotation):
         alignment = get_alignment_by_id(session, token)
         return alignment, text, rest
 
+class MissingSequence(AnnotationError):
+    pass
 def get_alignment_sequence(alignment, seq_id):
     try:
         sn = int(seq_id)
@@ -71,7 +89,7 @@ def get_alignment_sequence(alignment, seq_id):
             if seq.name == seq_id:
                 break
         else:
-            raise AnnotationError("No sequence named '%s' found in alignment" % seq_id)
+            raise MissingSequence("No sequence named '%s' found in alignment" % seq_id)
     else:
         if sn == 0:
             raise AnnotationError("Sequence index must be positive or negative integer,"
@@ -156,11 +174,12 @@ def seqalign_associate(session, chains, align_seq):
     aln, seq = align_seq
     for chain in chains:
         if chain in aln.associations:
-            if aln.associations[chain] == seq:
+            old_seq = aln.associations[chain]
+            if old_seq == seq:
                 session.logger.warning("%s already associated with %s" % (chain, seq.name))
                 continue
             aln.disassociate(chain)
-            session.logger.warning("Disassociated %s from %s" % (chain, aln.associations[chain].name))
+            session.logger.warning("Disassociated %s from %s" % (chain, old_seq))
         aln.associate(chain, seq=seq)
 
 def seqalign_disassociate(session, chains, alignments=None):
