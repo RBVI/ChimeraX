@@ -182,10 +182,12 @@ def seqalign_associate(session, chains, align_seq):
             session.logger.warning("Disassociated %s from %s" % (chain, old_seq))
         aln.associate(chain, seq=seq)
 
-def seqalign_disassociate(session, chains, alignments=None):
-    specified = alignments is not None
-    if alignments is None:
+def seqalign_disassociate(session, chains, alignment=None):
+    if alignment is None:
         alignments = session.alignments.alignments
+    else:
+        alignments = [alignment]
+
     for chain in chains:
         did_disassoc = False
         for aln in alignments:
@@ -193,12 +195,12 @@ def seqalign_disassociate(session, chains, alignments=None):
                 did_disassoc = True
                 aln.disassociate(chain)
         if not did_disassoc:
-            session.logger.warning("%s not associated with any%s alignments"
-                % (chain, " specified" if specified else ""))
+            session.logger.warning("%s not associated with %s"
+                % (chain, " any alignment" if alignment is None else "alignment %s" % alignment.ident))
 
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
-    from chimerax.core.commands import CmdDesc, register, ListOf
+    from chimerax.core.commands import CmdDesc, register
     from chimerax.atomic import UniqueChainsArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
@@ -212,8 +214,8 @@ def register_seqalign_command(logger):
     register('sequence associate', desc, seqalign_associate, logger=logger)
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
-        optional = [('alignments', ListOf(AlignmentArg))],
-        synopsis = 'disassociate chain(s) from sequence(s)'
+        optional = [('alignment', AlignmentArg)],
+        synopsis = 'disassociate chain(s) from alignment'
     )
     register('sequence disassociate', desc, seqalign_disassociate, logger=logger)
 
