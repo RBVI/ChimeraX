@@ -1,0 +1,95 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: sequence</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<a name="chain"></a>
+<h3><a href="../index.html#commands">Command</a>: sequence</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>sequence &nbsp;chain</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+</h3>
+<a name="associate"></a>
+<a name="dissociate"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>sequence &nbsp;associate</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+[<i>alignment</i>:<i>target</i>]
+</h3>
+<a name="style"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>sequence</b> &nbsp;<b>dissociate</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+&nbsp;<i>alignment</i>
+</h3>
+<p>
+The command <b>sequence chain</b> shows the sequence of the specified chain
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+Only one structure chain should be specified.
+See also: <a href="open.html"><b>open</b></a>,
+<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="iconbar" border=1 src="../tools/shortcut-icons/sequence.png"></a>
+</p><p>
+<a href="../tools/sequenceviewer.html#association">Sequence-structure
+association</a> 
+(such as for synchronized <a href="../selection.html">selection</a>)
+occurs automatically, but the commands 
+<b>sequence associate</b> and <b>sequence dissociate</b> 
+allow more precise control, for example, of which structure chains are used 
+for <a href="../tools/sequenceviewer.html#headers">header</a> calculations, 
+or forcing or removing associations regardless of 
+whether the number of mismatches would be tolerated by the 
+<a href="../tools/sequenceviewer.html#association">automatic procedure</a>.
+</p><p>
+The command <b>sequence associate</b> associates
+one or more structure chains with a sequence.
+The target sequence for association is specified by alignment name,
+as shown in title bar of the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
+and the name or index number of the target sequence in the alignment,
+in the form: &nbsp;<i>alignment</i>:<i>target</i>&nbsp; (enclosed in
+quotation marks if <i>alignment</i> or <i>target</i> includes spaces).
+The index number can be a positive integer <i>N</i>
+for the <i>N</i><sup>th</sup> sequence in the alignment,
+or negative for the <i>N</i><sup>th</sup>-to-last sequence.
+</p><p>
+Alternatively, the <i>target</i> can be omitted 
+to associate each specified structure chain with the
+the best-matching sequence in the alignment.
+The <i>alignment</i> can be omitted if only one alignment is open, or
+if the <i>target</i> is also omitted; in the latter case,
+each specified structure chain will be associated with the 
+best-matching sequence in each open alignment.
+If either or both are omitted, the colon (:) is not needed
+except in rare cases to disambiguate an alignment and sequence 
+with the same name.
+</p><p>
+For <b>sequence dissociate</b>, only the alignment needs to be specified, 
+not an individual sequence, because a structure chain can only be 
+associated with one sequence per alignment.
+</p>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2019</address>
+</body></html>
