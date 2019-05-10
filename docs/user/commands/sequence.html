@@ -34,7 +34,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>sequence &nbsp;associate</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-&nbsp;[<i>alignment</i>:]<i>target</i>
+[<i>alignment</i>:<i>target</i>]
 </h3>
 <a name="style"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -73,11 +73,17 @@ quotation marks if <i>alignment</i> or <i>target</i> includes spaces).
 The index number can be a positive integer <i>N</i>
 for the <i>N</i><sup>th</sup> sequence in the alignment,
 or negative for the <i>N</i><sup>th</sup>-to-last sequence.
-The &ldquo;<i>alignment</i>:&rdquo; 
-part can be omitted if only one alignment is open.
-Finally, if the word <b>best</b> is given as the <i>target</i>, 
-each structure chain will be associated with
+</p><p>
+Alternatively, the <i>target</i> can be omitted 
+to associate each specified structure chain with the
 the best-matching sequence in the alignment.
+The <i>alignment</i> can be omitted if only one alignment is open, or
+if the <i>target</i> is also omitted; in the latter case,
+each specified structure chain will be associated with the 
+best-matching sequence in each open alignment.
+If either or both are omitted, the colon (:) is not needed
+except in rare cases to disambiguate an alignment and sequence 
+with the same name.
 </p><p>
 For <b>sequence dissociate</b>, only the alignment needs to be specified, 
 not an individual sequence, because a structure chain can only be 
