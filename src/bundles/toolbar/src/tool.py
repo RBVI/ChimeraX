@@ -211,7 +211,6 @@ _Toolbars = {
                 ("shortcut:rB", "rainbow.png", "rainbow", 'Rainbow color N to C-terminus'),
                 ("shortcut:bf", "bfactor.png", "b-factor", 'Color by b-factor'),
                 ("shortcut:hp", "hydrophobicity.png", "hydrophobic", 'Color surface by hydrophobicity'),
-                ("cmd:color selAtoms bynuc", "nuc-color.png", "nucleotide", "Color by nucleotide"),
             ],
             ("Analysis", False): [
                 ("shortcut:hb", "hbondsflat.png", "H-bonds", "Show hydrogen bonds"),
@@ -219,15 +218,23 @@ _Toolbars = {
                 ("shortcut:sq", "sequence.png", "Sequence", "Show polymer sequence"),
                 ("shortcut:if", "interfaces.png", "Interfaces", "Show chain contacts diagram"),
             ],
-            ("Nucleotides", False): [
-                ("cmd:nucleotides selAtoms atoms", "nuc-atoms.png", "Plain", "Remove nucleotide abstraction"),
-                ("cmd:nucleotides selAtoms fill", "nuc-fill.png", "Filled", "Fill nucleotide rings", {'group': 'fill'}),
-                ("cmd:nucleotides selAtoms slab", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars", {'group': 'fill'}),
-                ("cmd:nucleotides selAtoms tube/slab shape box", "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes", {'group': 'tube'}),
-                ("cmd:nucleotides selAtoms tube/slab shape ellipsoid", "nuc-elli.png", "Tube/\nEllipsoid", "Show nucleotide bases as ellipsoids and sugars as tubes", {'group': 'tube'}),
-                ("cmd:nucleotides selAtoms tube/slab shape muffler", "nuc-muff.png", "Tube/\nMuffler", "Show nucleotide bases as mufflers and sugars as tubes", {'group': 'tube'}),
-                ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotide H-bond ladders", {'group': 'rungs'}),
-                ("cmd:nucleotides selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs", {'group': 'rungs'}),
+        },
+    ),
+    "Nucleotides": (
+        None,
+        {
+            ("Styles", False): [
+                ("cmd:nucleotides selAtoms atoms", "nuc-atoms.png", "Plain", "Remove nucleotides styling"),
+                ("cmd:nucleotides selAtoms fill", "nuc-fill.png", "Filled", "Show nucleotides with filled rings"),
+                ("cmd:nucleotides selAtoms slab", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
+                ("cmd:nucleotides selAtoms tube/slab shape box", "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes"),
+                ("cmd:nucleotides selAtoms tube/slab shape ellipsoid", "nuc-elli.png", "Tube/\nEllipsoid", "Show nucleotide bases as ellipsoids and sugars as tubes"),
+                ("cmd:nucleotides selAtoms tube/slab shape muffler", "nuc-muff.png", "Tube/\nMuffler", "Show nucleotide bases as mufflers and sugars as tubes"),
+                ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotides as H-bond ladders"),
+                ("cmd:nucleotides selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
+            ],
+            ("Coloring", False): [
+                ("cmd:color selAtoms bynuc", "nuc-color.png", "nucleotide", "Color by nucleotide"),
             ],
         },
     ),

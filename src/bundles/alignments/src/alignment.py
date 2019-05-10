@@ -322,7 +322,7 @@ class Alignment(State):
         if not self.viewers and self.auto_destroy and not self._in_destroy:
             self.session.alignments.destroy_alignment(self)
 
-    def disassociate(self, sseq, reassoc=False):
+    def disassociate(self, sseq, *, reassoc=False, demotion=False):
         if sseq not in self.associations or self._in_destroy:
             return
 
@@ -334,19 +334,21 @@ class Alignment(State):
         del aseq.match_maps[sseq]
         del self.associations[sseq]
         sseq.triggers.remove_handler(match_map.del_handler)
-        # delay notifying the observers until all chain demotions/deletions have been received
-        def _delay_disassoc(_, __, match_map=match_map, reassoc=reassoc, sseq=sseq, aseq=aseq):
+        if reassoc:
+            return
+        if not demotion:
             self._notify_observers("remove association", [match_map])
+
             # if the structure seq hasn't been demoted/destroyed, log the disassociation
-            from chimerax.atomic import StructureSeq
-            if not reassoc and isinstance(sseq, StructureSeq) and not sseq.structure.deleted:
-                struct = sseq.structure
-                struct_name = struct.name
-                if '.' in struct.id_string:
-                    # ensemble
-                    struct_name += " (" + struct.id_string + ")"
-                self.session.logger.info("Disassociated %s %s from %s"
-                    % (struct_name, sseq.name, aseq.name))
+            struct = sseq.structure
+            struct_name = struct.name
+            if '.' in struct.id_string:
+                # ensemble
+                struct_name += " (" + struct.id_string + ")"
+            self.session.logger.info("Disassociated %s %s from %s" % (struct_name, sseq.name, aseq.name))
+        # delay notifying the observers until all chain demotions/deletions have been received
+        def _delay_disassoc(_, __, match_map=match_map):
+            self._notify_observers("remove association", [match_map])
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         from chimerax import atomic
@@ -439,7 +441,7 @@ class Alignment(State):
 
         # set up callbacks for structure changes
         match_map.del_handler = chain.triggers.add_handler('delete',
-            lambda _1, sseq: self.disassociate(sseq))
+            lambda _1, sseq: self.disassociate(sseq, demotion=True))
         """
         match_map["mavModHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)
@@ -534,7 +536,7 @@ class Alignment(State):
             s.match_maps = mm
             for chain, match_map in mm.items():
                 match_map.del_handler = chain.triggers.add_handler('delete',
-                    lambda _1, sseq, aln=aln: aln.disassociate(sseq))
+                    lambda _1, sseq, aln=aln: aln.disassociate(sseq, demotion=True))
         return aln
 
     def __str__(self):

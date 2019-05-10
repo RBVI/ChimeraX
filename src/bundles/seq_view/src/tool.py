@@ -455,6 +455,8 @@ class SequenceViewer(ToolInstance):
             for aseq in assoc_aseqs:
                 self.seq_canvas.assoc_mod(aseq)
                 self._update_errors_gaps(aseq)
+            if self.alignment.intrinsic:
+                self.show_ss(True)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
