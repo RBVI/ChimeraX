@@ -579,7 +579,7 @@ def open_filename(filename, *args, **kw):
             filename.close = lambda: False
         return filename
 
-    if filename.startswith("http:"):
+    if filename.startswith(("http:", "https:")):
         from urllib.request import urlopen
         return urlopen(filename)
 

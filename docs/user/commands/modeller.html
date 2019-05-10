@@ -39,6 +39,13 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>licenseKey</b>&nbsp;&nbsp;<i>key</i>&nbsp;]
 </h3>
+<a name="scores"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>modeller</b> &nbsp;<b>scores</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b><a href="#block">block</a></b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b><a href="#licenseKey">licenseKey</a></b>&nbsp;&nbsp;<i>key</i>&nbsp;]
+</h3>
 <p>
 The <b>modeller comparative</b> command performs comparative or
 &ldquo;homology&rdquo; modeling of proteins by running
@@ -47,6 +54,16 @@ on a web service hosted by the
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI</a>. It is the command-line implementation of the
 <a href="../tools/modeller.html"><b>Modeler&nbsp;Comparative</b></a> tool.
+Additional scores for the resulting models can be obtained from the
+<a href="http://modbase.compbio.ucsf.edu/evaluation/"
+target="_blank">SaliLab Model Evaluation Server</a> using the
+<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
+or the <b>modeller scores</b> command. 
+(Any atomic model can be &ldquo;evaluated&rdquo; with this command, 
+but in the absence of a
+<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
+to show the scores, the only result will be to assign them as model
+<a href="../attributes.html">attributes</a>.)
 </p><p>
 Modeller is developed by the
 <a href="http://www.salilab.org" target="_blank">&Scaron;ali Lab</a>,
@@ -114,7 +131,7 @@ Scores for the comparative models are shown in a
 <p class="nav">
 [<a href="#top">back to top: modeller</a>]
 </p>
-<h3>Options</h3>
+<h3>Comparative Modeling Options</h3>
 <blockquote>
 <b>multichain</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
@@ -162,6 +179,7 @@ Whether to include hydrogen atoms in the output models (default <b>false</b>);
 increases computation time by approximately a factor of 4.
 </blockquote>
 <blockquote>
+<a name="block"></a>
 <b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 Whether to wait for the calculation to finish before starting to execute
@@ -186,5 +204,5 @@ target="_blank">Modeller licensing</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2019</address>
+May 2019</address>
 </body></html>

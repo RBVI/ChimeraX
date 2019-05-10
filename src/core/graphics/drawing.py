@@ -1440,12 +1440,12 @@ def draw_overlays(drawings, renderer):
     r.disable_shader_capabilities(0)
 
 
-def draw_highlight_outline(renderer, drawings):
+def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
     '''Draw the outlines of highlighted parts of the specified drawings.'''
     r = renderer
     r.outline.start_rendering_outline()
     _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
-    r.outline.finish_rendering_outline()
+    r.outline.finish_rendering_outline(color=color, pixel_width=pixel_width)
 
     
 def draw_on_top(renderer, drawings):

@@ -70,7 +70,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
         models.extend(path_models)
 
         # Remember in file history
-        if models and len(paths) == 1:
+        if len(paths) == 1:
             # TODO: Handle lists of file names in history.
             rfmt = None if format is None else fmt.nicknames[0]
             from chimerax.core.filehistory import remember_file

@@ -38,7 +38,9 @@ class View:
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
-
+        self._highlight_color = (0, 1, 0, 1)
+        self._highlight_width = 1	# pixels
+        
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
@@ -87,6 +89,7 @@ class View:
             r.lighting = self._lighting
             r.material = self._material
             r.silhouette = self._silhouette
+            self.highlight_thickness = opengl_context.pixel_scale()
         elif opengl_context is r.opengl_context:
             # OpenGL context switched between stereo and mono mode
             self._opengl_initialized = False
@@ -228,7 +231,8 @@ class View:
             if silhouette.enabled:
                 silhouette.finish_silhouette_drawing(r)
             if highlight_drawings:
-                draw_highlight_outline(r, highlight_drawings)
+                draw_highlight_outline(r, highlight_drawings, color = self._highlight_color,
+                                       pixel_width = self._highlight_width)
             if on_top_drawings:
                 draw_on_top(r, on_top_drawings)
             if offscreen.enabled:
@@ -311,6 +315,22 @@ class View:
             settings.background_color = color
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
+
+    def _get_highlight_color(self):
+        return self._highlight_color
+    def _set_highlight_color(self, rgba):
+        self._highlight_color = rgba
+        self.redraw_needed = True
+    highlight_color = property(_get_highlight_color, _set_highlight_color)
+    '''Highlight outline color as R, G, B, A values in 0-1 range.'''
+
+    def _get_highlight_thickness(self):
+        return self._highlight_width
+    def _set_highlight_thickness(self, thickness):
+        self._highlight_width = thickness
+        self.redraw_needed = True
+    highlight_thickness = property(_get_highlight_thickness, _set_highlight_thickness)
+    '''Highlight outline thickness in pixels.'''
 
     def _get_lighting(self):
         return self._lighting
