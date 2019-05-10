@@ -31,8 +31,8 @@ class SeqArg(Annotation):
 class AlignSeqPairArg(Annotation):
     '''Same as SeqArg, but the return value is (alignment, seq)'''
 
-    name = "[alignment-id]:sequence-name-or-number"
-    _html_name = "[<i>alignment-id</i>]:<i>sequence-name-or-number</i>"
+    name = "[alignment-id:]sequence-name-or-number"
+    _html_name = "[<i>alignment-id</i>:]<i>sequence-name-or-number</i>"
 
     @staticmethod
     def parse(text, session):
@@ -41,8 +41,25 @@ class AlignSeqPairArg(Annotation):
             raise AnnotationError("Expected %s" % SeqArg.name)
         token, text, rest = next_token(text)
         if ':' not in token:
-            raise AnnotationError("Expected at least one ':' character in %s" % SeqArg.name)
-        align_id, seq_id = token.split(':', 1)
+            align_id, seq_id = "", token
+        else:
+            align_id, seq_id = token.split(':', 1)
+        if not align_id:
+            aln_seq = None
+            for aln in session.alignments.alignments:
+                try:
+                    seq = get_alignment_sequence(aln, seq_id)
+                except MissingSequence:
+                    pass
+                else:
+                    if aln_seq is None:
+                        aln_seq = (aln, seq)
+                    else:
+                        raise AnnotationError("Multiple sequences match '%s'; please also specify the"
+                            " alignment by prepending 'alignment-ID:'" % token)
+            if aln_seq:
+                return aln_seq, text, rest
+            raise AnnotationError("No sequences match '%s'" % token)
         alignment = get_alignment_by_id(session, align_id)
         seq = get_alignment_sequence(alignment, seq_id)
         return (alignment, seq), text, rest
@@ -62,6 +79,8 @@ class AlignmentArg(Annotation):
         alignment = get_alignment_by_id(session, token)
         return alignment, text, rest
 
+class MissingSequence(AnnotationError):
+    pass
 def get_alignment_sequence(alignment, seq_id):
     try:
         sn = int(seq_id)
@@ -70,7 +89,7 @@ def get_alignment_sequence(alignment, seq_id):
             if seq.name == seq_id:
                 break
         else:
-            raise AnnotationError("No sequence named '%s' found in alignment" % seq_id)
+            raise MissingSequence("No sequence named '%s' found in alignment" % seq_id)
     else:
         if sn == 0:
             raise AnnotationError("Sequence index must be positive or negative integer,"
@@ -103,6 +122,8 @@ def get_alignment_by_id(session, align_id, *, multiple_okay=False):
         return [alignment]
     return alignment
 
+from chimerax.core.errors import UserError
+
 def seqalign_chain(session, chains):
     '''
     Show chain sequence(s)
@@ -123,7 +144,6 @@ def seqalign_chain(session, chains):
         # that sequence
         sequences = set([chain.characters for chain in chains])
         if len(sequences) != 1:
-            from chimerax.core.errors import UserError
             raise UserError("Chains must have same sequence")
         chars = sequences.pop()
         chain_ids = set([chain.chain_id for chain in chains])
@@ -150,14 +170,52 @@ def seqalign_chain(session, chains):
             alignment.associate(chain, keep_intrinsic=True)
         alignment.resume_notify_observers()
 
+def seqalign_associate(session, chains, align_seq):
+    aln, seq = align_seq
+    for chain in chains:
+        if chain in aln.associations:
+            old_seq = aln.associations[chain]
+            if old_seq == seq:
+                session.logger.warning("%s already associated with %s" % (chain, seq.name))
+                continue
+            aln.disassociate(chain)
+            session.logger.warning("Disassociated %s from %s" % (chain, old_seq))
+        aln.associate(chain, seq=seq)
+
+def seqalign_disassociate(session, chains, alignments=None):
+    specified = alignments is not None
+    if alignments is None:
+        alignments = session.alignments.alignments
+    for chain in chains:
+        did_disassoc = False
+        for aln in alignments:
+            if chain in aln.associations:
+                did_disassoc = True
+                aln.disassociate(chain)
+        if not did_disassoc:
+            session.logger.warning("%s not associated with any%s alignments"
+                % (chain, " specified" if specified else ""))
+
 def register_seqalign_command(logger):
-    from chimerax.core.commands import CmdDesc, register
+    # REMINDER: update manager._builtin_subcommands as additional subcommands are added
+    from chimerax.core.commands import CmdDesc, register, ListOf
     from chimerax.atomic import UniqueChainsArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
         synopsis = 'show structure chain sequence'
     )
-    # REMINDER: update manager._builtin_subcommands as additional subcommands are added
     register('sequence chain', desc, seqalign_chain, logger=logger)
+    desc = CmdDesc(
+        required = [('chains', UniqueChainsArg), ('align_seq', AlignSeqPairArg)],
+        synopsis = 'associate chain(s) with sequence'
+    )
+    register('sequence associate', desc, seqalign_associate, logger=logger)
+    desc = CmdDesc(
+        required = [('chains', UniqueChainsArg)],
+        optional = [('alignments', ListOf(AlignmentArg))],
+        synopsis = 'disassociate chain(s) from sequence(s)'
+    )
+    register('sequence disassociate', desc, seqalign_disassociate, logger=logger)
+
     from . import manager
     manager._register_viewer_subcommands(logger)

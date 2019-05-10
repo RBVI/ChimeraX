@@ -254,7 +254,7 @@ class _SaveManager:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
             except Exception as e:
-                msg = 'Error while saving session data for "%s": %s' % (type(obj).__name__, str(e))
+                msg = 'Error while saving session data for "%s": %s' % (str(type(obj)), str(e))
                 raise RuntimeError(msg)
         elif isinstance(obj, type):
             return None
@@ -405,7 +405,7 @@ class Session:
         self.session_file_path = None
         for tag in self._state_containers:
             container = self._state_containers[tag]
-            sm = self.snapshot_methods(container, type=StateManager)
+            sm = self.snapshot_methods(container, base_type=StateManager)
             if sm:
                 sm.reset_state(container, self)
             else:
@@ -435,14 +435,17 @@ class Session:
     def remove_state_manager(self, tag):
         del self._state_containers[tag]
 
-    def snapshot_methods(self, object, instance=True, type=State):
+    def snapshot_methods(self, obj, instance=True, base_type=State):
         """Return an object having take_snapshot(), restore_snapshot(),
         and reset_state() methods for the given object.
         Can return None if no save/restore methods are available,
         for instance for primitive types.
         """
-        cls = object.__class__ if instance else object
-        if issubclass(cls, type):
+        cls = obj.__class__ if instance else obj
+        from .serialize import PRIMITIVE_TYPES
+        if cls in PRIMITIVE_TYPES:
+            return None
+        if issubclass(cls, base_type):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
             from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material, ClipPlane, Drawing
