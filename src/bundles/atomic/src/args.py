@@ -34,7 +34,7 @@ class ResiduesArg(AtomSpecArg):
     @classmethod
     def parse(cls, text, session):
         aspec, text, rest = super().parse(text, session)
-        residues = aspec.evaluate(session).residues
+        residues = aspec.evaluate(session).atoms.residues.unique()
         residues.spec = str(aspec)
         return residues, text, rest
 
