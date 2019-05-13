@@ -131,8 +131,8 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         if not hasattr(self, '_recursion'):
             self._recursion = True
             del_recursion = True
-        prev_value = self.value
         sel = [si.text() for si in self.selectedItems()]
+        prev_value = self.value
         item_names = self._item_names()
         filtered_sel = [s for s in sel if s in item_names]
         if self.autoselect and not filtered_sel:
@@ -154,6 +154,11 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         else:
             self.blockSignals(False)
             self.value = next_value
+            # if items were deleted, then the current selection could be empty when the previous
+            # one was not, but the test in the value setter will think the value is unchanged
+            # and not emit the changed signal, so check for that here
+            if len(sel) > 0 and not next_value:
+                self.itemSelectionChanged.emit()
         if del_recursion:
             delattr(self, '_recursion')
 
