@@ -141,7 +141,7 @@ buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 [&nbsp;<b>level</b>&nbsp;&nbsp;<i>contour-level</i>&nbsp;]
 [&nbsp;<b>mark</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>marker-radius</i>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<i>marker-color</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>modelId</b>&nbsp;&nbsp;<i>model-number</i>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
 <blockquote>
@@ -154,9 +154,10 @@ above <i>contour-level</i>.
 If <b>mark</b> is <b>true</b>, a <a href="../markers.html">marker</a> 
 will be placed at at each computed center, with radius <i>marker-radius</i> 
 (default based on the contents of <a href="atomspec.html"><i>spec</i></a>)
-and color <i>marker-color</i> (default <b>gray</b>).
-The <i>marker-color</i> can be any
-<a href="color.html#colorname">color name</a> that specifies a single color.
+and color (default <b>#b4b4b4</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=#b4b4b4 width="10px" title="#b4b4b4"></td></tr></table>).
 The marker model is opened as number <i>model-number</i>
 (default next unused number) with name <i>model-name</i>
 (default based on the contents of <a href="atomspec.html"><i>spec</i></a>).
@@ -215,7 +216,7 @@ See also: <a href="mlp.html"><b>mlp</b></a>,
 &nbsp;<a href="frameatom_spec.html" target="_top"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>perChain</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>showEllipsoid</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>color</b>&nbsp;<i>ellipsoid-color</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>modelId</b>&nbsp;&nbsp;<i>model-number</i>&nbsp;]
 [&nbsp;<b>replace</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
@@ -248,12 +249,13 @@ the ellipsoid(s) will be opened as a surface model with
 containing multiple submodels if there are multiple ellipsoids.
 The <b>replace true</b> option allows replacing an existing model
 when the specified <i>model-number</i> is already in use.
-The <i>ellipsoid-color</i> can be any
-<a href="color.html#colorname">color name</a> that specifies a single color.
-Otherwise, an ellipsoid will be colored
+If ellipsoid <b>color</b> is not specified, each ellipsoid will be colored
 to match the first atom or surface in its calculation.
-<!--
 </p><p>
+Another way to generate a low-resolution
+representation of an atomic structure is with
+<a href="molmap.html"><b>molmap</b></a>.
+<!--
 See also:
 <a href="define.html#axis"><b>define axis</b></a>,
 <a href="aniso.html"><b>aniso</b></a>,
@@ -324,7 +326,10 @@ in increments of map grid units
 (using the smallest spacing along the three axes, if they differ)
 until they intersect with the map isosurface or reach
 <b>steps</b> <i>M</i> grid units in length (default <b>10</b>).
-Prickles are shown in the specified <b>color</b> (default <b>lime</b>) and
+Prickles are shown in the specified <b>color</b> (default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td></tr></table>) and
 can be amplified or shrunken in length by a <b>scale</b> factor <i>f</i>.
 If a model number is specified with <b>pricklesModel</b> <i>N</i>,
 the prickles will be added as a submodel of <i>N</i>.
