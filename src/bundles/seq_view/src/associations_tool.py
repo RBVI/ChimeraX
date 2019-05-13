@@ -23,8 +23,36 @@ class AssociationsTool:
         self.chain_list = ChainListWidget(sv.session, selection_mode='single')
         self.chain_list.value_changed.connect(self._chain_changed)
         layout.addWidget(self.chain_list)
+
+        from chimerax.seqalign.widgets import AlignSeqMenuButton
+        self.assoc_button = AlignSeqMenuButton(sv.alignment, no_value_button_text="Not associated",
+            no_value_menu_text="(none)")
+        self.assoc_button.value_changed.connect(self._seq_changed)
+        layout.addWidget(self.assoc_button)
+
         tool_window.ui_area.setLayout(layout)
+
+        # get initial assoc info correct
+        self._chain_changed()
 
     def _chain_changed(self):
         if self.chain_list.count() == 0:
             self.tool_window.shown = False
+        assoc = self.sv.alignment.associations.get(self.chain_list.value, None)
+        self.assoc_button.value = assoc
+
+    def _seq_changed(self):
+        # this can also get called if sequences get deleted, so try to do some checking
+        chain = self.chain_list.value
+        if not chain:
+            return
+        cur_assoc = self.sv.alignment.associations.get(chain, None)
+        req_assoc = self.assoc_button.value
+        if cur_assoc == req_assoc:
+            return
+        from chimerax.core.commands import run
+        if not req_assoc:
+            run(self.sv.session, "sequence disassoc %s" % chain.string(style="command"))
+        else:
+            run(self.sv.session, "sequence assoc %s %s:%d" % (chain.string(style="command"),
+                self.sv.alignment.ident, self.sv.alignment.seqs.index(req_assoc)+1))

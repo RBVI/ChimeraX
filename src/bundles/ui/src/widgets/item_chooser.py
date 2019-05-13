@@ -111,7 +111,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
     def value(self):
         self._sleep_check()
         values = [self.item_map[si.text()] for si in self.selectedItems()]
-        if self.selectionMode() == 'single':
+        if self.selectionMode() == self.SingleSelection:
             return values[0] if values else None
         return values
 
@@ -141,7 +141,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         self.blockSignals(True)
         self.clear()
         self.addItems(item_names)
-        if self.selectionMode() == 'single':
+        if self.selectionMode() == self.SingleSelection:
             if filtered_sel:
                 next_value = self.item_map[filtered_sel[0]]
             else:
@@ -163,7 +163,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             delattr(self, '_recursion')
 
     def _select_value(self, val):
-        if self.selectionMode() == 'single':
+        if self.selectionMode() == self.SingleSelection:
             if val is None:
                 val_names = set()
             else:
