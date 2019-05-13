@@ -18,37 +18,14 @@ class SwapAAMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self._residue = None
         self._align_atom_names = ['N', 'C', 'CA']
-        self._keep_atom_names = ['N', 'C', 'CA', 'O', 'H']
         self._step_pixels = 20
         self._step_meters = 0.05
         self._last_y = None
-        self._template_residues = []
-        self._template_residue_names = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS',
-                                        'GLN', 'GLU', 'GLY', 'HIS', 'ILE',
-                                        'LEU', 'LYS', 'MET', 'PHE', 'PRO',
-                                        'SER', 'THR', 'TRP', 'TYR', 'VAL']
-        self._template_file = 'templates.cif'	# Atom coordinates for each residue.
         self._label_atom_name = 'CA'		# Which atom to show residue label on.
         
     def enable(self):
-        self._load_templates()
-
-    def _load_templates(self):
-        tres = self._template_residues
-        if tres:
-            return
-        from chimerax.atomic.mmcif import open_mmcif
-        from os.path import join, dirname
-        path = join(dirname(__file__), self._template_file)
-        models, status = open_mmcif(self.session, path, log_info = False)
-        
-        m = models[0]
-        found = {}
-        tnames = self._template_residue_names
-        for r in m.residues:
-            if r.name not in found and r.name in tnames:
-                found[r.name] = r
-        tres.extend(found[name] for name in tnames if name in found)
+        from . import swapaa
+        swapaa.template_residues(self.session)
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -70,6 +47,7 @@ class SwapAAMouseMode(MouseMode):
     def mouse_up(self, event):
         self._unlabel()
         MouseMode.mouse_up(self, event)
+        _log_swapaa_command(self._residue)
         self._residue = None
         self._last_y = None
     
@@ -103,73 +81,15 @@ class SwapAAMouseMode(MouseMode):
         if rstep > -1 and rstep < 1:
             return False
         irstep = int(rstep) if rstep > 0 else -int(-rstep)
-        tres = self._template_residues
+        from . import swapaa
+        tres = swapaa.template_residues(self.session).list()
         rname = r.name
         ri = [i for i,rt in enumerate(tres) if rt.name == rname]
         tr = tres[0] if len(ri) == 0 else tres[(ri[0] + irstep) % len(tres)]
-        swapped = self._swap_residue(r, tr)
+        swapped = swapaa.swap_residue(r, tr, align_atom_names = self._align_atom_names)
         if swapped:
             self._label(r)
         return swapped
-
-    def _swap_residue(self, r, new_r):
-        pos, amap = self._backbone_alignment(r, new_r)
-        if pos is None:
-            return False	# Missing backbone atoms to align new residue
-
-        add_hydrogens = self._has_hydrogens(r)
-        carbon_color = self._carbon_color(r)
-
-        # Delete atoms.  Backbone atom HA is deleted if new residues is GLY.
-        akeep = set(self._keep_atom_names).intersection(new_r.atoms.names)
-        from chimerax.atomic import Atoms
-        adel = Atoms([a for a in r.atoms if a.name not in akeep])
-        adel.delete()
-
-        # Create new atoms
-        s = r.structure
-        akept = set(r.atoms.names)
-        # Set new atom b-factors to average of previous residue backbone atom b-factors.
-        bbf = [a.bfactor for a in r.atoms]
-        bfactor = sum(bbf)/len(bbf) if bbf else 0
-        from chimerax.atomic.colors import element_color
-        for a in new_r.atoms:
-            if a.name not in akept:
-                if a.element.name != 'H' or add_hydrogens:
-                    na = s.new_atom(a.name, a.element)
-                    na.scene_coord = pos * a.scene_coord
-                    # TODO: Color by element, but use model carbon color.
-                    na.color = carbon_color if a.element.name == 'C' else element_color(a.element.number)
-                    na.draw_mode = na.STICK_STYLE
-                    na.bfactor = bfactor
-                    r.add_atom(na)
-                    amap[a] = na
-        
-        # Create new bonds
-        for b in new_r.atoms.intra_bonds:
-            a1,a2 = b.atoms
-            if a1 in amap and a2 in amap:
-                na1, na2 = amap[a1], amap[a2]
-                if not na1.connects_to(na2):
-                    nb = s.new_bond(na1, na2)
-
-        # Set new residue name.
-        r.name = new_r.name
-
-        return True
-    
-    def _has_hydrogens(self, r):
-        for a in r.atoms:
-            if a.element.name == 'H':
-                return True
-        return False
-
-    def _carbon_color(self, r):
-        for a in r.atoms:
-            if a.element.name == 'C':
-                return a.color
-        from chimerax.atomic.colors import element_color
-        return element_color(6)
     
     def _has_alignment_atoms(self, r):
         aan = self._align_atom_names
@@ -179,27 +99,6 @@ class SwapAAMouseMode(MouseMode):
                        % (str(r), ', '.join(aan)), log = True)
             return False
         return True
-        
-    def _backbone_alignment(self, r, new_r):
-        ra = dict((a.name, a) for a in r.atoms)
-        nra = dict((a.name, a) for a in new_r.atoms)
-        apairs = []
-        aan = self._align_atom_names
-        for aname in aan:
-            if aname in ra and aname in nra:
-                apairs.append((ra[aname], nra[aname]))
-        if len(apairs) < 3:
-            log = self.session.logger
-            log.status('Fewer than 3 backbone atoms (%s) in residue %s (%s), swapaa cannot align'
-                       % (', '.join(aan), str(r), ', '.join(ra.keys())), log = True)
-            return None, None
-        from chimerax.core.geometry import align_points
-        from numpy import array
-        xyz = array([a2.scene_coord for a1,a2 in apairs])
-        ref_xyz = array([a1.scene_coord for a1,a2 in apairs])
-        p, rms = align_points(xyz, ref_xyz)
-        amap = dict((a2,a1) for a1,a2 in apairs)
-        return p, amap
 
     def _label(self, r):
         from chimerax.label.label3d import label
@@ -246,4 +145,13 @@ class SwapAAMouseMode(MouseMode):
     def vr_release(self):
         # Virtual reality hand controller button release.
         self._unlabel()
+        _log_swapaa_command(self._residue)
         self._residue = None
+
+def _log_swapaa_command(res):
+    if res is None:
+        return
+    ses = res.structure.session
+    cmd = 'swapaa %s %s' % (res.name, res.string(style = 'command'))
+    from chimerax.core.commands import run
+    run(ses, cmd)

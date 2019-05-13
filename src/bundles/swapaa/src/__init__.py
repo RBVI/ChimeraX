@@ -23,4 +23,10 @@ class _SwapAABundleAPI(BundleAPI):
             from .mouse_swapaa import SwapAAMouseMode
             mm.add_mode(SwapAAMouseMode(session))
 
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when the command is referenced
+        from . import swapaa
+        swapaa.register_swapaa_command(logger)
+
 bundle_api = _SwapAABundleAPI()
