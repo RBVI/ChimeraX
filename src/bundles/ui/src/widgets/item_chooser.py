@@ -223,7 +223,7 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
         self._autoselect_single = autoselect_single_item
         self._no_value_menu_text = no_value_menu_text
         self._no_value_button_text = no_value_button_text
-        self._special_items = []
+        self._special_items = special_items
         super().__init__(**kw)
         self.menu().triggered.connect(self._sel_change)
         if balloon_help:
@@ -243,7 +243,7 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
         if self._special_items:
             try:
                 return self._special_items[[str(si) for si in self._special_items].index(text)]
-            except IndexError:
+            except ValueError:
                 pass
         return self.item_map[text]
 

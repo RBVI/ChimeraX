@@ -25,14 +25,19 @@ class AssociationsTool:
         layout.addWidget(self.chain_list)
 
         from chimerax.seqalign.widgets import AlignSeqMenuButton
+        self.best_assoc_label = "Best matching sequence"
         self.assoc_button = AlignSeqMenuButton(sv.alignment, no_value_button_text="Not associated",
-            no_value_menu_text="(none)")
+            no_value_menu_text="(none)", special_items=[self.best_assoc_label])
         self.assoc_button.value_changed.connect(self._seq_changed)
         layout.addWidget(self.assoc_button)
 
         tool_window.ui_area.setLayout(layout)
 
         # get initial assoc info correct
+        self._chain_changed()
+
+    def _assoc_mod(self, note_data):
+        # called from sequence viewer if associations modified
         self._chain_changed()
 
     def _chain_changed(self):
@@ -53,6 +58,9 @@ class AssociationsTool:
         from chimerax.core.commands import run
         if not req_assoc:
             run(self.sv.session, "sequence disassoc %s" % chain.string(style="command"))
+        elif req_assoc == self.best_assoc_label:
+            run(self.sv.session, "sequence assoc %s %s" % (chain.string(style="command"),
+                self.sv.alignment.ident))
         else:
             run(self.sv.session, "sequence assoc %s %s:%d" % (chain.string(style="command"),
                 self.sv.alignment.ident, self.sv.alignment.seqs.index(req_assoc)+1))

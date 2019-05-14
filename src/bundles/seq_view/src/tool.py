@@ -457,6 +457,8 @@ class SequenceViewer(ToolInstance):
                 self._update_errors_gaps(aseq)
             if self.alignment.intrinsic:
                 self.show_ss(True)
+            if hasattr(self, 'associations_tool'):
+                self.associations_tool._assoc_mod(note_data)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
