@@ -245,6 +245,7 @@ class MouseModes:
         self._mouse_pause_position = None
 
         self.bind_standard_mouse_modes()
+        self._last_mode = None			# Remember mode at mouse down and stay with it until mouse up
 
         from .trackpad import MultitouchTrackpad
         self.trackpad = MultitouchTrackpad(session)
@@ -363,7 +364,11 @@ class MouseModes:
         if button is None:
             return
 
-        m = self.mode(button, modifiers)
+        if action == 'mouse_down':
+            m = self.mode(button, modifiers)
+            self._last_mode = m
+        else:
+            m = self._last_mode	     # Stay with same mode until button up even if modifier keys change.
         if m and hasattr(m, action):
             f = getattr(m, action)
             f(MouseEvent(event, modifiers=modifiers))
