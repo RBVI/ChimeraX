@@ -403,8 +403,9 @@ def _sel_atoms_selector(session, models, results):
 
 # Selected maps, or if none selected then displayed maps.
 def _sel_maps_selector(session, models, results):
-    for m in shortcut_maps(session):
-        results.add_model(m)
+    for v in shortcut_maps(session):
+        for m in v.all_models():	# Include map submodels.
+            results.add_model(m)
 
 # Selected models, or if none selected then all models.
 def _sel_models_selector(session, models, results):
