@@ -1080,7 +1080,8 @@ class Panel:
         self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
         self._button_rise = 0.01	# meters rise when pointer over button
 
-        self._panel_drawing = self._create_panel_drawing(parent)  # Drawing that renders this panel.
+        # Drawing that renders this panel.
+        self._panel_drawing = self._create_panel_drawing(parent)
 
     def _create_panel_drawing(self, parent):
         from chimerax.core.graphics import Drawing
@@ -1150,6 +1151,9 @@ class Panel:
         d.texture = Texture(rgba)
 
     def _update_geometry(self):
+        # Vertex coordinates are in room coordinates (meters), and
+        # position matrix contains scale factor to produce scene coordinates.
+
         # Calculate rectangles for panel and raised buttons
         w, h = self._width, self._height
         xmin,ymin,xmax,ymax = -0.5*w,-0.5*h,0.5*w,0.5*h
@@ -1350,16 +1354,10 @@ class HandControllerModel(Model):
         self.room_position = self._pose = rp = hmd34_to_position(dp)
         if self._shown_in_scene:
             self.update_scene_position(camera)
-            s = camera.scene_scale
-            if s < 0.999*self._last_cone_scale or s > 1.001*self._last_cone_scale:
-                va = (1/s) * self._cone_vertices
-                self.set_geometry(va, self.normals, self.triangles)
-                self._last_cone_scale = s
 
     def update_scene_position(self, camera):
-        from chimerax.core.geometry import scale
-        self.position = camera.room_to_scene * self.room_position * scale(camera.scene_scale)
-
+        self.position = camera.room_to_scene * self.room_position
+        
     def tip_position(self):
         return self.scene_position.origin()
             
@@ -1410,7 +1408,7 @@ class HandControllerModel(Model):
         cv = self._cone_vertices
         vbuttons = cv[self._num_cone_vertices:]
         self._buttons.button_vertices(b, pressed, vbuttons)
-        self.set_geometry(cv/self._last_cone_scale, self.normals, self.triangles)
+        self.set_geometry(cv, self.normals, self.triangles)
         
     def _set_hand_mode(self, button, hand_mode):
         self._modes[button] = hand_mode
