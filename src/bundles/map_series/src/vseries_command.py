@@ -323,6 +323,11 @@ def vseries_measure(session, series, output = None, centroids = True,
             v = s.maps[t]
             v.update_drawings()	# Compute surface.  Normally does not happen until rendered.
             level = v.minimum_surface_level
+            if level is None:
+                from chimerax.core.errors import UserError
+                raise UserError('vseries measure (#%s) requires surface style display' % s.id_string +
+                                ' since the surface threshold is used for computing centroid,' +
+                                ' enclosed volume, area, and size')
             vol, area, holes = surface_volume_and_area(v)
             axes, d2, c = measure_inertia.map_inertia([v])
             elen = measure_inertia.inertia_ellipsoid_size(d2)
