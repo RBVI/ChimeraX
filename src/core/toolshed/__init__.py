@@ -583,17 +583,16 @@ class Toolshed:
         m = importlib.import_module(_ChimeraNamespace)
         if cx_dir not in m.__path__:
             m.__path__.append(cx_dir)
+        install_now = True
         try:
             if bundle.installed:
                 if not reinstall:
                     raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
                 if bundle in self._installed_bundle_info:
-                    bundle.deregister(logger)
-                    bundle.unload(logger)
-                    self._installed_bundle_info.remove(bundle)
-                    # The reload that will happen later will undo the effect
-                    # of the unload by accessing the module again, so we
-                    # explicitly remove the bundle right now
+                    install_now = self._can_install(bundle)
+                    if install_now:
+                        bundle.deregister(logger)
+                        self._installed_bundle_info.remove(bundle)
             bundle = bundle.name
         except AttributeError:
             # If "bundle" is not an instance, it must be a string.
@@ -603,11 +602,38 @@ class Toolshed:
             name = basename.split('-')[0]
             bi = self.find_bundle(name, logger, installed=True)
             if bi in self._installed_bundle_info:
-                bi.deregister(logger)
-                bi.unload(logger)
-                self._installed_bundle_info.remove(bi)
+                install_now = self._can_install(bi)
+                if install_now:
+                    bi.deregister(logger)
+                    self._installed_bundle_info.remove(bi)
         if per_user is None:
             per_user = True
+        if not install_now:
+            # Show user a dialog (hence error) so they know something happened.
+            # Append to on_restart file so bundle is installed on restart.
+            logger.error("Bundle is currently in use.  "
+                         "It will be installed after restart.")
+            inst_dir, restart_file = install_on_restart_info()
+            try:
+                os.makedirs(inst_dir)
+            except FileExistsError:
+                pass
+            with open(restart_file, "a") as f:
+                args = []
+                if not isinstance(bundle, str):
+                    # Must be a BundleInfo instance
+                    args.append("%s==%s" % (bundle.name, bundle.version))
+                else:
+                    # Must be a file
+                    import shutil
+                    shutil.copy(bundle, inst_dir)
+                    args.append(os.path.split(bundle)[1])
+                if per_user:
+                    args.append("--user")
+                if reinstall:
+                    args.append("--force-reinstall")
+                print("\t".join(args), file=f)
+            return
         try:
             results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
         except PermissionError:
@@ -623,6 +649,15 @@ class Toolshed:
         self.set_install_timestamp(per_user)
         self.reload(logger, rebuild_cache=True, report=True)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
+
+    def _can_install(self, bi):
+        """Check if bundle can be installed (i.e., not in use)."""
+        # A bundle can be installed if its own package is not in use
+        # and does not pull in any dependent bundle that is in use.
+        if bi.imported():
+            return False
+        # TODO: Figuring out the latter is hard, so we ignore it for now.
+        return True
 
     def uninstall_bundle(self, bundle, logger, *, session=None):
         """Supported API. Uninstall bundle by removing the corresponding Python distribution.
@@ -1534,5 +1569,13 @@ def get_help_directories():
         hd.extend(_toolshed._installed_bundle_info.help_directories)
     return hd
 
+
 def default_toolshed_url():
     return _RemoteURL
+
+
+def install_on_restart_info():
+    import chimerax, os.path
+    inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
+    restart_file = os.path.join(inst_dir, "on_restart")
+    return inst_dir, restart_file
