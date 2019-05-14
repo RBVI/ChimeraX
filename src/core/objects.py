@@ -40,8 +40,8 @@ class Objects:
     models : readonly list of chimerax.core.models.Model
     """
     def __init__(self, atoms = None, bonds = None, pseudobonds = None, models = None):
-        from .orderedset import OrderedSet
-        self._models = OrderedSet() if models is None else OrderedSet(models)
+        from .orderedset import OrderedWeakrefSet
+        self._models = OrderedWeakrefSet() if models is None else OrderedWeakrefSet(models)
         self._model_instances = {}
         # Use a list of Atoms collections so many concatenations is fast.
         self._atoms = [] if atoms is None else [atoms]
@@ -90,8 +90,8 @@ class Objects:
         matoms = []
         mbonds = []
         mpbonds = []
-        from .orderedset import OrderedSet
-        imodels = OrderedSet()
+        from .orderedset import OrderedWeakrefSet
+        imodels = OrderedWeakrefSet()
         for m in models:
             if isinstance(m, Structure):
                 matoms.append(m.atoms)
@@ -186,8 +186,8 @@ class Objects:
     def displayed(self):
         '''Return Objects containing only displayed atoms, bonds, pseudobonds and models.'''
 	# Displayed models
-        from .orderedset import OrderedSet
-        dmodels = OrderedSet(m for m in self.models if m.display and m.parents_displayed)
+        from .orderedset import OrderedWeakrefSet
+        dmodels = OrderedWeakrefSet(m for m in self.models if m.display and m.parents_displayed)
         bonds, pbonds = self.bonds, self.pseudobonds
         d = Objects(atoms = self.atoms.shown_atoms, bonds = bonds[bonds.displays],
                     pseudobonds = pbonds[pbonds.displays], models = dmodels)
@@ -223,13 +223,13 @@ class Objects:
 
         Returns True if something changed during refresh; False otherwise."""
 
-        from .orderedset import OrderedSet
+        from .orderedset import OrderedWeakrefSet
         from chimerax.atomic import AtomicStructures, AtomicStructure
         all_models = set(session.models.list())
         models = [m for m in self._models if m in all_models]
         if len(models) == len(self._models):
             return False
-        self._models = OrderedSet(models)
+        self._models = OrderedWeakrefSet(models)
         self._model_instances = dict([(m, i)
                                       for (m, i)
                                       in self._model_instances.items()

@@ -1004,6 +1004,32 @@ class MainWindow(QMainWindow, PlainTextLog):
                 lambda arg, s=self, m=mode: s._set_select_mode(m))
         self._set_select_mode("replace")
 
+        selectors_menu = select_menu.addMenu("User-Defined Selectors")
+        selectors_menu.setToolTipsVisible(True)
+        selectors_menu.aboutToShow.connect(lambda menu=selectors_menu: self._populate_selectors_menu(menu))
+        from chimerax.core.commands import run
+        selectors_menu.triggered.connect(lambda name, ses=self.session, run=run: run(ses, "sel " + name.text()))
+
+    def _populate_selectors_menu(self, menu):
+        names = []
+        from chimerax.core.commands import list_selectors, is_selector_user_defined, get_selector
+        from chimerax.core.objects import Objects
+        for selector_name in list_selectors():
+            if not is_selector_user_defined(selector_name):
+                continue
+            val = get_selector(selector_name)
+            if isinstance(val, Objects) and val.empty():
+                continue
+            names.append(selector_name)
+        menu.clear()
+        if not names:
+            menu.addAction("No user-defined selectors")
+            menu.actions()[0].setEnabled(False)
+            return
+        names.sort()
+        for name in names:
+            menu.addAction(name)
+
     def select_by_mode(self, selector_text):
         """Supported API.  Select based on the selector 'selector_text' but honoring the current
            selection mode chosen in the Select menu.  Typically used by callbacks off the Selection menu"""

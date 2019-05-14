@@ -226,7 +226,6 @@ class ToolUI(HtmlToolInstance):
 
     def _show_hits(self):
         import json
-        print(self._hits)
         js = "table_update(%s);" % json.dumps(self._hits)
         self.html_view.runJavaScript(js)
 
