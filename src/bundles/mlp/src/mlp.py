@@ -18,7 +18,7 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
     Parameters
     ----------
     atoms : Atoms
-        Color surfaces for these atoms using MLP map.
+        Color surfaces for these atoms using MLP map.  Only amino acid residues are used.
     method : 'dubost','fauchere','brasseur','buckingham','type5'
         Distance dependent function to use for calculation
     spacing : float
@@ -40,6 +40,12 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
     if atoms is None:
         from chimerax.atomic import all_atoms
         atoms = all_atoms(session)
+
+    from chimerax.atomic import Residue
+    patoms = atoms[atoms.residues.polymer_types == Residue.PT_AMINO]
+    if len(patoms) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('mlp: no amino acids specified')
         
     if palette is None:
         from chimerax.core.colors import BuiltinColormaps
@@ -53,7 +59,7 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
     if color:
         # Compute surfaces if not already created
         from chimerax.surface import surface
-        surfs = surface(session, atoms)
+        surfs = surface(session, patoms)
         for s in surfs:
             satoms = s.atoms
             name = 'mlp ' + s.name.split(maxsplit=1)[0]
@@ -62,7 +68,7 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
             color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range)
     else:
         name = 'mlp map'
-        v = mlp_map(session, atoms, method, spacing, max_distance, nexp, name, open_map = map)
+        v = mlp_map(session, patoms, method, spacing, max_distance, nexp, name, open_map = map)
             
 
 def register_mlp_command(logger):
