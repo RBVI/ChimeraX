@@ -2189,6 +2189,8 @@ class PickedMap(Pick):
     self.detail = detail
   def description(self):
     return '%s %s %s' % (self.map.id_string, self.map.name, self.detail)
+  def specifier(self):
+    return '#%s' % self.map.id_string
   def select(self, mode = 'add'):
     m = self.map
     if mode == 'add':
@@ -3046,6 +3048,9 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
 
   ds = default_settings(session)
   ro = ds.rendering_option_defaults()
+  if getattr(grid_data, 'polar_values', None):
+    ro.flip_normals = True
+    ro.cap_faces = False
   if hasattr(grid_data, 'initial_rendering_options'):
     for oname, ovalue in grid_data.initial_rendering_options.items():
       setattr(ro, oname, ovalue)

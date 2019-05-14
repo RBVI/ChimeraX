@@ -24,7 +24,13 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
     path = stream.name if hasattr(stream, 'name') else None
 
     from . import _pdbio
-    pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic)
+    try:
+        pointers = _pdbio.read_pdb_file(stream, session.logger, not coordsets, atomic)
+    except ValueError as e:
+        if 'non-ASCII' in str(e):
+            from chimerax.core.errors import UserError
+            raise UserError(str(e))
+        raise
     stream.close()
 
     if atomic:

@@ -33,7 +33,13 @@ class BondRotationMouseMode(MouseMode):
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
+        self._log_command()
         self._delete_bond_rotation()
+
+    def _log_command(self):
+        br = self._bond_rot
+        if br:
+            log_torsion_command(br)
     
     def wheel(self, event):
         pick = self._picked_bond(event)
@@ -90,4 +96,38 @@ class BondRotationMouseMode(MouseMode):
 
     def vr_release(self):
         # Virtual reality hand controller button release.
+        self._log_command()
         self._delete_bond_rotation()
+
+def log_torsion_command(bond_rotator):
+    bond = bond_rotator.rotation.bond
+    ms_atom = bond_rotator.moving_side
+    fs_atom = bond.other_atom(ms_atom)
+    ms_atom2 = _connected_atom(ms_atom, fs_atom)
+    fs_atom2 = _connected_atom(fs_atom, ms_atom)
+    if ms_atom2 is None or fs_atom2 is None:
+        return 		# No connected atom to define a torsion
+    side = '' if bond.smaller_side is ms_atom else 'move large'
+    from chimerax.core.geometry import dihedral
+    torsion = dihedral(fs_atom2.scene_coord, fs_atom.scene_coord,
+                       ms_atom.scene_coord, ms_atom2.scene_coord)
+    res = ms_atom.residue
+    if ms_atom2.residue is res and fs_atom.residue is res and fs_atom2.residue is res:
+        # Use simpler atom spec for the common case of rotating a side chain.
+        atom_specs = '%s@%s,%s,%s,%s' % (res.string(style = 'command'),
+                                         ms_atom2.name, ms_atom.name, fs_atom.name, fs_atom2.name)
+    else:
+        atom_specs = '%s %s %s %s' % (fs_atom2.string(style='command'), fs_atom.string(style='command'),
+                                      ms_atom.string(style='command'), ms_atom2.string(style='command'))
+    cmd = 'torsion %s %.2f %s' % (atom_specs, torsion, side)
+    ses = ms_atom.structure.session
+    from chimerax.core.commands import run
+    run(ses, cmd)
+
+def _connected_atom(atom, exclude_atom):
+    for a in atom.neighbors:
+        if a is not exclude_atom:
+            return a
+    return None
+    
+    

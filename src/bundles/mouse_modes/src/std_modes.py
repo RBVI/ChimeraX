@@ -134,12 +134,12 @@ class SelectMouseMode(MouseMode):
 
     def vr_motion(self, position, move, delta_z):
         # Virtual reality hand controller motion.
-        ses = self.session
-        sel = ses.selection
-        if delta_z > 0.20:
-            sel.promote(ses)
-        elif delta_z < -0.20:
-            sel.demote(ses)
+        if delta_z > 0.10:
+            from chimerax.core.commands import run
+            run(self.session, 'select up')
+        elif delta_z < -0.10:
+            from chimerax.core.commands import run
+            run(self.session, 'select down')
         else:
             return 'accumulate drag'
 
@@ -197,7 +197,8 @@ def select_pick(session, pick, mode = 'replace'):
     sel.undo_add_selected(undo_state, False)
     if pick is None:
         if mode == 'replace':
-            sel.clear()
+            from chimerax.core.commands import run
+            run(session, 'select clear')
             session.logger.status('cleared selection')
     else:
         if mode == 'replace':
@@ -207,7 +208,12 @@ def select_pick(session, pick, mode = 'replace'):
             for p in pick:
                 p.select(mode)
         else:
-            pick.select(mode)
+            spec = pick.specifier()
+            if mode == 'add' and spec:
+                from chimerax.core.commands import run
+                run(session, 'select %s' % spec)
+            else:
+                pick.select(mode)
     sel.clear_promotion_history()
     sel.undo_add_selected(undo_state, True, old_state=False)
     session.undo.register(undo_state)

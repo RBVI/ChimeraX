@@ -170,22 +170,34 @@ def seqalign_chain(session, chains):
             alignment.associate(chain, keep_intrinsic=True)
         alignment.resume_notify_observers()
 
-def seqalign_associate(session, chains, align_seq):
-    aln, seq = align_seq
-    for chain in chains:
-        if chain in aln.associations:
-            old_seq = aln.associations[chain]
-            if old_seq == seq:
-                session.logger.warning("%s already associated with %s" % (chain, seq.name))
-                continue
-            aln.disassociate(chain)
-            session.logger.warning("Disassociated %s from %s" % (chain, old_seq))
-        aln.associate(chain, seq=seq)
-
-def seqalign_disassociate(session, chains, alignments=None):
-    specified = alignments is not None
-    if alignments is None:
+def seqalign_associate(session, chains, target=None):
+    if target is None:
         alignments = session.alignments.alignments
+        seq = "best"
+    elif type(target) == tuple:
+        aln, seq = target
+        alignments = [aln]
+    else:
+        seq = "best"
+        alignments = [target]
+    for aln in alignments:
+        for chain in chains:
+            if chain in aln.associations:
+                old_seq = aln.associations[chain]
+                aln.disassociate(chain)
+            else:
+                old_seq = None
+            if seq == "best":
+                aln.associate(chain)
+            else:
+                aln.associate(chain, seq=seq, reassoc=(seq==old_seq))
+
+def seqalign_disassociate(session, chains, alignment=None):
+    if alignment is None:
+        alignments = session.alignments.alignments
+    else:
+        alignments = [alignment]
+
     for chain in chains:
         did_disassoc = False
         for aln in alignments:
@@ -193,27 +205,30 @@ def seqalign_disassociate(session, chains, alignments=None):
                 did_disassoc = True
                 aln.disassociate(chain)
         if not did_disassoc:
-            session.logger.warning("%s not associated with any%s alignments"
-                % (chain, " specified" if specified else ""))
+            session.logger.warning("%s not associated with %s"
+                % (chain, " any alignment" if alignment is None else "alignment %s" % alignment.ident))
 
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
-    from chimerax.core.commands import CmdDesc, register, ListOf
+    from chimerax.core.commands import CmdDesc, register, Or
     from chimerax.atomic import UniqueChainsArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
         synopsis = 'show structure chain sequence'
     )
     register('sequence chain', desc, seqalign_chain, logger=logger)
+
     desc = CmdDesc(
-        required = [('chains', UniqueChainsArg), ('align_seq', AlignSeqPairArg)],
+        required = [('chains', UniqueChainsArg)],
+        optional = [('target', Or(AlignmentArg, AlignSeqPairArg))],
         synopsis = 'associate chain(s) with sequence'
     )
     register('sequence associate', desc, seqalign_associate, logger=logger)
+
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
-        optional = [('alignments', ListOf(AlignmentArg))],
-        synopsis = 'disassociate chain(s) from sequence(s)'
+        optional = [('alignment', AlignmentArg)],
+        synopsis = 'disassociate chain(s) from alignment'
     )
     register('sequence disassociate', desc, seqalign_disassociate, logger=logger)
 

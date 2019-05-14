@@ -28,23 +28,26 @@ class="clRight" title="User Guide Index"/></a>
 A <b><i>selection</i></b> is a set of items (atoms, bonds, residues, models)
 chosen by the user that:
 <ul>
-<li>is highlighted with green outlines in the graphics window
+<li>is highlighted in the graphics window with green outlines (default, 
+see <a href="commands/set.html#selectionColor"><b>set selectionColor</b></a>)
 <li>marks the items for subsequent operations:
   <ul>
   <li>can be <a href="commands/atomspec.html#builtin">specified</a> 
   as <b>sel</b> in <a href="index.html#commands">commands</a>, for example:
   <b><a href="commands/style.html">style</a> sel stick</b>
+  <li>can be named with <a href="commands/name.html"><b>name frozen</b></a>
+  for later use in <a href="index.html#commands">commands</a>
+  and <a href="tools/basicactions.html"><b>Basic Actions</b></a>
   <li>indicates scope of action of 
   <a href="tools/toolbar.html"><b>Toolbar</b></a> icons:
      <ul>
      <li><a href="tools/moldisplay.html"><b>Molecule Display</b></a>:&nbsp;
      <img class="iconbar" src="molecule-icons.png">
+     <li><a href="tools/nucdisplay.html"><b>Nucleotides</b></a>:&nbsp;
+     <img class="iconbar" src="nuc-icons.png">
      <li><a href="tools/densitymaps.html"><b>Map</b></a>:&nbsp;
      <img class="iconbar" src="density-icons.png">
      </ul>
-  <li>can be named with <a href="commands/name.html"><b>name frozen</b></a>
-  for later use in <a href="index.html#commands">commands</a>
-  and <a href="tools/basicactions.html"><b>Basic Actions</b></a>
   </ul>
 <li>can be created:
   <ul>
@@ -58,8 +61,8 @@ chosen by the user that:
   <li>with the <a href="menu.html#select"><b>Select</b> menu</a>: by chain ID,
   residue name, element, type of structure, sequence, zone, <i>etc.</i> 
   <li>with the <a href="commands/select.html"><b>select</b></a> command
-  <li>by dragging a box around residues in an associated
-  <a href="tools/sequenceviewer.html">sequence</a>
+  <li>by dragging a box around residues in an
+  <a href="tools/sequenceviewer.html#association">associated sequence</a>
   <li>with various other commands and tools
   </ul>
 <a name="cascade"></a>

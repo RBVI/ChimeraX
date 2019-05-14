@@ -53,6 +53,10 @@ Parameter <i>keyword</i>:
 &ndash; background color
 <li><a href="#maxFrameRate" class="nounder"><b>maxFrameRate</b></a>
 &ndash; target redraw rate
+<li><a href="#selectionColor" class="nounder"><b>selectionColor</b></a>
+&ndash; <a href="../selection.html">selection</a> outline color
+<li><a href="#selectionWidth" class="nounder"><b>selectionWidth</b></a>
+&ndash; <a href="../selection.html">selection</a> outline thickness
 <li><a href="#silhouettes" class="nounder"><b>silhouettes</b></a>
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
@@ -117,6 +121,25 @@ The maximum frame rate can also be reported/changed with
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="selectionColor"><b>set selectionColor</b></a> &nbsp;<i>color</i>
+<blockquote>
+Set <a href="../selection.html">selection</a> outline color, where
+<i>color</i> can be a <a href="colornames.html">color specification</a> by name,
+hexadecimal color code, or component values (initial default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td></tr></table>).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="selectionWidth"><b>set selectionWidth</b></a> &nbsp;<i>linewidth</i>
+<blockquote>
+Set <a href="../selection.html">selection</a> outline
+linewidth in pixels (initial default is the system display scaling factor,
+typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="silhouettes"><b>set silhouettes</b></a>
 &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <blockquote>
@@ -132,7 +155,10 @@ See also: <a href="../tools/graphics.html" title="Graphics icons...">
 <blockquote>
 Set silhouette color, where <i>color</i> can be
 a <a href="colornames.html">color specification</a> by name,
-hexadecimal color code, or component values (initial default <b>black</b>).
+hexadecimal color code, or component values (initial default <b>black</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=black width="10px" title="black"></td></tr></table>).
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>

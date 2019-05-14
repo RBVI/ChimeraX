@@ -551,18 +551,20 @@ def init(argv, event_loop=True):
 
     # Install any bundles before toolshed is initialized so
     # the new ones get picked up in this session
-    inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
-    restart_file = os.path.join(inst_dir, "on_restart")
-    restart_install_msgs = []
-    try:
-        with open(restart_file) as f:
-            for line in f:
-                restart_install(line, restart_install_msgs)
-    except IOError:
-        # Nothing to install
-        pass
-
     from chimerax.core import toolshed
+    inst_dir, restart_file = toolshed.install_on_restart_info()
+    restart_install_msgs = []
+    if os.path.exists(restart_file):
+        # Move file out of the way so next restart of ChimeraX
+        # (when we try to install the bundle) will not go into
+        # an infinite loop reopening the restart file
+        tmp_file = restart_file + ".tmp"
+        os.rename(restart_file, tmp_file)
+        with open(tmp_file) as f:
+            for line in f:
+                restart_install(line, inst_dir, restart_install_msgs)
+        os.remove(tmp_file)
+
     toolshed.init(sess.logger, debug=sess.debug,
                   check_available=opts.get_available_bundles)
     sess.toolshed = toolshed.get_toolshed()
@@ -836,20 +838,23 @@ def remove_python_scripts(bin_dir):
             os.remove(path)
 
 
-def restart_install(line, msgs):
+def restart_install(line, inst_dir, msgs):
     # Each line is expected to start with the bundle name/filename
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
-    import sys, subprocess
-    parts = line.strip().split()
+    import sys, subprocess, os.path, os
+    parts = line.rstrip().split('\t')
     bundle = parts[0]
     pip_args = parts[1:]
     # Options should match those in toolshed
     command = ["install", "--upgrade",
                "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
                "--upgrade-strategy", "only-if-needed"]
-    command.extend(bundle)
-    command.append(pip_args)
+    command.extend(pip_args)
+    if bundle.endswith(".whl"):
+        command.append(os.path.join(inst_dir, bundle))
+    else:
+        command.append(bundle)
     cp = subprocess.run([sys.executable, "-m", "pip"] + command,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE)
@@ -861,6 +866,8 @@ def restart_install(line, msgs):
         msgs.append(("stdout", cp.stdout.decode("utf-8", "backslashreplace")))
     if cp.stderr:
         msgs.append(("stderr", cp.stderr.decode("utf-8", "backslashreplace")))
+    if bundle.endswith(".whl"):
+        os.remove(os.path.join(inst_dir, bundle))
 
 
 if __name__ == '__main__':
