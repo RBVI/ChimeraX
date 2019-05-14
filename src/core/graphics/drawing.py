@@ -1747,6 +1747,10 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
+    def specifier(self):
+        '''Command specifier for the picked object.'''
+        return None
+
     def select(self, mode = 'add'):
         '''
         Cause this picked object to be highlighted ('add' mode), unhighlighted ('subtract' mode)
