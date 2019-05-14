@@ -219,10 +219,11 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
     value_changed = pyqtSignal()
 
     def __init__(self, autoselect_single_item=True, balloon_help=None, no_value_button_text="No item chosen",
-            no_value_menu_text=None, **kw):
+            no_value_menu_text=None, special_items=[], **kw):
         self._autoselect_single = autoselect_single_item
         self._no_value_menu_text = no_value_menu_text
         self._no_value_button_text = no_value_button_text
+        self._special_items = []
         super().__init__(**kw)
         self.menu().triggered.connect(self._sel_change)
         if balloon_help:
@@ -239,6 +240,11 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
         text = self.text()
         if text == self._no_value_button_text or not hasattr(self, 'item_map') or not text:
             return None
+        if self._special_items:
+            try:
+                return self._special_items[[str(si) for si in self._special_items].index(text)]
+            except IndexError:
+                pass
         return self.item_map[text]
 
     @value.setter
@@ -250,6 +256,8 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             return
         if val is None or not self.value_map:
             self.setText(self._no_value_button_text)
+        elif val in self._special_items:
+            self.setText(str(val))
         else:
             self.setText(self.value_map[val])
         self.value_changed.emit()
@@ -261,10 +269,17 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             del_recursion = True
         prev_value = self.value
         item_names = self._item_names()
+        special_names = []
         if self._no_value_menu_text is not None:
-            item_names = [self._no_value_menu_text] + item_names
+            special_names.append(self._no_value_menu_text)
+        if self._special_items:
+            special_names.extend([str(si) for si in self._special_items])
         menu = self.menu()
         menu.clear()
+        if special_names:
+            for special_name in special_names:
+                menu.addAction(special_name)
+            menu.addSeparator()
         for item_name in item_names:
             menu.addAction(item_name)
         if prev_value not in self.value_map:
