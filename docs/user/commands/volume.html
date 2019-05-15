@@ -250,14 +250,12 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="color"><b>color</b> &nbsp;<i>threshold-color</i></a>
-  <br>Assign <a href="#level">threshold</a> color. Can be given multiple times
-  in the same command if multiple <a href="#level">threshold levels</a> 
-  are also specified.
-  The <i>threshold-color</i> can be any
-  <a href="colornames.html">color name</a> that specifies a single color.
-  The default color is an opaque medium gray (<b>70,70,70</b>) 
-  for surface and mesh displays, <b>white</b> for image.
+  <a name="color"></a>
+  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>Assign <a href="#level">threshold</a> color.
+Can be given multiple times in the same command if multiple 
+<a href="#level">threshold levels</a> are also specified.
+See also: <a href="colortables.html#autocolors">initial colors</a>
 </blockquote>
 Multiple <a href="#level">level</a> and <a href="#color">color</a>
 specifications can be included in a single command.
@@ -356,12 +354,9 @@ is significant.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>outlineBoxRgb</b> &nbsp;<i>outline-color</i>
-  <br>Assign a color to the <a href="#outline">outline box</a>.
-  The <i>outline-color</i> can be any
-  <a href="colornames.html">color name</a> that specifies a single color.
-  Any transparency in the color will be ignored.
-  The default color is <b>white</b>.
+  <b>outlineBoxRgb</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>Assign a color to the <a href="#outline">outline box</a>
+  (default <b>white</b>). Any transparency in the color will be ignored.
 </blockquote>
 <!-- currently not available, ticket #1315
 <blockquote>

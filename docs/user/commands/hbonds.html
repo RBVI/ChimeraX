@@ -31,7 +31,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>restrict</b>&nbsp;&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;<b>any</b>&nbsp;|&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
@@ -251,15 +251,14 @@ The distances (pseudobond lengths) can also be plotted as a histogram with
 </blockquote>
 <blockquote>
 <a name="color"></a>
-  <b>color</b> &nbsp;<i>colorname</i>
+  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>Color to use for <a href="../pseudobonds.html">pseudobonds</a>
-depicting H-bonds (but see also <a href="#twoColors"><b>twoColors</b></a>
-and <a href="#slopColor"><b>slopColor</b></a>).
-The <i>colorname</i> can be any <a href="colornames.html">color name</a>
-that specifies a single color (default <b>deep sky blue</b>
+depicting H-bonds (default <b>deep sky blue</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=deepskyblue width="10px" title="deep sky blue"></td></tr></table>).
+<td bgcolor=deepskyblue width="10px" title="deep sky blue"></td></tr></table>),
+but see also <a href="#twoColors"><b>twoColors</b></a>
+and <a href="#slopColor"><b>slopColor</b></a>.
 The color can be changed later, for example with command:
 <b><a href="color.html">color</a>&nbsp;<a href="atomspec.html#builtin">hbonds</a>&nbsp;goldenrod</b>
 </blockquote>
@@ -358,12 +357,11 @@ the tolerance values).
 </blockquote>
 <blockquote>
 <a name="slopColor"></a>
-<b>slopColor</b> &nbsp;<i>colorname</i>
+<b>slopColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>If <a href="#twoColors"><b>twoColors</b></a>
 is <b>true</b>, the color to use for H-bonds not meeting the 
-precise criteria but within the tolerance values. 
-The <i>colorname</i> can be any <a href="colornames.html">color name</a> 
-that specifies a single color (default <b>dark orange</b>
+precise criteria but within the tolerance values
+(default <b>dark orange</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=darkorange width="10px" title="dark orange"></td></tr></table>).

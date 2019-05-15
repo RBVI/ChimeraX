@@ -26,7 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: blastprotein</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>blastprotein</b> 
-&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+(&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;|&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>&nbsp;)
 [&nbsp;<b>database</b>&nbsp;&nbsp;<b>pdb</b>&nbsp;|&nbsp;nr&nbsp;]
 [&nbsp;<b>matrix</b>&nbsp;&nbsp;<i>similarity-matrix</i>&nbsp;]
 [&nbsp;<b>cutoff</b>&nbsp;&nbsp;<i>evalue</i>&nbsp;]
@@ -43,13 +43,23 @@ Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
 It is the command implementation of the
 <a href="../tools/blastprotein.html"><b>Blast Protein</b></a> tool.
 Any protein structure chain in ChimeraX can be used as the query, and hits
-from the <a href="http://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>
+from the <a href="http://www.rcsb.org" 
+target="_blank">Protein Data Bank (PDB)</a>
 can be <a href="../commands/open.html#fetch">fetched</a> 
 and automatically superimposed onto the query.
+See also: <a href="modeller.html"><b>modeller</b></a>,
+<a href="sequence.html"><b>sequence</b></a>
 </p><p>
-The sequence of a <a href="atomspec.html#hierarchy">specified</a>
-protein chain in ChimeraX is used as the query to search the chosen
-protein sequence <b>database</b>, either <b>pdb</b> (default) or <b>nr</b>.
+The query sequence can be taken from a protein structure or sequence 
+alignment open in ChimeraX: 
+<ul>
+<li>&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+<br>&ndash; OR &ndash;
+<li>&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>
+</ul>
+<p>
+The protein sequence <b>database</b> to search can be
+either <b>pdb</b> (default) or <b>nr</b>.
 The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i> 
 to use for alignment scoring:
 </p>
@@ -97,5 +107,5 @@ If only one set of results is shown at a time, this option is not needed.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2019</address>
+May 2019</address>
 </body></html>

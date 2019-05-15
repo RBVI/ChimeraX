@@ -28,7 +28,8 @@ class="clRight" title="User Guide Index"/></a>
 The <b>view</b> command can:
 </p>
 <ul>
-<li><a href="#initial">focus the view</a> on specified items
+<li><a href="#initial">focus the view</a> on specified items 
+or &ldquo;all&rdquo;
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/viewall.png"></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
@@ -39,7 +40,7 @@ including the positions of any models that have been moved separately
 <li>set camera and model positions <a href="#matrix">using matrices</a>
 </ul>
 <p>
-See also: <a href="cofr.html"><b>cofr</b></a>,
+See also: 
 <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="zoom.html"><b>zoom</b></a>,
 <a href="camera.html"><b>camera</b></a>,
@@ -68,6 +69,7 @@ See also: <a href="cofr.html"><b>cofr</b></a>,
 [&nbsp;<b>orient</b>&nbsp;]
 [&nbsp;<b>pad</b>&nbsp;&nbsp;<i>fraction</i>&nbsp;]
 [&nbsp;<b>clip</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>cofr</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>view</b> &nbsp;<b>initial</b>
@@ -88,10 +90,14 @@ abut the edges of the graphics window minus a <b>pad</b> <i>fraction</i>
 (allowed values &lt; 1.0, default <b>0.05</b> of the window width and height)
 The desired <i>fraction</i> will usually be positive,
 but negative values can be used to zoom in further.
-The center of rotation is set to <a href="cofr.html#method">fixed</a> at the 
-center of the bounding box of the relevant items,
+If <b>cofr</b> is <b>true</b> (default),
+the center of rotation will be set to <a href="cofr.html#method">fixed</a>
+at the center of the bounding box of the relevant items,
 or if nothing is specified, allowed to vary according to the
 <a href="cofr.html#method">front center method</a>.
+If <b>cofr</b> is <b>false</b>, the center of rotation method
+will not be changed. The current center of rotation and method 
+can be reported with the <a href="cofr.html"><b>cofr</b></a> command.
 </p><p>
 The <b>orient</b> option
 additionally rotates the scene to a standard orientation with 
@@ -244,5 +250,5 @@ The following commands are equivalent:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+May 2019</address>
 </body></html>
