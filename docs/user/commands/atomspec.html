@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 Most <a href="../index.html#commands">commands</a>
 require or allow specifying which items they should affect.
-Which types of items are accepted depends on the specific command.
+Which types of items are accepted depends on the specific command:
 </p>
 <ul>
 <li><a name="atomspec"></a>
@@ -73,6 +73,7 @@ Specification strings may contain embedded spaces, and
 a blank specification (where allowed) means &ldquo;all.&rdquo;
 Specification in ChimeraX is generally similar to that in Chimera,
 but there are <a href="atomspec-diffsum.html">differences</a>.
+</p><p>
 See also: <a href="usageconventions.html">command usage conventions</a>,
 <a href="colornames.html">color specification</a>,
 <a href="seqspec.html">sequence specification</a>
@@ -170,20 +171,19 @@ case matters for chain specification in that model only.
 <a name="lists"></a>
 <h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a> Lists and Ranges</h4>
 <p>
-Model and residue numbers are integers, 
-although a residue number may have an insertion code directly appended.
-Multiple model numbers or residue numbers can be indicated by 
+Multiple model numbers or residue numbers can be entered as
 comma-separated lists of individual numbers and/or one or more ranges of the 
-form <i>start</i>-<i>end</i>. There cannot be a space next to the hyphen.
+form <i>start</i>-<i>end</i>. There cannot be a space next to a hyphen.
 The word <b>start</b> or <b>end</b> can be substituted
 for the <i>start</i> or <i>end</i> value to extend the range to
 the first or last number possible, respectively.
 An asterisk (<b>*</b>) can be used in the place of either 
 <b>start</b> or <b>end</b>,
 in addition to its other uses as a <a href="#wildcards">wild card</a>.
-Chain IDs, residue names, and atom names can be entered
-as comma-separated lists.
-Ranges of chain IDs are also allowed; in that case, ordering is alphabetical.
+</p><p>
+Chain IDs, residue names, and atom names (all of which are typically 
+non-numerical) can be entered as comma-separated lists.
+Ranges of chain IDs are also allowed, in which case ordering is alphabetical.
 </p><p>
 Examples:
 <blockquote>
