@@ -34,19 +34,23 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>sequence &nbsp;associate</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-[<i>alignment</i>:<i>target</i>]
+<span class="nowrap">[&nbsp;<i>alignment-ID</i>:<i>sequence-ID</i>&nbsp;]</span>
 </h3>
 <a name="style"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>sequence</b> &nbsp;<b>dissociate</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
-&nbsp;<i>alignment</i>
+&nbsp;<i>alignment-ID</i>
 </h3>
 <p>
-The command <b>sequence chain</b> shows the sequence of the specified chain
-in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+The command <b>sequence chain</b> shows the sequence of the specified 
+biopolymer chain in the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
 Only one structure chain should be specified.
-See also: <a href="open.html"><b>open</b></a>,
+See also:
+<a href="open.html#sequence">sequence file formats</a>,
+<a href="blastprotein.html"><b>blastprotein</b></a>,
+<a href="modeller.html"><b>modeller</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="iconbar" border=1 src="../tools/shortcut-icons/sequence.png"></a>
@@ -64,21 +68,19 @@ whether the number of mismatches would be tolerated by the
 </p><p>
 The command <b>sequence associate</b> associates
 one or more structure chains with a sequence.
-The target sequence for association is specified by alignment name,
-as shown in title bar of the 
+The target sequence for association is specified by alignment ID,
+as reported in the title bar of the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
 and the name or index number of the target sequence in the alignment,
-in the form: &nbsp;<i>alignment</i>:<i>target</i>&nbsp; (enclosed in
-quotation marks if <i>alignment</i> or <i>target</i> includes spaces).
-The index number can be a positive integer <i>N</i>
-for the <i>N</i><sup>th</sup> sequence in the alignment,
-or negative for the <i>N</i><sup>th</sup>-to-last sequence.
+in the form: 
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>).
 </p><p>
-Alternatively, the <i>target</i> can be omitted 
+Alternatively, the <i>sequence-ID</i> can be omitted 
 to associate each specified structure chain with the
 the best-matching sequence in the alignment.
-The <i>alignment</i> can be omitted if only one alignment is open, or
-if the <i>target</i> is also omitted; in the latter case,
+The <i>alignment-ID</i> can be omitted if only one alignment is open, or
+if the <i>sequence-ID</i> is also omitted; in the latter case,
 each specified structure chain will be associated with the 
 best-matching sequence in each open alignment.
 If either or both are omitted, the colon (:) is not needed

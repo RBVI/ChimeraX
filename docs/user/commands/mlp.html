@@ -35,7 +35,8 @@ class="clRight" title="User Guide Index"/></a>
 </h3>
 <p>
 The command <b>mlp</b> calculates molecular lipophilicity potential (MLP) 
-maps for proteins.  By default, the results are shown with coloring on the 
+maps for proteins. Nonprotein atoms are ignored.
+By default, the results are shown with coloring on the 
 <a href="surface.html">molecular surface</a>
 ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to 
 <b>dark goldenrod</b> (most lipophilic). 
@@ -98,20 +99,20 @@ beyond which an atom's contribution is ignored (default <b>5.0</b> &Aring;).
 Increasing the cutoff increases calculation time; the results
 may change only subtly or more noticeably depending on the <b>method</b>.
 </p><p>
-With <b>color true</b> (default), the molecular surface(s) for the specified
-atoms will be displayed and colored to show the MLP.
-A separate MLP map will be computed for each surface
-based on all of its enclosed atoms.
-If the surfaces do not yet exist, they will be created as if the
-same atoms had been specified in the
-<a href="surface.html"><b>surface</b></a> command.
-MLP value ranges for each surface are reported in the
-<a href="../tools/log.html"><b>Log</b></a>.
+The <b>spacing</b> <i>s</i> of the map grid can be
+specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
+Decreasing the spacing increases map size and calculation time.
 </p><p>
+With <b>color true</b> (default),
+<a href="surface.html">molecular surfaces</a> for the protein chains 
+containing the specified atoms are generated
+if they do not already exist and colored by the MLP,
+and the surface patches for those atoms displayed.
+A separate MLP map is computed for each surface (protein chain), and its 
+value ranges reported in the <a href="../tools/log.html"><b>Log</b></a>.
 <a name="palette-options"></a>
-The <b><i>palette-options</i></b> are as
-<a href="color.html#palette-options">described for <b>color</b></a>,
-except with defaults
+Defaults for the coloring
+<a href="color.html#palette-options"><i>palette-options</i></a> are
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=darkcyan width="10px" title="darkcyan"></td>
@@ -127,12 +128,9 @@ Different choices of <b>method</b> and/or <b>maxDistance</b> can give very
 different values, and the <b>range</b> may need to be adjusted.
 </p><p>
 With <b>color false</b>, a single MLP map will be calculated based on 
-the specified atoms only,
+the specified atoms (disregarding any nonprotein atoms),
 and no surface calculations or coloring will be performed.
-</p><p>
-The <b>spacing</b> <i>s</i> of the map grid can be
-specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
-Decreasing the spacing increases map size and calculation time.
+This is only useful in combination with <b>map true</b>.
 </p><p>
 With <b>map true</b> (default <b>false</b>), MLP maps will be
 opened as volume models. This allows subsequently recoloring surfaces 
