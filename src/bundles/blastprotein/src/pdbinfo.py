@@ -253,7 +253,11 @@ class PDB_Ligand_Info:
         pdb_ids = [id.split('_')[0].lower() for id in pdb_chain_ids]
 
         xml = fetch_from_pdb(session, 'ligandInfo', set(pdb_ids))
-        los = [] if xml is None else [self.ligands_info(e) for e in xml.getElementsByTagName('structureId')]
+        if xml is None:
+            # TODO: Warn that fetch failed.
+            return {}
+        los = [self.ligands_info(e)
+               for e in xml.getElementsByTagName('structureId')]
 
         lmap = dict((pdb_id.lower(), ligands) for pdb_id, ligands in los)
         pmap = dict((pcid, self.ligand_properties(lmap.get(pdb_id, {})))
@@ -315,7 +319,7 @@ def fetch_from_pdb(session, query, pdb_ids):
     ids = ','.join([pdb_id.lower() for pdb_id in pdb_ids])
     url = 'https://www.rcsb.org/pdb/rest/%s?structureId=%s' % (query, ids)
     from urllib.request import urlopen
-    from urllib.error import URLError
+    from urllib.error import URLError, HTTPError
     try:
         f = urlopen(url)
         xml_string = f.read()

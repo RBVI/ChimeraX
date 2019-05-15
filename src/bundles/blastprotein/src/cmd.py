@@ -57,7 +57,7 @@ def blastprotein(session, atoms=None, database="pdb", cutoff=1.0e-3,
         tool = None
     else:
         tool = session.tools.find_by_id(toolId)
-    BlastProteinJob(session, chain.characters, chain_spec,
+    BlastProteinJob(session, chain.ungapped(), chain_spec,
                     database, cutoff, matrix, maxSeqs, log, tool)
 blastprotein_desc = CmdDesc(required=[("atoms", Or(AtomSpecArg,
                                                    AlignSeqPairArg))],
