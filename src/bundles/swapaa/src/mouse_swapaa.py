@@ -152,6 +152,6 @@ def _log_swapaa_command(res):
     if res is None:
         return
     ses = res.structure.session
-    cmd = 'swapaa %s %s' % (res.name, res.string(style = 'command'))
+    cmd = 'swapaa %s %s' % (res.string(style = 'command'), res.name)
     from chimerax.core.commands import run
     run(ses, cmd)

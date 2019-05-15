@@ -2831,6 +2831,8 @@ class PickedAtom(Pick):
         self.atom = atom
     def description(self):
         return str(self.atom)
+    def specifier(self):
+        return self.atom.string(style='command')
     @property
     def residue(self):
         return self.atom.residue
@@ -3005,6 +3007,8 @@ class PickedResidue(Pick):
         self.residue = residue
     def description(self):
         return str(self.residue)
+    def specifier(self):
+        return self.residue.string(style='command')
     def select(self, mode = 'add'):
         a = self.residue.atoms
         if mode == 'add':

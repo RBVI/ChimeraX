@@ -14,15 +14,15 @@
 #
 def smoothlines(session, models, step_factor = 0.1, iterations = 10, replace = False):
     '''
-    Smooth models consisting of lines.  Each vertex is moved the fraction step_factor
+    Smooth surface models consisting of lines.  Each vertex is moved the fraction step_factor
     towards the average position of it and its connected neighbors.  This is repeated
     for the specified number of iterations.  A new model is created unless the replace
     option is given in which case the current model is changed.
 
     Parameters
     ----------
-    models : list Model
-        The models must consist of line segments.
+    models : list Surface
+        The surfaces must consist of line segments.
     step_factor : float
         Fraction of distance to move each vertex toward average of itself and
         connected neighbors.  Default 0.1
@@ -32,11 +32,15 @@ def smoothlines(session, models, step_factor = 0.1, iterations = 10, replace = F
         Whether to replace the lines in the existing model, or make a new model.
     '''
 
+    if len(models) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('smoothlines: No surface models specified.  Only operates on mesh lines.')
+        
     for model in models:
         ta = model.triangles
-        if ta.shape[1] != 2:
+        if ta is None or ta.shape[1] != 2:
             from chimerax.core.errors import UserError
-            raise UserError('Model %s does not contain lines' % model.name)
+            raise UserError('Surface model %s does not consist of lines' % model.name)
 
         va = model.vertices
         sva = smoothed_vertices(va, ta, step_factor, iterations)
@@ -54,10 +58,10 @@ def smoothlines(session, models, step_factor = 0.1, iterations = 10, replace = F
 
 def register_smoothlines_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, ModelsArg, FloatArg, IntArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, SurfacesArg, FloatArg, IntArg, BoolArg
 
     desc = CmdDesc(
-        required = [('models', ModelsArg)],
+        required = [('models', SurfacesArg)],
         keyword = [('step_factor', FloatArg),
                    ('iterations', IntArg),
                    ('replace', BoolArg)],

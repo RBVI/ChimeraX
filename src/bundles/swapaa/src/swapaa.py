@@ -10,7 +10,7 @@
 # === UCSF ChimeraX Copyright ===
 
 
-def swapaa(session, restype, residues):
+def swapaa(session, residues, restype):
 
     ures = residues.unique()
     if len(ures) == 0:
@@ -160,8 +160,8 @@ def register_swapaa_command(logger):
           'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL']
     AminoAcidArg = EnumOf(aa)
     desc = CmdDesc(
-        required = [('restype', AminoAcidArg),
-                    ('residues', ResiduesArg),],
+        required = [('residues', ResiduesArg),
+                    ('restype', AminoAcidArg),],
         synopsis = 'Replace residue with specified amino acid'
     )
     register('swapaa', desc, swapaa, logger=logger)

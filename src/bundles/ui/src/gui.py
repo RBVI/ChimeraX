@@ -409,7 +409,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._hide_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
-        self._select_seq_dialog = self._select_zone_dialog = None
+        self._select_seq_dialog = self._select_zone_dialog = self._define_selector_dialog = None
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
@@ -707,6 +707,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.session.ui.settings.last_window_size = wh
         self.triggers.activate_trigger('resized', wh)
 
+    def show_define_selector_dialog(self, *args):
+        if self._define_selector_dialog is None:
+            self._define_selector_dialog = DefineSelectorDialog(self.session)
+        self._define_selector_dialog.show()
+        self._define_selector_dialog.raise_()
+
     def show_select_seq_dialog(self, *args):
         if self._select_seq_dialog is None:
             self._select_seq_dialog = SelSeqDialog(self.session)
@@ -782,7 +788,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     @property
     def settings_ui_widget(self):
-        # this is a proerty in order to delay actual creation of the window as long as possible,
+        # this is a property in order to delay actual creation of the window as long as possible,
         # so that bundles can register settings options and the window will start large
         # enough to accomodate the registered options
         if self._settings_ui_widget is None:
@@ -1003,6 +1009,35 @@ class MainWindow(QMainWindow, PlainTextLog):
             mode_action.triggered.connect(
                 lambda arg, s=self, m=mode: s._set_select_mode(m))
         self._set_select_mode("replace")
+
+        selectors_menu = select_menu.addMenu("User-Defined Selectors")
+        selectors_menu.setToolTipsVisible(True)
+        selectors_menu.aboutToShow.connect(lambda menu=selectors_menu: self._populate_selectors_menu(menu))
+        from chimerax.core.commands import run
+        selectors_menu.triggered.connect(lambda name, ses=self.session, run=run: run(ses, "sel " + name.text()))
+        def_selector_action = QAction("Define Selector...", self)
+        select_menu.addAction(def_selector_action)
+        def_selector_action.triggered.connect(self.show_define_selector_dialog)
+
+    def _populate_selectors_menu(self, menu):
+        names = []
+        from chimerax.core.commands import list_selectors, is_selector_user_defined, get_selector
+        from chimerax.core.objects import Objects
+        for selector_name in list_selectors():
+            if not is_selector_user_defined(selector_name):
+                continue
+            val = get_selector(selector_name)
+            if isinstance(val, Objects) and val.empty():
+                continue
+            names.append(selector_name)
+        menu.clear()
+        if not names:
+            menu.addAction("No user-defined selectors")
+            menu.actions()[0].setEnabled(False)
+            return
+        names.sort()
+        for name in names:
+            menu.addAction(name)
 
     def select_by_mode(self, selector_text):
         """Supported API.  Select based on the selector 'selector_text' but honoring the current
@@ -1783,6 +1818,75 @@ def remove_keyboard_navigation(menu_label):
     return menu_label.replace('&&', '&')
 
 from PyQt5.QtWidgets import QDialog
+class DefineSelectorDialog(QDialog):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.session = session
+        self.setWindowTitle("Define Selector")
+        self.setSizeGripEnabled(True)
+        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel
+        layout = QVBoxLayout()
+        def_layout = QHBoxLayout()
+        def_layout.setSpacing(4)
+        def_layout.addWidget(QLabel("Name"))
+        from PyQt5.QtWidgets import QPushButton, QMenu
+        self.cur_sel_text = "current selection"
+        self.atom_spec_text = "atom specifier"
+        self.push_button = QPushButton(self.cur_sel_text)
+        menu = QMenu()
+        menu.triggered.connect(self._menu_cb)
+        self.push_button.setMenu(menu)
+        from PyQt5.QtWidgets import QAction
+        for text in [self.cur_sel_text, self.atom_spec_text]:
+            menu.addAction(text)
+        def_layout.addWidget(self.push_button)
+        self.atom_spec_edit = QLineEdit()
+        self.atom_spec_edit.textChanged.connect(self._update_button_states)
+        self.atom_spec_edit.hide()
+        def_layout.addWidget(self.atom_spec_edit)
+        def_layout.addWidget(QLabel("as"))
+        self.name_edit = QLineEdit()
+        self.name_edit.textChanged.connect(self._update_button_states)
+        def_layout.addWidget(self.name_edit)
+        layout.addLayout(def_layout)
+
+        self.bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Apply | qbbox.Help)
+        self.bbox.accepted.connect(self.def_selector)
+        self.bbox.accepted.connect(self.accept)
+        self.bbox.rejected.connect(self.reject)
+        self.bbox.button(qbbox.Apply).clicked.connect(self.def_selector)
+        from chimerax.core.commands import run
+        #self.bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help help:user/findseq.html"))
+        self.bbox.button(qbbox.Help).setEnabled(False)
+        self._update_button_states()
+        layout.addWidget(self.bbox)
+        self.setLayout(layout)
+
+    def _menu_cb(self, action):
+        if action.text() == self.cur_sel_text:
+            self.atom_spec_edit.hide()
+        else:
+            self.atom_spec_edit.show()
+        self.push_button.setText(action.text())
+        self._update_button_states()
+
+    def def_selector(self, *args):
+        from chimerax.core.commands import run, quote_if_necessary
+        if self.push_button.text() == self.cur_sel_text:
+            command = "name frozen"
+            spec = "sel"
+        else:
+            command = "name"
+            spec = quote_if_necessary(self.atom_spec_edit.text())
+        run(self.session, "%s %s %s" % (command, quote_if_necessary(self.name_edit.text()), spec))
+
+    def _update_button_states(self, *args):
+        enable = bool(self.name_edit.text().strip())
+        if enable and self.push_button.text() == self.atom_spec_text:
+            enable = bool(self.atom_spec_edit.text().strip())
+        for button in [self.bbox.button(x) for x in [self.bbox.Ok, self.bbox.Apply]]:
+            button.setEnabled(enable)
+
 class SelSeqDialog(QDialog):
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)

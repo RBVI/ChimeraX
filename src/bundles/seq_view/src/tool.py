@@ -457,6 +457,8 @@ class SequenceViewer(ToolInstance):
                 self._update_errors_gaps(aseq)
             if self.alignment.intrinsic:
                 self.show_ss(True)
+            if hasattr(self, 'associations_tool'):
+                self.associations_tool._assoc_mod(note_data)
         elif note_name == "pre-remove seqs":
             self.region_browser._pre_remove_lines(note_data)
         elif note_name == "destroyed":
@@ -520,6 +522,15 @@ class SequenceViewer(ToolInstance):
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
+        settings_action = QAction("Associations...", menu)
+        settings_action.triggered.connect(lambda arg: self.show_associations())
+        from chimerax.atomic import AtomicStructure
+        for m in self.session.models:
+            if isinstance(m, AtomicStructure):
+                break
+        else:
+            settings_action.setEnabled(False)
+        menu.addAction(settings_action)
         scf_action = QAction("Load Sequence Coloring File...", menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
         menu.addAction(scf_action)
@@ -561,12 +572,20 @@ class SequenceViewer(ToolInstance):
             del kw['columns']
         return self.region_browser.new_region(**kw)
 
+    def show_associations(self):
+        if not hasattr(self, "associations_tool"):
+            from .associations_tool import AssociationsTool
+            self.associations_tool = AssociationsTool(self,
+                self.tool_window.create_child_window("Chain-Sequence Associations", close_destroys=False))
+            self.child_tools.append(self.associations_tool)
+            self.associations_tool.tool_window.manage(None)
+        self.associations_tool.tool_window.shown = True
+
     def show_settings(self):
         if not hasattr(self, "settings_tool"):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
-                self.tool_window.create_child_window("Sequence Viewer Settings",
-                    close_destroys=False))
+                self.tool_window.create_child_window("Sequence Viewer Settings", close_destroys=False))
             self.child_tools.append(self.settings_tool)
             self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True

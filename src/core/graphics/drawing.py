@@ -317,10 +317,7 @@ class Drawing:
         return self._any_displayed_positions and len(self._positions) > 0
 
     def set_display(self, display):
-        dp = self._displayed_positions
-        if dp is None:
-            from numpy import empty, bool
-            dp = empty((len(self._positions),), bool)
+        dp = self.display_positions
         dp[:] = display
         self._displayed_positions = dp		# Need this to trigger buffer update
         self._any_displayed_positions = display
@@ -330,7 +327,12 @@ class Drawing:
     '''Whether or not the surface is drawn.'''
 
     def get_display_positions(self):
-        return self._displayed_positions
+        dp = self._displayed_positions
+        if dp is None:
+            from numpy import ones, bool
+            dp = ones((len(self._positions),), bool)
+            self._displayed_positions = dp
+        return dp
 
     def set_display_positions(self, position_mask):
         from numpy import array_equal
@@ -344,7 +346,7 @@ class Drawing:
         self.redraw_needed(shape_changed=True)
 
     display_positions = property(get_display_positions, set_display_positions)
-    '''Mask specifying which copies are displayed. Can be None meaning all positions displayed'''
+    '''Mask specifying which copies are displayed.'''
 
     @property
     def num_displayed_positions(self):
@@ -1745,6 +1747,10 @@ class Pick:
 
     def description(self):
         '''Text description of the picked object.'''
+        return None
+
+    def specifier(self):
+        '''Command specifier for the picked object.'''
         return None
 
     def select(self, mode = 'add'):

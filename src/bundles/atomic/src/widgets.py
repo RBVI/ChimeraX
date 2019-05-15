@@ -32,8 +32,13 @@ class AtomicStructureMenuButton(ModelMenuButton):
 
 def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
     if list_func is None:
-        kw['list_func'] = [chain for chain in s.chains
-            for s in [m for m in session.models if isinstance(s, Structure)]]
+        def chain_list(ses=session):
+            chains = []
+            for m in ses.models:
+                if isinstance(m, Structure):
+                    chains.extend(m.chains)
+            return chains
+        kw['list_func'] = chain_list
     if trigger_info is None:
         from .triggers import get_triggers
         kw['trigger_info'] = [ (get_triggers(session), 'changes') ]
@@ -41,8 +46,8 @@ def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
 
 class ChainListWidget(ItemListWidget):
     def __init__(self, session, **kw):
-        super().__init__(**_process_chain_kw(session, kw))
+        super().__init__(**_process_chain_kw(session, **kw))
 
 class ChainMenuButton(ItemMenuButton):
     def __init__(self, session, **kw):
-        super().__init__(**_process_chain_kw(session, kw))
+        super().__init__(**_process_chain_kw(session, **kw))

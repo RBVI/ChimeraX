@@ -47,7 +47,7 @@ model_hierarchy  = range_list:model_range_list
 model_range_list = range:model_range { ',' range_list:model_range_list }*
                  ;
 
-model_range      = start:model_spec_start '-' end:model_spec_end
+model_range      = start:model_spec_start /-/ end:model_spec_end
                  | start:model_spec_any
                  ;
 
@@ -94,7 +94,7 @@ part_list        = range:part_range_list ',' part:part_list
                  ;
 
 part_range_list  = start:/-?[a-zA-Z0-9'"*?\[\]\\]+/
-                   [ '-' end:/[-a-zA-Z0-9'"\\]+/ ]
+                   [ /-/ end:/[-a-zA-Z0-9'"\\]+/ ]
                  ;
 
 attribute_list   = attr_test { ',' attr_test }*
