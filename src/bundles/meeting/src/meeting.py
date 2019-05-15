@@ -769,7 +769,7 @@ class VRTracking(PointerModels):
 
     def _hand_positions(self, vr_camera):
         # Hand controller room position includes scaling from room to scene coordinates
-        return [_place_matrix(h.room_position) for h in vr_camera._controller_models]
+        return [_place_matrix(h.room_position) for h in vr_camera._hand_controllers]
 
     def _reposition_vr_head_and_hands(self, camera):
         '''
