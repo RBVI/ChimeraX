@@ -61,12 +61,18 @@ class SphereGroup(Node):
     def __init__(self, name, atoms):
         self.full_name = self.name = name
         self.atoms = atoms
+        self.residues = atoms.unique_residues
         self.centers = atoms.scene_coords
         self.radii = atoms.radii
         from numpy import mean
         self._color = mean(atoms.colors,axis=0)/255.0
         self._undisplayed_color = (.8,.8,.8,1)	# Node color for undisplayed chains
         self.area = None
+
+        # Remember atom and ribbon display state when hiding and showing whole group.
+        self._shown = True
+        self._atom_display = atoms.displays
+        self._ribbon_display = self.residues.ribbon_displays
 
     @property
     def size(self):
@@ -80,6 +86,27 @@ class SphereGroup(Node):
         a = self.atoms
         return a.displays.any() or a.residues.ribbon_displays.any()
 
+    def show(self, show):
+        # Handle residues or atoms being deleted.
+        if len(self._ribbon_display) != len(self.residues):
+            self._ribbon_display = self.residues.ribbon_displays
+        if len(self._atom_display) != len(self.atoms):
+            self._atom_display = self.atoms.displays
+            
+        if show:
+            if self._ribbon_display.sum() == 0 and self._atom_display.sum() == 0:
+                self._ribbon_display[:] = True
+            self.atoms.displays = self._atom_display
+            self.residues.ribbon_displays = self._ribbon_display
+            self._shown = True
+        else:
+            if self._shown:
+                self._atom_display = self.atoms.displays
+                self._ribbon_display = self.residues.ribbon_displays
+            self.atoms.displays = False
+            self.residues.ribbon_displays = False
+            self._shown = False
+            
     @property
     def color(self):
         return self._color if self.shown() else self._undisplayed_color
