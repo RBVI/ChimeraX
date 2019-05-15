@@ -1302,6 +1302,10 @@ class HandController:
     def position(self):
         return self._hand_model.position
 
+    @property
+    def button_modes(self):
+        return self._modes
+    
     def close(self):
         hm = self._hand_model
         if hm:
@@ -1430,6 +1434,10 @@ class HandModel(Model):
 
         from chimerax.core.geometry import Place
         self.room_position = Place()	# Hand controller position in room coordinates.
+
+        self._cone_color = color
+        self._button_color = (255,255,255,255)	# White
+        self.color = (255,255,255,255)	# Texture modulation color
         
         # Draw controller as a cone.
         self._create_model_geometry(length, radius, color)
@@ -1456,10 +1464,13 @@ class HandModel(Model):
         self.texture_coordinates = tc
 
         # Button icons texture
-        button_color = (255,255,255,255)
-        self.texture = b.texture(color, button_color, tex_size)
-        self.color = (255,255,255,255)	# Texture modulation color
+        self.texture = b.texture(self._cone_color, self._button_color, tex_size)
 
+    def set_cone_color(self, color):
+        if color != self._cone_color:
+            self._cone_color = color
+            self._buttons.set_cone_color(color)
+        
     def _show_button_down(self, b, pressed):
         cv = self._cone_vertices
         vbuttons = cv[self._num_cone_vertices:]
@@ -1468,6 +1479,19 @@ class HandModel(Model):
         
     def _set_button_icon(self, button, icon_path):
         self._buttons.set_button_icon(button, icon_path)
+
+def hand_mode_icon_path(session, mode_name):
+    if mode_name == 'recenter':
+        return RecenterMode.icon_location()
+    elif mode_name == 'move scene':
+        return MoveSceneMode.icon_location()
+    elif mode_name == 'show ui':
+        return ShowUIMode.icon_location()
+    else:
+        for mm in session.ui.mouse_modes.modes:
+            if mm.name == mode_name:
+                return mm.icon_path
+    return None
 
 class HandButtons:
     def __init__(self):
@@ -1497,6 +1521,14 @@ class HandButtons:
         self._texture = t = Texture(rgba)
         return t
 
+    def set_cone_color(self, color):
+        t = self._texture
+        rgba = self._button_rgba
+        if t is not None and rgba is not None:
+            tex_size = rgba.shape[0]
+            rgba[:,0:tex_size,:] = color
+            t.reload_texture(rgba)
+            
     def _button_geometry(self, button):
         for b in self._buttons:
             if b.button == button:
@@ -1622,6 +1654,9 @@ class ShowUIMode(HandMode):
     name = 'show ui'
     @property
     def icon_path(self):
+        return ShowUIMode.icon_location()
+    @staticmethod
+    def icon_location():
         from os.path import join, dirname
         return join(dirname(__file__), 'menu_icon.png')
     def pressed(self, camera, hand_controller):
@@ -1646,6 +1681,10 @@ class MoveSceneMode(HandMode):
     name = 'move scene'
     @property
     def icon_path(self):
+        return MoveSceneMode.icon_location()
+
+    @staticmethod
+    def icon_location():
         from chimerax.mouse_modes import TranslateMouseMode
         return TranslateMouseMode.icon_location()
 
@@ -1688,6 +1727,9 @@ class ZoomMode(HandMode):
         self._zoom_center = None
     @property
     def icon_path(self):
+        return ZoomMode.icon_location()
+    @staticmethod
+    def icon_location():
         from chimerax.mouse_modes import ZoomMouseMode
         return ZoomMouseMode.icon_location()
     def pressed(self, camera, hand_controller):
@@ -1709,6 +1751,9 @@ class RecenterMode(HandMode):
         camera.fit_scene_to_room()
     @property
     def icon_path(self):
+        return self.icon_location()
+    @staticmethod
+    def icon_location():
         from os.path import join, dirname
         from chimerax import shortcuts
         return join(dirname(shortcuts.__file__), 'icons', 'viewall.png')

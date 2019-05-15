@@ -58,7 +58,7 @@ class ContactPlot(Graph):
                 self._show_neighbors(nodes[0])
             elif n > 1:
                 # Edge clicked, pair of nodes
-                self._show_node_atoms(nodes)
+                self._show_node(nodes)
 
     def fill_context_menu(self, menu, item):
         nodes = self.item_nodes(item)
@@ -69,7 +69,7 @@ class ContactPlot(Graph):
 
         # Show/hide menu entries
         if nodes:
-            add('Show Only %s' % node_names, self._show_node_atoms, nodes)
+            add('Show Only %s' % node_names, self._show_node, nodes)
 
         if len(nodes) == 1:
             add('Show %s and Neighbors' % node_names, self._show_neighbors, nodes[0])
@@ -86,7 +86,7 @@ class ContactPlot(Graph):
                 self._show_interface_residues, c, c.group2)
 
         if item is None:
-            add('Show All Atoms', self._show_all_atoms)
+            add('Show All', self._show_all)
 
         if isinstance(item, Contact):
             flip = True
@@ -175,17 +175,17 @@ class ContactPlot(Graph):
         nc = neighbors(n, self.contacts)	# Map neighbor node to Contact
         return tuple(nc.values())
         
-    def _show_node_atoms(self, nodes):
+    def _show_node(self, nodes):
         gset = set(nodes)
         for h in self.groups:
-            h.atoms.displays = (h in gset)
+            h.show(h in gset)
 
     def _show_neighbors(self, g):
         from .cmd import neighbors
         ng = neighbors(g, self.contacts)
         ng[g] = None
         for h in self.groups:
-            h.atoms.displays = (h in ng)
+            h.show(h in ng)
 
     def _show_contact_residues(self, g, color = (180,180,180,255)):
         from .cmd import neighbors
@@ -196,21 +196,21 @@ class ContactPlot(Graph):
             if h in ng:
                 c = ng[h]
                 atoms = c.contact_residue_atoms(h, min_area)
-                h.atoms.displays = False
+                h.show(False)
                 atoms.displays = True	# Show only contacting residues
                 atoms.draw_modes = atoms.STICK_STYLE
                 gatoms = c.contact_residue_atoms(g, min_area)
 #                gatoms.draw_modes = gatoms.STICK_STYLE
                 gca.append(gatoms)
             else:
-                h.atoms.displays = (h is g)
+                h.show(h is g)
         # Color non-contact atoms gray.
         from chimerax.atomic import concatenate, Atoms
         g.color_atoms(g.atoms - concatenate(gca,Atoms), color)
 
     def _show_interface_residues(self, c, g, color = (180,180,180,255)):
         for go in self.groups:
-            go.atoms.displays = False
+            go.show(False)
             
         g1, g2 = c.group1, c.group2
         gf, gb = (g1,g2) if g is g1 else (g2,g1)
@@ -231,9 +231,9 @@ class ContactPlot(Graph):
         v.camera.position = c.interface_frame(gb)
         v.view_all(allb.scene_bounds)
 
-    def _show_all_atoms(self):
+    def _show_all(self):
         for g in self.groups:
-            g.atoms.displays = True
+            g.show(True)
 
     def _show_residue_plot(self, c, flip=False):
         g = c.group1 if flip else c.group2

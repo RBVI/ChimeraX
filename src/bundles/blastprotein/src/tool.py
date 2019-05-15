@@ -112,11 +112,11 @@ class ToolUI(HtmlToolInstance):
             for k, v in self._params:
                 if k == "chain":
                     self._ref_atomspec = v
-        if self._hits:
-            self._show_hits()
         if self._blast_results:
             self._show_results(self._ref_atomspec, self._blast_results)
             self._blast_results = None
+        elif self._hits:
+            self._show_hits()
 
 
     #

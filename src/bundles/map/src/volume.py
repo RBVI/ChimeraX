@@ -1773,6 +1773,12 @@ class VolumeImage(Image3d):
 
   # ---------------------------------------------------------------------------
   #
+  def delete(self):
+    self._volume._image = None
+    Image3d.delete(self)
+
+  # ---------------------------------------------------------------------------
+  #
   def update_settings(self):
     v = self._volume
     ro = v.rendering_options
