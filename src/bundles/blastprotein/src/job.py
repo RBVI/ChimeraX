@@ -104,14 +104,14 @@ class BlastProteinJob(OpalJob):
                         from .tool import ToolUI
                         ToolUI(self.session, "BlastProtein",
                                blast_results=p, params=self._params())
-                    if self.log or (self.log is None and
-                                    not self.session.ui.is_gui):
-                        msgs = ["BLAST results for:"]
-                        for name, value in self._params():
-                            msgs.append("  %s: %s" % (name, value))
-                        for m in p.matches:
-                            name = m.pdb if m.pdb else m.name
-                            msgs.append('\t'.join([name, "%.1e" % m.evalue,
-                                                   str(m.score),
-                                                   m.description]))
-                        logger.info('\n'.join(msgs))
+                if self.log or (self.log is None and
+                                not self.session.ui.is_gui):
+                    msgs = ["BLAST results for:"]
+                    for name, value in self._params():
+                        msgs.append("  %s: %s" % (name, value))
+                    for m in p.matches:
+                        name = m.pdb if m.pdb else m.name
+                        msgs.append('\t'.join([name, "%.1e" % m.evalue,
+                                               str(m.score),
+                                               m.description]))
+                    logger.info('\n'.join(msgs))

@@ -676,15 +676,22 @@ class VRTracking(PointerModels):
             PointerModels.update_model(self, msg)
 
     def make_pointer_model(self, session):
-        # Make sure new meeting participant gets my head image.
+        # Make sure new meeting participant gets my head image and button modes.
         self._send_face_image = True
+        self._send_button_modes()
         
         pm = VRPointerModel(self._session, 'VR', self._last_room_to_scene)
         return pm
 
     def new_face_image(self, path):
         self._new_face_image = path
-        
+
+    def _send_button_modes(self):
+        c = _vr_camera(self._session)
+        if c:
+            for h in c._hand_controllers:
+                h._meeting_button_modes = {}
+            
     def _vr_tracking_cb(self, trigger_name, camera):
         c = camera
         
@@ -710,24 +717,70 @@ class VRTracking(PointerModels):
                'vr hands': self._hand_positions(c),	# In room coordinates
                }
 
+        fi = self._face_image_update()
+        if fi:
+            msg['vr head image'] = fi
+            
+        hb = self._hand_buttons_update(c)
+        if hb:
+            msg['vr hand buttons'] = hb
+            
         # Report scene moved in room
         if scene_moved:
             msg['vr coords'] = _place_matrix(c.room_to_scene)
             self._last_room_to_scene = c.room_to_scene
 
+        # Report changes in VR GUI panel
+        gu = self._gui_updates(c)
+        if gu:
+            msg.update(gu)
+
+        # Tell connected peers my new vr state
+        self._meeting._send_message(msg)
+
+    def _head_position(self, vr_camera):
+        from chimerax.core.geometry import scale
+        return _place_matrix(vr_camera.room_position * scale(1/vr_camera.scene_scale))
+
+    def _face_image_update(self):
         # Report VR face image change.
+        fi = None
         if self._new_face_image:
             image = _encode_face_image(self._new_face_image)
             self._face_image = image
-            msg['vr head image'] = image
+            fi = image
             self._new_face_image = None
             self._send_face_image = False
         elif self._send_face_image:
             self._send_face_image = False
             if self._face_image is not None:
-                msg['vr head image'] = self._face_image
+                fi = self._face_image
+        return fi
+    
+    def _hand_positions(self, vr_camera):
+        # Hand controller room position includes scaling from room to scene coordinates
+        return [_place_matrix(h.room_position) for h in vr_camera._hand_controllers]
 
-        # Report changes in VR GUI panel
+    def _hand_buttons_update(self, vr_camera):
+        bu = []
+        update = False
+        hc = vr_camera._hand_controllers
+        for h in hc:
+            last_mode = getattr(h, '_meeting_button_modes', None)
+            if last_mode is None:
+                h._meeting_button_modes = last_mode = {}
+            hm = []
+            for button, mode in h.button_modes.items():
+                if mode != last_mode.get(button):
+                    last_mode[button] = mode
+                    hm.append((button, mode.name))
+                    update = True
+            bu.append(hm)
+        return bu if update else None
+
+    def _gui_updates(self, vr_camera):
+        msg = {}
+        c = vr_camera
         ui = c.user_interface
         shown = ui.shown()
         gui_state = self._gui_state
@@ -760,17 +813,8 @@ class VRTracking(PointerModels):
                 msg['vr gui panels'] = pchanges
             # TODO: Need to handle deleted panels
 
-        # Tell connected peers my new vr state
-        self._meeting._send_message(msg)
-
-    def _head_position(self, vr_camera):
-        from chimerax.core.geometry import scale
-        return _place_matrix(vr_camera.room_position * scale(1/vr_camera.scene_scale))
-
-    def _hand_positions(self, vr_camera):
-        # Hand controller room position includes scaling from room to scene coordinates
-        return [_place_matrix(h.room_position) for h in vr_camera._controller_models]
-
+        return msg
+    
     def _reposition_vr_head_and_hands(self, camera):
         '''
         If my room to scene coordinates change correct the VR head and hand model
@@ -806,7 +850,8 @@ class VRPointerModel(Model):
         self._room_to_scene = room_to_scene
 
     def _hand_models(self, nhands):
-        new_hands = [VRHandModel(self.session, 'Hand %d' % (i+1), color=self._color)
+        from chimerax.vive.vr import HandModel
+        new_hands = [HandModel(self.session, 'Hand %d' % (i+1), color=self._color)
                      for i in range(len(self._hands), nhands)]
         if new_hands:
             self.add(new_hands)
@@ -834,7 +879,7 @@ class VRPointerModel(Model):
                 self.name = '%s VR' % msg['name']
         if 'color' in msg:
             for h in self._hands:
-                h.color = msg['color']
+                h.set_cone_color(msg['color'])
         if 'vr coords' in msg:
             self.room_to_scene = _matrix_place(msg['vr coords'])
         if 'vr head' in msg:
@@ -849,6 +894,14 @@ class VRPointerModel(Model):
             for h,hm in zip(self._hand_models(len(hpos)), hpos):
                 h.room_position = rp = _matrix_place(hm)
                 h.position = rts * rp
+        if 'vr hand buttons' in msg:
+            hbut = msg['vr hand buttons']
+            from chimerax.vive.vr import hand_mode_icon_path
+            for h,hb in zip(self._hand_models(len(hbut)), hbut):
+                for button, mode_name in hb:
+                    path = hand_mode_icon_path(self.session, mode_name)
+                    if path:
+                        h._set_button_icon(button, path)
         if 'vr gui shown' in msg:
             self._gui_panel.display = msg['vr gui shown']
         if 'vr gui position' in msg:
@@ -858,23 +911,6 @@ class VRPointerModel(Model):
         if 'vr gui panels' in msg:
             for pchanges in msg['vr gui panels']:
                 self._gui_panel.update_panel(pchanges)
-
-class VRHandModel(Model):
-    '''Radius and height in meters.'''
-    casts_shadows = False
-    pickable = False
-    skip_bounds = True
-    SESSION_SAVE = False
-    
-    def __init__(self, session, name, radius = 0.04, height = 0.2, color = (0,255,0,255)):
-        Model.__init__(self, name, session)
-        self.room_position = None
-        
-        from chimerax.surface import cone_geometry
-        va, na, ta = cone_geometry(radius = radius, height = height, points_up = False)
-        va[:,2] += 0.5*height	# Place tip of cone at origin
-        self.set_geometry(va, na, ta)
-        self.color = color
 
 class VRHeadModel(Model):
     '''Size in meters.'''
