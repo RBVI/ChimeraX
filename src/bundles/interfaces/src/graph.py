@@ -294,7 +294,7 @@ class Graph(Plot):
         if b == Qt.LeftButton:
             if self.is_ctrl_key_pressed(event):
                 drag_mode = 'select'	# Click on object.
-            if self.is_alt_key_pressed(event):
+            elif self.is_alt_key_pressed(event):
                 drag_mode = 'translate'
             else:
                 self.tool_window._show_context_menu(event)
