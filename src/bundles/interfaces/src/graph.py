@@ -113,7 +113,13 @@ class Plot(ToolInstance):
 # ------------------------------------------------------------------------------
 #
 class Graph(Plot):
-    '''Show a graph of labeled nodes and edges.'''
+    '''
+    Show a graph of labeled nodes and edges.
+    Left mouse click shows context menu.
+    Ctrl-left or ctrl-right click calls mouse_click() method on object.
+    Scroll zooms the plot.
+    Middle and right mouse drags move the plotted objects.
+    '''
     
     def __init__(self, session, nodes, edges, tool_name, title):
 
@@ -143,6 +149,7 @@ class Graph(Plot):
         c.mouseMoveEvent = self._mouse_move
         c.mouseReleaseEvent = self._mouse_release
         c.wheelEvent = self._wheel_event
+        c.contextMenuEvent = lambda event: None		# Don't show context menu on right click.
         self._last_mouse_xy = None
         self._dragged = False
         self._min_drag = 10	# pixels
@@ -284,13 +291,25 @@ class Graph(Plot):
         self._dragged = False
         b = event.button()
         from PyQt5.QtCore import Qt
-        if b == Qt.LeftButton and event.modifiers() & Qt.ShiftModifier:
-            mode = 'zoom'
-        elif b == Qt.LeftButton or b == Qt.MiddleButton:
-            mode = 'translate'
+        if b == Qt.LeftButton:
+            if self.is_ctrl_key_pressed(event):
+                drag_mode = 'select'	# Click on object.
+            if self.is_alt_key_pressed(event):
+                drag_mode = 'translate'
+            else:
+                self.tool_window._show_context_menu(event)
+                drag_mode = 'menu'
+        elif b == Qt.MiddleButton:
+            drag_mode = 'translate'
+        elif b == Qt.RightButton:
+            if self.is_ctrl_key_pressed(event):
+                drag_mode = 'select'	# Click on object (same as ctrl-left)
+            else:
+                drag_mode = 'translate'
         else:
-            mode = None
-        self._drag_mode = mode
+            drag_mode = None
+
+        self._drag_mode = drag_mode
         
     def _mouse_move(self, event):
         if self._last_mouse_xy is None:
@@ -317,14 +336,13 @@ class Graph(Plot):
             self.move(dx, -dy)
     
     def _mouse_release(self, event):
-        b = event.button()
-        from PyQt5.QtCore import Qt
-        if b == Qt.LeftButton and not self._dragged:
+        if not self._dragged and self._drag_mode == 'select':
             item = self._clicked_item(event.x(), event.y())
             self.mouse_click(item, event)
 
         self._last_mouse_xy = None
         self._dragged = False
+        self._drag_mode = None
         
     def _wheel_event(self, event):
         delta = event.angleDelta().y()  # Typically 120 per wheel click, positive down.
@@ -338,6 +356,14 @@ class Graph(Plot):
     def is_alt_key_pressed(self, event):
         from PyQt5.QtCore import Qt
         return event.modifiers() & Qt.AltModifier
+
+    def is_ctrl_key_pressed(self, event):
+        from PyQt5.QtCore import Qt
+        import sys
+        if sys.platform == 'darwin':
+            # Mac ctrl-key gives Qt meta modifier and Mac Command key gives Qt ctrl modifier.
+            return event.modifiers() & Qt.MetaModifier
+        return event.modifiers() & Qt.ControlModifier
 
     def _clicked_item(self, x, y):
         # Check for node click
