@@ -2500,7 +2500,8 @@ class Command:
                     expected.append("fewer arguments")
                 self._error = "Expected " + commas(expected)
                 return
-            self.amount_parsed += len(chars)
+            self._replace(chars, arg_name)
+            self.amount_parsed += len(arg_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
