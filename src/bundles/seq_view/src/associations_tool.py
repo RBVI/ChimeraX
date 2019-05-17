@@ -16,6 +16,7 @@ class AssociationsTool:
     def __init__(self, sv, tool_window):
         self.sv = sv
         self.tool_window = tool_window
+        tool_window.help = "help:user/tools/sequenceviewer.html#association"
 
         from PyQt5.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()

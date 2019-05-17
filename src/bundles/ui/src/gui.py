@@ -727,7 +727,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
-        _show_context_menu(event, tool, fill_cb, True, tb)
+        _show_context_menu(event, tool, None, fill_cb, True, tb)
 
     def status(self, msg, color, secondary):
         self._status_bar.status(msg, color, secondary)
@@ -1657,7 +1657,7 @@ class _Qt:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
-        _show_context_menu(event, self.tool_window.tool_instance,
+        _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,
             self.tool_window.fill_context_menu,
             self.tool_window.tool_instance.tool_info in self.main_window._tools_cache,
             self.dock_widget if isinstance(self.tool_window, MainToolWindow) else None)
@@ -1723,7 +1723,7 @@ def redirect_stdio_to_logger(logger):
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
-def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
+def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable, memorable):
     from PyQt5.QtWidgets import QMenu, QAction
     menu = QMenu()
 
@@ -1735,22 +1735,24 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
     hide_tool_action = QAction("Hide Tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
-    if ti.help is not None:
+    help_url = getattr(tool_window, "help", None) or ti.help
+    session = ti.session
+    from chimerax.core.commands import run, quote_if_necessary
+    if help_url is not None:
         help_action = QAction("Help")
         help_action.setStatusTip("Show tool help")
-        help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
+        help_action.triggered.connect(lambda arg, ses=session, run=run, help_url=help_url:
+            run(ses, "help %s" % help_url))
         menu.addAction(help_action)
     else:
         no_help_action = QAction("No Help Available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
-    session = ti.session
     if autostartable:
         autostart = ti.tool_name in session.ui.settings.autostart
         auto_action = QAction("Start at ChimeraX Startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
-        from chimerax.core.commands import run, quote_if_necessary
         auto_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
