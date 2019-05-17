@@ -542,11 +542,14 @@ def level_and_color_settings(v, options):
         kw['default_rgba'] = colors[0].rgba
 
     if 'brightness' in options:
-        kw[style+'_brightness_factor'] = options['brightness']
+        if style == 'surface':
+            kw['brightness'] = options['brightness']
+        else:
+            kw['image_brightness_factor'] = options['brightness']
 
     if 'transparency' in options:
         if style == 'surface':
-            kw['transparency_factor'] = options['transparency']
+            kw['transparency'] = options['transparency']
         else:
             kw['transparency_depth'] = options['transparency']
 
@@ -641,8 +644,6 @@ def volume_settings_text(v):
              'step = %d %d %d' % tuple(v.region[2]),
              'voxel size = %.3g %.3g %.3g' % tuple(v.data.step),
              'surface levels = ' + ','.join('%.5g' % s.level for s in v.surfaces),
-             'surface brightness = %.5g' % v.surface_brightness_factor,
-             'surface transparency factor = %.5g' % v.transparency_factor,
              'image levels = ' + ' '.join('%.5g,%.5g' % tuple(sl) for sl in v.image_levels),
              'image brightness factor = %.5g' % v.image_brightness_factor,
              'image transparency depth = %.5g' % v.transparency_depth,
