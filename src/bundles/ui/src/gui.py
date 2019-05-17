@@ -1833,7 +1833,7 @@ class DefineSelectorDialog(QDialog):
         def_layout.addWidget(QLabel("Name"))
         from PyQt5.QtWidgets import QPushButton, QMenu
         self.cur_sel_text = "current selection"
-        self.atom_spec_text = "atom specifier"
+        self.atom_spec_text = "target specifier"
         self.push_button = QPushButton(self.cur_sel_text)
         menu = QMenu()
         menu.triggered.connect(self._menu_cb)
@@ -1858,8 +1858,8 @@ class DefineSelectorDialog(QDialog):
         self.bbox.rejected.connect(self.reject)
         self.bbox.button(qbbox.Apply).clicked.connect(self.def_selector)
         from chimerax.core.commands import run
-        #self.bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help help:user/findseq.html"))
-        self.bbox.button(qbbox.Help).setEnabled(False)
+        self.bbox.helpRequested.connect(lambda run=run, ses=session:
+            run(ses, "help help:user/menu.html#named-selections"))
         self._update_button_states()
         layout.addWidget(self.bbox)
         self.setLayout(layout)
