@@ -2283,6 +2283,92 @@ extern "C" EXPORT void pseudobond_global_manager_session_save_teardown(void *man
 // -------------------------------------------------------------------------
 // residue functions
 //
+PyObject*
+_atom_name_frozen_set(const std::set<AtomName>& atom_names)
+{
+    PyObject* fset = PyFrozenSet_New(nullptr);
+    if (fset == nullptr) {
+        PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for atom-name frozen set");
+        return nullptr;
+    }
+    for (auto& atom_name: atom_names) {
+        const char* n = atom_name.c_str();
+        PyObject* py_n = PyUnicode_FromString(n);
+        if (py_n == nullptr) {
+            PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for atom-name string");
+            Py_DECREF(fset);
+            return nullptr;
+        }
+        if (PySet_Add(fset, py_n) < 0) {
+            Py_DECREF(fset);
+            return nullptr;
+        }
+    }
+    return fset;
+}
+
+PyObject*
+_atom_name_tuple(const std::vector<AtomName>& atom_names)
+{
+    PyObject* tuple = PyTuple_New(atom_names.size());
+    if (tuple == nullptr) {
+        PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for atom-name tuple");
+        return nullptr;
+    }
+    size_t i = 0;
+    for (auto& atom_name: atom_names) {
+        const char* n = atom_name.c_str();
+        PyObject* py_n = PyUnicode_FromString(n);
+        if (py_n == nullptr) {
+            PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for atom-name string");
+            Py_DECREF(tuple);
+            return nullptr;
+        }
+        PyTuple_SET_ITEM(tuple, i++, py_n);
+    }
+    return tuple;
+}
+
+extern "C" EXPORT PyObject *residue_aa_min_backbone_names()
+{
+    return _atom_name_frozen_set(Residue::aa_min_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_aa_max_backbone_names()
+{
+    return _atom_name_frozen_set(Residue::aa_max_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_aa_side_connector_names()
+{
+    return _atom_name_frozen_set(Residue::aa_side_connector_names);
+}
+
+extern "C" EXPORT PyObject *residue_na_min_backbone_names()
+{
+    return _atom_name_frozen_set(Residue::na_min_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_na_max_backbone_names()
+{
+    return _atom_name_frozen_set(Residue::na_max_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_na_side_connector_names()
+{
+    return _atom_name_frozen_set(Residue::na_side_connector_names);
+}
+
+extern "C" EXPORT PyObject *residue_aa_min_ordered_backbone_names()
+{
+    return _atom_name_tuple(Residue::aa_min_ordered_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_na_min_ordered_backbone_names()
+{
+    return _atom_name_tuple(Residue::na_min_ordered_backbone_names);
+}
+
 extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
 {
     Residue **r = static_cast<Residue **>(residues);

@@ -15,6 +15,7 @@ from .header_sequence import HeaderSequence, FixedHeaderSequence, \
     DynamicHeaderSequence, DynamicStructureHeaderSequence, register_header, registered_headers
 from .consensus import Consensus
 from .conservation import Conservation
+from .rmsd import RMSD
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -26,6 +27,8 @@ class _AlignmentHdrsAPI(BundleAPI):
             return Consensus
         if class_name == "Conservation":
             return Conservation
+        if class_name == "RMSD":
+            return RMSD
 
 
 bundle_api = _AlignmentHdrsAPI()

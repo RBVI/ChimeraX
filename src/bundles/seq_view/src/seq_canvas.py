@@ -687,10 +687,10 @@ class SeqCanvas:
         
     def layout_alignment(self):
         settings = self.sv.settings
-        from chimerax.seqalign.headers import Consensus, Conservation
+        from chimerax.seqalign.headers import Consensus, Conservation, RMSD
         self.consensus = Consensus(self.sv.alignment, self.refresh_header)
         self.conservation = Conservation(self.sv.alignment, self.refresh_header)
-        self.headers = [self.consensus, self.conservation]
+        self.headers = [self.consensus, self.conservation, RMSD(self.sv.alignment, self.refresh_header)]
         from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
         """
         for seq, defaultOn in registeredHeaders.values():
@@ -705,8 +705,9 @@ class SeqCanvas:
         self.display_header = {}
         for header in self.headers:
             show = self.display_header[header] = header.settings.initially_shown \
-                and not (single_sequence and not header.single_sequence_relevant) \
-                and not isinstance(header, DynamicStructureHeaderSequence)
+                and not (single_sequence and not header.single_sequence_relevant)
+                #and not (single_sequence and not header.single_sequence_relevant) \
+                #and not isinstance(header, DynamicStructureHeaderSequence)
             if show:
                 header.show()
         self.headers.sort()
