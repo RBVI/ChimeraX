@@ -145,6 +145,14 @@ def imagej_pixels(path):
     ncolors = 3 if page0.photometric == TIFF.PHOTOMETRIC.RGB else 1
     multiframe = (zsize > 1)
 
+    # Check for ImageJ hyperstack format for > 4 GB data where TIFF has only one page.
+    if zsize > 1 or nc > 1 or nt > 1:
+        try:
+            pages[1]
+        except IndexError:
+            from chimerax.core.errors import UserError
+            raise UserError('Cannot read ImageJ hyperstack TIFF file "%s".  ImageJ TIFF files larger than 4 Gbytes do not follow the TIFF standard.  They include only one TIFF page and append the rest of the raw 2d images to the file.  ChimeraX cannot currently handle these hacked TIFF files.  Contact the ChimeraX developers and we can discuss adding support for this format.' % path)
+
     tif.close()
     
     pi = ImageJ_Pixels(path, name, value_type, grid_size, grid_spacing, ncolors, nc, nt, multiframe)
