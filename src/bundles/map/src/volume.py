@@ -173,7 +173,7 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def add_surface(self, level, rgba = None, display = True):
+  def add_surface(self, level, rgba = (.7,.7,.7,1), display = True):
     '''Supported API.  Create and add a new VolumeSurface with specified contour level and color.'''
     ses = self.session
     s = VolumeSurface(self, level, rgba)
