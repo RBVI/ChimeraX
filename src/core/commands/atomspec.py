@@ -1063,7 +1063,6 @@ class _Selector:
             else:
                 value = "[Built-in]"
         elif isinstance(sel, Objects):
-            sel.refresh(session)
             if sel.empty():
                 deregister_selector(self.name, session.logger)
                 return None

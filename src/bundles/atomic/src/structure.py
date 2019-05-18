@@ -972,7 +972,7 @@ class Structure(Model, StructureData):
             tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
             spline_coords = array(list(self._ribbon_spline_backbone.values()))
             # Add fix from Tristan, #1486
-            mask = tether_atoms.indices(atoms)
+            mask = tether_atoms.visibles
             tether_atoms = tether_atoms[mask]
             spline_coords = spline_coords[mask]
             if len(spline_coords) == 0:

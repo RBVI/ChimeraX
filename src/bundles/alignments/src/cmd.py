@@ -210,7 +210,7 @@ def seqalign_disassociate(session, chains, alignment=None):
 
 def register_seqalign_command(logger):
     # REMINDER: update manager._builtin_subcommands as additional subcommands are added
-    from chimerax.core.commands import CmdDesc, register, Or
+    from chimerax.core.commands import CmdDesc, register, create_alias, Or
     from chimerax.atomic import UniqueChainsArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
@@ -231,6 +231,7 @@ def register_seqalign_command(logger):
         synopsis = 'disassociate chain(s) from alignment'
     )
     register('sequence disassociate', desc, seqalign_disassociate, logger=logger)
+    create_alias('sequence dissociate', 'sequence disassociate $*', logger=logger)
 
     from . import manager
     manager._register_viewer_subcommands(logger)
