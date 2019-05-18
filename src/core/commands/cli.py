@@ -2701,7 +2701,6 @@ class Command:
                 error_at -= self.start
                 if error_at:
                     session.logger.error("%s^" % ('.' * error_at))
-            session.logger.error(self._error)
         else:
             from html import escape
             ci = self._ci
@@ -2720,9 +2719,8 @@ class Command:
                     escape(self.current_text[self.start + offset:error_at]),
                     err_color,
                     escape(self.current_text[error_at:]))
-            msg += '</div>\n<span style="color:%s;font-weight:bold">%s</span>\n' % (
-                err_color, escape(self._error))
-            session.logger.info(msg, is_html=True)
+            msg += '</div>'
+            session.logger.info(msg, is_html=True, add_newline=False)
 
 
 from contextlib import contextmanager

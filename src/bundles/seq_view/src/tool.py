@@ -505,8 +505,6 @@ class SequenceViewer(ToolInstance):
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
-        # avoid having actions destroyed when this routine returns
-        # by stowing a reference in the menu itself
         from PyQt5.QtWidgets import QAction
         save_as_menu = menu.addMenu("Save As")
         from chimerax.core import io
