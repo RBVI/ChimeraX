@@ -45,3 +45,4 @@ def _execute(session, name):
         residues.ribbon_displays = False
         residues.ring_displays = False
         s.apply_auto_styling(**kw)
+        #TODO: reset pseudobond groups

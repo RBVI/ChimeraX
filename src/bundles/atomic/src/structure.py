@@ -2226,10 +2226,19 @@ class AtomicStructure(Structure):
     and assemblies.
     """
 
+    # changes to the below have to be mirrored in C++ AS_PBManager::get_group
     from chimerax.core.colors import BuiltinColors
     default_hbond_color = BuiltinColors["deep sky blue"]
     default_hbond_radius = 0.075
     default_hbond_dashes = 6
+
+    default_metal_coordination_color = BuiltinColors["medium purple"]
+    default_metal_coordination_radius = 0.075
+    default_metal_coordination_dashes = 6
+
+    default_missing_structure_color = BuiltinColors["yellow"]
+    default_missing_structure_radius = 0.075
+    default_missing_structure_dashes = 6
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
