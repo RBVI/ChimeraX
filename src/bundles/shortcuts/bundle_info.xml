@@ -25,9 +25,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Molecule Display Toolbar :: Toolbar :: button shortcuts for molecular structure</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Graphics Toolbar :: Toolbar :: button shortcuts for graphics</ChimeraXClassifier>
-    <ChimeraXClassifier>Tool :: Density Map Toolbar :: Toolbar :: button shortcuts for density maps</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ks :: Toolbar :: keyboard shortcuts</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: selAtoms :: Selected atoms, or if none selected then all atoms.</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: selMaps :: Selected maps, or if none selected then displayed maps. :: false</ChimeraXClassifier>

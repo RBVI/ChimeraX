@@ -194,7 +194,15 @@ class UI(QApplication):
         triggers.add_handler(TOOLSHED_BUNDLE_UNINSTALLED, handler)
         triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
         if self.autostart_tools:
-            self.session.tools.start_tools(self.settings.autostart)
+            defunct_toolbars = set(["Density Map Toolbar", "Graphics Toolbar",
+                "Molecule Display Toolbar", "Mouse Modes for Right Button"])
+            final_autostart = [tool_name for tool_name in
+                self.settings.autostart if tool_name not in defunct_toolbars]
+            if final_autostart != self.settings.autostart:
+                if "Toolbar" not in final_autostart:
+                    final_autostart.append("Toolbar")
+                self.settings.autostart = final_autostart
+            self.session.tools.start_tools(final_autostart)
 
         self.triggers.activate_trigger('ready', None)
 
@@ -445,7 +453,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         gw = self.graphics_window
         oc = gw.opengl_context
         if stereo == oc.stereo:
-            return True	# Already using requested mode
+            return True    # Already using requested mode
 
         from .graphics import GraphicsWindow
         try:
@@ -1276,7 +1284,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 # create here rather than earlier so that's it's not included in parent_menu.children()
                 menu = QMenu(menu_name, parent_menu)
                 menu.setToolTipsVisible(True)
-                menu.setObjectName(obj_name)	# Needed for findChild() above to work.
+                menu.setObjectName(obj_name)    # Needed for findChild() above to work.
                 if insert_pos is False:
                     parent_menu.addMenu(menu)
                 else:
