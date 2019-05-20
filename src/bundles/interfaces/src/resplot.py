@@ -65,6 +65,8 @@ class ResiduePlot(Graph):
             self._select_residue(node.residue)
             if not self._interface_shown:
                 self._show_interface()
+        else:
+            self._clear_selection()
 
     def fill_context_menu(self, menu, rnode):
         r = rnode.residue if rnode else None
@@ -94,6 +96,7 @@ class ResiduePlot(Graph):
     def _select_residue(self, r):
         self._clear_selection()
         r.atoms.selected = True
+        r.atoms.intra_bonds.selected = True
             
     def _clear_selection(self):
         self._session().selection.clear()

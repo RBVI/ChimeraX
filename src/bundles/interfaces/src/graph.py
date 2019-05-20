@@ -294,7 +294,7 @@ class Graph(Plot):
         if b == Qt.LeftButton:
             if self.is_ctrl_key_pressed(event):
                 drag_mode = 'select'	# Click on object.
-            elif self.is_alt_key_pressed(event):
+            elif self.is_alt_key_pressed(event) or self.is_command_key_pressed(event):
                 drag_mode = 'translate'
             else:
                 self.tool_window._show_context_menu(event)
@@ -347,7 +347,7 @@ class Graph(Plot):
     def _wheel_event(self, event):
         delta = event.angleDelta().y()  # Typically 120 per wheel click, positive down.
         from math import exp
-        factor = exp(-delta / 1200)
+        factor = exp(delta / 1200)
         self.zoom(factor)
 
     def mouse_click(self, node_or_edge, event):
@@ -356,6 +356,14 @@ class Graph(Plot):
     def is_alt_key_pressed(self, event):
         from PyQt5.QtCore import Qt
         return event.modifiers() & Qt.AltModifier
+
+    def is_command_key_pressed(self, event):
+        from PyQt5.QtCore import Qt
+        import sys
+        if sys.platform == 'darwin':
+            # Mac command-key gives Qt control modifier.
+            return event.modifiers() & Qt.ControlModifier
+        return False
 
     def is_ctrl_key_pressed(self, event):
         from PyQt5.QtCore import Qt
