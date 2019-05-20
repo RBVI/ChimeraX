@@ -155,7 +155,7 @@ def standard_shortcuts(session):
         ('HB', '~hbonds', 'Hide all hydrogen bonds', molcat, noarg, mlmenu),
 #        ('sq', 'sequence chain selAtoms', 'Show polymer sequence', molcat, noarg, mlmenu),
         ('sq', show_sequence, 'Show polymer sequence', molcat, atomsarg, mlmenu),
-        ('if', 'interfaces selAtoms', 'Chain interfaces diagram', molcat, noarg, mlmenu),
+        ('if', 'interfaces selAtoms & ~solvent', 'Chain interfaces diagram', molcat, noarg, mlmenu),
 
         ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
         ('Sb', 'color selAtoms halfbond false', 'Single color bonds', molcat, noarg, mlmenu),
