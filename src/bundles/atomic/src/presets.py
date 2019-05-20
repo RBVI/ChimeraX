@@ -44,5 +44,22 @@ def _execute(session, name):
         residues = s.residues
         residues.ribbon_displays = False
         residues.ring_displays = False
+        for cat, pbg in s.pbg_map.items():
+            if cat == s.PBG_METAL_COORDINATION:
+                color = s.default_metal_coordination_color
+                radius = s.default_metal_coordination_radius
+                dashes = s.default_metal_coordination_dashes
+            elif cat == s.PBG_MISSING_STRUCTURE:
+                color = s.default_missing_structure_color
+                radius = s.default_missing_structure_radius
+                dashes = s.default_missing_structure_dashes
+            elif cat == s.PBG_HYDROGEN_BONDS:
+                color = s.default_hbond_color
+                radius = s.default_hbond_radius
+                dashes = s.default_hbond_dashes
+            else:
+                continue
+            pbg.color = color.uint8x4()
+            pbg.radius = radius
+            pbg.dashes = dashes
         s.apply_auto_styling(**kw)
-        #TODO: reset pseudobond groups
