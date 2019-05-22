@@ -5,7 +5,7 @@
 # 	debug: run ChimeraX with debugging flag set
 # 	clean: remove files used in building wheel
 
-CHIMERAX_APP = ../../../ChimeraX.app
+CHIMERAX_APP = $(wildcard ../../../ChimeraX*.app)
 
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
