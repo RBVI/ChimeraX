@@ -160,7 +160,13 @@ class Drawing:
         unshaded color will be shown."""
 
         self.allow_depth_cue = True
-        '''Can be used to not show depth cue on this Drawing even if global depth cueing is on.'''
+        '''False means not show depth cue on this Drawing even if global depth cueing is on.'''
+
+        self.accept_shadow = True
+        '''False means not to show shadow on this Drawing even if global shadow is on.'''
+
+        self.accept_multishadow = True
+        '''False means not to show multishadow on this Drawing even if global multishadow is on.'''
         
         self.on_top = False
         '''
@@ -274,9 +280,17 @@ class Drawing:
             # Reparent drawing.
             d.parent.remove_drawing(d, delete=False)
         d.parent = self
+        d._inherit_lighting_settings(self)
         if self.display:
             self.redraw_needed(shape_changed=True)
 
+    def _inherit_lighting_settings(self, drawing):
+        for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
+            value = getattr(drawing, attr)
+            if value == False:
+                # Only propagate disabling settings.
+                setattr(self, attr, value)
+            
     def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
@@ -805,6 +819,10 @@ class Drawing:
                 sopt |= Render.SHADER_SHIFT_AND_SCALE
             elif len(self.positions) > 1:
                 sopt |= Render.SHADER_INSTANCING
+            if not self.accept_shadow:
+                sopt |= Render.SHADER_NO_SHADOW
+            if not self.accept_multishadow:
+                sopt |= Render.SHADER_NO_MULTISHADOW
             if not self.allow_depth_cue:
                 sopt |= Render.SHADER_NO_DEPTH_CUE
             self._shader_opt = sopt
@@ -818,7 +836,8 @@ class Drawing:
 
     _effects_shader = set(
         ('use_lighting', '_vertex_colors', '_colors', 'texture',
-         'ambient_texture', '_positions'))
+         'ambient_texture', '_positions',
+         'allow_depth_cue', 'accept_shadow', 'accept_multishadow'))
 
     # Update the contents of vertex, element and instance buffers if associated
     #  arrays have changed.
@@ -1413,7 +1432,7 @@ def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     dc = r.disable_capabilities
-    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
+    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOW | r.SHADER_MULTISHADOW |
                                   r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D)
     draw_opaque(r, drawings)
     if not opaque_only:
@@ -1427,7 +1446,7 @@ def draw_overlays(drawings, renderer):
     r = renderer
     r.disable_shader_capabilities(r.SHADER_STEREO_360 |	# Avoid geometry shift
                                   r.SHADER_DEPTH_CUE |
-                                  r.SHADER_SHADOWS |
+                                  r.SHADER_SHADOW |
                                   r.SHADER_MULTISHADOW |
                                   r.SHADER_CLIP_PLANES)
     r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),

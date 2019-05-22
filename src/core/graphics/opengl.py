@@ -543,7 +543,7 @@ class Render:
         The capabilities are specified as at bit field of values from
         SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D,
         SHADER_COLORMAP, SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
-        SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
+        SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOW, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
         SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
@@ -570,7 +570,7 @@ class Render:
                 shader.set_integer('tex3d', 0)    # Tex unit 0.
             if self.SHADER_MULTISHADOW & c:
                 self.multishadow._set_multishadow_shader_variables(shader)
-            if self.SHADER_SHADOWS & c:
+            if self.SHADER_SHADOW & c:
                 self.shadow._set_shadow_shader_variables(shader)
             if self.SHADER_DEPTH_CUE & c:
                 self.set_depth_cue_parameters()
@@ -631,10 +631,16 @@ class Render:
         sp = self._opengl_context.shader_programs
         if capabilities in sp:
             p = sp[capabilities]
-        elif capabilities & self.SHADER_NO_DEPTH_CUE:
-            # depth cue off overrides depth cue on.
+        else:
+            # Shadow or depth cue off overrides on.
+            # On is usually a global setting where off is per-drawing.
             orig_cap = capabilities
-            capabilities &= ~(self.SHADER_DEPTH_CUE | self.SHADER_NO_DEPTH_CUE)
+            cap_pairs = ((self.SHADER_NO_SHADOW, self.SHADER_SHADOW),
+                         (self.SHADER_NO_MULTISHADOW, self.SHADER_MULTISHADOW),
+                         (self.SHADER_NO_DEPTH_CUE, self.SHADER_DEPTH_CUE))
+            for nc, c in cap_pairs:
+                if capabilities & nc:
+                    capabilities &= ~(c | nc)
             if capabilities in sp:
                 p = sp[capabilities]
                 sp[orig_cap] = p
@@ -768,9 +774,9 @@ class Render:
             self.enable_capabilities &= ~self.SHADER_DEPTH_CUE
 
         if lp.shadows:
-            self.enable_capabilities |= self.SHADER_SHADOWS
+            self.enable_capabilities |= self.SHADER_SHADOW
         else:
-            self.enable_capabilities &= ~self.SHADER_SHADOWS
+            self.enable_capabilities &= ~self.SHADER_SHADOW
 
         if lp.multishadow > 0:
             self.enable_capabilities |= self.SHADER_MULTISHADOW
@@ -1295,7 +1301,7 @@ class Shadow:
         p = r.current_shader_program
         if p is not None:
             c = p.capabilities
-            if r.SHADER_SHADOWS & c and r.SHADER_LIGHTING & c:
+            if r.SHADER_SHADOW & c and r.SHADER_LIGHTING & c:
                 p.set_matrix("shadow_transform", stf.opengl_matrix())
 
     def _start_rendering_shadowmap(self, center, radius, size=1024):
@@ -1813,8 +1819,10 @@ shader_options = (
     'SHADER_BLEND_TEXTURE_2D',
     'SHADER_BLEND_TEXTURE_3D',
     'SHADER_BLEND_COLORMAP',
-    'SHADER_SHADOWS',
+    'SHADER_SHADOW',
+    'SHADER_NO_SHADOW',
     'SHADER_MULTISHADOW',
+    'SHADER_NO_MULTISHADOW',
     'SHADER_SHIFT_AND_SCALE',
     'SHADER_INSTANCING',
     'SHADER_TEXTURE_OUTLINE',
