@@ -126,7 +126,7 @@ def main():
         # release build
         version = version_number
         rpm_release = 1
-    elif build == 'candiate':
+    elif build == 'candidate':
         # release build
         version = version_number
         rpm_release = '0.{version_date}'
