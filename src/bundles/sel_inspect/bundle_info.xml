@@ -1,0 +1,40 @@
+<BundleInfo name="ChimeraX-Sel_Inspect" version="1.0" package="chimerax.sel_inspect"
+            minSessionVersion="1" maxSessionVersion="1">
+
+  <!-- Additional information about bundle source -->
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <!-- Synopsis is a one-line description
+       Description is a full multi-line description -->
+  <Synopsis>Selection Inspection</Synopsis>
+  <Description>Tool to examine the contents of the current selection in detail</Description>
+
+  <!-- Categories is a list where this bundle should appear -->
+  <Categories>
+    <Category name="General Controls"/>
+  </Categories>
+
+  <!-- Dependencies on other ChimeraX/Python packages -->
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+  </Dependencies>
+
+  <Managers>
+    <Manager name="selection inspector" uiOnly="true"/>
+  </Managers>
+
+  <Providers>
+    <Provider category="Models" manager="selection inspector"/>
+  </Providers>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Tool :: Selection Inspector :: General Controls :: display contents of current selection</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
