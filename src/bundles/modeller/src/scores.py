@@ -66,24 +66,17 @@ class ModellerScoringJob(Job):
         self.results = {}
 
         thread_safe = session.ui.thread_safe
-        #from io import StringIO
+        from io import StringIO
         from chimerax.atomic.pdb import save_pdb
-        #pdb_buffer = StringIO()
-        #save_pdb(session, pdb_buffer, models=[structure])
-        from tempfile import NamedTemporaryFile
-        temp_file = NamedTemporaryFile(mode='w', encoding='utf-8', suffix=".pdb", delete=False)
-        save_pdb(session, temp_file.name, models=[structure])
-        temp_file.close()
-        tf = open(temp_file.name, 'r')
+        pdb_buffer = StringIO()
+        save_pdb(session, pdb_buffer, models=[structure])
         fields = [
             ("name", None, "chimerax-Modeller_Comparitive"),
             ("modkey", None, license_key),
             # Sequence identity info will be taken from PDB header for Modeller models,
             # and since we don't know the info otherwise -- skip it
-            #("model_file", structure.name.replace(' ', '_') + '.pdb', pdb_buffer.getvalue())
-            ("model_file", structure.name.replace(' ', '_') + '.pdb', tf.read())
+            ("model_file", structure.name.replace(' ', '_') + '.pdb', pdb_buffer.getvalue())
         ]
-        temp_file.close()
         from chimerax.webservices.post_form import post_multipart
         submission = post_multipart(modeller_host, "/modeval/job", fields)
         from xml.dom.minidom import parseString

@@ -35,7 +35,11 @@ class AssociationsTool:
         tool_window.ui_area.setLayout(layout)
 
         # get initial assoc info correct
+        self.assoc_button.blockSignals(True)
+        self.chain_list.blockSignals(True)
         self._chain_changed()
+        self.chain_list.blockSignals(False)
+        self.assoc_button.blockSignals(False)
 
     def _assoc_mod(self, note_data):
         # called from sequence viewer if associations modified
@@ -44,8 +48,7 @@ class AssociationsTool:
     def _chain_changed(self):
         if self.chain_list.count() == 0:
             self.tool_window.shown = False
-        assoc = self.sv.alignment.associations.get(self.chain_list.value, None)
-        self.assoc_button.value = assoc
+        self.assoc_button.value = self.sv.alignment.associations.get(self.chain_list.value, None)
 
     def _seq_changed(self):
         # this can also get called if sequences get deleted, so try to do some checking
