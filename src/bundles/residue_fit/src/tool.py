@@ -52,7 +52,7 @@ class ResidueFit(Slider):
         res =  self.residues.get(rnum, None)
         if res is not None:
             self.structure.atoms.displays = False
-            mf = self.motion_frames if playing else 0
+            mf = self.motion_frames if playing and not self.recording else 0
             lp = show_residue_fit(self.session, self.zone_residues(res), self.map,
                                   last_pos = self._last_pos, motion_frames = mf)
             if lp:
