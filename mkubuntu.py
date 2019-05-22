@@ -178,7 +178,7 @@ def main():
         version = version_number
     else:
         # candiate build
-        version = f"{version_number}+beta{version_date}"
+        version = f"{version_number}+rc{version_date}"
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))
