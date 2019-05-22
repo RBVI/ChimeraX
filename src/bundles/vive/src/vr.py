@@ -1016,6 +1016,7 @@ class UserInterface:
         ses = self._session
         from chimerax.core.models import Model
         m = Model('User interface', ses)
+        m.skip_bounds = True
         m.color = (255,255,255,255)
         m.use_lighting = False
         ses.models.add([m], parent = parent)
@@ -1081,9 +1082,10 @@ class Panel:
 
     def _create_panel_drawing(self, parent):
         from chimerax.core.graphics import Drawing
-        d = Drawing('User interface')
+        d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
+        d.skip_bounds = True
         parent.add_drawing(d)
         return d
 
