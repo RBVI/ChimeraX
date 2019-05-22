@@ -34,6 +34,7 @@ class StdCommandsAPI(BundleAPI):
             'color list': 'colorname',
             'color name': 'colorname',
             'color show': 'colorname',
+            'lighting model': 'lighting',
             'quit': 'exit',
             'redo': 'undo',
             'select zone': 'zonesel'

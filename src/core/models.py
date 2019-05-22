@@ -269,6 +269,9 @@ class Model(State, Drawing):
             'parent': p,
             'positions': self.positions.array(),
             'display_positions': self.display_positions,
+            'allow_depth_cue': self.allow_depth_cue,
+            'accept_shadow': self.accept_shadow,
+            'accept_multishadow': self.accept_multishadow,
             'version': CORE_STATE_VERSION,
         }
         return data
@@ -297,8 +300,11 @@ class Model(State, Drawing):
             pa = pa.astype(float64)
         from .geometry import Places
         self.positions = Places(place_array=pa)
-        if 'display_positions' in data:
-            self.display_positions = data['display_positions']
+        self.display_positions = data['display_positions']
+        for d in self.all_drawings():
+            for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
+                if attr in data:
+                    setattr(d, attr, data[attr])
 
     def selected_items(self, itype):
         return []
