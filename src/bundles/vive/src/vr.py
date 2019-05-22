@@ -1438,6 +1438,9 @@ class HandModel(Model):
         self._cone_color = color
         self._button_color = (255,255,255,255)	# White
         self.color = (255,255,255,255)	# Texture modulation color
+
+        # Avoid hand disappearing when behind models, especially in multiperson VR.
+        self.allow_depth_cue = False
         
         # Draw controller as a cone.
         self._create_model_geometry(length, radius, color)

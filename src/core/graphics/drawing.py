@@ -159,6 +159,9 @@ class Drawing:
         """Whether to use lighting when rendering.  If false then a flat
         unshaded color will be shown."""
 
+        self.allow_depth_cue = True
+        '''Can be used to not show depth cue on this Drawing even if global depth cueing is on.'''
+        
         self.on_top = False
         '''
         Whether to draw on top of everything else.  Used for text labels.
@@ -802,6 +805,8 @@ class Drawing:
                 sopt |= Render.SHADER_SHIFT_AND_SCALE
             elif len(self.positions) > 1:
                 sopt |= Render.SHADER_INSTANCING
+            if not self.allow_depth_cue:
+                sopt |= Render.SHADER_NO_DEPTH_CUE
             self._shader_opt = sopt
         if transparent_only:
             from .opengl import Render

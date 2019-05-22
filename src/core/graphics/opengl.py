@@ -551,7 +551,7 @@ class Render:
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
-        p = self.opengl_shader(options)
+        p = self._opengl_shader(options)
         return p
 
     def _use_shader(self, shader):
@@ -624,13 +624,21 @@ class Render:
     def rendering_to_screen(self):
         return len(self.framebuffer_stack) == 1
 
-    def opengl_shader(self, capabilities):
-        'Private.  Return OpenGL shader program id, creating shader if needed.'
+    def _opengl_shader(self, capabilities):
+        'Return OpenGL shader program id, creating shader if needed.'
 
+        p = None
         sp = self._opengl_context.shader_programs
         if capabilities in sp:
             p = sp[capabilities]
-        else:
+        elif capabilities & self.SHADER_NO_DEPTH_CUE:
+            # depth cue off overrides depth cue on.
+            orig_cap = capabilities
+            capabilities &= ~(self.SHADER_DEPTH_CUE | self.SHADER_NO_DEPTH_CUE)
+            if capabilities in sp:
+                p = sp[capabilities]
+                sp[orig_cap] = p
+        if p is None:
             p = Shader(capabilities, self.multishadow.max_multishadows())
             sp[capabilities] = p
             if capabilities & self.SHADER_LIGHTING:
@@ -638,6 +646,7 @@ class Render:
                 if capabilities & self.SHADER_MULTISHADOW:
                     GL.glUseProgram(p.program_id)
                     self.multishadow._set_multishadow_shader_constants(p)
+
         self._use_shader(p)
         return p
 
@@ -1176,7 +1185,7 @@ class Render:
             self._texture_win = tw = TextureWindow(self)
         tw.activate()
         texture.bind_texture()
-        self.opengl_shader(shader_options)
+        self._opengl_shader(shader_options)
         return tw
 
     def allow_equal_depth(self, equal):
@@ -1794,6 +1803,7 @@ class BlendTextures:
 shader_options = (
     'SHADER_LIGHTING',
     'SHADER_DEPTH_CUE',
+    'SHADER_NO_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
     'SHADER_TEXTURE_3D',
     'SHADER_COLORMAP',
