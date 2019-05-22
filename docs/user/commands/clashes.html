@@ -35,7 +35,7 @@ class="clRight" title="User Guide Index"/></a>
 -->
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>showDist</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a>
@@ -246,7 +246,7 @@ The distances (pseudobond lengths) can also be plotted as a histogram with
 </blockquote>
 <blockquote>
 <a name="color"></a>
-<b>color</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Color to use for the
 <a href="../pseudobonds.html">pseudobonds</a>
@@ -351,15 +351,18 @@ the <a href="#otherAtomColor"><b>otherAtomColor</b></a>.
 </blockquote>
 <blockquote>
 <a name="atomColor"></a>
-<b>atomColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<b>atomColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Color to use for the identified clash/contact atoms
 when <a href="#colorAtoms"><b>colorAtoms</b></a> is <b>true</b>
-(default <b>red</b>).  
+(default <b>red</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="10px" title="red"></td></tr></table>).
 </blockquote>
 <blockquote>
 <a name="otherAtomColor"></a>
-<b>otherAtomColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<b>otherAtomColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Color to use for atoms other than the identified clash/contact atoms
 when <a href="#colorAtoms"><b>colorAtoms</b></a> is <b>true</b>
@@ -435,5 +438,5 @@ but only the initial and final summaries are reported in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2019</address>
+May 2019</address>
 </body></html>

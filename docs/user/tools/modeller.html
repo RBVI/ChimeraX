@@ -29,8 +29,8 @@ The <b>Modeller Comparative</b> modeling tool is an interface to the
 <a href="http://www.salilab.org/modeller/" target="_blank">Modeller</a>
 program running on a web service hosted by the
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a>.  See also:
-<a href="../commands/modeller.html#comparative"><b>modeller comparative</b></a>
+RBVI</a>. The command-line implementation is
+<a href="../commands/modeller.html#comparative"><b>modeller comparative</b></a>.
 </p><p>
 Comparative modeling (sometimes called &ldquo;homology modeling&rdquo;)
 generates theoretical models of a protein using one or more known related 
@@ -76,6 +76,10 @@ in ChimeraX. The template structure(s) should also be open and
 a sequence in the same alignment. The &ldquo;alignment&rdquo; could be just 
 the single sequence of the target, if the templates are similar enough in
 sequence to <a href="sequenceviewer.html#association">associate</a> with it.
+See also: 
+<a href="../commands/open.html#sequence">sequence file formats</a>,
+<a href="../commands/sequence.html"><b>sequence</b></a>,
+<a href="blastprotein.html"><b>Blast Protein</b></a>
 </p>
 
 <a name="input"></a>
@@ -191,11 +195,48 @@ Lower values signify better models, with those &lt; 0 generally indicating a
 <a href="http://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#reliablemodel"
 target="_blank">reliable model</a>.
 </ul>
+<p>
 Clicking a row in the panel shows the corresponding comparative
 model and hides the others. Clicking elsewhere in the panel shows all
 of the comparative models at once. 
 Clicking a column header sorts on the values in that column.
+</p><p>
+The panel's <a href="../window.html#context-menu">context menu</a>
+includes an option to <b>Fetch Additional Scores</b> using the
+<a href="http://modbase.compbio.ucsf.edu/evaluation/"
+target="_blank">SaliLab Model Evaluation Server</a>:
+<ul>
+<li>
+<b>GA341</b> and <b>zDOPE</b> (described above), if missing for any models
+<li>
+<b>predicted NO35</b> &ndash;
+<a href="http://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#tsvmod"
+target="_blank">TSVMod</a>-predicted native overlap (3.5 &Aring;),
+the fraction of C&alpha; atoms in the model within 3.5 &Aring;
+of the corresponding atoms in the native structure after rigid-body
+superposition (see
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/18832340" target="_blank">Eramian
+<i>et al.</i></a>, <i>Protein Sci</i> <b>17</b>:1881 (2008));
+automatically assigned as a model <a href="../attributes.html">attribute</a>
+named <b>modeller_predicted_NO35</b>.
+<li>
+<b>predicted RMSD</b> &ndash;
+<a href="http://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#tsvmod"
+target="_blank">TSVMod</a>-predicted C&alpha; root-mean-square deviation (RMSD)
+of the model from the native structure (see
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/18832340" target="_blank">Eramian
+<i>et al.</i></a>, <i>Protein Sci</i> <b>17</b>:1881 (2008));
+automatically assigned as a model <a href="../attributes.html">attribute</a>
+named <b>modeller_predicted_RMSD</b>.
+</ul>
+<p>
+The same <a href="#key">Modeller license key</a> as needed for 
+comparative modeling is also required by the evaluation server, 
+but it does not need to be specified again.
+Fetching additional scores is also implemented as the command
+<a href="../commands/modeller.html#scores"><b>modeller scores</b></a>.
+</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2019</address>
+May 2019</address>
 </body></html>

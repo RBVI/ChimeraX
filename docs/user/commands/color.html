@@ -37,7 +37,7 @@ and <a href="../tools/volumeviewer.html">volume data</a> (map) displays:
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/toolbar-icons/nuc-color.png"></a>
 and maps
 <li><a href="#sequential"><b>Sequential Coloring (Rainbow)</b></a> 
@@ -71,7 +71,7 @@ See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
 <a href="colortables.html#autocolors">initial colors</a>,
-<a href="colornames.html">color names</a>,
+<a href="colornames.html">color specification</a>,
 <a href="palettes.html">palettes</a>
 </p><p>
 Additional subcommands manage the set of named colors:
@@ -124,7 +124,7 @@ molecular surfaces
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
 <li><a name="bynucleotide"><b>bynucleotide</b></a> &ndash; a built-in scheme 
 <a href="colortables.html#residue">by nucleotide base type</a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
 <img class="icon" border=1 src="../tools/toolbar-icons/nuc-color.png"></a>
 <li><a name="bychain"><b>bychain</b></a>
 &ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
@@ -185,8 +185,8 @@ molecular surfaces can be colored to match with the command:
  </ul>
 The default is all of the above (<b>target abcspf</b>), plus  
 <a href="label.html">3D labels</a>
-in the case of <a href="#simple">simple coloring</a>
-using any <a href="colornames.html">color name</a> that specifies a single color.
+in the case of <a href="#simple">simple coloring</a> using any 
+<a href="colornames.html">color name</a> that specifies a single color.
 3D labels can be colored independently
 with the <a href="label.html"><b>label</b></a> command.
 <p>
@@ -427,7 +427,7 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
-[&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
 Atomic models can be colored to show the values of numerical

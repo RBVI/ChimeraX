@@ -100,7 +100,7 @@ AS_PBManager::get_group(const std::string& name, int create)
     else if (name == structure()->PBG_MISSING_STRUCTURE)
         grp->set_halfbond(true);
     else if (name == structure()->PBG_HYDROGEN_BONDS)
-        grp->set_color(0, 204, 230);
+        grp->set_color(0, 191, 255);
     _groups[name] = grp;
     return grp;
 }

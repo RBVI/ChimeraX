@@ -141,7 +141,7 @@ in vec3 vshadow;
 uniform vec2 depth_cue_range;	// start and end camera z values
 #endif
 
-#ifdef USE_SHADOWS
+#ifdef USE_SHADOW
 in vec3 shadow_tex_coord;
 uniform sampler2DShadow shadow_map;
 #endif
@@ -257,7 +257,7 @@ void main (void)
   // Unit vector from camera to surface point.
   vec3 v1 = normalize(v);
 
-#ifdef USE_SHADOWS
+#ifdef USE_SHADOW
   float shadow = texture(shadow_map, shadow_tex_coord);
 #else
   float shadow = 1;

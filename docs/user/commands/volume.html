@@ -216,6 +216,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   encloses a specified spatial volume,
   see the <a href="#encloseVolume"><b>encloseVolume</b></a>
   and <a href="#fastEncloseVolume"><b>fastEncloseVolume</b></a> options.
+<br><br>
   <li>For <b>image</b> displays, <i>threshold-level</i> consists of two numbers 
   separated by a comma (no spaces). The first number indicates a data value
   and the second number indicates an intensity ranging from 0.0 to 1.0.
@@ -250,14 +251,12 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="color"><b>color</b> &nbsp;<i>threshold-color</i></a>
-  <br>Assign <a href="#level">threshold</a> color. Can be given multiple times
-  in the same command if multiple <a href="#level">threshold levels</a> 
-  are also specified.
-  The <i>threshold-color</i> can be any
-  <a href="colornames.html">color name</a> that specifies a single color.
-  The default color is an opaque medium gray (<b>70,70,70</b>) 
-  for surface and mesh displays, <b>white</b> for image.
+  <a name="color"></a>
+  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>Assign <a href="#level">threshold</a> color.
+Can be given multiple times in the same command if multiple 
+<a href="#level">threshold levels</a> are also specified.
+See also: <a href="colortables.html#autocolors">initial colors</a>
 </blockquote>
 Multiple <a href="#level">level</a> and <a href="#color">color</a>
 specifications can be included in a single command.
@@ -272,6 +271,35 @@ Levels and colors are paired in the order given,
 but they do not need to be interleaved; 
 only the ordering of each type of specification (levels or colors)
 is significant.
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a> 
+  <br>Brightness scales the <a href="#color">color</a> intensity
+  (range 0.0&ndash;1.0, default <b>1.0</b>).
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>
+  <br>Transparency values range from 0.0 (fully opaque) 
+  to 1.0 (fully transparent).
+  <ul class="circle">
+  <li>For <b>surface</b> and <b>mesh</b> displays, transparency
+  is the fraction of light transmitted from behind the surface or a
+  line of mesh (default <b>0.0</b>).  By default,
+  these objects are dimmed as they are made more transparent
+  (see <a href="#dim"><b>dimTransparency</b></a>.) See also:
+  <a href="../tools/densitymaps.html" title="Map Toolbar...">
+  <img class="icon" border=1 src="../tools/shortcut-icons/icecube.png"></a>
+<br><br>
+  <li>For <b>image</b> displays, this setting gives the slab thickness 
+  (as a fraction of the dataset's shortest dimension, 
+  range 0.0&ndash;1.0, default <b>0.5</b>) 
+  that gives the transparency indicated by threshold
+  height on the histogram (<a href="#soliddetails">details...</a>).
+  By default, more transparent voxels are made dimmer
+  (see <a href="#dimvox"><b>dimTransparentVoxels</b></a>).
+  </ul>
+</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="encloseVolume"><b>encloseVolume</b> &nbsp;<i>volume</i></a>
@@ -318,36 +346,6 @@ is significant.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a> 
-  <br>Brightness scales the intensity of the color of the display. 
-  A value of <b>1.0</b> (the default) produces no change
-  relative to the <a href="#color">specified colors</a>.
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>
-  <br>Transparency values range from 0.0 (fully opaque) 
-  to 1.0 (fully transparent).
-  <ul class="circle">
-  <li>For <b>surface</b> and <b>mesh</b> displays, transparency
-  is the fraction of light transmitted from behind the surface or a
-  line of mesh (default <b>0.0</b>).  By default,
-  these objects are dimmed as they are made more transparent
-  (see <a href="#dim"><b>dimTransparency</b></a>.) See also:
-  <a href="../tools/densitymaps.html" title="Map Toolbar...">
-  <img class="icon" border=1 src="../tools/shortcut-icons/icecube.png"></a>
-  <li>For <b>image</b> displays, this transparency setting
-  further modulates initial transparencies obtained from the 
-  <a href="#transferfunction">transfer function</a>
-  in a way that compensates for the thickness of the display
-  (<a href="#soliddetails">details</a>).
-  Values range from 0.0 (no modulation) to 1.0, default <b>0.5</b>.
-  By default, more transparent voxels are made dimmer
-  (see <a href="#dimvox"><b>dimTransparentVoxels</b></a>).
-  </ul>
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
   <a name="outline"><b>showOutlineBox</b> &nbsp;true | <b>false</b></a>
   <br>Outline the bounding box of the 
   <a href="#dimensions">current display region</a>.
@@ -356,12 +354,9 @@ is significant.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>outlineBoxRgb</b> &nbsp;<i>outline-color</i>
-  <br>Assign a color to the <a href="#outline">outline box</a>.
-  The <i>outline-color</i> can be any
-  <a href="colornames.html">color name</a> that specifies a single color.
-  Any transparency in the color will be ignored.
-  The default color is <b>white</b>.
+  <b>outlineBoxRgb</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>Assign a color to the <a href="#outline">outline box</a>
+  (default <b>white</b>). Any transparency in the color will be ignored.
 </blockquote>
 <!-- currently not available, ticket #1315
 <blockquote>
@@ -2253,29 +2248,23 @@ greater numbers of thresholds.
 For <a href="#dispsolid"><b>image</b></a> displays,
 the <a href="#transferfunction">transfer function</a> maps a
 voxel's data value to a vertical position (ranging from 0 to 1)
-on the histogram:
+on the histogram. A lower position indicates more transparency:
 <blockquote>
-<b>T<sub>histo</sub></b> = (1 &ndash; vertical position)
+<b>T<sub>histogram</sub></b> = 1 &ndash; vertical position
 </blockquote>
-If the <a href="#transparency">transparency</a> is zero
-(<b>T<sub>set</sub></b> = 0), the voxel will be completely opaque:
+The <a href="#general"><b>volume</b></a> command 
+<a href="#transparency">transparency</a> option gives the slab thickness 
+(expressed as a fraction of dataset thickness along its shortest dimension)
+for which the transparency or fraction of light transmitted matches 
+<b>T<sub>histogram</sub></b>. Image displays are rendered as stacks of planes.
+If the slab thickness specified with <a href="#transparency">transparency</a> 
+contains <i>p</i> planes, the following gives the transparency per pixel
+in each plane:
+</p>
 <blockquote>
-<b>T<sub>final</sub></b> = 0
+<b>T<sub>pixel</sub></b> = <b>T<sub>histogram</sub></b><sup>(1/<i>p</i>)</sup>
 </blockquote>
-Otherwise, the transparency value from the histogram
-is modulated by <b>T<sub>set</sub></b>
-in a way that depends on the number of data planes displayed:
-<blockquote>
-<b>T<sub>final</sub></b> = <b>T<sub>histo</sub></b><sup>(<b>T<sub>histo</sub></b>* <b>T<sub>set</sub></b>* thickness) <sup>&ndash;1</sup></sup>
-<br><br>
-thickness = min(<b>N<sub>x</sub></b>,<b>N<sub>y</sub></b>,<b>N<sub>z</sub></b>)
-</blockquote>
-where <b>N<sub>x</sub></b>, <b>N<sub>y</sub></b>, and <b>N<sub>z</sub></b>
-are the number of X, Y, and Z data planes displayed, respectively.
-Increasing the <a href="#transparency">transparency</a>
-and/or the thickness of the displayed data will make the exponent smaller and
-(because <b>T<sub>histo</sub></b> &le; 1) individual voxels more transparent.
-</p><p>
+<p>
 <a name="byteorder"><b>Byte order</b></a>.
 Different computers store the bytes of a single numeric value in
 different orders.  PowerPC processors use one order
@@ -2347,5 +2336,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2019</address>
+May 2019</address>
 </body></html>

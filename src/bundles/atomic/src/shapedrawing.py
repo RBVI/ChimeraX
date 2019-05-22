@@ -324,6 +324,8 @@ class PickedAtomicShape(Pick):
         return False
 
     def select(self, mode='add'):
+        if not self.shape.atoms:
+            return  # TODO: allow shapes without atoms to be selected
         drawing = self._drawing
         if mode == 'add':
             drawing._add_selected_shape(self.shape)
@@ -347,14 +349,17 @@ class PickedAtomicShapes:
         return '%d shapes' % len(self.shapes)
 
     def select(self, mode = 'add'):
+        shapes = [s for s in self.shapes if s.atoms]
+        if not shapes:
+            return  # TODO: allow shapes without atoms to be selected
         drawing = self._drawing
         if mode == 'add':
-            drawing._add_selected_shapes(self.shapes)
+            drawing._add_selected_shapes(shapes)
         elif mode == 'subtract':
-            drawing._remove_selected_shapes(self.shapes)
+            drawing._remove_selected_shapes(shapes)
         elif mode == 'toggle':
             adding, removing = [], []
-            for s in self.shapes:
+            for s in shapes:
                 if s in drawing._selected_shapes:
                     removing.append(s)
                 else:

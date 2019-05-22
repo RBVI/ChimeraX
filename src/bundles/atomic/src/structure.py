@@ -72,8 +72,6 @@ class Structure(Model, StructureData):
                     lambda *args, qual=ses_func: self._ses_call(qual)))
         from chimerax.core.models import MODEL_POSITION_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
-        from chimerax.core import triggerset
-        self.triggers = triggerset.TriggerSet()
         self.triggers.add_trigger("changes")
 
         self._make_drawing()
@@ -972,7 +970,7 @@ class Structure(Model, StructureData):
             tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
             spline_coords = array(list(self._ribbon_spline_backbone.values()))
             # Add fix from Tristan, #1486
-            mask = tether_atoms.indices(atoms)
+            mask = tether_atoms.visibles
             tether_atoms = tether_atoms[mask]
             spline_coords = spline_coords[mask]
             if len(spline_coords) == 0:
@@ -2226,10 +2224,19 @@ class AtomicStructure(Structure):
     and assemblies.
     """
 
+    # changes to the below have to be mirrored in C++ AS_PBManager::get_group
     from chimerax.core.colors import BuiltinColors
     default_hbond_color = BuiltinColors["deep sky blue"]
     default_hbond_radius = 0.075
-    default_hbond_dashes = 6
+    default_hbond_dashes = 9
+
+    default_metal_coordination_color = BuiltinColors["medium purple"]
+    default_metal_coordination_radius = 0.075
+    default_metal_coordination_dashes = 9
+
+    default_missing_structure_color = BuiltinColors["yellow"]
+    default_missing_structure_radius = 0.075
+    default_missing_structure_dashes = 9
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -2831,6 +2838,8 @@ class PickedAtom(Pick):
         self.atom = atom
     def description(self):
         return str(self.atom)
+    def specifier(self):
+        return self.atom.string(style='command')
     @property
     def residue(self):
         return self.atom.residue
@@ -3005,6 +3014,8 @@ class PickedResidue(Pick):
         self.residue = residue
     def description(self):
         return str(self.residue)
+    def specifier(self):
+        return self.residue.string(style='command')
     def select(self, mode = 'add'):
         a = self.residue.atoms
         if mode == 'add':

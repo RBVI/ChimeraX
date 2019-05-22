@@ -44,7 +44,7 @@ layout(location = 2) in vec3 normal;
 out vec3 N;
 out vec3 v;
 
-#ifdef USE_SHADOWS
+#ifdef USE_SHADOW
 uniform mat4 shadow_transform;
 out vec3 shadow_tex_coord;
 #endif
@@ -143,7 +143,7 @@ void main(void)
     vec3 ni = normal;
   #endif
   N = normalize((model_view_matrix * vec4(ni,0)).xyz);
-  #ifdef USE_SHADOWS
+  #ifdef USE_SHADOW
     #ifdef USE_STEREO_360
       shadow_tex_coord = (shadow_transform * (view_matrix * vec4(vshadow,1))).stp;
     #else

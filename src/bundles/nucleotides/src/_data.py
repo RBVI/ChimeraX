@@ -1220,7 +1220,7 @@ def make_ladder(nd, residues, params):
         color = r.ring_color
         ep1 = None
         name = nucleic3to1(r.name)
-        if name == 'X':
+        if name not in standard_bases:
             continue
         is_purine = standard_bases[name]['tag'] == PURINE
         if is_purine:

@@ -159,6 +159,15 @@ class Drawing:
         """Whether to use lighting when rendering.  If false then a flat
         unshaded color will be shown."""
 
+        self.allow_depth_cue = True
+        '''False means not show depth cue on this Drawing even if global depth cueing is on.'''
+
+        self.accept_shadow = True
+        '''False means not to show shadow on this Drawing even if global shadow is on.'''
+
+        self.accept_multishadow = True
+        '''False means not to show multishadow on this Drawing even if global multishadow is on.'''
+        
         self.on_top = False
         '''
         Whether to draw on top of everything else.  Used for text labels.
@@ -271,9 +280,17 @@ class Drawing:
             # Reparent drawing.
             d.parent.remove_drawing(d, delete=False)
         d.parent = self
+        d._inherit_lighting_settings(self)
         if self.display:
             self.redraw_needed(shape_changed=True)
 
+    def _inherit_lighting_settings(self, drawing):
+        for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
+            value = getattr(drawing, attr)
+            if value == False:
+                # Only propagate disabling settings.
+                setattr(self, attr, value)
+            
     def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
@@ -317,10 +334,7 @@ class Drawing:
         return self._any_displayed_positions and len(self._positions) > 0
 
     def set_display(self, display):
-        dp = self._displayed_positions
-        if dp is None:
-            from numpy import empty, bool
-            dp = empty((len(self._positions),), bool)
+        dp = self.display_positions
         dp[:] = display
         self._displayed_positions = dp		# Need this to trigger buffer update
         self._any_displayed_positions = display
@@ -330,7 +344,12 @@ class Drawing:
     '''Whether or not the surface is drawn.'''
 
     def get_display_positions(self):
-        return self._displayed_positions
+        dp = self._displayed_positions
+        if dp is None:
+            from numpy import ones, bool
+            dp = ones((len(self._positions),), bool)
+            self._displayed_positions = dp
+        return dp
 
     def set_display_positions(self, position_mask):
         from numpy import array_equal
@@ -344,7 +363,7 @@ class Drawing:
         self.redraw_needed(shape_changed=True)
 
     display_positions = property(get_display_positions, set_display_positions)
-    '''Mask specifying which copies are displayed. Can be None meaning all positions displayed'''
+    '''Mask specifying which copies are displayed.'''
 
     @property
     def num_displayed_positions(self):
@@ -800,6 +819,12 @@ class Drawing:
                 sopt |= Render.SHADER_SHIFT_AND_SCALE
             elif len(self.positions) > 1:
                 sopt |= Render.SHADER_INSTANCING
+            if not self.accept_shadow:
+                sopt |= Render.SHADER_NO_SHADOW
+            if not self.accept_multishadow:
+                sopt |= Render.SHADER_NO_MULTISHADOW
+            if not self.allow_depth_cue:
+                sopt |= Render.SHADER_NO_DEPTH_CUE
             self._shader_opt = sopt
         if transparent_only:
             from .opengl import Render
@@ -811,7 +836,8 @@ class Drawing:
 
     _effects_shader = set(
         ('use_lighting', '_vertex_colors', '_colors', 'texture',
-         'ambient_texture', '_positions'))
+         'ambient_texture', '_positions',
+         'allow_depth_cue', 'accept_shadow', 'accept_multishadow'))
 
     # Update the contents of vertex, element and instance buffers if associated
     #  arrays have changed.
@@ -1406,7 +1432,7 @@ def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     dc = r.disable_capabilities
-    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
+    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOW | r.SHADER_MULTISHADOW |
                                   r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D)
     draw_opaque(r, drawings)
     if not opaque_only:
@@ -1420,7 +1446,7 @@ def draw_overlays(drawings, renderer):
     r = renderer
     r.disable_shader_capabilities(r.SHADER_STEREO_360 |	# Avoid geometry shift
                                   r.SHADER_DEPTH_CUE |
-                                  r.SHADER_SHADOWS |
+                                  r.SHADER_SHADOW |
                                   r.SHADER_MULTISHADOW |
                                   r.SHADER_CLIP_PLANES)
     r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
@@ -1440,12 +1466,12 @@ def draw_overlays(drawings, renderer):
     r.disable_shader_capabilities(0)
 
 
-def draw_highlight_outline(renderer, drawings):
+def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
     '''Draw the outlines of highlighted parts of the specified drawings.'''
     r = renderer
     r.outline.start_rendering_outline()
     _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
-    r.outline.finish_rendering_outline()
+    r.outline.finish_rendering_outline(color=color, pixel_width=pixel_width)
 
     
 def draw_on_top(renderer, drawings):
@@ -1745,6 +1771,10 @@ class Pick:
 
     def description(self):
         '''Text description of the picked object.'''
+        return None
+
+    def specifier(self):
+        '''Command specifier for the picked object.'''
         return None
 
     def select(self, mode = 'add'):

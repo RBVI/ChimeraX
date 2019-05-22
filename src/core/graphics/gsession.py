@@ -17,7 +17,8 @@ class ViewState:
 
     version = 1
     save_attrs = ['camera', 'lighting', 'material',
-                  'center_of_rotation', 'center_of_rotation_method', 'background_color']
+                  'center_of_rotation', 'center_of_rotation_method',
+                  'background_color', 'highlight_color', 'highlight_thickness']
     silhouette_attrs = ['enabled', 'thickness', 'color', 'depth_jump']
 
     @staticmethod
@@ -63,6 +64,13 @@ class ViewState:
         # Restore clip planes
         v.clip_planes.replace_planes(data['clip_planes'])
 
+        # Restore silhouette edge settings.
+        if 'silhouettes' in data:
+            sil = data['silhouettes']
+            if isinstance(sil, dict):
+                for attr, value in sil.items():
+                    setattr(v.silhouette, attr, value)
+
         # Restore window size
         resize = session.restore_options.get('resize window')
         if resize is None:
@@ -77,12 +85,6 @@ class ViewState:
             from .windowsize import window_size
             width, height = data['window_size']
             window_size(session, width, height)
-
-        if 'silhouettes' in data:
-            sil = data['silhouettes']
-            if isinstance(sil, dict):
-                for attr, value in sil.items():
-                    setattr(v.silhouette, attr, value)
 
     @staticmethod
     def reset_state(view, session):
@@ -253,7 +255,8 @@ class DrawingState:
                   'triangle_mask', 'edge_mask', 'display_style', 'texture', 
                   'ambient_texture', 'ambient_texture_transform', 
                   'use_lighting', 'positions', 'display_positions', 
-                  'highlighted_positions', 'highlighted_triangles_mask', 'colors']
+                  'highlighted_positions', 'highlighted_triangles_mask', 'colors',
+                  'allow_depth_cue', 'accept_shadow', 'accept_multishadow']
 
     @staticmethod
     def take_snapshot(drawing, session, flags):

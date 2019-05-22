@@ -27,9 +27,9 @@ class="clRight" title="User Guide Index"/></a>
 
 <a name="comparative"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>modeller</b> &nbsp;<b>comparative</b>
-&nbsp;<i>alignment</i>:<i>target</i>&nbsp;
-[&nbsp;<i>alignment2</i>:<i>target2</i>&nbsp; ...&nbsp;]
+<br><b>modeller &nbsp;comparative</b>
+&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>&nbsp;
+[&nbsp;<a href="seqspec.html"><i>sequence-spec2</i></a>&nbsp; ...&nbsp;]
 [&nbsp;<b>multichain</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>numModels</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>fast</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -39,6 +39,13 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>licenseKey</b>&nbsp;&nbsp;<i>key</i>&nbsp;]
 </h3>
+<a name="scores"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>modeller &nbsp;scores</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b><a href="#block">block</a></b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b><a href="#licenseKey">licenseKey</a></b>&nbsp;&nbsp;<i>key</i>&nbsp;]
+</h3>
 <p>
 The <b>modeller comparative</b> command performs comparative or
 &ldquo;homology&rdquo; modeling of proteins by running
@@ -47,6 +54,16 @@ on a web service hosted by the
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI</a>. It is the command-line implementation of the
 <a href="../tools/modeller.html"><b>Modeler&nbsp;Comparative</b></a> tool.
+Additional scores for the resulting models can be obtained from the
+<a href="http://modbase.compbio.ucsf.edu/evaluation/"
+target="_blank">SaliLab Model Evaluation Server</a> using the
+<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
+or the <b>modeller scores</b> command. 
+(Any atomic model can be &ldquo;evaluated&rdquo; with this command, 
+but in the absence of a
+<a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
+to show the scores, the only result will be to assign them as model
+<a href="../attributes.html">attributes</a>.)
 </p><p>
 Modeller is developed by the
 <a href="http://www.salilab.org" target="_blank">&Scaron;ali Lab</a>,
@@ -79,17 +96,12 @@ The sequence alignment containing the target sequence should be open
 in ChimeraX. The template structure(s) should also be open and
 <a href="../tools/sequenceviewer.html#association">associated</a> with
 a sequence in the same alignment.
+See also: <a href="open.html#sequence">sequence file formats</a>,
+<a href="sequence.html"><b>sequence</b></a>,
+<a href="blastprotein.html"><b>blastprotein</b></a>
 </p><p>
 With the above requirements in place, the only mandatory command argument
-per target is the name of the sequence alignment as shown in the title
-bar of the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> 
-window and the name or index number of the target sequence in the alignment,
-in the form: &nbsp;<i>alignment</i>:<i>target</i>&nbsp; (enclosed in 
-quotation marks if <i>alignment</i> or <i>target</i> includes spaces).
-</p><p>
-The index number can be a positive integer <i>N</i> 
-for the <i>N</i><sup>th</sup> sequence in the alignment, 
-or negative for the <i>N</i><sup>th</sup>-to-last sequence.
+per target is the <a href="seqspec.html"><i>sequence-spec</i></a>.
 For example, the following command specifies the next-to-last sequence in 
 the alignment super8.msf as the target:
 </p>
@@ -114,7 +126,7 @@ Scores for the comparative models are shown in a
 <p class="nav">
 [<a href="#top">back to top: modeller</a>]
 </p>
-<h3>Options</h3>
+<h3>Comparative Modeling Options</h3>
 <blockquote>
 <b>multichain</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
@@ -162,6 +174,7 @@ Whether to include hydrogen atoms in the output models (default <b>false</b>);
 increases computation time by approximately a factor of 4.
 </blockquote>
 <blockquote>
+<a name="block"></a>
 <b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 Whether to wait for the calculation to finish before starting to execute
@@ -186,5 +199,5 @@ target="_blank">Modeller licensing</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2019</address>
+May 2019</address>
 </body></html>

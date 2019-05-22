@@ -61,10 +61,12 @@
     <ChimeraXClassifier>Command :: ~show :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~display :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: lighting :: Viewing Controls :: change lighting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: lighting model :: Viewing Controls :: change per-model lighting</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: material :: Depiction :: change visual surface properties of 3D objects</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure buriedarea :: Surface/Binding Analysis :: measure surface area buried by contacting structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure center :: Volume :: measure center of mass of maps or atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure convexity :: Surface/Binding Analysis :: color surface based on local convexity</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure inertia :: General Controls :: measure moments of inertia</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure length :: Volume :: measure path length of connected markers</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: move :: General Controls :: move (parts of) a model relative to others</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: palette :: General Controls :: list available color palettes</ChimeraXClassifier>

@@ -520,7 +520,7 @@ class BundleInfo:
         for k in remove_list:
             del sys.modules[k]
 
-    def imported(self, logger):
+    def imported(self):
         import sys
         return self.package_name in sys.modules
 

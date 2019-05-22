@@ -26,12 +26,12 @@ class="clRight" title="User Guide Index"/></a>
 <table class="clRight">
 <tr><td>
 <img class="outline" src="1bzm-others-screenshot.png"
-alt="1bzm, 1urt, sequence alignment" width="800px"></td></tr>
-<tr><td width="790px" align="center">
+alt="1bzm, 1urt, sequence alignment" width="630px"></td></tr>
+<tr><td width="620px" align="center">
 <font size=-1>
 Models #1 <font style="background:tan;padding:0px 2px">1bzm</font>
 and #2 <font style="background:skyblue;padding:0px 2px">1urt</font>
-associated with sequences in a multiple alignment, with
+associated with sequences in an alignment, with
 <font style="background:lightgreen;padding:0px 2px">ChimeraX selection</font>
 sequence region.
 </font>
@@ -49,22 +49,25 @@ a specified sequence or sequence pattern, use
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
 </p><p>
-A <a href="../commands/open.html#sequence">sequence file</a> can be opened 
-with the command <a href="../commands/open.html"><b>open</b></a>,
-and the sequence of a structure chain can be shown with the command:
+The sequence of a structure chain in ChimeraX can be shown by:
 </p>
-<blockquote>
-<b>sequence chain 
-&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>chain-spec</i></a></b>
-</blockquote>
-<p>
-Alternatively, clicking the 
+<ul>
+<li>using the
+<a href="../commands/sequence.html#chain"><b>sequence chain</b></a> command
+<li>clicking the 
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="iconbar" border=1 src="../tools/shortcut-icons/sequence.png"></a>
-or the <a href="../modelinfo.html">chain description</a> that appears in the 
-<a href="log.html"><b>Log</b></a> when a structure is opened will show the
-sequence(s).
+<img class="iconbar" src="../tools/shortcut-icons/sequence.png"></a>
+<li>clicking the <a href="../modelinfo.html">chain description</a> 
+link that appears in the <a href="log.html"><b>Log</b></a> 
+when a structure is opened 
+</ul>
+<p>
+Sequences and sequence alignments can also be 
+<a href="../commands/open.html#local">opened</a> 
+from <a href="../commands/open.html#sequence">files</a>
+or <a href="../commands/open.html#fetch">fetched</a>
+from <a href="http://www.uniprot.org/" target="_blank">UniProt</a>.
 </p><p>
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
@@ -81,6 +84,8 @@ with choices including:
 - save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
+<li><b>Associations...</b> show dialog for controlling 
+<a href="#association">sequence-structure association</a>
 <li><b>Load Sequence Coloring File...</b> open a
 <a href="../formats/scf.html">sequence coloring file</a>
 to create <a href="#regions">regions</a> and color 
@@ -166,14 +171,24 @@ such as in disordered regions with poorly defined density.
 <li>Insertions in the structure sequence relative to the 
 sequence opened independently are not allowed.
 </ul>
-<!--
-For manual (forced) association, both of the above are allowed, 
+<p>
+For manual association, both of the above are allowed, 
 but only the &ldquo;extra&rdquo; residues in the structure not associated 
 with any positions in the sequence (minus the length difference
 if the structure sequence is longer) are counted along with mismatches 
 and reported in the <a href="log.html"><b>Log</b></a>.
--->
 </p><p>
+Associations can be controlled manually (forced or removed):
+</p>
+<ul>
+<li>with the
+<a href="../commands/sequence.html"><b>sequence</b></a> command
+<li>by choosing <b>Associations...</b> from the <b>Sequence Viewer</b>
+<a href="../window.html#context-menu">context menu</a>.
+The resulting dialog lists structure chains and allows changing 
+the association of each to none, best-matching, or a specific sequence.
+</ul>
+<p>
 In the sequence window, <a href="#regions">regions</a> may be created to show
 <font style="background:rgb(255,76,76);padding:1px 3px">
 <b>mismatches</b></font> and

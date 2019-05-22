@@ -13,6 +13,7 @@
 
 def set(session, bg_color=None,
         silhouettes=None, silhouette_width=None, silhouette_color=None, silhouette_depth_jump=None,
+        selection_color=None, selection_width=None,
         subdivision=None, max_frame_rate = None):
     '''Set global parameters.  With no options reports the current settings.
 
@@ -25,10 +26,14 @@ def set(session, bg_color=None,
         where the depth of the scene jumps.
     silhouette_width : float
         Width in pixels of silhouette edges. Minimum width is 1 pixel.
-    silhouette_color : color
+    silhouette_color : Color
         Color of silhouette edges.
     silhouette_depth_jump : float
         Fraction of scene depth giving minimum depth change to draw a silhouette edge. Default 0.03.
+    selection_color : Color
+        Color to use when outlining selected objects.  Initially green.
+    selection_width : float
+        Width in pixels of the selection outline.  Initially 1 (or 2 for high DPI screens).
     subdivision : float
         Controls the rendering quality of spheres and cylinders for drawing atoms and bonds.
         Default value is 1, higher values give smoother spheres and cylinders.
@@ -59,6 +64,12 @@ def set(session, bg_color=None,
         had_arg = True
         silhouette.depth_jump = silhouette_depth_jump
         view.redraw_needed = True
+    if selection_color is not None:
+        had_arg = True
+        view.highlight_color = selection_color.rgba
+    if selection_width is not None:
+        had_arg = True
+        view.highlight_thickness = selection_width
     if subdivision is not None:
         had_arg = True
         from chimerax import atomic
@@ -78,6 +89,8 @@ def set(session, bg_color=None,
             rate = 0
         msg = '\n'.join(('Current settings:',
                          '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
+                         '  Selection color: %d,%d,%d' % tuple(100*r for r in view.highlight_color[:3]),
+                         '  Selection width: %.3g' % view.highlight_thickness,
                          '  Silhouettes: ' + str(silhouette.enabled),
                          '  Silhouette width: %.3g' % silhouette.thickness,
                          '  Silhouette color: %d,%d,%d' % tuple(100*r for r in silhouette.color[:3]),
@@ -101,6 +114,8 @@ def register_command(logger):
                  ('silhouette_width', FloatArg),
                  ('silhouette_color', ColorArg),
                  ('silhouette_depth_jump', FloatArg),
+                 ('selection_color', ColorArg),
+                 ('selection_width', FloatArg),
                  ('subdivision', FloatArg),
                  ('max_frame_rate', FloatArg)],
         synopsis="set preferences"

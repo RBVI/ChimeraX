@@ -495,8 +495,6 @@ map_attributes = (
   'region',
   'rendering_options',
   'region_list',
-  'surface_brightness_factor',
-  'transparency_factor',
   'image_levels',
   'image_colors',
   'image_brightness_factor',
@@ -508,7 +506,6 @@ map_attributes = (
 
 basic_map_attributes = (
   'id', 'display', 'region',
-  'surface_brightness_factor', 'transparency_factor',
   'image_levels', 'image_colors', 'image_brightness_factor',
   'transparency_depth', 'default_rgba')
 

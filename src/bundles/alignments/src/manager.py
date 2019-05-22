@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_builtin_subcommands = set(['chain'])
+_builtin_subcommands = set(['chain', 'associate', 'disassociate'])
 _viewer_subcommands = set()
 _commands_registered = False
 

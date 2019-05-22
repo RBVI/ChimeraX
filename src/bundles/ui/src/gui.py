@@ -194,7 +194,15 @@ class UI(QApplication):
         triggers.add_handler(TOOLSHED_BUNDLE_UNINSTALLED, handler)
         triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
         if self.autostart_tools:
-            self.session.tools.start_tools(self.settings.autostart)
+            defunct_toolbars = set(["Density Map Toolbar", "Graphics Toolbar",
+                "Molecule Display Toolbar", "Mouse Modes for Right Button"])
+            final_autostart = [tool_name for tool_name in
+                self.settings.autostart if tool_name not in defunct_toolbars]
+            if final_autostart != self.settings.autostart:
+                if "Toolbar" not in final_autostart:
+                    final_autostart.append("Toolbar")
+                self.settings.autostart = final_autostart
+            self.session.tools.start_tools(final_autostart)
 
         self.triggers.activate_trigger('ready', None)
 
@@ -409,7 +417,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._hide_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
-        self._select_seq_dialog = self._select_zone_dialog = None
+        self._select_seq_dialog = self._select_zone_dialog = self._define_selector_dialog = None
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
@@ -445,7 +453,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         gw = self.graphics_window
         oc = gw.opengl_context
         if stereo == oc.stereo:
-            return True	# Already using requested mode
+            return True    # Already using requested mode
 
         from .graphics import GraphicsWindow
         try:
@@ -707,6 +715,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.session.ui.settings.last_window_size = wh
         self.triggers.activate_trigger('resized', wh)
 
+    def show_define_selector_dialog(self, *args):
+        if self._define_selector_dialog is None:
+            self._define_selector_dialog = DefineSelectorDialog(self.session)
+        self._define_selector_dialog.show()
+        self._define_selector_dialog.raise_()
+
     def show_select_seq_dialog(self, *args):
         if self._select_seq_dialog is None:
             self._select_seq_dialog = SelSeqDialog(self.session)
@@ -721,7 +735,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
-        _show_context_menu(event, tool, fill_cb, True, tb)
+        _show_context_menu(event, tool, None, fill_cb, True, tb)
 
     def status(self, msg, color, secondary):
         self._status_bar.status(msg, color, secondary)
@@ -782,7 +796,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     @property
     def settings_ui_widget(self):
-        # this is a proerty in order to delay actual creation of the window as long as possible,
+        # this is a property in order to delay actual creation of the window as long as possible,
         # so that bundles can register settings options and the window will start large
         # enough to accomodate the registered options
         if self._settings_ui_widget is None:
@@ -1003,6 +1017,35 @@ class MainWindow(QMainWindow, PlainTextLog):
             mode_action.triggered.connect(
                 lambda arg, s=self, m=mode: s._set_select_mode(m))
         self._set_select_mode("replace")
+
+        selectors_menu = select_menu.addMenu("User-Defined Selectors")
+        selectors_menu.setToolTipsVisible(True)
+        selectors_menu.aboutToShow.connect(lambda menu=selectors_menu: self._populate_selectors_menu(menu))
+        from chimerax.core.commands import run
+        selectors_menu.triggered.connect(lambda name, ses=self.session, run=run: run(ses, "sel " + name.text()))
+        def_selector_action = QAction("Define Selector...", self)
+        select_menu.addAction(def_selector_action)
+        def_selector_action.triggered.connect(self.show_define_selector_dialog)
+
+    def _populate_selectors_menu(self, menu):
+        names = []
+        from chimerax.core.commands import list_selectors, is_selector_user_defined, get_selector
+        from chimerax.core.objects import Objects
+        for selector_name in list_selectors():
+            if not is_selector_user_defined(selector_name):
+                continue
+            val = get_selector(selector_name)
+            if isinstance(val, Objects) and val.empty():
+                continue
+            names.append(selector_name)
+        menu.clear()
+        if not names:
+            menu.addAction("No user-defined selectors")
+            menu.actions()[0].setEnabled(False)
+            return
+        names.sort()
+        for name in names:
+            menu.addAction(name)
 
     def select_by_mode(self, selector_text):
         """Supported API.  Select based on the selector 'selector_text' but honoring the current
@@ -1241,7 +1284,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 # create here rather than earlier so that's it's not included in parent_menu.children()
                 menu = QMenu(menu_name, parent_menu)
                 menu.setToolTipsVisible(True)
-                menu.setObjectName(obj_name)	# Needed for findChild() above to work.
+                menu.setObjectName(obj_name)    # Needed for findChild() above to work.
                 if insert_pos is False:
                     parent_menu.addMenu(menu)
                 else:
@@ -1622,7 +1665,7 @@ class _Qt:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
-        _show_context_menu(event, self.tool_window.tool_instance,
+        _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,
             self.tool_window.fill_context_menu,
             self.tool_window.tool_instance.tool_info in self.main_window._tools_cache,
             self.dock_widget if isinstance(self.tool_window, MainToolWindow) else None)
@@ -1688,7 +1731,7 @@ def redirect_stdio_to_logger(logger):
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
-def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
+def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable, memorable):
     from PyQt5.QtWidgets import QMenu, QAction
     menu = QMenu()
 
@@ -1700,22 +1743,24 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
     hide_tool_action = QAction("Hide Tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
-    if ti.help is not None:
+    help_url = getattr(tool_window, "help", None) or ti.help
+    session = ti.session
+    from chimerax.core.commands import run, quote_if_necessary
+    if help_url is not None:
         help_action = QAction("Help")
         help_action.setStatusTip("Show tool help")
-        help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
+        help_action.triggered.connect(lambda arg, ses=session, run=run, help_url=help_url:
+            run(ses, "help %s" % help_url))
         menu.addAction(help_action)
     else:
         no_help_action = QAction("No Help Available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
-    session = ti.session
     if autostartable:
         autostart = ti.tool_name in session.ui.settings.autostart
         auto_action = QAction("Start at ChimeraX Startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
-        from chimerax.core.commands import run, quote_if_necessary
         auto_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
@@ -1783,6 +1828,75 @@ def remove_keyboard_navigation(menu_label):
     return menu_label.replace('&&', '&')
 
 from PyQt5.QtWidgets import QDialog
+class DefineSelectorDialog(QDialog):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.session = session
+        self.setWindowTitle("Define Selector")
+        self.setSizeGripEnabled(True)
+        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel
+        layout = QVBoxLayout()
+        def_layout = QHBoxLayout()
+        def_layout.setSpacing(4)
+        def_layout.addWidget(QLabel("Name"))
+        from PyQt5.QtWidgets import QPushButton, QMenu
+        self.cur_sel_text = "current selection"
+        self.atom_spec_text = "target specifier"
+        self.push_button = QPushButton(self.cur_sel_text)
+        menu = QMenu()
+        menu.triggered.connect(self._menu_cb)
+        self.push_button.setMenu(menu)
+        from PyQt5.QtWidgets import QAction
+        for text in [self.cur_sel_text, self.atom_spec_text]:
+            menu.addAction(text)
+        def_layout.addWidget(self.push_button)
+        self.atom_spec_edit = QLineEdit()
+        self.atom_spec_edit.textChanged.connect(self._update_button_states)
+        self.atom_spec_edit.hide()
+        def_layout.addWidget(self.atom_spec_edit)
+        def_layout.addWidget(QLabel("as"))
+        self.name_edit = QLineEdit()
+        self.name_edit.textChanged.connect(self._update_button_states)
+        def_layout.addWidget(self.name_edit)
+        layout.addLayout(def_layout)
+
+        self.bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Apply | qbbox.Help)
+        self.bbox.accepted.connect(self.def_selector)
+        self.bbox.accepted.connect(self.accept)
+        self.bbox.rejected.connect(self.reject)
+        self.bbox.button(qbbox.Apply).clicked.connect(self.def_selector)
+        from chimerax.core.commands import run
+        self.bbox.helpRequested.connect(lambda run=run, ses=session:
+            run(ses, "help help:user/menu.html#named-selections"))
+        self._update_button_states()
+        layout.addWidget(self.bbox)
+        self.setLayout(layout)
+
+    def _menu_cb(self, action):
+        if action.text() == self.cur_sel_text:
+            self.atom_spec_edit.hide()
+        else:
+            self.atom_spec_edit.show()
+        self.push_button.setText(action.text())
+        self._update_button_states()
+
+    def def_selector(self, *args):
+        from chimerax.core.commands import run, quote_if_necessary
+        if self.push_button.text() == self.cur_sel_text:
+            command = "name frozen"
+            spec = "sel"
+        else:
+            command = "name"
+            spec = quote_if_necessary(self.atom_spec_edit.text())
+        run(self.session, "%s %s %s" % (command, quote_if_necessary(self.name_edit.text()), spec))
+
+    def _update_button_states(self, *args):
+        enable = bool(self.name_edit.text().strip())
+        if enable and self.push_button.text() == self.atom_spec_text:
+            enable = bool(self.atom_spec_edit.text().strip())
+        for button in [self.bbox.button(x) for x in [self.bbox.Ok, self.bbox.Apply]]:
+            button.setEnabled(enable)
+
 class SelSeqDialog(QDialog):
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
