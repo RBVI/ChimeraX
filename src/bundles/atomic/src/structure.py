@@ -72,8 +72,6 @@ class Structure(Model, StructureData):
                     lambda *args, qual=ses_func: self._ses_call(qual)))
         from chimerax.core.models import MODEL_POSITION_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
-        from chimerax.core import triggerset
-        self.triggers = triggerset.TriggerSet()
         self.triggers.add_trigger("changes")
 
         self._make_drawing()

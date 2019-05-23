@@ -63,12 +63,16 @@ class Model(State, Drawing):
         self._added_to_session = False
         self._deleted = False
         self._selection_coupled = None
+        from .triggerset import TriggerSet
+        self.triggers  = TriggerSet()
+        self.triggers.add_trigger("deleted")
         # TODO: track.created(Model, [self])
 
     def delete(self):
         '''Delete this model.'''
         self._deleted = True
         Drawing.delete(self)
+        self.triggers.activate_trigger("deleted", self)
         delattr(self, "session")
 
     @property
