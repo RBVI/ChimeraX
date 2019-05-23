@@ -18,8 +18,17 @@ class _PresetsBundleAPI(BundleAPI):
     @staticmethod
     def get_class(class_name):
         if class_name == "PresetsManager":
-            from . import manager
-            return manager.PresetsManager
+            # PresetsManager used to be a state manager, so for session compatibility...
+            from chimerax.core.state import State
+            class FakePresetsManager(State):
+                @staticmethod
+                def reset_state(self, session):
+                    pass
+                def restore_snapshot(session, data):
+                    return session.presets
+                def take_snapshot(self, session, flags):
+                    return None
+            return FakePresetsManager
 
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
