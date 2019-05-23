@@ -166,6 +166,12 @@ class UI(QApplication):
         pass
 
     def window_image(self):
+        '''
+        Tests on macOS 10.14.5 show that QWidget.grab() gives a correct QPixmap
+        even for undisplayed or iconified windows, except not for html widgets
+        (e.g. Log, or file history) which come out blank.  Hidden windows also
+        may render an image at the wrong size with a new layout (e.g. Model Panel).
+        '''
         screen = self.primaryScreen()
         w = self.main_window
         pixmap = w.grab()
