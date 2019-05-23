@@ -155,6 +155,9 @@ class Labels(StateManager):
     def delete(self, label):
         del self.labels[label.name]
 
+    def find_label(self, name):
+        return self.labels.get(name)
+    
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
@@ -179,6 +182,11 @@ class Labels(StateManager):
             l.delete()
         self.labels = {}
 
+
+# -----------------------------------------------------------------------------
+#
+def find_label(session, name):
+    return session_labels(session).find_label(name)
 
 # -----------------------------------------------------------------------------
 #
@@ -221,10 +229,10 @@ class Label:
         d = self.drawing
         if d is None:
             return
+        self.drawing = None
         s = self.session
         s.main_view.remove_overlays([d])
         session_labels(s).delete(self)
-
 
 # -----------------------------------------------------------------------------
 #
