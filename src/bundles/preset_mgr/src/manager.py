@@ -11,8 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.state import StateManager
-class PresetsManager(StateManager):
+class PresetsManager:
     """Manager for presets"""
 
     def __init__(self, session):
@@ -43,9 +42,6 @@ class PresetsManager(StateManager):
         })
         self.triggers.activate_trigger("presets changed", self)
 
-    def reset_state(self, session):
-        pass
-
     def add_provider(self, bundle_info, name,
                      order=None, category="General", **kw):
         from chimerax.core.utils import CustomSortString
@@ -62,14 +58,6 @@ class PresetsManager(StateManager):
 
     def end_providers(self):
         self.triggers.activate_trigger("presets changed", self)
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        return session.presets
-
-    def take_snapshot(self, session, flags):
-        # Presets are "session enduring"
-        return {}
 
     def execute(self, preset):
         if callable(preset):
