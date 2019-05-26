@@ -1614,6 +1614,8 @@ class Structure(Model, StructureData):
         "N":  -1/3.,
         "CA":  0.,
         "C":   1/3.,
+        "O":   1/3.,
+        # TODO: "OXT", "OT1", "OT2"
         # Nucleotide
         "P":   -2/6.,
         "O5'": -1/6.,
@@ -1621,6 +1623,7 @@ class Structure(Model, StructureData):
         "C4'":  1/6.,
         "C3'":  2/6.,
         "O3'":  3/6.,
+        # TODO: "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"
     }
 
     def _ribbon_spline_position(self, ribbon, residues):

@@ -31,6 +31,22 @@ Pseudobond::Pseudobond(Atom* a1, Atom* a2, PBGroup* grp): Connection(a1, a2), _g
     _halfbond = false;
     _radius = 0.05;
     change_tracker()->add_created(grp->structure(), this);
+    if (a1->_pseudobonds.size() == 0)
+        a1->_pseudobonds.reserve(1);
+    a1->_pseudobonds.push_back(this);
+    if (a2->_pseudobonds.size() == 0)
+        a2->_pseudobonds.reserve(1);
+    a2->_pseudobonds.push_back(this);
+}
+
+Pseudobond::~Pseudobond() {
+    graphics_changes()->set_gc_adddel();
+    change_tracker()->add_deleted(group()->structure(), this);
+
+    for (auto& a: atoms()) {
+        auto pbi = std::find(a->_pseudobonds.begin(), a->_pseudobonds.end(), this);
+        a->_pseudobonds.erase(pbi);
+    }
 }
 
 ChangeTracker*
