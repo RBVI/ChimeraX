@@ -171,8 +171,7 @@ def select_clear(session):
 
 def report_selection(session):
     s = session.selection
-    from chimerax.atomic import MolecularSurface, Structure    
-    mc = len([m for m in s.models() if not isinstance(m, (Structure, MolecularSurface))])
+    mc = len(s.models())
     ac = sum([len(atoms) for atoms in s.items('atoms')], 0)
     bc = sum([len(bonds) for bonds in s.items('bonds')], 0)
     pbc = sum([len(pbonds) for pbonds in s.items('pseudobonds')], 0)
