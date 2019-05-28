@@ -64,6 +64,8 @@ Atom::~Atom()
 void
 Atom::add_bond(Bond *b)
 {
+    if (_bonds.size() == 0)
+        _bonds.reserve(4);
     _bonds.push_back(b);
     _neighbors.push_back(b->other_atom(this));
     graphics_changes()->set_gc_shape();

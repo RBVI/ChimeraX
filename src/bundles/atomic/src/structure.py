@@ -969,10 +969,8 @@ class Structure(Model, StructureData):
             from .molarray import Atoms
             tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
             spline_coords = array(list(self._ribbon_spline_backbone.values()))
-            # Add fix from Tristan, #1486
-            mask = tether_atoms.visibles
-            tether_atoms = tether_atoms[mask]
-            spline_coords = spline_coords[mask]
+            # Add fix from Tristan, #1486, #1965
+            self._ribbon_spline_backbone.clear()
             if len(spline_coords) == 0:
                 spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
@@ -1616,6 +1614,8 @@ class Structure(Model, StructureData):
         "N":  -1/3.,
         "CA":  0.,
         "C":   1/3.,
+        "O":   1/3.,
+        # TODO: "OXT", "OT1", "OT2"
         # Nucleotide
         "P":   -2/6.,
         "O5'": -1/6.,
@@ -1623,6 +1623,7 @@ class Structure(Model, StructureData):
         "C4'":  1/6.,
         "C3'":  2/6.,
         "O3'":  3/6.,
+        # TODO: "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"
     }
 
     def _ribbon_spline_position(self, ribbon, residues):

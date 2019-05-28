@@ -111,12 +111,6 @@ Pseudobond::track_change(const std::string& reason) const {
     change_tracker()->add_modified(group()->structure(), this, reason);
 }
 
-inline
-Pseudobond::~Pseudobond() {
-    graphics_changes()->set_gc_adddel();
-    change_tracker()->add_deleted(group()->structure(), this);
-}
-
 }  // namespace atomstruct
 
 #endif  // atomstruct_Pseudobond
