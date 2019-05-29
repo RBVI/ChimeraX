@@ -135,8 +135,8 @@ def measure_blob(session, surface, triangle_number, color = None,
         rgba = color.uint8x4() if isinstance(color, Color) else color
         color_blob(surface, vlist, rgba)
 
-    if report_size:
-        axes, bounds, msg = blob_size(surface, vlist, tlist, log = session.logger)
+    log = session.logger if report_size else None
+    axes, bounds, msg = blob_size(surface, vlist, tlist, log = log)
         
     pbp = pick_blobs_panel(session, create = False)
     if pbp:
