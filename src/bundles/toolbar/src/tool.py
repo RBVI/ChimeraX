@@ -324,6 +324,7 @@ _Toolbars = {
                 ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
                 ("mouse:place marker", None, "Place marker", None),
+                ("mouse:pick blobs", None, "Blob", "Measure and color connected parts of surface"),
                 ("mouse:play map series", None, "Play series", "Play map series"),
                 ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
             ],
