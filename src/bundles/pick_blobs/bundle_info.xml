@@ -27,6 +27,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: Measure and Color Blobs :: Volume Data :: Measure and color connected parts of surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure blob :: Measure and Color Blobs :: Measure and color connected parts of surfaces</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

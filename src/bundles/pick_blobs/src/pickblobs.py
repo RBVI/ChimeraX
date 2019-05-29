@@ -119,6 +119,54 @@ def loop_length(vindices, varray):
 
 # -------------------------------------------------------------------------
 #
+def measure_blob(session, surface, triangle_number, color = None,
+                 outline = False, outline_color = (0,255,0,255),
+                 report_size = True):
+
+    nt = len(surface.triangles)
+    if triangle_number < 0 or triangle_number >= nt:
+        from chimerax.core.errors import UserError
+        raise UserError('Triangle number %d out of range for surface #%s with %d triangles'
+                        % (triangle_number, surface.id_string, nt))
+    
+    vlist, tlist = connected_component(surface.triangles, triangle_number)
+    if color is not None:
+        from chimerax.core.colors import Color
+        rgba = color.uint8x4() if isinstance(color, Color) else color
+        color_blob(surface, vlist, rgba)
+
+    if report_size:
+        axes, bounds, msg = blob_size(surface, vlist, tlist, log = session.logger)
+        
+    pbp = pick_blobs_panel(session, create = False)
+    if pbp:
+        pbp.message(msg)
+
+    if outline:
+        from chimerax.core.colors import Color
+        rgba = outline_color.uint8x4() if isinstance(outline_color, Color) else outline_color
+        bob = BlobOutlineBox(session, axes, bounds, rgba = rgba)
+        surface.parent.add([bob])
+
+# -------------------------------------------------------------------------
+#
+def register_measure_blob_command(logger):
+    from chimerax.core.commands import CmdDesc, register, SurfaceArg, IntArg, ColorArg, BoolArg
+    from chimerax.atomic import ResiduesArg
+    desc = CmdDesc(
+        required = [('surface', SurfaceArg),],
+        keyword = [('triangle_number', IntArg),
+                   ('color', ColorArg),
+                   ('outline', BoolArg),
+                   ('outline_color', ColorArg),
+                   ('report_size', BoolArg)],
+        required_arguments = ['triangle_number'],
+        synopsis = 'Measure and color connected parts of surfaces'
+    )
+    register('measure blob', desc, measure_blob, logger=logger)
+
+# -------------------------------------------------------------------------
+#
 from chimerax.mouse_modes import MouseMode
 class PickBlobs(MouseMode):
     name = 'pick blobs'
@@ -146,18 +194,29 @@ class PickBlobs(MouseMode):
         tpick = pick.triangle_pick
         t = tpick.triangle_number
         surface = tpick.drawing()
-        vlist, tlist = connected_component(surface.triangles, t)
+
+        cmd = 'measure blob #%s triangle %d'  % (surface.id_string, t)
         settings = self.settings
         if settings.color_blob:
-            color_blob(surface, vlist, settings.blob_color)
+            cmd += ' color %s' % hex_color(settings.blob_color)
             if settings.change_color:
                 settings.new_color()
-        axes, bounds, msg = report_size(surface, vlist, tlist)
-        settings.message(msg)
         if settings.show_box:
-            bob = BlobOutlineBox(surface.session, axes, bounds, rgba = settings.box_color)
-            surface.parent.add([bob])
+            cmd += ' outline true'
+            if tuple(settings.box_color) != (0,255,0,255):
+                cmd += ' outlineColor %s' % hex_color(settings.box_color)
 
+        from chimerax.core.commands import run
+        run(surface.session, cmd)
+
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
+        from chimerax.mouse_modes import picked_object_on_segment
+        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        self._pick_blob(pick)
+
+def hex_color(rgba8):
+    return '#%02x%02x%02x%02x' % tuple(rgba8)
 
 # -----------------------------------------------------------------------------
 # Panel for coloring connected pieces of a surface chosen with mouse.
@@ -286,12 +345,12 @@ class PickBlobSettings(ToolInstance):
 
 # -------------------------------------------------------------------------
 #
-def pick_blobs_panel(session):
-    return PickBlobSettings.get_singleton(session)
+def pick_blobs_panel(session, create = True):
+    return PickBlobSettings.get_singleton(session, create)
 
 # -------------------------------------------------------------------------
 #
-def report_size(surface, vlist, tlist):
+def blob_size(surface, vlist, tlist, log = None):
 
   # Report enclosed volume and area
   varray, tarray = blob_geometry(surface, vlist, tlist)
@@ -331,9 +390,9 @@ def report_size(surface, vlist, tlist):
   msg = ('Surface %s #%s blob:\n  %s' %
          (name, surface.id_string, '\n  '.join(stats)))
 
-  log = surface.session.logger
-  log.info(msg + '\n')
-  log.status(', '.join(stats))
+  if log:
+      log.info(msg + '\n')
+      log.status(', '.join(stats))
 
   return axes, bounds, msg
 

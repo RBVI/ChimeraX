@@ -36,4 +36,10 @@ class _PickBlobsAPI(BundleAPI):
         # TODO: remove mouse mode
         pass
 
+    @staticmethod
+    def register_command(command_name, logger):
+        # 'register_command' is lazily called when the command is referenced
+        from . import pickblobs
+        pickblobs.register_measure_blob_command(logger)
+
 bundle_api = _PickBlobsAPI()
