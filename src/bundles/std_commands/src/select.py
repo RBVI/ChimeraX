@@ -171,7 +171,8 @@ def select_clear(session):
 
 def report_selection(session):
     s = session.selection
-    mc = len(s.models())
+    mlist = [m for m in s.models() if m.selected]	# Exclude grouping models
+    mc = len(mlist)
     ac = sum([len(atoms) for atoms in s.items('atoms')], 0)
     bc = sum([len(bonds) for bonds in s.items('bonds')], 0)
     pbc = sum([len(pbonds) for pbonds in s.items('pseudobonds')], 0)
