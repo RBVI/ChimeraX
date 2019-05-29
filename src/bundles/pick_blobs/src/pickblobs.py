@@ -152,7 +152,6 @@ def measure_blob(session, surface, triangle_number, color = None,
 #
 def register_measure_blob_command(logger):
     from chimerax.core.commands import CmdDesc, register, SurfaceArg, IntArg, ColorArg, BoolArg
-    from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
         required = [('surface', SurfaceArg),],
         keyword = [('triangle_number', IntArg),
