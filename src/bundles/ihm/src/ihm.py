@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+import os.path
 import ihm.reader
 import ihm.location
 
@@ -505,20 +506,19 @@ class IHMModel(Model):
     # Note ensemble models are AtomicStructure models, not SphereModel.
     #
     def load_sphere_model_ensembles(self, smodels):
-        eit = self.tables['ihm_ensemble_info']
-        ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
-        ei = eit.fields(ei_fields, allow_missing_fields = True)
         emodels = []
-        for mname, gid, file_id in ei:
-            finfo = self.file_info(file_id)
+        for ensemble in self.system.ensembles:
+            gid = ensemble.model_group._id
+            finfo = self.file_info(ensemble.file)
             if finfo is None:
                 continue
             fname = finfo.file_name
+#            print("looked up", ensemble.file, "got", fname)
             if fname.endswith('.dcd'):
                 gsm = [sm for sm in smodels if sm.ihm_group_id == gid]
                 if len(gsm) != 1:
                     continue  # Don't have exactly one sphere model for this group id
-                sm = gsm[0].copy(name = mname)
+                sm = gsm[0].copy(name = ensemble.name)
                 dcd_path = finfo.path(self.session)
                 from chimerax.atomic.md_crds.read_coords import read_coords
                 read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
@@ -528,7 +528,7 @@ class IHMModel(Model):
                 if fstream is None:
                     continue
                 from chimerax.atomic.pdb import open_pdb
-                mlist,msg = open_pdb(self.session, fstream, mname,
+                mlist,msg = open_pdb(self.session, fstream, ensemble.name,
                                      auto_style = False, coordsets = True)
                 sm = mlist[0]
             sm.ihm_group_id = gid
@@ -1006,6 +1006,9 @@ class FileInfo:
         self.file_path = file_path
         self.ihm_dir = ihm_dir
         self._warn = True
+        # Handle repositories that contain a single file
+        if file_path in ('.', None) and ref and ref.url:
+            self.file_path = os.path.basename(ref.url)
 
     def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
