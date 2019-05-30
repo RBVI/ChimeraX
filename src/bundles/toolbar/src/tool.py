@@ -325,6 +325,7 @@ _Toolbars = {
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
                 ("mouse:place marker", None, "Place marker", None),
                 ("mouse:pick blobs", None, "Blob", "Measure and color connected parts of surface"),
+                ("mouse:map eraser", None, "Erase", "Erase parts of a density map setting values in a sphere to zero"),
                 ("mouse:play map series", None, "Play series", "Play map series"),
                 ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
             ],
