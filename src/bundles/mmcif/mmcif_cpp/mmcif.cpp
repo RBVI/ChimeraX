@@ -357,7 +357,8 @@ struct ExtractMolecule: public readcif::CIFFile
     int first_model_num;
     string entry_id;
     tmpl::Molecule* my_templates;
-    bool missing_poly_seq;
+    bool found_missing_poly_seq;
+    map<string, bool> has_poly_seq;   // entity_id: bool
     set<ResName> empty_residue_templates;
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
     bool atomic;  // use AtomicStructure if true, else Structure
@@ -390,7 +391,7 @@ std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
 
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
-    missing_poly_seq(true), coordsets(coordsets), atomic(atomic),
+    found_missing_poly_seq(false), coordsets(coordsets), atomic(atomic),
     guess_fixed_width_categories(false), verbose(false)
 {
     empty_residue_templates.insert("UNL");  // Unknown ligand
@@ -512,7 +513,8 @@ ExtractMolecule::reset_parse()
         delete my_templates;
         my_templates = nullptr;
     }
-    missing_poly_seq = true;
+    found_missing_poly_seq = false;
+    has_poly_seq.clear();
     guess_fixed_width_categories = false;
 }
 
@@ -861,7 +863,9 @@ ExtractMolecule::finished_parse()
         }
         if (!previous.empty() && !current.empty())
             connect_polymer_pair(previous[0], current[0], gap, nstd);
-        if (!missing_poly_seq) {
+        if (has_poly_seq.find(entity_id) == has_poly_seq.end())
+            found_missing_poly_seq = true;
+        else {
             if (entity_poly.ptype == PolymerType::PT_NONE)
                 mol->set_input_seq_info(auth_chain_id, seqres);
             else
@@ -870,11 +874,11 @@ ExtractMolecule::finished_parse()
                 mol->input_seq_source = "mmCIF entity_poly_seq table";
         }
     }
-    if (missing_poly_seq && !no_polymer)
-        logger::warning(_logger, "Missing entity_poly_seq table.  Inferred polymer connectivity.");
+    if (found_missing_poly_seq && !no_polymer)
+        logger::warning(_logger, "Missing or incomplete entity_poly_seq table.  Inferred polymer connectivity.");
     if (has_ambiguous)
         pdb_connect::find_and_add_metal_coordination_bonds(mol);
-    if (missing_poly_seq)
+    if (found_missing_poly_seq)
         pdb_connect::find_missing_structure_bonds(mol);
 
     // export mapping of label chain ids to entity ids.
@@ -1460,9 +1464,9 @@ ExtractMolecule::parse_atom_site()
             cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
-            if (missing_poly_seq) {
-                if (entity_id.empty())
-                    entity_id = cid.c_str();  // no entity_id, use chain id
+            if (entity_id.empty())
+                entity_id = cid.c_str();  // no entity_id, use chain id
+            if (has_poly_seq.find(entity_id) == has_poly_seq.end()) {
                 auto tr = find_template_residue(residue_name);
                 if (tr && !tr->description().empty()) {
                     // only save polymer residues
@@ -2500,7 +2504,6 @@ ExtractMolecule::parse_entity_poly_seq()
         }
         poly.at(entity_id).seq.emplace(seq_id, mon_id, hetero);
     }
-    missing_poly_seq = false;
 }
 
 static PyObject*
