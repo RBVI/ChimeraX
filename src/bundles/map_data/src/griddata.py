@@ -224,7 +224,7 @@ class GridData:
   #
   def plane_spacings(self):
 
-    spacings = [1.0/norm(u[:3]) for u in self.xyz_to_ijk_transform]
+    spacings = [1.0/norm(u[:3]) for u in self.xyz_to_ijk_transform.matrix]
     return spacings
     
   # ---------------------------------------------------------------------------
