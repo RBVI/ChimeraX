@@ -1202,6 +1202,75 @@ extern "C" EXPORT void atom_has_selected_bond(void *atoms, size_t n, npy_bool *s
     }
 }
 
+template <class C, typename T>
+void affine_transform(const C& coord, T* tf, C& result)
+{
+    for (size_t i=0; i<3; ++i)
+    {
+        result[i] = tf[4*i] * coord[0] + tf[4*i+1] * coord[1] + tf[4*i+2]*coord[2] + tf[4*i+3];
+    }
+}
+
+template <typename T>
+void transform_u_aniso(const std::vector<float>* aup, T* tf, std::vector<float>& result)
+{
+    // Need to apply only rotation component of transform, as (rot).U.(rot)T
+    // aniso_u6 is stored as u11, u12, u13, u22, u23, u33
+    const auto& au = *aup;
+    std::vector<float> full = {au[0],au[1],au[2],au[1],au[3],au[4],au[2],au[4],au[5]};
+    std::vector<float> ir(9);
+    for (size_t i=0; i<3; ++i){
+        for (size_t j=0; j<3; ++j){
+            ir[3*i+j] = tf[4*i] * full[j] + tf[4*i+1] * full[3+j] + tf[4*i+2] * full[6+j];
+        }
+    }
+    for (size_t i=0; i<3; ++i) {
+        for (size_t j=0; j<3; ++j){
+            result[3*i+j] = ir[3*i] * tf[4*j] + ir[3*i+1] * tf[4*j+1] + ir[3*i+2] * tf[4*j+2];
+        }
+    }
+}
+
+void transform_atom(Atom* atom, double* tf)
+{
+    Coord transformed;
+    affine_transform<Coord, double>(atom->coord(), tf, transformed);
+    atom->set_coord(transformed);
+    if (atom->has_aniso_u())
+    {
+        std::vector<float> ua(9);
+        transform_u_aniso<double>(atom->aniso_u(), tf, ua);
+        atom->set_aniso_u(ua[0],ua[1],ua[2],ua[4],ua[5],ua[8]);
+    }
+}
+
+extern "C" EXPORT void atom_transform(void* atom, size_t n, double* tf)
+{
+    try {
+        auto a = static_cast<Atom**>(atom);
+        char current_altloc;
+        for (size_t i=0; i<n; ++i)
+        {
+            auto atom = *(a++);
+            auto altlocs = atom->alt_locs();
+            if (altlocs.size())
+            {
+                current_altloc = atom->alt_loc();
+                for (const auto& altloc: altlocs)
+                {
+                    atom->set_alt_loc(altloc);
+                    transform_atom(atom, tf);
+                }
+                atom->set_alt_loc(current_altloc);
+            } else {
+                transform_atom(atom, tf);
+            }
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
