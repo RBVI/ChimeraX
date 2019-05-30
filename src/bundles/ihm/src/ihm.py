@@ -132,8 +132,10 @@ class IHMModel(Model):
 
     def read_ihm_system(self, filename):
         with open(filename) as fh:
-            # If multiple data blocks in the file, return just the first one
-            return ihm.reader.read(fh)[0]
+            # If multiple data blocks in the file, return just the first one.
+            # We also don't use starting model coordinates in the mmCIF file,
+            # so don't have the reader read them and waste time & memory.
+            return ihm.reader.read(fh, read_starting_model_coord=False)[0]
 
     # -----------------------------------------------------------------------------
     #
