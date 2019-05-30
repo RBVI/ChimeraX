@@ -109,7 +109,12 @@ class MapEraser(MouseMode):
         c = self.settings.sphere_center
         v = self.session.main_view
         s = v.pixel_size(c)
-        dxyz = v.camera.position.transform_vector((s*dx, -s*dy, 0))
+        if event.shift_down():
+            shift = (0,0,s*dy)	# Move in z if shift key held.
+        else:
+            shift = (s*dx, -s*dy, 0)
+        
+        dxyz = v.camera.position.transform_vector(shift)
         self.settings.move_sphere(dxyz)
 
     def mouse_up(self, event):
