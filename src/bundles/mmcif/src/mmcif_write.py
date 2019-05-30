@@ -332,22 +332,24 @@ def save_structure(session, file, models, used_data_names):
             names = set(c.existing_residues.names)
             nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
-            if c.polymer_type == Residue.PT_AMINO:
-                _1to3 = _protein1to3
-                poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
-            elif names.isdisjoint(set(_rna1to3)):
-                # must be DNA
-                _1to3 = _dna1to3
-                poly_info.append((eid, nstd, 'polyribonucleotide', chars))
-            else:
-                # must be RNA
-                _1to3 = _rna1to3
-                poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
+            if c.from_seqres:
+                if c.polymer_type == Residue.PT_AMINO:
+                    _1to3 = _protein1to3
+                    poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+                elif names.isdisjoint(set(_rna1to3)):
+                    # must be DNA
+                    _1to3 = _dna1to3
+                    poly_info.append((eid, nstd, 'polyribonucleotide', chars))
+                else:
+                    # must be RNA
+                    _1to3 = _rna1to3
+                    poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
             seq_entities[chars] = (eid, _1to3, [c])
 
     # use all chains of the same entity to figure out what the sequence's residues are named
     pdbx_poly_tmp = {}
     for chars, (eid, _1to3, chains) in seq_entities.items():
+        chains = [c for c in chains if c.from_seqres]
         pdbx_poly_tmp[eid] = []
         for seq_id, ch, residues in zip(range(1, sys.maxsize), chars, zip(*(c.residues for c in chains))):
             label_seq_id = str(seq_id)
