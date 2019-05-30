@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-CHIMERAX_APP = ../../../ChimeraX.app
+CHIMERAX_APP = $(wildcard ../../../ChimeraX*.app)
 
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
