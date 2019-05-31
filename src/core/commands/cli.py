@@ -3156,7 +3156,7 @@ class Alias:
 def list_aliases(all=False, logger=None):
     """List all aliases
 
-    :param all: if True, then only list all aliases, not just user ones
+    :param all: if True, then list all aliases, not just user ones
 
     Return in depth-first order.
     """
