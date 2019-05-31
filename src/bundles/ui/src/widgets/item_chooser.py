@@ -257,7 +257,9 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
     @value.setter
     def value(self, val):
         self._sleep_check()
-        if self.value == val:
+        # if value is being set to None, it may not be safe to call 'self.value', so handle that
+        if (val is None and self.text() in [self._no_value_button_text, ""]) \
+        or (val is not None and self.value == val):
             if val is None and not self.text():
                 self.setText(self._no_value_button_text)
             return
