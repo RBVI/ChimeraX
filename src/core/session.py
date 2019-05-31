@@ -327,6 +327,37 @@ class _RestoreManager:
         _UniqueName.add(name.uid, obj)
 
 
+class UserAliases(StateManager):
+
+    ALIAS_STATE_VERSION = 1
+
+    def reset_state(self, session):
+        """Reset state to data-less state"""
+        # keep all aliases
+        pass
+
+    def take_snapshot(self, session, flags):
+        # only save user aliases
+        from .commands.cli import list_aliases, expand_alias
+        aliases = {}
+        for name in list_aliases():
+            aliases[name] = expand_alias(name)
+        data = {
+            'aliases': aliases,
+            'version': self.ALIAS_STATE_VERSION,
+        }
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        from .commands.cli import create_alias
+        aliases = data['aliases']
+        for name, text in aliases.items():
+            create_alias(name, text, user=True)
+        obj = cls()
+        return obj
+
+
 class Session:
     """Supported API. Session management
 
@@ -375,6 +406,7 @@ class Session:
         from .graphics.view import View
         self.main_view = View(self.models.drawing, window_size=(256, 256),
                               trigger_set=self.triggers)
+        self.user_aliases = UserAliases()
 
         from . import colors
         self.user_colors = colors.UserColors()
