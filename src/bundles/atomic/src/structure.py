@@ -964,11 +964,12 @@ class Structure(Model, StructureData):
 
             # Cache position of backbone atoms on ribbon
             # and get list of tethered atoms
-            self._ribbon_spline_position(ribbon, residues)
+            positions = self._ribbon_spline_position(ribbon, residues)
             from numpy.linalg import norm
             from .molarray import Atoms
-            tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
-            spline_coords = array(list(self._ribbon_spline_backbone.values()))
+            tether_atoms = Atoms(list(positions.keys()))
+            spline_coords = array(list(positions.values()))
+            self._ribbon_spline_backbone.update(positions)
             if len(spline_coords) == 0:
                 spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
@@ -1625,6 +1626,7 @@ class Structure(Model, StructureData):
     }
 
     def _ribbon_spline_position(self, ribbon, residues):
+        positions = {}
         for n, r in enumerate(residues):
             first = (r == residues[0])
             last = (r == residues[-1])
@@ -1638,7 +1640,8 @@ class Structure(Model, StructureData):
                     p = ribbon.position(n, position)
                 else:
                     p = ribbon.position(n - 1, 1 + position)
-                self._ribbon_spline_backbone[a] = p
+                positions[a] = p
+        return positions
 
     def ribbon_coord(self, a):
         return self._ribbon_spline_backbone[a]
