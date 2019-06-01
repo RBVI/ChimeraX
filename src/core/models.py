@@ -166,9 +166,8 @@ class Model(State, Drawing):
                 if isinstance(d, Model):
                     if d.get_selected(include_children=True):
                         return True
-                    else:
-                        if d.highlighted:
-                            return True
+                elif d.highlighted:
+                    return True
 
         return False
     
