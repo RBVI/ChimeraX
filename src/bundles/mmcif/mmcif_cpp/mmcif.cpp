@@ -2502,6 +2502,7 @@ ExtractMolecule::parse_entity_poly_seq()
             // fake polymer entity to cut down on secondary warnings
             poly.emplace(entity_id, false);
         }
+        has_poly_seq[entity_id] = true;
         poly.at(entity_id).seq.emplace(seq_id, mon_id, hetero);
     }
 }
