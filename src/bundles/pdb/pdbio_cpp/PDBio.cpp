@@ -162,8 +162,7 @@ push_sheet(std::vector<Residue*>& cur_sheet, std::vector<std::string>& sheets, i
 }
 
 static void
-compile_helices_sheets(const Structure* s, std::vector<std::string>& helices,
-    std::vector<std::string>& sheets)
+compile_helices_sheets(const Structure* s, std::vector<std::string>& helices, std::vector<std::string>& sheets)
 {
     Residue* prev_res = nullptr;
     int helix_num = 1, sheet_num = 1;
@@ -192,6 +191,181 @@ compile_helices_sheets(const Structure* s, std::vector<std::string>& helices,
     if (cur_sheet.size() > 0)
         push_sheet(cur_sheet, sheets, sheet_num);
 }
+
+static void
+push_link(Atom *a1, Atom *a2, Real length, std::vector<std::string>& links)
+{
+    PDB lrec(PDB::LINK);
+
+    strcpy(lrec.link.name[0], a1->name().c_str());
+    strcpy(lrec.link.name[1], a2->name().c_str());
+    lrec.link.alt_loc[0] = lrec.link.alt_loc[1] = ' ';
+    strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
+    lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    lrec.link.res[0].seq_num = a1->residue()->number();
+    lrec.link.res[0].i_code = a1->residue()->insertion_code();
+    strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
+    lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    lrec.link.res[1].seq_num = a2->residue()->number();
+    lrec.link.res[1].i_code = a2->residue()->insertion_code();
+    lrec.link.sym[0] = lrec.link.sym[1] = 1555;
+    lrec.link.length = length;
+    links.push_back(lrec.c_str());
+}
+
+static void
+compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::vector<std::string>& ssbonds)
+{
+    // Preserve old LINK and SSBOND records that involved differing symmetry ops
+    std::string Ssbond("SSBOND"), Link("LINK");
+    int ssbond_serial = 1;
+    auto ssbond_recs = s->metadata.find(Ssbond);
+    if (ssbond_recs != s->metadata.end()) {
+        for (auto rec: ssbond_recs->second) {
+            if (rec.substr(59, 6) != rec.substr(66, 6)) {
+                char buffer[4];
+                std::sprintf(buffer, "%4d", ssbond_serial++);
+                ssbonds.push_back(rec.substr(0, 7) + std::string(buffer) + rec.substr(10, std::string::npos));
+            }
+        }
+    }
+    auto link_recs = s->metadata.find(Link);
+    if (link_recs != s->metadata.end()) {
+        for (auto rec: link_recs->second) {
+            if (rec.substr(59, 6) != rec.substr(66, 6))
+                links.push_back(rec);
+        }
+    }
+
+    // Go through inter-residue bonds; put non-polymeric ones into LINK or SSBOND
+    for (auto b: s->bonds()) {
+        auto a1 = b->atoms()[0];
+        auto a2 = b->atoms()[1];
+        auto r1 = a1->residue();
+        auto r2 = a2->residue();
+        if (r1 == r2 || b->polymeric_start_atom() != nullptr)
+            continue;
+
+        if (a1->element() == Element::S && a2->element() == Element::S) {
+            // SSBOND
+            PDB srec(PDB::SSBOND);
+            srec.ssbond.ser_num = ssbond_serial++;
+            strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
+            srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            srec.ssbond.res[0].seq_num = r1->number();
+            srec.ssbond.res[0].i_code = r1->insertion_code();
+            strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
+            srec.ssbond.res[1].chain_id = r2->chain_id()[0];
+            srec.ssbond.res[1].seq_num = r2->number();
+            srec.ssbond.res[1].i_code = r2->insertion_code();
+            srec.ssbond.sym[0] = srec.ssbond.sym[1] = 1555;
+            srec.ssbond.length = b->length();
+            ssbonds.push_back(srec.c_str());
+        } else {
+            // LINK
+            push_link(a1, a2, b->length(), links);
+        }
+    }
+
+    // Put metal complex pseudobonds into LINK records
+    auto pbg = s->pb_mgr().get_group(Structure::PBG_METAL_COORDINATION);
+    if (pbg != nullptr) {
+        for (auto pb: pbg->pseudobonds()) {
+            auto a1 = pb->atoms()[0];
+            auto a2 = pb->atoms()[1];
+            auto r1 = a1->residue();
+            auto r2 = a2->residue();
+            if (r1 == r2)
+                continue;
+            push_link(a1, a2, pb->length(), links);
+        }
+    }
+}
+
+class StringIOStream
+{
+    PyObject* _string_io_write;
+    bool _good;
+public:
+    StringIOStream(PyObject* string_io): _good(true) {
+        _string_io_write = PyObject_GetAttrString(string_io, "write");
+        if (_string_io_write == nullptr)
+            throw std::logic_error("StringIO object has no 'write' attribute");
+    }
+    virtual ~StringIOStream() { Py_DECREF(_string_io_write); }
+    bool bad() const { return !_good; }
+    bool good() const { return _good; }
+    void write_char(char c) {
+        char buf[2];
+        buf[0] = c;
+        buf[1] = '\0';
+        write_text(buf);
+    }
+    void write_text(const char* text) {
+        PyObject* py_text = PyUnicode_FromString(text);
+        auto result = PyObject_CallFunctionObjArgs(_string_io_write, py_text, nullptr);
+        if (result == nullptr)
+            _good = false;
+        else
+            Py_DECREF(result);
+    }
+    StringIOStream& operator<<(const char* text) { write_text(text); return *this; }
+    StringIOStream& operator<<(const PDB& p) { *this << p.c_str(); return *this; }
+    StringIOStream& operator<<(const std::string& s) { *this << s.c_str(); return *this; }
+    StringIOStream& operator<<(char c) { write_char(c); return *this; }
+};
+
+class StreamDispatcher
+{
+    bool _use_fstream;
+    std::ofstream* _fstream;
+    StringIOStream* _io_stream;
+public:
+    StreamDispatcher(std::ofstream* fstream) {
+        _use_fstream = true;
+        _fstream = fstream;
+    }
+    StreamDispatcher(StringIOStream* io_stream) {
+        _use_fstream = false;
+        _io_stream = io_stream;
+    }
+    ~StreamDispatcher() {
+        if (_use_fstream)
+            delete _fstream;
+        else
+            delete _io_stream;
+    }
+    bool bad() const { return _use_fstream ? _fstream->bad() : _io_stream->bad(); }
+    bool good() const { return _use_fstream ? _fstream->good() : _io_stream->good(); }
+    StreamDispatcher& operator<<(const char* text) {
+        if (_use_fstream)
+            *_fstream << text;
+        else
+            *_io_stream << text;
+        return *this;
+    }
+    StreamDispatcher& operator<<(const PDB& p) {
+        if (_use_fstream)
+            *_fstream << p;
+        else
+            *_io_stream << p;
+        return *this;
+    }
+    StreamDispatcher& operator<<(const std::string& s) {
+        if (_use_fstream)
+            *_fstream << s;
+        else
+            *_io_stream << s;
+        return *this;
+    }
+    StreamDispatcher& operator<<(char c) {
+        if (_use_fstream)
+            *_fstream << c;
+        else
+            *_io_stream << c;
+        return *this;
+    }
+};
 
 #ifdef CLOCK_PROFILING
 #include <ctime>
@@ -1671,7 +1845,7 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
     // was written so we know which CONECT records to output
     std::set<const Atom*> written;
     int out_model_num = 0;
-    std::string Helix("HELIX"), Sheet("SHEET");
+    std::string Helix("HELIX"), Sheet("SHEET"), Ssbond("SSBOND"), Link("LINK");
     for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
         auto s = structures[i];
         auto xform = xforms[i];
@@ -1679,12 +1853,15 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
         // Output headers only before first MODEL
         if (s == structures[0]) {
             // generate HELIX/SHEET records relevant to current structure
-            std::vector<std::string> helices, sheets;
+            std::vector<std::string> helices, sheets, ssbonds, links;
             compile_helices_sheets(s, helices, sheets);
+            compile_links_ssbonds(s, links, ssbonds);
             // since we need to munge the headers, make a copy instead of using a const reference
             auto headers = s->metadata;
             headers[Helix] = helices;
             headers[Sheet] = sheets;
+            headers[Ssbond] = ssbonds;
+            headers[Link] = links;
             // write out known headers first
             for (auto& record_type: record_order) {
                 if (record_type == "MODEL")
