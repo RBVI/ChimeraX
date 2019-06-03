@@ -99,6 +99,15 @@ class DicomGrid(GridData):
                       path = d.paths, name = d.name,
                       file_type = 'dicom', time = time, channel = channel)
 
+    if d.files_are_3d:
+      # For fast access of multiple planes this reading method avoids
+      # opening same dicom file many times to read planes.  50x faster in tests.
+      self.read_matrix = self.dicom_read_matrix
+    else:
+      # For better caching if we read the whole plane, this method caches the
+      # whole plane even if only part of the plane is needed.
+      self.read_xy_plane = self.dicom_read_xy_plane
+
     self.multichannel = (channel is not None)
 
     self.initial_plane_display = True
@@ -111,16 +120,24 @@ class DicomGrid(GridData):
     self.ignore_pad_value = d.pad_value
 
   # ---------------------------------------------------------------------------
+  # If GridData.read_xy_plane() uses this method then whole planes are cached
+  # even when a partial plane is requested.  The whole DICOM planes are always
+  # read.  Caching them helps performance when say an xz-plane is being read.
   #
-  def SLOW_read_xy_plane(self, k):
+  def dicom_read_xy_plane(self, k):
 
     c = self.channel if self.multichannel else None
     m = self.dicom_data.read_plane(k, self.time, c)
     return m
 
   # ---------------------------------------------------------------------------
+  # If GridData.read_matrix() uses this method it only caches the actual requested
+  # data.  For multiframe DICOM files this is much faster than reading separate
+  # planes where the dicom data has to be opened once for each plane.
+  # In a 512 x 512 x 235 test with 3d dicom segmentations this is 50x faster
+  # than reading xy planes one at a time.
   #
-  def read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
+  def dicom_read_matrix(self, ijk_origin, ijk_size, ijk_step, progress):
 
     from chimerax.map.data.readarray import allocate_array
     m = allocate_array(ijk_size, self.value_type, ijk_step, progress)
