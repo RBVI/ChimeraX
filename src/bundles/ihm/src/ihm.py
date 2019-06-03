@@ -105,6 +105,12 @@ class IHMModel(Model):
                     p = v.ihm_model_projections.get(s0.ihm_model_ids[0])
                     if p:
                         v.position = p
+                    else:
+                        # No alignment provided for map so hide it.
+                        v.display = False
+                else:
+                    # No alignment provided for map so hide it.
+                    v.display = False
                         
         # Add crosslinks to sphere models
         if show_sphere_crosslinks:
