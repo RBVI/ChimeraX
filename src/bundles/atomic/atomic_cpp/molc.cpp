@@ -1290,16 +1290,6 @@ extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
                         hide = false;
                         break;
                     }
-#if 0
-                // causes constant redrawing #1983
-                if (hide) {
-                    for (auto pb : atom->pseudobonds())
-                        if (pb->shown()) {
-                            hide = false;
-                            break;
-                        }
-                }
-#endif
             }
             if (hide)
                 atom->set_hide_bits(Atom::HIDE_RIBBON);
