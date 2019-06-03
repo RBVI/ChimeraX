@@ -616,11 +616,21 @@ class Image3d(Model):
     # Scale axes to length of box so that plane axis chosen maximizes plane view area for box.
     ijk_min, ijk_max = self._region[:2]
     gs = [i1-i0+1 for i0,i1 in zip(ijk_min, ijk_max)]
+
+    if min(gs) == 1:
+      # Single plane, always use the plane normal axis.
+      for axis in (2,1,0):
+        if gs[axis] == 1:
+          break
+      rev = False  # Never need to reverse stack of just one image.
+      return axis, rev
+    
     bx *= gs[0]
     by *= gs[1]
     bz *= gs[2]
     from chimerax.core.geometry import cross_product, inner_product
     box_face_normals = [cross_product(by,bz), cross_product(bz,bx), cross_product(bx,by)]
+    
     pmode = ro.projection_mode
     if pmode == '2d-xyz' or pmode == '3d':
       view_areas = [inner_product(v,bfn) for bfn in box_face_normals]
