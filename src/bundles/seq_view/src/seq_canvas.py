@@ -59,7 +59,6 @@ class SeqCanvas:
         self.label_scene.setBackgroundBrush(Qt.lightGray)
         """
         self.label_view = QGraphicsView(self.label_scene)
-        self.label_view.keyPressEvent = parent.keyPressEvent
         self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.main_scene = QGraphicsScene()
         """if gray background desired...
@@ -78,7 +77,6 @@ class SeqCanvas:
                 super().resizeEvent(event)
                 self.__resize_cb()
         self.main_view = CustomView(self.main_scene)
-        self.main_view.keyPressEvent = parent.keyPressEvent
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()

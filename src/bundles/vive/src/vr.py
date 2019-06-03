@@ -1016,6 +1016,7 @@ class UserInterface:
         ses = self._session
         from chimerax.core.models import Model
         m = Model('User interface', ses)
+        m.skip_bounds = True
         m.color = (255,255,255,255)
         m.use_lighting = False
         ses.models.add([m], parent = parent)
@@ -1068,8 +1069,7 @@ class Panel:
         width = Panel.initial_widths.get(tool_name, 0.5)
         self._width = width		# Billboard width in room coords, meters.
         x0,y0,w,h = self._panel_rectangle()
-        aspect = h/w
-        self._height = aspect*width	# Height in room coords determined by window aspect and width.
+        self._height = (h/w)*width if w > 0 else 0	# Height in room coords determined by window aspect and width.
         self._panel_size = None 	# Panel size in Qt device independent pixels
         self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
         self._last_image_rgba = None
@@ -1081,9 +1081,10 @@ class Panel:
 
     def _create_panel_drawing(self, parent):
         from chimerax.core.graphics import Drawing
-        d = Drawing('User interface')
+        d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
+        d.skip_bounds = True
         parent.add_drawing(d)
         return d
 
@@ -1119,13 +1120,16 @@ class Panel:
         ui = self._panel_drawing
         scene_point = self._ui._camera.room_to_scene * room_point
         x,y,z = ui.scene_position.inverse() * scene_point
-        hw, hh = 0.5*self._width, 0.5*self._height
+        w,h = self._width, self._height
+        hw, hh = 0.5*w, 0.5*h
         cr = self._ui_click_range
         on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
         z_offset = (z - cr) if on_panel else None
         sx, sy = self._panel_size
         ox, oy = self._panel_offset
-        window_xy = ox + sx * (x + hw) / (2*hw), oy + sy * (hh - y) / (2*hh)
+        ws = 1/w if w > 0 else 0
+        hs = 1/h if h > 0 else 0
+        window_xy = ox + sx * (x + hw) * ws, oy + sy * (hh - y) * hs
         return window_xy, z_offset
 
     def _update_image(self):
@@ -1134,8 +1138,7 @@ class Panel:
         self._last_image_rgba = rgba
         if lrgba is None or rgba.shape != lrgba.shape:
             h,w = rgba.shape[:2]
-            aspect = h/w
-            self._height = aspect * self._width
+            self._height = (h/w) * self._width if w > 0 else 0
             self._update_geometry()
 
         d = self._panel_drawing
@@ -1173,7 +1176,9 @@ class Panel:
         for r, (x0,y0,z0,x1,y1,z1) in enumerate(rects):
             ov, ot = 4*r, 2*r
             v[ov:ov+4] = ((x0,y0,z0), (x1,y0,z0), (x1,y1,z0), (x0,y1,z0))
-            tx0, ty0, tx1, ty1 = (x0-xmin)/w, (y0-ymin)/h, (x1-xmin)/w, (y1-ymin)/h
+            ws = 1/w if w > 0 else 0
+            hs = 1/h if h > 0 else 0
+            tx0, ty0, tx1, ty1 = (x0-xmin)*ws, (y0-ymin)*hs, (x1-xmin)*ws, (y1-ymin)*hs
             tc[ov:ov+4] = ((tx0,ty0), (tx1,ty0), (tx1,ty1), (tx0,ty1))
             t[ot:ot+2] = ((ov,ov+1,ov+2), (ov,ov+2,ov+3))
 
@@ -1239,7 +1244,9 @@ class Panel:
         ww,wh = widget.width(), widget.height()
         wx1, wy1 = wx0+ww, wy0+wh
         pw, ph = self._width, self._height
-        rect = (pw*(wx0-xc)/w, -ph*(wy0-yc)/h, pw*(wx1-xc)/w, -ph*(wy1-yc)/h)
+        ws = 1/w if w > 0 else 0
+        hs = 1/h if h > 0 else 0
+        rect = (pw*(wx0-xc)*ws, -ph*(wy0-yc)*hs, pw*(wx1-xc)*ws, -ph*(wy1-yc)*hs)
         return rect
 
     def _gui_tool_window(self):

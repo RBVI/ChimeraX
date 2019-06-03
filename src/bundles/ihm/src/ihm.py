@@ -11,6 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+import os.path
 import ihm.reader
 import ihm.location
 
@@ -96,14 +97,20 @@ class IHMModel(Model):
         amodels = self.read_atomic_models(filename, mgroup)
         self.atomic_models = amodels
 
-        # Align 2DEM to projection position for first sphere model
-        if smodels:
-            s0 = smodels[0]
+        # Align 2DEM to projection position for first sphere or atomic model
+        if smodels or amodels:
+            s0 = smodels[0] if smodels else amodels[0]
             for v in em2d:
                 if hasattr(v, 'ihm_model_projections'):
                     p = v.ihm_model_projections.get(s0.ihm_model_ids[0])
                     if p:
                         v.position = p
+                    else:
+                        # No alignment provided for map so hide it.
+                        v.display = False
+                else:
+                    # No alignment provided for map so hide it.
+                    v.display = False
                         
         # Add crosslinks to sphere models
         if show_sphere_crosslinks:
@@ -131,8 +138,10 @@ class IHMModel(Model):
 
     def read_ihm_system(self, filename):
         with open(filename) as fh:
-            # If multiple data blocks in the file, return just the first one
-            return ihm.reader.read(fh)[0]
+            # If multiple data blocks in the file, return just the first one.
+            # We also don't use starting model coordinates in the mmCIF file,
+            # so don't have the reader read them and waste time & memory.
+            return ihm.reader.read(fh, read_starting_model_coord=False)[0]
 
     # -----------------------------------------------------------------------------
     #
@@ -307,7 +316,7 @@ class IHMModel(Model):
                 if isinstance(d.location, ihm.location.DatabaseLocation):
                     ds[d._id] = DatabaseDataSet(d.location.db_name,
                                                 d.location.access_code)
-                else:
+                elif d.location is not None:
                     finfo = self.file_info(d.location)
                     if finfo:
                         ds[d._id] = FileDataSet(finfo)
@@ -414,7 +423,9 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def model_names(self):
-        return {m._id: (m.name if m.name else 'result %s' % m._id)
+        # Work around python-ihm issue #42
+        return {m._id: (m.name if m.name and m.name != ihm.unknown
+                        else 'result %s' % m._id)
                 for mg in self.all_model_groups() for m in mg}
 
     # -----------------------------------------------------------------------------
@@ -505,20 +516,19 @@ class IHMModel(Model):
     # Note ensemble models are AtomicStructure models, not SphereModel.
     #
     def load_sphere_model_ensembles(self, smodels):
-        eit = self.tables['ihm_ensemble_info']
-        ei_fields = ['ensemble_name', 'model_group_id', 'ensemble_file_id']
-        ei = eit.fields(ei_fields, allow_missing_fields = True)
         emodels = []
-        for mname, gid, file_id in ei:
-            finfo = self.file_info(file_id)
+        for ensemble in self.system.ensembles:
+            gid = ensemble.model_group._id
+            finfo = self.file_info(ensemble.file)
             if finfo is None:
                 continue
             fname = finfo.file_name
+#            print("looked up", ensemble.file, "got", fname)
             if fname.endswith('.dcd'):
                 gsm = [sm for sm in smodels if sm.ihm_group_id == gid]
                 if len(gsm) != 1:
                     continue  # Don't have exactly one sphere model for this group id
-                sm = gsm[0].copy(name = mname)
+                sm = gsm[0].copy(name = ensemble.name)
                 dcd_path = finfo.path(self.session)
                 from chimerax.atomic.md_crds.read_coords import read_coords
                 read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
@@ -528,7 +538,7 @@ class IHMModel(Model):
                 if fstream is None:
                     continue
                 from chimerax.atomic.pdb import open_pdb
-                mlist,msg = open_pdb(self.session, fstream, mname,
+                mlist,msg = open_pdb(self.session, fstream, ensemble.name,
                                      auto_style = False, coordsets = True)
                 sm = mlist[0]
             sm.ihm_group_id = gid
@@ -703,28 +713,15 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def read_predicted_contacts(self):
-        # todo: Currently not handled by python-ihm
-        return []
-        pcrt = self.tables['ihm_predicted_contact_restraint']
-        if not pcrt:
-            return []
-        pcrt_fields = [
-            'asym_id_1',
-            'seq_id_1',
-            'atom_id_1',
-            'asym_id_2',
-            'seq_id_2',
-            'atom_id_2',
-            'restraint_type',
-            'distance_lower_limit',
-            'distance_upper_limit'
-        ]
-        # restraint_type and distance_lower_limit, distance_upper_limit can be missing
         xlinks = []
-        pcrt_rows = pcrt.fields(pcrt_fields, allow_missing_fields = True)
-        for asym_id_1, seq_id_1, atom_id_1, asym_id_2, seq_id_2, atom_id_2, rtype, dlower, dupper in pcrt_rows:
-            d, dlow = distance_thresholds(dupper, dlower, rtype)
-            xl = Crosslink(asym_id_1, int(seq_id_1), atom_id_1, asym_id_2, int(seq_id_2), atom_id_2, d, dlow)
+        for x in self.system.restraints:
+            if not isinstance(x, ihm.restraint.PredictedContactRestraint):
+                continue
+            xl = Crosslink(x.resatom1.asym._id, x.resatom1.seq_id,
+                           x.resatom1.id, x.resatom2.asym._id,
+                           x.resatom2.seq_id, x.resatom2.id,
+                           x.distance.distance,
+                           x.distance.distance_lower_limit)
             xlinks.append(xl)
 
         return xlinks
@@ -1006,6 +1003,9 @@ class FileInfo:
         self.file_path = file_path
         self.ihm_dir = ihm_dir
         self._warn = True
+        # Handle repositories that contain a single file
+        if file_path in ('.', None) and ref and ref.url:
+            self.file_path = os.path.basename(ref.url)
 
     def stream(self, session, mode = 'r', uncompress = False):
         r = self.ref
@@ -1317,15 +1317,6 @@ def make_crosslink_pseudobonds(session, xlinks, atom_lookup,
             session.logger.info(msg)
                 
     return pbgs
-
-# -----------------------------------------------------------------------------
-#
-def distance_thresholds(dupper, dlower, restraint_type):
-    upper = dupper is not None and restraint_type in ('upper bound', 'lower and upper bound', 'harmonic')
-    d = float(dupper) if upper else None
-    lower = dlower is not None and restraint_type in ('lower bound', 'lower and upper bound', 'harmonic')
-    dlow = float(dlower) if lower else None
-    return d, dlow
 
 # -----------------------------------------------------------------------------
 #

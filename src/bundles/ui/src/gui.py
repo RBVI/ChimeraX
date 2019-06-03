@@ -166,6 +166,12 @@ class UI(QApplication):
         pass
 
     def window_image(self):
+        '''
+        Tests on macOS 10.14.5 show that QWidget.grab() gives a correct QPixmap
+        even for undisplayed or iconified windows, except not for html widgets
+        (e.g. Log, or file history) which come out blank.  Hidden windows also
+        may render an image at the wrong size with a new layout (e.g. Model Panel).
+        '''
         screen = self.primaryScreen()
         w = self.main_window
         pixmap = w.grab()
@@ -643,8 +649,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 settings_dw.hide()
             for tool_windows in self.tool_instance_to_windows.values():
                 for tw in tool_windows:
-                    if tw.title in ["Command Line Interface", "Toolbar"]:
-                        # leave the command line and toolbar tool as is
+                    if tw.hides_title_bar:
                         continue
                     if tw.floating:
                         continue
@@ -1362,13 +1367,13 @@ class ToolWindow(StatusLogger):
     #: 'side' is either left or right, depending on user preference
     placements = ["side", "right", "left", "top", "bottom"]
 
-    def __init__(self, tool_instance, title, *, close_destroys=True, statusbar=False):
+    def __init__(self, tool_instance, title, *, close_destroys=True, hide_title_bar=False, statusbar=False):
         StatusLogger.__init__(self, tool_instance.session)
         self.tool_instance = tool_instance
         self.close_destroys = close_destroys
         ui = tool_instance.session.ui
         mw = ui.main_window
-        self.__toolkit = _Qt(self, title, statusbar, mw)
+        self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw)
         self.ui_area = self.__toolkit.ui_area
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
@@ -1404,6 +1409,10 @@ class ToolWindow(StatusLogger):
     @property
     def floating(self):
         return self.__toolkit.dock_widget.isFloating()
+
+    @property
+    def hides_title_bar(self):
+        return self.__toolkit.hide_title_bar
 
     from PyQt5.QtCore import Qt
     window_placement_to_text = {
@@ -1566,9 +1575,10 @@ class ChildToolWindow(ToolWindow):
         super().__init__(tool_instance, title, **kw)
 
 class _Qt:
-    def __init__(self, tool_window, title, has_statusbar, main_window):
+    def __init__(self, tool_window, title, has_statusbar, hide_title_bar, main_window):
         self.tool_window = tool_window
         self.title = title
+        self.hide_title_bar = hide_title_bar
         self.main_window = mw = main_window
 
         if not mw:
@@ -1577,6 +1587,10 @@ class _Qt:
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+        if hide_title_bar:
+            dw.topLevelChanged.connect(self.float_changed)
+            self.dock_widget.setTitleBarWidget(QWidget())
+
         container = QWidget()
         layout = QVBoxLayout()
         layout.setSpacing(0)
@@ -1621,6 +1635,10 @@ class _Qt:
         if not dockable and not self.dock_widget.isFloating():
             self.dock_widget.setFloating(True)
 
+    def float_changed(self, floating):
+        from PyQt5.QtWidgets import QWidget
+        self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side
         session = self.tool_window.tool_instance.session
@@ -1655,11 +1673,6 @@ class _Qt:
         if geometry is not None:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
-
-        #QT disable: create a 'hide_title_bar' option
-        if side == Qt.BottomDockWidgetArea:
-            from PyQt5.QtWidgets import QWidget
-            self.dock_widget.setTitleBarWidget(QWidget())
 
         if self.tool_window.close_destroys:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)

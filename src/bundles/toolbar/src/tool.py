@@ -35,12 +35,9 @@ class ToolbarTool(ToolInstance):
         self.display_name = "Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False)
+        self.tool_window = MainToolWindow(self, close_destroys=False, hide_title_bar=True)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
-        # kludge to hide title bar
-        from PyQt5.QtWidgets import QWidget
-        self.tool_window._kludge.dock_widget.setTitleBarWidget(QWidget())
 
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -324,6 +321,8 @@ _Toolbars = {
                 ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
                 ("mouse:place marker", None, "Place marker", None),
+                ("mouse:pick blobs", None, "Blob", "Measure and color connected parts of surface"),
+                ("mouse:map eraser", None, "Erase", "Erase parts of a density map setting values in a sphere to zero"),
                 ("mouse:play map series", None, "Play series", "Play map series"),
                 ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
             ],

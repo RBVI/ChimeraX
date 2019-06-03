@@ -23,6 +23,7 @@ from .toolshed import BundleAPI
 _class_cache = {}
 # list modules classes are found in used by session restore to recreate objects.
 _class_class_init = {
+    'UserAliases': '.session',
     'ClipPlane': '.graphics',
     'Color': '.colors',
     'Colormap': '.colors',

@@ -29,7 +29,7 @@ class CommandLine(ToolInstance):
         from .settings import settings
         self.settings = settings
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False)
+        self.tool_window = MainToolWindow(self, close_destroys=False, hide_title_bar=True)
         parent = self.tool_window.ui_area
         self.tool_window.fill_context_menu = self.fill_context_menu
         self.history_dialog = _HistoryDialog(self, self.settings.typed_only)

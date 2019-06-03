@@ -314,6 +314,7 @@ def _file_output(file_name, output_info, naming_style):
         else:
             cs_id = cs_ids[i]
             out_file.write("\nCoordinate set %d" % cs_id)
+        out_file.write("\n%d H-bonds" % len(hbonds))
         out_file.write("\nH-bonds (donor, acceptor, hydrogen, D..A dist, D-H..A dist):\n")
         # want the bonds listed in some kind of consistent order...
         hbonds.sort()
