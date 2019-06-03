@@ -337,7 +337,7 @@ def _get_template(session, name):
                                                                 name)
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', timeout=15)
-    except UserError:
+    except (UserError, OSError):
         session.logger.warning(
             "Unable to fetch template for '%s': might be missing bonds"
             % name)
