@@ -97,9 +97,9 @@ class IHMModel(Model):
         amodels = self.read_atomic_models(filename, mgroup)
         self.atomic_models = amodels
 
-        # Align 2DEM to projection position for first sphere model
-        if smodels:
-            s0 = smodels[0]
+        # Align 2DEM to projection position for first sphere or atomic model
+        if smodels or amodels:
+            s0 = smodels[0] if smodels else amodels[0]
             for v in em2d:
                 if hasattr(v, 'ihm_model_projections'):
                     p = v.ihm_model_projections.get(s0.ihm_model_ids[0])
@@ -310,7 +310,7 @@ class IHMModel(Model):
                 if isinstance(d.location, ihm.location.DatabaseLocation):
                     ds[d._id] = DatabaseDataSet(d.location.db_name,
                                                 d.location.access_code)
-                else:
+                elif d.location is not None:
                     finfo = self.file_info(d.location)
                     if finfo:
                         ds[d._id] = FileDataSet(finfo)
@@ -417,7 +417,9 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def model_names(self):
-        return {m._id: (m.name if m.name else 'result %s' % m._id)
+        # Work around python-ihm issue #42
+        return {m._id: (m.name if m.name and m.name != ihm.unknown
+                        else 'result %s' % m._id)
                 for mg in self.all_model_groups() for m in mg}
 
     # -----------------------------------------------------------------------------
