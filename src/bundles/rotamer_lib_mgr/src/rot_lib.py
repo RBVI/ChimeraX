@@ -19,7 +19,7 @@ class NoResidueRotamersError(ValueError):
 class UnsupportedResNameError(NoResidueRotamersError):
     pass
 
-class RotamersParams:
+class RotamerParams:
     def __init__(self, p, chis):
         """ 'p' is the probability of this rotamer.  'chis' is a list of the chi angles. """
         self.p = p
@@ -38,13 +38,14 @@ class RotamerLibrary:
     @property
     @abstractmethod
     def display_name(self):
-        """Short name to display in a list of libraries, e.g. "Dunbrack 2010" or "Dynameomics".
-           Should be the same as the 'name' attribute used in your Provider tag in bundle_info.xml
+        """Short name to display in a list of libraries, e.g. "Dunbrack 2010" or "Dynameomics"
+           Should be the same as the 'name' attribute used in your Provider tag in bundle_info.xml.
+           Also used as argument to swapaa command.
         """
         pass
 
     @property
-    def description(self)
+    def description(self):
         """A somewhat longer decription than 'display_name' (though typically still one line)
         to show in interfaces when the library has been selected, e.g.:
 
@@ -83,7 +84,7 @@ class RotamerLibrary:
            for certain protonation states (e.g. CYH for non-disulphide cysteine) or conformers
            (e.g. CPR for cis-proline).
         """
-            return ["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS", "ILE", "LEU", "LYS", "MET",
+        return ["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS", "ILE", "LEU", "LYS", "MET",
                 "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
 
     @property
@@ -92,16 +93,46 @@ class RotamerLibrary:
            standard residues (see the residue_names method), this dictionary maps the non-standard
            name to the corresponding standard name.
         """
-            return {}
+        return {}
 
     @abstractmethod
     def rotamer_params(self, res_name, phi, psi):
         """Return a list of RotamerParams instances corresponding to the residue name 'res_name' and
            the backbone angle 'phi' and 'psi'.  Backbone-independent libraries will ignore phi and psi.
            Note that phi or psi can be None for chain-terminal residues.  Backbone-dependent libraries
-           will have to use some fallback procedur for generating parameters in those cases, or throw
+           will have to use some fallback procedure for generating parameters in those cases, or throw
            NoResidueRotamersError.  If 'res_name' does not correspond to a name supported by the library,
            throw UnsupportedResNameError.
         """
         pass
 
+    def _get_params(self, res_name, file_name, cache, archive):
+        """Possibly useful utility routine for fetching parameters stored in zip archives"""
+        try:
+            return cache[file_name]
+        except KeyError:
+            pass
+        if res_name not in self.residue_names:
+            raise UnsupportedResNameError(
+                "%s library does not support residue type '%s'" % (self.display_name, res_name))
+        import os.path, inspect
+        my_dir = os.path.split(inspect.getfile(self.__class__))[0]
+        from zipfile import ZipFile
+        zf = ZipFile(os.path.join(my_dir, archive), "r")
+        try:
+            data = zf.read(file_name)
+        except KeyError:
+            raise NoResidueRotamersError(
+                "'%s' library has no rotamers for '%s'" % (self.display_name, file_name))
+        from struct import unpack, calcsize
+        sz1 = calcsize("!ii")
+        num_rotamers, num_params, = unpack("!ii", data[:sz1])
+        sz2 = calcsize("!%df" % num_params)
+        rotamers = []
+        for i in range(num_rotamers):
+            params = unpack("!%df" % num_params, data[sz1 + i * sz2 : sz1 + (i+1) * sz2])
+            p = params[0]
+            chis = params[1:]
+            rotamers.append(RotamerParams(p, chis))
+        cache[file_name] = rotamers
+        return rotamers
