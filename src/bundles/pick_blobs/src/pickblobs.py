@@ -194,7 +194,7 @@ class PickBlobs(MouseMode):
         t = tpick.triangle_number
         surface = tpick.drawing()
 
-        cmd = 'measure blob #%s triangle %d'  % (surface.id_string, t)
+        cmd = 'measure blob #!%s triangle %d'  % (surface.id_string, t)
         settings = self.settings
         if settings.color_blob:
             cmd += ' color %s' % hex_color(settings.blob_color)
