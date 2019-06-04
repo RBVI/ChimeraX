@@ -288,6 +288,9 @@ class ChimeraXHtmlView(HtmlView):
             # relative hrefs will find files in other help directories.
             import sys
             from chimerax.core import toolshed
+            path = os.path.normpath(qurl.path())
+            if sys.platform == "win32" and path[0] == os.path.sep:
+                path = path[1:]
             help_directories = toolshed.get_help_directories()
             for hd in help_directories:
                 if path.startswith(hd):
