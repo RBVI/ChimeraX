@@ -23,9 +23,26 @@ var vdxtable = function() {
         step: 1,
         hoverEnabled: false
     };
+    var hidden = {};
+
+    function is_visible(id) {
+        return hidden[id] == null;
+    }
 
     function update_columns(columns) {
         // Clean up previous incarnation and save some state.
+        if ($("#viewdockx_table").bootgrid("getTotalRowCount") > 0) {
+            // Only save column state if there was something there before.
+            // Also preserves "hidden" if we were just restored.
+            hidden = {};
+            var settings = $("#viewdockx_table").bootgrid("getColumnSettings");
+            for (var i = 0; i < settings.length; i++) {
+                var s = settings[i];
+                if (!s.visible)
+                    hidden[s.id] = true;
+            }
+        }
+
         // Bootgrid actually replaces the initial HTML table
         // with its own structure.  To start fresh, we need
         // to ask bootgrid to destroy itself, which restores
@@ -44,11 +61,13 @@ var vdxtable = function() {
 
         // Create table headers
         $("<th/>", { "data-column-id": "rating",
+                     "data-visible": is_visible("rating"),
                      "data-formatter": "rating",
                      "data-sortable": false,
                      "data-searchable": false })
             .text("RATING").appendTo(htr);
         $("<th/>", { "data-column-id": "id",
+                     "data-visible": is_visible("id"),
                      "data-identifier": true,
                      "data-sortable": false })
             .text("ID").appendTo(htr);
@@ -58,12 +77,14 @@ var vdxtable = function() {
                 .text("NAME").appendTo(htr);
         $.each(text, function(key, v) {
             if (key != "id" && key != "name")
-                $("<th/>", { "data-column-id": key })
+                $("<th/>", { "data-column-id": key,
+                             "data-visible": is_visible(key) })
                     .text(key.toUpperCase()).appendTo(htr);
         });
         $.each(numeric, function(key, v) {
             if (key != "viewdockx_rating")
                 $("<th/>", { "data-column-id": key,
+                             "data-visible": is_visible(key),
                              "data-converter": "numeric" })
                     .text(key.toUpperCase()).appendTo(htr);
         });
@@ -159,11 +180,13 @@ var vdxtable = function() {
     function get_state() {
         return {
             name:"vdxtable",
+            hidden: hidden
         };
     }
 
     function set_state(state) {
-        // TODO: do something with "state"
+        if (state.hidden != null)
+            hidden = state.hidden;
     }
 
     return {
