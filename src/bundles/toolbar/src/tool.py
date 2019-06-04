@@ -80,6 +80,9 @@ class ToolbarTool(ToolInstance):
 
     def handle_scheme(self, cmd):
         # First check that the path is a real command
+        if callable(cmd):
+            cmd(self.session)
+            return
         kind, value = cmd.split(':', maxsplit=1)
         if kind == "shortcut":
             from chimerax.shortcuts import shortcuts
@@ -113,7 +116,7 @@ class ToolbarTool(ToolInstance):
                         kw = {}
                     else:
                         (what, icon_file, descrip, tooltip, kw) = item
-                    kind, value = what.split(':', 1)
+                    kind, value = what.split(':', 1) if isinstance(what, str) else (None, None)
                     if kind == "mouse":
                         m = self.session.ui.mouse_modes.named_mode(value)
                         if m is None:
@@ -129,7 +132,7 @@ class ToolbarTool(ToolInstance):
                     icon = QIcon(pm)
                     if not tooltip:
                         tooltip = descrip
-                    if what.startswith("mouse:"):
+                    if kind == "mouse":
                         kw["vr_mode"] = what[6:]   # Allows VR to recognize mouse mode tool buttons
                     if descrip and not descrip[0].isupper():
                         descrip = descrip.capitalize()
@@ -139,14 +142,18 @@ class ToolbarTool(ToolInstance):
                         icon, tooltip, **kw)
         self.ttb.show_tab('Home')
 
+def _file_open(session):
+    session.ui.main_window.file_open_cb(session)
+def _file_save(session):
+    session.ui.main_window.file_save_cb(session)
 
 _Toolbars = {
     "Home": (
         None,
         {
             ("File", False): [
-                ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
-                ("cmd:save browse", "content-save.png", "Save", "Save session file"),
+                (_file_open, "open-in-app.png", "Open", "Open data file"),
+                (_file_save, "content-save.png", "Save", "Save session file"),
                 #("cmd:close session", "close-box.png", "Close", "Close current session"),
                 #("cmd:exit", "exit.png", "Exit", "Exit application"),
             ],
