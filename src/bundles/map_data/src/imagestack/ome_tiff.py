@@ -35,7 +35,7 @@ class OMEImageGrid(GridData):
   def __init__(self, ome_pixels, channel, time, grid_id):
 
     self.ome_pixels = d = ome_pixels
-    self.initial_style = 'solid'
+    self.initial_style = 'image'
 
     name = d.name
     if channel in d.channel_names:

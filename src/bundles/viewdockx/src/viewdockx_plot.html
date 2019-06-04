@@ -4,7 +4,7 @@
   <meta charset="utf-8">
    <base href="URLBASE" />
    <link rel="stylesheet" type="text/css" href="viewdockx_plot.css">
-   <script src="lib/jquery-3.2.1.min.js"></script>
+   <script src="/chimerax/ui/html/js/jquery-3.3.1.min.js"></script>
    <script src="lib/flot/jquery.flot.min.js"></script>
    <script src="lib/flot/jquery.flot.selection.min.js"></script>
    <script src="lib/flot/jquery.flot.resize.min.js"></script>
@@ -14,40 +14,21 @@
 
 <body>
   <div id="full">
-    <div id="control">
+    <div id="control" class="container-fluid">
       <div>
-        Plot: <input type="checkbox" class="series" id="series1" checked/>
+	Plot: <input type="checkbox" class="series" id="series1" checked/>
 	X-axis: <select class="xaxis" id="xaxis1"></select>
 	Y-axis: <select class="yaxis" id="yaxis1"></select>
       </div>
       <div>
-        Plot: <input type="checkbox" class="series" id="series2"/>
+	Plot: <input type="checkbox" class="series" id="series2"/>
 	X-axis: <select class="xaxis" id="xaxis2"></select>
 	Y-axis: <select class="yaxis" id="yaxis2"></select>
       </div>
-      <table id="column_table">
-	<thead>
-	  <tr>
-	  <th>Sort</th>
-	  <th>Graph</th>
-	  <th>Hist</th>
-	  <th>Name</th>
-	  <th>Value</th>
-	  </tr>
-	</thead>
-	<tbody>
-	  <tr>
-	  <td>Sort</td>
-	  <td>Graph</td>
-	  <td>Hist</td>
-	  <td>Name</td>
-	  <td>Value</td>
-	  </tr>
-	</tbody>
-      </table>
     </div>
     <div id="data">
     </div>
+    <table id="column_table" style="table-layout:fixed; width:100%;"></table>
   </div>
 </body>
 </html>

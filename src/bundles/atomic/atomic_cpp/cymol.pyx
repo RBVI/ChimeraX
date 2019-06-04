@@ -550,7 +550,12 @@ cdef class CyAtom:
     def is_missing_heavy_template_neighbors(self, *, chain_start = False, chain_end = False,
             no_template_okay=False):
         if self._deleted: raise RuntimeError("Atom already deleted")
-        return self.cpp_atom.is_missing_heavy_template_neighbors(chain_start, chain_end, no_template_okay)
+        try:
+            return self.cpp_atom.is_missing_heavy_template_neighbors(chain_start, chain_end, no_template_okay)
+        except RuntimeError as e:
+            if str(e).startswith("No residue template"):
+                return False
+            raise
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Atom participates in.
@@ -600,7 +605,7 @@ cdef class CyAtom:
         "Supported API.  Get text representation of Atom"
         " (also used by __str__ for printing)"
         if style == None:
-            from chimerax.core.core_settings import settings
+            from .settings import settings
             style = settings.atomspec_contents
         if relative_to:
             if self.residue == relative_to.residue:
@@ -1407,6 +1412,9 @@ cdef class CyResidue:
                 return None
         return chi_atoms
 
+    # Cython kind of has trouble with a C++ class variable that is a map of maps, and where the key
+    # type of the nested map is a varidic template; so ideal_chirality is exposes via ctypes instead
+
     def set_alt_loc(self, loc):
         "Set the appropriate atoms in the residue to the given (existing) alt loc"
         if not loc:
@@ -1428,7 +1436,7 @@ cdef class CyResidue:
     def string(self, residue_only = False, omit_structure = False, style = None):
         "Supported API.  Get text representation of Residue"
         if style == None:
-            from chimerax.core.core_settings import settings
+            from .settings import settings
             style = settings.atomspec_contents
         ic = self.insertion_code
         if style.startswith("simple"):

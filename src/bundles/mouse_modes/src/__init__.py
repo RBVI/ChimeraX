@@ -22,6 +22,15 @@ from chimerax.core.toolshed import BundleAPI
 class _MouseModesAPI(BundleAPI):
 
     @staticmethod
+    def initialize(session, bundle_info):
+        from . import settings
+        settings.settings = settings._MouseModesSettings(session, "mouse modes")
+
+        if session.ui.is_gui:
+            session.ui.triggers.add_handler('ready',
+                lambda *args, ses=session: settings.register_settings_options(ses))
+
+    @staticmethod
     def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
         from .tool import MouseModePanel

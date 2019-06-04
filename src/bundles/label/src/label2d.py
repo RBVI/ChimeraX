@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -49,33 +51,89 @@ def label_create(session, name, text = '', color = None,
 
 # -----------------------------------------------------------------------------
 #
-def label_change(session, name, text = None, color = None,
+def label_change(session, name, *, text = None, color = None,
                  size = None, font = None, bold = None, italic = None,
-                 xpos = None, ypos = None, visibility = None):
+                 xpos = None, ypos = None, visibility = None, frames = None):
     '''Change label parameters.'''
     lb = session_labels(session)
     if name == 'all':
         for n in lb.labels.keys():
-            label_change(session, n, text, color, size, font, xpos, ypos, visibility)
+            label_change(session, n, text=text, color=color, size=size, font=font, bold=bold, italic=italic,
+                xpos=xpos, ypos=ypos, visibility=visibility, frames=frames)
         return
     l = lb.labels[name]
-    if not text is None: l.text = text
-    if not color is None: l.color = color.uint8x4()
-    if not size is None: l.size = size
     if not font is None: l.font = font
     if not bold is None: l.bold = bold
+    if not text is None: l.text = text
     if not italic is None: l.italic = italic
-    if not xpos is None: l.xpos = xpos
-    if not ypos is None: l.ypos = ypos
-    if not visibility is None: l.visibility = visibility
-    l.update_drawing()
+    if frames is None:
+        if not color is None: l.color = color.uint8x4()
+        if not size is None: l.size = size
+        if not xpos is None: l.xpos = xpos
+        if not ypos is None: l.ypos = ypos
+        if not visibility is None: l.visibility = visibility
+        l.update_drawing()
+    else:
+        _InterpolateLabel(session, l, color, size, xpos, ypos, visibility, frames)
     return l
+
+class _InterpolateLabel:
+    def __init__(self, session, label, color, size, xpos, ypos, visibility, frames):
+        self.label = label
+        self.color1, self.color2 = label.color.copy(), (color.uint8x4() if color else color)
+        self.size1, self.size2 = label.size, size
+        self.xpos1, self.xpos2 = label.xpos, xpos
+        self.ypos1, self.ypos2 = label.ypos, ypos
+        self.visibility1, self.visibility2 = label.visibility, visibility
+        self.frames = frames
+        from chimerax.core.commands import motion
+        motion.CallForNFrames(self.frame_cb, frames, session)
+
+    def frame_cb(self, session, frame):
+        fraction = frame / (self.frames-1)
+        from numpy import array_equal
+        if self.color2 is not None and not array_equal(self.color1, self.color2):
+            if frame == self.frames-1:
+                self.label.color = self.color2
+            else:
+                self.label.color = ((1 - fraction) * self.color1
+                    + fraction * self.color2).astype(self.color1.dtype)
+        if self.size2 is not None and self.size1 != self.size2:
+            if frame == self.frames-1:
+                self.label.size = self.size2
+            else:
+                self.label.size = (1 - fraction) * self.size1 + fraction * self.size2
+        if self.xpos2 is not None and self.xpos1 != self.xpos2:
+            if frame == self.frames-1:
+                self.label.xpos = self.xpos2
+            else:
+                self.label.xpos = (1 - fraction) * self.xpos1 + fraction * self.xpos2
+        if self.ypos2 is not None and self.ypos1 != self.ypos2:
+            if frame == self.frames-1:
+                self.label.ypos = self.ypos2
+            else:
+                self.label.ypos = (1 - fraction) * self.ypos1 + fraction * self.ypos2
+        if self.visibility2 is not None and self.visibility1 != self.visibility2:
+            if frame == self.frames-1:
+                self.label.visibility = self.visibility2
+                self.label.color = self.color1 if self.color2 is None else self.color2
+            else:
+                # fake gradual change in visibility via alpha channel
+                if self.visibility2:
+                    # becoming shown
+                    self.label.color[-1] = self.label.color.dtype.type(self.color1[-1] * fraction)
+                else:
+                    # becoming hidden
+                    self.label.color[-1] = self.label.color.dtype.type(self.color1[-1] * (1 - fraction))
+                self.label.visibility = True
+        self.label.update_drawing()
+
 
 # -----------------------------------------------------------------------------
 #
 def label_under_window_position(session, win_x, win_y):
     w,h = session.main_view.window_size
-    fx,fy = (win_x+.5)/w, 1-(win_y+.5)/h	# win_y is 0 at top
+    fx,fy = (win_x+.5)/w, 1-(win_y+.5)/h    # win_y is 0 at top
     for lbl in session_labels(session).labels.values():
         dx,dy = fx - lbl.xpos, fy - lbl.ypos
         lw,lh = lbl.drawing.size
@@ -127,7 +185,7 @@ def register_label_command(logger):
     create_desc = CmdDesc(required = rargs, keyword = cargs,
                           synopsis = 'Create a 2d label')
     register('2dlabels create', create_desc, label_create, logger=logger)
-    change_desc = CmdDesc(required = existing_arg, keyword = cargs,
+    change_desc = CmdDesc(required = existing_arg, keyword = cargs + [('frames', IntArg)],
                           synopsis = 'Change an existing 2d label')
     register('2dlabels change', change_desc, label_change, logger=logger)
     delete_desc = CmdDesc(required = existing_arg,
@@ -143,7 +201,7 @@ from chimerax.core.state import StateManager
 class Labels(StateManager):
     def __init__(self):
         StateManager.__init__(self)
-        self.labels = {}	# Map label name to Label object
+        self.labels = {}    # Map label name to Label object
 
     def add(self, label):
         n = label.name
@@ -155,6 +213,9 @@ class Labels(StateManager):
     def delete(self, label):
         del self.labels[label.name]
 
+    def find_label(self, name):
+        return self.labels.get(name)
+    
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
@@ -182,6 +243,11 @@ class Labels(StateManager):
 
 # -----------------------------------------------------------------------------
 #
+def find_label(session, name):
+    return session_labels(session).find_label(name)
+
+# -----------------------------------------------------------------------------
+#
 def session_labels(session):
     lb = getattr(session, '_2d_labels', None)
     if lb is None:
@@ -199,7 +265,7 @@ class Label:
         self.name = name
         self.text = text
         self.color = color
-        self.size = size	# Points (1/72 inch) to get similar appearance on high DPI displays
+        self.size = size    # Points (1/72 inch) to get similar appearance on high DPI displays
         self.font = font
         self.bold = bold
         self.italic = italic
@@ -221,10 +287,10 @@ class Label:
         d = self.drawing
         if d is None:
             return
+        self.drawing = None
         s = self.session
         s.main_view.remove_overlays([d])
         session_labels(s).delete(self)
-
 
 # -----------------------------------------------------------------------------
 #

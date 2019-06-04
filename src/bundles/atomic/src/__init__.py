@@ -28,7 +28,7 @@ from .changes import check_for_changes
 from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing
-from .args import SymmetryArg, AtomsArg, UniqueChainsArg, AtomicStructuresArg
+from .args import SymmetryArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
 from .args import StructureArg, StructuresArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
 
@@ -37,12 +37,17 @@ from chimerax.core.toolshed import BundleAPI
 
 class _AtomicBundleAPI(BundleAPI):
 
+    KNOWN_CLASSES = {
+        "Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
+        "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
+        "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
+        "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq",
+        "AtomicShapeDrawing",
+    }
+
     @staticmethod
     def get_class(class_name):
-        if class_name in ["Atom", "AtomicStructure", "AtomicStructures", "Atoms", "Bond", "Bonds",
-                "Chain", "Chains", "CoordSet", "LevelOfDetail", "MolecularSurface",
-                "PseudobondGroup", "PseudobondGroups", "PseudobondManager", "Pseudobond", "Pseudobonds",
-                "Residue", "Residues", "SeqMatchMap", "Sequence", "Structure", "StructureSeq"]:
+        if class_name in _AtomicBundleAPI.KNOWN_CLASSES:
             import importlib
             this_mod = importlib.import_module(".", __package__)
             return getattr(this_mod, class_name)
@@ -56,7 +61,8 @@ class _AtomicBundleAPI(BundleAPI):
 
     @staticmethod
     def initialize(session, bundle_info):
-        """Install alignments manager into existing session"""
+        from . import settings
+        settings.settings = settings._AtomicSettings(session, "atomic")
 
         Residue.set_templates_dir(bundle_info.data_dir())
 
@@ -70,12 +76,16 @@ class _AtomicBundleAPI(BundleAPI):
         session._atomic_command_handler = session.triggers.add_handler("command finished",
             lambda *args: check_for_changes(session))
 
-        from .presets import register_presets
-        register_presets(session)
-
         if session.ui.is_gui:
-           session.ui.triggers.add_handler('ready', lambda *args, ses=session:
-               _AtomicBundleAPI._add_gui_items(ses))
+            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+                _AtomicBundleAPI._add_gui_items(ses))
+            session.ui.triggers.add_handler('ready', lambda *args, ses=session:
+                settings.register_settings_options(ses))
+
+    @staticmethod
+    def run_provider(session, bundle_info, name, mgr, **kw):
+        from .presets import run_preset
+        run_preset(session, bundle_info, name, mgr, **kw)
 
     @staticmethod
     def finish(session, bundle_info):

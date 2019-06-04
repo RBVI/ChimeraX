@@ -239,7 +239,9 @@ class ReplacementFilePaths:
           p = pt + path[len(pf):]
           if isfile(p):
             return p
-    if self._ui.is_gui:
+    if not ask:
+      return None
+    elif self._ui.is_gui:
       # If path doesn't exist show file dialog to let user enter new path to file.
       from chimerax.ui.open_save import OpenDialogWithMessage
       d = OpenDialogWithMessage(self._ui.main_window,
@@ -345,9 +347,13 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     dlist = [ArrayGridData(array)]
   else:
     dbfetch = s.get('database_fetch')
-    path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
+    ask = (dbfetch is None)
+    if s.get('series_index',0) >= 1 or s.get('time',0) >= 1:
+      ask = False
+    path = absolute_path(s['path'], file_paths, ask = ask,
                          base_path = session.session_file_path)
-    if (path is None or path == '') and dbfetch is None:
+    empty_path = (path is None or path == '' or path == () or path == [])
+    if empty_path and dbfetch is None:
       return None
     else:
       gid = s.get('grid_id','')
@@ -487,24 +493,25 @@ map_attributes = (
   'id',
   'place',
   'region',
-  'representation',
   'rendering_options',
   'region_list',
-  'surface_brightness_factor',
-  'transparency_factor',
-  'solid_levels',
-  'solid_colors',
-  'solid_brightness_factor',
+  'image_levels',
+  'image_colors',
+  'image_brightness_factor',
   'transparency_depth',
   'default_rgba',
   'session_volume_id',
   'version',
 )
+
 basic_map_attributes = (
-  'id', 'display', 'region', 'representation',
-  'surface_brightness_factor', 'transparency_factor',
-  'solid_levels', 'solid_colors', 'solid_brightness_factor',
+  'id', 'display', 'region',
+  'image_levels', 'image_colors', 'image_brightness_factor',
   'transparency_depth', 'default_rgba')
+
+renamed_attributes = (('solid_levels', 'image_levels'),
+                      ('solid_colors', 'image_colors'),
+                      ('solid_brightness_factor', 'image_brightness_factor'))
 
 # ---------------------------------------------------------------------------
 #
@@ -551,11 +558,22 @@ def set_map_state(s, volume, notify = True):
   if not 'display' in s:
      # Fix old session files
     s['display'] = s['displayed'] if 'displayed' in s else True
-
+    
   for attr in basic_map_attributes:
     if attr in s:
       setattr(v, attr, s[attr])
 
+  for old_attr, new_attr in renamed_attributes:
+    if old_attr in s:
+      setattr(v, new_attr, s[old_attr])
+
+  if 'representation' in s:
+    # Handle old session files that had representation attribute.
+    style = s['representation']
+    if style == 'solid':
+      style = 'image'
+    v.set_display_style(style)
+      
   from chimerax.core.geometry import Place
   v.position = Place(s['place'])
 
@@ -572,7 +590,7 @@ def set_map_state(s, volume, notify = True):
 #  v.transparency_depth /= min(dsize)
 
   if notify:
-    v.call_change_callbacks(('representation changed',
+    v.call_change_callbacks(('display style changed',
                              'region changed',
                              'thresholds changed',
                              'displayed',

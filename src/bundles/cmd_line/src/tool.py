@@ -26,10 +26,10 @@ class CommandLine(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         self._in_init = True
-        from .settings import CmdLineSettings
-        self.settings = CmdLineSettings(session, tool_name)
+        from .settings import settings
+        self.settings = settings
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False)
+        self.tool_window = MainToolWindow(self, close_destroys=False, hide_title_bar=True)
         parent = self.tool_window.ui_area
         self.tool_window.fill_context_menu = self.fill_context_menu
         self.history_dialog = _HistoryDialog(self, self.settings.typed_only)
@@ -98,8 +98,10 @@ class CommandLine(ToolInstance):
                         self.tool.history_dialog.up(shifted)
                     elif event.key() == Qt.Key_U:
                         self.tool.cmd_clear()
+                        self.tool.history_dialog.search_reset()
                     elif event.key() == Qt.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
+                        self.tool.history_dialog.search_reset()
                     else:
                         QComboBox.keyPressEvent(self, event)
                 else:
@@ -153,8 +155,7 @@ class CommandLine(ToolInstance):
         self.tool_window.manage(placement="bottom")
         self._in_init = False
         self._processing_command = False
-        from chimerax.core.core_settings import settings as core_settings
-        if core_settings.startup_commands:
+        if self.settings.startup_commands:
             # prevent the startup command output from being summarized into 'startup messages' table
             session.ui.triggers.add_handler('ready', self._run_startup_commands)
 
@@ -256,6 +257,8 @@ class CommandLine(ToolInstance):
                     raise
                 except errors.UserError as err:
                     logger.status(str(err), color="crimson")
+                    from chimerax.core.logger import error_text_format
+                    logger.info(error_text_format % err, is_html=True)
                 except:
                     raise
         self.set_focus()
@@ -285,9 +288,8 @@ class CommandLine(ToolInstance):
         self._processing_command = True
         from chimerax.core.commands import run
         from chimerax.core.errors import UserError
-        from chimerax.core.core_settings import settings as core_settings
         try:
-            for cmd_text in core_settings.startup_commands:
+            for cmd_text in self.settings.startup_commands:
                 run(self.session, cmd_text)
         except UserError as err:
             session.logger.status(str(err), color="crimson")

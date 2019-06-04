@@ -11,8 +11,8 @@
 
   <DataFiles>
     <DataFile>about.html</DataFile>
-    <DataFile>icons/*.png</DataFile>
-    <DataFile>widgets/icons/*.png</DataFile>
+    <DataDir>icons</DataDir>
+    <DataDir>html</DataDir>
   </DataFiles>
 
   <Categories>

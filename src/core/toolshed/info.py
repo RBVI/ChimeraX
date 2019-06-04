@@ -438,27 +438,25 @@ class BundleInfo:
 
     def init_manager(self, session, name, **kw):
         """Supported API. Initialize bundle manager if needed."""
-        if self.managers:
-            try:
-                api = self._get_api(session.logger)
-                api._api_caller.init_manager(api, session, self, name, **kw)
-            except Exception as e:
-                import traceback
-                session.logger.warning(traceback.format_exc())
-                raise ToolshedError(
-                    "init_manager() failed in bundle %s:\n%s" % (self.name, str(e)))
+        try:
+            api = self._get_api(session.logger)
+            return api._api_caller.init_manager(api, session, self, name, **kw)
+        except Exception as e:
+            import traceback
+            session.logger.warning(traceback.format_exc())
+            raise ToolshedError(
+                "init_manager() failed in bundle %s:\n%s" % (self.name, str(e)))
 
-    def init_provider(self, session, name, mgr, **kw):
-        """Supported API. Initialize bundle provider if needed."""
-        if self.managers:
-            try:
-                api = self._get_api(session.logger)
-                api._api_caller.init_provider(api, session, self, name, mgr, **kw)
-            except Exception as e:
-                import traceback
-                session.logger.warning(traceback.format_exc())
-                raise ToolshedError(
-                    "init_provider() failed in bundle %s:\n%s" % (self.name, str(e)))
+    def run_provider(self, session, name, mgr, **kw):
+        """Supported API. Called by manager to invoke bundle provider."""
+        try:
+            api = self._get_api(session.logger)
+            return api._api_caller.run_provider(api, session, self, name, mgr, **kw)
+        except Exception as e:
+            import traceback
+            session.logger.warning(traceback.format_exc())
+            raise ToolshedError(
+                "run_provider() failed in bundle %s:\n%s" % (self.name, str(e)))
 
     def finish(self, session):
         """Supported API. Deinitialize bundle by calling custom finish code if needed.
@@ -521,6 +519,10 @@ class BundleInfo:
                        if k == name or k.startswith(prefix)]
         for k in remove_list:
             del sys.modules[k]
+
+    def imported(self):
+        import sys
+        return self.package_name in sys.modules
 
     def get_class(self, class_name, logger):
         """Supported API. Return bundle's class with given name."""

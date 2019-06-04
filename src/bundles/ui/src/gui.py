@@ -90,14 +90,14 @@ class UI(QApplication):
     def __init__(self, session):
         self.is_gui = True
         self.has_graphics = True
+        self.main_window = None
         self.already_quit = False
         self.session = session
 
         from .settings import UI_Settings
         self.settings = UI_Settings(session, "ui")
 
-        from chimerax.mouse_modes import MouseModes
-        self.mouse_modes = MouseModes(session)
+        self._mouse_modes = None
 
         # for whatever reason, QtWebEngineWidgets has to be imported before a
         # QtCoreApplication is created...
@@ -105,6 +105,10 @@ class UI(QApplication):
 
         import sys
         QApplication.__init__(self, [sys.argv[0]])
+
+        # Improve toolbar icon quality on retina displays
+        from PyQt5.QtCore import Qt
+        self.setAttribute(Qt.AA_UseHighDpiPixmaps)
 
         self.redirect_qt_messages()
 
@@ -114,6 +118,15 @@ class UI(QApplication):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('ready')
+
+    @property
+    def mouse_modes(self):
+        # delay creation of mouse modes to allow mouse_modes bundle time to run
+        # its custom init, which initializes its settings
+        if self._mouse_modes is None:
+            from chimerax.mouse_modes import MouseModes
+            self._mouse_modes = MouseModes(self.session)
+        return self._mouse_modes
 
     def redirect_qt_messages(self):
         
@@ -153,6 +166,12 @@ class UI(QApplication):
         pass
 
     def window_image(self):
+        '''
+        Tests on macOS 10.14.5 show that QWidget.grab() gives a correct QPixmap
+        even for undisplayed or iconified windows, except not for html widgets
+        (e.g. Log, or file history) which come out blank.  Hidden windows also
+        may render an image at the wrong size with a new layout (e.g. Model Panel).
+        '''
         screen = self.primaryScreen()
         w = self.main_window
         pixmap = w.grab()
@@ -181,7 +200,15 @@ class UI(QApplication):
         triggers.add_handler(TOOLSHED_BUNDLE_UNINSTALLED, handler)
         triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
         if self.autostart_tools:
-            self.session.tools.start_tools(self.settings.autostart)
+            defunct_toolbars = set(["Density Map Toolbar", "Graphics Toolbar",
+                "Molecule Display Toolbar", "Mouse Modes for Right Button"])
+            final_autostart = [tool_name for tool_name in
+                self.settings.autostart if tool_name not in defunct_toolbars]
+            if final_autostart != self.settings.autostart:
+                if "Toolbar" not in final_autostart:
+                    final_autostart.append("Toolbar")
+                self.settings.autostart = final_autostart
+            self.session.tools.start_tools(final_autostart)
 
         self.triggers.activate_trigger('ready', None)
 
@@ -318,13 +345,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         QMainWindow.__init__(self)
         self.setWindowTitle("ChimeraX")
 
-        from chimerax.core.core_settings import settings as core_settings
-        sizing_scheme, size_data = core_settings.initial_window_size
-        if sizing_scheme == "last used" and core_settings.last_window_size is None:
+        sizing_scheme, size_data = session.ui.settings.initial_window_size
+        if sizing_scheme == "last used" and session.ui.settings.last_window_size is None:
             sizing_scheme = "proportional"
             size_data = (0.67, 0.67)
         if sizing_scheme == "last used":
-            width, height = core_settings.last_window_size
+            width, height = session.ui.settings.last_window_size
         elif sizing_scheme == "proportional":
             wf, hf = size_data
             dw = QDesktopWidget()
@@ -390,14 +416,14 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .open_folder import OpenFolderDialog
         self._open_folder = OpenFolderDialog(self, session)
 
-        from .save_dialog import MainSaveDialog, ImageSaver
-        self.save_dialog = MainSaveDialog(self)
-        ImageSaver(self.save_dialog).register()
+        from .save_dialog import MainSaveDialog, register_save_dialog_options
+        self.save_dialog = MainSaveDialog()
+        register_save_dialog_options(self.save_dialog)
 
         self._hide_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
-        self._select_seq_dialog = self._select_zone_dialog = None
+        self._select_seq_dialog = self._select_zone_dialog = self._define_selector_dialog = None
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
@@ -433,7 +459,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         gw = self.graphics_window
         oc = gw.opengl_context
         if stereo == oc.stereo:
-            return True	# Already using requested mode
+            return True    # Already using requested mode
 
         from .graphics import GraphicsWindow
         try:
@@ -623,8 +649,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 settings_dw.hide()
             for tool_windows in self.tool_instance_to_windows.values():
                 for tw in tool_windows:
-                    if tw.title == "Command Line Interface":
-                        # leave the command line as is
+                    if tw.hides_title_bar:
                         continue
                     if tw.floating:
                         continue
@@ -690,11 +715,16 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def resizeEvent(self, event):
         QMainWindow.resizeEvent(self, event)
-        from chimerax.core.core_settings import settings as core_settings
         size = event.size()
         wh = (size.width(), size.height())
-        core_settings.last_window_size = wh
+        self.session.ui.settings.last_window_size = wh
         self.triggers.activate_trigger('resized', wh)
+
+    def show_define_selector_dialog(self, *args):
+        if self._define_selector_dialog is None:
+            self._define_selector_dialog = DefineSelectorDialog(self.session)
+        self._define_selector_dialog.show()
+        self._define_selector_dialog.raise_()
 
     def show_select_seq_dialog(self, *args):
         if self._select_seq_dialog is None:
@@ -710,7 +740,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
-        _show_context_menu(event, tool, fill_cb, True, tb)
+        _show_context_menu(event, tool, None, fill_cb, True, tb)
 
     def status(self, msg, color, secondary):
         self._status_bar.status(msg, color, secondary)
@@ -769,18 +799,37 @@ class MainWindow(QMainWindow, PlainTextLog):
                 for win in tool_windows:
                     win._mw_set_dockable(dockable)
 
-    def _make_settings_ui(self, session):
-        from .core_settings_ui import CoreSettingsPanel
-        from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
-        self.settings_ui_widget = dw = QDockWidget("ChimeraX Settings", self)
-        dw.closeEvent = lambda e, dw=dw: dw.hide()
-        container = QWidget()
-        CoreSettingsPanel(session, container)
-        dw.setWidget(container)
-        from PyQt5.QtCore import Qt
-        self.addDockWidget(Qt.RightDockWidgetArea, dw)
-        dw.hide()
-        dw.setFloating(True)
+    @property
+    def settings_ui_widget(self):
+        # this is a property in order to delay actual creation of the window as long as possible,
+        # so that bundles can register settings options and the window will start large
+        # enough to accomodate the registered options
+        if self._settings_ui_widget is None:
+            from PyQt5.QtWidgets import QDockWidget, QWidget
+            dw = QDockWidget("ChimeraX Settings", self)
+            dw.closeEvent = lambda e, dw=dw: dw.hide()
+            from .core_settings_ui import CoreSettingsPanel
+            container = QWidget()
+            self._core_settings_panel = csp = CoreSettingsPanel(self.session, container)
+            for cat, opt in self._accumulated_settings_options:
+                csp.options_widget.add_option(cat, opt)
+            self._accumulated_settings_options = []
+            dw.setWidget(container)
+            from PyQt5.QtCore import Qt
+            self.addDockWidget(Qt.RightDockWidgetArea, dw)
+            dw.setFloating(True)
+            dw.hide()
+            self._settings_ui_widget = dw
+
+        return self._settings_ui_widget
+
+    def add_settings_option(self, category, option):
+        """For bundles that need/want to present their settings with the core ChimeraX settings
+           rather than present their own settings UI"""
+        if self._settings_ui_widget is None:
+            self._accumulated_settings_options.append((category, option))
+        else:
+            self._core_settings_panel.options_widget.add_option(category, option)
 
     def _new_tool_window(self, tw):
         if self.hide_tools:
@@ -844,9 +893,18 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
 
+        self._settings_ui_widget = None
+        self._accumulated_settings_options = []
+        settings = session.ui.settings
+        self.add_settings_option("Window", InitWindowSizeOption("Initial overall window size",
+            settings.initial_window_size, None, attr_name="initial_window_size", settings=settings,
+            session=self.session, balloon="Initial overall size of ChimeraX window"))
+        self.add_settings_option("Window", ToolSideOption("Default tool side",
+            settings.default_tool_window_side, None, attr_name="default_tool_window_side",
+            settings=settings, balloon="Which side of main window that new tool windows appear on by default"))
+
         self.favorites_menu = mb.addMenu("Fa&vorites")
         self.favorites_menu.setToolTipsVisible(True)
-        self._make_settings_ui(session)
         self.update_favorites_menu(session)
 
         self.presets_menu = mb.addMenu("Presets")
@@ -945,11 +1003,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         sel_zone_action = QAction("&Zone...", self)
         select_menu.addAction(sel_zone_action)
         sel_zone_action.triggered.connect(self.show_select_zone_dialog)
-        sel_clear_action = QAction("&Clear", self)
-        select_menu.addAction(sel_clear_action)
         from chimerax.core.commands import run
-        sel_clear_action.triggered.connect(lambda *args, run=run, ses=self.session:
-            run(ses, "sel clear"))
+        for menu_label, cmd_args in [("&Clear", "clear"), ("&Invert", "~sel"), ("&All", ""),
+                ("&Broaden", "up"), ("&Narrow", "down")]:
+            action = QAction(menu_label, self)
+            select_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session, cmd="sel " + cmd_args:
+                run(ses, cmd))
 
         self.select_mode_menu = select_menu.addMenu("mode")
         self.select_mode_menu.setObjectName("mode")
@@ -962,6 +1022,35 @@ class MainWindow(QMainWindow, PlainTextLog):
             mode_action.triggered.connect(
                 lambda arg, s=self, m=mode: s._set_select_mode(m))
         self._set_select_mode("replace")
+
+        selectors_menu = select_menu.addMenu("User-Defined Selectors")
+        selectors_menu.setToolTipsVisible(True)
+        selectors_menu.aboutToShow.connect(lambda menu=selectors_menu: self._populate_selectors_menu(menu))
+        from chimerax.core.commands import run
+        selectors_menu.triggered.connect(lambda name, ses=self.session, run=run: run(ses, "sel " + name.text()))
+        def_selector_action = QAction("Define Selector...", self)
+        select_menu.addAction(def_selector_action)
+        def_selector_action.triggered.connect(self.show_define_selector_dialog)
+
+    def _populate_selectors_menu(self, menu):
+        names = []
+        from chimerax.core.commands import list_selectors, is_selector_user_defined, get_selector
+        from chimerax.core.objects import Objects
+        for selector_name in list_selectors():
+            if not is_selector_user_defined(selector_name):
+                continue
+            val = get_selector(selector_name)
+            if isinstance(val, Objects) and val.empty():
+                continue
+            names.append(selector_name)
+        menu.clear()
+        if not names:
+            menu.addAction("No user-defined selectors")
+            menu.actions()[0].setEnabled(False)
+            return
+        names.sort()
+        for name in names:
+            menu.addAction(name)
 
     def select_by_mode(self, selector_text):
         """Supported API.  Select based on the selector 'selector_text' but honoring the current
@@ -1200,7 +1289,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 # create here rather than earlier so that's it's not included in parent_menu.children()
                 menu = QMenu(menu_name, parent_menu)
                 menu.setToolTipsVisible(True)
-                menu.setObjectName(obj_name)	# Needed for findChild() above to work.
+                menu.setObjectName(obj_name)    # Needed for findChild() above to work.
                 if insert_pos is False:
                     parent_menu.addMenu(menu)
                 else:
@@ -1278,13 +1367,13 @@ class ToolWindow(StatusLogger):
     #: 'side' is either left or right, depending on user preference
     placements = ["side", "right", "left", "top", "bottom"]
 
-    def __init__(self, tool_instance, title, *, close_destroys=True, statusbar=False):
+    def __init__(self, tool_instance, title, *, close_destroys=True, hide_title_bar=False, statusbar=False):
         StatusLogger.__init__(self, tool_instance.session)
         self.tool_instance = tool_instance
         self.close_destroys = close_destroys
         ui = tool_instance.session.ui
         mw = ui.main_window
-        self.__toolkit = _Qt(self, title, statusbar, mw)
+        self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw)
         self.ui_area = self.__toolkit.ui_area
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
@@ -1320,6 +1409,10 @@ class ToolWindow(StatusLogger):
     @property
     def floating(self):
         return self.__toolkit.dock_widget.isFloating()
+
+    @property
+    def hides_title_bar(self):
+        return self.__toolkit.hide_title_bar
 
     from PyQt5.QtCore import Qt
     window_placement_to_text = {
@@ -1482,9 +1575,10 @@ class ChildToolWindow(ToolWindow):
         super().__init__(tool_instance, title, **kw)
 
 class _Qt:
-    def __init__(self, tool_window, title, has_statusbar, main_window):
+    def __init__(self, tool_window, title, has_statusbar, hide_title_bar, main_window):
         self.tool_window = tool_window
         self.title = title
+        self.hide_title_bar = hide_title_bar
         self.main_window = mw = main_window
 
         if not mw:
@@ -1493,6 +1587,10 @@ class _Qt:
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+        if hide_title_bar:
+            dw.topLevelChanged.connect(self.float_changed)
+            self.dock_widget.setTitleBarWidget(QWidget())
+
         container = QWidget()
         layout = QVBoxLayout()
         layout.setSpacing(0)
@@ -1537,11 +1635,15 @@ class _Qt:
         if not dockable and not self.dock_widget.isFloating():
             self.dock_widget.setFloating(True)
 
+    def float_changed(self, floating):
+        from PyQt5.QtWidgets import QWidget
+        self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side
-        from chimerax.core.core_settings import settings as core_settings
+        session = self.tool_window.tool_instance.session
         from PyQt5.QtCore import Qt
-        pref_area = Qt.RightDockWidgetArea if core_settings.default_tool_window_side == "right" \
+        pref_area = Qt.RightDockWidgetArea if session.ui.settings.default_tool_window_side == "right" \
             else Qt.LeftDockWidgetArea
         qt_sides = [pref_area, Qt.RightDockWidgetArea, Qt.LeftDockWidgetArea,
             Qt.TopDockWidgetArea, Qt.BottomDockWidgetArea]
@@ -1572,16 +1674,11 @@ class _Qt:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
 
-        #QT disable: create a 'hide_title_bar' option
-        if side == Qt.BottomDockWidgetArea:
-            from PyQt5.QtWidgets import QWidget
-            self.dock_widget.setTitleBarWidget(QWidget())
-
         if self.tool_window.close_destroys:
             self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
-        _show_context_menu(event, self.tool_window.tool_instance,
+        _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,
             self.tool_window.fill_context_menu,
             self.tool_window.tool_instance.tool_info in self.main_window._tools_cache,
             self.dock_widget if isinstance(self.tool_window, MainToolWindow) else None)
@@ -1647,7 +1744,7 @@ def redirect_stdio_to_logger(logger):
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
-def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
+def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable, memorable):
     from PyQt5.QtWidgets import QMenu, QAction
     menu = QMenu()
 
@@ -1659,22 +1756,24 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
     hide_tool_action = QAction("Hide Tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
-    if ti.help is not None:
+    help_url = getattr(tool_window, "help", None) or ti.help
+    session = ti.session
+    from chimerax.core.commands import run, quote_if_necessary
+    if help_url is not None:
         help_action = QAction("Help")
         help_action.setStatusTip("Show tool help")
-        help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
+        help_action.triggered.connect(lambda arg, ses=session, run=run, help_url=help_url:
+            run(ses, "help %s" % help_url))
         menu.addAction(help_action)
     else:
         no_help_action = QAction("No Help Available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
-    session = ti.session
     if autostartable:
         autostart = ti.tool_name in session.ui.settings.autostart
         auto_action = QAction("Start at ChimeraX Startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
-        from chimerax.core.commands import run, quote_if_necessary
         auto_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
@@ -1742,6 +1841,75 @@ def remove_keyboard_navigation(menu_label):
     return menu_label.replace('&&', '&')
 
 from PyQt5.QtWidgets import QDialog
+class DefineSelectorDialog(QDialog):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.session = session
+        self.setWindowTitle("Define Selector")
+        self.setSizeGripEnabled(True)
+        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel
+        layout = QVBoxLayout()
+        def_layout = QHBoxLayout()
+        def_layout.setSpacing(4)
+        def_layout.addWidget(QLabel("Name"))
+        from PyQt5.QtWidgets import QPushButton, QMenu
+        self.cur_sel_text = "current selection"
+        self.atom_spec_text = "target specifier"
+        self.push_button = QPushButton(self.cur_sel_text)
+        menu = QMenu()
+        menu.triggered.connect(self._menu_cb)
+        self.push_button.setMenu(menu)
+        from PyQt5.QtWidgets import QAction
+        for text in [self.cur_sel_text, self.atom_spec_text]:
+            menu.addAction(text)
+        def_layout.addWidget(self.push_button)
+        self.atom_spec_edit = QLineEdit()
+        self.atom_spec_edit.textChanged.connect(self._update_button_states)
+        self.atom_spec_edit.hide()
+        def_layout.addWidget(self.atom_spec_edit)
+        def_layout.addWidget(QLabel("as"))
+        self.name_edit = QLineEdit()
+        self.name_edit.textChanged.connect(self._update_button_states)
+        def_layout.addWidget(self.name_edit)
+        layout.addLayout(def_layout)
+
+        self.bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Apply | qbbox.Help)
+        self.bbox.accepted.connect(self.def_selector)
+        self.bbox.accepted.connect(self.accept)
+        self.bbox.rejected.connect(self.reject)
+        self.bbox.button(qbbox.Apply).clicked.connect(self.def_selector)
+        from chimerax.core.commands import run
+        self.bbox.helpRequested.connect(lambda run=run, ses=session:
+            run(ses, "help help:user/menu.html#named-selections"))
+        self._update_button_states()
+        layout.addWidget(self.bbox)
+        self.setLayout(layout)
+
+    def _menu_cb(self, action):
+        if action.text() == self.cur_sel_text:
+            self.atom_spec_edit.hide()
+        else:
+            self.atom_spec_edit.show()
+        self.push_button.setText(action.text())
+        self._update_button_states()
+
+    def def_selector(self, *args):
+        from chimerax.core.commands import run, quote_if_necessary
+        if self.push_button.text() == self.cur_sel_text:
+            command = "name frozen"
+            spec = "sel"
+        else:
+            command = "name"
+            spec = quote_if_necessary(self.atom_spec_edit.text())
+        run(self.session, "%s %s %s" % (command, quote_if_necessary(self.name_edit.text()), spec))
+
+    def _update_button_states(self, *args):
+        enable = bool(self.name_edit.text().strip())
+        if enable and self.push_button.text() == self.atom_spec_text:
+            enable = bool(self.atom_spec_edit.text().strip())
+        for button in [self.bbox.button(x) for x in [self.bbox.Ok, self.bbox.Apply]]:
+            button.setEnabled(enable)
+
 class SelSeqDialog(QDialog):
     def __init__(self, session, *args, **kw):
         super().__init__(*args, **kw)
@@ -1862,4 +2030,187 @@ def menu_capitalize(text):
                         capped_word += word[len(capped_word)]
                 capped_words.append(capped_word)
     return " ".join(capped_words)
+
+from .options import Option, EnumOption
+class ToolSideOption(EnumOption):
+    values = ("left", "right")
+
+class InitWindowSizeOption(Option):
+
+    def __init__(self, *args, session=None, **kw):
+        self.session = session
+        Option.__init__(self, *args, **kw)
+
+    def get_value(self):
+        size_scheme = self.push_button.text()
+        if size_scheme == "last used":
+            data = None
+        elif size_scheme == "proportional":
+            data = (self.w_proportional_spin_box.value()/100,
+                self.h_proportional_spin_box.value()/100)
+        else:
+            data = (self.w_fixed_spin_box.value(), self.h_fixed_spin_box.value())
+        return (size_scheme, data)
+
+    def set_value(self, value):
+        size_scheme, size_data = value
+        self.push_button.setText(size_scheme)
+        if size_scheme == "proportional":
+            w, h = size_data
+            data = (self.w_proportional_spin_box.setValue(w*100),
+                self.h_proportional_spin_box.setValue(h*100))
+        elif size_scheme == "fixed":
+            w, h = size_data
+            self.w_fixed_spin_box.setValue(w)
+            self.h_fixed_spin_box.setValue(h)
+        self._show_appropriate_widgets()
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.push_button.setText(self.multiple_value)
+
+    def _make_widget(self, **kw):
+        from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout
+        self.widget = QWidget()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        self.widget.setLayout(layout)
+
+        from PyQt5.QtWidgets import QPushButton, QMenu
+        size_scheme, size_data = self.default
+        self.push_button = QPushButton(size_scheme)
+        menu = QMenu()
+        self.push_button.setMenu(menu)
+        from PyQt5.QtWidgets import QAction
+        menu = self.push_button.menu()
+        for label in ("last used", "proportional", "fixed"):
+            action = QAction(label, self.push_button)
+            action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
+            menu.addAction(action)
+        from PyQt5.QtCore import Qt
+        layout.addWidget(self.push_button, 0, Qt.AlignLeft)
+
+        self.fixed_widgets = []
+        self.proportional_widgets = []
+        w_pr_val, h_pr_val = 67, 67
+        w_px_val, h_px_val = 1200, 750
+        if size_scheme == "proportional":
+            w_pr_val, h_pr_val = size_data
+        elif size_scheme == "fixed":
+            w_px_val, h_px_val = size_data
+        from PyQt5.QtWidgets import QSpinBox, QWidget, QLabel
+        self.nonmenu_widgets = QWidget()
+        layout.addWidget(self.nonmenu_widgets)
+        nonmenu_layout = QVBoxLayout()
+        nonmenu_layout.setContentsMargins(0,0,0,0)
+        nonmenu_layout.setSpacing(2)
+        self.nonmenu_widgets.setLayout(nonmenu_layout)
+        w_widgets = QWidget()
+        nonmenu_layout.addWidget(w_widgets)
+        w_layout = QHBoxLayout()
+        w_widgets.setLayout(w_layout)
+        w_layout.setContentsMargins(0,0,0,0)
+        w_layout.setSpacing(2)
+        self.w_proportional_spin_box = QSpinBox()
+        self.w_proportional_spin_box.setMinimum(1)
+        self.w_proportional_spin_box.setMaximum(100)
+        self.w_proportional_spin_box.setValue(w_pr_val)
+        self.w_proportional_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        w_layout.addWidget(self.w_proportional_spin_box)
+        self.proportional_widgets.append(self.w_proportional_spin_box)
+        self.w_fixed_spin_box = QSpinBox()
+        self.w_fixed_spin_box.setMinimum(1)
+        self.w_fixed_spin_box.setMaximum(1000000)
+        self.w_fixed_spin_box.setValue(w_px_val)
+        self.w_fixed_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        w_layout.addWidget(self.w_fixed_spin_box)
+        self.fixed_widgets.append(self.w_fixed_spin_box)
+        w_proportional_label = QLabel("% of screen width")
+        w_layout.addWidget(w_proportional_label)
+        self.proportional_widgets.append(w_proportional_label)
+        w_fixed_label = QLabel("pixels wide")
+        w_layout.addWidget(w_fixed_label)
+        self.fixed_widgets.append(w_fixed_label)
+        h_widgets = QWidget()
+        nonmenu_layout.addWidget(h_widgets)
+        h_layout = QHBoxLayout()
+        h_widgets.setLayout(h_layout)
+        h_layout.setContentsMargins(0,0,0,0)
+        h_layout.setSpacing(2)
+        self.h_proportional_spin_box = QSpinBox()
+        self.h_proportional_spin_box.setMinimum(1)
+        self.h_proportional_spin_box.setMaximum(100)
+        self.h_proportional_spin_box.setValue(h_pr_val)
+        self.h_proportional_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        h_layout.addWidget(self.h_proportional_spin_box)
+        self.proportional_widgets.append(self.h_proportional_spin_box)
+        self.h_fixed_spin_box = QSpinBox()
+        self.h_fixed_spin_box.setMinimum(1)
+        self.h_fixed_spin_box.setMaximum(1000000)
+        self.h_fixed_spin_box.setValue(h_px_val)
+        self.h_fixed_spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        h_layout.addWidget(self.h_fixed_spin_box)
+        self.fixed_widgets.append(self.h_fixed_spin_box)
+        h_proportional_label = QLabel("% of screen height")
+        h_layout.addWidget(h_proportional_label)
+        self.proportional_widgets.append(h_proportional_label)
+        h_fixed_label = QLabel("pixels high")
+        h_layout.addWidget(h_fixed_label)
+        self.fixed_widgets.append(h_fixed_label)
+
+        self.current_fixed_size_label = QLabel()
+        self.current_proportional_size_label = QLabel()
+        nonmenu_layout.addWidget(self.current_fixed_size_label)
+        nonmenu_layout.addWidget(self.current_proportional_size_label)
+        self._update_current_size()
+
+        self._show_appropriate_widgets()
+
+    def _menu_cb(self, label):
+        self.push_button.setText(label)
+        self._show_appropriate_widgets()
+        self.make_callback()
+
+    def _show_appropriate_widgets(self):
+        for w in self.proportional_widgets + self.fixed_widgets:
+            w.hide()
+        self.current_fixed_size_label.hide()
+        self.current_proportional_size_label.hide()
+        self.nonmenu_widgets.hide()
+        size_scheme = self.push_button.text()
+        if size_scheme == "proportional":
+            self.nonmenu_widgets.show()
+            for w in self.proportional_widgets:
+                w.show()
+            self.current_proportional_size_label.show()
+        elif size_scheme == "fixed":
+            self.nonmenu_widgets.show()
+            for w in self.fixed_widgets:
+                w.show()
+            self.current_fixed_size_label.show()
+
+    def _update_current_size(self, trig_name=None, wh=None):
+        mw = getattr(self.session.ui, "main_window", None)
+        if not mw:
+            self.session.ui.triggers.add_handler('ready', self._update_current_size)
+            return
+
+        if wh is None:
+            # this should only happen once...
+            mw.triggers.add_handler('resized', self._update_current_size)
+            window_width, window_height = mw.width(), mw.height()
+        else:
+            window_width, window_height = wh
+
+        from PyQt5.QtWidgets import QDesktopWidget
+        dw = QDesktopWidget()
+        screen_geom = self.session.ui.primaryScreen().availableGeometry()
+        screen_width, screen_height = screen_geom.width(), screen_geom.height()
+        self.current_fixed_size_label.setText(
+            "Current: %d wide, %d high" % (window_width, window_height))
+        self.current_proportional_size_label.setText("Current: %d%% wide, %d%% high" % (
+                int(100.0 * window_width / screen_width),
+                int(100.0 * window_height / screen_height)))
 

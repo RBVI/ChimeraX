@@ -26,7 +26,7 @@ class MapSeries(Model):
     self.set_maps(maps)
     
     self.surface_level_ranks = []  # Cached for normalization calculation
-    self.solid_level_ranks = []  # Cached for normalization calculation
+    self.image_level_ranks = []    # Cached for normalization calculation
 
     self._timer = None		# Timer for updating volume viewer dialog
 
@@ -46,7 +46,6 @@ class MapSeries(Model):
   #
   def show_first_map_only(self, maps):
     v0 = maps[0]
-    v0.initialize_thresholds()
     v0.display = True	# Show first map of series
     for v in maps[1:]:
       v.display = False
@@ -138,7 +137,7 @@ class MapSeries(Model):
 
     if not cache_rendering:
       v.remove_surfaces()
-      v.close_solid()
+      v.close_image()
 
   # ---------------------------------------------------------------------------
   #
@@ -217,12 +216,12 @@ class MapSeries(Model):
       s.level = lev
     self.surface_level_ranks = ranks
 
-    lev1 = [l for l,b in v1.solid_levels]
-    lev2 = [l for l,b in v2.solid_levels]
+    lev1 = [l for l,b in v1.image_levels]
+    lev2 = [l for l,b in v2.image_levels]
     levels, ranks = equivalent_rank_values(v1, lev1, v2, lev2,
-                                           self.solid_level_ranks)
-    v2.solid_levels = list(zip(levels, [b for lev,b in v1.solid_levels]))
-    self.solid_level_ranks = ranks
+                                           self.image_level_ranks)
+    v2.image_levels = list(zip(levels, [b for lev,b in v1.image_levels]))
+    self.image_level_ranks = ranks
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):

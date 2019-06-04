@@ -57,7 +57,7 @@ class ModelPanel(ToolInstance):
         self.tree.setAnimated(True)
         self.tree.setUniformRowHeights(True)
         self.tree.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.tree.itemClicked.connect(self._tree_change_cb)
+        self.tree.itemChanged.connect(self._tree_change_cb)
         buttons_layout = QVBoxLayout()
         layout.addLayout(buttons_layout)
         self._items = []
@@ -94,7 +94,7 @@ class ModelPanel(ToolInstance):
     def _shown_changed(self, shown):
         if shown:
             # Update panel when it is shown.
-            self._initiate_fill_tree()
+            self._initiate_fill_tree(refresh=True)
 
     @classmethod
     def get_singleton(self, session):
@@ -133,6 +133,7 @@ class ModelPanel(ToolInstance):
         if not self.displayed():
             # Don't update panel when it is hidden.
             return
+        self.tree.blockSignals(True) # particularly itemChanged
         update = self._process_models() and not always_rebuild
         if not update:
             expanded_models = { i._model : i.isExpanded()
@@ -208,6 +209,7 @@ class ModelPanel(ToolInstance):
                     self.tree.expandItem(item)
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
+        self.tree.blockSignals(False)
 
         self._frame_drawn_handler = None
         from chimerax.core.triggerset import DEREGISTER
@@ -243,12 +245,8 @@ class ModelPanel(ToolInstance):
 
     def _process_models(self):
         models = self.session.models.list()
-        tree_models = []
         sorted_models = sorted(models, key=lambda m: m.id)
-        from chimerax.atomic import AtomicStructure
-        final_models = []
-        for model in sorted_models:
-            final_models.append(model)
+        final_models = list(sorted_models)
         update = True if hasattr(self, 'models') and final_models == self.models else False
         self.models = final_models
         return update

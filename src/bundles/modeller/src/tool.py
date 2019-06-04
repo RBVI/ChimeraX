@@ -15,9 +15,9 @@ from chimerax.core.tools import ToolInstance
 from chimerax.seqalign.widgets import AlignmentListWidget, AlignSeqMenuButton
 
 class ModellerLauncher(ToolInstance):
-    """Generate the inputs needed by Modeller for comparitive modeling"""
+    """Generate the inputs needed by Modeller for comparative modeling"""
 
-    #help = "help:user/tools/sequenceviewer.html"
+    help = "help:user/tools/modeller.html"
     SESSION_SAVE = False
 
     def __init__(self, session, tool_name):
@@ -29,10 +29,16 @@ class ModellerLauncher(ToolInstance):
 
         from PyQt5.QtWidgets import QListWidget, QFormLayout, QAbstractItemView, QGroupBox, QVBoxLayout
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        interface_layout = QVBoxLayout()
+        interface_layout.setContentsMargins(0,0,0,0)
+        interface_layout.setSpacing(0)
+        parent.setLayout(interface_layout)
+        alignments_area = QGroupBox("Sequence alignments")
+        interface_layout.addWidget(alignments_area)
+        interface_layout.setStretchFactor(alignments_area, 1)
         alignments_layout = QVBoxLayout()
         alignments_layout.setContentsMargins(0,0,0,0)
-        alignments_layout.setSpacing(0)
-        parent.setLayout(alignments_layout)
+        alignments_area.setLayout(alignments_layout)
         self.alignment_list = AlignmentListWidget(session)
         self.alignment_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.alignment_list.keyPressEvent = session.ui.forward_keystroke
@@ -43,43 +49,74 @@ class ModellerLauncher(ToolInstance):
         targets_area = QGroupBox("Target sequences")
         self.targets_layout = QFormLayout()
         targets_area.setLayout(self.targets_layout)
-        alignments_layout.addWidget(targets_area)
+        interface_layout.addWidget(targets_area)
         self.seq_menu = {}
         self._update_sequence_menus(session.alignments.alignments)
         options_area = QGroupBox("Options")
         options_layout = QVBoxLayout()
         options_layout.setContentsMargins(0,0,0,0)
         options_area.setLayout(options_layout)
-        alignments_layout.addWidget(options_area)
-        from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption
-        panel = CategorizedSettingsPanel(buttons=False)
+        interface_layout.addWidget(options_area)
+        interface_layout.setStretchFactor(options_area, 2)
+        from chimerax.ui.options import CategorizedSettingsPanel, BooleanOption, IntOption, PasswordOption, \
+            OutputFolderOption
+        panel = CategorizedSettingsPanel(category_sorting=False, buttons=False)
         options_layout.addWidget(panel)
         from .settings import get_settings
         settings = get_settings(session)
-        panel.add_option("Basic", BooleanOption("Combine templates", settings.combine_templates, None,
+        panel.add_option("Basic", BooleanOption("Make multichain model from multichain template",
+            settings.multichain, None,
             balloon=
-            "If true, all chains (templates) associated with an alignment will be used in combination\n"
+            "If false, all chains (templates) associated with an alignment will be used in combination\n"
             "to model the target sequence of that alignment, i.e. a monomer will be generated from the\n"
-            "alignment.  If false, the target sequence will be modeled from each template, i.e. a multimer\n"
+            "alignment.  If true, the target sequence will be modeled from each template, i.e. a multimer\n"
             "will be generated from the alignment (assuming multiple chains are associated).",
-            attr_name="combine_templates", settings=settings))
+            attr_name="multichain", settings=settings))
+        max_models = 1000
         panel.add_option("Basic", IntOption("Number of models", settings.num_models, None,
-            balloon="Number of models to generate", attr_name="num_models", settings=settings, min=1, max=1000))
+            attr_name="num_models", settings=settings, min=1, max=max_models, balloon=
+            "Number of model structures to generate.  Must be no more than %d.\n"
+            "Warning: please consider the calculation time" % max_models))
         key = "" if settings.license_key is None else settings.license_key
-        panel.add_option("Basic", PasswordOption("Modeller license key", key, None,
-            balloon="Your Modeller license key.  You can obtain a license key by registering"
-            " at the Modeller web site", attr_name="license_key", settings=settings))
-        #TODO: more options
+        panel.add_option("Basic", PasswordOption("Modeller license key", key, None, attr_name="license_key",
+            settings=settings, balloon=
+            "Your Modeller license key.  You can obtain a license key by registering at the Modeller web site"))
+        panel.add_option("Advanced", BooleanOption("Use fast/approximate mode (produces only one model)",
+            settings.fast, None, attr_name="fast", settings=settings, balloon=
+            "If enabled, use a fast approximate method to generate a single model.\n"
+            "Typically use to get a rough idea what the model will look like or\n"
+            "to check that the alignment is reasonable."))
+        panel.add_option("Advanced", BooleanOption("Include non-water HETATM residues from template",
+            settings.het_preserve, None, attr_name="het_preserve", settings=settings, balloon=
+            "If enabled, all non-water HETATM residues in the template\n"
+            "structure(s) will be transferred into the generated models."))
+        panel.add_option("Advanced", BooleanOption("Build models with hydrogens",
+            settings.hydrogens, None, attr_name="hydrogens", settings=settings, balloon=
+            "If enabled, the generated models will include hydrogen atoms.\n"
+            "Otherwise, only heavy atom coordinates will be built.\n"
+            "Increases computation time by approximately a factor of 4."))
+        panel.add_option("Advanced", OutputFolderOption("Temporary folder location (optional)",
+            settings.temp_path, None, attr_name="temp_path", settings=settings, balloon=
+            "Specify a folder for temporary files.  If not specified,\n"
+            "a location will be generated automatically."))
+        panel.add_option("Advanced", BooleanOption("Include water molecules from template",
+            settings.water_preserve, None, attr_name="water_preserve", settings=settings, balloon=
+            "If enabled, all water molecules in the template\n"
+            "structure(s) will be included in the generated models."))
+        from PyQt5.QtCore import Qt
         from chimerax.ui.widgets import Citation
-        alignments_layout.addWidget(Citation(session,
+        interface_layout.addWidget(Citation(session,
             "A. Sali and T.L. Blundell.\n"
             "Comparative protein modelling by satisfaction of spatial restraints.\n"
             "J. Mol. Biol. 234, 779-815, 1993.",
-            prefix="Publications using Modeller results should cite:", pubmed_id=18428767))
-        bbox = qbbox(qbbox.Ok | qbbox.Cancel)
+            prefix="Publications using Modeller results should cite:", pubmed_id=18428767),
+            alignment=Qt.AlignCenter)
+        bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self.launch_modeller)
         bbox.rejected.connect(self.delete)
-        alignments_layout.addWidget(bbox)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        interface_layout.addWidget(bbox)
         self.tool_window.manage(None)
 
     def delete(self):
@@ -99,13 +136,18 @@ class ModellerLauncher(ToolInstance):
                 raise UserError("No target sequence chosen for alignment %s" % aln.ident)
             aln_seq_args.append("%s:%d"
                 % (quote_if(aln.ident, additional_special_map={',':','}), aln.seqs.index(seq)+1))
-        #TODO: more args
         from .settings import get_settings
         settings = get_settings(self.session)
-        run(self.session, "modeller comparitive %s combineTemplates %s numModels %d" % (
+        run(self.session, "modeller comparative %s multichain %s numModels %d fast %s hetPreserve %s"
+            " hydrogens %s%s waterPreserve %s"% (
             ",".join(aln_seq_args),
-            repr(settings.combine_templates).lower(),
+            repr(settings.multichain).lower(),
             settings.num_models,
+            repr(settings.fast).lower(),
+            repr(settings.het_preserve).lower(),
+            repr(settings.hydrogens).lower(),
+            " tempPath %s" % settings.temp_path if settings.temp_path else "",
+            repr(settings.water_preserve).lower()
             ))
         self.delete()
 
@@ -140,7 +182,7 @@ class ModellerLauncher(ToolInstance):
 class ModellerResultsViewer(ToolInstance):
     """ Viewer displays the models/results generated by Modeller"""
 
-    #help = "help:user/tools/sequenceviewer.html"
+    help = "help:user/tools/modeller.html#output"
 
     def __init__(self, session, tool_name, models=None, attr_names=None):
         """ if 'models' is None, then we are being restored from a session and
@@ -152,15 +194,15 @@ class ModellerResultsViewer(ToolInstance):
             return
         self._finalize_init(session, models, attr_names)
 
-    def _finalize_init(self, session, models, attr_names):
+    def _finalize_init(self, session, models, attr_names, scores_fetched=False):
         self.models = models
         self.attr_names = attr_names
         from chimerax.core.models import REMOVE_MODELS
-        self.model_handler = session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)
+        self.handlers = [session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb)]
 
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False, statusbar=False)
-        #TODO: self.tool_window.fill_context_menu = self.fill_context_menu
+        self.tool_window.fill_context_menu = self.fill_context_menu
         parent = self.tool_window.ui_area
 
         from PyQt5.QtWidgets import QTableWidget, QVBoxLayout, QAbstractItemView, QWidget, QPushButton
@@ -169,10 +211,8 @@ class ModellerResultsViewer(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
         self.table = QTableWidget()
-        self.table.setColumnCount(3)
         self.table.setSortingEnabled(True)
         self.table.keyPressEvent = session.ui.forward_keystroke
-        self.table.setHorizontalHeaderLabels(["Model"] + [attr_name[9:] for attr_name in attr_names])
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.table.itemSelectionChanged.connect(self._table_selection_cb)
@@ -181,39 +221,33 @@ class ModellerResultsViewer(ToolInstance):
         layout.setStretchFactor(self.table, 1)
         self._fill_table()
         self.tool_window.manage('side')
+        self.scores_fetched = scores_fetched
+        for m in models:
+            self.handlers.append(m.triggers.add_handler("changes", self._changes_cb))
 
     def delete(self):
-        self.model_handler.remove()
+        for handler in self.handlers:
+            handler.remove()
         self.row_item_lookup = {}
         ToolInstance.delete(self)
 
-    #TODO
-    def fill_context_menu(self, menu, x, y):
-        # avoid having actions destroyed when this routine returns
-        # by stowing a reference in the menu itself
-        from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save As")
-        from chimerax.core import io
-        from chimerax.core.commands import run, quote_if_necessary
-        for fmt in io.formats(open=False):
-            if fmt.category == "Sequence alignment":
-                action = QAction(fmt.name, save_as_menu)
-                action.triggered.connect(lambda arg, fmt=fmt:
-                    run(self.session, "save browse format %s alignment %s"
-                    % (fmt.name, quote_if_necessary(self.alignment.ident))))
-                save_as_menu.addAction(action)
+    def fetch_additional_scores(self):
+        self.scores_fetched = True
+        from chimerax.core.commands import run, concise_model_spec
+        run(self.session, "modeller scores %s" % concise_model_spec(self.session, self.models))
 
-        settings_action = QAction("Settings...", menu)
-        settings_action.triggered.connect(lambda arg: self.show_settings())
-        menu.addAction(settings_action)
-        scf_action = QAction("Load Sequence Coloring File...", menu)
-        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
-        menu.addAction(scf_action)
+    def fill_context_menu(self, menu, x, y):
+        if self.scores_fetched:
+            return
+        from PyQt5.QtWidgets import QAction
+        fetch_action = QAction("Fetch Additional Scores", menu)
+        fetch_action.triggered.connect(lambda arg: self.fetch_additional_scores())
+        menu.addAction(fetch_action)
 
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(session, data['models'], data['attr_names'])
+        inst._finalize_init(session, data['models'], data['attr_names'], data['scores_fetched'])
         return inst
 
     SESSION_SAVE = True
@@ -222,19 +256,38 @@ class ModellerResultsViewer(ToolInstance):
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'models': self.models,
-            'attr_names': self.attr_names
+            'attr_names': self.attr_names,
+            'scores_fetched': self.scores_fetched
         }
         return data
 
-    def _fill_table(self):
-        self.table.clearContents()
+    def _changes_cb(self, trig_name, trig_data):
+        structure, changes_obj = trig_data
+        need_update = False
+        if changes_obj.modified_structures():
+            for reason in changes_obj.structure_reasons():
+                if reason.startswith("modeller_") and reason.endswith(" changed"):
+                    need_update = True
+                    attr_name = reason[:-8]
+                    if attr_name not in self.attr_names:
+                        self.attr_names.append(attr_name)
+        if need_update:
+            # atomic changes are already collated, so don't need to delay table update
+            self._fill_table()
+
+    def _fill_table(self, *args):
+        self.table.clear()
+        self.table.setColumnCount(len(self.attr_names)+1)
+        self.table.setHorizontalHeaderLabels(["Model"] + [attr_name[9:].replace('_', ' ')
+            for attr_name in self.attr_names])
         self.table.setRowCount(len(self.models))
         from PyQt5.QtWidgets import QTableWidgetItem
         for row, m in enumerate(self.models):
             item = QTableWidgetItem('#' + m.id_string)
             self.table.setItem(row, 0, item)
             for c, attr_name in enumerate(self.attr_names):
-                self.table.setItem(row, c+1, QTableWidgetItem("%g" % getattr(m, attr_name, "")))
+                self.table.setItem(row, c+1, QTableWidgetItem("%g" % getattr(m, attr_name)
+                    if hasattr(m, attr_name) else ""))
         for i in range(self.table.columnCount()):
             self.table.resizeColumnToContents(i)
 

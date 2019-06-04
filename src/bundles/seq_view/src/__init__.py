@@ -26,6 +26,7 @@ class _SeqViewerBundleAPI(BundleAPI):
         if class_name == "SequenceViewer":
             from .tool import SequenceViewer
             return SequenceViewer
+        # so that old sessions _might_ work
         if class_name == "Consensus":
             from chimerax.seqalign.headers import Consensus
             return Consensus

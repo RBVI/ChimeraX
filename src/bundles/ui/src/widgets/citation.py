@@ -50,14 +50,16 @@ class Citation(QFrame):
                 url = 'https://www.ncbi.nlm.nih.gov/pubmed/' + str(pubmed_id)
         if url is not None:
             self.url = url
+            title = "Abstract"
             if image is True:
-                image_path = os.path.join(os.path.dirname(__file__), "icons", "Default_PubMed.png")
+                from ..icons import get_qt_icon
+                action = QAction(get_qt_icon("Default_PubMed"), title)
+            elif isinstance(image, QIcon):
+                action = QAction(image, title)
+            elif image:
+                action = QAction(QIcon(image), title)
             else:
-                image_path = image
-            if image_path:
-                action = QAction(QIcon(image_path), "Abstract")
-            else:
-                action = QAction("Abstract")
+                action = QAction(title)
             action.triggered.connect(self._open_url)
             button = QToolButton()
             button.setDefaultAction(action)

@@ -245,6 +245,7 @@ class MouseModes:
         self._mouse_pause_position = None
 
         self.bind_standard_mouse_modes()
+        self._last_mode = None			# Remember mode at mouse down and stay with it until mouse up
 
         from .trackpad import MultitouchTrackpad
         self.trackpad = MultitouchTrackpad(session)
@@ -269,12 +270,10 @@ class MouseModes:
         right = zoom, wheel = zoom, pause = identify object.
         '''
         standard_modes = (
-            ('left', ['control'], 'select'),
-            ('left', ['control', 'shift'], 'select toggle'),
             ('left', [], 'rotate'),
+            ('left', ['control'], 'select'),
             ('middle', [], 'translate'),
             ('right', [], 'translate'),
-            ('right', ['shift'], 'pivot'),
             ('wheel', [], 'zoom'),
             ('pause', [], 'identify object'),
             )
@@ -365,10 +364,14 @@ class MouseModes:
         if button is None:
             return
 
-        m = self.mode(button, modifiers)
+        if action == 'mouse_down':
+            m = self.mode(button, modifiers)
+            self._last_mode = m
+        else:
+            m = self._last_mode	     # Stay with same mode until button up even if modifier keys change.
         if m and hasattr(m, action):
             f = getattr(m, action)
-            f(MouseEvent(event))
+            f(MouseEvent(event, modifiers=modifiers))
 
     def _event_type(self, event):
         modifiers = self._key_modifiers(event)
@@ -409,9 +412,11 @@ class MouseModes:
                         if 'control' in modifiers:
                             button = 'middle'
                             modifiers.remove('control')
+                            modifiers.remove('alt')
                         else:
                             button = 'right'
                             modifiers.remove('alt')
+
         return button, modifiers
 
     def _have_mode(self, button, modifier):
@@ -456,14 +461,18 @@ class MouseEvent:
     Provides an interface to mouse event coordinates and modifier keys
     so that mouse modes do not directly depend on details of the window toolkit.
     '''
-    def __init__(self, event):
-        self._event = event	# Window toolkit event object
-
+    def __init__(self, event, modifiers = None):
+        self._event = event		# Window toolkit event object
+        self._modifiers = modifiers	# List of 'shift', 'alt', 'control', 'command'
+                                        # May differ from event modifiers when modifier used
+                                        # for mouse button emulation.
     def shift_down(self):
         '''
         Supported API.
         Does the mouse event have the shift key down.
         '''
+        if self._modifiers is not None:
+            return 'shift' in self._modifiers
         from PyQt5.QtCore import Qt
         return bool(self._event.modifiers() & Qt.ShiftModifier)
 
@@ -472,6 +481,8 @@ class MouseEvent:
         Supported API.
         Does the mouse event have the alt key down.
         '''
+        if self._modifiers is not None:
+            return 'alt' in self._modifiers
         from PyQt5.QtCore import Qt
         return bool(self._event.modifiers() & Qt.AltModifier)
 

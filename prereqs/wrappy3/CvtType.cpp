@@ -382,7 +382,7 @@ CvtType::CvtType(const Decl *scope, const string &cpp_type, bool noneOk):
 	if (type_ == "bool") {
 		pyToCppPattern = "bool(PyLong_AsLong(@))";
 		aptType_ = "int";
-		aptFormat_ = 'i';
+		aptFormat_ = 'p';
 		aptToCppPattern = "bool(@)";
 		cppToAptPattern = "int(@)";
 		typeCheckPattern = "wrappy::Long_Check(@)";

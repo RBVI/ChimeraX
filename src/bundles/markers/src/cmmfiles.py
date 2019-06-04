@@ -204,7 +204,7 @@ def create_marker_sets(session, marker_set_tuples):
       nr = float(mdict.get('nr', '1'))
       ng = float(mdict.get('ng', '1'))
       nb = float(mdict.get('nb', '1'))
-      rgba = tuple(int(c*255) for c in (r,g,b,1))
+      rgba = tuple(int(min(255,max(0,c*255))) for c in (r,g,b,1))
       m = ms.create_marker((x,y,z), rgba, radius, id)
       if 'note' in mdict:
           m.marker_note = str(mdict['note'])

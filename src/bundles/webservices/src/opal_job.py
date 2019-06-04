@@ -75,7 +75,7 @@ class OpalJob(Job):
     #
     # Define chimerax.core.tasks.Job ABC methods
     #
-    def launch(self, service_name, cmd, opal_url=None, **kw):
+    def launch(self, service_name, cmd, opal_url=None, blocking=False, **kw):
         """Launch the background process.
 
         Arguments
@@ -133,23 +133,34 @@ class OpalJob(Job):
 
         # Launch job
         from suds import WebFault
-        try:
-            r = self._suds.service.launchJob(cmd, **job_kw)
-        except WebFault as e:
-            from chimerax.core.tasks import JobLaunchError
-            raise JobLaunchError(str(e))
+        import time
+        self.start_time = time.time()
+        if not blocking:
+            try:
+                r = self._suds.service.launchJob(cmd, **job_kw)
+            except WebFault as e:
+                from chimerax.core.tasks import JobLaunchError
+                raise JobLaunchError(str(e))
+            else:
+                self.job_id = str(r.jobID)
+                def _notify(logger=logger, self=self, r=r):
+                    logger.info("Opal service URL: %s" % self.service_url)
+                    logger.info("Opal job id: %s" % self.job_id)
+                    logger.info("Opal status URL prefix: %s" % r.status[2])
+                    logger.info("  stdout.txt = standard output")
+                    logger.info("  stderr.txt = standard error")
+                self.session.ui.thread_safe(_notify)
+                self._save_status(r.status)
         else:
-            self.job_id = str(r.jobID)
-            def _notify(logger=logger, self=self, r=r):
-                logger.info("Opal service URL: %s" % self.service_url)
-                logger.info("Opal job id: %s" % self.job_id)
-                logger.info("Opal status URL prefix: %s" % r.status[2])
-                logger.info("  stdout.txt = standard output")
-                logger.info("  stderr.txt = standard error")
-            self.session.ui.thread_safe(_notify)
-            import time
-            self.start_time = time.time()
-            self._save_status(r.status)
+            try:
+                r = self._suds.service.launchJobBlocking(cmd, **job_kw)
+            except WebFault as e:
+                from chimerax.core.tasks import JobLaunchError
+                raise JobLaunchError(str(e))
+            else:
+                self.end_time = time.time()
+                self._save_status(r.status)
+                self._save_outputs(r.jobOut)
 
     def _save_status(self, status):
         self._status_code = int(status[0])
@@ -281,6 +292,9 @@ class OpalJob(Job):
         except WebFault as e:
             from chimerax.core.tasks import JobError
             raise JobError(str(e))
+        self._save_outputs(r)
+
+    def _save_outputs(self, r):
         self._outputs = {
             "stdout.txt": r.stdOut,
             "stderr.txt": r.stdErr,

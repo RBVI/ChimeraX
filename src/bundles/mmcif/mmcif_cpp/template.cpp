@@ -243,10 +243,15 @@ ExtractTemplate::parse_chem_comp()
         return;
     if (!modres.empty()) {
         char old_code;
-        if (is_peptide)
+        if (is_peptide) {
+            if (modres == "UNK")
+                return;  // sequence code picks what unknown residues should be
             old_code = Sequence::protein3to1(modres);
-        else // if (is_nucleotide)
+        } else { // if (is_nucleotide)
+            if (modres == "N" || modres == "DN")
+                return;  // sequence code picks what unknown residues should be
             old_code = Sequence::nucleic3to1(modres);
+        }
         if (old_code != 'X' && old_code != code)
             std::cerr << "Not changing " << modres <<
                 " sequence abbreviation (old: " << old_code << ", new: " <<
@@ -267,6 +272,7 @@ ExtractTemplate::parse_chem_comp()
 void
 ExtractTemplate::parse_chem_comp_atom()
 {
+    char    chirality;
     AtomName  name;
     char    symbol[3];
     float   x, y, z;
@@ -302,6 +308,10 @@ ExtractTemplate::parse_chem_comp_atom()
                 leaving = *start == 'Y' || *start == 'y';
             });
 #endif
+        pv.emplace_back(get_column("pdbx_stereo_config", true),
+            [&] (const char* start) {
+                chirality = *start;
+            });
         pv.emplace_back(get_column("model_Cartn_x", true),
             [&] (const char* start) {
                 x = readcif::str_to_float(start);
@@ -329,6 +339,7 @@ ExtractTemplate::parse_chem_comp_atom()
         if (leaving)
             leaving_atoms.insert(a);
 #endif
+        Residue::ideal_chirality[residue->name()][name] = chirality;
     }
 }
 

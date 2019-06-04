@@ -90,6 +90,7 @@ class Series:
   def __init__(self, log = None):
     self.paths = []
     self.attributes = {}
+    self.transfer_syntax = None
     self._file_info = []
     self._multiframe = None
     self._reverse_frames = False
@@ -111,6 +112,10 @@ class Series:
     # Read attributes used for ordering the images.
     self._file_info.append(SeriesFile(path, data))
 
+    # Get image encoding format
+    if self.transfer_syntax is None and hasattr(data.file_meta, 'TransferSyntaxUID'):
+      self.transfer_syntax = data.file_meta.TransferSyntaxUID
+      
   @property
   def name(self):
     attrs = self.attributes
@@ -492,7 +497,7 @@ class DicomData:
     else:
       self.pad_value = None
 
-    self._files_are_3d = series.multiframe
+    self.files_are_3d = series.multiframe
     self._reverse_planes = (series.multiframe and series._reverse_frames)
     self.data_size = series.grid_size()
     self.data_step = series.pixel_spacing()
@@ -513,7 +518,7 @@ class DicomData:
     isz, jsz, ksz = ijk_size
     istep, jstep, kstep = ijk_step
     dsize = self.data_size
-    if self._files_are_3d:
+    if self.files_are_3d:
       a = self.read_frames(time, channel)
       array[:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
     else:
@@ -533,20 +538,26 @@ class DicomData:
   #
   def read_plane(self, k, time = None, channel = None, rescale = True):
     if self._reverse_planes:
-      klast = self.data_size()[2]-1
+      klast = self.data_size[2]-1
       k = klast-k
-    p = k if time is None else (k + self.data_size[2]*time)
-    import pydicom
-    d = pydicom.dcmread(self.paths[p])
-    data = d.pixel_array
+    from pydicom import dcmread
+    if self.files_are_3d:
+      d = dcmread(self.paths[0])
+      data = d.pixel_array[k]
+    else:
+      p = k if time is None else (k + self.data_size[2]*time)
+      d = dcmread(self.paths[p])
+      data = d.pixel_array
     if channel is not None:
       data = data[:,:,channel]
+
+    a = data.astype(self.value_type) if data.dtype != self.value_type else data
     if rescale:
       if self.rescale_slope != 1:
-        data *= self.rescale_slope
+        a *= self.rescale_slope
       if self.rescale_intercept != 0:
-        data += self.rescale_intercept
-    return data
+        a += self.rescale_intercept
+    return a
 
   # ---------------------------------------------------------------------------
   #

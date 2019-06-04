@@ -46,12 +46,16 @@ class SelectMouseMode(MouseMode):
 
     def mouse_up(self, event):
         self._undraw_drag_rectangle()
+        mode = self.mode
+        if event.shift_down() and mode == 'replace':
+            mode = 'toggle'
+
         if self._is_drag(event):
             # Select objects in rectangle
-            mouse_drag_select(self.mouse_down_position, event, self.mode, self.session, self.view)
+            mouse_drag_select(self.mouse_down_position, event, mode, self.session, self.view)
         elif not self.double_click:
             # Select object under pointer
-            mouse_select(event, self.mode, self.session, self.view)
+            mouse_select(event, mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
 
     def mouse_double_click(self, event):
@@ -130,12 +134,12 @@ class SelectMouseMode(MouseMode):
 
     def vr_motion(self, position, move, delta_z):
         # Virtual reality hand controller motion.
-        ses = self.session
-        sel = ses.selection
-        if delta_z > 0.20:
-            sel.promote(ses)
-        elif delta_z < -0.20:
-            sel.demote(ses)
+        if delta_z > 0.10:
+            from chimerax.core.commands import run
+            run(self.session, 'select up')
+        elif delta_z < -0.10:
+            from chimerax.core.commands import run
+            run(self.session, 'select down')
         else:
             return 'accumulate drag'
 
@@ -193,7 +197,8 @@ def select_pick(session, pick, mode = 'replace'):
     sel.undo_add_selected(undo_state, False)
     if pick is None:
         if mode == 'replace':
-            sel.clear()
+            from chimerax.core.commands import run
+            run(session, 'select clear')
             session.logger.status('cleared selection')
     else:
         if mode == 'replace':
@@ -203,7 +208,12 @@ def select_pick(session, pick, mode = 'replace'):
             for p in pick:
                 p.select(mode)
         else:
-            pick.select(mode)
+            spec = pick.specifier()
+            if mode == 'add' and spec:
+                from chimerax.core.commands import run
+                run(session, 'select %s' % spec)
+            else:
+                pick.select(mode)
     sel.clear_promotion_history()
     sel.undo_add_selected(undo_state, True, old_state=False)
     session.undo.register(undo_state)
@@ -286,7 +296,8 @@ class RotateAndSelectMouseMode(RotateMouseMode):
     while click and drag produces rotation.
     '''
     name = 'rotate and select'
-    icon_file = 'icons/rotatesel.png'
+# Don't specify icon since we don't want this mode shown in the toolbar.
+#    icon_file = 'icons/rotatesel.png'
     click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):

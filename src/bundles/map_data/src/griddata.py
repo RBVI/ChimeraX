@@ -13,7 +13,7 @@
 
 # -----------------------------------------------------------------------------
 # The GridData class defines the data format needed by the ChimeraX
-# Volume Viewer extension to produce surface, mesh, and solid
+# Volume Viewer extension to produce surface, mesh, and image rendering
 # displays.  It should be used as a base class for reading specific 3D data
 # formats, for example, Delphi electrostatic potentials, DSN6 electron density
 # maps, MRC electron microscope density maps, and Priism 3D microscope images.
@@ -224,7 +224,7 @@ class GridData:
   #
   def plane_spacings(self):
 
-    spacings = [1.0/norm(u[:3]) for u in self.xyz_to_ijk_transform]
+    spacings = [1.0/norm(u[:3]) for u in self.xyz_to_ijk_transform.matrix]
     return spacings
     
   # ---------------------------------------------------------------------------

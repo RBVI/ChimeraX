@@ -28,7 +28,7 @@ def register_volume_command(logger):
     volume_desc = CmdDesc(
         optional = [('volumes', MapsArg)],
         keyword = [
-               ('style', EnumOf(('surface', 'mesh', 'solid'))),
+               ('style', EnumOf(('surface', 'mesh', 'image', 'solid'))),
                ('show', NoArg),
                ('hide', NoArg),
                ('toggle', NoArg),
@@ -154,19 +154,19 @@ def volume(session,
            outline_box_linewidth = None,
            limit_voxel_count = None,          # auto-adjust step size
            voxel_limit = None,               # Mvoxels
-           color_mode = None,                # solid rendering pixel formats
-           colormap_on_gpu = None,           # solid colormapping on gpu or cpu
-           colormap_size = None,             # solid colormapping
-           blend_on_gpu = None,		     # solid image blending on gpu or cpu
+           color_mode = None,                # image rendering pixel formats
+           colormap_on_gpu = None,           # image colormapping on gpu or cpu
+           colormap_size = None,             # image colormapping
+           blend_on_gpu = None,		     # image blending on gpu or cpu
            projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
            plane_spacing = None,	     # min, max, or numeric value
-           full_region_on_gpu = None,	     # for fast cropping with solid rendering
+           full_region_on_gpu = None,	     # for fast cropping with image rendering
            bt_correction = None,             # brightness and transparency
            minimal_texture_memory = None,
            maximum_intensity_projection = None,
            linear_interpolation = None,
            dim_transparency = None,          # for surfaces
-           dim_transparent_voxels = None,     # for solid rendering
+           dim_transparent_voxels = None,     # for image rendering
            line_thickness = None,
            smooth_lines = None,
            mesh_lighting = None,
@@ -189,12 +189,12 @@ def volume(session,
     Parameters
     ----------
     volumes : list of maps
-    style : "surface", "mesh", or "solid"
+    style : "surface", "mesh", or "image"
     show : bool
     hide : bool
     toggle : bool
     level : sequence of 1 or 2 floats
-      In solid style 2 floats are used the first being a density level and second 0-1 brightness value.
+      In image style 2 floats are used the first being a density level and second 0-1 brightness value.
     enclose_volume : float
     fast_enclose_volume : float
     color : Color
@@ -244,15 +244,15 @@ def volume(session,
       Auto-adjust step size.
     voxel_limit : float (Mvoxels)
     color_mode : string
-      Solid rendering pixel formats: 'auto4', 'auto8', 'auto12', 'auto16',
+      Image rendering pixel formats: 'auto4', 'auto8', 'auto12', 'auto16',
       'opaque4', 'opaque8', 'opaque12', 'opaque16', 'rgba4', 'rgba8', 'rgba12', 'rgba16',
       'rgb4', 'rgb8', 'rgb12', 'rgb16', 'la4', 'la8', 'la12', 'la16', 'l4', 'l8', 'l12', 'l16'
     colormap_on_gpu : bool
-      Whether colormapping is done on gpu or cpu for solid rendering.
+      Whether colormapping is done on gpu or cpu for image rendering.
     colormap_size : integer
-      Size of colormap to use for solid rendering.
+      Size of colormap to use for image rendering.
     blend_on_gpu : bool
-      Whether solid image blending is done on gpu or cpu.
+      Whether image blending is done on gpu or cpu.
     projection_mode : string
       One of 'auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d'
     plane_spacing : "min", "max", "mean" or float
@@ -261,16 +261,16 @@ def volume(session,
     full_region_on_gpu : bool
       Whether to cache data on GPU for fast cropping.
     bt_correction : bool
-      Brightness and transparency view angle correction for solid mode.
+      Brightness and transparency view angle correction for image rendering mode.
     minimal_texture_memory : bool
-      Reduce graphics memory use for solid rendering at the expense of rendering speed.
+      Reduce graphics memory use for image rendering at the expense of rendering speed.
     maximum_intensity_projection : bool
     linear_interpolation : bool
-      Interpolate gray levels in solid style rendering.
+      Interpolate gray levels in image style rendering.
     dim_transparency : bool
       Makes transparent surfaces dimmer
     dim_transparent_voxels : bool
-      For solid rendering.
+      For image rendering.
     line_thickness : float
     smooth_lines : bool
     mesh_lighting : bool
@@ -294,13 +294,16 @@ def volume(session,
     else:
         vlist = volumes
 
+    if style == 'solid':
+        style = 'image'	# Rename solid to image.
+
     # Special defaults
     if box_faces:
-        defaults = (('style', 'solid'), ('color_mode', 'opaque8'),
+        defaults = (('style', 'image'), ('color_mode', 'opaque8'),
                     ('show_outline_box', True), ('expand_single_plane', True),
                     ('orthoplanes', 'off'))
     elif not orthoplanes is None and orthoplanes != 'off':
-        defaults = (('style', 'solid'), ('color_mode', 'opaque8'),
+        defaults = (('style', 'image'), ('color_mode', 'opaque8'),
                     ('show_outline_box', True), ('expand_single_plane', True))
     elif not box_faces is None or not orthoplanes is None:
         defaults = (('color_mode', 'auto8'),)
@@ -377,7 +380,7 @@ def apply_global_settings(session, gsettings):
 def apply_volume_options(v, doptions, roptions, session):
 
     if 'style' in doptions:
-        v.set_representation(doptions['style'])
+        v.set_display_style(doptions['style'])
 
     kw = level_and_color_settings(v, doptions)
     kw.update(roptions)
@@ -499,8 +502,15 @@ def level_and_color_settings(v, options):
         raise errors.UserError('Number of colors (%d) does not match number of levels (%d)'
                             % (len(colors), len(levels)))
 
-    style = options.get('style', v.representation)
-    if style in ('mesh', None):
+    if 'style' in options:
+        style = options['style']
+        if style == 'mesh':
+            style = 'surface'
+    elif v.surface_shown:
+        style = 'surface'
+    elif v.image_shown:
+        style = 'image'
+    else:
         style = 'surface'
 
     if style in ('surface', 'mesh'):
@@ -509,11 +519,11 @@ def level_and_color_settings(v, options):
                 from chimerax.core.errors import UserError
                 raise UserError('Surface level must be a single value')
         levels = [l[0] for l in levels]
-    elif style == 'solid':
+    elif style == 'image':
         for l in levels:
             if len(l) != 2:
                 from chimerax.core.errors import UserError
-                raise UserError('Solid level must be <data-value,brightness-level>')
+                raise UserError('Image level must be <data-value,brightness-level>')
 
     if levels:
         kw[style+'_levels'] = levels
@@ -522,7 +532,7 @@ def level_and_color_settings(v, options):
         if levels:
             clist = [colors[0].rgba]*len(levels)
         else:
-            nlev = len(v.solid_levels if style == 'solid' else [s.level for s in v.surfaces])
+            nlev = len(v.image_levels if style == 'image' else [s.level for s in v.surfaces])
             clist = [colors[0].rgba]*nlev
         kw[style+'_colors'] = clist
     elif len(colors) > 1:
@@ -532,11 +542,14 @@ def level_and_color_settings(v, options):
         kw['default_rgba'] = colors[0].rgba
 
     if 'brightness' in options:
-        kw[style+'_brightness_factor'] = options['brightness']
+        if style == 'surface':
+            kw['brightness'] = options['brightness']
+        else:
+            kw['image_brightness_factor'] = options['brightness']
 
     if 'transparency' in options:
         if style == 'surface':
-            kw['transparency_factor'] = options['transparency']
+            kw['transparency'] = options['transparency']
         else:
             kw['transparency_depth'] = options['transparency']
 
@@ -629,11 +642,10 @@ def volume_settings_text(v):
              'grid size = %d %d %d' % tuple(v.data.size),
              'region = %d %d %d' % tuple(v.region[0]) + ' to %d %d %d' % tuple(v.region[1]),
              'step = %d %d %d' % tuple(v.region[2]),
+             'voxel size = %.3g %.3g %.3g' % tuple(v.data.step),
              'surface levels = ' + ','.join('%.5g' % s.level for s in v.surfaces),
-             'surface brightness = %.5g' % v.surface_brightness_factor,
-             'surface transparency factor = %.5g' % v.transparency_factor,
-             'image levels = ' + ' '.join('%.5g,%.5g' % tuple(sl) for sl in v.solid_levels),
-             'image brightness factor = %.5g' % v.solid_brightness_factor,
+             'image levels = ' + ' '.join('%.5g,%.5g' % tuple(sl) for sl in v.image_levels),
+             'image brightness factor = %.5g' % v.image_brightness_factor,
              'image transparency depth = %.5g' % v.transparency_depth,
              ]
     ro = v.rendering_options

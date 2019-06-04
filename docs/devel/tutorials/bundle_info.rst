@@ -335,11 +335,10 @@ of ``mac``.
 - **Initializations**
 
   - List of bundles that must be initialized before this one.
-  - Currently, there are three types of initializations that a bundle
-    may specify: **manager**, **provider**, and **custom**.  Managers
-    across all bundles are initialized first; then provider
-    initialization across all bundles; and, lastly, custom
-    initializations.
+  - Currently, the supported types of initializations are:
+    **manager** and **custom**.  Managers across all bundles
+    are initialized first; then custom initialization across
+    all bundles.
   - Child elements:
 
     - **InitAfter** (one or more)
@@ -349,7 +348,7 @@ of ``mac``.
   - Attribute:
 
     - **type**: type of initialization.  Currently supported
-      values are **manager**, **provider**, and **custom**.
+      values are **manager** and **custom**.
     - **bundle**: name of bundle that must be initialized before
       this one.
     - There should be one **InitAfter** tag for each bundle that
@@ -394,8 +393,20 @@ of ``mac``.
     - **name**: name of manager.  The bundle must implement the
       ``init_manager`` method.  The two positional arguments to
       ``init_manager`` are the session instance and the manager name.
+    - **uiOnly**: set to ``true`` if manager should only be created
+      when the graphical user interface is being used; omit otherwise
     - Other attributes listed in the **Manager** tag are passed
       as keyword arguments to ``init_manager``.
+    - ``init_manager`` should create and return an instance of a
+      subclass of :py:class:`chimerax.core.state.StateManager`.
+      The subclass must implement at least one method:
+        ``add_provider(bundle_info, provider_name, **kw)``
+      which is called once for each **Provider** tag whose manager
+      name matches this manager.  A second method:
+        ``end_providers()``
+      is optional.  ``end_providers`` is called after all calls
+      to ``add_provider`` have been made and is useful for finishing
+      manager initialization.
 
 - **Package**
 
@@ -426,6 +437,9 @@ of ``mac``.
       as keyword arguments to ``init_provider``.
       If ``init_provider`` needs additional information, it should
       query the manager instance fetched from the session.
+    - Bundles that supply providers should implement the method:
+        ``run_provider(session, bundle_info, provider_name, manager, **kw)``
+      which may be used by the manager to invoke provider functionality.
 
 - **PythonClassifier**
 
@@ -636,3 +650,23 @@ data formats, and selectors.
       keyword, the command will interpret it as the keyword rather
       than the selector.  The bottom line is "choose your selector
       names carefully."
+
+
+*Manager Metadata*
+
+    ``Manager`` :: *name* [:: *keyword:value*]*
+
+    - *name* is a string and may have spaces in it.
+    - *keyword:value* pairs are zero-or more manager-specific options,
+      separated by ``::``.
+
+    For example::
+    
+      Manager :: http_scheme :: guiOnly:true
+
+    Notes:
+
+    - Bundles may provide more than one manager.
+    - The toolshed reserved the following keywords:
+      - **guiOnly**, if present and set to ``true``, means the manager
+        should only be created if the graphical user interface is in use.

@@ -253,10 +253,9 @@ class _SaveManager:
         if sm:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
-            except:
-                import traceback
-                session.logger.warning('Error in saving session for "%s":\n%s'
-                                       % (obj.__class__.__name__, traceback.format_exc()))
+            except Exception as e:
+                msg = 'Error while saving session data for "%s": %s' % (str(type(obj)), str(e))
+                raise RuntimeError(msg)
         elif isinstance(obj, type):
             return None
         if data is None:
@@ -328,6 +327,37 @@ class _RestoreManager:
         _UniqueName.add(name.uid, obj)
 
 
+class UserAliases(StateManager):
+
+    ALIAS_STATE_VERSION = 1
+
+    def reset_state(self, session):
+        """Reset state to data-less state"""
+        # keep all aliases
+        pass
+
+    def take_snapshot(self, session, flags):
+        # only save user aliases
+        from .commands.cli import list_aliases, expand_alias
+        aliases = {}
+        for name in list_aliases():
+            aliases[name] = expand_alias(name)
+        data = {
+            'aliases': aliases,
+            'version': self.ALIAS_STATE_VERSION,
+        }
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        from .commands.cli import create_alias
+        aliases = data['aliases']
+        for name, text in aliases.items():
+            create_alias(name, text, user=True)
+        obj = cls()
+        return obj
+
+
 class Session:
     """Supported API. Session management
 
@@ -376,6 +406,7 @@ class Session:
         from .graphics.view import View
         self.main_view = View(self.models.drawing, window_size=(256, 256),
                               trigger_set=self.triggers)
+        self.user_aliases = UserAliases()
 
         from . import colors
         self.user_colors = colors.UserColors()
@@ -406,7 +437,7 @@ class Session:
         self.session_file_path = None
         for tag in self._state_containers:
             container = self._state_containers[tag]
-            sm = self.snapshot_methods(container, type=StateManager)
+            sm = self.snapshot_methods(container, base_type=StateManager)
             if sm:
                 sm.reset_state(container, self)
             else:
@@ -436,14 +467,17 @@ class Session:
     def remove_state_manager(self, tag):
         del self._state_containers[tag]
 
-    def snapshot_methods(self, object, instance=True, type=State):
+    def snapshot_methods(self, obj, instance=True, base_type=State):
         """Return an object having take_snapshot(), restore_snapshot(),
         and reset_state() methods for the given object.
         Can return None if no save/restore methods are available,
         for instance for primitive types.
         """
-        cls = object.__class__ if instance else object
-        if issubclass(cls, type):
+        cls = obj.__class__ if instance else obj
+        from .serialize import PRIMITIVE_TYPES
+        if cls in PRIMITIVE_TYPES:
+            return None
+        if issubclass(cls, base_type):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
             from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material, ClipPlane, Drawing
@@ -709,28 +743,27 @@ def save(session, path, version=3, uncompressed=False, include_maps=False):
             path += SESSION_SUFFIX
 
         if uncompressed:
-            try:
-                output = _builtin_open(path, 'wb')
-            except IOError as e:
-                raise UserError(e)
+            from .safesave import SaveBinaryFile
+            my_open = SaveBinaryFile
         else:
             # Save compressed files
+            from .safesave import SaveFile
             def my_open(path):
                 import gzip
-                from .safesave import SaveFile
                 f = SaveFile(path, open=lambda path: gzip.GzipFile(path, 'wb'))
                 return f
-            try:
-                output = my_open(path)
-            except IOError as e:
-                raise UserError(e)
+        try:
+            output = my_open(path)
+        except IOError as e:
+            raise UserError(e)
 
     session.session_file_path = path
     try:
         session.save(output, version=version, include_maps=include_maps)
-    except:
+    except Exception as e:
         if my_open is not None:
             output.close("exceptional")
+        session.logger.report_exception()
         raise
     finally:
         if my_open is not None:
@@ -976,6 +1009,34 @@ def common_startup(sess):
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")
 
+def register_session_save_options_gui(save_dialog):
+    '''
+    Session save gui options are registered in the ui module instead of when the
+    format is registered because the ui does not exist when the format is registered.
+    '''
+    from chimerax.ui import SaveOptionsGUI
+    class SessionSaveOptionsGUI(SaveOptionsGUI):
+        @property
+        def format_name(self):
+            return "ChimeraX session"
+
+        def wildcard(self):
+            from chimerax.ui.open_save import export_file_filter
+            from chimerax.core import toolshed
+            return export_file_filter(toolshed.SESSION)
+
+        def save(self, session, filename):
+            import os.path
+            ext = os.path.splitext(filename)[1]
+            from chimerax.core import io
+            fmt = io.format_from_name("ChimeraX session")
+            exts = fmt.extensions
+            if exts and ext not in exts:
+                filename += exts[0]
+            from chimerax.core.commands import run, quote_if_necessary
+            run(session, "save session %s" % quote_if_necessary(filename))
+
+    save_dialog.register(SessionSaveOptionsGUI())
 
 def _register_core_file_formats(session):
     register_session_format(session)

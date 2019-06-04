@@ -75,8 +75,6 @@ public:
     static PolymerType  rname_polymer_type(const ResName& rn) {
         if (protein3to1(rn) != 'X') return PT_AMINO;
         if (nucleic3to1(rn) != 'X') return PT_NUCLEIC;
-        if (rn == "UNK") return PT_AMINO;
-        if (rn == "N" ||rn == "DN") return PT_NUCLEIC;
         return PT_NONE;
     }
     static char  protein3to1(const ResName& rn);

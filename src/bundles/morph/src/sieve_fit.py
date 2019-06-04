@@ -15,10 +15,11 @@ def fitResidues(rList0, rList1, fraction=0.5, maxrmsd=0.1):
         the minimum RMSD."""
         # make sure the residues correspond
         if len(rList0) != len(rList1):
-                raise ValueError("matching different number of residues")
+                from .segment import AtomPairingError
+                raise AtomPairingError("matching different number of residues")
         #for r0, r1 in zip(rList0, rList1):
         #        if r0.type != r1.type:
-        #                raise ValueError("matching residues of different types")
+        #                raise AtomPairingError("matching residues of different types")
         from .util import segment_alignment_atoms
         aList0 = segment_alignment_atoms(rList0)
         aList1 = segment_alignment_atoms(rList1)

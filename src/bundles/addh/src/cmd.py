@@ -210,6 +210,8 @@ def post_add(session, fake_n, fake_c):
             if nb.element.number == 1:
                 if nb.name == "H":
                     add_nh = False
+                    if fn.name == "PRO":
+                        nb.structure.delete_atom(nb)
                 else:
                     nb.structure.delete_atom(nb)
         if fn.name == "PRO":
@@ -417,9 +419,13 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
         complete_terminal_carboxylate(session, rc)
 
     # ensure that N termini are protonated as N3+ (since Npl will fail)
+    from chimerax.atomic import Sequence
     for nter in real_N+fake_N:
         n = nter.find_atom("N")
         if not n:
+            continue
+        # if residue wasn't templated, leave atom typing alone
+        if Sequence.protein3to1(n.residue.name) == 'X':
             continue
         if not (n.residue.name == "PRO" and n.num_bonds >= 2):
             n.idatm_type = "N3+"
@@ -750,9 +756,6 @@ def roomiest(positions, attached, check_dist, atom_type_info):
 def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
     if parent_atom.element.valence < 5:
         # carbons, et al, can't coordinate metals
-        return False
-    if parent_type_info.geometry == 3 and len(
-            [a for a in parent_atom.neighbors if a.element.number > 1]) < 2:
         return False
     from chimerax.core.geometry import distance, angle
     if distance(metal_pos, parent_pos) > _metal_dist:

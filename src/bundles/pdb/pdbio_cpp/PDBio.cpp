@@ -162,8 +162,7 @@ push_sheet(std::vector<Residue*>& cur_sheet, std::vector<std::string>& sheets, i
 }
 
 static void
-compile_helices_sheets(const Structure* s, std::vector<std::string>& helices,
-    std::vector<std::string>& sheets)
+compile_helices_sheets(const Structure* s, std::vector<std::string>& helices, std::vector<std::string>& sheets)
 {
     Residue* prev_res = nullptr;
     int helix_num = 1, sheet_num = 1;
@@ -192,6 +191,181 @@ compile_helices_sheets(const Structure* s, std::vector<std::string>& helices,
     if (cur_sheet.size() > 0)
         push_sheet(cur_sheet, sheets, sheet_num);
 }
+
+static void
+push_link(Atom *a1, Atom *a2, Real length, std::vector<std::string>& links)
+{
+    PDB lrec(PDB::LINK);
+
+    strcpy(lrec.link.name[0], a1->name().c_str());
+    strcpy(lrec.link.name[1], a2->name().c_str());
+    lrec.link.alt_loc[0] = lrec.link.alt_loc[1] = ' ';
+    strncpy(lrec.link.res[0].name, a1->residue()->name().c_str(), 3);
+    lrec.link.res[0].chain_id = a1->residue()->chain_id().c_str()[0];
+    lrec.link.res[0].seq_num = a1->residue()->number();
+    lrec.link.res[0].i_code = a1->residue()->insertion_code();
+    strncpy(lrec.link.res[1].name, a2->residue()->name().c_str(), 3);
+    lrec.link.res[1].chain_id = a2->residue()->chain_id().c_str()[0];
+    lrec.link.res[1].seq_num = a2->residue()->number();
+    lrec.link.res[1].i_code = a2->residue()->insertion_code();
+    lrec.link.sym[0] = lrec.link.sym[1] = 1555;
+    lrec.link.length = length;
+    links.push_back(lrec.c_str());
+}
+
+static void
+compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::vector<std::string>& ssbonds)
+{
+    // Preserve old LINK and SSBOND records that involved differing symmetry ops
+    std::string Ssbond("SSBOND"), Link("LINK");
+    int ssbond_serial = 1;
+    auto ssbond_recs = s->metadata.find(Ssbond);
+    if (ssbond_recs != s->metadata.end()) {
+        for (auto rec: ssbond_recs->second) {
+            if (rec.substr(59, 6) != rec.substr(66, 6)) {
+                char buffer[4];
+                std::sprintf(buffer, "%4d", ssbond_serial++);
+                ssbonds.push_back(rec.substr(0, 7) + std::string(buffer) + rec.substr(10, std::string::npos));
+            }
+        }
+    }
+    auto link_recs = s->metadata.find(Link);
+    if (link_recs != s->metadata.end()) {
+        for (auto rec: link_recs->second) {
+            if (rec.substr(59, 6) != rec.substr(66, 6))
+                links.push_back(rec);
+        }
+    }
+
+    // Go through inter-residue bonds; put non-polymeric ones into LINK or SSBOND
+    for (auto b: s->bonds()) {
+        auto a1 = b->atoms()[0];
+        auto a2 = b->atoms()[1];
+        auto r1 = a1->residue();
+        auto r2 = a2->residue();
+        if (r1 == r2 || b->polymeric_start_atom() != nullptr)
+            continue;
+
+        if (a1->element() == Element::S && a2->element() == Element::S) {
+            // SSBOND
+            PDB srec(PDB::SSBOND);
+            srec.ssbond.ser_num = ssbond_serial++;
+            strncpy(srec.ssbond.res[0].name, r1->name().c_str(), 3);
+            srec.ssbond.res[0].chain_id = r1->chain_id()[0];
+            srec.ssbond.res[0].seq_num = r1->number();
+            srec.ssbond.res[0].i_code = r1->insertion_code();
+            strncpy(srec.ssbond.res[1].name, r2->name().c_str(), 3);
+            srec.ssbond.res[1].chain_id = r2->chain_id()[0];
+            srec.ssbond.res[1].seq_num = r2->number();
+            srec.ssbond.res[1].i_code = r2->insertion_code();
+            srec.ssbond.sym[0] = srec.ssbond.sym[1] = 1555;
+            srec.ssbond.length = b->length();
+            ssbonds.push_back(srec.c_str());
+        } else {
+            // LINK
+            push_link(a1, a2, b->length(), links);
+        }
+    }
+
+    // Put metal complex pseudobonds into LINK records
+    auto pbg = s->pb_mgr().get_group(Structure::PBG_METAL_COORDINATION);
+    if (pbg != nullptr) {
+        for (auto pb: pbg->pseudobonds()) {
+            auto a1 = pb->atoms()[0];
+            auto a2 = pb->atoms()[1];
+            auto r1 = a1->residue();
+            auto r2 = a2->residue();
+            if (r1 == r2)
+                continue;
+            push_link(a1, a2, pb->length(), links);
+        }
+    }
+}
+
+class StringIOStream
+{
+    PyObject* _string_io_write;
+    bool _good;
+public:
+    StringIOStream(PyObject* string_io): _good(true) {
+        _string_io_write = PyObject_GetAttrString(string_io, "write");
+        if (_string_io_write == nullptr)
+            throw std::logic_error("StringIO object has no 'write' attribute");
+    }
+    virtual ~StringIOStream() { Py_DECREF(_string_io_write); }
+    bool bad() const { return !_good; }
+    bool good() const { return _good; }
+    void write_char(char c) {
+        char buf[2];
+        buf[0] = c;
+        buf[1] = '\0';
+        write_text(buf);
+    }
+    void write_text(const char* text) {
+        PyObject* py_text = PyUnicode_FromString(text);
+        auto result = PyObject_CallFunctionObjArgs(_string_io_write, py_text, nullptr);
+        if (result == nullptr)
+            _good = false;
+        else
+            Py_DECREF(result);
+    }
+    StringIOStream& operator<<(const char* text) { write_text(text); return *this; }
+    StringIOStream& operator<<(const PDB& p) { *this << p.c_str(); return *this; }
+    StringIOStream& operator<<(const std::string& s) { *this << s.c_str(); return *this; }
+    StringIOStream& operator<<(char c) { write_char(c); return *this; }
+};
+
+class StreamDispatcher
+{
+    bool _use_fstream;
+    std::ofstream* _fstream;
+    StringIOStream* _io_stream;
+public:
+    StreamDispatcher(std::ofstream* fstream) {
+        _use_fstream = true;
+        _fstream = fstream;
+    }
+    StreamDispatcher(StringIOStream* io_stream) {
+        _use_fstream = false;
+        _io_stream = io_stream;
+    }
+    ~StreamDispatcher() {
+        if (_use_fstream)
+            delete _fstream;
+        else
+            delete _io_stream;
+    }
+    bool bad() const { return _use_fstream ? _fstream->bad() : _io_stream->bad(); }
+    bool good() const { return _use_fstream ? _fstream->good() : _io_stream->good(); }
+    StreamDispatcher& operator<<(const char* text) {
+        if (_use_fstream)
+            *_fstream << text;
+        else
+            *_io_stream << text;
+        return *this;
+    }
+    StreamDispatcher& operator<<(const PDB& p) {
+        if (_use_fstream)
+            *_fstream << p;
+        else
+            *_io_stream << p;
+        return *this;
+    }
+    StreamDispatcher& operator<<(const std::string& s) {
+        if (_use_fstream)
+            *_fstream << s;
+        else
+            *_io_stream << s;
+        return *this;
+    }
+    StreamDispatcher& operator<<(char c) {
+        if (_use_fstream)
+            *_fstream << c;
+        else
+            *_io_stream << c;
+        return *this;
+    }
+};
 
 #ifdef CLOCK_PROFILING
 #include <ctime>
@@ -979,7 +1153,7 @@ pdb_atom_to_chimera_atom(Structure* as, Residue* res, PDB::Atom& pdb_aname)
 }
 
 static void
-link_up(PDB& link_ssbond, Structure *as, std::set<Atom *> *conect_atoms, PyObject *py_logger)
+link_up(PDB& link_ssbond, Structure *as, PyObject *py_logger)
 {
     int sym1, sym2;
     PDB::Residue pdb_res1, pdb_res2;
@@ -1018,8 +1192,6 @@ link_up(PDB& link_ssbond, Structure *as, std::set<Atom *> *conect_atoms, PyObjec
     }
     if (!a1->connects_to(a2)) {
         as->new_bond(a1, a2);
-        conect_atoms->insert(a1);
-        conect_atoms->insert(a2);
     }
 }
 
@@ -1249,7 +1421,7 @@ start_t = end_t;
 
             Links &links = link_map[fs];
             for (Links::iterator li = links.begin(); li != links.end(); ++li)
-                link_up(*li, fs, &conect_atoms, py_logger);
+                link_up(*li, fs, py_logger);
             connect_structure(fs, &start_res_map[fs], &end_res_map[fs], &conect_atoms, &mod_res_map[fs], standard_polymeric_res_names, het_res);
             prune_short_bonds(fs);
             fs->use_best_alt_locs();
@@ -1314,7 +1486,7 @@ aniso_u_to_int(Real aniso_u_val)
 }
 
 static void
-write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
+write_coord_set(StreamDispatcher& os, const Structure* s, const CoordSet* cs,
     std::map<const Atom*, int>& rev_asn, bool selected_only, bool displayed_only, double* xform,
     bool pqr, bool h36, std::set<const Atom*>& written, std::map<const Residue*, int>& polymer_map,
     const std::set<ResName>& polymeric_res_names)
@@ -1365,7 +1537,7 @@ write_coord_set(std::ostream& os, const Structure* s, const CoordSet* cs,
             res = &p.atomqr.res;
             xyz = &p.atomqr.xyz;
         } else {
-            if (standard && polymeric_res_names.find(r->name()) != polymeric_res_names.end()) {
+            if (standard || polymeric_res_names.find(r->name()) != polymeric_res_names.end()) {
                 p.set_type(PDB::ATOM);
             } else {
                 p.set_type(PDB::HETATM);
@@ -1545,7 +1717,7 @@ chief_or_link(const Atom* a)
 }
 
 static void
-write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& rev_asn,
+write_conect(StreamDispatcher& os, const Structure* s, std::map<const Atom*, int>& rev_asn,
     const std::set<const Atom*>& written, const std::set<ResName>& polymeric_res_names)
 {
     PDB p;
@@ -1664,7 +1836,7 @@ write_conect(std::ostream& os, const Structure* s, std::map<const Atom*, int>& r
 }
 
 static void
-write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selected_only,
+write_pdb(std::vector<const Structure*> structures, StreamDispatcher& os, bool selected_only,
     bool displayed_only, std::vector<double*>& xforms, bool all_coordsets, bool pqr, bool h36,
     const std::set<ResName>& polymeric_res_names)
 {
@@ -1673,7 +1845,7 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
     // was written so we know which CONECT records to output
     std::set<const Atom*> written;
     int out_model_num = 0;
-    std::string Helix("HELIX"), Sheet("SHEET");
+    std::string Helix("HELIX"), Sheet("SHEET"), Ssbond("SSBOND"), Link("LINK");
     for (std::vector<const Structure*>::size_type i = 0; i < structures.size(); ++i) {
         auto s = structures[i];
         auto xform = xforms[i];
@@ -1681,12 +1853,15 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
         // Output headers only before first MODEL
         if (s == structures[0]) {
             // generate HELIX/SHEET records relevant to current structure
-            std::vector<std::string> helices, sheets;
+            std::vector<std::string> helices, sheets, ssbonds, links;
             compile_helices_sheets(s, helices, sheets);
+            compile_links_ssbonds(s, links, ssbonds);
             // since we need to munge the headers, make a copy instead of using a const reference
             auto headers = s->metadata;
             headers[Helix] = helices;
             headers[Sheet] = sheets;
+            headers[Ssbond] = ssbonds;
+            headers[Link] = links;
             // write out known headers first
             for (auto& record_type: record_order) {
                 if (record_type == "MODEL")
@@ -1696,7 +1871,8 @@ write_pdb(std::vector<const Structure*> structures, std::ostream& os, bool selec
                 if (hdr_i == headers.end())
                     continue;
                 for (auto hdr: hdr_i->second) {
-                    os << hdr << '\n';
+                    os << hdr;
+                    os << '\n';
                 }
             }
 
@@ -1778,12 +1954,12 @@ read_pdb_file(PyObject *, PyObject *args)
 
 static const char*
 docstr_write_pdb_file = 
-"write_pdb_file(structures, file_name, selected_only=False,"
+"write_pdb_file(structures, out, selected_only=False,"
 " displayed_only=False, xforms=None, all_coordsets=True, pqr=False,"
 " polymeric_res_names=None)\n"
 "\n"
 "'structures' is a sequence of C++ structure pointers\n"
-"'file_name' is the output file path\n"
+"'out' is the output destination, a path name or a StringIO buffer\n"
 "'selected_only' controls if only selected atoms will be written"
 " (default False)\n"
 "'displayed_only' controls if only displayed atoms will be written"
@@ -1810,7 +1986,7 @@ extern "C" PyObject*
 write_pdb_file(PyObject *, PyObject *args)
 {
     PyObject *py_structures;
-    PyObject *py_path;
+    PyObject *py_output;
     int selected_only;
     int displayed_only;
     PyObject* py_xforms;
@@ -1818,8 +1994,8 @@ write_pdb_file(PyObject *, PyObject *args)
     int pqr;
     int h36;
     PyObject *py_poly_res_names;
-    if (!PyArg_ParseTuple(args, "OO&ppOpppO",
-            &py_structures, PyUnicode_FSConverter, &py_path, &selected_only,
+    if (!PyArg_ParseTuple(args, "OOppOpppO",
+            &py_structures, &py_output, &selected_only,
             &displayed_only, &py_xforms, &all_coordsets, &pqr, &h36, &py_poly_res_names))
         return nullptr;
 
@@ -1866,14 +2042,38 @@ write_pdb_file(PyObject *, PyObject *args)
     }
     Py_DECREF(iter);
 
-    const char* path = PyBytes_AS_STRING(py_path);
-    std::ofstream os(path);
-    if (!os.good()) {
-        std::stringstream err_msg;
-        err_msg << "Unable to open file '" << path << "' for writing";
-        PyErr_SetString(PyExc_IOError, err_msg.str().c_str());
-        Py_XDECREF(py_path);
+    PyObject *io_mod = PyImport_ImportModule("io");
+    if (io_mod == nullptr)
         return nullptr;
+    PyObject *io_base = PyObject_GetAttrString(io_mod, "IOBase");
+    if (io_base == nullptr) {
+        Py_DECREF(io_mod);
+        PyErr_SetString(PyExc_AttributeError, "IOBase class not found in io module");
+        return nullptr;
+    }
+    int is_inst = PyObject_IsInstance(py_output, io_base);
+    if (is_inst < 0) {
+        Py_DECREF(io_mod);
+        Py_DECREF(io_base);
+        return nullptr;
+    }
+    StreamDispatcher* out_stream;
+    if (is_inst) {
+        out_stream = new StreamDispatcher(new StringIOStream(py_output));
+    } else {
+        PyBytesObject* fs_path;
+        if (PyUnicode_FSConverter(py_output, &fs_path) < 0) {
+            return nullptr;
+        }
+        const char* path = PyBytes_AS_STRING(fs_path);
+        out_stream = new StreamDispatcher(new std::ofstream(path));
+        Py_XDECREF(fs_path);
+        if (!out_stream->good()) {
+            std::stringstream err_msg;
+            err_msg << "Unable to open file '" << path << "' for writing";
+            PyErr_SetString(PyExc_IOError, err_msg.str().c_str());
+            return nullptr;
+        }
     }
 
     std::vector<double*> xforms;
@@ -1884,13 +2084,11 @@ write_pdb_file(PyObject *, PyObject *args)
     } else {
         if (PySequence_Check(py_xforms) < 0) {
             PyErr_SetString(PyExc_TypeError, "xforms arg is not a sequence");
-            Py_XDECREF(py_path);
             return nullptr;
         }
         if (PySequence_Size(py_xforms) != num_structs) {
             PyErr_SetString(PyExc_TypeError,
                 "xforms arg sequence is not the same length as the number of structures");
-            Py_XDECREF(py_path);
             return nullptr;
         }
         for (int i = 0; i < num_structs; ++i) {
@@ -1900,7 +2098,6 @@ write_pdb_file(PyObject *, PyObject *args)
                 continue;
             }
             if (!array_from_python(py_xform, 2, Numeric_Array::Double, &array, false)) {
-                Py_XDECREF(py_path);
                 return nullptr;
             }
             auto dims = array.sizes();
@@ -1908,22 +2105,21 @@ write_pdb_file(PyObject *, PyObject *args)
                 std::stringstream err_msg;
                 err_msg << "Transform #" << i+1 << " is not 3x4, is " << dims[0] << "x" << dims[1];
                 PyErr_SetString(PyExc_ValueError, err_msg.str().c_str());
-                Py_XDECREF(py_path);
                 return nullptr;
             }
             xforms.push_back(static_cast<double*>(array.values()));
         }
     }
 
-    write_pdb(structures, os, (bool)selected_only, (bool)displayed_only, xforms,
+    write_pdb(structures, *out_stream, (bool)selected_only, (bool)displayed_only, xforms,
         (bool)all_coordsets, (bool)pqr, (bool)h36, poly_res_names);
 
-    if (os.bad()) {
+    if (out_stream->bad()) {
         PyErr_SetString(PyExc_ValueError, "Problem writing output PDB file");
-        Py_XDECREF(py_path);
+        delete out_stream;
         return nullptr;
     }
-    Py_XDECREF(py_path);
+    delete out_stream;
     Py_RETURN_NONE;
 }
 

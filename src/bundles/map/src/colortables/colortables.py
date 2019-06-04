@@ -69,8 +69,8 @@ def read_horos_3d_preset(path):
     curves = fields.get('16bitClutCurves')
     kw = {}
     if isinstance(colors, list) and isinstance(curves, list) and len(colors) == len(curves):
-        kw['solid_colors'] = scolors = []
-        kw['solid_levels'] = slevels = []
+        kw['image_colors'] = scolors = []
+        kw['image_levels'] = slevels = []
         kw['dim_transparent_voxels'] = False
         for color_seg, curve_seg in zip(colors, curves):
             seg_colors = [(c['red'], c['green'], c['blue']) for c in color_seg]
@@ -109,10 +109,10 @@ def read_horos_3d_preset(path):
             colors = colors[::16]
             nc = len(colors)
             if nc >= 2:
-                kw['solid_colors'] = colors
+                kw['image_colors'] = colors
                 s = center - 0.5*width
                 step = width / (nc-1)
-                kw['solid_levels'] = [(s + i*step, height) for i in range(nc)]
+                kw['image_levels'] = [(s + i*step, height) for i in range(nc)]
                 kw['dim_transparent_voxels'] = False
             
     return kw
@@ -149,8 +149,8 @@ def read_mricrogl_clut(path):
 #        colors.append(rgb1)
         levels.append((level, 1))
         colors.append(rgba)
-    kw = {'solid_colors': colors,
-          'solid_levels': levels,
+    kw = {'image_colors': colors,
+          'image_levels': levels,
           'transparency_depth': 0.05,
           'dim_transparent_voxels': True,
 #          'dim_transparent_voxels': False,
@@ -174,9 +174,9 @@ def read_mricrogl_values(path):
     return values
 
 def initial_settings(v):
-    levels, colors = v.initial_solid_levels()
-    kw = {'solid_levels': levels,
-          'solid_colors': colors,
+    levels, colors = v.initial_image_levels()
+    kw = {'image_levels': levels,
+          'image_colors': colors,
           'dim_transparent_voxels': True,
           }
     return kw

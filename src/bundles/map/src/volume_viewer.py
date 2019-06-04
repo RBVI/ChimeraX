@@ -132,7 +132,7 @@ class VolumeViewer(ToolInstance):
         #                  Display_Style_Panel, Plane_Panel, Orthoplane_Panel,
         #                  Region_Size_Panel, Subregion_Panel,
         #                  Zone_Panel, Atom_Box_Panel, Named_Region_Panel,
-        #                  Display_Options_Panel, Solid_Options_Panel,
+        #                  Display_Options_Panel, Image_Options_Panel,
         #                  Surface_Options_Panel)
 
         panel_classes = [Thresholds_Panel]
@@ -247,7 +247,7 @@ class VolumeViewer(ToolInstance):
           #  after data is shown to avoid reading data file for undisplayed data.
           tp.update_panel_widgets(v, activate = False)
 
-        elif type == 'representation changed':
+        elif type == 'display style changed':
           tp.update_panel_widgets(v, activate = False)
 #          if v is self.active_volume:
 #            dsp = self.display_style_panel
@@ -285,18 +285,18 @@ class VolumeViewer(ToolInstance):
         # elif type == 'rendering options changed':
         #   if v is self.active_volume:
         #     for p in (self.display_options_panel, self.surface_options_panel,
-        #               self.solid_options_panel, self.orthoplane_panel):
+        #               self.image_options_panel, self.orthoplane_panel):
         #       p.update_panel_widgets(v)
       
     # ---------------------------------------------------------------------------
-    # Notify all panels that representation changed so they can update gui if
-    # it depends on the representation.
+    # Notify all panels that volume display style changed so they can update gui if
+    # it depends on the display style.
     #
-    def representation_changed(self, representation):
+    def display_style_changed(self, style):
 
       for p in self.gui_panels:
-        if hasattr(p, 'representation_changed'):
-          p.representation_changed(representation)
+        if hasattr(p, 'display_style_changed'):
+          p.display_style_changed(style)
 
     # ---------------------------------------------------------------------------
     #
@@ -349,12 +349,11 @@ class VolumeViewer(ToolInstance):
       #  a separate redisplay.
       #
       if self.active_volume:
-        self.show_using_dialog_settings(self.active_volume,
-                                        recreate_thresholds = True)
+        self.show_using_dialog_settings(self.active_volume)
     
     # ---------------------------------------------------------------------------
     #
-    def show_using_dialog_settings(self, data_region, recreate_thresholds = False):
+    def show_using_dialog_settings(self, data_region):
 
       dr = data_region
       if dr == None:
@@ -370,7 +369,6 @@ class VolumeViewer(ToolInstance):
         if hasattr(p, 'use_gui_settings'):
           p.use_gui_settings(dr)
 
-      dr.initialize_thresholds(first_time_only = not recreate_thresholds)
       dr.show()
 
 def show_viewer_on_open(session):
@@ -593,37 +591,13 @@ class Volume_Dialog:
     if len(rlist) == 0 and self.active_volume:
       rlist = [self.active_volume]
     return rlist
-      
-  # ---------------------------------------------------------------------------
-  #
-  def Update(self):
-
-    self.show_cb()
-      
-  # ---------------------------------------------------------------------------
-  #
-  def show_cb(self, event = None):
-
-    data_regions = self.selected_regions()
-    for dr in data_regions:
-      # For region displayed in dialog use the current dialog settings.
-      if dr == self.active_volume:
-        self.show_using_dialog_settings(dr, recreate_thresholds = True)
-      else:
-        # Set display style of data regions if needed.
-        if dr.representation == None:
-          dr.representation = self.display_style_panel.representation
-          
-        # Set initial thresholds if there are currently no thresholds.
-        dr.initialize_thresholds(first_time_only = False)
-        dr.show() # Display region not shown in dialog.
 
   # ---------------------------------------------------------------------------
   #
-  def show_region(self, data_region, representation):
+  def show_region(self, data_region, display_style):
 
     self.display_volume_info(data_region)
-    self.display_style_panel.representation = representation
+    self.display_style_panel.display_style = display_style
     self.show_using_dialog_settings(data_region)
 
   # ---------------------------------------------------------------------------
@@ -643,8 +617,8 @@ class Volume_Dialog:
     ro = Rendering_Options()
     dop = self.display_options_panel
     dop.rendering_options_from_gui(ro)
-    slop = self.solid_options_panel
-    slop.rendering_options_from_gui(ro)
+    imop = self.image_options_panel
+    imop.rendering_options_from_gui(ro)
     sop = self.surface_options_panel
     sop.rendering_options_from_gui(ro)
     return ro
@@ -1469,8 +1443,8 @@ class Thresholds_Panel(PopupPanel):
 #    b = self.make_close_button(frame)
 #    b.grid(row = row, column = 1, sticky = 'e')
 
-    # Configure widgets for surface representation.
-    self.representation_changed('surface')
+    # Configure widgets for surface display style.
+    self.display_style_changed('surface')
 
     self.update_panel_widgets(None)
     
@@ -1566,15 +1540,15 @@ class Thresholds_Panel(PopupPanel):
 
   # ---------------------------------------------------------------------------
   # Switch histogram threshold markers between vertical
-  # lines or piecewise linear function for surfaces or solid.
+  # lines or piecewise linear function for surfaces or image rendering.
   #
-  def representation_changed(self, rep):
+  def display_style_changed(self, style):
 
     v = self.dialog.active_volume
     if v:
       hp = self.histogram_table.get(v, None)
       if hp:
-        hp.solid_mode(rep == 'solid')
+        hp.image_mode(style == 'image')
   
   # ---------------------------------------------------------------------------
   #
@@ -1701,7 +1675,7 @@ class Thresholds_Panel(PopupPanel):
     if hp:
         if hp.histogram_shown:
             hp.set_threshold_parameters_from_gui()
-        volume.set_representation(hp.representation)
+        volume.set_display_style(hp.display_style)
 
   # ---------------------------------------------------------------------------
   #
@@ -1856,7 +1830,7 @@ class Histogram_Pane:
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
     for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box'):
-        sm.addAction(style, lambda s=style: self.representation_changed_cb(s))
+        sm.addAction(style, lambda s=style: self.display_style_changed_cb(s))
     stm.setMenu(sm)
     layout.addWidget(stm)
 
@@ -1980,7 +1954,7 @@ class Histogram_Pane:
       s = ijk_step[axis]
       k = ((ijk_min[axis] + ijk_max[axis])//(2*s))*s
       self._update_plane(k, axis = axis)
-      v.set_representation('solid')
+      v.set_display_style('image')
       if show_volume or v.shown():
           v.show()
 
@@ -2024,7 +1998,7 @@ class Histogram_Pane:
       ps.valueChanged.connect(self._planes_slider_moved_cb)
       layout.addWidget(ps)
       
-      # Close plane slider
+      # Close button to right of plane slider
       from PyQt5.QtWidgets import QPushButton
       from PyQt5.QtCore import Qt, QSize
       cb = QPushButton(f)
@@ -2056,8 +2030,9 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   #
   def _update_plane(self, k, axis = 2):
-      self._planes_spinbox.setValue(k)
-      self._planes_slider.setValue(k)
+      if self._planes_slider_shown:
+          self._planes_spinbox.setValue(k)
+          self._planes_slider.setValue(k)
       v = self.volume
       ijk_min, ijk_max, ijk_step = v.region
       if ijk_min[axis] == k and ijk_max[axis] == k:
@@ -2117,7 +2092,7 @@ class Histogram_Pane:
 
     new_marker_color = volume.default_rgba if volume else (1,1,1,1)
     self.surface_thresholds.new_marker_color = new_marker_color
-    self.solid_thresholds.new_marker_color = saturate_rgba(new_marker_color)
+    self.image_thresholds.new_marker_color = saturate_rgba(new_marker_color)
     self.update_threshold_gui()
 
     ijk_min, ijk_max, ijk_step = volume.region
@@ -2196,10 +2171,10 @@ class Histogram_Pane:
                  self.selected_marker_cb, self.moved_marker_cb)
     self.surface_thresholds = st
 
-    new_solid_marker_color = saturate_rgba(new_marker_color)
-    sdt = Markers(gv, gs, 'box', new_solid_marker_color, 1,
+    new_image_marker_color = saturate_rgba(new_marker_color)
+    imt = Markers(gv, gs, 'box', new_image_marker_color, 1,
                   self.selected_marker_cb, self.moved_marker_cb)
-    self.solid_thresholds = sdt
+    self.image_thresholds = imt
 
     gv.click_callbacks.append(self.select_data_cb)
 #    c.bind('<Configure>', self.canvas_resize_cb)
@@ -2304,7 +2279,7 @@ class Histogram_Pane:
 
     from chimera import openModels
     if trigger == 'Model':
-      if self.volume.representation == 'solid':
+      if self.volume.image_shown:
         from _volume import Volume_Model
         if [m for m in changes.deleted if isinstance(m, Volume_Model)]:
           self.update_shown_icon()
@@ -2337,34 +2312,34 @@ class Histogram_Pane:
     s.setIcon(sh_icon)
     s.setChecked(shown)
 
-  def get_repr(self):
+  def _get_style(self):
       style = self.style.text()
-      repr = 'solid' if style in ('volume', 'maximum', 'plane', 'orthoplanes', 'box') else style
+      repr = 'image' if style in ('volume', 'maximum', 'plane', 'orthoplanes', 'box') else style
       return repr
-  def set_repr(self, repr):
-      if repr == 'solid':
+  def _set_style(self, style):
+      if style == 'image':
           v = self.volume
           if v.showing_orthoplanes():
-              style = 'orthoplanes'
+              mstyle = 'orthoplanes'
           elif v.showing_box_faces():
-              style = 'box'
+              mstyle = 'box'
           elif v.rendering_options.maximum_intensity_projection:
-              style = 'maximum'
+              mstyle = 'maximum'
           elif min(v.matrix_size()) == 1:
-              style = 'plane'
+              mstyle = 'plane'
           else:
-              style = 'volume'
-          self.show_plane_slider(style == 'plane')
-      elif repr in ('surface', 'mesh'):
-          style = repr
-      self.style.setText(style)
-  representation = property(get_repr, set_repr)
+              mstyle = 'volume'
+          self.show_plane_slider(mstyle == 'plane')
+      elif style in ('surface', 'mesh'):
+          mstyle = style
+      self.style.setText(mstyle)
+  display_style = property(_get_style, _set_style)
   
   # ---------------------------------------------------------------------------
-  # Notify all panels that representation changed so they can update gui if
-  # it depends on the representation.
+  # Notify all panels that display style changed so they can update gui if
+  # it depends on the display style.
   #
-  def representation_changed_cb(self, style):
+  def display_style_changed_cb(self, style):
 
       v = self.volume
       if v is None:
@@ -2392,17 +2367,17 @@ class Histogram_Pane:
                            color_mode = 'auto8')
           
       if style in ('surface', 'mesh'):
-          v.show(representation = style, show = v.shown())
+          v.set_display_style(style)
       elif style == 'volume':
           v.set_parameters(orthoplanes_shown = (False, False, False),
                            color_mode = 'auto8',
                            maximum_intensity_projection = False)
-          v.show(representation = 'solid', show = v.shown())
+          v.set_display_style('image')
       elif style == 'maximum':
           v.set_parameters(orthoplanes_shown = (False, False, False),
                            color_mode = 'auto8',
                            maximum_intensity_projection = True)
-          v.show(representation = 'solid', show = v.shown())
+          v.set_display_style('image')
       elif style == 'plane':
           v.set_parameters(orthoplanes_shown = (False, False, False),
                            color_mode = 'auto8',
@@ -2421,7 +2396,7 @@ class Histogram_Pane:
                            color_mode = 'opaque8',
                            maximum_intensity_projection = False,
                            show_outline_box = True)
-          v.show(representation = 'solid', show = v.shown())
+          v.set_display_style('image')
           v.expand_single_plane()
           self.enable_move_planes()
       elif style == 'box':
@@ -2431,7 +2406,7 @@ class Histogram_Pane:
                            color_mode = 'opaque8',
                            maximum_intensity_projection = False,
                            show_outline_box = True)
-          v.show(representation = 'solid', show = v.shown())
+          v.set_display_style('image')
           v.expand_single_plane()
           self.enable_crop_box()
       
@@ -2451,13 +2426,13 @@ class Histogram_Pane:
       
   # ---------------------------------------------------------------------------
   #
-  def solid_mode(self, solid):
-      sol = self.solid_thresholds
+  def image_mode(self, image):
+      img = self.image_thresholds
       surf = self.surface_thresholds
-      changed = (solid != sol.shown or (not solid) != surf.shown)
+      changed = (image != img.shown or (not image) != surf.shown)
       if changed:
-          sol.show(solid)
-          surf.show(not solid)
+          img.show(image)
+          surf.show(not image)
           self.set_threshold_and_color_widgets()
 
   # ---------------------------------------------------------------------------
@@ -2470,8 +2445,8 @@ class Histogram_Pane:
   # ---------------------------------------------------------------------------
   #
   def shown_markers(self):
-    if self.solid_thresholds.shown:
-      markers = self.solid_thresholds
+    if self.image_thresholds.shown:
+      markers = self.image_thresholds
     elif self.surface_thresholds.shown:
       markers = self.surface_thresholds
     else:
@@ -2545,9 +2520,16 @@ class Histogram_Pane:
     self.update_shown_icon()
 
     self.plot_surface_levels()
-    self.plot_solid_levels()
-    self.representation = rep = self.volume.representation
-    self.solid_mode(rep in ('solid', 'orthoplanes'))
+    self.plot_image_levels()
+    v = self.volume
+    if v.surface_shown or v.has_mesh:
+        style = 'mesh' if v.has_mesh else 'surface'
+    elif v.image_shown or v.image_will_show:
+        style = 'image'
+    else:
+        style = 'surface'
+    self.display_style = style
+    self.image_mode(style == 'image')
     self.set_threshold_and_color_widgets()
     
   # ---------------------------------------------------------------------------
@@ -2583,24 +2565,24 @@ class Histogram_Pane:
       return
 
     from .histogram import Marker
-    surf_markers = []
-    for s in v.surfaces:
-        m = Marker((s.level,0), s.rgba)
-        m.volume_surface = s
-        surf_markers.append(m)
+    surf_markers = [Marker((s.level,0), s.rgba) for s in v.surfaces]
     self.surface_thresholds.set_markers(surf_markers)
+    # Careful.  Setting markers may reuse old markers.
+    # So set volume_surface attribute for actual markers.
+    for m,s in zip(self.surface_thresholds.markers, v.surfaces):
+        m.volume_surface = s
     
   # ---------------------------------------------------------------------------
   #
-  def plot_solid_levels(self):
+  def plot_image_levels(self):
 
     v = self.volume
     if v is None:
       return
 
     from .histogram import Marker
-    solid_markers = [Marker(ts, c) for ts, c in zip(v.solid_levels, v.solid_colors)]
-    self.solid_thresholds.set_markers(solid_markers)
+    image_markers = [Marker(ts, c) for ts, c in zip(v.image_levels, v.image_colors)]
+    self.image_thresholds.set_markers(image_markers)
     
   # ---------------------------------------------------------------------------
   #
@@ -2650,7 +2632,7 @@ class Histogram_Pane:
     if message_cb:
         message_cb('')
     first_bin_center, last_bin_center, bin_size = s.bin_range(bins)
-    self.solid_thresholds.set_user_x_range(first_bin_center, last_bin_center)
+    self.image_thresholds.set_user_x_range(first_bin_center, last_bin_center)
     self.surface_thresholds.set_user_x_range(first_bin_center, last_bin_center)
 
     self.update_data_range()
@@ -2674,7 +2656,7 @@ class Histogram_Pane:
 #     bins = hwidth - 1
 #     hbox = (cborder, cborder + 5, cborder + bins - 1, cborder + hheight - 5)
 #     self.surface_thresholds.set_canvas_box(hbox)
-#     self.solid_thresholds.set_canvas_box(hbox)
+#     self.image_thresholds.set_canvas_box(hbox)
 #     return bins
 
   # ---------------------------------------------------------------------------
@@ -2700,11 +2682,12 @@ class Histogram_Pane:
 
     # Delete surfaces when marker has been deleted.
     msurfs = set(m.volume_surface for m in markers)
-    v.remove_surfaces([s for s in v.surfaces if s not in msurfs])
+    dsurfs = [s for s in v.surfaces if s not in msurfs]
+    v.remove_surfaces(dsurfs)
     
-    markers = self.solid_thresholds.markers
-    v.solid_levels = [m.xy for m in markers]
-    v.solid_colors = [m.rgba for m in markers]
+    markers = self.image_thresholds.markers
+    v.image_levels = [m.xy for m in markers]
+    v.image_colors = [m.rgba for m in markers]
     if show and v.shown():
         v.show()
 
@@ -2757,7 +2740,7 @@ class Brightness_Transparency_Panel(PopupPanel):
     bfs.frame.grid(row = row, column = 0, sticky = 'ew')
     bfs.callback(dialog.redisplay_needed_cb)
     bfs.entry.bind('<KeyPress-Return>', dialog.redisplay_cb)
-    self.solid_brightness_factor = bfs
+    self.image_brightness_factor = bfs
 
     b = self.make_close_button(frame)
     b.grid(row = row, column = 1, sticky = 'e')
@@ -2776,20 +2759,20 @@ class Brightness_Transparency_Panel(PopupPanel):
     tds.entry.bind('<KeyPress-Return>', dialog.redisplay_cb)
     self.transparency_depth = tds
 
-    self.representation_changed('surface')
+    self.display_style_changed('surface')
     
   # ---------------------------------------------------------------------------
-  # Show brightness and transparency sliders appropriate for surface or solid.
-  # Solid uses logarithmic transparency depth slider and surface uses linear
+  # Show brightness and transparency sliders appropriate for surface or image.
+  # Image uses logarithmic transparency depth slider and surface uses linear
   # transparency factor.
   #
-  def representation_changed(self, representation):
+  def display_style_changed(self, style):
 
-    solid = (representation == 'solid')
-    place_in_grid(self.transparency_factor.frame, not solid)
-    place_in_grid(self.surface_brightness_factor.frame, not solid)
-    place_in_grid(self.transparency_depth.frame, solid)
-    place_in_grid(self.solid_brightness_factor.frame, solid)
+    image = (style == 'image')
+    place_in_grid(self.transparency_factor.frame, not image)
+    place_in_grid(self.surface_brightness_factor.frame, not image)
+    place_in_grid(self.transparency_depth.frame, image)
+    place_in_grid(self.image_brightness_factor.frame, image)
   
   # ---------------------------------------------------------------------------
   #
@@ -2805,7 +2788,7 @@ class Brightness_Transparency_Panel(PopupPanel):
                                       invoke_callbacks = False)
     self.surface_brightness_factor.set_value(dr.surface_brightness_factor,
                                              invoke_callbacks = False)
-    self.solid_brightness_factor.set_value(dr.solid_brightness_factor,
+    self.image_brightness_factor.set_value(dr.image_brightness_factor,
                                            invoke_callbacks = False)
 
   # ---------------------------------------------------------------------------
@@ -2816,12 +2799,12 @@ class Brightness_Transparency_Panel(PopupPanel):
     tf = self.transparency_factor.value(default = 0)
     td = self.transparency_depth.value(default = 0)
     bf = self.surface_brightness_factor.value(default = 1)
-    bfs = self.solid_brightness_factor.value(default = 1)
+    bfs = self.image_brightness_factor.value(default = 1)
 
     dr.transparency_factor = tf      # for surface/mesh
     dr.surface_brightness_factor = bf
-    dr.transparency_depth = td       # for solid
-    dr.solid_brightness_factor = bfs
+    dr.transparency_depth = td       # for image rendering
+    dr.image_brightness_factor = bfs
 
 # -----------------------------------------------------------------------------
 # User interface for selecting subregions of a data set.
@@ -3137,8 +3120,8 @@ class Plane_Panel(PopupPanel):
     p = (ijk_min[a] + ijk_max[a]) / 2
     p -= p % ijk_step[a]
     self.plane.set_value(p)
-    if v.representation != 'solid':
-      v.set_representation('solid')
+    if not v.image_shown:
+      v.set_display_style('image')
       v.show()
 
   # ---------------------------------------------------------------------------
@@ -3320,16 +3303,16 @@ class Orthoplane_Panel(PopupPanel):
     if volume is None:
       return
 
-    solid = (volume.representation == 'solid')
+    image = volume.image_shown
     ro = volume.rendering_options
     box_faces = ro.box_faces
     shown = ro.orthoplanes_shown
     msize = volume.matrix_size()
     for axis in (0,1,2):
-      p = bool(solid and not box_faces and (shown[axis] or msize[axis] == 1))
+      p = bool(image and not box_faces and (shown[axis] or msize[axis] == 1))
       self.planes[axis].set(p, invoke_callbacks = False)
 
-    box = bool(solid and box_faces)
+    box = bool(image and box_faces)
     self.box_faces.set(box, invoke_callbacks = False)
     
   # ---------------------------------------------------------------------------
@@ -3387,7 +3370,7 @@ class Orthoplane_Panel(PopupPanel):
                             orthoplane_positions = center,
                             color_mode = 'opaque8',
                             show_outline_box = True)
-      volume.set_representation('solid')
+      volume.set_display_style('image')
     volume.show()
     
   # ---------------------------------------------------------------------------
@@ -3399,7 +3382,7 @@ class Orthoplane_Panel(PopupPanel):
       return
 
     if self.box_faces.get():
-      v.set_representation('solid')
+      v.set_display_style('image')
       v.set_parameters(box_faces = True,
                        color_mode = 'opaque8',
                        show_outline_box = True,
@@ -3941,7 +3924,6 @@ class Subregion_Panel(PopupPanel):
       sv.copy_settings_from(v, copy_region = False, copy_xform = False)
       if not replace:
         sv.set_parameters(show_outline_box = True)
-      sv.initialize_thresholds()
       self.last_subregion = (sv, v)
       sv.subregion_of_volume = v
       sv.show()
@@ -4403,11 +4385,11 @@ class Display_Options_Panel(PopupPanel):
     ro.voxel_limit = float_variable_value(self.voxel_limit, 1)
 
 # -----------------------------------------------------------------------------
-# User interface for setting solid rendering options.
+# User interface for setting image rendering options.
 #
-class Solid_Options_Panel(PopupPanel):
+class Image_Options_Panel(PopupPanel):
 
-  name = 'Solid rendering options'           # Used in feature menu.
+  name = 'Image rendering options'           # Used in feature menu.
   
   def __init__(self, dialog, parent):
 
@@ -4479,7 +4461,7 @@ class Solid_Options_Panel(PopupPanel):
     self.dim_transparent_voxels = dt.variable
     self.dim_transparent_voxels.add_callback(dialog.redisplay_needed_cb)
     
-    bt = Hybrid.Checkbutton(frame, 'Solid brightness correction', 0)
+    bt = Hybrid.Checkbutton(frame, 'Image brightness correction', 0)
     bt.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.bt_correction = bt.variable
@@ -4491,7 +4473,7 @@ class Solid_Options_Panel(PopupPanel):
     self.minimal_texture_memory = mt.variable
     self.minimal_texture_memory.add_callback(dialog.redisplay_needed_cb)
     
-    vli = Hybrid.Checkbutton(frame, 'Solid linear interpolation', 0)
+    vli = Hybrid.Checkbutton(frame, 'Image linear interpolation', 0)
     vli.button.grid(row = row, column = 0, sticky = 'nw')
     row += 1
     self.linear_interpolation = vli.variable

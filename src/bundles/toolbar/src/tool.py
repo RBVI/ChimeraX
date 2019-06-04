@@ -18,7 +18,7 @@ from chimerax.core.settings import Settings
 class ToolbarSettings(Settings):
     AUTO_SAVE = {
         "show_button_labels": True,
-        "show_group_labels": True,
+        "show_section_labels": True,
     }
 
 
@@ -35,19 +35,9 @@ class ToolbarTool(ToolInstance):
         self.display_name = "Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self)
+        self.tool_window = MainToolWindow(self, close_destroys=False, hide_title_bar=True)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
-        # kludge to hide title bar
-        from PyQt5.QtWidgets import QWidget
-        self.tool_window._kludge.dock_widget.setTitleBarWidget(QWidget())
-
-        # TODO: Temporarily remove default toolbars
-        from chimerax.core.commands import run
-        # run(session, "toolshed hide 'Density Map Toolbar'", log=False)
-        run(session, "toolshed hide 'Graphics Toolbar'", log=False)
-        run(session, "toolshed hide 'Molecule Display Toolbar'", log=False)
-        run(session, "toolshed hide 'Mouse Modes for Right Button'", log=False)
 
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -58,7 +48,7 @@ class ToolbarTool(ToolInstance):
         margins.setBottom(0)
         layout.setContentsMargins(margins)
         self.ttb = TabbedToolbar(
-            self.tool_window.ui_area, show_group_titles=self.settings.show_group_labels,
+            self.tool_window.ui_area, show_section_titles=self.settings.show_section_labels,
             show_button_titles=self.settings.show_button_labels)
         layout.addWidget(self.ttb)
         self._build_buttons()
@@ -74,25 +64,29 @@ class ToolbarTool(ToolInstance):
         button_labels.setChecked(self.settings.show_button_labels)
         button_labels.toggled.connect(lambda arg, f=self._set_button_labels: f(arg))
         menu.addAction(button_labels)
-        group_labels = QAction("Show group labels", menu)
-        group_labels.setCheckable(True)
-        group_labels.setChecked(self.settings.show_group_labels)
-        group_labels.toggled.connect(lambda arg, f=self._set_group_labels: f(arg))
-        menu.addAction(group_labels)
+        section_labels = QAction("Show section labels", menu)
+        section_labels.setCheckable(True)
+        section_labels.setChecked(self.settings.show_section_labels)
+        section_labels.toggled.connect(lambda arg, f=self._set_section_labels: f(arg))
+        menu.addAction(section_labels)
 
     def _set_button_labels(self, show_button_labels):
         self.settings.show_button_labels = show_button_labels
         self.ttb.set_show_button_titles(show_button_labels)
 
-    def _set_group_labels(self, show_group_labels):
-        self.settings.show_group_labels = show_group_labels
-        self.ttb.set_show_group_titles(show_group_labels)
+    def _set_section_labels(self, show_section_labels):
+        self.settings.show_section_labels = show_section_labels
+        self.ttb.set_show_section_titles(show_section_labels)
 
     def handle_scheme(self, cmd):
         # First check that the path is a real command
+        if callable(cmd):
+            cmd(self.session)
+            return
         kind, value = cmd.split(':', maxsplit=1)
         if kind == "shortcut":
-            self.session.keyboard_shortcuts.run_shortcut(value)
+            from chimerax.shortcuts import shortcuts
+            shortcuts.keyboard_shortcuts(self.session).run_shortcut(value)
         elif kind == "mouse":
             button_to_bind = 'right'
             from chimerax.core.commands import run
@@ -113,10 +107,16 @@ class ToolbarTool(ToolInstance):
         dir_path = os.path.join(os.path.dirname(__file__), 'icons')
         for tab in _Toolbars:
             help_url, info = _Toolbars[tab]
-            for (section, compact) in info:
-                shortcuts = info[(section, compact)]
-                for what, icon_file, descrip, tooltip in shortcuts:
-                    kind, value = what.split(':', 1)
+            for (section, compact), shortcuts in info.items():
+                if compact:
+                    self.ttb.set_section_compact(tab, section, True)
+                for item in shortcuts:
+                    if len(item) == 4:
+                        (what, icon_file, descrip, tooltip) = item
+                        kw = {}
+                    else:
+                        (what, icon_file, descrip, tooltip, kw) = item
+                    kind, value = what.split(':', 1) if isinstance(what, str) else (None, None)
                     if kind == "mouse":
                         m = self.session.ui.mouse_modes.named_mode(value)
                         if m is None:
@@ -128,29 +128,38 @@ class ToolbarTool(ToolInstance):
                             icon_path = os.path.join(dir_path, icon_file)
                     pm = QPixmap(icon_path)
                     # Toolbutton will scale down, but not up, so give large icons
-                    icon = QIcon(pm.scaledToHeight(128, Qt.SmoothTransformation))
+#                    icon = QIcon(pm.scaledToHeight(128, Qt.SmoothTransformation))
+                    icon = QIcon(pm)
                     if not tooltip:
                         tooltip = descrip
+                    if kind == "mouse":
+                        kw["vr_mode"] = what[6:]   # Allows VR to recognize mouse mode tool buttons
+                    if descrip and not descrip[0].isupper():
+                        descrip = descrip.capitalize()
                     self.ttb.add_button(
-                        tab, section, descrip.capitalize(),
+                        tab, section, descrip,
                         lambda e, what=what, self=self: self.handle_scheme(what),
-                        icon, tooltip, compact)
-        self.ttb.show_category('Home')
+                        icon, tooltip, **kw)
+        self.ttb.show_tab('Home')
 
+def _file_open(session):
+    session.ui.main_window.file_open_cb(session)
+def _file_save(session):
+    session.ui.main_window.file_save_cb(session)
 
 _Toolbars = {
     "Home": (
         None,
         {
             ("File", False): [
-                ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
-                ("cmd:save browse", "content-save.png", "Save", "Save session file"),
+                (_file_open, "open-in-app.png", "Open", "Open data file"),
+                (_file_save, "content-save.png", "Save", "Save session file"),
                 #("cmd:close session", "close-box.png", "Close", "Close current session"),
                 #("cmd:exit", "exit.png", "Exit", "Exit application"),
             ],
             ("Images", False): [
                 ("shortcut:sx", "camera.png", "Snapshot", "Save snapshot to desktop"),
-                ("shortcut:vd", "video.png", "Record spin movie", "Record spin movie"),
+                ("shortcut:vd", "video.png", "Spin movie", "Record spin movie"),
             ],
             ("Atoms", True): [
                 ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
@@ -163,7 +172,7 @@ _Toolbars = {
             ("Styles", False): [
                 ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball and stick", "Display atoms in ball and stick style"),
+                ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
             ],
             ("Background", False): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
@@ -174,15 +183,15 @@ _Toolbars = {
                 ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
                 ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
             ],
+#            ("Undo", True): [
+#                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
+#                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
+#            ],
         },
     ),
     "Molecule Display": (
         "help:user/tools/moldisplay.html",
         {
-            ("Last action", True): [
-                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-            ],
             ("Atoms", True): [
                 ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
                 ("shortcut:ha", "atomhide.png", "Hide", "Hide atoms"),
@@ -198,33 +207,44 @@ _Toolbars = {
             ("Styles", False): [
                 ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball and stick", "Display atoms in ball and stick style"),
+                ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
             ],
             ("Coloring", False): [
                 ("shortcut:ce", "colorbyelement.png", "heteroatom", "Color non-carbon atoms by element"),
                 ("shortcut:cc", "colorbychain.png", "chain", "Color by chain"),
+                ("shortcut:rB", "rainbow.png", "rainbow", 'Rainbow color N to C-terminus'),
+                ("shortcut:bf", "bfactor.png", "b-factor", 'Color by b-factor'),
+                ("shortcut:hp", "hydrophobicity.png", "hydrophobic", 'Color surface by hydrophobicity'),
+            ],
+            ("Analysis", False): [
+                ("shortcut:hb", "hbondsflat.png", "H-bonds", "Show hydrogen bonds"),
+                ("shortcut:HB", "hbondsflathide.png", "Hide H-bonds", "Hide hydrogen bonds"),
+                ("shortcut:sq", "sequence.png", "Sequence", "Show polymer sequence"),
+                ("shortcut:if", "interfaces.png", "Interfaces", "Show chain contacts diagram"),
+            ],
+        },
+    ),
+    "Nucleotides": (
+        None,
+        {
+            ("Styles", False): [
+                ("cmd:nucleotides selAtoms atoms", "nuc-atoms.png", "Plain", "Remove nucleotides styling"),
+                ("cmd:nucleotides selAtoms fill", "nuc-fill.png", "Filled", "Show nucleotides with filled rings"),
+                ("cmd:nucleotides selAtoms slab", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
+                ("cmd:nucleotides selAtoms tube/slab shape box", "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes"),
+                ("cmd:nucleotides selAtoms tube/slab shape ellipsoid", "nuc-elli.png", "Tube/\nEllipsoid", "Show nucleotide bases as ellipsoids and sugars as tubes"),
+                ("cmd:nucleotides selAtoms tube/slab shape muffler", "nuc-muff.png", "Tube/\nMuffler", "Show nucleotide bases as mufflers and sugars as tubes"),
+                ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotides as H-bond ladders"),
+                ("cmd:nucleotides selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
+            ],
+            ("Coloring", False): [
                 ("cmd:color selAtoms bynuc", "nuc-color.png", "nucleotide", "Color by nucleotide"),
-            ],
-            ("Nucleotides", False): [
-                ("cmd:nuc selAtoms atoms; style selAtoms & nucleic ringFill off", "nuc-atoms.png", "Plain", "Remove nucleotide abstraction"),
-                ("cmd:nuc selAtoms atoms; style selAtoms & nucleic ringFill on", "nuc-fill.png", "Filled", "Fill nucleotide rings"),
-                ("cmd:nuc selAtoms slab; style selAtoms & nucleic ringFill on", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
-                ("cmd:nuc selAtoms tube", "nuc-tube.png", "Tube/Slab", "Show nucleotide bases as slabs and sugars as tubes"),
-                ("cmd:nuc selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
-                ("cmd:nuc selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotide h-bond ladders"),
-            ],
-            ("Misc", False): [
-                ("shortcut:hb", "hbonds.png", "Show hydrogen bonds", "Show hydrogen bonds"),
             ],
         },
     ),
     "Graphics": (
         "help:user/tools/graphics.html",
         {
-            #("Last action", True): [
-            #    ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-            #    ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-            #],
             ("Background", True): [
                 ("shortcut:wb", "whitebg.png", "White", "White background"),
                 ("shortcut:gb", "graybg.png", "Gray", "Gray background"),
@@ -235,12 +255,12 @@ _Toolbars = {
                 ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
                 ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
                 ("shortcut:lF", "flat.png", "Flat", "Flat lighting"),
-                ("shortcut:sh", "shadow.png", "Single shadow", "Toggle shadows"),
+                ("shortcut:sh", "shadow.png", "Shadow", "Toggle shadows"),
                 ("shortcut:se", "silhouette.png", "Silhouettes", "Toggle silhouettes"),
             ],
             ("Camera", False): [
                 ("shortcut:va", "viewall.png", "View all", "View all"),
-                ("shortcut:dv", "orient.png", "Default orientation", "Default orientation"),
+                ("shortcut:dv", "orient.png", "Orient", "Default orientation"),
             ],
         }
     ),
@@ -254,7 +274,7 @@ _Toolbars = {
             ("Style", False): [
                 ("shortcut:fl", "mapsurf.png", "surface", "Show map or surface in filled style"),
                 ("shortcut:me", "mesh.png", "mesh", "Show map or surface as mesh"),
-                ("shortcut:gs", "mapimage.png", "solid", "Show map as grayscale"),
+                ("shortcut:gs", "mapimage.png", "image", "Show map as grayscale"),
                 ("shortcut:tt", "icecube.png", "Transparent surface", "Toggle surface transparency"),
                 ("shortcut:ob", "outlinebox.png", "Outline box", "Toggle outline box"),
             ],
@@ -268,11 +288,11 @@ _Toolbars = {
                 ("shortcut:pa", "fullvolume.png", "Full", "Show all planes"),
             ],
             ("Calculations", False): [
-                ("shortcut:fT", "fitmap.png", "Fit in map", "Fit map in map"),
-                ("shortcut:sb", "diffmap.png", "difference map", "Subtract map from map"),
-                ("shortcut:gf", "smooth.png", "Smooth map", "Smooth map"),
+                ("shortcut:fT", "fitmap.png", "Fit", "Fit map in map"),
+                ("shortcut:sb", "diffmap.png", "Subtract", "Subtract map from map"),
+                ("shortcut:gf", "smooth.png", "Smooth", "Smooth map"),
             ],
-            ("Solid Rendering", False): [
+            ("Image Display", False): [
                 ("shortcut:zs", "xyzslice.png", "XYZ slices", "Volume XYZ slices"),
                 ("shortcut:ps", "perpslice.png", "Perpendicular slices", "Volume perpendicular slices"),
                 ("shortcut:aw", "airways.png", "Airways preset", "Airways preset"),
@@ -289,7 +309,6 @@ _Toolbars = {
                 ("mouse:rotate", None, "Rotate", "Rotate models"),
                 ("mouse:translate", None, "Translate", "Translate models"),
                 ("mouse:zoom", None, "Zoom", "Zoom view"),
-                ("mouse:rotate and select", None, "Rotate and select", "Select and rotate models"),
                 ("mouse:translate selected models", None, "Translate Selected", "Translate selected models"),
                 ("mouse:rotate selected models", None, "Rotate Selected", "Rotate selected models"),
                 ("mouse:pivot", None, "Pivot", "Set center of rotation at atom"),
@@ -309,6 +328,8 @@ _Toolbars = {
                 ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
                 ("mouse:place marker", None, "Place marker", None),
+                ("mouse:pick blobs", None, "Blob", "Measure and color connected parts of surface"),
+                ("mouse:map eraser", None, "Erase", "Erase parts of a density map setting values in a sphere to zero"),
                 ("mouse:play map series", None, "Play series", "Play map series"),
                 ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
             ],

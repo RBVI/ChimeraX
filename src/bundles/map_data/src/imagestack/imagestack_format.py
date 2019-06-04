@@ -28,7 +28,7 @@ class Image_Stack_Data:
         raise SyntaxError('No files found %s' % path)
     self.paths = tuple(paths)
 
-    self.is_tiff = len([p for p in self.paths if p.endswith('.tif')]) == len(self.paths)
+    self.is_tiff = len([p for p in self.paths if p.endswith('.tif') or p.endswith('.tiff')]) == len(self.paths)
 
     if self.is_tiff:
       # For TIFF images use tifffile.py
@@ -67,7 +67,6 @@ class Image_Stack_Data:
 
     self.value_type = value_type
     self.is_rgb = is_rgb
-    self.channel = 0
     self.is_multipage = is_multipage
     self.data_size = (xsize, ysize, zsize)
     self.data_step = (1.0, 1.0, 1.0)
@@ -89,6 +88,11 @@ class Image_Stack_Data:
     else:
       from tifffile import imread
       a = imread([self.paths[k] for k in klist])
+    if self.is_rgb and channel is not None:
+      if a.ndim == 4:
+        a = a[:,:,:,channel]
+      elif a.ndim == 3:
+        a = a[:,:,channel]
     if a.ndim == 2:
       a = a.reshape((1,) + tuple(a.shape))	# Make single-plane 3d
     array = a[:, j0:j0+jsz:jstep,i0:i0+isz:istep]
@@ -159,7 +163,7 @@ def is_3d_image(path):
     from PIL import Image
     i = Image.open(path)
     is_3d = image_count(i, max = 2) > 1
-    return is_3d
+  return is_3d
 
 # -----------------------------------------------------------------------------
 # Count images in a possibly multi-page PIL image.

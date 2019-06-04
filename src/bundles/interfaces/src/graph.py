@@ -31,6 +31,7 @@ class Plot(ToolInstance):
 
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
         self.canvas = c = Canvas(f)
+        parent.setMinimumHeight(1)  # Matplotlib gives divide by zero error when plot resized to 0 height.
         c.setParent(parent)
 
         from PyQt5.QtWidgets import QHBoxLayout
@@ -65,41 +66,40 @@ class Plot(ToolInstance):
         '''
         self.axes.set_aspect('equal', adjustable='datalim')
 
-    def _mouse_press_pan(self, event):
-        b = event.button()
-        from PyQt5.QtCore import Qt
-        if b == Qt.LeftButton or b == Qt.MiddleButton:
-            # Initiate pan and zoom for left click on background
-            h = self.tool_window.ui_area.height()
-            x, y = event.x(), h-event.y()
-            self.axes.start_pan(x, y, button = 1)
-            self._pan = False
+    def move(self, delta_x, delta_y):
+        '''Move plot objects by delta values in window pixels.'''
+        win = self.tool_window.ui_area
+        w,h = win.width(), win.height()
+        if w == 0 or h == 0:
+            return
+        a = self.axes
+        x0, x1 = a.get_xlim()
+        xs = delta_x/w * (x1-x0)
+        nx0, nx1 = x0-xs, x1-xs
+        y0, y1 = a.get_ylim()
+        ys = delta_y/h * (y1-y0)
+        ny0, ny1 = y0-ys, y1-ys
+        a.set_xlim(nx0, nx1)
+        a.set_ylim(ny0, ny1)
+        self.canvas.draw()
 
-    def _mouse_move_pan(self, event):
-        if self._pan is not None:
-            from PyQt5.QtCore import Qt
-            if event.modifiers() & Qt.ShiftModifier:
-                # Zoom preserving aspect ratio
-                button = 3
-                key = 'control'
-            else:
-                # Pan in x and y
-                button = 1
-                key = None
-            h = self.tool_window.ui_area.height()
-            x, y = event.x(), h-event.y()
-            self.axes.drag_pan(button, key, x, y)
-            self._pan = True
-            self.canvas.draw()
-    
-    def _mouse_release_pan(self, event):
-        if self._pan is not None:
-            self.axes.end_pan()
-            did_pan = self._pan
-            self._pan = None
-            if did_pan:
-                return True
-        return False
+    def zoom(self, factor):
+        '''
+        Zoom plot objects by specified factor by changing
+        the displayed limits of the plot.  Objects do not change size.
+        '''
+        a = self.axes
+        x0, x1 = a.get_xlim()
+        xmid, xsize = 0.5*(x0+x1), x1-x0
+        xh = 0.5*xsize/factor
+        nx0, nx1 = xmid-xh, xmid+xh
+        y0, y1 = a.get_ylim()
+        ymid, ysize = 0.5*(y0+y1), y1-y0
+        yh = 0.5*ysize/factor
+        ny0, ny1 = ymid-yh, ymid+yh
+        a.set_xlim(nx0, nx1)
+        a.set_ylim(ny0, ny1)
+        self.canvas.draw()
 
     def matplotlib_mouse_event(self, x, y):
         '''Used for detecting clicked matplotlib canvas item using Artist.contains().'''
@@ -114,7 +114,13 @@ class Plot(ToolInstance):
 # ------------------------------------------------------------------------------
 #
 class Graph(Plot):
-    '''Show a graph of labeled nodes and edges.'''
+    '''
+    Show a graph of labeled nodes and edges.
+    Left mouse click shows context menu.
+    Ctrl-left or ctrl-right click calls mouse_click() method on object.
+    Scroll zooms the plot.
+    Middle and right mouse drags move the plotted objects.
+    '''
     
     def __init__(self, session, nodes, edges, tool_name, title):
 
@@ -143,6 +149,12 @@ class Graph(Plot):
         c.mousePressEvent = self._mouse_press
         c.mouseMoveEvent = self._mouse_move
         c.mouseReleaseEvent = self._mouse_release
+        c.wheelEvent = self._wheel_event
+        c.contextMenuEvent = lambda event: None		# Don't show context menu on right click.
+        self._last_mouse_xy = None
+        self._dragged = False
+        self._min_drag = 10	# pixels
+        self._drag_mode = None
 
     def _make_graph(self):
         import networkx as nx
@@ -276,25 +288,68 @@ class Graph(Plot):
         self._labels = labels	# Dictionary mapping node to matplotlib Text objects.
             
     def _mouse_press(self, event):
+        self._last_mouse_xy = (event.x(), event.y())
+        self._dragged = False
         b = event.button()
         from PyQt5.QtCore import Qt
-        if (b == Qt.MiddleButton or	# pan
-            (b == Qt.LeftButton and event.modifiers() & Qt.ShiftModifier) or # zoom
-            self._clicked_item(event.x(), event.y()) is None): # pan on background click
-            self._mouse_press_pan(event)
+        if b == Qt.LeftButton:
+            if self.is_ctrl_key_pressed(event):
+                drag_mode = 'select'	# Click on object.
+            elif self.is_alt_key_pressed(event) or self.is_command_key_pressed(event):
+                drag_mode = 'translate'
+            else:
+                self.tool_window._show_context_menu(event)
+                drag_mode = 'menu'
+        elif b == Qt.MiddleButton:
+            drag_mode = 'translate'
+        elif b == Qt.RightButton:
+            if self.is_ctrl_key_pressed(event):
+                drag_mode = 'select'	# Click on object (same as ctrl-left)
+            else:
+                drag_mode = 'translate'
+        else:
+            drag_mode = None
 
+        self._drag_mode = drag_mode
+        
     def _mouse_move(self, event):
-        self._mouse_move_pan(event)
+        if self._last_mouse_xy is None:
+            self._mouse_press(event)
+            return 	# Did not get mouse down
+
+        x, y = event.x(), event.y()
+        lx, ly = self._last_mouse_xy
+        dx, dy = x-lx, y-ly
+        if abs(dx) < self._min_drag and abs(dy) < self._min_drag:
+            return
+        self._last_mouse_xy = (x,y)
+        self._dragged = True
+
+        mode = self._drag_mode
+        if mode == 'zoom':
+            # Zoom
+            h = self.tool_window.ui_area.height()
+            from math import exp
+            factor = exp(3*dy/h)
+            self.zoom(factor)
+        elif mode == 'translate':
+            # Translate plot
+            self.move(dx, -dy)
     
     def _mouse_release(self, event):
-        if self._mouse_release_pan(event):
-            return
+        if not self._dragged and self._drag_mode == 'select':
+            item = self._clicked_item(event.x(), event.y())
+            self.mouse_click(item, event)
 
-        from PyQt5.QtCore import Qt
-        if event.button() != Qt.LeftButton:
-            return	# Only handle left button.  Right button will post menu.
-        item = self._clicked_item(event.x(), event.y())
-        self.mouse_click(item, event)
+        self._last_mouse_xy = None
+        self._dragged = False
+        self._drag_mode = None
+        
+    def _wheel_event(self, event):
+        delta = event.angleDelta().y()  # Typically 120 per wheel click, positive down.
+        from math import exp
+        factor = exp(delta / 1200)
+        self.zoom(factor)
 
     def mouse_click(self, node_or_edge, event):
         pass
@@ -302,6 +357,22 @@ class Graph(Plot):
     def is_alt_key_pressed(self, event):
         from PyQt5.QtCore import Qt
         return event.modifiers() & Qt.AltModifier
+
+    def is_command_key_pressed(self, event):
+        from PyQt5.QtCore import Qt
+        import sys
+        if sys.platform == 'darwin':
+            # Mac command-key gives Qt control modifier.
+            return event.modifiers() & Qt.ControlModifier
+        return False
+
+    def is_ctrl_key_pressed(self, event):
+        from PyQt5.QtCore import Qt
+        import sys
+        if sys.platform == 'darwin':
+            # Mac ctrl-key gives Qt meta modifier and Mac Command key gives Qt ctrl modifier.
+            return event.modifiers() & Qt.MetaModifier
+        return event.modifiers() & Qt.ControlModifier
 
     def _clicked_item(self, x, y):
         # Check for node click

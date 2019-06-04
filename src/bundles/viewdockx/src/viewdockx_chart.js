@@ -46,11 +46,19 @@ var vdxchart = function() {
             .append($("<col/>"), $("<col/>"), $("<col/>"),
                     $("<col/>"), $("<col/>"))
             .append($("<tr/>").append(
-                $("<th>/>").text("Sort").css("text-align", "center"),
-                $("<th>/>").text("Graph").css("text-align", "center"),
-                $("<th>/>").text("Hist").css("text-align", "center"),
-                $("<th>/>").text("Column"),
-                $("<th>/>").text("Value")));
+                $("<th/>", {"class":"column_sort",
+                            "title":"Sort"})
+                    .text("S").css("text-align", "center"),
+                $("<th/>", {"class":"column_graph",
+                            "title":"Show graph"})
+                    .text("G").css("text-align", "center"),
+                $("<th/>", {"class":"column_hist",
+                            "title":"Show histogram"})
+                    .text("H").css("text-align", "center"),
+                $("<th/>", {"class":"column_name"})
+                    .text("Column"),
+                $("<th/>", {"class":"column_value"})
+                    .text("Value")));
         $.each(columns["text"], function(r, v) {
             $("#column_table").append($("<tr/>").append(
                                         $("<td/>"),

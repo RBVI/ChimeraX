@@ -11,7 +11,7 @@
 
 import threading
 class WorkThread(threading.Thread):
-    """Compute a molecular surface"""
+    """Run a function in a thread."""
     def __init__(self, function, in_queue = None, out_queue = None):
         threading.Thread.__init__(self)
         self.function = function

@@ -60,6 +60,7 @@
     <ChimeraXClassifier>DataFormat :: CCP4 density map :: ccp4 :: Volume data :: .map :: :: http://www.ccpem.ac.uk/mrc_format/mrc2014.php :: :: :: Microscopy density map</ChimeraXClassifier>
     <ChimeraXClassifier>Open :: CCP4 density map :: ::</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume :: Volume data :: control volume data display</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: vop :: Volume data :: filter volume data</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure mapstats :: Volume data :: report map statistics</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Volume Viewer :: Volume Data :: Show density maps info</ChimeraXClassifier>

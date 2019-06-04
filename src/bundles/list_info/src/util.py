@@ -174,10 +174,10 @@ def volume_info(m):
     step = ('step %d' % s0) if s1 == s0 and s2 == s0 else 'step %d,%d,%d' % (s0,s1,s2)
     sx,sy,sz = m.data.step
     vsize = ('voxel size %.5g' % sx) if sx == sy and sy == sz else ('voxel size %.5g,%.5g,%.5g' % (sx,sy,sz))
-    if m.representation == 'surface':
+    if m.surface_shown:
         level = 'level ' + ', '.join(('%.4g' % s.level for s in m.surfaces))
     else:
-        level = 'level/intensity ' + ', '.join(('%.4g (%.2f)' % tuple(l) for l in m.solid_levels))
+        level = 'level/intensity ' + ', '.join(('%.4g (%.2f)' % tuple(l) for l in m.image_levels))
     line = ' %s, %s, %s, %s' % (size, step, vsize, level)
     ms = m.matrix_value_statistics()
     line += ', value range %.5g - %.5g' % (ms.minimum, ms.maximum)

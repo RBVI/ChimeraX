@@ -22,7 +22,7 @@ class MultitouchTrackpad:
         self._view = session.main_view
         self._recent_touches = []	# List of Touch instances
         self._last_touch_locations = {}	# Map touch id -> (x,y)
-        from chimerax.core.core_settings import settings
+        from .settings import settings
         self.trackpad_speed = settings.trackpad_sensitivity   	# Trackpad position sensitivity
         # macOS trackpad units are in points (1/72 inch).
         cm_tpu = 72/2.54		# Convert centimeters to trackpad units.
@@ -36,7 +36,7 @@ class MultitouchTrackpad:
     def set_graphics_window(self, graphics_window):
         graphics_window.touchEvent = self._touch_event
         self._enable_touch_events(graphics_window)
-        from chimerax.core.core_settings import settings
+        from .settings import settings
         self.enable_multitouch(settings.trackpad_multitouch)
 
     def enable_multitouch(self, enable):

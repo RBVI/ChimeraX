@@ -168,9 +168,9 @@ Manipulation in VR</h3>
 In virtual reality, the hand controllers are used to click icons and move models.
 There is currently no virtual keyboard in VR for typing commands.
 </p><p>
-Show the <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-of icons that act on volume models 
-(menu: <b>Tools... Toolbar... Density Map Toolbar</b>).
+The icon <a href="../tools/toolbar.html"><b>Toolbar</b></a> across
+the top of the ChimeraX window is organized into several tabs. Icons in the
+<a href="../tools/densitymaps.html"><b>Map</b></a> tab act on volume models:
 <br><img class="iconbar" src="../density-icons.png">
 </p>
 <table class="clRight" cellspacing="0">
@@ -184,13 +184,9 @@ alt="Vive hand controllers" width="300px"></a>
 </font></td></tr>
 </table>
 <p>
-The <a href="../tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
-toolbar should already be shown:
+Icons in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
+assign functions or &ldquo;modes&rdquo; to hand-controller buttons:
 <br><img class="iconbar" src="../mouse-icons.png">
-</p><p>
-Hide sets of icons not needed for this tutorial
-(in menu: <b>Tools... Toolbar</b>, uncheck <b>Graphics Toolbar</b> and
-<b>Molecule Display Toolbar</b>).
 </p>
 <table class="clRight" cellspacing="0">
 <tr><td>
@@ -293,10 +289,12 @@ Rendering <a href="#planes">planes</a> or a
 <a href="#cropping">cropped</a> volume is faster than 
 rendering the full volume. Another way to decrease computational demands
 is to subsample the data; clicking 
-&nbsp;<img class="icon" border=1 src="../tools/shortcut-icons/step2.png">&nbsp;
+&nbsp;<a href="../tools/densitymaps.html"><img class="icon" 
+border=1 src="../tools/shortcut-icons/step2.png"></a>&nbsp;
 changes to step 2 (using half as many points in each dimension),
-whereas clicking &nbsp;<img class="icon" border=1 
-src="../tools/shortcut-icons/step1.png">&nbsp; returns to full resolution.
+whereas clicking &nbsp;<a href="../tools/densitymaps.html"><img class="icon" 
+border=1 src="../tools/shortcut-icons/step1.png"></a>&nbsp;
+returns to full resolution.
 Step size may increase automatically when the amount of data displayed
 increases, but it can still be adjusted manually. 
 </td>
@@ -312,12 +310,13 @@ icon bars. In VR, it can be moved around with the
 <blockquote>
 <table cellpadding="10px"><tr>
 <td class="shaded">
-A <a href="../tools/densitymaps.html"><b>Density Map</b></a> icon
+A <a href="../tools/densitymaps.html"><b>Map</b></a> icon
 can be clicked with any controller button 
 (<b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b>)
 to give the same result.
 <br><br>
-Clicking a <a href="../tools/mousemodes.html"><b>Mouse Modes</b></a> icon
+Clicking a <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icon
+(<b><i>mode</i></b> icon)
 with a <b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b>
 button assigns <b><i>whichever button was clicked</i></b> 
 to the corresponding function. 
@@ -333,10 +332,11 @@ zooming) is recommended, but up to four other functions can be assigned,
 to the <b><i>grip</i></b> and <b><i>trackpad</i></b> on each controller.
 If a <b><i>trigger</i></b> is accidentally reassigned, using it to click 
 either the <b>rotate</b>
-&nbsp;<img class="icon" border=1 src="../tools/mouse-icons/rotate.png">&nbsp;
+&nbsp;<img class="icon" src="../tools/mouse-icons/rotate.png">&nbsp;
 or <b>translate</b>
-&nbsp;<img class="icon" border=1 src="../tools/mouse-icons/translate.png">&nbsp;
-mode icon returns it to the default behavior.
+&nbsp;<img class="icon" src="../tools/mouse-icons/translate.png">&nbsp;
+<a href="../tools/mousemodes.html">mode icon</a>
+returns it to the default behavior.
 </p>
 
 <a name="planes"></a>
@@ -346,8 +346,9 @@ Viewing Planes</h3>
 A single Z-plane is displayed. To view different planes along Z:
 </p>
 <ul>
-<li>Click the <b>move planes</b> mode icon
-<img class="icon3" border=1 src="../tools/mouse-icons/moveplanes.png">
+<li>Click the <a href="../tools/mousemodes.html">mode icon</a> 
+<img class="icon3" src="../tools/mouse-icons/moveplanes.png">
+(<b>move planes</b>)
 with the <b><i>trackpad</i></b> button on one of the controllers.
 <br><br>
 <li>With the same <b><i>trackpad</i></b> button, click the plane and drag 
@@ -358,10 +359,10 @@ To view planes along X, Y, or Z:
 </p>
 <ul>
 <li>Click
-<img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
+<img class="icon3" src="../tools/shortcut-icons/fullvolume.png">
 to show the full volume.
 Although you could return to Z-planes by clicking 
-<img class="icon" border=1 src="../tools/shortcut-icons/plane.png">,
+<img class="icon" src="../tools/shortcut-icons/plane.png">,
 the following method works for all three axes.
 <br><br>
 <li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
@@ -387,7 +388,7 @@ To view planes along X, Y, and Z at the same time:
 </p>
 <ul>
 <li>Click
-<img class="icon3" border=1 src="../tools/shortcut-icons/orthoplanes.png">
+<img class="icon3" src="../tools/shortcut-icons/orthoplanes.png">
 to view &ldquo;orthoplanes.&rdquo;
 <br><br>
 <li>Now the same <b><i>trackpad</i></b> button
@@ -404,13 +405,13 @@ distract from a region of interest.
 </p>
 <ul>
 <li>Click
-<img class="icon3" border=1 src="../tools/shortcut-icons/fullvolume.png">
+<img class="icon3" src="../tools/shortcut-icons/fullvolume.png">
 to return to the full volume.
 <br><br>
-<li>Click &nbsp;<img class="icon3" border=1 
+<li>Click &nbsp;<img class="icon3" 
 src="../tools/shortcut-icons/step1.png">&nbsp; to use step 1, full resolution.
 <br><br>
-<li>Click <img class="icon3" border=1 src="../tools/shortcut-icons/airways.png">
+<li>Click <img class="icon3" src="../tools/shortcut-icons/airways.png">
 to apply the &ldquo;Airways II&rdquo; 3D preset (threshold settings) 
 for viewing lung tissue.
 </ul>
@@ -422,7 +423,7 @@ visualization and analysis. Several are available from the command line,
 but only &ldquo;Airways II&rdquo; is currently available as an icon.
 If you later go back to viewing planes or thin slabs,
 it may be helpful to restore the initial thresholds by clicking
-<img class="icon3" border=1 src="../tools/shortcut-icons/initialcurve.png">.
+<img class="icon3" src="../tools/shortcut-icons/initialcurve.png">.
 </p>
 
 <table class="clRight" cellspacing="0">
@@ -437,9 +438,9 @@ VR scene during cropping.
 </table>
 
 <ul>
-<li>Click the <b>crop volume</b> mode icon
-<img class="icon3" border=1 src="../tools/mouse-icons/crop.png">
-with the <b><i>trackpad</i></b> on one of the controllers.
+<li>Click the <a href="../tools/mousemodes.html">mode icon</a>
+<img class="icon3" src="../tools/mouse-icons/crop.png">
+(<b>crop volume</b>) with the <b><i>trackpad</i></b> on one of the controllers.
 <br><br>
 <li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
 click and drag any face of the box with the same <b><i>trackpad</i></b> 
@@ -450,7 +451,7 @@ You can click any box face and drag in either direction
 This automatically shows an outline box.
 <br><br>
 <li>Clicking
-<img class="icon3" border=1 src="../tools/shortcut-icons/outlinebox.png">
+<img class="icon3" src="../tools/shortcut-icons/outlinebox.png">
 toggles the outline box on and off. 
 </ul>
 <p>
@@ -462,8 +463,9 @@ Similar to planes, you can move a slab along X, Y, or Z:
 <br><br>
 <li>Now reassign the <b><i>trackpad</i></b> 
 (or assign the <b><i>trackpad</i></b> of the other hand controller) 
-by clicking it on the <b>move planes</b> mode icon
-<img class="icon3" border=1 src="../tools/mouse-icons/moveplanes.png">.
+clicking it on the <a href="../tools/mousemodes.html">mode icon</a>
+<img class="icon3" src="../tools/mouse-icons/moveplanes.png">
+(<b>move planes</b>).
 <br><br>
 <li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
 click with the same <b><i>trackpad</i></b> button on the slab face and
@@ -490,8 +492,8 @@ it may help to first pierce the panel, then draw back slightly.
 <li>Collectively with a mouse mode:
 <br>
   <ul>
-  <li>Click the <b>windowing</b> mode icon
-  <img class="icon3" border=1 src="../tools/mouse-icons/windowing.png">
+  <li>Click the <a href="../tools/mousemodes.html">mode icon</a> for
+  <b>windowing</b> <img class="icon3" src="../tools/mouse-icons/windowing.png">
   with the <b><i>trackpad</i></b> on one of the controllers.
   <br><br>
   <li>See what happens to the volume display as you move that controller with
@@ -508,12 +510,12 @@ is released.
 </ul>
 <p> 
 If you want to return to the &ldquo;Airways II&rdquo; threshold settings, click 
-<img class="icon3" border=1 src="../tools/shortcut-icons/airways.png">.
+<img class="icon3" src="../tools/shortcut-icons/airways.png">.
 For settings better suited to planes or thin slabs, click
-<img class="icon3" border=1 src="../tools/shortcut-icons/initialcurve.png">.
+<img class="icon3" src="../tools/shortcut-icons/initialcurve.png">.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2019</address>
+May 2019</address>
 </body></html>

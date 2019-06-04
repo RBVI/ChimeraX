@@ -111,7 +111,7 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
     def value(self):
         self._sleep_check()
         values = [self.item_map[si.text()] for si in self.selectedItems()]
-        if self.selectionMode() == 'single':
+        if self.selectionMode() == self.SingleSelection:
             return values[0] if values else None
         return values
 
@@ -120,10 +120,13 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         self._sleep_check()
         if self.value == val:
             return
-        self.blockSignals(True)
+        preblocked = self.signalsBlocked()
+        if not preblocked:
+            self.blockSignals(True)
         self.clearSelection()
         self._select_value(val)
-        self.blockSignals(False)
+        if not preblocked:
+            self.blockSignals(False)
         self.itemSelectionChanged.emit()
 
     def _items_change(self, *args):
@@ -131,17 +134,19 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         if not hasattr(self, '_recursion'):
             self._recursion = True
             del_recursion = True
-        prev_value = self.value
         sel = [si.text() for si in self.selectedItems()]
+        prev_value = self.value
         item_names = self._item_names()
         filtered_sel = [s for s in sel if s in item_names]
         if self.autoselect and not filtered_sel:
             if (self.autoselect == "single" and len(item_names) == 1) or self.autoselect == "all":
                 filtered_sel = item_names
-        self.blockSignals(True)
+        preblocked = self.signalsBlocked()
+        if not preblocked:
+            self.blockSignals(True)
         self.clear()
         self.addItems(item_names)
-        if self.selectionMode() == 'single':
+        if self.selectionMode() == self.SingleSelection:
             if filtered_sel:
                 next_value = self.item_map[filtered_sel[0]]
             else:
@@ -150,15 +155,22 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
             next_value = [self.item_map[fs] for fs in filtered_sel]
         if prev_value == next_value:
             self._select_value(next_value)
-            self.blockSignals(False)
+            if not preblocked:
+                self.blockSignals(False)
         else:
-            self.blockSignals(False)
+            if not preblocked:
+                self.blockSignals(False)
             self.value = next_value
+            # if items were deleted, then the current selection could be empty when the previous
+            # one was not, but the test in the value setter will think the value is unchanged
+            # and not emit the changed signal, so check for that here
+            if len(sel) > 0 and not next_value:
+                self.itemSelectionChanged.emit()
         if del_recursion:
             delattr(self, '_recursion')
 
     def _select_value(self, val):
-        if self.selectionMode() == 'single':
+        if self.selectionMode() == self.SingleSelection:
             if val is None:
                 val_names = set()
             else:
@@ -214,10 +226,11 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
     value_changed = pyqtSignal()
 
     def __init__(self, autoselect_single_item=True, balloon_help=None, no_value_button_text="No item chosen",
-            no_value_menu_text=None, **kw):
+            no_value_menu_text=None, special_items=[], **kw):
         self._autoselect_single = autoselect_single_item
         self._no_value_menu_text = no_value_menu_text
         self._no_value_button_text = no_value_button_text
+        self._special_items = special_items
         super().__init__(**kw)
         self.menu().triggered.connect(self._sel_change)
         if balloon_help:
@@ -234,20 +247,30 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
         text = self.text()
         if text == self._no_value_button_text or not hasattr(self, 'item_map') or not text:
             return None
+        if self._special_items:
+            try:
+                return self._special_items[[str(si) for si in self._special_items].index(text)]
+            except ValueError:
+                pass
         return self.item_map[text]
 
     @value.setter
     def value(self, val):
         self._sleep_check()
-        if self.value == val:
+        # if value is being set to None, it may not be safe to call 'self.value', so handle that
+        if (val is None and self.text() in [self._no_value_button_text, ""]) \
+        or (val is not None and self.value == val):
             if val is None and not self.text():
                 self.setText(self._no_value_button_text)
             return
         if val is None or not self.value_map:
             self.setText(self._no_value_button_text)
+        elif val in self._special_items:
+            self.setText(str(val))
         else:
             self.setText(self.value_map[val])
-        self.value_changed.emit()
+        if not self.signalsBlocked():
+            self.value_changed.emit()
 
     def _items_change(self, *args):
         del_recursion = False
@@ -256,15 +279,22 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             del_recursion = True
         prev_value = self.value
         item_names = self._item_names()
+        special_names = []
         if self._no_value_menu_text is not None:
-            item_names = [self._no_value_menu_text] + item_names
+            special_names.append(self._no_value_menu_text)
+        if self._special_items:
+            special_names.extend([str(si) for si in self._special_items])
         menu = self.menu()
         menu.clear()
+        if special_names:
+            for special_name in special_names:
+                menu.addAction(special_name)
+            menu.addSeparator()
         for item_name in item_names:
             menu.addAction(item_name)
         if prev_value not in self.value_map:
-            if len(self.value_map) == 1 and self._autoselect_single:
-                self.value = list(self.value_map.keys())[0]
+            if len(self.value_map) + len(self._special_items) == 1 and self._autoselect_single:
+                self.value = (list(self.value_map.keys()) + self._special_items)[0]
             else:
                 self.value = None
 
@@ -275,7 +305,8 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             next_text = action.text()
         if self.text() != next_text:
             self.setText(next_text)
-            self.value_changed.emit()
+            if not self.signalsBlocked():
+                self.value_changed.emit()
 
 class ModelMenuButton(ItemMenuButton):
     """Maintain a popup menu of models

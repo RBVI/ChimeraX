@@ -3,40 +3,44 @@
 <head>
   <meta charset="utf-8">
    <base href="URLBASE" />
-   <link rel="stylesheet" type="text/css" href="lib/rateyo/jquery.rateyo.min.css">
-   <link rel="stylesheet" type="text/css" href="lib/jquery.multiselect.css">
+   <link rel="stylesheet" type="text/css" href="/chimerax/ui/html/css/bootstrap-3.3.7.css">
+   <link rel="stylesheet" type="text/css" href="/chimerax/ui/html/css/bootgrid-1.3.1.min.css">
+   <link rel="stylesheet" type="text/css" href="lib/star-rating.min.css">
    <link rel="stylesheet" type="text/css" href="viewdockx_table.css">
-   <script src="lib/jquery-3.2.1.min.js"></script>
-   <script src="lib/jquery.tablesorter.combined.js"></script>
-   <script src="lib/jquery.multiselect.js"></script>
-   <script src="lib/rateyo/jquery.rateyo.min.js"></script>
+   <script src="/chimerax/ui/html/js/jquery-3.3.1.min.js"></script>
+   <script src="/chimerax/ui/html/js/bootstrap-3.3.7.js"></script>
+   <script src="/chimerax/ui/html/js/bootgrid-1.3.1.min.js"></script>
+   <script src="lib/star-rating.min.js"></script>
    <script src="viewdockx_table.js"></script>
 </head>
 
 <body>
-  <div id="full">
-    <div id="control">
-      <div>
-	<span id="prune">
-	  <input type="button" id="prune_btn" value="Close"/>
-	  structures &le; <div id="prune_stars"></div>
-	</span>
-	<input type="button" id="show_all_btn" value="Show All Structures"/>
-	<input type="button" id="graph_btn" value="Graph"/>
-	<input type="button" id="plot_btn" value="Plot"/>
-	<input type="button" id="hb_btn" value="Add HBonds"/>
-	<input type="button" id="clash_btn" value="Add Clashes"/>
-	<input type="button" id="export_btn" value="Save..."/>
+  <div id="controls" class="container-fluid">
+    <div class="row">
+      <div class="col-sm-9">
+	<button type="button" class="btn btn-default" id="graph_btn">
+	  Graph</button>
+	<button type="button" class="btn btn-default" id="plot_btn">
+	  Plot</button>
+	<button type="button" class="btn btn-default" id="hb_btn">
+	  Add HBonds</button>
+	<button type="button" class="btn btn-default" id="clash_btn">
+	  Add Clashes</button>
+	<button type="button" class="btn btn-default" id="export_btn">
+	  Save...</button>
       </div>
-      <div>
-	<select id="show_columns" multiple>
-	  <option value="">Columns...</option>
-	</select>
+      <div class="col-sm-3">
+	<button type="button" id="prune_btn" class="btn btn-warning">
+	  Close</button>
+	structures &le;
+	<div class="inline-div">
+	  <input id="prune_stars" type="number"/>
+	</div>
       </div>
     </div>
-    <div id="data">
-      <table id="viewdockx_table" class="tablesorter"/>
-    </div>
+  </div>
+  <div id="data" class="container-fluid table-responsive">
+    <table id="viewdockx_table"/>
   </div>
 </body>
 </html>

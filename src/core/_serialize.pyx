@@ -39,6 +39,18 @@ MSGPACK_MAX_LEN = 2 ** 32 - 1
 #
 # Encoding and decoding msgpack extension types using in serialization
 
+PRIMITIVE_TYPES = frozenset((
+    # supported types natively by msgpack
+    bool, int, float, bytes, bytearray, unicode, dict, list, memoryview, type(None),
+    # additionally supported types
+    complex, tuple, range, _UniqueName,
+    numpy.ndarray, numpy.number, numpy.bool_, numpy.bool8,
+    set, frozenset, deque, OrderedDict,
+    datetime, timedelta, timezone,
+    Image.Image, FinalizedState,
+    ndarray_int, ndarray_float, ndarray_complex,
+))
+
 
 cdef string _encode_unique_name(object un):
     # Return byte representation for serialization
@@ -233,6 +245,8 @@ cdef object _encode_ext(object obj):
         return ExtType(13, _pack_as_array(obj.__getinitargs__()))
     if isinstance(obj, (ndarray_int, ndarray_float, ndarray_complex)):
         return ExtType(14, _pack_as_array(obj.__reduce__()[1]))
+    if isinstance(obj, range):
+        return ExtType(15, _pack_as_array(obj.__reduce__()[1]))
 
     raise RuntimeError("Can't convert object of type: %s" % type(obj))
 
@@ -292,6 +306,8 @@ cdef object _decode_ext(int n, bytes buf):
         return timezone(*_decode_bytes_as_tuple(buf))
     elif n == 14:
         return _decode_tinyarray(_decode_bytes(buf))
+    elif n == 15:
+        return range(*_decode_bytes_as_tuple(buf))
     else:
         raise RuntimeError("Unknown extension type: %d" % n)
 

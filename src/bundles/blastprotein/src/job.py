@@ -24,7 +24,7 @@ class CCDJob(OpalJob):
 
     def on_finish(self):
         self.session.logger.info("Standard output:\n" +
-                                 self.get_file("stdout.txt").decode("utf-8"))
+                                 self.get_file("stdout.txt"))
 
 
 class BlastProteinJob(OpalJob):
@@ -34,21 +34,21 @@ class BlastProteinJob(OpalJob):
     RESULTS_FILENAME = "results.txt"
 
     def __init__(self, session, seq, atomspec, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", max_hits=500, log=None, tool=None):
+                 matrix="BLOSUM62", max_seqs=500, log=None, tool=None):
         super().__init__(session)
         self.seq = seq                          # string
         self.atomspec = atomspec                # string (atom specifier)
         self.database = database                # string
         self.cutoff = cutoff                    # float
         self.matrix = matrix                    # string
-        self.max_hits = max_hits                # int
+        self.max_seqs = max_seqs                # int
         self.log = log
         self.tool = tool
 
         options = ["-d", self.database,
                    "-e", str(self.cutoff),
                    "-M", self.matrix,
-                   "-b", str(self.max_hits),
+                   "-b", str(self.max_seqs),
                    "-i", self.QUERY_FILENAME,
                    "-o", self.RESULTS_FILENAME]
         cmd = ' '.join(options)
@@ -63,22 +63,32 @@ class BlastProteinJob(OpalJob):
             data.append("%s\n" % seq[i:i+block_size])
         return ''.join(data)
 
+    def _params(self):
+        # Keys must match HTML element ids
+        return [
+            ( "chain", self.atomspec ),
+            ( "database", self.database ),
+            ( "cutoff", self.cutoff ),
+            ( "maxSeqs", self.max_seqs ),
+            ( "matrix", self.matrix ),
+        ]
+
     def on_finish(self):
         logger = self.session.logger
         logger.info("BlastProtein finished.")
         out = self.get_file("stdout.txt")
         if out:
-            logger.error("Standard output:\n" + out.decode("utf-8"))
+            logger.error("Standard output:\n" + out)
         if not self.exited_normally():
             err = self.get_file("stderr.txt")
             if self.tool:
                 self.tool.job_failed(self, err)
             else:
                 if err:
-                    logger.bug("Standard error:\n" + err.decode("utf-8"))
+                    logger.bug("Standard error:\n" + err)
         else:
             from .blastp_parser import Parser
-            results = self.get_file(self.RESULTS_FILENAME).decode("utf-8")
+            results = self.get_file(self.RESULTS_FILENAME)
             try:
                 p = Parser("query", self.seq, results)
             except ValueError as e:
@@ -88,18 +98,20 @@ class BlastProteinJob(OpalJob):
                     logger.bug("BLAST output parsing error: %s" % str(e))
             else:
                 if self.tool:
-                    self.tool.job_finished(self, p)
+                    self.tool.job_finished(self, p, self._params())
                 else:
                     if self.session.ui.is_gui:
                         from .tool import ToolUI
                         ToolUI(self.session, "BlastProtein",
-                               blast_results=p, atomspec=self.atomspec)
-                    if self.log or (self.log is None and
-                                    not self.session.ui.is_gui):
-                        msgs = ["BLAST results:"]
-                        for m in p.matches:
-                            name = m.pdb if m.pdb else m.name
-                            msgs.append('\t'.join([name, "%.1e" % m.evalue,
-                                                   str(m.score),
-                                                   m.description]))
-                        logger.info('\n'.join(msgs))
+                               blast_results=p, params=self._params())
+                if self.log or (self.log is None and
+                                not self.session.ui.is_gui):
+                    msgs = ["BLAST results for:"]
+                    for name, value in self._params():
+                        msgs.append("  %s: %s" % (name, value))
+                    for m in p.matches:
+                        name = m.pdb if m.pdb else m.name
+                        msgs.append('\t'.join([name, "%.1e" % m.evalue,
+                                               str(m.score),
+                                               m.description]))
+                    logger.info('\n'.join(msgs))

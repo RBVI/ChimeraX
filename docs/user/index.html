@@ -84,18 +84,8 @@ and <a href="commands/save.html#formats"><b>save</b></a></li>
 src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <div id="tlist" class="expanded">
 <ul>
-<li><a name="toolbars">Toolbars</a>:
-  <ul>
-<li><a href="tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-<img class="iconbar" src="density-icons.png"></li>
-<li><a href="tools/graphics.html"><b>Graphics Toolbar</b></a>
-<img class="iconbar" src="graphics-icons.png"></li>
-<li><a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>
-<img class="iconbar" src="molecule-icons.png"></li>
-<li><a href="tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>
-&nbsp;<img class="iconbar" src="mouse-icons.png"></li>
-  </ul>
 <li><a href="tools/basicactions.html"><b>Basic Actions</b></a></li>
+<li><a href="tools/blastprotein.html"><b>Blast Protein</b></a></li>
 <li><a href="tools/cli.html"><b>Command Line Interface</b></a></li>
 <li><a href="tools/distances.html"><b>Distances</b></a></li>
 <li><a href="tools/filehistory.html"><b>File History</b></a>
@@ -103,10 +93,16 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <li><a href="tools/log.html"><b>Log</b></a></li>
 <li><a href="tools/markerplacement.html"><b>Marker Placement</b></a></li>
 <li><a href="tools/modelpanel.html"><b>Model Panel</b></a></li>
+<li><a href="tools/modeller.html"><b>Modeller Comparative</b></a>
+&ndash; interface to comparative modeling with
+<a href="http://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
 <li><a href="tools/registration.html"><b>Registration</b></a></li>
 <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a></li>
 <li><a href="tools/sideview.html"><b>Side View</b></a>
 &ndash; intuitive zooming and clipping</li>
+<li><a name="toolbars"><a href="tools/toolbar.html"><b>Toolbar</b></a>
+&ndash; icons for performing actions with a single click:
+&nbsp;<img class="iconbar" src="home-icons.png">&nbsp;[...]</li>
 <li><a href="tools/viewdockx.html"><b>ViewDockX</b></a>
 &ndash; analyze docking results</li>
 <li><a href="tools/volumeviewer.html"><b>Volume Viewer</b></a></li>
@@ -133,6 +129,8 @@ for presentation images and movies</li>
 &ndash; define a command alias (shortcut or composite action)</li>
 <li><a href="commands/align.html"><b>align</b></a>
 &ndash; superimpose sets of atoms</li>
+<li><a href="commands/blastprotein.html"><b>blastprotein</b></a>
+&ndash; search for similar protein sequences</li>
 <li><a href="commands/bumps.html"><b>bumps</b></a>
 &ndash; identify and mark isosurface protrusions</li>
 <li><a href="commands/buttonpanel.html"><b>buttonpanel</b></a>
@@ -206,6 +204,9 @@ path length, map statistics</li>
 <li><a href="commands/mlp.html"><b>mlp</b></a>
 &ndash; calculate molecular lipophilicity potential (MLP) for proteins,
 color surfaces</li>
+<li><a href="commands/modeller.html"><b>modeller</b></a>
+&ndash; comparative modeling and model evaluation with 
+<a href="http://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
 <li><a href="commands/molmap.html"><b>molmap</b></a>
 &ndash; create a density map from atomic coordinates</li>
 <li><a href="commands/morph.html"><b>morph</b></a>
@@ -245,11 +246,13 @@ display frame</li>
 <li><a href="commands/roll.html"><b>roll</b></a>
 &ndash; rotate continuously</li>
 <li><a href="commands/save.html"><b>save</b></a>
-&ndash; save image, session, map, coordinates, sequences, or other data to a file</li>
+&ndash; save image, session, map, coordinates, sequences,
+or other data to a file</li>
 <li><a href="commands/select.html"><b>select</b></a>
 &ndash; select items (models or their parts) for subsequent operations</li>
-<li><a href="tools/sequenceviewer.html"><b>sequence</b></a>
-&ndash; display the sequence of a structure chain</li>
+<li><a href="commands/sequence.html"><b>sequence</b></a>
+&ndash; show the sequence of a structure chain, 
+control sequence-structure association</li>
 <li><a href="commands/set.html"><b>set</b></a>
 &ndash; set background color, graphics frame rate,
 silhouette parameters, subdivision level</li>
@@ -273,6 +276,8 @@ to a molecule to strengthen it for 3D printing</li>
 and <a href="pseudobonds.html">pseudobonds</a></li>
 <li><a href="commands/surface.html"><b>surface</b></a>
 &ndash; create and show/hide molecular surfaces</li>
+<li><a href="commands/swapaa.html"><b>swapaa</b></a>
+&ndash; virtual mutation (change amino acid type)</li>
 <li><a href="commands/sym.html"><b>sym</b></a>
 &ndash; build multimers using assembly information</li>
 <li><a href="commands/torsion.html"><b>torsion</b></a>
@@ -316,8 +321,6 @@ Try <b><a href="commands/usage.html">usage</a> <i>command</i></b>
 to show a brief description in the <a href="tools/log.html"><b>Log</b></a>.
 </p>
 <ul>
-<li><b>blastprotein</b>
-&ndash; BLAST search for similar protein sequences in PDB or NR</li>
 <li><b>toolshed</b>
 &ndash; manage ChimeraX tool bundles: install/update from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a> 

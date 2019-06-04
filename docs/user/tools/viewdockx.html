@@ -39,6 +39,21 @@ H-ras (the protein part of PDB entry
 <a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
 target="_blank">121p</a>)
 </p><p>
+Currently supported formats:
+</p>
+<ul>
+<li><a href="http://dock.compbio.ucsf.edu/" 
+target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6 Mol2
+<li><a href="http://dock.compbio.ucsf.edu/DOCK3.7/" 
+target="_blank">UCSF&nbsp;DOCK&nbsp;v3.7</a> Mol2 (but not showing
+certain ligand descriptors, those in condensed tabular form in the Mol2 file)
+<li><a 
+href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
+target="_blank">GOLD</a> Mol2
+<li><a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>
+PDBQT
+</ul>
+<p>
 After one or more files of
 <a href="../commands/open.html#atomic">docking results</a> have been
 opened, a table listing the different compounds or poses
@@ -111,7 +126,7 @@ vs. one or more numerical descriptors (table columns) on the Y-axis
 <li><b>Plot</b>
 - <a href="#plots">plot</a> different numerical descriptors vs. each other
 for all compounds
-<li><b>Add Hbonds</b> 
+<li><b>Add HBonds</b> 
 - calculate and add a column for
 the number of H-bonds between each compound and all other atoms
 (excluding the other docked compounds), using the
@@ -130,7 +145,8 @@ reopened later for further analysis with <b>ViewDockX</b>
 than the specified number of stars, and remove their rows from the table
 </ul>
 <p>
-<b>ViewDockX</b> table status is saved in sessions, including
+<b>ViewDockX</b> table status is saved in 
+<a href="../commands/save.html#session">sessions</a>, including
 which columns are shown and which rows are <a href="#choosing">chosen</a>,
 but not window size or location.
 </p>
@@ -165,5 +181,5 @@ in the graphics window and hides the others.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+May 2019</address>
 </body></html>

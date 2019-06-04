@@ -52,7 +52,7 @@ class RegionMouseMode(MouseMode):
         ijk_min[axis] = ijk_max[axis] = p
         ijk_step = (1,1,1)
         v.new_region(ijk_min, ijk_max, ijk_step)
-        v.set_representation('solid')
+        v.set_display_style('image')
 
     def mouse_drag(self, event):
         v = self.map

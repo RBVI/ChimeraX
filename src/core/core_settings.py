@@ -18,7 +18,7 @@ preferences: manage preferences
 TODO
 """
 from . import commands
-from .colors import Color, BuiltinColors
+from .colors import Color
 from . import configfile
 from .settings import Settings
 
@@ -28,29 +28,12 @@ class _CoreSettings(Settings):
     # if a new setting is to appear in the settings GUI, info must also be added to
     # chimerax.ui.core_settings_ui.py
     EXPLICIT_SAVE = {
-        'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
         'background_color': configfile.Value(Color('#000'), commands.ColorArg, Color.hex_with_alpha),
-        'clipping_surface_caps': True,
-        'clipping_cap_offset': 0.01,
-        'default_tool_window_side': "right",
-        'distance_color': configfile.Value(BuiltinColors['gold'], commands.ColorArg, Color.hex_with_alpha),
-        'distance_dashes': 9,
-        'distance_decimal_places': 3,
-        'distance_radius': 0.1,
-        'distance_show_units': True,
-        'errors_raise_dialog': True,
         'http_proxy': ("", 80),
         'https_proxy': ("", 443),
-        'initial_window_size': ("last used", None),
-        'presets_folder': "",
         'resize_window_on_session_restore': False,
-        'startup_commands': [],
-        'trackpad_multitouch': True,
-        'trackpad_sensitivity': 1.0,
-        'warnings_raise_dialog': False,
     }
     AUTO_SAVE = {
-        'last_window_size': None,
         'toolshed_update_interval': 'week',
         'toolshed_last_check': '',
     }

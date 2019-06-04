@@ -220,9 +220,12 @@ static void affine_transform_normals(FArray &vertex_positions, float tf[3][3])
       *pz = r20*x + r21*y + r22*z;
 
       float len = sqrtf(*px * *px + *py * *py + *pz * *pz);
-      *px /= len;
-      *py /= len;
-      *pz /= len;
+      if (len != 0)
+	{
+	  *px /= len;
+	  *py /= len;
+	  *pz /= len;
+	}
     }
 }
 
@@ -263,9 +266,12 @@ static void affine_transform_normals(DArray &vertex_positions, double tf[3][3])
       *pz = r20*x + r21*y + r22*z;
 
       double len = sqrt(*px * *px + *py * *py + *pz * *pz);
-      *px /= len;
-      *py /= len;
-      *pz /= len;
+      if (len != 0)
+	{
+	  *px /= len;
+	  *py /= len;
+	  *pz /= len;
+	}
     }
 }
 

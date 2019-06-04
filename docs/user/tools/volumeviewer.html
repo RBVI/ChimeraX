@@ -51,7 +51,7 @@ Volume data can be opened with the command
 Data set statistics and isosurface-enclosed volumes can be reported
 with <a href="../commands/measure.html"><b>measure</b></a>.
 See also: 
-<a href="densitymaps.html"><b>Density Map Toolbar</b></a>,
+<a href="densitymaps.html"><b>Map</b></a> icons,
 <a href="markerplacement.html"><b>Marker Placement</b></a>,
 <a href="../commands/show.html"><b>show</b></a>,
 <a href="../commands/color.html"><b>color</b></a>,
@@ -81,8 +81,12 @@ Above the histogram are:
 <ul>
 <li>the model name 
 <li>an <b>eye icon</b> for showing/hiding the model
-<li>a color well (can be clicked to change the color interactively)
+<li>a color well (that can be clicked to change the color interactively)
 for the <a href="#threshold">threshold</a> most recently moved or clicked
+<br>(to recolor all of a model's <a href="#threshold">thresholds</a>
+at once, instead use
+its color well in the <a href="modelpanel.html"><b>Model Panel</b></a>,
+or the <a href="../commands/volume.html"><b>volume</b></a> command)
 <li>the model number
 <li>dimensions in grid units of the <a href="#region">display region</a>
 <li>the <a href="#step">step size</a> (subsampling)
@@ -97,26 +101,39 @@ most recently moved or clicked
   <li><b>mesh</b>
   - mesh isosurfaces,
   the <b>mesh</b> <a href="../commands/volume.html#style">display style</a>
-  <li><b>volume</b> - cloudlike with varying intensity and opacity, also known as
- the <b>solid</b> <a href="../commands/volume.html#style">display style</a>
-  <li><b>maximum</b> - solid volume style,
+  <li><b>volume</b> - cloudlike with varying intensity and opacity, also known
+  as the <b>image</b> <a href="../commands/volume.html#style">display style</a>
+  <li><b>maximum</b> - image volume style,
  <a href="../commands/volume.html#maximumintensity">maximum intensity projection</a>
-  <li><b>plane</b> - solid volume style,
+  <li><b>plane</b> - image volume style,
 a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
-a slider interface is shown below the histogram
+a slider interface is shown below the histogram 
+and the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
+is set to <b>move planes</b> 
+    <a href="mousemodes.html" title="Mouse Modes for Right Button...">
+    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
     <ul>
     <li>pausing the cursor over a single-plane display shows the voxel indices
     and data value in a pop-up balloon
     <li>planes along X, Y, and/or Z can be displayed and adjusted with the
     <a href="../commands/volume.html"><b>volume</b></a> command or the
-    <b>move planes</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+    <a href="../commands/ui.html#mousemode">mouse mode</a> for
+    <b>move planes</b> 
     <a href="mousemodes.html" title="Mouse Modes for Right Button...">
     <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>,
     </ul>
-  <li><b>orthoplanes</b> - solid volume style,
-<a href="../commands/volume.html#orthoplanes">XYZ planes</a> simultaneously 
-  <li><b>box</b> - solid volume style, 
- <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>
+  <li><b>orthoplanes</b> - image volume style,
+<a href="../commands/volume.html#orthoplanes">XYZ planes</a> simultaneously;
+the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
+is set to <b>move planes</b>
+    <a href="mousemodes.html" title="Mouse Modes for Right Button...">
+    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
+  <li><b>box</b> - image volume style, 
+ <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>;
+the right-button <a href="../commands/ui.html#mousemode">mouse mode</a>
+is set to <b>crop volume</b> 
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/crop.png"></a>
   </ul>
 <li>a <b>minus-sign button</b> for closing the model
 </ul>
@@ -137,8 +154,8 @@ although this can only be set with the
 The <b><i>display region</i></b> is not necessarily the full extent
 of the data grid; it can be limited with the
 <a href="../commands/volume.html"><b>volume</b></a> command
-<a href="../commands/volume.html#dimensions"><b>region</b></a> option
-or the <b>crop volume</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
+<a href="../commands/volume.html#dimensions"><b>region</b></a> option or the
+<a href="../commands/ui.html#mousemode">mouse mode</a> for <b>crop volume</b> 
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/crop.png"></a>.
 </p><p>
@@ -157,7 +174,7 @@ Each threshold corresponds to a contour surface, generated as a
 <a href="modelpanel.html">submodel</a> of the data model.
 </blockquote>
 <blockquote>
-<b>volume</b> (<b>solid</b>) style:<br>
+<b>volume</b> (<b>image</b>) style:<br>
 Each threshold is shown as a small square that can be moved horizontally
 and/or vertically.
 For unsigned data types, initial thresholds are set to give zero intensity
@@ -175,8 +192,8 @@ than a threshold at a higher data value.
 <p>
 Threshold levels can be adjusted interactively by dragging in the
 <b>Volume Viewer</b> histogram
-or by using the <a href="../commands/ui.html#mousemode">mouse mode</a> for
-<b>contour level</b>
+or by using the <a href="../commands/ui.html#mousemode">mouse mode</a>
+for <b>contour level</b>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/contour.png"></a>
 or <b>windowing</b>
@@ -233,7 +250,7 @@ The <a href="../commands/volume.html"><b>volume</b></a> command
 allows changing settings for individual channels.
 </p><p>
 Color blending of multichannel data in the
-<b>solid</b> <a href="../commands/volume.html#style">display style</a>
+<b>image</b> <a href="../commands/volume.html#style">display style</a>
 can be done <a href="../commands/volume.html#blendOnGpu">on the GPU</a>.
 </p><p>
 See also:
@@ -243,5 +260,5 @@ target="_blank">ChimeraX light microscopy highlight</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2019</address>
+May 2019</address>
 </body></html>

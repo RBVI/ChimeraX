@@ -47,17 +47,6 @@ The command <b>open</b> reads data in several
 </ul>
 <p>
 Input files may contain data to be displayed or commands or code to be executed.
-Local files can browsed interactively by giving
-<a href="usageconventions.html#browse"><b>browse</b></a> as the filename 
-in the <b>open</b> command 
-(or by using <a href="../menu.html#file"><b>File... Open</b></a>
-in the menu instead of a command, 
-in which case the proper filename <a href="#file-table">suffix</a> is required).
-Another way to open local files is by drag-and-drop onto the ChimeraX icon
-or a running instance of ChimeraX.
-On a Mac, ChimeraX-associated file types can also be opened by 
-double-clicking them in a Finder window or using &ldquo;open&rdquo; 
-in a Terminal window.
 </p><p>
 For some types of files,
 <a href="../modelinfo.html">associated information</a> is automatically
@@ -155,7 +144,21 @@ target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <br>
 (see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
 for analysis of docking results from <a href="http://dock.compbio.ucsf.edu/" 
-target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6)
+target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6, 
+<a href="http://dock.compbio.ucsf.edu/DOCK3.7/" 
+target="_blank">DOCK&nbsp;v3.7</a>, or
+<a href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
+target="_blank">GOLD</a>)
+</td>
+</tr><tr>
+<td align="center">PDBQT</td>
+<td align="center"><b>pdbqt</b></td>
+<td align="center">.pdbqt</td>
+<td align="center" class="text">atomic coordinates
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from
+<a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>)
 </td>
 </tr><tr>
 <td align="center"><a href="../pseudobonds.html#pbfiles">Pseudobond
@@ -623,6 +626,24 @@ The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
 Files that are gzipped, as indicated by their additional .gz suffix, 
 can also be read.
+</p><p>
+Giving <a href="usageconventions.html#browse"><b>browse</b></a> as the 
+<i>filename</i> brings up a dialog for browsing the filesystem interactively.
+</p><p>
+Additional ways to open local files:
+</p>
+<ul>
+<li>menu <a href="../menu.html#file"><b>File... Open</b></a>, in which case 
+the proper filename <a href="#file-table">suffix</a> is required
+<li><a href="../tools/toolbar.html#home"><b>Toolbar</b></a> icon
+<a href="../tools/toolbar.html#home"><img class="icon"
+border=1 src="../tools/toolbar-icons/open-in-app.png"></a>
+<li>drag-and-drop onto the ChimeraX icon or a running instance of ChimeraX
+</ul>
+<p>
+On a Mac, ChimeraX-associated file types can also be opened by 
+double-clicking them in a Finder window or using &ldquo;open&rdquo; 
+in a Terminal window. 
 </p>
 
 <a name="options"></a>
@@ -1017,6 +1038,14 @@ target="_blank">cellPACK</a></td>
 see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
 Chimera instructions</a> for available identifiers</td>
 <td align="center"><b>cellpack</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.uniprot.org" 
+target="_blank">UniProt</a></td>
+<td align="center"><b>uniprot</b></td>
+<td align="center">protein sequence
+(associated tool: 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
+<td align="center"><b>uniprot</b></td>
 </tr></table>
 
 <!--
@@ -1085,5 +1114,5 @@ the single best-matching sequence is associated.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2019</address>
+May 2019</address>
 </body></html>

@@ -158,6 +158,11 @@ class FileFormat:
         self.export_notes = None
         self.batch = False
 
+    def has_open_func(self):
+        """Test for open function without bootstrapping"""
+        return (self._boot_open_func is not None or
+            self._open_func is not None)
+
     def _get_open_func(self):
         if self._boot_open_func:
             self._open_func = self._boot_open_func()
@@ -169,6 +174,11 @@ class FileFormat:
         self._boot_open_func = None
 
     open_func = property(_get_open_func, _set_open_func)
+
+    def has_export_func(self):
+        """Test for export function without bootstrapping"""
+        return (self._boot_export_func is not None or
+            self._export_func is not None)
 
     def _get_export_func(self):
         if self._boot_export_func:
@@ -276,7 +286,7 @@ def formats(open=True, export=True, source_is_file=False):
     for f in _file_formats.values():
         if source_is_file and not f.extensions:
             continue
-        if (open and f.open_func) or (export and f.export_func):
+        if (open and f.has_open_func()) or (export and f.has_export_func()):
             fmts.append(f)
     return fmts
 
@@ -303,7 +313,7 @@ def deduce_format(filename, has_format=None, open=True, save=False, no_raise=Fal
         fmt = _file_formats.get(has_format, None)
         if fmt is None:
             for f in _file_formats.values():
-                if has_format in f.nicknames and (not open or f.open_func) and (not save or f.export_func):
+                if has_format in f.nicknames and (not open or f.has_open_func()) and (not save or f.has_export_func()):
                     fmt = f
                     break
         stripped, compression = determine_compression(filename)
@@ -317,7 +327,7 @@ def deduce_format(filename, has_format=None, open=True, save=False, no_raise=Fal
         ext = ext.casefold()
         fmt = None
         for f in _file_formats.values():
-            if ext in f.extensions and (not open or f.open_func) and (not save or f.export_func):
+            if ext in f.extensions and (not open or f.has_open_func()) and (not save or f.has_export_func()):
                 fmt = f
                 break
         if fmt is None:
@@ -345,8 +355,8 @@ def print_file_suffixes():
         names.sort(key=str.casefold)
         for format_name in names:
             info = _file_formats[format_name]
-            o = 'o' if info.open_func else ' '
-            e = 's' if info.export_func else ' '
+            o = 'o' if info.has_open_func() else ' '
+            e = 's' if info.has_export_func() else ' '
             if info.extensions:
                 exts = ': ' + ', '.join(info.extensions)
             else:
@@ -569,7 +579,7 @@ def open_filename(filename, *args, **kw):
             filename.close = lambda: False
         return filename
 
-    if filename.startswith("http:"):
+    if filename.startswith(("http:", "https:")):
         from urllib.request import urlopen
         return urlopen(filename)
 

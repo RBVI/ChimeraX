@@ -1,4 +1,5 @@
-<BundleInfo name="ChimeraX-ViewDockX" version="0.1" package="chimerax.atomic.viewdockx"
+<BundleInfo name="ChimeraX-ViewDockX" version="0.1"
+	    package="chimerax.viewdockx"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -34,8 +35,6 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <Category name="General"/>
   </Categories>
 
-<AdditionalPackages/>
-
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
@@ -43,6 +42,12 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <Dependency name="ChimeraX-Mol2" version=">=1.0"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
+
+  <Providers>
+    <Provider name="vdxchart" manager="http_schemes"/>
+    <Provider name="vdxplot" manager="http_schemes"/>
+    <Provider name="vdxtable" manager="http_schemes"/>
+  </Providers>
 
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
@@ -52,6 +57,8 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <ChimeraXClassifier>Command :: viewdockx :: General :: Display docking results</ChimeraXClassifier>
     <ChimeraXClassifier>DataFormat :: mol2 :: :: Molecule structure :: .mol2 :: :: :: :: :: mol2 format :: utf-8</ChimeraXClassifier>
     <ChimeraXClassifier>Open :: mol2 :: mol2 ::</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: pdbqt :: :: Molecule structure :: .pdbqt :: :: :: :: :: pdbqt format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>Open :: pdbqt :: pdbqt ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

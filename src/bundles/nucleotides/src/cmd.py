@@ -69,8 +69,7 @@ def nucleotides_dimensions_delete(session, name):
 
 ShapeArg = EnumOf(('box', 'muffler', 'ellipsoid'))
 DimensionsArg = DynamicEnum(NA.list_dimensions)
-# ReprArg = EnumOf(('atoms', 'fill/fill', 'fill/slab', 'tube/slab', 'ladder', 'stubs'))
-ReprArg = EnumOf(('atoms', 'slab', 'tube/slab', 'ladder', 'stubs'))
+ReprArg = EnumOf(('atoms', 'fill', 'slab', 'tube/slab', 'ladder', 'stubs'))
 
 
 nucleotides_desc = CmdDesc(
@@ -106,12 +105,16 @@ def nucleotides(session, representation, *,
     residues = residues.filter(residues.polymer_types == Residue.PT_NUCLEIC)
     if len(residues) == 0:
         return
+
     if representation == 'atoms':
-        # TODO: residues.fill_rings = False
+        # hide filled rings
+        residues.ring_displays = False
+        # reset nucleotide info
         NA.set_normal(residues)
-    elif representation == 'fill/fill':
-        # TODO
-        # residues.fill_rings = True
+    elif representation == 'fill':
+        # show filled rings
+        residues.ring_displays = True
+        # set nucleotide info
         if show_orientation:
             NA.set_orient(residues)
         else:
@@ -124,10 +127,8 @@ def nucleotides(session, representation, *,
                 dimensions = 'small'
             else:
                 dimensions = 'long'
-        if representation.startswith('fill'):
-            # TODO: residues.fill_rings = True
-            show_gly = True
-        elif representation == 'slab':
+        if representation == 'slab':
+            residues.ring_displays = True
             show_gly = True
         else:
             show_gly = glycosidic

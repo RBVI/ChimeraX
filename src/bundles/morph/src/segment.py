@@ -9,6 +9,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class AtomPairingError(Exception):
+        pass
+
 from time import time
 ssvt = 0
 def segmentSieve(rList0, rList1, fraction=0.5):
@@ -91,7 +94,7 @@ def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
         # Split by chain
         cr0, cr1 = m0.residues.by_chain, m1.residues.by_chain
         if len(cr0) != len(cr1):
-                raise ValueError("models have different number of chains")
+                raise AtomPairingError("models have different number of chains")
 
         # If chain ids all match then pair same ids, otherwise use order from file.
         if set(cid for s,cid,rlist in cr0) == set(cid for s,cid, rlist in cr1):
@@ -102,14 +105,14 @@ def segmentHingeExact(m0, m1, fraction=0.5, min_hinge_spacing=6, log=None):
         atomMap = {}
         for (s0,cid0,r0list), (s1,cid1,r1list) in zip(cr0, cr1):
                 if len(r0list) != len(r1list):
-                        raise ValueError('%s chain %s (%d) and %s chain %s (%d) have different number of residues'
-                                         % (s0.name, cid0, len(r0list), s1.name, cid1, len(r1list)))
+                        raise AtomPairingError('%s chain %s (%d) and %s chain %s (%d) have different number of residues'
+                                               % (s0.name, cid0, len(r0list), s1.name, cid1, len(r1list)))
                 curCat = None
                 curRList0 = None
                 curRList1 = None
                 for r0, r1 in zip(r0list, r1list):
                         if not shareAtoms(r0, r1, atomMap):
-                                raise ValueError("residues do not share atoms")
+                                raise AtomPairingError("residues do not share atoms")
                         #
                         # Split residues based on surface category (in m0)
                         #
@@ -139,9 +142,9 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         m0seqs = m0.chains
         m1seqs = m1.chains
         if len(m0seqs) != len(m1seqs):
-                raise ValueError("models have different number of chains, %d (%s) and %d (%s)"
-                                 % (len(m0seqs), ','.join(str(c) for c in m0seqs),
-                                    len(m1seqs), ','.join(str(c) for c in m1seqs)))
+                raise AtomPairingError("models have different number of chains, %d (%s) and %d (%s)"
+                                       % (len(m0seqs), ','.join(str(c) for c in m0seqs),
+                                          len(m1seqs), ','.join(str(c) for c in m1seqs)))
 
         #
         # Try to find the best matches for sequences.

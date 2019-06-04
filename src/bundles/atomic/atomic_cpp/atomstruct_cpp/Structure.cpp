@@ -1047,6 +1047,7 @@ Structure::session_info(PyObject* ints, PyObject* floats, PyObject* misc) const
     *int_array++ = _ribbon_mode_helix;
     *int_array++ = _ribbon_mode_strand;
     *int_array++ = ss_ids_normalized;
+    *int_array++ = _ring_display_count;
     // pb manager version number remembered later
     if (PyList_Append(ints, npy_array) < 0)
         throw std::runtime_error("Couldn't append to int list");
@@ -1333,6 +1334,8 @@ Structure::session_restore(int version, PyObject* ints, PyObject* floats, PyObje
     }
     if (version >= 12)
         ss_ids_normalized = *int_array++;
+    if (version >= 16)
+        _ring_display_count = *int_array++;
     auto pb_manager_version = *int_array++;
     // if more added, change the array dimension check above
 
@@ -1647,6 +1650,28 @@ Structure::set_color(const Rgba& rgba)
     }
 }
 
+static bool
+compare_chains(Chain* c1, Chain* c2)
+{
+    Atom* a1 = nullptr;
+    Atom* a2 = nullptr;
+    for (auto r: c1->residues()) {
+        if (r != nullptr) {
+            a1 = r->atoms()[0];
+            break;
+        }
+    }
+    for (auto r: c2->residues()) {
+        if (r != nullptr) {
+            a2 = r->atoms()[0];
+            break;
+        }
+    }
+    if (a1 == nullptr || a2 == nullptr)
+        return c1 < c2;
+    return a1->serial_number() < a2->serial_number();
+}
+
 void
 Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
         const std::vector<Residue*>* correspondences, PolymerType pt)
@@ -1676,6 +1701,7 @@ Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName
         chain->bulk_set(*correspondences, res_chars);
         chain->set_from_seqres(true);
         delete res_chars;
+        std::sort(_chains->begin(), _chains->end(), compare_chains);
     }
 }
 
