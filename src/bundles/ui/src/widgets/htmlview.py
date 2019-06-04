@@ -119,7 +119,7 @@ class HtmlView(QWebEngineView):
                 full_path = qurl.path()
                 # If URL path is absolute, remove the leading /.
                 # If URL path include a drive, extract the non-drive
-                # part for matching against /ui/html/
+                # part for matching against /chimerax/ui/html/
                 if full_path[0] == '/':
                     full_path = full_path[1:]
                 drive, path = os.path.splitdrive(full_path)
@@ -129,10 +129,10 @@ class HtmlView(QWebEngineView):
                 path = full_path = qurl.path()
             if os.path.exists(os.path.normpath(full_path)):
                 return
-            if path.startswith("/ui/html/"):
+            if path.startswith("/chimerax/ui/html/"):
                 from chimerax import ui
                 ui_dir = os.path.dirname(ui.__file__).replace(os.path.sep, '/')
-                full_path = ui_dir + '/' + path[3:]
+                full_path = ui_dir + path[len("/chimerax/ui"):]
                 if sys.platform == "win32":
                     # change C:/ to /C:/
                     full_path = '/' + full_path
