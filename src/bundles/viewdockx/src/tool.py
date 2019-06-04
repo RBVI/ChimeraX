@@ -11,7 +11,7 @@ class _BaseTool(HtmlToolInstance):
     help = "help:user/tools/viewdockx.html"
 
     def __init__(self, session, tool_name):
-        super().__init__(session, tool_name, size_hint=(575,400))
+        super().__init__(session, tool_name, size_hint=(575,400), log_errors=True)
         self.structures = []
         self._html_state = None
         self._loaded_page = False
@@ -112,7 +112,6 @@ class _BaseTool(HtmlToolInstance):
         columns = json.dumps(self._make_columns())
         js = "%s.update_columns(%s);" % (self.CUSTOM_SCHEME, columns)
         self.html_view.runJavaScript(js)
-        self._update_display()
 
     def _make_columns(self):
         # Construct separate dictionaries for numeric and text data
@@ -410,6 +409,10 @@ class TableTool(_BaseTool):
             print("No structures closed")
             return
         self.session.models.close(structures)
+
+    def _cb_columns_updated(self, query):
+        self._update_display()
+        self._update_ratings()
 
 
 class OutputCache(StringIO):
