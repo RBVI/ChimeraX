@@ -602,14 +602,17 @@ class IHMModel(Model):
         # Assign IHM model ids.
         if models:
             mnames = self.model_names()
+        group_ids = set()
         for i,m in enumerate(models):
             # TODO: Need to read model id from the ihm_model_id field in atom_site table.
-            m.display = (i == 0)	# Show only first atomic model
             mid = str(i+1)
             m.ihm_model_ids = [mid]
-            m.ihm_group_id = mgroup[mid]
+            gid = mgroup[mid]
+            m.ihm_group_id = gid
             if mid in mnames:
                 m.name = mnames[mid]
+            m.display = (gid not in group_ids)	# Show only first atomic model in each group
+            group_ids.add(gid)
             m.apply_auto_styling(self.session)
             
         if models:

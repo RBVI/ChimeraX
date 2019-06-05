@@ -497,7 +497,7 @@ class DicomData:
     else:
       self.pad_value = None
 
-    self._files_are_3d = series.multiframe
+    self.files_are_3d = series.multiframe
     self._reverse_planes = (series.multiframe and series._reverse_frames)
     self.data_size = series.grid_size()
     self.data_step = series.pixel_spacing()
@@ -518,7 +518,7 @@ class DicomData:
     isz, jsz, ksz = ijk_size
     istep, jstep, kstep = ijk_step
     dsize = self.data_size
-    if self._files_are_3d:
+    if self.files_are_3d:
       a = self.read_frames(time, channel)
       array[:] = a[k0:k0+ksz:kstep,j0:j0+jsz:jstep,i0:i0+isz:istep]
     else:
@@ -541,7 +541,7 @@ class DicomData:
       klast = self.data_size[2]-1
       k = klast-k
     from pydicom import dcmread
-    if self._files_are_3d:
+    if self.files_are_3d:
       d = dcmread(self.paths[0])
       data = d.pixel_array[k]
     else:
