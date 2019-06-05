@@ -27,7 +27,7 @@ interface is available; otherwise, the results are logged.</Description>
   </Dependencies>
 
   <Providers>
-    <Provider name="blastprotein" manager="http_schemes"/>
+    <Provider name="blastprotein" manager="url_schemes"/>
   </Providers>
 
   <Classifiers>

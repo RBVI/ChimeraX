@@ -11,6 +11,7 @@
 
   <DataFiles>
     <DataFile>about.html</DataFile>
+    <DataFile>splash.jpg</DataFile>
     <DataDir>icons</DataDir>
     <DataDir>html</DataDir>
   </DataFiles>
