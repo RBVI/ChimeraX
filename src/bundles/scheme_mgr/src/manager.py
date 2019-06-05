@@ -68,7 +68,7 @@ class SchemesManager(StateManager):
 
     @staticmethod
     def restore_snapshot(session, data):
-        return session.html_schemes
+        return session.url_schemes
 
     def take_snapshot(self, session, flags):
         # Presets are "session enduring"

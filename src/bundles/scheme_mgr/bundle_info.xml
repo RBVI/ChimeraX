@@ -22,12 +22,12 @@
   </Dependencies>
 
   <Managers>
-    <Manager name="html_schemes" guiOnly="true"/>
+    <Manager name="url_schemes" guiOnly="true"/>
   </Managers>
 
   <Providers>
-    <Provider name="cxcmd" manager="html_schemes" syntax="Path"/>
-    <Provider name="help" manager="html_schemes" syntax="Path"/>
+    <Provider name="cxcmd" manager="url_schemes" syntax="Path"/>
+    <Provider name="help" manager="url_schemes" syntax="Path"/>
   </Providers>
 
   <Classifiers>

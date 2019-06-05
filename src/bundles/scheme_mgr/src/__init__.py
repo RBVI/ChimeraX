@@ -24,10 +24,10 @@ class _SchemesBundleAPI(BundleAPI):
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
         """Initialize schemes manager"""
-        if name == "html_schemes":
+        if name == "url_schemes":
             from .manager import SchemesManager
-            session.html_schemes = SchemesManager(session)
-            return session.html_schemes
+            session.url_schemes = SchemesManager(session)
+            return session.url_schemes
 
     @staticmethod
     def run_provider(session, bundle_info, name, mgr, **kw):
