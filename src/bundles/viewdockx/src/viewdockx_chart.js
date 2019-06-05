@@ -12,29 +12,24 @@ var vdxchart = function() {
     var sweep_selected = false;
     var plot = null;
 
-    function make_button(btype, name, value, checked) {
-        return $("<label/>").append(
-                    $("<input/>", { type: btype,
-                                    name: name,
-                                    value: value,
-                                    class: name,
-                                    checked: checked }).click(update_plot));
-    }
+    var sort_column;
+    var show_columns;
+    var hist_columns;
 
     function update_columns(new_columns) {
         columns = new_columns;
         display = Array(columns["text"]["id"].length).fill(false);
         histograms = {};
         // Save sort and shown columns
-        var sort_column = $(".sort:checked").attr("value");
-        var show_columns = []
+        sort_column = $(".sort:checked").attr("value");
+        show_columns = []
         $(".graph:checked").map(function() {
             if (this.value in columns["numeric"])
                 show_columns.push(this.value);
         });
         if (show_columns.length == 0)
             show_columns.push(Object.keys(columns["numeric"])[0]);
-        var hist_columns = [];
+        hist_columns = [];
         $(".histogram:checked").map(function() {
             if (this.value in columns["numeric"])
                 hist_columns.push(this.value);
@@ -42,51 +37,24 @@ var vdxchart = function() {
 
         // Clear out the table and fill in with text
         // then numeric column names
-        $("#column_table").empty()
-            .append($("<col/>"), $("<col/>"), $("<col/>"),
-                    $("<col/>"), $("<col/>"))
-            .append($("<tr/>").append(
-                $("<th/>", {"class":"column_sort",
-                            "title":"Sort"})
-                    .text("S").css("text-align", "center"),
-                $("<th/>", {"class":"column_graph",
-                            "title":"Show graph"})
-                    .text("G").css("text-align", "center"),
-                $("<th/>", {"class":"column_hist",
-                            "title":"Show histogram"})
-                    .text("H").css("text-align", "center"),
-                $("<th/>", {"class":"column_name"})
-                    .text("Column"),
-                $("<th/>", {"class":"column_value"})
-                    .text("Value")));
+        var rows = [];
         $.each(columns["text"], function(r, v) {
-            $("#column_table").append($("<tr/>").append(
-                                        $("<td/>"),
-                                        $("<td/>"),
-                                        $("<td/>"),
-                                        $("<td/>").text(r),
-                                        $("<td/>").addClass("value")
-                                                  .prop("title", r)))
+            rows.push({"column_name": r, "type": "text"});
         });
         $.each(columns["numeric"], function(r, v) {
-            var sort_btn = make_button("radio", "sort", r, r == sort_column);
-            var show_btn = make_button("checkbox", "graph", r,
-                                       show_columns.includes(r));
-            var hist_btn = make_button("checkbox", "histogram", r,
-                                       hist_columns.includes(r));
-            $("#column_table").append($("<tr/>").append(
-                                        $("<td/>").append(sort_btn)
-                                                .css("text-align", "center"),
-                                        $("<td/>").append(show_btn)
-                                                .css("text-align", "center"),
-                                        $("<td/>").append(hist_btn)
-                                                .css("text-align", "center"),
-                                        $("<td/>").text(r),
-                                        $("<td/>").addClass("value")
-                                                  .prop("title", r)))
+            rows.push({"column_name": r, "type": "numeric"});
         });
+        $("#column_table")
+            .bootgrid("clear")
+            .bootgrid("append", rows)
+            .on("loaded.rs.jquery.bootgrid", function(ev) {
+                $(".sort").click(update_plot);
+                $(".graph").click(update_plot);
+                $(".histogram").click(update_plot);
+                update_plot();
+            });
 
-        update_plot();
+        // update_plot();
     }
 
     function update_plot() {
@@ -95,7 +63,7 @@ var vdxchart = function() {
         var numeric = columns["numeric"];
         var ids = text["id"];
         index2index = ids.map(function(e, i) { return i; });
-        var sort_column = $(".sort:checked").attr("value");
+        sort_column = $(".sort:checked").attr("value");
         if (sort_column != null) {
             var data = numeric[sort_column];
             index2index.sort(function(a, b) {
@@ -278,14 +246,13 @@ var vdxchart = function() {
             tooltip_shown = true;
 
             // Show data values in control table
-            $(".value").each(function() {
-                var column_name = this.title;
-                var value = "";
-                if (column_name in numeric)
-                    value = numeric[column_name][raw_index];
-                else if (column_name in text)
-                    value = text[column_name][raw_index];
-                this.textContent = value;
+            $(".column_value").each(function(index) {
+                var column_name = $(this).attr("name");
+                var container = numeric[column_name];
+                if (container == null)
+                    container = text[column_name];
+                var value = container[raw_index];
+                $(this).text(value).prop("title", value);
             });
         }
     }
@@ -333,6 +300,55 @@ var vdxchart = function() {
         });
     }
 
+    var bootgrid_options = {
+        navigation: 0,
+        selection: false,
+        rowSelect: false,
+        multiSelect: false,
+        keepSelection: true,
+        caseSensitive: false,
+        rowCount: -1,
+        formatters: {
+            "sort": function(column, row) {
+                if (row.type != "numeric")
+                    return "";
+                var b = '<input type="radio"' +
+                        ' value="' + row.column_name + '"' +
+                        ' class="sort" name="sort"';
+                if (row.column_name == sort_column)
+                    b += ' checked';
+                b += '>';
+                return b;
+            },
+            "graph": function(column, row) {
+                if (row.type != "numeric")
+                    return "";
+                var b = '<input type="checkbox"' +
+                        ' value="' + row.column_name + '"' +
+                        ' class="graph"';
+                if (show_columns.includes(row.column_name))
+                    b += ' checked';
+                b += '>';
+                return b;
+            },
+            "hist": function(column, row) {
+                if (row.type != "numeric")
+                    return "";
+                var b = '<input type="checkbox"' +
+                        ' value="' + row.column_name + '"' +
+                        ' class="histogram"';
+                if (hist_columns.includes(row.column_name))
+                    b += ' checked';
+                b += '>';
+                return b;
+            },
+            "value": function(column, row) {
+                return '<span class="column_value"' +
+                       ' name="' + row.column_name + '"></span>';
+            },
+        }
+    };
+
     function init() {
         var opts = {
             grid: {
@@ -367,15 +383,26 @@ var vdxchart = function() {
                   .bind("plotselected", plot_selected)
                   .mousedown(mousedown);
         $("#histbins").click(update_plot);
+        function set_icons() {
+            function set_column(cid, icon) {
+                var col = $('[data-column-id="' + cid + '"]');
+                col.find(".text").addClass("fa " + icon);
+            }
+            set_column("column_sort", "fa-sort");
+            set_column("column_graph", "fa-line-chart");
+            set_column("column_hist", "fa-bar-chart");
+        }
+        $("#column_table").on("initialized.rs.jquery.bootgrid", set_icons)
+                          .bootgrid(bootgrid_options);
     }
 
     function get_state() {
-        var sort_column = $(".sort:checked").attr("value");
-        var show_columns = []
+        sort_column = $(".sort:checked").attr("value");
+        show_columns = []
         $(".graph:checked").map(function() {
             show_columns.push(this.value);
         });
-        var hist_columns = [];
+        hist_columns = [];
         $(".histogram:checked").map(function() {
             hist_columns.push(this.value);
         });
@@ -388,14 +415,14 @@ var vdxchart = function() {
     }
 
     function set_state(state) {
-        var show_columns = state.show_columns;
+        show_columns = state.show_columns;
         $(".graph:checkbox").each(function(r, v) {
             var should_be_checked = $.inArray(v.value, show_columns) != -1;
             var is_checked = $(v).prop("checked");
             if (is_checked != should_be_checked)
                 $(v).trigger("click");
         });
-        var hist_columns = state.hist_columns;
+        hist_columns = state.hist_columns;
         $(".histogram:checkbox").each(function(r, v) {
             var should_be_checked = $.inArray(v.value, hist_columns) != -1;
             var is_checked = $(v).prop("checked");
