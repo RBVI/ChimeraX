@@ -11,14 +11,20 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class ModelSaveOptionsGUI:
+from chimerax.ui import SaveOptionsGUI
+class ModelSaveOptionsGUI(SaveOptionsGUI):
 
     def __init__(self, session, format, model_class, menu_label):
+        SaveOptionsGUI.__init__(self)
         self._session = session
         self._format = format			# FileFormat from chimerax.core.io
         self._model_class = model_class		# e.g. Volume
         self._menu_label = menu_label		# Menu label
-        
+
+    @property
+    def format_name(self):
+        return self._format.name
+    
     def make_ui(self, parent):
         from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
         
@@ -37,18 +43,11 @@ class ModelSaveOptionsGUI:
         return mf
 
     def save(self, session, filename):
-        path = self._add_file_suffix(filename)
+        path = self.add_missing_file_suffix(filename, self._format)
         from chimerax.core.commands import run, quote_if_necessary
         cmd = 'save %s model #%s' % (quote_if_necessary(path),
                                      self._map_menu.value.id_string)
         run(session, cmd)
-
-    def _add_file_suffix(self, filename):
-        suffixes = self._format.extensions
-        for suffix in suffixes:
-            if filename.endswith(suffix):
-                return filename
-        return filename + suffixes[0]
 
     def update(self, session, save_dialog):
         m = None
@@ -75,8 +74,5 @@ def register_map_save_options(session):
     from chimerax.core.io import format_from_name
     formats = [format_from_name(fmt.description) for fmt in file_formats if fmt.writable]
     from chimerax.map import Volume
-    sd = session.ui.main_window.save_dialog
     for format in formats:
-        o = ModelSaveOptionsGUI(session, format, Volume, 'Map')
-        sd.register(format.name, o.wildcard, o.make_ui, o.update, o.save)
-    return 'delete handler'
+         ModelSaveOptionsGUI(session, format, Volume, 'Map').register(session)

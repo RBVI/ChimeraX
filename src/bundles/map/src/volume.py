@@ -3626,6 +3626,5 @@ def register_map_file_formats(session):
     )
     register('save map', desc, save, logger=session.logger)
 
-    from .savemap import register_map_save_options
-    session.ui.triggers.add_handler('ready', lambda *args,s=session: register_map_save_options(s))
-    
+    from . import savemap
+    savemap.register_map_save_options(session)
