@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8">
    <base href="URLBASE" />
-   <link rel="stylesheet" type="text/css" href="/chimerax/ui/html/css/bootstrap-3.3.7.min.css">
+   <link rel="stylesheet" type="text/css" href="/chimerax/ui/html/css/bootstrap-3.3.7.css">
+   <link rel="stylesheet" type="text/css" href="/chimerax/ui/html/css/bootgrid-1.3.1.min.css">
    <link rel="stylesheet" type="text/css" href="viewdockx_plot.css">
    <script src="/chimerax/ui/html/js/jquery-3.3.1.min.js"></script>
    <script src="/chimerax/ui/html/js/bootstrap-3.3.7.js"></script>
+   <script src="/chimerax/ui/html/js/bootgrid-1.3.1.min.js"></script>
    <script src="lib/flot/jquery.flot.min.js"></script>
    <script src="lib/flot/jquery.flot.selection.min.js"></script>
    <script src="lib/flot/jquery.flot.resize.min.js"></script>
@@ -30,7 +32,13 @@
     </div>
     <div id="data">
     </div>
-    <table id="column_table" style="table-layout:fixed; width:100%;"></table>
+    <table id="column_table" class="table table-condensed table-striped table-hover bootgrid-table">
+      <thead>
+        <th data-column-id="column_name" data-identifier="true">Name</th>
+        <th data-column-id="column_value" data-formatter="value">Value</th>
+      </thead>
+      <tbody/>
+    </table>
   </div>
 </body>
 </html>
