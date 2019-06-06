@@ -44,17 +44,8 @@ var vdxchart = function() {
         $.each(columns["numeric"], function(r, v) {
             rows.push({"column_name": r, "type": "numeric"});
         });
-        $("#column_table")
-            .bootgrid("clear")
-            .bootgrid("append", rows)
-            .on("loaded.rs.jquery.bootgrid", function(ev) {
-                $(".sort").click(update_plot);
-                $(".graph").click(update_plot);
-                $(".histogram").click(update_plot);
-                update_plot();
-            });
-
-        // update_plot();
+        $("#column_table").bootgrid("clear")
+                          .bootgrid("append", rows);
     }
 
     function update_plot() {
@@ -62,6 +53,8 @@ var vdxchart = function() {
         var text = columns["text"];
         var numeric = columns["numeric"];
         var ids = text["id"];
+        if (ids == null)
+            return;
         index2index = ids.map(function(e, i) { return i; });
         sort_column = $(".sort:checked").attr("value");
         if (sort_column != null) {
@@ -393,6 +386,12 @@ var vdxchart = function() {
             set_column("column_hist", "fa-bar-chart");
         }
         $("#column_table").on("initialized.rs.jquery.bootgrid", set_icons)
+                          .on("loaded.rs.jquery.bootgrid", function(ev) {
+                              $(".sort").click(update_plot);
+                              $(".graph").click(update_plot);
+                              $(".histogram").click(update_plot);
+                              update_plot();
+                          })
                           .bootgrid(bootgrid_options);
     }
 
