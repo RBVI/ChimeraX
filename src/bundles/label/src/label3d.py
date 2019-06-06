@@ -258,6 +258,7 @@ class ObjectLabels(Model):
 
         self._labels = []		# list of ObjectLabel
         self._object_label = {}		# Map object (Atom, Residue, Pseudobond, Bond) to ObjectLabel
+        self._num_pixel_labels = 0	# Number of labels sized in pixels.
 
         t = session.triggers
         self._update_graphics_handler = t.add_handler('graphics update', self._update_graphics_if_needed)
@@ -269,9 +270,6 @@ class ObjectLabels(Model):
         ta = get_triggers(session)
         self._structure_change_handler = ta.add_handler('changes', self._structure_changed)
         
-        # Optimize label repositioning when minimum camera move specified.
-        self._last_camera_position = None
-
         self.use_lighting = False
         Model.set_color(self, (255,255,255,255))	# Do not modulate texture colors
 
@@ -322,10 +320,14 @@ class ObjectLabels(Model):
                 lo = ol[o]
                 for k,v in settings.items():
                     setattr(lo, k, v)
+        self._count_pixel_sized_labels()
         if objects:
             self._texture_needs_update = True
             self.redraw_needed()
-
+            
+    def _count_pixel_sized_labels(self):
+        self._num_pixel_labels = len([l for l in self._labels if l.height is None])
+        
     def delete_labels(self, objects):
         ol = self._object_label
         count = 0
@@ -336,6 +338,8 @@ class ObjectLabels(Model):
         if count > 0:
             self._labels = [l for l in self._labels if l.object in ol]
             self._texture_needs_update = True
+            self._count_pixel_sized_labels()
+
         if len(ol) == 0:
             self.session.models.close([self])
         return count
@@ -366,7 +370,8 @@ class ObjectLabels(Model):
         if not self.visible:
             return
 
-        v = self.session.main_view
+        ses = self.session
+        v = ses.main_view
         resize = (v.window_size != self._window_size)
         if resize:
             self._window_size = v.window_size
@@ -374,20 +379,20 @@ class ObjectLabels(Model):
             
         camera_move = v.camera.redraw_needed
         if camera_move:
-            ra = _reorient_angle(self.session)
-            if ra == 0:
+            ra = _reorient_angle(ses)
+            if ra == 0 or self._num_pixel_labels > 0:
                 self._positions_need_update = True
             elif ra > 0:
                 # Don't update label positions if minimum camera motion has not occured.
                 # This optimization is to maintain high frame rate with virtual reality.
-                cpos = self.session.main_view.camera.position
-                lcpos = self._last_camera_position
+                cpos = v.camera.position
+                lcpos = getattr(ses, '_last_label_view', None)
                 from math import degrees
                 if lcpos is None:
-                    self._last_camera_position = cpos
+                    ses._last_label_view = cpos
                 elif degrees((cpos.inverse() * lcpos).rotation_angle()) >= ra:
                     self._positions_need_update = True
-                    self._last_camera_position = cpos
+                    ses._last_label_view = cpos
 
         if self._texture_needs_update:
             self._rebuild_label_graphics()
@@ -521,6 +526,7 @@ class ObjectLabels(Model):
             cls = label_class(o)
             ol[o] = l = cls(o, v, **kw)
             self._labels.append(l)
+        self._count_pixel_sized_labels()
 
 # -----------------------------------------------------------------------------
 #
