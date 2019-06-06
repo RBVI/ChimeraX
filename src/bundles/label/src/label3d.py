@@ -38,7 +38,7 @@ def label(session, objects = None, object_type = None, text = None,
     size : int or "default"
       Font size in points (1/72 inch). Default 24.
     height : float or "fixed"
-      Text height in scene units.  Or if "fixed" use fixed pixel height on screen.
+      Text height in scene units.  Or if "fixed" use fixed pixel height on screen.  Initial value 0.7.
     font : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
@@ -551,7 +551,7 @@ class ObjectLabel:
     
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 24, height = None, font = 'Arial'):
+                 size = 48, height = 0.7, font = 'Arial'):
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
@@ -652,7 +652,7 @@ class ObjectLabel:
 class AtomLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 24, height = None, font = 'Arial'):
+                 size = 48, height = 0.7, font = 'Arial'):
         self.atom = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,
@@ -674,7 +674,7 @@ class AtomLabel(ObjectLabel):
 class ResidueLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 24, height = None, font = 'Arial'):
+                 size = 48, height = 0.7, font = 'Arial'):
         self.residue = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,
@@ -694,7 +694,7 @@ class ResidueLabel(ObjectLabel):
 class EdgeLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 24, height = None, font = 'Arial'):
+                 size = 48, height = 0.7, font = 'Arial'):
         self.pseudobond = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,
