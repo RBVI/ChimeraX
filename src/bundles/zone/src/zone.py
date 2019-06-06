@@ -21,7 +21,6 @@ class AtomZoneMouseMode(MouseMode):
         self._label_distance = 4
         self._label_size = 64		# Pixels
         self._label_height = 0.7	# Scene units (Angstroms)
-        self._label_reorient = 45	# Degrees
         from chimerax.core.colors import BuiltinColors
         self._label_color = BuiltinColors['yellow']
         self._label_background = BuiltinColors['black']
@@ -122,8 +121,7 @@ class AtomZoneMouseMode(MouseMode):
         ses = self.session
         label_delete(ses)
         label(ses, aobj, 'residues', size = self._label_size, height = self._label_height,
-              orient = self._label_reorient, color = self._label_color,
-              background = self._label_background)
+              color = self._label_color, background = self._label_background)
         self._labeled_residues = aobj
 
     def _show_ribbons(self, hide_residues):
