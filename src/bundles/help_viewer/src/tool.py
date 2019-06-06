@@ -231,7 +231,67 @@ class HelpUI(ToolInstance):
         p.urlChanged.connect(lambda url, w=w: self.url_changed(w, url))
         p.titleChanged.connect(lambda title, w=w: self.title_changed(w, title))
         p.linkHovered.connect(self.link_hovered)
+        p.authenticationRequired.connect(self.authorize)
+        # TODO? p.iconChanged.connect(....)
+        # TODO? p.iconUrlChanged.connect(....)
+        # TODO? p.loadProgress.connect(....)
+        # TODO? p.loadStarted.connect(....)
+        # TODO? p.renderProcessTerminated.connect(....)
+        # TODO? p.selectionChanged.connect(....)
+        # TODO? p.windowCloseRequested.connect(....)
         return w
+
+    def authorize(self, requestUrl, auth):
+        from PyQt5.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
+        from PyQt5.QtCore import Qt
+        class PasswordDialog(QDialog):
+
+            def __init__(self, requestUrl, auth, parent=None):
+                super().__init__(parent)
+                self.setWindowTitle("ChimeraX: Authentication Required")
+                self.setModal(True)
+                self.auth = auth
+                url = requestUrl.url()
+                key = QLabel("\N{KEY}")
+                font = key.font()
+                font.setPointSize(2 * font.pointSize())
+                key.setFont(font)
+                self.info = QLabel(f'{url} is requesting your username and password.  The site says: "{auth.realm()}"')
+                self.info.setWordWrap(True)
+                user_name = QLabel("User name:")
+                self.user_name = QLineEdit(self)
+                password = QLabel("Password:")
+                self.password = QLineEdit(self)
+                self.password.setEchoMode(QLineEdit.Password)
+                self.cancel_button = QPushButton('Cancel', self)
+                self.cancel_button.clicked.connect(self.reject)
+                self.ok_button = QPushButton('OK', self)
+                self.ok_button.clicked.connect(self.accept)
+                self.ok_button.setDefault(True)
+                layout = QGridLayout(self)
+                layout.setColumnStretch(1, 1)
+                layout.addWidget(key, 0, 0, Qt.AlignCenter)
+                layout.addWidget(self.info, 0, 1, 1, 3)
+                layout.addWidget(user_name, 1, 0, Qt.AlignRight)
+                layout.addWidget(self.user_name, 1, 1, 1, 3)
+                layout.addWidget(password, 2, 0, Qt.AlignRight)
+                layout.addWidget(self.password, 2, 1, 1, 3)
+                layout.addWidget(self.cancel_button, 3, 2)
+                layout.addWidget(self.ok_button, 3, 3)
+
+            def reject(self):
+                from PyQt5.QtNetwork import QAuthenticator
+                import sip
+                sip.assign(auth, QAuthenticator())
+                return super().reject()
+
+            def accept(self):
+                self.auth.setUser(self.user_name.text())
+                self.auth.setPassword(self.password.text())
+                return super().accept()
+
+        p = PasswordDialog(requestUrl, auth)
+        p.exec_()
 
     def show(self, url, *, new_tab=False, html=None):
         from urllib.parse import urlparse, urlunparse
