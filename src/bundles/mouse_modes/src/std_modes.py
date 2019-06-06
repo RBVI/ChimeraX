@@ -497,7 +497,6 @@ class ClipMouseMode(MouseMode):
     icon_file = 'icons/clip.png'
 
     def mouse_drag(self, event):
-
         dx, dy = self.mouse_motion(event)
         front_shift, back_shift = self.which_planes(event)
         self.clip_move((dx,-dy), front_shift, back_shift)
@@ -546,8 +545,14 @@ class ClipMouseMode(MouseMode):
     def _planes(self, front_shift, back_shift):
         v = self.view
         p = v.clip_planes
-        pfname, pbname = (('front','back') if p.find_plane('front') or p.find_plane('back') or not p.planes() 
-                          else ('near','far'))
+
+        if not p.planes():
+            from .settings import clip_settings
+            use_scene_planes = (clip_settings.mouse_clip_plane_type == 'scene planes')
+        else:
+            use_scene_planes = (p.find_plane('front') or p.find_plane('back'))
+                
+        pfname, pbname = ('front','back') if use_scene_planes else ('near','far')
         
         pf, pb = p.find_plane(pfname), p.find_plane(pbname)
         from chimerax.std_commands.clip import adjust_plane
@@ -605,7 +610,6 @@ class ClipRotateMouseMode(MouseMode):
     icon_file = 'icons/cliprot.png'
 
     def mouse_drag(self, event):
-
         dx, dy = self.mouse_motion(event)
         axis, angle = self._drag_axis_angle(dx, dy)
         self.clip_rotate(axis, angle)
