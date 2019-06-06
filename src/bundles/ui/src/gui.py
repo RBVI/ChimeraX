@@ -1616,10 +1616,7 @@ class _Qt:
         # free up references
         self.tool_window = None
         self.main_window = None
-        self.dock_widget.widget().destroy()
-        if self.status_bar:
-            self.status_bar.destroy()
-            self.status_bar = None
+        self.status_bar = None
         self.dock_widget.destroy()
 
     @property
@@ -1673,9 +1670,6 @@ class _Qt:
         if geometry is not None:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
-
-        if self.tool_window.close_destroys:
-            self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
         _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,
