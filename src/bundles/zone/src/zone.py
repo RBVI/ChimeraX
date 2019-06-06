@@ -221,7 +221,8 @@ class AtomZoneMouseMode(MouseMode):
             r = None
         return r
 
-    def laser_click(self, xyz1, xyz2):
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         from chimerax.mouse_modes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         res = self._picked_residue(pick) 
@@ -230,14 +231,11 @@ class AtomZoneMouseMode(MouseMode):
         elif not self._unlabel():
             self._unzone()
 
-    def drag_3d(self, position, move, delta_z):
-        if move is None:
-            # released button
-            pass
-        else:
-            from math import exp
-            scale = exp(delta_z / .3)
-            self._scale_range(scale, ribbon=False)
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        from math import exp
+        scale = exp(delta_z / .3)
+        self._scale_range(scale, ribbon=False)
 
 def zone(session, atoms = None, residue_distance = None,
          label = None, label_distance = None,

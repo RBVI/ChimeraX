@@ -36,28 +36,44 @@ See also: the <a href="window.html">ChimeraX window</a>,
 <a href="tools/basicactions.html"><b>Basic Actions</b></a>,
 the <a href="tools/cli.html"><b>Command Line</b></a>
 </p>
-<ul>
+<ul class="none">
+<li><a href="#file"><b>File</b></a>
+<li><a href="#edit"><b>Edit</b></a>
+<li><a href="#select"><b>Select</b></a>
+<li><a href="#tools"><b>Tools</b></a>
+<li><a href="#favorites"><b>Favorites</b></a>
+<li><a href="#presets"><b>Presets</b></a>
+<li><a href="#help"><b>Help</b></a>
+</ul>
+
 <a name="file"></a>
-<li><b>File</b>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>File</b>
   <ul>
   <li><b>Open...</b> a subset of <a href="commands/open.html"><b>open</b></a>
   command functionality
+  <li><b>Open DICOM Folder...</b> open all files of the specified format
+  (currently <a href="dicom/dicom.html">DICOM</a> only)
+  in the specified directory and its subdirectories
   <li><b>Save...</b> a subset of <a href="commands/save.html"><b>save</b></a>
   command functionality
   <li><b>Close Session</b> &ndash; same as the command
   <a href="commands/close.html"><b>close session</b></a> 
   </ul>
-<br>
+
 <a name="edit"></a>
-<li><b>Edit</b> &ndash; limited <a href="commands/undo.html">undo/redo</a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Edit</b> &ndash; limited <a href="commands/undo.html">undo/redo</a>
   <ul>
   <li><b>Undo</b>
   <li><b>Redo</b>
   </ul>
-<br>
+
 <a name="select"></a>
-<li><b>Select</b> 
-&ndash; what or how to <a href="selection.html">select</a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Select</b> 
+&ndash; what or how to <a href="selection.html">select</a>; see also the
+<a href="commands/select.html"><b>select</b></a> command
   <ul>
   <li><b>Chains</b>
   &ndash; <a href="commands/atomspec.html#hierarchy">chains</a>
@@ -74,32 +90,51 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   standard nucleic acids, and standard amino acids
   <li><b>Structure</b> 
     <ul>
-    <li><b>Backbone</b> - biopolymer backbone atoms: peptide N, CA, C, O, 
+    <li><b>Backbone</b> &ndash; biopolymer backbone atoms: peptide N, CA, C, O, 
     nucleic acid phosphoribosyl backbone, and any directly attached hydrogens 
-    <li><b>Ions</b> - <a href="commands/atomspec.html#surfcats">ions</a>
-    <li><b>Ligand</b> - <a href="commands/atomspec.html#surfcats">ligand</a>
-    <li><b>Main</b> - <a href="commands/atomspec.html#surfcats">main</a>
-    <li><b>Nucleic Acid</b> - nucleosides, nucleotides, RNA, and DNA
-    <li><b>Protein</b> - amino acids, peptides, and proteins
-    <li><b>Ribose</b> - nucleic-acid backbone ribose and doxyribose moieties
-    <li><b>Secondary Structure</b> - protein/peptide secondary structure types:
+    <li><b>Ions</b> &ndash; <a href="commands/atomspec.html#surfcats">ions</a>
+    <li><b>Ligand</b> 
+    &ndash; <a href="commands/atomspec.html#surfcats">ligand</a>
+    <li><b>Main</b> &ndash; <a href="commands/atomspec.html#surfcats">main</a>
+    <li><b>Nucleic Acid</b> &ndash; nucleosides, nucleotides, RNA, and DNA
+    <li><b>Protein</b> &ndash; amino acids, peptides, and proteins
+    <li><b>Ribose</b> &ndash; nucleic-acid backbone ribose and doxyribose moieties
+    <li><b>Secondary Structure</b> &ndash; protein/peptide secondary structure types:
       <ul>
-      <li><b>Coil</b> - amino acid residues not in helix or strand
-      <li><b>Helix</b> - amino acid residues in helices
-      <li><b>Strand</b> - amino acid residues in strands
+      <li><b>Coil</b> &ndash; amino acid residues not in helix or strand
+      <li><b>Helix</b> &ndash; amino acid residues in helices
+      <li><b>Strand</b> &ndash; amino acid residues in strands
       </ul>
     <li><b>Sidechain + Connector</b>
-     - amino acid sidechain + CA (for connectivity to 
+     &ndash; amino acid sidechain + CA (for connectivity to 
      <a href="commands/cartoon.html">cartoon</a>), nucleic acid base + ribose,
     and any directly attached hydrogens
     <li><b>Sidechain Only</b>
-     - amino acid sidechain, nucleic acid base, 
+     &ndash; amino acid sidechain, nucleic acid base, 
     and any directly attached hydrogens
-    <li><b>Solvent</b> - <a href="commands/atomspec.html#surfcats">solvent</a>
+    <li><b>Solvent</b> &ndash; <a href="commands/atomspec.html#surfcats">solvent</a>
     </ul>
-  <a name="selectseq"></a>
-  <li><b>Sequence...</b> <a href="findseq.html">find and select</a>
+  <li><a name="selectseq"></a>
+  <b>Sequence...</b> <a href="findseq.html">find and select</a>
   a specified amino acid or nucleotide sequence or sequence pattern
+  <li><a name="selectzone"></a>
+  <b>Zone...</b> select atoms and bonds 
+(or whole residues, if <b>Apply criteria to whole residues</b> is checked)
+within and/or beyond a specified distance from the currently selected atoms.
+If both the within (&lt;) and beyond (&gt;) options are checked, 
+both criteria must be met; for example, the atoms or residues must fall within 
+12 &Aring; of but farther away than 8 &Aring; from the current selection.
+<b>OK</b> performs the selection and closes the dialog, whereas
+<b>Apply</b> performs the selection without closing the dialog.
+See also: <a href="commands/atomspec.html#zones">zone atom specification</a>
+  <li><b>Clear</b> &ndash; deselect any existing selection
+  <li><b>Invert</b> &ndash; select all items that are currently unselected,
+deselect all items that are currently selected
+  <li><b>All</b> &ndash; select all models and their parts 
+  <li><b>Broaden</b> &ndash; expand the current selection up a
+level in the <a href="selection.html#cascade">selection cascade</a> 
+  <li><b>Narrow</b> &ndash; narrow a previously broadened selection down a
+level in the <a href="selection.html#cascade">selection cascade</a>
   <li><b>Menu Mode: <i>mode</i></b>
     <ul>
     <li><b>Replace</b> (initial default <i>mode</i>)
@@ -107,66 +142,130 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
     <li><b>Subtract (&ndash;)</b>
     <li><b>Intersect (&cap;)</b>
     </ul>
+<a name="named-selections"></a>
+  <li><b>User-Defined Selectors</b> 
+    <ul>
+    <li>[any selectors previously defined with the 
+    <a href="commands/name.html"><b>name</b></a> command or 
+    <b>Define Selector</b>, see below]
+    </ul>
+  <li><b>Define Selector...</b> name and save the current
+<a href="selection.html">selection</a> or (re)define a selector with a 
+<a href="commands/atomspec.html">target specification</a> string
   </ul>
-<br>
+
 <a name="tools"></a>
-<li><b>Tools</b>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Tools</b>
 &ndash; <a href="index.html#tools">tools</a> grouped by category
 <br><br>
-<a name="presets"></a>
-<li><b>Presets</b>
-&ndash; predefined combinations of display settings;
-the current set of presets is based directly on 
-<a href="autostyle.html">automatic styling</a> and is likely to change.
+
+<a name="favorites"></a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Favorites</b>
+&ndash; <a href="index.html#tools">tools</a> designated as favorites 
+with the command <a href="commands/ui.html#favorite"><b>ui favorite</b></a>
+or <a href="window.html#tool-context">tool context menus</a>
 <br><br>
+
+<a name="presets"></a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Presets</b>
+&ndash; predefined combinations of display settings, grouped into categories.
+Choosing a preset from the menu applies its settings.
+The current presets act only on atomic models, 
+and those in the <b>Cartoons/Nucleotides</b> and
+<b>Initial Styles</b> categories hide any
+<a href="commands/surface.html">molecular surfaces</a>.
+They are not all-encompassing (results depend on prior settings), and those 
+which are more render-intensive may be slow to execute on very large structures.
+Presets can also be applied using the
+<a href="commands/preset.html"><b>preset</b></a> command.
+See also: 
+<a href="commands/lighting.html"><b>lighting</b></a>,
+<a href="tools/graphics.html"><b>Graphics</b></a> icons,
+<a href="images.html">making images</a>
 <ul>
-<li><b>Original Look</b> - initial appearance from
+<li><b>Cartoons/Nucleotides</b>
+  <ul>
+  <li><b>Ribbons/Slabs</b> &ndash; 
+<a href="commands/cartoon.html#style">cartoon style</a> initial defaults + 
+<a href="commands/nucleotides.html">nucleotide</a> bases as rectangular boxes
+  <li><b>Cylinders/Stubs</b> &ndash; 
+<a href="commands/cartoon.html#style">cartoon style</a> 
+protein &alpha;-helix cylinders +
+<a href="commands/nucleotides.html">nucleotide</a> stubs (half-rungs)
+  <li><b>Licorice/Ovals</b> &ndash; 
+<a href="commands/cartoon.html#style">cartoon style</a>
+without 2&deg;-structure detail +
+<a href="commands/nucleotides.html">nucleotide</a> bases as ellipsoids
+  </ul>
+<li><b>Initial Styles</b>
+&ndash; based on <a href="autostyle.html">automatic styling</a>
+  <ul>
+  <li><b>Original Look</b> - initial appearance from
 <a href="autostyle.html">automatic styling</a>,
-which depends on the number of chains in an atomic structure
-(however, certain aspects of appearance
-like <a href="commands/set.html#silhouettes">silhouettes</a>
-and <a href="commands/cartoon.html#style">cartoon style</a>
-may differ if they have been changed since the structure was opened)
-<li><b>Cartoon</b>
-- <a href="commands/cartoon.html">cartoons</a> plus atomic detail near
+which depends on the number of chains in an atomic structure (however,
+settings such as <a href="commands/set.html#silhouettes">silhouettes</a>
+and <a href="commands/cartoon.html#style">cartoon style</a> may be different
+if they were changed since the structure was opened)
+  <li><b>Sticks</b>
+&ndash; all atoms as <a href="commands/style.html">sticks</a>,
+<a href="commands/lighting.html">simple lighting</a>, <i>etc.</i> (as for
+<a href="autostyle.html">automatic styling</a> of structures with 0 chains)
+  <li><b>Cartoon</b>
+&ndash; <a href="commands/cartoon.html">cartoon</a> plus atomic detail near
 residues <a href="commands/atomspec.html#surfcats">classified</a>
 as <b>ligand</b> and <b>ions</b>,
 <a href="commands/lighting.html">simple lighting</a>, <i>etc.</i>
 (as for
 <a href="autostyle.html">automatic styling</a> of structures with 1-4 chains)
-<li><b>Space-Filling (chain colors)</b>
-- all atoms as <a href="commands/style.html">spheres</a>
+  <li><b>Space-Filling (Chain Colors)</b>
+&ndash; all atoms as <a href="commands/style.html">spheres</a>
 except sticks for <b>ligand</b> and balls for <b>solvent</b>,
 <a href="commands/colortables.html#autocolors">chain colors</a>,
 shadows, <i>etc.</i> (as for
 <a href="autostyle.html">automatic styling</a> of structures with 5-249 chains)
-<li><b>Space-Filling (single color)</b>
-- all atoms as <a href="commands/style.html">spheres</a>,
-ambient-only lighting, <i>etc.</i> (as for
-<a href="autostyle.html">automatic styling</a> of structures with &ge;250 chains)
-<li><b>Stick</b>
-- all atoms as <a href="commands/style.html">sticks</a>,
-<a href="commands/lighting.html">simple lighting</a>, <i>etc.</i> (as for
-<a href="autostyle.html">automatic styling</a> of structures with 0 chains)
-</ul>
-<p>
-More render-intensive presets such as <b>Cartoon</b>
-may exhibit slow performance on very large structures.
-</p>
-<a name="help"></a>
-<li><b>Help</b>
+  <li><b>Space-Filling (Single Color)</b>
+&ndash; all atoms as <a href="commands/style.html">spheres</a>,
+ambient-only lighting, <i>etc.</i> (as for <a href="autostyle.html">automatic 
+styling</a> of structures with &ge;250 chains)
+  </ul>
+<li><b>Molecular Surfaces</b> 
+&ndash; <a href="commands/surface.html">molecular surfaces</a>
+with different coloring options:
   <ul>
-  <li><a href="index.html"><b>User Guide</b></a>
-  <li><a href="../quickstart/index.html"><b>Quick Start Guide</b></a>
-  <li><a href="../devel/index.html"><b>Programming Manual</b></a>
-  <li><a href="../index.html"><b>Documentation Index</b></a>
-  <li><a href="../contact.html"><b>Contact Us</b></a>
-  <li><b>Report a Bug</b>
+  <li><b>Atomic Coloring (Transparent)</b> 
+&ndash; same color(s) as the underlying atoms, 70% transparent 
+  <li><b>Chain ID Coloring (Opaque)</b> 
+&ndash; <a href="commands/colortables.html#autocolors">chain colors</a>, opaque
+  <li><b>Ghostly White</b> &ndash; white, 80% transparent
+  </ul>
+<li><b>Overall Look</b>
+  <ul>
+  <li><b>Interactive</b> &ndash; 
+<a href="commands/set.html#silhouettes">silhouettes</a> off,
+<a href="commands/set.html#bgColor">background color</a> default
+(user <a href="preferences.html#background">preference</a>)
+  <li><b>Publication</b> &ndash;
+<a href="commands/set.html#silhouettes">silhouettes</a> on,
+<a href="commands/set.html#bgColor">background color</a> white
   </ul>
 </ul>
-<p>
+
+<a name="help"></a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Help</b>
+<ul>
+<li><a href="index.html"><b>User Guide</b></a>
+<li><a href="../quickstart/index.html"><b>Quick Start Guide</b></a>
+<li><a href="../devel/index.html"><b>Programming Manual</b></a>
+<li><a href="../index.html"><b>Documentation Index</b></a>
+<li><a href="../contact.html"><b>Contact Us</b></a>
+<li><b>Report a Bug</b>
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2018</address>
+May 2019</address>
 </body></html> 

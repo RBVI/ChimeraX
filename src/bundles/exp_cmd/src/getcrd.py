@@ -17,7 +17,7 @@ def initialize(command_name, logger):
     register("getcrd", getcrd_desc, getcrd, logger=logger)
 
 def getcrd(session, atoms=None, coordinate_system='scene'):
-    from chimerax.core.core_settings import settings
+    from chimerax.atomic.settings import settings
     if atoms is None:
         atoms = atomspec.everything(session)
     results = atoms.evaluate(session)
@@ -32,7 +32,7 @@ def getcrd(session, atoms=None, coordinate_system='scene'):
         coords = atoms.scene_coords
         s2c.transform_points(coords, in_place=True)
     save = settings.atomspec_contents
-    settings.atomspec_contents = "command-line specifier"
+    settings.atomspec_contents = "command"
     for i, a in enumerate(atoms):
         c = coords[i]
         msgs.append("Atom %s %.3f %.3f %.3f" % (a.atomspec, c[0], c[1], c[2]))

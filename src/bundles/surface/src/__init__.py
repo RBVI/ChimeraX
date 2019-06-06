@@ -22,6 +22,7 @@ from ._surface import calculate_vertex_normals, invert_vertex_normals
 from ._surface import connected_triangles, sharp_edge_patches, unique_vertex_map, connected_pieces
 from ._surface import boundary_edges, compute_cap, triangulate_polygon
 from ._surface import vertex_convexity
+from ._surface import smooth_vertex_positions
 from .dust import largest_blobs_triangle_mask
 from .gaussian import gaussian_surface
 from .cap import update_clip_caps, remove_clip_caps
@@ -34,6 +35,15 @@ from .sop import surface_zone
 from chimerax.core.toolshed import BundleAPI
 
 class _SurfaceBundle(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        from . import settings
+        settings.settings = settings._SurfaceSettings(session, "surfaces")
+
+        if session.ui.is_gui:
+            session.ui.triggers.add_handler('ready',
+                lambda *args, ses=session: settings.register_settings_options(ses))
 
     @staticmethod
     def register_command(command_name, logger):

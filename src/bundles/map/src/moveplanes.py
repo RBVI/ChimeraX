@@ -11,15 +11,12 @@
 
 # Mouse mode to move map planes or move faces of bounding box.
 from chimerax.mouse_modes import MouseMode
-class PlanesMouseMode(MouseMode):
-    name = 'move planes'
-    icon_file = 'moveplanes.png'
+class RegionMouseMode(MouseMode):
 
     def __init__(self, session):
 
         MouseMode.__init__(self, session)
 
-        self.mode_name = 'move planes'
         self.bound_button = None
         
         self.map = None
@@ -45,6 +42,17 @@ class PlanesMouseMode(MouseMode):
         if v:
             v.set_parameters(show_outline_box = True)
             self.matching_maps = matching_maps(v, maps)
+            if (not self.move_faces and v.is_full_region(any_step = True)
+                and not v.showing_orthoplanes() and not v.showing_box_faces()):
+                self._show_single_plane(v, self.axis)
+
+    def _show_single_plane(self, v, axis):
+        ijk_min, ijk_max, ijk_step = [list(b) for b in v.region]
+        p = (ijk_min[axis] + ijk_max[axis])//2
+        ijk_min[axis] = ijk_max[axis] = p
+        ijk_step = (1,1,1)
+        v.new_region(ijk_min, ijk_max, ijk_step)
+        v.set_display_style('image')
 
     def mouse_drag(self, event):
         v = self.map
@@ -68,13 +76,16 @@ class PlanesMouseMode(MouseMode):
     def _move_plane(self, istep):
         # Remember fractional grid step for next move.
         istep += self.frac_istep
-        rstep = round(istep)
+        rstep = int(round(istep))
         if rstep == 0:
             self.frac_istep = istep
             return
         self.frac_istep = istep - rstep
         v = self.map
-        move_plane(v, self.axis, self.side, rstep)
+        if self.move_faces:
+            move_face(v, self.axis, self.side, rstep)
+        else:
+            move_slab(v, self.axis, self.side, rstep)
         for m in self.matching_maps:
             m.new_region(*tuple(v.region), adjust_step = False, adjust_voxel_limit = False)
             if v.showing_orthoplanes() and m.showing_orthoplanes():
@@ -90,28 +101,46 @@ class PlanesMouseMode(MouseMode):
             self._move_plane(d)
 
     def mouse_up(self, event = None):
+        self.log_volume_command()
         self.map = None
         self.ijk = None
         self.xy_last = None
         self.frac_istep = 0
         return
 
-    def laser_click(self, xyz1, xyz2):
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         line = (xyz1, xyz2)
         self._choose_box_face(line)
         
-    def drag_3d(self, position, move, delta_z):
-        if position is None:
-            self.mouse_up()
-        elif move is not None:
-            v = self.map
-            if v:
-                trans = move * position.origin() - position.origin()
-                dxyz = v.position.inverse() * trans
-                dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)
-                istep = dijk[self.axis]
-                self._move_plane(istep)
+    def vr_motion(self, position, move, delta_z):
+        v = self.map
+        if v:
+            trans = move * position.origin() - position.origin()
+            dxyz = v.position.inverse() * trans
+            dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)
+            istep = dijk[self.axis]
+            self._move_plane(istep)
 
+    def vr_release(self):
+        # Virtual reality hand controller button release.
+        self.mouse_up()
+
+    def log_volume_command(self):
+        v = self.map
+        if v:
+            log_volume_region_command(v)
+
+class PlanesMouseMode(RegionMouseMode):
+    name = 'move planes'
+    icon_file = 'moveplanes.png'
+    move_faces = False
+
+class CropMouseMode(RegionMouseMode):
+    name = 'crop volume'
+    icon_file = 'crop.png'
+    move_faces = True
+    
 def matching_maps(v, maps):
     mm = []
     vd = v.data
@@ -137,38 +166,41 @@ def same_orthoplanes(v1, v2):
             return True
     return False
     
-def move_plane(v, axis, side, istep):
+def move_face(v, axis, side, istep):
+
+    ijk_min, ijk_max, ijk_step = [list(u) for u in v.region]
+    amax = v.data.size[axis]-1
+    minsep = ijk_step[axis]-1
+    
+    if side == 0:
+        istep = max(istep, -ijk_min[axis])
+        istep = min(istep, amax - (ijk_min[axis]+minsep))
+    else:
+        istep = max(istep, -(ijk_max[axis]-minsep))
+        istep = min(istep, amax - ijk_max[axis])
+    (ijk_min, ijk_max)[side][axis] += istep
+
+    # If face hits opposing face then move opposing face too
+    if ijk_max[axis] - ijk_min[axis] < minsep:
+        if side == 0:
+            ijk_max[axis] = ijk_min[axis] + minsep
+        else:
+            ijk_min[axis] = ijk_max[axis] - minsep
+
+    v.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False, adjust_voxel_limit = False)
+    
+def move_slab(v, axis, side, istep):
 
     if v.showing_orthoplanes():
         move_orthoplane(v, axis, istep)
         return
 
     ijk_min, ijk_max, ijk_step = [list(u) for u in v.region]
-    s = ijk_step[axis]
-    single_plane = (ijk_max[axis] < ijk_min[axis] + s)
     amax = v.data.size[axis]-1
-    if single_plane:
-        istep = max(istep, -ijk_min[axis])              # clamp step
-        istep = min(istep, amax - ijk_max[axis])
-        ijk_min[axis] += istep
-        ijk_max[axis] += istep
-    else:
-        # move one box face
-        minsep = 2*s-1
-        if side == 0:
-            istep = max(istep, -ijk_min[axis])
-            istep = min(istep, amax - (ijk_min[axis]+minsep))
-        else:
-            istep = max(istep, -(ijk_max[axis]-minsep))
-            istep = min(istep, amax - ijk_max[axis])
-        (ijk_min, ijk_max)[side][axis] += istep
-
-        # Push both planes
-        if ijk_max[axis] - ijk_min[axis] < minsep:
-            if side == 0:
-                ijk_max[axis] = ijk_min[axis] + minsep
-            else:
-                ijk_min[axis] = ijk_max[axis] - minsep
+    istep = max(istep, -ijk_min[axis])              # clamp step
+    istep = min(istep, amax - ijk_max[axis])
+    ijk_min[axis] += istep
+    ijk_max[axis] += istep
 
     v.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False, adjust_voxel_limit = False)
 
@@ -205,6 +237,21 @@ def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
 def sign(x):
     return 1 if x >= 0 else -1
 
+def log_volume_region_command(v):
+    ijk_min, ijk_max = v.region[:2]
+    if v.showing_orthoplanes():
+        ro = v.rendering_options
+        planes = ''.join([n for n,s in zip(('x','y','z'),ro.orthoplanes_shown) if s])
+        region = ('orthoplanes %s' % planes
+                  + ' positionPlanes %d,%d,%d' % ro.orthoplane_positions)
+    else:
+        region = 'region %d,%d,%d,%d,%d,%d' % (tuple(ijk_min)+tuple(ijk_max))
+
+    command = 'volume #%s %s' % (v.id_string, region)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(v.session, command)
+
 def register_mousemode(session):
     mm = session.ui.mouse_modes
     mm.add_mode(PlanesMouseMode(session))
+    mm.add_mode(CropMouseMode(session))

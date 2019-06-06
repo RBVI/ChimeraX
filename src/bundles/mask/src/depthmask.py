@@ -154,7 +154,7 @@ def surface_projection_coordinates(surfaces, projection_axis, volume):
   zsurf = []
   tcount = 0
   for vertices, triangles in surfaces:
-    varray = tfrs.transform_points(varray)
+    varray = tfrs.transform_points(vertices)
     zsurf.append((varray, triangles))
     tcount += len(triangles)
   if tcount == 0:
@@ -297,7 +297,7 @@ def bounding_box(surfaces, tf = None):
     if tf is None:
       v = vertices
     else:
-      v = tf.transform_points(v)
+      v = tf.transform_points(vertices)
     v = v.take(triangles.ravel(), axis = 0)
     vmin = v.min(axis = 0)
     if smin is None:      smin = vmin

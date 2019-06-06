@@ -1,5 +1,6 @@
 <BundleInfo name="ChimeraX-AlignmentHdrs" version="1.0"
 	    package="chimerax.seqalign.headers"
+		installedExecutableDir="bin"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -13,8 +14,14 @@
     <Category name="Sequence"/>
   </Categories>
 
+  <CExecutable name="al2co.exe">
+    <SourceFile>al2co/al2co.c</SourceFile>
+    <CompileArgument platform="mac">-Wno-logical-op-parentheses</CompileArgument>
+    <Library platform="linux">m</Library>
+  </CExecutable>
+
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
   </Dependencies>
 

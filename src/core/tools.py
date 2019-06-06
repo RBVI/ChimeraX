@@ -70,7 +70,7 @@ class ToolInstance(State):
     SESSION_ENDURING : bool, class-level optional
         If True, then tool survives across sessions.
     SESSION_SAVE : bool, class-level optional
-        If True, then tool is not saved in sessions.
+        If False, then tool is not saved in sessions.
     help : str
         URL for tool's help
     """

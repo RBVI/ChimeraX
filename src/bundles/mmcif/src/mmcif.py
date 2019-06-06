@@ -47,9 +47,22 @@ _reserved_words = {
 }
 
 
+def _initialize():
+    global _initialized
+    _initialized = True
+    from os.path import join, dirname, exists
+    from . import _mmcif
+    std_residues = join(dirname(__file__), "stdresidues.cif")
+    if exists(std_residues):
+        _mmcif.load_mmCIF_templates(std_residues)
+
+
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
-               max_models=None, log_info=True, extra_categories=()):
+               max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True):
     # mmCIF parsing requires an uncompressed file
+
+    if not _initialized:
+        _initialize()
 
     from . import _mmcif
     _mmcif.set_Python_locate_function(
@@ -78,6 +91,8 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
 
     for m in models:
         m.filename = path
+        if combine_sym_atoms:
+            m.combine_sym_atoms()
 
     info = ''
     if coordsets:
@@ -148,16 +163,17 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     # source
     nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])
     if nat:
-        html += _process_src(nat, "Source%s (natural)", ['common_name', 'pdbx_organism_scientific',
+        html += _process_src(nat, "Source%s (natural)", [
+            'common_name', 'pdbx_organism_scientific',
             'genus', 'species', 'pdbx_ncbi_taxonomy_id'])
     if gen:
-        html += _process_src(gen, "Gene source%s", ['gene_src_common_name',
-            'pdbx_gene_src_scientific_name', 'gene_src_genus', 'gene_src_species',
-            'pdbx_gene_src_ncbi_taxonomy_id'])
+        html += _process_src(gen, "Gene source%s", [
+            'gene_src_common_name', 'pdbx_gene_src_scientific_name', 'gene_src_genus',
+            'gene_src_species', 'pdbx_gene_src_ncbi_taxonomy_id'])
         if verbose:
-            html += _process_src(gen, "Host organism%s", ['host_org_common_name',
-                'pdbx_host_org_scientific_name', 'host_org_genus', 'host_org_species',
-                'pdbx_host_org_ncbi_taxonomy_id'])
+            html += _process_src(gen, "Host organism%s", [
+                'host_org_common_name', 'pdbx_host_org_scientific_name', 'host_org_genus',
+                'host_org_species', 'pdbx_host_org_ncbi_taxonomy_id'])
 
     # experimental method; resolution
     experiment = get_mmcif_tables_from_metadata(model, ["exptl"])[0]
@@ -195,12 +211,9 @@ def _get_formatted_metadata(model, session, *, verbose=False):
 
     return html
 
+
 def _get_formatted_res_info(model, *, standalone=True):
-    from chimerax.atomic.pdb import process_chem_name
-    html = ""
-    nonstd_res_names = model.nonstandard_residue_names
-    if nonstd_res_names:
-        nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
+    def update_nonstd(model, nonstd_info):
         chem_comp = get_mmcif_tables_from_metadata(model, ["chem_comp"])[0]
         if chem_comp:
             raw_rows = chem_comp.fields(['id', 'name', 'pdbx_synonyms'], allow_missing_fields=True)
@@ -210,42 +223,9 @@ def _get_formatted_res_info(model, *, standalone=True):
                 row = substitute_none_for_unspecified(raw_row)
                 if row[1] or row[2]:
                     nonstd_info[row[0]] = (row[0], row[1], row[2])
-        def fmt_component(abbr, name, syns):
-            text = '<a title="select residue" href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
-            if name:
-                text += '<a title="show residue info" href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
-                    process_chem_name(name))
-                if syns:
-                    text += " (%s)" % process_chem_name(syns)
-            else:
-                text += process_chem_name(syns)
-            return text
-        if standalone:
-            from chimerax.core.logger import html_table_params
-            html = "<table %s>\n" % html_table_params
-            html += ' <thead>\n'
-            html += '  <tr>\n'
-            html += '   <th>Non-standard residues in %s</th>\n' % model
-            html += '  </tr>\n'
-            html += ' </thead>\n'
-            html += ' <tbody>\n'
+    from chimerax.atomic.pdb import format_nonstd_res_info
+    return format_nonstd_res_info(model, update_nonstd, standalone)
 
-        for i, info in enumerate(nonstd_info.values()):
-            abbr, name, synonyms = info
-            html += '  <tr>\n'
-            formatted = fmt_component(abbr, name, synonyms)
-            if i == 0 and not standalone:
-                if len(nonstd_info) > 1:
-                    html += '   <th rowspan="%d">Non-standard residues</th>\n' % len(nonstd_info)
-                else:
-                    html += '   <th>Non-standard residue</th>\n'
-            html += '   <td>%s</td>\n' % formatted
-            html += '  </tr>\n'
-
-        if standalone:
-            html += ' </tbody>\n'
-            html += "</table>"
-    return html
 
 def _process_src(src, caption, field_names):
     raw_rows = src.fields(field_names, allow_missing_fields=True)
@@ -271,6 +251,7 @@ def _process_src(src, caption, field_names):
             html += '  </tr>\n'
     return html
 
+
 def substitute_none_for_unspecified(fields):
     substituted = []
     for field in fields:
@@ -279,6 +260,7 @@ def substitute_none_for_unspecified(fields):
         else:
             substituted.append(field)
     return substituted
+
 
 _mmcif_sources = {
     # "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
@@ -289,9 +271,22 @@ _mmcif_sources = {
 }
 
 
-def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
+def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False,
+        structure_factors = False, over_sampling = 1.5, # for ChimeraX-Clipper plugin
+        **kw):
+    """Get mmCIF file by PDB identifier via the Internet"""
+    if not _initialized:
+        _initialize()
+
     if len(pdb_id) != 4:
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
+    if structure_factors:
+        try:
+            from chimerax.clipper.io import fetch_cif
+        except ImportError:
+            raise UserError('Working with structure factors requires the '
+                'ChimeraX_Clipper plugin, available from the Tool Shed')
+
     import os
     pdb_id = pdb_id.lower()
     filename = None
@@ -317,7 +312,7 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
                               cache, ignore_cache=ignore_cache)
         # double check that a mmCIF file was downloaded instead of an
         # HTML error message saying the ID does not exist
-        with open(filename, 'U') as f:
+        with open(filename, 'r') as f:
             line = f.readline()
             if not line.startswith(('data_', '#')):
                 f.close()
@@ -328,6 +323,17 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     session.logger.status("Opening mmCIF %s" % (pdb_id,))
     from chimerax.core import io
     models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
+    if structure_factors:
+        sf_file = fetch_cif.fetch_structure_factors(session, pdb_id, fetch_source=fetch_source,
+            ignore_cache=ignore_cache)
+        from chimerax.clipper import get_map_mgr
+        mmgr = get_map_mgr(models[0], create=True)
+        if over_sampling < 1:
+            warn_str = ('Map over-sampling rate cannot be less than 1. Resetting to 1.0')
+            session.logger.warning(warn_str)
+            over_sampling = 1
+        mmgr.add_xmapset_from_file(sf_file, oversampling_rate=over_sampling)
+        return [mmgr.crystal_mgr], status
     return models, status
 
 
@@ -350,7 +356,7 @@ def _get_template(session, name):
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
                                                                 name)
     try:
-        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD')
+        return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', timeout=15)
     except UserError:
         session.logger.warning(
             "Unable to fetch template for '%s': might be missing bonds"
@@ -471,30 +477,50 @@ def citations(model, only=None):
     return citations
 
 
-def get_mmcif_tables(filename, table_names):
-    """Extract mmCIF tables from a file
+def get_cif_tables(filename, table_names, *, all_data_blocks=False):
+    """Extract CIF tables from a file
 
     Parameters
     ----------
     filename : str
         The name of the file.
     table_names : list of str
-        A list of mmCIF category names.
+        A list of CIF category names.
+    all_data_blocks : bool
+        If true, return tables from data blocks in file.  Default is False.
+
+    Returns
+    -------
+        list or dictionary
+            If all_data_blocks is false, return list of CIF tables found and
+            all of the data values in a :py:class:`CIFTable`.
+            If all_data_blocks is true, return an ordered dictionary of tables
+            per data block.
     """
     from os import path
     if path.exists(filename):
         from . import _mmcif
-        data = _mmcif.extract_mmCIF_tables(filename, table_names)
+        all_data = _mmcif.extract_CIF_tables(filename, table_names, all_data_blocks)
     else:
-        data = {}
-    tlist = []
-    for name in table_names:
-        if name not in data:
-            tlist.append(MMCIFTable(name))
-        else:
-            tags, values = data[name]
-            tlist.append(MMCIFTable(name, tags, values))
-    return tlist
+        all_data = []
+
+    def convert_tables(data, table_names):
+        tlist = []
+        for name in table_names:
+            if name not in data:
+                tlist.append(CIFTable(name))
+            else:
+                tags, values = data[name]
+                tlist.append(CIFTable(name, tags, values))
+        return tlist
+
+    if not all_data_blocks:
+        return convert_tables(all_data, table_names)
+    result = []
+    for block_name, data in all_data:
+        tlist = convert_tables(data, table_names)
+        result.append((block_name, tlist))
+    return result
 
 
 def get_mmcif_tables_from_metadata(model, table_names):
@@ -519,7 +545,7 @@ def get_mmcif_tables_from_metadata(model, table_names):
         else:
             info = raw_tables[n]
             values = raw_tables[n + ' data']
-            tlist.append(MMCIFTable(info[0], info[1:], values))
+            tlist.append(CIFTable(info[0], info[1:], values))
     return tlist
 
 
@@ -527,9 +553,10 @@ class TableMissingFieldsError(ValueError):
     """Required field is missing"""
     pass
 
-class MMCIFTable:
+
+class CIFTable:
     """
-    Present a table interface for a mmCIF category
+    Present a table interface for a (mm)CIF category
 
     Tags should be in the mixed case version given in the associated dictionary
     """
@@ -554,8 +581,11 @@ class MMCIFTable:
 
     def __repr__(self):
         num_columns = len(self._tags)
-        num_rows = len(self._data) / num_columns
-        return "MMCIFTable(%s, %s, ...[%dx%d])" % (
+        if num_columns == 0:
+            num_rows = 0
+        else:
+            num_rows = len(self._data) / num_columns
+        return "CIFTable(%s, %s, ...[%dx%d])" % (
             self.table_name, self._tags, num_rows, num_columns)
 
     def mapping(self, key_names, value_names, foreach_names=None):
@@ -590,7 +620,7 @@ class MMCIFTable:
         for name in chain(key_names, value_names, foreach_names):
             if name.casefold() not in t:
                 from chimerax.core.commands.cli import commas, plural_form
-                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have = commas(['"%s"' % t for t in self._tags], 'and')
                 have_noun = plural_form(self._tags, 'field')
                 raise TableMissingFieldsError(
                     'Field "%s" not in table "%s", have %s %s'
@@ -649,10 +679,10 @@ class MMCIFTable:
             missing = [n for n in field_names if n.casefold() not in t]
             if missing:
                 from chimerax.core.commands.cli import commas, plural_form
-                missed = commas(['"%s"' % m for m in missing], ' and')
+                missed = commas(['"%s"' % m for m in missing], 'and')
                 missed_noun = plural_form(missing, 'Field')
                 missed_verb = plural_form(missing, 'is', 'are')
-                have = commas(['"%s"' % t for t in self._tags], ' and')
+                have = commas(['"%s"' % t for t in self._tags], 'and')
                 have_noun = plural_form(self._tags, 'field')
                 raise TableMissingFieldsError('%s %s %s not in table "%s", have %s %s' % (
                     missed_noun, missed, missed_verb, self.table_name, have_noun,
@@ -666,7 +696,7 @@ class MMCIFTable:
 
         Parameters
         ----------
-        table : MMCIFTable to add on to current table
+        table : CIFTable to add on to current table
 
         If a column with a given tag exists, then that column is extended.
         Otherwise, a new column is added to the table.
@@ -728,7 +758,7 @@ class MMCIFTable:
 
         Parameters
         ----------
-        file : MMCIFTable to add on to current table
+        file : CIFTable to add on to current table
         fixed_width : true if fixed width columns should be used
 
         The fixed width column output matches the PDBx/mmCIF style syntax.
@@ -780,3 +810,8 @@ class MMCIFTable:
                     for i in range(0, len(data), n):
                         print(fmt % tuple(data[i:i + n]), file=file)
         print('#', file=file)  # PDBx/mmCIF style
+
+
+# TODO: @deprecated(version='1.1', reason='Use get_cif_tables() instead')
+def get_mmcif_tables(filename, table_names):
+    return get_cif_tables(filename, table_names)

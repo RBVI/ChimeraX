@@ -46,12 +46,16 @@ class SelectMouseMode(MouseMode):
 
     def mouse_up(self, event):
         self._undraw_drag_rectangle()
+        mode = self.mode
+        if event.shift_down() and mode == 'replace':
+            mode = 'toggle'
+
         if self._is_drag(event):
             # Select objects in rectangle
-            mouse_drag_select(self.mouse_down_position, event, self.mode, self.session, self.view)
+            mouse_drag_select(self.mouse_down_position, event, mode, self.session, self.view)
         elif not self.double_click:
             # Select object under pointer
-            mouse_select(event, self.mode, self.session, self.view)
+            mouse_select(event, mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
 
     def mouse_double_click(self, event):
@@ -122,21 +126,22 @@ class SelectMouseMode(MouseMode):
             v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
             self._drawn_rectangle = None
 
-    def laser_click(self, xyz1, xyz2):
+    def vr_press(self, xyz1, xyz2):
+        # Virtual reality hand controller button press.
         from . import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.view)
         select_pick(self.session, pick, self.mode)
 
-    def drag_3d(self, position, move, delta_z):
-        if delta_z:
-            ses = self.session
-            sel = ses.selection
-            if delta_z > 0.20:
-                sel.promote(ses)
-            elif delta_z < -0.20:
-                sel.demote(ses)
-            else:
-                return 'accumulate drag'
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        if delta_z > 0.10:
+            from chimerax.core.commands import run
+            run(self.session, 'select up')
+        elif delta_z < -0.10:
+            from chimerax.core.commands import run
+            run(self.session, 'select down')
+        else:
+            return 'accumulate drag'
 
 class SelectContextMenuAction:
     '''Methods implementing a context-menu entry shown when double-clicking in select mode.'''
@@ -192,7 +197,8 @@ def select_pick(session, pick, mode = 'replace'):
     sel.undo_add_selected(undo_state, False)
     if pick is None:
         if mode == 'replace':
-            sel.clear()
+            from chimerax.core.commands import run
+            run(session, 'select clear')
             session.logger.status('cleared selection')
     else:
         if mode == 'replace':
@@ -202,7 +208,12 @@ def select_pick(session, pick, mode = 'replace'):
             for p in pick:
                 p.select(mode)
         else:
-            pick.select(mode)
+            spec = pick.specifier()
+            if mode == 'add' and spec:
+                from chimerax.core.commands import run
+                run(session, 'select %s' % spec)
+            else:
+                pick.select(mode)
     sel.clear_promotion_history()
     sel.undo_add_selected(undo_state, True, old_state=False)
     session.undo.register(undo_state)
@@ -273,9 +284,9 @@ class RotateMouseMode(MouseMode):
     def models(self):
         return None
 
-    def drag_3d(self, position, move, delta_z):
-        if move:
-            self.view.move(move, self.models())
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        self.view.move(move, self.models())
 
 class RotateAndSelectMouseMode(RotateMouseMode):
     '''
@@ -285,7 +296,8 @@ class RotateAndSelectMouseMode(RotateMouseMode):
     while click and drag produces rotation.
     '''
     name = 'rotate and select'
-    icon_file = 'icons/rotatesel.png'
+# Don't specify icon since we don't want this mode shown in the toolbar.
+#    icon_file = 'icons/rotatesel.png'
     click_to_select = True
 
 class RotateSelectedMouseMode(RotateMouseMode):
@@ -339,9 +351,9 @@ class TranslateMouseMode(MouseMode):
     def models(self):
         return None
 
-    def drag_3d(self, position, move, delta_z):
-        if move:
-            self.view.move(move, self.models())
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        self.view.move(move, self.models())
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
     '''
@@ -578,12 +590,12 @@ class ClipMouseMode(MouseMode):
         shift = (dx*nx + dy*ny) * self.pixel_size()
         return shift
 
-    def drag_3d(self, position, move, delta_z):
-        if move:
-            for p in self._planes(front_shift = 1, back_shift = 0):
-                if p:
-                    p.normal = move.transform_vector(p.normal)
-                    p.plane_point = move * p.plane_point
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        for p in self._planes(front_shift = 1, back_shift = 0):
+            if p:
+                p.normal = move.transform_vector(p.normal)
+                p.plane_point = move * p.plane_point
 
 class ClipRotateMouseMode(MouseMode):
     '''
@@ -641,11 +653,11 @@ class ClipRotateMouseMode(MouseMode):
                     cp.remove_plane('far')
         return rplanes
 
-    def drag_3d(self, position, move, delta_z):
-        if move:
-            for p in self._planes():
-                p.normal = move.transform_vector(p.normal)
-                p.plane_point = move * p.plane_point
+    def vr_motion(self, position, move, delta_z):
+        # Virtual reality hand controller motion.
+        for p in self._planes():
+            p.normal = move.transform_vector(p.normal)
+            p.plane_point = move * p.plane_point
 
 def standard_mouse_mode_classes():
     '''List of core MouseMode classes.'''

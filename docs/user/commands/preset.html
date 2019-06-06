@@ -1,0 +1,151 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: preset</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<a name="list"></a>
+<h3><a href="../index.html#commands">Command</a>: preset</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>preset</b>
+[&nbsp;<i>category</i>&nbsp;]
+&nbsp;<i>preset-name</i>
+</h3>
+<p>
+A <b><i>preset</i></b> is a predefined combination of display settings.
+The current presets act only on atomic models,
+and those in the <b>Cartoons/Nucleotides</b> and 
+<b>Initial Styles</b> categories hide any
+<a href="surface.html">molecular surfaces</a>.
+They are not all-encompassing (results depend on prior settings), and those
+which are more render-intensive may be slow to execute on very large structures.
+Presets can also be applied using the
+<a href="../menu.html#presets"><b>Presets</b> menu</a>.
+See also: <a href="lighting.html"><b>lighting</b></a>,
+<a href="../tools/graphics.html"><b>Graphics Toolbar</b></a>,
+<a href="../images.html">making images</a>
+<p></p>
+The <b>preset</b> command applies one of the following presets,
+here grouped by category:
+<ul>
+<li><b>Cartoons/Nucleotides</b>
+  <ul>
+  <li><b>Ribbons/Slabs</b> &ndash;
+<a href="cartoon.html#style">cartoon style</a> initial defaults +
+<a href="nucleotides.html">nucleotide</a> bases as rectangular boxes
+  <li><b>Cylinders/Stubs</b> &ndash;
+<a href="cartoon.html#style">cartoon style</a>
+protein &alpha;-helix cylinders +
+<a href="nucleotides.html">nucleotide</a> stubs (half-rungs)
+  <li><b>Licorice/Ovals</b> &ndash;
+<a href="cartoon.html#style">cartoon style</a>
+without 2&deg;-structure detail +
+<a href="nucleotides.html">nucleotide</a> bases as ellipsoids
+  </ul>
+<li><b>Initial Styles</b> &ndash;
+based on <a href="../autostyle.html">automatic styling</a>
+  <ul>
+  <li><b>Original Look</b> - initial appearance from
+<a href="../autostyle.html">automatic styling</a>,
+which depends on the number of chains in an atomic structure (however,
+settings such as <a href="set.html#silhouettes">silhouettes</a>
+and <a href="cartoon.html#style">cartoon style</a> may be different
+if they were changed since the structure was opened)
+  <li><b>Sticks</b>
+&ndash; all atoms as <a href="style.html">sticks</a>,
+<a href="lighting.html">simple lighting</a>, <i>etc.</i> (as for
+<a href="../autostyle.html">automatic styling</a> of structures with 0 chains)
+  <li><b>Cartoon</b>
+&ndash; <a href="cartoon.html">cartoon</a> plus atomic detail near
+residues <a href="atomspec.html#surfcats">classified</a>
+as <b>ligand</b> and <b>ions</b>,
+<a href="lighting.html">simple lighting</a>, <i>etc.</i>
+(as for
+<a href="../autostyle.html">automatic styling</a> of structures with 1-4 chains)
+  <li><b>Space-Filling (Chain Colors)</b>
+&ndash; all atoms as <a href="style.html">spheres</a>
+except sticks for <b>ligand</b> and balls for <b>solvent</b>,
+<a href="colortables.html#autocolors">chain colors</a>,
+shadows, <i>etc.</i> (as for
+<a href="../autostyle.html">automatic styling</a> of structures with 5-249 chains)
+  <li><b>Space-Filling (Single Color)</b>
+&ndash; all atoms as <a href="style.html">spheres</a>,
+ambient-only lighting, <i>etc.</i> (as for <a href="../autostyle.html">automatic
+styling</a> of structures with &ge;250 chains)
+  </ul>
+<li><b>Molecular Surfaces</b> &ndash;
+<a href="surface.html">molecular surfaces</a>
+with different coloring options:
+  <ul>
+  <li><b>Atomic Coloring (Transparent)</b>
+&ndash; same color(s) as the underlying atoms, 70% transparent
+  <li><b>Chain ID Coloring (Opaque)</b>
+&ndash; <a href="colortables.html#autocolors">chain colors</a>, opaque
+  <li><b>Ghostly White</b> &ndash; white, 80% transparent
+  </ul>
+<li><b>Overall Look</b>
+  <ul>
+  <li><b>Interactive</b> &ndash;
+<a href="set.html#silhouettes">silhouettes</a> off,
+<a href="set.html#bgColor">background color</a> default
+(user <a href="../preferences.html#background">preference</a>)
+  <li><b>Publication</b> &ndash;
+<a href="set.html#silhouettes">silhouettes</a> on,
+<a href="set.html#bgColor">background color</a> white
+  </ul>
+</ul>
+<p>
+The <i>preset-name</i> (and optional <i>category</i> before it)
+can be truncated, but should be enclosed in quotation marks
+if the part that is entered includes spaces. Capitalization is ignored.
+Example commands:
+</p>
+<blockquote>
+<b>preset orig
+<br>
+preset pub
+<br>
+preset inter
+<br>
+preset surf atom
+<br>
+preset cylinders</b>
+</blockquote>
+<p>
+Matching is prioritized as follows:
+</p>
+<ol>
+<li>If a single argument (word or quoted string) is given, it is
+matched to preset name, any category.
+<li>If multiple arguments are given:
+ <ol>
+ <li>If the first argument matches a category, 
+the rest is matched to preset name.
+ <li>If a match still has not been found at this point,
+the entire set of arguments is matched to preset name, any category.
+ </ol>
+</ol>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2019</address>
+</body></html>

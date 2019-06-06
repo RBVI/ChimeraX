@@ -95,7 +95,8 @@ class Collection(State):
     Base class of all molecular data collections that provides common
     methods such as length, iteration, indexing with square brackets,
     intersection, union, subtracting, and filtering.  By design, a
-    Collection is immutable.
+    Collection is immutable except that deleted items are automatically
+    removed.
     '''
     def __init__(self, items, object_class, objects_class):
         import numpy
@@ -132,7 +133,7 @@ class Collection(State):
         Objects are automatically deleted from the collection when the C++ object is deleted.
         So this hash value will not be valid if the collection changes.  This is not the __hash__
         special Python method and it is not supported to use collections as keys of dictionaries
-        or elements of sets since they are mutable.
+        or elements of sets since they are mutable (deletions automatically remove items).
         '''
         from hashlib import sha1
         return sha1(self._pointers.view(uint8)).digest()
@@ -610,6 +611,10 @@ class Atoms(Collection):
         doc="Numpy array of whether atom is ligand, ion, etc.")
     structures = cvec_property('atom_structure', pyobject, astype = AtomicStructures, read_only=True,
         doc="Returns an :class:`AtomicStructure` for each atom. Read only.")
+    def transform(self, place):
+        f = c_function('atom_transform',
+            args=(ctypes.c_void_p, ctypes.c_size_t, ctypes.POINTER(ctypes.c_double)))
+        f(self._c_pointers, len(self), pointer(place.matrix))
     @property
     def unique_residues(self):
         '''The unique :class:`.Residues` for these atoms.'''
@@ -698,8 +703,12 @@ class Atoms(Collection):
         '''Set anisotropic temperature factors as a Nx6 element numpy float32 array
         representing the unique elements of the symmetrix matrix
         containing (u11, u22, u33, u12, u13, u23) for each atom.'''
-        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         n = len(self)
+        if u6 is None:
+            f = c_function('clear_atom_aniso_u6', args = (ctypes.c_void_p,))
+            f(self._c_pointers, n)
+            return
+        f = c_function('set_atom_aniso_u6', args = (ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p))
         from numpy import empty, float32
         ai = empty((n,6), float32)
         ai[:] = u6
@@ -1035,8 +1044,10 @@ class Residues(Collection):
     '''Returns a numpy array of insertion codes.  An empty string indicates no insertion code.''')
     is_helix = cvec_property('residue_is_helix', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein helix''')
+    is_helices = is_helix
     is_strand = cvec_property('residue_is_strand', npy_bool, doc =
     '''Returns a numpy bool array whether each residue is in a protein sheet''')
+    is_strands = is_strand
     names = cvec_property('residue_name', string, doc =
     '''Returns a numpy array of residue names.''')
     num_atoms = cvec_property('residue_num_atoms', size_t, read_only = True, doc =

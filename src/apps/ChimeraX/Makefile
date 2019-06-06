@@ -74,7 +74,8 @@ endif
 clean:
 	rm -f $(PROG) $(OBJS) Info.plist chimerax-icon.icns $(LINUX_ICONS)
 ifdef WIN32
-	rm -f $(APP_NAME).ico icon.rc $(PROG).manifest $(APP_NAME).pdb vc*.pdb
+	rm -f $(APP_NAME).ico icon.rc $(PROG).manifest $(APP_NAME).pdb vc*.pdb \
+		$(APP_NAME).exp $(APP_NAME).lib
 endif
 
 pylint:
@@ -106,8 +107,8 @@ Info.plist: chimerax-icon.icns
 endif
 
 Info.plist: mkinfo.py
-#	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || rm Info.plist
-	$(PYTHON_EXE) mkinfo.py $(APP_NAME) || rm Info.plist
+#	$(bindir)/$(PROG) --nogui mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
+	$(APP_PYTHON_EXE) mkinfo.py $(APP_NAME) || (rm Info.plist ; exit 1)
 
 chimerax-icon.icns:	ChimeraX-icon512.png
 	mkdir chimerax-icon.iconset

@@ -21,13 +21,7 @@ bytes, booleans, and non-recursive tuples, lists, sets, and dictionaries.
 Recursive data-structures are not checked for and thus can cause an infinite
 loop.  Arbitrary Python objects are not allowed.
 
-Internally use pickle, with safeguards on what is written (so the author of
-the code is more likely to find the bug before a user of the software does),
-and on what is read.  The reading is more restrictive because the C-version
-of the pickler will pickle objects, like arbtrary functions.  The
-deserializer catches those mistakes, but later when the session is opened.
-
-Version 1 of the protocol supports instances of the following types:
+Version 3 of the protocol supports instances of the following types:
 
     :py:class:`bool`; :py:class:`int`; :py:class:`float`; :py:class:`complex`;
     numpy :py:class:`~numpy.ndarray`;
@@ -39,76 +33,20 @@ Version 1 of the protocol supports instances of the following types:
     and :py:class:`~collections.deque`;
     :py:mod:`datetime`'s :py:class:`~datetime.datetime`,
     :py:class:`~datetime.timezone`; and :py:class:`~datetime.timedelta`;
-    and :pillow:`PIL.Image.Image`.
+    :pillow:`PIL.Image.Image`;
+    tinyarray :py:class:`~tinyarray.ndarray_int`, :py:class:`~tinyarray.ndarray_float`, :py:class:`~tinyarray.ndarray_complex`
 
 """
-import msgpack
-import pickle
-import types  # for pickle support
-# imports for supported "primitive" types and collections
-# ** must be keep in sync with state.py **
-import numpy
-from collections import OrderedDict, deque
-from datetime import datetime, timezone, timedelta
-from PIL import Image
-from .session import _UniqueName
-from .state import FinalizedState
 
 # from ._serial_python import msgpack_serialize_stream, msgpack_deserialize_stream
-from ._serialize import msgpack_serialize_stream, msgpack_deserialize_stream
-
-# TODO: remove pickle and msgpack v2 after corresponding sessions
-# are no longer supported.
-_PICKLE_PROTOCOL = 4
-
-
-class _RestrictTable(dict):
-
-    def __init__(self, *args, **kwds):
-        dict.__init__(self, *args, **kwds)
-        import copyreg
-        if complex in copyreg.dispatch_table:
-            self[complex] = copyreg.dispatch_table[complex]
-        try:
-            import numpy
-            self[numpy.ndarray] = numpy.ndarray.__reduce__
-        except ImportError:
-            pass
-
-    def get(self, cls, default=None):
-        if isinstance(cls, types.BuiltinFunctionType):
-            # need to allow for unpickling numpy arrays and other types
-            return default
-        if cls not in self:
-            raise TypeError("Can not serialize class: %s" % cls.__name__)
-        return dict.__getitem__(self, cls)
-
-
-def pickle_serialize(stream, obj):
-    """Put object in to a binary stream"""
-    pickler = pickle.Pickler(stream, protocol=_PICKLE_PROTOCOL)
-    pickler.fast = True     # no recursive lists/dicts/sets
-    pickler.dispatch_table = _RestrictTable()
-    pickler.dump(obj)
+from ._serialize import msgpack_serialize_stream, msgpack_deserialize_stream, PRIMITIVE_TYPES
+import pickle  # to recognize old session files
 
 
 class _RestrictedUnpickler(pickle.Unpickler):
 
-    supported = {
-        'builtins': {'complex'},
-        'collections': {'deque', 'Counter', 'OrderedDict'},
-        'datetime': {'timedelta', 'timezone', 'datetime'},
-        'numpy': {'ndarray', 'dtype'},
-        'numpy.core.multiarray': {'_reconstruct', 'scalar'},
-        'PIL.Image': {'Image'},
-    }
-    supported[_UniqueName.__module__] = {_UniqueName.__name__}
-    supported[FinalizedState.__module__] = {FinalizedState.__name__}
-
     def find_class(self, module, name):
-        if module in self.supported and name in self.supported[module]:
-            return getattr(__import__(module, fromlist=(name,)), name)
-        # Forbid everything else.
+        # Forbid everything not builtin
         fullname = '%s.%s' % (module, name)
         raise pickle.UnpicklingError("global '%s' is forbidden" % fullname)
 
@@ -117,69 +55,6 @@ def pickle_deserialize(stream):
     """Recover object from a binary stream"""
     unpickler = _RestrictedUnpickler(stream)
     return unpickler.load()
-
-
-def _decode_image(data):
-    import io
-    stream = io.BytesIO(data)
-    img = Image.open(stream)
-    img.load()
-    return img
-
-
-def _decode_ndarray(data):
-    kind = data[b'kind']
-    dtype = data[b'dtype']
-    if kind == b'V':
-        dtype = [tuple(str(t) for t in d) for d in dtype]
-    return numpy.fromstring(data[b'data'], numpy.dtype(dtype)).reshape(data[b'shape'])
-
-
-def _decode_numpy_number(data):
-    return numpy.fromstring(data[b'data'], numpy.dtype(data[b'dtype']))[0]
-
-
-def _decode_datetime(data):
-    from dateutil.parser import parse
-    return parse(data)
-
-
-_decode_handlers_v2 = [
-    # order must match encode's __type__ values
-    lambda args: _UniqueName(args[0][1]),
-    lambda args: _decode_ndarray(dict(args)),
-    lambda args: complex(*args[0][1]),
-    lambda args: set(args[0][1]),
-    lambda args: frozenset(args[0][1]),
-    OrderedDict,
-    lambda args: deque(args[0][1]),
-    lambda args: _decode_datetime(args[0][1]),
-    lambda args: timedelta(*args[0][1]),
-    lambda args: _decode_image(args[0][1]),
-    lambda args: _decode_numpy_number(dict(args)),
-    lambda args: FinalizedState(args[0][1]),
-    lambda args: timezone(*args[0][1]),
-]
-
-
-def _decode_pairs_v2(pairs):
-    try:
-        len(pairs)
-    except TypeError:
-        pairs = tuple(pairs)
-    if not pairs:
-        return dict()
-    if pairs[0][0] != '__type__':
-        return OrderedDict(pairs)
-    cvt = _decode_handlers_v2[pairs[0][1]]
-    return cvt(pairs[1:])
-
-
-def msgpack_deserialize_stream_v2(stream):
-    unpacker = msgpack.Unpacker(
-        stream, object_pairs_hook=_decode_pairs_v2, encoding='utf-8',
-        use_list=False)
-    return unpacker
 
 
 def msgpack_serialize(stream, obj):
@@ -196,6 +71,16 @@ def msgpack_deserialize(stream):
 
 
 # Debuging code for finding out object types used
+
+import msgpack
+# imports for supported "primitive" types and collections
+# ** must be keep in sync with state.py **
+import numpy
+from collections import OrderedDict, deque
+from datetime import datetime, timezone, timedelta
+from PIL import Image
+from .session import _UniqueName
+from .state import FinalizedState
 
 _object_counts = {
     type(None): 0,
@@ -285,17 +170,12 @@ if __name__ == '__main__':
     import io
 
     def serialize(buf, obj):
-        # packer = msgpack_serialize_stream_v2(buf)
         packer = msgpack_serialize_stream(buf)
         msgpack_serialize(packer, obj)
 
     def deserialize(buf):
-        # unpacker = msgpack_deserialize_stream_v2(buf)
         unpacker = msgpack_deserialize_stream(buf)
         return msgpack_deserialize(unpacker)
-
-    # serialize = pickle_serialize
-    # deserialize = pickle_deserialize
 
     def test(obj, msg, expect_pass=True, compare=None):
         passed = 'pass' if expect_pass else 'fail'

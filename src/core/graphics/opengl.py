@@ -81,6 +81,9 @@ class OpenGLContext:
     def __init__(self, graphics_window, screen, use_stereo = False):
         self.window = graphics_window
         self._screen = screen
+        self._color_bits = None		# None, 8, 12, 16
+        self._depth_bits = 24
+        self._framebuffer_color_bits = 8	# For offscreen framebuffers, 8 or 16
         self._mode = 'stereo' if use_stereo else 'mono'
         self._contexts = {}		# Map mode to QOpenGLContext, or False if creation failed
         self._share_context = None	# First QOpenGLContext, shares state with others
@@ -156,7 +159,7 @@ class OpenGLContext:
         # Validate context
         if not qc.create():
             self._contexts[mode] = False
-            raise OpenGLError("Could not create OpenGL context" % st)
+            raise OpenGLError("Could not create OpenGL context")
 
         # Check if stereo obtained.
         got_fmt = qc.format()
@@ -182,7 +185,12 @@ class OpenGLContext:
         from PyQt5.QtGui import QSurfaceFormat
         fmt = QSurfaceFormat()
         fmt.setVersion(*self.required_opengl_version)
-        fmt.setDepthBufferSize(24)
+        cbits = self._color_bits
+        if cbits is not None:
+            fmt.setRedBufferSize(cbits)
+            fmt.setGreenBufferSize(cbits)
+            fmt.setBlueBufferSize(cbits)
+        fmt.setDepthBufferSize(self._depth_bits)
         if self.required_opengl_core_profile:
             fmt.setProfile(QSurfaceFormat.CoreProfile)
         fmt.setRenderableType(QSurfaceFormat.OpenGL)
@@ -259,6 +267,15 @@ class OpenGLContext:
 
         self._mode = mode
         self.window = window
+
+    def set_offscreen_color_bits(self, bits):
+        cbits = self._framebuffer_color_bits
+        if bits != cbits:
+            self._framebuffer_color_bits = bits
+            self.make_current()
+            for fb in tuple(self._framebuffers):
+                fb.set_color_bits(bits)
+            self.done_current()
 
 def remember_current_opengl_context():
     '''
@@ -340,8 +357,15 @@ class Render:
 
         # Selection outlines
         self.outline = Outline(self)
+
+        # Offscreen rendering. Used for 16-bit color depth.
+        self.offscreen = Offscreen()
+
+        # Blending textures for multichannel image rendering.
+        self.blend = BlendTextures(self)
         
         self.single_color = (1, 1, 1, 1)
+        self._colormap_texture_unit = 4
 
         # Depth texture rendering parameters
         self.depth_texture_unit = 3
@@ -378,6 +402,12 @@ class Render:
 
         self.silhouette.delete()
         self.silhouette = None
+
+        self.outline.delete()
+        self.outline = None
+
+        self.blend.delete()
+        self.blend = None
         
     @property
     def opengl_context(self):
@@ -475,6 +505,22 @@ class Render:
         x, y, w, h = fb.viewport
         return (w, h)
 
+    def framebuffer_rgba_bits(self):
+        return tuple(GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
+                                                              GL.GL_BACK_LEFT, attr)
+                     for attr in (GL.GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE,
+                                  GL.GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE,
+                                  GL.GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE,
+                                  GL.GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE))
+
+    def framebuffer_depth_bits(self):
+        return GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
+                                                        GL.GL_BACK_LEFT,
+                                                        GL.GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE)
+
+    def set_offscreen_color_bits(self, bits):
+        self._opengl_context.set_offscreen_color_bits(bits)
+
     def disable_shader_capabilities(self, ocap):
         self.disable_capabilities = ocap
 
@@ -495,8 +541,8 @@ class Render:
         Return a shader that supports the specified capabilities.
         Also activate the shader with glUseProgram().
         The capabilities are specified as at bit field of values from
-        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D,
-        SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
+        SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D,
+        SHADER_COLORMAP, SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
         SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
@@ -528,12 +574,22 @@ class Render:
                 self.shadow._set_shadow_shader_variables(shader)
             if self.SHADER_DEPTH_CUE & c:
                 self.set_depth_cue_parameters()
-        if not (self.SHADER_TEXTURE_OUTLINE & c or self.SHADER_DEPTH_OUTLINE & c):
+        if not (self.SHADER_TEXTURE_OUTLINE & c
+                or self.SHADER_DEPTH_OUTLINE & c
+                or self.SHADER_BLEND_TEXTURE_2D & c
+                or self.SHADER_BLEND_TEXTURE_3D & c):
             self.set_projection_matrix()
             self.set_model_matrix()
-        if (self.SHADER_TEXTURE_2D & c or self.SHADER_TEXTURE_OUTLINE & c
-            or self.SHADER_DEPTH_OUTLINE & c):
+        if (self.SHADER_TEXTURE_2D & c
+            or self.SHADER_TEXTURE_OUTLINE & c
+            or self.SHADER_DEPTH_OUTLINE & c
+            or self.SHADER_BLEND_TEXTURE_2D & c):
             shader.set_integer("tex2d", 0)    # Texture unit 0.
+        if (self.SHADER_TEXTURE_3D & c
+            or self.SHADER_BLEND_TEXTURE_3D & c):
+            shader.set_integer("tex3d", 0)
+        if self.SHADER_COLORMAP & c or self.SHADER_BLEND_COLORMAP & c:
+            shader.set_integer("colormap", self._colormap_texture_unit)
         if self.SHADER_DEPTH_TEXTURE & c:
             self._set_depth_texture_shader_variables(shader)
         if self.SHADER_TEXTURE_CUBEMAP & c:
@@ -843,6 +899,15 @@ class Render:
         if p is not None:
             p.set_matrix("ambient_tex3d_transform", tf.opengl_matrix())
 
+    def set_colormap(self, colormap_texture, colormap_range, data_texture):
+        p = self.current_shader_program
+        if p is None:
+            raise OpenGLError('Render.set_colormap(): No current shader program.')
+        colormap_texture.bind_texture(tex_unit = self._colormap_texture_unit)
+        v0,v1 = colormap_range
+        s = data_texture.normalization()
+        p.set_vector2('colormap_range', (s*v0, 1/(s*(v1-v0))))
+
     def check_for_opengl_errors(self):
         # Clear previous errors.
         lines = []
@@ -986,6 +1051,11 @@ class Render:
         else:
             GL.glDisable(GL.GL_BLEND)
 
+    def blend_alpha(self, alpha_factor = True):
+        'Control whether or not brightness is multiplied by alpha value.'
+        src = GL.GL_SRC_ALPHA if alpha_factor else GL.GL_ONE
+        GL.glBlendFunc(src, GL.GL_ONE_MINUS_SRC_ALPHA)
+
     def blend_add(self, f):
         GL.glBlendColor(f, f, f, f)
         GL.glBlendFunc(GL.GL_CONSTANT_COLOR, GL.GL_ONE)
@@ -994,7 +1064,7 @@ class Render:
     def blend_max(self, enable):
         # Used for maximum intensity projection texture rendering.
         GL.glBlendEquation(GL.GL_MAX if enable else GL.GL_FUNC_ADD)
-
+        
     def enable_xor(self, enable):
         if enable:
             GL.glLogicOp(GL.GL_XOR)
@@ -1465,6 +1535,42 @@ class Multishadow:
         shader.set_integer("shadow_count", min(maxs, len(m)))
         shader.set_float("shadow_depth", self._multishadow_depth)
 
+class Offscreen:
+    '''Offscreen framebuffer for 16-bit color depth.'''
+    
+    def __init__(self):
+        self.enabled = False
+        self._offscreen_framebuf = None
+
+    def delete(self):
+        fb = self._offscreen_framebuf
+        if fb:
+            fb.delete(make_current = True)
+            self._offscreen_framebuf = None
+
+    def start(self, render):
+        r = render
+        fb = self._offscreen_framebuffer(r)
+        r.push_framebuffer(fb)
+
+    def finish(self, render):
+        r = render
+        fb = r.pop_framebuffer()
+        cfb = r.current_framebuffer()
+        cfb.copy_from_framebuffer(fb, depth=False)
+
+    def _offscreen_framebuffer(self, render):
+        r = render
+        w,h = r.render_size()
+        ofb = self._offscreen_framebuf
+        if ofb and (ofb.width != w or ofb.height != h):
+            ofb.delete()
+            ofb = None
+        if ofb is None:
+            ofb = Framebuffer('offscreen', r.opengl_context, w, h)
+            self._offscreen_framebuf = ofb
+        return ofb
+
 class Silhouette:
     '''Draw silhouette edges.'''
     
@@ -1563,22 +1669,23 @@ class Outline:
         # Outline code requires non-zero red component.
         r.disable_shader_capabilities(r.SHADER_VERTEX_COLORS
                                       | r.SHADER_TEXTURE_2D
+                                      | r.SHADER_TEXTURE_3D
                                       | r.SHADER_TEXTURE_CUBEMAP
                                       | r.SHADER_LIGHTING)
         r.enable_capabilities |= r.SHADER_ALL_WHITE
         # Depth test GL_LEQUAL results in z-fighting:
-        r.set_depth_range(0, 0.999999)
+        r.set_depth_range(0, 0.9995)
 
-    def finish_rendering_outline(self):
+    def finish_rendering_outline(self, color=(0,1,0,1), pixel_width=1):
         r = self._render
         r.pop_framebuffer()
         r.disable_shader_capabilities(0)
         r.enable_capabilities &= ~r.SHADER_ALL_WHITE
         r.set_depth_range(0, 1)
         t = self._mask_framebuf.color_texture
-        self._draw_texture_mask_outline(t)
+        self._draw_texture_mask_outline(t, color=color, pixel_width=pixel_width)
 
-    def _draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1)):
+    def _draw_texture_mask_outline(self, texture, color=(0, 1, 0, 1), pixel_width=1):
 
         # Render outline of region where texture red > 0.
         # Outline pixels have red = 0 in texture mask but are adjacent
@@ -1586,7 +1693,7 @@ class Outline:
         # The depth buffer is not used.  (Depth buffer was used to handle
         # occlusion in the mask texture passed to this routine.)
         w, h = texture.size
-        dx, dy = 1.0 / w, 1.0 / h
+        dx, dy = pixel_width / w, pixel_width / h
         r = self._render
         tc = r._texture_window(texture, r.SHADER_TEXTURE_OUTLINE)
         p = r.current_shader_program
@@ -1608,15 +1715,94 @@ class Outline:
         t.initialize_8_bit(size)
         self._mask_framebuf = mfb = Framebuffer('mask', r.opengl_context, color_texture=t)
         return mfb
+
+class BlendTextures:
+    '''
+    Blend 2D textures adding RGB values and combining opacities.
+    '''
+    def __init__(self, render):
+        self._render = render
+        self._blend_framebuffer = None
+
+    def delete(self):
+        fb = self._blend_framebuffer
+        if fb:
+            fb.delete(make_current = True)
+            self._blend_framebuffer = None
+
+    def start_blending(self, texture):
+        r = self._render
+        fb = self._blending_framebuffer(texture)
+        r.push_framebuffer(fb)
+        r.set_background_color((0,0,0,0))
+        if texture.dimension == 3:
+            self._background_cleared = False
+        else:
+            r.draw_background()
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFuncSeparate(GL.GL_ONE, GL.GL_ONE, GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
+        
+    def blend(self, texture, modulation_color, colormap = None, colormap_range = None):
+        # TODO: Should use nearest pixel texture lookup for speed.
+        r = self._render
+        if colormap is None:
+            tw = r._texture_window(texture, r.SHADER_BLEND_TEXTURE_2D)
+        else:
+            tw = r._texture_window(texture, r.SHADER_BLEND_TEXTURE_2D | r.SHADER_BLEND_COLORMAP)
+            r.set_colormap(colormap, colormap_range, texture)
+        r.set_single_color(modulation_color)
+        tw.draw()
+        
+    def blend3d(self, texture, modulation_color, dest_tex, colormap = None, colormap_range = None):
+        r = self._render
+        fb = r.current_framebuffer()
+        if colormap is None:
+            tw = r._texture_window(texture, r.SHADER_BLEND_TEXTURE_3D)
+        else:
+            tw = r._texture_window(texture, r.SHADER_BLEND_TEXTURE_3D | r.SHADER_BLEND_COLORMAP)
+            r.set_colormap(colormap, colormap_range, texture)
+        p = r.current_shader_program
+        r.set_single_color(modulation_color)
+        linear = texture.linear_interpolation
+        texture.set_linear_interpolation(False)  # Use nearest pixel texture lookup for speed.
+        n = texture.size[2]
+        for k in range(n):
+            fb.set_color_buffer(dest_tex, plane = k)
+            p.set_float('tex_coord_z', (k+.5)/n)
+            if not self._background_cleared:
+                r.draw_background()
+            tw.draw()
+        self._background_cleared = True
+        texture.set_linear_interpolation(linear)	# Restore linear interpolation mode.
+
+    def finish_blending(self):
+        r = self._render
+        r.pop_framebuffer()
+        r.blend_alpha()		# Reset to alpha blending
+
+    def _blending_framebuffer(self, color_texture):
+        fb = self._blend_framebuffer
+        if fb is None:
+            r = self._render
+            fb = Framebuffer('blend', r.opengl_context, color_texture=color_texture, depth=False)
+            self._blend_framebuffer = fb
+        else:
+            fb.set_color_buffer(color_texture)
+        return fb
     
 # Options used with Render.shader()
 shader_options = (
     'SHADER_LIGHTING',
     'SHADER_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
+    'SHADER_TEXTURE_3D',
+    'SHADER_COLORMAP',
     'SHADER_DEPTH_TEXTURE',
     'SHADER_TEXTURE_CUBEMAP',
     'SHADER_TEXTURE_3D_AMBIENT',
+    'SHADER_BLEND_TEXTURE_2D',
+    'SHADER_BLEND_TEXTURE_3D',
+    'SHADER_BLEND_COLORMAP',
     'SHADER_SHADOWS',
     'SHADER_MULTISHADOW',
     'SHADER_SHIFT_AND_SCALE',
@@ -1655,7 +1841,7 @@ class Framebuffer:
         if width is not None and height is not None:
             w, h = width, height
         elif color_texture is not None:
-            w, h = color_texture.size
+            w, h = color_texture.size[:2]
         elif depth_texture is not None:
             w, h = depth_texture.size
         else:
@@ -1671,6 +1857,7 @@ class Framebuffer:
         self.depth_texture = depth_texture
 
         self._color_rb = None
+        self._color_bits = opengl_context._framebuffer_color_bits	# 8 or 16-bit depth
         self._depth_rb = None
         self._draw_buffer = GL.GL_COLOR_ATTACHMENT0
         self._deleted = False
@@ -1704,10 +1891,17 @@ class Framebuffer:
 
         if isinstance(color_buf, Texture):
             level = 0
-            target = GL.GL_TEXTURE_2D if not color_buf.is_cubemap else GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X
-            GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
-                                      GL.GL_COLOR_ATTACHMENT0,
-                                      target, color_buf.id, level)
+            if color_buf.dimension == 2:
+                target = GL.GL_TEXTURE_2D if not color_buf.is_cubemap else GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X
+                GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
+                                          GL.GL_COLOR_ATTACHMENT0,
+                                          target, color_buf.id, level)
+            elif color_buf.dimension == 3:
+                # Use first plane of 3d texture as color buffer.
+                # Change plane with set_color_buffer().
+                GL.glFramebufferTextureLayer(GL.GL_FRAMEBUFFER,
+                                             GL.GL_COLOR_ATTACHMENT0,
+                                             color_buf.id, level, 0)
         elif color_buf is not None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_COLOR_ATTACHMENT0,
@@ -1737,9 +1931,27 @@ class Framebuffer:
 
         return fbo
 
+    def set_color_buffer(self, color_texture, plane = 0):
+        '''
+        Has side effect that framebuffer is bound.
+        '''
+        level = 0
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.framebuffer_id)
+        if color_texture.dimension == 2:
+            target = GL.GL_TEXTURE_2D if not color_texture.is_cubemap else GL.GL_TEXTURE_CUBE_MAP_POSITIVE_X
+            GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
+                                      target, color_texture.id, level)
+        elif color_texture.dimension == 3:
+            GL.glFramebufferTextureLayer(GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0,
+                                         color_texture.id, level, plane)
+        w,h = color_texture.size[:2]
+        self.width = w
+        self.height = h
+        self.viewport = (0,0,w,h)
+
     def __del__(self):
         if not self._deleted and self._fbo != 0:
-            raise RuntimeError('OpenGL framebuffer %s was not deleted before core.graphics.Framebuffer destroyed'
+            raise RuntimeError('OpenGL framebuffer "%s" was not deleted before core.graphics.Framebuffer destroyed'
                                % self.name)
 
     def delete(self, make_current = False):
@@ -1780,11 +1992,24 @@ class Framebuffer:
         max_size = min(max_rb_size, max_tex_size)
         return width <= max_size and height <= max_size
 
+    def set_color_bits(self, bits):
+        
+        if bits == self._color_bits:
+            return
+
+        self._color_bits = bits
+        if self._color_rb is not None:
+            GL.glDeleteRenderbuffers(1, (self._color_rb,))
+            self._color_rb = self.color_renderbuffer(self.width, self.height, self.alpha)
+        
     def color_renderbuffer(self, width, height, alpha = False):
 
         color_rb = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, color_rb)
-        fmt = GL.GL_RGBA8 if alpha else GL.GL_RGB8
+        if self._color_bits == 8:
+            fmt = GL.GL_RGBA8 if alpha else GL.GL_RGB8
+        elif self._color_bits == 16:
+            fmt = GL.GL_RGBA16 if alpha else GL.GL_RGB16
         GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, fmt, width, height)
         return color_rb
 
@@ -1998,6 +2223,7 @@ class Bindings:
         self._vao_id = None
         self._bound_attr_ids = {}        # Maps buffer to list of ids
         self._bound_attr_buffers = {}	# Maps attribute id to bound buffer (or None).
+        self._bound_element_buffer = None
         self._opengl_context = opengl_context
 
     def __del__(self):
@@ -2023,6 +2249,9 @@ class Bindings:
             GL.glBindVertexArray(self._vao_id)
             for buffer in tuple(self._bound_attr_buffers.values()):
                 self.bind_shader_variable(buffer)
+            eb = self._bound_element_buffer
+            if eb:
+                self.bind_shader_variable(eb)
         GL.glBindVertexArray(self._vao_id)
 
     def bind_shader_variable(self, buffer):
@@ -2049,6 +2278,7 @@ class Bindings:
             if btype == GL.GL_ELEMENT_ARRAY_BUFFER:
                 # Element array buffer binding is saved in VAO.
                 GL.glBindBuffer(btype, buf_id)
+                self._bound_element_buffer = buffer
             return
 
         attr_id = self.attribute_id[vname]
@@ -2128,7 +2358,10 @@ INSTANCE_COLOR_BUFFER = BufferType(
     requires_capabilities=Render.SHADER_VERTEX_COLORS)
 TEXTURE_COORDS_BUFFER = BufferType(
     'tex_coord',
-    requires_capabilities=Render.SHADER_TEXTURE_2D | Render.SHADER_TEXTURE_OUTLINE | Render.SHADER_DEPTH_OUTLINE)
+    requires_capabilities = (Render.SHADER_TEXTURE_2D |
+                             Render.SHADER_TEXTURE_3D |
+                             Render.SHADER_TEXTURE_OUTLINE |
+                             Render.SHADER_DEPTH_OUTLINE))
 ELEMENT_BUFFER = BufferType(None, buffer_type=GL.GL_ELEMENT_ARRAY_BUFFER,
                             value_type=uint32)
 
@@ -2156,7 +2389,8 @@ class Buffer:
 
     def __del__(self):
         if self.opengl_buffer is not None:
-            raise RuntimeError('OpenGL buffer was not deleted before core.graphics.Buffer destroyed')
+            raise RuntimeError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
+                               % self.shader_variable_name)
 
     def delete_buffer(self):
         'Delete the OpenGL buffer object.'
@@ -2404,15 +2638,17 @@ class Texture:
     is called.  A reference to the array data is held until the OpenGL
     texture is created.
     '''
-    def __init__(self, data=None, dimension=2, cube_map=False):
+    def __init__(self, data=None, dimension=2, cube_map=False, linear_interpolation=True):
 
         self.data = data
         self.id = None
         self.dimension = dimension
         self.size = None
+        self._array_shape = None
+        self._numpy_dtype = None
         self.gl_target = (GL.GL_TEXTURE_CUBE_MAP if cube_map else
                           (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
-        self.linear_interpolation = True
+        self.linear_interpolation = linear_interpolation
         self.is_cubemap = cube_map
 
     def initialize_rgba(self, size):
@@ -2504,6 +2740,20 @@ class Texture:
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_SWIZZLE_A, GL.GL_GREEN)
         GL.glBindTexture(gl_target, 0)
 
+    def set_linear_interpolation(self, linear):
+        '''Has side effect of binding texture.'''
+        if linear == self.linear_interpolation:
+            return
+        self.linear_interpolation = linear
+        gl_target = self.gl_target
+        GL.glBindTexture(gl_target, self.id)
+        if linear:
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        else:
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST)
+            GL.glTexParameteri(gl_target, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST)
+
     def __del__(self):
         if self.id is not None:
             raise RuntimeError('OpenGL texture was not deleted before core.graphics.Texture destroyed')
@@ -2548,14 +2798,16 @@ class Texture:
     def fill_opengl_texture(self):
         data = self.data
         self.data = None
-        size = tuple(data.shape[self.dimension - 1::-1])
-        if size != self.size and self.id is not None:
+        if self.id is not None and tuple(data.shape) != self._array_shape or data.dtype != self._numpy_dtype:
             self.delete_texture()
         if self.id is None:
+            size = tuple(data.shape[self.dimension - 1::-1])
             format, iformat, tdtype, ncomp = self.texture_format(data)
             self.initialize_texture(size, format, iformat, tdtype, ncomp, data)
         else:
             self._fill_texture(data)
+        self._numpy_dtype = data.dtype
+        self._array_shape = tuple(data.shape)
         
     def _fill_texture(self, data):
         '''
@@ -2569,14 +2821,17 @@ class Texture:
         format, iformat, tdtype, ncomp = self.texture_format(data)
         gl_target = self.gl_target
         GL.glBindTexture(gl_target, self.id)
+        level = 0
+        xoffset = yoffset = zoffset = 0
         if dim == 1:
-            GL.glTexSubImage2D(gl_target, 0, 0, 0, size[0], format, tdtype,
-                               data)
+            GL.glTexSubImage1D(gl_target, level, xoffset, size[0],
+                               format, tdtype, data)
         elif dim == 2:
-            GL.glTexSubImage2D(gl_target, 0, 0, 0, size[0], size[1], format,
-                               tdtype, data)
+            GL.glTexSubImage2D(gl_target, level, xoffset, yoffset, size[0], size[1],
+                               format, tdtype, data)
         elif dim == 3:
-            GL.glTexSubImage3D(gl_target, 0, 0, 0, size[0], size[1], size[2],
+            GL.glTexSubImage3D(gl_target, level, xoffset, yoffset, zoffset,
+                               size[0], size[1], size[2],
                                format, tdtype, data)
         GL.glBindTexture(gl_target, 0)
 
@@ -2588,7 +2843,7 @@ class Texture:
         '''
         dim = self.dimension
         dtype = data.dtype
-        from numpy import uint8, uint16, float32
+        from numpy import int8, uint8, int16, uint16, float32
         if dim == 2 and len(data.shape) == dim and dtype == uint32:
             format = GL.GL_RGBA
             iformat = GL.GL_RGBA8
@@ -2597,22 +2852,49 @@ class Texture:
             return format, iformat, tdtype, ncomp
 
         ncomp = data.shape[dim] if len(data.shape) > dim else 1
-        # TODO: Report pyopengl bug, GL_RG missing
-        GL.GL_RG = 0x8227
-        # luminance texture formats are not in opengl 3.
+
         format = {1: GL.GL_RED, 2: GL.GL_RG,
                   3: GL.GL_RGB, 4: GL.GL_RGBA}[ncomp]
-        iformat = {1: GL.GL_RED, 2: GL.GL_RG,
-                   3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
-        if dtype == uint8:
+        if dtype == int8:
+            tdtype = GL.GL_BYTE
+            iformat = {1: GL.GL_R8_SNORM, 2: GL.GL_RG8_SNORM,
+                       3: GL.GL_RGB8_SNORM, 4: GL.GL_RGBA8_SNORM}[ncomp]
+        elif dtype == uint8:
             tdtype = GL.GL_UNSIGNED_BYTE
+            iformat = {1: GL.GL_R8, 2: GL.GL_RG8,
+                       3: GL.GL_RGB8, 4: GL.GL_RGBA8}[ncomp]
+        elif dtype == int16:
+            tdtype = GL.GL_SHORT
+            iformat = {1: GL.GL_R16_SNORM, 2: GL.GL_RG16_SNORM,
+                       3: GL.GL_RGB16_SNORM, 4: GL.GL_RGBA16_SNORM}[ncomp]
         elif dtype == uint16:
             tdtype = GL.GL_UNSIGNED_SHORT
+            iformat = {1: GL.GL_R16, 2: GL.GL_RG16,
+                       3: GL.GL_RGB16, 4: GL.GL_RGBA16}[ncomp]
         elif dtype == float32:
             tdtype = GL.GL_FLOAT
+            iformat = {1: GL.GL_R32F, 2: GL.GL_RG32F,
+                       3: GL.GL_RGB32F, 4: GL.GL_RGBA32F}[ncomp]
         else:
             raise TypeError('Texture value type %s not supported' % str(dtype))
         return format, iformat, tdtype, ncomp
+
+    def normalization(self):
+        '''
+        Scale factor for converting texture values to normalized values,
+        0-1 for unsigned integer, -1 to 1 for signed integer.
+        '''
+        if not hasattr(self, '_normalizations'):
+            from numpy import int8, uint8, int16, uint16, float32
+            self._normalizations = {
+                int8: 1/127,
+                uint8: 1/255,
+                int16: 1/32767,
+                uint16: 1/65535,
+                float32: 1
+                }
+        dtype = self._numpy_dtype if self.data is None else self.data.dtype
+        return self._normalizations[dtype.type]
 
 
 class TextureWindow:
@@ -2754,6 +3036,9 @@ class OffScreenRenderingContext:
 
         # Draw target for default framebuffer
         self.default_draw_target = GL.GL_FRONT
+
+        # compatibility with OpenGLContext
+        self._framebuffer_color_bits = 8
         
     def make_current(self):
         from OpenGL import GL, arrays, platform

@@ -28,8 +28,11 @@ class="clRight" title="User Guide Index"/></a>
 Certain types of <a href="commands/open.html#formats">input files</a>
 include not only 3D data for display, but also associated information
 that may be shown in the <a href="tools/log.html"><b>Log</b></a> 
-when the files are <a href="commands/open.html">opened</a>.
-See also: <a href="autostyle.html">automatic styling</a>
+when the files are opened. Information can be suppressed
+by using <a href="commands/open.html"><b>open</b></a> with
+<a href="commands/open.html#logInfo"><b>logInfo</b> false</a>.
+See also: 
+<a href="autostyle.html">automatic styling</a>
 </p><p>
 The following may be shown (if available) for an atomic structure:
 </p>
@@ -61,11 +64,9 @@ the <a href="commands/sym.html#assembly"><b>sym</b></a> command)
 <br>
 <li>biopolymer chain information
   <ul>
-  <li>clicking a chain identifier shows its sequence in the
-  <a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
-   associated with just that chain in the structure
-  <li>if more than one chain identifier goes with the same description, 
-  clicking the description opens the sequence in the
+  <li>clicking a chain identifier <a href="selection">selects</a>
+   the corresponding chain in the structure
+  <li>clicking a chain description opens the sequence in the
   <a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
   associated with all of the corresponding chains in the structure
   </ul>

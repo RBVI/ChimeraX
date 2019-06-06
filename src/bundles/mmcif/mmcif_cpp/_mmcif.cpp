@@ -59,9 +59,9 @@ sequence_to_vector_string(PyObject *seq, std::vector<std::string> *vec)
 {
 	if (!PySequence_Check(seq))
 		return false;
-	int count = PySequence_Length(seq);
+	Py_ssize_t count = PySequence_Length(seq);
 	vec->reserve(count);
-	for (int i = 0; i < count; ++i) {
+	for (auto i = 0; i < count; ++i) {
 		PyObject *o = PySequence_GetItem(seq, i);
 		if (!PyUnicode_Check(o)) {
 			Py_XDECREF(o);
@@ -77,11 +77,12 @@ sequence_to_vector_string(PyObject *seq, std::vector<std::string> *vec)
 }
 
 static PyObject*
-_mmcif_extract_mmCIF_tables(PyObject*, PyObject* _args)
+_mmcif_extract_CIF_tables(PyObject*, PyObject* _args)
 {
 	PyObject* _ptArg1;
 	PyObject* _ptArg2;
-	if (!PyArg_ParseTuple(_args, "OO:extract_mmCIF_tables", &_ptArg1, &_ptArg2))
+	int _ptArg3 = false;
+	if (!PyArg_ParseTuple(_args, "OO|p:extract_CIF_tables", &_ptArg1, &_ptArg2, &_ptArg3))
 		return NULL;
 	try {
 		if (!PyUnicode_Check(_ptArg1))
@@ -92,7 +93,8 @@ _mmcif_extract_mmCIF_tables(PyObject*, PyObject* _args)
 		std::vector<std::string> cppArg2;
 		if (!sequence_to_vector_string(_ptArg2, &cppArg2))
 			throw std::invalid_argument("argument 2 should be a sequence of str");
-		PyObject* _result = extract_mmCIF_tables(cppArg1.c_str(), cppArg2);
+		bool cppArg3 = bool(_ptArg3);
+		PyObject* _result = extract_CIF_tables(cppArg1.c_str(), cppArg2, cppArg3);
 		return _result;
 	} catch (...) {
 		_mmcifError();
@@ -100,9 +102,9 @@ _mmcif_extract_mmCIF_tables(PyObject*, PyObject* _args)
 	return NULL;
 }
 
-static const char _mmcifextract_mmCIF_tables_doc[] = "extract_mmCIF_tables(filename: str, categories: list of str) -> object";
+static const char _mmcifextract_CIF_tables_doc[] = "extract_CIF_tables(filename: str, categories: list of str) -> object";
 
-static PyObject*
+static PyObject *
 _mmcif_load_mmCIF_templates(PyObject*, PyObject* _ptArg)
 {
 	try {
@@ -280,8 +282,8 @@ static const char _mmcifset_Python_locate_function_doc[] = "set_Python_locate_fu
 
 PyMethodDef _mmcifMethods[] = {
 	{
-		"extract_mmCIF_tables", (PyCFunction) _mmcif_extract_mmCIF_tables,
-		METH_VARARGS, _mmcifextract_mmCIF_tables_doc
+		"extract_CIF_tables", (PyCFunction) _mmcif_extract_CIF_tables,
+		METH_VARARGS, _mmcifextract_CIF_tables_doc
 	},
 	{
 		"load_mmCIF_templates", (PyCFunction) _mmcif_load_mmCIF_templates,

@@ -30,6 +30,10 @@ density maps, electrostatic potential maps, 3D imaging data, and other
 data sets with numerical values associated with points on a 3D grid.
 Volume data can be <a href="#multichannel">multichannel</a> and/or
 <a href="../trajectories.html#vseries">time series</a>.
+Volume data can be opened with the command
+<a href="../commands/open.html"><b>open</b></a>
+(which automatically starts <b>Volume Viewer</b>) and saved to a file with 
+<a href="../commands/save.html"><b>save</b></a>.
 </p>
 <table class="clRight">
 <tr><td>
@@ -43,16 +47,18 @@ and other aspects of volume data display.
 Alternatively, these settings and more can be adjusted with the 
 <a href="../commands/volume.html"><b>volume</b></a> command.
 </p><p>
-Volume data can be opened with the command
-<a href="../commands/open.html"><b>open</b></a>
-(which automatically starts <b>Volume Viewer</b>) and saved to a file with 
-<a href="../commands/save.html"><b>save</b></a>.
+Even without data, <b>Volume Viewer</b> can be started
+from the <b>Volume Data</b> section of the <b>Tools</b> menu
+or with the command <b>toolshed show</b>.
+The <b>Volume Viewer</b> window can be manipulated
+like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 </p><p>
-Data set statistics and isosurface-enclosed volumes can be reported
-with <a href="../commands/measure.html"><b>measure</b></a>.
 See also: 
-<a href="densitymaps.html"><b>Density Map Toolbar</b></a>,
+<a href="densitymaps.html"><b>Map</b></a> icons,
+<a href="mousemodes.html"><b>Right Mouse</b></a> icons,
+<!-- <a href="maperaser.html"><b>Map Eraser</b></a>, -->
 <a href="markerplacement.html"><b>Marker Placement</b></a>,
+<!-- <a href="measureblobs.html"><b>Measure and Color Blobs</b></a>, -->
 <a href="../commands/show.html"><b>show</b></a>,
 <a href="../commands/color.html"><b>color</b></a>,
 <a href="../commands/transparency.html"><b>transparency</b></a>,
@@ -60,10 +66,8 @@ See also:
 <a href="../commands/molmap.html"><b>molmap</b></a>,
 <a href="../commands/fitmap.html"><b>fitmap</b></a>,
 <a href="../commands/surface.html#sop"><b>surface</b> operations</a>,
-<a href="../measurements.html">measurements</a>
-</p><p>
-The <b>Volume Viewer</b> window can be manipulated
-like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
+<a href="../measurements.html">measurements</a>,
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
 </p><p>
 By default, a data set will be displayed automatically if it does not
 exceed a certain size
@@ -80,14 +84,17 @@ Above the histogram are:
 <ul>
 <li>the model name 
 <li>an <b>eye icon</b> for showing/hiding the model
-<li>a color well (can be clicked to change the color interactively)
+<li>a color well (that can be clicked to change the color interactively)
 for the <a href="#threshold">threshold</a> most recently moved or clicked
+<br>(to recolor all of a model's <a href="#threshold">thresholds</a>
+at once, instead use
+its color well in the <a href="modelpanel.html"><b>Model Panel</b></a>,
+or the <a href="../commands/volume.html"><b>volume</b></a> command)
 <li>the model number
 <li>dimensions in grid units of the <a href="#region">display region</a>
 <li>the <a href="#step">step size</a> (subsampling)
 <li>the level of the <a href="#threshold">threshold</a>
-most recently moved or clicked (see also the <b>contour level</b> 
-<a href="../commands/ui.html#mousemode">mouse mode</a>)
+most recently moved or clicked
 <li>the range of values in the <a href="#region">display region</a>
 <li>a pulldown menu with display settings:
   <ul>
@@ -97,18 +104,39 @@ most recently moved or clicked (see also the <b>contour level</b>
   <li><b>mesh</b>
   - mesh isosurfaces,
   the <b>mesh</b> <a href="../commands/volume.html#style">display style</a>
-  <li><b>volume</b> - cloudlike with varying intensity and opacity, also known as
- the <b>solid</b> <a href="../commands/volume.html#style">display style</a>
-  <li><b>maximum</b> - solid volume style,
+  <li><b>volume</b> - cloudlike with varying intensity and opacity, also known
+  as the <b>image</b> <a href="../commands/volume.html#style">display style</a>
+  <li><b>maximum</b> - image volume style,
  <a href="../commands/volume.html#maximumintensity">maximum intensity projection</a>
-  <li><b>plane</b> - solid volume style,
- a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
- the <b>move planes</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
- is useful with this or orthoplanes
-  <li><b>orthoplanes</b> - solid volume style,
- <a href="../commands/volume.html#orthoplanes">orthoplanes</a>
-  <li><b>box</b> - solid volume style, 
- <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>
+  <li><b>plane</b> - image volume style,
+a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
+a slider interface is shown below the histogram 
+and the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
+is set to <b>move planes</b> 
+    <a href="mousemodes.html" title="Mouse Modes for Right Button...">
+    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
+    <ul>
+    <li>pausing the cursor over a single-plane display shows the voxel indices
+    and data value in a pop-up balloon
+    <li>planes along X, Y, and/or Z can be displayed and adjusted with the
+    <a href="../commands/volume.html"><b>volume</b></a> command or the
+    <a href="../commands/ui.html#mousemode">mouse mode</a> for
+    <b>move planes</b> 
+    <a href="mousemodes.html" title="Mouse Modes for Right Button...">
+    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>,
+    </ul>
+  <li><b>orthoplanes</b> - image volume style,
+<a href="../commands/volume.html#orthoplanes">XYZ planes</a> simultaneously;
+the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
+is set to <b>move planes</b>
+    <a href="mousemodes.html" title="Mouse Modes for Right Button...">
+    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
+  <li><b>box</b> - image volume style, 
+ <a href="../commands/volume.html#boxfaces">orthoplanes as six box faces</a>;
+the right-button <a href="../commands/ui.html#mousemode">mouse mode</a>
+is set to <b>crop volume</b> 
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/crop.png"></a>
   </ul>
 <li>a <b>minus-sign button</b> for closing the model
 </ul>
@@ -129,7 +157,10 @@ although this can only be set with the
 The <b><i>display region</i></b> is not necessarily the full extent
 of the data grid; it can be limited with the
 <a href="../commands/volume.html"><b>volume</b></a> command
-<a href="../commands/volume.html#dimensions"><b>region</b></a> option.
+<a href="../commands/volume.html#dimensions"><b>region</b></a> option or the
+<a href="../commands/ui.html#mousemode">mouse mode</a> for <b>crop volume</b> 
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/crop.png"></a>.
 </p><p>
 <a name="threshold"></a>
 The <b><i>thresholds</i></b> on the histogram control how data values 
@@ -146,7 +177,7 @@ Each threshold corresponds to a contour surface, generated as a
 <a href="modelpanel.html">submodel</a> of the data model.
 </blockquote>
 <blockquote>
-<b>volume</b> (<b>solid</b>) style:<br>
+<b>volume</b> (<b>image</b>) style:<br>
 Each threshold is shown as a small square that can be moved horizontally
 and/or vertically.
 For unsigned data types, initial thresholds are set to give zero intensity
@@ -161,7 +192,19 @@ that maps data values to colors and intensities.
 The rightmost threshold does not have to be at the far right of the histogram,
 and a threshold at a lower data value can be higher (vertically)
 than a threshold at a higher data value.
+<p>
+Threshold levels can be adjusted interactively by dragging in the
+<b>Volume Viewer</b> histogram
+or by using the <a href="../commands/ui.html#mousemode">mouse mode</a>
+for <b>contour level</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/contour.png"></a>
+or <b>windowing</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/windowing.png"></a>
+in the graphics window.
 </blockquote>
+<a name="context"></a>
 <p>
 The <b>Volume Viewer</b> <a href="../window.html#context-menu">context menu</a>
 includes:
@@ -188,10 +231,6 @@ Histogram ranges and threshold levels are given in the same units as the
 data. The <a href="../commands/volume.html"><b>volume</b></a>
 command also allows specifying threshold levels in units of
 root-mean-square deviations from zero or standard deviations from the mean.
-</p><p>
-See also the <b>contour level</b> and <b>move planes</b>
-<a href="../commands/ui.html#mousemode">mouse modes</a> for
-adjusting the display by dragging within the graphics window.
 </p>
 
 <a name="multichannel"></a>
@@ -213,6 +252,10 @@ in <b>Volume Viewer</b> changes it for all of the channels in the group.
 The <a href="../commands/volume.html"><b>volume</b></a> command
 allows changing settings for individual channels.
 </p><p>
+Color blending of multichannel data in the
+<b>image</b> <a href="../commands/volume.html#style">display style</a>
+can be done <a href="../commands/volume.html#blendOnGpu">on the GPU</a>.
+</p><p>
 See also:
 the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#multichannel"
 target="_blank">ChimeraX light microscopy highlight</a>
@@ -220,5 +263,5 @@ target="_blank">ChimeraX light microscopy highlight</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2018</address>
+June 2019</address>
 </body></html>

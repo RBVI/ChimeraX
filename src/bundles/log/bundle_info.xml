@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-Log" version="1.0"
-	    package="chimerax.log"
-  	    minSessionVersion="1" maxSessionVersion="1">
+	    package="chimerax.log" customInit="true"
+		minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
@@ -15,16 +15,16 @@ the user has done.</Description>
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: Tool :: Log :: General :: Log of information and output</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: echo :: General :: Log a line of text</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Command :: log :: General :: manipulate the Log tool</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Log :: General :: Log of information and output</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: echo :: General :: Log a line of text</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: log :: General :: manipulate the Log tool</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

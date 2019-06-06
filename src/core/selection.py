@@ -80,7 +80,7 @@ class Selection:
         if models:
             for m in models:
                 orig = old_state if old_state is not None else m.selected
-                undo_state.add(m, "selected", orig, new_state)
+                undo_state.add(m, "set_model_selected", orig, new_state, "M")
 
     def _orig_state(self, owner, old_state):
         if old_state is None:
@@ -207,12 +207,12 @@ class SelectionPromotion:
     def demote(self):
         pass
 
-class ModelSelectionPromotion:
+class ModelSelectionPromotion(SelectionPromotion):
     def __init__(self, model, level):
         SelectionPromotion.__init__(self, level)
         self.model = model
         spos = model.selected_positions
-        self._prev_selected = None if spos is None else spos.copy() 
+        self._prev_selected = None if spos is None else spos.copy()
     def promote(self):
         self.model.selected = True
     def demote(self):

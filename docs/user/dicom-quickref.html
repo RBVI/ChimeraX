@@ -1,0 +1,613 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<title>ChimeraX: DICOM Reference</title>
+</head><body>
+
+<a name="top"></a>
+<a href="index.html">
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>ChimeraX: DICOM Reference</h3>
+
+Overview of ChimeraX features for working with 
+<a href="dicom/dicom.html">DICOM medical imaging data</a>:
+<blockquote><b>
+<a href="#opening">Opening Data</a>
+<br><a href="#initial">Initial Display</a>
+<br><a href="#manipulation">Manipulation</a>
+<br><a href="#presets">Appearance Presets</a>
+<br><a href="#windowing">Thresholds and Windowing</a>
+<br><a href="#rendering">Volume Rendering Options</a>
+<br><a href="#clipping">Cropping and Clipping</a>
+<br><a href="#icons">Map Icons</a>
+<br><a href="#vr">Virtual Reality</a>
+<br><a href="#data">Sample Data</a>
+</b></blockquote>
+<p>
+Development of these features supported in part by the 
+<a href="https://www.niaid.nih.gov/" target="_blank">NIAID</a>.
+See also: <a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+<a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
+target="_blank">ChimeraX for Medical Image Analysis</a>
+</p>
+
+<a name="opening"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Opening Data</h3>
+<p>
+In ChimeraX,
+all of the <a href="dicom/dicom.html">DICOM files</a>
+in a directory and its subdirectories
+can be opened in a single operation if the format is specified explicitly:
+</p>
+<blockquote>
+Menu: <b>File... Open DICOM Folder</b> (dialog shows Format: DICOM image),
+browse to location, choose directory, click <b>Choose</b>
+<br>&ndash; or &ndash;
+<br>
+Command: <a href="commands/open.html#local"><b>open</b></a>
+&nbsp;<i>directory-pathname</i>&nbsp; <b>format dicom</b>
+</blockquote>
+<p>
+...where <i>directory-pathname</i> may contain * as wildcard to lessen
+typing, and should be enclosed in quotation marks if it includes spaces,
+for example:
+<blockquote>
+<b>open "~/Desktop/2-CT 5*" format dicom</b>
+</blockquote>
+<p>
+Each series that is found will be opened as a separate model.
+</p><p>
+Many icons in the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+across the top of the ChimeraX window are useful for working with DICOM data:
+</p>
+<ul>
+<li><a href="tools/densitymaps.html"><b>Map</b></a> icons act on
+volume models (medical image stacks, density maps, <i>etc.</i>):
+<br><img class="iconbar" src="density-icons.png">
+<br><br>
+<li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>
+icons assign functions or &ldquo;modes&rdquo; to the mouse/trackpad:
+<br><img class="iconbar" src="mouse-icons.png">
+</ul>
+
+<a name="initial"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Initial Display</h3>
+<p>
+Only a single Z-plane is shown at first.
+The <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> tool
+with a histogram of the data is automatically shown, with <b>plane</b>
+as the chosen display style.
+</p>
+<table>
+<tr><th align="center" class="shaded">
+<font size="-1">[this dataset provided <a href="#data">below</a>]</font>
+</th></tr>
+<tr><td>
+<a href="dicom/screenshot1.png">
+<img class="outline" src="dicom/screenshot1.png" title="click to enlarge..."
+alt="screenshot 1" width="650px"></a></td></tr>
+</table>
+
+<ul>
+<li>To view different planes along the data Z axis, use the slider
+below the histogram. Pausing the cursor over the plane display
+shows the voxel indices and data value in a pop-up balloon.
+<li>Planes along X, Y, <b><i>or</i></b> Z can be shown as follows:
+  <ol>
+  <li>click 
+<img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">
+to assign the <b>move planes</b> <a href="#manipulation">mouse mode</a>
+to the right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="icon-clover.png" width="12px"> on Mac)
+  <li>click-drag with the assigned button to show different planes along the axis
+  <li>to switch axes:
+     <ul>
+<li>show the full region of the data and its outline box
+by clicking the <a href="#icons">map icons</a>
+<img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
+<img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
+or using the <a href="tools/volumeviewer.html#context">context menu</a>
+in the <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> window
+(right-click or <b>Ctrl</b>-click depending on platform)
+    <li><a href="#manipulation">reorient</a> the box as needed
+    <li>click the desired face of the box with the button assigned to
+    <b>move planes</b>
+  </ul>
+ </ol>
+<li>Planes along X, Y, <b><i>and</i></b> Z at the same time can be shown
+by choosing the <b>orthoplanes</b> display style in
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
+or clicking the <a href="#icons">map icon</a>
+<img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
+<li>To return to Z-planes from orthoplanes or 3D rendering,
+choose the <b>plane</b> display style in
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
+or click the <a href="#icons">map icon</a>
+<img class="icon" border=1 src="tools/shortcut-icons/plane.png">
+</ul>
+<p>
+For 3D volume rendering, choose <b>volume</b> display
+in <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>.
+This shows the full region in the transparent &ldquo;image&rdquo; style.
+The <a href="#windowing">thresholds</a> may need to be adjusted
+to improve the appearance after switching display styles.
+</p><p>
+For full resolution, set the <b>step</b> value to <b>1</b>
+or click the <a href="#icons">map icon</a>
+<img class="icon" border=1 src="tools/shortcut-icons/step1.png">.
+Subsampling (<b>step</b> &gt; 1) decreases computational demands and
+may be needed for responsive rendering of large datasets, particularly in
+<a href="#vr">virtual reality</a>. Step size may be adjusted automatically
+upon initial display or when the amount of data shown is changed.
+</p><p>
+When multiple datasets or other models are open at the same time,
+they can be hidden or shown individually, such as with the
+&ldquo;eye&rdquo; icons above their histograms in
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>, the 
+<img class="iconbar" src="tools/eye.png" title="eye icon" alt="eye icon">
+checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>,
+or the <a href="commands/volume.html"><b>volume</b></a> command.
+Many settings can be adjusted with either the
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> graphical interface
+or the <a href="commands/volume.html"><b>volume</b></a> command,
+for example: <b>volume all style image region all step 1</b>
+</p><p>
+Commands that are frequently useful:
+<br>
+For orthographic projection:
+<b><a href="commands/camera.html">camera ortho</a></b>
+&nbsp; ...or to go back to perspective projection:
+<b><a href="commands/camera.html">camera mono</a></b>
+<br>
+To center and scale the display to fit in the graphics window:
+<b><a href="commands/view.html#initial">view</a></b>
+&nbsp; ...or click <a href="tools/graphics.html">graphics icon</a>
+<img class="icon" border=1 src="tools/shortcut-icons/viewall.png">
+<br>
+To center and scale as above, plus reset to initial orientation:
+<b><a href="commands/view.html#initial">view</a> orient</b>
+&nbsp; ...or click <a href="tools/graphics.html">graphics icon</a>
+<img class="icon" border=1 src="tools/shortcut-icons/orient.png">
+</p>
+<table>
+<tr><th align="center" class="shaded">
+<font size="-1">[this dataset provided <a href="#data">below</a>]</font>
+</th></tr>
+<tr><td>
+<a href="dicom/screenshot2.png">
+<img class="outline" src="dicom/screenshot2.png" title="click to enlarge..."
+alt="screenshot 2" width="650px"></a></td></tr>
+</table>
+<p>
+Some DICOM files contain <b><i>time series</i></b> that can be played with 
+the time slider shown automatically by ChimeraX or with
+the <a href="commands/vseries.html"><b>vseries</b></a> command.
+</p><p>
+Some DICOM files contain SEG objects (<b><i>segmentations</i></b>
+as binary maps), and these are automatically associated with the
+corresponding image series to synchronize plane display.
+They can also be displayed as isosurfaces, for example:
+<b><a href="commands/volume.html">volume</a> #1.1.1.1.5 show style surf
+level 1 region all</b>
+</p><p>
+Segmentations described as radiotherapy structure set (RTSTRUCT) 
+contours are also read and displayed.
+</p>
+
+<a name="manipulation"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Manipulation</h3>
+
+<p>
+Default assignments:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center" rowspan="3"><b>rotate</b>
+<br><img src="tools/mouse-icons/rotate.png" class="icon3"></td>
+<td>left mouse button</td>
+</tr><tr>
+<td class="text">trackpad click-drag
+<br>Mac: also trackpad 2-finger rotation if multitouch* is on</td>
+</tr><tr>
+<td class="text">rotate VR 
+<a href="tutorials/dicom-vr.html#manipulation">hand controller</a>
+with trigger pressed</td>
+</tr><tr>
+<td align="center" rowspan="3"><b>translate</b>
+<br><img src="tools/mouse-icons/translate.png" class="icon3"></td>
+<td>middle mouse button</td>
+</tr><tr>
+<td class="text">
+Mac: trackpad + <b>Alt</b>,
+<!-- 
+2-finger click-drag = right if &ldquo;secondary click&rdquo; 
+enabled in Trackpad system preferences,
+-->
+3-finger drag if multitouch* is on
+<br>
+Windows: trackpad + <b>Ctrl-Alt</b>
+</td>
+</tr><tr>
+<td>move VR 
+<a href="tutorials/dicom-vr.html#manipulation">hand controller</a>
+with trigger pressed</td>
+</tr><tr>
+<td align="center" rowspan="3"><b>zoom</b>
+<br><img src="tools/mouse-icons/zoom.png" class="icon3"></td>
+<td>mouse scroll wheel</td>
+</tr><tr>
+<td class="text">
+Mac: trackpad pinch or 4-finger drag if multitouch* enabled,
+otherwise 2-finger drag
+<br>
+Windows: trackpad 2-finger drag
+</td>
+</tr><tr>
+<td class="text">move VR 
+<a href="tutorials/dicom-vr.html#manipulation">hand controllers</a>
+farther apart or closer together with both trigger buttons pressed</td>
+</tr></table>
+*Use of Mac multitouch gestures can be turned on and off in the ChimeraX
+<a href="preferences.html#trackpad">Trackpad preferences</a>
+<p>
+Initially, the right mouse button (= trackpad + <b>Alt</b> on Windows,
+<!-- and on some Windows systems, trackpad lower-right corner -->
+trackpad + <img src="icon-clover.png" width="12px"> on Mac)
+is also assigned to <b>translate</b> 
+&nbsp;<img class="icon" border=1 src="tools/mouse-icons/translate.png">,
+but clicking any other <a href="tools/mousemodes.html"><b>Right Mouse</b></a>
+icon reassigns it:
+<br><img class="iconbar" src="mouse-icons.png">
+</p><p>
+Buttons can also be reassigned with the 
+<a href="commands/ui.html#mousemode"><b>mousemode</b></a> command.
+</p>
+
+<a name="presets"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Appearance Presets</h3>
+<p>
+ChimeraX includes rough implementations of the
+<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
+target="_blank">Horos 3D presets</a> and some of the 
+<a href="https://www.mccauslandcenter.sc.edu/mricrogl/" 
+target="_blank">MRIcroGL</a> color lookup tables.
+They can be applied by name with the
+<a href="commands/volume.html"><b>volume</b></a> command
+<a href="commands/volume.html#appearance"><b>appearance</b></a> option,
+for example:
+</p>
+<blockquote>
+<b>volume #1 appearance "Airways&nbsp;II"</b>
+<br>
+<b>volume #1 appearance CT_Muscles</b>
+</blockquote>
+<p>
+The implementations are only approximate, as there may not be a direct
+correspondence between settings in different programs,
+and parts of the definition files may have been ignored.
+Besides a preset name, <b>appearance initial</b> 
+can be used to (re)set to the colors and intensities
+chosen automatically when a dataset is first shown in the image style.
+The <b>initial</b> settings may be useful for single-plane display
+after using a 3D preset.
+</p><p>
+The <a href="#icons">map icons</a>
+<img class="icon" border=1 src="tools/shortcut-icons/airways.png">,
+<img class="icon" border=1 src="tools/shortcut-icons/ear.png">, and
+<img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
+apply the <b>Airways II</b>, <b>CT_Skin</b>, and <b>initial</b>
+settings, respectively.
+</p>
+<table>
+<tr><th align="center" class="shaded">
+<font size="-1">[this dataset provided <a href="#data">below</a>]</font>
+</th></tr>
+<tr><td>
+<a href="dicom/screenshot3.png">
+<img class="outline" src="dicom/screenshot3.png" title="click to enlarge..."
+alt="screenshot 3" width="650px"></a></td></tr>
+</table>
+
+<a name="windowing"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Thresholds and Windowing</h3>
+<p>
+Thresholds are the control points on the histogram for mapping values
+to colors and intensities. They can be moved by dragging in the
+<a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram,
+and added and deleted using the
+<a href="tools/volumeviewer.html#context">context menu</a>
+(right-click or <b>Ctrl</b>-click depending on platform).
+The color of the most recently clicked threshold can be changed
+by clicking the color square above the left end of the histogram.
+</p><p>
+Applying a <a href="#presets">3D preset</a> sets thresholds and colors,
+among other things.
+Threshold levels and colors can also be set explicitly with the
+<a href="commands/volume.html"><b>volume</b></a> command, for example: 
+<blockquote>
+<b>volume #1 level -742,0.0 level -683,0.049 level -481,0.25 level -333,0.0 color 0,61,71 color 0,61,71 color 0,61,71 color 0,61,71</b>
+</blockquote>
+<p>
+A <b>windowing</b> mouse mode allows adjusting 
+image display thresholds collectively:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center"><b>windowing</b>
+<br><img src="tools/mouse-icons/windowing.png" class="icon3"></td>
+<td class="text">
+vertical motion adjusts <b><i>window level</i></b>
+(moves all thresholds in parallel to higher or lower values),
+horizontal motion adjusts <b><i>window width</i></b>
+(moves thresholds symmetrically farther apart or closer together);
+the dominant type of motion wins out
+</td>
+</tr></table>
+<p>
+A mouse mode can be assigned to a button
+as described <a href="#manipulation">above</a>.
+</p>
+
+<a name="rendering"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Volume Rendering Options</h3>
+<p>
+Additional <a href="commands/volume.html"><b>volume</b></a> command options 
+that may be useful:
+</p>
+<ul>
+<li><b>projectionMode &nbsp;3d</b>
+&ndash; to avoid jumps in brightness during the rotation of image displays,
+render using planes perpendicular to the line of sight
+(default for DICOM, see <a href="commands/volume.html#pmode">details...</a>);
+see also <a href="#icons">map icons</a>
+<img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
+<img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
+<li><b>planeSpacing</b> &ndash; plane spacing for 3D projection mode
+(<a href="commands/volume.html#planeSpacing">details...</a>)
+<li><b>brightness</b> &nbsp;<i>value</i>
+&ndash; scale the intensity (initial default <b>1</b>)
+(<a href="commands/volume.html#brightness">details...</a>)
+<li><b>transparency</b> &nbsp;<i>value</i>
+&ndash; scale transparency relative to dataset thickness;
+approximately what fraction of dataset thickness produces 
+the opacity values shown by the threshold heights on the histogram
+(initial default <b>0.5</b>, range 0-1)
+(<a href="commands/volume.html#transparency">details...</a>)
+<!-- transparency opposite effects depending on dimtransparentvoxels T or F -->
+<li><b>dimTransparentVoxels &nbsp;false</b>
+&ndash; whether to scale brightness by (1–transparency), making transparent
+voxels dimmer; if <b>false</b> (initial default <b>true</b>),
+the appearance is brighter because less light is blocked
+(<a href="commands/volume.html#dimvox">details...</a>)
+<li><b>maximumIntensityProjection &nbsp;true</b>
+&ndash; whether to display the the most intense color value underlying each
+pixel along the line of sight (initial default <b>false</b>);
+sometimes useful for enhancing detail
+(<a href="commands/volume.html#maximumintensity">details...</a>)
+<li><b>colormapOnGpu</b>, <b>fullRegionOnGpu</b>, <b>colormapSize</b>
+&ndash; options for rendering efficiency
+(<a href="commands/volume.html#colormapOnGpu">details...</a>)
+<!--
+<li><b>btCorrection &nbsp;true</b>
+&ndash; correct brightness for viewing angle
+(<a href="commands/volume.html#btcorr">details...</a>)
+*not yet implemented* and different from the problem of brightness changes
+due to different grid spacing along x,y,z
+-->
+</ul>
+
+<a name="clipping"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Cropping and Clipping</h3>
+<p>
+<b><i>Cropping</i></b>
+limits the display of a dataset to a smaller rectangular box or slab,
+making it easier to see features of interest while
+reducing the computational demands of rendering. Cropping can be done with:
+</p>
+<ul>
+<li>the <b>crop volume</b> <a href="#manipulation">mouse mode</a>
+<img class="icon" border=1 src="tools/mouse-icons/crop.png">
+<li>the <a href="commands/volume.html"><b>volume</b></a> command,
+for example: <b>volume #1 <a href="commands/volume.html#dimensions">region</a>
+200,200,150,300,300,200</b>
+<br>...to go back to the full dimensions:
+<b>volume #1 <a href="commands/volume.html#dimensions">region</a> all</b>
+</ul>
+<p>
+A cropped slab display can be moved along an axis using
+the <b>move planes</b> <a href="#manipulation">mouse mode</a>
+<img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">.
+Single planes can be viewed as described <a href="#initial">above</a>.
+</p><p>
+In contrast, <b><i>clipping</i></b> may not have much effect on rendering speed,
+since calculations are still performed on the hidden parts.
+ChimeraX has <b><i>near/far</i></b> clipping planes that always 
+face the viewer, plus the ability to clip/slab at any angle
+(so-called <b><i>front/back</i></b> planes).
+Both kinds can be controlled with the 
+<a href="commands/clip.html"><b>clip</b></a> command
+or with the following mouse modes:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center"><b>clip</b>
+<br><img src="tools/mouse-icons/clip.png" class="icon3"></td>
+<td class="text">
+activate and translate front clipping plane,
++<b>Alt</b> back plane, +<b>Shift</b> slab (front and back in same direction),
++<b>Alt-Shift</b> slab thickness (front and back in opposite directions);
+if only near/far (fixed-orientation) planes already active, move those
+instead of front/back (rotatable) planes</td>
+</tr><tr>
+<td align="center"><b>clip rotate</b>
+<br><img src="tools/mouse-icons/cliprot.png" class="icon3"></td>
+<td class="text">
+activate and rotate front/back clipping planes</td>
+</tr></table>
+<p>
+A mouse mode can be assigned to a button
+as described <a href="#manipulation">above</a>.
+</p><p>
+The near/far planes can also be manipulated in the
+<a href="tools/sideview.html"><b>Side View</b></a> 
+(menu: <b>Tools... General... Side View</b>).
+<br>
+To turn off all clipping: <a href="commands/clip.html"><b>clip off</b></a>
+or <a href="commands/clip.html"><b>~clip</b></a>
+</p>
+
+<a name="icons"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Map Icons</h3>
+<p>
+Icons in the <a href="tools/densitymaps.html"><b>Map</b></a>
+tab of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+can be clicked to perform some action on volume models, including:
+</p>
+<ul class="none">
+<li><img class="icon" border=1 src="tools/shortcut-icons/showmap.png">
+&nbsp;show
+<li><img class="icon" border=1 src="tools/shortcut-icons/hidemap.png">
+&nbsp;hide
+<li><img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
+&nbsp;toggle outline box
+<li><img class="icon" border=1 src="tools/shortcut-icons/step1.png">
+&nbsp;step 1
+<li><img class="icon" border=1 src="tools/shortcut-icons/step2.png">
+&nbsp;step 2
+<li><img class="icon" border=1 src="tools/shortcut-icons/plane.png">
+&nbsp;single plane
+<li><img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
+&nbsp;orthoplanes
+<li><img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
+&nbsp;full region
+<li><img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
+&nbsp;2D xyz projection mode
+(<a href="commands/volume.html#pmode">details...</a>)
+<li><img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
+&nbsp;3D projection mode
+(<a href="commands/volume.html#pmode">details...</a>)
+<li><img class="icon" border=1 src="tools/shortcut-icons/airways.png">
+&nbsp;Airways II <a href="#presets">preset</a>
+for image display, typically used for thick sections
+(<a href="commands/volume.html#appearance">details...</a>)
+<li><img class="icon" border=1 src="tools/shortcut-icons/ear.png">
+&nbsp;CT_Skin <a href="#presets">preset</a>
+for image display
+(<a href="commands/volume.html#appearance">details...</a>)
+<li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
+&nbsp;initial thresholds for image display, <i>e.g.</i>, for single planes
+(<a href="commands/volume.html#appearance">details...</a>)
+</ul>
+<p>
+These icons act on all displayed volume models unless
+only specific ones are <a href="selection.html">selected</a>, such as with the
+<img class="iconbar" src="tools/hand.png" title="hand icon" alt="hand icon">
+checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>.
+</p>
+
+<a name="vr"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Virtual Reality</h3>
+<p>
+DICOM data can be viewed in <a href="vr.html">ChimeraX virtual reality</a>.
+Important aspects of using VR:
+</p>
+<ul>
+<li>Rendering speed must be fast enough to avoid nauseating lags
+in the display when the scene or headset position changes.
+With large volume data, techniques to 
+speed up rendering include subsampling (<b>step</b> &gt 1),
+<a href="#clipping">cropping</a>, and 
+<a href="commands/volume.html#colormapOnGpu">using the GPU</a>.
+<br><br>
+<li>VR <a href="tutorials/dicom-vr.html#manipulation">hand controllers</a>
+are used for <a href="#manipulation">manipulation</a> and clicking icons.
+Clicking the hand-controller <i>menu</i> button (on Vive, analogous 
+on other systems) shows the ChimeraX user interface with icons in the headset.
+<p>
+Clicking a <a href="tools/mousemodes.html">mouse mode</a> icon 
+with a hand controller assigns
+<b><i>whichever button was clicked</i></b> to the corresponding function.
+In VR, leaving the <i>triggers</i> with their
+<a href="#manipulation">default assignments</a> (rotation, translation,
+zooming) is recommended, but up to four other functions can be assigned,
+to the <i>grip</i> and <i>trackpad</i> buttons on each controller.
+Useful modes for DICOM in VR include
+<b>move planes</b>
+<img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">,
+<b>crop volume</b>
+<img class="icon" border=1 src="tools/mouse-icons/crop.png">,
+and <b>windowing</b>
+<img class="icon" border=1 src="tools/mouse-icons/windowing.png">.
+</p>
+</ul>
+<p>
+See also:
+<a href="tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+the <a href="http://vr.ucsf.edu/" target="_blank">VR at UCSF</a> website,
+VR setup advice and observations on different systems:
+<a href="http://www.cgl.ucsf.edu/chimera/data/laptop-vr-nov2018/laptopvr.html"
+target="_blank">Windows</a>,
+<a href="http://www.cgl.ucsf.edu/chimera/data/mac-vr-nov2018/mac-vr.html"
+target="_blank">Mac</a>,
+<a href="http://www.cgl.ucsf.edu/chimera/data/linux-vr-oct2018/linuxvr.html"
+target="_blank">Linux</a>
+</p>
+
+<a name="data"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Sample Data</h3>
+<p>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom/4-24533.zip">4-24533.zip</a>
+&ndash; a DICOM stack representing one CT scan of many in the
+<a href="https://wiki.cancerimagingarchive.net/display/Public/RIDER+Lung+CT#73dc3a9f2e854316974bb0f766ae69ab" 
+target="_blank">RIDER Lung CT</a> collection 
+<!--
+(see <a href="https://pubs.rsna.org/doi/full/10.1148/radiol.2522081593"
+target="_blank">publication</a>)
+-->
+from the <a href="http://www.cancerimagingarchive.net/" 
+target="_blank">Cancer Imaging Archive</a>:
+</p>
+<blockquote>
+Clark K, Vendt B, Smith K, <i>et al.</i>
+The Cancer Imaging Archive (TCIA): 
+Maintaining and Operating a Public Information Repository. 
+Journal of Digital Imaging. 2013; 26(6): 1045-1057. 
+doi: 10.1007/s10278-013-9622-7.
+</blockquote>
+<p>
+The data have been <a href="https://wiki.cancerimagingarchive.net/display/Public/De-identification+Knowledge+Base" target="_blank">anonymized</a>
+and are <a href="https://wiki.cancerimagingarchive.net/display/Public/Data+Usage+Policies+and+Restrictions" target="_blank">freely available</a>.
+The folder should be unzipped and the files opened in ChimeraX
+as described <a href="#opening">above</a>.
+Although this tutorial does not include clinical analysis,
+a significant feature of the scan is a tumor in the right lung.
+<!-- within volume #1.1.1.1 region 105,310,139,210,413,188 -->
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+June 2019</address>
+</body></html>

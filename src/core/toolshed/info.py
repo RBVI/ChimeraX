@@ -53,6 +53,8 @@ class BundleInfo:
         Path (relative to bundle root) of directory of compilation include files
     library_dir:
         Path (relative to bundle root) of directory of link libraries
+    executable_dir:
+        Path (relative to bundle root) of directory of executables
     """
 
     def __init__(self, name, installed,
@@ -66,6 +68,10 @@ class BundleInfo:
                  data_dir=None,
                  include_dir=None,
                  library_dir=None,
+                 executable_dir=None,
+                 managers=None,
+                 providers=None,
+                 inits=None,
                  packages=[], supercedes=[]):
         """Initialize instance.
 
@@ -93,6 +99,14 @@ class BundleInfo:
             Path (relative to bundle root) of directory of compilation include files.
         library_dir:
             Path (relative to bundle root) of directory of link libraries.
+        executable_dir:
+            Path (relative to bundle root) of directory of executables.
+        managers:
+            Dictionary of manager names to init keywords
+        providers:
+            Dictionary of provider names to manager names + init keywords
+        inits:
+            Dictionary of initialization dependencies
         """
         # Public attributes
         self.installed = installed
@@ -112,6 +126,10 @@ class BundleInfo:
         self.installed_data_dir = data_dir
         self.installed_include_dir = include_dir
         self.installed_library_dir = library_dir
+        self.installed_executable_dir = executable_dir
+        self.managers = managers if managers else {}
+        self.providers = providers if providers else {}
+        self.inits = inits if inits else {}
 
         # Private attributes
         self._name = name
@@ -176,6 +194,7 @@ class BundleInfo:
             "data_dir": self.installed_data_dir,
             "include_dir": self.installed_include_dir,
             "library_dir": self.installed_library_dir,
+            "executable_dir": self.installed_executable_dir,
         }
         more = {
             'tools': [ti.cache_data() for ti in self.tools],
@@ -183,6 +202,9 @@ class BundleInfo:
             'formats': [fi.cache_data() for fi in self.formats],
             'selectors': [si.cache_data() for si in self.selectors],
             'fetches': self.fetches,
+            "managers": self.managers,
+            "providers": self.providers,
+            "inits": self.inits,
         }
         return args, kw, more
 
@@ -211,8 +233,16 @@ class BundleInfo:
             bi.installed_include_dir = more['include_dir']
         if 'library_dir' in more:
             bi.installed_library_dir = more['library_dir']
+        if 'executable_dir' in more:
+            bi.installed_executable_dir = more['executable_dir']
         if 'fetches' in more:
             bi.fetches = more['fetches']
+        if 'managers' in more:
+            bi.managers = more['managers']
+        if 'providers' in more:
+            bi.providers = more['providers']
+        if 'inits' in more:
+            bi.inits = more['inits']
         return bi
 
     def distribution(self):
@@ -233,6 +263,7 @@ class BundleInfo:
         logger : :py:class:`~chimerax.core.logger.Logger` instance
             Where to log error messages.
         """
+        _debug("register bundle", self._name, self._version)
         self._register_commands(logger)
         self._register_file_types(logger)
         self._register_selectors(logger)
@@ -393,23 +424,6 @@ class BundleInfo:
         for si in self.selectors:
             deregister_selector(si.name, logger)
 
-    def register_available_commands(self, logger):
-        """Supported API. Register available commands with cli."""
-        from chimerax.core.commands import cli, CmdDesc
-        for ci in self.commands:
-            cd = CmdDesc(synopsis=ci.synopsis)
-            def cb(session, s=self, n=ci.name, l=logger):
-                s._available_cmd(n, l)
-            try:
-                cli.register_available(ci.name, cd, function=cb, logger=logger)
-            except Exception as e:
-                logger.warning("Unable to register available command %s: %s" % (ci.name, str(e)))
-
-    def _available_cmd(self, name, logger):
-        msg = ("\"%s\" is provided by the uninstalled bundle \"%s\""
-               % (name, self.name))
-        logger.status(msg, log=True)
-
     def initialize(self, session):
         """Supported API. Initialize bundle by calling custom initialization code if needed."""
         if self.custom_init:
@@ -422,9 +436,34 @@ class BundleInfo:
                 raise ToolshedError(
                     "initialize() failed in bundle %s:\n%s" % (self.name, str(e)))
 
+    def init_manager(self, session, name, **kw):
+        """Supported API. Initialize bundle manager if needed."""
+        try:
+            api = self._get_api(session.logger)
+            return api._api_caller.init_manager(api, session, self, name, **kw)
+        except Exception as e:
+            import traceback
+            session.logger.warning(traceback.format_exc())
+            raise ToolshedError(
+                "init_manager() failed in bundle %s:\n%s" % (self.name, str(e)))
+
+    def run_provider(self, session, name, mgr, **kw):
+        """Supported API. Called by manager to invoke bundle provider."""
+        try:
+            api = self._get_api(session.logger)
+            return api._api_caller.run_provider(api, session, self, name, mgr, **kw)
+        except Exception as e:
+            import traceback
+            session.logger.warning(traceback.format_exc())
+            raise ToolshedError(
+                "run_provider() failed in bundle %s:\n%s" % (self.name, str(e)))
+
     def finish(self, session):
-        """Supported API. Deinitialize bundle by calling custom finish code if needed."""
-        if self.custom_init:
+        """Supported API. Deinitialize bundle by calling custom finish code if needed.
+        
+        This method is only called when a bundle is explicitly unloaded.
+        In particular, it is *not* called when ChimeraX exits normally."""
+        if self.get_module(force_import=False):
             try:
                 api = self._get_api(session.logger)
                 api._api_caller.finish(api, session, self)
@@ -441,6 +480,10 @@ class BundleInfo:
     def library_dir(self):
         """Supported API. Return bundle library directory."""
         return self._bundle_path(self.installed_library_dir)
+
+    def executable_dir(self):
+        """Supported API. Return bundle executable directory."""
+        return self._bundle_path(self.installed_executable_dir)
 
     def data_dir(self):
         """Supported API. Return bundle data directory."""
@@ -477,6 +520,10 @@ class BundleInfo:
         for k in remove_list:
             del sys.modules[k]
 
+    def imported(self):
+        import sys
+        return self.package_name in sys.modules
+
     def get_class(self, class_name, logger):
         """Supported API. Return bundle's class with given name."""
         try:
@@ -486,7 +533,7 @@ class BundleInfo:
                                 % self.name)
         return f(class_name)
 
-    def get_module(self):
+    def get_module(self, force_import=True):
         """Supported API. Return module that has bundle's code"""
         if not self.package_name:
             raise ToolshedError("Bundle %s has no module" % self.name)
@@ -494,7 +541,8 @@ class BundleInfo:
         try:
             return sys.modules[self.package_name]
         except KeyError:
-            pass
+            if not force_import:
+                return None
         import importlib
         try:
             m = importlib.import_module(self.package_name)

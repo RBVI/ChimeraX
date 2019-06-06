@@ -18,6 +18,18 @@ def modeller_copy(seq):
 	mseq.characters = "".join([c.upper() if c.isalpha() else '-' for c in mseq.characters])
 	return mseq
 
+def get_license_key(session, license_key):
+    from .settings import get_settings
+    settings = get_settings(session)
+    if license_key is None:
+        license_key = settings.license_key
+    else:
+        settings.license_key = license_key
+    if license_key is None:
+        from chimerax.core.errors import UserError
+        raise UserError("No Modeller license key provided."
+            " Get a license key by registering at the Modeller web site.")
+    return license_key
 
 def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve, hydrogens, fast, loop_info,
         custom_script, temp_path, thorough_opt, dist_restraints_path):
@@ -51,8 +63,8 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
             '\t<allHydrogen>%s</allHydrogen>\n'
             '\t<veryFast>%s</veryFast>\n'
             '\t<loopInfo>%s</loopInfo>\n'
-            '</modeller9v8>' % (license_key, num_models, int(het_preserve), int(water_preserve), int(hydrogens),
-                int(fast), repr(loop_info)), file=config_file)
+            '</modeller9v8>' % (license_key, num_models, int(het_preserve),
+                int(water_preserve), int(hydrogens), int(fast), repr(loop_info)), file=config_file)
 
     if custom_script:
         return custom_script, config_file.name, temp_dir
@@ -273,9 +285,9 @@ def _process_dist_restraints(filename):
 from chimerax.core.session import State
 class RunModeller(State):
 
-    def __init__(self, session, template_chains, num_models, target_seq_name, targets, show_gui):
+    def __init__(self, session, match_chains, num_models, target_seq_name, targets, show_gui):
         self.session = session
-        self.template_chains = template_chains
+        self.match_chains = match_chains
         self.num_models = num_models
         self.target_seq_name = target_seq_name
         self.targets = targets
@@ -295,6 +307,7 @@ class RunModeller(State):
 
         from chimerax import match_maker as mm
         models = []
+        match_okay = True
         for i, line in enumerate(ok_models_lines[1:]):
             fields = line.strip().split()
             pdb_name, scores = fields[0], [float(f) for f in fields[1:]]
@@ -302,21 +315,20 @@ class RunModeller(State):
             for attr_name, val in zip(attr_names, scores):
                 setattr(model, attr_name, val)
             model.name = self.target_seq_name
-            if model.num_chains == len(self.template_chains):
-                pairings = zip(self.template_chains, model.chains)
-            else:
-                chain_map = { chain.chain_id:chain for chain in model_chains}
-                pairings = []
-                for tmpl_chain in self.template_chains:
-                    if tmpl_chain.chain_id in chain_map:
-                        pairings.append((tmpl_chain, chain_map[tmpl_chain.chain_id]))
-            if pairings:
+            if model.num_chains == len(self.match_chains):
+                pairings = list(zip(model.chains, self.match_chains))
                 mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
                     mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
                     cutoff_distance=mm.defaults['iter_cutoff'])
-            elif i == 0:
-                self.session.logger.warning("Could not determine which model chains to superimpose on template")
+            else:
+                match_okay = False
             models.append(model)
+        if not match_okay:
+            self.session.logger.warning("The number of model chains does not match the number used from"
+                " the template structure(s) [which can be okay if you closed or modified template"
+                " structures while the job was running], so no superposition of the models onto the"
+                " templates was performed.")
+
         reset_alignments = []
         for alignment, target_seq in self.targets:
             alignment.associate(models, seq=target_seq)
@@ -327,4 +339,23 @@ class RunModeller(State):
         for alignment in reset_alignments:
             alignment.auto_associate = True
 
+        if self.show_gui and self.session.ui.is_gui:
+            from .tool import ModellerResultsViewer
+            ModellerResultsViewer(self.session, "Modeller Results", models, attr_names)
 
+    def take_snapshot(self, session, flags):
+        """For session/scene saving"""
+        return {
+            'match_chains': self.match_chains,
+            'num_models': self.num_models,
+            'target_seq_name': self.target_seq_name,
+            'targets': self.targets,
+            'show_gui': self.show_gui
+        }
+
+    def set_state_from_snapshot(self, data):
+        self.match_chains = data['match_chains']
+        self.num_models = data['num_models']
+        self.target_seq_name = data['target_seq_name']
+        self.target = data['targets']
+        self.show_gui = data['show_gui']

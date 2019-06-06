@@ -97,7 +97,7 @@ def write_mmcif(session, path, models=None):
         grouped.setdefault(m.id[:-1], []).append(m)
 
     used_data_names = set()
-    with open(path, 'w') as f:
+    with open(path, 'w', encoding='utf-8', newline='\r\n') as f:
         print("#\\#CIF_1.1", file=f)
         print("# mmCIF", file=f)
         for g in grouped:
@@ -111,7 +111,7 @@ def write_mmcif(session, path, models=None):
                     save_structure(session, f, [m], used_data_names)
 
 
-ChimeraX_audit_conform = mmcif.MMCIFTable(
+ChimeraX_audit_conform = mmcif.CIFTable(
     "audit_conform",
     (
         "dict_name",
@@ -124,7 +124,7 @@ ChimeraX_audit_conform = mmcif.MMCIFTable(
     )
 )
 
-ChimeraX_audit_syntax = mmcif.MMCIFTable(
+ChimeraX_audit_syntax = mmcif.CIFTable(
     "chimerax_audit_syntax",
     (
         "case_sensitive_flag",
@@ -135,7 +135,7 @@ ChimeraX_audit_syntax = mmcif.MMCIFTable(
     )
 )
 
-ChimeraX_citation = mmcif.MMCIFTable(
+ChimeraX_citation = mmcif.CIFTable(
     "citation",
     (
         'id', 'title', 'journal_abbrev', 'journal_volume', 'year',
@@ -155,7 +155,7 @@ ChimeraX_citation = mmcif.MMCIFTable(
     ],
 )
 
-ChimeraX_authors = mmcif.MMCIFTable(
+ChimeraX_authors = mmcif.CIFTable(
     "citation_author",
     (
         'citation_id', 'name', 'ordinal'
@@ -184,7 +184,7 @@ ChimeraX_software_values = [
     'chimerax',
     'ORIDINAL',
 ]
-ChimeraX_software = mmcif.MMCIFTable(
+ChimeraX_software = mmcif.CIFTable(
     "software",
     (
         'name',
@@ -248,7 +248,7 @@ def save_structure(session, file, models, used_data_names):
         # and same kinds of HET residues
         tmp = list(models)
         tmp.sort(key=lambda m: m.num_atoms)
-        best_m = tmp[0]
+        best_m = tmp[-1]
     name = ''.join(best_m.name.split())  # Remove all whitespace from name
     name = name.encode('ascii', errors='ignore').decode('ascii')  # Drop non-ascii characters
     if name in used_data_names:
@@ -277,7 +277,7 @@ def save_structure(session, file, models, used_data_names):
     if not citation:
         citation = ChimeraX_citation
         citation_author = ChimeraX_authors
-    elif not citation.field_has('citation_id', 'chimerax'):
+    elif not citation.field_has('id', 'chimerax'):
         citation.extend(ChimeraX_citation)
         citation_author.extend(ChimeraX_authors)
     citation.print(file, fixed_width=True)
@@ -332,22 +332,24 @@ def save_structure(session, file, models, used_data_names):
             names = set(c.existing_residues.names)
             nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
-            if c.polymer_type == Residue.PT_AMINO:
-                _1to3 = _protein1to3
-                poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
-            elif names.isdisjoint(set(_rna1to3)):
-                # must be DNA
-                _1to3 = _dna1to3
-                poly_info.append((eid, nstd, 'polyribonucleotide', chars))
-            else:
-                # must be RNA
-                _1to3 = _rna1to3
-                poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
+            if c.from_seqres:
+                if c.polymer_type == Residue.PT_AMINO:
+                    _1to3 = _protein1to3
+                    poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
+                elif names.isdisjoint(set(_rna1to3)):
+                    # must be DNA
+                    _1to3 = _dna1to3
+                    poly_info.append((eid, nstd, 'polyribonucleotide', chars))
+                else:
+                    # must be RNA
+                    _1to3 = _rna1to3
+                    poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
             seq_entities[chars] = (eid, _1to3, [c])
 
     # use all chains of the same entity to figure out what the sequence's residues are named
     pdbx_poly_tmp = {}
     for chars, (eid, _1to3, chains) in seq_entities.items():
+        chains = [c for c in chains if c.from_seqres]
         pdbx_poly_tmp[eid] = []
         for seq_id, ch, residues in zip(range(1, sys.maxsize), chars, zip(*(c.residues for c in chains))):
             label_seq_id = str(seq_id)
@@ -423,30 +425,30 @@ def save_structure(session, file, models, used_data_names):
         het_asym_info[mcid] = (label_asym_id, eid)
         het_entities[n][mcid] = (eid, label_asym_id)
 
-    entity = mmcif.MMCIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
+    entity = mmcif.CIFTable('entity', ['id', 'type', 'pdbx_description'], flattened(entity_info.items()))
     entity.print(file, fixed_width=True)
-    entity_poly = mmcif.MMCIFTable('entity_poly', ['entity_id', 'nstd_monomer', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
+    entity_poly = mmcif.CIFTable('entity_poly', ['entity_id', 'nstd_monomer', 'type', 'pdbx_seq_one_letter_code_can'], flattened(poly_info))
     entity_poly.print(file, fixed_width=True)
-    entity_poly_seq = mmcif.MMCIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
+    entity_poly_seq = mmcif.CIFTable('entity_poly_seq', ['entity_id', 'num', 'mon_id'], flattened(poly_seq_info))
     entity_poly_seq.print(file, fixed_width=True)
     import itertools
-    struct_asym = mmcif.MMCIFTable(
+    struct_asym = mmcif.CIFTable(
         'struct_asym', ['id', 'entity_id'],
         flattened(itertools.chain(asym_info.values(), het_asym_info.values())))
     struct_asym.print(file, fixed_width=True)
-    pdbx_poly_seq = mmcif.MMCIFTable('pdbx_poly_seq_scheme', ['entity_id', 'asym_id', 'mon_id', 'seq_id', 'pdb_strand_id', 'pdb_seq_num', 'pdb_ins_code'], flattened(pdbx_poly_info))
+    pdbx_poly_seq = mmcif.CIFTable('pdbx_poly_seq_scheme', ['entity_id', 'asym_id', 'mon_id', 'seq_id', 'pdb_strand_id', 'pdb_seq_num', 'pdb_ins_code'], flattened(pdbx_poly_info))
     pdbx_poly_seq.print(file, fixed_width=True)
     del entity, entity_poly_seq, pdbx_poly_seq, struct_asym
 
     elements = list(set(best_m.atoms.elements))
     elements.sort(key=lambda e: e.number)
     atom_type_data = [e.name for e in elements]
-    atom_type = mmcif.MMCIFTable("atom_type", ["symbol"], atom_type_data)
+    atom_type = mmcif.CIFTable("atom_type", ["symbol"], atom_type_data)
     atom_type.print(file, fixed_width=True)
     del atom_type_data, atom_type
 
     atom_site_data = []
-    atom_site = mmcif.MMCIFTable("atom_site", [
+    atom_site = mmcif.CIFTable("atom_site", [
         'group_PDB', 'id', 'type_symbol', 'label_atom_id', 'label_alt_id',
         'label_comp_id', 'label_asym_id', 'label_entity_id', 'label_seq_id',
         'Cartn_x', 'Cartn_y', 'Cartn_z',
@@ -454,7 +456,7 @@ def save_structure(session, file, models, used_data_names):
         'occupancy', 'B_iso_or_equiv', 'pdbx_PDB_model_num'
     ], atom_site_data)
     atom_site_anisotrop_data = []
-    atom_site_anisotrop = mmcif.MMCIFTable("atom_site_anisotrop", [
+    atom_site_anisotrop = mmcif.CIFTable("atom_site_anisotrop", [
         'id', 'type_symbol',
         'U[1][1]', 'U[1][2]', 'U[1][3]',
         'U[2][2]', 'U[2][3]', 'U[3][3]',
@@ -526,7 +528,7 @@ def save_structure(session, file, models, used_data_names):
     del atom_site_data, atom_site, atom_site_anisotrop_data, atom_site_anisotrop
 
     struct_conn_data = []
-    struct_conn = mmcif.MMCIFTable("struct_conn", [
+    struct_conn = mmcif.CIFTable("struct_conn", [
         "id", "conn_type_id",
         "ptnr1_label_atom_id",
         "pdbx_ptnr1_label_alt_id",
@@ -550,7 +552,7 @@ def save_structure(session, file, models, used_data_names):
     ], struct_conn_data)
 
     struct_conn_type_data = []
-    struct_conn_type = mmcif.MMCIFTable("struct_conn_type", [
+    struct_conn_type = mmcif.CIFTable("struct_conn_type", [
         "id",
     ], struct_conn_type_data)
 
@@ -682,7 +684,7 @@ def save_structure(session, file, models, used_data_names):
 
     # struct_conf
     struct_conf_data = []
-    struct_conf = mmcif.MMCIFTable("struct_conf", [
+    struct_conf = mmcif.CIFTable("struct_conf", [
         "id", "conf_type_id",
         "beg_label_comp_id",
         "beg_label_asym_id",
@@ -699,7 +701,7 @@ def save_structure(session, file, models, used_data_names):
     ], struct_conf_data)
 
     struct_conf_type_data = []
-    struct_conf_type = mmcif.MMCIFTable("struct_conf_type", [
+    struct_conf_type = mmcif.CIFTable("struct_conf_type", [
         "id"
     ], struct_conf_type_data)
 
@@ -729,7 +731,7 @@ def save_structure(session, file, models, used_data_names):
             end_cid, end_rnum, end_rins))
 
     sheet_range_data = []
-    sheet_range = mmcif.MMCIFTable("struct_sheet_range", [
+    sheet_range = mmcif.CIFTable("struct_sheet_range", [
         "sheet_id", "id",
         "beg_label_comp_id",
         "beg_label_asym_id",
@@ -857,7 +859,7 @@ def save_components(model, file):
         if has_name:
             new_values.append('?')
 
-    new_chem_comp = mmcif.MMCIFTable('chem_comp', chem_comp_fields, new_values)
+    new_chem_comp = mmcif.CIFTable('chem_comp', chem_comp_fields, new_values)
     new_chem_comp.print(file, fixed_width=True)
 
     # TODO: chem_comp_atom

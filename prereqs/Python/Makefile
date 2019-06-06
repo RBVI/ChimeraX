@@ -3,13 +3,13 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).4
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
-PIP_VERSION = 18.1
-WHEEL_VERSION = 0.32.2
-SETUPTOOLS_VERSION = 40.5.0
+PIP_VERSION = 19.0.3
+WHEEL_VERSION = 0.33.1
+SETUPTOOLS_VERSION = 40.8.0
 
 ifdef WIN32
 DYNLOAD_DIR = $(bindir)/DLLs
@@ -55,6 +55,7 @@ ifeq ($(OS),Darwin)
 # the shared objects should get an explicit rpath (and hence should just use
 # the rpath from the ChimeraX/python executable).
 export DYLD_LIBRARY_PATH=$(libdir)
+ENV_CONFIGURE += PATH='$(bindir)':"$$PATH"
 ifndef USE_MAC_FRAMEWORKS
 ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
 CONFIG_OPTIONS += --enable-shared
@@ -219,7 +220,7 @@ endif
 	# Since pip comes with Python 3.5, update it now so installs on
 	# Windows will work.  Wheel is needed so bdist_wheel will work.
 	$(PYTHON_EXE) -m ensurepip --upgrade
-	$(PYTHON_EXE) -m pip install --upgrade pip
+	$(PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
 
@@ -257,8 +258,8 @@ else
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
+	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
-		pip==$(PIP_VERSION) \
 		wheel==$(WHEEL_VERSION) \
 		setuptools==$(SETUPTOOLS_VERSION)
 

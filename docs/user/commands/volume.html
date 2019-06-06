@@ -43,8 +43,16 @@ namely <a href="#pickable"><b>pickable</b></a> and several of the
 </p><p>
 The corresponding graphical interface,
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>,
-allows adjusting contour levels and some of the other settings
-interactively.  Volume data can be opened with the command
+allows adjusting contour levels and some of the other settings interactively. 
+Contour levels can also be changed interactively with the
+<a href="ui.html#mousemode">mouse mode</a> for <b>contour level</b>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
+or <b>windowing</b> 
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>.
+</p><p>
+Volume data can be opened with the command
 <a href="open.html"><b>open</b></a> (which automatically starts 
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>)
 and saved to a file with <a href="save.html"><b>save</b></a>.
@@ -62,50 +70,77 @@ See also:
 <a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="sym.html"><b>sym</b></a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
-<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>,
-<a href="../measurements.html">measurements</a>
+<a href="../tools/densitymaps.html"><b>Map</b></a> icons,
+<a href="../measurements.html">measurements</a>,
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
 </p>
 <a name="examples">Examples</a>:
 <blockquote>
 <b>volume #1 style mesh level 0.8 color red level 1.2 color 0,50,80</b>
 <br>
-<b>volume #2 level 10,0 level 100,1 level 400,1 color hot pink style solid</b>
+<b>volume #2 level 10,0 level 100,1 level 400,1 color hot pink style image</b>
 <br>
 <b>vol all hide</b>
+<br>
+<b>vol settings #1</b>
 </blockquote>
 <a name="options"></a>
 The <b>volume</b> command has many options, here grouped into categories:
 <blockquote><b>
 <a href="#general">General Display Options</a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/showmap.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/hidemap.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/mapsurf.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/mesh.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/mapimage.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/icecube.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/outlinebox.png"></a>
 <br><a href="#sampling">Sampling and Size Options</a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/step1.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/step2.png"></a>
 <br><a href="#dimensions">Dimension and Scale Options</a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/fullvolume.png"></a>
 <br><a href="#planes">Planes Options</a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/plane.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>
 <br><a href="#dispsurf">Surface and Mesh Display Options</a>
-<br><a href="#dispsolid">Solid Display Options</a>
+<br><a href="#dispsolid">Image Display Options</a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
 </b></blockquote>
+
+<p>
+<a name="settings"></a>
+The command <b>volume settings</b> (optionally followed by a <i>model-spec</i>) 
+reports the current volume display settings in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+See also: <a href="info.html"><b>info</b></a>
+</p>
 
 <a name="general"></a>
 <p class="nav">
@@ -117,11 +152,15 @@ The <b>volume</b> command has many options, here grouped into categories:
   <a href="#top" class="nounder">&bull;</a>
   <b>show</b>
   <br>Display the volume model.
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/showmap.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>hide</b>
   <br>Undisplay the volume model.
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/hidemap.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -131,12 +170,18 @@ The <b>volume</b> command has many options, here grouped into categories:
   show those that are hidden and hide those that are shown.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="style"><b>style</b> &nbsp;surface | mesh | solid</a>
-  <br>Designate the style of display:
-  the <b>surface</b> and <b>mesh</b> modes
-  depict isosurfaces (contour surfaces), while the <b>solid</b> mode
-  shows data as a semitransparent solid.
+<a href="#top" class="nounder">&bull;</a>
+<a name="style"><b>style</b> &nbsp;surface | mesh | image</a>
+<br>Designate the style of display:
+the <b>surface</b> and <b>mesh</b> modes show isosurfaces (contour surfaces), 
+while the <b>image</b> mode (synonym <b>solid</b>) refers to a cloudlike display
+with varying intensity and opacity.
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mapsurf.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mesh.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/mapimage.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -151,11 +196,11 @@ volume models, including those opened later within the same session.
 Separate sets of <a href="#level">level</a>, <a href="#color">color</a>,
 <a href="#brightness">brightness</a>, and 
 <a href="#transparency">transparency</a> information
-are maintained for the surface/mesh and solid styles of a volume model;
-switching to solid from surface or mesh (or <i>vice versa</i>) restores 
+are maintained for the surface/mesh and image styles of a volume model;
+switching to image from surface or mesh (or <i>vice versa</i>) restores 
 any previous assignments for that style.
 See also: <a href="#dispsurf">surface and mesh display options</a>,
-<a href="#dispsolid">solid display options</a>
+<a href="#dispsolid">image display options</a>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="level"><b>level</b> &nbsp;<i>threshold-level</i></a>
@@ -171,7 +216,8 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   encloses a specified spatial volume,
   see the <a href="#encloseVolume"><b>encloseVolume</b></a>
   and <a href="#fastEncloseVolume"><b>fastEncloseVolume</b></a> options.
-  <li>For <b>solid</b> displays, <i>threshold-level</i> consists of two numbers 
+<br><br>
+  <li>For <b>image</b> displays, <i>threshold-level</i> consists of two numbers 
   separated by a comma (no spaces). The first number indicates a data value
   and the second number indicates an intensity ranging from 0.0 to 1.0.
   These correspond to horizontal and vertical placement, respectively, 
@@ -179,9 +225,13 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   </ul>
   Threshold levels can be adjusted interactively by dragging in the
   <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram
-  or using the <b>contour level</b> <a href="ui.html#mousemode">mouse mode</a>
+  or by using the <a href="ui.html#mousemode">mouse mode</a> for
+  <b>contour level</b>
   <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
+  or <b>windowing</b> 
+  <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>
   in the graphics window.
 </blockquote>
 <blockquote>
@@ -201,14 +251,12 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="color"><b>color</b> &nbsp;<i>threshold-color</i></a>
-  <br>Assign <a href="#level">threshold</a> color. Can be given multiple times
-  in the same command if multiple <a href="#level">threshold levels</a> 
-  are also specified.
-  The <i>threshold-color</i> can be any
-  <a href="colornames.html">color name</a> that specifies a single color.
-  The default color is an opaque medium gray (<b>70,70,70</b>) 
-  for surface and mesh displays, <b>white</b> for solid.
+  <a name="color"></a>
+  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>Assign <a href="#level">threshold</a> color.
+Can be given multiple times in the same command if multiple 
+<a href="#level">threshold levels</a> are also specified.
+See also: <a href="colortables.html#autocolors">initial colors</a>
 </blockquote>
 Multiple <a href="#level">level</a> and <a href="#color">color</a>
 specifications can be included in a single command.
@@ -223,6 +271,36 @@ Levels and colors are paired in the order given,
 but they do not need to be interleaved; 
 only the ordering of each type of specification (levels or colors)
 is significant.
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a> 
+  <br>Brightness scales the intensity of the <a href="#color">color</a> 
+  (default <b>1.0</b>). A value greater than 1.0 may be used, but the RGB color 
+  components multiplied by the value are clamped to the range 0.0&ndash;1.0.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>
+  <br>Transparency values range from 0.0 (fully opaque) 
+  to 1.0 (fully transparent).
+  <ul class="circle">
+  <li>For <b>surface</b> and <b>mesh</b> displays, transparency
+  is the fraction of light transmitted from behind the surface or a
+  line of mesh (default <b>0.0</b>).  By default,
+  these objects are dimmed as they are made more transparent
+  (see <a href="#dim"><b>dimTransparency</b></a>.) See also:
+  <a href="../tools/densitymaps.html" title="Map Toolbar...">
+  <img class="icon" border=1 src="../tools/shortcut-icons/icecube.png"></a>
+<br><br>
+  <li>For <b>image</b> displays, this setting gives the slab thickness 
+  (as a fraction of the dataset's shortest dimension, 
+  range 0.0&ndash;1.0, default <b>0.5</b>) 
+  that gives the transparency indicated by threshold
+  height on the histogram (<a href="#soliddetails">details...</a>).
+  By default, more transparent voxels are made dimmer
+  (see <a href="#dimvox"><b>dimTransparentVoxels</b></a>).
+  </ul>
+</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="encloseVolume"><b>encloseVolume</b> &nbsp;<i>volume</i></a>
@@ -269,46 +347,17 @@ is significant.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a> 
-  <br>Brightness scales the intensity of the color of the display.  Values
-  can range from 0.01 to 10.0, where <b>1.0</b> (the default) produces no change
-  relative to the <a href="#color">specified colors</a>.
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>
-  <br>Transparency values range from 0.0 (fully opaque) 
-  to 1.0 (fully transparent).
-  <ul class="circle">
-  <li>For <b>surface</b> and <b>mesh</b> displays, transparency
-  is the fraction of light transmitted from behind the surface or a
-  line of mesh (default <b>0.0</b>).  By default,
-  these objects are dimmed as they are made more transparent
-  (see <a href="#dim"><b>dimTransparency</b></a>.)
-  <li>For <b>solid</b> displays, this transparency setting
-  further modulates initial transparencies obtained from the 
-  <a href="#transferfunction">transfer function</a>
-  in a way that compensates for the thickness of the display
-  (<a href="#soliddetails">details</a>).
-  Values range from 0.0 (no modulation) to 1.0, default <b>0.5</b>.
-  By default, more transparent voxels are made dimmer
-  (see <a href="#dimvox"><b>dimTransparentVoxels</b></a>).
-  </ul>
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
   <a name="outline"><b>showOutlineBox</b> &nbsp;true | <b>false</b></a>
   <br>Outline the bounding box of the 
   <a href="#dimensions">current display region</a>.
+  <a href="../tools/densitymaps.html" title="Map Toolbar...">
+  <img class="icon" border=1 src="../tools/shortcut-icons/outlinebox.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>outlineBoxRgb</b> &nbsp;<i>outline-color</i>
-  <br>Assign a color to the <a href="#outline">outline box</a>.
-  The <i>outline-color</i> can be any
-  <a href="colornames.html">color name</a> that specifies a single color.
-  Any transparency in the color will be ignored.
-  The default color is <b>white</b>.
+  <b>outlineBoxRgb</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>Assign a color to the <a href="#outline">outline box</a>
+  (default <b>white</b>). Any transparency in the color will be ignored.
 </blockquote>
 <!-- currently not available, ticket #1315
 <blockquote>
@@ -337,6 +386,11 @@ is significant.
   are used in the X, Y, and Z directions, respectively.
   Changing a step value will change the data size limit for automatic 
   step adjustment (see <a href="#voxmax"><b>voxelLimit</b></a>).
+See also:
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/step1.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/step2.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -352,6 +406,7 @@ is significant.
 </blockquote>
 The remaining options in this section are global and apply to all volume models, 
 regardless of which are specified:
+<!-- but are not (yet) saved in preferences -->
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="dispopen"><b>showOnOpen</b> &nbsp;<b>true</b> | false</a>
@@ -406,6 +461,12 @@ regardless of which are specified:
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.  
   Grid indices must be integers separated by commas but not spaces.
+See also:
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/fullvolume.png"></a>,
+the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -626,13 +687,15 @@ regardless of which are specified:
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>planes</b> &nbsp;<i>axis</i>,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]
+  <b>planes</b> &nbsp;<i>axis</i>[,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]]
   <br>Sequentially display slabs <i>depth</i> planes thick along the
   specified data <i>axis</i> (<b>x</b>,<b>y</b>, or <b>z</b>) starting from
   index <i>start</i> and repositioning the slab by <i>increment</i> 
   grid units per frame until the index at the next frame would 
-  exceed <i>end</i>.  
+  exceed <i>end</i>. 
   The indices refer to the first displayed plane along the axis.
+  If only the axis is given, a single plane at the center of the 
+  <a href="#dimensions">current region</a> will be shown.
   If no <i>end</i> is supplied, only a single slab will be shown.  
   The default <i>increment</i> and <i>depth</i> are both <b>1</b>.
   Only planes that are multiples of the <a href="#sampling">step size</a>
@@ -647,10 +710,17 @@ regardless of which are specified:
   <i>increment</i>, and <i>depth</i> parameters can be floating-point numbers.
   For example, an <i>increment</i> of 0.25 with step size 1 will show each
   plane for 4 frames.
-  See also: <a href="#tile"><b>volume tile</b></a>,
+  See also: 
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/plane.png"></a>,
   the <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>
+<img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>,
+<a href="#tile"><b>volume tile</b></a>
+<p>
+Pausing the cursor over a single-plane display shows the voxel indices 
+and data value in a pop-up balloon.
+</p>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -673,12 +743,18 @@ regardless of which are specified:
   by integer grid indices (default <b>0,0,0</b> or the lowest indices in the
   <a href="#dimensions">current region</a>).
   Orthogonal planes automatically use the 
-  <b>solid</b> <a href="#style">display style</a>,
+  <b>image</b> <a href="#style">display style</a>,
   opaque <a href="#dispsolid">color mode</a>, 
   and an <a href="#outline">outline</a>, 
   although these can be overriden with the corresponding command options. 
   Turning orthogonal planes <b>off</b> restores the <b>auto8</b>
   <a href="#dispsolid">color mode</a>.
+  See also:
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>,
+  the <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -688,7 +764,7 @@ regardless of which are specified:
   If only a single plane is shown beforehand, it will be
   <a href="#expandSinglePlane">expanded</a> to define the region.
   Box-face planes automatically use the
-  <b>solid</b> <a href="#style">display style</a>,
+  <b>image</b> <a href="#style">display style</a>,
   opaque <a href="#dispsolid">color mode</a>,   
   and an <a href="#outline">outline</a>,
   although these can be overriden with the corresponding command options.
@@ -837,14 +913,15 @@ both depict isosurfaces.
 <p class="nav">
 [<a href="#top">back to top: volume</a>]
 </p>
-<h3 class="usage"><b>Solid Display Options</b> &nbsp;&nbsp;&nbsp;
+<h3 class="usage"><b>Image Display Options</b> &nbsp;&nbsp;&nbsp;
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <p>
-  The <b>solid</b> <a href="#style">display style</a>
+  The <b>image</b> <a href="#style">display style</a>
   shows data as a semitransparent solid.
 </p>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
+  <a name="cmode"></a>
   <b>colorMode</b> &nbsp;<i>cmode</i>
   <br>Specify color pixel format (OpenGL texture format).
   Possible values of <i>cmode</i> combine 
@@ -858,25 +935,112 @@ both depict isosurfaces.
   </ul>
   ... with a number of bits: <b>4</b>, <b>8</b>, <b>12</b>, <b>16</b>.
   For example, the default <i>cmode</i> is <b>auto8</b>. 
+  See also: <a href="graphics.html#colorDepth"><b>graphics colorDepth</b></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="pmode">
-  <b>projectionMode</b> &nbsp;<i>pmode</i></a>
+  <a name="pmode"></a>
+  <b>projectionMode</b> &nbsp;<i>pmode</i>
   <br>Specify projection mode for memory-efficient display of 
   large data sets such as tomograms.  Possible values of <i>pmode</i>:
   <ul class="circle">
-  <li><b>auto</b> (default)
+  <li><b>auto</b> 
+(default except for <a href="../dicom/dicom.html">DICOM</a> )
   <li><b>2d-x</b>
   <li><b>2d-y</b>
   <li><b>2d-z</b>
   <li><b>2d-xyz</b>
+  <li><b>3d</b>
+(default for <a href="../dicom/dicom.html">DICOM</a> )
   </ul>
   Displaying just the planes perpendicular to one data axis 
   (2d-x, 2d-y, or 2d-z) uses less memory than automatically switching
   to those along the data axis most perpendicular to the screen at a given 
-  time (2d-xyz).  The auto setting uses 2d-z for volumes with X or Y dimensions
+  time (2d-xyz). The auto setting uses 2d-z for volumes with X or Y dimensions
   at least 4 times greater than Z, otherwise 2d-xyz.
+  The 3d mode avoids jumps in brightness during rotation by continuously 
+  generating planes perpendicular to the line of sight, spaced
+  according to the <a href="#planeSpacing"><b>planeSpacing</b></a> option.
+See also:
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="planeSpacing"></a>
+  <b>planeSpacing</b> &nbsp;<i>spacing</i>
+  <br>
+What <i>spacing</i> to use with <a href="#pmode"><b>projectionMode 3d</b></a>,
+with possible values:
+  <ul class="circle">
+  <li><b>min</b> (default) - smallest spacing of the data along X, Y, or Z
+  <li><b>max</b> - largest spacing of the data along X, Y, or Z
+  <li><b>mean</b> - mean of the data spacing along X, Y, and Z
+  <li><i>d</i> - a specific distance in physical units of length
+  </ul>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="dimvox"><b>dimTransparentVoxels</b> &nbsp;<b>true</b> | false</a>
+<br>
+If <b>true</b> (default),
+scale voxel brightness in image displays by a factor of (1&ndash;transparency).
+If <b>false</b>, increasing the <a href="#transparency">transparency</a>
+makes a volume appear brighter because less light is blocked.
+The <a href="#appearance"><b>appearance</b></a> option also adjusts this setting.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="colormapOnGpu"></a>
+  <b>colormapOnGpu</b> &nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether the mapping of volume data values to colors
+should be done on the GPU (if true) or CPU (if false).
+The default is true for <a href="../dicom/dicom.html">DICOM</a>,
+otherwise false.
+Colormapping with the GPU is faster but done every time the scene is drawn,
+whereas colormapping with the CPU is only done when the colors change.
+Colormapping with the GPU may also give a better, less noisy appearance because
+the data values rather than the resulting color values are interpolated.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="colormapSize"></a>
+  <b>colormapSize</b> &nbsp;<i>N</i>
+<br>
+Specify the size of the color lookup table (default <b>256</b>)
+for colormapping on the GPU (any data type) or on the CPU 
+with floating-point data.
+For color mapping on the CPU with 8-bit or 16-bit map data, 
+this value is ignored and sizes 256 and 65536 are used instead
+so that each data value has its own color. 
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="fullRegionOnGpu"></a>
+  <b>fullRegionOnGpu</b> &nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether to keep the data
+(or colors, if <a href="#colormapOnGpu"><b>colormapOnGpu</b></a> is false)
+for the full volume region on the GPU to allow fast cropping.
+The default is true for <a href="../dicom/dicom.html">DICOM</a>,
+otherwise false.
+It is best to use this option with 
+<a href="#colormapOnGpu"><b>colormapOnGpu</b></a> true;
+otherwise, updating colors for the full region even when only a smaller region 
+is shown may slow performance significantly.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="blendOnGpu"></a>
+  <b>blendOnGpu</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether image-display color blending of
+<a href="../tools/volumeviewer.html#multichannel">multichannel data</a>
+should be done on the GPU (if true) or CPU (if <b>false</b>; default).
+Color blending on the GPU is about an order of magnitude faster.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -894,18 +1058,11 @@ both depict isosurfaces.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="dimvox"><b>dimTransparentVoxels</b> &nbsp;<b>true</b> | false</a>
-  <br>Scale voxel brightness in solid displays
-  by a factor of (1&ndash;transparency).
-  Otherwise, increasing the transparency also makes a volume
-  appear brighter, because less light is blocked.
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a name="btcorr"></a>
   <b>btCorrection</b> &nbsp;true | <b>false</b>
   <br>Correct brightness and transparency for the viewing angle.
   Without this correction, the apparent brightness and transparency
-  of solid displays (in <a href="#pmode">projection modes</a> other than 3d)
+  of image displays (in <a href="#pmode">projection modes</a> other than 3d)
   will depend on the viewing angle relative to the data axes.  
   For a cube-shaped volume with equal resolution in the X, Y, and Z dimensions,
   the brightness drops and the transparency increases by a factor of
@@ -916,7 +1073,7 @@ both depict isosurfaces.
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <b>minimalTextureMemory</b> &nbsp;true | <b>false</b>
-  <br>Reuse a single 2D texture for solid displays 
+  <br>Reuse a single 2D texture for image displays 
   (in <a href="#pmode">projection modes</a> other than 3d)
   instead of allocating
   separate textures for every plane of the data.  This is useful
@@ -927,9 +1084,63 @@ both depict isosurfaces.
   <a href="#top" class="nounder">&bull;</a>
   <b>linearInterpolation</b> &nbsp;<b>true</b> | false
   <br>Linearly interpolate brightness and transparency
-  between voxels in solid displays.
+  between voxels in image displays.
   Turning interpolation off may yield a pixelated appearance
   but speed up rendering, depending on the graphics hardware.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="appearance"></a>
+  <b>appearance</b> &nbsp;<i>preset-name</i>
+  <br>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>appearance</b> &nbsp;<b>initial</b>
+<br>
+Apply a
+<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
+target="_blank">Horos 3D preset</a> 
+(with <a href="#dimvox"><b>dimTransparentVoxels</b></a> false) or
+<a href="https://www.mccauslandcenter.sc.edu/mricrogl/home"
+target="_blank">MRIcroGL</a> color lookup table (CLUT)
+(with <a href="#dimvox"><b>dimTransparentVoxels</b></a> true
+and <a href="#transparency"><b>transparency</b></a> 0.05)
+to the image display.
+<a href="https://horosproject.org/about/" target="_blank">Horos</a> 
+and <a href="https://www.mccauslandcenter.sc.edu/mricrogl/home"
+target="_blank">MRIcroGL</a> 
+are programs for medical image analysis and visualization.
+The Horos 3D presets are listed on
+<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
+target="_blank">github</a>, and the available MRIcroGL CLUTs are
+<b>CT_Bones</b>, <b>CT_Kidneys</b>, <b>CT_Liver</b>, <b>CT_Lungs</b>, 
+<b>CT_Muscles</b>, <b>CT_Skin</b>, <b>CT_Soft_Tissue</b>, <b>CT_Vessels</b>,
+and <b>CT_w_Contrast</b>.
+The <i>preset-name</i> should be enclosed in quotation marks if it
+contains any spaces. 
+<p>
+Implementation of these presets in ChimeraX is only approximate, as there 
+may not be a direct correspondence between settings in different programs,
+and parts of the definition files may have been ignored.
+The Horos 3D presets are generally intended for
+3D rendering (not <a href="#planes">planes</a>).
+</p><p>
+Besides a preset name, <b>initial</b> can be used to (re)set to the
+<a href="#level">threshold levels</a> and colors chosen automatically 
+for the data when first shown as image, with
+<a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
+<a href="../dicom/dicom.html">DICOM</a> data are initially shown 
+as image with thresholds: (-1000,0),(300,0.9),(3000,1).
+The <b>initial</b> settings may be useful for viewing 
+<a href="#planes">planes</a> or thin slabs.
+See also:
+<a href="../tools/densitymaps.html"><b>Map</b></a> icons
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
+<img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>,
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
+</p>
 </blockquote>
 
 <a name="vop"></a>
@@ -947,7 +1158,7 @@ See also:
 <a href="measure.html"><b>measure</b></a>,
 <a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
-<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
+<a href="../tools/densitymaps.html"><b>Map</b></a> icons
 </p><p>
 Examples:
 </p>
@@ -979,7 +1190,7 @@ Several operations are available:
 - reverse data planes along a specified axis
 <li><a href="#fourier"><b>volume fourier</b></a> - Fourier transform
 <li><a href="#gaussian"><b>volume gaussian</b></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
 - Gaussian smoothing or sharpening
 <li><a href="#laplacian"><b>volume laplacian</b></a> - Laplacian filtering
@@ -1016,7 +1227,7 @@ see also <a href="#onesmask"><b>volume onesmask</b></a>
 - split map by zones previously colored with
 <a href="color.html#zone"><b>color zone</b></a>
 <li><a href="#subtract"><b>volume subtract</b></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
 - subtract another map from the first
 <li><a href="#threshold"><b>volume threshold</b></a>
@@ -1310,8 +1521,8 @@ the input to just a subsample or subregion of the original data.
 Although it uses a fast Fourier transform calculation method,
 it does not use map periodicity.
 Values outside the map boundaries are treated as zero.
-See also: <a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
+See also:
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
 </p>
 </blockquote>
@@ -1411,6 +1622,7 @@ only those points in the shell between the two surfaces.
 </p><p>
 The related command <a href="#onesmask"><b>volume onesmask</b></a> 
 creates a new map with values of 1 bounded by a surface.
+See also: <a href="#multiply"><b>volume multiply</b></a>
 </p>
 </blockquote>
 
@@ -1505,7 +1717,7 @@ The <b>interpolateColors</b> option
 only applies when the maps have the same number of
 <a href="#general">thresholds</a>
 (contour levels for surface/mesh display,
-coloring control nodes for solid display).
+coloring control nodes for image display).
 </p><p>
 The morph is created as a new map (volume) model. However, if the
 <a href="#vop-options"><b>modelId</b></a> of an existing morph map is given,
@@ -1530,6 +1742,7 @@ See also:
 Multiply the values pointwise in two or more maps.
 This is used to apply a mask (values 0,1) to a map.
 See <a href="#add"><b>volume add</b></a> for descriptions of the options.
+See also: <a href="#mask"><b>volume mask</b></a>
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
@@ -1763,10 +1976,10 @@ the <b>valueType</b> option should be used to specify a signed data type
 for the result.
 </p><p>
 See also:
-<a href="fitmap.html#subtractMaps"><b>subtractMaps</b> option of <b>fitmap</b></a>,
-<a href="../tools/densitymaps.html"><b>Density Map Toolbar</b></a>
-<a href="../tools/densitymaps.html" title="Density Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>,
+the <a href="fitmap.html#subtractMaps"><b>subtractMaps</b> option of 
+<b>fitmap</b></a>
 </p>
 </blockquote>
 
@@ -1926,7 +2139,7 @@ Show the full extent of a map that was previously limited to a zone using
 [&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>minimalBounds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>newMap</b>&nbsp;&nbsp;<b>true</b>&nbsp;]
+[&nbsp;<b>newMap</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 If <b>newMap</b> is <b>true</b> (default), create a new map in which the
@@ -1941,12 +2154,13 @@ If <b>bondPointSpacing</b> is specified, use points
 spaced <i>s</i> &Aring; apart along bonds
 in addition to the atoms to define the zone.
 <p>
-If <b>newMap</b> is <b>false</b>, instead of creating a new map,
-zone the surface display and restrict the 
+If <b>newMap</b> is false, instead of creating a new map,
+zone the surface display and restrict the
 <a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface.
+to the box containing the zoned surface. 
 The full extent of the map can be restored with
 <a href="#unzone"><b>volume unzone</b></a>.
+The <b>invert</b> option is not available with <b>newMap false</b>.
 See also:
 <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,
@@ -2031,33 +2245,27 @@ where 0 is the bottom of the histogram and 1 is the top. Rendering time
 does not depend on the positions of the thresholds, but increases with
 greater numbers of thresholds.
 </p><p>
-<a name="soliddetails"><b>Solid transparency details</b></a>.
-For <a href="#dispsolid"><b>solid</b></a> displays,
+<a name="soliddetails"><b>Image transparency details</b></a>.
+For <a href="#dispsolid"><b>image</b></a> displays,
 the <a href="#transferfunction">transfer function</a> maps a
 voxel's data value to a vertical position (ranging from 0 to 1)
-on the histogram:
+on the histogram. A lower position indicates more transparency:
 <blockquote>
-<b>T<sub>histo</sub></b> = (1 &ndash; vertical position)
+<b>T<sub>histogram</sub></b> = 1 &ndash; vertical position
 </blockquote>
-If the <a href="#transparency">transparency</a> is zero
-(<b>T<sub>set</sub></b> = 0), the voxel will be completely opaque:
+The <a href="#general"><b>volume</b></a> command 
+<a href="#transparency">transparency</a> option gives the slab thickness 
+(expressed as a fraction of dataset thickness along its shortest dimension)
+for which the transparency or fraction of light transmitted matches 
+<b>T<sub>histogram</sub></b>. Image displays are rendered as stacks of planes.
+If the slab thickness specified with <a href="#transparency">transparency</a> 
+contains <i>p</i> planes, the following gives the transparency per pixel
+in each plane:
+</p>
 <blockquote>
-<b>T<sub>final</sub></b> = 0
+<b>T<sub>pixel</sub></b> = <b>T<sub>histogram</sub></b><sup>(1/<i>p</i>)</sup>
 </blockquote>
-Otherwise, the transparency value from the histogram
-is modulated by <b>T<sub>set</sub></b>
-in a way that depends on the number of data planes displayed:
-<blockquote>
-<b>T<sub>final</sub></b> = <b>T<sub>histo</sub></b><sup>(<b>T<sub>histo</sub></b>* <b>T<sub>set</sub></b>* thickness) <sup>&ndash;1</sup></sup>
-<br><br>
-thickness = min(<b>N<sub>x</sub></b>,<b>N<sub>y</sub></b>,<b>N<sub>z</sub></b>)
-</blockquote>
-where <b>N<sub>x</sub></b>, <b>N<sub>y</sub></b>, and <b>N<sub>z</sub></b>
-are the number of X, Y, and Z data planes displayed, respectively.
-Increasing the <a href="#transparency">transparency</a>
-and/or the thickness of the displayed data will make the exponent smaller and
-(because <b>T<sub>histo</sub></b> &le; 1) individual voxels more transparent.
-</p><p>
+<p>
 <a name="byteorder"><b>Byte order</b></a>.
 Different computers store the bytes of a single numeric value in
 different orders.  PowerPC processors use one order
@@ -2129,5 +2337,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+May 2019</address>
 </body></html>

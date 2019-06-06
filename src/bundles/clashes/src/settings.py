@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import AtomicStructure
+from chimerax.core.colors import BuiltinColors
 
 defaults = {
     "action_attr": False,
@@ -30,8 +31,10 @@ defaults = {
     "intra_mol": True,
     "intra_res": False,
     "other_atom_color": None,
-    "pb_color": (255, 255, 0, 255),
-    "pb_radius": AtomicStructure.default_hbond_radius,
+    "clash_pb_color": BuiltinColors["medium orchid"],
+    "contact_pb_color": BuiltinColors["forest green"],
+    "clash_pb_radius": 2 * AtomicStructure.default_hbond_radius,
+    "contact_pb_radius": AtomicStructure.default_hbond_radius,
 }
 
 from  chimerax.core.settings import Settings

@@ -59,6 +59,7 @@ class SeqCanvas:
         self.label_scene.setBackgroundBrush(Qt.lightGray)
         """
         self.label_view = QGraphicsView(self.label_scene)
+        self.label_view.keyPressEvent = parent.keyPressEvent
         self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.main_scene = QGraphicsScene()
         """if gray background desired...
@@ -77,6 +78,7 @@ class SeqCanvas:
                 super().resizeEvent(event)
                 self.__resize_cb()
         self.main_view = CustomView(self.main_scene)
+        self.main_view.keyPressEvent = parent.keyPressEvent
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         #self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()
@@ -394,6 +396,7 @@ class SeqCanvas:
             lastBlock=[line1, line2, pos1+motion, pos2+motion])
         self._checkPoint(offset=offset, left=left, right=right)
 
+    #TODO: also add them to settings Header category
     def addHeaders(self, headers):
         headers = [hd for hd in headers if hd not in self.headers]
         if not headers:
@@ -465,16 +468,20 @@ class SeqCanvas:
     """
 
     @property
+    def consensus_capitalize_threshold(self):
+        return self.consensus.capitalize_threshold
+
+    @consensus_capitalize_threshold.setter
+    def consensus_capitalize_threshold(self, capitalize_threshold):
+        self.consensus.capitalize_threshold = capitalize_threshold
+
+    @property
     def consensus_ignores_gaps(self):
         return self.consensus.ignore_gaps
 
     @consensus_ignores_gaps.setter
     def consensus_ignores_gaps(self, ignore_gaps):
-        if self.consensus.ignore_gaps == ignore_gaps:
-            return
         self.consensus.ignore_gaps = ignore_gaps
-        if self.consensus.visible:
-            self.lead_block.refresh(self.consensus, 0, len(self.consensus)-1)
 
     @property
     def conservation_style(self):
@@ -482,11 +489,7 @@ class SeqCanvas:
 
     @conservation_style.setter
     def conservation_style(self, style):
-        if self.conservation.style == style:
-            return
         self.conservation.style = style
-        if self.conservation.visible:
-            self.lead_block.refresh(self.conservation, 0, len(self.conservation)-1)
 
     """TODO
     def _copyCB(self, e):
@@ -527,6 +530,7 @@ class SeqCanvas:
     def dehighlightName(self):
         self.lead_block.dehighlightName()
 
+    #TODO: also remove them from settings Header category
     def deleteHeaders(self, headers):
         if not headers:
             return
@@ -545,7 +549,8 @@ class SeqCanvas:
     """
 
     def destroy(self):
-        pass
+        for header in self.headers:
+            header.destroy()
     """
         chimera.triggers.deleteHandler('Molecule', self._trigID)
         from MAViewer import ADDDEL_SEQS, SEQ_RENAMED
@@ -681,18 +686,11 @@ class SeqCanvas:
         """
         
     def layout_alignment(self):
-        from .settings import CSN_MAJ_NOGAP
         settings = self.sv.settings
         from chimerax.seqalign.headers import Consensus, Conservation
-        self.consensus = Consensus(self.sv.alignment,
-            ignore_gaps=getattr(settings, ALIGNMENT_PREFIX + 'consensus_style') == CSN_MAJ_NOGAP)
-        self.conservation = Conservation(self.sv.alignment, eval_while_hidden=True,
-            style=getattr(settings, ALIGNMENT_PREFIX + 'conservation_style'))
+        self.consensus = Consensus(self.sv.alignment, self.refresh_header)
+        self.conservation = Conservation(self.sv.alignment, self.refresh_header)
         self.headers = [self.consensus, self.conservation]
-        startup_headers = settings.startup_headers
-        use_disp_default = startup_headers == None
-        if use_disp_default:
-            startup_headers = set([Consensus.name, Conservation.name])
         from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
         """
         for seq, defaultOn in registeredHeaders.values():
@@ -706,7 +704,7 @@ class SeqCanvas:
         single_sequence = len(self.alignment.seqs) == 1
         self.display_header = {}
         for header in self.headers:
-            show = self.display_header[header] = header.name in startup_headers \
+            show = self.display_header[header] = header.settings.initially_shown \
                 and not (single_sequence and not header.single_sequence_relevant) \
                 and not isinstance(header, DynamicStructureHeaderSequence)
             if show:
@@ -1016,6 +1014,7 @@ class SeqCanvas:
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
         self.line_width = self.line_width_from_settings()
+        self.numbering_widths = self.find_numbering_widths(self.line_width)
         label_scene = self._label_scene()
         from PyQt5.QtCore import Qt
         self.main_view.setAlignment(
@@ -1044,15 +1043,12 @@ class SeqCanvas:
         """
         self.sv.status("Alignment reformatted")
 
-    def refresh_headers(self, notification):
-        update_main_scene = False
-        for hdr in self.headers:
-            refresh = hdr.refresh(notification)
-            if refresh:
-                update_main_scene = True
-                if refresh is True:
-                    refresh = (0, len(hdr)-1)
-                self.lead_block.refresh(hdr, *refresh)
+    def refresh_header(self, hdr, bounds):
+        if bounds is None:
+            bounds = (0, len(hdr)-1)
+        if hasattr(self, 'lead_block'):
+            self.lead_block.refresh(hdr, *bounds)
+            self.main_scene.update()
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.display_header and not self.display_header[seq]:
@@ -1079,29 +1075,29 @@ class SeqCanvas:
             if m in self.sv.associations:
                 self.recolor(self.sv.associations[m])
     """
-    
+
     """TODO
     def _resizescrollregion(self):
         left, top, right, bottom = self.mainCanvas.bbox("all")
-        vm = self.viewMargin
-        left -= vm
-        top -= vm
-        right += vm
-        bottom += vm
-        if self._labelCanvas(grid=0) == self.labelCanvas:
-            lbbox = self.labelCanvas.bbox("all")
-            if lbbox is not None:
-                ll, lt, lr, lb = lbbox
-                ll -= vm
-                lt -= vm
-                lr += vm
-                lb += vm
-                top = min(top, lt)
-                bottom = max(bottom, lb)
-                self.labelCanvas.configure(width=lr-ll,
-                        scrollregion=(ll, top, lr, bottom))
-        self.mainCanvas.configure(scrollregion=
-                        (left, top, right, bottom))
+            vm = self.viewMargin
+            left -= vm
+            top -= vm
+            right += vm
+            bottom += vm
+            if self._labelCanvas(grid=0) == self.labelCanvas:
+                lbbox = self.labelCanvas.bbox("all")
+                if lbbox is not None:
+                    ll, lt, lr, lb = lbbox
+                    ll -= vm
+                    lt -= vm
+                    lr += vm
+                    lb += vm
+                    top = min(top, lt)
+                    bottom = max(bottom, lb)
+                    self.labelCanvas.configure(width=lr-ll,
+                            scrollregion=(ll, top, lr, bottom))
+            self.mainCanvas.configure(scrollregion=
+                            (left, top, right, bottom))
     """
 
     def restore_state(self, session, state):
@@ -1121,7 +1117,8 @@ class SeqCanvas:
                 continue
             header_class = bundle.get_class(class_name, session.logger)
             if header_class:
-                headers.append(header_class.session_restore(session, self.sv, header_state))
+                headers.append(
+                    header_class.session_restore(session, self.sv.alignment, self.refresh_header, header_state))
             else:
                 session.logger.warning("Could not find alignment header class %s" % class_name)
 

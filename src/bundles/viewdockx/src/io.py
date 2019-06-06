@@ -1,10 +1,11 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-def open_mol2(session, stream, name, auto_style, atomic):
-    p = Mol2Parser(session, stream, name, auto_style, atomic)
+def open_mol2(session, path, file_name, auto_style, atomic):
+    with open(path) as stream:
+        p = Mol2Parser(session, stream, file_name, auto_style, atomic)
     structures = p.structures
     status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (
-                    name, len(structures),
+                    file_name, len(structures),
                     sum([s.num_atoms for s in structures]),
                     sum([s.num_bonds for s in structures]))
     return structures, status
@@ -76,6 +77,7 @@ class Mol2Parser:
         self._reset_structure()
         while self._read_section():
             pass
+        self._check_gold()
         self._make_structure()
 
     def _read_section(self):
@@ -135,6 +137,7 @@ class Mol2Parser:
         self._atoms = []
         self._bonds = []
         self._substs = []
+        self._comments = []
 
     def _make_structure(self):
         """Build ChimeraX structure and reset structure data cache"""
@@ -237,15 +240,19 @@ class Mol2Parser:
                 # line must be all #
                 self._get_line()
                 continue
-            parts = self._line[non_hash:].lstrip().split(':', 1)
-            if len(parts) != 2:
-                # Assume value is last field
-                parts = self._line[non_hash:].rsplit(None, 1)
-            try:
-                self._data[parts[0].strip()] = parts[1].strip()
-            except IndexError:
-                # Must be a single word on the line, just ignore
-                pass
+            # Dock comments usually start with 10 #s
+            # Dock 3.7 has lines with a single #, but they contain
+            # a table of values that we cannot easily display, so skip
+            if non_hash > 8:
+                parts = self._line[non_hash:].lstrip().split(':', 1)
+                if len(parts) != 2:
+                    # Assume value is last field
+                    parts = self._line[non_hash:].rsplit(None, 1)
+                try:
+                    self._data[parts[0].strip()] = parts[1].strip()
+                except IndexError:
+                    # Must be a single word on the line, just ignore
+                    pass
             self._get_line()
 
     def _section_molecule(self):
@@ -253,13 +260,13 @@ class Mol2Parser:
             mol_name = self._line
             self._get_line()
             parts = self._line.split()
-            if len(parts) != 5:
+            if len(parts) < 2:
                 raise ValueError("wrong number of fields in molecule data")
             num_atoms = int(parts[0])
             num_bonds = int(parts[1])
-            num_subst = int(parts[2])
-            num_feat = int(parts[3])
-            num_sets = int(parts[4])
+            num_subst = int(parts[2]) if len(parts) > 2 else 0
+            num_feat = int(parts[3]) if len(parts) > 3 else 0
+            num_sets = int(parts[4]) if len(parts) > 4 else 0
             self._get_line()
             mol_type = self._line
             self._get_line()
@@ -354,3 +361,42 @@ class Mol2Parser:
         except ValueError:
             # Must be numeric conversion
             self._warn("bad substructure data")
+
+    def _section_comment(self):
+        if self._molecule is None:
+            self._eat_section()
+            return
+        self._get_line()
+        while self._line is not None:
+            if self._is_section_tag():
+                break
+            self._comments.append(self._line)
+            self._get_line()
+
+    def _check_gold(self):
+        import re
+        re_gold = re.compile(r"> <Gold\.(?P<param>[^>]+)>\s*")
+        fields = {}
+        lines = None
+        for line in self._comments:
+            m = re_gold.match(line)
+            if m is None:
+                if lines is not None and line.strip():
+                    lines.append(line)
+            else:
+                param = m.group("param")
+                lines = []
+                fields[param] = lines
+        if fields:
+            self._data = {"Name": self._molecule.mol_name.split("|")[0]}
+            for param, lines in fields.items():
+                if len(lines) == 1:
+                    self._data[param] = _value(lines[0])
+
+
+def _value(s):
+    try:
+        return int(s)
+        return float(s)
+    except ValueError:
+        return s

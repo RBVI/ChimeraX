@@ -29,182 +29,194 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.8"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
 
-  <Classifiers>
-        <ChimeraXClassifier>ChimeraX :: Selector :: C1 :: sp-hybridized carbon bonded to 2 other atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: C1- :: sp-hybridized carbon bonded to 1 other atom</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: C2 :: sp2-hybridized carbon</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: C3 :: sp3-hybridized carbon</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cac :: carboxylate carbon</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Car :: aromatic carbon</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: D :: other deuterium</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: DC :: deuterium bonded to carbon</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: H :: H (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: HC :: hydrogen bonded to carbon</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: N1 :: sp-hybridized nitrogen bonded to 1 other atom</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: N1+ :: sp-hybridized nitrogen bonded to 2 other atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: N2 :: sp2-hybridized nitrogen, double bonded</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: N2+ :: sp2-hybridized nitrogen, double bonded, formal positive charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: N3 :: sp3-hybridized nitrogen, neutral</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: N3+ :: sp3-hybridized nitrogen, formal positive charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ng+ :: guanidinium/amidinium nitrogen, partial positive charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Npl :: sp2-hybridized nitrogen, not double bonded</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ntr :: nitro nitrogen</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: O1 :: sp-hybridized oxygen</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: O1+ :: sp-hybridized oxygen, formal positive charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: O2 :: sp2-hybridized oxygen</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: O2- :: carboxylate oxygen sharing formal negative charge; nitro group oxygen</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: O3 :: sp3-hybridized oxygen</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: O3- :: phosphate or sulfate oxygen sharing formal negative charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Oar :: aromatic oxygen</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Oar+ :: aromatic oxygen, formal positive charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: P3+ :: sp3-hybridized phosphorus, formal positive charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pac :: phosphate phosphorus</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pox :: P-oxide phosphorus</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: S2 :: sp2-hybridized sulfur</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: S3 :: sp3-hybridized sulfur, neutral</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: S3+ :: sp3-hybridized sulfur, formal positive charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: S3- :: thiophosphate sulfur, sharing formal negative charge</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sac :: sulfate, sulfonate, or sulfamate sulfur</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sar :: aromatic sulfur</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Son :: sulfone sulfur</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sxd :: sulfoxide sulfur</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: He :: He (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Li :: Li (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Be :: Be (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: B :: B (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: C :: C (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: N :: N (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: O :: O (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: F :: F (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ne :: Ne (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Na :: Na (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Mg :: Mg (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Al :: Al (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Si :: Si (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: P :: P (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: S :: S (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cl :: Cl (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ar :: Ar (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: K :: K (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ca :: Ca (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sc :: Sc (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ti :: Ti (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: V :: V (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cr :: Cr (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Mn :: Mn (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Fe :: Fe (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Co :: Co (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ni :: Ni (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cu :: Cu (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Zn :: Zn (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ga :: Ga (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ge :: Ge (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: As :: As (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Se :: Se (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Br :: Br (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Kr :: Kr (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Rb :: Rb (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sr :: Sr (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Y :: Y (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Zr :: Zr (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Nb :: Nb (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Mo :: Mo (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Tc :: Tc (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ru :: Ru (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Rh :: Rh (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pd :: Pd (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ag :: Ag (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cd :: Cd (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: In :: In (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sn :: Sn (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sb :: Sb (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Te :: Te (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: I :: I (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Xe :: Xe (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cs :: Cs (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ba :: Ba (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: La :: La (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ce :: Ce (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pr :: Pr (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Nd :: Nd (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pm :: Pm (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sm :: Sm (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Eu :: Eu (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Gd :: Gd (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Tb :: Tb (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Dy :: Dy (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ho :: Ho (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Er :: Er (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Tm :: Tm (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Yb :: Yb (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Lu :: Lu (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Hf :: Hf (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ta :: Ta (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: W :: W (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Re :: Re (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Os :: Os (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ir :: Ir (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pt :: Pt (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Au :: Au (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Hg :: Hg (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Tl :: Tl (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pb :: Pb (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Bi :: Bi (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Po :: Po (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: At :: At (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Rn :: Rn (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Fr :: Fr (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ra :: Ra (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ac :: Ac (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Th :: Th (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pa :: Pa (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: U :: U (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Np :: Np (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Pu :: Pu (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Am :: Am (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cm :: Cm (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Bk :: Bk (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cf :: Cf (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Es :: Es (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Fm :: Fm (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Md :: Md (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: No :: No (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Lr :: Lr (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Rf :: Rf (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Db :: Db (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Sg :: Sg (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Bh :: Bh (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Hs :: Hs (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Mt :: Mt (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Ds :: Ds (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Rg :: Rg (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Cn :: Cn (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Uut :: Uut (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Fl :: Fl (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Uup :: Uup (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Uuh :: Uuh (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Uus :: Uus (element)</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: Uuo :: Uuo (element)</ChimeraXClassifier>
+  <Providers>
+    <Provider category="Initial Styles" name="Original Look"
+              order="0" manager="presets"/>
+    <Provider category="Initial Styles" name="Sticks"
+              order="1" manager="presets"/>
+    <Provider category="Initial Styles" name="Cartoon"
+              order="2" manager="presets"/>
+    <Provider category="Initial Styles" name="Space-Filling (chain colors)"
+              order="3" manager="presets"/>
+    <Provider category="Initial Styles" name="Space-Filling (single color)"
+              order="4" manager="presets"/>
+  </Providers>
 
-    <ChimeraXClassifier>ChimeraX :: Selector :: backbone :: backbone atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: mainchain :: backbone atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: ions :: ions</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: ligand :: ligands</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: main :: main structure</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: solvent :: solvent</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: protein :: proteins</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: nucleic :: nucleic acids</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: nucleic-acid :: nucleic acids</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: strand :: beta sheet strands</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: helix :: protein helices</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: coil :: protein coils</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Selector :: ribose :: ribose</ChimeraXClassifier>
+  <Classifiers>
+    <ChimeraXClassifier>Selector :: C1 :: sp-hybridized carbon bonded to 2 other atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: C1- :: sp-hybridized carbon bonded to 1 other atom</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: C2 :: sp2-hybridized carbon</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: C3 :: sp3-hybridized carbon</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cac :: carboxylate carbon</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Car :: aromatic carbon</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: D :: other deuterium</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: DC :: deuterium bonded to carbon</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: H :: H (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: HC :: hydrogen bonded to carbon</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: N1 :: sp-hybridized nitrogen bonded to 1 other atom</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: N1+ :: sp-hybridized nitrogen bonded to 2 other atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: N2 :: sp2-hybridized nitrogen, double bonded</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: N2+ :: sp2-hybridized nitrogen, double bonded, formal positive charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: N3 :: sp3-hybridized nitrogen, neutral</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: N3+ :: sp3-hybridized nitrogen, formal positive charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ng+ :: guanidinium/amidinium nitrogen, partial positive charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Npl :: sp2-hybridized nitrogen, not double bonded</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ntr :: nitro nitrogen</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: O1 :: sp-hybridized oxygen</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: O1+ :: sp-hybridized oxygen, formal positive charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: O2 :: sp2-hybridized oxygen</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: O2- :: carboxylate oxygen sharing formal negative charge; nitro group oxygen</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: O3 :: sp3-hybridized oxygen</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: O3- :: phosphate or sulfate oxygen sharing formal negative charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Oar :: aromatic oxygen</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Oar+ :: aromatic oxygen, formal positive charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: P3+ :: sp3-hybridized phosphorus, formal positive charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pac :: phosphate phosphorus</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pox :: P-oxide phosphorus</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: S2 :: sp2-hybridized sulfur</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: S3 :: sp3-hybridized sulfur, neutral</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: S3+ :: sp3-hybridized sulfur, formal positive charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: S3- :: thiophosphate sulfur, sharing formal negative charge</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sac :: sulfate, sulfonate, or sulfamate sulfur</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sar :: aromatic sulfur</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Son :: sulfone sulfur</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sxd :: sulfoxide sulfur</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: He :: He (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Li :: Li (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Be :: Be (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: B :: B (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: C :: C (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: N :: N (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: O :: O (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: F :: F (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ne :: Ne (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Na :: Na (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Mg :: Mg (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Al :: Al (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Si :: Si (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: P :: P (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: S :: S (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cl :: Cl (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ar :: Ar (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: K :: K (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ca :: Ca (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sc :: Sc (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ti :: Ti (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: V :: V (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cr :: Cr (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Mn :: Mn (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Fe :: Fe (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Co :: Co (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ni :: Ni (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cu :: Cu (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Zn :: Zn (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ga :: Ga (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ge :: Ge (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: As :: As (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Se :: Se (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Br :: Br (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Kr :: Kr (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Rb :: Rb (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sr :: Sr (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Y :: Y (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Zr :: Zr (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Nb :: Nb (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Mo :: Mo (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Tc :: Tc (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ru :: Ru (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Rh :: Rh (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pd :: Pd (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ag :: Ag (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cd :: Cd (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: In :: In (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sn :: Sn (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sb :: Sb (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Te :: Te (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: I :: I (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Xe :: Xe (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cs :: Cs (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ba :: Ba (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: La :: La (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ce :: Ce (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pr :: Pr (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Nd :: Nd (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pm :: Pm (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sm :: Sm (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Eu :: Eu (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Gd :: Gd (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Tb :: Tb (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Dy :: Dy (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ho :: Ho (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Er :: Er (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Tm :: Tm (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Yb :: Yb (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Lu :: Lu (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Hf :: Hf (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ta :: Ta (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: W :: W (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Re :: Re (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Os :: Os (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ir :: Ir (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pt :: Pt (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Au :: Au (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Hg :: Hg (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Tl :: Tl (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pb :: Pb (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Bi :: Bi (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Po :: Po (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: At :: At (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Rn :: Rn (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Fr :: Fr (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ra :: Ra (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ac :: Ac (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Th :: Th (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pa :: Pa (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: U :: U (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Np :: Np (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Pu :: Pu (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Am :: Am (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cm :: Cm (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Bk :: Bk (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cf :: Cf (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Es :: Es (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Fm :: Fm (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Md :: Md (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: No :: No (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Lr :: Lr (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Rf :: Rf (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Db :: Db (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Sg :: Sg (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Bh :: Bh (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Hs :: Hs (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Mt :: Mt (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Ds :: Ds (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Rg :: Rg (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Cn :: Cn (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Uut :: Uut (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Fl :: Fl (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Uup :: Uup (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Uuh :: Uuh (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Uus :: Uus (element)</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: Uuo :: Uuo (element)</ChimeraXClassifier>
+
+    <ChimeraXClassifier>Selector :: backbone :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: mainchain :: backbone atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: ions :: ions</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: ligand :: ligands</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: main :: main structure</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: solvent :: solvent</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: protein :: proteins</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: nucleic :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: nucleic-acid :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: strand :: beta sheet strands</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: helix :: protein helices</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: coil :: protein coils</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: sidechain :: side-chain atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: sideonly :: side-chain atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: ribose :: ribose</ChimeraXClassifier>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
   </Classifiers>

@@ -253,10 +253,9 @@ class _SaveManager:
         if sm:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
-            except:
-                import traceback
-                session.logger.warning('Error in saving session for "%s":\n%s'
-                                       % (obj.__class__.__name__, traceback.format_exc()))
+            except Exception as e:
+                msg = 'Error while saving session data for "%s": %s' % (str(type(obj)), str(e))
+                raise RuntimeError(msg)
         elif isinstance(obj, type):
             return None
         if data is None:
@@ -300,8 +299,6 @@ class _RestoreManager:
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
             # put the below kludge in to allow sessions saved before the seq_view
             # bundle name change to restore; remove on or after 1.0 release
-            if bundle_name == "ChimeraX-SEQ-VIEW":
-                bundle_name = "ChimeraX-SeqView"
             bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
                 missing_bundles.append(bundle_name)
@@ -314,11 +311,11 @@ class _RestoreManager:
             if missing_bundles:
                 msg += "; missing %s: %s" % (
                     plural_form(missing_bundles, 'bundle'),
-                    commas(missing_bundles, ' and'))
+                    commas(missing_bundles, 'and'))
             if out_of_date_bundles:
                 msg += "; out of date %s: %s" % (
                     plural_form(out_of_date_bundles, 'bundle'),
-                    commas(out_of_date_bundles, ' and'))
+                    commas(out_of_date_bundles, 'and'))
             raise UserError(msg)
         self.bundle_infos = bundle_infos
 
@@ -408,7 +405,7 @@ class Session:
         self.session_file_path = None
         for tag in self._state_containers:
             container = self._state_containers[tag]
-            sm = self.snapshot_methods(container, type=StateManager)
+            sm = self.snapshot_methods(container, base_type=StateManager)
             if sm:
                 sm.reset_state(container, self)
             else:
@@ -438,14 +435,17 @@ class Session:
     def remove_state_manager(self, tag):
         del self._state_containers[tag]
 
-    def snapshot_methods(self, object, instance=True, type=State):
+    def snapshot_methods(self, obj, instance=True, base_type=State):
         """Return an object having take_snapshot(), restore_snapshot(),
         and reset_state() methods for the given object.
         Can return None if no save/restore methods are available,
         for instance for primitive types.
         """
-        cls = object.__class__ if instance else object
-        if issubclass(cls, type):
+        cls = obj.__class__ if instance else obj
+        from .serialize import PRIMITIVE_TYPES
+        if cls in PRIMITIVE_TYPES:
+            return None
+        if issubclass(cls, base_type):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
             from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material, ClipPlane, Drawing
@@ -476,13 +476,12 @@ class Session:
         self.triggers.activate_trigger("begin save session", self)
         try:
             if version == 1:
-                fserialize = serialize.pickle_serialize
-                fserialize(stream, version)
+                raise UserError("Version 1 session files are no longer supported")
             elif version == 2:
                 raise UserError("Version 2 session files are no longer supported")
             else:
                 if version != 3:
-                    raise UserError("Only session file versions 1 and 3 are supported")
+                    raise UserError("Only version 3 session files are supported")
                 stream.write(b'# ChimeraX Session version 3\n')
                 stream = serialize.msgpack_serialize_stream(stream)
                 fserialize = serialize.msgpack_serialize
@@ -525,7 +524,7 @@ class Session:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
                 raise UserError('Not a ChimeraX session file')
-            fdeserialize = serialize.pickle_deserialize
+            raise UserError("Session file format version 1 detected.  Convert using UCSF ChimeraX 0.8")
         else:
             line = stream.readline(256)   # limit line length to avoid DOS
             tokens = line.split()
@@ -533,8 +532,7 @@ class Session:
                 raise RuntimeError('Not a ChimeraX session file')
             version = int(tokens[4])
             if version == 2:
-                self.logger.error("Session file format version 2 detected.  DO NOT RESAVE.  Recreate session from scratch, and then save.")
-                stream = serialize.msgpack_deserialize_stream_v2(stream)
+                raise UserError("Session file format version 2 detected.  DO NOT USE.  Recreate session from scratch, and then save.")
             elif version == 3:
                 stream = serialize.msgpack_deserialize_stream(stream)
             else:
@@ -561,6 +559,8 @@ class Session:
         self.restore_options['restore camera'] = restore_camera
         
         self.triggers.activate_trigger("begin restore session", self)
+        is_gui = hasattr(self, 'ui') and self.ui.is_gui
+        from .tools import ToolInstance
         try:
             self.reset()
             self.session_file_path = path
@@ -585,6 +585,9 @@ class Session:
                     if name.uid[1] == 0:
                         obj = cls
                     else:
+                        if not is_gui and issubclass(cls, ToolInstance):
+                            mgr.add_reference(name, None)
+                            continue
                         sm = self.snapshot_methods(cls, instance=False)
                         if sm is None:
                             obj = None
@@ -708,29 +711,27 @@ def save(session, path, version=3, uncompressed=False, include_maps=False):
             path += SESSION_SUFFIX
 
         if uncompressed:
-            try:
-                output = _builtin_open(path, 'wb')
-            except IOError as e:
-                raise UserError(e)
+            from .safesave import SaveBinaryFile
+            my_open = SaveBinaryFile
         else:
             # Save compressed files
+            from .safesave import SaveFile
             def my_open(path):
                 import gzip
-                from .safesave import SaveFile
                 f = SaveFile(path, open=lambda path: gzip.GzipFile(path, 'wb'))
                 return f
-            try:
-                output = my_open(path)
-            except IOError as e:
-                raise UserError(e)
+        try:
+            output = my_open(path)
+        except IOError as e:
+            raise UserError(e)
 
-    session.logger.warning("<b><i>Session file format is not finalized, and thus might not be restorable in other versions of ChimeraX.</i></b>", is_html=True)
     session.session_file_path = path
     try:
         session.save(output, version=version, include_maps=include_maps)
-    except:
+    except Exception as e:
         if my_open is not None:
             output.close("exceptional")
+        session.logger.report_exception()
         raise
     finally:
         if my_open is not None:
@@ -773,13 +774,12 @@ def sdump(session, session_file, output=None):
         else:
             use_pickle = stream.buffer.peek(1)[0] != ord(b'#')
         if use_pickle:
-            fdeserialize = serialize.pickle_deserialize
-            version = fdeserialize(stream)
+            raise UserError("Use UCSF ChimeraX 0.8 for Session file format version 1.")
         else:
             tokens = stream.readline().split()
             version = int(tokens[4])
             if version == 2:
-                stream = serialize.msgpack_deserialize_stream_v2(stream)
+                raise UserError("Use UCSF ChimeraX 0.8 for Session file format version 2.")
             else:
                 stream = serialize.msgpack_deserialize_stream(stream)
             fdeserialize = serialize.msgpack_deserialize

@@ -53,10 +53,19 @@ def segment_alignment_atoms(rList):
         #print "%d residues -> %d atoms" % (len(rList), len(aList))
         return aList
                         
-def copyMolecule(m, copyXformCoords=False, copyPBG=True):
-        """Copy molecule and return both copy and map of corresponding atoms"""
+def copyMolecule(m):
+        """
+        Copy molecule and return both copy and map of corresponding atoms.
+        Delete alt locs and all but the active coordinate set in the copy,
+        and make the active coordset have id 1.
+        """
         c = m.copy()
         c.delete_alt_locs()
+        if c.num_coordsets != 1 or c.active_coordset_id != 1:
+                xyz = c.atoms.coords
+                c.remove_coordsets()
+                c.add_coordset(1, xyz)
+                c.active_coordset_id = 1
         atomMap = {a:ca for a,ca in zip(m.atoms, c.atoms)}
         residueMap = {r:cr for r,cr in zip(m.residues, c.residues)}
         return c, atomMap, residueMap

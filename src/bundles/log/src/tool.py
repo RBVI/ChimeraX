@@ -130,8 +130,8 @@ class Log(ToolInstance, HtmlLog):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        from .settings import LogSettings
-        self.settings = LogSettings(session, tool_name)
+        from .settings import settings
+        self.settings = settings
         from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
@@ -289,23 +289,14 @@ class Log(ToolInstance, HtmlLog):
         Parameters documented in HtmlLog base class
         """
 
-        image, image_break = image_info
-        if image:
-            import io
-            img_io = io.BytesIO()
-            image.save(img_io, format='PNG')
-            png_data = img_io.getvalue()
-            import codecs
-            bitmap = codecs.encode(png_data, 'base64')
-            width, height = image.size
-            img_src = '<img src="data:image/png;base64,%s" width=%d height=%d style="vertical-align:middle">' % (bitmap.decode('utf-8'), width, height)
-            self.page_source += img_src
-            if image_break:
-                self.page_source += "<br>\n"
+        start_len = len(self.page_source)
+        if image_info[0] is not None:
+            from chimerax.core.logger import image_info_to_html
+            self.page_source += image_info_to_html(msg, image_info)
         else:
-            from chimerax.core.core_settings import settings as core_settings
-            if ((level >= self.LEVEL_ERROR and core_settings.errors_raise_dialog) or
-                    (level == self.LEVEL_WARNING and core_settings.warnings_raise_dialog)):
+            from .settings import settings
+            if ((level >= self.LEVEL_ERROR and settings.errors_raise_dialog) or
+                    (level == self.LEVEL_WARNING and settings.warnings_raise_dialog)):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
                 else:
@@ -338,7 +329,8 @@ class Log(ToolInstance, HtmlLog):
                 msg = msg.replace("\n", "<br>\n")
 
             if level == self.LEVEL_ERROR:
-                msg = '<p style="color:crimson;font-weight:bold">' + msg + '</p>'
+                from chimerax.core.logger import error_text_format
+                msg = error_text_format % msg
             elif level == self.LEVEL_WARNING:
                 msg = '<p style="color:darkorange">' + msg + '</p>'
 

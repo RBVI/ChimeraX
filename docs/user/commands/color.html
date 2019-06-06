@@ -32,23 +32,35 @@ and <a href="../tools/volumeviewer.html">volume data</a> (map) displays:
 </p>
 <ul class="none">
 <li><a href="#simple"><b>Simple Coloring</b></a>
-- atomic models and map displays
+&ndash; atomic models 
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-color.png"></a>
+and maps
 <li><a href="#sequential"><b>Sequential Coloring (Rainbow)</b></a> 
-- atomic models
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/rainbow.png"></a>
+&ndash; atomic models
 <li><a href="#modify"><b>Color Modification</b></a>
-- lightening, hue shift, <i>etc.</i> for atomic models
+&ndash; lightening, hue shift, <i>etc.</i> for atomic models
 <li><b>Coloring by Value</b>:
   <ul>
-  <li><a href="#attribute"><b>Attribute</b></a>
-  - currently only <a href="#attribute"><b>color bfactor</b></a>
-  for atomic models
+  <li><a href="#byattribute"><b>Attribute</b></a>
+  &ndash; color by <a href="../attributes.html">attribute</a> values of atoms,
+   residues, or structures (atomic models);
+    <a href="#byattribute"><b>color bfactor</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>
   <li><a href="#map"><b>Map</b></a> (sample, electrostatic, gradient)
-  - molecular and nonmolecular surfaces
+  &ndash; molecular and nonmolecular surfaces
   <li><a href="#distance"><b>Distance</b></a> (radial, cylindrical, height)
-  - molecular and nonmolecular surfaces
+  &ndash; molecular and nonmolecular surfaces
   </ul>
 <li><a href="#zone"><b>Coloring by Zone</b></a>
-- coloring nonmolecular surfaces to match nearby atoms
+&ndash; coloring nonmolecular surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
 </ul>
 <p>
@@ -58,23 +70,22 @@ See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
-<a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>,
 <a href="colortables.html#autocolors">initial colors</a>,
-<a href="colornames.html">color names</a>,
+<a href="colornames.html">color specification</a>,
 <a href="palettes.html">palettes</a>
 </p><p>
 Additional subcommands manage the set of named colors:
 </p>
 <ul>
 <li><a href="#name"><b>color name</b></a> 
-- define color names 
+&ndash; define color names 
 <li><a href="#delete"><b>color delete</b></a>
-- forget user-defined color names
+&ndash; forget user-defined color names
 <li><a href="#list"><b>color list</b></a>
-- show color names and swatches in 
+&ndash; show color names and swatches in 
 the <a href="../tools/log.html"><b>Log</b></a> 
 <li><a href="#show"><b>color show</b></a> 
-- report RGB definitions of color names in the
+&ndash; report RGB definitions of color names in the
 <a href="../tools/log.html"><b>Log</b></a>
 </ul>
 
@@ -101,38 +112,30 @@ The <a name="colorname"><i>colorname</i></a> can be:
 <li>a <a href="colornames.html">color specification</a> by name,
 hexadecimal color code, or component values
 <li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
-- a <a href="colortables.html#element">color-by-element scheme</a>;
+&ndash; a <a href="colortables.html#element">color-by-element scheme</a>;
 only applies to atomic representations and per-atom patches of 
 molecular surfaces
 <li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
-- same as <b>byelement</b>, except leaving carbon atoms unchanged
+&ndash; same as <b>byelement</b>, except leaving carbon atoms unchanged
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon3" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
 <li><b>fromatoms</b>
-- color other <a href="#target">targets</a> in atomic models
+&ndash; color other <a href="#target">targets</a> in atomic models
 (molecular surface patches, <i>etc.</i>) to match the corresponding atoms
-<li><a name="bynucleotide"><b>bynucleotide</b></a>
-- a built-in scheme <a href="colortables.html#residue">by nucleotide base type</a>
-<!--
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr style="line-height:10px">
-<td style="background:red;color:white">A</td>
-<td style="background:blue;color:white">T</td>
-<td bgcolor="yellow">C</td>
-<td bgcolor="lime">G</td>
-<td bgcolor="cyan">U</td>
-</tr></table>
--->
+<li><a name="bynucleotide"><b>bynucleotide</b></a> &ndash; a built-in scheme 
+<a href="colortables.html#residue">by nucleotide base type</a>
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-color.png"></a>
 <li><a name="bychain"><b>bychain</b></a>
-- a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
+&ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>,
 also used for the initial colors of per-chain
 <a href="surface.html">molecular surfaces</a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon3" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
+<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
 <li><a name="bymodel"><b>bymodel</b></a>
-- the <a href="colortables.html#autocolors">initial colors</a> of atomic models
+&ndash; the <a href="colortables.html#autocolors">initial colors</a> of atomic models
 <li><a name="bypolymer"><b>bypolymer</b></a>
-- a random color per unique biopolymer chain (macromolecular entity);
+&ndash; a random color per unique biopolymer chain (macromolecular entity);
 the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
 so the same sequence will always give the same color
@@ -140,7 +143,7 @@ so the same sequence will always give the same color
 using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
 <li><a name="random"><b>random</b></a>
-- random color per atom and residue
+&ndash; random color per atom and residue
 </ul>
 <p>
 <a name="target"></a>
@@ -149,16 +152,16 @@ a subset of the possible displays of a given atom, residue, <i>etc.</i>
 The <i>string</i> can be any combination of the following letters,
 without commas or spaces:
  <ul>
- <li><b>a</b> - atoms/bonds
+ <li><b>a</b> &ndash; atoms/bonds
  (coloring shown for bonds in <a href="#halfbond">halfbond mode</a>)
 <!--
- <li><b>l</b> - atom labels
+ <li><b>l</b> &ndash; atom labels
 -->
- <li><b>b</b> - bonds-only
+ <li><b>b</b> &ndash; bonds-only
  (coloring shown for bonds not in <a href="#halfbond">halfbond mode</a>)
  <li><b>c</b> &nbsp;or&nbsp; <b>r</b>
- - cartoons (ribbons) (divisible to per-residue segments)
- <li><b>s</b> - surfaces
+ &ndash; cartoons (ribbons) (divisible to per-residue segments)
+ <li><b>s</b> &ndash; surfaces
  (molecular surfaces divisible to per-atom patches, other surface models such
  as volume isosurfaces, and for <a href="#simple">simple coloring</a> only, 
  solid volume displays)
@@ -169,21 +172,21 @@ however, if atoms have been colored sequentially, their
 molecular surfaces can be colored to match with the command: 
 <b><a href="#simple">color</a> fromatoms target s</b>
 -->
- <li><b>p</b> - pseudobonds-only
+ <li><b>p</b> &ndash; pseudobonds-only
  (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
  not in <a href="#halfbond">halfbond mode</a>)
- <li><b>f</b> - <a href="style.html">ring fill</a>
-<!-- and <a href="nucleotides.html">nucleotide slabs</a> -->
+ <li><b>f</b> &ndash; <a href="style.html">ring fill</a>
+ and <a href="nucleotides.html">nucleotide representations</a>
 <!--
- <li><b>n</b> - nonmolecular models (model-level color)
- <li><b>m</b> - molecular models (model-level color)
- <li><b>d</b> - distances and other pseudobond labels
+ <li><b>n</b> &ndash; nonmolecular models (model-level color)
+ <li><b>m</b> &ndash; molecular models (model-level color)
+ <li><b>d</b> &ndash; distances and other pseudobond labels
 -->
  </ul>
 The default is all of the above (<b>target abcspf</b>), plus  
 <a href="label.html">3D labels</a>
-in the case of <a href="#simple">simple coloring</a>
-using any <a href="colornames.html">color name</a> that specifies a single color.
+in the case of <a href="#simple">simple coloring</a> using any 
+<a href="colornames.html">color name</a> that specifies a single color.
 3D labels can be colored independently
 with the <a href="label.html"><b>label</b></a> command.
 <p>
@@ -192,20 +195,20 @@ targets can be specified with one or more of the following keywords
 as a comma-separated list:
 </p>
 <ul>
-<li><b>atoms</b> - equivalent to <b>target a</b>
-<li><b>bonds</b> - equivalent to <b>target b</b>
-<li><b>cartoons</b> or <b>ribbons</b> - equivalent to <b>target c</b>
+<li><b>atoms</b> &ndash; equivalent to <b>target a</b>
+<li><b>bonds</b> &ndash; equivalent to <b>target b</b>
+<li><b>cartoons</b> or <b>ribbons</b> &ndash; equivalent to <b>target c</b>
 or <b>target r</b>
-<li><b>surfaces</b> - equivalent to <b>target s</b>
-<li><b>pseudobonds</b> - equivalent to <b>target p</b>
-<li><b>rings</b> - <a href="style.html">ring fill</a>
-<!-- and <a href="nucleotides.html">nucleotide slabs</a> -->
-<li><b>All</b> - equivalent to <b>target abcspf</b>
+<li><b>surfaces</b> &ndash; equivalent to <b>target s</b>
+<li><b>pseudobonds</b> &ndash; equivalent to <b>target p</b>
+<li><b>rings</b> &ndash; <a href="style.html">ring fill</a>
+and <a href="nucleotides.html">nucleotide representations</a>
+<li><b>All</b> &ndash; equivalent to <b>target abcspf</b>
 </ul>
 These target keywords must be given in the right place in the command:
 <ul>
-<li>for <a href="#simple">simple</a> or
-<a href="#attribute">bfactor</a> coloring, before any other optional arguments
+<li>for <a href="#simple">simple</a> or <a href="#byattribute">attribute</a> 
+coloring, before any other optional arguments
 <li>for <a href="#modify">color modification</a>, at the end of the command
 </ul>
 <p>
@@ -285,18 +288,20 @@ The <b>color sequential</b> command (synonym <b>rainbow</b>)
 applies a <a href="#palette-options">series of colors</a>
 to atomic models at the specified <i>level</i>:
 <ul>
-<li><b>residues</b> - a different color for each residue in a biopolymer chain
-(always applies to entire chains); other residues
+<li><b>residues</b> (default)
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/rainbow.png"></a>
+&ndash; a different color for each residue 
+in a biopolymer chain (always applies to entire chains); other residues
 such as <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <!-- 4hvp is example where ligand is also protein, but is not rainbowed -->
-<li><b>chains</b> - a different color for each biopolymer chain in an 
+<li><b>chains</b> &ndash; a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
-<li><b>polymers</b> - a different color for each unique biopolymer chain 
+<li><b>polymers</b> &ndash; a different color for each unique biopolymer chain 
 (macromolecular entity) in an atomic model, based on sequence; 
 non-biopolymer residues are not affected
-<li><b>structures</b> - a different color for each atomic model
+<li><b>structures</b> &ndash; a different color for each atomic model
 </ul>
-The <i>level</i> can be omitted and defaults to <b>residues</b>.
 Sequential coloring applies to all atoms within the affected residues,
 chains, or models even if fewer atoms are specified, but can be restricted 
 to certain representations with the <a href="#target"><b>target</b></a> option.
@@ -370,23 +375,23 @@ It applies to atomic models, including <a href="cartoon.html">cartoon</a> and
 The color component to modify must be specified, with choices:
 </p>
 <ul>
-<li><b>hue</b> - hue <i>angle</i> (0-360&deg;) in the 
+<li><b>hue</b> &ndash; hue <i>angle</i> (0-360&deg;) in the 
 <a href="https://en.wikipedia.org/wiki/HSL_and_HSV" 
 target="_blank">hue-saturation-lightness</a> (HSL; see
 <a href="https://www.w3schools.com/colors/colors_hsl.asp"
 target="_blank">interactive calculator</a>) and
 <a href="https://en.wikipedia.org/wiki/HWB_color_model"
 target="_blank">hue-whiteness-blackness</a> (HWB) color spaces
-<li><b>saturation</b> - saturation <i>percent</i> in the HSL color space
-<li><b>lightness</b> - lightness <i>percent</i> in the HSL color space
-<li><b>whiteness</b> - whiteness <i>percent</i> in the HWB color space
-<li><b>blackness</b> - blackness <i>percent</i> in the HWB color space
-<li><b>red</b> - red <i>percent</i> in the 
+<li><b>saturation</b> &ndash; saturation <i>percent</i> in the HSL color space
+<li><b>lightness</b> &ndash; lightness <i>percent</i> in the HSL color space
+<li><b>whiteness</b> &ndash; whiteness <i>percent</i> in the HWB color space
+<li><b>blackness</b> &ndash; blackness <i>percent</i> in the HWB color space
+<li><b>red</b> &ndash; red <i>percent</i> in the 
 <a href="https://en.wikipedia.org/wiki/RGB_color_space"
 target="_blank">red-green-blue</a> (RGB) color space
-<li><b>green</b> - green <i>percent</i> in the RGB color space
-<li><b>blue</b> - blue <i>percent</i> in the RGB color space
-<li><b>contrast</b> - contrast <i>percent</i> from a reference color 
+<li><b>green</b> &ndash; green <i>percent</i> in the RGB color space
+<li><b>blue</b> &ndash; blue <i>percent</i> in the RGB color space
+<li><b>contrast</b> &ndash; contrast <i>percent</i> from a reference color 
 related to the current color (0) to a maximally contrasting color (100).
 The default is <b>100</b>, either white or black depending on the current color.
 </ul>
@@ -407,7 +412,7 @@ Example image and script:
 target="_blank">Potassium Channel-Calmodulin Complex</a> 
 </p>
 
-<a name="attribute"></a>
+<a name="byattribute"></a>
 <a name="bfactor"></a>
 <p class="nav">
 [<a href="#top">back to top: color</a>]
@@ -415,17 +420,21 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <h3>Coloring by Attribute Value</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>color</b> &nbsp;<b>bfactor</b>
+<b>color</b> &nbsp;<b>byattribute</b>
+&nbsp;[<b>a:</b>][<b>r:</b>][<b>m:</b>]<i>attribute-name</i>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
 [&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
-Coloring by <a href="../attributes.html">attribute</a> value is
-<font color="brown">not yet implemented</font>,
-except for coloring by atomic B-factor values read from mmCIF or PDB.
+Atomic models can be colored to show the values of numerical
+<a href="../attributes.html">attributes</a>.
+An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
+can be used to indicate the attribute level as atom, residue, or (atomic) model,
+but this is only needed when the name exists at multiple levels. 
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>
 (default <table border cellpadding="4" cellspacing="0"
@@ -436,19 +445,31 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table> over the full range),
 and <a href="#transparency"><b>transparency</b></a>
 can be set independently.
+Items without an assignment for the specified attribute
+will be left unchanged unless another color is specified
+with the <b>noValueColor</b> option.
 </p><p>
 The coloring applies to atomic models,
 including cartoons and molecular surfaces, but can be restricted
 to certain representations with the <a href="#target"><b>target</b></a> option.
-Cartoons are colored by the average B-factor of the atoms in each residue. 
+If an atom attribute is used,
+cartoons are colored by the average value of the atoms in each residue. 
 Atoms (and their corresponding molecular surface patches) are colored
 by the atomic values unless <b>average residue</b> is given to indicate
 they should be colored by the average per residue.
+</p><p>
+Like other keywords, <b>byattribute</b> can be truncated, and
+<b>color bfactor</b>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>&nbsp;
+is shorthand for <b>color byattribute bfactor</b>.
 For example, to color chain A atoms by B-factor 
 and cartoons by the average B-factor per residue, 
 spreading blue-white-red coloring across value range 2-30:
 </p>
 <blockquote>
+<b>color by bfactor /A range 2,30</b>
+<br>&ndash; or &ndash;<br>
 <b>color bfactor /A range 2,30</b>
 </blockquote>
 <p>
@@ -615,11 +636,11 @@ and a vector normal to the plane (given with <b>axis</b>).
 The <b>axis</b> <i>vector</i> can be expressed as:
 </p>
 <ul>
-<li><b>x</b> - X-axis
-<li><b>y</b> - Y-axis
-<li><b>z</b> - Z-axis
+<li><b>x</b> &ndash; X-axis
+<li><b>y</b> &ndash; Y-axis
+<li><b>z</b> &ndash; Z-axis
 <li><i>x,y,z</i>
-(three values separated by commas only) - an arbitrary vector
+(three values separated by commas only) &ndash; an arbitrary vector
 <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
 exactly two atoms (not necessarily bonded or in the same model).
 The order of the atoms defines a handedness, and right-handed
@@ -691,7 +712,7 @@ A <b><i>palette</i></b> is an ordered set of
 <a href="colornames.html">colors</a> or value,color pairs
 used for <a href="#sequential">sequential coloring</a> or coloring by value 
 (<a href="#map">map</a>, <a href="#distance">distance</a>,
-or <a href="#attribute">attribute</a>).
+or <a href="#byattribute">attribute</a>).
 See also: <a href="mlp.html"><b>mlp</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>
 <blockquote>
@@ -699,7 +720,7 @@ See also: <a href="mlp.html"><b>mlp</b></a>,
 <br>
 Specify a <i>palette</i> as one of the following:
 <ul>
-<li><i>palette-name</i> - the name of an existing 
+<li><i>palette-name</i> &ndash; the name of an existing 
 <a href="palettes.html">palette</a>;
 the command <a href="palette.html#list"><b>palette list</b></a>
 lists the names of the available palettes
@@ -733,7 +754,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=white width="30px" title="white"></td>
 <td bgcolor=red width="30px" title="red"></td>
 </tr></table>
-(default for <a href="#attribute">coloring by bfactor</a>)
+(default for <a href="#byattribute">coloring by attribute</a>)
   <li><b>cyan-white-maroon</b> or <b>cyanmaroon</b> 
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -832,7 +853,7 @@ discrete coloring can be achieved by specifying the same color
 for the upper- and lower-bound values of a &ldquo;bin.&rdquo;
 <br><br>
 <li> <i>colourlovers-id</i> 
-- the ID number, name, or name+author of a palette to be fetched from 
+&ndash; the ID number, name, or name+author of a palette to be fetched from 
 <a href="http://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>. 
 Examples:
 <blockquote>
@@ -922,8 +943,9 @@ color swatches in the <a href="../tools/log.html"><b>Log</b></a>, with options:
 </p>
 <ul>
 <li><b>all</b> (default)
-<li><b>builtin</b> - just the <a href="colornames.html#builtin">built-in colors</a>
-<li><b>custom</b> - just the user-defined colors
+<li><b>builtin</b> &ndash; just the 
+<a href="colornames.html#builtin">built-in colors</a>
+<li><b>custom</b> &ndash; just the user-defined colors
 </ul>
 <p>
 The command &ldquo;<b>color show</b> <i>cname</i>&rdquo;
@@ -935,5 +957,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+May 2019</address>
 </body></html>

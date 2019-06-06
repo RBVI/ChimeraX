@@ -1,0 +1,211 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Blast Protein</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Blast Protein</h3>
+<p>
+<b>Blast Protein</b> searches for similar protein sequences 
+using a <a href="#notes">BLAST</a> web service hosted by the
+<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
+Any protein structure chain in ChimeraX can be used as the query.
+The <a href="../commands/blastprotein.html"><b>blastprotein</b></a>
+command implementation additionally allows using a sequence
+open in ChimeraX as the query.
+</p><p>
+For hits corresponding to structures in the
+<a href="http://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>, the
+structures can be retrieved and automatically superimposed onto the query chain.
+</p><p>
+Like other tools, this interface can be opened from the <b>Tools</b> menu
+(<a href="../window.html#panels">more...</a>). 
+See also: 
+<!-- <a href="modeller.html"><b>Modeller Comparative</b></a>, -->
+<a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+</p>
+
+<a name="parameters"></a>
+<p class="nav">
+[<a href="#top">back to top: Blast Protein</a>]
+</p>
+<h3>Search Parameters</h3>
+
+<ul class="none">
+<li><b>Chain</b> &ndash; chain (of a structure open in ChimeraX)
+to use as the query sequence
+<li><b>Database</b> &ndash; protein sequence database to search:
+   <ul>
+   <li><b>PDB</b> (default) &ndash; experimentally determined structures in the
+<a href="http://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>
+   <li><b>NR</b> &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
+<a href="https://www.ncbi.nlm.nih.gov/genbank/" target="_blank">GenBank</a> 
+CDS translations + <a href="http://www.rcsb.org" target="_blank">PDB</a>
++ <a href="https://www.uniprot.org/" target="_blank">SwissProt</a> + 
+<a href="https://proteininformationresource.org/"  target="_blank">PIR</a> 
++ <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
+excluding environmental samples from whole-genome sequencing; this database 
+is much larger than <b>PDB</b> alone and takes much longer to search
+   </ul>
+<li><b># Sequences</b> (default <b>100</b>)
+&ndash; maximum number of unique sequences to return; more hits than this number
+may be obtained because multiple structures or other sequence-database entries
+may have the same sequence
+<li><b>Matrix</b>
+&ndash; amino acid substitution matrix to use for alignment scoring:
+  <ul>
+  <li><b>BLOSUM45</b>
+  <li><b>BLOSUM62</b> (default)
+  <li><b>BLOSUM80</b>
+  <li><b>BLOSUM90</b>
+  <li><b>BLOSUM100</b>
+  <li><b>PAM30</b>
+  <li><b>PAM70</b>
+  </ul>
+<li><b>Cutoff</b> (default <b>1e-3</b>) &ndash; significance cutoff;
+only hits with E-values no larger than the specified value will be returned
+</ul>
+<p>
+Clicking the <b>Blast</b> button initiates the search.
+</p>
+
+<a name="results"></a>
+<p class="nav">
+[<a href="#top">back to top: Blast Protein</a>]
+</p>
+<h3>BLAST Results</h3>
+<p>
+When results are returned, the hits are listed in a table below the
+<a href="#parameters">search parameters</a> in the <b>Blast Protein</b> window.
+</p><p>
+A text-search box allows finding hits that contain terms of interest.
+Pull-down menus to the right of the search box allow adjusting the number 
+of hits shown at a time and which columns of information are included
+in the table. Clicking a column header sorts by the values in that column.
+</p><p>
+Some columns are available for NR sequences
+regardless of whether they are in the PDB subset:
+</p>
+<ul>
+<li><b>Name</b> 
+  <ul>
+  <li>for PDB sequences, the corresponding PDB identifier, including the chain;
+clicking it <a href="../commands/open.html#fetch">fetches</a> the 
+structure and superimposes the hit chain onto the query chain
+using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+  <li>otherwise, sequence GI number; clicking it opens the web page for
+that sequence in the <a href="https://www.ncbi.nlm.nih.gov/protein"
+target="_blank">NCBI Protein</a> database
+  </ul>
+<li><b>E-Value</b> &ndash; significance value
+<li><b>Score</b> &ndash; alignment score
+<li><b>Description</b> &ndash; a brief description of the sequence
+<li><b>URL</b> &ndash; URL used by ChimeraX for the <b>Name</b> click action
+</ul>
+<p>
+Additional columns of information are available for PDB sequences:
+</p>
+<ul>
+<li><b>Date</b> &ndash; structure deposition date
+<li><b>Title</b> &ndash; structure title
+<li><b>Method</b> &ndash; method of structure determination
+<li><b>Resolution</b> &ndash; crystallographic resolution
+<li><b>Authors</b> &ndash; structure authors
+<li><b>PubMed</b> &ndash; <a href="http://www.ncbi.nlm.nih.gov/pubmed/"
+target="_blank">PubMed</a> identifier of literature reference, if any
+<li><b>Total atoms</b>
+&ndash; total number of atoms in the structure (all chains)
+<li><b>Total residues</b>
+&ndash; total number of residues in the structure (all chains)
+<li><b>Chain names</b>
+&ndash; chain identifiers and descriptions of polymer chains in the structure
+<li><b>Copies</b> &ndash; number of copies of the hit chain in the structure
+<li><b>Polymers</b> &ndash; number of different polymer chains in the structure
+(not counting multiple copies of the same sequence)
+<li><b>Residues</b> &ndash; number of residues in the hit chain
+<li><b>Species</b> &ndash; scientific name of source organism
+<li><b>UniProt</b>
+&ndash; <a href="http://www.uniprot.org/" target="_blank">UniProt</a> 
+identifier, if any, for hit chain
+<li><b>Weight</b> &ndash; molecular weight of hit chain
+<li><b>Ligand formulas</b> &ndash; chemical formulae of ligand chemical components
+<li><b>Ligand names</b> &ndash; names of ligand chemical components
+<li><b>Ligand smiles</b> &ndash;
+<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank"><b>SMILES</b></a> strings of ligand chemical components
+<li><b>Ligand symbols</b> &ndash; residue names of ligand chemical components
+<li><b>Ligand weights</b> 
+&ndash; molecular weights of ligand chemical components
+</ul>
+<p>
+The <b>Blast Protein</b> tool, including search results 
+(but not window size or location) is saved in
+<a href="../commands/save.html#session">ChimeraX sessions</a>.
+</p>
+
+<a name="notes"></a>
+<p class="nav">
+[<a href="#top">back to top: Blast Protein</a>]
+</p>
+<h3>Notes</h3>
+<p>
+<b>Basic Local Alignment Search Tool (BLAST)</b>.
+The <a href="http://blast.ncbi.nlm.nih.gov/" target="_blank">BLAST</a>
+software is provided by the 
+<a href="http://www.ncbi.nlm.nih.gov/" target="_blank">NCBI</a> and described in:
+</p>
+<blockquote>
+<a href="http://nar.oxfordjournals.org/content/25/17/3389.full"
+target="_blank">Gapped BLAST and PSI-BLAST: 
+a new generation of protein database search programs.</a>
+Altschul SF, Madden TL, Sch&auml;ffer AA, Zhang J, Zhang Z, Miller W, Lipman DJ.
+<i>Nucleic Acids Res.</i> 1997 Sep 1;25(17):3389-402.
+<br><br>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/2231712" target="_blank">
+Basic local alignment search tool.</a>
+Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
+<i>J Mol Biol.</i> 1990 Oct 5;215(3):403-10.
+</blockquote>
+<!--
+<p>
+<b>Pseudo-multiple alignment</b>.
+The pseudo-multiple alignment from BLAST is not a true multiple alignment,
+but a consolidation of the pairwise alignments of individual hits to the
+query.  This output corresponds to the BLAST formatting option
+(<a href="http://www.ncbi.nlm.nih.gov/BLAST/blastcgihelp.shtml#alignment_view"
+target="_blank">alignment view</a>)
+--- 
+better descriptions 
+<a href="http://www.ebi.ac.uk/Tools/sss/ncbiblast/help/index-vectors.html#align"
+target="_blank">here</a>
+---
+"flat query-anchored without identities,"
+in which identities and conservative changes relative to the query
+are shown in upper case, nonconservative changes in lower case.
+</p>
+-->
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2019</address>
+</body></html>

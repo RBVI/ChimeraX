@@ -112,6 +112,22 @@ of ``mac``.
     - **name**: name of category (see **Tools** menu in ChimeraX for
       a list of well-known category names)
 
+- **CExecutable**
+
+  - Compiled executable in the current bundle
+  - Attribute:
+
+    - **name**: name of executable file
+
+  - Child elements:
+
+    - **FrameworkDir** (zero or more)
+    - **IncludeDir** (zero or more)
+    - **Library** (zero or more)
+    - **LibraryDir** (zero or more)
+    - **Requires** (zero or more)
+    - **SourceFile** (one or more)
+
 - **ChimeraXClassifier**
 
   - Lines similar to Python classifiers but containing
@@ -129,6 +145,27 @@ of ``mac``.
     - **ChimeraXClassifier** (zero or more)
     - **PythonClassifier** (zero or more)
 
+- **CLibrary**
+
+  - Compile library or shared object in the current bundle
+  - Attribute:
+
+    - **name**: name of library or shared object
+    - **usesNumpy**: whether library requires ``numpy`` headers.
+      If set to ``true``, ``numpy`` header directories (folders)
+      are included on the compilation command.
+    - **static**: whether to build a static (``true``) or
+      dynamic (``false``) library
+
+  - Child elements:
+
+    - **FrameworkDir** (zero or more)
+    - **IncludeDir** (zero or more)
+    - **Library** (zero or more)
+    - **LibraryDir** (zero or more)
+    - **Requires** (zero or more)
+    - **SourceFile** (one or more)
+
 - **CModule**
 
   - List of compiled modules in the current bundle.
@@ -140,7 +177,7 @@ of ``mac``.
       file suffixes, as they vary across platforms.  The compiled
       module will appear as a submodule of the Python package
       corresponding to the bundle.
-    - **usesNumpy**: whether module required ``numpy`` headers.
+    - **usesNumpy**: whether module requires ``numpy`` headers.
       If set to ``true``, ``numpy`` header directories (folders)
       are included on the compilation command.
 
@@ -295,6 +332,31 @@ of ``mac``.
       header directories are automatically supplied by the build
       process.
 
+- **Initializations**
+
+  - List of bundles that must be initialized before this one.
+  - Currently, the supported types of initializations are:
+    **manager** and **custom**.  Managers across all bundles
+    are initialized first; then custom initialization across
+    all bundles.
+  - Child elements:
+
+    - **InitAfter** (one or more)
+
+- **InitAfter**
+
+  - Attribute:
+
+    - **type**: type of initialization.  Currently supported
+      values are **manager** and **custom**.
+    - **bundle**: name of bundle that must be initialized before
+      this one.
+    - There should be one **InitAfter** tag for each bundle that
+      must be initialized first.  There is no way to specify
+      the exact initialization order for these bundles; the
+      relative dependencies will be computed from the initialization
+      information of the bundles.
+
 - **Library**
 
   - Child element of **CModule**.
@@ -317,12 +379,67 @@ of ``mac``.
       library directories are automatically supplied by the build
       process.
 
+- **Managers**
+
+  - List of managers that bundle provides
+  - Child elements:
+
+    - **Manager** (one or more)
+
+- **Manager**
+
+  - Attribute:
+
+    - **name**: name of manager.  The bundle must implement the
+      ``init_manager`` method.  The two positional arguments to
+      ``init_manager`` are the session instance and the manager name.
+    - **uiOnly**: set to ``true`` if manager should only be created
+      when the graphical user interface is being used; omit otherwise
+    - Other attributes listed in the **Manager** tag are passed
+      as keyword arguments to ``init_manager``.
+    - ``init_manager`` should create and return an instance of a
+      subclass of :py:class:`chimerax.core.state.StateManager`.
+      The subclass must implement at least one method:
+        ``add_provider(bundle_info, provider_name, **kw)``
+      which is called once for each **Provider** tag whose manager
+      name matches this manager.  A second method:
+        ``end_providers()``
+      is optional.  ``end_providers`` is called after all calls
+      to ``add_provider`` have been made and is useful for finishing
+      manager initialization.
+
 - **Package**
 
   - Attributes:
 
     - **name**: name of Python package to be added.
     - **folder**: folder containing source files in package.
+
+- **Providers**
+
+  - List of providers that bundle provides
+  - Child elements:
+
+    - **Provider** (one or more)
+
+- **Provider**
+
+  - Attribute:
+
+    - **manager**: name of the manager with which this provider
+      will be registered.
+    - **name**: name of provider.  The bundle must implement the
+      ``init_provider`` method.  The three positional arguments to
+      ``init_provider`` are the session instance, the provider name,
+      and the manager name (which can be used to fetch the manager
+      instance from the session).
+    - Other attributes listed in the **Provider** tag are passed
+      as keyword arguments to ``init_provider``.
+      If ``init_provider`` needs additional information, it should
+      query the manager instance fetched from the session.
+    - Bundles that supply providers should implement the method:
+        ``run_provider(session, bundle_info, provider_name, manager, **kw)``
+      which may be used by the manager to invoke provider functionality.
 
 - **PythonClassifier**
 
@@ -342,7 +459,7 @@ of ``mac``.
 
 - **SourceFile**
 
-  - Child element of **CModule**.
+  - Child element of **CExecutable**, **CLibrary**, or **CModule**.
   - Element text:
 
     - Name of source file in a compiled module.  The path should be
@@ -533,3 +650,23 @@ data formats, and selectors.
       keyword, the command will interpret it as the keyword rather
       than the selector.  The bottom line is "choose your selector
       names carefully."
+
+
+*Manager Metadata*
+
+    ``Manager`` :: *name* [:: *keyword:value*]*
+
+    - *name* is a string and may have spaces in it.
+    - *keyword:value* pairs are zero-or more manager-specific options,
+      separated by ``::``.
+
+    For example::
+    
+      Manager :: http_scheme :: guiOnly:true
+
+    Notes:
+
+    - Bundles may provide more than one manager.
+    - The toolshed reserved the following keywords:
+      - **guiOnly**, if present and set to ``true``, means the manager
+        should only be created if the graphical user interface is in use.

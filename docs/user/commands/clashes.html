@@ -35,7 +35,7 @@ class="clRight" title="User Guide Index"/></a>
 -->
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>showDist</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a>
@@ -59,6 +59,7 @@ See also:
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="distance.html"><b>distance</b></a>,
 <a href="interfaces.html"><b>interfaces</b></a>,
+<a href="select.html#new"><b>select</b> by pseudobond length</a>,
 <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>,
 <a href="../measurements.html">measurements</a>
 <p>
@@ -245,12 +246,21 @@ The distances (pseudobond lengths) can also be plotted as a histogram with
 </blockquote>
 <blockquote>
 <a name="color"></a>
-<b>color</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Color to use for the
 <a href="../pseudobonds.html">pseudobonds</a>
 when <a href="#makePseudobonds"><b>makePseudobonds</b></a> is <b>true</b>
-(default <b>yellow</b>);
+(default <b>forest green</b> 
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=forestgreen width="10px" title="forest green"></td></tr></table>
+for <b>contacts</b>, 
+<b>medium orchid</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=mediumorchid width="10px" title="medium orchid"></td></tr></table>
+for <b>clashes</b>);
 can be changed later with <a href="color.html"><b>color</b></a>.
 </blockquote>
 <blockquote>
@@ -258,14 +268,15 @@ can be changed later with <a href="color.html"><b>color</b></a>.
 <b>radius</b> &nbsp;<i>r</i>
 <br>
 Radius in &Aring; to use for the <a href="../pseudobonds.html">pseudobonds</a>
-(default <b>0.075</b>);
+(default <b>0.075</b> for <b>contacts</b>, <b>0.15</b> for <b>clashes</b>);
 can be changed later with <a href="size.html"><b>size</b></a>.
 </blockquote>
 <blockquote>
 <a name="dashes"></a>
 <b>dashes</b> &nbsp;<i>N</i>
 <br>Number of dashes to use for <a href="../pseudobonds.html">pseudobonds</a>
-depicting interactions (default <b>6</b>).
+depicting interactions (default <b>6</b> for <b>contacts</b>,
+<b>4</b> for <b>clashes</b>).
 Only whole numbers are accepted, with 0
 indicating solid sticks. Currently, odd numbers are rounded down
 to give an even number of dashes. The number of dashes
@@ -340,15 +351,18 @@ the <a href="#otherAtomColor"><b>otherAtomColor</b></a>.
 </blockquote>
 <blockquote>
 <a name="atomColor"></a>
-<b>atomColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<b>atomColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Color to use for the identified clash/contact atoms
 when <a href="#colorAtoms"><b>colorAtoms</b></a> is <b>true</b>
-(default <b>red</b>).  
+(default <b>red</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=red width="10px" title="red"></td></tr></table>).
 </blockquote>
 <blockquote>
 <a name="otherAtomColor"></a>
-<b>otherAtomColor</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<b>otherAtomColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Color to use for atoms other than the identified clash/contact atoms
 when <a href="#colorAtoms"><b>colorAtoms</b></a> is <b>true</b>
@@ -424,5 +438,5 @@ but only the initial and final summaries are reported in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2018</address>
+May 2019</address>
 </body></html>

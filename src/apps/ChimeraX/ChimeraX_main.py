@@ -429,19 +429,19 @@ def init(argv, event_loop=True):
     import appdirs
     chimerax.app_dirs = ad = appdirs.AppDirs(app_name, appauthor=app_author,
                                              version=partial_version)
-    # make sure app_dirs.user_* directories exist
-    for var, name in (
-            ('user_data_dir', "user's data"),
-            ('user_config_dir', "user's configuration"),
-            ('user_cache_dir', "user's cache")):
-        dir = getattr(ad, var)
-        try:
-            if not is_root:
-                os.makedirs(dir, exist_ok=True)
-        except OSError as e:
-            print("Unable to make %s directory: %s: %s" % (
-                name, e.strerror, e.filename), file=sys.stderr)
-            raise SystemExit(1)
+    if not is_root:
+        # make sure app_dirs.user_* directories exist
+        for var, name in (
+                ('user_data_dir', "user's data"),
+                ('user_config_dir', "user's configuration"),
+                ('user_cache_dir', "user's cache")):
+            directory = getattr(ad, var)
+            try:
+                os.makedirs(directory, exist_ok=True)
+            except OSError as e:
+                print("Unable to make %s directory: %s: %s" % (
+                    name, e.strerror, e.filename), file=sys.stderr)
+                return os.EX_CANTCREAT
 
     # app_dirs_unversioned is primarily for caching data files that will
     # open in any version
@@ -478,7 +478,17 @@ def init(argv, event_loop=True):
                         chimerax.app_data_dir, adu.user_cache_dir)
 
     from chimerax.core import session
-    sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
+    try:
+        sess = session.Session(app_name, debug=opts.debug, silent=opts.silent)
+    except ImportError as err:
+        if opts.offscreen and 'OpenGL' in err.args[0]:
+            if sys.platform.startswith("linux"):
+                why = "failed"
+            else:
+                why = "not supported on this platform"
+            print("Offscreen rendering is", why, file=sys.stderr)
+            return os.EX_UNAVAILABLE
+        raise
 
     from chimerax.core import core_settings
     core_settings.init(sess)
@@ -539,7 +549,22 @@ def init(argv, event_loop=True):
         if sess.ui.is_gui and opts.debug:
             print("Initializing core", flush=True)
 
+    # Install any bundles before toolshed is initialized so
+    # the new ones get picked up in this session
     from chimerax.core import toolshed
+    inst_dir, restart_file = toolshed.install_on_restart_info()
+    restart_install_msgs = []
+    if os.path.exists(restart_file):
+        # Move file out of the way so next restart of ChimeraX
+        # (when we try to install the bundle) will not go into
+        # an infinite loop reopening the restart file
+        tmp_file = restart_file + ".tmp"
+        os.rename(restart_file, tmp_file)
+        with open(tmp_file) as f:
+            for line in f:
+                restart_install(line, inst_dir, restart_install_msgs)
+        os.remove(tmp_file)
+
     toolshed.init(sess.logger, debug=sess.debug,
                   check_available=opts.get_available_bundles)
     sess.toolshed = toolshed.get_toolshed()
@@ -561,6 +586,8 @@ def init(argv, event_loop=True):
 
     if opts.version >= 0:
         sess.silent = False
+        if opts.version > 3:
+            opts.version = 3
         format = [None, 'verbose', 'bundles', 'packages'][opts.version]
         from chimerax.core.commands import command_function
         version_cmd = command_function("version")
@@ -574,7 +601,7 @@ def init(argv, event_loop=True):
         # TODO: show database formats
         # TODO: show mime types?
         # TODO: show compression suffixes?
-        raise SystemExit(0)
+        return os.EX_OK
 
     if opts.gui:
         # build out the UI, populate menus, create graphics, etc.
@@ -631,10 +658,10 @@ def init(argv, event_loop=True):
     if opts.gui or hasattr(core, 'offscreen_rendering'):
         r = sess.main_view.render
         log = sess.logger
-        from chimerax.core.graphics import OpenGLVersionError
+        from chimerax.core.graphics import OpenGLVersionError, OpenGLError
         try:
             mc = r.make_current()
-        except OpenGLVersionError as e:
+        except (OpenGLVersionError, OpenGLError) as e:
             mc = False
             log.error(str(e))
             sess.update_loop.block_redraw()	# Avoid further opengl errors
@@ -649,13 +676,18 @@ def init(argv, event_loop=True):
             info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
                 is_html=True)
 
+    # Show any messages from installing bundles on restart
+    if restart_install_msgs:
+        for where, msg in restart_install_msgs:
+            if where == "stdout":
+                sess.logger.info(msg)
+            else:
+                sess.logger.warning(msg)
+
     if opts.module:
         import runpy
         import warnings
         sys.argv[:] = args  # runpy will insert appropriate argv[0]
-        has_install = 'install' in sys.argv
-        has_uninstall = 'uninstall' in sys.argv
-        per_user = '--user' in sys.argv
         exit = SystemExit(os.EX_OK)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=BytesWarning)
@@ -668,7 +700,10 @@ def init(argv, event_loop=True):
             except SystemExit as e:
                 exit = e
         if opts.module == 'pip' and exit.code == os.EX_OK:
+            has_install = 'install' in sys.argv
+            has_uninstall = 'uninstall' in sys.argv
             if has_install or has_uninstall:
+                per_user = '--user' in sys.argv
                 sess.toolshed.reload(sess.logger, rebuild_cache=True)
                 sess.toolshed.set_install_timestamp(per_user)
             # Do not remove scripts anymore since we may be installing
@@ -801,6 +836,38 @@ def remove_python_scripts(bin_dir):
                     continue
             print('removing (pip installed)', path)
             os.remove(path)
+
+
+def restart_install(line, inst_dir, msgs):
+    # Each line is expected to start with the bundle name/filename
+    # followed by additional pip flags (e.g., --user)
+    from chimerax.core import toolshed
+    import sys, subprocess, os.path, os
+    parts = line.rstrip().split('\t')
+    bundle = parts[0]
+    pip_args = parts[1:]
+    # Options should match those in toolshed
+    command = ["install", "--upgrade",
+               "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
+               "--upgrade-strategy", "only-if-needed"]
+    command.extend(pip_args)
+    if bundle.endswith(".whl"):
+        command.append(os.path.join(inst_dir, bundle))
+    else:
+        command.append(bundle)
+    cp = subprocess.run([sys.executable, "-m", "pip"] + command,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE)
+    if cp.returncode == 0:
+        msgs.append(("stdout", "Successfully installed %r" % bundle))
+    else:
+        msgs.append(("stderr", "Error installing %r" % bundle))
+    if cp.stdout:
+        msgs.append(("stdout", cp.stdout.decode("utf-8", "backslashreplace")))
+    if cp.stderr:
+        msgs.append(("stderr", cp.stderr.decode("utf-8", "backslashreplace")))
+    if bundle.endswith(".whl"):
+        os.remove(os.path.join(inst_dir, bundle))
 
 
 if __name__ == '__main__':

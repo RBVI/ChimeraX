@@ -26,9 +26,12 @@ class MapSeries(Model):
     self.set_maps(maps)
     
     self.surface_level_ranks = []  # Cached for normalization calculation
-    self.solid_level_ranks = []  # Cached for normalization calculation
+    self.image_level_ranks = []    # Cached for normalization calculation
 
     self._timer = None		# Timer for updating volume viewer dialog
+
+    h = session.triggers.add_handler('remove models', self._model_closed)
+    self._close_handler = h
 
   # ---------------------------------------------------------------------------
   #
@@ -43,7 +46,6 @@ class MapSeries(Model):
   #
   def show_first_map_only(self, maps):
     v0 = maps[0]
-    v0.initialize_thresholds()
     v0.display = True	# Show first map of series
     for v in maps[1:]:
       v.display = False
@@ -63,16 +65,30 @@ class MapSeries(Model):
   #
   def grid_size(self):
 
-    return self.maps[0].data.size if self.maps else (0,0,0)
+    v = self.first_map()
+    return v.data.size if v else (0,0,0)
 
   # ---------------------------------------------------------------------------
   #
   def _get_single_color(self):
-    return self.maps[0].single_color if self.maps else None
+    v = self.first_map()
+    return v.single_color if v else None
   def _set_single_color(self, color):
     for m in self.maps:
       m.single_color = color
   single_color = property(_get_single_color, _set_single_color)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _model_closed(self, trigger_name, models):
+    if self.deleted:
+      self._close_handler.remove()
+      self._close_handler = None
+      return
+
+    for m in models:
+      if hasattr(m, 'series') and m.series is self:
+        self.volume_closed(m)
 
   # ---------------------------------------------------------------------------
   #
@@ -121,7 +137,7 @@ class MapSeries(Model):
 
     if not cache_rendering:
       v.remove_surfaces()
-      v.close_solid()
+      v.close_image()
 
   # ---------------------------------------------------------------------------
   #
@@ -173,7 +189,7 @@ class MapSeries(Model):
 
     v1 = self.maps[t1]
     v2 = self.maps[t2]
-    if v1 is None or v2 == None:
+    if v1 is None or v2 is None:
       return
 
     v2.data.set_step(v1.data.step)
@@ -200,12 +216,12 @@ class MapSeries(Model):
       s.level = lev
     self.surface_level_ranks = ranks
 
-    lev1 = [l for l,b in v1.solid_levels]
-    lev2 = [l for l,b in v2.solid_levels]
+    lev1 = [l for l,b in v1.image_levels]
+    lev2 = [l for l,b in v2.image_levels]
     levels, ranks = equivalent_rank_values(v1, lev1, v2, lev2,
-                                           self.solid_level_ranks)
-    v2.solid_levels = list(zip(levels, [b for lev,b in v1.solid_levels]))
-    self.solid_level_ranks = ranks
+                                           self.image_level_ranks)
+    v2.image_levels = list(zip(levels, [b for lev,b in v1.image_levels]))
+    self.image_level_ranks = ranks
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):

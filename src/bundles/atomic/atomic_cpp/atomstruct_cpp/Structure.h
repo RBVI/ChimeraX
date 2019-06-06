@@ -194,7 +194,7 @@ protected:
         return version < 5 ? 1 : (version < 13 ? 3: 15);
     }
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
-        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : 17));
+        return version == 1 ? 9 : (version < 5 ? 10 : (version < 12 ? 16 : (version < 16 ? 17 : 18)));
     }
     static int  SESSION_NUM_MISC(int version=CURRENT_SESSION_VERSION) {
         return version > 7 ? 3 : 4;
@@ -217,6 +217,7 @@ public:
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear_coord_sets();
+    void  combine_sym_atoms();
     virtual void  compute_secondary_structure(float = -0.5, int = 3, int = 3, bool = false) {}
     const CoordSets&  coord_sets() const { return _coord_sets; }
     virtual Structure*  copy() const;

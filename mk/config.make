@@ -31,7 +31,7 @@ all:
 
 # version numbers that leak out of prerequisites
 
-PYTHON_VERSION = 3.6
+PYTHON_VERSION = 3.7
 ifndef DEBUG
 PYTHON_ABI = m
 else
@@ -71,13 +71,14 @@ endif
 
 
 APP_NAME = ChimeraX
+APP_FILENAME = $(APP_NAME).app
 
 ifeq ($(OS),Darwin)
 frameworkdir = $(build_prefix)/Library/Frameworks
-app_prefix = $(TOP)/$(APP_NAME).app/Contents
+app_prefix = $(TOP)/$(APP_FILENAME)/Contents
 app_frameworkdir =  $(app_prefix)/Library/Frameworks
 else
-app_prefix = $(TOP)/$(APP_NAME).app
+app_prefix = $(TOP)/$(APP_FILENAME)
 endif
 app_bindir = $(app_prefix)/bin
 app_includedir = $(app_prefix)/include

@@ -16,6 +16,7 @@
 #include <iostream>			// use std::cerr for debugging
 #include <Python.h>			// use PyObject
 
+#include "boxcut.h"			// use box_cuts, offset_range
 #include "colors.h"			// use blend_la_to_rgba, ...
 #include "combine.h"			// use linear_combination
 #include "contourpy.h"			// use surface_py, ...
@@ -23,7 +24,7 @@
 #include "fittingpy.h"			// use py_correlation_gradient, ...
 #include "distgrid.h"			// use py_sphere_surface_distance
 #include "gaussian.h"			// use py_sum_of_gaussians
-#include "histogram.h"			// use bin_counts_py, ...
+#include "histogram.h"			// use bin_counts, ...
 #include "interpolatepy.h"		// use interpolate_volume_data, ...
 #include "localcorr.h"			// use local_correlation
 #include "moments.h"			// use moments_py, affine_scale_py
@@ -38,6 +39,12 @@ namespace Map_Cpp
 //
 static struct PyMethodDef map_cpp_methods[] =
 {
+  /* boxcut.h */
+  {const_cast<char*>("box_cuts"), (PyCFunction)box_cuts,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("offset_range"), (PyCFunction)offset_range,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
   /* colors.h */
   {const_cast<char*>("copy_la_to_rgba"), (PyCFunction)copy_la_to_rgba,
    METH_VARARGS|METH_KEYWORDS, NULL},
@@ -88,7 +95,7 @@ static struct PyMethodDef map_cpp_methods[] =
   /* histogram.h */
   {const_cast<char*>("minimum_and_maximum"), (PyCFunction)minimum_and_maximum,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("bin_counts"), (PyCFunction)bin_counts_py,
+  {const_cast<char*>("bin_counts"), (PyCFunction)bin_counts,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("high_count"), (PyCFunction)high_count_py,
    METH_VARARGS|METH_KEYWORDS, NULL},

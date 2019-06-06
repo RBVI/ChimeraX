@@ -26,12 +26,12 @@ class="clRight" title="User Guide Index"/></a>
 <table class="clRight">
 <tr><td>
 <img class="outline" src="1bzm-others-screenshot.png"
-alt="1bzm, 1urt, sequence alignment" width="800px"></td></tr>
-<tr><td width="790px" align="center">
+alt="1bzm, 1urt, sequence alignment" width="630px"></td></tr>
+<tr><td width="620px" align="center">
 <font size=-1>
 Models #1 <font style="background:tan;padding:0px 2px">1bzm</font>
 and #2 <font style="background:skyblue;padding:0px 2px">1urt</font>
-associated with sequences in a multiple alignment, with
+associated with sequences in an alignment, with
 <font style="background:lightgreen;padding:0px 2px">ChimeraX selection</font>
 sequence region.
 </font>
@@ -49,18 +49,26 @@ a specified sequence or sequence pattern, use
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
 </p><p>
-A <a href="../commands/open.html#sequence">sequence file</a> can be opened 
-with the command <a href="../commands/open.html"><b>open</b></a>,
-and the sequence of a structure chain can be shown
-by clicking the <a href="../modelinfo.html">chain information</a> in the 
-<a href="log.html"><b>Log</b></a> (that appears when a structure is opened),
-or by using the command:
+The sequence of a structure chain in ChimeraX can be shown by:
 </p>
-<blockquote>
-<b>sequence chain 
-&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>chain-spec</i></a></b>
-</blockquote>
+<ul>
+<li>using the
+<a href="../commands/sequence.html#chain"><b>sequence chain</b></a> command
+<li>clicking the 
+<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="iconbar" src="../tools/shortcut-icons/sequence.png"></a>
+<li>clicking the <a href="../modelinfo.html">chain description</a> 
+link that appears in the <a href="log.html"><b>Log</b></a> 
+when a structure is opened 
+</ul>
 <p>
+Sequences and sequence alignments can also be 
+<a href="../commands/open.html#local">opened</a> 
+from <a href="../commands/open.html#sequence">files</a>
+or <a href="../commands/open.html#fetch">fetched</a>
+from <a href="http://www.uniprot.org/" target="_blank">UniProt</a>.
+</p><p>
 Multiple <b>Sequence Viewer</b> windows can be shown at the same time, 
 and they can be manipulated like other panels in ChimeraX 
 (<a href="../window.html#panels">more...</a>).
@@ -76,11 +84,25 @@ with choices including:
 - save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
+<li><b>Associations...</b> show dialog for controlling 
+<a href="#association">sequence-structure association</a>
 <li><b>Load Sequence Coloring File...</b> open a
 <a href="../formats/scf.html">sequence coloring file</a>
 to create <a href="#regions">regions</a> and color 
 <a href="#association">associated</a> structure to match
 </ul>
+
+<a name="headers"></a>
+<p class="nav">
+[<a href="#top">back to top: Sequence Viewer</a>]
+</p>
+<h3>Headers</h3>
+<p>
+Headers are the rows of information above the sequences: consensus sequence,
+conservation histogram, <i>etc.</i>
+Which headers are shown and how they are calculated can be controlled in the
+<a href="#settings-headers"><b>Headers</b> settings</a>.
+</p>
 
 <a name="regions"></a>
 <p class="nav">
@@ -149,14 +171,24 @@ such as in disordered regions with poorly defined density.
 <li>Insertions in the structure sequence relative to the 
 sequence opened independently are not allowed.
 </ul>
-<!--
-For manual (forced) association, both of the above are allowed, 
+<p>
+For manual association, both of the above are allowed, 
 but only the &ldquo;extra&rdquo; residues in the structure not associated 
 with any positions in the sequence (minus the length difference
 if the structure sequence is longer) are counted along with mismatches 
 and reported in the <a href="log.html"><b>Log</b></a>.
--->
 </p><p>
+Associations can be controlled manually (forced or removed):
+</p>
+<ul>
+<li>with the
+<a href="../commands/sequence.html"><b>sequence</b></a> command
+<li>by choosing <b>Associations...</b> from the <b>Sequence Viewer</b>
+<a href="../window.html#context-menu">context menu</a>.
+The resulting dialog lists structure chains and allows changing 
+the association of each to none, best-matching, or a specific sequence.
+</ul>
+<p>
 In the sequence window, <a href="#regions">regions</a> may be created to show
 <font style="background:rgb(255,76,76);padding:1px 3px">
 <b>mismatches</b></font> and
@@ -258,24 +290,28 @@ Appearance</h4>
 <h4><a href="#settings" class="nounder"><b>&larr;</b></a>
 Headers</h4>
 <ul class="none">
-<li><b>Consensus style</b>
+<li><b>Consensus: capitalization threshold</b> (initial default <b>0.8</b>)
+<li><b>Consensus: ignore gap characters</b> (<b>off</b>)
+<li><b>Consensus: show at startup</b> (<b>on</b>)
+<li><b>Conservation: show at startup</b> (<b>on</b>)
+</ul>
+The consensus sequence shows the residue type that is most common
+at each position in the alignment, even if it appears in less than 0.5
+of the sequences; if a consensus type appears in at least the 
+<b>capitalization threshold</b> fraction of sequences, 
+it will be capitalized and shown in purple,
+or in red if all of the sequences have the same type.
+If several residue types are equally the most common,
+one is chosen at random. The consensus will show a gap at positions 
+where a gap is the most prevalent or equally the most prevalent
+as one or more residue types, unless <b>ignore gap characters</b>
+is turned on. Regardless of this option, however,
+gap positions are always included in the denominator
+for calculating the consensus fraction.
+<ul>
+<li><b>Conservation: style</b>
   <ul>
-  <li><b>majority in column including gaps</b> (initial default)
-  <li><b>majority in column ignoring gaps</b>
-  </ul>
-The consensus sequence shows the residue type most prevalent
-(not necessarily >50%) at each position in the alignment;
-highly conserved types (&ge; 80%) are capitalized 
-and shown in purple, or red if 100% conserved.
-If several residue types are equally the most prevalent,
-one is chosen at random. When gaps are included, however,
-the consensus will show a gap at positions where a gap
-is the most prevalent or equally the most prevalent
-as one or more residue types.
-<li><b>Conservation style</b>
-  <ul>
-  <li><b>identity histogram</b> (initial default)
-- what proportion of the sequences
+  <li><b>identity histogram</b> - what proportion of the sequences
 have the most prevalent nongap character per alignment column.
 Histogram bar heights are proportional to (M-1)/(N-1), where
 M is the number of occurrences of the most prevalent residue type at
@@ -296,6 +332,68 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
      <a href="../formats/clustgroups.html">weak group conservation</a>
      <li> blank otherwise
      </ul>
+  <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
+  initial default) - more sophisticated options for calculating conservation.
+  Users should cite:
+  <a name="al2coref"></a>
+    <blockquote>
+    <a href="http://www.ncbi.nlm.nih.gov/pubmed/11524371" target="_blank">
+    AL2CO: calculation of positional conservation in a
+    protein sequence alignment.</a>
+    Pei J, Grishin NV.
+    <i>Bioinformatics.</i> 2001 Aug;17(8):700-12.
+   </blockquote>
+  <b>AL2CO parameters</b>:
+  <ul>
+  <li><b>Averaging window</b> (initial default <b>1</b>) - window width, or
+  how many alignment positions to average in a sliding window.
+  The result is assigned to the central column of the window
+  when the width is odd, the column left of center when the width is even
+  (<i>e.g.</i>, the fourth position in a window of 8),
+  with various adjustments at the termini.
+  The authors of AL2CO recommend a width of 3 for motif analyses.
+  <li><a name="al2comeas"><b>Conservation measure</b></a>
+  - which AL2CO conservation equation to use:
+    <ul>
+    <li><b>entropy-based</b> (initial default)
+    <li><b>variance-based</b>
+    <li><b>sum of pairs</b>
+    </ul>
+  <li><b>Frequency estimation method</b> - whether/how to weight the sequences
+    <ul>
+    <li><b>unweighted</b>
+    <li><b>modified Henikoff & Henikoff</b>
+    <li><b>independent counts</b> (initial default)
+    </ul>
+  <li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
+   - maximum fraction of sequences with gaps in a column
+  for conservation to still be calculated; for example, if the
+  <b>gap fraction</b> is 0.25, conservation values will only be calculated
+  for columns in which at least three-fourths of the sequences have residues
+  </ul><br>
+Additional settings if the AL2CO
+<a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
+  <ul>
+  <li><b>Matrix</b> [choices: BLOSUM-30, BLOSUM-35, BLOSUM-40, BLOSUM-45, 
+  BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default), 
+  BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90, 
+  BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120, 
+  PAM-150, PAM-250, SDM] - which residue similarity matrix to use
+  <li><b>Matrix transformation</b> 
+  - whether/how to modify the matrix
+     <ul>
+     <li><b>none</b> (initial default)
+     <li><b>normalization</b>
+     &nbsp;&nbsp;&nbsp; <i>S'<sub>ab</sub></i> = <i>S<sub>ab</sub></i> / (<i>S<sub>aa</sub>S<sub>bb</sub></i>)<sup>&frac12;</sup>
+     <li><b>adjustment</b>
+     &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
+     </ul>
+  </ul>
+  <p>
+  Conservation values from AL2CO are in standard deviations from the mean 
+  (Z-scores) and can range from &ndash;&infin; (least conserved) to
+  +&infin; (most conserved).
+  </p>
   </ul>
 </ul>
 
@@ -389,5 +487,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+May 2019</address>
 </body></html>

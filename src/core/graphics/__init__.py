@@ -24,6 +24,7 @@ __all__ = [
 
 from .drawing import Drawing, Pick, PickedTriangle, PickedTriangles
 from .drawing import text_image_rgba, qimage_to_numpy
+from .drawing import concatenate_geometry
 
 from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera, SplitStereoCamera
 from .camera360 import Mono360Camera, Stereo360Camera

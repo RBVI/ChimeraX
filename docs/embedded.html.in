@@ -28,7 +28,7 @@ UCSF ChimeraX is built upon other great software.
 <h2><a id="o"> Included Software </a></h2>
 
 <dl>
-<dt><a href="http://www.python.org/" target="_blank"> Python </a> version 3.5
+<dt><a href="http://www.python.org/" target="_blank"> Python </a> version 3.7
 <dd>&ldquo;The Python programming language and interpreter.&rdquo;
 <br>
 History and License: <a href="https://docs.python.org/3/license.html" target="_blank">open source</a>
@@ -45,6 +45,8 @@ License: ChimeraX is develped with a commercial license for PyQt.
 See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license-faq" target="_blank"> License FAQ </a> for more details.
 
 <!--ffmpeg-->
+
+<!--openmm-->
 
 <p>
 <dt><a href="http://www.gnu.org/software/freefont/" target="_blank">

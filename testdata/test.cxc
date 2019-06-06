@@ -1,5 +1,5 @@
 # test script
-log warn false error false
+log settings warn false error false
 open 1a0m
 ~display /b
 style stick
@@ -7,8 +7,8 @@ ribbon /b
 surface enclose #1 resolution 5
 surface close
 surface #1
-sasa /a
-buriedarea /a with /b
+measure sasa /a
+measure buriedarea /a with /b
 color #1 bychain
 color @CA purple
 light soft

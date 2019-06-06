@@ -35,11 +35,15 @@ Possible values of <i>property</i>:
 <ul>
 <li><a href="#area"><b>area</b></a> 
 - report the area of an existing surface (sum of surface triangles)
-<li><a href="#buriedArea"><b>buriedArea</b></a> 
+<li><a href="#buriedarea"><b>buriedarea</b></a> 
 - calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
+<li><a href="#center"><b>center</b></a>
+- calculate center of mass of map and/or atoms
 <li><a href="#convexity"><b>convexity</b></a>
 - calculate convexity at each surface vertex, color the surface accordingly
+<li><a href="#inertia"><b>inertia</b></a>
+- calculate inertia ellipsoid
 <li><a href="#length"><b>length</b></a>
 - sum bond lengths
 <li><a href="#mapstats"><b>mapstats</b></a>
@@ -76,7 +80,7 @@ See also: <a href="#sasa"><b>measure sasa</b></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="buriedArea"><b>measure buriedArea</b></a>
+<a name="buriedarea"><b>measure buriedarea</b></a>
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp; <b>withAtoms2</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;
 [&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
@@ -131,6 +135,36 @@ buried between <a href="atomspec.html#builtin"><b>ligand</b></a> and
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="center"></a>
+<b>measure center</b> 
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>level</b>&nbsp;&nbsp;<i>contour-level</i>&nbsp;]
+[&nbsp;<b>mark</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>marker-radius</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>modelId</b>&nbsp;&nbsp;<i>model-number</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>model-name</i>&nbsp;]
+<blockquote>
+Calculate the center of mass of each density map and/or set of atoms in 
+<a href="atomspec.html"><i>spec</i></a>.
+Map centers are reported in grid indices,
+atomic centers of mass in the atomic coordinate system.
+The <b>level</b> option indicates using only map regions
+above <i>contour-level</i>.
+If <b>mark</b> is <b>true</b>, a <a href="../markers.html">marker</a> 
+will be placed at at each computed center, with radius <i>marker-radius</i> 
+(default based on the contents of <a href="atomspec.html"><i>spec</i></a>)
+and color (default <b>#b4b4b4</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=#b4b4b4 width="10px" title="#b4b4b4"></td></tr></table>).
+The marker model is opened as number <i>model-number</i>
+(default next unused number) with name <i>model-name</i>
+(default based on the contents of <a href="atomspec.html"><i>spec</i></a>).
+See also: <a href="cofr"><b>cofr</b></a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="convexity"></a>
 <b>measure convexity</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
@@ -175,6 +209,60 @@ Unsmoothed values typically give mottled coloring.
 See also: <a href="mlp.html"><b>mlp</b></a>, 
 <a href="color.html"><b>color</b></a>,
 <a href="bumps.html"><b>bumps</b><?a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="inertia"><b>measure inertia</b></a>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>perChain</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>showEllipsoid</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>modelId</b>&nbsp;&nbsp;<i>model-number</i>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Calculate the inertia ellipsoid for
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>,&nbsp;
+which could include atoms and/or surfaces.
+Atoms are mass-weighted; surfaces are treated
+as thin shells with mass proportional to surface area
+(<a href="#notes">details...</a>).
+If both atoms and surfaces are specified, separate ellipsoids are
+calculated (a combined calculation cannot be performed).
+Principal axes, lengths, moments, and center are reported for each ellipsoid,
+using the model coordinate system of the first atom or surface
+specified to define it.
+The vectors v1, v2, and v3 are the principal axes (longest to shortest).
+The lengths a, b, c are half-diameters along axes v1, v2, and v3,
+respectively. The moments r1, r2, and r3 are calculated as
+(inertia/mass)<sup>&frac12;</sup>
+about axes v1, v2, and v3, respectively. They can be considered
+effective radii; placing all of the mass at that distance from the center
+would reproduce the moment of inertia calculated for the structure
+around that axis.
+<p>
+The <b>perChain</b> option indicates whether
+to calculate a separate ellipsoid for each chain in
+<a href="atomspec.html"><i>atom-spec</i></a>.
+If <b>showEllipsoid</b> is <b>true</b> (default),
+the ellipsoid(s) will be opened as a surface model with
+<b>modelId</b> &nbsp;<i>model-number</i> (default the next unused number),
+containing multiple submodels if there are multiple ellipsoids.
+The <b>replace true</b> option allows replacing an existing model
+when the specified <i>model-number</i> is already in use.
+If ellipsoid <b>color</b> is not specified, each ellipsoid will be colored
+to match the first atom or surface in its calculation.
+</p><p>
+Another way to generate a low-resolution
+representation of an atomic structure is with
+<a href="molmap.html"><b>molmap</b></a>.
+<!--
+See also:
+<a href="define.html#axis"><b>define axis</b></a>,
+<a href="aniso.html"><b>aniso</b></a>,
+<a href="shape.html#ellipsoid"><b>shape ellipsoid</b></a>,
+<a href="../print.html#objects">geometric objects</a>
+-->
+</p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -238,7 +326,10 @@ in increments of map grid units
 (using the smallest spacing along the three axes, if they differ)
 until they intersect with the map isosurface or reach
 <b>steps</b> <i>M</i> grid units in length (default <b>10</b>).
-Prickles are shown in the specified <b>color</b> (default <b>lime</b>) and
+Prickles are shown in the specified <b>color</b> (default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td></tr></table>) and
 can be amplified or shrunken in length by a <b>scale</b> factor <i>f</i>.
 If a model number is specified with <b>pricklesModel</b> <i>N</i>,
 the prickles will be added as a submodel of <i>N</i>.
@@ -295,7 +386,47 @@ or <a href="surface.html#zone"><b>surface zone</b></a>
 (<a href="clip.html">clipping</a> does not affect the measurement, however).
 </blockquote>
 
+<a name="notes"></a>
+<p class="nav">
+[<a href="#top">back to top: surface</a>]
+</p>
+<h3>Technical Notes</h3>
+<p>
+<b>Inertia calculation</b>.
+<br>
+The command <a href="#inertia"><b>measure inertia</b></a>
+computes the moments of inertia of a set of atoms as in classical mechanics:
+<blockquote>
+I<sub>jk</sub> = &Sigma;<sub>i</sub>
+(m<sub>i</sub> (&delta;<sub>jk</sub>
+|x<sub>i</sub>|<sup>2</sup> &ndash; x<sub>i,j</sub>x<sub>i,k</sub>))
+</blockquote>
+I is a 3x3 matrix with indices j and k (j=1,2,3 and k=1,2,3).
+Each matrix element is a sum over atoms,
+where m<sub>i</sub> and x<sub>i</sub> are the mass and position of atom i,
+respectively, and &delta;<sub>jk</sub> is 1 for j=k, otherwise 0.
+The principal axes are the eigenvectors of the matrix,
+and the moments about those axes are the eigenvalues.
+Basically, the moment is a sum of mass times distance squared from the
+rotation axis. Before this formula is applied, the center of mass
+position is subtracted from the atom coordinates,
+so that the measured quantity is the inertia about the center of mass.
+The approach for surfaces is analogous, where atoms are replaced
+by vertices of the triangulated surface, and the &ldquo;mass&rdquo;
+of each vertex is &frac13; of the area of the attached triangle.
+This treats the surface as a thin shell.
+The &ldquo;inertia ellipsoid&rdquo; shown by ChimeraX is not the same
+as the one defined in physics. Instead, it is the ellipsoid that has
+the same inertia as the measured object:
+</p>
+<ul>
+<li>For atoms, we show the surface of a uniform-density solid ellipsoid
+that has the same principal axes and moments as the atoms.
+<li>For surfaces, we show an ellipsoidal surface that as a thin shell
+has the same axes and moments as the measured surface.
+</ul>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+May 2019</address>
 </body></html>

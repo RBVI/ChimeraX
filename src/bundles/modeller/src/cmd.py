@@ -11,38 +11,42 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-#
-def sequence_model(session, targets, *, block=None, combined_templates=False, custom_script=None,
+def sequence_model(session, targets, *, block=None, multichain=True, custom_script=None,
     dist_restraints=None, executable_location=None, fast=False, het_preserve=False,
-    hydrogens=False, license_key=None, num_models=5, temp_path=None, thorough_opt=False,
+    hydrogens=False, license_key=None, num_models=5, show_gui=True, temp_path=None, thorough_opt=False,
     water_preserve=False):
     '''
-    Command to generate a comparitive model of one or more chains
+    Command to generate a comparative model of one or more chains
     '''
     from chimerax.core.errors import UserError
     seen = set()
     for alignment, seq in targets:
         if alignment in seen:
-            raise UserError("Only one target sequence per alignent allowed;"
+            raise UserError("Only one target sequence per alignment allowed;"
                 " multiple targets chosen in alignment %s" % alignment)
         seen.add(alignment)
     if block is None:
-        block = not session.ui.is_gui
-    from .settings import get_settings
-    settings = get_settings(session)
-    if license_key is None:
-        license_key = settings.license_key
-    else:
-        settings.license_key = license_key
-    from . import comparitive
+        block = session.in_script or not session.ui.is_gui
+    if fast:
+        num_models = 1
+    from . import comparative
     try:
-        comparitive.model(session, targets, block=block, combined_templates=combined_templates,
+        comparative.model(session, targets, block=block, multichain=multichain,
             custom_script=custom_script, dist_restraints=dist_restraints,
             executable_location=executable_location, fast=fast, het_preserve=het_preserve,
-            hydrogens=hydrogens, license_key=license_key, num_models=num_models,
+            hydrogens=hydrogens, license_key=license_key, num_models=num_models, show_gui=show_gui,
             temp_path=temp_path, thorough_opt=thorough_opt, water_preserve=water_preserve)
-    except comparitive.ModelingError as e:
+    except comparative.ModelingError as e:
         raise UserError(e)
+
+def score_models(session, structures, *, block=None, license_key=None):
+    '''
+    Fetch Modeller scores for models
+    '''
+    if block is None:
+        block = session.in_script or not session.ui.is_gui
+    from . import scores
+    scores.fetch_scores(session, structures, block=block, license_key=license_key)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ListOf, BoolArg, PasswordArg, IntArg
@@ -50,12 +54,19 @@ def register_command(logger):
     from chimerax.seqalign import AlignSeqPairArg
     desc = CmdDesc(
         required = [('targets', ListOf(AlignSeqPairArg))],
-        keyword = [('block', BoolArg), ('combined_templates', BoolArg), ('custom_script', OpenFileNameArg),
+        keyword = [('block', BoolArg), ('multichain', BoolArg), ('custom_script', OpenFileNameArg),
             ('dist_restraints', OpenFileNameArg), ('executable_location', OpenFileNameArg), ('fast', BoolArg),
             ('het_preserve', BoolArg), ('hydrogens', BoolArg), ('license_key', PasswordArg),
-            ('num_models', IntArg), ('temp_path', OpenFolderNameArg), ('thorough_opt', BoolArg),
-            ('water_preserve', BoolArg)
+            ('num_models', IntArg), ('show_gui', BoolArg), ('temp_path', OpenFolderNameArg),
+            ('thorough_opt', BoolArg), ('water_preserve', BoolArg)
         ],
-        synopsis = 'Use Modeller to generate comparitive model'
+        synopsis = 'Use Modeller to generate comparative model'
     )
-    register('modeller comparitive', desc, sequence_model, logger=logger)
+    register('modeller comparative', desc, sequence_model, logger=logger)
+    from chimerax.atomic import AtomicStructuresArg
+    desc = CmdDesc(
+        required = [('structures', AtomicStructuresArg)],
+        keyword = [('block', BoolArg), ('license_key', PasswordArg)],
+        synopsis = 'Fetch scores for models from Modeller web site'
+    )
+    register('modeller scores', desc, score_models, logger=logger)

@@ -117,6 +117,7 @@ private:
     unsigned int  _coord_index;
     void  _coordset_set_coord(const Point &, CoordSet *cs, bool track_change);
     bool  _display = true;
+    bool  _in_ribbon = false;
     DrawMode  _draw_mode = DrawMode::Sphere;
     const Element*  _element;
     AtomType  _explicit_idatm_type;
@@ -148,6 +149,7 @@ public:
     float  bfactor() const;
     float  bfactor(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.bfactor; }
     const Bonds&  bonds() const { return _bonds; }
+    void  clear_aniso_u();
     bool  connects_to(const Atom* other) const {
         return std::find(_neighbors.begin(), _neighbors.end(), other) != _neighbors.end();
     }
@@ -168,6 +170,8 @@ public:
     bool  idatm_is_explicit() const { return _explicit_idatm_type[0] != '\0'; }
     const AtomType&  idatm_type() const;
     bool  is_backbone(BackboneExtent bbe) const;
+    bool  is_missing_heavy_template_neighbors(bool chain_start = false, bool chain_end = false,
+        bool no_template_okay = false) const;
     bool  is_ribose() const;
     bool  is_side_connector() const;
     bool  is_side_chain(bool only) const;
@@ -238,7 +242,8 @@ public:
     void  clear_hide_bits(int bit_mask) { set_hide(hide() & ~bit_mask); }
     const Rgba&  color() const { return _rgba; }
     bool  display() const { return _display; }
-    int  hide() const { return _hide; }
+    int   hide() const { return _hide; }
+    bool  in_ribbon() const { return _in_ribbon; }
     GraphicsChanges*  graphics_changes() const {
         return reinterpret_cast<GraphicsChanges*>(structure()); }
     bool  selected() const { return _selected; }
@@ -249,6 +254,7 @@ public:
     void  set_display(bool d);
     void  set_hide(int h);
     void  set_hide_bits(int bit_mask) { set_hide(hide() | bit_mask); }
+    void  set_in_ribbon(bool ir) { _in_ribbon = ir; }
     void  set_selected(bool s);
     bool  visible() const { return _display && !_hide; }
 };

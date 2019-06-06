@@ -20,29 +20,40 @@ The Categorized classes organize the presented options into categories, which th
 switch between.
 """
 
-from PyQt5.QtWidgets import QWidget, QFormLayout, QTabWidget, QBoxLayout, QGridLayout, \
-    QPushButton, QCheckBox, QScrollArea
+from PyQt5.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGridLayout, \
+    QPushButton, QCheckBox, QScrollArea, QGroupBox
 
-class OptionsPanel(QScrollArea):
+class OptionsPanel(QWidget):
     """Supported API. OptionsPanel is a container for single-use (not savable) Options"""
 
-    def __init__(self, parent=None, *, sorting=True, **kw):
+    def __init__(self, parent=None, *, sorting=True, scrolled=True):
         """sorting:
             False; options shown in order added
             True: options sorted alphabetically by name
             func: options sorted based on the provided key function
         """
-        QScrollArea.__init__(self, parent, **kw)
-        self._scrolled = QWidget()
-        self.setWidget(self._scrolled)
+        QWidget.__init__(self, parent)
+        self._layout = QVBoxLayout()
+        if scrolled:
+            sublayout = QVBoxLayout()
+            self.setLayout(sublayout)
+            scroller = QScrollArea()
+            sublayout.addWidget(scroller)
+            scrolled = QWidget()
+            scroller.setWidget(scrolled)
+            scrolled.setLayout(self._layout)
+        else:
+            self.setLayout(self._layout)
         self._sorting = sorting
         self._options = []
+        self._option_groups = []
+        self._layout.setSizeConstraint(self._layout.SetMinAndMaxSize)
         self._form = QFormLayout()
         self._form.setSizeConstraint(self._form.SetMinAndMaxSize)
         self._form.setVerticalSpacing(1)
         from PyQt5.QtCore import Qt
         self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self._scrolled.setLayout(self._form)
+        self._layout.addLayout(self._form)
 
     def add_option(self, option):
         """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
@@ -64,8 +75,22 @@ class OptionsPanel(QScrollArea):
             self._form.itemAt(insert_row,
                 QFormLayout.LabelRole).widget().setToolTip(option.balloon)
 
+    def add_option_group(self, group_label=None, **kw):
+        if group_label is None:
+            grouping_widget = QWidget()
+        else:
+            grouping_widget = QGroupBox(group_label)
+            grouping_widget.setContentsMargins(1,grouping_widget.contentsMargins().top()//2,1,1)
+        self._layout.addWidget(grouping_widget)
+        suboptions = OptionsPanel(scrolled=False, **kw)
+        self._option_groups.append(suboptions)
+        return grouping_widget, suboptions
+
     def options(self):
-        return self._options
+        all_options = self._options[:]
+        for grp in self._option_groups:
+            all_options.extend(grp._options)
+        return all_options
 
     def sizeHint(self):
         from PyQt5.QtCore import QSize
@@ -95,6 +120,14 @@ class CategorizedOptionsPanel(QTabWidget):
             self.add_tab(category, panel)
         panel.add_option(option)
 
+    def add_option_group(self, category, **kw):
+        try:
+            panel = self._category_to_panel[category]
+        except KeyError:
+            panel = OptionsPanel(sorting=self._option_sorting)
+            self.add_tab(category, panel)
+        return panel.add_option_group(**kw)
+
     def add_tab(self, category, panel):
         """Supported API. Only used if a tab needs to present a custom interface.
 
@@ -120,8 +153,8 @@ class CategorizedOptionsPanel(QTabWidget):
         return self._category_to_panel[category].options()
 
 class SettingsPanelBase(QWidget):
-    def __init__(self, owner_description, parent, option_sorting, multicategory,
-            *, category_sorting=None, help_cb=None, **kw):
+    def __init__(self, parent, option_sorting, multicategory,
+            *, category_sorting=None, buttons=True, help_cb=None, **kw):
         QWidget.__init__(self, parent, **kw)
         self.multicategory = multicategory
         if multicategory:
@@ -130,45 +163,46 @@ class SettingsPanelBase(QWidget):
         else:
             self.options_panel = OptionsPanel(sorting=option_sorting)
 
-        layout = QBoxLayout(QBoxLayout.TopToBottom)
+        layout = QVBoxLayout()
         layout.setSpacing(5)
         layout.addWidget(self.options_panel, 1)
         layout.setContentsMargins(0,0,0,0)
 
-        button_container = QWidget()
-        bc_layout = QGridLayout()
-        bc_layout.setContentsMargins(0, 0, 0, 0)
-        bc_layout.setVerticalSpacing(5)
-        if multicategory:
-            self.current_check = QCheckBox("Buttons below apply to current section only")
-            self.current_check.setToolTip("If checked, buttons only affect current section")
-            self.current_check.setChecked(True)
-            from .. import shrink_font
-            shrink_font(self.current_check)
-            from PyQt5.QtCore import Qt
-            bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
-        save_button = QPushButton("Save")
-        save_button.clicked.connect(self._save)
-        save_button.setToolTip("Save as startup defaults")
-        bc_layout.addWidget(save_button, 1, 0)
-        reset_button = QPushButton("Reset")
-        reset_button.clicked.connect(self._reset)
-        reset_button.setToolTip("Reset to initial-installation defaults")
-        bc_layout.addWidget(reset_button, 1, 1)
-        restore_button = QPushButton("Restore")
-        restore_button.clicked.connect(self._restore)
-        restore_button.setToolTip("Restore from saved defaults")
-        bc_layout.addWidget(restore_button, 1, 2)
-        if help_cb is not None:
-            self._help_cb = help_cb
-            help_button = QPushButton("Help")
-            from chimerax.core.commands import run
-            help_button.clicked.connect(self._help)
-            help_button.setToolTip("Show help")
-            bc_layout.addWidget(help_button, 1, 3)
+        if buttons:
+            button_container = QWidget()
+            bc_layout = QGridLayout()
+            bc_layout.setContentsMargins(0, 0, 0, 0)
+            bc_layout.setVerticalSpacing(5)
+            if multicategory:
+                self.current_check = QCheckBox("Buttons below apply to current section only")
+                self.current_check.setToolTip("If checked, buttons only affect current section")
+                self.current_check.setChecked(True)
+                from .. import shrink_font
+                shrink_font(self.current_check)
+                from PyQt5.QtCore import Qt
+                bc_layout.addWidget(self.current_check, 0, 0, 1, 4, Qt.AlignRight)
+            save_button = QPushButton("Save")
+            save_button.clicked.connect(self._save)
+            save_button.setToolTip("Save as startup defaults")
+            bc_layout.addWidget(save_button, 1, 0)
+            reset_button = QPushButton("Reset")
+            reset_button.clicked.connect(self._reset)
+            reset_button.setToolTip("Reset to initial-installation defaults")
+            bc_layout.addWidget(reset_button, 1, 1)
+            restore_button = QPushButton("Restore")
+            restore_button.clicked.connect(self._restore)
+            restore_button.setToolTip("Restore from saved defaults")
+            bc_layout.addWidget(restore_button, 1, 2)
+            if help_cb is not None:
+                self._help_cb = help_cb
+                help_button = QPushButton("Help")
+                from chimerax.core.commands import run
+                help_button.clicked.connect(self._help)
+                help_button.setToolTip("Show help")
+                bc_layout.addWidget(help_button, 1, 3)
 
-        button_container.setLayout(bc_layout)
-        layout.addWidget(button_container, 0)
+            button_container.setLayout(bc_layout)
+            layout.addWidget(button_container, 0)
 
         self.setLayout(layout)
 
@@ -198,8 +232,8 @@ class SettingsPanelBase(QWidget):
                 default_val = default_val.default
             # '==' on numpy objects doesn't return a boolean
             import numpy
-            if not numpy.array_equal(opt.get(), default_val):
-                opt.set(default_val)
+            if not numpy.array_equal(opt.value, default_val):
+                opt.value = default_val
                 opt.make_callback()
 
     def _restore(self):
@@ -207,15 +241,15 @@ class SettingsPanelBase(QWidget):
             restore_val = opt.settings.saved_value(opt.attr_name)
             # '==' on numpy objects doesn't return a boolean
             import numpy
-            if not numpy.array_equal(opt.get(), restore_val):
-                opt.set(restore_val)
+            if not numpy.array_equal(opt.value, restore_val):
+                opt.value = restore_val
                 opt.make_callback()
 
     def _save(self):
         save_info = {}
         for opt in self._get_actionable_options():
             # need to ensure "current value" is up to date before saving...
-            setattr(opt.settings, opt.attr_name, opt.get())
+            setattr(opt.settings, opt.attr_name, opt.value)
             save_info.setdefault(opt.settings, []).append(opt.attr_name)
         # We don't simply use settings.save() when all options are being saved
         # since there may be settings that aren't presented in the GUI
@@ -228,32 +262,44 @@ class SettingsPanel(SettingsPanelBase):
        'settings' constructor arg.
     """
 
-    def __init__(self, owner_description, parent=None, *, sorting=True, **kw):
+    def __init__(self, parent=None, *, sorting=True, **kw):
         """'settings' is a Settings instance.  The remaining arguments are the same as
             for OptionsPanel
         """
-        SettingsPanelBase.__init__(self, owner_description, parent, sorting, multicategory=False, **kw)
+        SettingsPanelBase.__init__(self, parent, sorting, multicategory=False, **kw)
 
     def add_option(self, option):
         """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
         self.options_panel.add_option(option)
 
+    def add_option_group(self, group_label=None, *, sorting=True):
+        """Returns a container widget and an OptionsPanel; caller is responsible
+           for creating a layout for the container widget and placing the
+           OptionsPanel in it, along with any other desired widgets"""
+        return self.options_panel.add_option_group(group_label, sorting=True)
+
 class CategorizedSettingsPanel(SettingsPanelBase):
-    """Supported API. CategorizedSettingsPanel is a container for remember-able Options that work in conjunction
-       with Options that have Settings instances (found in chimerax.core.settings) specified via their
-       'settings' constructor arg, and that are presented in categories.
+    """Supported API. CategorizedSettingsPanel is a container for remember-able Options
+       (i.e. Options that have Settings instances (found in chimerax.core.settings) specified via their
+       'settings' constructor arg) and that are presented in categories.
     """
 
-    def __init__(self, owner_description, parent=None, *, category_sorting=True, option_sorting=True, **kw):
+    def __init__(self, parent=None, *, category_sorting=True, option_sorting=True, **kw):
         """'settings' is a Settings instance.  The remaining arguments are the same as
             for CategorizedOptionsPanel
         """
-        SettingsPanelBase.__init__(self, owner_description, parent, option_sorting, multicategory=True,
+        SettingsPanelBase.__init__(self, parent, option_sorting, multicategory=True,
             category_sorting=category_sorting, **kw)
 
     def add_option(self, category, option):
         """Supported API. Add option (instance of chimerax.ui.options.Option) to given category"""
         self.options_panel.add_option(category, option)
+
+    def add_option_group(self, category, group_label=None, *, sorting=True):
+        """Returns a container widget and an OptionsPanel; caller is responsible
+           for creating a layout for the container widget and placing the
+           OptionsPanel in it, along with any other desired widgets"""
+        return self.options_panel._category_to_panel[category].add_option_group(group_label, sorting=True)
 
     def add_tab(self, category, panel):
         """Supported API. Same as CategorizedOptionsPanel.add_tab(...)"""

@@ -26,8 +26,8 @@ class CommandLine(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
 
         self._in_init = True
-        from .settings import CmdLineSettings
-        self.settings = CmdLineSettings(session, tool_name)
+        from .settings import settings
+        self.settings = settings
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self, close_destroys=False)
         parent = self.tool_window.ui_area
@@ -45,6 +45,7 @@ class CommandLine(ToolInstance):
                 # defer context menu to parent
                 self.setContextMenuPolicy(Qt.NoContextMenu)
                 self.setAcceptDrops(True)
+                self._out_selection = None
 
             def dragEnterEvent(self, event):
                 if event.mimeData().text():
@@ -57,9 +58,14 @@ class CommandLine(ToolInstance):
                 self.lineEdit().insert(text)
                 event.acceptProposedAction()
 
+            def focusInEvent(self, event):
+                self._out_selection = None
+                QComboBox.focusInEvent(self, event)
+
             def focusOutEvent(self, event):
                 le = self.lineEdit()
-                sel_start, sel_length = le.selectionStart(), len(le.selectedText())
+                self._out_selection = (sel_start, sel_length, txt) = (le.selectionStart(),
+                    len(le.selectedText()), le.text())
                 QComboBox.focusOutEvent(self, event)
                 if sel_start >= 0:
                     le.setSelection(sel_start, sel_length)
@@ -92,8 +98,10 @@ class CommandLine(ToolInstance):
                         self.tool.history_dialog.up(shifted)
                     elif event.key() == Qt.Key_U:
                         self.tool.cmd_clear()
+                        self.tool.history_dialog.search_reset()
                     elif event.key() == Qt.Key_K:
                         self.tool.cmd_clear_to_end_of_line()
+                        self.tool.history_dialog.search_reset()
                     else:
                         QComboBox.keyPressEvent(self, event)
                 else:
@@ -111,6 +119,24 @@ class CommandLine(ToolInstance):
         self.text = CmdText(parent, self)
         self.text.setEditable(True)
         self.text.setCompleter(None)
+        def sel_change_correction():
+            # don't allow selection to change while focus is out
+            if self.text._out_selection is not None:
+                start, length, text = self.text._out_selection
+                le = self.text.lineEdit()
+                if text != le.text():
+                    self.text._out_selection = (le.selectionStart(), len(le.selectedText()), le.text())
+                    return
+                if start >= 0 and (start, length) != (le.selectionStart(), len(le.selectedText())):
+                    le.setSelection(start, length)
+        self.text.lineEdit().selectionChanged.connect(sel_change_correction)
+        self.text.lineEdit().textEdited.connect(self.history_dialog.search_reset)
+        def text_change(*args):
+            # if text changes while focus is out, remember new selection
+            if self.text._out_selection is not None:
+                le = self.text.lineEdit()
+                self.text._out_selection = (le.selectionStart(), len(le.selectedText()), le.text())
+        self.text.lineEdit().selectionChanged.connect(text_change)
         layout = QHBoxLayout(parent)
         layout.setSpacing(1)
         layout.setContentsMargins(2, 0, 0, 0)
@@ -129,8 +155,7 @@ class CommandLine(ToolInstance):
         self.tool_window.manage(placement="bottom")
         self._in_init = False
         self._processing_command = False
-        from chimerax.core.core_settings import settings as core_settings
-        if core_settings.startup_commands:
+        if self.settings.startup_commands:
             # prevent the startup command output from being summarized into 'startup messages' table
             session.ui.triggers.add_handler('ready', self._run_startup_commands)
 
@@ -232,6 +257,8 @@ class CommandLine(ToolInstance):
                     raise
                 except errors.UserError as err:
                     logger.status(str(err), color="crimson")
+                    from chimerax.core.logger import error_text_format
+                    logger.info(error_text_format % err, is_html=True)
                 except:
                     raise
         self.set_focus()
@@ -261,9 +288,8 @@ class CommandLine(ToolInstance):
         self._processing_command = True
         from chimerax.core.commands import run
         from chimerax.core.errors import UserError
-        from chimerax.core.core_settings import settings as core_settings
         try:
-            for cmd_text in core_settings.startup_commands:
+            for cmd_text in self.settings.startup_commands:
                 run(self.session, cmd_text)
         except UserError as err:
             session.logger.status(str(err), color="crimson")
@@ -339,8 +365,7 @@ class _HistoryDialog:
         from chimerax.core.history import FIFOHistory
         self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
         self._record_dialog = None
-        self._search_cache = None
-        self._suspend_handler = False
+        self._search_cache = (False, None)
 
     def add(self, item, *, typed=False):
         if len(self._history) >= self.controller.settings.num_remembered:
@@ -418,7 +443,7 @@ class _HistoryDialog:
             retain = []
             listbox_index = 0
             for h_item in self._history:
-                if self.typed_only and not h[1]:
+                if self.typed_only and not h_item[1]:
                     retain.append(h_item)
                     continue
                 if not self.listbox.item(listbox_index).isSelected():
@@ -440,20 +465,24 @@ class _HistoryDialog:
     def down(self, shifted):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
+            self._search_cache = (False, None)
             return
         sel = sels[0].row()
         orig_text = self.controller.text.currentText()
         match_against = None
-        self._suspend_handler = False
         if shifted:
-            if self._search_cache is None:
+            was_searching, prev_search = self._search_cache
+            if was_searching:
+                match_against = prev_search
+            else:
                 words = orig_text.strip().split()
                 if words:
                     match_against = words[0]
-                    self._search_cache = match_against
-            else:
-                match_against = self._search_cache
-            self._suspend_handler = True
+                    self._search_cache = (True, match_against)
+                else:
+                    self._search_cache = (False, None)
+        else:
+            self._search_cache = (False, None)
         if match_against:
             last = self.listbox.count() - 1
             while sel < last:
@@ -468,7 +497,6 @@ class _HistoryDialog:
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
             self.down(shifted)
-        self._suspend_handler = False
 
     def fill_context_menu(self, menu, x, y):
         # avoid having actions destroyed when this routine returns
@@ -503,6 +531,15 @@ class _HistoryDialog:
         self.controller.text.lineEdit().selectAll()
         cursels = self.listbox.scrollToBottom()
 
+    def search_reset(self):
+        searching, target = self._search_cache
+        if searching:
+            self._search_cache = (False, None)
+            self.listbox.blockSignals(True)
+            self.listbox.clearSelection()
+            self.listbox.setCurrentRow(self.listbox.count() - 1)
+            self.listbox.blockSignals(False)
+
     def select(self):
         sels = self.listbox.selectedItems()
         if len(sels) != 1:
@@ -512,20 +549,24 @@ class _HistoryDialog:
     def up(self, shifted):
         sels = self.listbox.selectedIndexes()
         if len(sels) != 1:
+            self._search_cache = (False, None)
             return
         sel = sels[0].row()
         orig_text = self.controller.text.currentText()
         match_against = None
-        self._suspend_handler = False
         if shifted:
-            if self._search_cache is None:
+            was_searching, prev_search = self._search_cache
+            if was_searching:
+                match_against = prev_search
+            else:
                 words = orig_text.strip().split()
                 if words:
                     match_against = words[0]
-                    self._search_cache = match_against
-            else:
-                match_against = self._search_cache
-            self._suspend_handler = True
+                    self._search_cache = (True, match_against)
+                else:
+                    self._search_cache = (False, None)
+        else:
+            self._search_cache = (False, None)
         if match_against:
             while sel > 0:
                 if self.listbox.item(sel - 1).text().startswith(match_against):
@@ -539,7 +580,6 @@ class _HistoryDialog:
         self.controller.cmd_replace(new_text)
         if orig_text == new_text:
             self.up(shifted)
-        self._suspend_handler = False
 
     def update_list(self):
         c = self.controller
@@ -555,11 +595,6 @@ class _HistoryDialog:
     def set_typed_only(self, typed_only):
         self.typed_only = typed_only
         self.populate()
-
-    def _entry_modified(self, event):
-        if not self._suspend_handler:
-            self._search_cache = None
-        event.Skip()
 
     def _num_remembered_changed(self, new_hist_len):
         if len(self._history) > new_hist_len:

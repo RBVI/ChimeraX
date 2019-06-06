@@ -38,9 +38,10 @@ Without arguments, <b>lighting</b> reports the current settings in the
 Colors are reported as red, green, and blue components
 in the range 0-100 (percentages).
 See also: 
+<a href="preset.html"><b>preset</b></a>,
 <a href="material.html"><b>material</b></a>,
 <a href="set.html"><b>set</b></a>,
-<a href="../tools/graphics.html"><b>Graphics Toolbar</b></a>,
+<a href="../tools/graphics.html"><b>Graphics</b></a> icons,
 <a href="../autostyle.html">automatic styling</a>
 </p><p>
 There are two directional lights, key and fill, plus ambient lighting.
@@ -58,35 +59,35 @@ The <a name="preset"><i>preset</i></a> can be:
 </p>
 <ul>
 <li><b>default</b> or <b>simple</b>
-- all three kinds of light, but no shadows
-<a href="../tools/graphics.html" title="Graphics icons...">
+<a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/simplelight.png"></a>
+&ndash; all three kinds of light, but no shadows
 <li><b>full</b>
-- all three kinds of light, key light with shadows,
-ambient lighting with shadowing from 64 directions
-<a href="../tools/graphics.html" title="Graphics icons...">
+<a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/fulllight.png"></a>
-<li><b>soft</b> - ambient lighting only,
-ambient shadowing from 64 directions
-<a href="../tools/graphics.html" title="Graphics icons...">
+&ndash; all three kinds of light, key light with shadows,
+ambient lighting with shadowing from 64 directions
+<li><b>soft</b>
+<a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
+&ndash; ambient lighting only, ambient shadowing from 64 directions
 <br>... if a smudgy appearance, try the <b>gentle</b> preset instead
-<li><b>gentle</b> - ambient lighting only,
+<li><b>gentle</b> &ndash; ambient lighting only,
 ambient shadowing from 64 directions tuned to emphasize larger indentations
 <!--
 <br>(same as <b>soft</b> except with
 <a href="#msMapSize"><b>msMapSize</b></a> 128 instead of 1024 and
 <a href="#msDepthBias"><b>msDepthBias</b></a> 0.05 instead of 0.01)
 -->
-<li><b>flat</b> - ambient lighting only, no shadows, silhouettes on
-<a href="../tools/graphics.html" title="Graphics icons...">
+<li><b>flat</b> 
+<a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>
+&ndash; ambient lighting only, no shadows, silhouettes on
 <br>
 ... for silhouettes off, use
-<a href="set.html#silhouettes"><b>set silhouettes false</b></a> or the 
-<a href="../tools/graphics.html"><b>Graphics</b></a> icon 
-<a href="../tools/graphics.html" title="Graphics icons...">
+<a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
+or <a href="set.html#silhouettes"><b>set silhouettes false</b></a>
 </ul>
 <p>
 The detailed settings within a preset can be listed in the 
@@ -98,8 +99,7 @@ based on the size of the first atomic model opened at a time.
 <!-- whenever an atomic model is opened and no others are already present -->
 </p><p>
 The <a href="../tools/graphics.html"><b>Graphics</b></a> icon 
-<a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/shadow.png"></a>
+<a href="../tools/graphics.html" title="Graphics"><img class="icon" border=1 src="../tools/shortcut-icons/shadow.png"></a>&nbsp;
 toggles key-light <a href="#shadows"><b>shadows</b></a>, and if the key light 
 is off, adjusts key-light <a href="#intensity"><b>intensity</b></a> 
 from 0 to 0.5 to show the shadows.
@@ -211,10 +211,10 @@ or &ldquo;depth map.&rdquo; A small map gives pixelated shadow edges.
 The integer map size <i>M<sub>k</sub></i> can be specified directly 
 or <i>via</i> one of the quality settings:
 <ul>
-<li><b>coarse</b> - map size 1024
-<li><b>normal</b> (as in <b>simple</b> lighting) - map size 2048
-<li><b>fine</b> - map size 4096
-<li><b>finer</b> - map size 8192
+<li><b>coarse</b> &ndash; map size 1024
+<li><b>normal</b> (as in <b>simple</b> lighting) &ndash; map size 2048
+<li><b>fine</b> &ndash; map size 4096
+<li><b>finer</b> &ndash; map size 8192
 </ul>
 </blockquote>
 <blockquote>
@@ -262,5 +262,5 @@ or to the <a href="view.html#scenecoords">scene coordinate system</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2017</address>
+May 2019</address>
 </body></html>

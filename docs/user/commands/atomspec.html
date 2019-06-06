@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 Most <a href="../index.html#commands">commands</a>
 require or allow specifying which items they should affect.
-Which types of items are accepted depends on the specific command.
+Which types of items are accepted depends on the specific command:
 </p>
 <ul>
 <li><a name="atomspec"></a>
@@ -46,8 +46,8 @@ can be specified using:
     </ul>
   <li><a href="#builtin">built-in classifications</a>
   - <b>sel</b> (current <a href="../selection.html">selection</a>),
-  <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>hbonds</b>,
-  element symbols, functional groups, <i>etc.</i>
+  <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>solvent</b>,
+  <b>hbonds</b>, element symbols, functional groups, <i>etc.</i>
   <li><a href="#user">user-defined targets</a> - named selections 
   or other targets defined with <a href="name.html"><b>name</b></a>
   <li><a href="#attributes">attribute</a> names and values
@@ -65,7 +65,7 @@ in a more limited set of ways, namely:
   - <b>sel</b> (the current <a href="../selection.html">selection</a>, 
   which could include nonatomic models), <b>selMaps</b> (the currently
   <a href="../selection.html">selected</a> volume models, 
-  or if none are selected, all volume models)
+  or if none are selected, all displayed volume models)
   </ul>
 </ul>
 <p>
@@ -73,7 +73,10 @@ Specification strings may contain embedded spaces, and
 a blank specification (where allowed) means &ldquo;all.&rdquo;
 Specification in ChimeraX is generally similar to that in Chimera,
 but there are <a href="atomspec-diffsum.html">differences</a>.
-See also: <a href="usageconventions.html">command usage conventions</a>
+</p><p>
+See also: <a href="usageconventions.html">command usage conventions</a>,
+<a href="colornames.html">color specification</a>,
+<a href="seqspec.html">sequence specification</a>
 </p>
 
 <a name="hierarchy"></a>
@@ -168,20 +171,19 @@ case matters for chain specification in that model only.
 <a name="lists"></a>
 <h4><a href="#hierarchy" class="nounder"><b>&larr;</b></a> Lists and Ranges</h4>
 <p>
-Model and residue numbers are integers, 
-although a residue number may have an insertion code directly appended.
-Multiple model numbers or residue numbers can be indicated by 
+Multiple model numbers or residue numbers can be entered as
 comma-separated lists of individual numbers and/or one or more ranges of the 
-form <i>start</i>-<i>end</i>. 
+form <i>start</i>-<i>end</i>. There cannot be a space next to a hyphen.
 The word <b>start</b> or <b>end</b> can be substituted
 for the <i>start</i> or <i>end</i> value to extend the range to
 the first or last number possible, respectively.
 An asterisk (<b>*</b>) can be used in the place of either 
 <b>start</b> or <b>end</b>,
 in addition to its other uses as a <a href="#wildcards">wild card</a>.
-Chain IDs, residue names, and atom names can also be entered
-as comma-separated lists. Ranges of chain IDs are also allowed; in that case,
-ordering is alphabetical.
+</p><p>
+Chain IDs, residue names, and atom names (all of which are typically 
+non-numerical) can be entered as comma-separated lists.
+Ranges of chain IDs are also allowed, in which case ordering is alphabetical.
 </p><p>
 Examples:
 <blockquote>
@@ -380,7 +382,7 @@ in lowercase and with hyphens instead of spaces in multiword names
 <a href="../selection.html">selection</a>,
 or if nothing is selected, all atomic models
 <li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
-volume models, or if none are selected, all volume models
+volume models, or if none are selected, all displayed volume models
 <li><b>pbonds</b> - all <a href="../pseudobonds.html">pseudobonds</a>
 <li><b>hbonds</b> - H-bond <a href="../pseudobonds.html">pseudobonds</a>
 (those in a pseudobond model named <b>hydrogen bonds</b>)
@@ -510,9 +512,9 @@ Built-in classifications cannot be redefined by the user.
 <a href="../attributes.html">Attributes</a> are properties
 specified by <a href="../attributes.html#attrnames">name</a> and value, 
 indicated with symbols:
-<b>@@</b> for atom attributes,
-<b>::</b> for residue attributes, and
-<b>##</b> for atomic-model attributes.
+<b>@@</b> for <a href="../attributes.html#atom">atom attributes</a>,
+<b>::</b> for <a href="../attributes.html#residue">residue attributes</a>, and
+<b>##</b> for <a href="../attributes.html#model">atomic-model attributes</a>.
 Custom attributes can be created with <a href="setattr.html"><b>setattr</b></a>.
 </p><p>
 Attribute names are case-sensitive. Attribute values that are
@@ -638,7 +640,8 @@ reference set of atoms can be specified in the command line as a zone. See also:
 <a href="select.html#zone"><b>select zone</b></a>,
 <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="volume.html#zone"><b>volume zone</b></a>,
-<a href="zone.html"><b>zone</b></a>
+<a href="zone.html"><b>zone</b></a>,
+menu: <a href="../menu.html#selectzone"><b>Select... Zone</b></a>
 </p><p>
 A zone specification has the following parts:
 <ol>
@@ -757,5 +760,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2018</address>
+May 2019</address>
 </body></html> 

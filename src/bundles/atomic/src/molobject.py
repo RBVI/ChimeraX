@@ -51,9 +51,20 @@ def all_python_instances():
     f = c_function('all_python_instances', args = (), ret = ctypes.py_object)
     return f()
 
+# delay .cymol import until 'CFunctions' call above establishes lib path
 from .cymol import CyAtom
 class Atom(CyAtom, State):
     '''An atom in a (chemical) structure'''
+
+    # So that attr-registration API can provide return-type info; provide that data here
+    # [because Cython properties use immutable getset_descriptor slots, and the final address of a
+    # property isn't obtainable until the end of the class definition, using this inelegant solution]
+    _cython_property_return_info = [
+        ('alt_loc', (str,)), ('bfactor', (float,)), ('display', (bool,)), ('idatm_type', (str,)),
+        ('is_side_connector', (bool,)), ('is_side_chain', (bool,)), ('is_side_only', (bool,)),
+        ('name', (str,)), ('num_alt_locs', (int,)), ('num_bonds', (int,)), ('num_explicit_bonds', (int,)),
+        ('occupancy', (float,)), ('radius', (float,)), ('selected', (bool,)), ('visible', (bool,)),
+    ]
 
     # used by custom-attr registration code
     @property
@@ -602,6 +613,15 @@ class Residue(CyResidue, State):
     To create a Residue use the :class:`.AtomicStructure` new_residue() method.
     '''
 
+    # So that attr-registration API can provide return-type info; provide that data here
+    # [because Cython properties use immutable getset_descriptor slots, and the final address of a
+    # property isn't obtainable until the end of the class definition, using this inelegant solution]
+    _cython_property_return_info = [
+        ('chi1', (float, None)), ('chi2', (float, None)), ('chi3', (float, None)), ('chi4', (float, None)),
+        ('is_helix', (bool,)), ('is_strand', (bool,)), ('name', (str,)), ('omega', (float, None)),
+        ('phi', (float, None)), ('psi', (float, None)),
+    ]
+
     # used by custom-attr registration code
     @property
     def has_custom_attrs(self):
@@ -618,6 +638,16 @@ class Residue(CyResidue, State):
         r = Residue.c_ptr_to_py_inst(data['structure'].session_id_to_residue(data['ses_id']))
         set_custom_attrs(r, data)
         return r
+
+    # Cython kind of has trouble with a C++ class variable that is a map of maps, and
+    # where the key type of the nested map is a varidic template; so expose via ctypes
+    def ideal_chirality(self, atom_name):
+        """Return the ideal chirality (N = none; R = right-handed (rectus); S = left-handed (sinister)
+            for the given atom name in this residue.  The chirality is only known if the mmCIF chemical
+            component for this residue has been read."""
+        f = c_function('residue_ideal_chirality', args = (ctypes.c_char_p, ctypes.c_char_p),
+            ret = ctypes.py_object)
+        return f(self.name.encode('utf-8'), atom_name.encode('utf-8'))
 Residue.set_py_class(Residue)
 
 
@@ -877,7 +907,7 @@ class Sequence(State):
         return data
 
     def ungapped(self):
-        """Supported APU. String of sequence without gap characters"""
+        """Supported API. String of sequence without gap characters"""
         f = c_function('sequence_ungapped', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         return f(self._c_pointer)
 
@@ -906,11 +936,11 @@ class StructureSeq(Sequence):
     though associated residues may change to None if those residues are deleted/closed.
     '''
 
-    def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None):
+    def __init__(self, sseq_pointer=None, *, chain_id=None, structure=None, polymer_type=Residue.PT_NONE):
         if sseq_pointer is None:
             sseq_pointer = c_function('sseq_new',
-                args = (ctypes.c_char_p, ctypes.c_void_p), ret = ctypes.c_void_p)(
-                    chain_id.encode('utf-8'), structure._c_pointer)
+                args = (ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int), ret = ctypes.c_void_p)(
+                    chain_id.encode('utf-8'), structure._c_pointer, polymer_type)
         super().__init__(sseq_pointer)
         self.triggers.add_trigger('delete')
         self.triggers.add_trigger('modify')
@@ -1327,13 +1357,6 @@ class StructureData:
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
 
-    def ribbon_orients(self, residues=None):
-        '''Return array of orientation values for given residues.'''
-        if residues is None:
-            residues = self.residues
-        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
-        return f(self._c_pointer, residues._c_pointers, len(residues))
-
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
         "Has secondary structure been assigned, either by data in original structure file "
         "or by some algorithm (e.g. dssp command)")
@@ -1362,7 +1385,12 @@ class StructureData:
         else:
             from .molarray import Atoms
             return (Atoms(ap[0]), Atoms(ap[1]))
-        
+
+    def combine_sym_atoms(self):
+        '''Combine "symmetry" atoms, which for this purpose is atoms with the same element type
+           on the exact same 3D position'''
+        f = c_function('structure_combine_sym_atoms', args = (ctypes.c_void_p,))(self._c_pointer)
+
     def add_coordset(self, id, xyz):
         '''Supported API. Add a coordinate set with the given id.'''
         if xyz.dtype != float64:
@@ -1549,6 +1577,13 @@ class StructureData:
         g = StructureData(logger=session.logger)
         g.set_state_from_snapshot(session, data)
         return g
+
+    def ribbon_orients(self, residues=None):
+        '''Return array of orientation values for given residues.'''
+        if residues is None:
+            residues = self.residues
+        f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
+        return f(self._c_pointer, residues._c_pointers, len(residues))
 
     def rings(self, cross_residues=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings found in this Structure.
@@ -1987,6 +2022,9 @@ class SeqMatchMap(State):
         if isinstance(i, int):
             return self._pos_to_res[i]
         return self._res_to_pos[i]
+
+    def __len__(self):
+        return len(self._pos_to_res)
 
     @property
     def align_seq(self):

@@ -28,7 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>distance</b>
 &nbsp;<a href="atomspec.html"><i>atom1</i></a>&nbsp;
 &nbsp;<a href="atomspec.html"><i>atom2</i></a>&nbsp;
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -42,7 +42,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>distance style</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -53,13 +53,16 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>distance save</b> &nbsp;<i>distance-file</i>
 </h3>
 <p>
-The <b>distance</b> command adds a 
-<b><i>distance monitor</i></b>
+The <b>distance</b> command
+(see also the <a href="../tools/distances.html"><b>Distances</b></a>
+graphical interface) adds a <b><i>distance monitor</i></b>
 <a href="../pseudobonds.html">pseudobond</a>
 between the specified atoms and labels it with the distance. The current 
 distance is also reported in the <a href="../tools/log.html"><b>Log</b></a>.
-The label will update automatically to reflect any changes in distance,
-but updates are not sent to the <a href="../tools/log.html"><b>Log</b></a>.
+Although subsequent changes in distance are not logged, 
+distance labels and the values shown in 
+the <a href="../tools/distances.html"><b>Distances</b></a> tool 
+will update automatically.
 For click-to-measure, see 
 <a href="../selection.html#context">selection context menus</a>
 and <a href="ui.html#mousemode"><b>mousemode</b></a>.
@@ -69,7 +72,8 @@ See also:
 <a href="size.html"><b>size</b></a>,
 <a href="clashes.html"><b>clashes/contacts</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
-<a href="crosslinks.html"><b>crosslinks</b></a>,
+<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>,
+<a href="select.html#new"><b>select</b> by pseudobond length</a>,
 <a href="label.html"><b>label</b></a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
@@ -81,11 +85,14 @@ The defaults can be changed in the
 or by using the <b>distance style</b> command with <b>setDefaults true</b>.
 <blockquote>
 <a name="color"></a>
-<b>color</b> &nbsp;<a href="colornames.html"><i>colorname</i></a>
+<b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Color to use for the
 <a href="../pseudobonds.html">pseudobonds</a>
-(initial default <b>gold</b>).
+(initial default <b>gold</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=gold width="10px" title="gold"></td></tr></table>).
 </blockquote>
 <blockquote>
 <a name="radius"></a>
@@ -127,13 +134,14 @@ existing distance monitors, and <b>setDefaults true</b>
 as defaults for subsequently created monitors.
 </p><p>
 The <b>distance save</b> command writes all current distance information
+(sorted from shortest to longest)
 to a text file with pathname <i>distance-file</i>.
 The word <a href="usageconventions.html#browse"><b>browse</b></a>
-can substituted for <i>distance-file</i> to raise a file browser window
+can be substituted for <i>distance-file</i> to raise a file browser window
 for specifying the name and location interactively.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+March 2019</address>
 </body></html>

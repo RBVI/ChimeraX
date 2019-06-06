@@ -51,7 +51,7 @@ cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h
 	rmdir -p chimerax/atomic
 
 install: $(SHLIB) cymol.$(PYMOD_EXT)
-	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) data include lib ../src
+	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) cymol.pyx data include lib ../src
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
@@ -62,9 +62,11 @@ ifeq ($(OS),Darwin)
 endif
 
 clean:
-	rm -rf __pycache__ $(OBJS) $(SHLIB) cymol.cpp cymol.$(PYMOD_EXT) lib include data
+	rm -rf __pycache__ $(OBJS) $(SHLIB) \
+		cymol.cpp cymol.$(PYMOD_EXT) \
+		lib include data build
 ifdef WIN32
-	rm -f lib$(LIBNAME).{exp,pdb} vc*.pdb
+	rm -f lib$(LIBNAME).{lib,exp,pdb} vc*.pdb
 endif
 
 pylint:

@@ -1,0 +1,532 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>ChimeraX Tutorial: DICOM in Virtual Reality</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>ChimeraX Tutorial: DICOM in Virtual Reality</h3>
+
+<blockquote><b>
+<a href="#data">Sample Data</a>
+<br><a href="#outside">Manipulation Outside of VR</a>
+<br><a href="#manipulation">Manipulation in VR</a>
+<br><a href="#planes">Viewing Planes</a>
+<br><a href="#cropping">Cropping and Slabbing</a>
+<br><a href="#windowing">Windowing</a>
+</b></blockquote>
+
+<p>
+This tutorial covers basics of using
+<a href="../vr.html">ChimeraX virtual reality</a> to view
+<a href="../dicom/dicom.html">DICOM medical imaging data</a>.
+It assumes you have the necessary equipment for virtual reality 
+already installed and set up for the room.
+ChimeraX works with virtual reality (VR) systems
+supported by <a href="http://steamvr.com" target="_blank">SteamVR</a>,
+such as HTC Vive, Oculus Rift and Samsung Odyssey headsets. 
+Descriptions below are for Vive hand controllers, but other hand controllers 
+have buttons that are generally similar in position and function.
+</p><p>
+Other than the manipulation in VR, however, the tutorial can be done 
+without VR just using your computer and mouse (or trackpad)
+instead of a headset and hand controllers.
+</p><p>
+See a
+<a href="https://www.rbvi.ucsf.edu/chimera/data/dicom-feb2019/images/dicomvr.mp4" 
+target="_blank">video of this tutorial</a> (Feb 2019).
+See also: <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
+<a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
+target="_blank">ChimeraX for Medical Image Analysis</a>
+</p>
+
+<a name="data"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Sample Data</h3>
+<p>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom/4-24533.zip">4-24533.zip</a> 
+&ndash; one chest scan of many in the
+<a href="https://wiki.cancerimagingarchive.net/display/Public/RIDER+Lung+CT#73dc3a9f2e854316974bb0f766ae69ab" 
+target="_blank">RIDER Lung CT</a> collection 
+from the <a href="http://www.cancerimagingarchive.net/" 
+target="_blank">Cancer Imaging Archive</a>:
+</p>
+<blockquote>
+Clark K, Vendt B, Smith K, <i>et al.</i>
+The Cancer Imaging Archive (TCIA): 
+Maintaining and Operating a Public Information Repository. 
+<i>Journal of Digital Imaging.</i> 2013; 26(6): 1045-1057. 
+</blockquote>
+<p>
+The data have been <a href="https://wiki.cancerimagingarchive.net/display/Public/De-identification+Knowledge+Base" target="_blank">anonymized</a>
+and are <a href="https://wiki.cancerimagingarchive.net/display/Public/Data+Usage+Policies+and+Restrictions" target="_blank">freely available</a>.
+This sample data  folder should be downloaded and unzipped.
+Although this tutorial does not include clinical analysis,
+a significant feature of the scan is a tumor in the right lung.
+<!-- within volume #1.1.1.1 region 105,310,139,210,413,188 -->
+</p>
+
+<table class="clRight">
+<tr><td>
+<a href="../dicom/screenshot1.png">
+<img class="outline" src="../dicom/screenshot1.png" title="click to enlarge..."
+alt="screenshot 1" width="500px"></a>
+</td></tr>
+</table>
+
+<a name="outside"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Initial Display and Manipulation Outside of VR</h3>
+<p>
+<a href="../startup.html">Start ChimeraX</a> by clicking its icon.
+After the ChimeraX window appears, open the sample data:
+</p>
+<blockquote>
+Menu: <b>File... Open DICOM Folder</b> (dialog shows Format: DICOM image),
+browse to location, select directory, click <b>Choose</b>
+</blockquote>
+<p>
+Just one Z-plane is shown initially.
+The <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> tool
+shows a histogram of the data with <b>plane</b> as the chosen display style. 
+Below the histogram is a slider for viewing different planes along Z.
+Try dragging the slider.
+The tumor in the right lung can be seen at approximately Z-planes 146-185.
+</p><p>
+The small squares connected by a yellow line on the histogram are
+<b><i>thresholds</i></b>, the control points for mapping values to colors
+and intensities.
+They can be moved by dragging in the
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram,
+and added and deleted using the
+<a href="../tools/volumeviewer.html#context">context menu</a>
+(right-click or <b>Ctrl</b>-click depending on platform).
+<p>
+<ul>
+<li>Click-drag the middle threshold and see how the display changes
+as you drag it in any direction.
+</ul>
+<p>
+Try moving the model around:
+</p>
+<a name="default-mouse"></a>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center" rowspan="2">rotate
+<br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
+<td>left mouse button</td>
+</tr><tr>
+<td class="text">trackpad click-drag</td>
+</tr><tr>
+<td align="center" rowspan="2">translate in 2D
+<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
+<td>middle or right mouse button</td>
+</tr><tr>
+<td class="text">
+trackpad + <b>Alt</b>
+</td>
+</tr><tr>
+<td align="center" rowspan="2">zoom
+<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
+<td>mouse scroll wheel</td>
+</tr><tr>
+<td class="text">
+trackpad 2-finger drag (except pinch on Mac)
+</td>
+</tr></table>
+<p>
+Some useful commands for viewing DICOM data outside of VR:
+</p>
+<blockquote>
+To turn off perspective, which makes closer parts appear larger on the screen:
+<b><a href="../commands/camera.html">camera ortho</a></b>
+<br>
+To center and scale the display to fit in the graphics window:
+<b><a href="../commands/view.html#initial">view</a></b>
+&nbsp;&nbsp;&nbsp;
+...or click <a href="../tools/graphics.html"><b>Graphics</b></a> icon
+<img class="icon" src="../tools/shortcut-icons/viewall.png">
+<br>
+To center and scale as above, plus reset to initial orientation:
+<b><a href="../commands/view.html#initial">view</a> orient</b>
+&nbsp;&nbsp;&nbsp;
+...or click <a href="../tools/graphics.html"><b>Graphics</b></a> icon
+<img class="icon" src="../tools/shortcut-icons/orient.png">
+</blockquote>
+
+<a name="manipulation"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Manipulation in VR</h3>
+<p>
+In virtual reality, the hand controllers are used to click icons and move models.
+There is currently no virtual keyboard in VR for typing commands.
+</p><p>
+The icon <a href="../tools/toolbar.html"><b>Toolbar</b></a> across
+the top of the ChimeraX window is organized into several tabs. Icons in the
+<a href="../tools/densitymaps.html"><b>Map</b></a> tab act on volume models:
+<br><img class="iconbar" src="../density-icons.png">
+</p>
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="dicom-vr3.png">
+<img class="outline" src="dicom-vr3.png" title="click to enlarge..."
+alt="Vive hand controllers" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1">click image to enlarge, or see 
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">diagram at Vive website</a>
+</font></td></tr>
+</table>
+<p>
+Icons in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
+assign functions or &ldquo;modes&rdquo; to hand-controller buttons:
+<br><img class="iconbar" src="../mouse-icons.png">
+</p>
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="dicom-vr2.png">
+<img class="outline" src="dicom-vr2.png" title="click to enlarge..."
+alt="SteamVR status window" width="200px"></a>
+</td></tr>
+<tr><td align="center" width="200px"><font size="-1">
+The <a href="http://steamvr.com" target="_blank">SteamVR</a> status window
+shows icons for the goggles, two controllers, and two base stations
+in green when they are detected as ready for use.
+</font></td></tr>
+</table>
+<p>
+Take a moment to look at the hand controllers:
+Vive controllers
+each have a <b><i>trigger</i></b>
+to &ldquo;pull&rdquo; with the index finger, 
+a <b><i>grip</i></b> button on the side, 
+and a larger round <b><i>trackpad</i></b> on the top surface
+that can be pressed with the thumb.
+Above the trackpad is a smaller <b><i>menu</i></b> button 
+marked with horizontal lines, and below it is a power button and
+a green light indicating when the controller is turned on.
+Buttons on other controllers are similar.
+</p><p>
+Start VR:
+</p>
+<blockquote>
+Command: <b><a href="../commands/device.html#vr">vr</a> on</b>
+</blockquote>
+<p>
+(<a href="http://steamvr.com" target="_blank">SteamVR</a>
+starts automatically, providing you had previously signed in to it 
+from the same computer and chose to have your password remembered.)
+</p><p>
+On the screen, you can see that the icon bars have been moved
+to the right side of the graphics window. In the process, other tool
+panels may have been vertically compressed; drag to make the
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> panel
+tall enough to show the full height of the histogram.
+</p><p>
+Put on the headset, and try moving the model. 
+The hand-controller positions are shown in the headset as cones,
+and icons on the cones indicate button assignments.
+</p>
+
+<a name="default-controller"></a>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center">rotate
+<br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
+<td class="text">&nbsp;rotate hand controller 
+with <b><i>trigger</i></b> pressed</td>
+<td rowspan="5" align="center" valign="center" width="200px">
+<a href="dicom-vr6.png">
+<img class="outline" src="dicom-vr6.png" title="click to enlarge..."
+alt="underside of cone" width="160px"></a>
+<br><br><font size="-1">
+The icon on the cone &ldquo;underside&rdquo; shows that the
+<b><i>trigger</i></b> is assigned to translation (and rotation),
+and the icon on the side shows that the <b><i>grip</i></b> button
+is assigned to center and rescale.
+</font>
+</tr><tr>
+<td align="center">translate in 3D
+<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
+<td>&nbsp;move hand controller with <b><i>trigger</i></b> pressed</td>
+</tr><tr>
+<td align="center">zoom
+<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
+<td class="text">&nbsp;move hand controllers farther apart or closer
+together with both <b><i>triggers</i></b> pressed
+<!--
+(works best when model is not too far away)
+-->
+<br>&ndash; or &ndash;
+<br>move hand controller vertically with <b><i>trackpad</i></b> pressed
+</td>
+</tr><tr>
+<td align="center">center and rescale
+<br>(recover the view)
+<br><img src="../tools/shortcut-icons/viewall.png" class="icon2"></td>
+<td class="text">&nbsp;click <b><i>grip</i></b> button</td>
+</tr><tr>
+<td align="center" class="text">
+show, hide, move control panel</td>
+<td class="text">&nbsp;use <b><i>menu</i></b> button</td>
+</tr></table>
+
+<p>
+Continue moving the model as you wish throughout the tutorial.
+</p>
+<blockquote>
+<table cellpadding="10px"><tr>
+<td class="shaded">
+It is important to avoid flickering in the VR headset, as this may cause
+severe and long-lasting nausea. Flickering generally indicates that rendering 
+is too slow to keep up with head movements or other changes in the scene.
+Rendering <a href="#planes">planes</a> or a
+<a href="#cropping">cropped</a> volume is faster than 
+rendering the full volume. Another way to decrease computational demands
+is to subsample the data; clicking 
+&nbsp;<a href="../tools/densitymaps.html"><img class="icon" 
+border=1 src="../tools/shortcut-icons/step2.png"></a>&nbsp;
+changes to step 2 (using half as many points in each dimension),
+whereas clicking &nbsp;<a href="../tools/densitymaps.html"><img class="icon" 
+border=1 src="../tools/shortcut-icons/step1.png"></a>&nbsp;
+returns to full resolution.
+Step size may increase automatically when the amount of data displayed
+increases, but it can still be adjusted manually. 
+</td>
+</tr></table>
+</blockquote>
+<p>
+Click the <b><i>menu</i></b> button to show the ChimeraX control panel
+in the headset. The control panel is just the set of tool windows
+to the right of the graphics window in the desktop view, including
+icon bars. In VR, it can be moved around with the
+<b><i>menu</i></b> button pressed, or hidden by just clicking the button again.
+</p>
+<blockquote>
+<table cellpadding="10px"><tr>
+<td class="shaded">
+A <a href="../tools/densitymaps.html"><b>Map</b></a> icon
+can be clicked with any controller button 
+(<b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b>)
+to give the same result. Icons in this tutorial are
+<a href="../tools/densitymaps.html"><b>Map</b></a> icons 
+except where stated otherwise.
+<br><br>
+Clicking a <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icon
+with a <b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b>
+button assigns <b><i>whichever controller button was clicked</i></b> 
+to the corresponding function. 
+</td>
+</tr></table>
+</blockquote>
+<p>
+An icon will pop up slightly when the cone tip is in position to click it.
+</p><p>
+Leaving <b><i>triggers</i></b> with their
+<a href="#default-controller">default movement modes</a> (rotation, translation,
+zooming) is recommended, but up to four other functions can be assigned,
+to the <b><i>grip</i></b> and <b><i>trackpad</i></b> on each controller.
+If a <b><i>trigger</i></b> is accidentally reassigned, using it to click 
+either the <b>rotate</b>
+&nbsp;<img class="icon" src="../tools/mouse-icons/rotate.png">&nbsp;
+or <b>translate</b>
+&nbsp;<img class="icon" src="../tools/mouse-icons/translate.png">&nbsp;
+<a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icon
+returns it to the default behavior.
+</p>
+
+<a name="planes"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Viewing Planes</h3>
+<p>
+A single Z-plane is displayed. To view different planes along Z:
+</p>
+<ul>
+<li>Click the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icon
+<img class="icon3" src="../tools/mouse-icons/moveplanes.png">
+(<b>move planes</b>)
+with the <b><i>trackpad</i></b> button on one of the controllers.
+<br><br>
+<li>With the same <b><i>trackpad</i></b> button, click the plane and drag 
+to show different planes along the axis. This automatically shows an outline box.
+</ul>
+<p>
+To view planes along X, Y, or Z:
+</p>
+<ul>
+<li>Click
+<img class="icon3" src="../tools/shortcut-icons/fullvolume.png">
+to show the full volume.
+Although you could return to Z-planes by clicking 
+<img class="icon" src="../tools/shortcut-icons/plane.png">,
+the following method works for all three axes.
+<br><br>
+<li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
+click with the <b><i>trackpad</i></b> button
+(still assigned to <b>move planes</b>) on any face of the box and 
+drag to view planes along the axis perpendicular to that face.
+</ul>
+
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="dicom-vr4-full.png">
+<img class="outline" src="dicom-vr4-full.png" title="click to enlarge..."
+alt="screenshot 2" width="400px"></a>
+</td></tr>
+<tr><td align="center" width="400px"><font size="-1">
+Desktop view including the VR scene in the graphics window:
+orthoplanes, control panel, and cones with icons for current mode assignments.
+</font></td></tr>
+</table>
+
+<p>
+To view planes along X, Y, and Z at the same time:
+</p>
+<ul>
+<li>Click
+<img class="icon3" src="../tools/shortcut-icons/orthoplanes.png">
+to view &ldquo;orthoplanes.&rdquo;
+<br><br>
+<li>Now the same <b><i>trackpad</i></b> button
+(still assigned to <b>move planes</b>) works to view the different planes 
+along any of the axes, depending which plane is clicked and dragged.
+</ul>
+
+<a name="cropping"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Cropping and Slabbing</h3>
+<p>
+With 3D display, cropping is useful for hiding data that may obscure or
+distract from a region of interest.
+</p>
+<ul>
+<li>Click
+<img class="icon3" src="../tools/shortcut-icons/fullvolume.png">
+to return to the full volume.
+<br><br>
+<li>Click &nbsp;<img class="icon3" 
+src="../tools/shortcut-icons/step1.png">&nbsp; to use step 1, full resolution.
+<br><br>
+<li>Click <img class="icon3" src="../tools/shortcut-icons/airways.png">
+to apply the &ldquo;Airways II&rdquo; 3D preset (threshold settings) 
+for viewing lung tissue.
+</ul>
+<p>
+The <a href="../commands/volume.html#appearance">3D presets</a> are based on
+definitions in the <a href="https://horosproject.org/about/"
+target="_blank">Horos</a> program for medical image
+visualization and analysis. Several are available from the command line,
+but only &ldquo;Airways II&rdquo; is currently available as an icon.
+If you later go back to viewing planes or thin slabs,
+it may be helpful to restore the initial thresholds by clicking
+<img class="icon3" src="../tools/shortcut-icons/initialcurve.png">.
+</p>
+
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="dicom-vr5-crop.png">
+<img class="outline" src="dicom-vr5-crop.png" title="click to enlarge..."
+alt="screenshot 3" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1">
+VR scene during cropping.
+</font></td></tr>
+</table>
+
+<ul>
+<li>Click the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icon
+<img class="icon3" src="../tools/mouse-icons/crop.png">
+(<b>crop volume</b>) with the <b><i>trackpad</i></b> on one of the controllers.
+<br><br>
+<li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
+click and drag any face of the box with the same <b><i>trackpad</i></b> 
+button to crop the volume. For example, crop away the chest wall for a
+clearer view of the lungs, or crop to enclose just one lung.
+You can click any box face and drag in either direction
+(making the box smaller or enlarging it back to original size).
+This automatically shows an outline box.
+<br><br>
+<li>Clicking
+<img class="icon3" src="../tools/shortcut-icons/outlinebox.png">
+toggles the outline box on and off. 
+</ul>
+<p>
+Similar to planes, you can move a slab along X, Y, or Z:
+</p>
+<ul>
+<li>Crop the volume to a slab shape using the <b><i>trackpad</i></b>
+(still assigned to <b>crop volume</b>).
+<br><br>
+<li>Now reassign the <b><i>trackpad</i></b> 
+(or assign the <b><i>trackpad</i></b> of the other hand controller) 
+clicking it on the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icon
+<img class="icon3" src="../tools/mouse-icons/moveplanes.png">
+(<b>move planes</b>).
+<br><br>
+<li>Using the <b><i>triggers</i></b> to reorient the display as needed, 
+click with the same <b><i>trackpad</i></b> button on the slab face and
+drag along the axis perpendicular to the face.
+(Starting from the full volume rather than cropped would show single planes
+instead.)
+</ul>
+
+<a name="windowing"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Windowing</h3>
+<p>
+A <a href="../commands/volume.html#appearance">3D preset</a>
+like &ldquo;Airways II&rdquo; sets the thresholds to specific values.
+They can also be adjusted continuously by hand:
+<ul>
+<li>Individually by dragging in the
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram
+with any button 
+(<b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b>),
+although this can be quite difficult. To properly place the cone tip in 3D, 
+it may help to first pierce the panel, then draw back slightly.
+<br><br>
+<li>Collectively with a mouse mode:
+<br>
+  <ul>
+  <li>Click the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icon for
+  <b>windowing</b> <img class="icon3" src="../tools/mouse-icons/windowing.png">
+  with the <b><i>trackpad</i></b> on one of the controllers.
+  <br><br>
+  <li>See what happens to the volume display as you move that controller with
+  the <b><i>trackpad</i></b> pressed.
+  </ul>
+<p>
+Using this mode, vertical motions shift all the thresholds in parallel
+to higher or lower values (left &harr; right on the histogram) and 
+horizontal motions move the thresholds symmetrically farther apart
+or closer together (broadening or narrowing their range of values).
+The threshold positions on the histogram do not update until the button
+is released.
+</p>
+</ul>
+<p> 
+If you want to return to the &ldquo;Airways II&rdquo; threshold settings, click 
+<img class="icon3" src="../tools/shortcut-icons/airways.png">.
+For settings better suited to planes or thin slabs, click
+<img class="icon3" src="../tools/shortcut-icons/initialcurve.png">.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+May 2019</address>
+</body></html>

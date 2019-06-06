@@ -38,7 +38,9 @@ class View:
 
         # Red, green, blue, opacity, 0-1 range.
         self._background_rgba = (0, 0, 0, 0)
-
+        self._highlight_color = (0, 1, 0, 1)
+        self._highlight_width = 1	# pixels
+        
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
@@ -87,6 +89,7 @@ class View:
             r.lighting = self._lighting
             r.material = self._material
             r.silhouette = self._silhouette
+            self.highlight_thickness = opengl_context.pixel_scale()
         elif opengl_context is r.opengl_context:
             # OpenGL context switched between stereo and mono mode
             self._opengl_initialized = False
@@ -184,17 +187,21 @@ class View:
                        len(transparent_drawings) == 0 and
                        len(highlight_drawings) == 0 and
                        len(on_top_drawings) == 0)
+        offscreen = r.offscreen
         silhouette = self.silhouette
         shadow, multishadow = self._compute_shadowmaps(opaque_drawings + transparent_drawings, camera)
         
         from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
+            if no_drawings:
+                r.draw_background()
+                continue
+            if offscreen.enabled:
+                offscreen.start(r)
             if silhouette.enabled:
                 silhouette.start_silhouette_drawing(r)
             r.draw_background()
-            if no_drawings:
-                continue
             self._update_projection(camera, vnum)
             if r.recording_opengl:
                 from . import gllist
@@ -224,9 +231,13 @@ class View:
             if silhouette.enabled:
                 silhouette.finish_silhouette_drawing(r)
             if highlight_drawings:
-                draw_highlight_outline(r, highlight_drawings)
+                draw_highlight_outline(r, highlight_drawings, color = self._highlight_color,
+                                       pixel_width = self._highlight_width)
             if on_top_drawings:
                 draw_on_top(r, on_top_drawings)
+            if offscreen.enabled:
+                offscreen.finish(r)
+
                 
     def _drawings_by_pass(self, drawings):
         pass_drawings = {}
@@ -292,13 +303,11 @@ class View:
         import numpy
         color = numpy.array(rgba, dtype=numpy.float32)
         color[3] = 0	# For transparent background images.
-        r = self._render
-        if r:
-            lp = r.lighting
-            if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
-                # Make depth cue color follow background color if they are the same.
-                lp.depth_cue_color = tuple(color[:3])
-                self.update_lighting = True
+        lp = self._lighting
+        if tuple(lp.depth_cue_color) == tuple(self._background_rgba[:3]):
+            # Make depth cue color follow background color if they are the same.
+            lp.depth_cue_color = tuple(color[:3])
+            self.update_lighting = True
         self._background_rgba = color
         self.redraw_needed = True
         if self.triggers:
@@ -306,6 +315,22 @@ class View:
             settings.background_color = color
     background_color = property(get_background_color, set_background_color)
     '''Background color as R, G, B, A values in 0-1 range.'''
+
+    def _get_highlight_color(self):
+        return self._highlight_color
+    def _set_highlight_color(self, rgba):
+        self._highlight_color = rgba
+        self.redraw_needed = True
+    highlight_color = property(_get_highlight_color, _set_highlight_color)
+    '''Highlight outline color as R, G, B, A values in 0-1 range.'''
+
+    def _get_highlight_thickness(self):
+        return self._highlight_width
+    def _set_highlight_thickness(self, thickness):
+        self._highlight_width = thickness
+        self.redraw_needed = True
+    highlight_thickness = property(_get_highlight_thickness, _set_highlight_thickness)
+    '''Highlight outline thickness in pixels.'''
 
     def _get_lighting(self):
         return self._lighting
@@ -373,6 +398,7 @@ class View:
 
         w, h = self._window_size_matching_aspect(width, height)
 
+        # TODO: For recording videos would be useful not to recreate framebuffer on every frame.
         from .opengl import Framebuffer
         fb = Framebuffer('image capture', self.render.opengl_context, w, h, alpha = transparent_background)
         if not fb.activate():
@@ -858,13 +884,16 @@ class View:
         self.move(t, drawings)
 
     def move(self, tf, drawings=None):
-        '''Move camera to simulate a motion of drawings.'''
+        '''
+        Move camera to simulate a motion of drawings.
+        Transform is in scene coordinates.
+        '''
         if drawings is None:
             c = self.camera
             c.position = tf.inverse() * c.position
         else:
             for d in drawings:
-                d.position = tf * d.position
+                d.scene_position = tf * d.scene_position
 
     def pixel_size(self, p=None):
         "Return the pixel size in scene length units at point p in the scene."

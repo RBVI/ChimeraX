@@ -79,7 +79,12 @@ class VolumeDefaultSettings:
         'outline_box_rgb': (1.0,1.0,1.0),
         'outline_box_linewidth': 1.0,
         'color_mode': 'auto8',
+        'colormap_on_gpu': False,
+        'colormap_size': 256,
+        'blend_on_gpu': False,
         'projection_mode': 'auto',
+        'plane_spacing': 'min',
+        'full_region_on_gpu': False,
         'bt_correction': False,
         'minimal_texture_memory': False,
         'maximum_intensity_projection': False,
@@ -125,7 +130,11 @@ class VolumeDefaultSettings:
             'limit_voxel_count',
             'voxel_limit',
             'color_mode',
+            'colormap_on_gpu',
+            'colormap_size',
+            'blend_on_gpu',
             'projection_mode',
+            'plane_spacing',
             'bt_correction',
             'minimal_texture_memory',
             'maximum_intensity_projection',
@@ -189,8 +198,8 @@ class VolumeDefaultSettings:
       dop = d.display_options_panel
       dop.set_gui_from_rendering_options(ro_defaults)
 
-      slop = d.solid_options_panel
-      slop.set_gui_from_rendering_options(ro_defaults)
+      imop = d.image_options_panel
+      imop.set_gui_from_rendering_options(ro_defaults)
 
       sop = d.surface_options_panel
       sop.set_gui_from_rendering_options(ro_defaults)

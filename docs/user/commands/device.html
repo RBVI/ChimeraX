@@ -76,12 +76,11 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 [&nbsp;<b>display</b>&nbsp;&nbsp;<b>mirror</b>&nbsp;|&nbsp;independent&nbsp;|&nbsp;blank&nbsp;]
 [&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>clickRange</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<b>gui</b>&nbsp;&nbsp;<i>tool-list</i>&nbsp;]
 [&nbsp;<b>toolbarPanels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>gui</b>&nbsp;&nbsp;<i>tool-title</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>simplifyGraphics</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>multishadowAllowed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
-[&nbsp;<b>icons</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 <p>
 The <b>vr</b> command (same as <b>device vr</b>)
@@ -128,22 +127,33 @@ picking objects with the hand-controller cones, where <i>r</i>
 to the object in scene distance units, typically &Aring;.
 Limiting the range prevents accidentally picking far-away objects.
 </p><p>
-The <b>toolbarPanels</b> option (default <b>true</b>)
-indicates whether to hide icon toolbars
-(<a href="../tools/mousemodes.html"><b>Mouse Modes for Right Button</b></a>,
-<a href="../tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>, 
-<i>etc.</i>) and instead show them as tool panels.
-This is useful for consolidating the controls in VR.
-</p><p>
-By default, pressing the Vive hand-controller
+The <b>gui</b> option specifies what tools are shown as a control panel in VR
+when the Vive hand-controller
 <a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">menu button</a> (similar for other systems)
-shows all the tools that are on the right side of the desktop interface 
-as a control panel in VR. However,
-the <b>gui</b> option allows showing the single tool with title bar 
-contents <i>tool-title</i> instead. Subsituting <b>all</b> 
-(or any other string that is not a tool title) for <i>tool-title</i>
-restores the default behavior of showing all righthand tools.
+target="_blank">menu button</a> (similar for other systems) is pressed.
+By default, the icon <a href="../tools/toolbar.html"><b>Toolbar</b></a>
+and all of the righthand tools in the ChimeraX desktop window are shown.
+However, any other combination of the current <i>tools</i> can be specified as:
+</p>
+<ul>
+<li><b>main window</b> &ndash; the entire ChimeraX desktop window
+<li><b>right panels</b> 
+&ndash; all tools in the right side of the ChimeraX desktop window
+<li><i>tool1[,tool2 ...]</i> &ndash; a comma-separated list of one or more
+tool names (as listed in the <b>Tools</b> menu and shown for most tools in 
+their title bars), possibly including <b>right panels</b> as described above. 
+Tools may also be custom panels created with the
+<a href="buttonpanel.html"><b>buttonpanel</b></a> command.
+</ul>
+<p>
+The default corresponds to:
+<b>gui&nbsp;"<a href="../tools/toolbar.html">Toolbar</a>,&nbsp;right&nbsp;panels"</b>
+</p><p>
+The <b>toolbarPanels</b> option (default <b>true</b>)
+applies only to the old toolbars that were handled as separate tools; 
+it specifies whether to convert them into righthand panels for use in VR. 
+The new <a href="../tools/toolbar.html"><b>Toolbar</b></a>
+is shown by default, as described above.
 </p><p>
 The <b>simplifyGraphics</b> option (default <b>true</b>)
 reduces the maximum level of detail in VR by limiting the 
@@ -177,15 +187,10 @@ the fourth, eighth, and twelfth numbers. Example:
 <blockquote>
 <b>vr &nbsp;room &nbsp;20,0,0,0,0,20,0,0,0,0,20,0</b>
 </blockquote>
-</p><p>
-The <b>icons</b> option (default <b>false</b>) indicates whether 
-to show a panel of icons when the controller trackpad is touched.
-This user interface is deprecated, replaced by pressing the hand controller
-menu button which shows the standard ChimeraX user interface in VR.
 </p>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2018</address>
+May 2019</address>
 </body></html>

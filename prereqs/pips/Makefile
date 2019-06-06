@@ -8,7 +8,7 @@ include Makefile.pip
 LANG	= en_US.UTF-8
 
 #PATCHES = pillow_ome_tiff.patch pillow_i16s_tiff.patch
-PATCHES = pillow_ome_tiff.patch openvr_mac.patch
+PATCHES = pillow_ome_tiff.patch pillow_tiff_seek.patch openvr_mac.patch
 
 all:
 
@@ -52,6 +52,7 @@ app-upgrade:
 
 clean:
 	rm -f pip.log
+	make -C package_checker clean
 
 outdated:
 	$(PIP) list --outdated --format=columns
@@ -60,9 +61,7 @@ app-outdated:
 	$(APP_PIP) list --outdated --format=columns
 	@echo "Known issues:"
 	@echo "  grako (3.16.5 is the last version that works)"
-	@echo "  prompt-toolkit (required < 2.0.0 by IPython)"
-	@echo "  ipython and ipykernel (new version stopped working)"
-	@echo "  Cython (0.29 generates uncompilable code on Windows)"
+	@echo "  Cython (0.29.2 generates uncompilable code on Windows)"
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src

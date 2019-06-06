@@ -15,7 +15,14 @@
 
 static wchar_t* extra[] = {
 	L"-I",
+#if 0
+	// TODO: Probably the right thing to do, but needs discussing
+	L"-X",
+	L"utf8",
+#endif
 #ifndef _WIN32
+	// Works when started from cygwin shell, but not when
+	// double-clicked upon, nor from command prompt shell
 	L"-X",
 	L"faulthandler",
 #endif
@@ -24,6 +31,14 @@ static wchar_t* extra[] = {
 };
 static const int ec = sizeof(extra) / sizeof (extra[0]);
 
+static wchar_t* debug_extra[] = {
+	L"-X",
+	L"dev",
+	L"-X",
+	L"importtime",
+};
+static const int debug_ec = sizeof(debug_extra) / sizeof (debug_extra[0]);
+
 /*
  * Make Nvidia Optimus GPU switching choose high performance graphics.
  * http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
@@ -31,23 +46,37 @@ static const int ec = sizeof(extra) / sizeof (extra[0]);
 #ifdef _WIN32
 _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 #endif
-	
+
 static int
 app_main(int argc, wchar_t** wargv)
 {
-	wchar_t** args = (wchar_t**) malloc((argc + ec + 1) * sizeof (wchar_t*));
-	if (args == NULL) {
+	int debug = 0;
+	for (int i = 1; i < argc; ++i) {
+		if (wcscmp(wargv[i], L"--debug") == 0) {
+			debug = 1;
+			break;
+		}
+	}
+	int new_argc = argc + ec + debug * debug_ec;
+	wchar_t** new_argv = (wchar_t**) malloc((new_argc + 1) * sizeof (wchar_t*));
+	if (new_argv == NULL) {
 		fprintf(stderr, "out of memory\n");
 		return 123;
 	}
-	args[0] = wargv[0];
+	int ac = 0;
+	new_argv[ac++] = wargv[0];
+	if (debug) {
+		for (int i = 0; i < debug_ec; ++i)
+			new_argv[ac++] = debug_extra[i];
+	}
 	for (int i = 0; i < ec; ++i)
-		args[i + 1] = extra[i];
+		new_argv[ac++] = extra[i];
 	for (int i = 1; i < argc; ++i)
-		args[i + ec] = wargv[i];
-	args[argc + ec] = NULL;
+		new_argv[ac++] = wargv[i];
+	assert(ac == new_argc);
+	new_argv[ac] = NULL;
 
-	int result = Py_Main(argc + ec, args);
+	int result = Py_Main(new_argc, new_argv);
 	return result;
 }
 

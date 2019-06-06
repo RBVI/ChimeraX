@@ -138,7 +138,8 @@ class AtomSpecArg(Annotation):
             offset = index_map[ast.parseinfo.endpos] + 1
             raise AnnotationError("mangled atom specifier", offset=offset)
         # Success!
-        return ast, consumed, rest
+        from .cli import quote_if_necessary
+        return ast, quote_if_necessary(consumed), rest
 
     @classmethod
     def _parse_unquoted(cls, text, session):
@@ -824,8 +825,10 @@ class _AttrTest:
                 def matcher(obj):
                     try:
                         v = getattr(obj, attr_name)
+                        if v is None:
+                            return False
                     except AttributeError:
-                        return want_missing
+                        return False
                     if not case_sensitive:
                         v = v.lower()
                     matches = fnmatchcase(v, attr_value)
@@ -834,8 +837,10 @@ class _AttrTest:
                 def matcher(obj):
                     try:
                         v = getattr(obj, attr_name)
+                        if v is None:
+                            return False
                     except AttributeError:
-                        return want_missing
+                        return False
                     if not case_sensitive:
                         v = v.lower()
                     matches = v == attr_value
@@ -846,8 +851,10 @@ class _AttrTest:
             def matcher(obj):
                 try:
                     v = getattr(obj, attr_name)
+                    if v is None:
+                        return False
                 except AttributeError:
-                    return want_missing
+                    return False
                 return op(v, attr_value)
         return matcher
 
@@ -1005,7 +1012,9 @@ class AtomSpec:
             results = Objects.union(left_results, right_results)
         elif self._operator == '&':
             left_results = self._left_spec.evaluate(session, models, top=False)
+            add_implied_bonds(left_results)
             right_results = self._right_spec.evaluate(session, models, top=False)
+            add_implied_bonds(right_results)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
         else:
@@ -1054,7 +1063,6 @@ class _Selector:
             else:
                 value = "[Built-in]"
         elif isinstance(sel, Objects):
-            sel.refresh(session)
             if sel.empty():
                 deregister_selector(self.name, session.logger)
                 return None

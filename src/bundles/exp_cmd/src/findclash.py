@@ -26,7 +26,7 @@ def findclash(session, spec=None, make_pseudobonds=False, log=True,
     from chimerax.core.errors import LimitationError
     from chimerax.atomic import Atoms
     from chimerax.core.commands import atomspec
-    from chimerax.core.core_settings import settings
+    from chimerax.atomic.settings import settings
     if test != "self":
         raise LimitationError("findclash test \"%s\" not implemented" % test)
     if hbond_allowance != 0:
@@ -70,7 +70,7 @@ def findclash(session, spec=None, make_pseudobonds=False, log=True,
         session.logger.info("%d contacts" % len(clashes))
         session.logger.info("atom1\tatom2\toverlap\tdistance")
         save = settings.atomspec_contents
-        settings.atomspec_contents = "command-line specifier"
+        settings.atomspec_contents = "command"
         msgs = ["%s\t%s\t%.3f\t%.3f" % c for c in clashes]
         settings.atomspec_contents = save
         session.logger.info('\n'.join(msgs))

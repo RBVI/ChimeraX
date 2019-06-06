@@ -912,10 +912,19 @@ find_5ring_planar_NR2(const Atom* a, bool symmetric)
 	// check symmetry
 	bool asymmetric = false;
 	auto& neighbors = a->neighbors();
-	auto bonded1 = neighbors[0];
-	auto bonded2 = neighbors[1];
-	nr2.push_back(bonded1);
-	nr2.push_back(bonded2);
+	const Atom* bonded1 = nullptr;
+	const Atom* bonded2 = nullptr;
+	for (auto nb: neighbors) {
+		if (ring_atoms.find(nb) != ring_atoms.end()) {
+			nr2.push_back(nb);
+			if (bonded1 == nullptr)
+				bonded1 = nb;
+			else {
+				bonded2 = nb;
+				break;
+			}
+		}
+	}
 	if (symmetric) {
 		if (bonded1->element() != bonded2->element())
 			return Group();
@@ -956,10 +965,19 @@ find_6ring_planar_NR2(const Atom* a, bool symmetric)
 	// check symmetry
 	bool asymmetric = false;
 	auto& neighbors = a->neighbors();
-	auto bonded1 = neighbors[0];
-	auto bonded2 = neighbors[1];
-	nr2.push_back(bonded1);
-	nr2.push_back(bonded2);
+	const Atom* bonded1 = nullptr;
+	const Atom* bonded2 = nullptr;
+	for (auto nb: neighbors) {
+		if (ring_atoms.find(nb) != ring_atoms.end()) {
+			nr2.push_back(nb);
+			if (bonded1 == nullptr)
+				bonded1 = nb;
+			else {
+				bonded2 = nb;
+				break;
+			}
+		}
+	}
 	if (symmetric) {
 		if (bonded1->element() != bonded2->element())
 			return Group();

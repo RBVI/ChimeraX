@@ -17,8 +17,7 @@ SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp \
 	   chutil_cpp commands \
 	   geometry graphics \
 	   ioutil_cpp logger_cpp \
-	   pysupport_cpp toolshed \
-	   webservices
+	   pysupport_cpp toolshed
 
 ifeq ($(OS),Darwin)
 SUBDIRS += mac_util_cpp
@@ -27,7 +26,7 @@ endif
 include $(TOP)/mk/subdir.make
 
 BUNDLE_NAME = ChimeraX-Core
-BUNDLE_VERSION = 0.8
+BUNDLE_VERSION = 0.9
 PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
@@ -42,7 +41,7 @@ WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
-WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp36-cp36m-$(BIN_PLATFORM).whl
+WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
 .FORCE: wheel
@@ -79,7 +78,7 @@ SETUP_SED_ARGS += -e 's,\# WINDEBUG,,'
 endif
 endif
 
-setup.py: setup.py.in _serialize.cpp
+setup.py: setup.py.in _serialize.cpp Makefile
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
 $(SUBDIR_INSTALL): dir
@@ -96,7 +95,7 @@ pylint:
 .PHONY: buildinfo.py
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
-	$(PYTHON_EXE) mkbuildinfo $(TOP) $(BUNDLE_VERSION) > buildinfo.py || rm -f buildinfo.py
+	$(PYTHON_EXE) mkbuildinfo $(TOP) $(BUNDLE_VERSION) > buildinfo.py || (rm buildinfo.py ; exit 1)
 
 _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx

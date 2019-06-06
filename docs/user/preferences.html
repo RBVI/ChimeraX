@@ -119,7 +119,9 @@ Distances</h3>
 Settings for distance-monitor 
 <a href="pseudobonds.html">pseudobonds</a> are saved instantly 
 (without clicking <b>Save</b>).
-See also: <a href="commands/distance.html"><b>distance</b></a>,
+See also: 
+<a href="tools/distances.html"><b>Distances</b></a>,
+<a href="commands/distance.html"><b>distance</b></a>,
 <a href="commands/ui.html#mousemode"><b>mousemode</b></a>,
 <a href="selection.html#context">selection context menus</a>
 <ul>
@@ -240,12 +242,13 @@ Trackpad</h3>
 - whether to respond to trackpad multitouch gestures 
 (currently <b>Mac</b> only):
 two-finger rotation, three-finger translation, pinch-zoom, and four-finger zoom.
-For scrolling with a Magic Mouse to work properly when a trackpad is also
-present, this option should be turned off.
+With this option <b>on</b>,
+Magic Mouse scrolling will not work properly after a trackpad has been used.
 <p>
-Otherwise and on other platforms' multitouch trackpads, 
+Otherwise (Mac with this option <b>off</b> 
+and on other platforms' multitouch trackpads),
 two-finger drag performs the &ldquo;scrolling&rdquo; action
-(initial default zooming, see 
+(initial default zooming, see
 <a href="commands/ui.html#mousemode"><b>mousemode</b></a>).
 Regardless of the multitouch setting, 
 touchpad click-drag alone and with modifier keys
@@ -301,7 +304,7 @@ Window</h3>
 - on which side of the main window to dock 
 <a href="window.html#panels">tool panels</a> when they first appear 
 (overridden for tools with
-<a href="window.html#toolprefs">previously saved positions</a>):
+<a href="window.html#tool-context">previously saved positions</a>):
   <ul>
   <li><b>left</b>
   <li><b>right</b> (initial default)
@@ -318,7 +321,9 @@ size of the overall <a href="window.html">ChimeraX window</a>
 - whether to restore the graphics window size of a 
 <a href="commands/save.html#session">session</a> along with its contents;
 if this option is off (initial default), the graphics window will not resize
-when a session is restored. 
+when a session is restored. This setting can be overridden with the 
+<a href="commands/open.html"><b>open</b></a> command 
+<a href="commands/open.html#resizeWindow"><b>resizeWindow</b></a> option.
 See also: <a href="commands/windowsize.html"><b>windowsize</b></a>
 </ul>
 
@@ -333,7 +338,7 @@ but can be accessed through <a href="window.html#context-menu">context menus</a>
 and other dialogs:
 </p>
 <ul>
-<li>Generic <a href="window.html#toolprefs">tool-interface preferences</a>:
+<li>Generic <a href="window.html#tool-context">tool-interface preferences</a>:
 autostart, panel dockability, panel position 
 (see also <a href="commands/ui.html"><b>ui</b></a>)
 <li>Tool-specific preferences:
@@ -346,8 +351,12 @@ autostart, panel dockability, panel position
   - several aspects of appearance and contents
   </ul>
 </ul>
-
+<p>
+Some tools have settings that are &ldquo;sticky,&rdquo; automatically saved 
+in the preferences and presented to the user upon later uses of that tool.
+Example: <a href="tools/modeller.html"><b>Modeller Comparative</b></a>
+</p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2018</address>
+April 2019</address>
 </body></html> 

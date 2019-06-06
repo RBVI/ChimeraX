@@ -74,11 +74,8 @@ connect_atom_by_distance(Atom* a, const Residue::Atoms& atoms,
         if (a == oa || a->connects_to(oa)
         || (oa->element() <= Element::H && (H_or_LP || !oa->bonds().empty())))
             continue;
-        if (ai < a_it)
+        if (ai < a_it && conect_atoms && conect_atoms->find(oa) == conect_atoms->end())
             // already checked
-            continue;
-        if (conect_atoms && conect_atoms->find(oa) != conect_atoms->end())
-            // bonds for other atom already known
             continue;
         float dist = bonded_dist(a, oa);
         if (dist == 0.0)

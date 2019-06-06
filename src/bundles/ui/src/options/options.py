@@ -47,9 +47,11 @@ class Option(metaclass=ABCMeta):
             from weakref import proxy
             self.settings_handler = self.settings.triggers.add_handler('setting changed',
                 lambda trig_name, data, *, pself=proxy(self):
-                data[0] == pself.attr_name and pself.set(pself.get_attribute()))
+                data[0] == pself.attr_name and setattr(pself, "value", pself.get_attribute()))
         self.auto_set_attr = auto_set_attr
 
+        if default is None and attr_name and settings:
+            self.default = getattr(settings, attr_name)
         if default is not None or not hasattr(self, 'default'):
             self.default = default
 
@@ -99,24 +101,24 @@ class Option(metaclass=ABCMeta):
             self.value = self.default
         self._callback = callback
 
-        self._enabled = True
         if self.read_only:
-            self.disable()
+            self.enabled = False
 
     def __del__(self):
         if self.settings_handler:
             self.settings_handler.remove()
             self.settings_handler = None
 
-    @abstractmethod
-    def get(self):
-        """Supported API. Return the option's value"""
-        pass
+    @property
+    def enabled(self):
+        """Supported API. Enable/disable the option"""
+        return self.widget.isEnabled()
 
-    @abstractmethod
-    def set(self, value):
-        """Supported API. Set the option's value; should NOT invoke the callback"""
-        pass
+    @enabled.setter
+    def enabled(self, enable):
+        # usually no need to override, since enabling/disabling
+        # a Qt widget implicitly does the same for its children
+        self.widget.setEnabled(enable)
 
     def get_attribute(self):
         """Supported API. Get the attribute associated with this option ('attr_name' in constructor)
@@ -136,32 +138,29 @@ class Option(metaclass=ABCMeta):
         if self.settings is None:
             raise ValueError("No settings/object known to set attribute %s in, via option %s"
                     % (self.attr_name, repr(self)))
-        setattr(self.settings, self.attr_name, self.get())
+        setattr(self.settings, self.attr_name, self.value)
 
     @abstractmethod
     def set_multiple(self):
         """Supported API. Indicate that the items the option covers have multiple different values"""
         pass
 
-    @property
-    def value(self):
-        return self.get()
+    # no "shown" property because the option is in a QFormLayout and there is no way to hide a row,
+    # not to mention that hiding our widget doesn't hide the corresponding label
 
-    @value.setter
-    def value(self, val):
-        self.set(val)
+    # In Python 3.7, abstract properties where the getter/setter funcs have the same name don't
+    # work as expected in derived classes; use old-style property definition
 
-    def enable(self):
-        """Supported API. Enable the option"""
-        # usually no need to override, since enabling/disabling
-        # a Qt widget implicitly does the same for its children
-        self.widget.setDisabled(False)
+    @abstractmethod
+    def get_value(self):
+        pass
 
-    def disable(self):
-        """Supported API. Disable the option"""
-        # usually no need to override, since enabling/disabling
-        # a Qt widget implicitly does the same for its children
-        self.widget.setDisabled(True)
+    @abstractmethod
+    def set_value(self, val):
+        pass
+
+    value = property(get_value, set_value,
+        doc="Supported API. Get/set the option's value; when set it should NOT invoke the callback")
 
     def make_callback(self):
         """Supported API. Called (usually by GUI) to propagate changes back to program"""
@@ -178,11 +177,13 @@ class Option(metaclass=ABCMeta):
 class BooleanOption(Option):
     """Supported API. Option for true/false values"""
 
-    def get(self):
+    def get_value(self):
         return self.widget.isChecked()
 
-    def set(self, value):
+    def set_value(self, value):
         self.widget.setChecked(value)
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         from PyQt5.QtCore import Qt
@@ -197,8 +198,13 @@ class EnumOption(Option):
     """Supported API. Option for enumerated values"""
     values = ()
 
-    def get(self):
+    def get_value(self):
         return self.widget.text()
+
+    def set_value(self, value):
+        self.widget.setText(value)
+
+    value = property(get_value, set_value)
 
     def remake_menu(self, labels=None):
         from PyQt5.QtWidgets import QAction
@@ -207,12 +213,10 @@ class EnumOption(Option):
         menu = self.widget.menu()
         menu.clear()
         for label in labels:
-            action = QAction(label, self.widget)
+            menu_label = label.replace('&', '&&')
+            action = QAction(menu_label, self.widget)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)
-
-    def set(self, value):
-        self.widget.setText(value)
 
     def set_multiple(self):
         self.widget.setText(self.multiple_value)
@@ -227,8 +231,57 @@ class EnumOption(Option):
         self.remake_menu()
 
     def _menu_cb(self, label):
-        self.set(label)
+        self.value = label
         self.make_callback()
+
+class InputFolderOption(Option):
+    """Option for specifying an existing folder for input"""
+
+    def get_value(self):
+        return self.line_edit.text()
+
+    def set_value(self, value):
+        self.line_edit.setText(value)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.line_edit.setText(self.multiple_value)
+
+    def _make_widget(self, initial_text_width="10em", start_folder=None, browser_title="Choose Folder", **kw):
+        """initial_text_width should be a string holding a "stylesheet-friendly"
+           value, (e.g. '10em' or '7ch') or None"""
+        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
+        self.widget = QWidget()
+        self.widget.setContentsMargins(0,0,0,0)
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self.widget.setLayout(layout)
+        self.line_edit = QLineEdit()
+        self.line_edit.returnPressed.connect(self.make_callback)
+        if initial_text_width:
+            self.line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
+        layout.addWidget(self.line_edit, stretch=1)
+        self.start_folder = start_folder
+        self.browser_title = browser_title
+        button = QPushButton("Browse")
+        button.clicked.connect(self._launch_browser)
+        layout.addWidget(button)
+
+    def _launch_browser(self, *args):
+        from PyQt5.QtWidgets import QFileDialog
+        import os
+        if self.start_folder is None or not os.path.exists(self.start_folder):
+            start_folder = os.getcwd()
+        else:
+            start_folder = self.start_folder
+        folder = QFileDialog.getExistingDirectory(self.widget, self.browser_title, start_folder,
+            QFileDialog.ShowDirsOnly)
+        if folder:
+            self.line_edit.setText(folder)
+            self.line_edit.returnPressed.emit()
+
+OutputFolderOption = InputFolderOption
 
 class FloatOption(Option):
     """Supported API. Option for floating-point values.
@@ -248,7 +301,7 @@ class FloatOption(Option):
     default_minimum = -(2^31)
     default_maximum = 2^31 - 1
 
-    def get(self):
+    def get_value(self):
         val = self.spinbox.value()
         if val == 0.0 and self.non_zero:
             step = self.spinbox.singleStep()
@@ -258,9 +311,11 @@ class FloatOption(Option):
                 val = -step
         return val
 
-    def set(self, value):
+    def set_value(self, value):
         self.spinbox.setSpecialValueText("")
         self.spinbox.setValue(value)
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         self.spinbox.setSpecialValueText(self.multiple_value)
@@ -312,12 +367,14 @@ class IntOption(Option):
     default_minimum = -(2^31)
     default_maximum = 2^31 - 1
 
-    def get(self):
+    def get_value(self):
         return self._spin_box.value()
 
-    def set(self, value):
+    def set_value(self, value):
         self._spin_box.setSpecialValueText("")
         self._spin_box.setValue(value)
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         self._spin_box.setSpecialValueText(self.multiple_value)
@@ -348,12 +405,14 @@ class IntOption(Option):
 class RGBA8Option(Option):
     """Option for rgba colors, returns 8-bit (0-255) rgba values"""
 
-    def get(self):
+    def get_value(self):
         return self.widget.color
 
-    def set(self, value):
+    def set_value(self, value):
         """Accepts a wide variety of values, not just rgba"""
         self.widget.color = value
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         self.widget.color = None
@@ -366,15 +425,19 @@ class RGBA8Option(Option):
 class RGBAOption(RGBA8Option):
     """Option for rgba colors, returns floating-point (0-1) rgba values"""
 
-    def get(self):
-        return [x/255.0 for x in super().get()]
+    def get_value(self):
+        return [x/255.0 for x in super().value]
+
+    value = property(get_value, RGBA8Option.set_value)
 
 class ColorOption(RGBA8Option):
     """Option for rgba colors"""
 
-    def get(self):
+    def get_value(self):
         from chimerax.core.colors import Color
-        return Color(rgba=RGBA8Option.get(self))
+        return Color(rgba=super().value)
+
+    value = property(get_value, RGBA8Option.set_value)
 
 class OptionalRGBA8Option(Option):
     """Option for 8-bit (0-255) rgba colors, with possibility of None.
@@ -386,18 +449,20 @@ class OptionalRGBA8Option(Option):
     # default for class
     default_initial_color = [0.75, 0.75, 0.75, 1.0]
 
-    def get(self):
+    def get_value(self):
         if self._check_box.isChecked():
             return self._color_button.color
         return None
 
-    def set(self, value):
+    def set_value(self, value):
         """Accepts a wide variety of values, not just rgba"""
         if value is None:
             self._check_box.setChecked(False)
         else:
             self._check_box.setChecked(True)
             self._color_button.color = value
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         self._check_box.setChecked(True)
@@ -425,11 +490,13 @@ class OptionalRGBAOption(OptionalRGBA8Option):
     the starting value of the option is None (checkbox will be unchecked)
     """
 
-    def get(self):
-        rgba8 = super().get()
+    def get_value(self):
+        rgba8 = super().value
         if rgba8 is None:
             return None
         return [x/255.0 for x in rgba8]
+
+    value = property(get_value, OptionalRGBA8Option.set_value)
 
 class OptionalRGBA8PairOption(Option):
     """Like OptionalRGBA8Option, but two checkboxes/colors
@@ -438,11 +505,11 @@ class OptionalRGBA8PairOption(Option):
     even when the starting value of the option is (None, None) (checkboxes will be unchecked)
     """
 
-    def get(self):
+    def get_value(self):
         return (self._color_button[i].color if self._check_box[i].isChecked() else None
             for i in range(2) )
 
-    def set(self, value):
+    def set_value(self, value):
         """2-tuple.  Accepts a wide variety of values, not just rgba"""
         for i, val in enumerate(value):
             if val is None:
@@ -450,6 +517,8 @@ class OptionalRGBA8PairOption(Option):
             else:
                 self._check_box[i].setChecked(True)
                 self._color_button[i].color = val
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         for i in range(2):
@@ -488,18 +557,22 @@ class OptionalRGBAPairOption(OptionalRGBA8PairOption):
     even when the starting value of the option is (None, None) (checkboxes will be unchecked)
     """
 
-    def get(self):
-        rgba8s = super().get()
+    def get_value(self):
+        rgba8s = super().value
         return tuple(None if i is None else [c/255.0 for c in i] for i in rgba8s)
+
+    value = property(get_value, OptionalRGBA8PairOption.set_value)
 
 class StringOption(Option):
     """Supported API. Option for text strings"""
 
-    def get(self):
+    def get_value(self):
         return self.widget.text()
 
-    def set(self, value):
+    def set_value(self, value):
         self.widget.setText(value)
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         self.widget.setText(self.multiple_value)
@@ -509,20 +582,29 @@ class StringOption(Option):
         self.widget = QLineEdit(**kw)
         self.widget.editingFinished.connect(lambda s=self: s.make_callback())
 
+class PasswordOption(StringOption):
+    """Supported API. Option for entering a password"""
+
+    def _make_widget(self, **kw):
+        super()._make_widget(**kw)
+        self.widget.setEchoMode(self.widget.PasswordEchoOnEdit)
+
 class StringIntOption(Option):
     """Supported API. Option for a string and an int (as a 2-tuple), for something such as host and port"""
 
     default_minimum = IntOption.default_minimum
     default_maximum = IntOption.default_maximum
 
-    def get(self):
+    def get_value(self):
         return (self._line_edit.text(), self._spin_box.value())
 
-    def set(self, value):
+    def set_value(self, value):
         text, integer = value
         self._line_edit.setText(text)
         self._spin_box.setSpecialValueText("")
         self._spin_box.setValue(integer)
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         self._line_edit.setText(self.multiple_value)
@@ -563,11 +645,13 @@ class StringsOption(Option):
        so no callback will occur.  If such an indication is needed, another widget would have to
        provide it."""
 
-    def get(self):
+    def get_value(self):
         return self.widget.toPlainText().split('\n')
 
-    def set(self, value):
+    def set_value(self, value):
         self.widget.setText('\n'.join(value))
+
+    value = property(get_value, set_value)
 
     def set_multiple(self):
         self.widget.setText(self.multiple_value)
@@ -593,15 +677,17 @@ class SymbolicEnumOption(EnumOption):
     values = ()
     labels = ()
 
-    def get(self):
+    def get_value(self):
         return self._value
+
+    def set_value(self, value):
+        self._value = value
+        self.widget.setText(self.labels[list(self.values).index(value)])
+
+    value = property(get_value, set_value)
 
     def remake_menu(self):
         EnumOption.remake_menu(self, labels=self.labels)
-
-    def set(self, value):
-        self._value = value
-        self.widget.setText(self.labels[list(self.values).index(value)])
 
     def set_multiple(self):
         self._value = None
@@ -619,5 +705,5 @@ class SymbolicEnumOption(EnumOption):
             display_value=self.labels[list(self.values).index(self.default)], **kw)
 
     def _menu_cb(self, label):
-        self.set(self.values[self.labels.index(label)])
+        self.value = self.values[self.labels.index(label)]
         self.make_callback()

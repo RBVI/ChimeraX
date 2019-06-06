@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-_builtin_subcommands = set(['chain'])
+_builtin_subcommands = set(['chain', 'associate', 'disassociate'])
 _viewer_subcommands = set()
 _commands_registered = False
 
@@ -19,16 +19,29 @@ from chimerax.core.state import StateManager
 class AlignmentsManager(StateManager):
     """Manager for sequence alignments"""
     def __init__(self, session, bundle_info):
-        self.alignments = {}
+        self._alignments = {}
         # bundle_info needed for session save
         self.bundle_info = bundle_info
         self.session = session
         self.viewer_info = {'alignment': {}, 'sequence': {}}
         self.tool_to_subcommand = {}
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger("new alignment")
+        self.triggers.add_trigger("destroy alignment")
+
+    @property
+    def alignments(self):
+        return list(self._alignments.values())
+
+    @property
+    def alignments_map(self):
+        return {k:v for k,v in self._alignments.items()}
 
     def destroy_alignment(self, alignment):
         if alignment.ident is not False:
-            del self.alignments[alignment.ident]
+            del self._alignments[alignment.ident]
+        self.triggers.activate_trigger("destroy alignment", alignment)
         alignment._destroy()
 
     def deregister_viewer(self, tool_name, *, sequence_viewer=True, alignment_viewer=True):
@@ -55,7 +68,7 @@ class AlignmentsManager(StateManager):
             sequences within the alignment to commands.  Any such characters will be replaced
             with '/'.
             If False, then a "private" alignment will be returned that will not be shown in
-            a viewer not affected by any commands.
+            a viewer nor affected by any commands.
         auto_destroy : boolean or None
             Whether to automatically destroy the alignment when the last viewer for it
             is closed.  If None, then treated as False if the value of the 'viewer' keyword
@@ -109,17 +122,17 @@ class AlignmentsManager(StateManager):
         from .alignment import Alignment
         if identify_as is None:
             i = 1
-            while str(i) in self.alignments:
+            while str(i) in self._alignments:
                 i += 1
             identify_as = str(i)
         elif identify_as is not False and ':' in identify_as:
             self.session.logger.info(
                 "Illegal ':' character in alignment identifier replaced with '/'")
             identify_as = identify_as.replace(':', '/')
-        if identify_as in self.alignments:
+        if identify_as in self._alignments:
             self.session.logger.info(
                 "Destroying pre-existing alignment with identifier %s" % identify_as)
-            self.destroy_alignment(self.alignments[identify_as])
+            self.destroy_alignment(self._alignments[identify_as])
 
         if name is None:
             from chimerax.atomic import StructureSeq
@@ -140,9 +153,10 @@ class AlignmentsManager(StateManager):
         alignment = Alignment(self.session, seqs, identify_as, attrs, markups, auto_destroy,
             auto_associate, description, intrinsic)
         if identify_as:
-            self.alignments[identify_as] = alignment
+            self._alignments[identify_as] = alignment
         if viewer:
             viewer_startup_cb(self.session, tool_name, alignment)
+        self.triggers.activate_trigger("new alignment", alignment)
         return alignment
 
     def register_viewer(self, tool_name, startup_cb, *,
@@ -181,7 +195,7 @@ class AlignmentsManager(StateManager):
 
     @property
     def registered_viewers(self, seq_or_align):
-        """Return the registers viewers of type 'seq_or_align'
+        """Return the registered viewers of type 'seq_or_align'
             (which must be "sequence"  or "alignent")
 
            The return value is a list of tool names.
@@ -189,9 +203,9 @@ class AlignmentsManager(StateManager):
         return list(self.viewer_info[seq_or_align].keys())
 
     def reset_state(self, session):
-        for alignment in self.alignments.values():
+        for alignment in self._alignments.values():
             alignment._destroy()
-        self.alignments.clear()
+        self._alignments.clear()
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -199,20 +213,18 @@ class AlignmentsManager(StateManager):
         mgr._ses_restore(data)
         return mgr
 
-    SESSION_SAVE = True
-    
     def take_snapshot(self, session, flags):
         # viewer_info is "session independent"
         return {
             'version': 1,
 
-            'alignments': self.alignments,
+            'alignments': self._alignments,
         }
 
     def _ses_restore(self, data):
-        for am in self.alignments.values():
+        for am in self._alignments.values():
             am.close()
-        self.alignments = data['alignments']
+        self._alignments = data['alignments']
 
 def _register_viewer_subcommands(logger):
     global _commands_registered

@@ -34,6 +34,7 @@ from ._map import moments, affine_scale
 from ._map import local_correlation
 from ._map import linear_combination
 from ._map import covariance_sum
+from ._map import offset_range, box_cuts
 
 # -----------------------------------------------------------------------------
 # Control whether maps are pickable with mouse.
@@ -49,7 +50,8 @@ from .mouselevel import ContourLevelMouseMode
 # -----------------------------------------------------------------------------
 # Routines to register map file formats, database fetch, and volume command.
 #
-from .volume import register_map_file_formats, MapChannelsModel, MultiChannelSeries
+from .volume import register_map_file_formats, add_map_format
+from .volume import MapChannelsModel, MultiChannelSeries
 from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
@@ -79,7 +81,7 @@ class _MapBundle(BundleAPI):
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from chimerax import map
-        if command_name == 'volume':
+        if command_name == 'volume' or command_name == 'vop':
             map.register_volume_command(logger)
         elif command_name == 'molmap':
             map.register_molmap_command(logger)
@@ -95,16 +97,17 @@ class _MapBundle(BundleAPI):
         map.register_eds_fetch()
         map.register_emdb_fetch()
         if session.ui.is_gui:
-            from . import mouselevel, moveplanes
+            from . import mouselevel, moveplanes, windowing
             mouselevel.register_mousemode(session)
             moveplanes.register_mousemode(session)
+            windowing.register_mousemode(session)
 
 
     @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         from . import Volume, MapChannelsModel, MultiChannelSeries
-        from .volume import VolumeSurface
+        from .volume import VolumeSurface, VolumeImage
         from .session import GridDataState
         ct = {
             'GridDataState': GridDataState,
@@ -112,6 +115,7 @@ class _MapBundle(BundleAPI):
             'MultiChannelSeries': MultiChannelSeries,
             'Volume': Volume,
             'VolumeSurface': VolumeSurface,
+            'VolumeImage': VolumeImage,
         }
         return ct.get(class_name)
 

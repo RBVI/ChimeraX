@@ -34,6 +34,7 @@ endif
 	$(MAKE) build-app-dirs
 	$(MAKE) -C src install
 	$(MAKE) -C docs install
+	$(APP_PYTHON_EXE) clean_app.py
 	@echo 'Finished install at' `date`
 
 test src.test:

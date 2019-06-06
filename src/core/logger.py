@@ -418,6 +418,8 @@ class Logger(StatusLogger):
 
         if isinstance(exception_value, NotABug):
             self.error("%s%s" % (preface, exception_value))
+        elif probably_chimera1_session(ei):
+            self.error(chimera1_session_message, exception_value)
         elif isinstance(exception_value, CancelOperation):
             pass  # Cancelled operations are not reported
         else:
@@ -514,7 +516,7 @@ class Logger(StatusLogger):
 
 html_table_params = 'border=1 cellpadding=4 cellspacing=0'
 
-class CollatingLog(PlainTextLog):
+class CollatingLog(HtmlLog):
     """Collates log messages
 
     This class is designed to be used via the :py:class:`Collator` context manager.
@@ -526,14 +528,16 @@ class CollatingLog(PlainTextLog):
     sim_test_size = 10
     sim_collapse_after = 5
 
+    MAX_COLLATION_LEVEL = HtmlLog.LEVEL_ERROR
+
     def __init__(self):
         self.msgs = []
-        for _ in range(self.LEVEL_ERROR+1):
+        for _ in range(self.MAX_COLLATION_LEVEL+1):
             self.msgs.append([])
 
-    def log(self, level, msg):
-        if level <= self.LEVEL_ERROR:
-            self.msgs[level].append(msg)
+    def log(self, level, msg, image_info, is_html):
+        if level <= self.MAX_COLLATION_LEVEL:
+            self.msgs[level].append((msg, image_info, is_html))
             return True
         return False
 
@@ -549,7 +553,7 @@ class CollatingLog(PlainTextLog):
         summary += '  </thead>\n'
         summary += '  <tbody>\n'
         some_msgs = False
-        colors = ["#ffffff", "#ffb961", "#ff7882"]
+        colors = ["#ffffff", "#ffb961", "#ff7882", "#dc1436"]
         for level, msgs in reversed(list(enumerate(self.msgs))):
             if not msgs:
                 continue
@@ -565,18 +569,27 @@ class CollatingLog(PlainTextLog):
             logger.info(summary, is_html=True)
 
     def summarize_msgs(self, msgs, collapse_similar):
-        # Each message is plain text so escape < and > otherwise <stuff between angle brackets>
+        # For plain text messages, escape < and > otherwise <stuff between angle brackets>
         # disappears in html output.
         import html
-        msgs = [html.escape(m) for m in msgs]
-        
+        msgs = [(m if is_html else html.escape(m), image_info) for m, image_info, is_html in msgs]
+
         import sys
         if collapse_similar:
             summarized = []
             prev_msg = sim_info = None
-            for msg in msgs:
+            for msg, image_info in msgs:
                 # Judge similarity to preceding messages and perhaps collapse...
-                if sim_info:
+                if image_info[0] is not None:
+                    # always log images
+                    if sim_info:
+                        sim_reps = sim_info[0]
+                        if sim_reps > self.sim_collapse_after:
+                            summarized.append("{} messages similar to the above omitted\n".format(
+                                sim_reps - self.sim_collapse_after))
+                    prev_msg = sim_info = None
+                    summarized.append(image_info_to_html(msg, image_info))
+                elif sim_info:
                     sim_reps, sim_type, sim_data = sim_info
                     st = self.sim_test_size
                     if sim_type == "front":
@@ -634,7 +647,7 @@ class Collator:
     surround the code whose messages you want collated with a 'with' context
     using an instance of this class, e.g.::
 
-        from chimera.core.logger import Collator
+        from chimerax.core.logger import Collator
         with Collator(session.logger, "Problems found while doing X"):
             ...code to collate...
 
@@ -667,12 +680,18 @@ class _EarlyCollator(CollatingLog):
     """Collate any errors that occur before any "real" log hits the log stack."""
     excludes_other_logs = False
 
+    MAX_COLLATION_LEVEL = CollatingLog.LEVEL_BUG
+
     def log_summary(self, logger):
-        if self.msgs[self.LEVEL_ERROR]:
+        if self.msgs[self.LEVEL_ERROR] or self.msgs[self.LEVEL_BUG]:
             title = "Startup Errors"
         else:
             title = "Startup Messages"
         CollatingLog.log_summary(self, logger, title)
+
+#error_text_format = '<p style="color:crimson;font-weight:bold">%s</p>'
+# although the below isn't HTML5, it avoids the line break in the above
+error_text_format = '<font color="crimson"><b>%s</b></font>'
 
 def html_to_plain(html):
     """'best effort' to convert HTML to plain text"""
@@ -683,8 +702,39 @@ def html_to_plain(html):
     # h.body_width = ?  # TODO: track terminal size changes
     return h.handle(html)
 
+def image_info_to_html(msg, image_info):
+    image, image_break = image_info
+    import io
+    img_io = io.BytesIO()
+    image.save(img_io, format='PNG')
+    png_data = img_io.getvalue()
+    import codecs
+    bitmap = codecs.encode(png_data, 'base64')
+    width, height = image.size
+    img_src = '<img src="data:image/png;base64,%s" width=%d height=%d style="vertical-align:middle">'  % (
+        bitmap.decode('utf-8'), width, height)
+    if image_break:
+        img_src += "<br>\n"
+    return img_src
+
 def log_version(logger):
     '''Show version information.'''
     from chimerax.core import buildinfo
     from chimerax import app_dirs as ad
     logger.info("%s %s version: %s (%s)" % (ad.appauthor, ad.appname, ad.version, buildinfo.date.split()[0]))
+    logger.info(buildinfo.copyright)
+
+def probably_chimera1_session(exc_info):
+    etype, evalue, etraceback = exc_info
+    if etype != ModuleNotFoundError:
+        return False
+    if 'cPickle' not in str(evalue):
+        return False
+    from traceback import format_exception
+    formatted = format_exception(*exc_info)
+    if len(formatted) > 1 and ' line 1,' in formatted[-2]:
+        return True
+    return False
+
+chimera1_session_message = """ChimeraX cannot open a regular Chimera session.
+An exporter from Chimera to ChimeraX is being worked on but is not ready at this time."""

@@ -15,6 +15,7 @@ _GapChars = "-. "
 
 import re
 RE_PDBId = re.compile(r"\S*pdb\|(?P<id>\w{4})\|(?P<chain>\w*)\s*(?P<desc>.*)")
+RE_ChainId = re.compile(r"Chain (?P<id>\w*),.*")
 
 class Parser:
     """Parser for XML output from blastp (tested against
@@ -102,7 +103,7 @@ class Parser:
                 if m:
                     id_list.append(m.groups())
             pdbid, chain, desc = id_list.pop(0)
-            name = pdb = pdbid + '_' + chain if chain else pdbid
+            name = pdb = self._make_pdb_name(pdbid, chain, desc)
         else:
             name = hid
             pdb = None
@@ -118,9 +119,17 @@ class Parser:
         for hspe in he.findall("./Hit_hsps/Hsp"):
             match_list.append(self._extract_hsp(hspe, name, pdb, desc))
         for pdbid, chain, desc in id_list:
-            name = pdb = pdbid + '_' + chain if chain else pdbid
+            name = pdb = self._make_pdb_name(pdbid, chain, desc)
             for m in match_list:
                 self._copy_match(m, name, pdb, desc)
+
+    def _make_pdb_name(self, pdbid, chain, desc):
+        if not chain:
+            name = pdbid
+        else:
+            m = RE_ChainId.match(desc)
+            name = pdbid + '_' + m.group("id") if m else chain
+        return name
 
     def _extract_hsp(self, hspe, name, pdb, desc):
         score = int(float(self._text(hspe, "Hsp_bit-score"))) #SH
@@ -333,3 +342,12 @@ class Match:
     def dump(self, f):
         print >> f, self
         self.print_sequence(f, '')
+
+
+if __name__ == "__main__":
+    query_name = "query"
+    query_seq = "MSGAGSKRKNVFIEKATKLFTTYDKMIVAEADFVGSSQLQKIRKSIRGIGAVLMGKKTMIRKVIRDLADSKPELDALNTYLKQNTCIIFCKDNIAEVKRVINTQRVGAPAKAGVFAPNDVIIPAGPTGMEPTQTSFLQDLKIATKINRGQIDIVNEVHIIKTGQKVGASEATLLQKLNIKPFTYGLEPKIIYDAGACYSPSISEE"
+    with open("testdata/blast_pdb.txt") as f:
+        output = f.read()
+    p = Parser(query_name, query_seq, output)
+    print(p.matches)

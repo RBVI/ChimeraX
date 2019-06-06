@@ -26,6 +26,7 @@ class _SeqViewerBundleAPI(BundleAPI):
         if class_name == "SequenceViewer":
             from .tool import SequenceViewer
             return SequenceViewer
+        # so that old sessions _might_ work
         if class_name == "Consensus":
             from chimerax.seqalign.headers import Consensus
             return Consensus
@@ -38,11 +39,6 @@ class _SeqViewerBundleAPI(BundleAPI):
         """Register sequence viewer with alignments manager"""
         session.alignments.register_viewer("Sequence Viewer", _show_alignment,
             synonyms=["sv", "view"], subcommand_name=subcommand_name)
-
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import _start_seq_viewer
-        return _start_seq_viewer(session, tool_name)
 
 
 bundle_api = _SeqViewerBundleAPI()

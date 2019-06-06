@@ -1,0 +1,140 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>DICOM Files</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>DICOM Files</h3>
+<p>
+<a href="https://www.dicomstandard.org/current/"
+target="_blank">DICOM</a> (Digital Imaging and Communications in Medicine)
+refers to a broad and complex set of standards for medical images and 
+related information. ChimeraX can read many but not all DICOM files. 
+Errors may arise from trying to read types of data 
+that are not yet handled properly, such as screen captures, 
+non-axial series, and series encoded with 16-bit lossless jpeg.
+</p><p>
+See also:
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
+<a href="../tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+<a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
+<a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
+target="_blank">ChimeraX for Medical Image Analysis</a>
+</p><p>
+In ChimeraX, DICOM format is indicated by the filename suffix <b>.dcm</b>
+or the <b>format dicom</b> option in the
+<a href="../commands/open.html"><b>open</b></a> command.
+</p>
+<ul>
+<li>All of the DICOM files in a directory and its subdirectories 
+can be opened in a single operation if the format is specified:
+<blockquote>
+Menu: <b>File... Open DICOM Folder</b> (dialog shows Format: DICOM image), 
+browse to location, choose directory, click <b>Choose</b>
+<br>&ndash; or &ndash;
+<br>
+Command: <a href="../commands/open.html#local"><b>open</b></a>
+&nbsp;<i>directory-pathname</i>&nbsp; <b>format dicom</b>
+</blockquote>
+<p>
+...where <i>directory-pathname</i> may contain * as wildcard
+and should be enclosed in quotation marks if it includes spaces.
+Each image stack found will be opened as a separate model.
+<li>Alternatively, multiple DICOM files comprising a single 3D image stack
+can be opened as follows:
+<blockquote>
+Menu: <b>File... Open</b>, browse to location, click first file,
+Shift-click last file to select the entire set, click <b>Open</b>
+<br>&ndash; or &ndash;
+<br>
+Command: <a href="../commands/open.html#local"><b>open</b></a>
+&nbsp;<i>pathname-glob</i>
+</blockquote>
+...where <i>pathname-glob</i> specifies the name and location of 
+multiple files, typically using * as wildcard 
+and enclosed in quotation marks if it contains spaces. 
+</ul>
+<p>
+The <a href="../commands/open.html"><b>open</b></a> command
+<a href="../commands/open.html#verbose"><b>verbose</b></a> option 
+shows detailed debugging information for DICOM input.
+</p><p>
+In general, 3D maps described as image series are read (DICOM modalities
+CT, MR, RTDOSE, <i>etc.</i>).
+</p><p>
+Some DICOM files contain 4D data or <b><i>time series</i></b> 
+that can be played with the time slider shown automatically by ChimeraX or with
+the <a href="../commands/vseries.html"><b>vseries</b></a> command.
+</p><p>
+Some DICOM files contain SEG objects (<b><i>segmentations</i></b>
+as binary maps), and these are automatically associated with the 
+corresponding image series to synchronize plane display.
+They can also be displayed as isosurfaces, for example:
+<b><a href="../commands/volume.html">volume</a> #1.1.1.1.5 show style surf 
+level 1 region all</b>
+</p><p>
+Radiotherapy structure set (RTSTRUCT) contours are also read and displayed.
+</p>
+
+<a name="hierarchy"></a>
+<p class="nav">
+[<a href="#top">back to top: DICOM Files</a>]
+</p>
+<h3>DICOM Model Hierarchy</h3>
+<p>
+Models read from DICOM files are arranged in a hierarchy, as
+shown in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>:
+</p>
+<ol>
+<li>directory
+<li>patient ID
+<li>study date
+<li>series description and number, if available, or body part and modality
+<li>segmentations or other image series-dependent annotations
+(for example, segmentations of a particular CT scan)
+</ol>
+
+<a name="initial"></a>
+<p class="nav">
+[<a href="#top">back to top: DICOM Files</a>]
+</p>
+<h3>DICOM Initial Display Settings</h3>
+<p>
+Each <a href="../tools/volumeviewer.html">volume data</a> model
+read from DICOM is initially displayed as a single Z plane
+in the &ldquo;image&rdquo; <a href="../commands/volume.html#style">style</a>.
+DICOM-specific defaults for image-style rendering correspond to the
+<a href="../commands/volume.html"><b>volume</b></a> command options:
+</p>
+<ul>
+<li><a href="../commands/volume.html#pmode"><b>projectionMode 3d</b></a>
+<li><a href="../commands/volume.html#colormapOnGpu"><b>colormapOnGpu 
+true</b></a>
+<li><a href="../commands/volume.html#fullRegionOnGpu"><b>fullRegionOnGpu
+true</b></a>
+<li><a href="../commands/volume.html#appearance"><b>appearance initial</b></a>
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+June 2019</address>
+</body></html>

@@ -31,8 +31,9 @@ this list is not exhaustive.
 Distances between atoms (or <a href="markers.html">markers</a>):
 </p>
 <ul>
-<li><a href="commands/distance.html"><b>distance</b></a>
-&ndash; between a specified pair of atoms
+<li><a href="commands/distance.html"><b>distance</b></a> command,
+<a href="tools/distances.html"><b>Distances</b></a> tool 
+&ndash; between a specified or <a href="selection.html">selected</a> pair of atoms
 <li><a href="selection.html#context">selection context menu</a>
 when two atoms are <a href="selection.html">selected</a>
 <li><a href="commands/clashes.html"><b>clashes/contacts</b></a>
@@ -53,6 +54,18 @@ Angles:
 <ul>
 <li><a href="commands/torsion.html"><b>torsion</b></a>
 &ndash; torsion angle defined by four atoms
+</ul>
+<p>
+Center coordinates:
+</p>
+<ul>
+<li><a href="commands/measure.html#center"><b>measure center</b></a>
+</ul>
+<p>
+Inertia ellipsoid:
+</p>
+<ul>
+<li><a href="commands/measure.html#inertia"><b>measure inertia</b></a>
 </ul>
 <p>
 Surface areas, atomic:
@@ -93,19 +106,19 @@ Other map (<a href="tools/volumeviewer.html">volume data</a>) measurements:
 &ndash; isosurface area (sum of triangle areas)
 <li><a href="commands/bumps.html"><b>bumps</b></a>
 &ndash; isosurface protrusions
-<!-- not yet implemented #1296
 <li><a href="commands/vseries.html#measure"><b>vseries measure</b></a>
-&ndash; for each member of a <a href="trajectories.html#vseries">volume series</a>:
-centroid, distance from previous centroid, total path length along centroids, 
-isosurface area, and isosurface-enclosed volume
--->
+&ndash; for each member of a 
+<a href="trajectories.html#vseries">volume series</a>: isosurface level,
+centroid, distance from previous centroid, cumulative path length along 
+centroids, surface-enclosed volume, surface area, lengths of principal axes
 </ul>
 <p>
 Coloring or other display of spatially varying quantities:
 </p>
 <ul>
-<li><a href="commands/color.html#attribute"><b>color bfactor</b></a>
-&ndash; coloring by atomic B-factor
+<li><a href="commands/color.html#byattribute"><b>color byattribute</b></a>
+&ndash; coloring by atomic B-factor or other numerical attributes
+of atomic structures
 <li><a href="commands/mlp.html"><b>mlp</b></a>
 &ndash; molecular surface coloring by lipophilicity potential
 <li><a href="commands/color.html#map"><b>color sample</b></a>,
@@ -123,5 +136,5 @@ and a map isosurface (to compare time steps in a
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2018</address>
+May 2019</address>
 </body></html>

@@ -127,7 +127,7 @@ def absolute_path(path, file_paths, ask = False, base_path = None):
   from os.path import abspath
   if isinstance(path, (tuple, list)):
     fpath = [full_path(p, base_path) for p in path]
-    apath = tuple(file_paths.find(p,ask) for p in fpath)
+    apath = file_paths.find_multiple(fpath,ask)
     apath = tuple(abspath(p) for p in apath if p)
   elif path == '':
     return path
@@ -225,13 +225,22 @@ class ReplacementFilePaths:
   def __init__(self, ui):
     self._ui = ui
     self._replaced_paths = {}
-  def find(self, path, ask = False):
+    self._replace_dirs = {}
+  def find(self, path, ask = False, replace_dir = True):
     replacements = self._replaced_paths
     from os.path import isfile
     if isfile(path):
       return path
     elif path in replacements:
       return replacements[path]
+    elif replace_dir:
+      for pf, pt in self._replace_dirs.items():
+        if path.startswith(pf):
+          p = pt + path[len(pf):]
+          if isfile(p):
+            return p
+    if not ask:
+      return None
     elif self._ui.is_gui:
       # If path doesn't exist show file dialog to let user enter new path to file.
       from chimerax.ui.open_save import OpenDialogWithMessage
@@ -240,10 +249,25 @@ class ReplacementFilePaths:
                                 caption = 'Replace missing file',
                                 starting_directory = existing_directory(path))
       p = d.get_path()
+      if p is None:
+        return None
       replacements[path] = p
+      if replace_dir:
+        from os.path import dirname
+        self._replace_dirs[dirname(path)] = dirname(p)
       return p
     else:
       return path
+  def find_multiple(self, paths, ask = False, replace_dir = True):
+    # If user does not replace a path then don't ask about more paths.
+    # This is to handle image stacks where a map uses hundreds of 2d files.
+    npaths = []
+    for p in paths:
+      np = self.find(p, ask=ask, replace_dir=replace_dir)
+      if np is None:
+        return ()
+      npaths.append(np)
+    return tuple(npaths)
 
 # ---------------------------------------------------------------------------
 #
@@ -323,9 +347,13 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     dlist = [ArrayGridData(array)]
   else:
     dbfetch = s.get('database_fetch')
-    path = absolute_path(s['path'], file_paths, ask = (dbfetch is None),
+    ask = (dbfetch is None)
+    if s.get('series_index',0) >= 1 or s.get('time',0) >= 1:
+      ask = False
+    path = absolute_path(s['path'], file_paths, ask = ask,
                          base_path = session.session_file_path)
-    if (path is None or path == '') and dbfetch is None:
+    empty_path = (path is None or path == '' or path == () or path == [])
+    if empty_path and dbfetch is None:
       return None
     else:
       gid = s.get('grid_id','')
@@ -400,10 +428,12 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
     from .data import opendialog
     paths_and_types = [(path, file_type)]
     grids, error_message = opendialog.open_grid_files(paths_and_types,
-                                                      stack_images = False)
+                                                      stack_images = False,
+                                                      log = session.logger)
+    grids = _flatten_nested_lists(grids)
     if error_message:
-      print ('Error opening map "%s":' % path, error_message)
-      msg = error_message + '\nPlease select replacement file.'
+      print ('Error opening map "%s": %s' % (path, error_message))
+      msg = error_message
 # TODO: Show file dialog to locate map file.
 #      from chimera import tkgui
 #      grids = opendialog.select_grids(tkgui.app, 'Replace File', msg)
@@ -436,6 +466,15 @@ def open_data(path, gid, file_type, dbfetch, gdcache, session):
 
   return dlist
 
+def _flatten_nested_lists(l):
+  fl = []
+  for e in l:
+    if isinstance(e, (list, tuple)):
+      fl.extend(_flatten_nested_lists(e))
+    else:
+      fl.append(e)
+  return fl
+
 # ---------------------------------------------------------------------------
 # Used for scene restore on existing grid data object.
 #
@@ -454,24 +493,25 @@ map_attributes = (
   'id',
   'place',
   'region',
-  'representation',
   'rendering_options',
   'region_list',
-  'surface_brightness_factor',
-  'transparency_factor',
-  'solid_levels',
-  'solid_colors',
-  'solid_brightness_factor',
+  'image_levels',
+  'image_colors',
+  'image_brightness_factor',
   'transparency_depth',
   'default_rgba',
   'session_volume_id',
   'version',
 )
+
 basic_map_attributes = (
-  'id', 'display', 'region', 'representation',
-  'surface_brightness_factor', 'transparency_factor',
-  'solid_levels', 'solid_colors', 'solid_brightness_factor',
+  'id', 'display', 'region',
+  'image_levels', 'image_colors', 'image_brightness_factor',
   'transparency_depth', 'default_rgba')
+
+renamed_attributes = (('solid_levels', 'image_levels'),
+                      ('solid_colors', 'image_colors'),
+                      ('solid_brightness_factor', 'image_brightness_factor'))
 
 # ---------------------------------------------------------------------------
 #
@@ -518,11 +558,22 @@ def set_map_state(s, volume, notify = True):
   if not 'display' in s:
      # Fix old session files
     s['display'] = s['displayed'] if 'displayed' in s else True
-
+    
   for attr in basic_map_attributes:
     if attr in s:
       setattr(v, attr, s[attr])
 
+  for old_attr, new_attr in renamed_attributes:
+    if old_attr in s:
+      setattr(v, new_attr, s[old_attr])
+
+  if 'representation' in s:
+    # Handle old session files that had representation attribute.
+    style = s['representation']
+    if style == 'solid':
+      style = 'image'
+    v.set_display_style(style)
+      
   from chimerax.core.geometry import Place
   v.position = Place(s['place'])
 
@@ -539,7 +590,7 @@ def set_map_state(s, volume, notify = True):
 #  v.transparency_depth /= min(dsize)
 
   if notify:
-    v.call_change_callbacks(('representation changed',
+    v.call_change_callbacks(('display style changed',
                              'region changed',
                              'thresholds changed',
                              'displayed',
@@ -581,7 +632,12 @@ rendering_options_attributes = (
   'limit_voxel_count',
   'voxel_limit',
   'color_mode',
+  'colormap_on_gpu',
+  'colormap_size',
+  'blend_on_gpu',
   'projection_mode',
+  'plane_spacing',
+  'full_region_on_gpu',
   'dim_transparent_voxels',
   'bt_correction',
   'minimal_texture_memory',

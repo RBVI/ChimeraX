@@ -28,35 +28,89 @@ class Image_Stack_Data:
         raise SyntaxError('No files found %s' % path)
     self.paths = tuple(paths)
 
-    from PIL import Image
-    i = Image.open(self.paths[0])
+    self.is_tiff = len([p for p in self.paths if p.endswith('.tif') or p.endswith('.tiff')]) == len(self.paths)
 
-    self.value_type = pillow_numpy_value_type(i.mode)
-    self.mode = i.mode
-    self.channel = 0
+    if self.is_tiff:
+      # For TIFF images use tifffile.py
+      from tifffile import TiffFile, TIFF
+      tif = TiffFile(self.paths[0])
+      pages = tif.pages
+      page0 = pages[0]
+      value_type = page0.dtype
+      is_rgb = (page0.photometric == TIFF.PHOTOMETRIC.RGB)
 
-    xsize, ysize = i.size
+      ysize, xsize = page0.shape[:2]
 
-    if len(self.paths) == 1:
-      icount = image_count(i)
-      self.is_multipage = (icount > 1)
+      if len(self.paths) == 1:
+        zsize = len(pages)
+        is_multipage = (zsize > 1)
+      else:
+        zsize = len(self.paths)
+        is_multipage = False
+
     else:
-      icount = len(self.paths)
-      self.is_multipage = False
+      # For images other than TIFF use Pillow.
+      from PIL import Image
+      i = Image.open(self.paths[0])
 
-    self.data_size = (xsize, ysize, icount)
+      value_type = pillow_numpy_value_type(i.mode)
+      is_rgb = (i.mode == 'RGB')
+
+      xsize, ysize = i.size
+
+      if len(self.paths) == 1:
+        zsize = image_count(i)
+        is_multipage = (zsize > 1)
+      else:
+        zsize = len(self.paths)
+        is_multipage = False
+
+    self.value_type = value_type
+    self.is_rgb = is_rgb
+    self.is_multipage = is_multipage
+    self.data_size = (xsize, ysize, zsize)
     self.data_step = (1.0, 1.0, 1.0)
     self.data_origin = (0.0, 0.0, 0.0)
 
   # ---------------------------------------------------------------------------
   # Reads a submatrix and returns 3D NumPy matrix with zyx index order.
   #
-  def read_matrix(self, ijk_origin, ijk_size, ijk_step, channel, array, progress):
+  def read_tiff_matrix(self, ijk_origin, ijk_size, ijk_step, channel, progress):
 
     i0, j0, k0 = ijk_origin
     isz, jsz, ksz = ijk_size
     istep, jstep, kstep = ijk_step
-    dsize = self.data_size
+    klist = range(k0, k0+ksz, kstep)
+    if self.is_multipage:
+      from tifffile import TiffFile
+      with TiffFile(self.paths[0]) as tif:
+        a = tif.asarray(key = klist)
+    else:
+      from tifffile import imread
+      a = imread([self.paths[k] for k in klist])
+    if self.is_rgb and channel is not None:
+      if a.ndim == 4:
+        a = a[:,:,:,channel]
+      elif a.ndim == 3:
+        a = a[:,:,channel]
+    if a.ndim == 2:
+      a = a.reshape((1,) + tuple(a.shape))	# Make single-plane 3d
+    array = a[:, j0:j0+jsz:jstep,i0:i0+isz:istep]
+    return array
+
+  # ---------------------------------------------------------------------------
+  # Reads a submatrix and returns 3D NumPy matrix with zyx index order.
+  #
+  def read_matrix(self, ijk_origin, ijk_size, ijk_step, channel, progress):
+    if self.is_tiff:
+      return self.read_tiff_matrix(ijk_origin, ijk_size, ijk_step, channel, progress)
+
+    # Read using Pillow.
+    from ..readarray import allocate_array
+    array = allocate_array(ijk_size, self.value_type, ijk_step, progress)
+    i0, j0, k0 = ijk_origin
+    isz, jsz, ksz = ijk_size
+    istep, jstep, kstep = ijk_step
     mim = self.multipage_image()
     for k in range(k0, k0+ksz, kstep):
       if progress:
@@ -96,9 +150,20 @@ class Image_Stack_Data:
 #
 def is_3d_image(path):
 
-  from PIL import Image
-  i = Image.open(path)
-  return image_count(i, max = 2) > 1
+  if path.endswith('.tif') or path.endswith('.tiff'):
+    from tifffile import TiffFile
+    with TiffFile(path) as tif:
+      is_3d = True
+      try:
+        tif.pages[1]
+      except IndexError:
+        is_3d = False
+  else:
+    # Handle non-TIFF images using Pillow.
+    from PIL import Image
+    i = Image.open(path)
+    is_3d = image_count(i, max = 2) > 1
+  return is_3d
 
 # -----------------------------------------------------------------------------
 # Count images in a possibly multi-page PIL image.

@@ -34,6 +34,10 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>label
 delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>atoms</b>&nbsp;|&nbsp;<b>residues</b>&nbsp;|&nbsp;<b>bonds</b>&nbsp;|&nbsp;<b>pseudobonds</b>&nbsp;]
+<br>&ndash; or &ndash;<br>
+<b>~label
+</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>atoms</b>&nbsp;|&nbsp;<b>residues</b>&nbsp;|&nbsp;<b>bonds</b>&nbsp;|&nbsp;<b>pseudobonds</b>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>label listfonts</b>
@@ -64,6 +68,7 @@ For <b>label delete</b> (regardless of whether the
 <a href="atomspec.html"><i>atom-spec</i></a> is blank),
 the default is to act on all types of 3D labels unless narrowed with the
 <b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> keyword.
+The command <b>~label</b> is the same as <b>label delete</b>.
 </p><p>
 The command <b>label listfonts</b> lists the possible <a href="#font">fonts</a>
 in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -108,22 +113,20 @@ Carriage returns are indicated with <b>\n</b>.
 </blockquote>
 
 <blockquote>
-<b>color</b>&nbsp;&nbsp;<i>label-color</i>&nbsp;|&nbsp;<b>default</b>
+<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>
 <br>
-Set label color, where <i>label-color</i> can be 
-any <a href="colornames.html">color name</a> 
-that specifies a single color (default <b>white</b> or <b>black</b>
+Set label color (default <b>white</b> or <b>black</b>
 depending on the color of the <a href="#background">label background</a>, 
 if any, otherwise the <a href="set.html#bgColor">window background </a>). 
 </blockquote>
 
 <a name="background"></a>
 <blockquote>
-<b>background</b>&nbsp;&nbsp;<i>background-color</i>&nbsp;|&nbsp;<b>none</b>
+<b>background</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>
 <br>
-Show a rectangular background behind the label text (default <b>none</b>,
-no background), where <i>background-color</i> can be any 
-<a href="colornames.html">color name</a> that specifies a single color.
+Show a rectangular background of the 
+<a href="colornames.html">specified color</a>
+behind the label text (default <b>none</b>, no background)
 </blockquote>
 
 <blockquote>
@@ -195,5 +198,5 @@ unless <i>all</i> of the labels displayed for that model have a
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2018</address>
+May 2019</address>
 </body></html> 

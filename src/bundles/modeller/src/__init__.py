@@ -16,8 +16,24 @@ from chimerax.core.toolshed import BundleAPI
 class ModellerAPI(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        if class_name == "ModellerResultsViewer":
+            from .tool import ModellerResultsViewer
+            return ModellerResultsViewer
+        elif class_name == "ModellerLauncher":
+            from .tool import ModellerLauncher
+            return ModellerLauncher
+        from . import comparative
+        return getattr(comparative, class_name)
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(logger)
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import ModellerLauncher
+        return ModellerLauncher(session, tool_name)
 
 bundle_api = ModellerAPI()

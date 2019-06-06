@@ -1,0 +1,51 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: swapaa</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: swapaa</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>swapaa</b> 
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+<i>new-type</i>
+</h3>
+<p>
+The <b>swapaa</b> command performs a simple virtual mutation by
+replacing one type of amino acid with another.
+The <i>new-type</i> can be the three-letter code for any of 
+the 20 standard amino acids (with or without capitalization),
+and one or more protein residues 
+to change to that type can be 
+<a href="atomspec.html">specified</a> in a single command.
+</p><p>
+The command will be improved to use a rotamer library, but currently 
+sidechain replacement is done by matching a single conformation of the
+new residue type onto the backbone atoms of the existing residue.
+The backbone atoms are not replaced.
+See also: the <b>swapaa</b> <a href="ui.html#mousemode"><b>mouse mode</b></a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/swapaa.png"></a>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2019</address>
+</body></html>

@@ -84,6 +84,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     ctypedef enum BackboneExtent:
         BBE_MIN, BBE_RIBBON, BBE_MAX
 
+
 cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
     ctypedef enum PolymerType:
         PT_NONE, PT_AMINO, PT_NUCLEIC
@@ -165,6 +166,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         const vector[float]* aniso_u()
         float bfactor()
         Bonds bonds()
+        void clear_aniso_u()
         void clear_hide_bits(int)
         const Rgba& color()
         bool connects_to(Atom*)
@@ -179,7 +181,9 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         bool has_alt_loc(char)
         int hide()
         const char* idatm_type()
+        bool in_ribbon()
         bool is_backbone(BackboneExtent)
+        bool is_missing_heavy_template_neighbors(bool, bool, bool) except +
         bool is_ribose()
         bool is_side_connector()
         bool is_side_chain(bool)
@@ -209,6 +213,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_hide(int)
         void set_hide_bits(int)
         void set_idatm_type(const char*)
+        void set_in_ribbon(bool)
         void set_name(const char*)
         void set_occupancy(float)
         void set_radius(float) except +

@@ -27,17 +27,18 @@ class Alignment(State):
         self.session = session
         if isinstance(seqs, tuple):
             seqs = list(seqs)
-        self.seqs = seqs
+        self._seqs = seqs
         self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
         self.auto_destroy = auto_destroy
         self.description = description
+        self.observers = []
         self.viewers = []
         self.viewers_by_subcommand = {}
         self.viewer_to_subcommand = {}
-        self._viewer_notification_suspended = 0
-        self._vn_suspended_data = []
+        self._observer_notification_suspended = 0
+        self._ob_note_suspended_data = []
         self.associations = {}
         from chimerax.atomic import Chain
         self.intrinsic = intrinsic
@@ -55,7 +56,7 @@ class Alignment(State):
         elif auto_associate:
             # if "session", don't associate with currently open structures (session restore
             # will do that), but allow future auto-association
-            if auto_associate == "session":
+            if auto_associate != "session":
                 from chimerax.atomic import AtomicStructure
                 self.associate([s for s in session.models if isinstance(s, AtomicStructure)], force=False)
             # get the auto-association working...
@@ -96,7 +97,7 @@ class Alignment(State):
         if isinstance(models, Chain):
             structures = [models]
         elif models is None:
-            for seq in self.seqs:
+            for seq in self._seqs:
                 if isinstance(seq, StructureSeq) \
                 and seq.existing_residues.chains[0] not in self.associations:
                     self.associate([], seq=seq, reassoc=reassoc, keep_intrinsic=keep_intrinsic)
@@ -123,7 +124,7 @@ class Alignment(State):
             else:
                 aseqs = [seq]
         else:
-            aseqs = self.seqs[:]
+            aseqs = self.seqs
             aseqs.sort(key=lambda s: len(s.ungapped()))
         if structures:
             forw_aseqs = aseqs
@@ -263,7 +264,12 @@ class Alignment(State):
             else:
                 note_name = "add association"
                 note_data = new_match_maps
-            self._notify_viewers(note_name, note_data)
+            self._notify_observers(note_name, note_data)
+
+    def add_observer(self, observer):
+        """Called by objects that care about alignment changes that are not themselves viewer
+           (e.g. alignment headers).  Most of the documentation for attach_viewer() applies."""
+        self.observers.append(observer)
 
     def attach_viewer(self, viewer, *, subcommand_name=None):
         """Called by the viewer (with the viewer instance as the arg) to receive notifications
@@ -279,6 +285,7 @@ class Alignment(State):
            your viewer (same as given to the manager's 'register_viewer' call) as 'subcommand_name'.
         """
         self.viewers.append(viewer)
+        self.observers.append(viewer)
         if subcommand_name:
             self.viewers_by_subcommand.setdefault(subcommand_name, []).append(viewer)
             self.viewer_to_subcommand[viewer] = subcommand_name
@@ -301,16 +308,21 @@ class Alignment(State):
             self._assoc_handler = None
         self._auto_associate = assoc
 
+    @property
+    def being_destroyed(self):
+        return self._in_destroy
+
     def detach_viewer(self, viewer):
         """Called when a viewer is done with the alignment (see attach_viewer)"""
         self.viewers.remove(viewer)
+        self.observers.remove(viewer)
         sc = self.viewer_to_subcommand.get(viewer, None)
         if sc:
             self.viewers_by_subcommand[sc].remove(viewer)
         if not self.viewers and self.auto_destroy and not self._in_destroy:
             self.session.alignments.destroy_alignment(self)
 
-    def disassociate(self, sseq, reassoc=False):
+    def disassociate(self, sseq, *, reassoc=False, demotion=False):
         if sseq not in self.associations or self._in_destroy:
             return
 
@@ -322,19 +334,21 @@ class Alignment(State):
         del aseq.match_maps[sseq]
         del self.associations[sseq]
         sseq.triggers.remove_handler(match_map.del_handler)
-        # delay notifying the viewers until all chain demotions/deletions have been received
-        def _delay_disassoc(_, __, match_map=match_map, reassoc=reassoc, sseq=sseq, aseq=aseq):
-            self._notify_viewers("remove association", [match_map])
+        if reassoc:
+            return
+        if not demotion:
+            self._notify_observers("remove association", [match_map])
+
             # if the structure seq hasn't been demoted/destroyed, log the disassociation
-            from chimerax.atomic import StructureSeq
-            if not reassoc and isinstance(sseq, StructureSeq) and not sseq.structure.deleted:
-                struct = sseq.structure
-                struct_name = struct.name
-                if '.' in struct.id_string:
-                    # ensemble
-                    struct_name += " (" + struct.id_string + ")"
-                self.session.logger.info("Disassociated %s %s from %s"
-                    % (struct_name, sseq.name, aseq.name))
+            struct = sseq.structure
+            struct_name = struct.name
+            if '.' in struct.id_string:
+                # ensemble
+                struct_name += " (" + struct.id_string + ")"
+            self.session.logger.info("Disassociated %s %s from %s" % (struct_name, sseq.name, aseq.name))
+        # delay notifying the observers until all chain demotions/deletions have been received
+        def _delay_disassoc(_, __, match_map=match_map):
+            self._notify_observers("remove association", [match_map])
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         from chimerax import atomic
@@ -427,17 +441,21 @@ class Alignment(State):
 
         # set up callbacks for structure changes
         match_map.del_handler = chain.triggers.add_handler('delete',
-            lambda _1, sseq: self.disassociate(sseq))
+            lambda _1, sseq: self.disassociate(sseq, demotion=True))
         """
         match_map["mavModHandler"] = mseq.triggers.addHandler(
                 mseq.TRIG_MODIFY, self._mseqModCB, match_map)
         """
 
-    def resume_notify_viewers(self):
-        self._viewer_notification_suspended -= 1
-        if self._viewer_notification_suspended == 0:
+    def remove_observer(self, observer):
+        """Called when an observer is done with the alignment (see add_observer)"""
+        self.observers.remove(observer)
+
+    def resume_notify_observers(self):
+        self._observer_notification_suspended -= 1
+        if self._observer_notification_suspended == 0:
             cur_note = None
-            for note, data, viewer_criteria in self._vn_suspended_data:
+            for note, data, viewer_criteria in self._ob_note_suspended_data:
                 if cur_note == None:
                     cur_note = note
                     cur_data = data
@@ -450,12 +468,12 @@ class Alignment(State):
                     and cur_data[0] == data[0] and isinstance(cur_data[1], list):
                         cur_data[1].extend(data[1])
                         continue
-                self._notify_viewers(cur_note, cur_data, viewer_criteria=viewer_criteria)
+                self._notify_observers(cur_note, cur_data, viewer_criteria=viewer_criteria)
                 cur_note = note
                 cur_data = data
             if cur_note is not None:
-                self._notify_viewers(cur_note, cur_data, viewer_criteria=viewer_criteria)
-            self._vn_suspended_data = []
+                self._notify_observers(cur_note, cur_data, viewer_criteria=viewer_criteria)
+            self._ob_note_suspended_data = []
 
     def save(self, path_or_stream, format_name="fasta"):
         import importlib
@@ -465,13 +483,18 @@ class Alignment(State):
         with stream:
             mod.save(self.session, self, stream)
 
-    def suspend_notify_viewers(self):
-        self._viewer_notification_suspended += 1
+    @property
+    def seqs(self):
+        return self._seqs[:]
+
+    def suspend_notify_observers(self):
+        self._observer_notification_suspended += 1
 
     def _destroy(self):
         self._in_destroy = True
-        self._notify_viewers("destroyed", None)
+        self._notify_observers("destroyed", None)
         self.viewers = []
+        self.observers = []
         for sseq, aseq in self.associations.items():
             aseq.match_maps[sseq].del_handler.remove()
         if self._assoc_handler:
@@ -483,22 +506,22 @@ class Alignment(State):
         if not viewers:
             raise UserError("No '%s' viewers attached to alignment '%s'"
                 % (viewer_keyword, self.ident))
-        self._notify_viewers("command", subcommand_text, viewer_criteria=viewer_keyword)
+        self._notify_observers("command", subcommand_text, viewer_criteria=viewer_keyword)
 
-    def _notify_viewers(self, note_name, note_data, *, viewer_criteria=None):
-        if self._viewer_notification_suspended > 0:
-            self._vn_suspended_data.append((note_name, note_data, viewer_criteria))
+    def _notify_observers(self, note_name, note_data, *, viewer_criteria=None):
+        if self._observer_notification_suspended > 0:
+            self._ob_note_suspended_data.append((note_name, note_data, viewer_criteria))
             return
         if viewer_criteria is None:
-            viewers = self.viewers
+            recipients = self.observers
         else:
-            viewers = self.viewers_by_subcommand.get(viewer_criteria, [])
-        for viewer in viewers:
-            viewer.alignment_notification(note_name, note_data)
+            recipients = self.viewers_by_subcommand.get(viewer_criteria, [])
+        for recipient in recipients:
+            recipient.alignment_notification(note_name, note_data)
             if note_name in ["add association", "remove association"]:
-                viewer.alignment_notification("modify association", (note_name, note_data))
+                recipient.alignment_notification("modify association", (note_name, note_data))
             elif note_name in ["add sequences", "remove sequences"]:
-                viewer.alignment_notification("add or remove sequences", (note_name, note_data))
+                recipient.alignment_notification("add or remove sequences", (note_name, note_data))
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -513,19 +536,17 @@ class Alignment(State):
             s.match_maps = mm
             for chain, match_map in mm.items():
                 match_map.del_handler = chain.triggers.add_handler('delete',
-                    lambda _1, sseq, aln=aln: aln.disassociate(sseq))
+                    lambda _1, sseq, aln=aln: aln.disassociate(sseq, demotion=True))
         return aln
 
     def __str__(self):
         return self.ident
 
-    SESSION_SAVE = True
-    
     def take_snapshot(self, session, flags):
         """For session/scene saving"""
-        return { 'version': 1, 'seqs': self.seqs, 'ident': self.ident,
+        return { 'version': 1, 'seqs': self._seqs, 'ident': self.ident,
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
-            'associations': self.associations, 'match maps': [s.match_maps for s in self.seqs],
+            'associations': self.associations, 'match maps': [s.match_maps for s in self._seqs],
             'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate,
             'description' : self.description, 'intrinsic' : self.intrinsic }
 

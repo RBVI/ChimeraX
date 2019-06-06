@@ -25,6 +25,7 @@
 #include "AtomicStructure.h"
 #include "Bond.h"
 #include "Coord.h"
+#include "PBGroup.h"
 #include "Residue.h"
 #include "tmpl/TAexcept.h"
 
@@ -521,6 +522,24 @@ clock_t start_t = clock();
     for (auto& r: residues()) {
         try {
 #ifdef TRACK_UNTYPED
+            // Don't template-type residues with unexpected cross-residue 
+            // bonds (e.g. residues bonded to PTD in 3kch)
+            if (r->polymer_type() != PT_NONE) {
+                for (auto ra: r->atoms()) {
+                    if (ra->is_backbone(BBE_MIN))
+                        continue;
+                    for (auto nb: ra->neighbors()) {
+                        if (nb->residue() != ra->residue()) {
+                            // cysteine SG cross-residue bond okay...
+                            if (nb->name() == "SG" && ra->name() == "SG"
+                            && (nb->residue()->name() == "CYS" || nb->residue()->name() == "CYX")
+                            && (ra->residue()->name() == "CYS" || ra->residue()->name() == "CYX"))
+                                continue;
+                            throw tmpl::TA_NoTemplate("Non-standard cross-residue bond");
+                        }
+                    }
+                }
+            }
             auto templated_atoms = r->template_assign(
                 &Atom::set_computed_idatm_type,
                 "idatm", "templates", "idatmres");
@@ -1659,6 +1678,7 @@ clock_t start_t = clock();
         
         bool c2_possible = false;
         std::vector<Atom *> nb_valence1;
+        int num_bonded_Npls = 0;
         for (auto bondee: a->neighbors()) {
             auto bondee_type = bondee->idatm_type();
 
@@ -1676,7 +1696,12 @@ clock_t start_t = clock();
                 break;
             } else if (bondee->neighbors().size() == 1)
                 nb_valence1.push_back(bondee);
+            if (bondee_type == "Npl")
+                ++num_bonded_Npls;
         }
+        if (num_bonded_Npls == 3)
+            // guanidium
+            c2_possible = true;
 
         if (!c2_possible) {
             if (a->neighbors().size() == 3 && nb_valence1.size() > 0) {
@@ -2098,6 +2123,24 @@ clock_t start_t = clock();
             }
         }
     }
+
+    // "pass 11":  another non-IDATM pass. Change S3 sulfurs with < 2 bonds and
+    // coordinating 3+ metal ions to S3-, regardless of templating
+    //
+    // First count coordinations
+    auto pbg = pb_mgr().get_group(Structure::PBG_METAL_COORDINATION);
+    if (pbg != nullptr) {
+        std::map<Atom*,int> coord_count;
+        for (auto pb: pbg->pseudobonds()) {
+            for (auto a: pb->atoms()) {
+                if (a->idatm_type() == "S3" && a->bonds().size() < 2) {
+                    if (++coord_count[a] > 2)
+                        a->set_computed_idatm_type("S3-");
+                }
+            }
+        }
+    }
+
     // since the rings() "ignore" arg pointed to a local variable, the
     // rings cannot be reused...
     _recompute_rings = true;

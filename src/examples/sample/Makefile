@@ -21,14 +21,11 @@ OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 # We use ?= to let CHIMERAX_APP environment variable override
 ifeq ($(OS),CYGWIN_NT)
 # Windows
-CHIMERAX_APP ?= "/c/Program Files/ChimeraX.app"
+CHIMERAX_APP ?= "c:/Program Files/ChimeraX.app"
 endif
 ifeq ($(OS),Darwin)
 # Mac
 CHIMERAX_APP ?= /Applications/ChimeraX.app
-endif
-ifeq ($(OS),Linux)
-CHIMERAX_APP ?= /usr/local/bin/ChimeraX.app
 endif
 
 # Platform-dependent settings.  Should not need fixing.
@@ -40,7 +37,8 @@ ifeq ($(OS),Darwin)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
 endif
 ifeq ($(OS),Linux)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX
+CHIMERAX_EXE = $(shell which chimerax)
+#CHIMERAX_EXE = $(shell which chimerax-daily)
 endif
 RUN = $(CHIMERAX_EXE) --nogui --exit --cmd
 

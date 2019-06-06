@@ -144,17 +144,25 @@ class Model(State, Drawing):
             if not self.highlighted and not self.empty_drawing():
                 return False
             if include_children:
-                for m in self.child_models():
-                    if not m.get_selected(include_children=True, fully=True):
-                        return False
-            return True
+                for d in self.child_drawings():
+                    if isinstance(d, Model):
+                        if not d.get_selected(include_children=True, fully=True):
+                            return False
+                    else:
+                        if not d.highlighted and not d.empty_drawing():
+                            return False
+
+            return self.highlighted
 
         if self.highlighted:
             return True
 
         if include_children:
-            for m in self.child_models():
-                if m.get_selected(include_children=True):
+            for d in self.child_drawings():
+                if isinstance(d, Model):
+                    if d.get_selected(include_children=True):
+                        return True
+                elif d.highlighted:
                     return True
 
         return False
@@ -166,12 +174,18 @@ class Model(State, Drawing):
             self.session.ui.thread_safe(self.session.triggers.activate_trigger,
                 SELECTION_CHANGED, None)
 
+    # Provide a direct way to set only the model selection status
+    # without subclass interference
+    set_model_selected = set_selected
+
     selected = property(get_selected, set_selected)
     '''selected indicates if this model has any part selected but does not include children.'''
         
-    @property
-    def selected_positions(self):
+    def _get_selected_positions(self):
         return self.highlighted_positions
+    def _set_selected_positions(self, positions):
+        self.highlighted_positions = positions
+    selected_positions = property(_get_selected_positions, _set_selected_positions)
     
     def _model_set_position(self, pos):
         if pos != self.position:
@@ -295,7 +309,7 @@ class Model(State, Drawing):
         if self.has_formatted_metadata(session):
             fmt += ' <a href="cxcmd:log metadata #%s">[more&nbsp;info...]</a>' % self.id_string
         fmt += '<br>'
-        session.logger.info(fmt % (self.name, self.html_title) , is_html=True)
+        session.logger.info(fmt % (self.name, html_title) , is_html=True)
 
     def removed_from_session(self, session):
         pass
@@ -593,8 +607,8 @@ class Models(StateManager):
             log.status(status, log=True)
         if models:
             if len(models) > 1:
-                from os.path import basename
-                name = basename(filenames[0])
+                from . import io
+                name = io.model_name_from_path(filenames[0])
                 if len(filenames) > 1:
                     name += '...'
                 self.add_group(models, name=name)

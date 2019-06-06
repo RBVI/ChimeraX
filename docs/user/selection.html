@@ -28,41 +28,53 @@ class="clRight" title="User Guide Index"/></a>
 A <b><i>selection</i></b> is a set of items (atoms, bonds, residues, models)
 chosen by the user that:
 <ul>
-<li>is highlighted with green outlines in the graphics window
+<li>is highlighted in the graphics window with green outlines (default, 
+see <a href="commands/set.html#selectionColor"><b>set selectionColor</b></a>)
 <li>marks the items for subsequent operations:
   <ul>
   <li>can be <a href="commands/atomspec.html#builtin">specified</a> 
   as <b>sel</b> in <a href="index.html#commands">commands</a>, for example:
   <b><a href="commands/style.html">style</a> sel stick</b>
-  <li>indicates scope of action of toolbar icons:
+  <li>can be named with menu: <a href="menu.html#named-selections"><b>Select... 
+  Define Selector</b></a> or command
+  <a href="commands/name.html"><b>name frozen</b></a>
+  for later use in <a href="index.html#commands">commands</a>
+  and <a href="tools/basicactions.html"><b>Basic Actions</b></a>
+  <li>indicates scope of action of 
+  <a href="tools/toolbar.html"><b>Toolbar</b></a> icons:
      <ul>
      <li><a href="tools/moldisplay.html"><b>Molecule Display</b></a>:&nbsp;
      <img class="iconbar" src="molecule-icons.png">
-     <li><a href="tools/densitymaps.html"><b>Density Maps</b></a>:&nbsp;
+     <li><a href="tools/nucdisplay.html"><b>Nucleotides</b></a>:&nbsp;
+     <img class="iconbar" src="nuc-icons.png">
+     <li><a href="tools/densitymaps.html"><b>Map</b></a>:&nbsp;
      <img class="iconbar" src="density-icons.png">
      </ul>
-  <li>can be named with <a href="commands/name.html"><b>name frozen</b></a>
-  for later use in <a href="index.html#commands">commands</a>
-  and <a href="tools/basicactions.html"><b>Basic Actions</b></a>
   </ul>
 <li>can be created:
   <ul>
   <li>with the mouse in the graphics window
-  (see <a href="commands/ui.html#mousemode"><b>mousemode</b></a>), by default:
+  (see <a href="commands/ui.html#mousemode"><b>mousemode</b></a>
+    <img src="tools/mouse-icons/select.png" class="icon">), by default:
     <ul>
     <li>Ctrl-click to start selection (replace)
     <li>Shift-Ctrl-click to add/subtract (toggle)
     </ul>
-  <li>with the <a href="menu.html#select"><b>Select</b> menu</a>
+  <li>with the <a href="menu.html#select"><b>Select</b> menu</a>: by chain ID,
+  residue name, element, type of structure, sequence, zone, <i>etc.</i> 
   <li>with the <a href="commands/select.html"><b>select</b></a> command
-  <li>by dragging a box around residues in an associated
-  <a href="tools/sequenceviewer.html">sequence</a>
+  <li>by dragging a box around residues in an
+  <a href="tools/sequenceviewer.html#association">associated sequence</a>
   <li>with various other commands and tools
   </ul>
 <a name="cascade"></a>
-<li>can be broadened with the up arrow key
-or command <a href="commands/select.html#modify"><b>select up</b></a>,
+<li>can be broadened with 
+the up arrow key (when the mouse focus is in the graphics window),
+the <a href="menu.html#select"><b>Select</b> menu</a>,
+or the command <a href="commands/select.html#modify"><b>select up</b></a>,
 and subsequently narrowed with the down arrow key
+(when the mouse focus is in the graphics window),
+the <a href="menu.html#select"><b>Select</b> menu</a>,
 or <a href="commands/select.html#modify"><b>select down</b></a>,
 within the <b><i>selection cascades</i></b>:
   <ul>
@@ -114,16 +126,15 @@ shows a context menu, typically including options to
 <a href="commands/delete.html">delete</a> the selected atoms, bonds,
 and/or <a href="../pseudobonds.html">pseudobonds</a>.
 (Hidden selected atoms can be reshown using the 
-<a href="tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="tools/shortcut-icons/atomshow.png"></a> icon
-in the <a href="tools/moldisplay.html"><b>Molecule Display Toolbar</b></a>,
+<a href="tools/moldisplay.html" title="Molecule Display">
+<img class="icon" border=1 src="tools/shortcut-icons/atomshow.png"></a> icon,
 and all types of hidden items shown with the
 <a href="commands/show.html"><b>show</b></a> command.)
 If two atoms are selected, the context menu also includes an option to add a
-<a href="commands/distance.html">distance monitor</a> between them.
+<a href="tools/distances.html">distance monitor</a> between them.
 See also:
 <a href="window.html#context-menu">context menus</a>,
-<a href="preferences.html#distances"><b>Distances</b> preferences</a>
+<a href="tools/distances.html"><b>Distances</b></a>
 
 <a name="sel-vs-spec"></a>
 <p class="nav">
@@ -143,5 +154,5 @@ such as defining the scope of action when an icon is clicked.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2018</address>
+May 2019</address>
 </body></html>

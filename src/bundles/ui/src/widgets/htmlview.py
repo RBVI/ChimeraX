@@ -183,7 +183,6 @@ class HtmlView(QWebEngineView):
         """
         self.page().runJavaScript(script, *args)
 
-
 class _LoggingPage(QWebEnginePage):
 
     Levels = {
@@ -203,7 +202,6 @@ class _LoggingPage(QWebEnginePage):
         filename = os.path.basename(sourceId)
         print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
                                             self.Levels[level], msg))
-
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
@@ -368,6 +366,9 @@ class ChimeraXHtmlView(HtmlView):
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
+            if not _installable(filename, self.session.logger):
+                self.session.logger.info("Bundle saved as %s" % filename)
+                continue
             from chimerax.ui.ask import ask
             how = ask(self.session,
                       "Install %s for:" % filename,
@@ -384,6 +385,32 @@ class ChimeraXHtmlView(HtmlView):
                                                  self.session.logger,
                                                  per_user=per_user,
                                                  session=self.session)
+
+
+def _installable(filename, logger):
+    import pkginfo, re
+    from distutils.version import LooseVersion as Version
+    import chimerax.core
+    try:
+        w = pkginfo.Wheel(filename)
+    except Exception as e:
+        logger.info("Error parsing %s: %s" % (filename, str(e)))
+        return False
+    pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
+    for req in w.requires_dist:
+        m = pat.match(req)
+        if m:
+            op = m.group("op")
+            version = m.group("version")
+            if op == ">=":
+                return Version(chimerax.core.version) >= Version(version)
+            elif op == "==":
+                return Version(chimerax.core.version) == Version(version)
+            elif op == "<=":
+                return Version(chimerax.core.version) <= Version(version)
+            logger.info("Unsupported version comparison:", op)
+            return False
+    return True
 
 
 def cxcmd(session, url):

@@ -133,6 +133,12 @@ class Drawing:
         """Texture coordinates, an N by 2 numpy array of float32 values
         in range 0-1"""
 
+        self.colormap = None
+        '''Maps 2D and 3D texture values to colors.'''
+
+        self.colormap_range = (0,1)
+        '''Data value range corresponding to ends of colormap.'''
+
         # 3d texture that modulates colors.
         self.ambient_texture = None
         '''
@@ -311,10 +317,7 @@ class Drawing:
         return self._any_displayed_positions and len(self._positions) > 0
 
     def set_display(self, display):
-        dp = self._displayed_positions
-        if dp is None:
-            from numpy import empty, bool
-            dp = empty((len(self._positions),), bool)
+        dp = self.display_positions
         dp[:] = display
         self._displayed_positions = dp		# Need this to trigger buffer update
         self._any_displayed_positions = display
@@ -324,7 +327,12 @@ class Drawing:
     '''Whether or not the surface is drawn.'''
 
     def get_display_positions(self):
-        return self._displayed_positions
+        dp = self._displayed_positions
+        if dp is None:
+            from numpy import ones, bool
+            dp = ones((len(self._positions),), bool)
+            self._displayed_positions = dp
+        return dp
 
     def set_display_positions(self, position_mask):
         from numpy import array_equal
@@ -338,7 +346,7 @@ class Drawing:
         self.redraw_needed(shape_changed=True)
 
     display_positions = property(get_display_positions, set_display_positions)
-    '''Mask specifying which copies are displayed. Can be None meaning all positions displayed'''
+    '''Mask specifying which copies are displayed.'''
 
     @property
     def num_displayed_positions(self):
@@ -510,8 +518,10 @@ class Drawing:
         c = empty((np, 4), uint8)
         c[:, :] = rgba
         self._colors = c
-        self._opaque_color_count = (np if rgba[3] == 255 else 0)
-        self.redraw_needed()
+        opc = (np if rgba[3] == 255 else 0)
+        tchange = (opc != self._opaque_color_count)
+        self._opaque_color_count = opc
+        self.redraw_needed(transparency_changed = tchange)
 
     color = property(get_color, set_color)
     '''Single color of drawing used when per-vertex coloring is not
@@ -733,6 +743,13 @@ class Drawing:
         if t is not None:
             t.bind_texture()
 
+        cmap = self.colormap
+        if cmap:
+            if t:
+                r.set_colormap(cmap, self.colormap_range, t)
+            elif self.multitexture:
+                r.set_colormap(cmap, self.colormap_range, self.multitexture[0])
+
         at = self.ambient_texture
         if at is not None:
             at.bind_texture()
@@ -765,11 +782,20 @@ class Drawing:
             if (self.vertex_colors is not None) or len(self._colors) > 1:
                 sopt |= Render.SHADER_VERTEX_COLORS
             t = self.texture
-            if t or self.multitexture:
-                if t and t.is_cubemap:
+            if t:
+                if t.is_cubemap:
                     sopt |= Render.SHADER_TEXTURE_CUBEMAP
-                else:
+                elif t.dimension == 2:
                     sopt |= Render.SHADER_TEXTURE_2D
+                elif t.dimension == 3:
+                    sopt |= Render.SHADER_TEXTURE_3D
+                else:
+                    raise ValueError('Only 2D and 3D texture rendering supported, got %dD'
+                                     % t.dimension)
+            if self.colormap is not None:
+                sopt |= Render.SHADER_COLORMAP
+            if self.multitexture:
+                sopt |= Render.SHADER_TEXTURE_2D
             if self.ambient_texture is not None:
                 sopt |= Render.SHADER_TEXTURE_3D_AMBIENT
             if self.positions.shift_and_scale_array() is not None:
@@ -1069,6 +1095,11 @@ class Drawing:
         c = self._opengl_context
         if c:
             c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
+        else:
+            # Drawing was never drawn so opengl context was not set.
+            t = self.texture
+            if t and t.id is not None:
+                raise RuntimeError("Don't have opengl context needed to delete texture from drawing '%s' because drawing was never drawn" % self.name)
         self._delete_geometry()
         self.remove_all_drawings()
 
@@ -1093,6 +1124,9 @@ class Drawing:
                 t.delete_texture()
             self.multitexture = None
         self.texture_coordinates = None
+        if self.colormap:
+            self.colormap.delete_texture()
+            self.colormap = None
 
         for b in self._vertex_buffers:
             b.delete_buffer()
@@ -1375,7 +1409,7 @@ def draw_depth(renderer, drawings, opaque_only = True):
     r = renderer
     dc = r.disable_capabilities
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
-                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D)
+                                  r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D)
     draw_opaque(r, drawings)
     if not opaque_only:
         draw_transparent(r, drawings)
@@ -1408,12 +1442,12 @@ def draw_overlays(drawings, renderer):
     r.disable_shader_capabilities(0)
 
 
-def draw_highlight_outline(renderer, drawings):
+def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
     '''Draw the outlines of highlighted parts of the specified drawings.'''
     r = renderer
     r.outline.start_rendering_outline()
     _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
-    r.outline.finish_rendering_outline()
+    r.outline.finish_rendering_outline(color=color, pixel_width=pixel_width)
 
     
 def draw_on_top(renderer, drawings):
@@ -1715,6 +1749,10 @@ class Pick:
         '''Text description of the picked object.'''
         return None
 
+    def specifier(self):
+        '''Command specifier for the picked object.'''
+        return None
+
     def select(self, mode = 'add'):
         '''
         Cause this picked object to be highlighted ('add' mode), unhighlighted ('subtract' mode)
@@ -1955,6 +1993,9 @@ def _draw_texture(texture, renderer):
     draw_overlays([d], renderer)
     
 def qimage_to_numpy(qi):
+    from PyQt5.QtGui import QImage
+    if qi.format() != QImage.Format_ARGB32:
+        qi = qi.convertToFormat(QImage.Format_ARGB32)
     shape = (qi.height(), qi.width(), 4)
     buf = qi.bits().asstring(qi.byteCount())
     from numpy import uint8, frombuffer
@@ -2054,3 +2095,31 @@ def text_image_rgba_pil(text, color, size, font, data_dir):
 #    print ('Text "%s" rgba array size %s' % (text, tuple(rgba.shape)))
     frgba = rgba[::-1,:,:]	# Flip so text is right side up.
     return frgba
+
+# -----------------------------------------------------------------------------
+#
+def concatenate_geometry(geom):
+    '''
+    Combine list of (vertices, normals, triangles) triples into a single
+    vertex, normal and triangle array triple.  Also can combine pairs
+    (vertices, triangles), or 4-tuples (vertices, normals, texcoords, triangles).
+    All list entries must be tuples of the same length.
+    '''
+    if len(geom) <= 1:
+        return geom
+
+    nva = len(geom[0]) - 1
+    from numpy import concatenate, float32, int32
+    va = [concatenate([g[i] for g in geom]).astype(float32, copy=False) for i in range(nva)]
+    ta = concatenate([g[-1] for g in geom]).astype(int32, copy=False)
+
+    # Fix triangle vertex indices
+    voffset = 0
+    ti = 0
+    for g in geom:
+        nt = len(g[-1])
+        ta[ti:ti+nt] += voffset
+        ti += nt
+        voffset += len(g[0])
+
+    return va + [ta]

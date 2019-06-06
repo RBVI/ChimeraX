@@ -243,14 +243,13 @@ Only the sequence alignment stage of
 <a href="matchmaker.html"><b>matchmaker</b></a> is
 performed, not the superposition of structures.
 </p><p>
-HET residues such as ligands and ions are only included
-if they are present in both structures and
-attached to the same atom(s) in the paired chains
-by at least one &ldquo;covalent&rdquo; bond
+HET residues such as ligands and ions are only included if 
+they are present in both structures and attached to the same atom(s) 
+in the paired chains by at least one bond.
 <!--
 (which can be an unrealistic bond added manually and subsequently undisplayed)
--->
 or <a href="../pseudobonds.html">pseudobond</a>.
+-->
 </p><p>
 Once residues are paired, atoms in common within those residues are paired.
 In paired residues of the same type, atom pairing is straightforward.
@@ -260,6 +259,19 @@ For example (disregarding hydrogens),
 phenylalanine and tyrosine have in common all atoms of phenylalanine.
 </p>
 </blockquote>
+<p>
+To summarize, HET residues such as ligands and ions are only included
+if at least one of the following applies:
+</p>
+<ul>
+<li>the entire atomic models have identical sets of atoms with the 
+same atom names, residue numbers, and chain IDs
+<li><a href="#same"><b>same</b></a> is <b>true</b> and the HET residues
+in question are present in both structures with the same atom names, residue,
+numbers, and chain IDs (even if other atoms are different)
+<li>the HET residues in question are
+attached to the same atoms in the paired chains by at least one bond
+</ul>
 
 <a name="limitations"></a>
 <p class="nav">
@@ -295,5 +307,5 @@ and unattractive morph trajectory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2018</address>
+February 2019</address>
 </body></html>

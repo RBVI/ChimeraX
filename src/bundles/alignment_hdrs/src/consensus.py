@@ -18,17 +18,31 @@ from .header_sequence import DynamicHeaderSequence
 class Consensus(DynamicHeaderSequence):
     name = "Consensus"
     sort_val = 1.3
-    def __init__(self, alignment, *, ignore_gaps=False, capitalize_at=0.8):
-        self.capitalize_at = capitalize_at
+    def __init__(self, alignment, refresh_callback):
         self.conserved = [False] * len(alignment.seqs[0])
-        self._ignore_gaps = ignore_gaps
-        super().__init__(alignment)
+        super().__init__(alignment, refresh_callback)
+        self.handler_ID = self.settings.triggers.add_handler('setting changed', lambda *args: self.reevaluate())
+
+    def add_options(self, options_container, *, category=None, verbose_labels=True):
+        self._add_options(options_container, category, verbose_labels, self.option_data())
+
+    @property
+    def capitalize_threshold(self):
+        return self.settings.capitalize_threshold
+
+    @capitalize_threshold.setter
+    def capitalize_threshold(self, capitalize_threshold):
+        self.settings.capitalize_threshold = capitalize_threshold
+
+    def destroy(self):
+        self.handler_ID.remove()
+        super().destroy()
 
     def evaluate(self, pos):
         occur = {}
         for i in range(len(self.alignment.seqs)):
             let = self.alignment.seqs[i][pos]
-            if self._ignore_gaps and not let.isalpha():
+            if self.settings.ignore_gaps and not let.isalpha():
                 continue
             try:
                 occur[let] += 1
@@ -45,7 +59,7 @@ class Consensus(DynamicHeaderSequence):
         self.conserved[pos] = False
         if let is None:
             return ' '
-        if num / len(self.alignment.seqs) >= self.capitalize_at:
+        if num / len(self.alignment.seqs) >= self.settings.capitalize_threshold:
             retlet = let.upper()
             if num == len(self.alignment.seqs):
                 self.conserved[pos] = True
@@ -55,16 +69,23 @@ class Consensus(DynamicHeaderSequence):
 
     @property
     def ignore_gaps(self):
-        return self._ignore_gaps
+        return self.settings.ignore_gaps
 
     @ignore_gaps.setter
     def ignore_gaps(self, ignore_gaps):
-        if ignore_gaps != self._ignore_gaps:
-            self._ignore_gaps = ignore_gaps
-            if self.visible or self.evaluate_while_hidden:
-                self.reevaluate()
-            else:
-                self._update_needed = True
+        self.settings.ignore_gaps = ignore_gaps
+
+    def num_options(self):
+        return 2
+
+    def option_data(self):
+        from chimerax.ui.options import FloatOption, BooleanOption
+        return super().option_data() + [
+            ("capitalization threshold", 'capitalize_threshold', FloatOption, {},
+                "Capitalize consensus letter if at least this fraction of sequences are identical"),
+            ("ignore gap characters", 'ignore_gaps', BooleanOption, {},
+                "Whether gap characters are considered for the consensus character")
+        ]
 
     def position_color(self, pos):
         if self[pos].isupper():
@@ -73,7 +94,20 @@ class Consensus(DynamicHeaderSequence):
             return 'purple'
         return 'black'
 
-    def reevaluate(self):
+    def reevaluate(self, pos1=0, pos2=None, *, evaluation_func=None):
         """sequences changed, possibly including length"""
-        self.conserved = [False] * len(self.alignment.seqs[0])
-        super().reevaluate()
+        if len(self.conserved) != len(self.alignment.seqs[0]):
+            self.conserved = [False] * len(self.alignment.seqs[0])
+        else:
+            r1, r2 = pos1, (len(self.conserved) if pos2 is None else pos2+1)
+            self.conserved[r1:r2] = [False] * (r2-r1)
+        super().reevaluate(pos1, pos2, evaluation_func=evaluation_func)
+
+    def settings_info(self):
+        name, defaults = super().settings_info()
+        defaults.update({
+            'capitalize_threshold': 0.8,
+            'ignore_gaps': False,
+            'initially_shown': True
+        })
+        return "consensus sequence header", defaults

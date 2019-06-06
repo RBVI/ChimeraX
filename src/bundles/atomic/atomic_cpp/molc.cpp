@@ -338,6 +338,18 @@ extern "C" EXPORT void set_atom_aniso_u6(void *atoms, size_t n, float32_t *aniso
     }
 }
 
+extern "C" EXPORT void clear_atom_aniso_u6(void *atoms, size_t n)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+          a[i]->clear_aniso_u();
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_occupancy(void *atoms, size_t n, float32_t *occupancies)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -482,11 +494,14 @@ extern "C" EXPORT void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
 {
     Atom **a = static_cast<Atom **>(atoms);
     std::unordered_map<Structure*, std::vector<Atom*>> s_map;
+    std::unordered_set<Structure*> ribbon_changed;
     Coord coord;
     try {
         for (size_t i = 0; i != n; ++i) {
             s_map[(*a)->structure()].push_back(*a);
             coord.set_xyz(*xyz, *(xyz+1), *(xyz+2));
+            if ((*a)->in_ribbon())
+                ribbon_changed.insert((*a)->structure());
             (*a++)->set_coord(coord, /* track_change */ false);
             xyz += 3;
         }
@@ -497,8 +512,9 @@ extern "C" EXPORT void set_atom_coord(void *atoms, size_t n, float64_t *xyz)
             ct->add_modified_set(s, atoms, ChangeTracker::REASON_COORD);
             ct->add_modified(s, s->active_coord_set(), ChangeTracker::REASON_COORDSET);
             s->set_gc_shape();
-            s->set_gc_ribbon();
         }
+        for (auto &s: ribbon_changed)
+            s->set_gc_ribbon();
     } catch (...) {
         molc_error();
     }
@@ -1180,6 +1196,75 @@ extern "C" EXPORT void atom_has_selected_bond(void *atoms, size_t n, npy_bool *s
 		  sel[i] = true;
 		  break;
 		}
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+template <class C, typename T>
+void affine_transform(const C& coord, T* tf, C& result)
+{
+    for (size_t i=0; i<3; ++i)
+    {
+        result[i] = tf[4*i] * coord[0] + tf[4*i+1] * coord[1] + tf[4*i+2]*coord[2] + tf[4*i+3];
+    }
+}
+
+template <typename T>
+void transform_u_aniso(const std::vector<float>* aup, T* tf, std::vector<float>& result)
+{
+    // Need to apply only rotation component of transform, as (rot).U.(rot)T
+    // aniso_u6 is stored as u11, u12, u13, u22, u23, u33
+    const auto& au = *aup;
+    std::vector<float> full = {au[0],au[1],au[2],au[1],au[3],au[4],au[2],au[4],au[5]};
+    std::vector<float> ir(9);
+    for (size_t i=0; i<3; ++i){
+        for (size_t j=0; j<3; ++j){
+            ir[3*i+j] = tf[4*i] * full[j] + tf[4*i+1] * full[3+j] + tf[4*i+2] * full[6+j];
+        }
+    }
+    for (size_t i=0; i<3; ++i) {
+        for (size_t j=0; j<3; ++j){
+            result[3*i+j] = ir[3*i] * tf[4*j] + ir[3*i+1] * tf[4*j+1] + ir[3*i+2] * tf[4*j+2];
+        }
+    }
+}
+
+void transform_atom(Atom* atom, double* tf)
+{
+    Coord transformed;
+    affine_transform<Coord, double>(atom->coord(), tf, transformed);
+    atom->set_coord(transformed);
+    if (atom->has_aniso_u())
+    {
+        std::vector<float> ua(9);
+        transform_u_aniso<double>(atom->aniso_u(), tf, ua);
+        atom->set_aniso_u(ua[0],ua[1],ua[2],ua[4],ua[5],ua[8]);
+    }
+}
+
+extern "C" EXPORT void atom_transform(void* atom, size_t n, double* tf)
+{
+    try {
+        auto a = static_cast<Atom**>(atom);
+        char current_altloc;
+        for (size_t i=0; i<n; ++i)
+        {
+            auto atom = *(a++);
+            auto altlocs = atom->alt_locs();
+            if (altlocs.size())
+            {
+                current_altloc = atom->alt_loc();
+                for (const auto& altloc: altlocs)
+                {
+                    atom->set_alt_loc(altloc);
+                    transform_atom(atom, tf);
+                }
+                atom->set_alt_loc(current_altloc);
+            } else {
+                transform_atom(atom, tf);
+            }
         }
     } catch (...) {
         molc_error();
@@ -2389,6 +2474,29 @@ extern "C" EXPORT void* residue_find_atom(void *residue, char *atom_name)
     }
 }
 
+extern "C" EXPORT PyObject *residue_ideal_chirality(const char *res_name, const char *atom_name)
+{
+    std::string error_msg;
+    auto i = Residue::ideal_chirality.find(res_name);
+    if (i == Residue::ideal_chirality.end()) {
+        error_msg.append("mmCIF Chemical Component Dictionary for ");
+        error_msg.append(res_name);
+        error_msg.append(" has not been read");
+        PyErr_SetString(PyExc_KeyError, error_msg.c_str());
+        return nullptr;
+    }
+    auto j = i->second.find(atom_name);
+    if (j == i->second.end()) {
+        error_msg.append("Atom ");
+        error_msg.append(atom_name);
+        error_msg.append(" not in mmCIF Chemical Component Dictionary for ");
+        error_msg.append(res_name);
+        PyErr_SetString(PyExc_KeyError, error_msg.c_str());
+        return nullptr;
+    }
+    return unicode_from_character(j->second);
+}
+
 extern "C" EXPORT void residue_insertion_code(void *residues, size_t n, pyobject_t *ics)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -2836,6 +2944,8 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
         Atom *prev_o = NULL;
         for (size_t i = 0; i != n; ++i) {
             Residue* r = res_array[i];
+            for (auto atom: r->atoms())
+                atom->set_in_ribbon(false);
             Atom *ca = r->find_atom("CA");
             if (ca != NULL) {
                 // Case 1: amino acid
@@ -2925,6 +3035,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
             *data++ = c[0];
             *data++ = c[1];
             *data++ = c[2];
+            atom->set_in_ribbon(true);
         }
         PyTuple_SetItem(o, 2, ca);
 
@@ -2974,6 +3085,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                 guide[0] = c[0];
                 guide[1] = c[1];
                 guide[2] = c[2];
+                guides[i]->set_in_ribbon(true);
             }
             //
             // Handle first residue
@@ -2996,6 +3108,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                     guide[0] = c[0];
                     guide[1] = c[1];
                     guide[2] = c[2];
+                    guides[0]->set_in_ribbon(true);
                 }
             }
             //
@@ -3019,6 +3132,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n)
                     guide[0] = c[0];
                     guide[1] = c[1];
                     guide[2] = c[2];
+                    guides[last]->set_in_ribbon(true);
                 }
             }
             PyTuple_SetItem(o, 3, ga);
@@ -3075,6 +3189,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
                         center = atom;
                     else if (want_guides && (name == "O" || name == "C1'"))
                         guide = atom;
+                    atom->set_in_ribbon(false);
                 }
                 if (center == NULL) {
                     // Do not care if there is a guide atom
@@ -3135,6 +3250,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             float *data;
             PyObject *ca = python_float_array(centers.size(), 3, &data);
             for (auto atom : centers) {
+                atom->set_in_ribbon(true);
                 const Coord &c = atom->coord();
                 *data++ = c[0];
                 *data++ = c[1];
@@ -3144,6 +3260,7 @@ extern "C" EXPORT PyObject* residue_polymer_spline(void *residues, size_t n, int
             if (has_guides) {
                 PyObject *ga = python_float_array(guides.size(), 3, &data);
                 for (auto atom : guides) {
+                    atom->set_in_ribbon(true);
                     const Coord &c = atom->coord();
                     *data++ = c[0];
                     *data++ = c[1];
@@ -3413,11 +3530,12 @@ extern "C" EXPORT void sseq_structure(void *chains, size_t n, pyobject_t *molp)
     }
 }
 
-extern "C" EXPORT void *sseq_new(char *chain_id, void *struct_ptr)
+extern "C" EXPORT void *sseq_new(char *chain_id, void *struct_ptr, int polymer_type)
 {
     Structure *structure = static_cast<Structure*>(struct_ptr);
     try {
-        StructureSeq *sseq = new StructureSeq(chain_id, structure);
+        StructureSeq *sseq = new StructureSeq(chain_id, structure,
+            static_cast<atomstruct::PolymerType>(polymer_type));
         return sseq;
     } catch (...) {
         molc_error();
@@ -4883,6 +5001,16 @@ extern "C" EXPORT void *atomic_structure_new(PyObject* logger)
     } catch (...) {
         molc_error();
         return nullptr;
+    }
+}
+
+extern "C" EXPORT void structure_combine_sym_atoms(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        m->combine_sym_atoms();
+    } catch (...) {
+        molc_error();
     }
 }
 

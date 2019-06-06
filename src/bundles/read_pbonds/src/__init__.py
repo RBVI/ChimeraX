@@ -22,4 +22,11 @@ class _ReadPBondsBundle(BundleAPI):
         from . import readpbonds
         return readpbonds.read_pseudobond_file(session, stream, file_name)
 
+    @staticmethod
+    def save_file(session, path, models=None, selected_only=False):
+        # 'save_file' is called by session code to save a file
+        from . import readpbonds
+        readpbonds.write_pseudobond_file(session, path, models=models,
+                                         selected_only=selected_only)
+
 bundle_api = _ReadPBondsBundle()

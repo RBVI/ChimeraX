@@ -13,7 +13,7 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-#if defined(USE_TEXTURE_OUTLINE) ||defined(USE_DEPTH_OUTLINE)
+#if defined(USE_TEXTURE_OUTLINE) || defined(USE_DEPTH_OUTLINE) || defined(USE_BLEND_TEXTURE_2D) || defined(USE_BLEND_TEXTURE_3D)
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec2 tex_coord;
@@ -69,6 +69,11 @@ out vec4 color;
 #ifdef USE_TEXTURE_2D
 layout(location = 1) in vec2 tex_coord;
 out vec2 tex_coord_2d;
+#endif
+
+#ifdef USE_TEXTURE_3D
+layout(location = 1) in vec3 tex_coord;
+out vec3 tex_coord_3d;
 #endif
 
 #ifdef USE_TEXTURE_CUBEMAP
@@ -161,6 +166,10 @@ void main(void)
 
 #ifdef USE_TEXTURE_2D
   tex_coord_2d = tex_coord;
+#endif
+
+#ifdef USE_TEXTURE_3D
+  tex_coord_3d = tex_coord;
 #endif
 
 #ifdef USE_TEXTURE_CUBEMAP

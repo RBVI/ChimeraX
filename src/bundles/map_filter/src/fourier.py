@@ -58,7 +58,6 @@ def fourier_transform(v, step = None, subregion = None, model_id = None,
   ftr = volume_from_grid_data(ftd, v.session, model_id = model_id)
   ftr.copy_settings_from(v, copy_thresholds = False,  copy_colors = False,
                          copy_region = False)
-  ftr.initialize_thresholds()
   ftr.set_parameters(show_outline_box = True)
   
   v.display = False          # Hide original map

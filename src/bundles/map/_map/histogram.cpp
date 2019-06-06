@@ -17,9 +17,12 @@
 // Count values in bins for Numeric Python arrays.
 //
 #include <Python.h>			// use PyObject
+#include <cfloat>			// use DBL_MAX, DBL_MIN
 
 #include <arrays/pythonarray.h>		// use array_from_python()
 #include <arrays/rcarray.h>		// use Numeric_Array, Array<T>
+
+#define NO_PAD_VALUE	1e-111
 
 namespace Map_Cpp
 {
@@ -29,15 +32,15 @@ namespace Map_Cpp
 //
 template<class T>
 static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
-			double *min, double *max)
+			double *min, double *max, double ignore_pad_value)
 {
   int n = seq.size();
   if (n == 0)
     { *min = *max = 0; return; }
 
   T *data = seq.values();
-  double minimum = static_cast<double> (data[0]);
-  double maximum = minimum;
+  double minimum = DBL_MAX;
+  double maximum = -DBL_MAX;
 
   int dim = seq.dimension();
   int m0 = 1, m1 = 1, m2 = 1;
@@ -51,17 +54,36 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
     { s0 = seq.stride(0); s1 = seq.stride(1); s2 = seq.stride(2);
       m0 = seq.size(0); m1 = seq.size(1); m2 = seq.size(2); }
 
-  long i = 0;
-  for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
-    for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
-      for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
-	{
-	  double v = static_cast<double> (data[i]);
-	  if (v > maximum)
-	    maximum = v;
-	  else if (v < minimum)
-	    minimum = v;
-	}
+  if (ignore_pad_value == NO_PAD_VALUE)
+    {
+      long i = 0;
+      for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+            {
+              double v = static_cast<double> (data[i]);
+              if (v > maximum)
+                maximum = v;
+              else if (v < minimum)
+                minimum = v;
+            }
+    }
+  else
+    {
+      long i = 0;
+      for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+            {
+              double v = static_cast<double> (data[i]);
+              if (v == ignore_pad_value)
+                continue;
+              if (v > maximum)
+                maximum = v;
+              else if (v < minimum)
+                minimum = v;
+            }
+    }
 
   *min = minimum;
   *max = maximum;
@@ -74,10 +96,12 @@ extern "C" PyObject *
 minimum_and_maximum(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array seq;
-  const char *kwlist[] = {"array", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+  double ignore_pad_value = NO_PAD_VALUE;
+  const char *kwlist[] = {"array", "ignore_pad_value", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|$d"),
 				   (char **)kwlist,
-				   parse_array, &seq))
+				   parse_array, &seq,
+                                   &ignore_pad_value))
     return NULL;
 
   if (seq.dimension() < 0 || seq.dimension() > 3)
@@ -88,7 +112,7 @@ minimum_and_maximum(PyObject *, PyObject *args, PyObject *keywds)
     }
 
   double min, max;
-  call_template_function(min_and_max, seq.value_type(), (seq, &min, &max));
+  call_template_function(min_and_max, seq.value_type(), (seq, &min, &max, ignore_pad_value));
 
   return python_tuple(PyFloat_FromDouble(min), PyFloat_FromDouble(max));
 }
@@ -99,7 +123,7 @@ minimum_and_maximum(PyObject *, PyObject *args, PyObject *keywds)
 //
 template<class T>
 static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
-		       float min, float max, IArray &counts)
+		       float min, float max, IArray &counts, double ignore_pad_value)
 {
   int bins = counts.size();
   int *c = counts.values();
@@ -123,15 +147,33 @@ static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
     { s0 = seq.stride(0); s1 = seq.stride(1); s2 = seq.stride(2);
       m0 = seq.size(0); m1 = seq.size(1); m2 = seq.size(2); }
 
-  long i = 0;
-  for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
-    for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
-      for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
-	{
-	  int b = static_cast<int> (scale * (data[i] - min));
-	  if (b >= 0 && b < bins)
-	    c[b] += 1;
-	}
+  if (ignore_pad_value == NO_PAD_VALUE)
+    {
+      long i = 0;
+      for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+            {
+              int b = static_cast<int> (scale * (data[i] - min));
+              if (b >= 0 && b < bins)
+                c[b] += 1;
+            }
+    }
+  else
+    {
+      long i = 0;
+      for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+            {
+              double v = static_cast<double> (data[i]);
+              if (v == NO_PAD_VALUE)
+                continue;
+              int b = static_cast<int> (scale * (v - min));
+              if (b >= 0 && b < bins)
+                c[b] += 1;
+            }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -139,17 +181,19 @@ static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
 // in a series of bins.
 //
 extern "C" PyObject *
-bin_counts_py(PyObject *, PyObject *args, PyObject *keywds)
+bin_counts(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array seq;
   IArray counts;
   float min, max;
-  const char *kwlist[] = {"array", "min", "max", "counts", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffO&"),
+  double ignore_pad_value = NO_PAD_VALUE;
+  const char *kwlist[] = {"array", "min", "max", "counts", "ignore_pad_value", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffO&|$d"),
 				   (char **)kwlist,
 				   parse_array, &seq,
 				   &min, &max,
-				   parse_writable_int_n_array, &counts))
+				   parse_writable_int_n_array, &counts,
+                                   &ignore_pad_value))
     return NULL;
 
   if (seq.dimension() < 1 || seq.dimension() > 3)
@@ -166,7 +210,7 @@ bin_counts_py(PyObject *, PyObject *args, PyObject *keywds)
       return NULL;
     }
 
-  call_template_function(bin_counts, seq.value_type(), (seq, min, max, counts));
+  call_template_function(bin_counts, seq.value_type(), (seq, min, max, counts, ignore_pad_value));
 
   Py_INCREF(Py_None);
   return Py_None;

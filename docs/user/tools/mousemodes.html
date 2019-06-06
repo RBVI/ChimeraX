@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Tool: Mouse Modes for Right Button</title>
+<title>Toolbar: Right Mouse</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,33 +23,34 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#tools">Tool</a>: Mouse Modes for Right Button</h3>
+<h3><a href="toolbar.html">Toolbar</a>: Right Mouse</h3>
 <p>
-The <b>Mouse Modes for Right Button</b> toolbar
-provides a series of icons for changing the assignment of the 
-right mouse button with a single click.
-Like other tools, this interface can be opened from the <b>Tools</b> menu
-(<a href="../window.html#panels">more...</a>).
+Icons in the <b>Right Mouse</b> tab of the
+<a href="toolbar.html"><b>Toolbar</b></a> allow reassigning the function 
+or &ldquo;mouse mode&rdquo; of:
+</p>
+<ul>
+<li>any hand-controller button in 
+<a href="../vr.html">ChimeraX virtual reality</a>
+<li>the right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+in the <a href="../window.html">ChimeraX graphics window</a>
+</ul>
+<p>
+(On Windows or Linux, right-click elsewhere in the ChimeraX interface raises
+a <a href="../window.html#context-menu">context menu</a>.)
 </p><p>
 With the related
 <a href="../commands/ui.html#mousemode"><b>mousemode</b></a> command,
 functions can be assigned to all mouse buttons (not just the right) 
 and to scrolling, alone and in combination with modifier keys.
-In the case of a touchpad or single-button mouse, 
-middle- and right-button clicks can be emulated with modifier keys;
-on a Mac, these are <b>alt</b> and <b>command</b>
-(<img src="../icon-clover.png" width="12px">), respectively.
 See also:
-<a href="densitymaps.html"><b>Density Map Toolbar</b></a>,
-<a href="graphics.html"><b>Graphics Toolbar</b></a>,
-<a href="moldisplay.html"><b>Molecule Display Toolbar</b></a>,
 <a href="markerplacement.html"><b>Marker Placement</b></a>,
-<a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>,
-<a href="#vr">mouse modes in virtual reality</a>
+<a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
-<td align="center"><b>Mouse Modes icon</b></td>
+<td align="center"><b>icon</b></td>
 <td align="center"><b><a href="../commands/ui.html#mousemode">mousemode</a>
 <i>function</i></b><br>(default assignment, if any)</td>
 <td align="center"><b>description</b></td>
@@ -57,10 +58,9 @@ See also:
 <td align="center"><img src="mouse-icons/select.png" width="35px"></td>
 <td align="center"><b>select</b><br>(control left)</td>
 <td align="center" class="text"><a href="../selection.html">select</a>
-items for subsequent operations;
+items for subsequent operations, +<b>Shift</b> to toggle;
 see also <a href="../commands/select.html"><b>select</b></a>
-<br>(<a href="../commands/ui.html#mousemode">default</a>
-to toggle selection is shift control left)</td>
+</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/rotate.png" width="35px"></td>
 <td align="center"><b>rotate</b><br>(left)</td>
@@ -72,21 +72,16 @@ see also <a href="../commands/turn.html"><b>turn</b></a>,
 <a href="../commands/roll.html"><b>roll</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/translate.png" width="35px"></td>
-<td align="center"><b>translate</b><br>(middle)</td>
+<td align="center"><b>translate</b><br>(middle, right)</td>
 <td align="center" class="text">XY-translate
 (<a href="../commands/view.html#screencoords">screen coordinates</a>),
 except if wheel, Z-translate;
 see also <a href="../commands/move.html"><b>move</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/zoom.png" width="35px"></td>
-<td align="center"><b>zoom</b><br>(right, wheel)</td>
+<td align="center"><b>zoom</b><br>(wheel)</td>
 <td align="center">zoom the view;
 see also <a href="../commands/zoom.html"><b>zoom</b></a></td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/rotatesel.png" width="35px"></td>
-<td align="center"><b>rotate and select</b></td>
-<td align="center">click to <a href="../selection.html">select</a>,
-drag to rotate</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/move_h2o.png" width="35px"></td>
 <td align="center"><b>translate selected models</b></td>
@@ -98,20 +93,10 @@ drag to rotate</td>
 <td align="center" class="text">rotate models with any part 
 <a href="../selection.html">selected</a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/clip.png" width="35px"></td>
-<td align="center"><b>clip</b> </td>
-<td align="center" class="text">activate and translate front clipping plane,
-+<b>Alt</b> back plane,
-+<b>Shift</b> slab (front and back in same direction),
-+<b>Alt-Shift</b> slab thickness (front and back in opposite directions);
-if only near/far (fixed-orientation) planes already active, move those 
-instead of front/back (rotatable) planes;
-see also <a href="../commands/clip.html"><b>clip</b></a></td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/cliprot.png" width="35px"></td>
-<td align="center"><b>clip rotate</b></td>
-<td align="center" class="text">activate and rotate front/back clipping planes;
-see also <a href="../commands/clip.html"><b>clip</b></a></td>
+<td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
+<td align="center"><b>pivot</b></td>
+<td align="center" class="text">set center of rotation to atom;
+see also <a href="../commands/cofr.html"><b>cofr</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/distance.png" width="35px"></td>
 <td align="center"><b>distance</b></td>
@@ -134,15 +119,27 @@ see also <a href="../commands/label.html"><b>label</b></a></td>
 move <a href="../commands/2dlabels.html">2D label</a>;
 see also <a href="../commands/2dlabels.html"><b>2dlabels</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
-<td align="center"><b>pivot</b><br>(shift right)</td>
-<td align="center" class="text">set center of rotation to atom;
-see also <a href="../commands/cofr.html"><b>cofr</b></a></td>
+<td align="center"><img src="mouse-icons/clip.png" width="35px"></td>
+<td align="center"><b>clip</b> </td>
+<td align="center" class="text">activate and translate front clipping plane,
++<b>Alt</b> back plane,
++<b>Shift</b> slab (front and back in same direction),
++<b>Alt-Shift</b> slab thickness (front and back in opposite directions);
+if only near/far (fixed-orientation) planes already active, move those 
+instead of front/back (rotatable) planes;
+see also <a href="../commands/clip.html"><b>clip</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
-<td align="center"><b>bond rotation</b></td>
-<td align="center" class="text">adjust torsion angle (original position
-not retained); see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
+<td align="center"><img src="mouse-icons/cliprot.png" width="35px"></td>
+<td align="center"><b>clip rotate</b></td>
+<td align="center" class="text">activate and rotate front/back clipping planes;
+see also <a href="../commands/clip.html"><b>clip</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
+<td align="center"><b>zone</b></td>
+<td align="center" class="text">
+limit atomic and <a href="volumeviewer.html">volume data</a> display
+to a zone around the clicked residue
+(<a href="mousemodes.html#zone">details...</a>)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/contour.png" width="35px"></td>
 <td align="center"><b>contour level</b></td>
@@ -152,9 +149,19 @@ not retained); see also <a href="../commands/torsion.html"><b>torsion</b></a></t
 </tr><tr>
 <td align="center"><img src="mouse-icons/moveplanes.png" width="35px"></td>
 <td align="center"><b>move planes</b></td>
-<td align="center" class="text">show different planes of
-<a href="volumeviewer.html">volume data</a>; see also
+<td align="center" class="text">
+show <a href="../commands/volume.html#planes">single plane</a> of clicked
+<a href="volumeviewer.html">volume data</a>
+if full region shown initially, move plane or slab along its axis to show
+a different section; see also 
 <a href="../commands/volume.html"><b>volume</b></a></td>
+</tr><tr>
+<td align="center"><img src="../tools/mouse-icons/crop.png" width="35px"></td>
+<td align="center"><b>crop volume</b></td>
+<td align="center" class="text">
+show <a href="volumeviewer.html">volume data</a> outline box
+and adjust region size by dragging any face;
+see also <a href="../commands/volume.html"><b>volume</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/marker.png" width="35px"></td>
 <td align="center"><b>place marker</b></td>
@@ -166,6 +173,31 @@ not retained); see also <a href="../commands/torsion.html"><b>torsion</b></a></t
 <td align="center" class="text">play 
 <a href="../trajectories.html#vseries">volume series</a>;
 see also <a href="../commands/vseries.html"><b>vseries</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/windowing.png" width="35px"></td>
+<td align="center"><b>windowing</b></td>
+<td align="center" class="text">adjust
+<a href="volumeviewer.html">volume data</a> solid display
+thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
+(moves all thresholds in parallel to higher or lower values),
+horizontal motion adjusts <b><i>window width</i></b>
+(moves thresholds symmetrically farther apart or closer together);
+the dominant type of motion wins out, <i>i.e.</i>, a diagonal motion
+will not change both level and width</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
+<td align="center"><b>bond rotation</b></td>
+<td align="center" class="text">adjust torsion angle (original position not 
+retained); see also <a href="../commands/torsion.html"><b>torsion</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
+<td align="center"><b>swapaa</b></td>
+<td align="center" class="text">
+&ldquo;<a href="../commands/swapaa.html">mutate</a>&rdquo;
+and <a href="../commands/label.html">label</a> the amino acid residue
+under the mouseclick,
+with vertical drag cycling through the 20 standard types
+in arbitrary conformations; original sidechain not retained</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/tug.png" width="35px"></td>
 <td align="center"><b>tug</b></td>
@@ -179,21 +211,6 @@ original coordinates not retained</td>
 jiggle residue and its neighbors with OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/swapaa.png" width="35px"></td>
-<td align="center"><b>swapaa</b></td>
-<td align="center" class="text">&ldquo;mutate&rdquo;
-and <a href="../commands/label.html">label</a> the amino acid residue
-under the mouseclick,
-with vertical drag cycling through the 20 standard types
-in arbitrary conformations; original sidechain not retained</td>
-</tr><tr>
-<td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
-<td align="center"><b>zone</b></td>
-<td align="center" class="text">
-limit atomic and <a href="volumeviewer.html">volume data</a> display
-to a zone around the clicked residue
-(<a href="mousemodes.html#zone">details...</a>)</td>
 </tr>
 </table>
 
@@ -258,7 +275,7 @@ See also:
 <p class="nav">
 [<a href="#top">back to top: Mouse Modes...</a>]
 </p>
-<h3>Mouse Modes in Virtual Reality (VR)</h3>
+<h3>Differences in Virtual Reality (VR)</h3>
 <p>
 In <a href="../vr.html">virtual reality</a>, mouse
 modes that normally require clicking on an atom (<b>select</b>, <b>label</b>,
@@ -268,34 +285,18 @@ Most modes that normally involve clicking and dragging
 are operated by clicking and moving the hand controller vertically.
 The <b>bond rotation</b> mode requires rotating the hand controller. 
 </p><p>
-Descriptions here are for Vive hand controllers, 
-but different hand controllers have similar buttons: 
-<br>
-Pressing the Vive
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">menu button</a> shows the ChimeraX desktop user interface 
-(by <a href="../commands/device.html#vr">default</a>, 
-the righthand panel of tool windows including the
-<a href="#top">mouse modes toolbar</a>) in the headset, 
-and holding the menu button allows moving the panel in the scene.
-Pointing a hand-controller cone at a 
-<a href="#top">mouse mode icon</a> and clicking with the
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">trigger, trackpad, or grip button</a> 
-assigns that button to that mode, allowing for a total of six modes for
-the two hand controllers.
+Clicking the <a href="../vr.html#starting">Vive menu button</a>
+(analogous on other systems)
+shows the ChimeraX control panel with icons in the headset.
+Each hand controller has multiple buttons that can be assigned to modes
+(<i>e.g.</i>, <a href="../vr.html#starting">Vive trigger, trackpad, and grip</a>),
+and <b><i>whichever button is used to click the icon</i></b> 
+is assigned the corresponding function.
+Outside of VR, clicking a mouse mode icon only assigns the mode to the 
+<b><i>right mouse button</i></b> (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac).
 </p><p>
-Keeping the trigger buttons assigned to <b>rotate</b> or <b>translate</b>
-(equivalent modes in VR) is recommended to maintain these default behaviors:
-</p>
-<ul>
-<li>models can be moved and rotated by
-moving or rotating either controller while squeezing its trigger
-<li>models can be scaled up or down (made larger or smaller) by squeezing the
-triggers of both controllers and moving them farther apart
-or closer together, respectively
-</ul>
-Some mouse modes are modified
+Some of the mouse modes are modified in VR
 to maintain rapid graphics updates and avoid flickering:
 </p>
 <ul>
@@ -306,5 +307,5 @@ angle rather than continuously, and makes labels yellow for better visibility
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2018</address>
+May 2019</address>
 </body></html>

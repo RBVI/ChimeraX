@@ -37,7 +37,7 @@ class Structure(Model, StructureData):
 
         # attrs that should be saved in sessions, along with their initial values...
         self._session_attrs = {
-            '_auto_chain_trace': False,
+            '_auto_chain_trace': isinstance(self, AtomicStructure),
             '_bond_radius': 0.2,
             '_pseudobond_radius': 0.05,
             '_use_spline_normals': False,
@@ -84,7 +84,7 @@ class Structure(Model, StructureData):
     def string(self, style=None):
         '''Return a human-readable string for this structure.'''
         if style is None:
-            from chimerax.core.core_settings import settings
+            from .settings import settings
             style = settings.atomspec_contents
 
         id = '#' + self.id_string
@@ -966,15 +966,12 @@ class Structure(Model, StructureData):
 
             # Cache position of backbone atoms on ribbon
             # and get list of tethered atoms
-            self._ribbon_spline_position(ribbon, residues)
+            positions = self._ribbon_spline_position(ribbon, residues)
             from numpy.linalg import norm
             from .molarray import Atoms
-            tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
-            spline_coords = array(list(self._ribbon_spline_backbone.values()))
-            # Add fix from Tristan, #1486
-            mask = tether_atoms.indices(atoms)
-            tether_atoms = tether_atoms[mask]
-            spline_coords = spline_coords[mask]
+            tether_atoms = Atoms(list(positions.keys()))
+            spline_coords = array(list(positions.values()))
+            self._ribbon_spline_backbone.update(positions)
             if len(spline_coords) == 0:
                 spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
@@ -1628,6 +1625,7 @@ class Structure(Model, StructureData):
     }
 
     def _ribbon_spline_position(self, ribbon, residues):
+        positions = {}
         for n, r in enumerate(residues):
             first = (r == residues[0])
             last = (r == residues[-1])
@@ -1641,7 +1639,8 @@ class Structure(Model, StructureData):
                     p = ribbon.position(n, position)
                 else:
                     p = ribbon.position(n - 1, 1 + position)
-                self._ribbon_spline_backbone[a] = p
+                positions[a] = p
+        return positions
 
     def ribbon_coord(self, a):
         return self._ribbon_spline_backbone[a]
@@ -1654,12 +1653,20 @@ class Structure(Model, StructureData):
                 xyz2 = tether_atoms.coords
                 radii = self._atom_display_radii(tether_atoms) * scale
                 tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
-                tp.display_positions = tether_atoms.visibles
+                tp.display_positions = tether_atoms.visibles & tether_atoms.residues.ribbon_displays
                 colors = tether_atoms.colors
                 colors[:,3] = around(colors[:,3] * self.ribbon_tether_opacity).astype(int)
                 tp.colors = colors
 
     def bounds(self):
+        #
+        # TODO: Updating ribbon graphics during bounds() calc is precarious.
+        # This caused bug #1717 where ribbons got unexpectedly deleted during a call
+        # to bounds() by the shadow calculation code during rendering.
+        # Probably should define bounds to mean the displayed graphics bounds
+        # which may not include pending updates to graphics.  Code that needs to
+        # include the pending graphics changes would need to explicitly update the graphics.
+        #
         self._update_graphics_if_needed()       # Ribbon bounds computed from graphics
         # import sys, time
         # start = time.time()
@@ -2218,10 +2225,19 @@ class AtomicStructure(Structure):
     and assemblies.
     """
 
+    # changes to the below have to be mirrored in C++ AS_PBManager::get_group
     from chimerax.core.colors import BuiltinColors
-    default_hbond_color = BuiltinColors["dark cyan"]
+    default_hbond_color = BuiltinColors["deep sky blue"]
     default_hbond_radius = 0.075
-    default_hbond_dashes = 6
+    default_hbond_dashes = 9
+
+    default_metal_coordination_color = BuiltinColors["medium purple"]
+    default_metal_coordination_radius = 0.075
+    default_metal_coordination_dashes = 9
+
+    default_missing_structure_color = BuiltinColors["yellow"]
+    default_missing_structure_radius = 0.075
+    default_missing_structure_dashes = 9
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -2302,10 +2318,8 @@ class AtomicStructure(Structure):
                             nucleotides(self.session, 'tube/slab', objects=nucleic)
                         else:
                             nucleotides(self.session, 'ladder', objects=nucleic)
-                        nucleic_atoms = nucleic.atoms
-                        nucleic_atoms = nucleic_atoms.filter(nucleic_atoms.element_numbers == 6)
                         from .colors import nucleotide_colors
-                        nucleic_atoms.colors = nucleotide_colors(nucleic_atoms.residues)[0]
+                        nucleic.ring_colors = nucleotide_colors(nucleic)[0]
                 if ligand:
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords
@@ -2332,7 +2346,8 @@ class AtomicStructure(Structure):
             solvent_atoms.draw_modes = Atom.BALL_STYLE
             solvent_atoms.colors = element_colors(solvent_atoms.element_numbers)
         else:
-            lighting = "soft multiShadow 16"
+            # since this is now available as a preset, allow for possibly a smaller number of atoms
+            lighting = "soft" if self.num_atoms < 300000 else "soft multiShadow 16"
 
         if set_lighting:
             from chimerax.core.commands import Command
@@ -2471,8 +2486,8 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s</a>' % (
-                chain.structure.id_string, chain.chain_id, chain.chain_id)
+            return '<a title="Select chain" href="cxcmd:select %s">%s</a>' % (
+               chain_res_range(chain), chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text, False)
 
     def _report_ensemble_chain_descriptions(self, session, ensemble):
@@ -2487,9 +2502,8 @@ class AtomicStructure(Structure):
             description = chain.description if chain.description else "No description available"
             descripts.setdefault((description, chain.characters), []).append(chain)
         def chain_text(chain):
-            return '<a title="Show sequence" href="cxcmd:sequence chain #%s/%s">%s/%s</a>' % (
-                chain.structure.id_string, chain.chain_id,
-                chain.structure.id_string, chain.chain_id)
+            return '<a title="Select chain" href="cxcmd:select %s">%s/%s</a>' % (
+                chain_res_range(chain), chain.structure.id_string, chain.chain_id)
         self._report_chain_summary(session, descripts, chain_text, True)
 
     def _report_res_info(self, session):
@@ -2501,8 +2515,6 @@ class AtomicStructure(Structure):
     def _report_chain_summary(self, session, descripts, chain_text, is_ensemble):
         def descript_text(description, chains):
             from html import escape
-            if len(chains) == 1:
-                return escape(description)
             return '<a title="Show sequence" href="cxcmd:sequence chain %s">%s</a>' % (
                 ''.join(["#%s/%s" % (chain.structure.id_string, chain.chain_id)
                     for chain in chains]), escape(description))
@@ -2568,6 +2580,13 @@ def assembly_html_table(mol):
     lines.append('</table>')
     html = '\n'.join(lines)
     return html
+
+def chain_res_range(chain):
+    existing = chain.existing_residues
+    if len(existing) == 1:
+        return existing[0].string(style="command")
+    first, last = existing[0], existing[-1]
+    return "%s-%s" % (first.string(style="command"), last.string(residue_only=True, style="command")[1:])
 
 
 # -----------------------------------------------------------------------------
@@ -2820,6 +2839,8 @@ class PickedAtom(Pick):
         self.atom = atom
     def description(self):
         return str(self.atom)
+    def specifier(self):
+        return self.atom.string(style='command')
     @property
     def residue(self):
         return self.atom.residue
@@ -2910,7 +2931,8 @@ class PickedBond(Pick):
         Pick.__init__(self, distance)
         self.bond = bond
     def description(self):
-        return str(self.bond)
+        dist_fmt = self.bond.session.pb_dist_monitor.distance_format
+        return str(self.bond) + " " + dist_fmt % self.bond.length
     @property
     def residue(self):
         a1, a2 = self.bond.atoms
@@ -2961,7 +2983,8 @@ class PickedPseudobond(Pick):
         Pick.__init__(self, distance)
         self.pbond = pbond
     def description(self):
-        return str(self.pbond)
+        dist_fmt = self.pbond.session.pb_dist_monitor.distance_format
+        return str(self.pbond) + " " + dist_fmt % self.pbond.length
     @property
     def residue(self):
         a1, a2 = self.pbond.atoms
@@ -2992,6 +3015,8 @@ class PickedResidue(Pick):
         self.residue = residue
     def description(self):
         return str(self.residue)
+    def specifier(self):
+        return self.residue.string(style='command')
     def select(self, mode = 'add'):
         a = self.residue.atoms
         if mode == 'add':

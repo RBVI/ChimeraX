@@ -28,18 +28,14 @@ class SettingsTool:
                         options.extend(self.options(category))
                     return options
                 return super().options(category)
-        opt_sort_f = lambda opt: opt.sv_sort_val
-        settings_panel = CategorizedSettingsPanel("Sequence Viewer", option_sorting=opt_sort_f)
+        opt_sort_f = lambda opt: getattr(opt, 'sv_sort_val', opt.name)
+        settings_panel = CategorizedSettingsPanel(option_sorting=opt_sort_f)
         appearance_panel = AppearanceOptionsPanel(category_sorting=lambda cat: ["Single Sequence",
             "Alignment", "All"].index(cat), option_sorting=opt_sort_f)
         settings_panel.add_tab(APPEARANCE, appearance_panel)
 
         for attr_name, option_info in defaults.items():
-            try:
-                category, description, sort_val, option_class, ctor_keywords, default = option_info
-            except:
-                #TODO: don't use try/except when finished
-                continue
+            category, description, sort_val, option_class, ctor_keywords, default = option_info
             val = getattr(sv.settings, attr_name)
             opt = option_class(description, val, lambda o, s=self, cat=category:
                 self._setting_change_cb(cat, o), attr_name=attr_name, settings=sv.settings, **ctor_keywords)
@@ -55,13 +51,15 @@ class SettingsTool:
                 appearance_panel.add_option(app_cat, opt)
             else:
                 settings_panel.add_option(category, opt)
+        for hdr in self.sv.headers():
+            hdr.add_options(settings_panel, category="Headers")
         from PyQt5.QtWidgets import QVBoxLayout
         layout = QVBoxLayout()
         layout.addWidget(settings_panel)
         tool_window.ui_area.setLayout(layout)
 
     def _setting_change_cb(self, category, opt):
-        from .settings import APPEARANCE, REGIONS, HEADERS
+        from .settings import APPEARANCE, REGIONS
         if category == APPEARANCE:
             self.sv.seq_canvas._reformat()
         elif category == REGIONS:
@@ -99,9 +97,3 @@ class SettingsTool:
                             region.border_rgba = color
                         else:
                             region.interior_rgba = color
-        elif category == HEADERS:
-            if opt.attr_name.endswith("consensus_style"):
-                from .settings import CSN_MAJ_NOGAP
-                self.sv.consensus_ignores_gaps = opt.get() == CSN_MAJ_NOGAP
-            elif opt.attr_name.endswith("conservation_style"):
-                self.sv.conservation_style = opt.get()

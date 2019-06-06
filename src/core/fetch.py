@@ -30,7 +30,8 @@ _cache_dirs = []
 # -----------------------------------------------------------------------------
 #
 def fetch_file(session, url, name, save_name, save_dir, *,
-               uncompress=False, ignore_cache=False, check_certificates=True):
+               uncompress=False, ignore_cache=False, check_certificates=True,
+               timeout=60):
     """fetch file from URL
 
     :param session: a ChimeraX :py:class:`~chimerax.core.session.Session`
@@ -65,7 +66,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     from urllib.request import URLError
     try:
         retrieve_url(url, filename, uncompress=uncompress, logger=session.logger,
-                     check_certificates=check_certificates, name=name)
+                     check_certificates=check_certificates, name=name, timeout=timeout)
     except URLError as e:
         from .errors import UserError
         raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
@@ -87,7 +88,7 @@ def cache_directories():
 # -----------------------------------------------------------------------------
 #
 def retrieve_url(url, filename, *, logger=None, uncompress=False,
-                 update=False, check_certificates=True, name=None):
+                 update=False, check_certificates=True, name=None, timeout=60):
     """Return requested URL in filename
 
     :param url: the URL to retrive
@@ -121,7 +122,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
             logger.status('check for newer version of %s' % name, secondary=True)
         info = os.stat(filename)
         request.method = 'HEAD'
-        with urlopen(request) as response:
+        with urlopen(request, timeout=timeout) as response:
             d = response.headers['Last-modified']
             last_modified = _convert_to_timestamp(d)
         if last_modified is None and logger:
@@ -138,7 +139,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
             ssl_context.verify_mode = ssl.CERT_NONE
-        with urlopen(request, context=ssl_context) as response:
+        with urlopen(request, timeout=timeout, context=ssl_context) as response:
             compressed = uncompress
             ct = response.headers['Content-Type']
             if not compressed:

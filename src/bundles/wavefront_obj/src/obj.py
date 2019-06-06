@@ -52,6 +52,7 @@ def read_obj(session, filename, name):
     texcoords = []
     normals = []
     triangles = []
+    voffset = 0
     for line_num, line in enumerate(input.readlines()):
         if line.startswith('#'):
             continue	# Comment
@@ -88,14 +89,15 @@ def read_obj(session, filename, name):
             # Object name
             if vertices or object_name is not None:
                 oname = object_name if object_name else name
-                m = new_object(session, oname, vertices, normals, texcoords, triangles)
+                m = new_object(session, oname, vertices, normals, texcoords, triangles, voffset)
                 models.append(m)
+                voffset += len(vertices)
                 vertices, normals, texcoords, triangles = [], [], [], []
             object_name = line[2:].strip()
 
     if vertices:
         oname = object_name if object_name else name
-        m = new_object(session, oname, vertices, normals, texcoords, triangles)
+        m = new_object(session, oname, vertices, normals, texcoords, triangles, voffset)
         models.append(m)
 
     if input != filename:
@@ -115,7 +117,7 @@ def read_obj(session, filename, name):
 
 # -----------------------------------------------------------------------------
 #
-def new_object(session, object_name, vertices, normals, texcoords, triangles):
+def new_object(session, object_name, vertices, normals, texcoords, triangles, voffset):
 
     model = WavefrontOBJ(object_name, session)
     if len(vertices) == 0:
@@ -132,6 +134,8 @@ def new_object(session, object_name, vertices, normals, texcoords, triangles):
         model.texture_coordinates = array(texcoords, float32)
     na = array(normals, float32) if normals else None
     ta = array(triangles, int32)
+    if voffset > 0:
+        ta -= voffset
     ta -= 1	# OBJ first vertex index is 1 while model first vertex index is 0
     va = array(vertices, float32)
     model.set_geometry(va, na, ta)
@@ -205,8 +209,10 @@ def write_obj(session, filename, models, obj_to_unity = True, single_object = Fa
     # Write comment
     file.write(created_by)
 
+    voffset = 0
     for name, va, na, tca, ta, pos in geom:
-        write_object(file, name, va, na, tca, ta, pos, obj_to_unity)
+        write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity)
+        voffset += len(va)
 
     file.close()
 
@@ -217,7 +223,7 @@ def full_name(drawing):
 
 # -----------------------------------------------------------------------------
 #
-def write_object(file, name, va, na, tca, ta, pos, obj_to_unity):
+def write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity):
 
     # Write object name
     if name is not None:
@@ -245,16 +251,17 @@ def write_object(file, name, va, na, tca, ta, pos, obj_to_unity):
     # Write triangles
     # For Unity3D 2017.1 to import OBJ texture coordinates, must specify their indices
     # even though they are the same as the vertex indices.
+    vo = voffset+1
     if not obj_to_unity:
-        tlines = [('f %d %d %d' % (v0+1,v1+1,v2+1)) for v0,v1,v2 in ta]
+        tlines = [('f %d %d %d' % (v0+vo,v1+vo,v2+vo)) for v0,v1,v2 in ta]
     elif na is None and tca is None:
-        tlines = [('f %d %d %d' % (v0+1,v1+1,v2+1)) for v0,v1,v2 in ta]
+        tlines = [('f %d %d %d' % (v0+vo,v1+vo,v2+vo)) for v0,v1,v2 in ta]
     elif tca is None:
-        tlines = [('f %d/%d %d/%d %d/%d' % (v0+1,v0+1,v1+1,v1+1,v2+1,v2+1)) for v0,v1,v2 in ta]
+        tlines = [('f %d/%d %d/%d %d/%d' % (v0+vo,v0+vo,v1+vo,v1+vo,v2+vo,v2+vo)) for v0,v1,v2 in ta]
     elif na is None:
-        tlines = [('f %d//%d %d//%d %d//%d' % (v0+1,v0+1,v1+1,v1+1,v2+1,v2+1)) for v0,v1,v2 in ta]
+        tlines = [('f %d//%d %d//%d %d//%d' % (v0+vo,v0+vo,v1+vo,v1+vo,v2+vo,v2+vo)) for v0,v1,v2 in ta]
     else:
-        tlines = [('f %d/%d/%d %d/%d/%d %d/%d/%d' % (v0+1,v0+1,v0+1,v1+1,v1+1,v1+1,v2+1,v2+1,v2+1)) for v0,v1,v2 in ta]
+        tlines = [('f %d/%d/%d %d/%d/%d %d/%d/%d' % (v0+vo,v0+vo,v0+vo,v1+vo,v1+vo,v1+vo,v2+vo,v2+vo,v2+vo)) for v0,v1,v2 in ta]
     file.write('\n'.join(tlines))
     file.write('\n')
 

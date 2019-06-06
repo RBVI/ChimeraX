@@ -17,7 +17,8 @@ class ViewState:
 
     version = 1
     save_attrs = ['camera', 'lighting', 'material',
-                  'center_of_rotation', 'center_of_rotation_method', 'background_color']
+                  'center_of_rotation', 'center_of_rotation_method',
+                  'background_color', 'highlight_color', 'highlight_thickness']
     silhouette_attrs = ['enabled', 'thickness', 'color', 'depth_jump']
 
     @staticmethod
@@ -63,6 +64,13 @@ class ViewState:
         # Restore clip planes
         v.clip_planes.replace_planes(data['clip_planes'])
 
+        # Restore silhouette edge settings.
+        if 'silhouettes' in data:
+            sil = data['silhouettes']
+            if isinstance(sil, dict):
+                for attr, value in sil.items():
+                    setattr(v.silhouette, attr, value)
+
         # Restore window size
         resize = session.restore_options.get('resize window')
         if resize is None:
@@ -77,12 +85,6 @@ class ViewState:
             from .windowsize import window_size
             width, height = data['window_size']
             window_size(session, width, height)
-
-        if 'silhouettes' in data:
-            sil = data['silhouettes']
-            if isinstance(sil, dict):
-                for attr, value in sil.items():
-                    setattr(v.silhouette, attr, value)
 
     @staticmethod
     def reset_state(view, session):
@@ -266,13 +268,16 @@ class DrawingState:
     @staticmethod
     def restore_snapshot(session, data):
         d = Drawing('')
-        DrawingState.set_state_from_stanpshot(d, session, data)
+        DrawingState.set_state_from_snapshot(d, session, data)
         return d
 
     @staticmethod
     def set_state_from_snapshot(drawing, session, data):
         d = drawing
-        for k in DrawingState.save_attrs:
+        setattr(d, 'name', data['name'])
+        # need to do vertices, normals, triangles first
+        d.set_geometry(data['vertices'], data['normals'], data['triangles'])
+        for k in DrawingState.save_attrs[4:]:
             if k in data:
                 setattr(d, k, data[k])
         for c in data['children']:

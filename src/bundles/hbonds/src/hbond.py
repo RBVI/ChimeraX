@@ -121,7 +121,7 @@ acceptor_params = [
         (0,), acc_theta_tau, ((1,), 3.17, 100, -153, 150)],
     # anilene
     [[[('Npl', 'N3'), ['Car', H, H]], [1,1,1,1]],
-        (0,), acc_theta_tau, ((1,), 3.42, 90, -137, 140)],
+        (0,), lambda *args: acc_theta_tau(*args, tau=37.5, tau_sym=4), ((1,), 3.42, 90, -137, 140)],
     # waddah
     [[[O, [H, H]], [1,0,0]], (0,), acc_phi_psi,
                 ((None, None), 3.03, 120, 145)],
@@ -372,6 +372,8 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
         global verbose
         global _problem
         _problem = None
+        global _truncated
+        _truncated = set()
 
         bad_connectivities = 0
 
@@ -642,7 +644,8 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                             bad_connectivities += 1
                             continue
                         except AtomTypeError as e:
-                            _problem = ("atom type", donor_atom, str(v), None)
+                            session.logger.warning(str(e))
+                            #_problem = ("atom type", donor_atom, str(e), None)
                             continue
                         if verbose:
                             session.logger.info("\t%s satisfies donor criteria" % donor_atom)
@@ -666,31 +669,26 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
             session.logger.warning("Skipped %d atom(s) with bad connectivities; see log for details"
                 % bad_connectivities);
         if _problem:
-            if session.ui.is_gui and False:
-                #TODO: report bug
+            if session.ui.is_gui:
+                # report a bug when atom matches multiple donor/acceptor descriptions
                 da, atom, grp1, grp2 = _problem
-                from BugReport import bugNotify
-                resAtoms = atom.residue.oslChildren()
-                def resAtomRep(a):
+                res_atoms = atom.residue.atoms
+                def res_atom_rep(a):
                     try:
-                        i = resAtoms.index(a)
+                        i = res_atoms.index(a)
                     except ValueError:
                         return "other %s" % a.element.name
                     return "%2d" % (i+1)
-                if da in ["donor", "acceptor"]:
-                    descript = "geometry class 1: %s\n\n" \
-                            "geometry class 2: %s" % (
-                            repr(grp1), repr(grp2))
-                else:
-                    descript = "problem: %s" % grp1
-                bugNotify(
+                descript = "geometry class 1: %s\n\ngeometry class 2: %s" % (repr(grp1), repr(grp2))
+                from chimerax.core.logger import report_exception
+                report_exception(error_description=
     """At least one atom was classified into more than one acceptor or donor
-    geometry class or had a bad atom type.  This indicates a problem in the
-    classification/atom-typing mechanism and we would appreciate it if you
+    geometry class.  This indicates a problem in the
+    donr/acceptor classification mechanism and we would appreciate it if you
     would use the bug-report button below to send us the information that
-    will allow us to improve the classification/atom-typing code.
-    """,
-    """residue name: %s
+    will allow us to improve the classification code.
+
+    residue name: %s
 
     problem %s atom: %d
 
@@ -701,12 +699,20 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
         %s
 
     %s
-    """ % (atom.residue.type, da, resAtoms.index(atom)+1,
-    "\n\t".join(["%2d %-4s %-s (%s)" % (en[0]+1, en[1].name, en[1].idatm_type, str(en[1].coord())) for en in enumerate(resAtoms)]),
-    "\n\t".join(["%s <-> %-s" % (resAtomRep(b.atoms[0]), resAtomRep(b.atoms[1])) for b in chimera.misc.bonds(resAtoms, internal=False)]),
+    """ % (atom.residue.name, da, res_atoms.index(atom)+1,
+    "\n\t".join(["%2d %-4s %-s (%s)" % (en[0]+1, en[1].name, en[1].idatm_type, str(en[1].coord)) for en in enumerate(res_atoms)]),
+    "\n\t".join(["%s <-> %-s" % (res_atom_rep(b.atoms[0]), res_atom_rep(b.atoms[1])) for b in atom.residue.atoms.bonds]),
     descript)
     )
             _problem = None
+        if _truncated:
+            if len(_truncated) > 20:
+                session.logger.warning("%d atoms were skipped as donors/acceptors due to missing"
+                    " heavy-atom bond partners" % len(_truncated))
+            else:
+                session.logger.warning("The following atoms were skipped as donors/acceptors due to missing"
+                    " heavy-atom bond partners: %s" % "; ".join([str(a) for a in _truncated]))
+            _truncated = None
     finally:
         delattr(Atom, "_hb_coord")
     return hbonds
@@ -738,6 +744,7 @@ def _process_arg_tuple(arg_tuple, dist_slop, angle_slop):
 
 def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
     global _problem
+    global _truncated
     acc_atoms = []
     acc_data = []
     std_acceptors = {}
@@ -757,6 +764,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                     # (non-ring groups "win")
                     group_key[0] in _ring_funcs and std_acceptors[acc_atom][0] not in _ring_funcs):
                         _problem = ("acceptor", acc_atom, std_acceptors[acc_atom], group_key)
+                    continue
+                if acc_atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                    _truncated.add(acc_atom)
                     continue
                 std_acceptors[acc_atom] = group_key
 
@@ -782,6 +792,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
         if limited_acceptors and atom not in limited_acceptors:
             continue
         if atom.idatm_type in generic_acc_info:
+            if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                _truncated.add(atom)
+                continue
             acc_info = generic_acc_info[atom.idatm_type]
             if isinstance(acc_info, dict):
                 try:
@@ -793,8 +806,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                 try:
                     acc_func, args = acc_info[atom.num_bonds]
                 except IndexError:
-                    _problem = ("connectivity", atom,
-                        "bad number of bonds (%d)" % atom.num_bonds, None)
+                    structure.session.logger.warning("%s has bad number of bonds (%d)" % (atom, atom.num_bonds))
+                    #_problem = ("connectivity", atom,
+                    #    "bad number of bonds (%d)" % atom.num_bonds, None)
                     continue
             elif isinstance(acc_info, tuple) and isinstance(acc_info[0], tuple):
                 acc_func, args = acc_info[sum([nb.element.number > 1 for nb in atom.neighbors])]
@@ -820,6 +834,9 @@ def _find_acceptors(structure, a_params, limited_acceptors, generic_acc_info):
                     continue
                 acc_func, args = generic_acc_info['misc_N']
             else:
+                continue
+            if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                _truncated.add(atom)
                 continue
             if verbose:
                 print("miscellaneous generic acceptor:", atom)
@@ -883,6 +900,10 @@ def _find_donors(structure, d_params, limited_donors, generic_don_info):
                 group_key[0] in _ring_funcs and std_donors[donor_atom][0] not in _ring_funcs):
                     global _problem
                     _problem = ("donor", donor_atom, std_donors[donor_atom], group_key)
+                continue
+            if donor_atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                global _truncated
+                _truncated.add(donor_atom)
                 continue
             std_donors[donor_atom] = group_key
             don_atoms.append(donor_atom)

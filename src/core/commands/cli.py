@@ -209,11 +209,11 @@ _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _whitespace = re.compile("\s*")
 
 
-def commas(text_seq, conjunction=' or'):
+def commas(text_seq, conjunction='or'):
     """Return comma separated list of words
 
     :param text_seq: a sequence of text strings
-    :param conjunction: a word with a leading space
+    :param conjunction: a word to put for last item (default 'or')
     """
     if not isinstance(text_seq, (list, tuple)):
         text_seq = tuple(text_seq)
@@ -223,8 +223,8 @@ def commas(text_seq, conjunction=' or'):
     if seq_len == 1:
         return text_seq[0]
     if seq_len == 2:
-        return '%s%s %s' % (text_seq[0], conjunction, text_seq[1])
-    text = '%s,%s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
+        return '%s %s %s' % (text_seq[0], conjunction, text_seq[1])
+    text = '%s, %s %s' % (', '.join(text_seq[:-1]), conjunction, text_seq[-1])
     return text
 
 
@@ -235,8 +235,7 @@ def plural_form(seq, word, plural=None):
     :param word: word to form the plural of
     :param plural: optional explicit plural of word, otherwise best guess
     """
-    seq_len = len(seq)
-    if seq_len in (0, 1):
+    if len(seq) == 1:
         return word
     if plural is None:
         return plural_of(word)
@@ -258,12 +257,17 @@ def plural_of(word):
         return word + 'es'
     if word.endswith('ius'):
         return word[:-2] + 'i'
-    if word.endswith(('sh', 'ch', 's', 'x')):
+    if word.endswith('ix'):
+        return word[:-1] + 'ces'
+    if word.endswith(('sh', 'ch', 'ss', 'x')):
         return word + 'es'
     if word.endswith('y'):
         if word[-2] not in 'aeiou' or word.endswith('quy'):
             return word[:-1] + 'ies'
         return word + 's'
+    if word.endswith('s'):
+        # 'ss' special-cased above; other special cases may be needed
+        return word
     # TODO: special case words, e.g. leaf -> leaves, hoof -> hooves
     return word + 's'
 
@@ -435,8 +439,8 @@ class Aggregate(Annotation):
 
     def __init__(self, annotation, min_size=None,
                  max_size=None, name=None, url=None, prefix=None):
-        if (not issubclass(annotation, Annotation) and
-                not isinstance(annotation, Annotation)):
+        if (not isinstance(annotation, Annotation) and (
+            not isinstance(annotation, type) or not issubclass(annotation, Annotation))):
             raise ValueError("need an annotation, not %s" % annotation)
         Annotation.__init__(self, name, url)
         self.annotation = annotation
@@ -470,8 +474,21 @@ class Aggregate(Annotation):
         if self.prefix and text.startswith(self.prefix):
             text = text[len(self.prefix):]
             used += self.prefix
-        while 1:
-            i = text.find(self.separator)
+        while True:
+            # find next list-separator character while honoring quoting
+            quote_mark = None
+            for i, c in enumerate(text):
+                if quote_mark:
+                    if c == quote_mark:
+                        quote_mark = None
+                    continue
+                if c in ["'", '"']:
+                    quote_mark = c
+                    continue
+                if c == self.separator:
+                    break
+            else:
+                i = -1
             if i == -1:
                 # no separator found
                 try:
@@ -688,7 +705,7 @@ class EnumOf(Annotation):
     allow_truncated = True
 
     def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
-        from collections import Iterable
+        from collections.abc import Iterable
         if isinstance(values, Iterable):
             values = list(values)
         if ids is not None:
@@ -728,13 +745,13 @@ class EnumOf(Annotation):
         matches = []
         for i, ident in enumerate(self.ids):
             if ident.casefold() == folded:
-                return self.values[i], ident, rest
+                return self.values[i], quote_if_necessary(ident), rest
             elif self.allow_truncated:
                 if ident.casefold().startswith(folded):
                     matches.append((i, ident))
         if len(matches) == 1:
             i, ident = matches[0]
-            return self.values[i], ident, rest
+            return self.values[i], quote_if_necessary(ident), rest
         elif len(matches) > 1:
             ms = ', '.join(self.values[i] for i,ident in matches)
             raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
@@ -898,7 +915,10 @@ class StringArg(Annotation):
         if not text:
             raise AnnotationError("Expected %s" % StringArg.name)
         token, text, rest = next_token(text)
-        return token, text, rest
+        # use quote_if_necessary(token) since token will have had
+        # it's surrounding quotes stripped, and you don't want them
+        # quoted a second time
+        return token, quote_if_necessary(token), rest
 
 
 class PasswordArg(StringArg):
@@ -926,7 +946,7 @@ class AttrNameArg(StringArg):
                                   " characters and underscores")
         if text[0].isdigit():
             raise AnnotationError("Attribute names cannot start with a digit")
-        return token, text, rest
+        return token, quote_if_necessary(text), rest
 
 
 class FileNameArg(Annotation):
@@ -940,13 +960,13 @@ class FileNameArg(Annotation):
     def parse(cls, text, session):
         token, text, rest = StringArg.parse(text, session)
         import os.path
-        return os.path.expanduser(token), text, rest
+        return os.path.expanduser(token), quote_if_necessary(text), rest
 
 
 _browse_string = "browse"
 
 
-def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode):
+def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
     if path == _browse_string:
         if not session.ui.is_gui:
@@ -964,12 +984,12 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
             paths = dlg.selectedFiles()
             if not paths:
                 raise AnnotationError("No %s selected by browsing" % item_kind)
-            path = paths[0]
         else:
             from chimerax.core.errors import CancelOperation
             raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
-        text = path
-    return path, text, rest
+    else:
+        paths = [path]
+    return (paths if return_list else paths[0]), " ".join([quote_if_necessary(p) for p in paths]), rest
 
 
 class OpenFileNameArg(FileNameArg):
@@ -985,6 +1005,24 @@ class OpenFileNameArg(FileNameArg):
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
 
+class OpenFileNamesArg(Annotation):
+    """Annotation for opening one or more files"""
+    name = "file names to open"
+    # name_filter should be a string compatible with QFileDialog.setNameFilter(),
+    # or None (which means all ChimeraX-openable types)
+    name_filter = None
+    allow_repeat = "expand"
+
+    @classmethod
+    def parse(cls, text, session):
+        # horrible hack to get repeatable-parsing to work when 'browse' could return multiple files
+        if session.ui.is_gui:
+            from PyQt5.QtWidgets import QFileDialog
+            accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
+        else:
+            accept_mode = dialog_mode = None
+        return  _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+            return_list=True)
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
@@ -1327,7 +1365,7 @@ def as_parser(annotation):
     return use_annotation
 
 
-def quote_if_necessary(s):
+def quote_if_necessary(s, additional_special_map={}):
     """quote a string
 
     So :py:func`next_token` treats it like a single value"""
@@ -1335,7 +1373,6 @@ def quote_if_necessary(s):
     has_single_quote = "'" in s
     has_double_quote = '"' in s
     has_special = False
-    has_space = _whitespace.search(s) is not None
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
         '\a': '\\a',
@@ -1349,6 +1386,7 @@ def quote_if_necessary(s):
         ';': ';',
         ' ': ' ',
     }
+    special_map.update(additional_special_map)
 
     result = []
     for ch in s:
@@ -1921,9 +1959,9 @@ class _WordInfo:
                 # only save/restore "system" version of command
                 self.registry.aliased_commands[name] = word_info
                 self.subcommands[word] = _WordInfo(self.registry, cmd_desc)
-                #if logger is not None:
-                #    logger.info("FYI: alias is hiding existing command" %
-                #                dq_repr(name))
+                if logger is not None:
+                    logger.info("FYI: alias is hiding existing command" %
+                                dq_repr(name))
         elif word_info.is_user_alias():
             # command is aliased, but new one isn't, so replaced saved version
             if name in self.registry.aliased_commands:
@@ -1931,9 +1969,9 @@ class _WordInfo:
             else:
                 self.registry.aliased_commands[name] = _WordInfo(self.registry, cmd_desc)
         else:
-            #if logger is not None and not word_info.is_deferred():
-            #    logger.info("FYI: command is replacing existing command: %s" %
-            #                dq_repr(name))
+            if logger is not None and word_info.has_command() and not word_info.is_deferred():
+                logger.info("FYI: command is replacing existing command: %s" %
+                            dq_repr(name))
             word_info.cmd_desc = cmd_desc
 
 
@@ -2337,7 +2375,11 @@ class Command:
                 self._error = ""
                 last_anno = anno
                 if hasattr(anno, 'allow_repeat') and anno.allow_repeat:
-                    self._kw_args[kwn] = values = [value]
+                    expand = anno.allow_repeat == "expand"
+                    if expand and isinstance(value, list):
+                        self._kw_args[kwn] = values = value
+                    else:
+                        self._kw_args[kwn] = values = [value]
                     while True:
                         text = self._skip_white_space(text)
                         if self._start_of_keywords(text):
@@ -2346,7 +2388,10 @@ class Command:
                             value, text = self._parse_arg(anno, text, session, False)
                         except:
                             break
-                        values.append(value)
+                        if expand and isinstance(value, list):
+                            values.extend(value)
+                        else:
+                            values.append(value)
             except ValueError as err:
                 if isinstance(err, AnnotationError) and err.offset:
                     # We got an error with an offset, that means that an
@@ -2455,7 +2500,8 @@ class Command:
                     expected.append("fewer arguments")
                 self._error = "Expected " + commas(expected)
                 return
-            self.amount_parsed += len(chars)
+            self._replace(chars, arg_name)
+            self.amount_parsed += len(arg_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
@@ -2558,7 +2604,7 @@ class Command:
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
             if missing:
                 arg_names = ['"%s"' % m for m in missing]
-                msg = commas(arg_names, ' and')
+                msg = commas(arg_names, 'and')
                 noun = plural_form(arg_names, 'argument')
                 self._error = "Missing required %s %s" % (msg, noun)
                 if log:
@@ -2583,13 +2629,7 @@ class Command:
             with command_trigger(session, really_log, cmd_text):
                 if not isinstance(ci.function, Alias):
                     if not log_only:
-                        try:
-                            result = ci.function(session, **kw_args)
-                        except UserError as e:
-                            self.log_error(str(e))
-                            raise
-                        except:
-                            raise
+                        result = ci.function(session, **kw_args)
                         results.append(result)
                 else:
                     arg_names = [k for k in kw_args.keys() if isinstance(k, int)]
@@ -2641,17 +2681,6 @@ class Command:
                 text, text)
             session.logger.info(msg, is_html=True, add_newline=False)
 
-    def log_error(self, msg):
-        session = self._session()  # resolve back reference
-        if not session.ui.is_gui:
-            session.logger.error(msg)
-        else:
-            from html import escape
-            err_color = 'crimson'
-            msg = '<span style="color:%s;font-weight:bold">%s</span>\n' % (
-                err_color, escape(msg))
-            session.logger.info(msg, is_html=True)
-
     def log_parse_error(self):
         session = self._session()  # resolve back reference
         rest = self.current_text[self.amount_parsed:]
@@ -2672,7 +2701,6 @@ class Command:
                 error_at -= self.start
                 if error_at:
                     session.logger.error("%s^" % ('.' * error_at))
-            session.logger.error(self._error)
         else:
             from html import escape
             ci = self._ci
@@ -2691,9 +2719,8 @@ class Command:
                     escape(self.current_text[self.start + offset:error_at]),
                     err_color,
                     escape(self.current_text[error_at:]))
-            msg += '</div>\n<span style="color:%s;font-weight:bold">%s</span>\n' % (
-                err_color, escape(self._error))
-            session.logger.info(msg, is_html=True)
+            msg += '</div>'
+            session.logger.info(msg, is_html=True, add_newline=False)
 
 
 from contextlib import contextmanager
@@ -2819,7 +2846,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        name = cmd.command_name
+        name = cmd.current_text[:cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 syntax += '\n\n' + usage('%s %s' % (name, w), show_subcommands=0)
@@ -2935,7 +2962,7 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        name = cmd.command_name
+        name = cmd.current_text[:cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 syntax += '<p>\n' + html_usage('%s %s' % (name, w), show_subcommands=0)

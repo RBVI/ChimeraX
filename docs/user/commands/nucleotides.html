@@ -37,26 +37,50 @@ The <b>nucleotides</b> command generates special representations of
 nucleic acids, with choices for <i>mode</i>:
 <ul>
 <li><a href="#atoms"><b>atoms</b></a>
-- atomic representation, no special representations; undo the other modes
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-atoms.png"></a>
+&ndash; atomic representation, no special representations; undo the other modes
 (same as <b>~nucleotides</b>)
+<li><a href="#fill"><b>fill</b></a>
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-fill.png"></a>
+&ndash; atomic representation, but with filled rings
 <li><a href="#ladder"><b>ladder</b></a>
-- continuous or broken rungs depending on 
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-ladder.png"></a>
+&ndash; continuous or broken rungs depending on 
 <a href="hbonds.html#related">hydrogen bond pseudobonds</a>
 <li><a href="#stubs"><b>stubs</b></a>
-- broken rungs 
-<li><a href="#tube"><b>tube/slab</b></a> - tube representation of ribose,
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-stubs.png"></a>
+&ndash; broken rungs 
+<li><a href="#tube"><b>tube/slab</b></a> 
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-box.png"></a>
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-muff.png"></a>
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-elli.png"></a>
+&ndash; tube representation of ribose,
 slab representation of bases (box, muffler, or ellipsoid shape)
-<li><a href="#slab"><b>slab</b></a> - atomic representation of ribose, 
-slab representation of bases 
+<li><a href="#slab"><b>slab</b></a>
+<a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
+<img class="icon" border=1 src="../tools/toolbar-icons/nuc-slab.png"></a>
+&ndash; filled-ring atomic representation of ribose, slab representation of bases 
 </ul>
 <p>
 Each mode may have additional options, detailed below.
+Nucleotide representations are colored according to the 
+<a href="color.html#simple">ring fill color</a> of each residue.
+</p><p>
 See also:
-<a href="color.html#bynucleotide"><b>color bynucleotide</b></a>,
+<a href="preset.html"><b>preset</b></a>,
+<a href="color.html#bynucleotide"><b>color bynucleotide</b></a>
 <a href="cartoon.html"><b>cartoon</b></a>,
 <a href="style.html"><b>style</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
-<a href="struts.html"><b>struts</b></a>
+<a href="struts.html"><b>struts</b></a>,
+<a href="../tools/nucdisplay.html"><b>Nucleotides</b></a> icons
 </p>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -69,6 +93,21 @@ See also:
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; 
 <blockquote>
 Remove special representations to reveal atoms and bonds.
+</blockquote>
+
+<blockquote>
+<table class="clRight" cellpadding="0px" cellspacing="0px">
+<tr><td><img class="outline" src="fill.png" width="100px"
+alt="slab" title="slab"></td></tr>
+</table>
+</blockquote>
+<a href="#top" class="nounder">&bull;</a>
+<a name="fill"></a>
+<b>nucleotides</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; 
+<b>fill</b>
+<blockquote>
+Atomic representation, but with filled rings (base and ribose).
+Fill thickness can be adjusted with <a href="style.html"><b>style</b></a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -94,8 +133,6 @@ If <b>baseOnly</b> is <b>true</b> (default),
 connecting rungs will only be drawn for H-bonds between base atoms; 
 if <b>false</b>, thinner connecting rungs (radius <b>0.2</b> &Aring;)
 will also be drawn for H-bonds involving non-base atoms.
-Each half-rung (whether connected or not)
-is colored to match the C2 atom of the corresponding residue.
 The rungs attach to cartoon at the C3' 
 <a href="cartoon.html#tether">tether</a> position, and disconnected half-rungs
 (stubs) end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
@@ -120,8 +157,7 @@ different residues in the same model cannot have a different rung radius.
 alt="stubs" title="stubs"></td>
 </table>
 Show nucleotide sidechains as disconnected half-rungs of the specified 
-<b>radius</b> (default <b>0.45</b> &Aring;),
-each colored to match the C2 atom of the corresponding residue.
+<b>radius</b> (default <b>0.45</b> &Aring;).
 The rungs attach to cartoon at the C3'
 <a href="cartoon.html#tether">tether</a> position, and the stubs 
 end at the nucleic acid base N1 (if purine) or N3 (if pyrimidine).  
@@ -146,7 +182,7 @@ Represent ribose moieties as tubes of the specified <b>radius</b>
 bases as slabs of the specified <b>shape</b>, <b>dimensions</b>, and 
 <b>thickness</b> (default <b>0.5</b> &Aring;). The <b>shape</b> can be:
 <ul>
-<li><b>box</b> (default) - rectangular box
+<li><b>box</b> (default) &ndash; rectangular box
 <table class="clRight" cellpadding="0px" cellspacing="0px">
 <tr><td><img class="outline" src="box.png" width="100px"
 alt="box" title="box"></td>
@@ -155,24 +191,21 @@ alt="muffler" title="muffler"></td>
 <td><img class="outline" src="ellipsoid.png" width="100px"
 alt="ellipsoid" title="ellipsoid"></td></tr>
 </table>
-<li><b>muffler</b> - rectangular in the plane of the base, oval in cross-section
+<li><b>muffler</b> &ndash; rectangular in the plane of the base, oval in cross-section
 (large enough to enclose the corresponding box)
-<li><b>ellipsoid</b> - oval in the plane of the base and oval in cross-section
+<li><b>ellipsoid</b> &ndash; oval in the plane of the base and oval in cross-section
 (large enough to enclose the corresponding box)
 </ul>
 <a name="dimensions"></a>
 The choices for <b>dimensions</b> also specify the location of the slab:
 <ul>
 <li><b>small</b> (default for <b>ellipsoid</b> shape)
-- anchored at the base end of the glycosidic bond
+&ndash; anchored at the base end of the glycosidic bond
 <li><b>long</b> (default for <b>box</b> and <b>muffler</b> shapes)
-- anchored at the base end of the glycosidic bond
-<li><b>big</b>  - anchored at the ribose end of the glycosidic bond (C1')
-<li><b>fat</b> - anchored at the ribose end of the glycosidic bond
+&ndash; anchored at the base end of the glycosidic bond
+<li><b>big</b> &ndash; anchored at the ribose end of the glycosidic bond (C1')
+<li><b>fat</b> &ndash; anchored at the ribose end of the glycosidic bond
 </ul>
-Each slab is colored to match the base C2 atom
-<!-- change to ringfill color? -->
-and each tube to match the ribose C1' atom.
 The <b>hideAtoms</b> option indicates whether to hide nucleotide atoms/bonds
 (default <b>true</b>).
 The <b>glycosidic</b> option applies only to base-anchored slabs
@@ -214,20 +247,19 @@ Different residues can have different slab parameters.
 [&nbsp;<b>showOrientation</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 <table class="clRight" cellpadding="0px" cellspacing="0px">
-<tr><td><img class="outline" src="slab.png" width="140px"
+<tr><td><img class="outline" src="slab.png" width="100px"
 alt="slab" title="slab"></td></tr>
 </table>
-Show ribose atoms, but
+Show ribose as atoms with ring fill and
 represent bases as slabs of the specified <b>shape</b>,
 <b>dimensions</b>, and <b>thickness</b> (default <b>0.5</b> &Aring;),
 optionally with <b>showOrientation</b> bumps,
 as described above for <a href="#tube"><b>tube/slab</b></a> display.
-Each slab is colored to match the base C2 atom.
-<!-- change to ringfill color? -->
 The <b>hideAtoms</b> option indicates whether to hide base atoms/bonds
-(default <b>true</b>).
+(default <b>true</b>). Ribose ring-fill can be turned off or its thickness
+adjusted with <a href="style.html"><b>style</b></a>.
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2018</address>
+May 2019</address>
 </body></html>

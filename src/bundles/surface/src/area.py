@@ -66,11 +66,14 @@ def measure_volume(session, surfaces, include_masked = True):
         va = surf.vertices
         # Use joined triangles for molecular surfaces with sharp edges that use disconnected triangles.
         ta = surf.joined_triangles if hasattr(surf, 'joined_triangles') else surf.triangles
-        if not include_masked:
-            tmask = surf.triangle_mask
-            if tmask is not None:
-                ta = ta[tmask]
-        v, nholes = enclosed_volume(va, ta)
+        if va is None or ta is None:
+            v, nholes = 0, 0
+        else:
+            if not include_masked:
+                tmask = surf.triangle_mask
+                if tmask is not None:
+                    ta = ta[tmask]
+            v, nholes = enclosed_volume(va, ta)
         if v is None:
             lines.append('Surface %s (#%s) has boundary edges traversed in opposing directions.'
                          '  Cannot determine volume.' % (surf.name, surf.id_string))
@@ -86,6 +89,7 @@ def measure_volume(session, surfaces, include_masked = True):
         if totholes > 0:
             line += ' with %d surface holes' % totholes
         lines.append(line)
+    
     msg = '\n'.join(lines)
     if len(lines) == 1:
         session.logger.status(msg)
@@ -99,7 +103,10 @@ def measure_area(session, surfaces, include_masked = True):
     for surf in surfaces:
         va = surf.vertices
         ta = surf.triangles if include_masked else surf.masked_triangles
-        a = surface_area(va, ta)
+        if va is None or ta is None:
+            a = 0
+        else:
+            a = surface_area(va, ta)
         atot += a
         lines.append('Surface area for %s (#%s) = %.4g' % (surf.name, surf.id_string, a))
     if len(surfaces) > 1:

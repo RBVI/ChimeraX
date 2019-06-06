@@ -154,14 +154,15 @@ def main():
         if build not in ['release', 'candidate', 'daily']:
             error = True
     if error or len(sys.argv) > 3 or os_version not in UBUNTU_DEPENDENCIES:
-        print(f'Usage: {sys.argv[0]} ubuntu-version [daily]', file=sys.stderr)
+        print(f'Usage: {sys.argv[0]} ubuntu-version [build-type]', file=sys.stderr)
         print('  Supported Ubuntu versions are:', ', '.join(UBUNTU_DEPENDENCIES.keys()),
               file=sys.stderr)
+        print('  Build-type is one of "release", "candidate", or "daily"', file=sys.stderr)
         raise SystemExit(2)
     dependencies = UBUNTU_DEPENDENCIES[os_version]
     full_version = subprocess.check_output([
         CHIMERAX_BIN, "--nocolor", "--version"], stderr=subprocess.DEVNULL).decode()
-    full_version = full_version.strip().split('\n')[-1]
+    full_version = full_version.strip().split('\n')[1]
     full_version = full_version.split(':', maxsplit=1)[1].strip()
     version_number, version_date = full_version.split(maxsplit=1)
     version_date = version_date[1:-1].replace('-', '.')
@@ -176,10 +177,8 @@ def main():
         # release build
         version = version_number
     else:
-        # release build
-        version = version_number
-        print('candiate builds are not supported yet', file=sys.stderr)
-        raise SystemExit(1)
+        # candiate build
+        version = f"{version_number}+rc{version_date}"
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))

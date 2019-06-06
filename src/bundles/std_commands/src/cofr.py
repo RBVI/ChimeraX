@@ -76,7 +76,7 @@ def cofr(session, method=None, objects=None, pivot=None, coordinate_system=None,
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, EnumOf, EmptyArg, ObjectsArg, Or
     from chimerax.core.commands import BoolArg, Float2Arg, Float3Arg, ModelArg, create_alias
-    methods = ('front center', 'frontCenter', 'fixed', 'centerOfView')
+    methods = ('frontCenter', 'fixed', 'centerOfView')
     desc = CmdDesc(
         optional=[('method', Or(EnumOf(methods), EmptyArg)),
                   ('objects', Or(ObjectsArg, EmptyArg)),

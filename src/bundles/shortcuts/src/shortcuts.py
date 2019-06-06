@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -118,11 +120,17 @@ def standard_shortcuts(session):
         ('s2', 'volume selMaps step 2', 'Show map at step 2', mapcat, noarg, mmenu, sep),
         ('s4', 'volume selMaps step 4', 'Show map at step 4', mapcat, noarg, mmenu, sep),
 
-        ('pl', show_one_plane, 'Show one plane', mapcat, maparg, mmenu),
-        ('pa', show_all_planes, 'Show all planes', mapcat, maparg, mmenu),
-        ('o3', toggle_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
+        ('pl', 'volume selMaps plane z orthoplanes off style solid', 'Show one plane', mapcat, maparg, mmenu),
+        ('pa', 'volume selMaps region all orthoplanes off', 'Show all planes', mapcat, maparg, mmenu),
+        ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
+
+        ('aw', 'volume selMaps appearance "Airways II"', 'Airways preset', mapcat, maparg, mmenu),
+        ('as', 'volume selMaps appearance CT_Skin', 'Skin preset', mapcat, maparg, mmenu),
+        ('dc', 'volume selMaps appearance initial', 'Default volume curve', mapcat, maparg, mmenu),
+        ('zs', 'volume selMaps projectionMode 2d-xyz', 'Volume xyz slices', mapcat, maparg, mmenu),
+        ('ps', 'volume selMaps projectionMode 3d', 'Volume perpendicular slices', mapcat, maparg, mmenu),
 
         # Molecules
         ('da', 'show selAtoms', 'Show atoms', molcat, noarg, mlmenu),
@@ -144,6 +152,10 @@ def standard_shortcuts(session):
         ('sB', 'show selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
         ('hB', 'hide selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
         ('hb', 'hbonds selAtoms', 'Show hydrogen bonds', molcat, noarg, mlmenu),
+        ('HB', '~hbonds', 'Hide all hydrogen bonds', molcat, noarg, mlmenu),
+#        ('sq', 'sequence chain selAtoms', 'Show polymer sequence', molcat, noarg, mlmenu),
+        ('sq', show_sequence, 'Show polymer sequence', molcat, atomsarg, mlmenu),
+        ('if', 'interfaces selAtoms & ~solvent', 'Chain interfaces diagram', molcat, noarg, mlmenu),
 
         ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
         ('Sb', 'color selAtoms halfbond false', 'Single color bonds', molcat, noarg, mlmenu),
@@ -152,10 +164,12 @@ def standard_shortcuts(session):
         ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
         ('ce', 'color selAtoms byhet', 'Color non-carbon atoms by element', molcat, noarg, mlmenu),
         ('rc', 'color selAtoms random', 'Random color atoms and residues', molcat, noarg, mlmenu),
-        ('bf', color_by_bfactor, 'Color by bfactor', molcat, atomsarg, mlmenu),
+        ('bf', 'color bfactor selAtoms', 'Color by bfactor', molcat, atomsarg, mlmenu),
+        ('rB', 'rainbow selAtoms', 'Rainbow color N to C-terminus', molcat, noarg, mlmenu),
 
         ('ms', 'show selAtoms surface', 'Show molecular surface', molcat, noarg, mlmenu),
         ('sa', 'sasa selAtoms', 'Compute solvent accesible surface area', molcat, noarg, mlmenu, sep),
+        ('hp', 'mlp selAtoms', 'Show hydrophobicity surface', molcat, noarg, mlmenu),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
 
@@ -389,8 +403,9 @@ def _sel_atoms_selector(session, models, results):
 
 # Selected maps, or if none selected then displayed maps.
 def _sel_maps_selector(session, models, results):
-    for m in shortcut_maps(session):
-        results.add_model(m)
+    for v in shortcut_maps(session):
+        for m in v.all_models():	# Include map submodels.
+            results.add_model(m)
 
 # Selected models, or if none selected then all models.
 def _sel_models_selector(session, models, results):
@@ -464,7 +479,7 @@ def show_dots(session):
         m.display_style = m.Dot
 
 def show_grayscale(m):
-  m.set_representation('solid')
+  m.set_display_style('image')
 
 def toggle_outline_box(m):
     ro = m.rendering_options
@@ -477,28 +492,26 @@ def show_one_plane(m):
   m.set_parameters(orthoplanes_shown = (False, False, False),
                    box_faces = False)
   m.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
-  m.set_representation('solid')
+  m.set_display_style('image')
         
 def show_all_planes(m):
   ijk_min = (0,0,0)
   ijk_max = tuple(s-1 for s in m.data.size)
   m.new_region(ijk_min, ijk_max)
 
-def toggle_orthoplanes(m):
-  s = False in m.rendering_options.orthoplanes_shown
+def show_orthoplanes(m):
   p = tuple(s//2 for s in m.data.size)
-  m.set_parameters(orthoplanes_shown = (s,s,s),
-                   orthoplane_positions = p,
-                   color_mode = 'l8' if s else 'auto8',
-                   box_faces = False)
-  m.set_representation('solid')
+  cmd = ('volume #%s ' % m.id_string +
+         'orthoplanes xyz positionPlanes %d,%d,%d style solid region all' % p)
+  from chimerax.core.commands import run
+  run(m.session, cmd)
 
 def toggle_box_faces(m):
   s = not m.rendering_options.box_faces
   m.set_parameters(box_faces = s,
                    color_mode = 'l8' if s else 'auto8',
                    orthoplanes_shown = (False, False, False))
-  m.set_representation('solid')
+  m.set_display_style('image')
 
 def mark_map_surface_center(m):
     from chimerax import markers
@@ -706,21 +719,13 @@ def hide_surface(session):
                 m.display_positions = logical_and(dp,logical_not(sp))
 
 def toggle_surface_transparency(session):
-    from chimerax.map import Volume
-    from chimerax.core.graphics import Drawing
-    for m in shortcut_surfaces_and_maps(session):
-        if isinstance(m, Volume):
-            for s in m.surfaces:
-                r,g,b,a = s.rgba
-                ta = (0.5 if a == 1 else 1)
-                s.rgba = (r,g,b,ta)
-        else:
-            for d in m.all_drawings():
-                c = d.colors
-                opaque = (c[:,3] == 255)
-                c[:,3] = 255                # Make transparent opaque
-                c[opaque,3] = 128           # and opaque transparent.
-                d.colors = c
+    for m in shortcut_surfaces(session):
+        for d in m.all_drawings():
+            c = d.colors
+            opaque = (c[:,3] == 255)
+            c[:,3] = 255                # Make transparent opaque
+            c[opaque,3] = 128           # and opaque transparent.
+            d.colors = c
 
 def show_surface_transparent(session, alpha = 0.5):
     from chimerax.map import Volume
@@ -804,6 +809,22 @@ def molecule_bonds(m, session):
         log.info(msg)
         if missing:
             log.info('Missing %d templates: %s' % (len(missing), ', '.join(missing)))
+
+def show_sequence(atoms):
+    chains = atoms.residues.unique_chains
+    chains_by_seq = {}
+    for c in chains:
+        chains_by_seq.setdefault(c.characters, []).append(c)
+    for schains in chains_by_seq.values():
+        chains_by_struct = {}
+        for c in schains:
+            chains_by_struct.setdefault(c.structure, []).append(c)
+        seq_chain_spec = ''.join('#%s/%s' % (s.id_string, ','.join(c.chain_id for c in sclist))
+                                 for s,sclist in chains_by_struct.items())
+        # Don't log since sequence commmand syntax has not been finalized.
+        session = schains[0].structure.session
+        from chimerax.core.commands import run
+        run(session, 'sequence chain %s' % seq_chain_spec, log = False)
 
 def list_keyboard_shortcuts(session):
     m = session.main_window
@@ -1018,7 +1039,7 @@ def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp
            % unused_file_name(directory, basename, suffix))
     from chimerax.core.commands import run
     run(session, cmd)
-        
+
 def unused_file_name(directory, basename, suffix):
     '''
     Return path in the specified directory with file name basename plus

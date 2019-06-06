@@ -1,0 +1,49 @@
+<BundleInfo name="ChimeraX-Toolbar"
+	    version="0.1" package="chimerax.toolbar"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Toolbar</Synopsis>
+  <Description>Tabbed Toolbar
+
+Provides a Windows ribbon-style toolbar interface
+  </Description>
+
+  <Categories>
+    <Category name="General"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Shortcuts" version=">=1.0"/>
+    <Dependency name="ChimeraX-MouseModes" version=">=1.0"/>
+    <!-- depend on everything that registers a mousemode for now,
+	 so they'll exist when toolbar is made -->
+    <Dependency name="ChimeraX-BondRot" version=">=1.0"/>
+    <Dependency name="ChimeraX-Dist_UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Label" version=">=1.0"/>
+    <Dependency name="ChimeraX-Map" version=">=1.0"/>
+    <Dependency name="ChimeraX-Markers" version=">=1.0"/>
+    <Dependency name="ChimeraX-Label" version=">=1.0"/>
+    <Dependency name="ChimeraX-Tug" version=">=1.0"/>
+    <Dependency name="ChimeraX-Zone" version=">=1.0"/>
+  </Dependencies>
+
+  <DataFiles>
+    <DataDir>icons</DataDir>
+    <DataFile>tool.html</DataFile>
+    <DataFile>docs/user/tools/Toolbar.html</DataFile>
+  </DataFiles>
+
+  <Classifiers>
+    <!-- Development Status should be compatible with bundle version number -->
+    <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: Tool :: Toolbar :: General :: a Windows ribbon-style toolbar</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

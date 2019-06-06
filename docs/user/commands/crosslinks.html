@@ -29,7 +29,7 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html"><i>pseudobond-spec</i></a>&nbsp;
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>colorname</i></a>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </h3>
 <p>
 The <b>crosslinks</b> command acts on
@@ -43,9 +43,7 @@ See also:
 <a href="label.html"><b>label</b></a>
 </p><p>
 The top-level command sets pseudobond stick <b>radius</b>,
-number of <b>dashes</b> <i>N</i>,
-and/or <b>color</b>, where
-<a href="colornames.html"><i>colorname</i></a> specifies a single color.
+number of <b>dashes</b> <i>N</i>, and/or <b>color</b>.
 Only whole numbers of dashes are accepted, with 0
 indicating solid sticks. Currently, odd numbers are rounded down
 to give an even number of dashes.
@@ -90,6 +88,7 @@ within a given structure, or for a single
 across the frames of a <a href="../trajectories.html">trajectory</a>
 specified with the <b>coordsets</b> option.
 See also: <a href="coordset.html"><b>coordset</b></a>,
+<a href="select.html#new"><b>select</b> by pseudobond length</a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
 Passing the cursor over bars in a multiple-pseudobond histogram shows just the 
@@ -178,5 +177,5 @@ Intra-model crosslinks are not affected.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+May 2019</address>
 </body></html>

@@ -40,7 +40,7 @@ def save_image(session, path, format_name, width=None, height=None,
     from .errors import UserError, LimitationError
     has_graphics = session.main_view.render is not None
     if not has_graphics:
-        raise LimitationError("Unable to render images to save them")
+        raise LimitationError("Unable to save images because OpenGL rendering is not available")
     from os.path import expanduser, dirname, exists, splitext
     path = expanduser(path)         # Tilde expansion
     dir = dirname(path)
@@ -58,7 +58,8 @@ def save_image(session, path, format_name, width=None, height=None,
         if psize > 0 and pixel_size > 0:
             f = psize / pixel_size
             w, h = v.window_size
-            width, height = int(round(f * w)), int(round(f * h))
+            from math import ceil
+            width, height = int(ceil(f * w)), int(ceil(f * h))
         else:
             raise UserError('Pixel size option (%g) and screen pixel size (%g) must be positive'
                             % (pixel_size, psize))
@@ -150,7 +151,7 @@ def save_image(session, path, format_name, width=None, height=None,
     if i is not None:
         i.save(path, fmt.pil_name, **metadata)
     else:
-        session.logger.warning("Unable to save image.  Perhaps too big?")
+        session.logger.warning("Unable to save image of size %d by %d." % (width, height))
 
 
 def register_image_save(session):

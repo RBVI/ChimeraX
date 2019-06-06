@@ -50,24 +50,27 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
     # that we use this hack to use .coord if possible
     from chimerax.atomic import Atom
     Atom._addh_coord = Atom.coord if in_isolation else Atom.scene_coord
-    session.logger.status("Adding hydrogens")
-    try:
-        add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
-    except:
-        session.logger.status("")
-        raise
-    finally:
-        delattr(Atom, "_addh_coord")
-        for structure in structures:
-            structure.alt_loc_change_notify = True
-    session.logger.status("Hydrogens added")
-    atoms = struct_collection.atoms
-    # If side chains are displayed, then the CA is _not_ hidden, so we
-    # need to let the ribbon code update the hide bits so that the CA's
-    # hydrogen gets hidden...
-    atoms.update_ribbon_visibility()
-    session.logger.info("%s hydrogens added" %
-        (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
+    from chimerax.core.logger import Collator
+    with Collator(session.logger, "Summary of feedback from adding hydrogens to %s"
+            % ("multiple structures" if len(structures) > 1 else structures[0])):
+        session.logger.status("Adding hydrogens")
+        try:
+            add_h_func(session, structures, in_isolation=in_isolation, **prot_schemes)
+        except:
+            session.logger.status("")
+            raise
+        finally:
+            delattr(Atom, "_addh_coord")
+            for structure in structures:
+                structure.alt_loc_change_notify = True
+        session.logger.status("Hydrogens added")
+        atoms = struct_collection.atoms
+        # If side chains are displayed, then the CA is _not_ hidden, so we
+        # need to let the ribbon code update the hide bits so that the CA's
+        # hydrogen gets hidden...
+        atoms.update_ribbon_visibility()
+        session.logger.info("%s hydrogens added" %
+            (len(atoms.filter(atoms.elements.numbers == 1)) - num_pre_hs))
 #TODO: initiate_add_hyd
 
 def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=False,
@@ -99,7 +102,7 @@ def simple_add_hydrogens(session, structures, unknowns_info={}, in_isolation=Fal
     glu: GLU (unprotonated), GLH (carboxy oxygen 2 protonated)
     asp: ASP (unprotonated), ASH (carboxy oxygen 2 protonated)
     lys: LYS (positively charged), LYN (neutral)
-    cys: CYS (neutral), CYM (negatively charged)
+    cys: CYS (unspecified), CYM (negatively charged)
 
     For asp/glu, the dictionary values are either 0, 1, or 2: indicating
     no protonation or carboxy oxygen #1 or #2 protonation respectively.
@@ -207,6 +210,8 @@ def post_add(session, fake_n, fake_c):
             if nb.element.number == 1:
                 if nb.name == "H":
                     add_nh = False
+                    if fn.name == "PRO":
+                        nb.structure.delete_atom(nb)
                 else:
                     nb.structure.delete_atom(nb)
         if fn.name == "PRO":
@@ -385,10 +390,8 @@ def _delete_shared_data():
     global search_tree, _radii, _metals, ident_pos_model, _h_coloring
     search_tree = radii = _metals = ident_pos_models = _h_coloring = None
 
-asp_prot_names, asp_res_names = ["OD1", "OD2"], ["ASP", "ASH"]
-glu_prot_names, glu_res_names = ["OE1", "OE2"], ["GLU", "GLH"]
-lys_prot_names, lys_res_names = ["NZ"], ["LYS", "LYN"]
-cys_prot_names, cys_res_names = ["SG"], ["CYS", "CYM"]
+asp_res_names, asp_prot_names = ["ASP", "ASH"], ["OD1", "OD2"]
+glu_res_names, glu_prot_names = ["GLU", "GLH"], ["OE1", "OE2"]
 def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes):
     global _serial
     _serial = None
@@ -416,9 +419,13 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
         complete_terminal_carboxylate(session, rc)
 
     # ensure that N termini are protonated as N3+ (since Npl will fail)
+    from chimerax.atomic import Sequence
     for nter in real_N+fake_N:
         n = nter.find_atom("N")
         if not n:
+            continue
+        # if residue wasn't templated, leave atom typing alone
+        if Sequence.protein3to1(n.residue.name) == 'X':
             continue
         if not (n.residue.name == "PRO" and n.num_bonds >= 2):
             n.idatm_type = "N3+"
@@ -449,7 +456,15 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
                 # of hydrogen-adding loop (since that will
                 # force a recomp), so remember here
                 type_info_for_atom[atom] = type_info[atom.idatm_type]
-                atoms.append(atom)
+                # if atom is in standard residue but has missing bonds to
+                # heavy atoms, skip it instead of incorrectly protonating
+                # (or possibly throwing an error if e.g. it's planar)
+                if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                    session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
+                        " bond partners" % atom)
+                    type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
+                else:
+                    atoms.append(atom)
                 # sulfonamide nitrogens coordinating a metal
                 # get an additional hydrogen stripped
                 if coordinations.get(atom, []) and atom.element.name == "N":
@@ -494,12 +509,13 @@ def _prep_add(session, structures, unknowns_info, need_all=False, **prot_schemes
         hydrogen_totals[atom] = total_hydrogens
 
     schemes = {}
+    # HIS and CYS treated as 'unspecified'; use built-in typing
     for scheme_type, res_names, res_check, typed_atoms in [
             ('his', ["HID", "HIE", "HIP"], None, []),
             ('asp', asp_res_names, _asp_check, asp_prot_names),
             ('glu', glu_res_names, _glu_check, glu_prot_names),
-            ('lys', lys_res_names, _lys_check, lys_prot_names),
-            ('cys', cys_res_names, _cys_check, cys_prot_names) ]:
+            ('lys', ["LYS", "LYN"], _lys_check, ["NZ"]),
+            ('cys', ["CYM"], _cys_check, ["SG"]) ]:
         scheme = prot_schemes.get(scheme_type + '_scheme', None)
         if scheme is None:
             by_name = True
@@ -740,9 +756,6 @@ def roomiest(positions, attached, check_dist, atom_type_info):
 def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
     if parent_atom.element.valence < 5:
         # carbons, et al, can't coordinate metals
-        return False
-    if parent_type_info.geometry == 3 and len(
-            [a for a in parent_atom.neighbors if a.element.number > 1]) < 2:
         return False
     from chimerax.core.geometry import distance, angle
     if distance(metal_pos, parent_pos) > _metal_dist:

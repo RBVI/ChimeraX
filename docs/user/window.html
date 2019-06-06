@@ -26,17 +26,20 @@ class="clRight" title="User Guide Index"/></a>
 
 <h2>The ChimeraX Window</h2>
 <a href="crispr.png">
-<img class="outlineCR" width="450px" src="crispr.png" 
+<img class="outlineCR" width="480px" src="crispr.png" 
 alt="ChimeraX window" title="click to enlarge..."></a>
 <p>
 ChimeraX has an all-in-one window interface in which various
 <b><i>panels</i></b> can be shown, hidden, and repositioned. 
 Panels can also be detached (undocked) from the main ChimeraX window 
 and subsequently reinserted (docked).
+</p><p>
 The overall window also contains the <b><i>main window</i></b>
-for 3D graphics, a <b><i>title bar</i></b> across the top, 
+for 3D graphics, a <b><i>title bar</i></b> at the top, 
 and a <b><i>status line</i></b> for transient messages across the bottom. 
-At the bottom right are small icons:
+By default, a <a href="tools/toolbar.html"><b>Toolbar</b></a> with icons
+lies right below the title bar. 
+Near the bottom right corner are additional small icons:
 <ul>
 <li><img class="iconbar" src="toggle.png"> 
 - toggle main window to fill overall window
@@ -71,14 +74,17 @@ a certain type of data (for example, opening a density map starts
 Panels may include clickable icons, interactive 2D representations 
 like network diagrams, and (rendered) HTML with links and images, as in the 
 <a href="tools/browser.html"><b>Help Viewer</b></a>.
+Users can define custom panels of buttons with the 
+<a href="commands/buttonpanel.html"><b>buttonpanel</b></a> command.
 </p><p>
 <a name="context-menu"></a>
 A <b><i>context menu</i></b> is raised by right-clicking*
 parts of the interface.
-See also: <a href="selection.html#context">selection context menus</a>
+See also: <a href="selection.html#context">selection context menus</a>,
+<a href="tools/mousemodes.html"><b>Right Mouse</b></a> icons
 </p><p>
 <a name="mac-context"></a>
-<font size="+2"><b>*</b></font>for Mac touchpad or single-button mouse,
+<font size="+2"><b>*</b></font>for Mac trackpad or single-button mouse,
 Ctrl-click replaces &ldquo;right-click&rdquo; for showing context menus
 </p><p>
 A panel can be:
@@ -94,7 +100,7 @@ some panels remain active when dismissed, others do not
 <li>undocked from the main ChimeraX window
 by clicking the &ldquo;rectangles&rdquo; button <img src="undock.png">
 on its title bar or by dragging or double-clicking its title bar
-<li>if <a href="#toolprefs">dockable</a>,
+<li>if <a href="#tool-context">dockable</a>,
 redocked by dragging or double-clicking its title bar, with the
 dragged location controlling where and how the panel will be inserted
 <li>tabbed with other panels, with only one shown at a time.
@@ -104,25 +110,26 @@ its top bar, and an individual tabbed panel can be untabbed
 (separated from the others) by dragging its tab.
 </ul>
 <p>
-<a href="index.html#toolbars">Toolbars</a>
-and the <a href="tools/cli.html"><b>Command Line</b></a>
-lack their own title bars, but the other methods of control
-are still available. An icon toolbar can be grabbed for 
-repositioning by clicking the small dashed line on its top or left end.
 The overall window or any undocked panel can be resized by dragging 
 any corner and moved by dragging its title bar.
 The boundaries between docked panels or between panel(s) and the
 main window can be dragged to expand one side and shrink the other
 while keeping the overall window dimensions the same.
-Finally, the overall window can be toggled to hide/show the current panels 
+</p><p>
+The <a href="tools/toolbar.html"><b>Toolbar</b></a>
+and <a href="tools/cli.html"><b>Command Line</b></a> lack title bars
+when docked, but the other methods of control are still available.
+</p><p>
+The overall window can be toggled to hide/show the current panels 
 by clicking the &ldquo;nested squares&rdquo; button
 <img width="20px" src="toggle.png"> near its bottom right corner.
 This allows expanding the main window with a single click
 without losing the overall window configuration.
-Icon toolbars and the <a href="tools/cli.html"><b>Command Line</b></a>
+The <a href="tools/toolbar.html"><b>Toolbar</b></a>
+and <a href="tools/cli.html"><b>Command Line</b></a>
 are excluded from this toggling.
 </p><p>
-<a name="toolprefs"></a>
+<a name="tool-context"></a>
 Panels may have their own specific <a href="#context-menu">context menus</a>
 (away from the title-bar area), typically including:
 </p>
@@ -136,6 +143,9 @@ Panels may have their own specific <a href="#context-menu">context menus</a>
 <ul>
 <li><b>Start at ChimeraX Startup</b>
 - whether the tool should start automatically upon subsequent ChimeraX startup
+<li><b>In Favorites Menu</b>
+- whether the tool should be listed in the 
+<a href="menu.html#favorites"><b>Favorites</b> menu</a>
 <li><b>Dockable Tool</b>
 - whether panels of the tool should be allowed to reinsert automatically
 when dragged over the main window, as opposed to remaining separate;
@@ -154,5 +164,5 @@ Tool autostart behavior and dockability can also be set with the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2018</address>
+May 2019</address>
 </body></html> 
