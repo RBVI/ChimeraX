@@ -15,7 +15,7 @@
 # -----------------------------------------------------------------------------
 #
 def label(session, objects = None, object_type = None, text = None,
-          offset = None, orient = None, color = None, background = None,
+          offset = None, color = None, background = None,
           size = None, height = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
@@ -30,11 +30,6 @@ def label(session, objects = None, object_type = None, text = None,
       Displayed text of the label.
     offset : float 3-tuple or "default"
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
-    orient : float
-      Reorient the labels to face the view direction only when the view direction changes
-      by the specified number of degrees.  Default 0 makes the labels always face
-      the view direction.  This option is primarily of interest with virtual reality viewing.
-      This is a per-structure setting.
     color : Color or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
@@ -104,12 +99,33 @@ def label(session, objects = None, object_type = None, text = None,
             lm = labels_model(m, create = True)
             lm.add_labels(mobjects, object_class, view, settings, on_top)
             lcount += len(mobjects)
-            if orient is not None:
-                lm._reorient_angle = orient
     if objects is None and lcount == 0:
         from chimerax.core.errors import UserError
         raise UserError('Label command requires an atom specifier to create labels.')
 
+# -----------------------------------------------------------------------------
+#
+def label_orient(session, orient = None):
+    '''Set how often labels reorient to face the viewer.
+
+    Parameters
+    ----------
+    orient : float
+      Reorient the labels to face the view direction only when the view direction changes
+      by the specified number of degrees.  Default 0 makes the labels always face
+      the view direction.  This option is primarily of interest with virtual reality viewing.
+      This is a global setting.
+    '''
+    if orient is None:
+        session.logger.status('Labels reorient at %.0f degrees' % _reorient_angle(session), log = True)
+    else:
+        session._label_orient = orient
+
+# -----------------------------------------------------------------------------
+#
+def _reorient_angle(session):
+    return getattr(session, '_label_orient', 0)
+    
 # -----------------------------------------------------------------------------
 #
 def label_delete(session, objects = None, object_type = None):
@@ -206,7 +222,6 @@ def register_label_command(logger):
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
-                              ('orient', FloatArg),
                               ('color', Or(DefArg, ColorArg)),
                               ('background', Or(NoneArg, ColorArg)),
                               ('size', Or(DefArg, IntArg)),
@@ -215,6 +230,9 @@ def register_label_command(logger):
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
+    desc = CmdDesc(optional = [('orient', FloatArg)],
+                   synopsis = 'Set label orientation updating')
+    register('label orient', desc, label_orient, logger=logger)
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    synopsis = 'Delete atom labels')
@@ -252,7 +270,6 @@ class ObjectLabels(Model):
         self._structure_change_handler = ta.add_handler('changes', self._structure_changed)
         
         # Optimize label repositioning when minimum camera move specified.
-        self._reorient_angle = 0
         self._last_camera_position = None
 
         self.use_lighting = False
@@ -357,7 +374,7 @@ class ObjectLabels(Model):
             
         camera_move = v.camera.redraw_needed
         if camera_move:
-            ra = self._reorient_angle
+            ra = _reorient_angle(self.session)
             if ra == 0:
                 self._positions_need_update = True
             elif ra > 0:
@@ -478,7 +495,7 @@ class ObjectLabels(Model):
                        for l in self._labels)
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'labels state': lstate,
-                'orient': self._reorient_angle,
+                'orient': _reorient_angle(session),
                 'on_top': self.on_top,
                 'version': 1}
         return data
@@ -492,7 +509,8 @@ class ObjectLabels(Model):
     def set_state_from_snapshot(self, session, data):
         Model.set_state_from_snapshot(self, session, data['model state'])
         self.on_top = data['on_top']
-        self._reorient_angle = data.get('orient', 0)
+        if 'orient' in data:
+            label_orient(session, data['orient'])
         self._labels = []
         self._object_label = ol = {}
         v = self.session.main_view
