@@ -73,11 +73,14 @@ class PresetsManager:
             for line in preset.splitlines():
                 run(self.session, line, log=False)
                 num_lines += 1
-            if num_lines > 1:
-                log_fmt = 'Preset expands to these ChimeraX commands: <div style="padding-left:4em;padding-top:0px;margin-top:0px"><pre style="margin:0;padding:0">%s</pre></div>'
+            if num_lines == 1:
+                parts = [p.strip() for p in preset.split(';')]
+                display_lines = '\n'.join(parts)
             else:
-                log_fmt = "Preset expands to these ChimeraX commands: <i>%s</i>"
-            self.session.logger.info(log_fmt % preset, is_html=True)
+                display_lines = preset
+            self.session.logger.info('Preset expands to these ChimeraX commands: '
+                '<div style="padding-left:4em;padding-top:0px;margin-top:0px">'
+                '<pre style="margin:0;padding:0">%s</pre></div>' % display_lines, is_html=True)
 
     def _add_presets(self, category, preset_info):
         self._presets.setdefault(category, {}).update({
