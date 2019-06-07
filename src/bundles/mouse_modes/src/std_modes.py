@@ -496,11 +496,27 @@ class ClipMouseMode(MouseMode):
     name = 'clip'
     icon_file = 'icons/clip.png'
 
-    def mouse_drag(self, event):
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
 
+        # Create new clip planes if needed
+        cp = self.view.clip_planes
+        nplanes = len(cp.planes())
+        front_shift, back_shift = self.which_planes(event)
+        self._planes(front_shift, back_shift)
+        self._created_planes = (len(cp.planes()) > nplanes)
+
+    def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         front_shift, back_shift = self.which_planes(event)
         self.clip_move((dx,-dy), front_shift, back_shift)
+
+    def mouse_up(self, event):
+        moved = (event.position() != self.mouse_down_position)
+        MouseMode.mouse_up(self, event)	# This clears mouse down position.
+        if not moved and not self._created_planes:
+            # Click without drag -> turn off clipping.
+            self.view.clip_planes.clear()
 
     def which_planes(self, event):
         shift, alt = event.shift_down(), event.alt_down()
@@ -546,8 +562,14 @@ class ClipMouseMode(MouseMode):
     def _planes(self, front_shift, back_shift):
         v = self.view
         p = v.clip_planes
-        pfname, pbname = (('front','back') if p.find_plane('front') or p.find_plane('back') or not p.planes() 
-                          else ('near','far'))
+
+        if not p.planes():
+            from .settings import clip_settings
+            use_scene_planes = (clip_settings.mouse_clip_plane_type == 'scene planes')
+        else:
+            use_scene_planes = (p.find_plane('front') or p.find_plane('back'))
+                
+        pfname, pbname = ('front','back') if use_scene_planes else ('near','far')
         
         pf, pb = p.find_plane(pfname), p.find_plane(pbname)
         from chimerax.std_commands.clip import adjust_plane
@@ -604,11 +626,26 @@ class ClipRotateMouseMode(MouseMode):
     name = 'clip rotate'
     icon_file = 'icons/cliprot.png'
 
-    def mouse_drag(self, event):
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
 
+        # Create new clip planes if needed
+        cp = self.view.clip_planes
+        nplanes = len(cp.planes())
+        self._planes()
+        self._created_planes = (len(cp.planes()) > nplanes)
+
+    def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         axis, angle = self._drag_axis_angle(dx, dy)
         self.clip_rotate(axis, angle)
+
+    def mouse_up(self, event):
+        moved = (event.position() != self.mouse_down_position)
+        MouseMode.mouse_up(self, event)	# This clears mouse down position.
+        if not moved and not self._created_planes:
+            # Click without drag -> turn off clipping.
+            self.view.clip_planes.clear()
 
     def _drag_axis_angle(self, dx, dy):
         '''Axis in camera coords, angle in degrees.'''

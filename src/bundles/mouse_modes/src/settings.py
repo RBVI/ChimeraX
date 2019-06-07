@@ -19,9 +19,13 @@ class _MouseModesSettings(Settings):
         'trackpad_sensitivity': 1.0,
     }
 
-# 'settings' module attribute will be set by the initialization of the bundle API
+# 'settings' and 'clip_settings' module attributes will be set by the initialization of the bundle API
 
 def register_settings_options(session):
+    register_trackpad_settings(session)
+    register_clip_settings(session)
+
+def register_trackpad_settings(session):    
     from chimerax.ui.options import BooleanOption, FloatOption
     settings_info = {
         'trackpad_multitouch': (
@@ -53,3 +57,27 @@ def _enable_trackpad_multitouch(session, enable):
 def _set_trackpad_sensitivity(session, value):
     session.ui.mouse_modes.trackpad.trackpad_speed = value
 
+class _MouseClipSettings(Settings):
+    EXPLICIT_SAVE = {
+        'mouse_clip_plane_type': 'scene planes',
+    }
+
+def register_clip_settings(session):
+    from chimerax.ui.widgets import hex_color_name
+    from chimerax.ui.options import SymbolicEnumOption
+    class ClipPlaneTypeOption(SymbolicEnumOption):
+        values = ('scene planes', 'screen planes')
+        labels = ('scene planes', 'screen planes')
+
+    settings_info = {
+        'mouse_clip_plane_type': (
+            'Mouse clipping enables',
+            ClipPlaneTypeOption,
+            'Does clipping mouse mode enable planes with fixed scene position or always perpendicular to screen.?'
+            ),
+    }
+    for setting, setting_info in settings_info.items():
+        opt_name, opt_class, balloon = setting_info
+        opt = opt_class(opt_name, getattr(clip_settings, setting), None,
+            attr_name=setting, settings=clip_settings, balloon=balloon)
+        session.ui.main_window.add_settings_option("Clipping", opt)
