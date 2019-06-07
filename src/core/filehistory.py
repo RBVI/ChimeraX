@@ -42,6 +42,8 @@ class FileHistory:
 
     def remember_file(self, path, format, models, database = None, file_saved = False,
                       open_options = {}):
+        if not _supported_option_value_types(open_options):
+            return
         f = self._files
         from os.path import abspath
         apath = abspath(path) if database is None else path
@@ -119,6 +121,14 @@ class FileHistory:
         self._file_cache.save(data)
         self._save_files = False
 
+_savable_option_value_types = (bool, int, float, str)
+def _supported_option_value_types(open_options):
+    for k,v in open_options.items():
+        if not isinstance(v, _savable_option_value_types):
+            return False
+    return True
+        
+
 class FileSpec:
     def __init__(self, path, format, database = None, open_options = {}):
         self.path = path
@@ -132,7 +142,7 @@ class FileSpec:
 
     def set_open_options(self, open_options):
         opt = {k:str(v) for k,v in open_options.items()
-               if isinstance(v, (bool, int, float, str))}
+               if isinstance(v, _savable_option_value_types)}
         change = (opt != self.open_options)
         self.open_options = opt
         return change
