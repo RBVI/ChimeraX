@@ -345,6 +345,19 @@ class Colormap(State):
                         self.color_no_value)
         return cmap
 
+    def reversed(self):
+        """Return a reversed color ramp.
+
+        Return Value
+        ------------
+        instance of Colormap
+        """
+        cmap = Colormap(self.data_values, self.colors[::-1],
+                        self.color_below_value_range,
+                        self.color_above_value_range,
+                        self.color_no_value)
+        return cmap
+
     # -------------------------------------------------------------------------
     #
     def take_snapshot(self, session, flags):
