@@ -2347,6 +2347,26 @@ class AtomicStructure(Structure):
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = "soft" if self.num_atoms < 300000 else "soft multiShadow 16"
 
+        # correct the styling of per-structure pseudobond bond groups
+        for cat, pbg in self.pbg_map.items():
+            if cat == self.PBG_METAL_COORDINATION:
+                color = self.default_metal_coordination_color
+                radius = self.default_metal_coordination_radius
+                dashes = self.default_metal_coordination_dashes
+            elif cat == self.PBG_MISSING_STRUCTURE:
+                color = self.default_missing_structure_color
+                radius = self.default_missing_structure_radius
+                dashes = self.default_missing_structure_dashes
+            elif cat == self.PBG_HYDROGEN_BONDS:
+                color = self.default_hbond_color
+                radius = self.default_hbond_radius
+                dashes = self.default_hbond_dashes
+            else:
+                continue
+            pbg.color = color.uint8x4()
+            pbg.radius = radius
+            pbg.dashes = dashes
+
         if set_lighting:
             from chimerax.core.commands import Command
             cmd = Command(self.session)
