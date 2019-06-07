@@ -12,8 +12,8 @@
   <DataFiles>
     <DataFile>about.html</DataFile>
     <DataFile>splash.jpg</DataFile>
-    <DataDir>icons</DataDir>
-    <DataDir>html</DataDir>
+    <DataFile>icons/*.png</DataFile>
+    <DataFile>widgets/icons/*.png</DataFile>
   </DataFiles>
 
   <Categories>

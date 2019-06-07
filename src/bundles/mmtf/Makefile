@@ -18,8 +18,8 @@ wheel install app-install:	$(CSRCS) $(HEADERS)
 
 $(MMTF_CPP_SOURCE): $(MMTF_CPP_DISTRIBUTION)
 	# only need the include files
-	unzip -u $(MMTF_CPP_DISTRIBUTION) $(MMTF_CPP_SOURCE)/include/*
+	unzip -u $(MMTF_CPP_DISTRIBUTION) '$(MMTF_CPP_SOURCE)/include/*'
 
 $(MSGPACK_SOURCE): $(MSGPACK_DISTRIBUTION)
 	# only need the include files
-	unzip -u $(MSGPACK_DISTRIBUTION) $(MSGPACK_SOURCE)/include/*
+	unzip -u $(MSGPACK_DISTRIBUTION) '$(MSGPACK_SOURCE)/include/*'

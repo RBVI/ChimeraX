@@ -135,11 +135,14 @@ class _Section(QWidgetAction):
         if not group_follow:
             if self.compact:
                 row = index % self.compact_height
+                if row < self.compact_height:
+                    parent._layout.setRowStretch(row, 1)
                 column = index // self.compact_height
-                parent._layout.addWidget(b, row, column, Qt.AlignBottom)
+                parent._layout.addWidget(b, row, column, Qt.AlignCenter)
             else:
+                align = Qt.AlignTop if self.show_button_titles else Qt.AlignCenter
                 b.setIconSize(2 * b.iconSize())
-                parent._layout.addWidget(b, 0, index, Qt.AlignTop)
+                parent._layout.addWidget(b, 0, index, align)
         global _debug
         if _debug:
             _debug = False
@@ -161,7 +164,7 @@ class _Section(QWidgetAction):
         size = len(self._buttons)
         if self.compact:
             span = (size + self.compact_height - 1) // self.compact_height
-            w._layout.addWidget(w._title, size, 0, 1, span, Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(w._title, self.compact_height, 0, 1, span, Qt.AlignHCenter | Qt.AlignBottom)
         else:
             w._layout.addWidget(w._title, 1, 0, 1, size, Qt.AlignHCenter | Qt.AlignBottom)
 
@@ -171,6 +174,8 @@ class _Section(QWidgetAction):
         layout = w._layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        if not self.compact:
+            layout.setRowStretch(0, 1)
         self._layout_buttons(w)
         w.setLayout(layout)
         return w
