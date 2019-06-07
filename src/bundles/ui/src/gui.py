@@ -1378,7 +1378,6 @@ class ToolWindow(StatusLogger):
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
-        self._kludge = self.__toolkit
 
     def cleanup(self):
         """Supported API. Perform tool-specific cleanup
@@ -1617,7 +1616,7 @@ class _Qt:
         self.tool_window = None
         self.main_window = None
         self.status_bar = None
-        self.dock_widget.destroy()
+        self.dock_widget.deleteLater()
 
     @property
     def dockable(self):
