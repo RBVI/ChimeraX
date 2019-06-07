@@ -416,9 +416,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .open_folder import OpenFolderDialog
         self._open_folder = OpenFolderDialog(self, session)
 
-        from .save_dialog import MainSaveDialog, ImageSaver
-        self.save_dialog = MainSaveDialog(self)
-        ImageSaver(self.save_dialog).register()
+        from .save_dialog import MainSaveDialog, register_save_dialog_options
+        self.save_dialog = MainSaveDialog()
+        register_save_dialog_options(self.save_dialog)
 
         self._hide_tools = False
         self.tool_instance_to_windows = {}
@@ -1378,7 +1378,6 @@ class ToolWindow(StatusLogger):
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
-        self._kludge = self.__toolkit
 
     def cleanup(self):
         """Supported API. Perform tool-specific cleanup
@@ -1616,11 +1615,8 @@ class _Qt:
         # free up references
         self.tool_window = None
         self.main_window = None
-        self.dock_widget.widget().destroy()
-        if self.status_bar:
-            self.status_bar.destroy()
-            self.status_bar = None
-        self.dock_widget.destroy()
+        self.status_bar = None
+        self.dock_widget.deleteLater()
 
     @property
     def dockable(self):
@@ -1673,9 +1669,6 @@ class _Qt:
         if geometry is not None:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
-
-        if self.tool_window.close_destroys:
-            self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
         _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,

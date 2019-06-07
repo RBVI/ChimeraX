@@ -47,9 +47,10 @@ and do not move along with the 3D scene, but they can be repositioned
 with the <b>move label</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a>.
-Dragging a label echoes the corresponding command with X and Y positions 
+Dragging a 2D label echoes the corresponding command with X and Y positions 
 to the <a href="../tools/log.html"><b>Log</b></a>, which may be useful 
 for <a href="usageconventions.html#cxc-files">scripting</a>.
+2D labels can be faded in/out or repositioned over a specified number of frames. 
 </p><p>
 For &ldquo;3D labels&rdquo; that move along with the associated atoms,
 see the <a href="label.html"><b>label</b></a> command.
@@ -131,13 +132,19 @@ when it is created.
   [&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
   [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
   [&nbsp;<b>visibility</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+  [&nbsp;<b>frames</b>&nbsp;<i>N</i>&nbsp;]
 <blockquote>
 The 2D label to change is specified by the <i>name</i> it was assigned with
 <a href="#create"><b>create</b></a>,
 or the word <b>all</b> can be used to specify all 2D labels collectively.
-All other options are as described above for 
+All other options besides <b>frames</b> are as described above for 
 <a href="#create"><b>create</b></a>, 
-except the defaults are to leave the current label unchanged.
+except that the defaults are to leave the current label unchanged.
+The <b>frames</b> option allows making certain types of changes gradually 
+over <i>N</i> frames, such as fading labels in or out 
+(changing <b>visibility</b>); 
+it does not apply to changes in the <b>text</b>, <b>font</b>, 
+<b>bold</b>, or <b>italic</b> options, which will occur immediately. 
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -156,5 +163,5 @@ List the available font names in the <a href="../tools/log.html"><b>Log</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+June 2019</address>
 </body></html> 

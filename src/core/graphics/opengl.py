@@ -132,7 +132,7 @@ class OpenGLContext:
 
         w = self.window if window is None else window
         if not qc.makeCurrent(w):
-            raise RuntimeError("Could not make graphics context current")
+            raise OpenGLError("Could not make graphics context current")
         return True
     
     def _initialize_context(self, mode = None, window = None):
@@ -615,7 +615,7 @@ class Render:
         s = self.framebuffer_stack
         pfb = s.pop()
         if len(s) == 0:
-            raise RuntimeError('No framebuffer left on stack.')
+            raise OpenGLError('No framebuffer left on stack.')
         fb = s[-1]
         fb.activate()
         self.set_viewport(*fb.viewport)
@@ -1969,7 +1969,7 @@ class Framebuffer:
 
     def __del__(self):
         if not self._deleted and self._fbo != 0:
-            raise RuntimeError('OpenGL framebuffer "%s" was not deleted before core.graphics.Framebuffer destroyed'
+            raise OpenGLError('OpenGL framebuffer "%s" was not deleted before core.graphics.Framebuffer destroyed'
                                % self.name)
 
     def delete(self, make_current = False):
@@ -2246,7 +2246,7 @@ class Bindings:
 
     def __del__(self):
         if self._vao_id is not None:
-            raise RuntimeError('OpenGL vertex array object was not deleted before core.graphics.Bindings destroyed')
+            raise OpenGLError('OpenGL vertex array object was not deleted before core.graphics.Bindings destroyed')
 
     def delete_bindings(self):
         'Delete the OpenGL vertex array object.'
@@ -2407,7 +2407,7 @@ class Buffer:
 
     def __del__(self):
         if self.opengl_buffer is not None:
-            raise RuntimeError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
+            raise OpenGLError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
                                % self.shader_variable_name)
 
     def delete_buffer(self):
@@ -2553,7 +2553,7 @@ class Shader:
             p = self.program_id
             uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
             if uid == -1:
-                raise RuntimeError('Shader does not have uniform variable "%s"\n shader capabilities %s'
+                raise OpenGLError('Shader does not have uniform variable "%s"\n shader capabilities %s'
                                    % (name, ', '.join(shader_capability_names(self.capabilities))))
             uids[name] = uid
         return uid
@@ -2606,7 +2606,7 @@ class Shader:
         GL.glLinkProgram(program)
         link_status = GL.glGetProgramiv(program, GL.GL_LINK_STATUS)
         if link_status == GL.GL_FALSE:
-            raise RuntimeError( 'Link failure (%s): %s'
+            raise OpenGLError( 'Link failure (%s): %s'
                                 % (link_status, GL.glGetProgramInfoLog(program)))
         GL.glDeleteShader(vs)
         GL.glDeleteShader(fs)
@@ -2622,7 +2622,7 @@ class Shader:
         GL.glValidateProgram(p)
         validation = GL.glGetProgramiv(p, GL.GL_VALIDATE_STATUS )
         if validation == GL.GL_FALSE:
-            raise RuntimeError('OpenGL Program validation failure (%r): %s'
+            raise OpenGLError('OpenGL Program validation failure (%r): %s'
                                % (validation, GL.glGetProgramInfoLog(p)))
 
     # Add #define lines after #version line of shader
@@ -2774,7 +2774,7 @@ class Texture:
 
     def __del__(self):
         if self.id is not None:
-            raise RuntimeError('OpenGL texture was not deleted before core.graphics.Texture destroyed')
+            raise OpenGLError('OpenGL texture was not deleted before core.graphics.Texture destroyed')
 
     def delete_texture(self):
         'Delete the OpenGL texture.'
@@ -2942,7 +2942,7 @@ class TextureWindow:
 
     def __del__(self):
         if self.vao is not None:
-            raise RuntimeError('core.graphics.TextureWindow delete() not called')
+            raise OpenGLError('core.graphics.TextureWindow delete() not called')
         
     def delete(self):
         if self.vao is None:
@@ -3039,9 +3039,9 @@ class OffScreenRenderingContext:
         try:
             self.context = osmesa.OSMesaCreateContextAttribs(attribs, None)
         except error.NullFunctionError:
-            raise RuntimeError('Need OSMesa version 12.0 or newer for OpenGL Core Context API.')
+            raise OpenGLError('Need OSMesa version 12.0 or newer for OpenGL Core Context API.')
         if not self.context:
-            raise RuntimeError('OSMesa needs to be configured with --enable-gallium-osmesa for OpenGL Core Context support.')
+            raise OpenGLError('OSMesa needs to be configured with --enable-gallium-osmesa for OpenGL Core Context support.')
         buf = arrays.GLubyteArray.zeros((height, width, 4))
         self.buffer = buf
         # call make_current to induce exception if an older Mesa

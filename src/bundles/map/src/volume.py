@@ -3625,3 +3625,6 @@ def register_map_file_formats(session):
         synopsis='save map'
     )
     register('save map', desc, save, logger=session.logger)
+
+    from . import savemap
+    savemap.register_map_save_options(session)

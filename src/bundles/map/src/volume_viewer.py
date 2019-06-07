@@ -1797,11 +1797,16 @@ class Histogram_Pane:
     # Subsampling step menu
     sl = QLabel('step', df)
     layout.addWidget(sl)
-    layout.addSpacing(-7)
+    import sys
+    if sys.platform == 'darwin':
+        gap = -12
+        menu_button_style = 'padding-left: 15px; padding-right: 20px;'
+    else:
+        gap = -8
+        menu_button_style = 'padding-left: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px'
+    layout.addSpacing(gap)
     self.data_step = dsm = QPushButton(df)
-    dsm.setStyleSheet('padding-left: 4px; padding-right: 0px;')
-    dsm.setMaximumSize(30,20)
-    # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
+    dsm.setStyleSheet(menu_button_style)
     dsm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
     for step in (1,2,4,8,16):
@@ -1824,9 +1829,7 @@ class Histogram_Pane:
 
     # Display style menu
     self.style = stm = QPushButton(df)
-    stm.setStyleSheet('padding-left: 4px; padding-right: 0px;')
-    stm.setMaximumSize(90,20)
-    # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
+    stm.setStyleSheet(menu_button_style)
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
     for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box'):

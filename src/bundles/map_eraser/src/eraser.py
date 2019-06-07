@@ -220,8 +220,16 @@ class MapEraserSettings(ToolInstance):
 
         # When displayed models change update radius slider range.
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
-        session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_change)
+        h = session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_change)
+        self._model_display_change_handler = h
 
+    def delete(self):
+        ses = self.session
+        ses.triggers.remove_handler(self._model_display_change_handler)
+        ses.models.close([self._sphere_model])
+        self._sphere_model = None
+        ToolInstance.delete(self)
+        
     @classmethod
     def get_singleton(self, session, create=True):
         from chimerax.core import tools

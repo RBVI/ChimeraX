@@ -656,25 +656,9 @@ def init(argv, event_loop=True):
         log_version(sess.logger)  # report version in log
 
     if opts.gui or hasattr(core, 'offscreen_rendering'):
-        r = sess.main_view.render
-        log = sess.logger
-        from chimerax.core.graphics import OpenGLVersionError, OpenGLError
-        try:
-            mc = r.make_current()
-        except (OpenGLVersionError, OpenGLError) as e:
-            mc = False
-            log.error(str(e))
-            sess.update_loop.block_redraw()	# Avoid further opengl errors
-        if mc:
-            info = log.info
-            e = r.check_for_opengl_errors()
-            if e:
-                msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
-                msg += '\n\n\t"%s"' % e
-                log.error(msg)
-            sess.update_loop.start_redraw_timer()
-            info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
-                is_html=True)
+        sess.update_loop.start_redraw_timer()
+        sess.logger.info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
+                         is_html=True)
 
     # Show any messages from installing bundles on restart
     if restart_install_msgs:

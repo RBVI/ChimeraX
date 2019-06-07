@@ -11,10 +11,11 @@ class _BaseTool(HtmlToolInstance):
     help = "help:user/tools/viewdockx.html"
 
     def __init__(self, session, tool_name):
-        super().__init__(session, tool_name, size_hint=(575,400))
+        super().__init__(session, tool_name, size_hint=(575,400), log_errors=True)
         self.structures = []
         self._html_state = None
         self._loaded_page = False
+        self._block_updates = False
 
     def setup(self, structures=None, html_state=None):
         self._html_state = html_state
@@ -112,7 +113,6 @@ class _BaseTool(HtmlToolInstance):
         columns = json.dumps(self._make_columns())
         js = "%s.update_columns(%s);" % (self.CUSTOM_SCHEME, columns)
         self.html_view.runJavaScript(js)
-        self._update_display()
 
     def _make_columns(self):
         # Construct separate dictionaries for numeric and text data
@@ -159,6 +159,8 @@ class _BaseTool(HtmlToolInstance):
         return { "numeric": numeric_data, "text": text_data }
 
     def _update_display(self, trigger=None, trigger_data=None):
+        if self._block_updates:
+            return
         import json
         onoff = json.dumps(self._make_display(trigger_data))
         js = "%s.update_display(%s);" % (self.CUSTOM_SCHEME, onoff)
@@ -202,23 +204,37 @@ class _BaseTool(HtmlToolInstance):
             return self.structures
 
     def show_only(self, model_id):
+        self._block_updates = True
+        any_change = False
         structures = self.get_structures(model_id)
         for s in self.structures:
             onoff = s in structures
             if s.display != onoff:
                 s.display = onoff
+                any_change = True
+        self._block_updates = False
+        if any_change:
+            self._update_display()
 
     def show_toggle(self, model_id):
+        self._block_updates = True
         structures = self.get_structures(model_id)
         for s in structures:
             if s in self.structures:
                 s.display = not s.display
+        self._block_updates = False
+        self._update_display()
 
     def show_set(self, model_id, onoff):
+        self._block_updates = True
+        any_change = False
         structures = self.get_structures(model_id)
         for s in structures:
             if s.display != onoff and s in self.structures:
                 s.display = onoff
+        self._block_updates = False
+        if any_change:
+            self._update_display()
 
     # Session stuff
 
@@ -410,6 +426,10 @@ class TableTool(_BaseTool):
             print("No structures closed")
             return
         self.session.models.close(structures)
+
+    def _cb_columns_updated(self, query):
+        self._update_display()
+        self._update_ratings()
 
 
 class OutputCache(StringIO):

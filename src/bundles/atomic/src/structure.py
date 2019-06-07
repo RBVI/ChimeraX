@@ -1613,8 +1613,6 @@ class Structure(Model, StructureData):
         "N":  -1/3.,
         "CA":  0.,
         "C":   1/3.,
-        "O":   1/3.,
-        # TODO: "OXT", "OT1", "OT2"
         # Nucleotide
         "P":   -2/6.,
         "O5'": -1/6.,
@@ -1622,7 +1620,6 @@ class Structure(Model, StructureData):
         "C4'":  1/6.,
         "C3'":  2/6.,
         "O3'":  3/6.,
-        # TODO: "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"
     }
 
     def _ribbon_spline_position(self, ribbon, residues):
@@ -2349,6 +2346,26 @@ class AtomicStructure(Structure):
         else:
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = "soft" if self.num_atoms < 300000 else "soft multiShadow 16"
+
+        # correct the styling of per-structure pseudobond bond groups
+        for cat, pbg in self.pbg_map.items():
+            if cat == self.PBG_METAL_COORDINATION:
+                color = self.default_metal_coordination_color
+                radius = self.default_metal_coordination_radius
+                dashes = self.default_metal_coordination_dashes
+            elif cat == self.PBG_MISSING_STRUCTURE:
+                color = self.default_missing_structure_color
+                radius = self.default_missing_structure_radius
+                dashes = self.default_missing_structure_dashes
+            elif cat == self.PBG_HYDROGEN_BONDS:
+                color = self.default_hbond_color
+                radius = self.default_hbond_radius
+                dashes = self.default_hbond_dashes
+            else:
+                continue
+            pbg.color = color.uint8x4()
+            pbg.radius = radius
+            pbg.dashes = dashes
 
         if set_lighting:
             from chimerax.core.commands import Command

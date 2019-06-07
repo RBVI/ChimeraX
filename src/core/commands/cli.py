@@ -2851,7 +2851,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        name = cmd.command_name
+        name = cmd.current_text[:cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 subcmd = '%s %s' % (name, w)
@@ -2976,7 +2976,7 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        name = cmd.command_name
+        name = cmd.current_text[:cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
                 subcmd = '%s %s' % (name, w)

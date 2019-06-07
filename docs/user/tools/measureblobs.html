@@ -1,0 +1,121 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Measure and Color Blobs</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Measure and Color Blobs</h3>
+<p>
+<b>Measure and Color Blobs</b> measures individual disconnected parts
+or <b><i>blobs</i></b> within a surface model.
+It is also implemented as the command 
+<a href="../commands/measure.html#blob"><b>measure blob</b></a>.
+</p><p>
+The related commands
+<a href="../commands/measure.html#area"><b>measure area</b></a> and
+<a href="../commands/measure.html#volume"><b>measure volume</b></a>
+report the <i>total</i> surface area and enclosed volume, respectively,
+of a surface model (possibly comprising multiple blobs).
+To measure the 
+<a href="../commands/surface.html#surfdefs">solvent-accessible surface area</a>
+of an atomic structure, the command
+<a href="../commands/measure.html#sasa"><b>measure sasa</b></a>
+should be used instead. See also: 
+<a href="../commands/measure.html#buriedarea"><b>measure buriedarea</b></a>,
+<a href="../measurements.html">measurements</a>
+</p><p>
+<b>Measure and Color Blobs</b> can be started 
+from the <b>Volume Data</b> section of the <b>Tools</b> menu
+or by clicking the <b>pick blobs</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/pickblobs.png"></a> icon
+in the <a href="mousemodes.html"><b>Right Mouse</b></a> toolbar.
+Like other tools, it can also be started with the command
+<b>toolshed show</b>
+and <a href="../window.html#panels">moved, resized, <i>etc.</i></a>
+</p><p>
+Clicking a blob using the button assigned to the <b>pick blobs</b>
+<a href="../commands/ui.html#mousemode">mouse mode</a>
+reports the following in the tool window and in the
+<a href="log.html"><b>Log</b></a>:
+<ul>
+<li><b>volume</b> enclosed in the blob
+<li><b>area</b> of its triangulated surface
+<li><b>size</b> in dimensions from longest to shortest
+of the bounding box aligned with principal axes,
+described <a href="#axesbox">below</a>
+</ul>
+<p>
+Values reflect the physical units of the data, usually
+&Aring;<sup>3</sup> for volume, &Aring;<sup>2</sup> for area,
+&Aring; for length.
+</p><p>
+Options:
+</p>
+<ul><li><b>Color blob</b>
+- color to use for the next picked blob
+<li><b>Change color automatically</b>
+- whether to set a new color randomly each time a blob is picked
+<li><a name="axesbox"><b>Show principal axes box</b></a>
+- whether to show a bounding box in the specified color
+(default <table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td>
+</tr></table>)
+for each subsequently picked blob. A blob's bounding box is aligned with
+its principal axes of inertia, calculated assuming a constant mass
+per unit surface area. Box outlines are placed in a surface model
+named <b>blob outline box</b>. Clicking <b>Erase boxes</b> closes any box models.
+Even if the box is not shown, its size will be reported.
+</ul>
+<p>
+The surface area and enclosed volume are computed from surface triangles.
+Anything that alters the positions of vertices, such as changing the 
+surface <a href="volumeviewer.html#threshold">threshold level</a>
+in <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+will change the enclosed volume and surface area,
+and lose any colors previously applied with <b>Measure and Color Blobs</b>.
+</p><p>
+Blob surface area and volume are not affected by
+<a href="../commands/clip.html">clipping</a> (the
+clipped-away parts will still be included), but the 
+<a href="../commands/surface.html#cap">surface cap</a> 
+where the clipping plane intersects the blob can itself be measured. 
+In that case, the volume will be near-zero,
+and the <b>boundary</b> (circumference) will also be reported.
+</p><p>
+Circumferences of any holes in the blob surface are also reported.
+The volume enclosed by a surface with holes is calculated by assuming
+each hole has a planar cap. These caps are not displayed or included in
+the surface area determination. The number of holes is reported, as
+planar caps may not represent missing data very well.
+Holes in an isosurface may occur at the boundary of the data,
+but by default these will already be covered with
+<a href="../commands/volume.html#capfaces">planar caps</a>.
+Such boundary caps will be included in
+the surface area of the overall blob and will not be reported as holes.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2019</address>
+</body></html>

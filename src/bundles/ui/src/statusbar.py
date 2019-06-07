@@ -65,7 +65,6 @@ class _StatusBarOpenGL:
         if r:
             s = event.size()
             w,h = s.width(), s.height()
-            r.make_current()
             r.set_default_framebuffer_size(w, h)
             # Clear status line.
             self.status('', 'black', False)

@@ -182,9 +182,15 @@ class PickBlobs(MouseMode):
     def mouse_down(self, event):
         x,y = event.position()
         view = self.session.main_view
-        pick = view.first_intercept(x, y, exclude = lambda m: isinstance(m,BlobOutlineBox))
+        pick = view.first_intercept(x, y, exclude = self._unpickable)
         self._pick_blob(pick)
 
+    def _unpickable(self, m):
+        from chimerax.core.models import Model
+        return (isinstance(m,BlobOutlineBox) or
+                not getattr(m, 'pickable', True) or
+                not isinstance(m, Model))
+    
     def _pick_blob(self, pick):
         from chimerax.map.volume import PickedMap
         if not isinstance(pick , PickedMap) or not hasattr(pick, 'triangle_pick'):
@@ -194,7 +200,7 @@ class PickBlobs(MouseMode):
         t = tpick.triangle_number
         surface = tpick.drawing()
 
-        cmd = 'measure blob #%s triangle %d'  % (surface.id_string, t)
+        cmd = 'measure blob #!%s triangle %d'  % (surface.id_string, t)
         settings = self.settings
         if settings.color_blob:
             cmd += ' color %s' % hex_color(settings.blob_color)
