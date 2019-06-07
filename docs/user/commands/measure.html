@@ -35,6 +35,9 @@ Possible values of <i>property</i>:
 <ul>
 <li><a href="#area"><b>area</b></a> 
 - report the area of an existing surface (sum of surface triangles)
+<li><a href="#blob"><b>blob</b></a> 
+- measure surface area, enclosed volume, and dimensions of a disconnected
+surface blob
 <li><a href="#buriedarea"><b>buriedarea</b></a> 
 - calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
@@ -77,6 +80,42 @@ such as with <a href="surface.html#dust"><b>surface dust</b></a>
 or <a href="surface.html#zone"><b>surface zone</b></a>
 (<a href="clip.html">clipping</a> does not affect the measurement, however).
 See also: <a href="#sasa"><b>measure sasa</b></a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="blob"><b>measure blob</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+<b>triangleNumber</b>&nbsp;&nbsp;<i>N</i>&nbsp;
+[&nbsp;<b>reportSize</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>outline</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>outlineColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+<blockquote>
+Report measurements for the blob (disconnected surface part) in
+the specified surface model containing <b>triangleNumber</b> &nbsp;<i>N</i>. 
+The surface-model specification cannot be blank. Although not generally
+known in advance, the triangle number is included in the command echoed
+to the <a href="../tools/log.html"><b>Log</b></a> when the 
+<b>pick blob</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/pickblobs.png"></a>
+is used, so that the action could be replicated in a script.
+Measurements include:
+<ul>
+<li><b>volume</b> enclosed in the blob
+<li><b>area</b> of its triangulated surface
+<li>if <b>reportSize</b> is <b>true</b> (default),
+the <b>size</b> in dimensions from longest to shortest
+of the bounding box aligned with principal axes
+(<a href="../tools/measureblobs.html#axesbox">details...</a>)
+</ul>
+Blob color is left unchanged unless a <b>color</b> is given.
+The <b>outline</b> option shows the bounding box as an outline
+in the specified <b>outlineColor</b> (default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td>
+</tr></table>).
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>

@@ -1,0 +1,73 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: tile</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: tile</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>tile</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>columns</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>spacingFactor</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>viewAll</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<!--
+[&nbsp;independentRotation&nbsp;true|false&nbsp;]
+[&nbsp;label&nbsp;true|false&nbsp;]
+-->
+</h3>
+<!--
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>~tile</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;viewAll&nbsp;true|false&nbsp;]
+</h3>
+-->
+<p>
+The command <b>tile</b> spreads models out into a plane, 
+keeping their current orientations.
+As there is no &ldquo;undo&rdquo; for tiling yet, it may be useful to
+<a href="view.html#name">save the view</a> beforehand for easy recovery.
+See also: 
+<a href="view.html"><b>view</b></a>,
+<a href="matchmaker.html"><b>matchmaker</b></a>,
+<a href="align.html"><b>align</b></a>,
+<a href="volume.html#tile"><b>volume tile</b></a>
+</p><p>
+The <b>columns</b> keyword specifies arranging the models into <i>N</i>
+columns in the viewing plane. 
+If not specified, a square layout (rows = columns) will be used.
+</p><p>
+The <b>spacingFactor</b> <i>f</i> indicates how far apart the structures
+should be spaced, with larger values giving greater separations. The default
+of <b>1.0</b> spaces the models so that their bounding spheres abut, while
+0.0 superimposes the bounding sphere centers.
+</p><p>
+The <b>viewAll</b> option (default <b>true</b>) adjusts the view
+to enclose all displayed models regardless of whether they were specified,
+like using the <a href="view.html"><b>view</b></a> command without arguments.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+June 2019</address>
+</body></html>

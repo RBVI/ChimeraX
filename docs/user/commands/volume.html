@@ -1182,6 +1182,8 @@ Several operations are available:
 <a href="../markers.html">markers</a> or atoms
 <li><a href="#cover"><b>volume cover</b></a>
 - extend map to cover specified atoms or box
+<li><a href="#erase"><b>volume erase</b></a>
+- erase (zero) map inside or outside of a defined sphere 
 <li><a href="#falloff"><b>volume falloff</b></a>
 - smooth the boundaries of masked density
 <li><a href="#flatten"><b>volume flatten</b></a>
@@ -1421,6 +1423,28 @@ in common. Although that would be sufficient with exact arithmetic,
 the copies still might not overlap given the rounding errors
 inherent in computer calculations.
 </p>
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="erase"><b>volume erase</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;
+<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>outside</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<!--
+&nbsp;<a href="#vop-options"><i>new-map-options</i></a>
+-->
+<blockquote>
+Erase (zero the values) of the displayed map at points within a sphere
+of the specified <b>center</b> and <b>radius</b>, or if 
+<b>outside</b> is <b>true</b>, erase outside the sphere instead. 
+Only a single map should be displayed. If the map was read from a file, 
+a copy will be generated automatically and displayed (and the original hidden)
+so that erasures apply only to the copy. Center coordinates are interpreted in
+the <a href="view.html#scenecoords">scene coordinate system</a> unless
+the <b>coordinateSystem</b> of model <i>N</i> is specified.
+See <a href="../tools/maperaser.html"><b>Map Eraser</b></a> for
+placing the sphere interactively.
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
