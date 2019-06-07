@@ -496,10 +496,27 @@ class ClipMouseMode(MouseMode):
     name = 'clip'
     icon_file = 'icons/clip.png'
 
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+
+        # Create new clip planes if needed
+        cp = self.view.clip_planes
+        nplanes = len(cp.planes())
+        front_shift, back_shift = self.which_planes(event)
+        self._planes(front_shift, back_shift)
+        self._created_planes = (len(cp.planes()) > nplanes)
+
     def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         front_shift, back_shift = self.which_planes(event)
         self.clip_move((dx,-dy), front_shift, back_shift)
+
+    def mouse_up(self, event):
+        moved = (event.position() != self.mouse_down_position)
+        MouseMode.mouse_up(self, event)	# This clears mouse down position.
+        if not moved and not self._created_planes:
+            # Click without drag -> turn off clipping.
+            self.view.clip_planes.clear()
 
     def which_planes(self, event):
         shift, alt = event.shift_down(), event.alt_down()
@@ -609,10 +626,26 @@ class ClipRotateMouseMode(MouseMode):
     name = 'clip rotate'
     icon_file = 'icons/cliprot.png'
 
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
+
+        # Create new clip planes if needed
+        cp = self.view.clip_planes
+        nplanes = len(cp.planes())
+        self._planes()
+        self._created_planes = (len(cp.planes()) > nplanes)
+
     def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         axis, angle = self._drag_axis_angle(dx, dy)
         self.clip_rotate(axis, angle)
+
+    def mouse_up(self, event):
+        moved = (event.position() != self.mouse_down_position)
+        MouseMode.mouse_up(self, event)	# This clears mouse down position.
+        if not moved and not self._created_planes:
+            # Click without drag -> turn off clipping.
+            self.view.clip_planes.clear()
 
     def _drag_axis_angle(self, dx, dy):
         '''Axis in camera coords, angle in degrees.'''
