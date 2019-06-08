@@ -9,6 +9,9 @@ def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
     if models is None:
         models = session.models.list()
     models = [m for m in models if len(m.child_models()) == 0]
+    from chimerax.std_commands.view import NamedView
+    view = session.main_view
+    before = NamedView(view, view.center_of_rotation, models)
 
     # Size each tile to the maximum size (+buffer) among all models
     spacing = max([m.bounds().radius() for m in models]) * spacing_factor
@@ -47,6 +50,29 @@ def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
         commands.append("view")
     from chimerax.core.commands import run
     run(session, "; ".join(commands), log=False)
+
+    after = NamedView(view, view.center_of_rotation, models)
+    session.undo.register(UndoTile("tile", before, after, session))
+
+
+from chimerax.core.undo import UndoAction
+class UndoTile(UndoAction):
+
+    def __init__(self, name, before, after, session):
+        super().__init__(name)
+        self._before = before
+        self._after = after
+        self._session = session
+
+    def undo(self):
+        from chimerax.std_commands.view import view
+        view(self._session, objects=self._before, frames=10)
+
+    def redo(self):
+        from chimerax.std_commands.view import view
+        view(self._session, objects=self._after, frames=10)
+
+
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
