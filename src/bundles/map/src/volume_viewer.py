@@ -21,6 +21,7 @@ from chimerax.core.tools import ToolInstance
 # ------------------------------------------------------------------------------
 #
 class VolumeViewer(ToolInstance):
+    help = "help:user/tools/volumeviewer.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -1855,12 +1856,12 @@ class Histogram_Pane:
     # Add histogram below row of controls
     h = self.make_histogram(f, histogram_height, new_marker_color = (1,1,1,1))
     flayout.addWidget(h)
+    h.contextMenuEvent = self.show_context_menu
 
     # Create planes slider below histogram if requested.
     self._planes_slider_shown = False
     self._planes_slider_frame = None
     
-    f.contextMenuEvent = self.show_context_menu
 
   # ---------------------------------------------------------------------------
   #
