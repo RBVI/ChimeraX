@@ -268,9 +268,12 @@ class View:
             if trig:
                 trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
 
-        if dm.shape_changed or cp.changed:
-            if self.center_of_rotation_method == 'front center':
+        corm = self.center_of_rotation_method
+        if corm == 'front center':
+            if dm.shape_changed or cp.changed:
                 self._update_center_of_rotation = True
+        elif corm == 'center of view' and cp.changed:
+            self._update_center_of_rotation = True
 
         if dm.shape_changed or cp.changed or dm.transparency_changed:
             # TODO: If model transparency effects multishadows, will need to detect those changes.
@@ -281,6 +284,7 @@ class View:
 
         c.redraw_needed = False
         dm.clear_changes()
+        cp.changed = False
 
         self.redraw_needed = True
 
@@ -664,19 +668,30 @@ class View:
     def _center_of_view_cofr(self):
         '''
         Keep the center of rotation in the middle of the view at a depth
-        such that the new and previous center of rotation are in the same
-        plane perpendicular to the camera view direction.
+        midway between near and far clip planes.  If only the near plane
+        or only the far plane is enabled use center on that plane.  If neither
+        near nor far planes are enabled use depth equal to center of bounding box.
         '''
-        cam_pos = self.camera.position.origin()
-        vd = self.camera.view_direction()
-        old_cofr = self._center_of_rotation
-        hyp = old_cofr - cam_pos
-        from ..geometry import inner_product, norm
-        distance = inner_product(hyp, vd)
-        cr = cam_pos + distance*vd
-        if norm(cr - old_cofr) < 1e-6 * distance:
-            # Avoid jitter if camera has not moved
-            cr = old_cofr
+        p = self.clip_planes
+        np, fp = p.find_plane('near'), p.find_plane('far')
+        if np and fp:
+            cr = 0.5 * (np.plane_point + fp.plane_point)
+        elif np:
+            cr = np.plane_point
+        elif fp:
+            cr = fp.plane_point
+        else:
+            b = self.drawing_bounds()
+            if b:
+                c = b.center()
+                cam_pos = self.camera.position.origin()
+                vd = self.camera.view_direction()
+                from ..geometry import inner_product
+                distance = inner_product(c - cam_pos, vd)
+                cr = cam_pos + distance*vd
+            else:
+                cr = self._center_of_rotation
+
         return cr
     
     def _front_center_cofr(self):
@@ -880,10 +895,23 @@ class View:
             return
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
+        self._shift_near_far_clip_planes(shift)
         from ..geometry import translation
         t = translation(shift)
         self.move(t, drawings)
 
+    def _shift_near_far_clip_planes(self, shift):
+        p = self.clip_planes
+        np, fp = p.find_plane('near'), p.find_plane('far')
+        if np or fp:
+            vd = self.camera.view_direction()
+            from ..geometry import inner_product
+            plane_shift = inner_product(shift,vd)*vd
+            if np:
+                np.plane_point += plane_shift
+            if fp:
+                fp.plane_point += plane_shift
+        
     def move(self, tf, drawings=None):
         '''
         Move camera to simulate a motion of drawings.

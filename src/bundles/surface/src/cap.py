@@ -23,8 +23,6 @@ def update_clip_caps(view):
     if update:
         drawings = view.drawing.all_drawings()
         show_surface_clip_caps(planes, drawings, offset = settings.clipping_cap_offset)
-        cp.changed = False
-        view.redraw_needed = True
 
 def show_surface_clip_caps(planes, drawings, offset = 0.01):
     for p in planes:
