@@ -221,7 +221,8 @@ class MaterialState:
 
 
 class ClipPlaneState:
-
+    '''This is no longer used for saving sessions but is kept for restoring old sessions.'''
+    
     version = 1
     save_attrs = [
         'name',
@@ -239,8 +240,70 @@ class ClipPlaneState:
 
     @staticmethod
     def restore_snapshot(session, data):
-        from . import ClipPlane
-        cp = ClipPlane(data['name'], data['normal'], data['plane_point'], data['camera_normal'])
+        camera_normal = data['camera_normal']
+        if camera_normal is None:
+            from . import SceneClipPlane
+            cp = SceneClipPlane(data['name'], data['normal'], data['plane_point'])
+        else:
+            v = session.main_view
+            camera_plane_point = v.camera.position.inverse() * data['plane_point']
+            from . import CameraClipPlane
+            cp = CameraClipPlane(data['name'], camera_normal, camera_plane_point, v)
+        return cp
+
+    @staticmethod
+    def reset_state(clip_plane, session):
+        pass
+
+
+class SceneClipPlaneState:
+    
+    version = 1
+    save_attrs = [
+        'name',
+        'normal',
+        'plane_point',
+    ]
+
+    @staticmethod
+    def take_snapshot(clip_plane, session, flags):
+        cp = clip_plane
+        data = {a:getattr(cp,a) for a in SceneClipPlaneState.save_attrs}
+        data['version'] = SceneClipPlaneState.version
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        from . import SceneClipPlane
+        cp = SceneClipPlane(data['name'], data['normal'], data['plane_point'])
+        return cp
+
+    @staticmethod
+    def reset_state(clip_plane, session):
+        pass
+
+
+class CameraClipPlaneState:
+    
+    version = 1
+    save_attrs = [
+        'name',
+        '_camera_normal',
+        '_camera_plane_point',
+    ]
+
+    @staticmethod
+    def take_snapshot(clip_plane, session, flags):
+        cp = clip_plane
+        data = {a:getattr(cp,a) for a in CameraClipPlaneState.save_attrs}
+        data['version'] = CameraClipPlaneState.version
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        from . import CameraClipPlane
+        cp = CameraClipPlane(data['name'], data['_camera_normal'], data['_camera_plane_point'],
+                             session.main_view)
         return cp
 
     @staticmethod

@@ -343,7 +343,7 @@ class SideViewCanvas(QWindow):
                 camera_pos = v.camera.position.origin()
                 vd = v.camera.view_direction()
                 plane_point = camera_pos + near * vd
-            planes.set_clip_position('near', plane_point - shift, v.camera)
+            planes.set_clip_position('near', plane_point - shift, v)
         elif self.moving == self.ON_FAR:
             v = self.main_view
             planes = v.clip_planes
@@ -355,7 +355,7 @@ class SideViewCanvas(QWindow):
                 camera_pos = v.camera.position.origin()
                 vd = v.camera.view_direction()
                 plane_point = camera_pos + far * vd
-            planes.set_clip_position('far', plane_point - shift, v.camera)
+            planes.set_clip_position('far', plane_point - shift, v)
 
     def keyPressEvent(self, event):  # noqa
         return self.session.ui.forward_keystroke(event)
@@ -441,7 +441,7 @@ class SideViewUI(ToolInstance):
         camera_pos = v.camera.position.origin()
         vd = v.camera.view_direction()
         plane_point = camera_pos + near * vd
-        planes.set_clip_position('near', plane_point, v.camera)
+        planes.set_clip_position('near', plane_point, v)
 
     def on_autoclip_far(self, event):
         session = self._session()
@@ -462,7 +462,7 @@ class SideViewUI(ToolInstance):
         camera_pos = v.camera.position.origin()
         vd = v.camera.view_direction()
         plane_point = camera_pos + far * vd
-        planes.set_clip_position('far', plane_point, v.camera)
+        planes.set_clip_position('far', plane_point, v)
 
 
 class OrthoOverlay(Drawing):
