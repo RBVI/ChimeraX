@@ -1371,12 +1371,12 @@ class StructureData:
         Find pairs of atoms that should be connected in a chain trace.
         Returns None or a 2-tuple of two Atoms instances where corresponding atoms
         should be connected.  A chain trace connects two adjacent CA atoms if both
-        atoms are shown but the intervening C and N atoms are not shown.  Adjacent
-        means that there is a bond between the two residues.  So for instance CA-only
-        structures has no bond between the residues and those do not show a chain trace
-        connection, instead they show a "missing structure" connection.  For nucleic
-        acid chains adjacent displayed P atoms with undisplayed intervening O3' and O5'
-        atoms are part of a chain trace.
+        atoms are shown but the intervening C and N atoms are not shown, *and* no ribbon
+        depiction connects the residues.  Adjacent means that there is a bond between the
+        two residues.  So for instance CA-only structures has no bond between the residues
+        and those do not show a chain trace connection, instead they show a "missing structure"
+        connection.  For nucleic acid chains adjacent displayed P atoms with undisplayed
+        intervening O3' and O5' atoms are part of a chain trace.
         '''
         f = c_function('structure_chain_trace_atoms', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         ap = f(self._c_pointer)
