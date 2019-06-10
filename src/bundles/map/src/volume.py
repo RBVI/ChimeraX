@@ -1870,6 +1870,7 @@ class VolumeSurface(Surface):
   def set_level(self, level, use_thread = False):
     self._level = level
     self._use_thread = use_thread
+    self.volume.redraw_needed(shape_changed = True)
   level = property(_get_level, set_level)
 
   def _get_rgba(self):

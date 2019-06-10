@@ -130,6 +130,7 @@ class MapEraser(MouseMode):
 #
 from chimerax.core.tools import ToolInstance
 class MapEraserSettings(ToolInstance):
+    help = "help:user/tools/maperaser.html"
 
     def __init__(self, session, tool_name):
 

@@ -535,13 +535,14 @@ class ClipMouseMode(MouseMode):
         if pf is None and pb is None:
             return
 
+        from chimerax.core.graphics import SceneClipPlane, CameraClipPlane
         p = pf or pb
         if delta is not None:
             d = delta
-        elif p and p.camera_normal is None:
+        elif isinstance(p, SceneClipPlane):
             # Move scene clip plane
             d = self._tilt_shift(delta_xy, self.view.camera, p.normal)
-        else:
+        elif isinstance(p, CameraClipPlane):
             # near/far clip
             d = delta_xy[1]*self.pixel_size()
 
@@ -671,7 +672,8 @@ class ClipRotateMouseMode(MouseMode):
     def _planes(self):
         v = self.view
         cp = v.clip_planes
-        rplanes = [p for p in cp.planes() if p.camera_normal is None]
+        from chimerax.core.graphics import SceneClipPlane
+        rplanes = [p for p in cp.planes() if isinstance(p, SceneClipPlane)]
         if len(rplanes) == 0:
             from chimerax.std_commands.clip import adjust_plane
             pn, pf = cp.find_plane('near'), cp.find_plane('far')

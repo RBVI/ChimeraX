@@ -62,6 +62,8 @@ app-outdated:
 	@echo "Known issues:"
 	@echo "  grako (3.16.5 is the last version that works)"
 	@echo "  Cython (0.29.2 generates uncompilable code on Windows)"
+	@echo "  MarkupSafe (pulled in by Jinja2)"
+	@echo "  prompt-toolkit (pulled in by ipython)"
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
