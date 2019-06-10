@@ -35,26 +35,18 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;label&nbsp;true|false&nbsp;]
 -->
 </h3>
-<!--
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>~tile</b> 
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
-[&nbsp;viewAll&nbsp;true|false&nbsp;]
-</h3>
--->
 <p>
-The command <b>tile</b> spreads models out into a plane, 
-keeping their current orientations.
-As there is no &ldquo;undo&rdquo; for tiling yet, it may be useful to
-<a href="view.html#name">save the view</a> beforehand for easy recovery.
+The <b>tile</b> command spreads models out into a plane (XY grid arrangement), 
+keeping their current orientations. 
+This action can be reverted with <a href="undo.html"><b>undo</b></a>.
 See also: 
 <a href="view.html"><b>view</b></a>,
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="align.html"><b>align</b></a>,
 <a href="volume.html#tile"><b>volume tile</b></a>
 </p><p>
-The <b>columns</b> keyword specifies arranging the models into <i>N</i>
-columns in the viewing plane. 
+The <b>columns</b> keyword specifies arranging the models into <i>N</i> columns
+in the viewing plane.
 If not specified, a square layout (rows = columns) will be used.
 </p><p>
 The <b>spacingFactor</b> <i>f</i> indicates how far apart the structures

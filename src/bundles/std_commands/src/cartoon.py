@@ -265,7 +265,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
     polymer_types = residues.polymer_types
     from numpy import logical_and, logical_not
     is_coil = logical_and(logical_and(logical_not(is_helix), logical_not(is_strand)),
-                          polymer_types != Residue.PT_NUCLEIC)
+                          polymer_types == Residue.PT_PROTEIN)
     coil_scale_changed = {}
     # Code uses half-width/thickness but command uses full width/thickness,
     # so we divide by two now so we will not need to do it multiple times
