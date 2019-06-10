@@ -158,23 +158,23 @@ class SideViewCanvas(QWindow):
             near, far = main_view.near_far_distances(main_camera, view_num)
             planes = self.main_view.clip_planes
             near_plane = planes.find_plane('near')
-            button = self.panel.auto_clip_near
+            button = self.panel.clip_near
             if near_plane:
                 near = near_plane.offset(main_pos.origin())
-                if button.isChecked():
-                    button.setChecked(False)
-            else:
                 if not button.isChecked():
                     button.setChecked(True)
+            else:
+                if button.isChecked():
+                    button.setChecked(False)
             far_plane = planes.find_plane('far')
-            button = self.panel.auto_clip_far
+            button = self.panel.clip_far
             if far_plane:
                 far = -far_plane.offset(main_pos.origin())
-                if button.isChecked():
-                    button.setChecked(False)
-            else:
                 if not button.isChecked():
                     button.setChecked(True)
+            else:
+                if button.isChecked():
+                    button.setChecked(False)
             if not self.moving:
                 main_axes = main_pos.axes()
                 if self.side == self.TOP_SIDE:
@@ -383,23 +383,23 @@ class SideViewUI(ToolInstance):
         else:
             side = SideViewCanvas.RIGHT_SIDE
         self.opengl_canvas = SideViewCanvas(parent, v, session, self, side=side)
-        auto_clip = QLabel(parent)
-        auto_clip.setText("auto clip:")
-        self.auto_clip_near = QCheckBox(parent)
-        self.auto_clip_near.setText("near")
-        self.auto_clip_near.down = True
-        # TODO: parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip_near, self.auto_clip_near)
-        self.auto_clip_near.clicked.connect(self.on_autoclip_near)
-        self.auto_clip_far = QCheckBox(parent)
-        self.auto_clip_far.setText("far")
-        self.auto_clip_far.down = True
-        # TODO: parent.Bind(wx.EVT_CHECKBOX, self.on_autoclip_far, self.auto_clip_far)
-        self.auto_clip_far.clicked.connect(self.on_autoclip_far)
+        clip = QLabel(parent)
+        clip.setText("clip:")
+        self.clip_near = QCheckBox(parent)
+        self.clip_near.setText("near")
+        self.clip_near.down = False
+        # TODO: parent.Bind(wx.EVT_CHECKBOX, self.on_near, self.clip_near)
+        self.clip_near.clicked.connect(self.on_near)
+        self.clip_far = QCheckBox(parent)
+        self.clip_far.setText("far")
+        self.clip_far.down = False
+        # TODO: parent.Bind(wx.EVT_CHECKBOX, self.on_far, self.clip_far)
+        self.clip_far.clicked.connect(self.on_far)
 
         button_layout = QHBoxLayout()
-        button_layout.addWidget(auto_clip, alignment=Qt.AlignCenter)
-        button_layout.addWidget(self.auto_clip_near)
-        button_layout.addWidget(self.auto_clip_far)
+        button_layout.addWidget(clip, alignment=Qt.AlignCenter)
+        button_layout.addWidget(self.clip_near)
+        button_layout.addWidget(self.clip_far)
         button_layout.addStretch(1)
 
         class graphics_area(QStackedWidget):
@@ -422,11 +422,11 @@ class SideViewUI(ToolInstance):
         self.opengl_canvas.close()
         ToolInstance.delete(self)
 
-    def on_autoclip_near(self, event):
+    def on_near(self, event):
         session = self._session()
         v = session.main_view
         planes = v.clip_planes
-        if self.auto_clip_near.isChecked():
+        if not self.clip_near.isChecked():
             planes.remove_plane('near')
             return
         p = planes.find_plane('near')
@@ -434,8 +434,8 @@ class SideViewUI(ToolInstance):
             return
         b = v.drawing_bounds()
         if b is None:
-            session.logger.info("Can not turn off automatic clipping since there are no models to clip")
-            self.auto_clip_near.setChecked(True)
+            session.logger.info("Can not turn on clipping since there are no models to clip")
+            self.clip_near.setChecked(False)
             return
         near, far = v.near_far_distances(v.camera, None)
         camera_pos = v.camera.position.origin()
@@ -443,11 +443,11 @@ class SideViewUI(ToolInstance):
         plane_point = camera_pos + near * vd
         planes.set_clip_position('near', plane_point, v)
 
-    def on_autoclip_far(self, event):
+    def on_far(self, event):
         session = self._session()
         v = session.main_view
         planes = v.clip_planes
-        if self.auto_clip_far.isChecked():
+        if not self.clip_far.isChecked():
             planes.remove_plane('far')
             return
         p = planes.find_plane('far')
@@ -455,8 +455,8 @@ class SideViewUI(ToolInstance):
             return
         b = v.drawing_bounds()
         if b is None:
-            session.logger.info("Can not turn off automatic clipping since there are no models to clip")
-            self.auto_clip_far.setChecked(True)
+            session.logger.info("Can not turn on clipping since there are no models to clip")
+            self.clip_far.setChecked(False)
             return
         near, far = v.near_far_distances(v.camera, None)
         camera_pos = v.camera.position.origin()
