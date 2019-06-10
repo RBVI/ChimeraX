@@ -681,16 +681,20 @@ class View:
         elif fp:
             cr = fp.plane_point
         else:
-            b = self.drawing_bounds()
-            if b:
-                c = b.center()
-                cam_pos = self.camera.position.origin()
-                vd = self.camera.view_direction()
-                from ..geometry import inner_product
-                distance = inner_product(c - cam_pos, vd)
-                cr = cam_pos + distance*vd
-            else:
-                cr = self._center_of_rotation
+            # No clip planes.
+            # Keep the center of rotation in the middle of the view at a depth
+            # such that the new and previous center of rotation are in the same
+            # plane perpendicular to the camera view direction.
+            cam_pos = self.camera.position.origin()
+            vd = self.camera.view_direction()
+            old_cofr = self._center_of_rotation
+            hyp = old_cofr - cam_pos
+            from ..geometry import inner_product, norm
+            distance = inner_product(hyp, vd)
+            cr = cam_pos + distance*vd
+            if norm(cr - old_cofr) < 1e-6 * distance:
+                # Avoid jitter if camera has not moved
+                cr = old_cofr
 
         return cr
     
