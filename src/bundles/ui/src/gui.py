@@ -562,9 +562,17 @@ class MainWindow(QMainWindow, PlainTextLog):
         func(*args, **kw)
 
     def file_open_cb(self, session):
+        self.show_file_open_dialog(session)
+
+    def show_file_open_dialog(self, session, initial_directory = None,
+                              format_name = None):
+        if initial_directory is None:
+            initial_directory = ''
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
-        paths_and_types = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
+        filters = open_file_filter(all=True, format_name=format_name)
+        paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
+                                                       directory=initial_directory)
         paths, types = paths_and_types
         if not paths:
             return
