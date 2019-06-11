@@ -31,13 +31,15 @@ class _AlignmentsBundleAPI(BundleAPI):
             return alignment.Alignment
 
     @staticmethod
-    def initialize(session, bundle_info):
-        """Install alignments manager into existing session"""
+    def init_manager(session, bundle_info, name, **kw):
+        """Initialize alignments manager"""
         from . import settings
         settings.init(session)
 
-        from .manager import AlignmentsManager
-        session.alignments = AlignmentsManager(session, bundle_info)
+        if not hasattr(session, 'alignments'):
+            from .manager import AlignmentsManager
+            session.alignments = AlignmentsManager(session, bundle_info)
+        return session.alignments
 
     @staticmethod
     def finish(session, bundle_info):

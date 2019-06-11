@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Alignments" version="1.0" package="chimerax.seqalign"
-  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
+  	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
@@ -22,6 +22,10 @@
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
+
+  <Managers>
+    <Manager name="alignment headers"/>
+  </Managers>
 
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->

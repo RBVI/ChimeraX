@@ -684,22 +684,22 @@ class SeqCanvas:
         """
         
     def layout_alignment(self):
-        settings = self.sv.settings
-        from chimerax.seqalign.headers import Consensus, Conservation, RMSD
-        self.consensus = Consensus(self.sv.alignment, self.refresh_header)
-        self.conservation = Conservation(self.sv.alignment, self.refresh_header)
-        self.headers = [self.consensus, self.conservation, RMSD(self.sv.alignment, self.refresh_header)]
-        from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
+        single_sequence = len(self.alignment.seqs) == 1
+        aln_mgr = self.alignment.session.alignments
+        self.headers = [hdr_class(self.alignment, self.refresh_header)
+            for hdr_class in aln_mgr.headers(single_seq_relevant=single_sequence)]
+        self.headers.sort(key=lambda hdr: hdr.name)
+        print(len(self.headers), "headers")
         """
+        from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
         for seq, defaultOn in registeredHeaders.values():
-            header = seq(self.sv.alignment)
+            header = seq(self.alignment)
             self.headers.append(header)
             if use_disp_default and defaultOn:
                 startup_headers.add(header.name)
         if use_disp_default:
             self.sv.prefs[STARTUP_HEADERS] = startup_headers
         """
-        single_sequence = len(self.alignment.seqs) == 1
         self.display_header = {}
         for header in self.headers:
             show = self.display_header[header] = header.settings.initially_shown \
@@ -708,7 +708,6 @@ class SeqCanvas:
                 #and not isinstance(header, DynamicStructureHeaderSequence)
             if show:
                 header.show()
-        self.headers.sort()
         """
         self.labelBindings = {}
         for seq in self.alignment.seqs:
@@ -1117,7 +1116,7 @@ class SeqCanvas:
             header_class = bundle.get_class(class_name, session.logger)
             if header_class:
                 headers.append(
-                    header_class.session_restore(session, self.sv.alignment, self.refresh_header, header_state))
+                    header_class.session_restore(session, self.alignment, self.refresh_header, header_state))
             else:
                 session.logger.warning("Could not find alignment header class %s" % class_name)
 

@@ -31,7 +31,6 @@ class Conservation(DynamicHeaderSequence):
             self.__class__.settings = self.make_settings(alignment.session)
         self._set_update_vars(self.settings.style)
         self.handler_ID = self.settings.triggers.add_handler('setting changed', self._setting_changed_cb)
-        self.al2co_options_widget = None
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
