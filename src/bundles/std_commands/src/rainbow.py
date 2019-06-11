@@ -10,14 +10,14 @@
 # === UCSF ChimeraX Copyright ===
 
 def rainbow(session, objects, level='residues', target=None, transparency=None,
-            palette=None, reversed=False):
+            palette=None):
     '''
     Color residues or chains by sequence using a color map.
     Arguments are the same as for the color command.
     '''
     from .color import color_sequential
     color_sequential(session, objects, target=target, transparency=transparency,
-                     level=level, palette=palette, reversed=reversed, undo_name="rainbow")
+                     level=level, palette=palette, undo_name="rainbow")
 
 # -----------------------------------------------------------------------------
 #
@@ -30,7 +30,6 @@ def register_command(logger):
                    keyword=[('target', StringArg),
                             ('transparency', FloatArg),
                             ('palette', ColormapArg),
-                            ('reversed', BoolArg),
                    ],
                    url='help:user/commands/color.html#rainbow',
                    synopsis="color residues and chains sequentially")
