@@ -25,6 +25,7 @@
 
   <Managers>
     <Manager name="alignment headers"/>
+    <Manager name="sequence viewers"/>
   </Managers>
 
   <Classifiers>
