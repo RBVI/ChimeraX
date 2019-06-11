@@ -32,7 +32,7 @@ class Slider(ToolInstance):
         self._last_shown_value = None
         
         self._play_handler = None
-        self._recording = False
+        self.recording = False
         self._block_update = False
 
         self.display_name = title	# Text shown on panel title-bar
@@ -96,8 +96,12 @@ class Slider(ToolInstance):
         self._last_shown_value = v
         self.change_value(v, playing = playing)
 
+    def change_value(self, v, playing = False):
+        '''Override this in derived class to do the action the slider controls.'''
+        pass
+    
     def play_cb(self, event):
-        if self._recording:
+        if self.recording:
             return
         if self._play_handler:
             self.set_button_icon(play=True)
@@ -116,22 +120,22 @@ class Slider(ToolInstance):
             t = self.session.triggers
             t.remove_handler(self._play_handler)
             self._play_handler = None
-            if self._recording:
+            if self.recording:
                 self.record_cb()
 
     def next_value_cb(self, *_):
-        if (not self._recording) or self.pause_when_recording:
+        if (not self.recording) or self.pause_when_recording:
             self._pause_count += 1
             if self._pause_count >= self.pause_frames:
                 self._pause_count = 0
             else:
-                if self._recording:
+                if self.recording:
                     # Make sure frame is drawn during pause.
                     self.session.main_view.redraw_needed = True
                 return
         v = self._last_shown_value
         if v is None or v >= self.value_range[1]:
-            if self._recording or not self.loop:
+            if self.recording or not self.loop:
                 self.stop()
                 return
             v = self.value_range[0]
@@ -163,14 +167,14 @@ class Slider(ToolInstance):
     def record_cb(self, event=None):
         from chimerax.core.commands import run
         ses = self.session
-        if not self._recording:
+        if not self.recording:
             self.set_button_icon(record=False)
-            self._recording = True
+            self.recording = True
             run(ses, 'movie record')
             self.play()
         else:
             self.set_button_icon(record=True)
-            self._recording = False
+            self.recording = False
             self.stop()
             run(ses, 'movie encode ~/Desktop/%s framerate %.1f'
                 % (self.movie_filename, self.movie_framerate))

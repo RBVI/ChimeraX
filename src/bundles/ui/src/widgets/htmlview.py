@@ -78,14 +78,14 @@ class HtmlView(QWebEngineView):
             p = self._profile = QWebEngineProfile(self.parent())
             self._private_profile = True
             set_user_agent(p)
-            if interceptor is not None:
-                self._intercept = _RequestInterceptor(callback=interceptor)
-                p.setRequestInterceptor(self._intercept)
-                if schemes:
-                    self._schemes = [s.encode("utf-8") for s in schemes]
-                    self._scheme_handler = _SchemeHandler()
-                    for scheme in self._schemes:
-                        p.installUrlSchemeHandler(scheme, self._scheme_handler)
+            self._intercept = _RequestInterceptor(callback=self.intercept)
+            self._intercept_cb = interceptor
+            p.setRequestInterceptor(self._intercept)
+            if schemes:
+                self._schemes = [s.encode("utf-8") for s in schemes]
+                self._scheme_handler = _SchemeHandler()
+                for scheme in self._schemes:
+                    p.installUrlSchemeHandler(scheme, self._scheme_handler)
             if download:
                 p.downloadRequested.connect(download)
         page = _LoggingPage(self._profile, self, log_errors=log_errors)
@@ -106,6 +106,41 @@ class HtmlView(QWebEngineView):
     @property
     def profile(self):
         return self._profile
+
+    def intercept(self, request_info, *args):
+        import os
+        qurl = request_info.requestUrl()
+        scheme = qurl.scheme()
+        if scheme == 'file':
+            # If path exists or references html files included
+            # in chimerax.ui, intercept and return
+            import sys
+            if sys.platform == "win32":
+                full_path = qurl.path()
+                # If URL path is absolute, remove the leading /.
+                # If URL path include a drive, extract the non-drive
+                # part for matching against /chimerax/ui/html/
+                if full_path[0] == '/':
+                    full_path = full_path[1:]
+                drive, path = os.path.splitdrive(full_path)
+                if not drive:
+                    path = full_path = qurl.path()
+            else:
+                path = full_path = qurl.path()
+            if os.path.exists(os.path.normpath(full_path)):
+                return
+            if path.startswith("/chimerax/ui/html/"):
+                from chimerax import ui
+                ui_dir = os.path.dirname(ui.__file__).replace(os.path.sep, '/')
+                full_path = ui_dir + path[len("/chimerax/ui"):]
+                if sys.platform == "win32":
+                    # change C:/ to /C:/
+                    full_path = '/' + full_path
+                qurl.setPath(full_path)
+                request_info.redirect(qurl)
+                return
+        if self._intercept_cb:
+            return self._intercept_cb(request_info, *args)
 
     def sizeHint(self):  # noqa
         """Supported API.  Returns size hint as a :py:class:PyQt5.QtCore.QSize instance."""
@@ -247,16 +282,15 @@ class ChimeraXHtmlView(HtmlView):
         qurl = request_info.requestUrl()
         scheme = qurl.scheme()
         if scheme == 'file':
+            # Paths to existing and chimerax.ui have already been intercepted.
             # Treat all directories with help documentation as equivalent
             # to integrate bundle help with the main help.  That is, so
             # relative hrefs will find files in other help directories.
             import sys
+            from chimerax.core import toolshed
             path = os.path.normpath(qurl.path())
             if sys.platform == "win32" and path[0] == os.path.sep:
-                path = path[1:]   # change \C:\ to C:\
-            if os.path.exists(path):
-                return
-            from chimerax.core import toolshed
+                path = path[1:]
             help_directories = toolshed.get_help_directories()
             for hd in help_directories:
                 if path.startswith(hd):
@@ -366,7 +400,7 @@ class ChimeraXHtmlView(HtmlView):
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
-            if not _installable(filename):
+            if not _installable(filename, self.session.logger):
                 self.session.logger.info("Bundle saved as %s" % filename)
                 continue
             from chimerax.ui.ask import ask
@@ -387,13 +421,14 @@ class ChimeraXHtmlView(HtmlView):
                                                  session=self.session)
 
 
-def _installable(filename):
+def _installable(filename, logger):
     import pkginfo, re
     from distutils.version import LooseVersion as Version
     import chimerax.core
     try:
         w = pkginfo.Wheel(filename)
-    except:
+    except Exception as e:
+        logger.info("Error parsing %s: %s" % (filename, str(e)))
         return False
     pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
     for req in w.requires_dist:
@@ -402,11 +437,12 @@ def _installable(filename):
             op = m.group("op")
             version = m.group("version")
             if op == ">=":
-                return Version(version) >= Version(chimerax.core.version)
+                return Version(chimerax.core.version) >= Version(version)
             elif op == "==":
-                return Version(version) == Version(chimerax.core.version)
+                return Version(chimerax.core.version) == Version(version)
             elif op == "<=":
-                return Version(version) <= Version(chimerax.core.version)
+                return Version(chimerax.core.version) <= Version(version)
+            logger.info("Unsupported version comparison:", op)
             return False
     return True
 

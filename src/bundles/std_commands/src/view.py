@@ -71,10 +71,9 @@ def view_objects(objects, v, clip, cofr, pad):
 
     cp = v.clip_planes
     if clip:
-        cam = v.camera
-        vd = cam.view_direction()
-        cp.set_clip_position('near', c - r * vd, cam)
-        cp.set_clip_position('far', c + r * vd, cam)
+        vd = v.camera.view_direction()
+        cp.set_clip_position('near', c - r * vd, v)
+        cp.set_clip_position('far', c + r * vd, v)
     else:
         cp.remove_plane('near')
         cp.remove_plane('far')

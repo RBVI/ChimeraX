@@ -327,6 +327,37 @@ class _RestoreManager:
         _UniqueName.add(name.uid, obj)
 
 
+class UserAliases(StateManager):
+
+    ALIAS_STATE_VERSION = 1
+
+    def reset_state(self, session):
+        """Reset state to data-less state"""
+        # keep all aliases
+        pass
+
+    def take_snapshot(self, session, flags):
+        # only save user aliases
+        from .commands.cli import list_aliases, expand_alias
+        aliases = {}
+        for name in list_aliases():
+            aliases[name] = expand_alias(name)
+        data = {
+            'aliases': aliases,
+            'version': self.ALIAS_STATE_VERSION,
+        }
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        from .commands.cli import create_alias
+        aliases = data['aliases']
+        for name, text in aliases.items():
+            create_alias(name, text, user=True)
+        obj = cls()
+        return obj
+
+
 class Session:
     """Supported API. Session management
 
@@ -375,6 +406,7 @@ class Session:
         from .graphics.view import View
         self.main_view = View(self.models.drawing, window_size=(256, 256),
                               trigger_set=self.triggers)
+        self.user_aliases = UserAliases()
 
         from . import colors
         self.user_colors = colors.UserColors()
@@ -448,7 +480,8 @@ class Session:
         if issubclass(cls, base_type):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
-            from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material, ClipPlane, Drawing
+            from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material
+            from .graphics import SceneClipPlane, CameraClipPlane, Drawing
             from .graphics import gsession as g
             from .geometry import Place, Places, psession as p
             self._snapshot_methods = {
@@ -457,7 +490,8 @@ class Session:
                 OrthographicCamera: g.CameraState,
                 Lighting: g.LightingState,
                 Material: g.MaterialState,
-                ClipPlane: g.ClipPlaneState,
+                SceneClipPlane: g.SceneClipPlaneState,
+                CameraClipPlane: g.CameraClipPlaneState,
                 Drawing: g.DrawingState,
                 Place: p.PlaceState,
                 Places: p.PlacesState,
@@ -977,6 +1011,34 @@ def common_startup(sess):
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")
 
+def register_session_save_options_gui(save_dialog):
+    '''
+    Session save gui options are registered in the ui module instead of when the
+    format is registered because the ui does not exist when the format is registered.
+    '''
+    from chimerax.ui import SaveOptionsGUI
+    class SessionSaveOptionsGUI(SaveOptionsGUI):
+        @property
+        def format_name(self):
+            return "ChimeraX session"
+
+        def wildcard(self):
+            from chimerax.ui.open_save import export_file_filter
+            from chimerax.core import toolshed
+            return export_file_filter(toolshed.SESSION)
+
+        def save(self, session, filename):
+            import os.path
+            ext = os.path.splitext(filename)[1]
+            from chimerax.core import io
+            fmt = io.format_from_name("ChimeraX session")
+            exts = fmt.extensions
+            if exts and ext not in exts:
+                filename += exts[0]
+            from chimerax.core.commands import run, quote_if_necessary
+            run(session, "save session %s" % quote_if_necessary(filename))
+
+    save_dialog.register(SessionSaveOptionsGUI())
 
 def _register_core_file_formats(session):
     register_session_format(session)

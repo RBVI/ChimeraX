@@ -1,6 +1,6 @@
 include ../Makefile.bundle
 
-LIBS = src/lib/flot src/lib/rateyo src/lib/jquery.multiselect.js
+LIBS = src/lib/flot
 CLEAN_ALWAYS += src/lib/flot src/lib/rateyo src/lib/jquery.multiselect.*
 
 wheel install app-install:	$(LIBS)

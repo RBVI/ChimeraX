@@ -33,7 +33,9 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/swapaa/src/swapaa.png \
 		$(TOP)/src/bundles/tug/src/minimize.png \
 		$(TOP)/src/bundles/tug/src/tug.png \
-		$(TOP)/src/bundles/zone/src/zone.png
+		$(TOP)/src/bundles/zone/src/zone.png \
+		$(TOP)/src/bundles/pick_blobs/src/pickblobs.png \
+		$(TOP)/src/bundles/map_eraser/src/eraser.png
 MICONDIR = $(DOCDIR)/mouse-icons
 SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons

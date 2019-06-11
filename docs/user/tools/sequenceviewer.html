@@ -26,12 +26,12 @@ class="clRight" title="User Guide Index"/></a>
 <table class="clRight">
 <tr><td>
 <img class="outline" src="1bzm-others-screenshot.png"
-alt="1bzm, 1urt, sequence alignment" width="800px"></td></tr>
-<tr><td width="790px" align="center">
+alt="1bzm, 1urt, sequence alignment" width="630px"></td></tr>
+<tr><td width="620px" align="center">
 <font size=-1>
 Models #1 <font style="background:tan;padding:0px 2px">1bzm</font>
 and #2 <font style="background:skyblue;padding:0px 2px">1urt</font>
-associated with sequences in a multiple alignment, with
+associated with sequences in an alignment, with
 <font style="background:lightgreen;padding:0px 2px">ChimeraX selection</font>
 sequence region.
 </font>
@@ -57,7 +57,7 @@ The sequence of a structure chain in ChimeraX can be shown by:
 <li>clicking the 
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="iconbar" border=1 src="../tools/shortcut-icons/sequence.png"></a>
+<img class="iconbar" src="../tools/shortcut-icons/sequence.png"></a>
 <li>clicking the <a href="../modelinfo.html">chain description</a> 
 link that appears in the <a href="log.html"><b>Log</b></a> 
 when a structure is opened 
@@ -84,6 +84,8 @@ with choices including:
 - save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
+<li><b>Associations...</b> show dialog for controlling 
+<a href="#association">sequence-structure association</a>
 <li><b>Load Sequence Coloring File...</b> open a
 <a href="../formats/scf.html">sequence coloring file</a>
 to create <a href="#regions">regions</a> and color 
@@ -123,11 +125,11 @@ Manually created regions are shown in
 </p><p>
 <a name="active"></a>
 The <b><i>active region</i></b> is the region most recently clicked or created
-by dragging.
+by dragging, and is indicated with a dashed outline.
 <b>Shift</b>-dragging with the left mouse button <i>adds to</i> the active region,
 whereas <b>Ctrl</b>-dragging <i>creates</i> a new region
 and makes it the active region. (On Mac, command key replaces Ctrl.)
-The active region is indicated with a dashed outline; clicking the active region
+Backspace/delete deletes the active region. Clicking the active region
 deactivates it, and clicking a different region deactivates the
 former active region and makes the new region active.
 A region with no interior color is only responsive to clicks on its borders.
@@ -170,14 +172,23 @@ such as in disordered regions with poorly defined density.
 sequence opened independently are not allowed.
 </ul>
 <p>
-For manual (forced) association, both of the above are allowed, 
+For manual association, both of the above are allowed, 
 but only the &ldquo;extra&rdquo; residues in the structure not associated 
 with any positions in the sequence (minus the length difference
 if the structure sequence is longer) are counted along with mismatches 
 and reported in the <a href="log.html"><b>Log</b></a>.
-Associations can be forced or removed with the
-<a href="../commands/sequence.html"><b>sequence</b></a> command.
 </p><p>
+Associations can be controlled manually (forced or removed):
+</p>
+<ul>
+<li>with the
+<a href="../commands/sequence.html"><b>sequence</b></a> command
+<li>by choosing <b>Associations...</b> from the <b>Sequence Viewer</b>
+<a href="../window.html#context-menu">context menu</a>.
+The resulting dialog lists structure chains and allows changing 
+the association of each to none, best-matching, or a specific sequence.
+</ul>
+<p>
 In the sequence window, <a href="#regions">regions</a> may be created to show
 <font style="background:rgb(255,76,76);padding:1px 3px">
 <b>mismatches</b></font> and
@@ -476,5 +487,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+June 2019</address>
 </body></html>

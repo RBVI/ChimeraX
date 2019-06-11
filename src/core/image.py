@@ -185,3 +185,128 @@ def register_image_save(session):
         synopsis='save image'
     )
     register('save image', desc, save, logger=session.logger)
+
+    
+def register_image_save_options_gui(save_dialog):
+    '''
+    Image save gui options are registered in the ui module instead of when the
+    format is registered because the ui does not exist when the format is registered.
+    '''
+    #
+    # Options for Save File dialog.
+    #
+    from chimerax.ui import SaveOptionsGUI
+    class ImageSaveOptionsGUI(SaveOptionsGUI):
+
+        DEFAULT_FORMAT = "png"
+        DEFAULT_EXT = "png"
+        SUPERSAMPLE_OPTIONS = (("None", None),
+                               ("2x2", 2),
+                               ("3x3", 3),
+                               ("4x4", 4))
+
+        @property
+        def format_name(self):
+            return 'Image file'
+        
+        def make_ui(self, parent):
+            from PyQt5.QtWidgets import QFrame, QGridLayout, QComboBox, QLabel, QHBoxLayout, \
+                QLineEdit
+            container = QFrame(parent)
+            container.setFrameStyle(QFrame.Box)
+            layout = QGridLayout(container)
+            layout.setContentsMargins(2, 0, 0, 0)
+
+            from chimerax.core.image import image_formats
+            selector = QComboBox(container)
+            selector.addItems(list(f.name for f in image_formats))
+            selector.currentIndexChanged.connect(self._select_format)
+            selector.setCurrentIndex(selector.findText(self.DEFAULT_FORMAT))
+            format_label = QLabel(container)
+            format_label.setText("Format:")
+            from PyQt5.QtCore import Qt
+            layout.addWidget(format_label, 0, 0, Qt.AlignRight | Qt.AlignVCenter)
+            layout.addWidget(selector, 0, 1, Qt.AlignLeft)
+            self._format_selector = selector
+
+            size_frame = QFrame(container)
+            size_layout = QHBoxLayout(size_frame)
+            size_layout.setContentsMargins(0, 0, 0, 0)
+            self._width = QLineEdit(size_frame)
+            new_width = int(0.4 * self._width.sizeHint().width())
+            self._width.setFixedWidth(new_width)
+            x = QLabel(size_frame)
+            x.setText("x")
+            self._height = QLineEdit(size_frame)
+            self._height.setFixedWidth(new_width)
+            size_layout.addWidget(self._width, Qt.AlignRight)
+            size_layout.addWidget(x, Qt.AlignHCenter)
+            size_layout.addWidget(self._height, Qt.AlignLeft)
+            size_frame.setLayout(size_layout)
+            size_label = QLabel(container)
+            size_label.setText("Size:")
+            layout.addWidget(size_label, 1, 0, Qt.AlignRight | Qt.AlignVCenter)
+            layout.addWidget(size_frame, 1, 1, Qt.AlignLeft)
+
+            ss_label = QLabel(container)
+            ss_label.setText("Supersample:")
+            supersamples = QComboBox(container)
+            supersamples.addItems([o[0] for o in self.SUPERSAMPLE_OPTIONS])
+            layout.addWidget(ss_label, 2, 0, Qt.AlignRight | Qt.AlignVCenter)
+            layout.addWidget(supersamples, 2, 1, Qt.AlignLeft)
+            self._supersample = supersamples
+
+            container.setLayout(layout)
+            return container
+
+        def _select_format(self, *args):
+            # TODO: enable options that apply to this graphics format
+            pass
+
+        def save(self, session, filename):
+            import os.path
+            ext = os.path.splitext(filename)[1]
+            e = '.' + self._get_current_extension()
+            if ext != e:
+                filename += e
+            try:
+                w = int(self._width.text())
+                h = int(self._height.text())
+            except ValueError:
+                from chimerax.core.errors import UserError
+                raise UserError("width/height must be integers")
+            if w <= 0 or h <= 0:
+                from chimerax.core.errors import UserError
+                raise UserError("width/height must be positive integers")
+            ss = self.SUPERSAMPLE_OPTIONS[self._supersample.currentIndex()][1]
+            from chimerax.core.commands import run, quote_if_necessary
+            cmd = "save image %s width %g height %g" % (quote_if_necessary(filename), w, h)
+            if ss is not None:
+                cmd += " supersample %g" % ss
+            run(session, cmd)
+
+        def update(self, session, save_dialog):
+            gw = session.ui.main_window.graphics_window
+            w, h = gw.width(), gw.height()
+            self._width.setText(str(w))
+            self._height.setText(str(h))
+
+        def wildcard(self):
+            from chimerax.core.image import image_formats
+            exts = sum((list(f.suffixes) for f in image_formats), [])
+            exts.remove(self.DEFAULT_EXT)
+            exts.insert(0, self.DEFAULT_EXT)
+            fmts = ' '.join("*.%s" % e for e in exts)
+            wildcard = "Image file (%s)" % fmts
+            return wildcard
+
+        def _get_current_extension(self):
+            format_name = self._format_selector.currentText()
+            from chimerax.core.image import image_formats
+            for f in image_formats:
+                if f.name == format_name:
+                    return f.suffixes[0]
+            else:
+                raise RuntimeError("unsupported graphics format: %s" % format_name)
+
+    save_dialog.register(ImageSaveOptionsGUI())

@@ -718,7 +718,8 @@ See also: <a href="mlp.html"><b>mlp</b></a>,
 <blockquote>
 <a name="palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
 <br>
-Specify a <i>palette</i> as one of the following:
+The <i>palette</i> can be specified as one of the following
+(or as <b>^</b><i>palette</i> to reverse the order of the colors):
 <ul>
 <li><i>palette-name</i> &ndash; the name of an existing 
 <a href="palettes.html">palette</a>;
@@ -817,6 +818,15 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td style="background:#b8e186" width="30px" title="#b8e186"></td>
 <td style="background:#4dac26" width="30px" title="#4dac26"></td>
 </tr></table>
+<br><b>palette ^piyg</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td style="background:#4dac26" width="30px" title="#4dac26"></td>
+<td style="background:#b8e186" width="30px" title="#b8e186"></td>
+<td style="background:#f7f7f7" width="30px" title="#f7f7f7"></td>
+<td style="background:#f1b6da" width="30px" title="#f1b6da"></td>
+<td style="background:#d01c8b" width="30px" title="#d01c8b"></td>
+</tr></table>
 </blockquote>
 Users should cite:
 www.ColorBrewer.org, color specifications and designs by Cynthia A. Brewer,
@@ -829,7 +839,7 @@ separated by colons,
 collectively enclosed in quotation marks if it contains any spaces
 (example: <b>palette&nbsp;cornflowerblue:red:gold</b> or
 <b>palette&nbsp;"cornflower&nbsp;blue:red:gold"</b>).
-The colors are placed evenly in ascending value order along the range,
+The colors are placed evenly along the range,
 with the first and last colors at the extremes.
 Colors for intermediate values are interpolated.
 <br><br>
@@ -851,6 +861,8 @@ and values above the highest will map to the same color as the highest.
 Colors are interpolated between specified value-color pairs; 
 discrete coloring can be achieved by specifying the same color 
 for the upper- and lower-bound values of a &ldquo;bin.&rdquo;
+Reversing the colors in this type of palette specification with <b>^</b> 
+is not recommended, as it would disrupt the specified color-value pairing.
 <br><br>
 <li> <i>colourlovers-id</i> 
 &ndash; the ID number, name, or name+author of a palette to be fetched from 
@@ -859,7 +871,8 @@ Examples:
 <blockquote>
 <b>palette 92095</b><br>
 <b>palette "Giant Goldfish"</b><br>
-<b>palette "Giant Goldfish by manekineko"</b>
+<b>palette "Giant Goldfish by manekineko"</b><br>
+<b>palette "^Giant Goldfish"</b>
 </blockquote>
 The page of a specific palette at 
 <a href="http://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>
@@ -957,5 +970,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+June 2019</address>
 </body></html>

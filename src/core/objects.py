@@ -40,18 +40,39 @@ class Objects:
     models : readonly list of chimerax.core.models.Model
     """
     def __init__(self, atoms = None, bonds = None, pseudobonds = None, models = None):
-        from .orderedset import OrderedWeakrefSet
-        self._models = OrderedWeakrefSet() if models is None else OrderedWeakrefSet(models)
-        self._model_instances = {}
+        from .orderedset import OrderedSet
+        self._models = OrderedSet() if models is None else OrderedSet(models)
+        self._model_instances = {}	# Maps Model to boolean array of length equal to number of instances
         # Use a list of Atoms collections so many concatenations is fast.
         self._atoms = [] if atoms is None else [atoms]
         self._cached_atoms = None	# Atoms collection containing all atoms.
         self._bonds = [] if bonds is None else [bonds]
         self._pseudobonds = [] if pseudobonds is None else [pseudobonds]
+        from weakref import WeakValueDictionary
+        self._handlers = WeakValueDictionary(
+            { m:m.triggers.add_handler("deleted", self._model_deleted_cb) for m in self._models })
+
+    def __del__(self):
+        for handler in self._handlers.values():
+            handler.remove()
+        self._handlers.clear()
+        self._model_instances.clear()
+        self._models.clear()
 
     def add_model(self, m):
         """Add model to collection."""
         self._models.add(m)
+        # model might not previously be in self._models but be in self._handlers because of instances
+        if m not in self._handlers:
+            self._handlers[m] = m.triggers.add_handler("deleted", self._model_deleted_cb)
+
+    def _model_deleted_cb(self, _trig_name, model):
+        self._models.discard(model)
+        if model in self._model_instances:
+            del self._model_instances[model]
+        del self._handlers[model]
+        from .triggerset import DEREGISTER
+        return DEREGISTER
 
     def add_model_instances(self, m, imask):
         """Add model instances to collection."""
@@ -62,6 +83,8 @@ class Objects:
             logical_or(i, imask, i)
         else:
             mi[m] = imask.copy()
+            if m not in self._handlers:
+                self._handlers[m] = m.triggers.add_handler("deleted", self._model_deleted_cb)
 
     def add_atoms(self, atoms, bonds=False):
         """Add atoms to collection.  If bonds is true also add bonds between specified atoms."""
@@ -90,8 +113,8 @@ class Objects:
         matoms = []
         mbonds = []
         mpbonds = []
-        from .orderedset import OrderedWeakrefSet
-        imodels = OrderedWeakrefSet()
+        from .orderedset import OrderedSet
+        imodels = OrderedSet()
         for m in models:
             if isinstance(m, Structure):
                 matoms.append(m.atoms)
@@ -115,7 +138,16 @@ class Objects:
         self._models = imodels
 
         from numpy import logical_not
-        self._model_instances = {m:logical_not(minst) for m, minst in self.model_instances.items()}
+        self._model_instances = {m:logical_not(minst) for m, minst in self._model_instances.items()}
+
+        for handler in self._handlers.values():
+            handler.remove()
+        self._handlers.clear()
+        for m in self._models:
+            self._handlers[m] = m.triggers.add_handler("deleted", self._model_deleted_cb)
+        for m in self._model_instances:
+            if m not in self._handlers:
+                self._handlers[m] = m.triggers.add_handler("deleted", self._model_deleted_cb)
 
     @property
     def models(self):
@@ -123,8 +155,18 @@ class Objects:
 
     @property
     def model_instances(self):
+        self._remove_deleted_model_instances()
         return self._model_instances
 
+    def _remove_deleted_model_instances(self):
+        minst = self._model_instances
+        mdel = [m for m,mask in minst.items() if len(mask) != len(m.positions)]
+        if mdel:
+            for m in mdel:
+                del minst[m]
+                if m not in self._models:
+                    self._handlers[m].remove()
+                    del self._handlers[m]
     @property
     def atoms(self):
         ca = self._cached_atoms
@@ -180,14 +222,15 @@ class Objects:
         return u
 
     def empty(self):
+        self._remove_deleted_model_instances()
         return (self.num_atoms == 0 and self.num_bonds == 0 and self.num_pseudobonds == 0
                 and len(self._models) == 0 and len(self._model_instances) == 0)
 
     def displayed(self):
         '''Return Objects containing only displayed atoms, bonds, pseudobonds and models.'''
 	# Displayed models
-        from .orderedset import OrderedWeakrefSet
-        dmodels = OrderedWeakrefSet(m for m in self.models if m.display and m.parents_displayed)
+        from .orderedset import OrderedSet
+        dmodels = OrderedSet(m for m in self.models if m.display and m.parents_displayed)
         bonds, pbonds = self.bonds, self.pseudobonds
         d = Objects(atoms = self.atoms.shown_atoms, bonds = bonds[bonds.displays],
                     pseudobonds = pbonds[pbonds.displays], models = dmodels)
@@ -217,35 +260,3 @@ class Objects:
 
         b = union_bounds(bm)
         return b
-
-    def refresh(self, session):
-        """Remove atoms/bonds/pseudobonds of deleted model.
-
-        Returns True if something changed during refresh; False otherwise."""
-
-        from .orderedset import OrderedWeakrefSet
-        from chimerax.atomic import AtomicStructures, AtomicStructure
-        all_models = set(session.models.list())
-        models = [m for m in self._models if m in all_models]
-        if len(models) == len(self._models):
-            return False
-        self._models = OrderedWeakrefSet(models)
-        self._model_instances = dict([(m, i)
-                                      for (m, i)
-                                      in self._model_instances.items()
-                                      if not m.deleted])
-        structures = AtomicStructures(session.models.list(type=AtomicStructure))
-        atoms = self.atoms
-        mask = structures.indices(atoms.structures) != -1
-        self._atoms = [atoms.filter(mask)]
-        self._cached_atoms = None
-        bonds = self.bonds
-        mask = structures.indices(bonds.structures) != -1
-        self._bonds = [bonds.filter(mask)]
-        pseudobonds = self.pseudobonds
-        a0s, a1s = pseudobonds.atoms
-        mask0 = structures.indices(a0s.structures) != -1
-        mask1 = structures.indices(a1s.structures) != -1
-        mask = mask0 & mask1
-        self._pseudobonds = [pseudobonds.filter(mask)]
-        return True

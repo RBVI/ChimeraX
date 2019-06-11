@@ -166,6 +166,12 @@ class UI(QApplication):
         pass
 
     def window_image(self):
+        '''
+        Tests on macOS 10.14.5 show that QWidget.grab() gives a correct QPixmap
+        even for undisplayed or iconified windows, except not for html widgets
+        (e.g. Log, or file history) which come out blank.  Hidden windows also
+        may render an image at the wrong size with a new layout (e.g. Model Panel).
+        '''
         screen = self.primaryScreen()
         w = self.main_window
         pixmap = w.grab()
@@ -194,7 +200,15 @@ class UI(QApplication):
         triggers.add_handler(TOOLSHED_BUNDLE_UNINSTALLED, handler)
         triggers.add_handler(TOOLSHED_BUNDLE_INFO_RELOADED, handler)
         if self.autostart_tools:
-            self.session.tools.start_tools(self.settings.autostart)
+            defunct_toolbars = set(["Density Map Toolbar", "Graphics Toolbar",
+                "Molecule Display Toolbar", "Mouse Modes for Right Button"])
+            final_autostart = [tool_name for tool_name in
+                self.settings.autostart if tool_name not in defunct_toolbars]
+            if final_autostart != self.settings.autostart:
+                if "Toolbar" not in final_autostart:
+                    final_autostart.append("Toolbar")
+                self.settings.autostart = final_autostart
+            self.session.tools.start_tools(final_autostart)
 
         self.triggers.activate_trigger('ready', None)
 
@@ -402,9 +416,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .open_folder import OpenFolderDialog
         self._open_folder = OpenFolderDialog(self, session)
 
-        from .save_dialog import MainSaveDialog, ImageSaver
-        self.save_dialog = MainSaveDialog(self)
-        ImageSaver(self.save_dialog).register()
+        from .save_dialog import MainSaveDialog, register_save_dialog_options
+        self.save_dialog = MainSaveDialog()
+        register_save_dialog_options(self.save_dialog)
 
         self._hide_tools = False
         self.tool_instance_to_windows = {}
@@ -445,7 +459,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         gw = self.graphics_window
         oc = gw.opengl_context
         if stereo == oc.stereo:
-            return True	# Already using requested mode
+            return True    # Already using requested mode
 
         from .graphics import GraphicsWindow
         try:
@@ -635,8 +649,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 settings_dw.hide()
             for tool_windows in self.tool_instance_to_windows.values():
                 for tw in tool_windows:
-                    if tw.title in ["Command Line Interface", "Toolbar"]:
-                        # leave the command line and toolbar tool as is
+                    if tw.hides_title_bar:
                         continue
                     if tw.floating:
                         continue
@@ -727,7 +740,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
-        _show_context_menu(event, tool, fill_cb, True, tb)
+        _show_context_menu(event, tool, None, fill_cb, True, tb)
 
     def status(self, msg, color, secondary):
         self._status_bar.status(msg, color, secondary)
@@ -1276,7 +1289,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 # create here rather than earlier so that's it's not included in parent_menu.children()
                 menu = QMenu(menu_name, parent_menu)
                 menu.setToolTipsVisible(True)
-                menu.setObjectName(obj_name)	# Needed for findChild() above to work.
+                menu.setObjectName(obj_name)    # Needed for findChild() above to work.
                 if insert_pos is False:
                     parent_menu.addMenu(menu)
                 else:
@@ -1354,18 +1367,17 @@ class ToolWindow(StatusLogger):
     #: 'side' is either left or right, depending on user preference
     placements = ["side", "right", "left", "top", "bottom"]
 
-    def __init__(self, tool_instance, title, *, close_destroys=True, statusbar=False):
+    def __init__(self, tool_instance, title, *, close_destroys=True, hide_title_bar=False, statusbar=False):
         StatusLogger.__init__(self, tool_instance.session)
         self.tool_instance = tool_instance
         self.close_destroys = close_destroys
         ui = tool_instance.session.ui
         mw = ui.main_window
-        self.__toolkit = _Qt(self, title, statusbar, mw)
+        self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw)
         self.ui_area = self.__toolkit.ui_area
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
-        self._kludge = self.__toolkit
 
     def cleanup(self):
         """Supported API. Perform tool-specific cleanup
@@ -1396,6 +1408,10 @@ class ToolWindow(StatusLogger):
     @property
     def floating(self):
         return self.__toolkit.dock_widget.isFloating()
+
+    @property
+    def hides_title_bar(self):
+        return self.__toolkit.hide_title_bar
 
     from PyQt5.QtCore import Qt
     window_placement_to_text = {
@@ -1558,9 +1574,10 @@ class ChildToolWindow(ToolWindow):
         super().__init__(tool_instance, title, **kw)
 
 class _Qt:
-    def __init__(self, tool_window, title, has_statusbar, main_window):
+    def __init__(self, tool_window, title, has_statusbar, hide_title_bar, main_window):
         self.tool_window = tool_window
         self.title = title
+        self.hide_title_bar = hide_title_bar
         self.main_window = mw = main_window
 
         if not mw:
@@ -1569,6 +1586,10 @@ class _Qt:
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+        if hide_title_bar:
+            dw.topLevelChanged.connect(self.float_changed)
+            self.dock_widget.setTitleBarWidget(QWidget())
+
         container = QWidget()
         layout = QVBoxLayout()
         layout.setSpacing(0)
@@ -1594,11 +1615,8 @@ class _Qt:
         # free up references
         self.tool_window = None
         self.main_window = None
-        self.dock_widget.widget().destroy()
-        if self.status_bar:
-            self.status_bar.destroy()
-            self.status_bar = None
-        self.dock_widget.destroy()
+        self.status_bar = None
+        self.dock_widget.deleteLater()
 
     @property
     def dockable(self):
@@ -1612,6 +1630,10 @@ class _Qt:
         self.dock_widget.setAllowedAreas(areas)
         if not dockable and not self.dock_widget.isFloating():
             self.dock_widget.setFloating(True)
+
+    def float_changed(self, floating):
+        from PyQt5.QtWidgets import QWidget
+        self.dock_widget.setTitleBarWidget(None if floating else QWidget())
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side
@@ -1648,16 +1670,8 @@ class _Qt:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
 
-        #QT disable: create a 'hide_title_bar' option
-        if side == Qt.BottomDockWidgetArea:
-            from PyQt5.QtWidgets import QWidget
-            self.dock_widget.setTitleBarWidget(QWidget())
-
-        if self.tool_window.close_destroys:
-            self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
-
     def show_context_menu(self, event):
-        _show_context_menu(event, self.tool_window.tool_instance,
+        _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,
             self.tool_window.fill_context_menu,
             self.tool_window.tool_instance.tool_info in self.main_window._tools_cache,
             self.dock_widget if isinstance(self.tool_window, MainToolWindow) else None)
@@ -1723,7 +1737,7 @@ def redirect_stdio_to_logger(logger):
     sys.orig_stderr = sys.stderr
     sys.stderr = LogStderr(logger)
 
-def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
+def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable, memorable):
     from PyQt5.QtWidgets import QMenu, QAction
     menu = QMenu()
 
@@ -1735,22 +1749,24 @@ def _show_context_menu(event, tool_instance, fill_cb, autostartable, memorable):
     hide_tool_action = QAction("Hide Tool")
     hide_tool_action.triggered.connect(lambda arg, ti=ti: ti.display(False))
     menu.addAction(hide_tool_action)
-    if ti.help is not None:
+    help_url = getattr(tool_window, "help", None) or ti.help
+    session = ti.session
+    from chimerax.core.commands import run, quote_if_necessary
+    if help_url is not None:
         help_action = QAction("Help")
         help_action.setStatusTip("Show tool help")
-        help_action.triggered.connect(lambda arg, ti=ti: ti.display_help())
+        help_action.triggered.connect(lambda arg, ses=session, run=run, help_url=help_url:
+            run(ses, "help %s" % help_url))
         menu.addAction(help_action)
     else:
         no_help_action = QAction("No Help Available")
         no_help_action.setEnabled(False)
         menu.addAction(no_help_action)
-    session = ti.session
     if autostartable:
         autostart = ti.tool_name in session.ui.settings.autostart
         auto_action = QAction("Start at ChimeraX Startup")
         auto_action.setCheckable(True)
         auto_action.setChecked(autostart)
-        from chimerax.core.commands import run, quote_if_necessary
         auto_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
@@ -1831,7 +1847,7 @@ class DefineSelectorDialog(QDialog):
         def_layout.addWidget(QLabel("Name"))
         from PyQt5.QtWidgets import QPushButton, QMenu
         self.cur_sel_text = "current selection"
-        self.atom_spec_text = "atom specifier"
+        self.atom_spec_text = "target specifier"
         self.push_button = QPushButton(self.cur_sel_text)
         menu = QMenu()
         menu.triggered.connect(self._menu_cb)
@@ -1856,8 +1872,8 @@ class DefineSelectorDialog(QDialog):
         self.bbox.rejected.connect(self.reject)
         self.bbox.button(qbbox.Apply).clicked.connect(self.def_selector)
         from chimerax.core.commands import run
-        #self.bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help help:user/findseq.html"))
-        self.bbox.button(qbbox.Help).setEnabled(False)
+        self.bbox.helpRequested.connect(lambda run=run, ses=session:
+            run(ses, "help help:user/menu.html#named-selections"))
         self._update_button_states()
         layout.addWidget(self.bbox)
         self.setLayout(layout)

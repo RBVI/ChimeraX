@@ -78,7 +78,7 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
     return models, info
 
 
-def save_pdb(session, path, *, models=None, selected_only=False, displayed_only=False,
+def save_pdb(session, output, *, models=None, selected_only=False, displayed_only=False,
         all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36",
         polymeric_res_names = None):
     from chimerax.core.errors import UserError
@@ -106,18 +106,17 @@ def save_pdb(session, path, *, models=None, selected_only=False, displayed_only=
     from . import _pdbio
     if polymeric_res_names is None:
         polymeric_res_names = _pdbio.standard_polymeric_res_names
-    file_per_model = "[NAME]" in path or "[ID]" in path
+    file_per_model = "[NAME]" in output or "[ID]" in output
     if file_per_model:
         for m, xform in zip(models, xforms):
-            file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
+            file_name = output.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only,
                 displayed_only, [xform], all_coordsets,
                 pqr, (serial_numbering == "h36"), polymeric_res_names)
     else:
-        _pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only,
+        _pdbio.write_pdb_file([m.cpp_pointer for m in models], output, selected_only,
             displayed_only, xforms, all_coordsets, pqr,
             (serial_numbering == "h36"), polymeric_res_names)
-
 
 _pdb_sources = {
 #    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
@@ -126,11 +125,18 @@ _pdb_sources = {
     # "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=pdb&id=%s",
 }
 
-
-def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False, **kw):
+def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False,
+        structure_factors=False, over_sampling=1.5, # for ChimeraX-Clipper plugin
+        **kw):
     if len(pdb_id) != 4:
         from chimerax.core.errors import UserError
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
+    if structure_factors:
+        try:
+            from chimerax.clipper.io import fetch_cif
+        except ImportError:
+            raise UserError('Working with structure factors requires the '
+                'ChimeraX_Clipper plugin, available from the Tool Shed')
     import os
     pdb_id = pdb_id.lower()
     # check on local system -- TODO: configure location
@@ -151,17 +157,25 @@ def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False, **kw)
     session.logger.status("Opening PDB %s" % (pdb_id,))
     from chimerax.core import io
     models, status = io.open_data(session, filename, format='pdb', name=pdb_id, **kw)
+    if structure_factors:
+        sf_file = fetch_cif.fetch_structure_factors(session, pdb_id, fetch_source=fetch_source,
+            ignore_cache=ignore_cache)
+        from chimerax.clipper import get_map_mgr
+        mmgr = get_map_mgr(models[0], create=True)
+        if over_sampling < 1:
+            warn_str = ('Map over-sampling rate cannot be less than 1. Resetting to 1.0')
+            session.logger.warning(warn_str)
+            over_sampling = 1
+        mmgr.add_xmapset_from_file(sf_file, oversampling_rate = over_sampling)
+        return [mmgr.crystal_mgr], status
+
     return models, status
-
-
 
 def fetch_pdb_pdbe(session, pdb_id, **kw):
     return fetch_pdb(session, pdb_id, fetch_source="pdbe", **kw)
 
-
 def fetch_pdb_pdbj(session, pdb_id, **kw):
     return fetch_pdb(session, pdb_id, fetch_source="pdbj", **kw)
-
 
 def register_pdb_format():
     from chimerax.core import io
@@ -178,7 +192,6 @@ def register_pdb_format():
     add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
         'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg,
         'rel_model':ModelArg, 'serial_numbering': EnumOf(("amber", "h36"))})
-
 
 def register_pdb_fetch():
     from chimerax.core import fetch
@@ -594,4 +607,3 @@ def _process_src(src, caption):
             html += '   <td>%s</td>\n' % formatted
             html += '  </tr>\n'
     return html
-

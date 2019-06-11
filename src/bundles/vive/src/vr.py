@@ -134,7 +134,7 @@ def register_vr_command(logger):
 
 # -----------------------------------------------------------------------------
 #
-def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
+def start_vr(session, multishadow_allowed = False, simplify_graphics = True, label_reorient = 45):
 
     v = session.main_view
     if not multishadow_allowed and v.lighting.multishadow > 0:
@@ -145,6 +145,9 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
         from chimerax.std_commands.graphics import graphics
         graphics(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
+    from chimerax.label.label3d import label_orient
+    label_orient(session, label_reorient)	# Don't continuously reorient labels.
+    
     if vr_camera(session) is not None:
         return
 
@@ -202,6 +205,8 @@ def stop_vr(session, simplify_graphics = True):
         if simplify_graphics:
             from chimerax.std_commands.graphics import graphics
             graphics(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+        from chimerax.label.label3d import label_orient
+        label_orient(session, 0)	# Continuously reorient labels.
         v.view_all()
 
     c.close(replace_camera)
@@ -1016,6 +1021,7 @@ class UserInterface:
         ses = self._session
         from chimerax.core.models import Model
         m = Model('User interface', ses)
+        m.skip_bounds = True
         m.color = (255,255,255,255)
         m.use_lighting = False
         ses.models.add([m], parent = parent)
@@ -1068,8 +1074,7 @@ class Panel:
         width = Panel.initial_widths.get(tool_name, 0.5)
         self._width = width		# Billboard width in room coords, meters.
         x0,y0,w,h = self._panel_rectangle()
-        aspect = h/w
-        self._height = aspect*width	# Height in room coords determined by window aspect and width.
+        self._height = (h/w)*width if w > 0 else 0	# Height in room coords determined by window aspect and width.
         self._panel_size = None 	# Panel size in Qt device independent pixels
         self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
         self._last_image_rgba = None
@@ -1081,9 +1086,10 @@ class Panel:
 
     def _create_panel_drawing(self, parent):
         from chimerax.core.graphics import Drawing
-        d = Drawing('User interface')
+        d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
+        d.skip_bounds = True
         parent.add_drawing(d)
         return d
 
@@ -1119,13 +1125,16 @@ class Panel:
         ui = self._panel_drawing
         scene_point = self._ui._camera.room_to_scene * room_point
         x,y,z = ui.scene_position.inverse() * scene_point
-        hw, hh = 0.5*self._width, 0.5*self._height
+        w,h = self._width, self._height
+        hw, hh = 0.5*w, 0.5*h
         cr = self._ui_click_range
         on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
         z_offset = (z - cr) if on_panel else None
         sx, sy = self._panel_size
         ox, oy = self._panel_offset
-        window_xy = ox + sx * (x + hw) / (2*hw), oy + sy * (hh - y) / (2*hh)
+        ws = 1/w if w > 0 else 0
+        hs = 1/h if h > 0 else 0
+        window_xy = ox + sx * (x + hw) * ws, oy + sy * (hh - y) * hs
         return window_xy, z_offset
 
     def _update_image(self):
@@ -1134,8 +1143,7 @@ class Panel:
         self._last_image_rgba = rgba
         if lrgba is None or rgba.shape != lrgba.shape:
             h,w = rgba.shape[:2]
-            aspect = h/w
-            self._height = aspect * self._width
+            self._height = (h/w) * self._width if w > 0 else 0
             self._update_geometry()
 
         d = self._panel_drawing
@@ -1173,7 +1181,9 @@ class Panel:
         for r, (x0,y0,z0,x1,y1,z1) in enumerate(rects):
             ov, ot = 4*r, 2*r
             v[ov:ov+4] = ((x0,y0,z0), (x1,y0,z0), (x1,y1,z0), (x0,y1,z0))
-            tx0, ty0, tx1, ty1 = (x0-xmin)/w, (y0-ymin)/h, (x1-xmin)/w, (y1-ymin)/h
+            ws = 1/w if w > 0 else 0
+            hs = 1/h if h > 0 else 0
+            tx0, ty0, tx1, ty1 = (x0-xmin)*ws, (y0-ymin)*hs, (x1-xmin)*ws, (y1-ymin)*hs
             tc[ov:ov+4] = ((tx0,ty0), (tx1,ty0), (tx1,ty1), (tx0,ty1))
             t[ot:ot+2] = ((ov,ov+1,ov+2), (ov,ov+2,ov+3))
 
@@ -1239,7 +1249,9 @@ class Panel:
         ww,wh = widget.width(), widget.height()
         wx1, wy1 = wx0+ww, wy0+wh
         pw, ph = self._width, self._height
-        rect = (pw*(wx0-xc)/w, -ph*(wy0-yc)/h, pw*(wx1-xc)/w, -ph*(wy1-yc)/h)
+        ws = 1/w if w > 0 else 0
+        hs = 1/h if h > 0 else 0
+        rect = (pw*(wx0-xc)*ws, -ph*(wy0-yc)*hs, pw*(wx1-xc)*ws, -ph*(wy1-yc)*hs)
         return rect
 
     def _gui_tool_window(self):
@@ -1302,6 +1314,10 @@ class HandController:
     def position(self):
         return self._hand_model.position
 
+    @property
+    def button_modes(self):
+        return self._modes
+    
     def close(self):
         hm = self._hand_model
         if hm:
@@ -1430,6 +1446,13 @@ class HandModel(Model):
 
         from chimerax.core.geometry import Place
         self.room_position = Place()	# Hand controller position in room coordinates.
+
+        self._cone_color = color
+        self._button_color = (255,255,255,255)	# White
+        self.color = (255,255,255,255)	# Texture modulation color
+
+        # Avoid hand disappearing when behind models, especially in multiperson VR.
+        self.allow_depth_cue = False
         
         # Draw controller as a cone.
         self._create_model_geometry(length, radius, color)
@@ -1456,10 +1479,13 @@ class HandModel(Model):
         self.texture_coordinates = tc
 
         # Button icons texture
-        button_color = (255,255,255,255)
-        self.texture = b.texture(color, button_color, tex_size)
-        self.color = (255,255,255,255)	# Texture modulation color
+        self.texture = b.texture(self._cone_color, self._button_color, tex_size)
 
+    def set_cone_color(self, color):
+        if color != self._cone_color:
+            self._cone_color = color
+            self._buttons.set_cone_color(color)
+        
     def _show_button_down(self, b, pressed):
         cv = self._cone_vertices
         vbuttons = cv[self._num_cone_vertices:]
@@ -1468,6 +1494,19 @@ class HandModel(Model):
         
     def _set_button_icon(self, button, icon_path):
         self._buttons.set_button_icon(button, icon_path)
+
+def hand_mode_icon_path(session, mode_name):
+    if mode_name == 'recenter':
+        return RecenterMode.icon_location()
+    elif mode_name == 'move scene':
+        return MoveSceneMode.icon_location()
+    elif mode_name == 'show ui':
+        return ShowUIMode.icon_location()
+    else:
+        for mm in session.ui.mouse_modes.modes:
+            if mm.name == mode_name:
+                return mm.icon_path
+    return None
 
 class HandButtons:
     def __init__(self):
@@ -1497,6 +1536,14 @@ class HandButtons:
         self._texture = t = Texture(rgba)
         return t
 
+    def set_cone_color(self, color):
+        t = self._texture
+        rgba = self._button_rgba
+        if t is not None and rgba is not None:
+            tex_size = rgba.shape[0]
+            rgba[:,0:tex_size,:] = color
+            t.reload_texture(rgba)
+            
     def _button_geometry(self, button):
         for b in self._buttons:
             if b.button == button:
@@ -1622,6 +1669,9 @@ class ShowUIMode(HandMode):
     name = 'show ui'
     @property
     def icon_path(self):
+        return ShowUIMode.icon_location()
+    @staticmethod
+    def icon_location():
         from os.path import join, dirname
         return join(dirname(__file__), 'menu_icon.png')
     def pressed(self, camera, hand_controller):
@@ -1646,6 +1696,10 @@ class MoveSceneMode(HandMode):
     name = 'move scene'
     @property
     def icon_path(self):
+        return MoveSceneMode.icon_location()
+
+    @staticmethod
+    def icon_location():
         from chimerax.mouse_modes import TranslateMouseMode
         return TranslateMouseMode.icon_location()
 
@@ -1688,6 +1742,9 @@ class ZoomMode(HandMode):
         self._zoom_center = None
     @property
     def icon_path(self):
+        return ZoomMode.icon_location()
+    @staticmethod
+    def icon_location():
         from chimerax.mouse_modes import ZoomMouseMode
         return ZoomMouseMode.icon_location()
     def pressed(self, camera, hand_controller):
@@ -1709,6 +1766,9 @@ class RecenterMode(HandMode):
         camera.fit_scene_to_room()
     @property
     def icon_path(self):
+        return self.icon_location()
+    @staticmethod
+    def icon_location():
         from os.path import join, dirname
         from chimerax import shortcuts
         return join(dirname(shortcuts.__file__), 'icons', 'viewall.png')

@@ -16,7 +16,7 @@ include ../pips/Makefile.pip
 # like all the other PyPi packages used by ChimeraX.
 #
 
-VERSION = 2019.2.22
+VERSION = 2019.4.20
 
 all:
 

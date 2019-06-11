@@ -66,13 +66,12 @@ class Volume(Model):
 
     self._style_when_shown = 'surface'
     
-    # Surface display parameters
+    # Surface display submodels
     self._surfaces = []				# VolumeSurface instances
-    self.surface_brightness_factor = 1
-    self.transparency_factor = 0                # for surface/mesh
+
     self.outline_box = Outline_Box(self)
 
-    # Image display parameters
+    # Image display submodel and parameters
     self._image = None
     self.image_levels = []                      # list of (threshold, scale)
     self.image_colors = []
@@ -174,7 +173,7 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def add_surface(self, level, rgba = None, display = True):
+  def add_surface(self, level, rgba = (.7,.7,.7,1), display = True):
     '''Supported API.  Create and add a new VolumeSurface with specified contour level and color.'''
     ses = self.session
     s = VolumeSurface(self, level, rgba)
@@ -217,8 +216,8 @@ class Volume(Model):
   
       surface_levels
       surface_colors              (rgb or rgba values)
-      surface_brightness_factor
-      transparency_factor
+      transparency                (for surfaces)
+      brightness		  (scales surface brightness)
       image_levels
       image_colors                (rgb or rgba values)
       transparency_depth
@@ -229,8 +228,8 @@ class Volume(Model):
 
     parameters = ('surface_levels',
                   'surface_colors',
-                  'surface_brightness_factor',
-                  'transparency_factor',
+                  'transparency',
+                  'brightness',
                   'image_levels',
                   'image_colors',
                   'image_brightness_factor',
@@ -291,6 +290,12 @@ class Volume(Model):
           else:
             raise ValueError('Number of surface colors (%d) does not match number of surfaces (%d)'
                              % (len(values), len(self.surfaces)))
+        elif param == 'transparency':
+          for s in self.surfaces:
+            s.set_transparency(kw['transparency'])
+        elif param == 'brightness':
+          for s in self.surfaces:
+            s.set_brightness(kw['brightness'])
         else:
           setattr(self, param, values)
 
@@ -319,9 +324,9 @@ class Volume(Model):
     if 'surface_levels' in kw or 'image_levels' in kw:
       self.call_change_callbacks('thresholds changed')
 
-    if ('surface_colors' in kw or 'image_colors' in kw or
-        'surface_brightness_factor' in kw or 'transparency_factor' in kw or
-        'image_brightness_factor' in kw or 'transparency_depth' in kw):
+    if ('surface_colors' in kw or 'transparency' in kw or
+        'image_colors' in kw or 'image_brightness_factor' in kw or
+        'transparency_depth' in kw):
       self.call_change_callbacks('colors changed')
 
     if option_changed:
@@ -878,8 +883,6 @@ class Volume(Model):
       # Copy colors
       self.set_parameters(
         surface_colors = [s.rgba for s in v.surfaces],
-        surface_brightness_factor = v.surface_brightness_factor,
-        transparency_factor = v.transparency_factor,
         image_colors = v.image_colors,
         transparency_depth = v.transparency_depth,
         image_brightness_factor = v.image_brightness_factor,
@@ -1628,21 +1631,6 @@ class Volume(Model):
     return matrices
   
   # ---------------------------------------------------------------------------
-  # Apply surface/mesh transparency factor.
-  #
-  def _modulated_surface_color(self, rgba):
-
-    r,g,b,a = rgba
-
-    bf = self.surface_brightness_factor
-
-    ofactor = 1 - self.transparency_factor
-    ofactor = max(0, ofactor)
-    ofactor = min(1, ofactor)
-      
-    return (r * bf, g * bf, b * bf, a * ofactor)
-  
-  # ---------------------------------------------------------------------------
   #
   def write_file(self, path, format = None, options = {}, temporary = False):
 
@@ -1861,12 +1849,13 @@ class VolumeImage(Image3d):
 from chimerax.core.models import Surface
 class VolumeSurface(Surface):
 
-  def __init__(self, volume, level, rgba = (1.0,1.0,1.0,1.0), mesh = False):
+  def __init__(self, volume, level, rgba = (1,1,1,1), mesh = False):
     name = 'surface'
     Surface.__init__(self, name, volume.session)
     self.volume = volume
     self._level = level
     self._mesh = mesh
+    self.rgba = rgba
     self._contour_settings = {}	         	# Settings for current surface geometry
     self._min_status_message_voxels = 2**24	# Show status messages only on big surface calculations
     self._use_thread = False			# Whether to compute next surface in thread
@@ -1881,15 +1870,33 @@ class VolumeSurface(Surface):
   def set_level(self, level, use_thread = False):
     self._level = level
     self._use_thread = use_thread
+    self.volume.redraw_needed(shape_changed = True)
   level = property(_get_level, set_level)
 
   def _get_rgba(self):
-    return [c/255 for c in self.color]
+    return tuple(c/255 for c in self.color)
   def _set_rgba(self, rgba):
-    self.color = [int(255*r) for r in rgba]
+    self.set_color([int(min(255,max(0,255*r))) for r in rgba])
   rgba = property(_get_rgba, _set_rgba)
   '''Float red,green,blue,alpha values in range 0-1'''
 
+  def set_transparency(self, transparency):
+    '''Set surface transparency, 0-1 range.'''
+    self.rgba = tuple(self.rgba[:3]) + (1-transparency,)
+
+  def set_brightness(self, brightness):
+    '''
+    Scale color so maximum of red, green, blue components equals 255*brightness.
+    '''
+    r,g,b,a = self.color
+    cb = max(r,g,b)
+    b255 = max(0,min(255,brightness*255))
+    if cb == 0:
+      self.color = (b255, b255, b255, a)
+    else:
+      f = b255/cb
+      self.color = (int(f*r), int(f*g), int(f*b), a)
+    
   def get_color(self):
     return Surface.get_color(self)
   def set_color(self, color):
@@ -2103,9 +2110,6 @@ class VolumeSurface(Surface):
   def _set_appearance(self, rendering_options):
 
     # Update color
-    v = self.volume
-    rgba = v._modulated_surface_color(self.rgba)
-    self.color = tuple(int(255*r) for r in rgba)
     if self.auto_recolor_vertices is None:
       self.vertex_colors = None
 
@@ -2113,7 +2117,7 @@ class VolumeSurface(Surface):
     ro = rendering_options
     # OpenGL draws nothing for degenerate triangles where two vertices are
     # identical.  For 2d contours want to see these triangles so show as mesh.
-    contour_2d = v.single_plane() and not ro.cap_faces
+    contour_2d = self.volume.single_plane() and not ro.cap_faces
     style = self.Mesh if self.show_mesh or contour_2d else self.Solid
     self.display_style = style
 
@@ -3622,3 +3626,6 @@ def register_map_file_formats(session):
         synopsis='save map'
     )
     register('save map', desc, save, logger=session.logger)
+
+    from . import savemap
+    savemap.register_map_save_options(session)

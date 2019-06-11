@@ -271,13 +271,22 @@ _mmcif_sources = {
 }
 
 
-def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
+def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False,
+        structure_factors = False, over_sampling = 1.5, # for ChimeraX-Clipper plugin
+        **kw):
     """Get mmCIF file by PDB identifier via the Internet"""
     if not _initialized:
         _initialize()
 
     if len(pdb_id) != 4:
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
+    if structure_factors:
+        try:
+            from chimerax.clipper.io import fetch_cif
+        except ImportError:
+            raise UserError('Working with structure factors requires the '
+                'ChimeraX_Clipper plugin, available from the Tool Shed')
+
     import os
     pdb_id = pdb_id.lower()
     filename = None
@@ -314,6 +323,17 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False, **kw):
     session.logger.status("Opening mmCIF %s" % (pdb_id,))
     from chimerax.core import io
     models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
+    if structure_factors:
+        sf_file = fetch_cif.fetch_structure_factors(session, pdb_id, fetch_source=fetch_source,
+            ignore_cache=ignore_cache)
+        from chimerax.clipper import get_map_mgr
+        mmgr = get_map_mgr(models[0], create=True)
+        if over_sampling < 1:
+            warn_str = ('Map over-sampling rate cannot be less than 1. Resetting to 1.0')
+            session.logger.warning(warn_str)
+            over_sampling = 1
+        mmgr.add_xmapset_from_file(sf_file, oversampling_rate=over_sampling)
+        return [mmgr.crystal_mgr], status
     return models, status
 
 
@@ -337,7 +357,7 @@ def _get_template(session, name):
                                                                 name)
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', timeout=15)
-    except UserError:
+    except (UserError, OSError):
         session.logger.warning(
             "Unable to fetch template for '%s': might be missing bonds"
             % name)

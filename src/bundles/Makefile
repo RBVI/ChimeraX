@@ -20,12 +20,12 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  color_globe connect_structure crosslinks crystal \
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history \
 	  gltf hbonds help_viewer ihm interfaces label list_info log \
-	  map map_data map_filter map_fit map_series \
+	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
-	  nucleotides pdb preset_mgr read_pbonds \
+	  nucleotides pdb pick_blobs preset_mgr read_pbonds \
 	  registration remote_control rest_server \
-	  residue_fit scheme_mgr seq_view sim_matrices \
+	  residue_fit scheme_mgr segment seq_view sim_matrices \
 	  shell shortcuts show_attr sideview \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa \

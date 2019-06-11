@@ -72,8 +72,6 @@ class Structure(Model, StructureData):
                     lambda *args, qual=ses_func: self._ses_call(qual)))
         from chimerax.core.models import MODEL_POSITION_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
-        from chimerax.core import triggerset
-        self.triggers = triggerset.TriggerSet()
         self.triggers.add_trigger("changes")
 
         self._make_drawing()
@@ -966,15 +964,12 @@ class Structure(Model, StructureData):
 
             # Cache position of backbone atoms on ribbon
             # and get list of tethered atoms
-            self._ribbon_spline_position(ribbon, residues)
+            positions = self._ribbon_spline_position(ribbon, residues)
             from numpy.linalg import norm
             from .molarray import Atoms
-            tether_atoms = Atoms(list(self._ribbon_spline_backbone.keys()))
-            spline_coords = array(list(self._ribbon_spline_backbone.values()))
-            # Add fix from Tristan, #1486
-            mask = tether_atoms.indices(atoms)
-            tether_atoms = tether_atoms[mask]
-            spline_coords = spline_coords[mask]
+            tether_atoms = Atoms(list(positions.keys()))
+            spline_coords = array(list(positions.values()))
+            self._ribbon_spline_backbone.update(positions)
             if len(spline_coords) == 0:
                 spline_coords = spline_coords.reshape((0,3))
             atom_coords = tether_atoms.coords
@@ -1628,6 +1623,7 @@ class Structure(Model, StructureData):
     }
 
     def _ribbon_spline_position(self, ribbon, residues):
+        positions = {}
         for n, r in enumerate(residues):
             first = (r == residues[0])
             last = (r == residues[-1])
@@ -1641,7 +1637,8 @@ class Structure(Model, StructureData):
                     p = ribbon.position(n, position)
                 else:
                     p = ribbon.position(n - 1, 1 + position)
-                self._ribbon_spline_backbone[a] = p
+                positions[a] = p
+        return positions
 
     def ribbon_coord(self, a):
         return self._ribbon_spline_backbone[a]
@@ -2226,10 +2223,19 @@ class AtomicStructure(Structure):
     and assemblies.
     """
 
+    # changes to the below have to be mirrored in C++ AS_PBManager::get_group
     from chimerax.core.colors import BuiltinColors
     default_hbond_color = BuiltinColors["deep sky blue"]
     default_hbond_radius = 0.075
     default_hbond_dashes = 6
+
+    default_metal_coordination_color = BuiltinColors["medium purple"]
+    default_metal_coordination_radius = 0.075
+    default_metal_coordination_dashes = 6
+
+    default_missing_structure_color = BuiltinColors["yellow"]
+    default_missing_structure_radius = 0.075
+    default_missing_structure_dashes = 6
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -2340,6 +2346,26 @@ class AtomicStructure(Structure):
         else:
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = "soft" if self.num_atoms < 300000 else "soft multiShadow 16"
+
+        # correct the styling of per-structure pseudobond bond groups
+        for cat, pbg in self.pbg_map.items():
+            if cat == self.PBG_METAL_COORDINATION:
+                color = self.default_metal_coordination_color
+                radius = self.default_metal_coordination_radius
+                dashes = self.default_metal_coordination_dashes
+            elif cat == self.PBG_MISSING_STRUCTURE:
+                color = self.default_missing_structure_color
+                radius = self.default_missing_structure_radius
+                dashes = self.default_missing_structure_dashes
+            elif cat == self.PBG_HYDROGEN_BONDS:
+                color = self.default_hbond_color
+                radius = self.default_hbond_radius
+                dashes = self.default_hbond_dashes
+            else:
+                continue
+            pbg.color = color.uint8x4()
+            pbg.radius = radius
+            pbg.dashes = dashes
 
         if set_lighting:
             from chimerax.core.commands import Command

@@ -1256,6 +1256,15 @@ class CenterArg(Annotation):
             else:
                 c = Center(coords=session.main_view.camera.position.origin())
 
+        # Center at center of rotation
+        if c is None:
+            try:
+                cam, atext, rest = EnumOf(['cofr']).parse(text, session)
+            except:
+                pass
+            else:
+                c = Center(coords=session.main_view.center_of_rotation)
+
         # Objects
         if c is None:
             try:
@@ -2500,7 +2509,8 @@ class Command:
                     expected.append("fewer arguments")
                 self._error = "Expected " + commas(expected)
                 return
-            self.amount_parsed += len(chars)
+            self._replace(chars, arg_name)
+            self.amount_parsed += len(arg_name)
             m = _whitespace.match(text)
             start = m.end()
             if start:
@@ -2700,7 +2710,6 @@ class Command:
                 error_at -= self.start
                 if error_at:
                     session.logger.error("%s^" % ('.' * error_at))
-            session.logger.error(self._error)
         else:
             from html import escape
             ci = self._ci
@@ -2719,9 +2728,8 @@ class Command:
                     escape(self.current_text[self.start + offset:error_at]),
                     err_color,
                     escape(self.current_text[error_at:]))
-            msg += '</div>\n<span style="color:%s;font-weight:bold">%s</span>\n' % (
-                err_color, escape(self._error))
-            session.logger.info(msg, is_html=True)
+            msg += '</div>'
+            session.logger.info(msg, is_html=True, add_newline=False)
 
 
 from contextlib import contextmanager
@@ -2768,7 +2776,7 @@ def command_url(name, no_aliases=False, *, registry=None):
 
 
 def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-          show_hidden=False, *, registry=None):
+          show_hidden=False, *, registry=None, _shown_cmds=set()):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2783,6 +2791,8 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
+    if cmd.command_name in _shown_cmds:
+        return ''
 
     syntax = ''
     ci = cmd._ci
@@ -2828,6 +2838,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             syntax += ' -- no synopsis available'
         if arg_syntax:
             syntax += '\n%s' % '\n'.join(arg_syntax)
+        _shown_cmds.add(cmd.command_name)
         if expand_alias and ci.is_alias():
             alias = ci.function
             arg_text = cmd.current_text[cmd.amount_parsed:]
@@ -2839,7 +2850,9 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 optional = ''
             try:
                 name = alias.expand(*args, optional=optional, partial_ok=True)
-                syntax += '\n' + usage(name)
+                if name not in _shown_cmds:
+                    syntax += '\n' + usage(name, _shown_cmds=_shown_cmds)
+                    _shown_cmds.add(name)
             except Exception as e:
                 print(e)
                 pass
@@ -2847,10 +2860,14 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        name = cmd.command_name
+        name = cmd.current_text[:cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
-                syntax += '\n\n' + usage('%s %s' % (name, w), show_subcommands=0)
+                subcmd = '%s %s' % (name, w)
+                if subcmd in _shown_cmds:
+                    continue
+                syntax += '\n\n' + usage(subcmd, show_subcommands=0, _shown_cmds=_shown_cmds)
+                _shown_cmds.add(subcmd)
         else:
             if syntax:
                 syntax += '\n'
@@ -2865,7 +2882,7 @@ def can_be_empty_arg(arg):
 
 
 def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-               show_hidden=False, *, registry=None):
+               show_hidden=False, *, registry=None, _shown_cmds=set()):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
@@ -2879,6 +2896,8 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
+    if cmd.command_name in _shown_cmds:
+        return ''
     from html import escape
 
     syntax = ''
@@ -2945,6 +2964,7 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             syntax += "<i>[no synopsis available]</i>\n"
         if arg_syntax:
             syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
+        _shown_cmds.add(cmd.command_name)
         if expand_alias and ci.is_alias():
             alias = ci.function
             arg_text = cmd.current_text[cmd.amount_parsed:]
@@ -2956,17 +2976,23 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 optional = ''
             try:
                 name = alias.expand(*args, optional=optional, partial_ok=True)
-                syntax += '<br>' + html_usage(name)
+                if name not in _shown_cmds:
+                    syntax += '<br>' + html_usage(name, _shown_cmds=_shown_cmds)
+                    _shown_cmds.add(name)
             except:
                 pass
 
     if (show_subcommands and cmd.word_info is not None and
             cmd.word_info.has_subcommands()):
         sub_cmds = registered_commands(multiword=True, _start=cmd.word_info)
-        name = cmd.command_name
+        name = cmd.current_text[:cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
-                syntax += '<p>\n' + html_usage('%s %s' % (name, w), show_subcommands=0)
+                subcmd = '%s %s' % (name, w)
+                if subcmd in _shown_cmds:
+                    continue
+                syntax += '<p>\n' + html_usage(subcmd, show_subcommands=0, _shown_cmds=_shown_cmds)
+                _shown_cmds.add(subcmd)
         else:
             if syntax:
                 syntax += '<br>\n'
@@ -3139,7 +3165,7 @@ class Alias:
 def list_aliases(all=False, logger=None):
     """List all aliases
 
-    :param all: if True, then only list all aliases, not just user ones
+    :param all: if True, then list all aliases, not just user ones
 
     Return in depth-first order.
     """
