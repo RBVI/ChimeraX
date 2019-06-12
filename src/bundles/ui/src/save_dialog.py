@@ -154,7 +154,6 @@ class MainSaveDialog:
         label = QLabel(options_panel)
         label.setText("Format:")
         self._format_selector = selector = QComboBox(options_panel)
-        selector.currentIndexChanged.connect(self._select_format)
         self._no_options_label = no_opt_label = QLabel(options_panel)
         no_opt_label.setText("No user-settable options")
         no_opt_label.setFrameStyle(QFrame.Box)
@@ -168,6 +167,7 @@ class MainSaveDialog:
         options_layout.addWidget(no_opt_label)
         options_panel.setLayout(options_layout)
         self._select_format(self._default_format)
+        selector.currentIndexChanged.connect(self._select_format)
         return options_panel
 
     def _select_format(self, *args, **kw):
