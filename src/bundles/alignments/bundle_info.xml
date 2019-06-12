@@ -24,8 +24,7 @@
   </Dependencies>
 
   <Managers>
-    <Manager name="alignment headers"/>
-    <Manager name="sequence viewers"/>
+    <Manager name="alignments"/>
   </Managers>
 
   <Classifiers>

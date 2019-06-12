@@ -31,8 +31,13 @@ class AlignmentsManager(StateManager):
         self.triggers.add_trigger("destroy alignment")
         self._installed_headers = {}
 
-    def add_provider(self, bundle_info, name, single_seq_relevant=False, **kw):
-        self._installed_headers[name] = (bundle_info, single_seq_relevant)
+    def add_provider(self, bundle_info, name, *, single_seq_relevant=False, type=None, **kw):
+        if type == "header":
+            self._installed_headers[name] = (bundle_info, single_seq_relevant)
+        elif type is None:
+            raise ValueError("Provider failed to specify type to alignments manager")
+        else:
+            raise ValueError("Alignments manager does not handle provider type '%s'" % type)
 
     @property
     def alignments(self):

@@ -26,9 +26,9 @@
   </Dependencies>
 
   <Providers>
-    <Provider name="Consensus" single_seq_relevant="false" manager="alignment headers"/>
-    <Provider name="Conservation" single_seq_relevant="false" manager="alignment headers"/>
-    <!-- <Provider name="RMSD" single_seq_relevant="true" manager="alignment headers"/> -->
+    <Provider name="Consensus" single_seq_relevant="false" manager="alignments" type="header"/>
+    <Provider name="Conservation" single_seq_relevant="false" manager="alignments" type="header"/>
+    <!-- <Provider name="RMSD" single_seq_relevant="true" manager="alignments" type="header"/> -->
   </Providers>
 
   <Classifiers>
