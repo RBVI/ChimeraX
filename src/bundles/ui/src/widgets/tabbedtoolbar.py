@@ -121,15 +121,17 @@ class _Section(QWidgetAction):
             button.addAction(action)
             self._actions.append(action)
         else:
-            if group_first:
-                b.setPopupMode(b.DelayedPopup)
+            if not group_first:
+                b.setDefaultAction(action)
+            else:
+                b.setPopupMode(b.MenuButtonPopup)
                 b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
                 self._groups[parent][group] = b
                 b.addAction(action)
                 self._actions.append(action)
-            b.setDefaultAction(action)
+                self._update_button_action(b, action)
 
-        # print('Font height:', b.fondMetrics().height())  # DEBUG
+        # print('Font height:', b.fontMetrics().height())  # DEBUG
         # print('Font size:', b.fontInfo().pixelSize())  # DEBUG
         # print('Icon size:', b.iconSize())  # DEBUG
         if not group_follow:
@@ -155,9 +157,11 @@ class _Section(QWidgetAction):
     
     def _update_button_action(self, button, action):
         button.setDefaultAction(action)
-        # text appears in wrong location unless parent is updated
-        parent = button.parent()
-        parent.adjustSize()
+        lines = button.text().split('\n')
+        fm = button.fontMetrics()
+        width = max(fm.horizontalAdvance(text) for text in lines)
+        # TODO: why is "+ 20" needed to not truncate text?
+        button.setMinimumWidth(width + 20)
 
     def _adjust_title(self, w):
         # Readding the widget, removes the old entry, and lets us change the parameters
