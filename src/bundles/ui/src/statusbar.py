@@ -121,7 +121,8 @@ class _StatusBarOpenGL:
 
         if len(msg) > 256:
             msg = msg[:253] + '...'
-            
+
+        r.update_viewport()	# Need this when window resized.
         r.draw_background()
         self._draw_text(msg, color, secondary)
         r.swap_buffers()
