@@ -338,7 +338,7 @@ def _set_model_colors(session, m, color, opacity):
 # -----------------------------------------------------------------------------
 # Chain ids in each structure are colored from color map ordered alphabetically.
 #
-def _set_sequential_chain(session, selected, cmap, reversed, opacity, target, undo_state):
+def _set_sequential_chain(session, selected, cmap, opacity, target, undo_state):
     # Organize selected atoms by structure and then chain
     uc = selected.atoms.residues.chains.unique()
     chain_atoms = {}
@@ -348,8 +348,6 @@ def _set_sequential_chain(session, selected, cmap, reversed, opacity, target, un
     if cmap is None:
         from chimerax.core import colors
         cmap = colors.BuiltinColormaps["rainbow"]
-    if reversed:
-        cmap = cmap.reversed()
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from chimerax.core.colors import Color
@@ -373,7 +371,7 @@ def _set_sequential_chain(session, selected, cmap, reversed, opacity, target, un
 # Polymers (unique sequences) in each structure are colored from color map ordered
 # by polymer length.
 #
-def _set_sequential_polymer(session, objects, cmap, reversed, opacity, target, undo_state):
+def _set_sequential_polymer(session, objects, cmap, opacity, target, undo_state):
     # Organize atoms by structure and then polymer sequence
     uc = objects.atoms.residues.chains.unique()
     seq_atoms = {}
@@ -383,8 +381,6 @@ def _set_sequential_polymer(session, objects, cmap, reversed, opacity, target, u
     if cmap is None:
         from chimerax.core import colors
         cmap = colors.BuiltinColormaps["rainbow"]
-    if reversed:
-        cmap = cmap.reversed()
     # Each structure is colored separately with cmap applied by chain
     import numpy
     from chimerax.core.colors import Color
@@ -408,13 +404,11 @@ def _set_sequential_polymer(session, objects, cmap, reversed, opacity, target, u
 
 # -----------------------------------------------------------------------------
 #
-def _set_sequential_residue(session, selected, cmap, reversed, opacity, target, undo_state):
+def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state):
     # Make sure there is a colormap
     if cmap is None:
         from chimerax.core import colors
         cmap = colors.BuiltinColormaps["rainbow"]
-    if reversed:
-        cmap = cmap.reversed()
     # Get chains and atoms in chains with "by_chain"
     # Each chain is colored separately with cmap applied by residue
     import numpy
@@ -448,13 +442,11 @@ def _set_sequential_residue(session, selected, cmap, reversed, opacity, target, 
 
 # -----------------------------------------------------------------------------
 #
-def _set_sequential_structures(session, selected, cmap, reversed, opacity, target, undo_state):
+def _set_sequential_structures(session, selected, cmap, opacity, target, undo_state):
     # Make sure there is a colormap
     if cmap is None:
         from chimerax.core import colors
         cmap = colors.BuiltinColormaps["rainbow"]
-    if reversed:
-        cmap = cmap.reversed()
 
     from chimerax.atomic import Structure
     models = list(m for m in selected.models if isinstance(m, Structure))
@@ -925,7 +917,7 @@ def color_modify(session, objects, adjuster, op, number=None, what=None, target=
         raise UserError("Color \"%s\" not implemented yet" % adjuster)
 
 def color_sequential(session, objects, level='residues', what=None, target=None,
-                     palette=None, reversed=False, transparency=None, undo_name="color"):
+                     palette=None, transparency=None, undo_name="color"):
     '''
     Color a sequence of atomic objects using a color palette.
 
@@ -964,7 +956,7 @@ def color_sequential(session, objects, level='residues', what=None, target=None,
     if transparency is not None:
         opacity = min(255, max(0, int(2.56 * (100 - transparency))))
 
-    f(session, objects, palette, reversed, opacity, target, undo_state)
+    f(session, objects, palette, opacity, target, undo_state)
 
     session.undo.register(undo_state)
 
@@ -1315,7 +1307,6 @@ def register_command(logger):
                    keyword=[('target', TargetArg),
                             ('what', what_arg),
                             ('palette', ColormapArg),
-                            ('reversed', BoolArg),
                             ('transparency', FloatArg),
                        ],
                    synopsis="color a sequence of atomic objects using a palette")

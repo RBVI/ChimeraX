@@ -89,6 +89,8 @@ class Volume(Model):
 #    self.surface_piece_change_handler = h
     self.surface_piece_change_handler = None
 
+    self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
+
   # ---------------------------------------------------------------------------
   #
   def message(self, text, **kw):
@@ -1632,11 +1634,11 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def write_file(self, path, format = None, options = {}, temporary = False):
+  def write_file(self, path, format = None, options = {}):
 
     from .data import save_grid_data
     d = self.grid_data()
-    format = save_grid_data(d, path, self.session, format, options, temporary)
+    format = save_grid_data(d, path, self.session, format, options)
 
   # ---------------------------------------------------------------------------
   #
@@ -1870,6 +1872,7 @@ class VolumeSurface(Surface):
   def set_level(self, level, use_thread = False):
     self._level = level
     self._use_thread = use_thread
+    self.volume.redraw_needed(shape_changed = True)
   level = property(_get_level, set_level)
 
   def _get_rgba(self):

@@ -186,7 +186,13 @@ class ColormapArg(cli.Annotation):
     @staticmethod
     def parse(text, session):
         token, text, rest = cli.next_token(text)
+        if token[0] == "^":
+            reversed = True
+            token = token[1:]
+        else:
+            reversed = False
         parts = token.split(':')
+        cmap = None
         if len(parts) > 1:
             values = []
             colors = []
@@ -217,7 +223,8 @@ class ColormapArg(cli.Annotation):
             if len(values) == 0:
                 values = None
             from ..colors import Colormap
-            return Colormap(values, [c.rgba for c in colors]), text, rest
+            consumed = text
+            cmap = Colormap(values, [c.rgba for c in colors])
         else:
             ci_token = token.casefold()
             if session is not None:
@@ -225,14 +232,23 @@ class ColormapArg(cli.Annotation):
                 if i < len(session.user_colormaps):
                     name = session.user_colormaps.iloc[i]
                     if name.startswith(ci_token):
-                        return session.user_colormaps[name], name, rest
-            from ..colors import BuiltinColormaps
-            i = BuiltinColormaps.bisect_left(ci_token)
-            if i < len(BuiltinColormaps):
-                name = BuiltinColormaps.iloc[i]
-                if name.startswith(ci_token):
-                    return BuiltinColormaps[name], name, rest
-            return _fetch_colormap(session, palette_id=token), token, rest
+                        consumed = name
+                        cmap = session.user_colormaps[name]
+            if cmap is None:
+                from ..colors import BuiltinColormaps
+                i = BuiltinColormaps.bisect_left(ci_token)
+                if i < len(BuiltinColormaps):
+                    name = BuiltinColormaps.iloc[i]
+                    if name.startswith(ci_token):
+                        consumed = name
+                        cmap = BuiltinColormaps[name]
+            if cmap is None and session is not None:
+                consumed = text
+                cmap = _fetch_colormap(session, palette_id=token)
+        if cmap is None:
+            from ..errors import UserError
+            raise UserError("Cannot find palette named %r" % token)
+        return cmap.reversed() if reversed else cmap, consumed, rest
 
 def find_named_color(color_dict, name):
     # handle color names with spaces
@@ -339,13 +355,17 @@ def _colourlovers_fetch_by_name(session, palette_name):
     from urllib.parse import quote
     url = 'http://www.colourlovers.com/api/palettes?keywords=%s&format=json&numResults=100' % quote(name)
     from ..fetch import fetch_file
-    filename = fetch_file(session, url, 'palette %s' % name, '%s.json' % name, 'COLOURlovers')
-    f = open(filename, 'r')
-    import json
-    j = json.load(f)
-    f.close()
-    pals = [p for p in j if (p['title'] == name and author is None or p['userName'] == author)]
-    if len(pals) == 0:
+    try:
+        # fetch_file potentially raises OSError
+        filename = fetch_file(session, url, 'palette %s' % name, '%s.json' % name, 'COLOURlovers')
+        f = open(filename, 'r')
+        import json
+        j = json.load(f)
+        f.close()
+        pals = [p for p in j if (p['title'] == name and author is None or p['userName'] == author)]
+        if len(pals) == 0:
+            raise OSError("no match")
+    except OSError:
         from ..errors import UserError
         raise UserError('Could not find palette %s at COLOURlovers.com using keyword search'
                         % (name if author is None else '%s author %s' % (name, author)))

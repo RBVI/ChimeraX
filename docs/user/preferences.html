@@ -49,11 +49,11 @@ section or to all sections of the <b>Preferences</b> dialog
 (depending on the <b>Buttons below...</b>&nbsp; option):
 </p>
 <ul>
-<li><b>Save</b> - save the current settings
-<li><b>Reset</b> - replace the current settings with the 
+<li><b>Save</b> &ndash; save the current settings
+<li><b>Reset</b> &ndash; replace the current settings with the 
 initial (&ldquo;factory&rdquo;) defaults
-<li><b>Restore</b> - restore values that were saved previously
-<li><b>Help</b> - show documentation
+<li><b>Restore</b> &ndash; restore values that were saved previously
+<li><b>Help</b> &ndash; show documentation
 </ul>
 <p>
 Several <a href="#other">other preferences</a> do not appear in this 
@@ -84,7 +84,7 @@ and are not created until nondefault settings are saved.
 <h3><a href="#top" class="nounder"><b>&larr;</b></a>
 Background</h3>
 <ul>
-<li><b>Background color</b> - a color well that can be clicked
+<li><b>Background color</b> &ndash; a color well that can be clicked
 to choose the color interactively (initial default
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -101,8 +101,20 @@ See also: <a href="commands/set.html#bgColor"><b>set bgColor</b></a>
 <h3><a href="#top" class="nounder"><b>&larr;</b></a>
 Clipping</h3>
 <ul>
+<li><b>Mouse clipping enables</b>
+&ndash; which type of <a href="commands/clip.html">clipping planes</a>
+are enabled by the <b>clip</b>
+<a href="commands/ui.html#mousemode">mouse mode</a>
+<a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/clip.png"></a>
+  <ul>
+  <li><b>scene planes</b> (initial default)
+  &ndash; those which reorient with the scene (front/back)
+  <li><b>screen planes</b>
+  &ndash; those which remain fixed parallel to the screen (near/far)
+  </ul>
 <li><b>Surface caps</b>
-- whether to cap surfaces initially when they are sliced by
+&ndash; whether to cap surfaces initially when they are sliced by
 <a href="commands/clip.html">clipping</a>.
 See also: <a href="commands/surface.html#cap"><b>surface cap</b></a>
 </ul>
@@ -125,18 +137,18 @@ See also:
 <a href="commands/ui.html#mousemode"><b>mousemode</b></a>,
 <a href="selection.html#context">selection context menus</a>
 <ul>
-<li><b>Color</b> - 
+<li><b>Color</b> &ndash; 
 a color well that can be clicked
 to choose the color interactively (initial default
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor="gold" width="10px"></td> </tr></table>)
 <li><b>Decimal places</b> 
-- distance-label places after the decimal (initial default <b>3</b>)
+&ndash; distance-label places after the decimal (initial default <b>3</b>)
 <li><b>Number of dashes</b> (initial default <b>9</b>)
 <li><b>Radius</b> (initial default <b>0.1</b> &Aring;)
 <li><b>Show angstrom symbol (&Aring;)</b> 
-- whether to include the &Aring; symbol in the distance label
+&ndash; whether to include the &Aring; symbol in the distance label
 (initial default <b>true</b>)
 </ul>
 
@@ -150,15 +162,15 @@ style="display:inline-block; vertical-align:middle"><tr>
 Labels</h3>
 <ul>
 <li><b>Atomspec display style</b>
-- format/type of identifying information shown by pausing the cursor over 
+&ndash; format/type of identifying information shown by pausing the cursor over 
 an object in the <a href="window.html">main window</a> (see the 
 <a href="commands/ui.html#identify"><b>identify object</b></a> mouse mode)
   <ul>
   <li><b>command line</b>
-  - <a href="commands/atomspec.html#hierarchy">command-line specifier</a>
+  &ndash; <a href="commands/atomspec.html#hierarchy">command-line specifier</a>
   (for example, /B:21@OD1)
-  <li><b>serial number</b> - atom serial number (for example, 126)
-  <li><b>simple</b> (initial default) - chain ID (preceded by slash),
+  <li><b>serial number</b> &ndash; atom serial number (for example, 126)
+  <li><b>simple</b> (initial default) &ndash; chain ID (preceded by slash),
   residue name, residue number, atom name (for example, /B ASN 21 OD1)
 </ul>
 <p>
@@ -182,11 +194,11 @@ See also: <a href="commands/log.html"><b>log</b></a>
 <ul>
 <li><b>Errors shown in dialog</b>
 (initial default <b>true</b>)
-- whether error messages in the <a href="tools/log.html"><b>Log</b></a>
+&ndash; whether error messages in the <a href="tools/log.html"><b>Log</b></a>
 should also generate a separate dialog window
 <li><b>Warnings shown in dialog</b>
 (initial default <b>false</b>)
-- whether warning messages in the <a href="tools/log.html"><b>Log</b></a>
+&ndash; whether warning messages in the <a href="tools/log.html"><b>Log</b></a>
 should also generate a separate dialog window
 </ul>
 
@@ -199,13 +211,26 @@ should also generate a separate dialog window
 <h3><a href="#top" class="nounder"><b>&larr;</b></a>
 Startup</h3>
 <p>
-The Startup preferences allow specifying one or more 
-<a href="index.html#commands">ChimeraX commands</a> to execute at 
-<a href="startup.html">startup</a>. 
-The commands are executed in the order given, when the
-<a href="tools/cli.html"><b>Command Line Interface</b></a> 
-is first started within a session.
 </p>
+<ul> 
+<li><b>Custom presets folder</b> 
+&ndash; where to look for user-defined <a href="menu.html#presets">presets</a>
+in the form of <a href="commands/usageconventions.html#cxc-files">ChimeraX 
+command files</a> (.cxc) and/or Python files (.py).
+Although &ldquo;presets&rdquo; were generally intended to be display settings, 
+in practice any <a href="index.html#commands">ChimeraX commands</a> could be used. 
+The presets will be named by filename, excluding the format suffix.
+Those directly in the specified folder will be in category <b>Custom</b>,
+and those in first-level subfolders will be in categories named according to 
+the folder names. Any underscores in file/folder names will be converted to spaces.
+Presets can be chosen from the <a href="menu.html#presets"><b>Presets</b> menu</a>
+or applied with the <a href="commands/preset.html"><b>preset</b></a> command.
+See also: <a href="commands/alias.html"><b>alias</b></a>
+<li><b>Execute these commands at startup</b> 
+&ndash; <a href="index.html#commands">ChimeraX commands</a> to execute
+when the <a href="tools/cli.html"><b>Command Line Interface</b></a> 
+is first started within a session
+</ul>
 
 <a name="toolshed"></a>
 <!--
@@ -221,7 +246,7 @@ The
 is the web repository of ChimeraX bundles.
 </p>
 <ul>
-<li><b>Toolshed update interval</b> - how often to check for updates
+<li><b>Toolshed update interval</b> &ndash; how often to check for updates
   <ul>
   <li><b>every day</b>
   <li><b>every week</b> (initial default)
@@ -239,7 +264,7 @@ is the web repository of ChimeraX bundles.
 Trackpad</h3>
 <ul>
 <li><b>Trackpad gestures to rotate and move</b> (initial default <b>on</b>)
-- whether to respond to trackpad multitouch gestures 
+&ndash; whether to respond to trackpad multitouch gestures 
 (currently <b>Mac</b> only):
 two-finger rotation, three-finger translation, pinch-zoom, and four-finger zoom.
 With this option <b>on</b>,
@@ -255,7 +280,7 @@ touchpad click-drag alone and with modifier keys
 perform the actions of left, middle and right mouse buttons
 (<a href="commands/ui.html#touchpad">details...</a>).
 </p>
-<li><b>Trackpad sensitivity</b> - sensitivity to trackpad multitouch gestures;
+<li><b>Trackpad sensitivity</b> &ndash; sensitivity to trackpad multitouch gestures;
 with a factor of <b>1.0</b> (initial default):
   <ul>
   <li>a 6-cm two-finger drag rotates 360&deg;
@@ -301,7 +326,7 @@ these settings should be the same as for web browsers.
 Window</h3>
 <ul>
 <li><b>Default tool side</b>
-- on which side of the main window to dock 
+&ndash; on which side of the main window to dock 
 <a href="window.html#panels">tool panels</a> when they first appear 
 (overridden for tools with
 <a href="window.html#tool-context">previously saved positions</a>):
@@ -309,16 +334,16 @@ Window</h3>
   <li><b>left</b>
   <li><b>right</b> (initial default)
   </ul>
-<li><b>Initial overall window size</b> - <a href="startup.html">startup</a>
+<li><b>Initial overall window size</b> &ndash; <a href="startup.html">startup</a>
 size of the overall <a href="window.html">ChimeraX window</a>
 (including any tools present at startup, not just the graphics window)
   <ul>
   <li><b>last used</b> (initial default)
-  <li><b>proportional</b> - as a percentage of screen width and height
-  <li><b>fixed</b> - width and height in pixels
+  <li><b>proportional</b> &ndash; as a percentage of screen width and height
+  <li><b>fixed</b> &ndash; width and height in pixels
   </ul>
 <li><b>Resize graphics window on session restore</b>
-- whether to restore the graphics window size of a 
+&ndash; whether to restore the graphics window size of a 
 <a href="commands/save.html#session">session</a> along with its contents;
 if this option is off (initial default), the graphics window will not resize
 when a session is restored. This setting can be overridden with the 
@@ -344,11 +369,11 @@ autostart, panel dockability, panel position
 <li>Tool-specific preferences:
   <ul>
   <li><a href="tools/cli.html#history"><b>Command History</b></a>
-  - whether to list typed commands only; number of commands to remember
+  &ndash; whether to list typed commands only; number of commands to remember
   <li><a href="tools/log.html"><b>Log</b></a>
-  - whether command links should be executable or show help
+  &ndash; whether command links should be executable or show help
   <li><a href="tools/sequenceviewer.html#settings"><b>Sequence Viewer</b></a>
-  - several aspects of appearance and contents
+  &ndash; several aspects of appearance and contents
   </ul>
 </ul>
 <p>
@@ -358,5 +383,5 @@ Example: <a href="tools/modeller.html"><b>Modeller Comparative</b></a>
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2019</address>
+June 2019</address>
 </body></html> 

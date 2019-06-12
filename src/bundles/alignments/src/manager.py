@@ -29,6 +29,15 @@ class AlignmentsManager(StateManager):
         self.triggers = TriggerSet()
         self.triggers.add_trigger("new alignment")
         self.triggers.add_trigger("destroy alignment")
+        self._installed_headers = {}
+
+    def add_provider(self, bundle_info, name, *, single_seq_relevant=False, type=None, **kw):
+        if type == "header":
+            self._installed_headers[name] = (bundle_info, single_seq_relevant)
+        elif type is None:
+            raise ValueError("Provider failed to specify type to alignments manager")
+        else:
+            raise ValueError("Alignments manager does not handle provider type '%s'" % type)
 
     @property
     def alignments(self):
@@ -38,12 +47,6 @@ class AlignmentsManager(StateManager):
     def alignments_map(self):
         return {k:v for k,v in self._alignments.items()}
 
-    def destroy_alignment(self, alignment):
-        if alignment.ident is not False:
-            del self._alignments[alignment.ident]
-        self.triggers.activate_trigger("destroy alignment", alignment)
-        alignment._destroy()
-
     def deregister_viewer(self, tool_name, *, sequence_viewer=True, alignment_viewer=True):
         if sequence_viewer:
             del self.viewer_info['sequence'][tool_name]
@@ -52,6 +55,43 @@ class AlignmentsManager(StateManager):
         sc = self.tool_to_subcommand.get(tool_name, None)
         if sc:
             _viewer_subcommands.remove(sc)
+
+    def destroy_alignment(self, alignment):
+        if alignment.ident is not False:
+            del self._alignments[alignment.ident]
+        self.triggers.activate_trigger("destroy alignment", alignment)
+        alignment._destroy()
+
+    def header(self, name):
+        if name in self._installed_headers:
+            bundle_info, single_seq_relevant = self._installed_headers[name]
+            return bundle_info.run_provider(self.session, name, self)
+        # not installed
+        #TODO
+
+    def headers(self, *, single_seq_relevant=None, installed_only=True):
+        hdrs = []
+        if installed_only:
+            for name, info in self._installed_headers.items():
+                bundle_info, hdr_single_seq_rel = info
+                if single_seq_relevant in (None, False) or hdr_single_seq_rel:
+                    hdrs.append(self.header(name))
+        else:
+            for name in self.header_names(installed_only=False, single_seq=single_seq):
+                hdrs.append(self.header(name))
+        return hdrs
+
+    def header_names(self, *, installed_only=True, single_seq_relevant=None):
+        names = []
+        if installed_only:
+            for name, info in self._installed_headers.items():
+                bundle_info, hdr_single_seq_rel = info
+                if single_seq_relevant in (None, False) or hdr_single_seq_rel:
+                    names.append(name)
+        else:
+            #TODO
+            pass
+        return names
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None, auto_destroy=None,
             align_viewer=None, seq_viewer=None, auto_associate=True, name=None, intrinsic=False):

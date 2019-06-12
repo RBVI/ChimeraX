@@ -62,7 +62,9 @@ class ViewState:
         v.drawing.set_redraw_callback(v._drawing_manager)
 
         # Restore clip planes
-        v.clip_planes.replace_planes(data['clip_planes'])
+        cplist = data['clip_planes']
+        ClipPlaneState._fix_plane_points(cplist, v.camera.position)	# Fix old session files.
+        v.clip_planes.replace_planes(cplist)
 
         # Restore silhouette edge settings.
         if 'silhouettes' in data:
@@ -221,7 +223,8 @@ class MaterialState:
 
 
 class ClipPlaneState:
-
+    '''This is no longer used for saving sessions but is kept for restoring old sessions.'''
+    
     version = 1
     save_attrs = [
         'name',
@@ -239,8 +242,79 @@ class ClipPlaneState:
 
     @staticmethod
     def restore_snapshot(session, data):
-        from . import ClipPlane
-        cp = ClipPlane(data['name'], data['normal'], data['plane_point'], data['camera_normal'])
+        camera_normal = data['camera_normal']
+        if camera_normal is None:
+            from . import SceneClipPlane
+            cp = SceneClipPlane(data['name'], data['normal'], data['plane_point'])
+        else:
+            v = session.main_view
+            from . import CameraClipPlane
+            cp = CameraClipPlane(data['name'], camera_normal, data['plane_point'], v)
+            # Camera has not yet been restored, so camera plane point is wrong.
+            # Fix it after camera is restored with _fix_plane_points() call.
+            cp._session_restore_fix_plane_point = True
+        return cp
+
+    @staticmethod
+    def _fix_plane_points(clip_planes, camera_pos):
+        # Fix old session files clip plane state now that camera has been restored.
+        for cp in clip_planes:
+            if hasattr(cp, '_session_restore_fix_plane_point'):
+                cp._camera_plane_point = camera_pos.inverse() * cp._camera_plane_point
+
+    @staticmethod
+    def reset_state(clip_plane, session):
+        pass
+
+
+class SceneClipPlaneState:
+    
+    version = 1
+    save_attrs = [
+        'name',
+        'normal',
+        'plane_point',
+    ]
+
+    @staticmethod
+    def take_snapshot(clip_plane, session, flags):
+        cp = clip_plane
+        data = {a:getattr(cp,a) for a in SceneClipPlaneState.save_attrs}
+        data['version'] = SceneClipPlaneState.version
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        from . import SceneClipPlane
+        cp = SceneClipPlane(data['name'], data['normal'], data['plane_point'])
+        return cp
+
+    @staticmethod
+    def reset_state(clip_plane, session):
+        pass
+
+
+class CameraClipPlaneState:
+    
+    version = 1
+    save_attrs = [
+        'name',
+        '_camera_normal',
+        '_camera_plane_point',
+    ]
+
+    @staticmethod
+    def take_snapshot(clip_plane, session, flags):
+        cp = clip_plane
+        data = {a:getattr(cp,a) for a in CameraClipPlaneState.save_attrs}
+        data['version'] = CameraClipPlaneState.version
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        from . import CameraClipPlane
+        cp = CameraClipPlane(data['name'], data['_camera_normal'], data['_camera_plane_point'],
+                             session.main_view)
         return cp
 
     @staticmethod

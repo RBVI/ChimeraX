@@ -115,7 +115,10 @@ class ModellerScoringJob(Job):
             if "evaluation.xml" in results_url:
                 eval_out = urlopen(results_url)
                 eval_dom = parseString(eval_out.read())
+                from chimerax.core.utils import string_to_attr
                 for name in ["zDOPE", "predicted_RMSD", "predicted_NO35"]:
+                    structure.__class__.register_attr(session, string_to_attr(name, prefix="modeller_"),
+                        "Modeller", attr_type=float)
                     val = float(eval_dom.getElementsByTagName(name.lower())[0].firstChild.nodeValue.strip())
                     self.results[name] = val
 
