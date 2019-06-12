@@ -37,4 +37,4 @@ from .opengl import remember_current_opengl_context, restore_current_opengl_cont
 from .opengl import Render, OpenGLError, OpenGLVersionError
 
 from .view import View
-from .clipping import SceneClipPlane, CameraClipPlane
+from .clipping import SceneClipPlane, CameraClipPlane, ClipPlane
