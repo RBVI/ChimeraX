@@ -208,6 +208,10 @@ _Toolbars = {
                 ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
                 ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
+                ("cmd:nucleotides selAtoms atoms", "nuc-atoms.png", "Plain", "Remove nucleotides styling", {'group': 'nuc'}),
+                ("cmd:nucleotides selAtoms fill", "nuc-fill.png", "Filled", "Show nucleotides with filled rings", {'group': 'nuc'}),
+                ("cmd:nucleotides selAtoms tube/slab shape box", "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes", {'group': 'nuc'}),
+                ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotides as H-bond ladders", {'group': 'nuc'}),
             ],
             ("Coloring", False): [
                 ("shortcut:ce", "colorbyelement.png", "heteroatom", "Color non-carbon atoms by element"),
@@ -215,6 +219,7 @@ _Toolbars = {
                 ("shortcut:rB", "rainbow.png", "rainbow", 'Rainbow color N to C-terminus'),
                 ("shortcut:bf", "bfactor.png", "b-factor", 'Color by b-factor'),
                 ("shortcut:hp", "hydrophobicity.png", "hydrophobic", 'Color surface by hydrophobicity'),
+                ("cmd:color selAtoms bynuc", "nuc-color.png", "nucleotide", "Color by nucleotide"),
             ],
             ("Analysis", False): [
                 ("shortcut:hb", "hbondsflat.png", "H-bonds", "Show hydrogen bonds"),
