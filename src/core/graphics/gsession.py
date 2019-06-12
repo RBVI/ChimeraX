@@ -62,7 +62,9 @@ class ViewState:
         v.drawing.set_redraw_callback(v._drawing_manager)
 
         # Restore clip planes
-        v.clip_planes.replace_planes(data['clip_planes'])
+        cplist = data['clip_planes']
+        ClipPlaneState._fix_plane_points(cplist, v.camera.position)	# Fix old session files.
+        v.clip_planes.replace_planes(cplist)
 
         # Restore silhouette edge settings.
         if 'silhouettes' in data:
@@ -246,10 +248,19 @@ class ClipPlaneState:
             cp = SceneClipPlane(data['name'], data['normal'], data['plane_point'])
         else:
             v = session.main_view
-            camera_plane_point = v.camera.position.inverse() * data['plane_point']
             from . import CameraClipPlane
-            cp = CameraClipPlane(data['name'], camera_normal, camera_plane_point, v)
+            cp = CameraClipPlane(data['name'], camera_normal, data['plane_point'], v)
+            # Camera has not yet been restored, so camera plane point is wrong.
+            # Fix it after camera is restored with _fix_plane_points() call.
+            cp._session_restore_fix_plane_point = True
         return cp
+
+    @staticmethod
+    def _fix_plane_points(clip_planes, camera_pos):
+        # Fix old session files clip plane state now that camera has been restored.
+        for cp in clip_planes:
+            if hasattr(cp, '_session_restore_fix_plane_point'):
+                cp._camera_plane_point = camera_pos.inverse() * cp._camera_plane_point
 
     @staticmethod
     def reset_state(clip_plane, session):

@@ -562,31 +562,24 @@ class MainWindow(QMainWindow, PlainTextLog):
         func(*args, **kw)
 
     def file_open_cb(self, session):
+        self.show_file_open_dialog(session)
+
+    def show_file_open_dialog(self, session, initial_directory = None,
+                              format_name = None):
+        if initial_directory is None:
+            initial_directory = ''
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
-        paths_and_types = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
+        filters = open_file_filter(all=True, format_name=format_name)
+        paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
+                                                       directory=initial_directory)
         paths, types = paths_and_types
         if not paths:
             return
 
         def _qt_safe(session=session, paths=paths):
             from chimerax.core.commands import run, quote_if_necessary
-            ## The following commented-out open command doesn't get multiple volume-plane files
-            ## to open as a single volume, whereas the uncommented code does
-            #run(session, "open " + " ".join([quote_if_necessary(p) for p in paths]))
-            if len(paths) == 1:
-                run(session, "open " + quote_if_necessary(paths[0]))
-            else:
-                # TODO: Make open command handle this including saving in file history.
-                suffixes = set(p[p.rfind('.'):] for p in paths)
-                if len(suffixes) == 1:
-                    # Files have same suffix, open as a single group
-                    session.models.open(paths)
-                else:
-                    # Files have more than one suffix, open each at top-level model.
-                    for p in paths:
-                        session.models.open([p])
-
+            run(session, "open " + " ".join([quote_if_necessary(p) for p in paths]))
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover
         # events correctly, nor tool tips.

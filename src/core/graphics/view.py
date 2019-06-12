@@ -153,6 +153,7 @@ class View:
         r = self._render
         r.set_frame_number(self.frame_number)
         r.set_background_color(self.background_color)
+        r.update_viewport()	# Need this when window resized.
 
         if self.update_lighting:
             self.update_lighting = False

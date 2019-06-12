@@ -128,7 +128,7 @@ def export_file_filter(category=None, format_name=None, all=False):
     result.sort(key=str.casefold)
     return ';;'.join(result)
 
-def open_file_filter(all=False):
+def open_file_filter(all=False, format_name=None):
     """Return file name filter suitable for Open File dialog for Qt"""
 
     combine = {}
@@ -147,5 +147,9 @@ def open_file_filter(all=False):
     result.sort(key=str.casefold)
     if all:
         result.insert(0, "All files (*)")
+    if format_name:
+        fmt = io.format_from_name(format_name)
+        if fmt:
+            result.insert(0, '%s files (%s)' % (fmt.name, ' '.join('*%s' for ext in fmt.extensions)))
     return ';;'.join(result)
 

@@ -481,7 +481,7 @@ class Session:
             return cls
         elif not hasattr(self, '_snapshot_methods'):
             from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material
-            from .graphics import SceneClipPlane, CameraClipPlane, Drawing
+            from .graphics import SceneClipPlane, CameraClipPlane, ClipPlane, Drawing
             from .graphics import gsession as g
             from .geometry import Place, Places, psession as p
             self._snapshot_methods = {
@@ -490,6 +490,7 @@ class Session:
                 OrthographicCamera: g.CameraState,
                 Lighting: g.LightingState,
                 Material: g.MaterialState,
+                ClipPlane: g.ClipPlaneState,
                 SceneClipPlane: g.SceneClipPlaneState,
                 CameraClipPlane: g.CameraClipPlaneState,
                 Drawing: g.DrawingState,
