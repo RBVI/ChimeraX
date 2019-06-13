@@ -52,7 +52,7 @@ class SaveOptionsGUI:
         '''
         fmt = self._format
         if fmt:
-            fmt.export(session, self.add_missing_file_suffix(fn, fmt), fmt.name)
+            fmt.export(session, self.add_missing_file_suffix(filename, fmt), fmt.name)
 
     def add_missing_file_suffix(self, filename, fmt):
         import os.path
