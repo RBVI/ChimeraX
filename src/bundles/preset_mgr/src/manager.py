@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class PresetsManager:
+from chimerax.core.toolshed import ProviderManager
+class PresetsManager(ProviderManager):
     """Manager for presets"""
 
     def __init__(self, session):
