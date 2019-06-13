@@ -16,9 +16,12 @@ _viewer_subcommands = set()
 _commands_registered = False
 
 from chimerax.core.state import StateManager
-class AlignmentsManager(StateManager):
+from chimerax.core.toolshed import ProviderManager
+class AlignmentsManager(StateManager, ProviderManager):
     """Manager for sequence alignments"""
     def __init__(self, session, bundle_info):
+        # Just for good form.  Neither base class currently defines __init__.
+        super().__init__()
         self._alignments = {}
         # bundle_info needed for session save
         self.bundle_info = bundle_info

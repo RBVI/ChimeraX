@@ -11,18 +11,17 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.state import StateManager
-class SchemesManager(StateManager):
+from chimerax.core.toolshed import ProviderManager
+class SchemesManager(ProviderManager):
     """Manager for html schemes used by all bundles"""
 
     def __init__(self, session):
+        #  Just for good form.  Base class currently has no __init__.
+        super().__init__()
         self.schemes = set()
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("html schemes changed")
-
-    def reset_state(self, session):
-        pass
 
     def add_provider(self, bundle_info, name, **kw):
         self.schemes.add(name)
@@ -65,11 +64,3 @@ class SchemesManager(StateManager):
 
     def end_providers(self):
         self.triggers.activate_trigger("html schemes changed", self)
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        return session.url_schemes
-
-    def take_snapshot(self, session, flags):
-        # Presets are "session enduring"
-        return {}
