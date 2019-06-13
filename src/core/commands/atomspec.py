@@ -309,9 +309,6 @@ class _AtomSpecSemantics:
                 r.add_part(a)
         return r
 
-    def atom(self, ast):
-        return _Atom(ast.parts, ast.attrs)
-
     def part_list(self, ast):
         if ast.part is None:
             return _PartList(ast.range)
@@ -320,6 +317,18 @@ class _AtomSpecSemantics:
 
     def part_range_list(self, ast):
         return _Part(ast.start, ast.end)
+
+    def atom(self, ast):
+        return _Atom(ast.parts, ast.attrs)
+
+    def atom_list(self, ast):
+        if ast.part is None:
+            return _PartList(ast.name)
+        else:
+            return ast.part.add_parts(ast.name)
+
+    def atom_name(self, ast):
+        return _Part(ast.name, None)
 
     def attribute_list(self, ast):
         attr_test, attr_list = ast
