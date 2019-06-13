@@ -2288,7 +2288,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
         elif style == "small polymer":
             lighting = "default"
-            from .molobject import Atom, Bond
+            from .molobject import Atom, Bond, Residue
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
@@ -2306,18 +2306,17 @@ class AtomicStructure(Structure):
                 lone_ions.draw_modes = Atom.SPHERE_STYLE
                 ligand |= metal_atoms.residues
                 display = ligand
-                pas = ribbonable.existing_principal_atoms
-                nucleic = pas.residues.filter(pas.names != "CA")
+                mask = ribbonable.polymer_types == Residue.PT_NUCLEIC
+                nucleic = ribbonable.filter(mask)
                 display |= nucleic
                 if nucleic:
                     from .nucleotides.cmd import nucleotides
-                    if len(nucleic) >= 5:
-                        if len(nucleic) < 50:
-                            nucleotides(self.session, 'tube/slab', objects=nucleic)
-                        else:
-                            nucleotides(self.session, 'ladder', objects=nucleic)
-                        from .colors import nucleotide_colors
-                        nucleic.ring_colors = nucleotide_colors(nucleic)[0]
+                    if len(nucleic) < 100:
+                        nucleotides(self.session, 'tube/slab', objects=nucleic)
+                    else:
+                        nucleotides(self.session, 'ladder', objects=nucleic)
+                    from .colors import nucleotide_colors
+                    nucleic.ring_colors = nucleotide_colors(nucleic)[0]
                 if ligand:
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords

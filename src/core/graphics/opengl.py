@@ -494,6 +494,10 @@ class Render:
         return self._default_framebuffer
 
     def set_default_framebuffer_size(self, width, height):
+        '''
+        This does not update the viewport.
+        Use Render.update_viewport() when OpenGL context current to update viewport
+        '''
         s = self._opengl_context.pixel_scale()
         w, h = int(s*width), int(s*height)
         fb = self.default_framebuffer()
@@ -1031,6 +1035,12 @@ class Render:
         fb = self.current_framebuffer()
         self.set_viewport(0, 0, fb.width, fb.height)
 
+    def update_viewport(self):
+        'Update viewport if framebuffer viewport different from current viewport.'
+        fb = self.current_framebuffer()
+        if fb and fb.viewport != self.current_viewport:
+            self.set_viewport(*fb.viewport)
+        
     def set_background_color(self, rgba):
         'Set the OpenGL clear color.'
         r, g, b, a = rgba

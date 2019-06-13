@@ -1,7 +1,7 @@
 // vim: set expandtab shiftwidth=4 softtabstop=4:
 
-var tgttable = function() {
-    var custom_scheme = "tgttable";
+var basicactions = function() {
+    var custom_scheme = "basicactions";
     var names_column_info = [
         "Name",
         "Info",
@@ -195,7 +195,7 @@ var tgttable = function() {
     function get_state() {
         // Not much to return yet
         return {
-            name:"tgttable",
+            name:"basicactions",
         };
     }
 
@@ -214,4 +214,4 @@ var tgttable = function() {
     }
 }();
 
-$(document).ready(tgttable.init);
+$(document).ready(basicactions.init);

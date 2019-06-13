@@ -60,8 +60,9 @@ def label_change(session, name, *, text = None, color = None, background = False
     lb = session_labels(session)
     if name == 'all':
         for n in lb.labels.keys():
-            label_change(session, n, text=text, color=color, size=size, font=font, bold=bold, italic=italic,
-                xpos=xpos, ypos=ypos, visibility=visibility, frames=frames)
+            label_change(session, n, text=text, color=color, background=background,
+                         size=size, font=font, bold=bold, italic=italic,
+                         xpos=xpos, ypos=ypos, visibility=visibility, frames=frames)
         return
     l = lb.labels[name]
     if font is not None: l.font = font
@@ -70,7 +71,8 @@ def label_change(session, name, *, text = None, color = None, background = False
     if italic is not None: l.italic = italic
     if frames is None:
         if color is not None: l.color = color.uint8x4()
-        if background not in (None, False): l.background = background.uint8x4()
+        if background is not False:
+            l.background = None if background is None else background.uint8x4()
         if size is not None: l.size = size
         if xpos is not None: l.xpos = xpos
         if ypos is not None: l.ypos = ypos
@@ -226,6 +228,8 @@ class Labels(StateManager):
     def __init__(self):
         StateManager.__init__(self)
         self.labels = {}    # Map label name to Label object
+        from chimerax.core.core_settings import settings
+        settings.triggers.add_handler('setting changed', self._background_color_changed)
 
     def add(self, label):
         n = label.name
@@ -239,7 +243,14 @@ class Labels(StateManager):
 
     def find_label(self, name):
         return self.labels.get(name)
-    
+
+    def _background_color_changed(self, tname, tdata):
+        # Update label color when graphics background color changes.
+        if tdata[0] == 'background_color':
+            for l in self.labels.values():
+                if l.background is None:
+                    l.update_drawing()
+                    
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
@@ -342,20 +353,29 @@ class LabelDrawing(Drawing):
             self.resize()
         Drawing.draw(self, renderer, draw_pass)
 
+    @property
+    def label_color(self):
+        l = self.label
+        if l.color is None:
+            if l.background is None:
+                bg = [255*r for r in l.session.main_view.background_color]
+            else:
+                bg = l.background
+            light_bg = (sum(bg[:3]) > 1.5*255)
+            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
+        else:
+            rgba8 = tuple(l.color)
+        return rgba8
+
     def update_drawing(self):
         if not self.needs_update:
             return False
         self.needs_update = False
         l = self.label
-        v = l.session.main_view
-        if l.color is None:
-            light_bg = (sum(v.background_color[:3]) > 1.5)
-            rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
-        else:
-            rgba8 = tuple(l.color)
         xpad = 0 if l.background is None else int(.2 * l.size)
         from chimerax.core.graphics import text_image_rgba
-        rgba = text_image_rgba(l.text, rgba8, l.size, l.font, background_color = l.background, xpad = xpad,
+        rgba = text_image_rgba(l.text, self.label_color, l.size, l.font,
+                               background_color = l.background, xpad = xpad,
                                bold = l.bold, italic = l.italic)
         if rgba is None:
             l.session.logger.info("Can't find font for label")

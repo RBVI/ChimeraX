@@ -160,7 +160,7 @@ class _Section(QWidgetAction):
         lines = button.text().split('\n')
         fm = button.fontMetrics()
         width = max(fm.horizontalAdvance(text) for text in lines)
-        # TODO: why is "+ 20" needed to not truncate text?
+        # 20 is width of arrow on right side of button
         button.setMinimumWidth(width + 20)
 
     def _adjust_title(self, w):

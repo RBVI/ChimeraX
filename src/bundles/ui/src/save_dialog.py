@@ -52,7 +52,7 @@ class SaveOptionsGUI:
         '''
         fmt = self._format
         if fmt:
-            fmt.export(session, self.add_missing_file_suffix(fn, fmt), fmt.name)
+            fmt.export(session, self.add_missing_file_suffix(filename, fmt), fmt.name)
 
     def add_missing_file_suffix(self, filename, fmt):
         import os.path
@@ -93,15 +93,41 @@ class MainSaveDialog:
     def deregister(self, format_name):
         del self._registered_formats[format_name]
 
-    def display(self, parent, session):
+    def display(self, parent, session, format = None,
+                initial_directory = None, initial_file = None, model = None):
+
         self.session = session
+
         if self.file_dialog is None:
             from .open_save import SaveDialog
-            self.file_dialog = SaveDialog(parent, "Save File")
+            self.file_dialog = fd = SaveDialog(parent, "Save File")
             self._customize_file_dialog()
-        else:
+
+        if format is not None:
+            fs = self._format_selector
+            if fs:
+                fs.setCurrentText(format)
+                self.set_wildcard()
+                print('set save dialog format to', format)
+        
+        fmt = self.current_format()
+        fmt.update(session, self)
+
+        if initial_directory is not None:
+            if initial_directory == '':
+                from os import getcwd
+                initial_directory = getcwd()
+            self.file_dialog.setDirectory(initial_directory)
+            
+        if initial_file is not None:
+            self.file_dialog.selectFile(initial_file)
+
+        if model is not None:
             fmt = self.current_format()
-            fmt.update(session, self)
+            from chimerax.map.savemap import ModelSaveOptionsGUI
+            if isinstance(fmt, ModelSaveOptionsGUI):
+                fmt.set_model(model)
+            
         try:
             if not self.file_dialog.exec():
                 return
@@ -118,7 +144,7 @@ class MainSaveDialog:
             format_name = self._format_selector.currentText()
         return self._registered_formats[format_name]
 
-    def set_wildcard(self, format):
+    def set_wildcard(self):
         fmt = self.current_format()
         self.file_dialog.setNameFilters(fmt.wildcard().split(';;'))
 
@@ -128,7 +154,6 @@ class MainSaveDialog:
         label = QLabel(options_panel)
         label.setText("Format:")
         self._format_selector = selector = QComboBox(options_panel)
-        selector.currentIndexChanged.connect(self._select_format)
         self._no_options_label = no_opt_label = QLabel(options_panel)
         no_opt_label.setText("No user-settable options")
         no_opt_label.setFrameStyle(QFrame.Box)
@@ -142,6 +167,7 @@ class MainSaveDialog:
         options_layout.addWidget(no_opt_label)
         options_panel.setLayout(options_layout)
         self._select_format(self._default_format)
+        selector.currentIndexChanged.connect(self._select_format)
         return options_panel
 
     def _select_format(self, *args, **kw):

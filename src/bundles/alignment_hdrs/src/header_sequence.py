@@ -197,7 +197,7 @@ class HeaderSequence(list):
            called and the returned dictionary updated with the derived class's settings"""
         # the code relies on the fact that the returned settings dict is a different object every
         # time (it gets update()d), so don't make it a class variable!
-        return "base header sequence", { 'initially shown': False }
+        return "base header sequence", { 'initially_shown': False }
 
     def show(self):
         """Called when sequence shown"""
@@ -269,11 +269,10 @@ class DynamicHeaderSequence(HeaderSequence):
 
 class DynamicStructureHeaderSequence(DynamicHeaderSequence):
     single_sequence_relevant = True
-    # class is refreshed on association changes by sequence viewer
 
     def alignment_notification(self, note_name, note_data):
         super().alignment_notification(note_name, note_data)
-        if note_name == "association modified":
+        if note_name == "modify association":
             self.reevaluate()
 
 registered_headers = []
