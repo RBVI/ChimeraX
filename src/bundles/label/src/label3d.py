@@ -598,8 +598,8 @@ class ObjectLabel:
         if c is None:
             bg = self.background
             if bg is None:
-                bg = self.view.background_color
-            light_bg = (sum(bg[:3]) > 1.5)
+                bg = [255*r for r in self.view.background_color]
+            light_bg = (sum(bg[:3]) > 1.5*255)
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = c
