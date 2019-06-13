@@ -2167,6 +2167,7 @@ class VolumeSurface(Surface):
       'volume': self.volume,
       'level': self.level,
       'rgba': self.rgba,
+      'show_mesh': self.show_mesh,
       'model state': Surface.take_snapshot(self, session, flags),
       'version': 1
     }
@@ -2177,7 +2178,7 @@ class VolumeSurface(Surface):
     v = data['volume']
     if v is None:
       return None	# Volume was not restored, e.g. file missing.
-    s = VolumeSurface(v, data['level'], data['rgba'])
+    s = VolumeSurface(v, data['level'], data['rgba'], data.get('show_mesh', False))
     Model.set_state_from_snapshot(s, session, data['model state'])
     if v._style_when_shown == 'image':
       s.display = False		# Old sessions had surface shown but not computed when image style used.
