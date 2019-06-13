@@ -22,7 +22,7 @@
   </Dependencies>
 
   <Providers>
-    <Provider name="Dunbrack 2010" manager="rotamers"/>
+    <Provider name="Dunbrack" manager="rotamers"/>
   </Providers>
 
   <Classifiers>

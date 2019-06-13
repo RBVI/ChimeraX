@@ -20,7 +20,7 @@ from .cli import ListOf, SetOf, TupleOf, Or, RepeatOf
 from .cli import Annotation, AnnotationError, next_token, quote_if_necessary, as_parser
 from .cli import NoArg, NoneArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
-from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg
+from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg, NonNegativeFloatArg, PositiveFloatArg
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded
 from .cli import SurfacesArg, SurfaceArg
 from .cli import ModelIdArg, ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine

@@ -638,47 +638,54 @@ class RepeatOf(Annotation):
 class Bounded(Annotation):
     """Support bounded numerical values
 
-    Bounded(annotation, min=None, max=None, name=None, url=None) -> an Annotation
+    Bounded(annotation, min=None, max=None, inclusive=True, name=None, url=None) -> an Annotation
 
     :param annotation: numerical annotation
     :param min: optional lower bound
     :param max: optional upper bound
+    :param inclusive: is the bound itself in the range
     :param name: optional explicit name for annotation
     :param url: optionally give documentation URL.
     """
 
-    def __init__(self, annotation, min=None, max=None, name=None, url=None, html_name=None):
+    def __init__(self, annotation, *, min=None, max=None, inclusive=True, name=None, url=None, html_name=None):
         Annotation.__init__(self, name, url)
         self.anno = annotation
         self.min = min
         self.max = max
+        self.inclusive = inclusive
         if name is None:
+            op = "=" if inclusive else ""
             if min is not None and max is not None:
-                self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
+                self.name = "%s >%s %s and <%s %s" % (annotation.name, op, min, op, max)
             elif min is not None:
-                self.name = "%s >= %s" % (annotation.name, min)
+                self.name = "%s >%s %s" % (annotation.name, op, min)
             elif max is not None:
-                self.name = "%s <= %s" % (annotation.name, max)
+                self.name = "%s <%s %s" % (annotation.name, op, max)
             else:
                 self.name = annotation.name
         if html_name is None:
+            if inclusive:
+                l, g = "le", "ge"
+            else:
+                l, g = "lt", "gt"
             if min is not None and max is not None:
-                self._html_name = "%s &ge; %s and &le; %s" % (annotation.html_name(), min, max)
+                self._html_name = "%s &%s; %s and &%s; %s" % (annotation.html_name(), g, min, l, max)
             elif min is not None:
-                self._html_name = "%s &ge; %s" % (annotation.html_name(), min)
+                self._html_name = "%s &%s; %s" % (annotation.html_name(), g, min)
             elif max is not None:
-                self._html_name = "%s &le; %s" % (annotation.html_name(), max)
+                self._html_name = "%s &%s; %s" % (annotation.html_name(), l, max)
             else:
                 self._html_name = annotation.html_name()
 
     def parse(self, text, session):
         value, new_text, rest = self.anno.parse(text, session)
-        if self.min is not None and value < self.min:
-            raise AnnotationError("Must be greater than or equal to %s"
-                                  % self.min, len(text) - len(rest))
-        if self.max is not None and value > self.max:
-            raise AnnotationError("Must be less than or equal to %s"
-                                  % self.max, len(text) - len(rest))
+        if self.min is not None and ((value < self.min) if self.inclusive else (value <= self.min)):
+            raise AnnotationError("Must be greater than %s%s"
+                % (self.min, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+        if self.max is not None and ((value > self.max) if self.inclusive else (value >= self.max)):
+            raise AnnotationError("Must be less than %s%s"
+                % (self.max, "or equal to " if self.inclusive else ""), len(text) - len(rest))
         return value, new_text, rest
 
 
@@ -1648,6 +1655,8 @@ Float2Arg = TupleOf(FloatArg, 2)
 Float3Arg = TupleOf(FloatArg, 3)
 NonNegativeIntArg = Bounded(IntArg, min=0, name="an integer >= 0")
 PositiveIntArg = Bounded(IntArg, min=1, name="an integer >= 1")
+NonNegativeFloatArg = Bounded(FloatArg, min=0, name="a float >= 0")
+PositiveFloatArg = Bounded(FloatArg, min=0, inclusive=False, name="a float > 0")
 ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix='#')
 
 

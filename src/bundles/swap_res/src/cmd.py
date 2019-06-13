@@ -11,9 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def swapaa(session, residues, res_type, *, lib=None, criteria="dchp", preserve=None, retain=False, log=True,
-    ignore_other_models=False, density=None, overlap_cutoff=0.6, hbond_allowance=0.4, score_method="num",
-    relax=True, dist_slop=None, angle_slop=None):
+default_criteria = "dhcp"
+def swapaa(session, residues, res_type, *, hbond_allowance=None, score_method="num",
+    threshold=None, criteria=default_crieria, density=None, angle_slop=None, dist_slop=None,
+    ignore_other_models=False, lib=None, log=True, preserve=None, relax=True, retain=False):
     '''
     Command to swap amino acid side chains
     '''
@@ -31,24 +32,35 @@ def swapaa(session, residues, res_type, *, lib=None, criteria="dchp", preserve=N
 
     from . import swap_res
     try:
-        swap_res.swapaa(session, residues, res_type, lib=lib, criteria=criteria, preserve=preserve,
-            retain=retain, log=log, ignore_other_models=ignore_other_models, density=density,
-            overlap_cutoff=overlap_cutoff, hbond_allowance=hbond_allowance, score_method=score_method,
-            relax=relax, dist_slop=dist_slop, angle_slop=angle_slop)
+        swap_res.swapaa(session, residues, res_type, clash_hbond_allowance=hbond_allowance,
+            clash_score_method=score_method, clash_threshold=threshold,
+            criteria=criteria, density=density, hbond_angle_slop=angle_slop,
+            hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, lib=lib, log=log,
+            preserve=preserve, hbond_relax=relax, retain=retain)
     except swap_res.SwapError as e:
         raise UserError(e)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, IntArg, Or, FloatArg, EnumOf
+    from chimerax.core.commands import NonNegativeFloatArg
     from chimerax.atomic import ResiduesArg
     from chimerax.map import MapArg
     desc = CmdDesc(
         required = [('residues', ResiduesArg), ('res_type', StringArg)],
-        keyword = [('lib', StringArg), ('criteria', Or(IntArg, StringArg))), ('preserve', FloatArg),
-            ('retain', BoolArg), ('log', BoolArg), ('ignore_other_models', BoolArg), ('density', MapArg),
-            ('overlap_cutoff', FloatArg), ('hbond_allowance', FloatArg),
-            ('score_method', EnumOf(('sum', 'num')), ('relax', BoolArg), ('dist_slop', FloatArg),
-            ('angle_slop', FloatArg)
+        keyword = [
+            ('hbond_allowance', FloatArg),
+            ('score_method', EnumOf(('sum', 'num')),
+            ('threshold', FloatArg),
+            ('criteria', Or(IntArg, StringArg))),
+            ('density', MapArg),
+            ('angle_slop', FloatArg),
+            ('dist_slop', FloatArg),
+            ('ignore_other_models', BoolArg),
+            ('lib', StringArg),
+            ('log', BoolArg),
+            ('preserve', NonNegativeFloatArg),
+            ('retain', BoolArg),
+            ('relax', BoolArg),
         ],
         synopsis = 'Swap amino acid side chain(s)'
     )
