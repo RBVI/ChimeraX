@@ -25,6 +25,12 @@
     <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
   </Dependencies>
 
+  <Providers>
+    <Provider name="Consensus" single_seq_relevant="false" manager="alignments" type="header"/>
+    <Provider name="Conservation" single_seq_relevant="false" manager="alignments" type="header"/>
+    <!-- <Provider name="RMSD" single_seq_relevant="true" manager="alignments" type="header"/> -->
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

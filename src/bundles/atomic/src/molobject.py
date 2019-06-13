@@ -639,8 +639,8 @@ class Residue(CyResidue, State):
         set_custom_attrs(r, data)
         return r
 
-    # Cython kind of has trouble with a C++ class variable that is a map of maps, and
-    # where the key type of the nested map is a varidic template; so expose via ctypes
+    # C++ class variables are problematic for Cython (particularly a map of maps # where the key type
+    # of the nested map is a varidic template!); so expose class variables via ctypes
     def ideal_chirality(self, atom_name):
         """Return the ideal chirality (N = none; R = right-handed (rectus); S = left-handed (sinister)
             for the given atom name in this residue.  The chirality is only known if the mmCIF chemical
@@ -648,6 +648,9 @@ class Residue(CyResidue, State):
         f = c_function('residue_ideal_chirality', args = (ctypes.c_char_p, ctypes.c_char_p),
             ret = ctypes.py_object)
         return f(self.name.encode('utf-8'), atom_name.encode('utf-8'))
+
+    aa_min_backbone_names = c_function('residue_aa_min_backbone_names', args = (), ret = ctypes.py_object)()
+
 Residue.set_py_class(Residue)
 
 
