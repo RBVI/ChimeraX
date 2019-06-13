@@ -220,6 +220,22 @@ cdef class CyAtom:
         crd = self.cpp_atom.coord()
         return array((crd[0], crd[1], crd[2]))
 
+    @property
+    def pb_coord(self):
+        "Pseudobond coordinates.  If atom is not visible and is part of a residue"
+        " displayed as a cartoon, return coordinates on the cartoon.  Otherwise,"
+        " return the actual atomic coordinates."
+        if not self.visible and self.residue.ribbon_display:
+            try:
+                return self.ribbon_coord
+            except KeyError:
+                pass
+        return self.coord
+
+    @property
+    def pb_scene_coord(self):
+        return self.structure.scene_position * self.pb_coord
+
     @coord.setter
     @cython.boundscheck(False)  # turn off bounds checking
     @cython.wraparound(False)  # turn off negative index wrapping
