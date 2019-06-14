@@ -38,6 +38,10 @@ class ViewState:
         data['silhouettes'] = {attr:getattr(v.silhouette, attr) for attr in ViewState.silhouette_attrs}
         data['window_size'] = v.window_size
         data['clip_planes'] = v.clip_planes.planes()
+        from chimerax.surface.settings import settings as surf_settings
+        data['clipping_surface_caps'] = surf_settings.clipping_surface_caps
+        data['clipping_cap_offset'] = surf_settings.clipping_cap_offset
+
         data['version'] = ViewState.version
         return data
 
@@ -65,6 +69,12 @@ class ViewState:
         cplist = data['clip_planes']
         ClipPlaneState._fix_plane_points(cplist, v.camera.position)	# Fix old session files.
         v.clip_planes.replace_planes(cplist)
+
+        # Restore clip caps
+        if 'clipping_surface_caps' in data:
+            from chimerax.surface.settings import settings as surf_settings
+            surf_settings.clipping_surface_caps = data['clipping_surface_caps']
+            surf_settings.clipping_cap_offset = data['clipping_cap_offset']
 
         # Restore silhouette edge settings.
         if 'silhouettes' in data:
