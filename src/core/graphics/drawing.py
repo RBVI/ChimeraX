@@ -2055,7 +2055,7 @@ def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, yp
 
     # Use font metrics to determine image width
     fm = QFontMetrics(f)
-    r = fm.boundingRect(text)
+    r = fm.boundingRect(text if text else ' ')
     # TODO: font metric width is sometimes 1 or 2 pixels too small in Qt 5.9.
     #       Right bearing of rightmost character was positive, so does not extend right.
     #       Use pad option to add some pixels to avoid clipped text.
