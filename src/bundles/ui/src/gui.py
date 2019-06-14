@@ -755,6 +755,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
+        sbar.status('Welcome to ChimeraX', 'blue')
         sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)
@@ -782,7 +783,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         rab.setDefaultAction(rab_action)
         sb.addPermanentWidget(ghb)
         sb.addPermanentWidget(rab)
-        sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
     def _dockability_change(self, tool_name, dockable):

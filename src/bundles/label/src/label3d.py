@@ -210,14 +210,17 @@ def labels_model(parent, create = False):
 
 # -----------------------------------------------------------------------------
 #
+
+# DefArg/NoneArg also use by 2D labels
+from chimerax.core.commands import EnumOf
+DefArg = EnumOf(['default'])
+NoneArg = EnumOf(['none'])
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, create_alias, ObjectsArg, StringArg, FloatArg
     from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
-    DefArg = EnumOf(['default'])
-    NoneArg = EnumOf(['none'])
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
@@ -598,8 +601,8 @@ class ObjectLabel:
         if c is None:
             bg = self.background
             if bg is None:
-                bg = self.view.background_color
-            light_bg = (sum(bg[:3]) > 1.5)
+                bg = [255*r for r in self.view.background_color]
+            light_bg = (sum(bg[:3]) > 1.5*255)
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = c

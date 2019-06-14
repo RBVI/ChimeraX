@@ -211,11 +211,12 @@ def register_image_save_options_gui(save_dialog):
         
         def make_ui(self, parent):
             from PyQt5.QtWidgets import QFrame, QGridLayout, QComboBox, QLabel, QHBoxLayout, \
-                QLineEdit
+                QLineEdit, QCheckBox
             container = QFrame(parent)
             container.setFrameStyle(QFrame.Box)
             layout = QGridLayout(container)
             layout.setContentsMargins(2, 0, 0, 0)
+            row = 0
 
             from chimerax.core.image import image_formats
             selector = QComboBox(container)
@@ -225,40 +226,84 @@ def register_image_save_options_gui(save_dialog):
             format_label = QLabel(container)
             format_label.setText("Format:")
             from PyQt5.QtCore import Qt
-            layout.addWidget(format_label, 0, 0, Qt.AlignRight | Qt.AlignVCenter)
-            layout.addWidget(selector, 0, 1, Qt.AlignLeft)
+            layout.addWidget(format_label, row, 0, Qt.AlignRight | Qt.AlignVCenter)
+            layout.addWidget(selector, row, 1, Qt.AlignLeft)
             self._format_selector = selector
-
+            row += 1
+            
             size_frame = QFrame(container)
             size_layout = QHBoxLayout(size_frame)
             size_layout.setContentsMargins(0, 0, 0, 0)
-            self._width = QLineEdit(size_frame)
-            new_width = int(0.4 * self._width.sizeHint().width())
-            self._width.setFixedWidth(new_width)
+            self._width = w = QLineEdit(size_frame)
+            new_width = int(0.4 * w.sizeHint().width())
+            w.setFixedWidth(new_width)
+            w.textEdited.connect(self._width_changed)
             x = QLabel(size_frame)
             x.setText("x")
-            self._height = QLineEdit(size_frame)
-            self._height.setFixedWidth(new_width)
+            self._height = h = QLineEdit(size_frame)
+            h.setFixedWidth(new_width)
+            h.textEdited.connect(self._height_changed)
+            
             size_layout.addWidget(self._width, Qt.AlignRight)
             size_layout.addWidget(x, Qt.AlignHCenter)
             size_layout.addWidget(self._height, Qt.AlignLeft)
             size_frame.setLayout(size_layout)
             size_label = QLabel(container)
             size_label.setText("Size:")
-            layout.addWidget(size_label, 1, 0, Qt.AlignRight | Qt.AlignVCenter)
-            layout.addWidget(size_frame, 1, 1, Qt.AlignLeft)
+            layout.addWidget(size_label, row, 0, Qt.AlignRight | Qt.AlignVCenter)
+            layout.addWidget(size_frame, row, 1, Qt.AlignLeft)
+            row += 1
+
+            self._keep_aspect = ka = QCheckBox('preserve aspect', container)
+            ka.setChecked(True)
+            ka.stateChanged.connect(self._aspect_changed)
+            layout.addWidget(ka, row, 1, Qt.AlignLeft)
+            row += 1
 
             ss_label = QLabel(container)
             ss_label.setText("Supersample:")
             supersamples = QComboBox(container)
             supersamples.addItems([o[0] for o in self.SUPERSAMPLE_OPTIONS])
-            layout.addWidget(ss_label, 2, 0, Qt.AlignRight | Qt.AlignVCenter)
-            layout.addWidget(supersamples, 2, 1, Qt.AlignLeft)
+            layout.addWidget(ss_label, row, 0, Qt.AlignRight | Qt.AlignVCenter)
+            layout.addWidget(supersamples, row, 1, Qt.AlignLeft)
             self._supersample = supersamples
 
             container.setLayout(layout)
             return container
 
+        def _width_changed(self):
+            if self._keep_aspect.isChecked():
+                w,h,iw,ih = self._sizes()
+                if w > 0 and iw is not None:
+                    self._height.setText('%.0f' % ((iw/w) * h))
+        
+        def _height_changed(self):
+            if self._keep_aspect.isChecked():
+                w,h,iw,ih = self._sizes()
+                if h > 0 and ih is not None:
+                    self._width.setText('%.0f' % ((ih/h) * w))
+
+        def _sizes(self):
+            gw = self._session.ui.main_window.graphics_window
+            w, h = gw.width(), gw.height()
+            try:
+                iw = int(self._width.text())
+            except ValueError:
+                iw = None
+            try:
+                ih = int(self._height.text())
+            except ValueError:
+                ih = None
+            return w, h, iw, ih
+
+        def _aspect_changed(self, state):
+            if self._keep_aspect.isChecked():
+                w,h,iw,ih = self._sizes()
+                if iw != w:
+                    self._width_changed()
+                else:
+                    self._height_changed()
+        
         def _select_format(self, *args):
             # TODO: enable options that apply to this graphics format
             pass
@@ -286,6 +331,7 @@ def register_image_save_options_gui(save_dialog):
             run(session, cmd)
 
         def update(self, session, save_dialog):
+            self._session = session
             gw = session.ui.main_window.graphics_window
             w, h = gw.width(), gw.height()
             self._width.setText(str(w))

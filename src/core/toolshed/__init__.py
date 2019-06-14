@@ -870,6 +870,10 @@ class Toolshed:
                     self._init_bundle_manager(session, dbi, done, initializing, failed)
             initializing.remove(bi)
         try:
+            if self._available_bundle_info:
+                all_bundles = self._installed_bundle_info + self._available_bundle_info
+            else:
+                all_bundles = self._installed_bundle_info
             for mgr, kw in bi.managers.items():
                 if not session.ui.is_gui and kw.pop("guiOnly", False):
                     _debug("skip non-GUI manager %s for bundle %r" % (mgr, bi.name))
@@ -881,7 +885,7 @@ class Toolshed:
                     if logger:
                         logger.error("Manager %r failed to initialize" % mgr)
                     continue
-                for pbi in self._installed_bundle_info:
+                for pbi in all_bundles:
                     for pvdr, params in pbi.providers.items():
                         p_mgr, kw = params
                         if p_mgr == mgr:
@@ -1116,6 +1120,31 @@ class Toolshed:
         return module
 
 
+import abc
+class ProviderManager(metaclass=abc.ABCMeta):
+    """API for managers created by bundles
+
+    Managers returned by bundle ``init_manager`` methods should be an
+    instance of this class.
+    """
+
+    @abc.abstractmethod
+    def add_provider(self, bundle_info, provider_name, **kw):
+        """Callback invoked to add provider to this manager.
+
+        Parameters
+        ----------
+        session : :py:class:`chimerax.core.session.Session` instance.
+        bundle_info : :py:class:`BundleInfo` instance.
+        provider_name : str.
+        """
+        pass
+
+    def end_providers(self):
+        """Callback invoked after all providers have been added."""
+        pass
+
+
 class BundleAPI:
     """API for accessing bundles
 
@@ -1134,8 +1163,8 @@ class BundleAPI:
         Parameters
         ----------
         session : :py:class:`chimerax.core.session.Session` instance.
-        bundle_info : instance of :py:class:`BundleInfo`
-        tool_info : instance of :py:class:`ToolInfo`
+        bundle_info : :py:class:`BundleInfo` instance.
+        tool_info : :py:class:`ToolInfo` instance.
 
             Version 1 of the API passes in information for both
             the tool to be started and the bundle where it was defined.
@@ -1167,8 +1196,8 @@ class BundleAPI:
 
         Parameters
         ----------
-        bundle_info : instance of :py:class:`BundleInfo`
-        command_info : instance of :py:class:`CommandInfo`
+        bundle_info : :py:class:`BundleInfo` instance.
+        command_info : :py:class:`CommandInfo` instance.
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
             Version 1 of the API pass in information for both
@@ -1189,8 +1218,8 @@ class BundleAPI:
 
         Parameters
         ----------
-        bundle_info : instance of :py:class:`BundleInfo`
-        selector_info : instance of :py:class:`SelectorInfo`
+        bundle_info : :py:class:`BundleInfo` instance.
+        selector_info : :py:class:`SelectorInfo` instance.
         logger : :py:class:`chimerax.core.logger.Logger` instance.
 
             Version 1 of the API passes in information about
@@ -1287,6 +1316,8 @@ class BundleAPI:
         ``init_manager`` is called when bundles are first loaded.
         ``init_manager`` methods for all bundles are called before any
         ``init_provider`` methods are called for any bundle.
+        It is the responsibility of ``init_manager`` to make the manager
+        locatable, e.g., assign as an attribute of `session`.
 
         Parameters
         ----------
@@ -1299,7 +1330,7 @@ class BundleAPI:
 
         Returns
         -------
-        :py:class:`~chimerax.core.state.StateManager` instance
+        :py:class:`ProviderManager` instance
             The created manager.
         """
         raise NotImplementedError("BundleAPI.init_manager")
