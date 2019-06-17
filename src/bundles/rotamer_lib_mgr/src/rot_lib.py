@@ -36,6 +36,14 @@ class RotamerLibrary:
     """
 
     @property
+    def cis_trans(self):
+        """If the library differentiates any rotamer types into "cis" vs. "trans", this
+           is the list of those types.  When their rotamer params are asked for with the
+           rotamer_params() call, the residue name will have "-cis" or "-trans" appended.
+        """
+           return []
+
+    @property
     @abstractmethod
     def display_name(self):
         """Short name to display in a list of libraries, e.g. "Dunbrack 2010" or "Dynameomics"

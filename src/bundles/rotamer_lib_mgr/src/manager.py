@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class RotamerLibManager:
+from chimerax.core.toolshed import ProviderManager
+class RotamerLibManager(ProviderManager):
     """Manager for rotmer libraries"""
 
     def __init__(self, session):
@@ -20,20 +21,27 @@ class RotamerLibManager:
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("rotamer libs changed")
-        self.provider_info = []
+        self._library_info = {}
 
-    @property
-    def libraries(self):
-        if self.rot_libs is None:
-            self.rot_libs = [bi.run_provider(self.session, name, self) for bi, name in self.provider_info]
-        return self.rot_libs[:]
+    def library(self, name):
+        lib_info = self._library_info[name]
+        from . import RotamerLibrary
+        if not isinstance(lib_info, RotamerLibrary):
+            self._library_info[name] = lib_info = lib_info.run_provider(self.session, name, self)
+        return lib_info
+
+    def library_names(self, *, installed_only=False):
+        if not installed_only:
+            return self._library_info.keys()
+        from . import RotamerLibrary
+        lib_names = []
+        for name, info in self.library_info.items():
+            if isinstance(info, RotamerLibrary) or info.installed:
+                lib_names.append(name)
+        return lib_names
 
     def add_provider(self, bundle_info, name, **kw):
-        if self.rot_libs is None:
-            self.provider_info.append((bundle_info, name))
-        else:
-            self.rot_libs.append(bundle_info.run_provider(self.session, name, self))
+        self._library_info[name] = bundle_info
 
     def end_providers(self):
-        if self.rot_libs:
-            self.triggers.activate_trigger("rotamer libs changed", self)
+        self.triggers.activate_trigger("rotamer libs changed", self)

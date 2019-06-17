@@ -20,6 +20,10 @@ from chimerax.atomic.rotamers.manager import RotamerLibrary, RotamerParams, \
 class RichardsonBase(RotamerLibrary):
 
     @property
+    def cis_trans(self):
+        return ["PRO"]
+
+    @property
     def description(self):
         return "Richardson lab backbone-independent rotamer library"
 

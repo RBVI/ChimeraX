@@ -42,7 +42,7 @@ def swapaa(session, residues, res_type, *, hbond_allowance=None, score_method="n
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, IntArg, Or, FloatArg, EnumOf
-    from chimerax.core.commands import NonNegativeFloatArg
+    from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum
     from chimerax.atomic import ResiduesArg
     from chimerax.map import MapArg
     desc = CmdDesc(
@@ -56,7 +56,7 @@ def register_command(logger):
             ('angle_slop', FloatArg),
             ('dist_slop', FloatArg),
             ('ignore_other_models', BoolArg),
-            ('lib', StringArg),
+            ('lib', DynamicEnum(logger.session.rotamers.library_names),
             ('log', BoolArg),
             ('preserve', NonNegativeFloatArg),
             ('retain', BoolArg),
