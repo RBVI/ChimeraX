@@ -293,6 +293,17 @@ def init(argv, event_loop=True):
         # "any number of threads more than one leads to 200% CPU usage"
         os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
+    # distlib, since 0.2.8, does not recognize "Obsoletes" as a legal
+    # metadata classifier, but jurko 0.6 (SOAP package) claims to be
+    # Metadata-Version 2.1 but specifies Obsolete.  Hack below makes
+    # Obsolete not cause a traceback.
+    from distlib import metadata
+    try:
+        if "Obsoletes" not in metadata._566_FIELDS:
+            metadata._566_FIELDS = metadata._566_FIELDS + ("Obsoletes",)
+    except AttributeError:
+        pass
+
     # for modules that moved out of core, allow the old imports to work for awhile...
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):
