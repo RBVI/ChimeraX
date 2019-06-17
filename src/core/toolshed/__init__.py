@@ -870,6 +870,10 @@ class Toolshed:
                     self._init_bundle_manager(session, dbi, done, initializing, failed)
             initializing.remove(bi)
         try:
+            if self._available_bundle_info:
+                all_bundles = self._installed_bundle_info + self._available_bundle_info
+            else:
+                all_bundles = self._installed_bundle_info
             for mgr, kw in bi.managers.items():
                 if not session.ui.is_gui and kw.pop("guiOnly", False):
                     _debug("skip non-GUI manager %s for bundle %r" % (mgr, bi.name))
@@ -881,7 +885,7 @@ class Toolshed:
                     if logger:
                         logger.error("Manager %r failed to initialize" % mgr)
                     continue
-                for pbi in self._installed_bundle_info + self._available_bundle_info:
+                for pbi in all_bundles:
                     for pvdr, params in pbi.providers.items():
                         p_mgr, kw = params
                         if p_mgr == mgr:
