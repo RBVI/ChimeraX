@@ -46,14 +46,21 @@ def label_create(session, name, text = '', color = None, background = None,
         from chimerax.core.errors import UserError
         raise UserError("'all' is reserved to refer to all labels")
     kw = locals().copy()
-    if color is not None:
+    from chimerax.core.colors import Color
+    if isinstance(color, Color):
         kw['color'] = color.uint8x4()
+    elif color == 'default':
+        kw['color'] = None
+    if isinstance(background, Color):
+        kw['background'] = background.uint8x4()
+    elif background == 'none':
+        kw['background'] = None
     return Label(**kw)
 
 
 # -----------------------------------------------------------------------------
 #
-def label_change(session, name, *, text = None, color = None, background = False,
+def label_change(session, name, *, text = None, color = None, background = None,
                  size = None, font = None, bold = None, italic = None,
                  xpos = None, ypos = None, visibility = None, frames = None):
     '''Change label parameters.'''
@@ -70,29 +77,53 @@ def label_change(session, name, *, text = None, color = None, background = False
     if text is not None: l.text = text
     if italic is not None: l.italic = italic
     if frames is None:
-        if color is not None: l.color = color.uint8x4()
-        if background is not False:
-            l.background = None if background is None else background.uint8x4()
+        if color is not None:
+            l.color = None if color == 'default' else color.uint8x4()
+        if background is not None:
+            l.background = None if background == 'none' else background.uint8x4()
         if size is not None: l.size = size
         if xpos is not None: l.xpos = xpos
         if ypos is not None: l.ypos = ypos
         if visibility is not None: l.visibility = visibility
         l.update_drawing()
     else:
-        if background is False:
-            bg = l.background
-        elif background is None:
-            bg = None
-        else:
-            bg = background.uint8x4()
-        _InterpolateLabel(session, l, color, bg, size, xpos, ypos, visibility, frames)
+        _InterpolateLabel(session, l, color, background, size, xpos, ypos, visibility, frames)
     return l
 
 class _InterpolateLabel:
     def __init__(self, session, label, color, background, size, xpos, ypos, visibility, frames):
         self.label = label
-        self.color1, self.color2 = label.color.copy(), (color.uint8x4() if color else color)
-        self.bg1, self.bg2 = (None if label.background is None else label.background.copy()), background
+        from numpy import array_equal
+        if color is None:
+            # no change
+            self.interp_color = False
+        else:
+            color2 = None if color == 'none' else color.uint8x4()
+            if array_equal(label.color, color2):
+                self.interp_color = False
+            elif label.color is None or color2 is None:
+                # abrupt transition if color going to/from default
+                label.color = color2
+                self.interp_color = False
+            else:
+                self.color1 = label.color
+                self.color2 = bg2
+                self.interp_color = True
+        if background is None:
+            # no change
+            self.interp_background = False
+        else:
+            bg2 = None if background == 'none' else background.uint8x4()
+            if array_equal(label.background, bg2):
+                self.interp_background = False
+            elif label.background is None or bg2 is None:
+                # abrupt transition if adding/losing background
+                label.background = bg2
+                self.interp_background = False
+            else:
+                self.bg1 = label.background
+                self.bg2 = bg2
+                self.interp_background = True
         self.size1, self.size2 = label.size, size
         self.xpos1, self.xpos2 = label.xpos, xpos
         self.ypos1, self.ypos2 = label.ypos, ypos
@@ -104,18 +135,17 @@ class _InterpolateLabel:
     def frame_cb(self, session, frame):
         fraction = frame / (self.frames-1)
         from numpy import array_equal
-        if self.color2 is not None and not array_equal(self.color1, self.color2):
+        if self.interp_color:
             if frame == self.frames-1:
                 self.label.color = self.color2
             else:
                 self.label.color = ((1 - fraction) * self.color1
                     + fraction * self.color2).astype(self.color1.dtype)
-        if type(self.bg1) != type(self.bg2):
-            self.label.background = self.bg2
-        elif self.bg1 is None:
-            self.label.background = None
-        else:
-            self.label.background = ((1 - fraction) * self.bg1 + fraction * self.bg2).astype(self.bg1.dtype)
+        if self.interp_background:
+            if frame == self.frames-1:
+                self.label.background = self.bg2
+            else:
+                self.label.background = ((1 - fraction) * self.bg1 + fraction * self.bg2).astype(self.bg1.dtype)
         if self.size2 is not None and self.size1 != self.size2:
             if frame == self.frames-1:
                 self.label.size = self.size2
@@ -192,14 +222,14 @@ def label_listfonts(session):
 #
 def register_label_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, Or, \
-        BoolArg, IntArg, StringArg, FloatArg, ColorArg, NoneArg
+    from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
+    from .label3d import DefArg, NoneArg
 
     rargs = [('name', StringArg)]
     existing_arg = [('name', NameArg)]
     # Create and change have same arguments
     cargs = [('text', StringArg),
-             ('color', ColorArg),
+             ('color', Or(DefArg, ColorArg)),
              ('background', Or(NoneArg, ColorArg)),
              ('size', IntArg),
              ('font', StringArg),
