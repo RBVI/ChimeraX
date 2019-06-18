@@ -132,14 +132,14 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void clear_hide_bits(int)
         const Rgba& color()
         bool connects_to(Atom*)
-        Coord coord() except +
-        Coord coord(char)
-        Coord coord(CoordSet*) except +
+        cycoord.Coord coord() except +
+        cycoord.Coord coord(char)
+        cycoord.Coord coord(CoordSet*) except +
         int coord_index()
         float default_radius()
         bool display()
         DrawMode draw_mode()
-        const Element& element()
+        const cyelem.Element& element()
         bool has_alt_loc(char)
         int hide()
         const char* idatm_type()
@@ -158,9 +158,9 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         float radius()
         Residue* residue()
         const Rings& rings(bool, int)
-        Coord scene_coord()
-        Coord scene_coord(char)
-        Coord scene_coord(CoordSet*)
+        cycoord.Coord scene_coord()
+        cycoord.Coord scene_coord(char)
+        cycoord.Coord scene_coord(CoordSet*)
         bool selected()
         int serial_number()
         void set_alt_loc(char) except +
@@ -168,8 +168,8 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_aniso_u(float, float, float, float, float, float)
         void set_bfactor(float)
         void set_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
-        void set_coord(const Point&)
-        void set_coord(const Point&, CoordSet*)
+        void set_coord(const cycoord.Point&)
+        void set_coord(const cycoord.Point&, CoordSet*)
         void set_display(bool)
         void set_draw_mode(DrawMode)
         void set_hide(int)
