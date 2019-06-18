@@ -252,50 +252,32 @@ The <b>molmap</b> command is based on the <b>pdb2mrc</b> program in EMAN.
   </ul>
 </blockquote>
 <blockquote>
-  <a name="axis"><b>axis</b> <i>axis</i></a>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="axis"></a><b>axis</b>
+  &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>
   <br>
-  Specify axis of symmetry (default <b>z</b>), where <i>axis</i> can be:
-   <ul>
-   <li><b>x</b> - X-axis
-   <li><b>y</b> - Y-axis 
-   <li><b>z</b> - Z-axis
-   <li><i>x,y,z</i>
-   (three values separated by commas only) - an arbitrary vector
-   in the <a href="#coordinateSystem">reference coordinate system</a>
-   <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
-   exactly two atoms (not necessarily bonded or in the same model)
-<!-- or one bond.
-   A bond can only be specified by <a href="../selection.html">selecting</a>
-   it and using the word <b>sel</b>;
-   any atoms also selected at the time will be ignored.
--->
+  Specify axis of symmetry
+  <a href="pointspec.html#vector">vector</a> (default <b>z</b>).
   </ul>
 </blockquote>
 <blockquote>
-  <a name="center"><b>center</b> <i>center</i></a>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="center"></a><b>center</b>
+  &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>
   <br>
-  Specify center of symmetry (default <b>0,0,0</b>), 
-  where <i>center</i> can be:
-  <ul>
-  <li><i>x,y,z</i>
-   (three values separated by commas only) - an arbitrary point
-  in the <a href="#coordinateSystem">reference coordinate system</a>
-  <li>an <a href="atomspec.html"><i>atom-spec</i></a>
-  of any combination of atoms and surface models.
-  The center of the bounding sphere of the specified items will be used.
-  </ul>
+  Specify center of symmetry <a href="pointspec.html#point">point</a>
+  (default <b>0,0,0</b>).
 </blockquote>
 <blockquote>
-  <a name="coordinateSystem"><b>coordinateSystem</b> <i>N</i></a>
+  <a name="coordinateSystem"></a><b>coordinateSystem</b>
+  &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
   <br>
-  Specify a reference model 
-  (default is the atomic model containing the specified atoms)
-  by model number <i>N</i> preceded by #.  
-  The reference coordinate system is used for interpreting specifications of
+  Specify a reference coordinate system for interpreting specifications of
   <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
+  The default is the atomic model containing the specified atoms.
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2016</address>
+June 2019</address>
 </body></html>
