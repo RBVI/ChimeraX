@@ -29,7 +29,7 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>turn</b>
 [&nbsp;<i>axis</i>&nbsp;[&nbsp;<i>angle</i>&nbsp; [&nbsp;<i>frames</i>&nbsp;]]]
 [&nbsp;<b>rock</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;|&nbsp;<b>atoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 &nbsp;]
@@ -40,6 +40,21 @@ The <b>turn</b> command performs a rotation of <i>angle</i>
 at each of a specified number of image update <i>frames</i>
 (default <b>1</b> frame, except <b>infinity</b> if <b>rock</b> is used;
 can be halted with <a href="stop.html"><b>stop</b></a>).
+The commands <b>turn</b> and <a href="roll.html"><b>roll</b></a> are the same
+except for their default values of <i>angle</i> and <i>frames</i>.
+See also:
+<b><A href="cofr.html">cofr</A></b>,
+<b><A href="move.html">move</A></b>,
+<a href="zoom.html"><b>zoom</b></a>,
+<a href="ui.html#mousemode"><b>mousemode</b></a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotate.png"></a>,
+<a href="torsion.html"><b>torsion</b></a>,
+<a href="../movies.html">making movies</a>
+</p><p>
+The <i>axis</i> can be <b>x</b>, <b>y</b>, <b>z</b> or any of the other
+standard <a href="pointspec.html#vector">vector specifications</a>.
+</p><p>
 The <i>angle</i> can be positive or negative. 
 The <b>rock</b> option wags models back and forth around the specified
 <i>axis</i> with an amplitude of <i>angle</i> in each direction
@@ -47,65 +62,29 @@ and <i>N</i> frames per cycle, continuing until all <i>frames</i> have elapsed.
 Like that of a pendulum, the movement is slower near the turnaround points
 1/4 and 3/4 of the way through a cycle.
 </p><p>
+The <b>center</b> default is the current
+<a href="cofr.html">center of rotation</a>.
+Alternatively, the center can be given as
+<i>x,y,z</i> (three values separated by commas only),
+an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
+standard <a href="pointspec.html#vector">point specifications</a>.
+If an <a href="atomspec.html"><i>atom-spec</i></a> is used, the first model
+it contains will be used for reference frame pinning 
+unless a <b>coordinateSystem</b> is also given.
+</p><p>
+A <b>coordinateSystem</b> can be specified by reference model number.
+If further motions are applied to an ongoing rotation, 
+the center and axis will remain pinned relative to this reference model.
+If no reference model is given, axis coordinates will be interpreted 
+in the <a href="view.html#screencoords">screen coordinate system</a>
+(X horizontal, Y vertical, Z in/out of screen) and center coordinates
+in the <a href="view.html#scenecoords">scene coordinate system</a>.
+</p><p>
 The rotation applies to the specified <b>models</b> or <b>atoms</b>;
 if none are specified, the scene will be rotated as a whole.
 A movement of <b>atoms</b> cannot be undone except
 with a command that applies the opposite movement to the same atoms
 (not always easy to construct) or by reopening the original structure.
-The commands <b>turn</b> and <a href="roll.html"><b>roll</b></a> are the same
-except for their default values of <i>angle</i> and <i>frames</i>.
-See also:
-<b><A href="cofr.html">cofr</A></b>,
-<b><A href="move.html">move</A></b>,
-<a href="zoom.html"><b>zoom</b></a>,
-<a href="ui.html#mousemode"><b>mousemode</b></a>,
-<a href="torsion.html"><b>torsion</b></a>,
-<a href="../movies.html">making movies</a>
-</p><p>
-The <b>coordinateSystem</b> can be specified by reference model number.
-If further motions are applied to an ongoing rotation, 
-the center and axis will remain pinned relative to this reference model.
-If no reference model is given,
-the <a href="view.html#screencoords">screen coordinate system</a>
-(X horizontal, Y vertical, Z in/out) will be used for the <i>axis</i>
-and the <a href="view.html#scenecoords">scene coordinate system</a>
-for the <i>center</i> when they are given as coordinates
-(as opposed to an <a href="atomspec.html"><i>atom-spec</i></a>).
-</p><p>
-The <i>axis</i> can be:
-</p>
-<ul>
-<li><b>x</b> - X-axis 
-<li><b>y</b> - Y-axis
-<li><b>z</b> - Z-axis
-<li><i>x,y,z</i> 
-(three values separated by commas only) - an arbitrary vector
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> of 
-exactly two atoms (not necessarily bonded or in the same model).
-The order of the atoms defines a handedness, and right-handed
-rotations are positive.
-If a center is not specified separately, 
-it will lie on the atom-atom axis.  
-If a separate center is supplied, only the direction of the axis will be used.
-The first model in the axis <a href="atomspec.html"><i>atom-spec</i></a> 
-will be used for reference frame pinning unless 
-a <b>center</b> <a href="atomspec.html"><i>atom-spec</i></a> 
-or a <b>coordinateSystem</b> is also given.  
-</ul>
-<p>
-The <i>center</i> can be:
-</p>
-<ul>
-<li><i>x,y,z</i> 
-(three values separated by commas only) - an arbitrary point
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> 
-- the center of the bounding box of the specified items.
-The first model in <a href="atomspec.html"><i>atom-spec</i></a> 
-will be used for reference frame pinning unless a <b>coordinateSystem</b> 
-is also given.
-</ul>
-<p>
-If no center is specified, the current center of rotation will be used.
 </p><p>
 Commands continue to be processed while the requested motion is in progress. 
 To pause command processing until the motion is finished,
@@ -115,5 +94,5 @@ To halt an ongoing <b>turn</b>, use <a href="stop.html"><b>stop</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+June 2019</address>
 </body></html> 

@@ -29,26 +29,31 @@ class="clRight" title="User Guide Index"/></a>
 <tr><td><img class="outline" src="sideview.png" alt="Side View"></td></tr>
 </table>
 <p>
-The <b>Side View</b> tool provides a convenient and intuitive way to zoom
-the view and to control global clipping.
-See also: <a href="../commands/clip.html"><b>clip</b></a>,
+The <b>Side View</b> tool provides an intuitive way to zoom
+the view and to control the <b>near</b> and <b>far</b> clipping planes, 
+which always remain perpendicular to the line of sight.
+For rotatable (<b>front</b> and <b>back</b>) clipping planes, see the
+<a href="../commands/clip.html"><b>clip</b></a> command.
+See also: 
 <a href="../commands/cofr.html"><b>cofr</b></a>,
 <a href="../commands/zoom.html"><b>zoom</b></a>,
-<a href="../commands/camera.html"><b>camera</b></a>
+<a href="../commands/camera.html"><b>camera</b></a>,
+<a href="../commands/ui.html#mousemode"><b>mousemode</b></a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/clip.png"></a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>
 </p><p>
-Like other tools, this interface can be opened from the <b>Tools</b> menu
+Like other tools, the <b>Side View</b> can be opened from the <b>Tools</b> menu
 (<a href="../window.html#panels">more...</a>).
 </p>
 <ul>
-<li>The square on the left represents the viewer's <b>eye position</b>. 
-Dragging it horizontally adjusts the zoom.
+<li>The square on the left represents the viewer or <b>eye position</b>.
+It can be dragged horizontally to adjust the zoom.
 <br><br>
-<li>The vertical lines represent <b>near</b> and <b>far</b>
-<a href="../commands/clip.html">clipping planes</a>,
-which always remain perpendicular to the line of sight and are
-&ldquo;global&rdquo; in that they apply to everything. 
-Dragging one of the vertical lines activates 
-(as needed) and moves the corresponding plane.
+<li>The vertical lines represent the <b>near</b> and <b>far</b>
+<a href="../commands/clip.html">clipping planes</a>.
+Dragging either line activates (as needed) and moves the corresponding plane.
 <br><br>
 <li>The lines emanating from the eye position show the field of vision.
 The lines diverge when perspective is used (default),
