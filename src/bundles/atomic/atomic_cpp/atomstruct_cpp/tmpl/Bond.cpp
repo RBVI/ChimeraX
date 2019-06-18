@@ -16,6 +16,9 @@
 #define ATOMSTRUCT_EXPORT
 #include "restmpl.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<tmpl::Bond>;
+
 namespace tmpl {
 
 Bond::Bond(Molecule *, Atom *a0, Atom *a1)

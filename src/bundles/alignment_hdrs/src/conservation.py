@@ -210,12 +210,21 @@ class Conservation(DynamicHeaderSequence):
         if len(self.alignment.seqs) == 1:
             self[:] = [100.0] * len(self.alignment.seqs[0])
             return
+        session = self.alignment.session
         self[:] = []
+        # sequence names in the alignment may contain characters that cause AL2CO to barf,
+        # so make a temporary alignment with sanitized names
+        from copy import copy
+        sane_seqs = [copy(seq) for seq in self.alignment.seqs]
+        for i, sseq in enumerate(sane_seqs):
+            sseq.name = str(i)
+        temp_alignment = session.alignments.new_alignment(sane_seqs, False, auto_associate=False, name="temp")
         from tempfile import NamedTemporaryFile
         temp_stream = NamedTemporaryFile(mode='w', encoding='utf8', suffix=".aln", delete=False)
-        self.alignment.save(temp_stream, format_name="aln")
+        temp_alignment.save(temp_stream, format_name="aln")
         file_name = temp_stream.name
         temp_stream.close()
+        session.alignments.destroy_alignment(temp_alignment)
         import os.path
         command = [os.path.join(os.path.dirname(__file__), "bin", "al2co.exe"),
             "-i", file_name,
@@ -226,7 +235,7 @@ class Conservation(DynamicHeaderSequence):
         if self.settings.al2co_cons == 2:
             command += ["-m", str(self.settings.al2co_transform)]
             from chimerax.seqalign.sim_matrices import matrix_files
-            matrix_lookup = matrix_files(self.alignment.session)
+            matrix_lookup = matrix_files(session)
             if self.settings.al2co_matrix in matrix_lookup:
                 command += [ "-s", matrix_lookup[self.settings.al2co_matrix] ]
         try:

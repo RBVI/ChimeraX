@@ -22,6 +22,7 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include <element/Element.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include "../string_types.h"
 
 namespace tmpl {
@@ -33,7 +34,7 @@ using element::Element;
 class Molecule;
 class Residue;
 
-class ATOMSTRUCT_IMEX Atom {
+class ATOMSTRUCT_IMEX Atom: public pyinstance::PythonInstance<Atom> {
 public:
     typedef std::vector<Bond*> Bonds;
     typedef std::vector<Atom*> Neighbors;
@@ -59,6 +60,7 @@ public:
         _neighbors.push_back(b->other_atom(this));
     }
     const Bonds&  bonds() const { return _bonds; }
+    const Coord&  coord() const;
     const Element&       element() const { return *_element; }
     Molecule*     molecule() const { return _molecule; }
     Residue*      residue() const { return _residue; }
