@@ -227,7 +227,7 @@ cdef class CyAtom:
         if len(xyz) != 3:
             raise ValueError("set_coord(xyz): 'xyz' must be length 3")
         if self._deleted: raise RuntimeError("Atom already deleted")
-        self.cpp_atom.set_coord(cydecl.Point(xyz[0], xyz[1], xyz[2]))
+        self.cpp_atom.set_coord(cydecl.cycoord.Point(xyz[0], xyz[1], xyz[2]))
 
     @property
     def coord_index(self):
@@ -593,7 +593,7 @@ cdef class CyAtom:
         if not cs:
             raise ValueError("No such coordset ID: %d" % cs_id)
         if self._deleted: raise RuntimeError("Atom already deleted")
-        self.cpp_atom.set_coord(cydecl.Point(xyz[0], xyz[1], xyz[2]), cs)
+        self.cpp_atom.set_coord(cydecl.cycoord.Point(xyz[0], xyz[1], xyz[2]), cs)
 
     def set_hide_bits(self, bit_mask):
         '''Set the hide bits 'on' that are 'on' in "bitmask"'''
@@ -654,12 +654,12 @@ cdef class CyAtom:
 
 cdef class Element:
     '''A chemical element having a name, number, mass, and other physical properties.'''
-    cdef cydecl.Element *cpp_element
+    cdef cydecl.cyelem.Element *cpp_element
 
-    NUM_SUPPORTED_ELEMENTS = cydecl.Element.AS.NUM_SUPPORTED_ELEMENTS
+    NUM_SUPPORTED_ELEMENTS = cydecl.cyelem.Element.AS.NUM_SUPPORTED_ELEMENTS
 
     def __cinit__(self, ptr_type ptr_val):
-        self.cpp_element = <cydecl.Element *>ptr_val
+        self.cpp_element = <cydecl.cyelem.Element *>ptr_val
 
     def __init__(self, ptr_val):
         if not isinstance(ptr_val, int) or ptr_val < 256:
@@ -717,7 +717,7 @@ cdef class Element:
         "Supported API. Atomic symbol.  Read only"
         return self.cpp_element.name().decode()
 
-    names = { sym.decode() for sym in cydecl.Element.names() }
+    names = { sym.decode() for sym in cydecl.cyelem.Element.names() }
     '''Set of known element names'''
 
     @property
@@ -736,8 +736,8 @@ cdef class Element:
 
     @staticmethod
     cdef float _bond_length(ptr_type e1, ptr_type e2):
-        return cydecl.Element.bond_length(
-            dereference(<cydecl.Element*>e1), dereference(<cydecl.Element*>e2))
+        return cydecl.cyelem.Element.bond_length(
+            dereference(<cydecl.cyelem.Element*>e1), dereference(<cydecl.cyelem.Element*>e2))
 
     @staticmethod
     def bond_length(e1, e2):
@@ -751,7 +751,7 @@ cdef class Element:
 
     @staticmethod
     cdef float _bond_radius(ptr_type e):
-        return cydecl.Element.bond_radius(dereference(<cydecl.Element*>e))
+        return cydecl.cyelem.Element.bond_radius(dereference(<cydecl.cyelem.Element*>e))
 
     @staticmethod
     def bond_radius(e):
@@ -764,32 +764,32 @@ cdef class Element:
 
     @staticmethod
     def c_ptr_to_existing_py_inst(ptr_type ptr_val):
-        return (<cydecl.Element *>ptr_val).py_instance(False)
+        return (<cydecl.cyelem.Element *>ptr_val).py_instance(False)
 
     @staticmethod
     def c_ptr_to_py_inst(ptr_type ptr_val):
-        return (<cydecl.Element *>ptr_val).py_instance(True)
+        return (<cydecl.cyelem.Element *>ptr_val).py_instance(True)
 
     @staticmethod
-    cdef const cydecl.Element* _string_to_cpp_element(const char* ident):
-        return &cydecl.Element.get_named_element(ident)
+    cdef const cydecl.cyelem.Element* _string_to_cpp_element(const char* ident):
+        return &cydecl.cyelem.Element.get_named_element(ident)
 
     @staticmethod
-    cdef const cydecl.Element* _int_to_cpp_element(int ident):
-        return &cydecl.Element.get_element(ident)
+    cdef const cydecl.cyelem.Element* _int_to_cpp_element(int ident):
+        return &cydecl.cyelem.Element.get_element(ident)
 
     @staticmethod
     def get_element(ident):
         "Supported API.  Given an atomic symbol or atomic number, return the"
         " corresponding Element instance."
-        cdef const cydecl.Element* ele_ptr
+        cdef const cydecl.cyelem.Element* ele_ptr
         if isinstance(ident, int):
             ele_ptr = Element._int_to_cpp_element(ident)
         else:
             ele_ptr = Element._string_to_cpp_element(ident.encode())
         return ele_ptr.py_instance(True)
 
-cydecl.Element.set_py_class(Element)
+cydecl.cyelem.Element.set_py_class(Element)
 
 cdef class CyResidue:
     '''Base class for Residue, and is present only for performance reasons.'''
