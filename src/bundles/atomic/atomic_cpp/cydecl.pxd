@@ -17,40 +17,8 @@ from libcpp.map cimport map
 from libcpp.set cimport set
 from libcpp.vector cimport vector
 from libcpp cimport bool
-
-cdef extern from "<element/Element.h>" namespace "element::Element":
-    ctypedef enum AS:
-        NUM_SUPPORTED_ELEMENTS
-
-cdef extern from "<element/Element.h>" namespace "element":
-    cdef cppclass Element:
-        bool is_alkali_metal()
-        bool is_halogen()
-        bool is_metal()
-        bool is_noble_gas()
-        float mass()
-        const char* name()
-        int number()
-        object py_instance(bool)
-        int valence()
-
-        @staticmethod
-        float bond_length(Element&, Element&)
-
-        @staticmethod
-        float bond_radius(Element&)
-
-        @staticmethod
-        const Element& get_element(int)
-
-        @staticmethod
-        const Element& get_named_element "get_element"(const char*)
-
-        @staticmethod
-        const set[string]& names()
-
-        @staticmethod
-        void set_py_class(object)
+cimport cyelem
+cimport cycoord
 
 cdef extern from "<atomstruct/Structure.h>" namespace "atomstruct":
     cdef cppclass CoordSet
@@ -70,12 +38,6 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     ctypedef string AtomType
     cdef cppclass Bond
     cdef cppclass Ring
-
-    cdef cppclass Coord:
-        double operator[](int)
-
-    cdef cppclass Point:
-        Point(double x, double y, double z)
 
     cdef cppclass Rgba:
         ctypedef unsigned char Channel
