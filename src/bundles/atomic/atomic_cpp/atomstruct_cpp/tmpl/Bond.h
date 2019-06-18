@@ -16,6 +16,7 @@
 #ifndef templates_Bond
 #define    templates_Bond
 
+#include <pyinstance/PythonInstance.declare.h>
 #include "../imex.h"
 
 namespace tmpl {
@@ -23,7 +24,7 @@ namespace tmpl {
 class Atom;
 class Molecule;
 
-class ATOMSTRUCT_IMEX Bond {
+class ATOMSTRUCT_IMEX Bond: public pyinstance::PythonInstance<Bond> {
     friend class Atom;
     friend class Molecule;
     void    operator=(const Bond &);    // disable

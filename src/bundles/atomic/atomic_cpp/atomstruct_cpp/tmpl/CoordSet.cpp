@@ -17,6 +17,9 @@
 #define ATOMSTRUCT_EXPORT
 #include "restmpl.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<tmpl::CoordSet>;
+
 namespace tmpl {
 
 void

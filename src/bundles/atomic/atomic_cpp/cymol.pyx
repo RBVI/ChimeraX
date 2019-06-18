@@ -1496,4 +1496,3 @@ def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
     br.angle += new_angle - cur_angle
     res = bond.atoms[0].residue
     res.structure.change_tracker.add_modified(res, attr_name + " changed")
-

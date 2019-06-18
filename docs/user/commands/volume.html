@@ -46,10 +46,10 @@ The corresponding graphical interface,
 allows adjusting contour levels and some of the other settings interactively. 
 Contour levels can also be changed interactively with the
 <a href="ui.html#mousemode">mouse mode</a> for <b>contour level</b>
-<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
 or <b>windowing</b> 
-<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>.
 </p><p>
 Volume data can be opened with the command
@@ -128,6 +128,8 @@ The <b>volume</b> command has many options, here grouped into categories:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/eraser.png"></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
@@ -227,10 +229,10 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> histogram
   or by using the <a href="ui.html#mousemode">mouse mode</a> for
   <b>contour level</b>
-  <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+  <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
   or <b>windowing</b> 
-  <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+  <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>
   in the graphics window.
 </blockquote>
@@ -465,7 +467,7 @@ See also:
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/fullvolume.png"></a>,
 the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
-<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>
 </blockquote>
 <blockquote>
@@ -514,7 +516,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   Most <i>sym-type</i> options have additional sub-options or parameters:
   <ul>
   <li>symmetry of model <b>#<i>N</i></b>
-  - use &ldquo;biological assembly&rdquo; information from an atomic
+  &ndash; use &ldquo;biological assembly&rdquo; information from an atomic
   model (currently only read from PDB format, not mmCIF)
   or the symmetry assignment of another volume model
     <ul type="none">
@@ -523,7 +525,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 
   <li>cage model (from <b>Cage Builder</b>) polygon symmetry
   <b>#<i>N</i>,p<i>M</i></b> or <b>#<i>N</i>,pn<i>M</i></b>
-  - place copies at equivalent positions relative to each M-sided polygon
+  &ndash; place copies at equivalent positions relative to each M-sided polygon
   in the cage model with ID number <b>N</b>. The <b>p<i>M</i></b> form places
   one copy per M-sided polygon, whereas <b>pn<i>M</i></b> places M copies per
   M-sided polygon using C<font size=-1><i>M</i></font> symmetry about the center
@@ -552,9 +554,9 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
    where <i>orientation</i> can be:
    <ul>
    <li><b>222</b> (default)
-   - with two-fold symmetry axes along the X, Y, and Z axes, a three-fold
+   &ndash; with two-fold symmetry axes along the X, Y, and Z axes, a three-fold
     along axis (1,1,1)
-   <li><b>z3</b> - a three-fold symmetry axis along Z, another three-fold
+   <li><b>z3</b> &ndash; a three-fold symmetry axis along Z, another three-fold
    axis in the YZ plane such that rotation about the X axis by ~110&deg; is a
    symmetry operation (EMAN convention)
    </ul>
@@ -569,14 +571,14 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
    where <i>orientation</i> can be:
     <ul>
     <li><b>222</b> (default)
-    - with two-fold symmetry axes along the X, Y, and Z axes
-    <li><b>2n5</b> - with two-fold symmetry along X and 5-fold along Z
-    <li><b>n25</b> - with two-fold symmetry along Y and 5-fold along Z
-    <li><b>2n3</b> - with two-fold symmetry along X and 3-fold along Z
-    <li><b>222r</b> - same as 222 except rotated 90&deg; about Z
-    <li><b>2n5r</b> - same as 2n5 except rotated 180&deg; about Y
-    <li><b>n25r</b> - same as n25 except rotated 180&deg; about X
-    <li><b>2n3r</b> - same as 2n3 except rotated 180&deg; about Y
+    &ndash; with two-fold symmetry axes along the X, Y, and Z axes
+    <li><b>2n5</b> &ndash; with two-fold symmetry along X and 5-fold along Z
+    <li><b>n25</b> &ndash; with two-fold symmetry along Y and 5-fold along Z
+    <li><b>2n3</b> &ndash; with two-fold symmetry along X and 3-fold along Z
+    <li><b>222r</b> &ndash; same as 222 except rotated 90&deg; about Z
+    <li><b>2n5r</b> &ndash; same as 2n5 except rotated 180&deg; about Y
+    <li><b>n25r</b> &ndash; same as n25 except rotated 180&deg; about X
+    <li><b>2n3r</b> &ndash; same as 2n3 except rotated 180&deg; about Y
     </ul>
 
   <li>helical symmetry
@@ -618,39 +620,21 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="axis"><b>axis</b> &nbsp;<i>axis</i></a>
+  <a name="axis"></a><b>axis</b>
+  &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>
   <br>
-  Specify axis of symmetry (default <b>z</b>), where <i>axis</i> can be:
-   <ul>
-   <li><b>x</b> - X-axis
-   <li><b>y</b> - Y-axis
-   <li><b>z</b> - Z-axis
-   <li><i>x,y,z</i>
-   (three values separated by commas only) - an arbitrary vector
-   in the <a href="#coordinateSystem">reference coordinate system</a>
-  <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
-   exactly two atoms (not necessarily bonded or in the same model) 
-<!-- or one bond.
-   A bond can only be specified by <a href="../selection.html">selecting</a>
-   it and using the word <b>sel</b>;
-   any atoms also selected at the time will be ignored.
--->
+  Specify axis of symmetry 
+  <a href="pointspec.html#vector">vector</a> (default <b>z</b>).
   </ul>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="center"><b>center</b> &nbsp;<i>center</i></a>
+  <a name="center"></a><b>center</b> 
+  &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>
   <br>
-  Specify center of symmetry in physical coordinates (default <b>0,0,0</b>),
-  where <i>center</i> can be:
-  <ul>
-  <li><i>x,y,z</i>
-   (three values separated by commas only) - an arbitrary point
-  in the <a href="#coordinateSystem">reference coordinate system</a>
-  <li>an <a href="atomspec.html"><i>atom-spec</i></a>
-  of any combination of atoms and surface models.
-  The center of the bounding sphere of the specified items will be used.
-  </ul>
+  Specify center of symmetry
+  <a href="pointspec.html#point">point</a> in physical coordinates
+  (default <b>0,0,0</b>).
   This option is overridden by <a href="#centerIndex"><b>centerIndex</b></a>.
 </blockquote>
 <blockquote>
@@ -666,10 +650,10 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="coordinateSystem"><b>coordinateSystem</b> &nbsp;<i>N</i></a>
+  <a name="coordinateSystem"></a><b>coordinateSystem</b> 
+  &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
   <br>
-  Specify a reference model by model number <i>N</i> preceded by #.
-  The reference coordinate system is used for interpreting specifications of
+  Specify a reference coordinate system for interpreting specifications of
   <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
 </blockquote>
 <blockquote>
@@ -714,7 +698,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/plane.png"></a>,
   the <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
-<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>,
 <a href="#tile"><b>volume tile</b></a>
 <p>
@@ -753,7 +737,7 @@ and data value in a pop-up balloon.
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>,
   the <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
-<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>
 </blockquote>
 <blockquote>
@@ -927,11 +911,11 @@ both depict isosurfaces.
   Possible values of <i>cmode</i> combine 
   a string describing the types of information:
   <ul class="circle">
-  <li><b>rgba</b> - multiple colors and transparency
-  <li><b>rgb</b> - multiple colors, opaque
-  <li><b>la</b> - luminance (single color) and transparency
-  <li><b>l</b> - luminance (single color), opaque
-  <li><b>auto</b> - set the mode based on the current display
+  <li><b>rgba</b> &ndash; multiple colors and transparency
+  <li><b>rgb</b> &ndash; multiple colors, opaque
+  <li><b>la</b> &ndash; luminance (single color) and transparency
+  <li><b>l</b> &ndash; luminance (single color), opaque
+  <li><b>auto</b> &ndash; set the mode based on the current display
   </ul>
   ... with a number of bits: <b>4</b>, <b>8</b>, <b>12</b>, <b>16</b>.
   For example, the default <i>cmode</i> is <b>auto8</b>. 
@@ -975,10 +959,10 @@ See also:
 What <i>spacing</i> to use with <a href="#pmode"><b>projectionMode 3d</b></a>,
 with possible values:
   <ul class="circle">
-  <li><b>min</b> (default) - smallest spacing of the data along X, Y, or Z
-  <li><b>max</b> - largest spacing of the data along X, Y, or Z
-  <li><b>mean</b> - mean of the data spacing along X, Y, and Z
-  <li><i>d</i> - a specific distance in physical units of length
+  <li><b>min</b> (default) &ndash; smallest spacing of the data along X, Y, or Z
+  <li><b>max</b> &ndash; largest spacing of the data along X, Y, or Z
+  <li><b>mean</b> &ndash; mean of the data spacing along X, Y, and Z
+  <li><i>d</i> &ndash; a specific distance in physical units of length
   </ul>
 </blockquote>
 <blockquote>
@@ -1174,79 +1158,81 @@ volume add #2-25 onGrid #1
 Several operations are available:
 </p>
 <ul>
-<li><a href="#add"><b>volume add</b></a> - add two or more maps
+<li><a href="#add"><b>volume add</b></a> &ndash; add two or more maps
 <li><a href="#bin"><b>volume bin</b></a>
-- reduce data size by averaging over cells of multiple grid points
+&ndash; reduce data size by averaging over cells of multiple grid points
 <li><a href="#boxes"><b>volume boxes</b></a>
-- extract cubic regions centered on
+&ndash; extract cubic regions centered on
 <a href="../markers.html">markers</a> or atoms
 <li><a href="#cover"><b>volume cover</b></a>
-- extend map to cover specified atoms or box
+&ndash; extend map to cover specified atoms or box
 <li><a href="#erase"><b>volume erase</b></a>
-- erase (zero) map inside or outside of a defined sphere 
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/eraser.png"></a>
+&ndash; erase (zero) map inside or outside of a defined sphere 
 <li><a href="#falloff"><b>volume falloff</b></a>
-- smooth the boundaries of masked density
+&ndash; smooth the boundaries of masked density
 <li><a href="#flatten"><b>volume flatten</b></a>
-- scale values to flatten map baseline
+&ndash; scale values to flatten map baseline
 <li><a href="#flip"><b>volume flip</b></a>
-- reverse data planes along a specified axis
-<li><a href="#fourier"><b>volume fourier</b></a> - Fourier transform
+&ndash; reverse data planes along a specified axis
+<li><a href="#fourier"><b>volume fourier</b></a> &ndash; Fourier transform
 <li><a href="#gaussian"><b>volume gaussian</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/smooth.png"></a>
-- Gaussian smoothing or sharpening
-<li><a href="#laplacian"><b>volume laplacian</b></a> - Laplacian filtering
+&ndash; Gaussian smoothing or sharpening
+<li><a href="#laplacian"><b>volume laplacian</b></a> &ndash; Laplacian filtering
 <li><a href="#localCorrelation"><b>volume localCorrelation</b></a>
-- calculate map-map correlation over a sliding box
+&ndash; calculate map-map correlation over a sliding box
 <li><a href="#mask"><b>volume mask</b></a>
-- mask a map to a surface; 
+&ndash; mask a map to a surface; 
 see also <a href="#onesmask"><b>volume onesmask</b></a>
 <li><a href="#maximum"><b>volume maximum</b></a>
-- take the maximum values pointwise from two or more maps
+&ndash; take the maximum values pointwise from two or more maps
 <li><a href="#median"><b>volume median</b></a>
-- set each value to the median of values in a surrounding box
+&ndash; set each value to the median of values in a surrounding box
 <li><a href="#minimum"><b>volume minimum</b></a>
-- take the minimum values pointwise from two or more maps
+&ndash; take the minimum values pointwise from two or more maps
 <li><a href="#morph"><b>volume morph</b></a>
-- morph (interpolate) between two or more maps
+&ndash; morph (interpolate) between two or more maps
 <li><a href="#multiply"><b>volume multiply</b></a>
-- multiply values in two or more maps
-<li><a href="#new"><b>volume new</b></a> - create empty (zero-valued) map;
+&ndash; multiply values in two or more maps
+<li><a href="#new"><b>volume new</b></a> &ndash; create empty (zero-valued) map;
 see also <a href="#onesmask"><b>volume onesmask</b></a>
-<li><a href="#cutoctant"><b>volume ~octant</b></a> - erase positive octant
+<li><a href="#cutoctant"><b>volume ~octant</b></a> &ndash; erase positive octant
 <li><a href="#octant"><b>volume octant</b></a>
-- erase all but the positive octant
+&ndash; erase all but the positive octant
 <li><a href="#onesmask"><b>volume onesmask</b></a>
-- create map with values of 1 bounded by a surface
-<li><a href="#permuteAxes"><b>volume permuteAxes</b></a> - permute axes
+&ndash; create map with values of 1 bounded by a surface
+<li><a href="#permuteAxes"><b>volume permuteAxes</b></a> &ndash; permute axes
 <li><a href="#resample"><b>volume resample</b></a>
-- resample on the grid of another map
+&ndash; resample on the grid of another map
 <li><a href="#ridges"><b>volume ridges</b></a>
-- skeletonize; emphasize ridges or filaments in the density
+&ndash; skeletonize; emphasize ridges or filaments in the density
 <li><a href="#scale"><b>volume scale</b></a>
-- scale, shift, normalize, and/or cast to a different data value type
+&ndash; scale, shift, normalize, and/or cast to a different data value type
 <li><a href="#splitbyzone"><b>volume splitbyzone</b></a>
-- split map by zones previously colored with
+&ndash; split map by zones previously colored with
 <a href="color.html#zone"><b>color zone</b></a>
 <li><a href="#subtract"><b>volume subtract</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/diffmap.png"></a>
-- subtract another map from the first
+&ndash; subtract another map from the first
 <li><a href="#threshold"><b>volume threshold</b></a>
-- reassign values that are below a specified minimum
+&ndash; reassign values that are below a specified minimum
 and/or above a specified maximum
 <li><a href="#tile"><b>volume tile</b></a>
-- make a single-plane volume from tiled slices of another volume
+&ndash; make a single-plane volume from tiled slices of another volume
 <li><a href="#unbend"><b>volume unbend</b></a>
-- unbend a map near a path formed by 
+&ndash; unbend a map near a path formed by 
 <a href="../markers.html">markers/links</a> or atoms/bonds
 <li><a href="#unroll"><b>volume unroll</b></a>
-- unroll a cylindrical slab into a flat slab
+&ndash; unroll a cylindrical slab into a flat slab
 <li><a href="#unzone"><b>volume unzone</b></a>
-- show the full extent of a map previously limited to a zone with
+&ndash; show the full extent of a map previously limited to a zone with
 <a href="#zone"><b>volume zone</b></a>
 <li><a href="#zone"><b>volume zone</b></a>
-- zero the values at grid points within or beyond a cutoff distance from
+&ndash; zero the values at grid points within or beyond a cutoff distance from
 specified atoms, or limit the display to a zone without making a new map
 </ul>
 <a href="#vop" class="nounder">&bull;</a>
@@ -1280,11 +1266,11 @@ Note resampling causes some loss in resolution
 <a name="gridmap-related">Further options related to <i>gridmap</i></a>:
   <ul>
   <li><b>boundingGrid</b>
-  - whether to adjust (extend or shrink) the grid of <i>gridmap</i>
+  &ndash; whether to adjust (extend or shrink) the grid of <i>gridmap</i>
   to bound the input maps (default <b>true</b> when adding maps
   without specifying a <i>gridmap</i>, otherwise <b>false</b>)
   <li><b>gridStep</b>
-  - whether to use the full resolution of <i>gridmap</i>
+  &ndash; whether to use the full resolution of <i>gridmap</i>
   (step size <b>1</b>, default) or a specified
   subsample (step size &gt; 1).  Step sizes must be integers.
   If a single number is supplied, it is
@@ -1292,7 +1278,7 @@ Note resampling causes some loss in resolution
   (separated by commas but not spaces), they
   are used along the X, Y, and Z axes, respectively.
   <li><b>gridSubregion</b>
-  - whether to use the full extents of <i>gridmap</i> (<b>all</b>, default)
+  &ndash; whether to use the full extents of <i>gridmap</i> (<b>all</b>, default)
   or a specified subregion.
   A subregion can be specified by:
    <ul>
@@ -1427,7 +1413,7 @@ inherent in computer calculations.
 
 <a href="#vop" class="nounder">&bull;</a>
 <a name="erase"><b>volume erase</b></a> &nbsp;<i>volume-spec</i>&nbsp;
-<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;
+<b>center</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>
 <b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>outside</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -1443,8 +1429,10 @@ a copy will be generated automatically and displayed (and the original hidden)
 so that erasures apply only to the copy. Center coordinates are interpreted in
 the <a href="view.html#scenecoords">scene coordinate system</a> unless
 the <b>coordinateSystem</b> of model <i>N</i> is specified.
-See <a href="../tools/maperaser.html"><b>Map Eraser</b></a> for
-placing the sphere interactively.
+See <a href="../tools/maperaser.html"><b>Map Eraser</b></a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/eraser.png"></a>
+for placing the sphere interactively.
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
@@ -1593,7 +1581,7 @@ the first map.
 [&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
 [&nbsp;<b>invertMask</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>axis</b> &nbsp;<i>x,y,z</i></a>&nbsp;]
+[&nbsp;<b>axis</b> &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>sandwich</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
 [&nbsp;<b>fillOverlap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
@@ -1628,11 +1616,10 @@ Positive or negative values can be used.
 The <b>invertMask</b> option allows getting the opposite result (spatial
 complement of values and zeros) of what would otherwise be obtained.
 </p><p>
-The region between surface layers is computed along the
-projection <b>axis</b> (default is along the data Y axis: <b>0,1,0</b>).
-The axis direction is relevant when the surface has holes.
-Vector coordinates <i>x,y,z</i> are in the map coordinate system;
-the vector can point in any direction and need not be of unit length.
+The region between surface layers is computed along the projection 
+<b>axis</b> (a <a href="pointspec.html#vector">vector</a> 
+specified in the map coordinate system, default <b>y</b>). 
+The axis direction matters when the surface has holes.
 The <b>sandwich</b> option specifies including only volume voxels between
 paired surface layers; if false, the volume projected along the axis beyond 
 a single surface layer will also be included.
@@ -1836,7 +1823,7 @@ Erase values outside the positive octant. Options are as described for
 [&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
 [&nbsp;<b>invertMask</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>axis</b> &nbsp;<i>x,y,z</i></a>&nbsp;]
+[&nbsp;<b>axis</b> &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>sandwich</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
 [&nbsp;<b>fillOverlap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
@@ -1927,10 +1914,10 @@ and/or cast them to a different data value type.
 When values are both shifted and scaled, the shift is applied first.
 Two normalization options calculate a scaling factor from the data:
   <ul>
-  <li><b>rms</b> - scale values to make <i>new-rms</i> =
+  <li><b>rms</b> &ndash; scale values to make <i>new-rms</i> =
   ((&sum;<i>x</i><font size="-1"><sup>2</sup></font>)/N)<sup>&frac12;</sup>
   where <i>x</i> is each value and N is the total number of values
-  <li><b>sd</b> - first shift values so that the mean is 0.0,
+  <li><b>sd</b> &ndash; first shift values so that the mean is 0.0,
   then scale values to make <i>new-std-dev</i> =
   ((&sum;<i>x</i><font size="-1"><sup>2</sup></font>)/N)<sup>&frac12;</sup>
   </ul>
@@ -2061,7 +2048,7 @@ and grid size 1 along the specified axis.
 <a href="#vop" class="nounder">&bull;</a>
 <a name="unbend"><b>volume unbend</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>path</b>&nbsp;&nbsp;<i>path-spec</i>&nbsp;
-[&nbsp;<b>yaxis</b>&nbsp;&nbsp;x&nbsp;|&nbsp;<b>y</b>&nbsp;|&nbsp;z&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>yaxis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>xsize</b>&nbsp;&nbsp;<i>xs</i>&nbsp;]
 [&nbsp;<b>ysize</b>&nbsp;&nbsp;<i>ys</i>&nbsp;]
 [&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
@@ -2073,21 +2060,9 @@ or (equivalently) atoms/bonds. The <i>path-spec</i> should be an
 a single chain of atoms (markers) connected by bonds (links).
 The path will be mapped to the Z axis of the result.
 The <b>yaxis</b> setting indicates which axis in the existing
-volume should be mapped to the Y axis of the result, and can be given as:
-<ul>
-<li><b>x</b> - X-axis
-<li><b>y</b> (default) - Y-axis
-<li><b>z</b> - Z-axis
-<li><i>x,y,z</i>
-(three values separated by commas only) - an arbitrary vector
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> of
-exactly two atoms (not necessarily bonded or in the same model)
-<!-- or one bond.
-A bond can only be specified by <a href="../selection.html">selecting</a>
-it and using the word <b>sel</b>;
-any atoms also selected at the time will be ignored.
--->
-</ul>
+volume should be mapped to the Y axis of the result, and can be given as
+<b>x</b>, <b>y</b> (default), <b>z</b> or any of the other
+standard <a href="pointspec.html#vector">vector specifications</a>.
 The <b>gridSpacing</b> <i>s</i> is the separation between grid points in
 the new map (default is the minimum spacing along the three axes of the
 input map).  The <b>xsize</b> <i>xs</i> and <b>ysize</b> <i>ys</i> are
@@ -2099,8 +2074,8 @@ volume is interpolated on planes perpendicular to the splined path.
 
 <a href="#vop" class="nounder">&bull;</a>
 <a name="unroll"><b>volume unroll</b></a> &nbsp;<i>volume-spec</i>&nbsp;
-[&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
-[&nbsp;<b>axis</b>&nbsp;&nbsp;x&nbsp;|&nbsp;y&nbsp;|&nbsp;<b>z</b>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>length</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>innerRadius</b>&nbsp;&nbsp;<i>r1</i>&nbsp;]
@@ -2109,22 +2084,8 @@ volume is interpolated on planes perpendicular to the splined path.
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Unroll a hollow cylindrical section of the map into a flat slab.
-The cylinder <b>axis</b> can be given as:
-<ul>
-<li><b>x</b> - X-axis
-<li><b>y</b> - Y-axis
-<li><b>z</b> (default) - Z-axis
-<li><i>x,y,z</i>
-(three values separated by commas only) - an arbitrary vector
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> of
-exactly two atoms (not necessarily bonded or in the same model)
-<!-- or one bond.
-A bond can only be specified by <a href="../selection.html">selecting</a>
-it and using the word <b>sel</b>;
-any atoms also selected at the time will be ignored.
--->
-</ul>
-Cylinder <b>axis</b> and <b>center</b> (default <b>0,0,0</b>) coordinates
+Cylinder <b>axis</b> (default <b>z</b>) 
+and <b>center</b> (default <b>0,0,0</b>) coordinates
 are interpreted in the coordinate system of the input map,
 unless another reference model is specified with <b>coordinateSystem</b>.
 The dimensions of the cylindrical slab
@@ -2189,7 +2150,7 @@ See also:
 <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,
 the <b>zone</b> <a href="ui.html#mousemode">mouse mode</a>
-<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/zone.png"></a>
 </p>
 </blockquote>
@@ -2361,5 +2322,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+June 2019</address>
 </body></html>

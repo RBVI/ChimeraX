@@ -20,6 +20,7 @@
     <DataFile>include/*/*/*</DataFile>
     <DataFile>lib/*</DataFile>
     <DataFile>cymol.*</DataFile>
+    <DataFile>cytmpl.*</DataFile>
     <DataFile>lib*.*</DataFile>
   </DataFiles>
 
