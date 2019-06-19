@@ -116,7 +116,7 @@ def map_points_and_weights(v, level = None, step = None, subregion = None):
   # Get 3-d array of map values.
   m = v.matrix(step = step, subregion = subregion)
 
-  from chimerax.map._map import high_indices
+  from chimerax.map import high_indices
   points_int = high_indices(m, level)
   from numpy import float32
   points = points_int.astype(float32)

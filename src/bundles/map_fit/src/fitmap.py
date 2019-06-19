@@ -542,8 +542,8 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
     if above_threshold:
         # Keep only points where density is above lowest displayed threshold
         threshold = v.minimum_surface_level
-        from .. import _map
-        points_int = _map.high_indices(m, threshold)
+        from chimerax.map import high_indices
+        points_int = high_indices(m, threshold)
         from numpy import single as floatc
         points = points_int.astype(floatc)
         weights = m[points_int[:,2],points_int[:,1],points_int[:,0]]

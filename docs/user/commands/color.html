@@ -432,6 +432,11 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <p>
 Atomic models can be colored to show the values of numerical
 <a href="../attributes.html">attributes</a>.
+For coloring by a user-defined attribute, see the
+<a href="../preferences.html#startup">custom preset</a> example.
+Examples of coloring by <b>bfactor</b>, an attribute 
+automatically read from mmCIF/PDB, are given below.
+</p><p>
 An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
 can be used to indicate the attribute level as atom, residue, or (atomic) model,
 but this is only needed when the name exists at multiple levels. 
@@ -458,8 +463,7 @@ Atoms (and their corresponding molecular surface patches) are colored
 by the atomic values unless <b>average residue</b> is given to indicate
 they should be colored by the average per residue.
 </p><p>
-Like other keywords, <b>byattribute</b> can be truncated, and
-<b>color bfactor</b>
+The command <b>color bfactor</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>&nbsp;
 is shorthand for <b>color byattribute bfactor</b>.
