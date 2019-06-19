@@ -10,7 +10,7 @@ REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
 VERSION = 5.12
-QT_MINOR_VERSION = 3
+QT_MINOR_VERSION = 4
 PYQT_MINOR_VERSION = 2
 PYQTWE_MINOR_VERSION = 1
 QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
@@ -76,7 +76,7 @@ install: $(QT_WHEEL) $(WB_WHEEL)
 	$(PIP) install -U PyQt5-sip==$(SIP_VERSION) $(QT_WHEEL) $(WB_WHEEL)
 
 app-install: $(QT_WHEEL) $(WB_WHEEL)
-	$(APP_PIP) install PyQt5-sip==$(SIP_VERSION) $(QT_WHEEL) $(WB_WHEEL)
+	$(APP_PIP) install -U PyQt5-sip==$(SIP_VERSION) $(QT_WHEEL) $(WB_WHEEL)
 
 prefetch: $(QT_WHEEL) $(WB_WHEEL)
 

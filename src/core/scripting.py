@@ -37,14 +37,40 @@ _builtin_open = open
 _sandbox_count = 0
 
 
+def _exec_python(session, code, argv=None):
+    # actual routine that sandboxes executing Python code
+    import sys
+    import types
+    from chimerax import app_dirs
+    global _sandbox_count
+    _sandbox_count += 1
+    sandbox = types.ModuleType(
+        '%s_sandbox_%d' % (app_dirs.appname, _sandbox_count),
+        '%s script sandbox' % app_dirs.appname)
+    if argv is None:
+        restore_argv = False
+    else:
+        restore_argv = True
+        orig_argv = sys.argv
+        sys.argv = argv
+    setattr(sandbox, 'session', session)
+    try:
+        sys.modules[sandbox.__name__] = sandbox
+        exec(code, sandbox.__dict__)
+    finally:
+        del sys.modules[sandbox.__name__]
+        if restore_argv:
+            sys.argv = orig_argv
+
+
 def open_python_script(session, stream, file_name, argv=None):
     """Execute Python script in a ChimeraX context
 
     This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
     :py:func:`~chimerax.core.io.open_data` API for files whose names end
-    with **.py**, **.pyc**, or **.pyo**.  Each script is opened in an uniquely
-    named importable sandbox (see timeit example above).  And the current
-    ChimeraX session is available as a global variable named **session**.
+    with **.py**.  Each script is opened in an uniquely named importable
+    sandbox (see timeit example above).  And the current ChimeraX session
+    is available as a global variable named **session**.
 
     Parameters
     ----------
@@ -55,28 +81,34 @@ def open_python_script(session, stream, file_name, argv=None):
     try:
         data = stream.read()
         code = compile(data, file_name, 'exec')
-        import sys
-        import types
-        from chimerax import app_dirs
-        global _sandbox_count
-        _sandbox_count += 1
-        sandbox = types.ModuleType(
-            '%s_sandbox_%d' % (app_dirs.appname, _sandbox_count),
-            '%s script sandbox' % app_dirs.appname)
-        if argv is not None:
-            restore_argv = True
-            orig_argv = sys.argv
-            sys.argv = argv
-        else:
-            restore_argv = False
-        setattr(sandbox, 'session', session)
-        try:
-            sys.modules[sandbox.__name__] = sandbox
-            exec(code, sandbox.__dict__)
-        finally:
-            del sys.modules[sandbox.__name__]
-            if restore_argv:
-                sys.argv = orig_argv
+        _exec_python(session, code, argv)
+    finally:
+        stream.close()
+    return [], "executed %s" % file_name
+
+
+def open_compiled_python_script(session, stream, file_name, argv=None):
+    """Execute compiled Python script in a ChimeraX context
+
+    This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
+    :py:func:`~chimerax.core.io.open_data` API for files whose names end
+    with **.pyc**, or **.pyo**.  Each script is opened in an uniquely
+    named importable sandbox (see timeit example above).  And the current
+    ChimeraX session is available as a global variable named **session**.
+
+    Parameters
+    ----------
+    session : a ChimeraX :py:class:`~chimerax.core.session.Session`
+    stream : open data stream
+    file_name : how to identify the file
+    """
+    import pkgutil
+    try:
+        code = pkgutil.read_code(stream)
+        if code is None:
+            from .errors import UserError
+            raise UserError("Python code was compiled for a different version of Python")
+        _exec_python(session, code, argv)
     finally:
         stream.close()
     return [], "executed %s" % file_name
@@ -124,10 +156,15 @@ def open_command_script(session, path, file_name):
 def register():
     from . import io, toolshed
     io.register_format(
-        "Python code", toolshed.SCRIPT, (".py", ".pyc", ".pyo"), ("py",),
-        mime=('text/x-python', 'application/x-python-code'),
+        "Python code", toolshed.SCRIPT, (".py",), ("py",),
+        mime=('text/x-python',),
         reference="http://www.python.org/",
         open_func=open_python_script)
+    io.register_format(
+        "Compiled Python code", toolshed.SCRIPT, (".pyc", ".pyo"), ("pyc",),
+        mime=('application/x-python-code',),
+        reference="http://www.python.org/",
+        open_func=open_compiled_python_script)
     io.register_format(
         "ChimeraX commands", toolshed.SCRIPT, (".cxc",), ("cmd",),
         mime=('text/x-chimerax', 'application/x-chimerax-code'),
