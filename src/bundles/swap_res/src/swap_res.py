@@ -18,8 +18,8 @@ class BackboneError(SwapResError):
 class TemplateError(SwapResError):
     pass
 
-from chimerax.core.errors import LimitationError
-from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary
+from chimerax.core.errors import LimitationError, UserError
+from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError
 
 from .cmd import default_criteria
 def swapaa(session, residues, res_type, *, clash_hbond_allowance=None, clash_score_method="sum",
@@ -48,10 +48,10 @@ def swapaa(session, residues, res_type, *, clash_hbond_allowance=None, clash_sco
             continue
         try:
             rots = get_rotamers(session, res, res_type=r_type, lib=lib, log=log)
-        #TODO
         except UnsupportedResTypeError:
-            raise MidasError("%s rotamer library does not support %s" %(lib, r_type))
+            raise LimitationError("%s rotamer library does not support %s" %(lib, r_type))
         except NoResidueRotamersError:
+        #TODO
             from SwapRes import swap, BackboneError, TemplateError
             if log:
                 replyobj.info("Swapping %s to %s\n" % (res, r_type))
@@ -60,7 +60,7 @@ def swapaa(session, residues, res_type, *, clash_hbond_allowance=None, clash_sco
             except (BackboneError, TemplateError), v:
                 raise MidasError(str(v))
             continue
-        except ImportError:
+        except NoRotamerLibraryError:
             raise MidasError("No rotamer library named '%s'" % lib)
         if preserve is not None:
             rots = pruneByChis(rots, res, preserve, log=log)
@@ -193,7 +193,7 @@ def swapaa(session, residues, res_type, *, clash_hbond_allowance=None, clash_sco
     for rot in destroy_list:
         rot.delete()
 
-def get_rotamers(session, res, phi=None, psi=None, cis_trans="trans", res_type=None, lib="Dunbrack", log=False):
+def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib="Dunbrack", log=False):
     """Takes a Residue instance and optionally phi/psi angles (if different from the Residue), residue
        type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances.
        The AtomicStructures are each a single residue (a rotamer) and are in descending probability order.
@@ -219,28 +219,20 @@ def get_rotamers(session, res, phi=None, psi=None, cis_trans="trans", res_type=N
     if not phi and not psi:
         phi, psi = res.phi, res.psi
         omega = res.omega
-        cis_trans = "trans" if omega is None or abs(omega) < 90 else "cis"
+        cis = False if omega is None or abs(omega) < 90 else True
         if log:
             def _info(ang):
                 if ang is None:
                     return "none"
                 return "%.1f" % ang
-            session.logger.info("%s: phi %s, psi %s %s" % (res, _info(phi), _info(psi), cis_trans))
+            session.logger.info("%s: phi %s, psi %s %s" % (res, _info(phi), _info(psi),
+                "cis" if cis else "trans"))
     session.logger.status("Retrieving rotamers from %s library" % lib.display_name)
-    #TODO
-    resTemplateFunc, params = get_param_info(res_type, phi, psi, cis_trans, lib)
-    replyobj.status("Rotamers retrieved from %s library"
-                    % getattr(lib, "displayName", lib))
+    res_template_func = lib.res_template_func()
+    params = lib.rotamer_params(res_name, phi, psi, cis=cis)
+    session.logger.status("Rotamers retrieved from %s library" % lib.display_name)
 
-    if isinstance(lib, RotamerLibraryInfo):
-        library = lib
-    else:
-        for library in libraries:
-            if library.importName == lib:
-                break
-        else:
-            raise AssertionError("Couldn't find %s rotamer lib after already using it?!?"
-                % lib)
+    #TODO
     mappedResType = library.resTypeMapping.get(res_type, res_type)
     template = resTemplateFunc(mappedResType)
     tmplMap = template.atomsMap
@@ -353,41 +345,6 @@ def get_rotamers(session, res, phi=None, psi=None, cis_trans="trans", res_type=N
                     todo.append(rbonded)
             done.add(a)
     return bbdep, mols
-
-def get_param_info(res_name, phi, psi, cis_trans, lib):
-    """Return a template-residue function and a list of RotamerParams (in descending probability order).
-
-       Takes a residue name (e.g. TRP) and phi and psi angles.
-       Phi or psi can be None if the residue is chain-terminal.
-
-       raises NoResidueRotamersError if the residue isn't in the database
-       raises UnsupportedResTypeError if the residue isn't in the database and
-            isn't a residue that can't have rotamers (ALA/GLY)
-    """
-    if res_name in lib.cis_trans:
-        res_name += "-" + cis_trans
-    #TODO
-    resTemplateFunc = getattr(Library, "templateResidue", _chimeraResTmpl)
-    if phi is None or psi is None \
-    or not hasattr(Library, "dependentRotamerParams"):
-        try:
-            return False, resTemplateFunc, Library.independentRotamerParams(res_name)
-        except NoResidueRotamersError, v:
-            for libInfo in libraries:
-                if libInfo.importName == importName:
-                    if res_name not in libInfo.residueTypes:
-                        raise UnsupportedResTypeError(v)
-                    break
-            raise
-    try:
-        return True, resTemplateFunc, Library.dependentRotamerParams(res_name, phi, psi)
-    except NoResidueRotamersError, v:
-        for libInfo in libraries:
-            if libInfo.importName == importName:
-                if res_name not in libInfo.residueTypes:
-                    raise UnsupportedResTypeError(v)
-                break
-        raise
 
 '''
 

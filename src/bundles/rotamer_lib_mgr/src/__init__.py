@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .rot_lib import RotamerLibrary, RotamerParams, UnsupportedResNameError, NoResidueRotamersError
+from .manager import NoRotamerLibraryError
 
 from chimerax.core.toolshed import BundleAPI
 

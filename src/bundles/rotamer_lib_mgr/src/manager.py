@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class NoRotamerLibraryError(ValueError):
+    pass
+
 from chimerax.core.toolshed import ProviderManager
 class RotamerLibManager(ProviderManager):
     """Manager for rotmer libraries"""
@@ -24,7 +27,10 @@ class RotamerLibManager(ProviderManager):
         self._library_info = {}
 
     def library(self, name):
-        lib_info = self._library_info[name]
+        try:
+            lib_info = self._library_info[name]
+        except KeyError:
+            raise NoRotamerLibraryError("No rotamer library named %s" % name)
         from . import RotamerLibrary
         if not isinstance(lib_info, RotamerLibrary):
             self._library_info[name] = lib_info = lib_info.run_provider(self.session, name, self)

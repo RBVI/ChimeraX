@@ -38,10 +38,11 @@ Structure, 19, 844-858."""
     def cite_pubmed_id(self):
         return 21645855
 
+    _rotamer_res_names = set(["ARG", "ASN", "ASP", "CPR", "CYD", "CYH", "CYS", "GLN", "GLU", "HIS", "ILE",
+            "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TPR", "TRP", "TYR", "VAL"])
     @property
     def residue_names(self):
-        return ["ARG", "ASN", "ASP", "CPR", "CYD", "CYH", "CYS", "GLN", "GLU", "HIS", "ILE",
-            "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TPR", "TRP", "TYR", "VAL"]
+        return self._rotamer_res_names
 
     @property
     def res_name_mapping(self):

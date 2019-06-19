@@ -38,10 +38,11 @@ Protein Science 20, 341-352."""
     def cite_pubmed_id(self):
         return 21280126
 
+    _rotamer_res_names = set(["ARG", "ASN", "ASP", "CYS", "CYH", "GLN", "GLU", "HID", "HIE", "HIP", "HIS",
+            "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"])
     @property
     def residue_names(self):
-        return ["ARG", "ASN", "ASP", "CYS", "CYH", "GLN", "GLU", "HID", "HIE", "HIP", "HIS",
-            "ILE", "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
+        return self._rotamer_res_names
 
     @property
     def res_name_mapping(self):

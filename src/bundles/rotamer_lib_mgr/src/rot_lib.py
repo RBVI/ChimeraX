@@ -36,32 +36,6 @@ class RotamerLibrary:
     """
 
     @property
-    def cis_trans(self):
-        """If the library differentiates any rotamer types into "cis" vs. "trans", this
-           is the list of those types.  When their rotamer params are asked for with the
-           rotamer_params() call, the residue name will have "-cis" or "-trans" appended.
-        """
-           return []
-
-    @property
-    @abstractmethod
-    def display_name(self):
-        """Short name to display in a list of libraries, e.g. "Dunbrack 2010" or "Dynameomics"
-           Should be the same as the 'name' attribute used in your Provider tag in bundle_info.xml.
-           Also used as argument to swapaa command.
-        """
-        pass
-
-    @property
-    def description(self):
-        """A somewhat longer decription than 'display_name' (though typically still one line)
-        to show in interfaces when the library has been selected, e.g.:
-
-        Dunbrack 2010 backbone-dependent rotamer library -- 5% stepdown
-        """
-        return self.display_name
-
-    @property
     def citation(self):
         """If your library has a reference to cite, the text of the citation.  Used as the 'cite'
            argument to the chimerax.ui.widgets.Citation constructor.  Example:
@@ -86,14 +60,33 @@ class RotamerLibrary:
         return None
 
     @property
+    @abstractmethod
+    def display_name(self):
+        """Short name to display in a list of libraries, e.g. "Dunbrack 2010" or "Dynameomics"
+           Should be the same as the 'name' attribute used in your Provider tag in bundle_info.xml.
+           Also used as argument to swapaa command.
+        """
+        pass
+
+    @property
+    def description(self):
+        """A somewhat longer decription than 'display_name' (though typically still one line)
+        to show in interfaces when the library has been selected, e.g.:
+
+        Dunbrack 2010 backbone-dependent rotamer library -- 5% stepdown
+        """
+        return self.display_name
+
+    std_rotamer_res_names = set(["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS", "ILE", "LEU", "LYS", "MET",
+                "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"])
+    @property
     def residue_names(self):
         """The residue names that this rotamer library provides rotamers for.  Typically just the
            18 standard amino acids that actually have side chains, but some libraries provide rotamers
            for certain protonation states (e.g. CYH for non-disulphide cysteine) or conformers
            (e.g. CPR for cis-proline).
         """
-        return ["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS", "ILE", "LEU", "LYS", "MET",
-                "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
+        return self.std_rotamer_res_names
 
     @property
     def res_name_mapping(self):
@@ -103,14 +96,26 @@ class RotamerLibrary:
         """
         return {}
 
+    @property
+    def res_template_func(self):
+        """If a rotamer library support non-standard residues, this should return a function that
+           when given the residue name as its argument, returns a TmplResidue that can be used
+           to build out the rotamer.
+        """
+        from chimerax.atomic import TmplResidue
+        return TmplResidue.get_template
+
     @abstractmethod
-    def rotamer_params(self, res_name, phi, psi):
+    def rotamer_params(self, res_name, phi, psi, *, cis=False):
         """Return a list of RotamerParams instances corresponding to the residue name 'res_name' and
            the backbone angle 'phi' and 'psi'.  Backbone-independent libraries will ignore phi and psi.
            Note that phi or psi can be None for chain-terminal residues.  Backbone-dependent libraries
            will have to use some fallback procedure for generating parameters in those cases, or throw
            NoResidueRotamersError.  If 'res_name' does not correspond to a name supported by the library,
            throw UnsupportedResNameError.
+
+           For rotamer libraries that support cis vs. trans rotamers, the cis keyword can be used
+           to decide which rotamers to return.
         """
         pass
 
@@ -120,9 +125,10 @@ class RotamerLibrary:
             return cache[file_name]
         except KeyError:
             pass
-        if res_name not in self.residue_names:
+        base_name = self._non_cistrans_res_name(res_name)
+        if base_name not in self.residue_names:
             raise UnsupportedResNameError(
-                "%s library does not support residue type '%s'" % (self.display_name, res_name))
+                "%s library does not support residue type '%s'" % (self.display_name, base_name))
         import os.path, inspect
         my_dir = os.path.split(inspect.getfile(self.__class__))[0]
         from zipfile import ZipFile
@@ -144,3 +150,10 @@ class RotamerLibrary:
             rotamers.append(RotamerParams(p, chis))
         cache[file_name] = rotamers
         return rotamers
+
+    def _non_cistrans_res_name(self, res_name):
+        if res_name.endswith('cis'):
+            return res_name[:-4]
+        if res_name.endswith('trans'):
+            return res_name[:-6]
+        return res_name

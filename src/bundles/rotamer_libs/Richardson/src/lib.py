@@ -20,10 +20,6 @@ from chimerax.atomic.rotamers.manager import RotamerLibrary, RotamerParams, \
 class RichardsonBase(RotamerLibrary):
 
     @property
-    def cis_trans(self):
-        return ["PRO"]
-
-    @property
     def description(self):
         return "Richardson lab backbone-independent rotamer library"
 
@@ -37,7 +33,7 @@ Proteins: Structure Function and Genetics 40: 389-408."""
     def cite_pubmed_id(self):
         return 10861930
 
-    def _get_params(self, res_name, file_name, cache, archive):
+    def _get_params(self, res_name, file_name, cis, cache, archive):
         """Richardson zip files have different param layout"""
         try:
             return cache[file_name]
@@ -46,6 +42,11 @@ Proteins: Structure Function and Genetics 40: 389-408."""
         if res_name not in self.residue_names:
             raise UnsupportedResNameError(
                 "%s library does not support residue type '%s'" % (self.display_name, res_name))
+        if res_name == "PRO":
+            if cis:
+                file_name = file_name + '-cis'
+            else:
+                file_name = file_name + '-trans'
         import os.path, inspect
         my_dir = os.path.split(inspect.getfile(self.__class__))[0]
         from zipfile import ZipFile
@@ -74,8 +75,8 @@ class RichardsonCommonRotamerLibrary(RichardsonBase):
     def display_name(self):
         return "Richardson (common-atom)"
 
-    def rotamer_params(self, res_name, phi, psi):
-        return self._get_params(res_name, res_name, _common_cache, "common.zip")
+    def rotamer_params(self, res_name, phi, psi, *, cis=False):
+        return self._get_params(res_name, res_name, cis, _common_cache, "common.zip")
 
 class RichardsonModeRotamerLibrary(RichardsonBase):
 
@@ -83,5 +84,5 @@ class RichardsonModeRotamerLibrary(RichardsonBase):
     def display_name(self):
         return "Richardson (mode)"
 
-    def rotamer_params(self, res_name, phi, psi):
-        return self._get_params(res_name, res_name, _mode_cache, "mode.zip")
+    def rotamer_params(self, res_name, phi, psi, *, cis=False):
+        return self._get_params(res_name, res_name, cis, _mode_cache, "mode.zip")
