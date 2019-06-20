@@ -3550,7 +3550,10 @@ class VolumeUpdateManager:
     if vdisp:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
-        if v.display:
+        if v.deleted:
+          vset.remove(v)
+          vdisp.remove(v)
+        elif v.display:
           # Remove volume from update list before update since update may re-add it
           # if surface calculation done in thread.
           vset.remove(v)

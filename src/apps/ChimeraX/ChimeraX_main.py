@@ -293,6 +293,17 @@ def init(argv, event_loop=True):
         # "any number of threads more than one leads to 200% CPU usage"
         os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
+    # distlib, since 0.2.8, does not recognize "Obsoletes" as a legal
+    # metadata classifier, but jurko 0.6 (SOAP package) claims to be
+    # Metadata-Version 2.1 but specifies Obsolete.  Hack below makes
+    # Obsolete not cause a traceback.
+    from distlib import metadata
+    try:
+        if "Obsoletes" not in metadata._566_FIELDS:
+            metadata._566_FIELDS = metadata._566_FIELDS + ("Obsoletes",)
+    except AttributeError:
+        pass
+
     # for modules that moved out of core, allow the old imports to work for awhile...
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):
@@ -459,6 +470,23 @@ def init(argv, event_loop=True):
     else:
         from distutils import sysconfig
         site.USER_SITE = sysconfig.get_python_lib()
+
+    # Hack Linux CC to remove compiler arguments inserted for building
+    # Python.  These args contain '/', which confuses
+    # sysconfig.get_config_var() when used by bundle_builder
+    if sys.platform.startswith("linux"):
+        def _clean(cc):
+            parts = cc.split()
+            def ignore(arg):
+                return (arg.startswith("-fdebug-prefix-map") or
+                        arg.startswith("-I") or
+                        arg.startswith("-L"))
+            keep = [arg for arg in parts if not ignore(arg)]
+            return ' '.join(keep)
+        import sysconfig
+        cvars = sysconfig.get_config_vars()
+        cvars["CC"] = _clean(cvars["CC"])
+        del cvars
 
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that

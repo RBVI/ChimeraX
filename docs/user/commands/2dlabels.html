@@ -81,6 +81,7 @@ target="_blank">G-Protein Switch Regions</a>.
 <a name="create"><b>2dlabels create</b></a> &nbsp;<i>name</i>
   [&nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;]
   [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+  [&nbsp;<b>background</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
   [&nbsp;<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
   [&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
   [&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
@@ -106,12 +107,17 @@ character codes or character names. Unicode examples:
 Spaces and quote marks can be included by enclosing the 
 entire <i>label-contents</i> in single or double quote marks.
 Carriage returns are indicated with <b>\n</b>. 
-The <b>color</b> default is <b>white</b>. 
+<p>
+The label can be shown over a rectangular <b>background</b>
+of another color (default <b>none</b>, no background).
+The <b>color</b> of the text itself defaults to <b>white</b> or <b>black</b>
+depending on the color of the label background, if any, 
+otherwise the <a href="set.html#bgColor">window background </a>.
 The <i>font-size</i> must be an integer greater than zero 
 (default <b>24</b>). 
 The <i>x-position</i> and <i>y-position</i> are the X and Y
 coordinates of the lower lefthand corner of the label 
-(defaults are <b>0.5</b> and <b>0.5</b>).  The X axis is 
+(defaults are <b>0.5</b> and <b>0.5</b>). The X axis is 
 horizontal and the Y axis is vertical, and both range from
 0 to 1 in the visible portion of the graphics window. It is possible to place
 a label partially or completely outside the visible area, however.
@@ -119,14 +125,14 @@ The possible values of <i>font-name</i> (default <b>Arial</b>)
 can be listed with <a href="#listfonts"><b>2dlabels listfonts</b></a>.
 Font names with spaces must be enclosed in quotation marks.
 In addition, the font can be designated as <b>italic</b> and/or <b>bold</b>.
-The <b>visibility</b> option specifies whether the label should be displayed
-when it is created.
+The <b>visibility</b> option specifies whether the label should be displayed.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="change"><b>2dlabels change</b></a> &nbsp;<i>name</i>
   [&nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;]
   [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+  [&nbsp;<b>background</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
   [&nbsp;<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
   [&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
   [&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
@@ -147,6 +153,9 @@ over <i>N</i> frames, such as fading labels in or out
 (changing <b>visibility</b>); 
 it does not apply to changes in the <b>text</b>, <b>font</b>, 
 <b>bold</b>, or <b>italic</b> options, which will occur immediately. 
+Changing <b>background</b> to <b>none</b> from a color will also occur
+abruptly, but backgrounds can be faded in/out by specifying a transparent color
+instead of <b>none</b>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>

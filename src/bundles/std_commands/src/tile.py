@@ -6,9 +6,11 @@ def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
     """Tile models onto a square(ish) grid."""
 
     # Keep only non-container models
+    from chimerax.atomic import Structure
     if models is None:
-        models = session.models.list()
-    models = [m for m in models if len(m.child_models()) == 0]
+        models = session.models.list(type=Structure)
+    else:
+        models = [m for m in models if isinstance(m, Structure)]
     from chimerax.std_commands.view import NamedView
     view = session.main_view
     before = NamedView(view, view.center_of_rotation, models)

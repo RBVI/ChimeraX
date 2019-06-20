@@ -79,14 +79,14 @@ class SettingsTool:
                     or region.name.startswith("partial " + name_part):
                         regions.append(region)
             if opt.attr_name.endswith("shown"):
-                shown = opt.get()
+                shown = opt.value
                 for region in regions:
                     region.shown = shown
             else:
                 if opt.attr_name.startswith('sel'):
-                    colors = [opt.get(), None]
+                    colors = [opt.value, None]
                 else:
-                    colors = opt.get()
+                    colors = opt.value
                 for i, color in enumerate(colors):
                     for region in regions:
                         if i == 0 and region.name.startswith("partial"):

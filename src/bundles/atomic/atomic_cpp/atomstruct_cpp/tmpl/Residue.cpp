@@ -14,9 +14,13 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "restmpl.h"
 
 #include "TemplateCache.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<tmpl::Residue>;
 
 namespace tmpl {
 
@@ -116,6 +120,16 @@ Residue::template_assign(void (Atom::*assign)(const AtomType&),
         }
     }
     return assigned;
+}
+
+std::vector<Atom*>
+Residue::atoms() const
+{
+    std::vector<Atom*> atoms;
+    for (auto name_atom: atoms_map()) {
+        atoms.push_back(name_atom.second);
+    }
+    return atoms;
 }
 
 void

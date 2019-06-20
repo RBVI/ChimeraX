@@ -432,6 +432,11 @@ target="_blank">Potassium Channel-Calmodulin Complex</a>
 <p>
 Atomic models can be colored to show the values of numerical
 <a href="../attributes.html">attributes</a>.
+For coloring by a user-defined attribute, see the
+<a href="../preferences.html#startup">custom preset</a> example.
+Examples of coloring by <b>bfactor</b>, an attribute 
+automatically read from mmCIF/PDB, are given below.
+</p><p>
 An <b>a:</b>, <b>r:</b>, or <b>m:</b> immediately preceding the attribute name
 can be used to indicate the attribute level as atom, residue, or (atomic) model,
 but this is only needed when the name exists at multiple levels. 
@@ -458,8 +463,7 @@ Atoms (and their corresponding molecular surface patches) are colored
 by the atomic values unless <b>average residue</b> is given to indicate
 they should be colored by the average per residue.
 </p><p>
-Like other keywords, <b>byattribute</b> can be truncated, and
-<b>color bfactor</b>
+The command <b>color bfactor</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>&nbsp;
 is shorthand for <b>color byattribute bfactor</b>.
@@ -594,7 +598,7 @@ Same as previous except use royal blue instead of blue:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> &nbsp;<b>radial</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
-[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
@@ -602,8 +606,8 @@ Same as previous except use royal blue instead of blue:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> (&nbsp;<b>cylindrical</b>&nbsp;|&nbsp;<b>height</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
-[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>&nbsp;]
-[&nbsp;<b>axis</b>&nbsp;&nbsp;<i>vector</i>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
@@ -624,45 +628,25 @@ indicates whether to update the coloring automatically
 when the shape of the surface changes.
 </p>
 <ul>
-<li><b>color radial</b> colors by distance from a center point
-<li><b>color cylindrical</b> colors by distance from an axis. 
-The axis is defined by a point on the axis (given with <b>center</b>) 
-and its direction (a vector given with <b>axis</b>).
+<li><b>color radial</b> colors by distance from a 
+<a href="pointspec.html#point">point</a> given with the <b>center</b> option.
+<li><b>color cylindrical</b> colors by distance from an axis.
+The axis is defined by a <a href="pointspec.html#point">point</a> 
+on the axis (given with <b>center</b>) 
+and its direction (a <a href="pointspec.html#vector">vector</a> 
+given with <b>axis</b>).
 <li><b>color height</b> colors by topographic height, or distance from a plane.
-The plane is defined by a point on the plane (given with <b>center</b>)
-and a vector normal to the plane (given with <b>axis</b>).
+The plane is defined by a <a href="pointspec.html#point">point</a>
+on the plane (given with <b>center</b>)
+and a <a href="pointspec.html#vector">vector</a> 
+normal to the plane (given with <b>axis</b>).
 </ul>
-<p>
-The <b>axis</b> <i>vector</i> can be expressed as:
-</p>
-<ul>
-<li><b>x</b> &ndash; X-axis
-<li><b>y</b> &ndash; Y-axis
-<li><b>z</b> &ndash; Z-axis
-<li><i>x,y,z</i>
-(three values separated by commas only) &ndash; an arbitrary vector
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> of
-exactly two atoms (not necessarily bonded or in the same model).
-The order of the atoms defines a handedness, and right-handed
-rotations are positive.
-If a center is not specified separately,
-it will lie on the atom-atom axis.
-If a separate center is supplied, only the direction of the axis will be used.
-The first model in the axis <a href="atomspec.html"><i>atom-spec</i></a>
-will be used for reference frame pinning unless
-a <b>center</b> <a href="atomspec.html"><i>atom-spec</i></a>
-or a <b>coordinateSystem</b> is also given.
-</ul>
-</p>
-A reference model for center and vector coordinates
-can be specified with the <b>coordinateSystem</b> option. 
-If no reference model is given,
+The <b>coordinateSystem</b> for interpreting center and axis coordinates
+can be specified by reference model number. If no reference model is given,
 the <a href="view.html#scenecoords">scene coordinate system</a>
 will be used for the center 
 and the <a href="view.html#screencoords">screen coordinate system</a>
-(X horizontal, Y vertical, Z in/out) for the axis
-when they are given as coordinates
-(as opposed to an <a href="atomspec.html"><i>atom-spec</i></a>).
+(X horizontal, Y vertical, Z in/out) for the axis.
 </p>
 
 <a name="zone"></a>

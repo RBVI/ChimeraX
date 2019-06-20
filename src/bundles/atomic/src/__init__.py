@@ -31,6 +31,7 @@ from .shapedrawing import AtomicShapeDrawing
 from .args import SymmetryArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
 from .args import StructureArg, StructuresArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
+from .cytmpl import TmplResidue
 
 
 from chimerax.core.toolshed import BundleAPI

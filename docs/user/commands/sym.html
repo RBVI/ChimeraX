@@ -38,9 +38,9 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>sym</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;&nbsp;<i>sym-type</i>
-[&nbsp;<b>axis</b>&nbsp;&nbsp;<i>axis</i>&nbsp;]
-[&nbsp;<b>center</b>&nbsp;&nbsp;<i>center</i>&nbsp;]
-[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 &nbsp;<a href="#copies"><i>copy-options</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -115,9 +115,9 @@ is specified with the <i>identifier</i> mentioned above.
 <b>sym</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 &nbsp;&nbsp;<i>sym-type</i>
-[&nbsp;<b>axis</b>&nbsp;&nbsp;<i>axis</i>&nbsp;]
-[&nbsp;<b>center</b>&nbsp;&nbsp;<i>center</i>&nbsp;]
-[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 &nbsp;<a href="#copies"><i>copy-options</i></a>
 </blockquote>
 <p>
@@ -234,40 +234,20 @@ The <i>sym-type</i> can be:
     <li>Example: <b>c2*h,42,21,9,-4</b>
     </ul>
   </ul>
-  The <a name="axis"><b>axis</b></a> option
-  specifies axis of symmetry (default <b>z</b>), where <i>axis</i> can be:
-   <ul> 
-   <li><b>x</b> - X-axis
-   <li><b>y</b> - Y-axis
-   <li><b>z</b> - Z-axis
-   <li><i>x,y,z</i>
-   (three values separated by commas only) - an arbitrary vector
-   in the <a href="#coordinateSystem">reference coordinate system</a>
-   <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
-   exactly two atoms (not necessarily bonded or in the same model)
-<!-- or one bond.
-   A bond can only be specified by <a href="../selection.html">selecting</a>
-   it and using the word <b>sel</b>;
-   any atoms also selected at the time will be ignored.
---> 
-  </ul>
-  The <a name="center"><b>center</b></a> 
-  option specifies center of symmetry (default <b>0,0,0</b>),
-  where <i>center</i> can be:
-  <ul>
-  <li><i>x,y,z</i>
-   (three values separated by commas only) - an arbitrary point
-  in the <a href="#coordinateSystem">reference coordinate system</a>
-  <li>an <a href="atomspec.html"><i>atom-spec</i></a>
-  of any combination of atoms and surface models.
-  The center of the bounding sphere of the specified items will be used.
-  </ul>
-  The <a name="coordinateSystem"><b>coordinateSystem</b></a>
-  option specifies a reference model 
-  (default is the atomic model containing the specified atoms)
-  by model number <i>N</i> preceded by #.
-  The reference coordinate system is used for interpreting specifications of
-  <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
+<p>
+The <a name="axis"><b>axis</b></a> option
+specifies a <a href="pointspec.html#vector">vector</a> 
+to use as the axis of symmetry (default <b>z</b>).
+</p><p>
+The <a name="center"><b>center</b></a> option
+specifies a <a href="pointspec.html#point">point</a> 
+to use as the center of symmetry (default <b>0,0,0</b>).
+</p><p>
+The <a name="coordinateSystem"><b>coordinateSystem</b></a>
+option specifies a reference model for interpreting 
+<a href="#axis">axis</a> and <a href="#center">center</a> coordinates.
+If no reference model is specified,
+the <a href="view.html#scenecoords">scene coordinate system</a> is used.
 </p>
 
 <a name="copies"></a>
@@ -353,5 +333,5 @@ but uses more memory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+June 2019</address>
 </body></html>
