@@ -11,6 +11,9 @@ def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
         models = session.models.list(type=Structure)
     else:
         models = [m for m in models if isinstance(m, Structure)]
+    if len(models) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError("No structures found for tiling.")
     from chimerax.std_commands.view import NamedView
     view = session.main_view
     before = NamedView(view, view.center_of_rotation, models)
