@@ -1224,6 +1224,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action
 
+    def remove_menu(self, menu_names):
+        menu = self._get_target_menu(self.menuBar(), menu_names)
+        if menu:
+            menu.deleteLater()
+
     def _get_menu_action(self, menu, insertion_point):
         from PyQt5.QtWidgets import QAction
         if isinstance(insertion_point, QAction):
