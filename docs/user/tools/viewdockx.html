@@ -83,7 +83,13 @@ like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 In the table of docking results, the rows are different compounds or
 different positions of a compound, and the columns show additional data
 read from the input, typically including compound names
-and docking scores. The first two columns are generated automatically:
+and docking scores. 
+</p><p>
+The checkboxes in the first column control which docked compounds are shown.
+Clicking anywhere on a row checks the corresponding box and unchecks the others. 
+Clicking directly on the boxes allows showing multiple compounds at the same time.
+</p><p>
+The second and third columns are generated automatically:
 <p>
 <ul>
 <li><b>RATING</b> - star rating (click to change)
@@ -93,38 +99,19 @@ and docking scores. The first two columns are generated automatically:
 Any additional columns that appear when <b>ViewDockX</b> is first started
 reflect information read from the input file(s).
 </p><p>
-<a name="choosing"></a>
-One or more docked compounds can be shown in the graphics window
-(and the rest in the table hidden) by
-<b><i>choosing</i></b> their rows in the table with the mouse.
-Chosen rows are highlighted in yellow.
-A contiguous block of rows can be chosen with click-drag, and
-<!--
-or by clicking on the first (or last) and then Shift-clicking
-on the last (or first) in the desired block.
--->
-Ctrl-click (Cmd-click on Mac) toggles a row between chosen and not chosen.
-When multiple compounds are chosen, changing the star rating of one
-also changes it for the others, in parallel.
-</p><p>
-Specific columns can be hidden/shown by clicking the bar across the top 
-of the table (&ldquo;N columns displayed...&rdquo;)
-and using the resulting checkbox menu.
-Clicking the header of a column sorts by the values in that column,
-and a multi-column sort can be performed by clicking one header
-and Shift-clicking one or more additional headers.
-Column widths can be adjusted by dragging the vertical dividing lines.
+A text-search box allows finding hits that contain terms of interest.
+A pull-down menu to the right of the search box can be used to adjust
+which of the available columns of information are shown in the table.
+Clicking a column header sorts by the values in that column.
 </p><p>
 Buttons above the table:
 </p>
 <ul>
-<li><b>Show All Structures</b>
-- <a href="#choosing">choose</a>/show all compounds in the table
 <li><b>Graph</b>
 - <a href="#plots">plot</a> all compounds along the X-axis
-vs. one or more numerical descriptors (table columns) on the Y-axis
+<i>vs.</i> one or more numerical descriptors (table columns) on the Y-axis
 <li><b>Plot</b>
-- <a href="#plots">plot</a> different numerical descriptors vs. each other
+- <a href="#plots">plot</a> different numerical descriptors <i>vs.</i> each other
 for all compounds
 <li><b>Add HBonds</b> 
 - calculate and add a column for
@@ -146,9 +133,8 @@ than the specified number of stars, and remove their rows from the table
 </ul>
 <p>
 <b>ViewDockX</b> table status is saved in 
-<a href="../commands/save.html#session">sessions</a>, including
-which columns are shown and which rows are <a href="#choosing">chosen</a>,
-but not window size or location.
+<a href="../commands/save.html#session">sessions</a>,
+including which rows are checked, but not its window size or location.
 </p>
 
 <a name="plots"></a>
