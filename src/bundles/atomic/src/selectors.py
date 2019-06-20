@@ -71,15 +71,11 @@ def _backbone_selector(session, models, results):
         results.add_atoms(backbone, bonds=True)
 
 def _polymer_selector(models, results, protein):
-    from chimerax.atomic import Structure
+    from chimerax.atomic import Structure, Residue
     for m in models:
         if isinstance(m, Structure):
-            pas = m.residues.existing_principal_atoms
-            pas = pas.filter(pas.structure_categories != "ions")
-            if protein:
-                residues = pas.residues.filter(pas.names=="CA")
-            else:
-                residues = pas.residues.filter(pas.names!="CA")
+            residues = m.residues.filter(
+                m.residues.polymer_types == (Residue.PT_PROTEIN if protein else Residue.PT_NUCLEIC))
             atoms = residues.atoms
             pbs, pbg = _get_missing_structure(m, atoms)
             if residues:

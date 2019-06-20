@@ -14,6 +14,7 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "restmpl.h"
 
 #include <pyinstance/PythonInstance.instantiate.h>

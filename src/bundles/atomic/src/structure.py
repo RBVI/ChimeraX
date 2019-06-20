@@ -964,7 +964,9 @@ class Structure(Model, StructureData):
 
             # Cache position of backbone atoms on ribbon
             # and get list of tethered atoms
-            positions = self._ribbon_spline_position(ribbon, residues)
+            positions = self._ribbon_spline_position(ribbon, residues, self._NonTetherPositions)
+            self._ribbon_spline_backbone.update(positions)
+            positions = self._ribbon_spline_position(ribbon, residues, self._TetherPositions)
             from numpy.linalg import norm
             from .molarray import Atoms
             tether_atoms = Atoms(list(positions.keys()))
@@ -1608,7 +1610,7 @@ class Structure(Model, StructureData):
     # and this one; positive between this and next.
     # These are copied from Chimera.  May want to do a survey
     # of closest spline parameters across many structures instead.
-    _RibbonPositions = {
+    _TetherPositions = {
         # Amino acid
         "N":  -1/3.,
         "CA":  0.,
@@ -1621,13 +1623,32 @@ class Structure(Model, StructureData):
         "C3'":  2/6.,
         "O3'":  3/6.,
     }
+    _NonTetherPositions = {
+        # Amino acid
+        "O":    1/3.,
+        "OXT":  1/3.,
+        "OT1":  1/3.,
+        "OT2":  1/3.,
+        # Nucleotide
+        "OP1": -2/6.,
+        "O1P": -2/6.,
+        "OP2": -2/6.,
+        "O2P": -2/6.,
+        "OP3": -2/6.,
+        "O3P": -2/6.,
+        "O2'": -1/6.,
+        "C2'":  2/6.,
+        "O4'":  1/6.,
+        "C1'":  1.5/6.,
+        "O3'":  2/6.,
+    }
 
-    def _ribbon_spline_position(self, ribbon, residues):
+    def _ribbon_spline_position(self, ribbon, residues, pos_map):
         positions = {}
         for n, r in enumerate(residues):
             first = (r == residues[0])
             last = (r == residues[-1])
-            for atom_name, position in self._RibbonPositions.items():
+            for atom_name, position in pos_map.items():
                 a = r.find_atom(atom_name)
                 if a is None or not a.is_backbone():
                     continue
