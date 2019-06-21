@@ -1238,7 +1238,7 @@ class StructureData:
 
     def __init__(self, mol_pointer=None, *, logger=None):
         if mol_pointer is None:
-            # Create a new graph
+            # Create a new structure
             from .structure import AtomicStructure
             new_func = 'atomic_structure_new' \
                 if isinstance(self, AtomicStructure) else 'structure_new'

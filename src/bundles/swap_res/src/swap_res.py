@@ -208,7 +208,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
 
     # check that the residue has the n/c/ca atoms needed to position the rotamer
     # and to ensure that it is an amino acid
-    from chimerax.atomic import Residue
+    from chimerax.atomic import Residue, AtomicStructure
     from chimerax.core.errors import LimitationError
     match_atoms = {}
     for bb_name in Residue.aa_min_backbone_names:
@@ -232,64 +232,48 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     params = lib.rotamer_params(res_name, phi, psi, cis=cis)
     session.logger.status("Rotamers retrieved from %s library" % lib.display_name)
 
-    #TODO
-    mappedResType = library.resTypeMapping.get(res_type, res_type)
-    template = resTemplateFunc(mappedResType)
-    tmplMap = template.atomsMap
-    if isinstance(tmplMap["N"], (tuple, list)):
-        # actual Residue rather than TmplResidue
-        remap = {}
-        for k, v in tmplMap.items():
-            remap[k] = v[0]
-        tmplMap = remap
-    tmplN = tmplMap["N"]
-    tmplCA = tmplMap["CA"]
-    tmplC = tmplMap["C"]
-    tmplCB = tmplMap["CB"]
-    if hasCB:
-        resMatchAtoms, tmplMatchAtoms = [c, ca, cb], [tmplC, tmplCA, tmplCB]
+    mapped_res_type = library.res_name_mapping.get(res_type, res_type)
+    template = library.res_template_func(mapped_res_type)
+    tmpl_N = template.find_atom("N")
+    tmpl_CA = template.find_atom("CA")
+    tmpl_C = template.find_atom("C")
+    tmpl_CB = template.find_atom("CB")
+    if tmpl_CB:
+        res_match_atoms, tmpl_match_atoms = [match_atoms[x]
+            for x in ("c", "ca", "cb")], [tmpl_C, tmpl_CA, tmpl_CB]
     else:
-        resMatchAtoms, tmplMatchAtoms = [n, ca, c], [tmplN, tmplCA, tmplC]
-    from chimera.molEdit import addAtom, addDihedralAtom, addBond
-    from chimera.match import matchPositions, _coordArray
-    xform, rmsd = matchPositions(_coordArray(resMatchAtoms),
-                        _coordArray(tmplMatchAtoms))
-    ncoord = xform.apply(tmplN.coord())
-    cacoord = xform.apply(tmplCA.coord())
-    cbcoord = xform.apply(tmplCB.coord())
-    from data import chiInfo
-    info = chiInfo[mappedResType]
-    bondCache = {}
-    angleCache = {}
-    torsionCache = {}
-    from chimera.bondGeom import bondPositions
-    mols = []
+        res_match_atoms, tmpl_match_atoms = [match_atoms[x]
+            for x in ("n", "ca", "c")], [tmpl_N, tmpl_CA, tmpl_C]
+    from chimerax.std_commands import align
+    _ignore1, _ignore2, rmsd, _ignore3, xform = align(tmpl_match_atoms, to_atoms=res_match_atoms)
+    n_coord = xform * tmpl_N
+    ca_coord = xform * tmpl_CA
+    cb_coord = xform * tmpl_CB
+    info = Residue.chi_info[mapped_res_type]
+    bond_cache = {}
+    angle_cache = {}
+    from chimerax.atomic.struct_edit import add_atom, add_dihedral_atom, add_bond
+    structs = []
     middles = {}
     ends = {}
     for i, rp in enumerate(params):
-        m = chimera.Molecule()
-        mols.append(m)
-        m.name = "rotamer %d of %s" % (i+1, res)
-        r = m.newResidue(mappedResType, ' ', 1, ' ')
-        # can't use a local variable for r.atomsMap since we receive
-        # only an unchanging copy of the map
-        m.rotamer_prob = rp.p
-        m.chis = rp.chis
-        rotN = addAtom("N", tmplN.element, r, ncoord)
-        rotCA = addAtom("CA", tmplCA.element, r, cacoord, bondedTo=rotN)
-        rotCB = addAtom("CB", tmplCB.element, r, cbcoord,
-                            bondedTo=rotCA)
+        s = AtomicStructure(name=Killer Queen"rotamer %d of %s" % (i+1, res))
+        structs.append(s)
+        r = s.new_residue(mapped_res_type, 'A', 1)
+        s.rotamer_prob = rp.p
+        s.chis = rp.chis
+        rot_N = add_atom("N", tmpl_N.element, r, n_coord)
+        rot_CA = add_atom("CA", tmpl_CA.element, r, ca_coord, bonded_to=rot_N)
+        rot_CB = add_atom("CB", tmpl_CB.element, r, cb_coord, bonded_to=rot_CA)
         todo = []
         for j, chi in enumerate(rp.chis):
             n3, n2, n1, new = info[j]
-            blen, angle = _lenAngle(new, n1, n2, tmplMap,
-                            bondCache, angleCache)
-            n3 = r.atomsMap[n3][0]
-            n2 = r.atomsMap[n2][0]
-            n1 = r.atomsMap[n1][0]
-            new = tmplMap[new]
-            a = addDihedralAtom(new.name, new.element, n1, n2, n3,
-                        blen, angle, chi, bonded=True)
+            b_len, angle = _len_angle(new, n1, n2, template, bond_cache, angle_cache)
+            n3 = r.find_atom(n3)
+            n2 = r.find_atom(n2)
+            n1 = r.find_atom(n1)
+            new = template.find_atom(new)
+            a = add_dihedral_atom(new.name, new.element, n1, n2, n3, b_len, angle, chi, bonded=True)
             todo.append(a)
             middles[n1] = [a, n1, n2]
             ends[a] = [a, n1, n2]
@@ -297,28 +281,25 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
         # if there are any heavy non-backbone atoms bonded to template
         # N and they haven't been added by the above (which is the
         # case for Richardson proline parameters) place them now
-        for tnnb in tmplN.bondsMap.keys():
-            if tnnb.name in r.atomsMap or tnnb.element.number == 1:
+        for tnnb in tmpl_N.neighbors:
+            if tnnb.name in r.atoms_map or tnnb.element.number == 1:
                 continue
-            tnnbcoord = xform.apply(tnnb.coord())
-            addAtom(tnnb.name, tnnb.element, r, tnnbcoord,
-                                bondedTo=rotN)
+            tnnb_coord = xform * tnnb.coord
+            add_atom(tnnb.name, tnnb.element, r, tnnb_coord, bonded_to=rot_N)
 
         # fill out bonds and remaining heavy atoms
-        from chimera.idatm import typeInfo
-        from chimera import distance
-        done = set([rotN, rotCA])
+        from chimerax.core.geometry import distance
+        done = set([rot_N, rot_CA])
         while todo:
             a = todo.pop(0)
             if a in done:
                 continue
-            tmplA = tmplMap[a.name]
-            for bonded, bond in tmplA.bondsMap.items():
+            tmpl_A = template.find_atom(a.name)
+            for bonded, bond in zip(tmpl_A.neighbors, tmpl_A.bonds):
                 if bonded.element.number == 1:
                     continue
-                try:
-                    rbonded = r.atomsMap[bonded.name][0]
-                except KeyError:
+                rbonded = r.find_atom(bonded.name)
+                if rbonded is None:
                     # use middles if possible...
                     try:
                         p1, p2, p3 = middles[a]
@@ -326,25 +307,35 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
                     except KeyError:
                         p1, p2, p3 = ends[a]
                         conn = p2
-                    t1 = tmplMap[p1.name]
-                    t2 = tmplMap[p2.name]
-                    t3 = tmplMap[p3.name]
-                    xform, rmsd = matchPositions(
-                        _coordArray([p1,p2,p3]),
-                        _coordArray([t1,t2,t3]))
-                    pos = xform.apply(
-                        tmplMap[bonded.name].coord())
-                    rbonded = addAtom(bonded.name,
-                        bonded.element, r, pos,
-                        bondedTo=a)
+                    t1 = template.find_atom(p1.name)
+                    t2 = template.find_atom(p2.name)
+                    t3 = template.find_atom(p3.name)
+                    _ignore1, _ignore2, rmsd, _ignore3, xform = align([t1,t2,t3], to_atoms=[p1,p2,p3])
+                    pos = xform * template.find_atom(bonded.name).coord
+                    rbonded = add_atom(bonded.name, bonded.element, r, pos, bonded_to=a)
                     middles[a] = [rbonded, a, conn]
                     ends[rbonded] = [rbonded, a, conn]
-                if a not in rbonded.bondsMap:
-                    addBond(a, rbonded)
+                if a not in rbonded.neighbors:
+                    add_bond(a, rbonded)
                 if rbonded not in done:
                     todo.append(rbonded)
             done.add(a)
-    return bbdep, mols
+    return structs
+
+def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
+    from chimerax.core.geometry import distance, angle
+    bond_key = (n1, new)
+    angle_key = (n2, n1, new)
+    try:
+        bl = bond_cache[bond_key]
+        ang = angle_cache[angle_key]
+    except KeyError:
+        n2pos = template.find_atom(n2).coord
+        n1pos = template.find_atom(n1).coord
+        newpos = template.find_atom(new).coord
+        bond_cache[bond_key] = bl = distance(newpos, n1pos)
+        angle_cache[angle_key] = ang = angle(newpos, n1pos, n2pos)
+    return bl, ang
 
 '''
 
@@ -403,21 +394,6 @@ def pruneByChis(rots, res, log=False):
     if log:
         replyobj.info("\n")
     return rots
-
-def _lenAngle(new, n1, n2, tmplMap, bondCache, angleCache):
-    from chimera import distance, angle
-    bondKey = (n1, new)
-    angleKey = (n2, n1, new)
-    try:
-        bl = bondCache[bondKey]
-        ang = angleCache[angleKey]
-    except KeyError:
-        n2pos = tmplMap[n2].coord()
-        n1pos = tmplMap[n1].coord()
-        newpos = tmplMap[new].coord()
-        bondCache[bondKey] = bl = distance(newpos, n1pos)
-        angleCache[angleKey] = ang = angle(newpos, n1pos, n2pos)
-    return bl, ang
 
 class NoResidueRotamersError(ValueError):
     pass
@@ -529,7 +505,7 @@ def useRotamer(oldRes, rots, retain=[], mcAltLoc=None, log=False):
     oldAtoms = set(["N", "CA", "C"])
     for i, rot in enumerate(rots):
         rotRes = rot.residues[0]
-        rotN, rotCA = rotAnchors[rot]
+        rot_N, rot_CA = rotAnchors[rot]
         if len(rots) + len(retain) > 1:
             found = 0
             for altLoc in altLocs:
@@ -552,8 +528,8 @@ def useRotamer(oldRes, rots, retain=[], mcAltLoc=None, log=False):
         from BuildStructure import changeResidueType
         changeResidueType(oldRes, rotRes.type)
         # add new side chain
-        from chimera.molEdit import addAtom, addBond
-        sprouts = [rotCA]
+        from chimerax.atomic.struct_edit import add_atom, add_bond
+        sprouts = [rot_CA]
         while sprouts:
             sprout = sprouts.pop()
             if sprout.name in oldAtoms:
@@ -580,8 +556,8 @@ def useRotamer(oldRes, rots, retain=[], mcAltLoc=None, log=False):
                         serial = serials.get(nb.name, None)
                     else:
                         serial = None
-                    builtNB = addAtom(nb.name, nb.element, oldRes, nb.coord(),
-                        serialNumber=serial, bondedTo=builtSprout)
+                    builtNB = add_atom(nb.name, nb.element, oldRes, nb.coord(),
+                        serialNumber=serial, bonded_to=builtSprout)
                     if altLoc:
                         builtNB.altLoc = altLoc
                     if totProb == 0.0:
@@ -598,7 +574,7 @@ def useRotamer(oldRes, rots, retain=[], mcAltLoc=None, log=False):
                         builtNB.color = uniformColor
                     sprouts.append(nb)
                 if builtNB not in builtSprout.bondsMap:
-                    addBond(builtSprout, builtNB)
+                    add_bond(builtSprout, builtNB)
 
         
 amino20 = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
