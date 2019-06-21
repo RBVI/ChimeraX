@@ -124,6 +124,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         break
     return models, info
 
+
 def _get_formatted_metadata(model, session, *, verbose=False):
     from chimerax.core.logger import html_table_params
     from chimerax.atomic.pdb import process_chem_name
@@ -271,8 +272,9 @@ _mmcif_sources = {
 }
 
 
-def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False,
-        structure_factors = False, over_sampling = 1.5, # for ChimeraX-Clipper plugin
+def fetch_mmcif(
+        session, pdb_id, fetch_source="rcsb", ignore_cache=False,
+        structure_factors=False, over_sampling=1.5,  # for ChimeraX-Clipper plugin
         **kw):
     """Get mmCIF file by PDB identifier via the Internet"""
     if not _initialized:
@@ -285,7 +287,7 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False,
             from chimerax.clipper.io import fetch_cif
         except ImportError:
             raise UserError('Working with structure factors requires the '
-                'ChimeraX_Clipper plugin, available from the Tool Shed')
+                            'ChimeraX_Clipper plugin, available from the Tool Shed')
 
     import os
     pdb_id = pdb_id.lower()
@@ -324,8 +326,8 @@ def fetch_mmcif(session, pdb_id, fetch_source="rcsb", ignore_cache=False,
     from chimerax.core import io
     models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
     if structure_factors:
-        sf_file = fetch_cif.fetch_structure_factors(session, pdb_id, fetch_source=fetch_source,
-            ignore_cache=ignore_cache)
+        sf_file = fetch_cif.fetch_structure_factors(
+            session, pdb_id, fetch_source=fetch_source, ignore_cache=ignore_cache)
         from chimerax.clipper import get_map_mgr
         mmgr = get_map_mgr(models[0], create=True)
         if over_sampling < 1:
