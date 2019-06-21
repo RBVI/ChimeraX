@@ -294,7 +294,7 @@ class Volume(Model):
                              % (len(values), len(self.surfaces)))
         elif param == 'transparency':
           for s in self.surfaces:
-            s.set_transparency(kw['transparency'])
+            s.set_transparency((1-kw['transparency'])*255)
         elif param == 'brightness':
           for s in self.surfaces:
             s.set_brightness(kw['brightness'])
@@ -375,21 +375,13 @@ class Volume(Model):
   #
   def set_transparency(self, alpha):
     '''Alpha values in range 0-255. Only changes current style (surface/mesh or image).'''
-    a1 = alpha/255
     if self.surface_shown:
       for s in self.surfaces:
-        r,g,b,a = s.rgba
-        s.rgba = (r,g,b,a1)
-    elif self.image_shown:
+        s.set_transparency(alpha)
+    if self.image_shown:
+      a1 = alpha/255
       self.set_parameters(image_colors = [(r,g,b,a1) for r,g,b,a in self.image_colors])
     self._drawings_need_update()
-    
-    # Update transparency on per-vertex coloring
-    for s in self.surfaces:
-      vc = s.vertex_colors
-      if vc is not None:
-        vc[:,3] = alpha
-        s.vertex_colors = vc
 
   # ---------------------------------------------------------------------------
   #
@@ -1882,9 +1874,13 @@ class VolumeSurface(Surface):
   rgba = property(_get_rgba, _set_rgba)
   '''Float red,green,blue,alpha values in range 0-1'''
 
-  def set_transparency(self, transparency):
-    '''Set surface transparency, 0-1 range.'''
-    self.rgba = tuple(self.rgba[:3]) + (1-transparency,)
+  def set_transparency(self, alpha):
+    '''Set surface transparency, 0-255 range.'''
+    if self.vertex_colors is None:
+      self.rgba = tuple(self.rgba[:3]) + (alpha/255,)
+    else:
+      # Change per-vertex transparency leaving colors the same.
+      Surface.set_transparency(self, alpha)
 
   def set_brightness(self, brightness):
     '''
@@ -1898,7 +1894,7 @@ class VolumeSurface(Surface):
     else:
       f = b255/cb
       self.color = (int(f*r), int(f*g), int(f*b), a)
-    
+
   def get_color(self):
     return Surface.get_color(self)
   def set_color(self, color):
@@ -1934,7 +1930,7 @@ class VolumeSurface(Surface):
     self._use_thread_result()
     
     if not self._geometry_changed(rendering_options):
-      self._set_appearance(rendering_options)
+      self._set_appearance(rendering_options, clear_vertex_colors = False)
       return
     
     v = self.volume
@@ -2109,10 +2105,10 @@ class VolumeSurface(Surface):
 
   # ---------------------------------------------------------------------------
   #
-  def _set_appearance(self, rendering_options):
+  def _set_appearance(self, rendering_options, clear_vertex_colors = True):
 
     # Update color
-    if self.auto_recolor_vertices is None:
+    if self.auto_recolor_vertices is None and clear_vertex_colors:
       self.vertex_colors = None
 
     # Update display style

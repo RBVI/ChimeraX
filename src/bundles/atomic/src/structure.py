@@ -76,6 +76,8 @@ class Structure(Model, StructureData):
 
         self._make_drawing()
 
+        self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
+
     def __str__(self):
         return self.string()
 

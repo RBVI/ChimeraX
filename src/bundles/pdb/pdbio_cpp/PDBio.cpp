@@ -222,7 +222,7 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
     auto ssbond_recs = s->metadata.find(Ssbond);
     if (ssbond_recs != s->metadata.end()) {
         for (auto rec: ssbond_recs->second) {
-            if (rec.substr(59, 6) != rec.substr(66, 6)) {
+            if (rec.length() >= 72 && rec.substr(59, 6) != rec.substr(66, 6)) {
                 char buffer[4];
                 std::sprintf(buffer, "%4d", ssbond_serial++);
                 ssbonds.push_back(rec.substr(0, 7) + std::string(buffer) + rec.substr(10, std::string::npos));
@@ -232,7 +232,7 @@ compile_links_ssbonds(const Structure* s, std::vector<std::string>& links, std::
     auto link_recs = s->metadata.find(Link);
     if (link_recs != s->metadata.end()) {
         for (auto rec: link_recs->second) {
-            if (rec.substr(59, 6) != rec.substr(66, 6))
+            if (rec.length() >= 72 && rec.substr(59, 6) != rec.substr(66, 6))
                 links.push_back(rec);
         }
     }

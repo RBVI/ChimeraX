@@ -92,14 +92,14 @@ def write_mmcif(session, path, *, models=None, rel_model=None):
             if p.is_identity():
                 xforms[m] = None
             else:
-                xforms[m] = p.matrix
+                xforms[m] = p
     else:
         inv = rel_model.scene_position.inverse()
         for m in models:
             if m.scene_position == rel_model.scene_position:
                 xforms[m] = None
             else:
-                xforms[m] = (m.scene_position * inv).matrix
+                xforms[m] = m.scene_position * inv
 
     if not _standard_residues:
         _set_standard_residues()
@@ -503,7 +503,7 @@ def save_structure(session, file, models, xforms, used_data_names):
                 if alt_loc is not '.':
                     atom.set_alt_loc(alt_loc, False)
                 coord = atom.coord
-                if xform:
+                if xform is not None:
                     coord = xform * coord
                 xyz = ['%.3f' % f for f in coord]
                 occ = "%.2f" % atom.occupancy

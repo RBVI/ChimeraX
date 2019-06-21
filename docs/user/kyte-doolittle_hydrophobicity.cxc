@@ -30,4 +30,4 @@ setattr :phe res kdh 2.8 create t
 setattr :trp res kdh -0.9 create t
 setattr :tyr res kdh -1.3 create t
 surf protein; hide protein atoms
-color byattribute kdh protein target s palette dodgerblue:white:orangered
+color byattribute kdh protein target s palette dodgerblue:white:orangered novalue gray
