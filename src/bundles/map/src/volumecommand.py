@@ -97,6 +97,7 @@ def register_volume_command(logger):
                ('box_faces', BoolArg),
                ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
                ('position_planes', Int3Arg),
+               ('calculate_surfaces', BoolArg),
         ],
         synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume, logger=logger)
@@ -182,6 +183,7 @@ def volume(session,
            box_faces = None,
            orthoplanes = None,
            position_planes = None,
+           calculate_surfaces = None
            ):
     '''
     Control the display of density maps.
@@ -287,6 +289,8 @@ def volume(session,
     orthoplanes : One of 'xyz', 'xy', 'xz', 'yz', 'off'
     position_planes : sequence of 3 integers
       Intersection grid point of orthoplanes display
+    calculate_surfaces : bool
+      Whether to calculate surfaces immediately instead of waiting until they are drawn.
     '''
     if volumes is None:
         from . import Volume
@@ -359,6 +363,10 @@ def volume(session,
     for v in vlist:
         apply_volume_options(v, dsettings, rsettings, session)
 
+    if calculate_surfaces:
+        for v in vlist:
+            v._update_surfaces()
+            
 # -----------------------------------------------------------------------------
 #
 def apply_global_settings(session, gsettings):
