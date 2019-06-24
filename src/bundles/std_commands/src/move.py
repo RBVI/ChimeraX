@@ -41,21 +41,26 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
         motion.CallForNFrames(move_step, frames, session)
         return
 
-    c = session.main_view.camera
-    normalize = (distance is not None)
-    saxis = axis.scene_coordinates(coordinate_system, c, normalize)	# Scene coords
-    if distance is None:
-        distance = 1
-    d = -distance if models is None else distance
-    from chimerax.core.geometry import translation
-    t = translation(saxis * d)
-    if models is not None:
-        for m in models:
-            m.positions = t * m.positions
-    if atoms is not None:
-        atoms.scene_coords = t.inverse() * atoms.scene_coords
-    if models is None and atoms is None:
-        c.position = t * c.position
+    from .view import UndoView
+    undo = UndoView("move", session, models, frames=frames)
+    with session.undo.block():
+        c = session.main_view.camera
+        normalize = (distance is not None)
+        saxis = axis.scene_coordinates(coordinate_system, c, normalize)	# Scene coords
+        if distance is None:
+            distance = 1
+        d = -distance if models is None else distance
+        from chimerax.core.geometry import translation
+        t = translation(saxis * d)
+        if models is not None:
+            for m in models:
+                m.positions = t * m.positions
+        if atoms is not None:
+            atoms.scene_coords = t.inverse() * atoms.scene_coords
+        if models is None and atoms is None:
+            c.position = t * c.position
+    undo.finish(session, models)
+    session.undo.register(undo)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
