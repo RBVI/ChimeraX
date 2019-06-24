@@ -1224,6 +1224,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action
 
+    def remove_menu(self, menu_names):
+        menu = self._get_target_menu(self.menuBar(), menu_names)
+        if menu:
+            menu.deleteLater()
+
     def _get_menu_action(self, menu, insertion_point):
         from PyQt5.QtWidgets import QAction
         if isinstance(insertion_point, QAction):
@@ -1604,12 +1609,19 @@ class _Qt:
         if not self.tool_window:
             # already destroyed
             return
+        is_floating = self.dock_widget.isFloating()
         self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None
         self.main_window = None
         self.status_bar = None
-        self.dock_widget.deleteLater()
+        # horrible hack to try to work around two different crashes, in 5.12:
+        # 1) destroying floating window closed with red-X with immediate destroy() 
+        # 2) resize event to dead window if deleteLater() used
+        if is_floating:
+            self.dock_widget.deleteLater()
+        else:
+            self.dock_widget.destroy()
 
     @property
     def dockable(self):

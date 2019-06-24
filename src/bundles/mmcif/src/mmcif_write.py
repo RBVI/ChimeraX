@@ -92,14 +92,14 @@ def write_mmcif(session, path, *, models=None, rel_model=None):
             if p.is_identity():
                 xforms[m] = None
             else:
-                xforms[m] = p.matrix
+                xforms[m] = p
     else:
         inv = rel_model.scene_position.inverse()
         for m in models:
             if m.scene_position == rel_model.scene_position:
                 xforms[m] = None
             else:
-                xforms[m] = (m.scene_position * inv).matrix
+                xforms[m] = m.scene_position * inv
 
     if not _standard_residues:
         _set_standard_residues()
@@ -348,7 +348,9 @@ def save_structure(session, file, models, xforms, used_data_names):
             names = set(c.existing_residues.names)
             nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
-            if c.from_seqres:
+            if not c.from_seqres:
+                _1to3 = None
+            else:
                 if c.polymer_type == Residue.PT_AMINO:
                     _1to3 = _protein1to3
                     poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
@@ -500,10 +502,10 @@ def save_structure(session, file, models, xforms, used_data_names):
             aname = atom.name
             original_alt_loc = atom.alt_loc
             for alt_loc in atom.alt_locs or '.':
-                if alt_loc is not '.':
+                if alt_loc != '.':
                     atom.set_alt_loc(alt_loc, False)
                 coord = atom.coord
-                if xform:
+                if xform is not None:
                     coord = xform * coord
                 xyz = ['%.3f' % f for f in coord]
                 occ = "%.2f" % atom.occupancy
@@ -517,7 +519,7 @@ def save_structure(session, file, models, xforms, used_data_names):
                 if u6 is not None and len(u6) > 0:
                     u6 = ['%.4f' % f for f in u6]
                     atom_site_anisotrop_data.append((serial_num, elem, u6))
-            if alt_loc is not '.':
+            if alt_loc != '.':
                 atom.set_alt_loc(original_alt_loc, False)
 
     for m, xform, model_num in zip(models, xforms, range(1, sys.maxsize)):
@@ -625,9 +627,9 @@ def save_structure(session, file, models, xforms, used_data_names):
                 a0.name, alt_loc0, r0_asym, r0_seq, cid0, rnum0, rins0, r0.name, "1_555",
                 a1.name, alt_loc1, r1_asym, r1_seq, cid1, rnum1, rins1, r1.name, "1_555",
                 dist))
-        if original_alt_loc0 is not ' ':
+        if original_alt_loc0 != ' ':
             a0.set_alt_loc(original_alt_loc0, False)
-        if original_alt_loc1 is not ' ':
+        if original_alt_loc1 != ' ':
             a1.set_alt_loc(original_alt_loc1, False)
 
     # disulfide bonds

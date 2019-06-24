@@ -734,7 +734,8 @@ def init(argv, event_loop=True):
         sys.argv = args
         sys.argv[0] = '-c'
         global_dict = {
-            'session': sess
+            'session': sess,
+            '__name__': '__main__',
         }
         exec(opts.cmd, global_dict)
         return os.EX_OK
