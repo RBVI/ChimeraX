@@ -200,7 +200,7 @@ class FileFormat:
         params = inspect.signature(self.export_func).parameters
         if len(params) < 2:
             raise UserError("%s-opening function is missing mandatory session, path arguments"
-                % fmt.name)
+                % format_name)
         if list(params.keys())[0] != "session":
             raise UserError("First param of %s-saving function is not 'session'" % self.name)
         if list(params.keys())[1] != "path":
@@ -322,6 +322,8 @@ def deduce_format(filename, has_format=None, open=True, save=False, no_raise=Fal
         import os
         base, ext = os.path.splitext(stripped)
         if not ext:
+            if no_raise:
+                return None, filename, compression
             from .errors import UserError
             raise UserError("Missing filename suffix %s" % filename)
         ext = ext.casefold()
