@@ -502,7 +502,7 @@ def save_structure(session, file, models, xforms, used_data_names):
             aname = atom.name
             original_alt_loc = atom.alt_loc
             for alt_loc in atom.alt_locs or '.':
-                if alt_loc == '.':
+                if alt_loc != '.':
                     atom.set_alt_loc(alt_loc, False)
                 coord = atom.coord
                 if xform is not None:
@@ -519,7 +519,7 @@ def save_structure(session, file, models, xforms, used_data_names):
                 if u6 is not None and len(u6) > 0:
                     u6 = ['%.4f' % f for f in u6]
                     atom_site_anisotrop_data.append((serial_num, elem, u6))
-            if alt_loc == '.':
+            if alt_loc != '.':
                 atom.set_alt_loc(original_alt_loc, False)
 
     for m, xform, model_num in zip(models, xforms, range(1, sys.maxsize)):
@@ -627,9 +627,9 @@ def save_structure(session, file, models, xforms, used_data_names):
                 a0.name, alt_loc0, r0_asym, r0_seq, cid0, rnum0, rins0, r0.name, "1_555",
                 a1.name, alt_loc1, r1_asym, r1_seq, cid1, rnum1, rins1, r1.name, "1_555",
                 dist))
-        if original_alt_loc0 == ' ':
+        if original_alt_loc0 != ' ':
             a0.set_alt_loc(original_alt_loc0, False)
-        if original_alt_loc1 == ' ':
+        if original_alt_loc1 != ' ':
             a1.set_alt_loc(original_alt_loc1, False)
 
     # disulfide bonds
