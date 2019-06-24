@@ -95,7 +95,7 @@ def parse_ome_tiff_header(path):
         from os.path import basename
         raise TypeError('OME TIFF image %s does not have an image description tag'
                         ' starting with "<?xml" as required by the OME TIFF specification,'
-                        ' got description tags "%s"' % (basename(path), str(i.tag[270])))
+                        ' got description tags "%s"' % (basename(path), desc))
 
     from xml.etree import ElementTree as ET
     r = ET.fromstring(desc)
