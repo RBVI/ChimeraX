@@ -41,6 +41,7 @@ _additional_categories = (
     "refine",
     "reflns",
     "em_3d_reconstruction",
+    "exptl",
 )
 _reserved_words = {
     'loop_', 'stop_', 'global_'
