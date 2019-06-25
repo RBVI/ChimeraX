@@ -303,7 +303,7 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, **kw):
             from .errors import UserError
             raise UserError('Help viewer is not installed')
         browser.show_url(session, url, new_tab=new_tab)
-        return [], "Opened %s" % url
+        return [], "Opened %r in browser" % url
     base, ext = os.path.splitext(basename)
     filename = os.path.join(cache_dir, '%s%s' % (base, ext))
     count = 0

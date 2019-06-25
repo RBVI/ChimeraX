@@ -39,15 +39,19 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     models = []
 
     # Fetch files from databases.
+    status = None
     for db_id, db_name, db_format in db_fetches:
-        db_models = _fetch_from_database(session, db_id, db_name, db_format, name, ignore_cache, **kw)
+        db_models, status = _fetch_from_database(session, db_id, db_name, db_format, name, ignore_cache, **kw)
         models.extend(db_models)
 
     # Remember fetch in history.  TODO: Handle fetching multiple ids as one history entry.
     if len(db_fetches) == 1:
-        db_id, db_name, db_format in db_fetches[0]
-        from chimerax.core.filehistory import remember_file
-        remember_file(session, db_id, db_format, models, database=db_name, open_options = kw)
+        db_id, db_name, db_format = db_fetches[0]
+        # Files opened in the browser are done asynchronously and might have
+        # been misspelled and can't be deleted from file history.  So skip them
+        if not status.endswith(' in browser'):
+            from chimerax.core.filehistory import remember_file
+            remember_file(session, db_id, db_format, models, database=db_name, open_options = kw)
 
     if paths:
         # Get correct format name.
@@ -151,7 +155,7 @@ def _fetch_from_database(session, filename, from_database, format, name, ignore_
         session.models.add(models)
 
     session.logger.status(status, log=True)
-    return models
+    return models, status
 
 def _check_db_format(database, format):
     if format is None:
