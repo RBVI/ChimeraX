@@ -45,13 +45,14 @@ class VolumeMenu(ToolInstance):
         global settings
         settings.show_volume_menu = True
         for tool in self._volume_tools():
-            def callback(ses = self.session, tool_name=tool.name, vmenu = self):
-                if tool_name == 'Volume Menu':
-                    vmenu.toggle()
+            tool_name = 'Hide Volume Menu' if tool.name == 'Show Volume Menu' else tool.name
+            def callback(ses = self.session, tool_name=tool_name, vmenu = self):
+                if tool_name == 'Hide Volume Menu':
+                    vmenu.hide()
                 else:
                     from chimerax.core.commands import run, quote_if_necessary
                     run(ses, "toolshed show %s" % quote_if_necessary(tool_name))
-            self.session.ui.main_window.add_menu_entry(['Volume'], tool.name, callback)
+            self.session.ui.main_window.add_menu_entry(['Volume'], tool_name, callback)
 
     def hide(self):
         if not self._shown:
