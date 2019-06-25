@@ -48,15 +48,18 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
         frames = -1	# Continue motion indefinitely.
 
     if frames is not None:
-        def turn_step(session, frame):
-            if rock is None:
-                a = angle
-            else:
-                a = _rock_step(frame, rock) * angle
-            turn(session, axis=axis, angle=a, frames=None, rock=None, center=center,
-                 coordinate_system=coordinate_system, models=models, atoms=atoms)
-        from chimerax.core.commands import motion
-        motion.CallForNFrames(turn_step, frames, session)
+        def turn_step(session, frame, undo=None):
+            with session.undo.block():
+                if rock is None:
+                    a = angle
+                else:
+                    a = _rock_step(frame, rock) * angle
+                if undo:
+                    a = -a
+                turn(session, axis=axis, angle=a, frames=None, rock=None, center=center,
+                     coordinate_system=coordinate_system, models=models, atoms=atoms)
+        from .move import multiframe_motion
+        multiframe_motion("turn", turn_step, frames, session)
         return
 
     from .view import UndoView
