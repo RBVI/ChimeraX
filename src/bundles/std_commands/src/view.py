@@ -14,7 +14,8 @@
 from chimerax.core.commands import Annotation, AnnotationError
 
 
-def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False, pad=0.05):
+def view(session, objects=None, frames=None, clip=True, cofr=True,
+         orient=False, pad=0.05, need_undo=True):
     '''
     Move camera so the displayed models fill the graphics window.
     Also camera and model positions can be saved and restored.
@@ -37,22 +38,34 @@ def view(session, objects=None, frames=None, clip=True, cofr=True, orient=False,
     pad : float
       When making objects fit in window use a window size reduced by this fraction.
       Default value is 0.05.  Pad is ignored when restoring named views.
+    need_undo : bool
+      Whether to create undo action
     '''
     v = session.main_view
     if orient:
         v.initial_camera_view(set_pivot = cofr)
 
-    if objects is None:
-        v.view_all(pad = pad)
-        if cofr:
-            v.center_of_rotation_method = 'front center'
-        cp = v.clip_planes
-        cp.remove_plane('near')
-        cp.remove_plane('far')
-    elif isinstance(objects, NamedView):
-        show_view(session, objects, frames)
-    else:
-        view_objects(objects, v, clip, cofr, pad)
+    if need_undo:
+        if objects is None or isinstance(objects, NamedView):
+            models = session.models.list()
+        else:
+            models = objects
+        undo = UndoView("view", session, models)
+    with session.undo.block():
+        if objects is None:
+            v.view_all(pad = pad)
+            if cofr:
+                v.center_of_rotation_method = 'front center'
+            cp = v.clip_planes
+            cp.remove_plane('near')
+            cp.remove_plane('far')
+        elif isinstance(objects, NamedView):
+            show_view(session, objects, frames)
+        else:
+            view_objects(objects, v, clip, cofr, pad)
+    if need_undo:
+        undo.finish(session, models)
+        session.undo.register(undo)
 
 
 def view_objects(objects, v, clip, cofr, pad):
@@ -483,6 +496,38 @@ class ModelPlacesArg(Annotation):
                 mp.append((m,p))
             fields = fields[13:]
         return mp, text, rest
+
+
+from chimerax.core.undo import UndoAction
+class UndoView(UndoAction):
+
+    def __init__(self, name, session, models, frames=None):
+        super().__init__(name, can_redo=False)
+        v = session.main_view
+        if models is None:
+            models = session.models.list()
+        self._before = NamedView(v, v.center_of_rotation, models)
+        self._after = None
+        self._session = session
+        self.frames = frames
+
+    def finish(self, session, models):
+        v = session.main_view
+        if models is None:
+            models = session.models.list()
+        self._after = NamedView(v, v.center_of_rotation, models)
+        self.can_redo = True
+
+    def undo(self):
+        with self._session.undo.block():
+            view(self._session, objects=self._before,
+                 frames=self.frames, need_undo=False)
+
+    def redo(self):
+        with self._session.undo.block():
+            view(self._session, objects=self._after,
+                 frames=self.frames, need_undo=False)
+
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ObjectsArg, FloatArg

@@ -53,7 +53,7 @@ or <a href="../tools/toolbar.html#home"><b>Toolbar</b></a> icon
 border=1 src="../tools/toolbar-icons/content-save.png"></a>.
 See also: <a href="open.html"><b>open</b></a>,
 <a href="log.html"><b>log</b></a>,
-<a href="../../devel/mmcif_writing.html"
+<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
 target="_blank">Writing mmCIF Files in ChimeraX</a>
 </p><p>
 An initial
@@ -77,6 +77,7 @@ There may be several additional options, depending on the file type:
 <li><a href="#session"><b>Save Session</b></a>
 <li><a href="#map"><b>Save Map</b></a>
 <li><a href="#pdb"><b>Save PDB</b></a>
+<li><a href="#mmcif"><b>Save mmCIF</b></a>
 <li><a href="#mol2"><b>Save Mol2</b></a>
 <li><a href="#sequence"><b>Save Sequence Data</b></a>
 </ul>
@@ -153,21 +154,19 @@ atomic coordinates,<br>PDB<br>
 <a href="../pseudobonds.html">pseudobonds</a><br>
 (see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
 </tr><tr>
+<td align="center"><b>mmcif</b></td>
+<td align="center">.cif</td>
+<td align="center">
+atomic coordinates,<br>
+mmCIF<br>
+(see <a href="#mmcif"><b>Save mmCIF</b></a>)</td>
+</tr><tr>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
 <td align="center">
 atomic coordinates,<br>
 Sybyl Mol2<br>
 (see <a href="#mol2"><b>Save Mol2</b></a>)</td>
-</tr><tr>
-<td align="center"><b>mmcif</b></td>
-<td align="center">.cif</td>
-<td align="center">
-atomic coordinates,<br>
-mmCIF<br>
-(includes a subset of mmCIF data types, see
-<a href="../../devel/mmcif_writing.html"
-target="_blank">details</a>)</td>
 </tr><tr>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
@@ -574,6 +573,38 @@ by incorporating alphabetical characters
 </ul>
 </blockquote>
 
+<a name="mmcif"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>Save mmCIF</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;mmcif&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>relModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+</blockquote>
+<p>
+Atomic coordinates and associated information can be saved in 
+<a href="http://mmcif.wwpdb.org/" target="_blank">mmCIF format</a>.
+A subset of the mmCIF data types are written
+(<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
+target="_blank">details...</a>). Options:
+</p>
+<blockquote>
+<b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Write only the specified models, otherwise all atomic models
+(as described above for <a href="#pdb">PDB</a>).
+</blockquote>
+<blockquote>
+<b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Write coordinates relative to the original coordinates of the specified model
+(as described above for <a href="#pdb">PDB</a>).
+</blockquote>
+
 <a name="mol2"></a>
 <p class="nav">
 [<a href="#top">back to top: save</a>]
@@ -607,7 +638,7 @@ and/or <a href="#skipAtoms"><b>skipAtoms</b></a>).
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Write coordinates relative to the original coordinates of the specified model
-(same as described above for <a href="#pdb">PDB</a>).
+(as described above for <a href="#pdb">PDB</a>).
 </blockquote>
 <blockquote>
 <b>combineModels</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
