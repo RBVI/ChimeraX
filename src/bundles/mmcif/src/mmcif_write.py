@@ -311,6 +311,8 @@ def save_structure(session, file, models, xforms, used_data_names):
 
     save_components(best_m, file)
 
+    _save_metadata(best_m, ['exptl'], file)
+
     from chimerax.atomic import Residue
     old_entity, old_asym = mmcif.get_mmcif_tables_from_metadata(best_m, ['entity', 'struct_asym'])
     try:
