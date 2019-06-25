@@ -34,11 +34,12 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
        Change the coordinates of these atoms.  Camera is not moved.
     '''
     if frames is not None:
-        def move_step(session, frame):
-            move(session, axis=axis, distance=distance, frames=None,
-                 coordinate_system=coordinate_system, models=models)
-        from chimerax.core.commands import motion
-        motion.CallForNFrames(move_step, frames, session)
+        def move_step(session, frame, undo=None):
+            with session.undo.block():
+                d = distance if undo is None else -distance
+                move(session, axis=axis, distance=d, frames=None,
+                     coordinate_system=coordinate_system, models=models)
+        multiframe_motion("move", move_step, frames, session)
         return
 
     from .view import UndoView
@@ -61,6 +62,34 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
             c.position = t * c.position
     undo.finish(session, models)
     session.undo.register(undo)
+
+
+def multiframe_motion(name, func, frames, session):
+    from chimerax.core.commands.motion import CallForNFrames
+    if frames != CallForNFrames.Infinite:
+        session.undo.register(UndoMotion(name, func, frames, session))
+    CallForNFrames(func, frames, session)
+
+
+from chimerax.core.undo import UndoAction
+class UndoMotion(UndoAction):
+
+    def __init__(self, name, func, frames, session):
+        super().__init__(name, can_redo=True)
+        self._func = func
+        self._frames = frames
+        self._session = session
+
+    def undo(self):
+        from chimerax.core.commands.motion import CallForNFrames
+        def undo_func(*args, **kw):
+            self._func(*args, undo=True, **kw)
+        CallForNFrames(undo_func, self._frames, self._session)
+
+    def redo(self):
+        from chimerax.core.commands.motion import CallForNFrames
+        CallForNFrames(self._func, self._frames, self._session)
+
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg
