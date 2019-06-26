@@ -135,7 +135,8 @@ def add_dihedral_atom(name, element, n1, n2, n3, dist, angle, dihed,
     
     final_pt = find_pt(n1, n2, n3, dist, angle, dihed)
 
-    return add_atom(name, element, residue, final_pt, bonded_to=bonded_to, occupancy=occupancy)
+    return add_atom(name, element, residue, final_pt, bonded_to=bonded_to, occupancy=occupancy,
+        info_from=info_from)
 
 def add_bond(a1, a2, halfbond=None, color=None):
     if a1.num_bonds > 0:
