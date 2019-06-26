@@ -21,7 +21,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Volume Menu :: Volume Data :: Add a top level volume menu</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Show Volume Menu :: Volume Data :: Add a top level volume menu</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

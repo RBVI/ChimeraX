@@ -16,6 +16,7 @@ and "redo" callbacks.  Actions can register "undo" and "redo"
 functions which may be invoked via GUI, command or programmatically.
 """
 
+import abc
 from .state import StateManager, CORE_STATE_VERSION
 
 
@@ -69,12 +70,44 @@ class Undo(StateManager):
         self.max_depth = max_depth
         self.undo_stack = []
         self.redo_stack = []
+        self._register_stack = []
 
     @property
     def session(self):
         """Returns the session this undo state manager is in.
         """
         return self._session()
+
+    def register_push(self, handler):
+        """Push handler onto undo registration stack.
+
+        Parameters
+        ----------
+        handler : instance of UndoHandler
+            Handler that processes registration requests
+
+        Returns
+        -------
+        The registered handler.
+        """
+        self._register_stack.insert(0, handler)
+        return handler
+
+    def register_pop(self):
+        """Pop last pushed handler from undo registration stack.
+
+        Returns
+        -------
+        The popped handler.
+        """
+        handler = self._register_stack.pop(0)
+        return handler
+
+    def aggregate(self, name):
+        return UndoAggregateHandler(self, name)
+
+    def block(self):
+        return UndoBlockHandler(self, None)
 
     def register(self, action):
         """Register undo/redo actions with state manager.
@@ -89,6 +122,8 @@ class Undo(StateManager):
         -------
         The registered action.
         """
+        if len(self._register_stack):
+            return self._register_stack[0].register(action)
         self._push(self.undo_stack, action)
         self.redo_stack.clear()
         self._update_ui()
@@ -308,8 +343,8 @@ class UndoState(UndoAction):
         """Add another tuple of (owner, attribute, old_value, new_value,
         option) to the undo action state.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         owner : instance
             An instance or a container of instances.  If owner
             is a container, then undo/redo callbacks will check
@@ -383,3 +418,102 @@ class UndoState(UndoAction):
             getattr(owner, attribute)(**value)
         elif option == "MA":
             getattr(owner, attribute)(*value)
+
+
+class UndoHandler(metaclass=abc.ABCMeta):
+    """An instance that intercepts undo registration
+    requests.  For example, multiple undo actions may
+    be aggregated into a single undo action; or
+    undo actions may be blocked and replaced with
+    a more efficient undo mechanism.
+    """
+
+    def __init__(self, mgr, name):
+        """Initialize undo handler.
+
+        Parameters
+        ----------
+        mgr : instance of Undo
+            Undo manager for which this undo handler was created.
+        name : str
+            Name of undo action to register
+        """
+        self.name = name
+        self.mgr = mgr
+
+    def __enter__(self):
+        self.mgr.register_push(self)
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.mgr.register_pop()
+        if not exc_type:
+            self.finish()
+
+    @abc.abstractmethod
+    def register(self, action):
+        """Register undo/redo actions.
+
+        Parameters
+        ----------
+        action : instance of UndoAction
+            Action that can change session between "before"
+            and "after" states.
+
+        Returns
+        -------
+        The registered action.
+        """
+        pass
+
+    @abc.abstractmethod
+    def finish(self):
+        """Finish processing intercepted registration requests."""
+        pass
+
+
+class UndoAggregateHandler(UndoHandler):
+    """An instance that intercepts undo registration
+    requests and aggregates them into a single undo action.
+    """
+
+    def __init__(self, mgr, name):
+        super().__init__(mgr, name)
+        self.actions = []
+
+    def register(self, action):
+        self.actions.append(action)
+
+    def finish(self):
+        a = UndoAggregateAction(self.name, self.actions)
+        self.mgr.register(a)
+
+
+class UndoAggregateAction(UndoAction):
+    """An instance that executes a list of UndoAction
+    instances as a group."""
+
+    def __init__(self, name, actions):
+        can_redo = all([a.can_redo for a in actions])
+        super().__init__(name, can_redo=can_redo)
+        self.actions = actions
+
+    def undo(self):
+        for a in reversed(self.actions):
+            a.undo()
+
+    def redo(self):
+        for a in self.actions:
+            a.redo()
+
+
+class UndoBlockHandler(UndoHandler):
+    """An instance that intercepts undo registration
+    requests and discards them.
+    """
+
+    def register(self, action):
+        pass
+
+    def finish(self):
+        pass

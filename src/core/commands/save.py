@@ -60,11 +60,8 @@ def save(session, filename, models=None, format=None, **kw):
     try:
         fmt.export(session, filename, fmt.nicknames[0], **kw)
     except TypeError as e:
-        # Keywords incompatible with export function
-        if 'unexpected keyword' in str(e):
-            from chimerax.core.errors import UserError
-            raise UserError(str(e))
-        raise
+        from .open import _handle_unexpected_keyword_error
+        _handle_unexpected_keyword_error(e, 5)
 
     from os.path import isfile
     if fmt.open_func and not fmt.name.endswith('image') and isfile(filename):

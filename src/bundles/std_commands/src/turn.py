@@ -48,35 +48,43 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
         frames = -1	# Continue motion indefinitely.
 
     if frames is not None:
-        def turn_step(session, frame):
-            if rock is None:
-                a = angle
-            else:
-                a = _rock_step(frame, rock) * angle
-            turn(session, axis=axis, angle=a, frames=None, rock=None, center=center,
-                 coordinate_system=coordinate_system, models=models, atoms=atoms)
-        from chimerax.core.commands import motion
-        motion.CallForNFrames(turn_step, frames, session)
+        def turn_step(session, frame, undo=None):
+            with session.undo.block():
+                if rock is None:
+                    a = angle
+                else:
+                    a = _rock_step(frame, rock) * angle
+                if undo:
+                    a = -a
+                turn(session, axis=axis, angle=a, frames=None, rock=None, center=center,
+                     coordinate_system=coordinate_system, models=models, atoms=atoms)
+        from .move import multiframe_motion
+        multiframe_motion("turn", turn_step, frames, session)
         return
 
-    v = session.main_view
-    c = v.camera
-    saxis = axis.scene_coordinates(coordinate_system, c)	# Scene coords
-    if center is None:
-        ab = axis.base_point()
-        c0 = v.center_of_rotation if ab is None else ab
-    else:
-        c0 = center.scene_coordinates(coordinate_system)
-    a = -angle if models is None else angle
-    from chimerax.core.geometry import rotation
-    r = rotation(saxis, a, c0)
-    if models is not None:
-        for m in models:
-            m.positions = r * m.positions
-    if atoms is not None:
-        atoms.scene_coords = r.inverse() * atoms.scene_coords
-    if models is None and atoms is None:
-        c.position = r * c.position
+    from .view import UndoView
+    undo = UndoView("move", session, models, frames=frames)
+    with session.undo.block():
+        v = session.main_view
+        c = v.camera
+        saxis = axis.scene_coordinates(coordinate_system, c)	# Scene coords
+        if center is None:
+            ab = axis.base_point()
+            c0 = v.center_of_rotation if ab is None else ab
+        else:
+            c0 = center.scene_coordinates(coordinate_system)
+        a = -angle if models is None else angle
+        from chimerax.core.geometry import rotation
+        r = rotation(saxis, a, c0)
+        if models is not None:
+            for m in models:
+                m.positions = r * m.positions
+        if atoms is not None:
+            atoms.scene_coords = r.inverse() * atoms.scene_coords
+        if models is None and atoms is None:
+            c.position = r * c.position
+    undo.finish(session, models)
+    session.undo.register(undo)
 
 def _rock_step(frame, rock):
     from math import pi, sin
