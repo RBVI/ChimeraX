@@ -58,7 +58,10 @@ min, max, mean, SD, and RMSD values
 <li><a href="#motion"><b>motion</b></a>
 &ndash; show changes in surface position by drawing lines
 <li><a href="#sasa"><b>sasa</b></a>
-&ndash; calculate <a href="surface.html#surfdefs">solvent-accessible surface</a> area
+&ndash; calculate 
+<a href="surface.html#surfdefs">solvent-accessible surface</a> area
+<li><a href="#symmetry"><b>symmetry</b></a>
+&ndash; identify map symmetry
 <li><a href="#volume"><b>volume</b></a> 
 &ndash; report the volume enclosed by an existing surface
 </ul>
@@ -414,6 +417,99 @@ and report both the total area and the collective contribution from
 phenylalanine, tyrosine, and tryptophan residues
 </blockquote>
 See also: <a href="#area"><b>measure area</b></a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="symmetry"><b>measure symmetry</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<b>minimumCorrelation</b>&nbsp;<i>mincorr</i>&nbsp;]
+[&nbsp;<b>nMax</b>&nbsp;<i>n</i>&nbsp;]
+[&nbsp;<b>points</b>&nbsp;<i>maxpts</i>&nbsp;]
+[&nbsp;<b>set</b>&nbsp;<b>true</b>|false&nbsp;]
+[&nbsp;<b>helix</b>&nbsp;<i>rise</i>,<i>angle</i>[,<i>n</i>][,<b>opt</b>]&nbsp;]
+<blockquote>
+Check each specified <a href="../tools/volumeviewer.html">volume data</a>
+model (map) for cyclic, dihedral, tetrahedral, octahedral,
+and icosahedral symmetries in standard coordinate systems.
+Helical symmetry can be considered if approximate parameters are supplied.
+The symmetry assignment can be used by
+other commands such as <a href="sym.html"><b>sym</b></a>,
+<a href="molmap.html"><b>molmap</b></a>,
+and <a href="fitmap.html"><b>fitmap</b></a>, and is included in
+<a href="save.html#chimap">Chimera map</a> format.
+For direct assignment of a specified symmetry, see
+<a href="volume.html#symmetry"><b>volume symmetry</b></a>.
+<p>
+If the <a href="fitmap.html#corrzero">correlation</a>
+of the map with itself after symmetry transformation
+is at least <i>mincorr</i> (default <b>0.99</b>), the detected
+type of symmetry will be reported, and if <b>set</b> is true,
+assigned to the map in Chimera.
+The correlation calculation uses only map points with values
+above the displayed contour level; if the number of such points exceeds
+<i>maxpts</i> (default <b>10,000</b>), a random sample of <i>maxpts</i>
+is chosen from them and used. Values in the first copy of the map
+are compared with the superimposed (interpolated) values in the
+rotated copy of the map.
+</p><p>
+Center of point symmetry is considered only at the following:
+<ul>
+<li> the grid point nearest the average indices of grid points
+with values above the displayed contour level.
+The map's lowest contour level in
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> is used.
+<li> one or two grid points based on the overall map dimensions:
+only the midpoint along axes with odd numbers of points, and
+along axes with even numbers of points, those on either side of the midpoint.
+Rather than all possible combinations for axes with even numbers of points,
+only the two points with all indices lower or all higher are evaluated.
+</ul>
+For cyclic and dihedral symmetry, rotation is considered only
+about the Z axis, and for dihedral symmetry, flipping symmetry only
+about the X or Y axes. Cyclic (C<i>n</i>) symmetry is
+checked for order <i>n</i> up to <b>nMax</b>, default <b>8</b>.
+If more than one C<i>n</i> symmetry meets the criterion,
+those for which a higher multiple is also found are discarded, and of
+the remaining, the one with the highest correlation is assigned.
+For example, if <i>n</i> = 2, 3, 6, and 7 were to meet the criterion,
+6-fold would override 2- and 3-fold, and 6-fold or 7-fold symmetry,
+whichever gave the highest correlation, would be assigned.
+Tetrahedral symmetry is considered in two orientations:
+<ul>
+<li>2-folds along X, Y, and Z, with a 3-fold along axis (1,1,1)
+<li>3-fold along Z, with a second 3-fold in the YZ plane such that
+rotation about the X axis by ~110&deg; is a symmetry operation
+(EMAN convention)
+</ul>
+<p>
+Icosahedral symmetries are only considered in eight orientations:
+</p>
+<ul>
+<li>222 &ndash; with two-fold symmetry axes along the X, Y, and Z axes
+<li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
+<li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
+<li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
+<li>222r &ndash; same as 222 except rotated 90&deg; about Z
+<li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
+<li>n25r &ndash; same as n25 except rotated 180&deg; about X
+<li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
+</ul>
+<p>
+The <b>helix</b> option specifies looking for helical symmetry with
+approximate <i>rise</i> (in physical units of distance, typically &Aring;)
+and <i>angle</i> (degrees) per asymmetric unit.  If this option is
+used, the other types of symmetry are not considered except for
+combined helical and cyclic symmetry (for example,
+<a href="http://www.ebi.ac.uk/pdbe-srv/emsearch/atlas/1757_summary.html"
+target="_blank">EMD-1757</a>, approximately
+42 &Aring; rise and 21&deg; twist per subunit).
+Helical symmetry is infinite, but the number of copies to place
+when considering that symmetry, <i>n</i>, is necessarily finite.
+If not given, <i>n</i> will be determined by dividing the apparent length of
+the helix in the map by the rise and rounding to the nearest positive integer.
+The <b>opt</b> keyword indicates optimizing the fit of the map copies to
+itself to identify more accurate helical parameters.
+</p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
