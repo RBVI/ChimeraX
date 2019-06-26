@@ -976,28 +976,15 @@ def _none_possible_colors(item_colors, attr_vals, non_none_colors, no_value_colo
     import numpy
     return numpy.array(colors, dtype=numpy.uint8)
 
-def _python_attr_name(input_attr_name):
-    if '_' not in input_attr_name and input_attr_name[1:].lower() != input_attr_name[1:]:
-        # apparently camel case
-        attr_name = ""
-        for c in input_attr_name:
-            if c.isupper():
-                attr_name += '_' + c.lower()
-            else:
-                attr_name += c
-    else:
-        attr_name = input_attr_name
-    return attr_name
-
 def color_by_attr(session, attr_name, atoms=None, what=None, target=None, average=None,
                   palette=None, range='full', no_value_color=None,
                   transparency=None, undo_name="color byattribute"):
     '''
     Color atoms by attribute value using a color palette.
 
-    attr_name : string (actual Python name or ChimeraX command-line "camel case" both acceptable,
-      optionally prefixed by 'a:'/'r:'/'m:' for atom/residue/model attribute. If no prefix, then
-      the Atom/Residue/Structure classes will be searched for the attribute (in that order).
+    attr_name : string (actual Python attribute name optionally prefixed by 'a:'/'r:'/'m:'
+      for atom/residue/model attribute. If no prefix, then the Atom/Residue/Structure classes
+      will be searched for the attribute (in that order).
     atoms : Atoms
     what : list of 'atoms', 'cartoons', 'ribbons', 'surface'
       What to color.  Cartoon and ribbon use average bfactor for each residue.
@@ -1021,25 +1008,20 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
         attr_level = attr_name[0]
         if attr_level not in "arm":
             raise UserError("Unknown attribute level: '%s'" % attr_level)
-        input_attr_name = attr_name[2:]
-        attr_name = _python_attr_name(input_attr_name)
+        attr_name = attr_name[2:]
         class_obj = {'a': Atom, 'r': Residue, 'm': Structure}[attr_level]
         numeric_attrs = session.attr_registration.attributes_returning(class_obj, [int, float], none_okay=True)
         if attr_name not in numeric_attrs:
-            raise UserError("Unknown/unregistered %s attribute %s%s" % (class_obj.__name__, attr_name,
-                "" if attr_name == input_attr_name else " (typed as %s)" % input_attr_name))
+            raise UserError("Unknown/unregistered %s attribute %s" % (class_obj.__name__, attr_name))
     else:
         # try to find the attribute, in the order Atom->Residue->Structure
-        input_attr_name = attr_name
-        attr_name = _python_attr_name(attr_name)
         for class_obj, attr_level in [(Atom, 'a'), (Residue, 'r'), (Structure, 'm')]:
             numeric_attrs = session.attr_registration.attributes_returning(
                 class_obj, [int, float], none_okay=True)
             if attr_name in numeric_attrs:
                 break
         else:
-            raise UserError("No known/registered attribute %s%s" % (attr_name,
-            "" if attr_name == input_attr_name else " (typed as %s)" % input_attr_name))
+            raise UserError("No known/registered attribute %s" % attr_name)
 
     if atoms is None:
         from chimerax.atomic import all_atoms
