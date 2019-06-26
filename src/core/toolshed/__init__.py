@@ -316,12 +316,14 @@ class Toolshed:
         # self._data_dir = os.path.join(app_dirs.user_data_dir, _ToolshedFolder)
         # _debug("data dir: %s" % self._data_dir)
 
-        # Add directories to sys.path
-        import site
+        # Insert directories to sys.path to take precedence over
+        # installed distribution.  addsitedir checks and does not
+        # add the directory a second time.
+        import site, os, sys
         self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
-        import os
         os.makedirs(self._site_dir, exist_ok=True)
+        sys.path.insert(0, self._site_dir)
         site.addsitedir(self._site_dir)
 
         # Create triggers
