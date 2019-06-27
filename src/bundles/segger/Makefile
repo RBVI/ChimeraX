@@ -12,5 +12,7 @@ tarball:
 	gzip seggerx.tar
 	mv seggerx.tar.gz seggerx_$(shell date +"%Y_%m_%d").tar.gz
 
+test:
+
 clean:
 	\rm -rf seggerx
