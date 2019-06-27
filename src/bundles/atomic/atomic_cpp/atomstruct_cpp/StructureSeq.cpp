@@ -105,6 +105,21 @@ StructureSeq::demote_to_sequence()
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
+void
+StructureSeq::destructors_done(const std::set<void*>& destroyed)
+{
+    if (is_chain())
+        // Chains keep their residue lists up to date "by hand"
+        return;
+    // StructureSeq has to keep its residue list up to date itself
+    std::set<Residue*> destroyed_residues;
+    for (auto res_pos: _res_map)
+        if (destroyed.find(static_cast<void*>(res_pos.first)) != destroyed.end())
+            destroyed_residues.insert(res_pos.first);
+    if (destroyed_residues.size() > 0)
+        remove_residues(destroyed_residues);
+}
+
 StructureSeq&
 StructureSeq::operator+=(StructureSeq& addition)
 {
@@ -217,13 +232,24 @@ StructureSeq::push_front(Residue* r)
 
 void
 StructureSeq::remove_residue(Residue* r) {
-    auto ri = std::find(_residues.begin(), _residues.end(), r);
-    *ri = nullptr;
+    std::set<Residue*> residues;
+    residues.insert(r);
+    remove_residues(residues);
+}
+
+void
+StructureSeq::remove_residues(std::set<Residue*>& residues) {
     bool ischain = is_chain();
+    for (auto r: residues) {
+        auto ri = std::find(_residues.begin(), _residues.end(), r);
+        *ri = nullptr;
+        if (ischain)
+            r->set_chain(nullptr);
+    }
     if (ischain)
         _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
-    if (no_structure_left()) {
+    if (_res_map.size() == residues.size()) {
         if (DestructionCoordinator::destruction_parent() != _structure && ischain)
             _structure->remove_chain(dynamic_cast<Chain*>(this));
         demote_to_sequence();
@@ -236,8 +262,6 @@ StructureSeq::remove_residue(Residue* r) {
             }
         }
     }
-    if (ischain)
-        r->set_chain(nullptr);
 }
 
 void

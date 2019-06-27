@@ -593,11 +593,15 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
     }
     if (res_removals.size() > 0) {
         if (_chains != nullptr) {
+            std::map<Chain*, std::set<Residue*>> chain_res_removals;
             for (auto r: res_removals)
                 if (r->chain() != nullptr) {
-                    r->chain()->remove_residue(r);
-                    set_gc_ribbon();
+                    chain_res_removals[r->chain()].insert(r);
                 }
+            for (auto chain_residues: chain_res_removals) {
+                chain_residues.first->remove_residues(chain_residues.second);
+                set_gc_ribbon();
+            }
         }
         // remove_if apparently doesn't guarantee that the _back_ of
         // the vector is all the removed items -- there could be second
