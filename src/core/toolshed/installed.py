@@ -292,20 +292,31 @@ def _report_difference(logger, before, after):
             bundles[bi.name] = [None, bi.version]
         else:
             versions[1] = bi.version
+    changes = {}
+    def add_change(kind, name, version):
+        try:
+            d = changes[kind]
+        except KeyError:
+            d = changes[kind] = {}
+        d[name] = version
     messages = []
     for name in sorted(bundles.keys()):
         versions = bundles[name]
         if versions[0] is None:
             messages.append("Installed %s (%s)" % (name, versions[1]))
+            add_change("installed", name, versions[1])
         elif versions[1] is None:
             messages.append("Removed %s (%s)" % (name, versions[0]))
+            add_change("removed", name, versions[0])
         elif versions[0] != versions[1]:
             messages.append("Updated %s (from %s to %s)"
                             % (name, versions[0], versions[1]))
+            add_change("updated", name, versions[1])
     if messages:
         logger.info('\n'.join(messages))
     else:
         logger.info("No change in list of installed bundles")
+    return changes
 
 
 #

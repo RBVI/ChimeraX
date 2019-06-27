@@ -398,6 +398,7 @@ class Toolshed:
         """
 
         _debug("reload", rebuild_cache, check_remote)
+        changes = {}
         if reread_cache or rebuild_cache:
             from .installed import InstalledBundleCache
             save = self._installed_bundle_info
@@ -411,7 +412,8 @@ class Toolshed:
                     logger.info("Initial installed bundles.")
                 else:
                     from .installed import _report_difference
-                    _report_difference(logger, save, self._installed_bundle_info)
+                    changes = _report_difference(logger, save,
+                                                 self._installed_bundle_info)
             if save is not None:
                 save.deregister_all(logger, session, self._installed_packages)
             self._installed_bundle_info.register_all(logger, session,
@@ -419,6 +421,7 @@ class Toolshed:
         if check_remote:
             self.reload_available(logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
+        return changes
 
     def async_reload_available(self, logger):
         with self._abc_lock:
@@ -649,7 +652,39 @@ class Toolshed:
         else:
             logger.info('No bundles were installed')
         self.set_install_timestamp(per_user)
-        self.reload(logger, rebuild_cache=True, report=True)
+        changes = self.reload(logger, rebuild_cache=True, report=True)
+
+        # Initialize managers and call custom init
+        # There /may/ be a problem with the order in which we call
+        # these if multiple bundles were installed, but we hope for
+        # the best.  We do /not/ call initialization functions for
+        # bundles that were just updated because we do not want to
+        # confuse already initialized bundles.
+        try:
+            new_bundles = changes["installed"]
+        except KeyError:
+            pass
+        else:
+            failed = []
+            done = set()
+            initializing = set()
+            for name, version in new_bundles.items():
+                bi = self.find_bundle(name, logger, version=version)
+                if bi:
+                    self._init_bundle_manager(session, bi, done,
+                                              initializing, failed)
+            for name in failed:
+                logger.warning("%s: manager initialization failed" % name)
+            failed = []
+            done = set()
+            initializing = set()
+            for name, version in new_bundles.items():
+                bi = self.find_bundle(name, logger, version=version)
+                if bi:
+                    self._init_bundle_custom(session, bi, done,
+                                             initializing, failed)
+            for name in failed:
+                logger.warning("%s: custom initialization failed" % name)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
 
     def _can_install(self, bi):
