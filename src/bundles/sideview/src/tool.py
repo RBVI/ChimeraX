@@ -103,6 +103,9 @@ class SideViewCanvas(QWindow):
 
     def close(self):
         self.session.triggers.remove_handler(self.handler)
+        self.view.remove_overlays([self.applique])
+        self.applique.delete()
+        self.applique = None
 
     def _redraw(self, *_):
         self.render()
@@ -417,9 +420,9 @@ class SideViewUI(ToolInstance):
         self.tool_window.manage(placement="side")
 
     def delete(self):
+        self.opengl_canvas.close()
         self.view.delete()
         self.view = None
-        self.opengl_canvas.close()
         ToolInstance.delete(self)
 
     def on_near(self, event):
