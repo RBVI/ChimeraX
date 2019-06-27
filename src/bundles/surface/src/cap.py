@@ -66,7 +66,9 @@ def compute_cap(drawing, plane, offset):
     # surfaces with sharp edges between atoms.
     if hasattr(d, 'joined_triangles'):
         t = d.joined_triangles
-        # TODO: triangle mask not handled for joined triangles.
+        if d.triangle_mask is not None and d.triangle_mask.sum() < len(d.triangle_mask):
+            # TODO: triangle mask not handled for joined triangles.
+            return None, None, None
     else:
         t = d.triangles
         if d.triangle_mask is not None and d.triangle_mask.sum() < len(d.triangle_mask):
