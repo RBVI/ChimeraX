@@ -58,7 +58,10 @@ cdef class TmplResidue:
         '''Return the TmplResidue with the given name (or raise ValueError if no such template).
            start/end, if True, return a template residue for the corresponding chain terminus.
         '''
-        return cytmpl.find_template_residue(res_name.encode(), start, end).py_instance(True)
+        tmpl_res = cytmpl.find_template_residue(res_name.encode(), start, end)
+        if not tmpl_res:
+            raise ValueError("No template for residue type %s" % res_name)
+        return tmpl_res.py_instance(True)
 
     @property
     def link(self):
