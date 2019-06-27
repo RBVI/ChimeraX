@@ -59,17 +59,18 @@ def remove_clip_caps(drawings):
 def compute_cap(drawing, plane, offset):
     # Undisplay cap for drawing with no geometry shown.
     d = drawing
-    if (not d.display or
-        (d.triangle_mask is not None and
-         d.triangle_mask.sum() < len(d.triangle_mask))):
+    if not d.display:
         return None, None, None
 
     # Handle surfaces with duplicate vertices, such as molecular
     # surfaces with sharp edges between atoms.
     if hasattr(d, 'joined_triangles'):
         t = d.joined_triangles
+        # TODO: triangle mask not handled for joined triangles.
     else:
         t = d.triangles
+        if d.triangle_mask is not None and d.triangle_mask.sum() < len(d.triangle_mask):
+            t = t[d.triangle_mask]
 
     # Compute cap geometry.
     # TODO: Cap instances
