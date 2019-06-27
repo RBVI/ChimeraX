@@ -35,7 +35,9 @@ static wchar_t* debug_extra[] = {
 	L"-X",
 	L"dev",
 	L"-X",
+/* Too much output from import timing for debugging.
 	L"importtime",
+ */
 };
 static const int debug_ec = sizeof(debug_extra) / sizeof (debug_extra[0]);
 
