@@ -16,7 +16,8 @@ import chimerax.atomic.pdb
 from .mmcif import (
     get_cif_tables, get_mmcif_tables, get_mmcif_tables_from_metadata,
     open_mmcif, fetch_mmcif, citations,
-    TableMissingFieldsError, CIFTable
+    TableMissingFieldsError, CIFTable,
+    find_template_residue, load_mmCIF_templates
 )
 
 from chimerax.core.toolshed import BundleAPI
