@@ -977,7 +977,7 @@ def _none_possible_colors(item_colors, attr_vals, non_none_colors, no_value_colo
     return numpy.array(colors, dtype=numpy.uint8)
 
 def color_by_attr(session, attr_name, atoms=None, what=None, target=None, average=None,
-                  palette=None, range='full', no_value_color=None,
+                  palette=None, range=None, no_value_color=None,
                   transparency=None, undo_name="color byattribute"):
     '''
     Color atoms by attribute value using a color palette.

@@ -46,10 +46,7 @@ def view(session, objects=None, frames=None, clip=True, cofr=True,
         v.initial_camera_view(set_pivot = cofr)
 
     if need_undo:
-        if objects is None or isinstance(objects, NamedView):
-            models = session.models.list()
-        else:
-            models = objects
+        models = session.models.list()
         undo = UndoView("view", session, models)
     with session.undo.block():
         if objects is None:
