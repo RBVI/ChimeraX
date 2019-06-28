@@ -106,6 +106,7 @@ class SideViewCanvas(QWindow):
         self.view.remove_overlays([self.applique])
         self.applique.delete()
         self.applique = None
+        self.setParent(None)
 
     def _redraw(self, *_):
         self.render()
