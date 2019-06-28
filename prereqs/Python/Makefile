@@ -257,6 +257,7 @@ else
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 endif
+	$(APP_PYTHON_EXE) clean_config_makefile.py $(build_prefix)
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
 	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
