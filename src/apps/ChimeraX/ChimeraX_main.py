@@ -471,23 +471,6 @@ def init(argv, event_loop=True):
         from distutils import sysconfig
         site.USER_SITE = sysconfig.get_python_lib()
 
-    # Hack Linux CC to remove compiler arguments inserted for building
-    # Python.  These args contain '/', which confuses
-    # sysconfig.get_config_var() when used by bundle_builder
-    if sys.platform.startswith("linux"):
-        def _clean(cc):
-            parts = cc.split()
-            def ignore(arg):
-                return (arg.startswith("-fdebug-prefix-map") or
-                        arg.startswith("-I") or
-                        arg.startswith("-L"))
-            keep = [arg for arg in parts if not ignore(arg)]
-            return ' '.join(keep)
-        import sysconfig
-        cvars = sysconfig.get_config_vars()
-        cvars["CC"] = _clean(cvars["CC"])
-        del cvars
-
     # Find the location of "share" directory so that we can inform
     # the C++ layer.  Assume it's a sibling of the directory that
     # the executable is in.
@@ -603,8 +586,7 @@ def init(argv, event_loop=True):
                                 next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Initializing bundles", flush=True)
-        if not opts.safe_mode:
-            sess.toolshed.bootstrap_bundles(sess)
+        sess.toolshed.bootstrap_bundles(sess, opts.safe_mode)
         from chimerax.core import tools
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks

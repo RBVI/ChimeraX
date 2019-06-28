@@ -444,10 +444,8 @@ class Session:
                 container.clear()
 
     def __setattr__(self, name, value):
-        # need to actually set attr first,
-        # since add_state_manager will check if the attr exists
         object.__setattr__(self, name, value)
-        if self.snapshot_methods(value) is not None:
+        if self.snapshot_methods(value, base_type=StateManager) is not None:
             self.add_state_manager(name, value)
 
     def __delattr__(self, name):

@@ -1110,6 +1110,8 @@ def vector_value(text, v, allow_singleton = False):
       for a in range(3):
         if vfields[a] != float_format(v[a], 5):
           nv[a] = string_to_float(vfields[a], v[a])
+    else:
+        return None
     if nv == list(v):
       return v
     return tuple(nv)

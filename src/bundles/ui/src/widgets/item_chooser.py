@@ -292,7 +292,7 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             menu.addSeparator()
         for item_name in item_names:
             menu.addAction(item_name)
-        if prev_value not in self.value_map:
+        if prev_value not in self.value_map and prev_value not in self._special_items:
             if len(self.value_map) + len(self._special_items) == 1 and self._autoselect_single:
                 self.value = (list(self.value_map.keys()) + self._special_items)[0]
             else:
