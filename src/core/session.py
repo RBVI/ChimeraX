@@ -445,7 +445,7 @@ class Session:
 
     def __setattr__(self, name, value):
         object.__setattr__(self, name, value)
-        if isinstance(value, StateManager):
+        if self.snapshot_methods(value, base_type=StateManager) is not None:
             self.add_state_manager(name, value)
 
     def __delattr__(self, name):
