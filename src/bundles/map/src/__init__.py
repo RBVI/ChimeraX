@@ -68,8 +68,12 @@ class _MapBundle(BundleAPI):
     @staticmethod
     def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
-        from . import volume_viewer
-        return volume_viewer.show_volume_dialog(session)
+        if tool_name == 'Volume Viewer':
+            from . import volume_viewer
+            return volume_viewer.show_volume_dialog(session)
+        elif tool_name == 'Map Coordinates':
+            from .coords_gui import show_coords_panel
+            show_coords_panel(session)
 
     @staticmethod
     def open_file(session, stream, file_name):
