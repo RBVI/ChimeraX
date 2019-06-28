@@ -257,7 +257,11 @@ else
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
 endif
+ifneq ($(OS),Windows)
+	# remove references to build tree from config
+	# we do not build Python on Windows, so no action is needed
 	$(APP_PYTHON_EXE) clean_config_makefile.py $(build_prefix)
+endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
 	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
