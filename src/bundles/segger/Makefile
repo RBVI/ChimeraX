@@ -16,5 +16,7 @@ sync:
 
 test:
 
+sync:
+
 clean:
 	rm -rf seggerx
