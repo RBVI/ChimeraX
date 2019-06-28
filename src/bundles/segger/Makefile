@@ -14,5 +14,7 @@ tarball:
 
 test:
 
+sync:
+
 clean:
 	rm -rf seggerx
