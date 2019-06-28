@@ -15,4 +15,4 @@ tarball:
 test:
 
 clean:
-	\rm -rf seggerx
+	rm -rf seggerx
