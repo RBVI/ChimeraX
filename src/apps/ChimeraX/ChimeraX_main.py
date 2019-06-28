@@ -603,8 +603,7 @@ def init(argv, event_loop=True):
                                 next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Initializing bundles", flush=True)
-        if not opts.safe_mode:
-            sess.toolshed.bootstrap_bundles(sess)
+        sess.toolshed.bootstrap_bundles(sess, opts.safe_mode)
         from chimerax.core import tools
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks
