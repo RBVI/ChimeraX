@@ -31,9 +31,9 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
        'loc' can be a sequence of Points if there are multiple
        coordinate sets.
 
-       If you are adding atoms in bulk, make sure that you provide the
-       optional 'serial_number' argument, since the code that automatically
-       determines the serial number is slow.
+       If no 'serial_number' is given, then the atom will be given a serial
+       number one greater than the largest serial number of the other atoms
+       in the structure.
 
        'bonded_to' is None or an Atom.  If an Atom, then the new atom
        inherits various attributes [display, altloc, style, occupancy]
@@ -76,7 +76,8 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
     for xyz, cs_id in zip(locs, struct.coordset_ids):
         new_atom.set_coord(xyz, cs_id)
     if serial_number is None:
-        serial_number = max(struct.atoms.serial_numbers) + 1
+        import numpy
+        serial_number = numpy.max(struct.atoms.serial_numbers) + 1
     new_atom.serial_number = serial_number
     if occupancy is not None or info_from and hasattr(info_from, 'occupancy'):
         new_atom.occupancy = getattr(info_from, 'occupancy', occupancy)
