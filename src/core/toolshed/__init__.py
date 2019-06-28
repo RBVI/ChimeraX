@@ -299,6 +299,7 @@ class Toolshed:
             self.remote_url = _RemoteURL
         else:
             self.remote_url = remote_url
+        self._safe_mode = None
         self._repo_locator = None
         self._installed_bundle_info = None
         self._available_bundle_info = None
@@ -654,37 +655,39 @@ class Toolshed:
         self.set_install_timestamp(per_user)
         changes = self.reload(logger, rebuild_cache=True, report=True)
 
-        # Initialize managers and call custom init
-        # There /may/ be a problem with the order in which we call
-        # these if multiple bundles were installed, but we hope for
-        # the best.  We do /not/ call initialization functions for
-        # bundles that were just updated because we do not want to
-        # confuse already initialized bundles.
-        try:
-            new_bundles = changes["installed"]
-        except KeyError:
-            pass
-        else:
-            failed = []
-            done = set()
-            initializing = set()
-            for name, version in new_bundles.items():
-                bi = self.find_bundle(name, logger, version=version)
-                if bi:
-                    self._init_bundle_manager(session, bi, done,
-                                              initializing, failed)
-            for name in failed:
-                logger.warning("%s: manager initialization failed" % name)
-            failed = []
-            done = set()
-            initializing = set()
-            for name, version in new_bundles.items():
-                bi = self.find_bundle(name, logger, version=version)
-                if bi:
-                    self._init_bundle_custom(session, bi, done,
-                                             initializing, failed)
-            for name in failed:
-                logger.warning("%s: custom initialization failed" % name)
+        if not self._safe_mode:
+            # Initialize managers and call custom init
+            # There /may/ be a problem with the order in which we call
+            # these if multiple bundles were installed, but we hope for
+            # the best.  We do /not/ call initialization functions for
+            # bundles that were just updated because we do not want to
+            # confuse already initialized bundles.
+            try:
+                new_bundles = changes["installed"]
+            except KeyError:
+                pass
+            else:
+                failed = []
+                done = set()
+                initializing = set()
+                for name, version in new_bundles.items():
+                    bi = self.find_bundle(name, logger, version=version)
+                    if bi:
+                        self._init_bundle_manager(session, bi, done,
+                                                  initializing, failed)
+                for name in failed:
+                    logger.warning("%s: manager initialization failed" % name)
+                failed = []
+                done = set()
+                initializing = set()
+                for name, version in new_bundles.items():
+                    bi = self.find_bundle(name, logger, version=version)
+                    if bi:
+                        self._init_bundle_custom(session, bi, done,
+                                                 initializing, failed)
+                for name in failed:
+                    logger.warning("%s: custom initialization failed" % name)
+
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
 
     def _can_install(self, bi):
@@ -826,7 +829,7 @@ class Toolshed:
             package = package[0:-1]
         return None
 
-    def bootstrap_bundles(self, session):
+    def bootstrap_bundles(self, session, safe_mode):
         """Supported API. Do custom initialization for installed bundles
 
         After adding the :py:class:`Toolshed` singleton to a session,
@@ -834,7 +837,10 @@ class Toolshed:
         (For symmetry, there should be a way to uninstall all bundles
         before a session is discarded, but we don't do that yet.)
         """
-        _debug("initialize_bundles")
+        _debug("initialize_bundles", safe_mode)
+        self._safe_mode = safe_mode
+        if safe_mode:
+            return
         for bi in self._installed_bundle_info:
             bi.update_library_path()    # for bundles with dynamic libraries
         failed = self._init_managers(session)
