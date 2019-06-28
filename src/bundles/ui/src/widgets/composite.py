@@ -41,19 +41,19 @@ def button_row(parent, title, name_and_callback_list, hspacing = 3):
 
     return f
 
-def _row_frame(parent):
+def _row_frame(parent, spacing = 5):
     from PyQt5.QtWidgets import QFrame, QHBoxLayout
     f = QFrame(parent)
     parent.layout().addWidget(f)
 
     layout = QHBoxLayout(f)
     layout.setContentsMargins(0,0,0,0)
-    layout.setSpacing(10)
+    layout.setSpacing(spacing)
     return f, layout
 
 class EntriesRow:
-    def __init__(self, parent, *args):
-        f, layout = _row_frame(parent)
+    def __init__(self, parent, *args, spacing = 5):
+        f, layout = _row_frame(parent, spacing)
         self.frame = f
         
         from PyQt5.QtWidgets import QLabel, QPushButton
@@ -88,6 +88,19 @@ class EntriesRow:
                 values.append(fe)
             elif isinstance(a, tuple):
                 b = QPushButton(a[0], f)
+# TODO: QPushButton has extra vertical space (about 5 pixels top and bottom) on macOS 10.14 (Mojave)
+#       with Qt 5.12.4.  Couldn't find any thing to fix this, although below are some attempts
+#                b.setMaximumSize(100,25)
+#                from PyQt5.QtWidgets import QToolButton
+#                b = QToolButton(f)
+#                b.setText(a[0])
+#                from PyQt5.QtCore import Qt
+#                b.setContentsMargins(0,0,0,0)
+#                b.setAttribute(Qt.WA_LayoutUsesWidgetRect)
+#                b.setStyleSheet('padding-left: 15px; padding-right: 15px; padding-top: 4px;  padding-bottom: 4px;')
+#                b.setStyleSheet('QPushButton { border: none;}')
+#                b.setStyleSheet('QPushButton { background-color: pink;}')
+#                layout.setAlignment(b, Qt.AlignTop)
                 layout.addWidget(b)
                 b.clicked.connect(a[1])
 

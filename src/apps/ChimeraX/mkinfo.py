@@ -213,4 +213,5 @@ for f in formats:
         if type_info:
             pl["UTImportedTypeDeclarations"] = type_info
 
-plistlib.writePlist(pl, 'Info.plist')
+with open("Info.plist", "wb") as f:
+    plistlib.dump(pl, f)
