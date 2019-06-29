@@ -122,7 +122,8 @@ class Popup(QLabel):
     def __init__(self, graphics_window):
         from PyQt5.QtCore import Qt
         QLabel.__init__(self)
-        self.setWindowFlags(self.windowFlags() | Qt.ToolTip)
+        # Don't use a Qt.ToolTip which can do undesired auto-hiding on Mac. Bug #
+        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus)
         self.graphics_window = graphics_window
 
     def show_text(self, text, position):
