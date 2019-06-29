@@ -198,77 +198,111 @@ def register_image_save_options_gui(save_dialog):
     from chimerax.ui import SaveOptionsGUI
     class ImageSaveOptionsGUI(SaveOptionsGUI):
 
-        DEFAULT_FORMAT = "png"
-        DEFAULT_EXT = "png"
         SUPERSAMPLE_OPTIONS = (("None", None),
                                ("2x2", 2),
                                ("3x3", 3),
                                ("4x4", 4))
 
+        def __init__(self, image_format):
+            self._image_format = image_format
+            SaveOptionsGUI.__init__(self)
+            
         @property
         def format_name(self):
-            return 'Image file'
+            return self._image_format.name
         
         def make_ui(self, parent):
             from PyQt5.QtWidgets import QFrame, QGridLayout, QComboBox, QLabel, QHBoxLayout, \
-                QLineEdit
+                QLineEdit, QCheckBox
             container = QFrame(parent)
-            container.setFrameStyle(QFrame.Box)
             layout = QGridLayout(container)
             layout.setContentsMargins(2, 0, 0, 0)
-
-            from chimerax.core.image import image_formats
-            selector = QComboBox(container)
-            selector.addItems(list(f.name for f in image_formats))
-            selector.currentIndexChanged.connect(self._select_format)
-            selector.setCurrentIndex(selector.findText(self.DEFAULT_FORMAT))
-            format_label = QLabel(container)
-            format_label.setText("Format:")
-            from PyQt5.QtCore import Qt
-            layout.addWidget(format_label, 0, 0, Qt.AlignRight | Qt.AlignVCenter)
-            layout.addWidget(selector, 0, 1, Qt.AlignLeft)
-            self._format_selector = selector
+            row = 0
 
             size_frame = QFrame(container)
             size_layout = QHBoxLayout(size_frame)
             size_layout.setContentsMargins(0, 0, 0, 0)
-            self._width = QLineEdit(size_frame)
-            new_width = int(0.4 * self._width.sizeHint().width())
-            self._width.setFixedWidth(new_width)
+            self._width = w = QLineEdit(size_frame)
+            new_width = int(0.4 * w.sizeHint().width())
+            w.setFixedWidth(new_width)
+            w.textEdited.connect(self._width_changed)
             x = QLabel(size_frame)
             x.setText("x")
-            self._height = QLineEdit(size_frame)
-            self._height.setFixedWidth(new_width)
+            self._height = h = QLineEdit(size_frame)
+            h.setFixedWidth(new_width)
+            h.textEdited.connect(self._height_changed)
+            
+            from PyQt5.QtCore import Qt
             size_layout.addWidget(self._width, Qt.AlignRight)
             size_layout.addWidget(x, Qt.AlignHCenter)
             size_layout.addWidget(self._height, Qt.AlignLeft)
             size_frame.setLayout(size_layout)
             size_label = QLabel(container)
             size_label.setText("Size:")
-            layout.addWidget(size_label, 1, 0, Qt.AlignRight | Qt.AlignVCenter)
-            layout.addWidget(size_frame, 1, 1, Qt.AlignLeft)
+            layout.addWidget(size_label, row, 0, Qt.AlignRight | Qt.AlignVCenter)
+            layout.addWidget(size_frame, row, 1, Qt.AlignLeft)
+            row += 1
+
+            self._keep_aspect = ka = QCheckBox('preserve aspect', container)
+            ka.setChecked(True)
+            ka.stateChanged.connect(self._aspect_changed)
+            layout.addWidget(ka, row, 1, Qt.AlignLeft)
+            row += 1
 
             ss_label = QLabel(container)
             ss_label.setText("Supersample:")
             supersamples = QComboBox(container)
             supersamples.addItems([o[0] for o in self.SUPERSAMPLE_OPTIONS])
-            layout.addWidget(ss_label, 2, 0, Qt.AlignRight | Qt.AlignVCenter)
-            layout.addWidget(supersamples, 2, 1, Qt.AlignLeft)
+            layout.addWidget(ss_label, row, 0, Qt.AlignRight | Qt.AlignVCenter)
+            layout.addWidget(supersamples, row, 1, Qt.AlignLeft)
             self._supersample = supersamples
 
             container.setLayout(layout)
             return container
 
-        def _select_format(self, *args):
-            # TODO: enable options that apply to this graphics format
-            pass
+        def _width_changed(self):
+            if self._keep_aspect.isChecked():
+                w,h,iw,ih = self._sizes()
+                if w > 0 and iw is not None:
+                    self._height.setText('%.0f' % ((iw/w) * h))
+        
+        def _height_changed(self):
+            if self._keep_aspect.isChecked():
+                w,h,iw,ih = self._sizes()
+                if h > 0 and ih is not None:
+                    self._width.setText('%.0f' % ((ih/h) * w))
 
+        def _sizes(self):
+            gw = self._session.ui.main_window.graphics_window
+            w, h = gw.width(), gw.height()
+            try:
+                iw = int(self._width.text())
+            except ValueError:
+                iw = None
+            try:
+                ih = int(self._height.text())
+            except ValueError:
+                ih = None
+            return w, h, iw, ih
+
+        def _aspect_changed(self, state):
+            if self._keep_aspect.isChecked():
+                w,h,iw,ih = self._sizes()
+                if iw != w:
+                    self._width_changed()
+                else:
+                    self._height_changed()
+        
         def save(self, session, filename):
+
+            # Add file suffix if needed
             import os.path
             ext = os.path.splitext(filename)[1]
-            e = '.' + self._get_current_extension()
-            if ext != e:
-                filename += e
+            suf = self._image_format.suffixes
+            if ext[1:] not in suf:
+                filename += '.' + suf[0]
+
+            # Get image width and height
             try:
                 w = int(self._width.text())
                 h = int(self._height.text())
@@ -278,7 +312,11 @@ def register_image_save_options_gui(save_dialog):
             if w <= 0 or h <= 0:
                 from chimerax.core.errors import UserError
                 raise UserError("width/height must be positive integers")
+
+            # Get supersampling
             ss = self.SUPERSAMPLE_OPTIONS[self._supersample.currentIndex()][1]
+
+            # Run image save command
             from chimerax.core.commands import run, quote_if_necessary
             cmd = "save image %s width %g height %g" % (quote_if_necessary(filename), w, h)
             if ss is not None:
@@ -286,27 +324,17 @@ def register_image_save_options_gui(save_dialog):
             run(session, cmd)
 
         def update(self, session, save_dialog):
+            self._session = session
             gw = session.ui.main_window.graphics_window
             w, h = gw.width(), gw.height()
             self._width.setText(str(w))
             self._height.setText(str(h))
 
         def wildcard(self):
-            from chimerax.core.image import image_formats
-            exts = sum((list(f.suffixes) for f in image_formats), [])
-            exts.remove(self.DEFAULT_EXT)
-            exts.insert(0, self.DEFAULT_EXT)
-            fmts = ' '.join("*.%s" % e for e in exts)
-            wildcard = "Image file (%s)" % fmts
+            f = self._image_format
+            suf = ' '.join("*.%s" % e for e in f.suffixes)
+            wildcard = "%s image file (%s)" % (f.name.upper(), suf)
             return wildcard
 
-        def _get_current_extension(self):
-            format_name = self._format_selector.currentText()
-            from chimerax.core.image import image_formats
-            for f in image_formats:
-                if f.name == format_name:
-                    return f.suffixes[0]
-            else:
-                raise RuntimeError("unsupported graphics format: %s" % format_name)
-
-    save_dialog.register(ImageSaveOptionsGUI())
+    for fmt in image_formats:
+        save_dialog.register(ImageSaveOptionsGUI(fmt))

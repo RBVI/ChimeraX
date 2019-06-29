@@ -23,17 +23,16 @@ html, body, #full {
   height: 50%;
   max-height: 50%;
 }
-#column_table {
+#info {
   flex: auto;
-  table-layout: fixed;
   width: 100%;
 }
-.column_sort, .column_graph, .column_hist {
-  width: 1.5rem;
-}
-col:nth-child(odd) {
-  background: #EEE;
-}
-col:nth-child(even) {
-  background: #DDD;
+.table-narrow > thead > tr > th,
+.table-narrow > tbody > tr > th,
+.table-narrow > tfoot > tr > th,
+.table-narrow > thead > tr > td,
+.table-narrow > tbody > tr > td,
+.table-narrow > tfoot > tr > td {
+  padding: 0px;
+  margin: 0px;
 }

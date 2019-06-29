@@ -11,16 +11,23 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class PresetsManager:
+from chimerax.core.toolshed import ProviderManager
+class PresetsManager(ProviderManager):
     """Manager for presets"""
 
     def __init__(self, session):
-        self._alignments = {}
         self.session = session
+        from . import settings
+        settings.settings = settings._PresetsSettings(session, "presets")
+        settings.settings.triggers.add_handler("setting changed", self._new_custom_folder_cb)
         self._presets = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("presets changed")
+        self._new_custom_folder_cb()
+        if session.ui.is_gui:
+            session.ui.triggers.add_handler('ready',
+                lambda *arg, ses=session: settings.register_settings_options(session))
 
     @property
     def presets_by_category(self):
@@ -36,10 +43,7 @@ class PresetsManager:
 
     def add_presets(self, category, preset_info):
         """'preset_info' should be a dictionary of preset-name -> callback-function/command-string"""
-        self._presets.setdefault(category, {}).update({
-            name: lambda p=preset: self.execute(p)
-            for name, preset in preset_info
-        })
+        self._add_presets(category, preset_info)
         self.triggers.activate_trigger("presets changed", self)
 
     def add_provider(self, bundle_info, name,
@@ -66,6 +70,67 @@ class PresetsManager:
                 " commands available.")
         else:
             from chimerax.core.commands import run
-            run(self.session, preset, log=False)
-            self.session.logger.info(
-                "Preset expands to these ChimeraX commands: <i>%s</i>" % preset, is_html=True)
+            num_lines = 0
+            for line in preset.splitlines():
+                run(self.session, line, log=False)
+                num_lines += 1
+            if num_lines == 1:
+                parts = [p.strip() for p in preset.split(';')]
+                display_lines = '\n'.join(parts)
+            else:
+                display_lines = preset
+            self.session.logger.info('Preset expands to these ChimeraX commands: '
+                '<div style="padding-left:4em;padding-top:0px;margin-top:0px">'
+                '<pre style="margin:0;padding:0">%s</pre></div>' % display_lines, is_html=True)
+
+    def _add_presets(self, category, preset_info):
+        self._presets.setdefault(category, {}).update({
+            name: lambda p=preset: self.execute(p)
+            for name, preset in preset_info.items()
+        })
+
+    def _gather_presets(self, folder):
+        import os, os.path
+        preset_info = {}
+        subfolders = []
+        for entry in os.listdir(folder):
+            entry_path = os.path.join(folder, entry)
+            if os.path.isdir(entry_path):
+                subfolders.append(entry)
+                continue
+            if entry.endswith(".cxc"):
+                f = open(entry_path, "r")
+                preset_info[entry[:-4].replace('_', ' ')] = f.read()
+                f.close()
+            elif entry.endswith(".py"):
+                from chimerax.core.commands import run, quote_if_necessary
+                preset_info[entry[:-3].replace('_', ' ')] = lambda p=quote_if_necessary(entry_path), \
+                    run=run, ses=self.session: run(ses, "open "+p, log=False)
+        return preset_info, subfolders
+
+    def _new_custom_folder_cb(self, *args):
+        from .settings import settings
+        if not settings.folder:
+            return
+        import os.path
+        if not os.path.exists(settings.folder):
+            self.session.logger.warning("Custom presets folder '%s' does not exist" % settings.folder)
+        presets_added = False
+        preset_info, subfolders = self._gather_presets(settings.folder)
+        if preset_info:
+            self._add_presets("Custom", preset_info)
+            presets_added = True
+        for subfolder in subfolders:
+            subpath = os.path.join(settings.folder, subfolder)
+            preset_info, subsubfolders = self._gather_presets(subpath)
+            if preset_info:
+                self._add_presets(subfolder.replace('_', ' '), preset_info)
+                presets_added = True
+            else:
+                self.session.logger.warning("No presets found in custom preset folder %s" % subpath)
+        if args:
+            # actual trigger callback, rather than startup call
+            if presets_added:
+                self.triggers.activate_trigger("presets changed", self)
+        if not presets_added:
+            self.session.logger.warning("No presets found in custom preset folder %s" % settings.folder)

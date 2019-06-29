@@ -64,6 +64,7 @@
     <ChimeraXClassifier>Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure mapstats :: Volume data :: report map statistics</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Volume Viewer :: Volume Data :: Show density maps info</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Map Coordinates :: Volume Data :: Adjust density map coordinates</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

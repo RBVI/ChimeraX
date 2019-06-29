@@ -101,11 +101,6 @@ var vdxtable = function() {
             });
             rows.push(row);
         });
-        function update_shown() {
-            var selected = table.bootgrid("getSelectedRows");
-            var url = custom_scheme + ":show_only?id=" + selected;
-            window.location = url;
-        }
         function change_rating(ev, value, caption) {
             var id = $(this).attr("ratingid");
             var url = custom_scheme + ":rating?id=" + id + "&rating=" + value;
@@ -127,6 +122,12 @@ var vdxtable = function() {
              .bootgrid("append", rows);
     }
 
+    function update_shown() {
+        var selected = $("#viewdockx_table").bootgrid("getSelectedRows");
+        var url = custom_scheme + ":show_only?id=" + selected;
+        window.location = url;
+    }
+
     function update_display(new_display) {
         var select_ids = [];
         var deselect_ids = [];
@@ -138,10 +139,14 @@ var vdxtable = function() {
                 deselect_ids.push(id);
         }
         var table = $("#viewdockx_table");
+        table.off("selected.rs.jquery.bootgrid")
+             .off("deselected.rs.jquery.bootgrid");
         if (select_ids.length > 0)
             table.bootgrid("select", select_ids);
         if (deselect_ids.length > 0)
             table.bootgrid("deselect", deselect_ids);
+        table.on("selected.rs.jquery.bootgrid", update_shown)
+             .on("deselected.rs.jquery.bootgrid", update_shown);
     }
 
     function update_ratings(new_ratings) {

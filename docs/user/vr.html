@@ -370,9 +370,10 @@ In the future these calculations will be done in parallel
 so the graphics will not be slowed down.
 </p>
 <p><b>Flickering labels.</b>
-Atom labels or residue labels created by the swap amino acid mode can cause
-scene flicker because the labels are slow to render.
-Graphics optimization is needed.
+Atom or residue labels can cause scene flicker because labels are 
+slow to render. To make this less likely,
+the frequency of <a href="commands/label.html#orient">label reoriention</a>
+is automatically decreased when VR is enabled.
 </p>
 <p><b>Selection outlines.</b>
 Green <a href="selection.html">selection</a>
@@ -425,5 +426,5 @@ coordset <b>pauseFrames 9</b> option to slow the playback rate from the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+June 2019</address>
 </body></html> 

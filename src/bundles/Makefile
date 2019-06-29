@@ -25,12 +25,12 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
 	  nucleotides pdb pick_blobs preset_mgr read_pbonds \
 	  registration remote_control rest_server \
-	  residue_fit scheme_mgr segment seq_view sim_matrices \
+	  residue_fit scheme_mgr segger segment seq_view sim_matrices \
 	  shell shortcuts show_attr sideview \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa \
 	  test texture toolbar tug ui uniprot \
-	  viewdockx vive vtk wavefront_obj webservices zone
+	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
 
 include $(TOP)/mk/subdir.make
 

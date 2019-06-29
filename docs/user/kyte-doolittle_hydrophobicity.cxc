@@ -1,0 +1,33 @@
+#
+# - ChimeraX command script: assign Kyte-Doolittle amino acid hydrophobicity
+#   as residue attribute, show protein surface, color by attribute using
+#   same colors as in the Chimera hydrophobicity preset
+# - put this file in custom preset folder, see ChimeraX Startup preferences
+#
+# Kyte-Doolittle hydrophobicity + make MSE same as MET
+# A simple method for displaying the hydropathic character of a protein. 
+# Kyte J, Doolittle RF. J Mol Biol. 1982 May 5;157(1):105-32. 
+#  
+setattr :asp res kdh -3.5 create t
+setattr :glu res kdh -3.5 create t
+setattr :asn res kdh -3.5 create t
+setattr :gln res kdh -3.5 create t
+setattr :lys res kdh -3.9 create t
+setattr :arg res kdh -4.5 create t
+setattr :his res kdh -3.2 create t
+setattr :gly res kdh -0.4 create t
+setattr :pro res kdh -1.6 create t
+setattr :ser res kdh -0.8 create t
+setattr :thr res kdh -0.7 create t
+setattr :cys res kdh 2.5 create t
+setattr :met res kdh 1.9 create t
+setattr :mse res kdh 1.9 create t
+setattr :ala res kdh 1.8 create t
+setattr :val res kdh 4.2 create t
+setattr :ile res kdh 4.5 create t
+setattr :leu res kdh 3.8 create t
+setattr :phe res kdh 2.8 create t
+setattr :trp res kdh -0.9 create t
+setattr :tyr res kdh -1.3 create t
+surf protein; hide protein atoms
+color byattribute kdh protein target s palette dodgerblue:white:orangered novalue gray

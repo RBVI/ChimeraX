@@ -89,7 +89,10 @@ class MultitouchTrackpad:
             # So event processing can get tens of seconds behind.  To reduce this problem
             # we only handle the most recent touch update per redraw.
             self._recent_touches = [Touch(t) for t in event.touchPoints()]
-        elif t == QEvent.TouchEnd or t == QEvent.TouchCancel:
+        elif t == QEvent.TouchEnd or t == QEvent.TouchCancel or t == QEvent.TouchBegin:
+            # Sometimes we don't get a TouchEnd macOS gesture like 3-finger swipe up
+            # for mission control took over half-way through a gesture.  So also
+            # remove old touches when we get a begin.
             self._recent_touches = []
             self._last_touch_locations.clear()
 

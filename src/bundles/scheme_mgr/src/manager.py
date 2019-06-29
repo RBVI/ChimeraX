@@ -11,18 +11,17 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.state import StateManager
-class SchemesManager(StateManager):
-    """Manager for http schemes used by all bundles"""
+from chimerax.core.toolshed import ProviderManager
+class SchemesManager(ProviderManager):
+    """Manager for html schemes used by all bundles"""
 
     def __init__(self, session):
+        #  Just for good form.  Base class currently has no __init__.
+        super().__init__()
         self.schemes = set()
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
-        self.triggers.add_trigger("http schemes changed")
-
-    def reset_state(self, session):
-        pass
+        self.triggers.add_trigger("html schemes changed")
 
     def add_provider(self, bundle_info, name, **kw):
         self.schemes.add(name)
@@ -32,6 +31,9 @@ class SchemesManager(StateManager):
 
         from PyQt5.QtWebEngineCore import QWebEngineUrlScheme
         scheme = QWebEngineUrlScheme(name.encode('utf-8'))
+        port = kw.get('defaultPort', None)
+        if port is not None:
+            scheme.setDefaultPort(int(port))
         syntax = kw.get('syntax', None)
         if syntax == "Path":
             scheme.setSyntax(QWebEngineUrlScheme.Syntax.Path)
@@ -61,12 +63,4 @@ class SchemesManager(StateManager):
         QWebEngineUrlScheme.registerScheme(scheme)
 
     def end_providers(self):
-        self.triggers.activate_trigger("http schemes changed", self)
-
-    @staticmethod
-    def restore_snapshot(session, data):
-        return session.http_schemes
-
-    def take_snapshot(self, session, flags):
-        # Presets are "session enduring"
-        return {}
+        self.triggers.activate_trigger("html schemes changed", self)

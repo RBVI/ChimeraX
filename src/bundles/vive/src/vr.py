@@ -134,7 +134,7 @@ def register_vr_command(logger):
 
 # -----------------------------------------------------------------------------
 #
-def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
+def start_vr(session, multishadow_allowed = False, simplify_graphics = True, label_reorient = 45):
 
     v = session.main_view
     if not multishadow_allowed and v.lighting.multishadow > 0:
@@ -145,6 +145,9 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True):
         from chimerax.std_commands.graphics import graphics
         graphics(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
+    from chimerax.label.label3d import label_orient
+    label_orient(session, label_reorient)	# Don't continuously reorient labels.
+    
     if vr_camera(session) is not None:
         return
 
@@ -202,6 +205,8 @@ def stop_vr(session, simplify_graphics = True):
         if simplify_graphics:
             from chimerax.std_commands.graphics import graphics
             graphics(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+        from chimerax.label.label3d import label_orient
+        label_orient(session, 0)	# Continuously reorient labels.
         v.view_all()
 
     c.close(replace_camera)

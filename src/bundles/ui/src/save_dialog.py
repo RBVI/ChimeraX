@@ -52,7 +52,7 @@ class SaveOptionsGUI:
         '''
         fmt = self._format
         if fmt:
-            fmt.export(session, self.add_missing_file_suffix(fn, fmt), fmt.name)
+            fmt.export(session, self.add_missing_file_suffix(filename, fmt), fmt.name)
 
     def add_missing_file_suffix(self, filename, fmt):
         import os.path
@@ -82,26 +82,52 @@ class MainSaveDialog:
         self._default_format = default_format
         self.file_dialog = None
         self._registered_formats = {}
-        self._format_selector = None
 
     def register(self, save_options_gui):
         '''Argument must be an instance of SaveOptionsGUI.'''
         self._registered_formats[save_options_gui.format_name] = save_options_gui
-        if self._format_selector:
-            self._update_format_selector()
+        self._update_format_menu()
 
     def deregister(self, format_name):
         del self._registered_formats[format_name]
 
-    def display(self, parent, session):
+    def display(self, parent, session, format = None,
+                initial_directory = None, initial_file = None, model = None):
+
         self.session = session
+
         if self.file_dialog is None:
             from .open_save import SaveDialog
-            self.file_dialog = SaveDialog(parent, "Save File")
+            self.file_dialog = fd = SaveDialog(parent, "Save File")
+            fd.filterSelected.connect(self._format_selected)
+            fd.setLabelText(SaveDialog.FileType, 'Format:')
             self._customize_file_dialog()
-        else:
-            fmt = self.current_format()
+            self._format_selected()
+
+        if format is not None:
+            fd = self._file_dialog
+            if fd:
+                fd.setFilter(fmt.wildcard())
+        
+        fmt = self.current_format()
+        if fmt:
             fmt.update(session, self)
+
+        if initial_directory is not None:
+            if initial_directory == '':
+                from os import getcwd
+                initial_directory = getcwd()
+            self.file_dialog.setDirectory(initial_directory)
+            
+        if initial_file is not None:
+            self.file_dialog.selectFile(initial_file)
+
+        if model is not None:
+            fmt = self.current_format()
+            from chimerax.map.savemap import ModelSaveOptionsGUI
+            if isinstance(fmt, ModelSaveOptionsGUI):
+                fmt.set_model(model)
+            
         try:
             if not self.file_dialog.exec():
                 return
@@ -112,41 +138,18 @@ class MainSaveDialog:
         fmt.save(session, filename)
 
     def current_format(self):
-        if self._format_selector is None:
-            format_name = self._default_format
-        else:
-            format_name = self._format_selector.currentText()
-        return self._registered_formats[format_name]
+        fd = self.file_dialog
+        if fd:
+            ftext = fd.selectedNameFilter()
+            for fmt in self._registered_formats.values():
+                if ftext == fmt.wildcard():
+                    return fmt
+        return None
 
-    def set_wildcard(self, format):
+    def _format_selected(self, format_wildcard = None):
         fmt = self.current_format()
-        self.file_dialog.setNameFilters(fmt.wildcard().split(';;'))
-
-    def _customize_file_dialog(self):
-        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel, QFrame
-        self._options_panel = options_panel = self.file_dialog.custom_area
-        label = QLabel(options_panel)
-        label.setText("Format:")
-        self._format_selector = selector = QComboBox(options_panel)
-        selector.currentIndexChanged.connect(self._select_format)
-        self._no_options_label = no_opt_label = QLabel(options_panel)
-        no_opt_label.setText("No user-settable options")
-        no_opt_label.setFrameStyle(QFrame.Box)
-        self._known_options = set([no_opt_label])
-        self._current_option = no_opt_label
-        self._update_format_selector()
-        selector.setCurrentIndex(selector.findText(self._default_format))
-        self._options_layout = options_layout = QHBoxLayout(options_panel)
-        options_layout.addWidget(label)
-        options_layout.addWidget(selector)
-        options_layout.addWidget(no_opt_label)
-        options_panel.setLayout(options_layout)
-        self._select_format(self._default_format)
-        return options_panel
-
-    def _select_format(self, *args, **kw):
-        fmt = self.current_format()
-        self.file_dialog.setNameFilters(fmt.wildcard().split(';;'))
+        if fmt is None:
+            return
         w = fmt.window(self._options_panel) or self._no_options_label
         fmt.update(self.session, self)
         if w is self._current_option:
@@ -154,25 +157,40 @@ class MainSaveDialog:
         self._current_option.hide()
         if w not in self._known_options:
             from PyQt5.QtWidgets import QFrame
-            w.setFrameStyle(QFrame.Box)
             self._options_layout.addWidget(w)
             self._known_options.add(w)
         w.show()
         self._current_option = w
 
-    def _update_format_selector(self):
-        choices = list(self._registered_formats.keys())
-        choices.sort()
-        fs = self._format_selector
-        fs.clear()
-        fs.addItems(choices)
-        fs.setCurrentText(self._default_format)
+    def _update_format_menu(self):
+        fd = self.file_dialog
+        if fd:
+            fmts = self._registered_formats.values()
+            filters = [fmt.wildcard() for fmt in fmts]
+            filters.sort(key = lambda n: n.lower())
+            fd.setNameFilters(filters)
+
+    def _customize_file_dialog(self):
+        from PyQt5.QtWidgets import QComboBox, QHBoxLayout, QLabel, QFrame
+        self._options_panel = options_panel = self.file_dialog.custom_area
+        self._no_options_label = no_opt_label = QLabel(options_panel)
+        no_opt_label.setText("No user-settable options")
+        self._known_options = set([no_opt_label])
+        self._current_option = no_opt_label
+        self._update_format_menu()
+        fmt = self._registered_formats.get(self._default_format)
+        if fmt:
+            fd = self.file_dialog
+            fd.selectNameFilter(fmt.wildcard())
+        self._options_layout = options_layout = QHBoxLayout(options_panel)
+        options_layout.addWidget(no_opt_label)
+        options_panel.setLayout(options_layout)
+        return options_panel
 
 def register_save_dialog_options(save_dialog):
     from chimerax.core.io import formats
     for fmt in formats(open=False):
-        if fmt.category != "Image":		# Image formats are registered as a single format
-            save_dialog.register(SaveOptionsGUI(fmt))
+        save_dialog.register(SaveOptionsGUI(fmt))
 
     # Register session and image save gui options here instead of in core
     # because ui does not exist when core registers these file formats.

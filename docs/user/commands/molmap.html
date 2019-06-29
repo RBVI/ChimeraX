@@ -143,22 +143,21 @@ The <b>molmap</b> command is based on the <b>pdb2mrc</b> program in EMAN.
   Most <i>sym-type</i> options have additional sub-options or parameters:
   <ul>
   <li><b>biomt</b>
-  - use &ldquo;biological assembly&rdquo; information from the atomic
+  &ndash; use &ldquo;biological assembly&rdquo; information from the atomic
   model containing the specified atoms 
   <br>(currently this information is only read from PDB format, not mmCIF)
   <li>symmetry of model <b>#<i>N</i></b> 
-  - use the biological assembly information from another atomic model or the 
-  symmetry assignment of a volume model
-<!--
-  <a href="volume.html#symmetry">symmetry assignment</a> of a volume model
--->
+  &ndash; use the biological assembly information from another atomic model 
+  or the symmetry assignment of a volume model
+(such as from <a href="volume.html#symmetry"><b>volume symmetry</b></a>
+or <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
     <ul type="none">
     <li>Example: <b>#4</b>
     </ul>
 
    <li>cage model (from <b>Cage Builder</b>) polygon symmetry
   <b>#<i>N</i>,p<i>M</i></b> or <b>#<i>N</i>,pn<i>M</i></b> 
-  - place copies at equivalent positions relative to each M-sided polygon 
+  &ndash; place copies at equivalent positions relative to each M-sided polygon 
   in the cage model with ID number <b>N</b>. The <b>p<i>M</i></b> form places 
   one copy per M-sided polygon, whereas <b>pn<i>M</i></b> places M copies per
   M-sided polygon using C<font size=-1><i>M</i></font> symmetry about the center
@@ -187,9 +186,9 @@ The <b>molmap</b> command is based on the <b>pdb2mrc</b> program in EMAN.
    where <i>orientation</i> can be:
    <ul>
    <li><b>222</b> (default)
-   - with two-fold symmetry axes along the X, Y, and Z axes, a three-fold 
+   &ndash; with two-fold symmetry axes along the X, Y, and Z axes, a three-fold 
     along axis (1,1,1)
-   <li><b>z3</b> - a three-fold symmetry axis along Z, another three-fold 
+   <li><b>z3</b> &ndash; a three-fold symmetry axis along Z, another three-fold 
    axis in the YZ plane such that rotation about the X axis by ~110&deg; is a
    symmetry operation (EMAN convention) 
    </ul>
@@ -204,14 +203,14 @@ The <b>molmap</b> command is based on the <b>pdb2mrc</b> program in EMAN.
    where <i>orientation</i> can be:
     <ul>
     <li><b>222</b> (default)
-    - with two-fold symmetry axes along the X, Y, and Z axes
-    <li><b>2n5</b> - with two-fold symmetry along X and 5-fold along Z
-    <li><b>n25</b> - with two-fold symmetry along Y and 5-fold along Z
-    <li><b>2n3</b> - with two-fold symmetry along X and 3-fold along Z
-    <li><b>222r</b> - same as 222 except rotated 90&deg; about Z
-    <li><b>2n5r</b> - same as 2n5 except rotated 180&deg; about Y
-    <li><b>n25r</b> - same as n25 except rotated 180&deg; about X
-    <li><b>2n3r</b> - same as 2n3 except rotated 180&deg; about Y
+    &ndash; with two-fold symmetry axes along the X, Y, and Z axes
+    <li><b>2n5</b> &ndash; with two-fold symmetry along X and 5-fold along Z
+    <li><b>n25</b> &ndash; with two-fold symmetry along Y and 5-fold along Z
+    <li><b>2n3</b> &ndash; with two-fold symmetry along X and 3-fold along Z
+    <li><b>222r</b> &ndash; same as 222 except rotated 90&deg; about Z
+    <li><b>2n5r</b> &ndash; same as 2n5 except rotated 180&deg; about Y
+    <li><b>n25r</b> &ndash; same as n25 except rotated 180&deg; about X
+    <li><b>2n3r</b> &ndash; same as 2n3 except rotated 180&deg; about Y
     </ul>
 
   <li>helical symmetry 
@@ -252,50 +251,32 @@ The <b>molmap</b> command is based on the <b>pdb2mrc</b> program in EMAN.
   </ul>
 </blockquote>
 <blockquote>
-  <a name="axis"><b>axis</b> <i>axis</i></a>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="axis"></a><b>axis</b>
+  &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>
   <br>
-  Specify axis of symmetry (default <b>z</b>), where <i>axis</i> can be:
-   <ul>
-   <li><b>x</b> - X-axis
-   <li><b>y</b> - Y-axis 
-   <li><b>z</b> - Z-axis
-   <li><i>x,y,z</i>
-   (three values separated by commas only) - an arbitrary vector
-   in the <a href="#coordinateSystem">reference coordinate system</a>
-   <li>an <a href="atomspec.html"><i>atom-spec</i></a> of
-   exactly two atoms (not necessarily bonded or in the same model)
-<!-- or one bond.
-   A bond can only be specified by <a href="../selection.html">selecting</a>
-   it and using the word <b>sel</b>;
-   any atoms also selected at the time will be ignored.
--->
+  Specify axis of symmetry
+  <a href="pointspec.html#vector">vector</a> (default <b>z</b>).
   </ul>
 </blockquote>
 <blockquote>
-  <a name="center"><b>center</b> <i>center</i></a>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="center"></a><b>center</b>
+  &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>
   <br>
-  Specify center of symmetry (default <b>0,0,0</b>), 
-  where <i>center</i> can be:
-  <ul>
-  <li><i>x,y,z</i>
-   (three values separated by commas only) - an arbitrary point
-  in the <a href="#coordinateSystem">reference coordinate system</a>
-  <li>an <a href="atomspec.html"><i>atom-spec</i></a>
-  of any combination of atoms and surface models.
-  The center of the bounding sphere of the specified items will be used.
-  </ul>
+  Specify center of symmetry <a href="pointspec.html#point">point</a>
+  (default <b>0,0,0</b>).
 </blockquote>
 <blockquote>
-  <a name="coordinateSystem"><b>coordinateSystem</b> <i>N</i></a>
+  <a name="coordinateSystem"></a><b>coordinateSystem</b>
+  &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
   <br>
-  Specify a reference model 
-  (default is the atomic model containing the specified atoms)
-  by model number <i>N</i> preceded by #.  
-  The reference coordinate system is used for interpreting specifications of
+  Specify a reference coordinate system for interpreting specifications of
   <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
+  The default is the atomic model containing the specified atoms.
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2016</address>
+June 2019</address>
 </body></html>

@@ -294,16 +294,8 @@ class Tools(StateManager):
             Data saved by state manager during `take_snapshot`.
 
         """
-        t = session.tools
-        # Session save can put a None tool instance into file if tool instance
-        # has no take_snapshot method and has SESSION_SAVE true.
-        # Filter these None tool instances out.
-        tools = {id: ti for id, ti in data['tools'].items()
-                 if ti is not None and not ti.SESSION_ENDURING}
-        t._tool_instances.update(tools)
-        import itertools
-        t._id_counter = itertools.count(data['next id'])
-        return t
+        # Tools already add themselves to Tools in ToolInstance.__init__()
+        return session.tools
 
     def reset_state(self, session):
         """Reset state manager to default state.

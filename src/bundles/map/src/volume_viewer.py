@@ -21,6 +21,7 @@ from chimerax.core.tools import ToolInstance
 # ------------------------------------------------------------------------------
 #
 class VolumeViewer(ToolInstance):
+    help = "help:user/tools/volumeviewer.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -1109,6 +1110,8 @@ def vector_value(text, v, allow_singleton = False):
       for a in range(3):
         if vfields[a] != float_format(v[a], 5):
           nv[a] = string_to_float(vfields[a], v[a])
+    else:
+        return None
     if nv == list(v):
       return v
     return tuple(nv)
@@ -1797,9 +1800,16 @@ class Histogram_Pane:
     # Subsampling step menu
     sl = QLabel('step', df)
     layout.addWidget(sl)
-    layout.addSpacing(-12)
+    import sys
+    if sys.platform == 'darwin':
+        gap = -12
+        menu_button_style = 'padding-left: 15px; padding-right: 20px;'
+    else:
+        gap = -8
+        menu_button_style = 'padding-left: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px'
+    layout.addSpacing(gap)
     self.data_step = dsm = QPushButton(df)
-    dsm.setStyleSheet('padding-left: 15px; padding-right: 20px;')
+    dsm.setStyleSheet(menu_button_style)
     dsm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
     for step in (1,2,4,8,16):
@@ -1822,7 +1832,7 @@ class Histogram_Pane:
 
     # Display style menu
     self.style = stm = QPushButton(df)
-    stm.setStyleSheet('padding-left: 15px; padding-right: 20px;')
+    stm.setStyleSheet(menu_button_style)
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
     for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box'):
@@ -1848,12 +1858,12 @@ class Histogram_Pane:
     # Add histogram below row of controls
     h = self.make_histogram(f, histogram_height, new_marker_color = (1,1,1,1))
     flayout.addWidget(h)
+    h.contextMenuEvent = self.show_context_menu
 
     # Create planes slider below histogram if requested.
     self._planes_slider_shown = False
     self._planes_slider_frame = None
     
-    f.contextMenuEvent = self.show_context_menu
 
   # ---------------------------------------------------------------------------
   #

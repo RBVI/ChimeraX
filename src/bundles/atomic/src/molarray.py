@@ -722,6 +722,20 @@ class Atoms(Collection):
         rp, rsums = f(self._c_pointers, len(self), pointer(atom_values))
         return Residues(rp), rsums
 
+    @property
+    def pb_coords(self):
+        v = empty((len(self), 3), float64)
+        for i, a in enumerate(self):
+            v[i] = a.pb_coord
+        return v
+
+    @property
+    def pb_scene_coords(self):
+        v = empty((len(self), 3), float64)
+        for i, a in enumerate(self):
+            v[i] = a.pb_scene_coord
+        return v
+
     @classmethod
     def session_restore_pointers(cls, session, data):
         structures, atom_ids = data

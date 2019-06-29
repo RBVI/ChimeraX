@@ -562,31 +562,24 @@ class MainWindow(QMainWindow, PlainTextLog):
         func(*args, **kw)
 
     def file_open_cb(self, session):
+        self.show_file_open_dialog(session)
+
+    def show_file_open_dialog(self, session, initial_directory = None,
+                              format_name = None):
+        if initial_directory is None:
+            initial_directory = ''
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
-        paths_and_types = QFileDialog.getOpenFileNames(filter=open_file_filter(all=True))
+        filters = open_file_filter(all=True, format_name=format_name)
+        paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
+                                                       directory=initial_directory)
         paths, types = paths_and_types
         if not paths:
             return
 
         def _qt_safe(session=session, paths=paths):
             from chimerax.core.commands import run, quote_if_necessary
-            ## The following commented-out open command doesn't get multiple volume-plane files
-            ## to open as a single volume, whereas the uncommented code does
-            #run(session, "open " + " ".join([quote_if_necessary(p) for p in paths]))
-            if len(paths) == 1:
-                run(session, "open " + quote_if_necessary(paths[0]))
-            else:
-                # TODO: Make open command handle this including saving in file history.
-                suffixes = set(p[p.rfind('.'):] for p in paths)
-                if len(suffixes) == 1:
-                    # Files have same suffix, open as a single group
-                    session.models.open(paths)
-                else:
-                    # Files have more than one suffix, open each at top-level model.
-                    for p in paths:
-                        session.models.open([p])
-
+            run(session, "open " + " ".join([quote_if_necessary(p) for p in paths]))
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover
         # events correctly, nor tool tips.
@@ -762,6 +755,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
+        sbar.status('Welcome to ChimeraX', 'blue')
         sb = sbar.widget
         self._global_hide_button = ghb = QToolButton(sb)
         self._rapid_access_button = rab = QToolButton(sb)
@@ -789,7 +783,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         rab.setDefaultAction(rab_action)
         sb.addPermanentWidget(ghb)
         sb.addPermanentWidget(rab)
-        sb.showMessage("Welcome to ChimeraX")
         self.setStatusBar(sb)
 
     def _dockability_change(self, tool_name, dockable):
@@ -1231,6 +1224,11 @@ class MainWindow(QMainWindow, PlainTextLog):
             menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action
 
+    def remove_menu(self, menu_names):
+        menu = self._get_target_menu(self.menuBar(), menu_names)
+        if menu:
+            menu.deleteLater()
+
     def _get_menu_action(self, menu, insertion_point):
         from PyQt5.QtWidgets import QAction
         if isinstance(insertion_point, QAction):
@@ -1378,7 +1376,6 @@ class ToolWindow(StatusLogger):
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
         mw._new_tool_window(self)
-        self._kludge = self.__toolkit
 
     def cleanup(self):
         """Supported API. Perform tool-specific cleanup
@@ -1612,15 +1609,19 @@ class _Qt:
         if not self.tool_window:
             # already destroyed
             return
+        is_floating = self.dock_widget.isFloating()
         self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None
         self.main_window = None
-        self.dock_widget.widget().destroy()
-        if self.status_bar:
-            self.status_bar.destroy()
-            self.status_bar = None
-        self.dock_widget.destroy()
+        self.status_bar = None
+        # horrible hack to try to work around two different crashes, in 5.12:
+        # 1) destroying floating window closed with red-X with immediate destroy() 
+        # 2) resize event to dead window if deleteLater() used
+        if is_floating:
+            self.dock_widget.deleteLater()
+        else:
+            self.dock_widget.destroy()
 
     @property
     def dockable(self):
@@ -1673,9 +1674,6 @@ class _Qt:
         if geometry is not None:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
-
-        if self.tool_window.close_destroys:
-            self.dock_widget.setAttribute(Qt.WA_DeleteOnClose)
 
     def show_context_menu(self, event):
         _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,

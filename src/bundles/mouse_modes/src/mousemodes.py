@@ -83,6 +83,13 @@ class MouseMode:
         self.last_mouse_position = pos
         self.double_click = False
 
+    def mouse_drag(self, event):
+        '''
+        Supported API.
+        Override this method to handle mouse drag events.
+        '''
+        pass
+
     def mouse_up(self, event):
         '''
         Supported API.

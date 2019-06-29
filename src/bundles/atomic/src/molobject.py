@@ -639,8 +639,8 @@ class Residue(CyResidue, State):
         set_custom_attrs(r, data)
         return r
 
-    # Cython kind of has trouble with a C++ class variable that is a map of maps, and
-    # where the key type of the nested map is a varidic template; so expose via ctypes
+    # C++ class variables are problematic for Cython (particularly a map of maps # where the key type
+    # of the nested map is a varidic template!); so expose class variables via ctypes
     def ideal_chirality(self, atom_name):
         """Return the ideal chirality (N = none; R = right-handed (rectus); S = left-handed (sinister)
             for the given atom name in this residue.  The chirality is only known if the mmCIF chemical
@@ -648,6 +648,9 @@ class Residue(CyResidue, State):
         f = c_function('residue_ideal_chirality', args = (ctypes.c_char_p, ctypes.c_char_p),
             ret = ctypes.py_object)
         return f(self.name.encode('utf-8'), atom_name.encode('utf-8'))
+
+    aa_min_backbone_names = c_function('residue_aa_min_backbone_names', args = (), ret = ctypes.py_object)()
+
 Residue.set_py_class(Residue)
 
 
@@ -1371,12 +1374,12 @@ class StructureData:
         Find pairs of atoms that should be connected in a chain trace.
         Returns None or a 2-tuple of two Atoms instances where corresponding atoms
         should be connected.  A chain trace connects two adjacent CA atoms if both
-        atoms are shown but the intervening C and N atoms are not shown.  Adjacent
-        means that there is a bond between the two residues.  So for instance CA-only
-        structures has no bond between the residues and those do not show a chain trace
-        connection, instead they show a "missing structure" connection.  For nucleic
-        acid chains adjacent displayed P atoms with undisplayed intervening O3' and O5'
-        atoms are part of a chain trace.
+        atoms are shown but the intervening C and N atoms are not shown, *and* no ribbon
+        depiction connects the residues.  Adjacent means that there is a bond between the
+        two residues.  So for instance CA-only structures has no bond between the residues
+        and those do not show a chain trace connection, instead they show a "missing structure"
+        connection.  For nucleic acid chains adjacent displayed P atoms with undisplayed
+        intervening O3' and O5' atoms are part of a chain trace.
         '''
         f = c_function('structure_chain_trace_atoms', args = (ctypes.c_void_p,), ret = ctypes.py_object)
         ap = f(self._c_pointer)

@@ -89,6 +89,8 @@ class Volume(Model):
 #    self.surface_piece_change_handler = h
     self.surface_piece_change_handler = None
 
+    self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
+
   # ---------------------------------------------------------------------------
   #
   def message(self, text, **kw):
@@ -292,7 +294,7 @@ class Volume(Model):
                              % (len(values), len(self.surfaces)))
         elif param == 'transparency':
           for s in self.surfaces:
-            s.set_transparency(kw['transparency'])
+            s.set_transparency((1-kw['transparency'])*255)
         elif param == 'brightness':
           for s in self.surfaces:
             s.set_brightness(kw['brightness'])
@@ -373,21 +375,13 @@ class Volume(Model):
   #
   def set_transparency(self, alpha):
     '''Alpha values in range 0-255. Only changes current style (surface/mesh or image).'''
-    a1 = alpha/255
     if self.surface_shown:
       for s in self.surfaces:
-        r,g,b,a = s.rgba
-        s.rgba = (r,g,b,a1)
-    elif self.image_shown:
+        s.set_transparency(alpha)
+    if self.image_shown:
+      a1 = alpha/255
       self.set_parameters(image_colors = [(r,g,b,a1) for r,g,b,a in self.image_colors])
     self._drawings_need_update()
-    
-    # Update transparency on per-vertex coloring
-    for s in self.surfaces:
-      vc = s.vertex_colors
-      if vc is not None:
-        vc[:,3] = alpha
-        s.vertex_colors = vc
 
   # ---------------------------------------------------------------------------
   #
@@ -1632,11 +1626,11 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def write_file(self, path, format = None, options = {}, temporary = False):
+  def write_file(self, path, format = None, options = {}):
 
     from .data import save_grid_data
     d = self.grid_data()
-    format = save_grid_data(d, path, self.session, format, options, temporary)
+    format = save_grid_data(d, path, self.session, format, options)
 
   # ---------------------------------------------------------------------------
   #
@@ -1870,6 +1864,7 @@ class VolumeSurface(Surface):
   def set_level(self, level, use_thread = False):
     self._level = level
     self._use_thread = use_thread
+    self.volume.redraw_needed(shape_changed = True)
   level = property(_get_level, set_level)
 
   def _get_rgba(self):
@@ -1879,9 +1874,13 @@ class VolumeSurface(Surface):
   rgba = property(_get_rgba, _set_rgba)
   '''Float red,green,blue,alpha values in range 0-1'''
 
-  def set_transparency(self, transparency):
-    '''Set surface transparency, 0-1 range.'''
-    self.rgba = tuple(self.rgba[:3]) + (1-transparency,)
+  def set_transparency(self, alpha):
+    '''Set surface transparency, 0-255 range.'''
+    if self.vertex_colors is None:
+      self.rgba = tuple(self.rgba[:3]) + (alpha/255,)
+    else:
+      # Change per-vertex transparency leaving colors the same.
+      Surface.set_transparency(self, alpha)
 
   def set_brightness(self, brightness):
     '''
@@ -1895,7 +1894,7 @@ class VolumeSurface(Surface):
     else:
       f = b255/cb
       self.color = (int(f*r), int(f*g), int(f*b), a)
-    
+
   def get_color(self):
     return Surface.get_color(self)
   def set_color(self, color):
@@ -1931,7 +1930,7 @@ class VolumeSurface(Surface):
     self._use_thread_result()
     
     if not self._geometry_changed(rendering_options):
-      self._set_appearance(rendering_options)
+      self._set_appearance(rendering_options, clear_vertex_colors = False)
       return
     
     v = self.volume
@@ -2106,10 +2105,10 @@ class VolumeSurface(Surface):
 
   # ---------------------------------------------------------------------------
   #
-  def _set_appearance(self, rendering_options):
+  def _set_appearance(self, rendering_options, clear_vertex_colors = True):
 
     # Update color
-    if self.auto_recolor_vertices is None:
+    if self.auto_recolor_vertices is None and clear_vertex_colors:
       self.vertex_colors = None
 
     # Update display style
@@ -2164,6 +2163,7 @@ class VolumeSurface(Surface):
       'volume': self.volume,
       'level': self.level,
       'rgba': self.rgba,
+      'show_mesh': self.show_mesh,
       'model state': Surface.take_snapshot(self, session, flags),
       'version': 1
     }
@@ -2174,7 +2174,7 @@ class VolumeSurface(Surface):
     v = data['volume']
     if v is None:
       return None	# Volume was not restored, e.g. file missing.
-    s = VolumeSurface(v, data['level'], data['rgba'])
+    s = VolumeSurface(v, data['level'], data['rgba'], data.get('show_mesh', False))
     Model.set_state_from_snapshot(s, session, data['model state'])
     if v._style_when_shown == 'image':
       s.display = False		# Old sessions had surface shown but not computed when image style used.
@@ -3083,6 +3083,11 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
     set_initial_volume_color(v, session)
 
   if not model_id is None:
+    if session.models.have_id(model_id):
+      from chimerax.core.errors import UserError
+      raise UserError('Tried to create model #%s which already exists'
+                      % '.'.join('%d'%i for i in model_id))
+    
     v.id = model_id
 
   if open_model:
@@ -3546,7 +3551,10 @@ class VolumeUpdateManager:
     if vdisp:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
-        if v.display:
+        if v.deleted:
+          vset.remove(v)
+          vdisp.remove(v)
+        elif v.display:
           # Remove volume from update list before update since update may re-add it
           # if surface calculation done in thread.
           vset.remove(v)

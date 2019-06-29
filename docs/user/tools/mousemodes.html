@@ -46,6 +46,8 @@ functions can be assigned to all mouse buttons (not just the right)
 and to scrolling, alone and in combination with modifier keys.
 See also:
 <a href="markerplacement.html"><b>Marker Placement</b></a>,
+<a href="measureblobs.html"><b>Measure and Color Blobs</b></a>,
+<a href="maperaser.html"><b>Map Eraser</b></a>,
 <a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>
 </p>
 <table border cellpadding="4" cellspacing="0">
@@ -121,17 +123,25 @@ see also <a href="../commands/2dlabels.html"><b>2dlabels</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/clip.png" width="35px"></td>
 <td align="center"><b>clip</b> </td>
-<td align="center" class="text">activate and translate front clipping plane,
-+<b>Alt</b> back plane,
-+<b>Shift</b> slab (front and back in same direction),
-+<b>Alt-Shift</b> slab thickness (front and back in opposite directions);
-if only near/far (fixed-orientation) planes already active, move those 
-instead of front/back (rotatable) planes;
+<td align="center" class="text">
+click without dragging to activate/deactivate clipping,
+click-drag to activate (if clipping is not yet active)
+and translate front or near plane,
++<b>Alt</b> back or far plane, +<b>Shift</b>
+slab (translate paired planes in same direction),
++<b>Alt-Shift</b> slab thickness (translate paired planes
+in opposite directions); whether activation applies to
+front/back planes that rotate with the scene or near/far planes
+that remain parallel to the screen is set in the
+<a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>;
 see also <a href="../commands/clip.html"><b>clip</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/cliprot.png" width="35px"></td>
 <td align="center"><b>clip rotate</b></td>
-<td align="center" class="text">activate and rotate front/back clipping planes;
+<td align="center" class="text">click without dragging to
+activate/deactivate clipping,
+click-drag to activate (if not already active) and
+rotate front/back clipping planes;
 see also <a href="../commands/clip.html"><b>clip</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/zone.png" width="35px"></td>
@@ -167,6 +177,18 @@ see also <a href="../commands/volume.html"><b>volume</b></a></td>
 <td align="center"><b>place marker</b></td>
 <td align="center" class="text">place <a href="../markers.html">marker</a>
 (<a href="markerplacement.html">details...</a>)</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/pickblobs.png" width="35px"></td>
+<td align="center"><b>pick blobs</b></td>
+<td align="center" class="text"><a href="measureblobs.html">pick 
+surface blob</a> to measure area, volume, size; see also
+<a href="../commands/measure.html#blob"><b>measure blob</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/eraser.png" width="35px"></td>
+<td align="center"><b>map eraser</b></td>
+<td align="center" class="text">move 
+<a href="maperaser.html">map eraser</a> sphere; see also
+<a href="../commands/volume.html#erase"><b>volume erase</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/vseries.png" width="35px"></td>
 <td align="center"><b>play map series</b></td>
@@ -251,12 +273,13 @@ that is, only intra-model forces apply. No nonbonded cutoff is used.
 <p>
 The <b>zone</b> mouse mode limits atomic detail and
 <a href="volumeviewer.html">volume data</a> 
-(map) display to a zone around the atoms of the clicked residue. 
+(map) display to a zone around the clicked residue
+and labels the residues in the zone.
 <a href="#vr">Except in VR</a>,
-the remaining residues of the same atomic model are shown as a 
-narrow ribbon, and residues in the zone are labeled. 
+the remaining residues of the same atomic model are shown as a narrow ribbon.
 Subsequently clicking the background clears the labels, and 
-clicking the background a second time shows all atoms for the whole model.
+clicking the background a second time returns to what was shown
+before the residue was clicked.
 These actions are implemented via the
 <a href="../commands/zone.html"><b>zone</b></a> command,
 which can also be used to adjust zone size
@@ -296,16 +319,21 @@ Outside of VR, clicking a mouse mode icon only assigns the mode to the
 <b><i>right mouse button</i></b> (= trackpad + <b>Alt</b> on Windows,
 trackpad + <img src="../icon-clover.png" width="12px"> on Mac).
 </p><p>
-Some of the mouse modes are modified in VR
-to maintain rapid graphics updates and avoid flickering:
+Some of the mouse modes are modified in VR:
 </p>
 <ul>
-<li><b>label</b> mode reorients labels only upon a 45&deg; change in viewing 
-angle rather than continuously, and makes labels yellow for better visibility
-<li><b>zone</b> mode does not show labels or ribbons (cartoons)
+<li>the <b>label</b> mode makes labels
+<table border cellpadding="0" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=dimgray height="10px" title="dimgray">
+<font color="yellow">yellow</a></td>
+</tr></table>
+and <a href="../commands/label.html#orient">reorients</a>
+them only upon a 45&deg; change in viewing angle rather than continuously
+<li>the <b>zone</b> mode does not turn on ribbon (cartoon) display
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+June 2019</address>
 </body></html>

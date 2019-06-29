@@ -50,6 +50,7 @@ class OptionsPanel(QWidget):
         self._layout.setSizeConstraint(self._layout.SetMinAndMaxSize)
         self._form = QFormLayout()
         self._form.setSizeConstraint(self._form.SetMinAndMaxSize)
+        self._form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         self._form.setVerticalSpacing(1)
         from PyQt5.QtCore import Qt
         self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)

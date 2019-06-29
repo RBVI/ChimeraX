@@ -11,21 +11,21 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .header_sequence import HeaderSequence, FixedHeaderSequence, \
-    DynamicHeaderSequence, DynamicStructureHeaderSequence, register_header, registered_headers
-from .consensus import Consensus
-from .conservation import Conservation
+from .header_sequence import HeaderSequence, FixedHeaderSequence, DynamicHeaderSequence, \
+    DynamicStructureHeaderSequence
 
 from chimerax.core.toolshed import BundleAPI
 
 class _AlignmentHdrsAPI(BundleAPI):
 
-    @staticmethod
-    def get_class(class_name):
-        if class_name == "Consensus":
-            return Consensus
-        if class_name == "Conservation":
-            return Conservation
+    @classmethod
+    def get_class(cls, class_name):
+        import importlib
+        hdr_mod = importlib.import_module(".%s" % class_name.lower(), cls.__module__)
+        return getattr(hdr_mod, class_name)
 
+    @classmethod
+    def run_provider(cls, session, bundle_info, name, mgr, **kw):
+        return cls.get_class(name)
 
 bundle_api = _AlignmentHdrsAPI()

@@ -139,6 +139,8 @@ def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_
         tc = Place(((-0.46696,0.38225,-0.79739,-3.9125),
                     (0.81905,-0.15294,-0.55296,-4.3407),
                     (-0.33332,-0.91132,-0.24166,-1.4889)))
+        if c.name == 'orthographic':
+            c.field_width = 12		# Set orthographic field of view, Angstroms
     else:
         # Maintain same relative camera position to backbone.
         tc = last_pos.inverse() * cp

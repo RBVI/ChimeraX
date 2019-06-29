@@ -121,25 +121,30 @@ class _Section(QWidgetAction):
             button.addAction(action)
             self._actions.append(action)
         else:
-            if group_first:
-                b.setPopupMode(b.DelayedPopup)
+            if not group_first:
+                b.setDefaultAction(action)
+            else:
+                b.setPopupMode(b.MenuButtonPopup)
                 b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
                 self._groups[parent][group] = b
                 b.addAction(action)
                 self._actions.append(action)
-            b.setDefaultAction(action)
+                self._update_button_action(b, action)
 
-        # print('Font height:', b.fondMetrics().height())  # DEBUG
+        # print('Font height:', b.fontMetrics().height())  # DEBUG
         # print('Font size:', b.fontInfo().pixelSize())  # DEBUG
         # print('Icon size:', b.iconSize())  # DEBUG
         if not group_follow:
             if self.compact:
                 row = index % self.compact_height
+                if row < self.compact_height:
+                    parent._layout.setRowStretch(row, 1)
                 column = index // self.compact_height
-                parent._layout.addWidget(b, row, column, Qt.AlignBottom)
+                parent._layout.addWidget(b, row, column, Qt.AlignCenter)
             else:
+                align = Qt.AlignTop if self.show_button_titles else Qt.AlignCenter
                 b.setIconSize(2 * b.iconSize())
-                parent._layout.addWidget(b, 0, index, Qt.AlignTop)
+                parent._layout.addWidget(b, 0, index, align)
         global _debug
         if _debug:
             _debug = False
@@ -152,16 +157,18 @@ class _Section(QWidgetAction):
     
     def _update_button_action(self, button, action):
         button.setDefaultAction(action)
-        # text appears in wrong location unless parent is updated
-        parent = button.parent()
-        parent.adjustSize()
+        lines = button.text().split('\n')
+        fm = button.fontMetrics()
+        width = max(fm.horizontalAdvance(text) for text in lines)
+        # 20 is width of arrow on right side of button
+        button.setMinimumWidth(width + 20)
 
     def _adjust_title(self, w):
         # Readding the widget, removes the old entry, and lets us change the parameters
         size = len(self._buttons)
         if self.compact:
             span = (size + self.compact_height - 1) // self.compact_height
-            w._layout.addWidget(w._title, size, 0, 1, span, Qt.AlignHCenter | Qt.AlignBottom)
+            w._layout.addWidget(w._title, self.compact_height, 0, 1, span, Qt.AlignHCenter | Qt.AlignBottom)
         else:
             w._layout.addWidget(w._title, 1, 0, 1, size, Qt.AlignHCenter | Qt.AlignBottom)
 
@@ -171,6 +178,8 @@ class _Section(QWidgetAction):
         layout = w._layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        if not self.compact:
+            layout.setRowStretch(0, 1)
         self._layout_buttons(w)
         w.setLayout(layout)
         return w

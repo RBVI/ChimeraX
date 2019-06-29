@@ -299,6 +299,7 @@ class Toolshed:
             self.remote_url = _RemoteURL
         else:
             self.remote_url = remote_url
+        self._safe_mode = None
         self._repo_locator = None
         self._installed_bundle_info = None
         self._available_bundle_info = None
@@ -316,12 +317,14 @@ class Toolshed:
         # self._data_dir = os.path.join(app_dirs.user_data_dir, _ToolshedFolder)
         # _debug("data dir: %s" % self._data_dir)
 
-        # Add directories to sys.path
-        import site
+        # Insert directories to sys.path to take precedence over
+        # installed distribution.  addsitedir checks and does not
+        # add the directory a second time.
+        import site, os, sys
         self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
-        import os
         os.makedirs(self._site_dir, exist_ok=True)
+        sys.path.insert(0, self._site_dir)
         site.addsitedir(self._site_dir)
 
         # Create triggers
@@ -396,6 +399,7 @@ class Toolshed:
         """
 
         _debug("reload", rebuild_cache, check_remote)
+        changes = {}
         if reread_cache or rebuild_cache:
             from .installed import InstalledBundleCache
             save = self._installed_bundle_info
@@ -409,7 +413,8 @@ class Toolshed:
                     logger.info("Initial installed bundles.")
                 else:
                     from .installed import _report_difference
-                    _report_difference(logger, save, self._installed_bundle_info)
+                    changes = _report_difference(logger, save,
+                                                 self._installed_bundle_info)
             if save is not None:
                 save.deregister_all(logger, session, self._installed_packages)
             self._installed_bundle_info.register_all(logger, session,
@@ -417,6 +422,7 @@ class Toolshed:
         if check_remote:
             self.reload_available(logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
+        return changes
 
     def async_reload_available(self, logger):
         with self._abc_lock:
@@ -647,7 +653,41 @@ class Toolshed:
         else:
             logger.info('No bundles were installed')
         self.set_install_timestamp(per_user)
-        self.reload(logger, rebuild_cache=True, report=True)
+        changes = self.reload(logger, rebuild_cache=True, report=True)
+
+        if not self._safe_mode:
+            # Initialize managers and call custom init
+            # There /may/ be a problem with the order in which we call
+            # these if multiple bundles were installed, but we hope for
+            # the best.  We do /not/ call initialization functions for
+            # bundles that were just updated because we do not want to
+            # confuse already initialized bundles.
+            try:
+                new_bundles = changes["installed"]
+            except KeyError:
+                pass
+            else:
+                failed = []
+                done = set()
+                initializing = set()
+                for name, version in new_bundles.items():
+                    bi = self.find_bundle(name, logger, version=version)
+                    if bi:
+                        self._init_bundle_manager(session, bi, done,
+                                                  initializing, failed)
+                for name in failed:
+                    logger.warning("%s: manager initialization failed" % name)
+                failed = []
+                done = set()
+                initializing = set()
+                for name, version in new_bundles.items():
+                    bi = self.find_bundle(name, logger, version=version)
+                    if bi:
+                        self._init_bundle_custom(session, bi, done,
+                                                 initializing, failed)
+                for name in failed:
+                    logger.warning("%s: custom initialization failed" % name)
+
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
 
     def _can_install(self, bi):
@@ -789,7 +829,7 @@ class Toolshed:
             package = package[0:-1]
         return None
 
-    def bootstrap_bundles(self, session):
+    def bootstrap_bundles(self, session, safe_mode):
         """Supported API. Do custom initialization for installed bundles
 
         After adding the :py:class:`Toolshed` singleton to a session,
@@ -797,7 +837,10 @@ class Toolshed:
         (For symmetry, there should be a way to uninstall all bundles
         before a session is discarded, but we don't do that yet.)
         """
-        _debug("initialize_bundles")
+        _debug("initialize_bundles", safe_mode)
+        self._safe_mode = safe_mode
+        if safe_mode:
+            return
         for bi in self._installed_bundle_info:
             bi.update_library_path()    # for bundles with dynamic libraries
         failed = self._init_managers(session)
@@ -870,6 +913,10 @@ class Toolshed:
                     self._init_bundle_manager(session, dbi, done, initializing, failed)
             initializing.remove(bi)
         try:
+            if self._available_bundle_info:
+                all_bundles = self._installed_bundle_info + self._available_bundle_info
+            else:
+                all_bundles = self._installed_bundle_info
             for mgr, kw in bi.managers.items():
                 if not session.ui.is_gui and kw.pop("guiOnly", False):
                     _debug("skip non-GUI manager %s for bundle %r" % (mgr, bi.name))
@@ -881,7 +928,7 @@ class Toolshed:
                     if logger:
                         logger.error("Manager %r failed to initialize" % mgr)
                     continue
-                for pbi in self._installed_bundle_info:
+                for pbi in all_bundles:
                     for pvdr, params in pbi.providers.items():
                         p_mgr, kw = params
                         if p_mgr == mgr:
@@ -1116,6 +1163,31 @@ class Toolshed:
         return module
 
 
+import abc
+class ProviderManager(metaclass=abc.ABCMeta):
+    """API for managers created by bundles
+
+    Managers returned by bundle ``init_manager`` methods should be an
+    instance of this class.
+    """
+
+    @abc.abstractmethod
+    def add_provider(self, bundle_info, provider_name, **kw):
+        """Callback invoked to add provider to this manager.
+
+        Parameters
+        ----------
+        session : :py:class:`chimerax.core.session.Session` instance.
+        bundle_info : :py:class:`BundleInfo` instance.
+        provider_name : str.
+        """
+        pass
+
+    def end_providers(self):
+        """Callback invoked after all providers have been added."""
+        pass
+
+
 class BundleAPI:
     """API for accessing bundles
 
@@ -1134,8 +1206,8 @@ class BundleAPI:
         Parameters
         ----------
         session : :py:class:`chimerax.core.session.Session` instance.
-        bundle_info : instance of :py:class:`BundleInfo`
-        tool_info : instance of :py:class:`ToolInfo`
+        bundle_info : :py:class:`BundleInfo` instance.
+        tool_info : :py:class:`ToolInfo` instance.
 
             Version 1 of the API passes in information for both
             the tool to be started and the bundle where it was defined.
@@ -1167,8 +1239,8 @@ class BundleAPI:
 
         Parameters
         ----------
-        bundle_info : instance of :py:class:`BundleInfo`
-        command_info : instance of :py:class:`CommandInfo`
+        bundle_info : :py:class:`BundleInfo` instance.
+        command_info : :py:class:`CommandInfo` instance.
         logger : :py:class:`~chimerax.core.logger.Logger` instance.
 
             Version 1 of the API pass in information for both
@@ -1189,8 +1261,8 @@ class BundleAPI:
 
         Parameters
         ----------
-        bundle_info : instance of :py:class:`BundleInfo`
-        selector_info : instance of :py:class:`SelectorInfo`
+        bundle_info : :py:class:`BundleInfo` instance.
+        selector_info : :py:class:`SelectorInfo` instance.
         logger : :py:class:`chimerax.core.logger.Logger` instance.
 
             Version 1 of the API passes in information about
@@ -1287,6 +1359,8 @@ class BundleAPI:
         ``init_manager`` is called when bundles are first loaded.
         ``init_manager`` methods for all bundles are called before any
         ``init_provider`` methods are called for any bundle.
+        It is the responsibility of ``init_manager`` to make the manager
+        locatable, e.g., assign as an attribute of `session`.
 
         Parameters
         ----------
@@ -1299,7 +1373,7 @@ class BundleAPI:
 
         Returns
         -------
-        :py:class:`~chimerax.core.state.StateManager` instance
+        :py:class:`ProviderManager` instance
             The created manager.
         """
         raise NotImplementedError("BundleAPI.init_manager")

@@ -45,13 +45,18 @@ include:
 data:
 	mkdir data
 
-cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h
-	LDFLAGS="-L." $(PYTHON_EXE) setup.py build_ext -i
+cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h include/atomstruct/Residue.h
+	LDFLAGS="-L." $(PYTHON_EXE) setup-cymol.py build_ext -i
 	mv chimerax/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
 	rmdir -p chimerax/atomic
 
-install: $(SHLIB) cymol.$(PYMOD_EXT)
-	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) cymol.pyx data include lib ../src
+cytmpl.$(PYMOD_EXT): cytmpl.pyx
+	LDFLAGS="-L." $(PYTHON_EXE) setup-cytmpl.py build_ext -i
+	mv chimerax/atomic/cytmpl.cp*.$(PYMOD_EXT) cytmpl.$(PYMOD_EXT)
+	rmdir -p chimerax/atomic
+
+install: $(SHLIB) cymol.$(PYMOD_EXT) cytmpl.$(PYMOD_EXT)
+	$(RSYNC) $(SHLIB) cymol.$(PYMOD_EXT) cymol.pyx cytmpl.$(PYMOD_EXT) cytmpl.pyx data include lib ../src
 
 $(SHLIB): $(OBJS)
 	$(SHLIB_LINK)
@@ -64,6 +69,7 @@ endif
 clean:
 	rm -rf __pycache__ $(OBJS) $(SHLIB) \
 		cymol.cpp cymol.$(PYMOD_EXT) \
+		cytmpl.cpp cytmpl.$(PYMOD_EXT) \
 		lib include data build
 ifdef WIN32
 	rm -f lib$(LIBNAME).{lib,exp,pdb} vc*.pdb

@@ -74,7 +74,7 @@ def _set_standard_residues():
     _standard_residues.update(_protein1to3.values())
 
 
-def write_mmcif(session, path, models=None):
+def write_mmcif(session, path, *, models=None, rel_model=None):
     from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
@@ -84,6 +84,22 @@ def write_mmcif(session, path, models=None):
     if not models:
         session.logger.info("no structures to save")
         return
+
+    xforms = {}
+    if rel_model is None:
+        for m in models:
+            p = m.scene_position
+            if p.is_identity():
+                xforms[m] = None
+            else:
+                xforms[m] = p
+    else:
+        inv = rel_model.scene_position.inverse()
+        for m in models:
+            if m.scene_position == rel_model.scene_position:
+                xforms[m] = None
+            else:
+                xforms[m] = m.scene_position * inv
 
     if not _standard_residues:
         _set_standard_residues()
@@ -105,10 +121,10 @@ def write_mmcif(session, path, models=None):
             # TODO: make sure ensembles are distinguished from IHM models
             ensemble = all(m.name == models[0].name for m in models)
             if ensemble:
-                save_structure(session, f, models, used_data_names)
+                save_structure(session, f, models, [xforms[m] for m in models], used_data_names)
             else:
                 for m in models:
-                    save_structure(session, f, [m], used_data_names)
+                    save_structure(session, f, [m], [xforms[m]], used_data_names)
 
 
 ChimeraX_audit_conform = mmcif.CIFTable(
@@ -233,14 +249,14 @@ def _save_metadata(model, categories, file):
     return printed
 
 
-def save_structure(session, file, models, used_data_names):
+def save_structure(session, file, models, xforms, used_data_names):
     # save mmCIF data section for a structure
     # 'models' should only have more than one model if NMR ensemble
     # All 'models' should have the same metadata.
     # All 'models' should have the same number of atoms, but in PDB files
     # then often don't, so pick the model with the most atoms.
     #
-    if len(models) <= 1:
+    if len(models) == 1:
         best_m = models[0]
     else:
         # TODO: validate that the models are actually similar, ie.,
@@ -295,6 +311,8 @@ def save_structure(session, file, models, used_data_names):
 
     save_components(best_m, file)
 
+    _save_metadata(best_m, ['exptl'], file)
+
     from chimerax.atomic import Residue
     old_entity, old_asym = mmcif.get_mmcif_tables_from_metadata(best_m, ['entity', 'struct_asym'])
     try:
@@ -332,7 +350,9 @@ def save_structure(session, file, models, used_data_names):
             names = set(c.existing_residues.names)
             nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
-            if c.from_seqres:
+            if not c.from_seqres:
+                _1to3 = None
+            else:
                 if c.polymer_type == Residue.PT_AMINO:
                     _1to3 = _protein1to3
                     poly_info.append((eid, nstd, 'polypeptide(L)', chars))  # TODO: or polypeptide(D)
@@ -463,7 +483,7 @@ def save_structure(session, file, models, used_data_names):
     ], atom_site_anisotrop_data)
     serial_num = 0
 
-    def atom_site_residue(residue, seq_id, asym_id, entity_id, model_num):
+    def atom_site_residue(residue, seq_id, asym_id, entity_id, model_num, xform):
         nonlocal serial_num, residue_info, atom_site_data, atom_site_anisotrop_data
         residue_info[residue] = (asym_id, seq_id)
         atoms = residue.atoms
@@ -484,9 +504,12 @@ def save_structure(session, file, models, used_data_names):
             aname = atom.name
             original_alt_loc = atom.alt_loc
             for alt_loc in atom.alt_locs or '.':
-                if alt_loc is not '.':
+                if alt_loc != '.':
                     atom.set_alt_loc(alt_loc, False)
-                xyz = ['%.3f' % f for f in atom.scene_coord]
+                coord = atom.coord
+                if xform is not None:
+                    coord = xform * coord
+                xyz = ['%.3f' % f for f in coord]
                 occ = "%.2f" % atom.occupancy
                 bfact = "%.2f" % atom.bfactor
                 serial_num += 1
@@ -498,10 +521,10 @@ def save_structure(session, file, models, used_data_names):
                 if u6 is not None and len(u6) > 0:
                     u6 = ['%.4f' % f for f in u6]
                     atom_site_anisotrop_data.append((serial_num, elem, u6))
-            if alt_loc is not '.':
+            if alt_loc != '.':
                 atom.set_alt_loc(original_alt_loc, False)
 
-    for m, model_num in zip(models, range(1, sys.maxsize)):
+    for m, xform, model_num in zip(models, xforms, range(1, sys.maxsize)):
         residues = m.residues
         het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
         for c in m.chains:
@@ -511,15 +534,15 @@ def save_structure(session, file, models, used_data_names):
             for seq_id, r in zip(range(1, sys.maxsize), c.residues):
                 if r is None:
                     continue
-                atom_site_residue(r, seq_id, asym_id, entity_id, model_num)
+                atom_site_residue(r, seq_id, asym_id, entity_id, model_num, xform)
             chain_het = het_residues.filter(het_residues.chain_ids == chain_id)
             het_residues -= chain_het
             for r in chain_het:
                 asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
-                atom_site_residue(r, '.', asym_id, entity_id, model_num)
+                atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
         for r in het_residues:
             asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
-            atom_site_residue(r, '.', asym_id, entity_id, model_num)
+            atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
 
     atom_site_data[:] = flattened(atom_site_data)
     atom_site.print(file, fixed_width=True)
@@ -606,9 +629,9 @@ def save_structure(session, file, models, used_data_names):
                 a0.name, alt_loc0, r0_asym, r0_seq, cid0, rnum0, rins0, r0.name, "1_555",
                 a1.name, alt_loc1, r1_asym, r1_seq, cid1, rnum1, rins1, r1.name, "1_555",
                 dist))
-        if original_alt_loc0 is not ' ':
+        if original_alt_loc0 != ' ':
             a0.set_alt_loc(original_alt_loc0, False)
-        if original_alt_loc1 is not ' ':
+        if original_alt_loc1 != ' ':
             a1.set_alt_loc(original_alt_loc1, False)
 
     # disulfide bonds

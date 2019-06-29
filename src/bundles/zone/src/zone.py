@@ -21,7 +21,6 @@ class AtomZoneMouseMode(MouseMode):
         self._label_distance = 4
         self._label_size = 64		# Pixels
         self._label_height = 0.7	# Scene units (Angstroms)
-        self._label_reorient = 45	# Degrees
         from chimerax.core.colors import BuiltinColors
         self._label_color = BuiltinColors['yellow']
         self._label_background = BuiltinColors['black']
@@ -29,16 +28,24 @@ class AtomZoneMouseMode(MouseMode):
         self._coil_width_thickness = (0.2, 0.2)
         self._helix_width_thickness = (0.6, 0.2)
         self._sheet_width_thickness = (0.6, 0.2)
-        self._ribbon_transparency = 100			# 0 = completely transparent, 255 = opaque
+        self._ribbon_transparency = 100		# 0 = completely transparent, 255 = opaque
         self._labeled_residues = None
         self._scale_accum = 1
-        self._scale_step = 1.3		# Minimum scaling step factor
-
+        self._scale_step = 1.3			# Minimum scaling step factor
+        self._original_atom_display = None	# Boolean mask of which atoms originally shown
+        self._original_residue_display = None	# Boolean mask of which residues originally shown
+        
     def _show_zone(self, residue, label=True, ribbon=True, log_command = True):
         '''Show nearby residues, labels, and surfaces.'''
 
+        if self._zone_center_residue is None:
+            # Remember original display state.
+            s = residue.structure
+            self._original_atom_display = s.atoms.displays
+            self._original_residue_display = s.residues.ribbon_displays
+
         self._zone_center_residue = residue
-            
+        
         ratoms = residue.atoms
         nres = self._show_near_residues(residue, show_ligands=ribbon)
 
@@ -83,13 +90,33 @@ class AtomZoneMouseMode(MouseMode):
         r = self._zone_center_residue
         if r is None:
             return
-        r.structure.atoms.displays = True
+
+        self._restore_original_display()
         self._unlabel(log_command = False)
         from chimerax.map.filter.vopcommand import volume_unzone
         volume_unzone(self.session, self._shown_volumes())
         if log_command:
             from chimerax.core.commands import log_equivalent_command
             log_equivalent_command(self.session, 'zone clear')
+
+        self._zone_center_residue = None
+
+    def _restore_original_display(self):
+        r = self._zone_center_residue
+        if r is None:
+            return
+        s = r.structure
+
+        ad = self._original_atom_display
+        if ad is not None and len(ad) == s.num_atoms:
+            s.atoms.displays = ad
+        self._original_atom_display = None
+
+        rd = self._original_residue_display
+        if rd is not None and len(rd) == s.num_residues:
+            s.residues.ribbon_displays = rd
+        self._original_residue_display = None
+        
         
     def _show_near_residues(self, residue, show_ligands):
         nres = self._nearby_residues(residue, self._residue_distance)
@@ -122,8 +149,7 @@ class AtomZoneMouseMode(MouseMode):
         ses = self.session
         label_delete(ses)
         label(ses, aobj, 'residues', size = self._label_size, height = self._label_height,
-              orient = self._label_reorient, color = self._label_color,
-              background = self._label_background)
+              color = self._label_color, background = self._label_background)
         self._labeled_residues = aobj
 
     def _show_ribbons(self, hide_residues):

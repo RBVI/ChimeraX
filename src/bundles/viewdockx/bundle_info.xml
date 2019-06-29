@@ -44,9 +44,9 @@ UCSF DOCK output in PDB and mol2 formats are supported.
   </Dependencies>
 
   <Providers>
-    <Provider name="vdxchart" manager="http_schemes"/>
-    <Provider name="vdxplot" manager="http_schemes"/>
-    <Provider name="vdxtable" manager="http_schemes"/>
+    <Provider name="vdxchart" manager="url_schemes"/>
+    <Provider name="vdxplot" manager="url_schemes"/>
+    <Provider name="vdxtable" manager="url_schemes"/>
   </Providers>
 
   <Classifiers>

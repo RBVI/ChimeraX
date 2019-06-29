@@ -76,6 +76,8 @@ class Structure(Model, StructureData):
 
         self._make_drawing()
 
+        self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
+
     def __str__(self):
         return self.string()
 
@@ -964,7 +966,9 @@ class Structure(Model, StructureData):
 
             # Cache position of backbone atoms on ribbon
             # and get list of tethered atoms
-            positions = self._ribbon_spline_position(ribbon, residues)
+            positions = self._ribbon_spline_position(ribbon, residues, self._NonTetherPositions)
+            self._ribbon_spline_backbone.update(positions)
+            positions = self._ribbon_spline_position(ribbon, residues, self._TetherPositions)
             from numpy.linalg import norm
             from .molarray import Atoms
             tether_atoms = Atoms(list(positions.keys()))
@@ -1608,13 +1612,11 @@ class Structure(Model, StructureData):
     # and this one; positive between this and next.
     # These are copied from Chimera.  May want to do a survey
     # of closest spline parameters across many structures instead.
-    _RibbonPositions = {
+    _TetherPositions = {
         # Amino acid
         "N":  -1/3.,
         "CA":  0.,
         "C":   1/3.,
-        "O":   1/3.,
-        # TODO: "OXT", "OT1", "OT2"
         # Nucleotide
         "P":   -2/6.,
         "O5'": -1/6.,
@@ -1622,15 +1624,33 @@ class Structure(Model, StructureData):
         "C4'":  1/6.,
         "C3'":  2/6.,
         "O3'":  3/6.,
-        # TODO: "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"
+    }
+    _NonTetherPositions = {
+        # Amino acid
+        "O":    1/3.,
+        "OXT":  1/3.,
+        "OT1":  1/3.,
+        "OT2":  1/3.,
+        # Nucleotide
+        "OP1": -2/6.,
+        "O1P": -2/6.,
+        "OP2": -2/6.,
+        "O2P": -2/6.,
+        "OP3": -2/6.,
+        "O3P": -2/6.,
+        "O2'": -1/6.,
+        "C2'":  2/6.,
+        "O4'":  1/6.,
+        "C1'":  1.5/6.,
+        "O3'":  2/6.,
     }
 
-    def _ribbon_spline_position(self, ribbon, residues):
+    def _ribbon_spline_position(self, ribbon, residues, pos_map):
         positions = {}
         for n, r in enumerate(residues):
             first = (r == residues[0])
             last = (r == residues[-1])
-            for atom_name, position in self._RibbonPositions.items():
+            for atom_name, position in pos_map.items():
                 a = r.find_atom(atom_name)
                 if a is None or not a.is_backbone():
                     continue
@@ -2230,15 +2250,15 @@ class AtomicStructure(Structure):
     from chimerax.core.colors import BuiltinColors
     default_hbond_color = BuiltinColors["deep sky blue"]
     default_hbond_radius = 0.075
-    default_hbond_dashes = 9
+    default_hbond_dashes = 6
 
     default_metal_coordination_color = BuiltinColors["medium purple"]
     default_metal_coordination_radius = 0.075
-    default_metal_coordination_dashes = 9
+    default_metal_coordination_dashes = 6
 
     default_missing_structure_color = BuiltinColors["yellow"]
     default_missing_structure_radius = 0.075
-    default_missing_structure_dashes = 9
+    default_missing_structure_dashes = 6
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
@@ -2291,7 +2311,7 @@ class AtomicStructure(Structure):
             het_atoms.colors = element_colors(het_atoms.element_numbers)
         elif style == "small polymer":
             lighting = "default"
-            from .molobject import Atom, Bond
+            from .molobject import Atom, Bond, Residue
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
@@ -2309,18 +2329,17 @@ class AtomicStructure(Structure):
                 lone_ions.draw_modes = Atom.SPHERE_STYLE
                 ligand |= metal_atoms.residues
                 display = ligand
-                pas = ribbonable.existing_principal_atoms
-                nucleic = pas.residues.filter(pas.names != "CA")
+                mask = ribbonable.polymer_types == Residue.PT_NUCLEIC
+                nucleic = ribbonable.filter(mask)
                 display |= nucleic
                 if nucleic:
                     from .nucleotides.cmd import nucleotides
-                    if len(nucleic) >= 5:
-                        if len(nucleic) < 50:
-                            nucleotides(self.session, 'tube/slab', objects=nucleic)
-                        else:
-                            nucleotides(self.session, 'ladder', objects=nucleic)
-                        from .colors import nucleotide_colors
-                        nucleic.ring_colors = nucleotide_colors(nucleic)[0]
+                    if len(nucleic) < 100:
+                        nucleotides(self.session, 'tube/slab', objects=nucleic)
+                    else:
+                        nucleotides(self.session, 'ladder', objects=nucleic)
+                    from .colors import nucleotide_colors
+                    nucleic.ring_colors = nucleotide_colors(nucleic)[0]
                 if ligand:
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords
@@ -2349,6 +2368,26 @@ class AtomicStructure(Structure):
         else:
             # since this is now available as a preset, allow for possibly a smaller number of atoms
             lighting = "soft" if self.num_atoms < 300000 else "soft multiShadow 16"
+
+        # correct the styling of per-structure pseudobond bond groups
+        for cat, pbg in self.pbg_map.items():
+            if cat == self.PBG_METAL_COORDINATION:
+                color = self.default_metal_coordination_color
+                radius = self.default_metal_coordination_radius
+                dashes = self.default_metal_coordination_dashes
+            elif cat == self.PBG_MISSING_STRUCTURE:
+                color = self.default_missing_structure_color
+                radius = self.default_missing_structure_radius
+                dashes = self.default_missing_structure_dashes
+            elif cat == self.PBG_HYDROGEN_BONDS:
+                color = self.default_hbond_color
+                radius = self.default_hbond_radius
+                dashes = self.default_hbond_dashes
+            else:
+                continue
+            pbg.color = color.uint8x4()
+            pbg.radius = radius
+            pbg.dashes = dashes
 
         if set_lighting:
             from chimerax.core.commands import Command

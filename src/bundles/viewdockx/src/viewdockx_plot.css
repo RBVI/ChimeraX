@@ -24,12 +24,4 @@ html, body, #full {
 }
 #column_table {
   flex: auto;
-  table-layout: fixed;
-  width: 100%;
-}
-col:nth-child(odd) {
-  background: #EEE;
-}
-col:nth-child(even) {
-  background: #DDD;
 }

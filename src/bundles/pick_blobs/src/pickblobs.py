@@ -228,6 +228,7 @@ def hex_color(rgba8):
 #
 from chimerax.core.tools import ToolInstance
 class PickBlobSettings(ToolInstance):
+    help = "help:user/tools/measureblobs.html"
 
     def __init__(self, session, tool_name):
 
