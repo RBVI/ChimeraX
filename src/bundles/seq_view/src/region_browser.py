@@ -548,7 +548,7 @@ class RegionBrowser:
         """
         if self._sel_change_handler:
             from chimerax import atomic
-            atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
+            atomic.get_triggers().remove_handler(self._sel_change_handler)
         """
         for rd in self.rename_dialogs.values():
             rd.destroy()
@@ -1752,10 +1752,9 @@ class RegionBrowser:
         from chimerax import atomic
         if self.seq_canvas.sv.settings.show_sel:
             self.show_chimerax_selection()
-            self._sel_change_handler = atomic.get_triggers(self.tool_window.session).add_handler(
-                "changes", self._sel_change_cb)
+            self._sel_change_handler = atomic.get_triggers().add_handler("changes", self._sel_change_cb)
         else:
-            atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
+            atomic.get_triggers().remove_handler(self._sel_change_handler)
             self._sel_change_handler = None
             sel_region = self.get_region("ChimeraX selection")
             if sel_region:

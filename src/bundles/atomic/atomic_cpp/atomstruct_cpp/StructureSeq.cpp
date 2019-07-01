@@ -89,19 +89,11 @@ StructureSeq::copy() const
 void
 StructureSeq::demote_to_sequence()
 {
-    auto inst = py_instance(false);
-    if (inst != Py_None) {
-        auto gil = pyinstance::AcquireGIL();
-        if (is_chain())
-            _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
-        _structure = nullptr;
-        auto ret = PyObject_CallMethod(inst, "_cpp_demotion", nullptr);
-        if (ret == nullptr) {
-            throw std::runtime_error("Calling StructureSeq _cpp_demotion method failed.");
-        }
-        Py_DECREF(ret);
+    if (is_chain()) {
+        _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
     }
-    Py_DECREF(inst);
+    _structure = nullptr;
+    py_call_method("_cpp_demotion");
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
@@ -123,7 +115,6 @@ StructureSeq::destructors_done(const std::set<void*>& destroyed)
 StructureSeq&
 StructureSeq::operator+=(StructureSeq& addition)
 {
-
     Sequence::operator+=(*this);
     auto offset = _residues.size();
     _residues.insert(_residues.end(), addition._residues.begin(), addition._residues.end());
@@ -239,6 +230,10 @@ StructureSeq::remove_residue(Residue* r) {
 
 void
 StructureSeq::remove_residues(std::set<Residue*>& residues) {
+    // Chain getting demoted to sequence will let destructors_done() to call
+    // again for the same set of residues, so prevent shenanigans...
+    if (_res_map.size() == 0)
+        return;
     bool ischain = is_chain();
     for (auto r: residues) {
         auto ri = std::find(_residues.begin(), _residues.end(), r);
@@ -248,10 +243,11 @@ StructureSeq::remove_residues(std::set<Residue*>& residues) {
     }
     if (ischain)
         _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
-            ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
+            ChangeTracker::REASON_RESIDUES);
     if (_res_map.size() == residues.size()) {
         if (DestructionCoordinator::destruction_parent() != _structure && ischain)
             _structure->remove_chain(dynamic_cast<Chain*>(this));
+        _res_map.clear();
         demote_to_sequence();
     } else {
         _res_map.clear();
@@ -261,6 +257,7 @@ StructureSeq::remove_residues(std::set<Residue*>& residues) {
                 _res_map[*ri] = i;
             }
         }
+        py_call_method("_cpp_modified");
     }
 }
 

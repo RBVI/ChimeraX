@@ -116,7 +116,7 @@ class Alignment(State):
                 # if the sequence we're being asked to set up an association for is a
                 # StructureSeq then we already know what structure it associates with and how...
                 structures = []
-                match_map = SeqMatchMap(self.session, seq, seq)
+                match_map = SeqMatchMap(seq, seq)
                 for res, index in seq.res_map.items():
                     match_map.match(res, index)
                 self.prematched_assoc_structure(match_map, 0, reassoc)
@@ -210,13 +210,13 @@ class Alignment(State):
                     else:
                         try_errors = max_errors
                     try:
-                        match_map, errors = try_assoc(self.session, aseq, sseq,
+                        match_map, errors = try_assoc(aseq, sseq,
                             (est_len, segments, gaps), max_errors=try_errors)
                     except StructAssocError:
                         # maybe the sequence is derived from the structure...
                         if gaps:
                             try:
-                                match_map, errors = try_assoc(self.session, aseq, sseq,
+                                match_map, errors = try_assoc(aseq, sseq,
                                     (len(sseq), [sseq[:]], []), max_errors=try_errors)
                             except StructAssocError:
                                 continue
@@ -227,7 +227,7 @@ class Alignment(State):
                         # smooshing sequence together works better
                         if errors and gaps:
                             try:
-                                match_map, errors = try_assoc(self.session, aseq, sseq,
+                                match_map, errors = try_assoc(aseq, sseq,
                                     (len(sseq), [sseq[:]], []), max_errors=errors-1)
                             except StructAssocError:
                                 pass
@@ -334,6 +334,7 @@ class Alignment(State):
         del aseq.match_maps[sseq]
         del self.associations[sseq]
         sseq.triggers.remove_handler(match_map.del_handler)
+        sseq.triggers.remove_handler(match_map.mod_handler)
         if reassoc:
             return
         if not demotion:
@@ -352,7 +353,7 @@ class Alignment(State):
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
         from chimerax import atomic
-        atomic.get_triggers(self.session).add_handler('changes', _delay_disassoc)
+        atomic.get_triggers().add_handler('changes', _delay_disassoc)
 
     def match(self, ref_chain, match_chains, *, iterate=-1, restriction=None):
         """Match the match_chains onto the ref_chain.  All chains must already be associated
@@ -440,12 +441,10 @@ class Alignment(State):
         self.associations[chain] = aseq
 
         # set up callbacks for structure changes
-        match_map.del_handler = chain.triggers.add_handler('delete',
+        match_map.del_handler = struct_seq.triggers.add_handler('delete',
             lambda _1, sseq: self.disassociate(sseq, demotion=True))
-        """
-        match_map["mavModHandler"] = mseq.triggers.addHandler(
-                mseq.TRIG_MODIFY, self._mseqModCB, match_map)
-        """
+        match_map.mod_handler = struct_seq.triggers.add_handler('modify',
+            lambda _1, sseq: self._mseq_mod_cb(sseq))
 
     def remove_observer(self, observer):
         """Called when an observer is done with the alignment (see add_observer)"""
@@ -572,7 +571,7 @@ def nw_assoc(session, align_seq, struct_seq):
         # trailing unmatched
         errors += len(sseq) - m_end - 1
 
-    match_map = SeqMatchMap(session, align_seq, struct_seq)
+    match_map = SeqMatchMap(align_seq, struct_seq)
     last_match = m_end + 1
     for s_index, a_index in match_list:
         if sseq[s_index] != aseq[a_index]:

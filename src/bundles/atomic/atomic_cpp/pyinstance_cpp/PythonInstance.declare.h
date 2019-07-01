@@ -78,10 +78,13 @@ public:
     
     static PyObject*  py_class(); // returns a borrowed reference
     static void  set_py_class(PyObject* c_obj);
+    std::string py_class_name() const;
 
     PyObject*  py_instance(bool create) const; // returns a new reference
     // some Python objects can't be created by C++ (need more args), so...
     void  set_py_instance(PyObject* py_obj);
+
+    PyObject* py_call_method(const std::string& method_name, bool create=false) const; // returns a new ref; 
 };
 
 }  // namespace pyinstance

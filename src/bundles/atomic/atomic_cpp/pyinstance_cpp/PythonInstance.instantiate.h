@@ -201,6 +201,47 @@ PythonInstance<C>::py_instance(bool create) const
     return py_inst;
 }
 
+template <class C>
+PyObject*
+PythonInstance<C>::py_call_method(const std::string& method_name, bool create) const
+{
+    auto inst = py_instance(create);
+    PyObject* ret;
+    if (inst == Py_None) {
+        return nullptr;
+    } else {
+        auto gil = AcquireGIL();
+        ret = PyObject_CallMethod(inst, method_name.c_str(), nullptr);
+        if (ret == nullptr) {
+            std::stringstream msg;
+            msg << "Calling " << py_class_name() << " " << method_name << " failed.";
+            throw std::runtime_error(msg.str());
+        }
+    }
+    Py_DECREF(inst);
+    return ret;
+}
+
+template <class C>
+std::string
+PythonInstance<C>::py_class_name() const
+{
+    std::stringstream msg;
+    PyObject* class_inst = py_class();
+    if (class_inst == nullptr) {
+        auto derived = static_cast<const C*>(this);
+        msg << "[C++: " << typeid(*derived).name() << "]";
+        return msg.str();
+    }
+
+    PyObject* class_name = PyObject_GetAttrString(class_inst, "__name__");
+    if (class_name == nullptr)
+        throw std::runtime_error("Cannot get class __name__ attr in C++");
+    msg << PyUnicode_AsUTF8(class_name);
+    Py_DECREF(class_name);
+    return msg.str();
+}
+
 }  // namespace pyinstance
 
 #endif  // pyinstance_python_instance_instantiate
