@@ -119,10 +119,14 @@ Atom::clear_aniso_u()
     if (_alt_loc != ' ') {
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         assert(i != _alt_loc_map.end());
-        (*i).second.aniso_u.reset();
+        if ((*i).second.aniso_u.use_count() > 0) {
+            (*i).second.aniso_u.reset();
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ANISO_U);
+        }
     } else if (_aniso_u != nullptr) {
         delete _aniso_u;
         _aniso_u = nullptr;
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ANISO_U);
     }
 }
 
