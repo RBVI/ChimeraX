@@ -479,11 +479,13 @@ class Toolshed:
                     b = (bi.name, bi.version)
                     bundles.add(b)
                     # TODO: update synopsis if newer version of bundle
-        from chimerax.core.commands import cli, CmdDesc
+        from chimerax.core.commands import cli, CmdDesc, WholeRestOfLine
         for name in available:
-            bundles, synopsis = available[ci.name]
-            cd = CmdDesc(synopsis=synopsis)
-            def cb(session, s=self, n=name, b=bundles, l=logger):
+            bundles, synopsis = available[name]
+            cd = CmdDesc(
+                optional=[('unknown_arguments', WholeRestOfLine)],
+                synopsis=synopsis)
+            def cb(session, s=self, n=name, b=bundles, l=logger, unknown_arguments=None):
                 s._available_cmd(n, b, l)
             try:
                 cli.register_available(name, cd, function=cb, logger=logger)

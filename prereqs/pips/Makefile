@@ -55,14 +55,18 @@ clean:
 
 outdated:
 	$(PIP) list --outdated --format=columns
+	@echo ""
+	@echo "Known issues:"
+	@echo "  grako (3.16.5 is the last version that works)"
+	@echo "  jedi (pulled in by line-profiler)"
+	@echo "  MarkupSafe (pulled in by Jinja2)"
+	@echo "  parso (pulled in by line-profiler via jedi)"
+	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
+	@echo "  snowballstemmer (pulled in by Sphinx)"
+	@echo "  tornado (pulled in by ipykernel)"
 
 app-outdated:
 	$(APP_PIP) list --outdated --format=columns
-	@echo "Known issues:"
-	@echo "  grako (3.16.5 is the last version that works)"
-	@echo "  Cython (0.29.2 generates uncompilable code on Windows)"
-	@echo "  MarkupSafe (pulled in by Jinja2)"
-	@echo "  prompt-toolkit (pulled in by ipython)"
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src

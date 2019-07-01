@@ -4,13 +4,15 @@
 appdirs==1.4.3
 colorama==0.4.1
 comtypes==1.1.7
-Cython==0.28.5
+#Cython==0.28.5
+Cython==0.29.11
 distlib==0.2.9.post0
 filelock==3.0.12
 flake8==3.7.7
 funcparserlib==0.3.6
 grako==3.16.5
 html2text==2018.1.9
+# see ../lineprofiler
 #line_profiler==2.1.2
 lxml==4.3.4
 markupsafe==1.0
@@ -26,6 +28,8 @@ python-dateutil==2.8.0
 six==1.12.0
 sortedcontainers==2.1.0
 suds-jurko==0.6
+# see ../tables
+#tables==3.4.4
 tinyarray==1.2.1
 webcolors==1.9.1
 #
@@ -36,5 +40,5 @@ docutils==0.14
 Jinja2==2.10.1
 numpydoc==0.9.1
 Pygments==2.4.2
-Sphinx==2.1.1
+Sphinx==2.1.2
 sphinxcontrib-blockdiag==1.5.5
