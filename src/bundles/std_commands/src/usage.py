@@ -55,8 +55,8 @@ def usage(session, command_name=None, option=None):
                     name, show_subcommands=0, expand_alias=False,
                     show_hidden=show_hidden))
             except:
-                import traceback
-                traceback.print_exc()
+                #import traceback
+                #traceback.print_exc()
                 from html import escape
                 usage.append('<b>%s</b> &mdash; no documentation' % escape(name)
 )
@@ -64,14 +64,14 @@ def usage(session, command_name=None, option=None):
         return
 
     try:
-        usage = cli.usage(command_name, show_hidden=show_hidden)
+        if session.ui.is_gui:
+            usage = cli.html_usage(command_name, show_hidden=show_hidden)
+        else:
+            usage = cli.usage(command_name, show_hidden=show_hidden)
     except ValueError as e:
-        from chimerax.core.errors import UserError
-        raise UserError(str(e))
-    if session.ui.is_gui:
-        info(cli.html_usage(command_name, show_hidden=show_hidden), is_html=True)
+        session.logger.warning(str(e))
     else:
-        info(usage)
+        info(usage, is_html=session.ui.is_gui)
 
 
 def register_command(logger):

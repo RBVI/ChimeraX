@@ -61,7 +61,7 @@ min, max, mean, SD, and RMSD values
 &ndash; calculate 
 <a href="surface.html#surfdefs">solvent-accessible surface</a> area
 <li><a href="#symmetry"><b>symmetry</b></a>
-&ndash; identify map symmetry
+&ndash; check map for certain symmetries in standard orientations
 <li><a href="#volume"><b>volume</b></a> 
 &ndash; report the volume enclosed by an existing surface
 </ul>
@@ -425,7 +425,7 @@ See also: <a href="#area"><b>measure area</b></a>
 [&nbsp;<b>minimumCorrelation</b>&nbsp;<i>mincorr</i>&nbsp;]
 [&nbsp;<b>nMax</b>&nbsp;<i>n</i>&nbsp;]
 [&nbsp;<b>points</b>&nbsp;<i>maxpts</i>&nbsp;]
-[&nbsp;<b>set</b>&nbsp;<b>true</b>|false&nbsp;]
+[&nbsp;<b>set</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>helix</b>&nbsp;<i>rise</i>,<i>angle</i>[,<i>n</i>][,<b>opt</b>]&nbsp;]
 <blockquote>
 Check each specified <a href="../tools/volumeviewer.html">volume data</a>
@@ -443,10 +443,11 @@ For direct assignment of a specified symmetry, see
 If the <a href="fitmap.html#corrzero">correlation</a>
 of the map with itself after symmetry transformation
 is at least <i>mincorr</i> (default <b>0.99</b>), the detected
-type of symmetry will be reported, and if <b>set</b> is true,
-assigned to the map in Chimera.
+type of symmetry will be reported, and if <b>set</b> is true (default),
+assigned to the map in ChimeraX.
 The correlation calculation uses only map points with values
-above the displayed contour level; if the number of such points exceeds
+above the displayed <a href="volume.html#level">contour level</a>;
+if the number of such points exceeds
 <i>maxpts</i> (default <b>10,000</b>), a random sample of <i>maxpts</i>
 is chosen from them and used. Values in the first copy of the map
 are compared with the superimposed (interpolated) values in the
