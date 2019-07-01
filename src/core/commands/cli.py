@@ -2776,7 +2776,7 @@ def command_url(name, no_aliases=False, *, registry=None):
 
 
 def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-          show_hidden=False, *, registry=None, _shown_cmds=set()):
+          show_hidden=False, *, registry=None, _shown_cmds=None):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2785,6 +2785,8 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     :param show_hidden: True if hidden keywords should be shown.
     :returns: a usage string for the command
     """
+    if _shown_cmds is None:
+        _shown_cmds = set()
     name = name.strip()
     cmd = Command(None, registry=registry)
     cmd.current_text = name
