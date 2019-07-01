@@ -36,6 +36,8 @@ to fit an atomic model or map into a map.
 <img class="icon" border=1 src="../tools/shortcut-icons/fitmap.png"></a>
 The maps usually represent electron density, but other types of
 <a href="../tools/volumeviewer.html">volume data</a> can also be used.
+Some of its features are implemented as
+<a href="../tools/fitmap.html"><b>Fit in Map</b></a>.
 See also:
 <a href="volume.html"><b>volume</b></a>,
 <a href="molmap.html"><b>molmap</b></a>,
@@ -57,8 +59,14 @@ Prior to
 <a href="#optimization">local optimization</a>,
 the fit model should be placed in a trial position 
 relative to the reference map before fitting.
-This usually involves interactive manipulation
-unless <a href="#global">global search</a> is used.
+Unless <a href="#global">global search</a> is used,
+this usually involves interactive manipulation with
+<a href="../commands/ui.html#mousemode">mouse modes</a> that move
+only the <a href="../selection.html">selected</a> model(s).
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/move_h2o.png"></a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotate_h2o.png"></a>
 </p><p>
 The calculation will stop and the fit structure will be repositioned after
 <a href="#gridStepMin">convergence</a>
@@ -70,10 +78,11 @@ especially if convergence was not reached.
 Information such as the number of optimization steps, shift, and rotation
 is sent to the <a href="../tools/log.html"><b>Log</b></a>. 
 The transformation of the fit structure 
-relative to the reference map is given as a
-<a href="#matrices">transformation matrix</a>
-and as an axis of rotation (a unit vector), point on the axis,
-degrees of rotation, and shift parallel to the axis.
+relative to the reference map is given as a matrix in which the
+first three columns describe a rotation
+and the fourth describes a translation (performed after the rotation).
+The transformation is also described as an axis of rotation (a unit vector),
+point on the axis, degrees of rotation, and shift parallel to the axis.
 </p><p>
 The following advanced modes are mutually exclusive:
 </p>
@@ -506,19 +515,8 @@ criterion are repeated until
 or a <a href="#maxSteps">maximum number of steps</a> (default 2000),
 whichever comes first.
 </p>
-<p>
-<a name="matrices"><b>Transformation matrices</b></a>.
-The transformation matrix of the fit model
-relative to the reference map
-is reported in the <a href="../tools/log.html"><b>Log</b></a>.
-The first three columns of the matrix describe a rotation and the
-fourth describes a translation (performed after the rotation).
-The transformation is also described
-as an axis of rotation (a unit vector), point on the axis,
-degrees of rotation, and shift parallel to the axis.
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+July 2019</address>
 </body></html>
