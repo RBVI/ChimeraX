@@ -122,8 +122,15 @@ class Popup(QLabel):
     def __init__(self, graphics_window):
         from PyQt5.QtCore import Qt
         QLabel.__init__(self)
-        # Don't use a Qt.ToolTip which can do undesired auto-hiding on Mac. Bug #
-        self.setWindowFlags(self.windowFlags() | Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus)
+        import sys
+        if sys.platform == 'darwin':
+            # Don't use a Qt.ToolTip which can do undesired auto-hiding on Mac. Bug #2140
+            # But on Linux these flags cause huge non-updating balloons, and on Windows
+            # the balloon takes the focus (Qt 5.12.4).
+            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
+        else:
+            win_flags = Qt.ToolTip
+        self.setWindowFlags(self.windowFlags() | win_flags)
         self.graphics_window = graphics_window
 
     def show_text(self, text, position):
