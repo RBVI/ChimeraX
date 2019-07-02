@@ -442,22 +442,21 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
                 add_bond(new_atom, bond_atom)
             buds.append(new_atom.name)
 
-        #TODO
         # once we've placed 3 side chain atoms, we use superpositioning to
         # place the remainder of the side chain, since dihedrals will
         # likely distort ring closures if 'preserve' is true
         if buds and not xf and len(new_atoms) >= 3:
-            placedPositions = []
-            tmplPositions = []
+            placed_positions = []
+            tmpl_positions = []
             for na in new_atoms:
-                placedPositions.append(na.coord())
-                tmplPositions.append(tmpl_res.atomsMap[na.name].coord())
+                placed_positions.append(na.coord)
+                tmpl_positions.append(tmpl_res.find_atom(na.name).coord)
             import numpy
-            xf = matchPositions(numpy.array(placedPositions),
-                numpy.array(tmplPositions))[0]
+            from chimerax.core.geometry import align_points
+            xf = align_points(numpy.array(tmpl_positions),
+                numpy.array(placed_positions))[0]
 
-    from BuildStructure import changeResidueType
-    changeResidueType(res, res_type)
+    res.name = res_type
 
 class TemplateSwapError(ValueError):
     pass
