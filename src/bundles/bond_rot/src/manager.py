@@ -37,7 +37,7 @@ class BondRotationManager(StateManager):
             del self.bond_rotations[rotation.bond]
             if not self.bond_rotations:
                 from chimerax.atomic import get_triggers
-                get_triggers(self.session).remove_handler(self._handler_ID)
+                get_triggers().remove_handler(self._handler_ID)
         if not rotater.one_shot:
             self.triggers.activate_trigger(self.DELETED, rotater)
 
@@ -46,7 +46,7 @@ class BondRotationManager(StateManager):
             self.triggers.activate_trigger(self.DELETED, rotater)
         if self.bond_rotations:
             from chimerax.atomic import get_triggers
-            get_triggers(self.session).remove_handler(self._handler_ID)
+            get_triggers().remove_handler(self._handler_ID)
             for rotation in self.bond_rotations.values():
                 # break reference loops
                 rotation.rotaters =  []
@@ -90,7 +90,7 @@ class BondRotationManager(StateManager):
 
         if not self.bond_rotations:
             from chimerax.atomic import get_triggers
-            self._handler_ID = get_triggers(self.session).add_handler('changes', self._changes_cb)
+            self._handler_ID = get_triggers().add_handler('changes', self._changes_cb)
 
         if bond in self.bond_rotations:
             rotation = self.bond_rotations[bond]
@@ -175,4 +175,4 @@ class BondRotationManager(StateManager):
         self.bond_rotaters = data['rotaters']
         if self.bond_rotations:
             from chimerax.atomic import get_triggers
-            self._handler_ID = get_triggers(self.session).add_handler('changes', self._changes_cb)
+            self._handler_ID = get_triggers().add_handler('changes', self._changes_cb)

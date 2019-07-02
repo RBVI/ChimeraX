@@ -2129,6 +2129,16 @@ def clear_available():
     _available_commands = None
 
 
+def _compute_available_commands(session):
+    global _available_commands
+    if _available_commands is not None:
+        return
+    from .. import toolshed
+    _available_commands = RegisteredCommandInfo()
+    ts = toolshed.get_toolshed()
+    ts.register_available_commands(session.logger)
+
+
 def add_keyword_arguments(name, kw_info, *, registry=None):
     """Make known additional keyword argument(s) for a command
 
@@ -2580,12 +2590,7 @@ class Command:
                     # See if this command is available in the toolshed
                     save_error = self._error
                     self._error = ""
-                    global _available_commands
-                    if _available_commands is None:
-                        from .. import toolshed
-                        _available_commands = RegisteredCommandInfo()
-                        ts = toolshed.get_toolshed()
-                        ts.register_available_commands(session.logger)
+                    _compute_available_commands(session)
                     self._find_command_name(final, used_aliases=_used_aliases,
                                             parent_info=_available_commands.commands)
                 if self._error or not self._ci:
@@ -2775,8 +2780,23 @@ def command_url(name, no_aliases=False, *, registry=None):
         return _get_help_url(name.split())
 
 
-def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-          show_hidden=False, *, registry=None, _shown_cmds=set()):
+def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False):
+    try:
+        text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden)
+    except ValueError as e:
+        _compute_available_commands(session)
+        if _available_commands is None:
+            raise e
+        try:
+            text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
+                          registry=_available_commands)
+        except ValueError:
+            raise e
+    return text
+
+
+def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
+          show_hidden=False, *, registry=None, _shown_cmds=None):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2785,6 +2805,8 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     :param show_hidden: True if hidden keywords should be shown.
     :returns: a usage string for the command
     """
+    if _shown_cmds is None:
+        _shown_cmds = set()
     name = name.strip()
     cmd = Command(None, registry=registry)
     cmd.current_text = name
@@ -2801,6 +2823,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
         syntax = cmd.command_name
         for arg_name in ci._required:
             arg = ci._required[arg_name]
+            arg_name = _user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -2812,6 +2835,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and arg_name in ci._hidden:
                 continue
             arg = ci._optional[arg_name]
+            arg_name = _user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -2832,10 +2856,14 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 syntax += ' %s _%s_' % (uarg_name, arg_type.name)
             else:
                 syntax += ' [%s _%s_]' % (uarg_name, arg_type.name)
-        if ci.synopsis:
-            syntax += ' -- %s' % ci.synopsis
+        if registry is not None and registry is _available_commands:
+            uninstalled = ' (uninstalled)'
         else:
-            syntax += ' -- no synopsis available'
+            uninstalled = ''
+        if ci.synopsis:
+            syntax += ' --%s %s' % (uninstalled, ci.synopsis)
+        else:
+            syntax += ' --%s no synopsis available' % uninstalled
         if arg_syntax:
             syntax += '\n%s' % '\n'.join(arg_syntax)
         _shown_cmds.add(cmd.command_name)
@@ -2851,7 +2879,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             try:
                 name = alias.expand(*args, optional=optional, partial_ok=True)
                 if name not in _shown_cmds:
-                    syntax += '\n' + usage(name, _shown_cmds=_shown_cmds)
+                    syntax += '\n' + _usage(name, registry=registry, _shown_cmds=_shown_cmds)
                     _shown_cmds.add(name)
             except Exception as e:
                 print(e)
@@ -2866,7 +2894,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 subcmd = '%s %s' % (name, w)
                 if subcmd in _shown_cmds:
                     continue
-                syntax += '\n\n' + usage(subcmd, show_subcommands=0, _shown_cmds=_shown_cmds)
+                syntax += '\n\n' + _usage(subcmd, show_subcommands=0, registry=registry, _shown_cmds=_shown_cmds)
                 _shown_cmds.add(subcmd)
         else:
             if syntax:
@@ -2881,8 +2909,24 @@ def can_be_empty_arg(arg):
     return isinstance(arg, Or) and EmptyArg in arg.annotations
 
 
-def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-               show_hidden=False, *, registry=None, _shown_cmds=set()):
+def html_usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True,
+               show_hidden=False):
+    try:
+        text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden)
+    except ValueError as e:
+        _compute_available_commands(session)
+        if _available_commands is None:
+            raise e
+        try:
+            text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
+                          registry=_available_commands)
+        except ValueError:
+            raise e
+    return text
+
+
+def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
+               show_hidden=False, *, registry=None, _shown_cmds=None):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
@@ -2891,6 +2935,8 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     :param show_hidden: True if hidden keywords should be shown.
     :returns: a HTML usage string for the command
     """
+    if _shown_cmds is None:
+        _shown_cmds = set()
     cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
@@ -2958,6 +3004,8 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             else:
                 syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (uarg_name, type_info)
         syntax += "<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&mdash; "  # synopsis prefix
+        if registry is not None and registry is _available_commands:
+            syntax += '(uninstalled) '
         if ci.synopsis:
             syntax += "<i>%s</i>\n" % escape(ci.synopsis)
         else:
@@ -2977,7 +3025,7 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             try:
                 name = alias.expand(*args, optional=optional, partial_ok=True)
                 if name not in _shown_cmds:
-                    syntax += '<br>' + html_usage(name, _shown_cmds=_shown_cmds)
+                    syntax += '<br>' + _html_usage(name, registry=registry, _shown_cmds=_shown_cmds)
                     _shown_cmds.add(name)
             except:
                 pass
@@ -2991,7 +3039,7 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 subcmd = '%s %s' % (name, w)
                 if subcmd in _shown_cmds:
                     continue
-                syntax += '<p>\n' + html_usage(subcmd, show_subcommands=0, _shown_cmds=_shown_cmds)
+                syntax += '<p>\n' + _html_usage(subcmd, show_subcommands=0, registry=registry, _shown_cmds=_shown_cmds)
                 _shown_cmds.add(subcmd)
         else:
             if syntax:

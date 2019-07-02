@@ -58,7 +58,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         # TODO: Need to update if parent of structure moves.
         t = session.triggers
         from . import get_triggers
-        ta = get_triggers(session)
+        ta = get_triggers()
         def pbg_update(*args, self=self):
             self._update_graphics()
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
