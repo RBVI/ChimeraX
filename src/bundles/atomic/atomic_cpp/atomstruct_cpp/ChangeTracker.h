@@ -95,7 +95,6 @@ public:
     static const std::string  REASON_NAME;
     static const std::string  REASON_OCCUPANCY;
     static const std::string  REASON_RADIUS;
-    static const std::string  REASON_RESIDUE_NAME;
     static const std::string  REASON_RESIDUES;
     static const std::string  REASON_RIBBON_ADJUST;
     static const std::string  REASON_RIBBON_COLOR;

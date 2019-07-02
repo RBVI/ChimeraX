@@ -356,8 +356,8 @@ class ObjectLabels(Model):
 
     def _structure_changed(self, tname, changes):
         # If atoms undisplayed, or radii change, or names change, can effect label display.
-        # TODO: Update textures if label text changes
-        # self._texture_needs_update = True
+        if 'name changed' in changes.atom_reasons() or 'name changed' in changes.residue_reasons():
+            self._texture_needs_update = True
         self._visibility_needs_update = True
         self._positions_need_update = True
         if changes.num_deleted_atoms() > 0 or changes.num_deleted_bonds() > 0 or changes.num_deleted_pseudobonds() > 0:

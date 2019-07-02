@@ -104,7 +104,7 @@ public:
     const ResName&  name() const { return _name; }
     void  set_name(const ResName &name) {
       _name = name;
-      change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RESIDUE_NAME);
+      change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NAME);
     }
     PolymerType  polymer_type() const;
     int  number() const { return _number; }
