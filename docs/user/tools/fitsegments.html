@@ -48,9 +48,6 @@ See also:
 <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
 <a href="fitmap.html"><b>Fit in Map</b></a>,
 <a href="../commands/fitmap.html"><b>fitmap</b></a>,
-<a href="../commands/molmap.html"><b>molmap</b></a>,
-<a href="../commands/volume.html#mask"><b>volume mask</b></a>,
-<a href="../commands/measure.html"><b>measure</b></a>,
 <a href="https://cryoem.slac.stanford.edu/ncmi/resources/software/segger"
 target="_blank">Segger website</a>
 </p>
@@ -71,14 +68,16 @@ It can be a density map, an entire atomic model, or the
 <a href="../selection.html">selected</a> atoms only.
 If an entire atomic model is chosen, any parts not desired for fitting
 (such as solvent, ligands, or extra chains) should be
-<a href="../commands/delete.html">deleted</a>.
+<a href="../commands/delete.html">deleted</a> from that model.
 </p><p>
 Clicking the <b>Fit</b> button at the bottom of the dialog performs the fitting.
-The default <a href="#options">options</a> are to fit the structure
-to the <a href="../selection.html">selected</a> regions
+By <a href="#options">default</a>, the structure is fit
+to the <a href="../selection.html">selected</a> set of one or more
+<a href="segment.html">segmentation region(s)</a>
 using the principal axes method. The regions are made transparent;
-region transparency/opacity can be adjusted further using
-<a href="segment.html"><b>Segment Map</b></a>.
+region transparency/opacity can be adjusted further using the
+<a href="segment.html#shortcuts"><b>Segment Map</b> shortcuts options</b></a>
+or its <a href="segment.html#menu-regions"><b>Regions</b> menu</b></a>.
 </p><p>
 <a name="table">Fit information is shown in a table</a>:
 <ul>
@@ -90,9 +89,8 @@ between the map that was segmented (the fitting target) and the map to fit
 <a href="#molmap">generated from the atomic structure</a>)
 <li><b>Atoms</b> &ndash; atom inclusion,
 fraction of atoms within the target map contour;
-an atom is within the contour if its position in the map has a
-density value above the current threshold setting in
-<a href="volumeviewer.html"><b>Volume Viewer</b></a>
+an atom is within the contour if its position in the map has a density value 
+above the current <a href="volumeviewer.html#threshold">threshold</a> level
 <li><b>Backbone</b> &ndash; backbone-atom inclusion,
 fraction of backbone atoms within the target map contour
 <li><b>Clash</b> &ndash; fraction of atoms clashing with symmetry copies
@@ -112,6 +110,8 @@ One or more rows (fits) can be <b><i>chosen</i></b> with the mouse.
 The structure is repositioned as each fit is chosen.
 The chosen fit(s) can be saved to files or removed from the table using
 the <b>Fit to Segments</b> <a href="#menu">menu</a>.
+</p><p>
+Clicking <b>Help</b> shows documentation in a browser window.
 </p>
 
 <a name="options"></a>
@@ -237,8 +237,7 @@ using the <b>Fit to Segments</b> <a href="#menu">menu</a>.
 [<a href="#top">back to top: Fit to Segments</a>]
 </p>
 <h3>Fit to Segments Menu</h3>
-
-<b>Fit</b>
+<h4>Fit</h4>
 <ul>
 <li><b>Delete selected fits from list</b>
 &ndash; remove the chosen row(s) from the <a href="#table">table of fits</a>
@@ -249,7 +248,8 @@ using the <b>Fit to Segments</b> <a href="#menu">menu</a>.
 &ndash; add a copy of the structure in its fit position (as a new model) for
 each <a href="#chosenfit">chosen fit</a>
 <li><b>Place map copies</b>
-&ndash; if a map was fitted, add a resampled copy of the map in its fit position 
+&ndash; if a map was fitted, add a resampled copy of the map
+in its fit position 
 (as a new model) for each <a href="#chosenfit">chosen fit</a>
 <li><b>Close placed copies</b>
 &ndash; close copies of the fit atomic structure and/or map that were
@@ -261,7 +261,7 @@ added with the &ldquo;place copies&rdquo; options above or the button to
 each <a href="#chosenfit">chosen fit</a>
 (each chosen row in the <a href="#table">table of fits</a>)
 </ul><ul>
-<li><b>Place selected map relative to segmented map</b>
+<li><b>Copy fit map on segmented map grid</b>
 &ndash; add a resampled copy of the map currently specified as the 
 <b>Structure or Map to fit</b>
 (as a new model) for each <a href="#chosenfit">chosen fit</a>
