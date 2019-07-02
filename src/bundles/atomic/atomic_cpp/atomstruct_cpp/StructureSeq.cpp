@@ -93,7 +93,7 @@ StructureSeq::demote_to_sequence()
         _structure->change_tracker()->add_deleted(_structure, dynamic_cast<Chain*>(this));
     }
     _structure = nullptr;
-    py_call_method("_cpp_demotion");
+    Py_XDECREF(py_call_method("_cpp_demotion"));
     // let normal deletion processes clean up; don't explicitly delete here
 }
 
@@ -257,7 +257,7 @@ StructureSeq::remove_residues(std::set<Residue*>& residues) {
                 _res_map[*ri] = i;
             }
         }
-        py_call_method("_cpp_modified");
+        Py_XDECREF(py_call_method("_cpp_modified"));
     }
 }
 
