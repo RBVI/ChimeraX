@@ -43,7 +43,7 @@ def usage(session, command_name=None, option=None):
             for name in cmds:
                 try:
                     usage.append(cli.usage(
-                        name, show_subcommands=0, expand_alias=False,
+                        session, name, show_subcommands=0, expand_alias=False,
                         show_hidden=show_hidden))
                 except:
                     usage.append('%s -- no documentation' % name)
@@ -52,7 +52,7 @@ def usage(session, command_name=None, option=None):
         for name in cmds:
             try:
                 usage.append(cli.html_usage(
-                    name, show_subcommands=0, expand_alias=False,
+                    session, name, show_subcommands=0, expand_alias=False,
                     show_hidden=show_hidden))
             except:
                 #import traceback
@@ -65,9 +65,9 @@ def usage(session, command_name=None, option=None):
 
     try:
         if session.ui.is_gui:
-            usage = cli.html_usage(command_name, show_hidden=show_hidden)
+            usage = cli.html_usage(session, command_name, show_hidden=show_hidden)
         else:
-            usage = cli.usage(command_name, show_hidden=show_hidden)
+            usage = cli.usage(session, command_name, show_hidden=show_hidden)
     except ValueError as e:
         session.logger.warning(str(e))
     else:
