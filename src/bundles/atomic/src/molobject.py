@@ -923,7 +923,19 @@ class Sequence(State):
 
     def _cpp_rename(self, old_name):
         # called from C++ layer when 'name' attr changed
-        self.triggers.activate_trigger('rename', (self, old_name))
+        self._fire_trigger('rename', (self, old_name))
+
+    def _fire_trigger(self, trig_name, arg):
+        # when C++ layer notifies us directly of change, delay firing trigger until
+        # next 'changes' trigger to ensure that entire C++ layer is in a consistent state
+        def delayed(*args, trigs=self.triggers, trig_name=trig_name, trig_arg=arg):
+            trigs.activate_trigger(trig_name, trig_arg)
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
+        from chimerax.atomic import get_triggers
+        atomic_trigs = get_triggers()
+        atomic_trigs.add_handler('changes', delayed)
+
 
     @atexit.register
     def _exiting():
@@ -1121,9 +1133,13 @@ class StructureSeq(Sequence):
     def _cpp_demotion(self):
         # called from C++ layer when this should be demoted to Sequence
         numbering_start = self.numbering_start
+        self._fire_trigger('delete', self)
         self.__class__ = Sequence
-        self.triggers.activate_trigger('delete', self)
         self.numbering_start = numbering_start
+
+    def _cpp_modified(self):
+        # called from C++ layer when the residue list changes
+        self._fire_trigger('modify', self)
 
 # sequence-structure association functions that work on StructureSeqs...
 
@@ -1143,7 +1159,7 @@ def estimate_assoc_params(sseq):
 class StructAssocError(ValueError):
     pass
 
-def try_assoc(session, seq, sseq, assoc_params, *, max_errors = 6):
+def try_assoc(seq, sseq, assoc_params, *, max_errors = 6):
     '''Try to associate StructureSeq 'sseq' with Sequence 'seq'.
 
        A set of association parameters ('assoc_params') must be provided, typically obtained
@@ -1166,7 +1182,7 @@ def try_assoc(session, seq, sseq, assoc_params, *, max_errors = 6):
             raise StructAssocError(str(e))
         else:
             raise
-    mmap = SeqMatchMap(session, seq, sseq)
+    mmap = SeqMatchMap(seq, sseq)
     for r, i in res_to_pos.items():
         mmap.match(convert.residue(r), i)
     return mmap, errors
@@ -1481,7 +1497,11 @@ class StructureData:
         '''Supported API. Create a new :class:`.Atom` object. It must be added to a
         :class:`.Residue` object belonging to this structure before being used.
         'element' can be a string (atomic symbol), an integer (atomic number),
-        or an Element instance'''
+        or an Element instance.  It is advisible to add the atom to its residue
+        as soon as possible since errors that occur in between can crash ChimeraX.
+        Also, there are functions in chimerax.atomic.struct_edit for adding atoms
+        that are considerably less tedious and error-prone than using new_atom()
+        and related calls.'''
         if not isinstance(element, Element):
             element = Element.get_element(element)
         f = c_function('structure_new_atom',
@@ -2004,14 +2024,16 @@ class SeqMatchMap(State):
        The pos_to_res and res_to_pos attributes return dictionaries of the corresponding
        mapping.
     """
-    def __init__(self, session, align_seq, struct_seq):
+    def __init__(self, align_seq, struct_seq):
         self._pos_to_res = {}
         self._res_to_pos = {}
         self._align_seq = align_seq
         self._struct_seq = struct_seq
-        self.session = session
         from . import get_triggers
-        self._handler = get_triggers(session).add_handler("changes", self._atomic_changes)
+        self._handler = get_triggers().add_handler("changes", self._atomic_changes)
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('modified')
 
     def __bool__(self):
         return bool(self._pos_to_res)
@@ -2049,7 +2071,7 @@ class SeqMatchMap(State):
 
     @staticmethod
     def restore_snapshot(session, data):
-        inst = SeqMatchMap(session, data['align seq'], data['struct seq'])
+        inst = SeqMatchMap(data['align seq'], data['struct seq'])
         inst._pos_to_res = data['pos to res']
         inst._res_to_pos = data['res to pos']
         return inst
@@ -2071,18 +2093,22 @@ class SeqMatchMap(State):
 
     def _atomic_changes(self, trig_name, changes):
         if changes.num_deleted_residues() > 0:
+            modified = False
             for r, i in list(self._res_to_pos.items()):
                 if r.deleted:
+                    modified = True
                     del self._res_to_pos[r]
                     del self._pos_to_res[i]
                     if self._align_seq.circular:
                         del self._pos_to_res[i + len(self._align_seq.ungapped())/2]
+            if modified:
+                self.triggers.activate_trigger('modified', self)
 
     def __del__(self):
         self._pos_to_res.clear()
         self._res_to_pos.clear()
         from . import get_triggers
-        get_triggers(self.session).remove_handler(self._handler)
+        get_triggers().remove_handler(self._handler)
 
 # -----------------------------------------------------------------------------
 #

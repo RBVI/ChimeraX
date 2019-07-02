@@ -270,7 +270,7 @@ class ObjectLabels(Model):
             'setting changed', self._background_changed_cb)
 
         from chimerax.atomic import get_triggers
-        ta = get_triggers(session)
+        ta = get_triggers()
         self._structure_change_handler = ta.add_handler('changes', self._structure_changed)
         
         self.use_lighting = False

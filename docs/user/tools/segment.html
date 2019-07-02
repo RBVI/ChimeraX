@@ -1,0 +1,598 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Segment Map</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Segment Map</h3>
+
+<p>
+<b>Segment Map</b> partitions <a href="volumeviewer.html">volume data</a>
+to create a surface model
+with one or more <b><i>segmentation regions</i></b>
+shown in different colors.
+Along with the <a href="fitsegments.html"><b>Fit to Segments</b></a> tool,
+<b>Segment Map</b> is part of the 
+<a href="https://cryoem.slac.stanford.edu/ncmi/resources/software/segger"
+target="_blank">Segger package</a> described in:
+<blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/20338243" target="_blank">
+Quantitative analysis of cryo-EM density map segmentation by watershed and 
+scale-space filtering, and fitting of structures by alignment to regions.</a>
+Pintilie GD, Zhang J, Goddard TD, Chiu W, Gossard DC.
+<i>J Struct Biol.</i> 2010 Jun;170(3):427-38.
+<br><br>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/22696409" target="_blank">
+Comparison of Segger and other methods for segmentation and rigid-body docking of molecular components in cryo-EM density maps.</a>
+Pintilie G, Chiu W.
+<i>Biopolymers.</i> 2012 Sep;97(9):742-60.
+</blockquote>
+Segmentation regions can be measured with
+<a href="measureblobs.html"><b>Measure and Color Blobs</b></a>.
+<!--
+and colored or selected by size using
+<a href="../render/render.html"><b>Render/Select by Attribute</b></a>.
+-->
+See also:
+<a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="../commands/color.html#zone"><b>color zone</b></a>,
+<a href="../commands/volume.html#gaussian"><b>volume gaussian</b></a>,
+<a href="../commands/volume.html#mask"><b>volume mask</b></a>,
+<a href="../commands/measure.html"><b>measure</b></a>,
+<a href="https://cryoem.slac.stanford.edu/ncmi/resources/software/segger"
+target="_blank">Segger website</a>,
+<a href="http://www.cgl.ucsf.edu/chimera/data/segger-howto-jun2010/segger.html"
+target="_blank">Chimera-Segger how-to</a>
+(2010)
+</p>
+
+<a name="method"></a>
+<p class="nav">
+[<a href="#top">back to top: Segment Map</a>]
+</p>
+<h3>Methodology</h3>
+<p>
+<b>Segment Map</b> performs <b><i>watershed segmentation</i></b>:
+a density map is partitioned so that each local maximum has its 
+own region, and the boundaries between regions lie at the
+valleys between the local maxima. The goal is usually
+one region per protein or domain, but the initial segmentation 
+often gives more numerous and smaller regions than desired, 
+especially if the data are noisy.  
+<a name="grouping"></a>
+Segger provides various ways to combine regions after the initial segmentation:
+</p>
+<ul>
+<li><a href="#options">automatic grouping</a>
+ by <b><i>scale-space filtering</i></b> 
+(smoothing the data), done by default;
+however, smoothing the data <i>before</i> segmentation
+may be necessary, as discussed in the following section
+<li>interactive grouping <a href="#byhand">by manual selection</a>
+<li>interactive grouping <a href="#byconnectivity">by connectivity</a>
+<li>interactive grouping using fitted atomic models
+</ul>
+
+<a name="preprocessing"></a>
+<p class="nav">
+[<a href="#top">back to top: Segment Map</a>]
+</p>
+<h3>Preprocessing</h3>
+<p>
+It may be necessary to process a density map beforehand
+for the segmentation to finish in a reasonable amount of time.
+A map of size 256<sup>3</sup> can have a million local maxima if it is noisy.
+Gaussian smoothing to reduce the number of local maxima
+can be performed with the command
+<a href="../commands/volume.html#gaussian"><b>volume gaussian</b></a>.
+Gaussian filtering reduces resolution to about six times the Gaussian
+standard deviation. 
+After smoothing, it will also improve performance to reduce the size 
+of the map with
+<a href="../commands/volume.html#bin"><b>volume bin</b></a>.
+For visualization and analysis, it is desirable
+for a density map to be oversampled by three times in each dimension, 
+so binning should aim for a grid spacing of approximately twice the 
+Gaussian standard deviation.
+</p><p>
+If interactive rotation speed is poor after segmentation, see
+<a href="#response">improving response time</a>.
+</p>
+
+<a name="dialog"></a>
+<p class="nav">
+[<a href="#top">back to top: Segment Map</a>]
+</p>
+<h3>Dialog and Basic Usage</h3>
+<p>
+<b>Segment Map</b> can be started
+from the <b>Volume Data</b> section of the <b>Tools</b> menu
+(<a href="../window.html#panels">more...</a>).
+</p><p>
+<a name="chosenmap">
+The map of interest should be chosen from the pulldown menu of
+open volume data sets next to <b>Segment map</b>. 
+</a>
+The <a href="../commands/volume.html#level">threshold</a>
+(contour level) of the map should be adjusted
+before segmentation, because the calculation will use only the voxels
+with density values above that level.
+</p><p>
+Clicking <b>Segment</b> partitions the chosen map by the watershed method plus
+smoothing and grouping as specified in the 
+<a href="#options">segmenting options</a>. 
+The segmentation result is shown as a surface model
+with one or more <b><i>segmentation regions</i></b>
+of different colors. The resulting number of regions is reported in the 
+dialog and the <a href="log.html"><b>Log</b></a>.
+The segmentation is given the same name as the corresponding map except
+with <b>.seg</b> appended.
+</p><p>
+<a name="currseg">
+The <b>Current segmentation</b> is indicated in the dialog and can be changed
+by choosing a different segmentation name from the pulldown menu.
+Designating a segmentation as the current segmentation
+shows it and hides any others.
+</a>
+Grouping and ungrouping operations modify
+the current segmentation model rather than creating a new one. 
+However, multiple segmentation models can be open at the same time, 
+and may have been generated from different density maps or opened from
+previously <a href="#menu-file">saved</a> segmentation files.
+</p><p>
+<a name="byhand">Grouping and ungrouping</a> can be specified interactively
+by <a href="../selection.html">selection</a>. With default
+<a href="../commands/ui.html#mousemode">mouse-button assignments</a>,
+Ctrl-click selects a region and Shift-Ctrl-click selects additional regions
+without erasing the pre-existing selection.
+<ul>
+<li>If no segmentation regions are selected,
+clicking <b>Ungroup</b> backtracks to the previous stage of grouping of the
+<a href="#currseg">current segmentation</a>.
+By default, <b>Segment</b> automatically applies three rounds of smoothing 
+and grouping; after that, the three intermediate stages could be accessed 
+by clicking <b>Ungroup</b> three times.  If regions are selected,
+<b>Ungroup</b> will backtrack to the previous stage of grouping for
+the selected region(s).
+<li>If no segmentation regions are selected,
+<b>Group</b> traverses the stages in the opposite direction as <b>Ungroup</b>,
+or performs further grouping.
+If regions are selected,
+<b>Group</b> will combine the selected regions into a single group.
+</ul>
+Grouping, ungrouping, and other manipulations can also be performed with the
+<b>Segment Map</b> <a href="#menu-regions"><b>Regions</b> menu</a>.
+Segmentation results are included in saved
+<a href="../commands/save.html#session">sessions</a>, but
+can also be saved separately using the <b>Segment Map</b> 
+<a href="#menu-file"><b>File</b> menu</a>.
+</p><p>
+Clicking <b>Fit</b> opens the 
+<a href="fitsegments.html"><b>Fit to Segments</b></a> tool.
+Clicking <b>Help</b> shows documentation in a browser window.
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: Segment Map</a>]
+</p>
+<p>
+<b>Segmenting Options</b>:
+</p>
+<ul>
+<li><a name="maxreg"></a><a name="granularity"></a>
+<b>Display at most [<i>maxreg</i>] regions, granularity 
+[<i>triangle-size</i>] voxels</b>
+&ndash; limit the number of displayed regions
+to <i>maxreg</i> (default <b>60</b> largest) and set surface
+<i>triangle-size</i> (default <b>1</b>).
+If more regions than <i>maxreg</i> are generated, however,
+those which are not displayed will still be included in
+subsequent smoothing and grouping calculations.
+Smaller surface triangles give a smoother appearance,
+but more triangles take longer to render. The default <i>triangle-size</i>
+of <b>1</b> gives triangles comparable in size to the map grid spacing.  
+A value of 2 will make the triangles twice as large (quadruple the area) 
+and reduce their number by about a factor of 4.
+If <a href="#response">response time</a> after segmentation is slow, try
+decreasing <i>maxreg</i> and/or increasing <i>triangle-size</i>.
+<br><br>
+<li><b>Keep regions having at least [<i>minsize</i>] voxels, 
+[<i>mincontact</i>] contact voxels</b>
+&ndash; throw out regions containing fewer than <i>minsize</i> voxels 
+(default <b>1</b>) or having fewer than
+<i>mincontact</i> contact voxels (default <b>0</b>) with other regions.
+These apply only to the initial segmentation, not after smoothing.
+The default settings retain all regions.
+<br><br>
+<li><b>Group by smoothing [<i>N</i>] steps of size [<i>M</i>],
+stop at [<i>minreg</i>] regions</b>
+&ndash; whether to group by smoothing right after watershed segmentation
+(when the <b>Segment</b> button is clicked),
+and if so, how many rounds of automatic smoothing and grouping to perform 
+(default <i>N</i>=<b>4</b>) and how much smoothing to perform at each round
+(default <i>M</i>=<b>1</b>).
+If a round would give fewer than <i>minreg</i> regions (default <b>1</b>),
+the process is backtracked to the previous round of automatic grouping.
+Grouping by smoothing is on by default and mutually exclusive with
+<a href="#byconnectivity">grouping by connectivity</a>.
+<p>
+If <i>L</i> is the minimum of the grid spacing along the three axes,
+the standard deviation of the Gaussian used for smoothing
+will be <i>M</i>x<i>L</i> in the first round and increase
+by <i>M</i>x<i>L</i> in each subsequent round.
+A single round consists of smoothing the data, then letting each 
+local maximum point from the previous round move by steepest ascent 
+to the location of a new local maximum.
+If two or more previous maxima converge on a new maximum,
+their regions from the previous round are coalesced into a single region.
+In general, the number of rounds <i>N</i> is the dominant parameter to adjust
+when fewer, larger regions are desired. A larger step size <i>M</i> may be 
+beneficial for noisier maps. However, a smaller step size gives more gradual 
+changes per round, thus more rounds to achieve a similar end result, and more 
+intermediate stages that can be traversed with the
+<b>Group</b> and <b>Ungroup</b> buttons. 
+After the automatic rounds have completed, clicking <b>Group</b>
+executes the minimum number of additional rounds needed to
+change the grouping further. 
+</p>
+<li><a name="byconnectivity"></a>
+<b>Group by connectivity [<i>N</i>] steps, stop at [<i>minreg</i>] regions</b>
+&nbsp;<b>&#9744; only visible</b>
+&ndash; whether to group watershed regions based on density connections,
+and if so, whether to use only the regions which are visible.
+If the density map has not been segmented already, watershed
+segmentation will use only the voxels with density values above
+the current <a href="../commands/volume.html#level">threshold level</a>
+without subsequent smoothing/grouping. Clicking <b>Group</b>
+will then perform the specified number of rounds (steps) of
+grouping by connectivity (default <i>N</i>=<b>20</b>).
+Each round corresponds to one pass through contact list.
+If a round would give fewer than <i>minreg</i> regions (default <b>1</b>),
+the process is backtracked to the previous round.
+If grouping has already been performed, 
+some ungrouping may be needed before using the connectivity method, 
+as it will not group watershed regions together if they are already 
+in different groups. 
+</ul>
+<p>
+<a name="shortcuts"></a>
+<b>Shortcuts Options</b>:
+</p>
+<ul>
+<li><b><a href="../selection.html">Select</a> regions</b>:
+  <ul>
+  <li><b>All</b>
+  <li><b>Over Sel. Atoms</b> &ndash; those overlapping
+  <a href="../selection.html">selected</a> atoms
+  <li><b>Invert</b> &ndash; invert selection
+  <li><b>Not-Grp</b> &ndash; those not containing any subregions
+  <li><b>Grouped</b> &ndash; those comprising &ge; 2 subregions
+  </ul>
+<li><b>Selected regions</b>: 
+(act on <a href="../selection.html">selected</a> regions)
+  <ul>
+  <li><b>Hide</b>
+  <li><b>Show</b>
+  <li><b>Delete</b>
+  <li><b>Tr.</b> &ndash; transparent surface
+  <li><b>Opaque</b> &ndash; opaque surface
+  <li><b>Mesh</b>
+  </ul>
+<li><b>Show regions</b>:
+  <ul>
+  <li><b>None</b>
+  <li><b>All</b> &ndash; all (but subject to the
+  <a href="#options"><b>Display at most...</b></a> setting)
+  <li><b>Only Sel.</b> &ndash; 
+  <a href="../selection.html">selected</a> regions
+  <li><b>Adj.</b> &ndash; regions adjacent to any 
+  <a href="../selection.html">selected</a> regions
+  <li><b>Not-Grp</b> &ndash; those not containing any subregions
+  <li><b>Grouped</b> &ndash; those comprising &ge; 2 subregions
+  </ul>
+<li><b>Other tools</b>:
+  <ul>
+  <li><b>Fit</b> &ndash; <a href="fitsegments.html"><b>Fit to Segments</b></a>
+  <br><font color="brown">not implemented:
+  <li><b>Extract</b> &ndash; detailed options for extracting densities within
+  the <a href="../selection.html">selected</a> regions
+  <li><b>rSeg</b> &ndash; radial segmentation
+  <li><b>SegLoop</b> &ndash; basic atomic structure modeling into regions
+  <li><b>ProMod</b> 
+  &ndash; combining multiple atomic models into a probabilistic model
+  </font>
+  </ul>
+</ul>
+
+<!--
+<a name="attributes"></a>
+<h3>Segmentation Region Attributes</h3>
+<p>
+Segmentation <a href="#top">segmentation regions</a> are automatically
+assigned several <a href="../attributes.html">attributes</a>.
+These attributes can be inspected and new attributes assigned
+using the <b>Region Attributes</b> dialog, opened by choosing <b>Regions...
+Attributes table</b> from the <a href="#menu"><b>Segment Map</b> menu</a>.
+Segmentation regions can be specified in commands
+<a href="../commands/atomspec.html#attributes">by attribute value</a>.
+colored or <a href="../selection.html">selected</a> 
+based on their attribute values using the
+<a href="../render/render.html"><b>Render/Select by Attribute</b></a> tool.
+See also:
+<a href="../defineattrib/defineattrib.html"><b>Define Attribute</b></a>,
+<a href="../../UsersGuide/midas/measure.html#spine"><b>measure spine</b></a>
+</p><p>
+In the <b>Region Attributes</b> dialog,
+each row is a region, and each column is an attribute that can be 
+shown or hidden using the <b>Columns</b> menu.
+The table can be sorted by the values in any displayed column by
+clicking the column header.  Clicking the header once sorts the entries
+in order of increasing value and places an up arrowhead (triangle)
+in the header.  Clicking again sorts the entries in decreasing
+order and places a down arrowhead (inverted triangle) in the header.
+</p><p>
+<a name="chosen">
+One or more regions (rows) in the table 
+can be chosen with the left mouse button.</a>
+A contiguous block of rows can be chosen by dragging, or by
+clicking on the first (or last) line and then <b>Shift</b>-clicking on the
+last (or first).  <b>Ctrl</b>-click toggles the status of a single line.  
+Choosing a region in the table
+<a href="../selection.html">selects</a> it, and
+<a href="../selection.html">selecting</a> a region in the
+graphics window will center and highlight the corresponding row in the table.
+</p><p>
+The automatically created attributes are read-only:
+<ul>
+<li><b>region</b> &ndash; region ID number
+<li><b>grid points</b> &ndash; number of density map grid points within the region
+<li><b>grouped</b> &ndash; number of regions grouped to form the region
+(next level in hierarchy, not necessarily the number of watershed regions)
+<li><b>has surface</b> &ndash; 1 if a surface has been made (not necessarily shown)
+for the region
+<li><b>contacts</b> &ndash; number of contacting regions
+<li><b>edge distance</b> &ndash; number of voxels to the nearest edge
+of the density map
+<li><b>bounds</b> (hidden by default) &ndash; grid indices bounding the region: 
+i_min, j_min, k_min, i_max, j_max, k_max
+</ul>
+New attributes for the chosen region(s)
+can be created or their values changed using:
+<ul>
+<li><b>Set attribute</b> [<i>attr_name</i>] <b>to value</b> [<i>attr_value</i>]
+<b>or</b> [<b>snapshot</b>]
+</ul>
+Region attribute values can be integers,
+floating point numbers, text strings, or images, and a given attribute
+(column) can have multiple types of values, although only one per region (row).
+An <i>attr_value</i> can be entered, or the
+<b>snapshot</b> button clicked to set the value to an image of the
+graphics window.  An image can be shown at full size by
+clicking its miniature version in the table, and saved as PNG, JPEG, or TIFF
+using the <b>Save</b> button on the full-size view.
+</p><p>
+The table can filtered to show only the rows meeting some attribute criterion:
+<ul>
+<li><b>Filter list</b> [<i>criterion</i>]
+</ul>
+The <i>criterion</i> is specified in Python syntax.  Examples:
+<blockquote>
+grid_points &gt; 1500
+<br>
+note
+<br>
+contacts == 0 and note and "good" in note
+</blockquote>
+where the second would list only regions with an attribute named <b>note</b>
+and the third would list only regions that are not in contact with other regions
+and that have an attribute named <b>note</b> containing the word <b>good</b>.
+</p><p>
+Clicking <b>Update</b> refreshes the <b>Region Attributes</b> dialog 
+to reflect any changes in the <a href="#currseg">current segmentation</a> 
+or its groupings.
+</p><p>
+The contents (excluding images) of the rows and columns currently shown 
+in the filtered table can be saved in a comma-separated format using
+<b>File... Export</b> in the <b>Region Attributes</b> dialog menu.
+All of the attributes (including images) 
+can be saved along with other segmentation information 
+using <b>File... Save Segmentation</b>
+in the <a href="#menu"><b>Segment Map</b> menu</a>.
+</p>
+-->
+
+<a name="menu"></a>
+<p class="nav">
+[<a href="#top">back to top: Segment Map</a>]
+</p>
+<h3>Segment Map Menu</h3>
+<p>
+Menu entries apply only to the <a href="#currseg">current segmentation</a>
+unless stated otherwise.
+</p>
+<a name="menu-file">
+<h4>File</h4></a>
+<ul>
+<li><b>Open segmentation...</b> 
+open a previously saved Segger segmentation file
+<li><b>Save segmentation</b> 
+&ndash; save the segmentation to a Segger file, 
+name/location previously specified
+<li><b>Save segmentation as...</b>
+save the segmentation to a Segger file, 
+specify name/location 
+<li><b>Save selected regions to .mrc file...</b>
+save density map masked by the 
+<a href="../selection.html">selected</a> segmentation regions
+to an MRC file 
+(map dimensions set to the minimal box containing the regions)
+<li><b>Save all regions to .mrc file...</b>
+save density map masked by all segmentation regions collectively
+as an MRC file
+(map dimensions set to the minimal box containing the regions)
+<li><b>Save each region to .mrc file...</b>
+save density map masked by each
+<a href="../selection.html">selected</a> segmentation region
+as a separate MRC file
+(map dimensions set to the minimal box containing the corresponding region);
+if no regions are selected, all are used
+<li><b>Close segmentation</b>
+&ndash; close the current segmentation model
+<li><b>Close all segmentations except displayed</b>
+&ndash; close all hidden segmentation models
+<li><b>Close all segmentations</b>
+&ndash; close all segmentation models
+<li><b>Associate Selected</b>
+&ndash; associate the <a href="#currseg">current segmentation</a>
+with the map currently <a href="#chosenmap">chosen</a> in the dialog
+(useful when the map has been opened separately or from a different
+location than expected by the session with the segmentation results)
+</ul>
+
+<a name="menu-regions">
+<h4>Regions</h4></a>
+<ul>
+<li><b>Show all</b>
+&ndash; show all segmentation regions at the current level of grouping
+<li><b>Show only selected</b>
+&ndash; show the <a href="../selection.html">selected</a> 
+segmentation regions, hide all others
+<li><b>Show adjacent</b>
+&ndash; show regions in contact with the
+<a href="../selection.html">selected</a> regions
+<li><b>Show grouping</b>
+&ndash; show the watershed regions within groups 
+rather than the larger group surfaces;
+affects the <a href="../selection.html">selected</a>
+regions, or if none are selected, all regions; does not change the
+groupings, only how they are shown
+<li><b>Unshow grouping</b>
+&ndash; show the larger group surfaces rather than the watershed regions;
+affects the <a href="../selection.html">selected</a>
+regions, or if none are selected, all regions
+<li><b>Hide</b>
+&ndash; undisplay the <a href="../selection.html">selected</a>
+regions, or if none are selected, all regions
+<li><b>Make transparent</b>
+&ndash; make 55% transparent the <a href="../selection.html">selected</a>
+regions, or if none are selected, all regions
+<li><b>Make opaque</b>
+&ndash; make opaque (0% transparent) the
+<a href="../selection.html">selected</a>
+regions, or if none are selected, all regions
+<li><b>Color density map</b>
+&ndash; color the density map display to match all regions
+(subsequently changing the threshold will erase the coloring for 
+<a href="volumeviewer.html">volume displays</a>
+in the <b>surface</b> or <b>mesh</b> style)
+<li><b>Select groups</b>
+&ndash; select all regions composed of grouped watershed regions
+<li><b>Select boundary regions</b>
+&ndash; select regions that contain at least one grid point within three voxels
+of the edge of the density map
+<li><b>Invert selection</b>
+&ndash; deselect the <a href="../selection.html">selected</a> regions
+and <i>vice versa</i>
+<li><b>Regions overlapping current selection</b>
+&ndash; select any regions that overlap well with the currently
+<a href="../selection.html">selected</a> atoms,
+deselect the atoms
+<!--
+<li><b>Group selected</b>
+&ndash; group the <a href="../selection.html">selected</a> regions
+<li><b>Ungroup selected</b>
+&ndash; ungroup the <a href="../selection.html">selected</a> regions
+<li><b>Smooth and group</b>
+&ndash; execute the minimum number of rounds of <a href="#options">smoothing
+and grouping</a> needed to produce further grouping
+(equivalent to clicking the <b>Group</b> button with nothing selected)
+-->
+<li><b>Delete selected regions</b>
+&ndash; delete the <a href="../selection.html">selected</a> regions
+(cannot be undone)
+<li><b>Delete all except selected</b>
+&ndash; delete all regions except those which are 
+<a href="../selection.html">selected</a> (cannot be undone)
+<li><b>Enclosed volume</b>
+&ndash; report the approximate total volume enclosed by the
+<a href="../selection.html">selected</a> regions
+(number of grid points and &Aring;<sup>3</sup> value obtained by multiplying
+the number of grid points by the voxel volume); more precise measurements
+can be obtained with <a href="measureblobs.html"><b>Measure
+and Color Blobs</b></a>
+<li><b>Mean and SD</b>
+&ndash; report density map mean and standard deviation within each
+<a href="../selection.html">selected</a> region
+of the <a href="#currseg">current segmentation</a>, which could be 
+based on a binned version of the <a href="#chosenmap">chosen map</a> 
+<font color="brown">
+<li><b>Extract densities...</b>
+not yet implemented</font>
+<!--
+bring up a dialog with detailed options for extracting densities within
+the <a href="../selection.html">selected</a> regions
+-->
+<li><b>Subtract selected from map</b>
+&ndash; inverse-mask the density map with the
+<a href="../selection.html">selected</a> regions
+(create a new map: set the density values inside the regions to zero,
+copy values elsewhere, maintain original map dimensions)
+<li><b>Show axes for selected</b>
+&ndash; show principal axes of inertia as arrows for each
+<a href="../selection.html">selected</a> region
+<li><b>Hide all axes</b>
+&ndash; remove all principal axes arrows
+<font color="brown">
+<li><b>Attributes table...</b>
+not yet implemented</font>
+<!--
+show table of <a href="#attributes">region attributes</a>
+-->
+<li><b>How many sub-regions</b>
+&ndash; report number of subregions that have been grouped into the
+<a href="../selection.html">selected</a> region(s)
+</ul>
+
+<a name="response"></a>
+<p class="nav">
+[<a href="#top">back to top: Segment Map</a>]
+</p>
+<h4>Improving Response Time</h4>
+<p>
+<b>High number of surface triangles</b>.
+The number of surface triangles can be reduced by increasing the
+<a href="#granularity">granularity</a> (triangle size).
+Doubling the value will reduce the number of triangles by approximately
+a factor of 4 and may improve rendering speed by a similar factor.
+The display can also be limited to a specified
+<a href="#maxreg">maximum number of regions</a>.
+</p><p>
+<b>Selected surfaces</b>.  
+ChimeraX shows <a href="../selection.html">selections</a> with
+outlines, which increase the time to draw a frame.
+Clearing a selection when it is not needed improves performance.
+</p>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+July 2019</address>
+</body></html>

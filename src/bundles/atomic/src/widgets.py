@@ -41,7 +41,7 @@ def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
         kw['list_func'] = chain_list
     if trigger_info is None:
         from .triggers import get_triggers
-        kw['trigger_info'] = [ (get_triggers(session), 'changes') ]
+        kw['trigger_info'] = [ (get_triggers(), 'changes') ]
     return kw
 
 class ChainListWidget(ItemListWidget):

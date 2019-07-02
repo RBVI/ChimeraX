@@ -165,7 +165,8 @@ def report_clip_info(viewer, log):
     if planes:
         b = viewer.drawing_bounds()
         c0 = b.center() if b else (0,0,0)
-        pinfo = ['%s %.5g' % (p.name,  p.offset(c0)) for p in planes]
+        pinfo = ['%s %.5g' % (p.name,  -p.offset(c0) if p.name in ('far', 'back') else p.offset(c0))
+                 for p in planes]
         msg = 'Using %d clip planes: %s' % (len(planes), ', '.join(pinfo))
     else:
         msg = 'Clipping is off'

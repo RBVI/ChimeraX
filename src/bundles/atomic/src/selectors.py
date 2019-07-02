@@ -182,7 +182,7 @@ def add_select_menu_items(session):
     select_chains_menu.aboutToShow.connect(lambda ses=session: _update_select_chains_menu(ses))
     select_chains_menu.setToolTipsVisible(True)
     from . import get_triggers
-    atom_triggers = get_triggers(session)
+    atom_triggers = get_triggers()
     atom_triggers.add_handler("changes", _check_chains_update_status)
 
     parent_menus = ["Che&mistry", "&Element"]
@@ -224,7 +224,7 @@ def add_select_menu_items(session):
     select_residues_menu.aboutToShow.connect(lambda ses=session: _update_select_residues_menu(ses))
     select_residues_menu.setToolTipsVisible(True)
     from . import get_triggers
-    atom_triggers = get_triggers(session)
+    atom_triggers = get_triggers()
     atom_triggers.add_handler("changes", _check_residues_update_status)
 
     parent_menus = ["&Structure"]

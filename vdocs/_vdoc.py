@@ -1,0 +1,150 @@
+# vi: set expandtab shiftwidth=4 softtabstop=4:
+
+import sys, getopt, os, os.path
+verbose = False
+my_name = None
+skip = set()
+
+DOCS = os.path.join("..", "docs")
+BUNDLES = os.path.join("..", "src", "bundles")
+
+
+def build():
+    _symlink_user(DOCS, True)
+    for dirpath in os.listdir(BUNDLES):
+        docs_dir = os.path.join(dirpath, "src", "docs")
+        if os.path.exists(docs_dir):
+            _symlink_user(docs_dir, False)
+
+
+def _symlink_user(root, conflict_fatal):
+    user_path = os.path.join(root, "user")
+    strip_length = len(user_path) - len("user")
+    for dirpath, dirnames, filenames in os.walk(user_path):
+        my_dir = dirpath[strip_length:]
+        if not os.path.exists(my_dir):
+            _make_directory(my_dir)
+        else:
+            _check_directory(my_dir)
+        for filename in filenames:
+            if filename in skip or filename[0] == '.':
+                continue
+            src = os.path.join(dirpath, filename)
+            dst = os.path.join(my_dir, filename)
+            if not os.path.exists(dst):
+                _make_symlink(src, dst)
+            else:
+                _check_symlink(src, dst, conflict_fatal)
+
+
+def _check_symlink(src, dst, conflict_fatal):
+    if not os.path.islink(dst):
+        print("%s: already exists and is not a symlink" % dst)
+        raise SystemExit(1)
+    osrc = os.readlink(dst)
+    if src != osrc:
+        print("%s: already exists and links to %s, not %s" % (dst, osrc, src))
+        if conflict_fatal:
+            raise SystemExit(1)
+
+
+def _make_symlink(src, dst):
+    try:
+        os.symlink(src, dst)
+    except OSError as e:
+        print("%s: symlink %s: %s" % (src, dst, str(e)))
+        raise SystemExit(1)
+
+
+def _check_directory(p):
+    if not os.path.isdir(p):
+        print("%s: already exists and is not a directory" % p)
+        raise SystemExit(1)
+
+
+def _make_directory(p):
+    try:
+        os.mkdir(p)
+    except OSError as e:
+        print("%s: mkdir: %s" % (p, str(e)))
+        raise SystemExit(1)
+
+
+def check():
+    bad_files = []
+    for dirpath, dirnames, filenames in os.walk("."):
+        for filename in filenames:
+            if filename in skip or filename[0] == '.':
+                continue
+            filepath = os.path.join(dirpath, filename)
+            if not os.path.islink(filepath):
+                bad_files.append(os.path.relpath(filepath))
+    if bad_files:
+        if verbose:
+            print("%d non-symlink files:" % len(bad_files))
+            for filename in bad_files:
+                print(" ", filename)
+        raise SystemExit(1)
+
+
+def clean():
+    bad_files = []
+    for dirpath, dirnames, filenames in os.walk(".", topdown=False):
+        for filename in filenames:
+            if filename in skip or filename[0] == '.':
+                continue
+            filepath = os.path.join(dirpath, filename)
+            if os.path.islink(filepath):
+                _remove_symlink(filepath)
+            else:
+                bad_files.append(os.path.relpath(filepath))
+        for dirname in dirnames:
+            _remove_directory(os.path.join(dirpath, dirname))
+    if bad_files:
+        print("%d non-symlink files (not removed):" % len(bad_files))
+        for filename in bad_files:
+            print(" ", filename)
+        raise SystemExit(1)
+
+
+def _remove_symlink(p):
+    try:
+        os.remove(p)
+    except OSError as e:
+        print("%s: %s" % (p, str(e)))
+
+
+def _remove_directory(p):
+    try:
+        os.rmdir(p)
+    except OSError as e:
+        pass
+
+
+action = {
+    "build": build,
+    "check": check,
+    "clean": clean,
+}
+
+
+def usage():
+    print("Usage: %s (build|check|clean) [options...]" % my_name)
+    raise SystemExit(2)
+
+
+if __name__ == "__main__":
+    my_name = os.path.basename(sys.argv[0])
+    skip = set([my_name, "Makefile"])
+    try:
+        op = sys.argv[1]
+    except IndexError:
+        usage()
+    opts, args = getopt.getopt(sys.argv[2:], "v")
+    for opt, arg in opts:
+        if opt == "-v":
+            verbose = True
+    try:
+        action[op]()
+    except KeyError:
+        usage()

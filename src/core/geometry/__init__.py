@@ -36,8 +36,9 @@ from .symmetry import octahedral_symmetry_matrices
 from .symmetry import helical_symmetry_matrices, helical_symmetry_matrix
 from .symmetry import translation_symmetry_matrices
 from .symmetry import recenter_symmetries
-from .icosahedron import icosahedral_symmetry_matrices
+from .icosahedron import icosahedral_symmetry_matrices, icosahedron_angles
 from .icosahedron import coordinate_system_names as icosahedral_orientations
+from .icosahedron import coordinate_system_transform as icosahedral_coordinate_system_transform
 from .spline import arc_lengths
 from .adaptive_tree import AdaptiveTree
 from .plane import Plane

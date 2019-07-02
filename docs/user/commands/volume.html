@@ -243,7 +243,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   <a href="#top" class="nounder">&bull;</a>
   <a name="sdLevel"><b>sdLevel</b> &nbsp;<i>threshold-level</i></a>
   <br>
-  Same as <a href="#level"><i>level</i></a>, except with <i>threshold-level</i>
+  Same as <a href="#level"><b>level</b></a>, except with <i>threshold-level</i>
   specified in units of root-mean-square (RMS) deviations from zero
   or standard deviations (SD) from the mean, respectively, 
   calculated for the <a href="#dimensions">current display region</a>
@@ -369,6 +369,20 @@ is significant.
  The <i>width</i> must be a positive integer (default <b>1</b>).
 </blockquote>
 -->
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="calculateSurfaces"></a>
+  <b>calculateSurfaces</b> &nbsp;true | <b>false</b>
+<br>
+Whether to force calculating a volume isosurface immediately rather 
+than at the next graphics frame update. 
+Setting this option to true in a <b>volume</b> command that modifies
+surface geometry (for example, setting the <a href="#level">level</a>)
+is needed when another command that would use the surface geometry 
+is appended to it with a semicolon separator, 
+which indicates no graphics frame update between the commands.
+See: <a href="usageconventions#cxc-files">ChimeraX command files</a>
+</blockquote>
 
 <a name="sampling"></a>
 <p class="nav">
@@ -507,12 +521,11 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   <br>Assign the specified symmetry to the volume data set.
   This information is retained in files <a href="save.html">saved</a> 
   in <a href="save.html#chimap">Chimera map</a> format and can be used by 
-  other commands such as <a href="molmap.html"><b>molmap</b></a>
+  other commands such as <a href="molmap.html"><b>molmap</b></a>,
+  <a href="sym.html"><b>sym</b></a>,
   and <a href="fitmap.html"><b>fitmap</b></a>.
-<!--
   For automatic symmetry detection and assignment, see the command 
   <a href="measure.html#symmetry"><b>measure symmetry</b></a>.
--->
   Most <i>sym-type</i> options have additional sub-options or parameters:
   <ul>
   <li>symmetry of model <b>#<i>N</i></b>

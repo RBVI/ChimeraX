@@ -3083,6 +3083,11 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
     set_initial_volume_color(v, session)
 
   if not model_id is None:
+    if session.models.have_id(model_id):
+      from chimerax.core.errors import UserError
+      raise UserError('Tried to create model #%s which already exists'
+                      % '.'.join('%d'%i for i in model_id))
+    
     v.id = model_id
 
   if open_model:

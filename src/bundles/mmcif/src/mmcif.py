@@ -41,13 +41,14 @@ _additional_categories = (
     "refine",
     "reflns",
     "em_3d_reconstruction",
+    "exptl",
 )
 _reserved_words = {
     'loop_', 'stop_', 'global_'
 }
 
 
-def _initialize():
+def _initialize(session):
     global _initialized
     _initialized = True
     from os.path import join, dirname, exists
@@ -55,6 +56,8 @@ def _initialize():
     std_residues = join(dirname(__file__), "stdresidues.cif")
     if exists(std_residues):
         _mmcif.load_mmCIF_templates(std_residues)
+    _mmcif.set_Python_locate_function(
+        lambda name, session=session: _get_template(session, name))
 
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
@@ -62,11 +65,9 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
     # mmCIF parsing requires an uncompressed file
 
     if not _initialized:
-        _initialize()
+        _initialize(session)
 
     from . import _mmcif
-    _mmcif.set_Python_locate_function(
-        lambda name, session=session: _get_template(session, name))
     categories = _additional_categories + tuple(extra_categories)
     log = session.logger if log_info else None
     try:
@@ -278,7 +279,7 @@ def fetch_mmcif(
         **kw):
     """Get mmCIF file by PDB identifier via the Internet"""
     if not _initialized:
-        _initialize()
+        _initialize(session)
 
     if len(pdb_id) != 4:
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
@@ -364,6 +365,24 @@ def _get_template(session, name):
             "Unable to fetch template for '%s': might be missing bonds"
             % name)
         return None
+
+
+def find_template_residue(session, name):
+    """Supported API. Lookup mmCIF component template residue.
+
+    The component is fetched from the web if not already loaded"""
+    if not _initialized:
+        _initialize(session)
+    from . import _mmcif
+    return _mmcif.find_template_residue(name)
+
+
+def load_mmCIF_templates(filename):
+    """Supported API. Load mmCIF component templates from given file
+
+    The file format should match the components.cif file from the PDB"""
+    from . import _mmcif
+    _mmcif.load_mmCIF_templates(filename)
 
 
 def quote(s):
@@ -480,7 +499,7 @@ def citations(model, only=None):
 
 
 def get_cif_tables(filename, table_names, *, all_data_blocks=False):
-    """Extract CIF tables from a file
+    """Supported API. Extract CIF tables from a file
 
     Parameters
     ----------
@@ -526,7 +545,7 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
 
 
 def get_mmcif_tables_from_metadata(model, table_names):
-    """Extract mmCIF tables from previously read metadata
+    """Supported API. Extract mmCIF tables from previously read metadata
 
     Parameters
     ----------
@@ -552,13 +571,13 @@ def get_mmcif_tables_from_metadata(model, table_names):
 
 
 class TableMissingFieldsError(ValueError):
-    """Required field is missing"""
+    """Supported API. Required field is missing"""
     pass
 
 
 class CIFTable:
     """
-    Present a table interface for a (mm)CIF category
+    Supported API. Present a table interface for a (mm)CIF category
 
     Tags should be in the mixed case version given in the associated dictionary
     """
@@ -591,7 +610,7 @@ class CIFTable:
             self.table_name, self._tags, num_rows, num_columns)
 
     def mapping(self, key_names, value_names, foreach_names=None):
-        """Return a dictionary for subset of the table
+        """Supported API. Return a dictionary for subset of the table
 
         Parameters
         ----------
@@ -651,7 +670,7 @@ class CIFTable:
         return m
 
     def fields(self, field_names, *, allow_missing_fields=False, missing_value=''):
-        """Return subset of rows of the table for the given fields
+        """Supported API. Return subset of rows of the table for the given fields
 
         Parameters
         ----------
@@ -694,7 +713,7 @@ class CIFTable:
         return ftable
 
     def extend(self, table):
-        """Extend mmCIF table
+        """Supported API. Extend mmCIF table
 
         Parameters
         ----------
@@ -735,12 +754,12 @@ class CIFTable:
         self._data = flattened(zip(*old_columns), return_type=list)
 
     def has_field(self, field_name):
-        """Return if given field name is in the table"""
+        """Supported API. Return if given field name is in the table"""
         field_name = field_name.casefold()
         return field_name in self._folded_tags
 
     def field_has(self, field_name, value):
-        """Return if given field has the given value"""
+        """Supported API. Return if given field has the given value"""
         field_name = field_name.casefold()
         try:
             i = self._folded_tags.index(field_name)
@@ -750,13 +769,13 @@ class CIFTable:
         return value in self._data[i::n]
 
     def num_rows(self):
-        """Return number of rows in table"""
+        """Supported API. Return number of rows in table"""
         if len(self._tags) == 0:
             return 0
         return len(self._data) // len(self._tags)
 
     def print(self, file=None, *, fixed_width=False):
-        """Print contents of table to given file
+        """Supported API. Print contents of table to given file
 
         Parameters
         ----------

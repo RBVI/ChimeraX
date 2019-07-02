@@ -26,7 +26,7 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  nucleotides pdb pick_blobs preset_mgr read_pbonds \
 	  registration remote_control rest_server \
 	  residue_fit rotamer_lib_mgr rotamer_libs scheme_mgr \
-	  segment seq_view sim_matrices \
+	  segger segment seq_view sim_matrices \
 	  shell shortcuts show_attr sideview \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \

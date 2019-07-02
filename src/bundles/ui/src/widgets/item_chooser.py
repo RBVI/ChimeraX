@@ -257,7 +257,14 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
     @value.setter
     def value(self, val):
         self._sleep_check()
-        # if value is being set to None, it may not be safe to call 'self.value', so handle that
+        # if value is being set to a special item, it may not be safe to call 'self.value', so handle that
+        if val in self._special_items:
+            if val != self.text():
+                self.setText(val)
+                if not self.signalsBlocked():
+                    self.value_changed.emit()
+            return
+        # if value is being set to None, it may not be safe to call 'self.value' either, so handle that too
         if (val is None and self.text() in [self._no_value_button_text, ""]) \
         or (val is not None and self.value == val):
             if val is None and not self.text():
@@ -292,11 +299,13 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             menu.addSeparator()
         for item_name in item_names:
             menu.addAction(item_name)
-        if prev_value not in self.value_map:
+        if prev_value not in self.value_map and prev_value not in self._special_items:
             if len(self.value_map) + len(self._special_items) == 1 and self._autoselect_single:
                 self.value = (list(self.value_map.keys()) + self._special_items)[0]
             else:
                 self.value = None
+        if del_recursion:
+            delattr(self, '_recursion')
 
     def _sel_change(self, action):
         if action.text() == self._no_value_menu_text:

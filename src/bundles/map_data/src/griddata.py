@@ -180,8 +180,8 @@ class GridData:
 
     from chimerax.core.geometry import place
     saxes = place.skew_axes(self.cell_angles).axes()
-    r = place.Place()
-    r.matrix[:,:3] = self.rotation
+    from numpy import transpose
+    r = place.Place(axes = transpose(self.rotation))
     rsaxes = r * saxes
     tf, tf_inv = transformation_and_inverse(self.origin, self.step, rsaxes)
     if (self.ijk_to_xyz_transform is None or not tf.same(self.ijk_to_xyz_transform) or

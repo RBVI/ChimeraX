@@ -125,22 +125,22 @@ Alternatively, symmetry information can specified explicitly in the command.
 The <i>sym-type</i> can be:
  <ul>
   <li><b>biomt</b>
-  - use &ldquo;biological assembly&rdquo; information from the atomic
+  &ndash; use &ldquo;biological assembly&rdquo; information from the atomic
   model containing the specified atoms
   <br>(currently this information is only read from PDB format, not mmCIF)
   <li><b>symmetry #<i>N</i></b>
-  - use the biological assembly information from another atomic model or the
-  symmetry assignment of a volume model, where <i>N</i> is the model number
-<!--
-  <a href="volume.html#symmetry">symmetry assignment</a> of a volume model
--->
+  &ndash; use the biological assembly information from another atomic model or the
+  symmetry assignment of a volume model
+(such as from <a href="volume.html#symmetry"><b>volume symmetry</b></a>
+or <a href="measure.html#symmetry"><b>measure symmetry</b></a>),
+where <i>N</i> is the model number
     <ul type="none">
     <li>Example: <b>symmetry #4</b>
     </ul>
 
    <li>
   <b>symmetry #<i>N</i>,p<i>M</i></b> or <b>symmetry #<i>N</i>,pn<i>M</i></b>
-  - use cage model (from <b>Cage Builder</b>) polygon symmetry;
+  &ndash; use cage model (from <b>Cage Builder</b>) polygon symmetry;
   place copies at equivalent positions relative to each M-sided polygon
   in the cage with model number <i>N</i>.
   The <b>p<i>M</i></b> form places one copy per M-sided polygon, 
@@ -171,9 +171,9 @@ The <i>sym-type</i> can be:
    where <i>orientation</i> can be:
    <ul>
    <li><b>222</b> (default)
-   - with two-fold symmetry axes along the X, Y, and Z axes, a three-fold
+   &ndash; with two-fold symmetry axes along the X, Y, and Z axes, a three-fold
     along axis (1,1,1)
-   <li><b>z3</b> - a three-fold symmetry axis along Z, another three-fold
+   <li><b>z3</b> &ndash; a three-fold symmetry axis along Z, another three-fold
    axis in the YZ plane such that rotation about the X axis by ~110&deg; is a
    symmetry operation (EMAN convention)
    </ul>
@@ -188,14 +188,14 @@ The <i>sym-type</i> can be:
    where <i>orientation</i> can be:
     <ul>
     <li><b>222</b> (default)
-    - with two-fold symmetry axes along the X, Y, and Z axes
-    <li><b>2n5</b> - with two-fold symmetry along X and 5-fold along Z
-    <li><b>n25</b> - with two-fold symmetry along Y and 5-fold along Z
-    <li><b>2n3</b> - with two-fold symmetry along X and 3-fold along Z
-    <li><b>222r</b> - same as 222 except rotated 90&deg; about Z
-    <li><b>2n5r</b> - same as 2n5 except rotated 180&deg; about Y
-    <li><b>n25r</b> - same as n25 except rotated 180&deg; about X
-    <li><b>2n3r</b> - same as 2n3 except rotated 180&deg; about Y
+    &ndash; with two-fold symmetry axes along the X, Y, and Z axes
+    <li><b>2n5</b> &ndash; with two-fold symmetry along X and 5-fold along Z
+    <li><b>n25</b> &ndash; with two-fold symmetry along Y and 5-fold along Z
+    <li><b>2n3</b> &ndash; with two-fold symmetry along X and 3-fold along Z
+    <li><b>222r</b> &ndash; same as 222 except rotated 90&deg; about Z
+    <li><b>2n5r</b> &ndash; same as 2n5 except rotated 180&deg; about Y
+    <li><b>n25r</b> &ndash; same as n25 except rotated 180&deg; about X
+    <li><b>2n3r</b> &ndash; same as 2n3 except rotated 180&deg; about Y
     </ul>
 
   <li>helical symmetry

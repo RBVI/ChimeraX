@@ -17,6 +17,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
 
   <DataFiles>
     <DataDir>lib</DataDir>
+    <DataDir>docs</DataDir>
     <DataFile>viewdockx_*.html</DataFile>
     <DataFile>viewdockx_*.js</DataFile>
     <DataFile>viewdockx_*.css</DataFile>
