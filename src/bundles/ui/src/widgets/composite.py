@@ -223,3 +223,25 @@ class CollapsiblePanel(QWidget):
         h = c.sizeHint().height() if checked else 0
         c.setMaximumHeight(h)
         c.setMinimumHeight(h)
+        if not checked:
+            # Resize dock widget to reclaim spaced used by popup.
+            _resize_dock_widget(self)
+
+def _resize_dock_widget(child_widget):
+    # Qt 5.12.4 is pretty screwed up in allowing QDockWidget to resize in a simple way.
+    child_widget.adjustSize()
+    child_widget.resize(child_widget.sizeHint())
+    p = _dock_widget_parent(child_widget)
+    if p:
+        p.adjustSize()
+        from PyQt5.QtCore import Qt
+        p.window().resizeDocks([p], [p.widget().sizeHint().height()], Qt.Vertical)
+
+def _dock_widget_parent(widget):
+    from PyQt5.QtWidgets import QDockWidget
+    if isinstance(widget, QDockWidget):
+        return widget
+    p = widget.parent()
+    if p is None:
+        return p
+    return _dock_widget_parent(p)
