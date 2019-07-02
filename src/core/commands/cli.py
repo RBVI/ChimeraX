@@ -2823,6 +2823,7 @@ def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
         syntax = cmd.command_name
         for arg_name in ci._required:
             arg = ci._required[arg_name]
+            arg_name = _user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -2834,6 +2835,7 @@ def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and arg_name in ci._hidden:
                 continue
             arg = ci._optional[arg_name]
+            arg_name = _user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
