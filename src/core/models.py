@@ -70,6 +70,8 @@ class Model(State, Drawing):
 
     def delete(self):
         '''Delete this model.'''
+        if self._deleted:
+            raise RuntimeError('Model %s was deleted twice' % self._name)
         self._deleted = True
         Drawing.delete(self)
         self.triggers.activate_trigger("deleted", self)
