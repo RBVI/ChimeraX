@@ -323,8 +323,7 @@ class SequenceViewer(ToolInstance):
             s.showSS(show=None, ssType="predicted"), None)
         """
         from chimerax.atomic import get_triggers
-        self._atomic_changes_handler = get_triggers(self.session).add_handler(
-            "changes", self._atomic_changes_cb)
+        self._atomic_changes_handler = get_triggers().add_handler("changes", self._atomic_changes_cb)
 
         """TODO
         self.structureMenu.add_command(state='disabled',
@@ -501,7 +500,7 @@ class SequenceViewer(ToolInstance):
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
         from chimerax.atomic import get_triggers
-        get_triggers(self.session).remove_handler(self._atomic_changes_handler)
+        get_triggers().remove_handler(self._atomic_changes_handler)
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):

@@ -263,16 +263,7 @@ Sequence::set_name(std::string& name)
 {
     auto old_name = _name;
     _name = name;
-    auto inst = py_instance(false);
-    if (inst != Py_None) {
-        auto gil = pyinstance::AcquireGIL();
-        auto ret = PyObject_CallMethod(inst, "_cpp_rename", "s", old_name.c_str());
-        if (ret == nullptr) {
-            throw std::runtime_error("Calling Sequence _cpp_rename method failed.");
-        }
-        Py_DECREF(ret);
-    }
-    Py_DECREF(inst);
+    Py_XDECREF(py_call_method("_cpp_rename", "s", old_name.c_str()));
 }
 
 const Sequence::Contents&

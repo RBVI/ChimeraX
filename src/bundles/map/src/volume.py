@@ -1854,6 +1854,7 @@ class VolumeSurface(Surface):
     self._min_status_message_voxels = 2**24	# Show status messages only on big surface calculations
     self._use_thread = False			# Whether to compute next surface in thread
     self._surf_calc_thread = None
+    self.clip_cap = True			# Cap surface when clipped
     
   def delete(self):
     self.volume._surfaces.remove(self)
@@ -1916,7 +1917,6 @@ class VolumeSurface(Surface):
     if show_mesh != self._mesh:
       self._mesh = show_mesh
       self.volume._drawings_need_update()
-
   show_mesh = property(_get_show_mesh, _set_show_mesh)
 
   @property
@@ -2100,7 +2100,6 @@ class VolumeSurface(Surface):
 
     # TODO: Clip cap offset for different contour levels is not related to voxel size.
     v = self.volume
-    self.clip_cap = True
     self.clip_offset = .002* len([s for s in v.surfaces if self.level < s.level])
 
   # ---------------------------------------------------------------------------

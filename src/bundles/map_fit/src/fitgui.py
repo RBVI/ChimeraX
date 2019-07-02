@@ -15,6 +15,8 @@
 from chimerax.core.tools import ToolInstance
 class FitMapDialog(ToolInstance):
 
+  help = 'help:user/tools/fitmap.html'
+
   def __init__(self, session, tool_name):
 
     self._requested_halt = False

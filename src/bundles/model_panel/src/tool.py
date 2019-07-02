@@ -80,7 +80,7 @@ class ModelPanel(ToolInstance):
         self.session.triggers.add_handler(MODEL_NAME_CHANGED,
             lambda *args: self._initiate_fill_tree(*args, refresh=True))
         from chimerax import atomic
-        atomic.get_triggers(self.session).add_handler("changes", self._changes_cb)
+        atomic.get_triggers().add_handler("changes", self._changes_cb)
         self._frame_drawn_handler = None
         tw.manage(placement="side")
         tw.shown_changed = self._shown_changed
