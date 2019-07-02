@@ -263,7 +263,7 @@ Sequence::set_name(std::string& name)
 {
     auto old_name = _name;
     _name = name;
-    py_call_method("_cpp_rename");
+    Py_XDECREF(py_call_method("_cpp_rename", "s", old_name.c_str()));
 }
 
 const Sequence::Contents&

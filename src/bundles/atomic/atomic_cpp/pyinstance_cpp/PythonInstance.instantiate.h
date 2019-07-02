@@ -203,15 +203,16 @@ PythonInstance<C>::py_instance(bool create) const
 
 template <class C>
 PyObject*
-PythonInstance<C>::py_call_method(const std::string& method_name, bool create) const
+PythonInstance<C>::py_call_method(const std::string& method_name, const char* fmt, const void* arg) const
+// limited to 0 or 1 arg methods
 {
-    auto inst = py_instance(create);
+    auto inst = py_instance(false);
     PyObject* ret;
     if (inst == Py_None) {
         return nullptr;
     } else {
         auto gil = AcquireGIL();
-        ret = PyObject_CallMethod(inst, method_name.c_str(), nullptr);
+        ret = PyObject_CallMethod(inst, method_name.c_str(), fmt, arg);
         if (ret == nullptr) {
             std::stringstream msg;
             msg << "Calling " << py_class_name() << " " << method_name << " failed.";
