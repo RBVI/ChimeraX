@@ -1428,6 +1428,10 @@ class ToolWindow(StatusLogger):
         be detached from the main window.  If `placement` is another tool window,
         then those tools will be tabbed together.
 
+        If fixed_size is True then the vertical size of the panel will equal the
+        requested size, otherwise the panel could be vertically larger or smaller than
+        its layout requires.
+
         The tool window will be allowed to dock in the allowed_areas, the value
         of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
         """
@@ -1674,6 +1678,11 @@ class _Qt:
         if geometry is not None:
             self.dock_widget.setGeometry(geometry)
         self.dock_widget.setAllowedAreas(allowed_areas)
+
+        if fixed_size:
+            # Always set vertical size to what sizeHint() asks for.
+            from PyQt5.QtWidgets import QSizePolicy
+            self.dock_widget.widget().setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
     def show_context_menu(self, event):
         _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,
