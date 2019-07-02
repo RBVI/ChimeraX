@@ -928,7 +928,7 @@ class Sequence(State):
     def _fire_trigger(self, trig_name, arg):
         # when C++ layer notifies us directly of change, delay firing trigger until
         # next 'changes' trigger to ensure that entire C++ layer is in a consistent state
-        def delayed(trigs=self.triggers, trig_name=trig_name, trig_arg=arg):
+        def delayed(*args, trigs=self.triggers, trig_name=trig_name, trig_arg=arg):
             trigs.activate_trigger(trig_name, trig_arg)
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
@@ -1137,7 +1137,7 @@ class StructureSeq(Sequence):
         self.__class__ = Sequence
         self.numbering_start = numbering_start
 
-    def _cpp_modify(self):
+    def _cpp_modified(self):
         # called from C++ layer when the residue list changes
         self._fire_trigger('modify', self)
 
@@ -2031,6 +2031,9 @@ class SeqMatchMap(State):
         self._struct_seq = struct_seq
         from . import get_triggers
         self._handler = get_triggers().add_handler("changes", self._atomic_changes)
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('modified')
 
     def __bool__(self):
         return bool(self._pos_to_res)
@@ -2090,12 +2093,16 @@ class SeqMatchMap(State):
 
     def _atomic_changes(self, trig_name, changes):
         if changes.num_deleted_residues() > 0:
+            modified = False
             for r, i in list(self._res_to_pos.items()):
                 if r.deleted:
+                    modified = True
                     del self._res_to_pos[r]
                     del self._pos_to_res[i]
                     if self._align_seq.circular:
                         del self._pos_to_res[i + len(self._align_seq.ungapped())/2]
+            if modified:
+                self.triggers.activate_trigger('modified', self)
 
     def __del__(self):
         self._pos_to_res.clear()

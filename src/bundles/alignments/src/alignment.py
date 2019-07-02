@@ -333,8 +333,7 @@ class Alignment(State):
         match_map = aseq.match_maps[sseq]
         del aseq.match_maps[sseq]
         del self.associations[sseq]
-        sseq.triggers.remove_handler(match_map.del_handler)
-        sseq.triggers.remove_handler(match_map.mod_handler)
+        match_map.mod_handler.remove()
         if reassoc:
             return
         if not demotion:
@@ -435,16 +434,14 @@ class Alignment(State):
         """If somehow you had obtained a SeqMatchMap for the align_seq<->struct_seq correspondence,
            you would use this call directly instead of the more usual associate() call
         """
-        chain = match_map.struct_seq.chain
         aseq = match_map.align_seq
+        sseq = match_map.struct_seq
+        chain = sseq.chain
         aseq.match_maps[chain] = match_map
         self.associations[chain] = aseq
 
         # set up callbacks for structure changes
-        match_map.del_handler = struct_seq.triggers.add_handler('delete',
-            lambda _1, sseq: self.disassociate(sseq, demotion=True))
-        match_map.mod_handler = struct_seq.triggers.add_handler('modify',
-            lambda _1, sseq: self._mseq_mod_cb(sseq))
+        match_map.mod_handler = match_map.triggers.add_handler('modified', self._mmap_mod_cb)
 
     def remove_observer(self, observer):
         """Called when an observer is done with the alignment (see add_observer)"""
@@ -495,7 +492,7 @@ class Alignment(State):
         self.viewers = []
         self.observers = []
         for sseq, aseq in self.associations.items():
-            aseq.match_maps[sseq].del_handler.remove()
+            aseq.match_maps[sseq].mod_handler.remove()
         if self._assoc_handler:
             self._assoc_handler.remove()
 
@@ -506,6 +503,12 @@ class Alignment(State):
             raise UserError("No '%s' viewers attached to alignment '%s'"
                 % (viewer_keyword, self.ident))
         self._notify_observers("command", subcommand_text, viewer_criteria=viewer_keyword)
+
+    def _mmap_mod_cb(self, trig_name, match_map):
+        if len(match_map) == 0:
+            self.disassociate(match_map.struct_seq, demotion=True)
+        else:
+            self._notify_observers("modify association", ("modify association", [match_map]))
 
     def _notify_observers(self, note_name, note_data, *, viewer_criteria=None):
         if self._observer_notification_suspended > 0:
@@ -534,8 +537,7 @@ class Alignment(State):
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
             for chain, match_map in mm.items():
-                match_map.del_handler = chain.triggers.add_handler('delete',
-                    lambda _1, sseq, aln=aln: aln.disassociate(sseq, demotion=True))
+                match_map.mod_handler = match_map.triggers.add_handler('modified', self._mmap_mod_cb)
         return aln
 
     def __str__(self):
