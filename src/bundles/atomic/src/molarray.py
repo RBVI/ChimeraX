@@ -423,7 +423,9 @@ class Atoms(Collection):
     bfactors = cvec_property('atom_bfactor', float32)
     bonds = cvec_property('atom_bonds', cptr, 'num_bonds', astype = _bonds, read_only = True,
         per_object = False,
-        doc=":class:`Bonds` object where either endpoint atom is in this collection")
+        doc=":class:`Bonds` object where either endpoint atom is in this collection. If any of "
+        "the atoms in this collection are bonded to each other, then there will be duplicate bonds "
+        "in the result, so call .unique() on that if duplicates are problematic.")
     @property
     def by_chain(self):
         '''Return list of triples of structure, chain id, and Atoms for each chain.'''
@@ -463,11 +465,8 @@ class Atoms(Collection):
         doc="Returns a numpy array of chemical element names. Read only.")
     element_numbers = cvec_property('atom_element_number', uint8, read_only = True,
         doc="Returns a :mod:`numpy` array of atomic numbers (integers). Read only.")
-    names = cvec_property('atom_name', string,
-        doc="Returns a numpy array of atom names.  Can be set with such an array (or equivalent "
-        "sequence), or with a single string.  Atom names are limited to 4 characters.")
     hides = cvec_property('atom_hide', int32,
-    doc="Whether atom is hidden (overrides display).  Returns a :mod:`numpy` array of int32 bitmask."
+        doc="Whether atom is hidden (overrides display).  Returns a :mod:`numpy` array of int32 bitmask."
         "\n\nPossible values:\n\n"
         "HIDE_RIBBON\n"
         "    Hide mask for backbone atoms in ribbon.\n\n"
@@ -513,6 +512,14 @@ class Atoms(Collection):
         doc="Whether each atom is part of an amino/nucleic acid sidechain."
             " Does not include atoms needed to connect to backbone (CA/ribose)."
             " Returns numpy bool array. Read only.")
+    names = cvec_property('atom_name', string,
+        doc="Returns a numpy array of atom names.  Can be set with such an array (or equivalent "
+        "sequence), or with a single string.  Atom names are limited to 4 characters.")
+    neighbors = cvec_property('atom_neighbors', cptr, 'num_bonds', astype = _atoms, read_only = True,
+        per_object = False,
+        doc=":class:`Atoms` object where each atom is bonded to an atom is in this collection. If any of "
+        "the atoms in this collection are bonded to each other, then there will be duplicate atoms "
+        "in the result, so call .unique() on that if duplicates are problematic.")
     num_bonds = cvec_property('atom_num_bonds', size_t, read_only = True)
     '''Number of bonds in each atom. Read only.'''
     occupancies = cvec_property('atom_occupancy', float32)
