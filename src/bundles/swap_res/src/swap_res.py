@@ -45,19 +45,17 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
         except UnsupportedResTypeError:
             raise LimitationError("%s rotamer library does not support %s" %(lib, r_type))
         except NoResidueRotamersError:
-        #TODO
-            from SwapRes import swap, BackboneError, TemplateError
             if log:
-                replyobj.info("Swapping %s to %s\n" % (res, r_type))
+                session.info("Swapping %s to %s\n" % (res, r_type))
             try:
                 template_swap_res(res, r_type, bfactor=bfactor)
             except TemplateSwapError as e:
                 raise UserError(str(e))
             continue
         except NoRotamerLibraryError:
-            raise MidasError("No rotamer library named '%s'" % lib)
+            raise UserError("No rotamer library named '%s'" % lib)
         if preserve is not None:
-            rots = pruneByChis(rots, res, preserve, log=log)
+            rots = prune_by_chis(session, rots, res, preserve, log=log)
         rotamers[res] = rots
         destroy_list.extend(rots)
     if not rotamers:
@@ -66,10 +64,13 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     # this implementation allows tie-breaking criteria to be skipped if
     # there are no ties
     if isinstance(criteria, basestring) and not criteria.isalpha():
-        raise MidasError("Nth-most-probable criteria cannot be mixed with"
+        raise UserError("Nth-most-probable criteria cannot be mixed with"
             " other criteria")
+    #TODO
     for char in str(criteria):
         if char == "d":
+            #TODO
+            raise LimitationError("'d' criteria not implemented")
             # density
             if density == None:
                 if criteria is default_criteria:
@@ -98,6 +99,8 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: r.volumeScores["cmd"]
             test = cmp
         elif char == "c":
+            #TODO
+            raise LimitationError("'c' criteria not implemented")
             # clash
             if clash_hbond_allowance is None or clash_threshold is None:
                 from chimerax.atomic.clashes.settings import defaults
@@ -114,6 +117,8 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: r.clashScore
             test = lambda v1, v2: cmp(v2, v1)
         elif char == 'h':
+            #TODO
+            raise LimitationError("'h' criteria not implemented")
             # H bonds
             if hbond_angle_slop is None or hbond_dist_slop is None:
                 from chimerax.atomic.hbonds import rec_angle_slop, rec_dist_slop
@@ -134,9 +139,11 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             test = cmp
         elif char == 'p':
             # most probable
-            fetch = lambda r: r.rotamerProb
-            test = cmp
+            fetch = lambda r: r.rotamer_prob
+            test = lambda p1,p2: p1>p2
         elif isinstance(criteria, int):
+            #TODO
+            raise LimitationError("Nth-prob criteria not implemented")
             # Nth most probable
             index = criteria - 1
             for res, rots in rotamers.items():
@@ -150,6 +157,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: 1
             test = lambda v1, v2: 1
 
+        #TODO
         for res, rots in rotamers.items():
             best = None
             for rot in rots:
@@ -434,7 +442,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             new_atom.bfactor = bfactor
             new_atoms.append(new_atom)
 
-            # TODO: need to iterate over coordSets
+            # TODO: need to iterate over CoordSets
             for bonded in a.neighbors:
                 bond_atom = res.find_atom(bonded.name)
                 if not bond_atom:
@@ -534,6 +542,37 @@ def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
         dihed = dihedral(xyz, xyz0, xyz1, xyz2)
     return add_dihedral_atom(a.name, a.element, res_bud, real1, real2, blen, ang, dihed, info_from=real1)
 
+def prune_by_chis(session, rots, res, cutoff, log=False):
+    if res.chi1 is None:
+        return rots
+    pruned = rots[:]
+    for chi_num in range(4):
+        next_pruned = []
+        nearest = None
+        target_chi = res.get_chi(chi_num, True)
+        if target_chi is None:
+            break
+        for rot in pruned:
+            rot_chi = rot.get_chi(chi_num, True)
+            delta = abs(rot_chi - target_chi)
+            if delta <= cutoff:
+                next_pruned.append(rot)
+            if nearest is None or near_delta > delta:
+                nearest = rot
+                near_delta = delta
+        if next_pruned:
+            pruned = next_pruned
+        else:
+            break
+    if pruned:
+        if log:
+            session.info("Filtering rotamers with chi angles within %g of %s yields %d (of original %d)"
+                % (cutoff, res, len(pruned), len(rots))
+        return pruned
+    if log:
+        session.info("No rotamer with all chi angles within %g of %s; using closest one" % (cutoff, res))
+    return [nearest]
+
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle
     bond_key = (n1, new)
@@ -550,62 +589,6 @@ def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     return bl, ang
 
 '''
-
-branchSymmetry = {
-    'ASP': 1,
-    'TYR': 1,
-    'PHE': 1,
-    'GLU': 2
-}
-def pruneByChis(rots, res, log=False):
-    from data import chiInfo
-    if res.type not in chiInfo:
-        return rots
-    info = chiInfo[res.type]
-    rotChiInfo = chiInfo[rots[0].residues[0].type]
-    if log:
-        replyobj.info("Chi angles for %s:" % res)
-    for chiNum, resNames in enumerate(info):
-        try:
-            rotNames = rotChiInfo[chiNum]
-        except IndexError:
-            break
-        atoms = []
-        try:
-            for name in resNames:
-                atoms.append(res.atomsMap[name][0])
-        except KeyError:
-            break
-        from chimera import dihedral
-        origChi = dihedral(*tuple([a.coord() for a in atoms]))
-        if log:
-            replyobj.info(" %.1f" % origChi)
-        pruned = []
-        nearest = None
-        for rot in rots:
-            atomsMap = rot.residues[0].atomsMap
-            chi = dihedral(*tuple([atomsMap[name][0].coord()
-                            for name in rotNames]))
-            delta = abs(chi - origChi)
-            if delta > 180:
-                delta = 360 - delta
-            if branchSymmetry.get(res.type, -1) == chiNum:
-                if delta > 90:
-                    delta = 180 - delta
-            if not nearest or delta < nearDelta:
-                nearest = rot
-                nearDelta = delta
-            if delta > 40:
-                continue
-            pruned.append(rot)
-        if pruned:
-            rots = pruned
-        else:
-            rots = [nearest]
-            break
-    if log:
-        replyobj.info("\n")
-    return rots
 
 class NoResidueRotamersError(ValueError):
     pass
