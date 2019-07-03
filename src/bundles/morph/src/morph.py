@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #
-def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew',
+def morph(session, structures, frames = 20, wrap = False, rate = 'linear', method = 'corkscrew',
           cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6,
           hide_models = True, play = True, slider = True, color_segments = False, color_core = None):
     '''
@@ -25,6 +25,9 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
     frames : int
         Number of frames for each morph segment. One less than this value is new
         configurations are inserted between every pair of structures given.
+    wrap : bool
+        If true then morph continues from last structure to first.  This is the same
+        as if the first structure is appended to structures to morph.
     rate : 'linear', 'ramp down', 'ramp up' or 'sinusoidal'
         The rate of morphing from one state to the next.
     method : 'corkscrew', 'linear'
@@ -63,6 +66,9 @@ def morph(session, structures, frames = 20, rate = 'linear', method = 'corkscrew
         from chimerax.core.errors import UserError
         raise UserError('Require at least 2 structures for morph')
 
+    if wrap:
+        structures.append(structures[0])
+        
     from .motion import compute_morph
     traj = compute_morph(structures, session.logger, method=method, rate=rate, frames=frames,
                          cartesian=cartesian, match_same=same, core_fraction = core_fraction,
@@ -113,6 +119,7 @@ def register_morph_command(logger):
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
         keyword = [('frames', IntArg),
+                   ('wrap', BoolArg),
                    ('rate', EnumOf(('linear', 'ramp up', 'ramp down', 'sinusoidal'))),
                    ('method', EnumOf(('corkscrew', 'linear'))),
                    ('cartesian', BoolArg),
