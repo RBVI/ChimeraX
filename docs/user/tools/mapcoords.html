@@ -1,0 +1,68 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Map Coordinates</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Map Coordinates</h3>
+<p>
+The <b>Map Coordinates</b> tool specifies the relationship between
+<a href="volumeviewer.html">volume data</a> grid indices and Cartesian
+coordinates. This information is included in the header when a map is 
+<a href="../commands/save.html#map">saved</a>.
+See also:
+<a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="../commands/volume.html#vop"><b>volume</b> operations</a>
+</p><p>
+<b>Map Coordinates</b> can be started
+from the <b>Volume Data</b> section of the <b>Tools</b> menu
+(<a href="../window.html#panels">more...</a>).
+</p><p>
+The <b>Map</b> of interest should be chosen from the pulldown menu of open
+<a href="volumeviewer.html">volume data</a> models.
+</p>
+<ul class="none">
+<li><b>Origin index</b> &ndash; space-separated grid indices of the XYZ origin
+(Cartesian 0,0,0). 
+Fractional and negative values are allowed, as the origin is not required
+to coincide with a grid point or even to fall within the grid.
+Clicking <b>center</b> moves the XYZ origin to the center of the grid, 
+whereas clicking <b>reset</b> restores the original values.
+<br><br>
+<li><b>Voxel size</b> &ndash; grid spacing (resolution).
+Although only one number will be shown if the size is the same along
+the three axes, three different numbers separated by spaces can be entered.
+Clicking <b>reset</b> restores the initial values.
+<br><br>
+<li><b>Cell angles</b> &ndash; angle(s) in degrees between 
+the crystallographic axes
+<br><br>
+<li><b>Rotation axis</b> and <b>angle</b> describe a transformation.
+When a data set is created by 
+<a href="../commands/volume.html#resample">resampling</a>,
+these fields show its transformation relative to the original data set.
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+July 2019</address>
+</body></html>
