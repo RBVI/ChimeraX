@@ -528,7 +528,7 @@ class ClipMouseMode(MouseMode):
         d = event.wheel_value()
         psize = self.pixel_size()
         front_shift, back_shift = self.which_planes(event)
-        self.clip_move(None, front_shift, back_shift, delta = 100*psize*d)
+        self.clip_move(None, front_shift, back_shift, delta = 10*psize*d)
 
     def clip_move(self, delta_xy, front_shift, back_shift, delta = None):
         pf, pb = self._planes(front_shift, back_shift)
