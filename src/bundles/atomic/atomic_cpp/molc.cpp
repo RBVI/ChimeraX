@@ -376,6 +376,20 @@ extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
     }
 }
 
+extern "C" EXPORT void atom_neighbors(void *atoms, size_t n, pyobject_t *neighbors)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Atom::Neighbors &nb = a[i]->neighbors();
+            for (size_t j = 0; j != nb.size(); ++j)
+                *neighbors++ = nb[j];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_py_obj_bonds(void *atoms, size_t n, pyobject_t *bonds)
 {
     Atom **a = static_cast<Atom **>(atoms);
