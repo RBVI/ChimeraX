@@ -931,8 +931,9 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
         while find_atom(h_name):
             h_name += "'"
     elif total_hydrogens > 1 or find_atom(h_name):
-        if total_hydrogens == 2 and len([nb for nb in atom.neighbors
-                        if nb.element.number > 1]) == 2:
+        # amino acids number their CH2 hyds as 2/3 rather than 1/2
+        if atom.residue.principal_atom and total_hydrogens == 2 and len(
+                [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:
             h_num += 1
         while find_atom("%s%d" % (h_name, h_num)):
             h_num += 1
