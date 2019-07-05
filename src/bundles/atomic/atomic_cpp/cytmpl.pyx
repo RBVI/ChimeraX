@@ -44,7 +44,10 @@ cdef class TmplResidue:
 
     @property
     def chief(self):
-        return self.cpp_res.chief().py_instance(True)
+        chief_ptr = self.cpp_res.chief()
+        if chief_ptr:
+            return chief_ptr.py_instance(True)
+        return None
 
     def find_atom(self, atom_name):
         '''Return the TmplAtom with the given name in this residue (or None if non-existent)'''
@@ -65,7 +68,10 @@ cdef class TmplResidue:
 
     @property
     def link(self):
-        return self.cpp_res.link().py_instance(True)
+        link_ptr = self.cpp_res.link()
+        if link_ptr:
+            return link_ptr.py_instance(True)
+        return None
 
     @property
     def link_atoms(self):
