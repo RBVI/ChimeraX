@@ -568,6 +568,7 @@ def keyboard_modifier_names(qt_keyboard_modifiers):
         modifiers = [(Qt.ShiftModifier, 'shift'),
                      (Qt.ControlModifier, 'command'),
                      (Qt.AltModifier, 'option'),
+                     (Qt.AltModifier, 'alt'),
                      (Qt.MetaModifier, 'control')]
     else:
         modifiers = [(Qt.ShiftModifier, 'shift'),
