@@ -31,6 +31,8 @@ class RegionMouseMode(MouseMode):
         self.xy_last = (x,y) = event.position()
         v = self.session.main_view
         line = v.clip_plane_points(x,y)    # scene coordinates
+        if line[0] is None or line[1] is None:
+            return  # Camera does not support ray casting, for example VR or stereo cameras.
         self._choose_box_face(line)
 
     def _choose_box_face(self, line):
