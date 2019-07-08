@@ -3451,10 +3451,10 @@ class MultiChannelSeries(Model):
 
     # Parent models are always restored before child models.
     # Restore child map list after child maps are restored.
-    def restore_maps(trigger_name, session, mcs = mcs, map_ids = data['map ids']):
+    def restore_maps(trigger_name, session, mcs = mcs, map_ids = data['map series ids']):
       idm = {m.id : m for m in mcs.child_models()}
       map_series = [idm[id] for id in map_ids if id in idm]
-      channels.set_map_series(map_series)
+      mcs.set_map_series(map_series)
       from chimerax.core.triggerset import DEREGISTER
       return DEREGISTER
     session.triggers.add_handler('end restore session', restore_maps)
