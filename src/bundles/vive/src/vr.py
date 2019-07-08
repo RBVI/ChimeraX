@@ -1282,7 +1282,6 @@ class HandController:
         model_name = vr_system.getStringTrackedDeviceProperty(device_index, Prop_RenderModelName_String)
         # b'oculus_cv1_controller_right', b'oculus_cv1_controller_left'
         self._controller_type = model_name.decode()
-        self._controller_type = 'htc vive'
         
         # Create hand model
         name = 'Hand %s' % device_index
