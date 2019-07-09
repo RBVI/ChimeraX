@@ -21,7 +21,7 @@ def update_clip_caps(view):
                 (view.camera.redraw_needed and cp.have_camera_plane()))))
     # TODO: Update caps only on specific drawings whose shape changed.
     if update:
-        drawings = view.drawing.all_drawings()
+        drawings = view.drawing.all_drawings(displayed_only = True)
         show_surface_clip_caps(planes, drawings, offset = settings.clipping_cap_offset)
 
 def show_surface_clip_caps(planes, drawings, offset = 0.01):
@@ -59,7 +59,7 @@ def remove_clip_caps(drawings):
 def compute_cap(drawing, plane, offset):
     # Undisplay cap for drawing with no geometry shown.
     d = drawing
-    if not d.display:
+    if not d.display or not d.parents_displayed:
         return None, None, None
 
     # Handle surfaces with duplicate vertices, such as molecular
