@@ -28,6 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>morph</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>wrap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>frames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>same</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>hideModels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -49,8 +50,11 @@ Before morphing, the atomic models should be superimposed
 (such as with <a href="matchmaker.html"><b>matchmaker</b></a>).
 In the <b>morph</b> command, the models should be specified in the order
 desired for morphing.
-Although the same model number cannot be given more than once, a given structure 
-can be opened multiple times to give copies with different model numbers.
+Although the same model number cannot be given more than once, 
+using <b>wrap true</b> indicates the morph should also go from the
+last specified model to the first. For a more complicated trajectory
+that visits the same conformation more than once, another approach is to open
+a given structure multiple times to give copies with different model numbers.
 Examples:
 </p>
 <blockquote><b>
@@ -58,7 +62,7 @@ morph #3,1,2 frames 40
 <br>
 morph #1.1-20 same t
 <br>
-morph #2,5 core 0.1 frames 30
+morph #2,5 core 0.1 frames 30 wrap t
 </b></blockquote>
 <p>
 Only the <a href="#pairing"><b><i>atoms in common</i></b></a>
@@ -205,6 +209,11 @@ whereas <b>colorCore</b> uses the specified
 <a href="colornames.html"><i>color</i></a> for residues in the initial core.
 Although segments are recomputed for each <a href="#stage">stage</a> 
 of a multistage morph, segment coloring only shows the first set.
+<p>
+If segment/core coloring is not done, a single-chain morph trajectory 
+will be assigned a <a href="colortables.html#autocolors">unique model color</a>,
+whereas a multichain morph trajectory will retain the coloring of the
+first model used in its creation.
 </blockquote>
 
 <a name="pairing"></a>
@@ -307,5 +316,5 @@ and unattractive morph trajectory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2019</address>
+July 2019</address>
 </body></html>
