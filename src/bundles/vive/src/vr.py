@@ -732,7 +732,8 @@ class UserInterface:
 
         # Buttons that can be pressed on user interface.
         import openvr
-        self.buttons = (openvr.k_EButton_SteamVR_Trigger, openvr.k_EButton_Grip, openvr.k_EButton_SteamVR_Touchpad)
+        self.buttons = (openvr.k_EButton_SteamVR_Trigger, openvr.k_EButton_Grip, openvr.k_EButton_SteamVR_Touchpad,
+                        openvr.k_EButton_A)
         
     def close(self):
         ui = self._ui_model
@@ -1277,22 +1278,38 @@ class HandController:
         self.device_index = device_index
         self.vr_system = vr_system
 
+        from openvr import Prop_RenderModelName_String
+        model_name = vr_system.getStringTrackedDeviceProperty(device_index, Prop_RenderModelName_String)
+        # b'oculus_cv1_controller_right', b'oculus_cv1_controller_left'
+        self._controller_type = model_name.decode()
+        
         # Create hand model
         name = 'Hand %s' % device_index
         self._hand_model = hm = HandModel(session, name, length=length, radius=radius,
-                                          color = self._cone_color())
+                                          color = self._cone_color(), controller_type = self._controller_type)
         hm.display = show
         parent.add([hm])
 
         # Assign actions bound to controller buttons
         self._modes = {}			# Maps button name to HandMode
         self._active_drag_modes = set() # Modes with an active drag (ie. button down and not yet released).
+        oculus = self._controller_type.startswith('oculus')
+        grip_mode = MoveSceneMode() if oculus else RecenterMode()
         import openvr
-        initial_modes = [(openvr.k_EButton_Grip, RecenterMode()),
+        initial_modes = [(openvr.k_EButton_Grip, grip_mode),
                          (openvr.k_EButton_ApplicationMenu, ShowUIMode()),
                          (openvr.k_EButton_SteamVR_Trigger, MoveSceneMode()),
                          (openvr.k_EButton_SteamVR_Touchpad, ZoomMode()),
         ]
+        if oculus:
+            initial_modes.append((openvr.k_EButton_A, ZoomMode()))
+        # Oculus touch controller left and right buttons:
+        #    trigger = k_EButton_Axis1 = 33 = k_EButton_SteamVR_Trigger
+        #    grip = k_EButton_Grip = 2 and k_EButton_Axis2 = 34 both
+        #    A or X button = k_EButton_A = 7
+        #    B or Y button = k_EButton_ApplicationMenu = 1
+        #    thumbstick = k_EButton_Axis0 = 32 = k_EButton_SteamVR_Touchpad
+
         for button, mode in initial_modes:
             self._set_hand_mode(button, mode)
     
@@ -1441,7 +1458,8 @@ class HandModel(Model):
     skip_bounds = True
     SESSION_SAVE = False
 
-    def __init__(self, session, name, length = 0.20, radius = 0.04, color = (200,200,0,255)):
+    def __init__(self, session, name, length = 0.20, radius = 0.04, color = (200,200,0,255),
+                 controller_type = 'htc vive'):
         Model.__init__(self, name, session)
 
         from chimerax.core.geometry import Place
@@ -1451,6 +1469,8 @@ class HandModel(Model):
         self._button_color = (255,255,255,255)	# White
         self.color = (255,255,255,255)	# Texture modulation color
 
+        self._controller_type = controller_type
+        
         # Avoid hand disappearing when behind models, especially in multiperson VR.
         self.allow_depth_cue = False
         
@@ -1469,7 +1489,7 @@ class HandModel(Model):
         cva[:,2] *= length
         geom = [(cva,cna,ctc,cta)]
 
-        self._buttons = b = HandButtons()
+        self._buttons = b = HandButtons(self._controller_type)
         geom.extend(b.geometry(length, radius))
         from chimerax.core.graphics import concatenate_geometry
         va, na, tc, ta = concatenate_geometry(geom)
@@ -1509,16 +1529,29 @@ def hand_mode_icon_path(session, mode_name):
     return None
 
 class HandButtons:
-    def __init__(self):
+    def __init__(self, controller_type = 'htc vive'):
         # Cone buttons
         import openvr
         buttons = [
-            ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.5, radius=.01, azimuth=270, tex_range=(.2,.4)),
-            ButtonGeometry(openvr.k_EButton_SteamVR_Touchpad, z=.5, radius=.01, azimuth=90, tex_range=(.4,.6)),
-            ButtonGeometry(openvr.k_EButton_Grip, z=.7, radius=.01, azimuth=0, tex_range=(.6,.8)),
-            ButtonGeometry(openvr.k_EButton_Grip, z=.7, radius=.01, azimuth=180, tex_range=(.6,.8)),
-            ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.35, radius=.006, azimuth=90, tex_range=(.8,1)),
         ]
+        if controller_type.startswith('oculus'):
+            side, thumb_side, menu_side = (180,110,140) if controller_type.endswith('right') else (0,70,40)
+            buttons = [
+                ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.4, radius=.01, azimuth=270, tex_range=(.2,.4)),
+                ButtonGeometry(openvr.k_EButton_A, z=.5, radius=.01, azimuth=thumb_side, tex_range=(.4,.6)),
+                ButtonGeometry(openvr.k_EButton_Grip, z=.6, radius=.01, azimuth=side, tex_range=(.6,.8)),
+                ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.4, radius=.006, azimuth=menu_side, tex_range=(.8,1)),
+            ]
+        else:
+            # Vive controllers
+            buttons = [
+                ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.5, radius=.01, azimuth=270, tex_range=(.2,.4)),
+                ButtonGeometry(openvr.k_EButton_SteamVR_Touchpad, z=.5, radius=.01, azimuth=90, tex_range=(.4,.6)),
+                ButtonGeometry(openvr.k_EButton_Grip, z=.7, radius=.01, azimuth=0, tex_range=(.6,.8)),
+                ButtonGeometry(openvr.k_EButton_Grip, z=.7, radius=.01, azimuth=180, tex_range=(.6,.8)),
+                ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.35, radius=.006, azimuth=90, tex_range=(.8,1)),
+            ]
+                
         self._buttons = buttons
         self._texture = None
         self._icon_scale = .8	# Scaled image centered in square circumscribing circular button

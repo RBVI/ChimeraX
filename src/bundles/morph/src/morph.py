@@ -76,7 +76,9 @@ def morph(session, structures, frames = 20, wrap = False, rate = 'linear', metho
                          color_segments = color_segments, color_core = color_core)
     session.models.add([traj])
     if not color_segments and color_core is None:
-        traj.set_initial_color()
+        if traj.num_chains == 1:
+            # Assign new color for single chain morphs for visual clarity
+            traj.set_initial_color()
 
     session.logger.info('Computed %d frame morph #%s' % (traj.num_coordsets, traj.id_string))
 
