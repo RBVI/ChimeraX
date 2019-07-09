@@ -3246,6 +3246,14 @@ def selected_bonds(session):
 
 # -----------------------------------------------------------------------------
 #
+def selected_residues(session):
+    '''All selected residues in all structures as an :class:`.Residues` collection.'''
+    from .molarray import concatenate, Atoms
+    sel_atoms = concatenate((selected_atoms(session),) + selected_bonds(session).atoms, Atoms)
+    return sel_atoms.residues.unique()
+
+# -----------------------------------------------------------------------------
+#
 def structure_residues(structures):
     '''Return all residues in specified atomic structures as an :class:`.Atoms` collection.'''
     from .molarray import Residues

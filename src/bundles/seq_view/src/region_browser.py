@@ -1137,8 +1137,8 @@ class RegionBrowser:
             fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
         sel_region.clear()
 
-        from chimerax.atomic import selected_atoms
-        sel_residues = set(selected_atoms(self.tool_window.session).residues)
+        from chimerax.atomic import selected_residues
+        sel_residues = set(selected_residues(self.tool_window.session))
         blocks = []
         for aseq in self.seq_canvas.alignment.seqs:
             for match_map in aseq.match_maps.values():
