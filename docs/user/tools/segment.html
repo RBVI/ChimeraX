@@ -54,10 +54,9 @@ and colored or selected by size using
 -->
 See also:
 <a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="maperaser.html"><b>Map Eraser</b></a>,
 <a href="../commands/color.html#zone"><b>color zone</b></a>,
-<a href="../commands/volume.html#gaussian"><b>volume gaussian</b></a>,
 <a href="../commands/volume.html#mask"><b>volume mask</b></a>,
-<a href="../commands/measure.html"><b>measure</b></a>,
 <a href="https://cryoem.slac.stanford.edu/ncmi/resources/software/segger"
 target="_blank">Segger website</a>,
 <a href="http://www.cgl.ucsf.edu/chimera/data/segger-howto-jun2010/segger.html"
@@ -86,7 +85,7 @@ Segger provides various ways to combine regions after the initial segmentation:
  by <b><i>scale-space filtering</i></b> 
 (smoothing the data), done by default;
 however, smoothing the data <i>before</i> segmentation
-may be necessary, as discussed in the following section
+may be necessary, as discussed <a href="#preprocessing">below</a>
 <li>interactive grouping <a href="#byhand">by manual selection</a>
 <li>interactive grouping <a href="#byconnectivity">by connectivity</a>
 <li>interactive grouping using fitted atomic models
@@ -115,7 +114,7 @@ so binning should aim for a grid spacing of approximately twice the
 Gaussian standard deviation.
 </p><p>
 If interactive rotation speed is poor after segmentation, see
-<a href="#response">improving response time</a>.
+<a href="#response">response time</a>.
 </p>
 
 <a name="dialog"></a>
@@ -128,11 +127,10 @@ If interactive rotation speed is poor after segmentation, see
 from the <b>Volume Data</b> section of the <b>Tools</b> menu
 (<a href="../window.html#panels">more...</a>).
 </p><p>
-<a name="chosenmap">
-The map of interest should be chosen from the pulldown menu of
-open volume data sets next to <b>Segment map</b>. 
-</a>
-The <a href="../commands/volume.html#level">threshold</a>
+<a name="chosenmap"></a>
+The map of interest should be chosen from the pulldown menu of open 
+<a href="volumeviewer.html">volume data</a> sets next to <b>Segment map</b>. 
+The <a href="volumeviewer.html#threshold">threshold</a>
 (contour level) of the map should be adjusted
 before segmentation, because the calculation will use only the voxels
 with density values above that level.
@@ -164,13 +162,14 @@ by <a href="../selection.html">selection</a>. With default
 <a href="../commands/ui.html#mousemode">mouse-button assignments</a>,
 Ctrl-click selects a region and Shift-Ctrl-click selects additional regions
 without erasing the pre-existing selection.
+</p>
 <ul>
 <li>If no segmentation regions are selected,
 clicking <b>Ungroup</b> backtracks to the previous stage of grouping of the
-<a href="#currseg">current segmentation</a>.
-By default, <b>Segment</b> automatically applies three rounds of smoothing 
-and grouping; after that, the three intermediate stages could be accessed 
-by clicking <b>Ungroup</b> three times.  If regions are selected,
+<a href="#currseg">current segmentation</a>. By <a href="#options">default</a>, 
+<b>Segment</b> automatically applies multiple rounds of smoothing 
+and grouping, so that different intermediate stages can be accessed 
+by clicking <b>Ungroup</b> multiple times. If regions are selected,
 <b>Ungroup</b> will backtrack to the previous stage of grouping for
 the selected region(s).
 <li>If no segmentation regions are selected,
@@ -179,11 +178,15 @@ or performs further grouping.
 If regions are selected,
 <b>Group</b> will combine the selected regions into a single group.
 </ul>
-Grouping, ungrouping, and other manipulations can also be performed with the
+<p>
+Segmentation region <a href="../selection.html">selection</a>, showing/hiding,
+and other manipulations can also be performed with the
+<a href="#shortcuts">shortcuts options</a> or the
 <b>Segment Map</b> <a href="#menu-regions"><b>Regions</b> menu</a>.
+</p><p>
 Segmentation results are included in saved
-<a href="../commands/save.html#session">sessions</a>, but
-can also be saved separately using the <b>Segment Map</b> 
+<a href="../commands/save.html#session">sessions</a>. 
+They can also be saved separately using the <b>Segment Map</b> 
 <a href="#menu-file"><b>File</b> menu</a>.
 </p><p>
 Clicking <b>Fit</b> opens the 
@@ -259,10 +262,10 @@ change the grouping further.
 <b>Group by connectivity [<i>N</i>] steps, stop at [<i>minreg</i>] regions</b>
 &nbsp;<b>&#9744; only visible</b>
 &ndash; whether to group watershed regions based on density connections,
-and if so, whether to use only the regions which are visible.
+and if so, whether to use only the visible regions.
 If the density map has not been segmented already, watershed
 segmentation will use only the voxels with density values above
-the current <a href="../commands/volume.html#level">threshold level</a>
+the current <a href="volumeviewer.html#threshold">threshold</a>
 without subsequent smoothing/grouping. Clicking <b>Group</b>
 will then perform the specified number of rounds (steps) of
 grouping by connectivity (default <i>N</i>=<b>20</b>).
@@ -276,6 +279,9 @@ in different groups.
 </ul>
 <p>
 <a name="shortcuts"></a>
+<p class="nav">
+[<a href="#top">back to top: Segment Map</a>]
+</p>
 <b>Shortcuts Options</b>:
 </p>
 <ul>
@@ -313,19 +319,21 @@ in different groups.
 <li><b>Other tools</b>:
   <ul>
   <li><b>Fit</b> &ndash; <a href="fitsegments.html"><b>Fit to Segments</b></a>
-  <br><font color="brown">not implemented:
+  <br><font color="brown">&ndash; not implemented &ndash;
   <li><b>Extract</b> &ndash; detailed options for extracting densities within
   the <a href="../selection.html">selected</a> regions
-  <li><b>rSeg</b> &ndash; radial segmentation
-  <li><b>SegLoop</b> &ndash; basic atomic structure modeling into regions
-  <li><b>ProMod</b> 
-  &ndash; combining multiple atomic models into a probabilistic model
+  <li><b>iSeg</b> &ndash; radial/icosahedral segmentation
+  <li><b>ProMod</b> &ndash; probabilistic modeling of multiple conformations
+  <li><b>ModelZ</b> &ndash; assess how well structural features are resolved
   </font>
   </ul>
 </ul>
 
 <!--
 <a name="attributes"></a>
+<p class="nav">
+[<a href="#top">back to top: Segment Map</a>]
+</p>
 <h3>Segmentation Region Attributes</h3>
 <p>
 Segmentation <a href="#top">segmentation regions</a> are automatically
@@ -502,21 +510,23 @@ regions, or if none are selected, all regions
 regions, or if none are selected, all regions
 <li><b>Color density map</b>
 &ndash; color the density map display to match all regions
-(subsequently changing the threshold will erase the coloring for 
-<a href="volumeviewer.html">volume displays</a>
+(subsequently changing the <a href="volumeviewer.html#threshold">threshold</a>
+will erase the coloring for <a href="volumeviewer.html">volume displays</a>
 in the <b>surface</b> or <b>mesh</b> style)
 <li><b>Select groups</b>
-&ndash; select all regions composed of grouped watershed regions
+&ndash; <a href="../selection.html">select</a>
+all regions composed of grouped watershed regions
 <li><b>Select boundary regions</b>
-&ndash; select regions that contain at least one grid point within three voxels
+&ndash; <a href="../selection.html">select</a>
+regions that contain at least one grid point within three voxels
 of the edge of the density map
 <li><b>Invert selection</b>
 &ndash; deselect the <a href="../selection.html">selected</a> regions
 and <i>vice versa</i>
 <li><b>Regions overlapping current selection</b>
-&ndash; select any regions that overlap well with the currently
-<a href="../selection.html">selected</a> atoms,
-deselect the atoms
+&ndash; <a href="../selection.html">select</a>
+any regions that overlap well with the currently
+<a href="../selection.html">selected</a> atoms, deselect the atoms
 <!--
 <li><b>Group selected</b>
 &ndash; group the <a href="../selection.html">selected</a> regions
@@ -577,7 +587,7 @@ show table of <a href="#attributes">region attributes</a>
 <p class="nav">
 [<a href="#top">back to top: Segment Map</a>]
 </p>
-<h4>Improving Response Time</h4>
+<h3>Response Time</h3>
 <p>
 <b>High number of surface triangles</b>.
 The number of surface triangles can be reduced by increasing the

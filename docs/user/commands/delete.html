@@ -28,13 +28,18 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>delete</b>
 [&nbsp;<b>atoms</b>&nbsp;|&nbsp;bonds&nbsp;|&nbsp;pseudobonds&nbsp;|&nbsp;pbonds&nbsp;]
 &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>attachedHyds</b>&nbsp;&nbsp;<b>true</b>&nbsp;&nbsp;false&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>pseudobond-model-name</i>&nbsp;]
 </h3>
 <p>
-The <b>delete</b> command deletes the specified <b>atoms</b> (default),
+The <b>delete</b> command deletes the specified type of object:
+<b>atoms</b> (default),
 <b>bonds</b>, or <a href="../pseudobonds.html"><b>pseudobonds</b></a>
-(synonym <b>pbonds</b>).  If the object-type keyword is given,
+(synonym <b>pbonds</b>). If the object-type keyword is given,
 the <a href="atomspec.html"><i>spec</i></a> is allowed to be blank.
+By default (<b>attachedHyds true</b>), any hydrogens directly bonded to
+atoms specified for deletion will also be deleted, even if the hydrogens
+were not specified.
 Bonds and pseudobonds can be specified by their flanking
 atoms, or as a <a href="../selections.html">selection</a> with <b>sel</b>.
 Pseudobonds can also be specified by model number, certain
@@ -42,10 +47,11 @@ Pseudobonds can also be specified by model number, certain
 or pseudobond model name as shown in the 
 <a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
 See also: <a href="show.html"><b>hide</b></a>,
-<a href="close.html"><b>close</b></a>
+<a href="close.html"><b>close</b></a>,
+<a href="../selection.html#context">selection context menus</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2018</address>
+July 2019</address>
 </body></html>

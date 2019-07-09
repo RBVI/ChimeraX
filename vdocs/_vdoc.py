@@ -11,25 +11,43 @@ BUNDLES = os.path.join("..", "src", "bundles")
 
 def build():
     _symlink_user(DOCS, True)
-    for dirpath in os.listdir(BUNDLES):
-        docs_dir = os.path.join(dirpath, "src", "docs")
+    for dirname in os.listdir(BUNDLES):
+        # dirname may not be a directory, but we do not care
+        # since test will return False anyway
+        docs_dir = os.path.join(BUNDLES, dirname, "src", "docs")
         if os.path.exists(docs_dir):
             _symlink_user(docs_dir, False)
 
 
 def _symlink_user(root, conflict_fatal):
+
     user_path = os.path.join(root, "user")
     strip_length = len(user_path) - len("user")
     for dirpath, dirnames, filenames in os.walk(user_path):
+        # Make sure directory in virtual docs exists
         my_dir = dirpath[strip_length:]
         if not os.path.exists(my_dir):
             _make_directory(my_dir)
         else:
             _check_directory(my_dir)
+
+        # Get the right relative source directory path
+        prefix = []
+        head = my_dir
+        while head:
+            head, tail = os.path.split(head)
+            if not head and not tail:
+                break
+            prefix.append("..")
+        prefix.append(dirpath)
+        src_dir = os.path.join(*prefix)
+
+        # Create symlinks for each entry on remote end
+        # Skip Makefiles since make must be run in true location, not here
         for filename in filenames:
             if filename in skip or filename[0] == '.':
                 continue
-            src = os.path.join(dirpath, filename)
+            src = os.path.join(src_dir, filename)
             dst = os.path.join(my_dir, filename)
             if not os.path.exists(dst):
                 _make_symlink(src, dst)

@@ -133,6 +133,9 @@ class SideViewCanvas(QWindow):
         width, height = self.view.window_size
         if width <= 0 or height <= 0:
             return
+        # temporary workaround for #2162
+        if self.view is None or self.view.render is None:
+            return
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG

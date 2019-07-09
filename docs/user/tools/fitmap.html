@@ -30,12 +30,6 @@ class="clRight" title="User Guide Index"/></a>
 atomic coordinates into a density map or one density map into another.
 The maps usually represent electron density, but other types of
 <a href="volumeviewer.html">volume data</a> can also be used.
-See also:
-<a href="volumeviewer.html"><b>Volume Viewer</b></a>,
-<a href="fitsegments.html"><b>Fit to Segments</b></a>,
-<a href="../commands/measure.html"><b>measure</b></a>,
-<a href="../commands/molmap.html"><b>molmap</b></a>,
-<a href="../commands/sym.html"><b>sym</b></a>
 </p><p>
 The command implementation,
 <a href="../commands/fitmap.html"><b>fitmap</b></a>, also includes
@@ -49,6 +43,12 @@ of multiple different structures
 <li><a href="../commands/fitmap.html#symmetric">symmetric fitting</a>
 of copies of the same structure
 </ul>
+<p>
+See also:
+<a href="volumeviewer.html"><b>Volume Viewer</b></a>,
+<a href="mapcoords.html"><b>Map Coordinates</b></a>,
+<a href="fitsegments.html"><b>Fit to Segments</b></a>
+</p>
 
 <a name="dialog"></a>
 <p class="nav">
@@ -70,12 +70,12 @@ from the <b>Volume Data</b> section of the <b>Tools</b> menu
 The <i>fit-model</i> is the set of atoms or a
 map (<a href="volumeviewer.html">volume data</a>)
 to be fit into the <i>ref-model</i> map.
-Each should be chosen from the pulldown menu of choices already open in ChimeraX.
+Each should be chosen from the pulldown menu of models already open in ChimeraX.
 When atoms are fit, an entire atomic model or just the currently
 <a href="../selection.html">selected</a> atoms can be used.
 If an entire atomic model is chosen, any parts not desired for fitting
 (such as solvent, ligands, or extra chains) should be
-<a href="../commands/delete.html">deleted</a>.
+<a href="../commands/delete.html">deleted</a> from that model.
 </p><p>
 Since the <a href="#optimization">optimization</a> is local rather than global,
 the fit model should be placed in a trial position
@@ -97,9 +97,13 @@ will be repositioned after the earliest of:
 <ul>
 <li><a href="#convergence">convergence</a>
 <li>2000 steps
-<li>when <b>Halt</b> is clicked
 </ul>
 <p>
+The goodness-of-fit values <a href="#fitmaps"><b>Correlation</b></a> and/or 
+<a href="#fitatoms"><b>Average map value</b></a> are reported in the dialog.
+Clicking
+<b>Update</b> gives the current fit values without performing any fitting.
+</p><p>
 The fit values, number of steps taken, and 
 <a href="#fitmodel">fit model</a> displacement
 (translational shift and angle of rotation) are reported in the
@@ -122,13 +126,9 @@ whereas <b>Redo</b> reapplies them.
 The <a href="../commands/clashes.html"><b>clashes</b></a> command with
 <a href="../commands/clashes.html#continuous"><b>continuous true</b></a>
 can be used to monitor for close contacts between atomic structures
-as they are moved, and atomic coordinates can be
-<a href="../commands/save.html#pdb">saved</a>
+as they are moved, and atomic models can be
+<a href="../commands/save.html#pdb">saved</a> in their positions
 relative to the <a href="#refmodel">reference map</a>.
-</p><p>
-Clicking
-<b>Update</b> gives the current <a href="#fitatoms">atoms-in-map</a> and/or
-<a href="#fitmaps">map-in-map</a> fit values without performing any fitting.
 </p>
 
 <a name="options"></a>
@@ -154,7 +154,7 @@ amplitude proportional to the atomic number (other parameters set to
 &ndash; exclude data outside the <a href="#fitmodel">fit map</a>
 contour surface from <a href="#fitmaps">map-in-map</a> fitting, <i>i.e.</i>,
 exclude data values below the map's lowest
-<a href="../commands/volume.html#level">threshold level</a>
+<a href="volumeviewer.html#threshold">threshold level</a>
 <li> whether to <b>Optimize</b> the <a href="#overlap"><b>overlap</b></a>
 or the <a href="#correlation"><b>correlation</b></a>
 during <a href="#fitmaps">map-in-map</a> fitting
@@ -189,7 +189,7 @@ Map-in-map fitting</a>:
 Either the overlap or the correlation can be maximized.
 The calculation can include all nonzero-valued fit map grid points
 or only those with values above the map's lowest
-<a href="../commands/volume.html#level">contour level</a>
+<a href="volumeviewer.html#threshold">threshold level</a>
 (see <a href="#options">options</a>).
 The <a name="overlap"><b><i>overlap</i></b></a> is
 the sum over fit map grid points of the product of the fit
@@ -218,8 +218,7 @@ or if the <a href="#aboutmean">correlation about mean</a> option is turned on,
 <blockquote>
 <table cellspacing="0" cellpadding="0">
 <tr><td></td><td valign="bottom">
-&lt;<b>u</b>&ndash;<b>u</b><sub>ave</sub>,<b>v</b>&ndash;<b>v</b><sub>ave</sub>&
-gt;
+&lt;<b>u</b>&ndash;<b>u</b><sub>ave</sub>,<b>v</b>&ndash;<b>v</b><sub>ave</sub>&gt;
 </td></tr>
 <tr><td><b><i>correlation</i></b> =&nbsp;&nbsp;</td>
 <td height="1"><hr></td></tr>
@@ -237,7 +236,6 @@ the range of overlap values depends on the scaling of the maps.
 </blockquote>
 <p>
 <b>Close</b> closes the <b>Fit in Map</b> dialog.
-<b>Help</b> opens this manual page in a browser window.
 </p>
 
 <a name="technical"></a>

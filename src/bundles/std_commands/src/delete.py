@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def delete(session, atoms):
+def delete(session, atoms, attached_hyds=True):
     '''Delete atoms.
 
     Parameters
@@ -19,9 +19,9 @@ def delete(session, atoms):
     atoms : Atoms collection
         Delete these atoms.  If all atoms of a model are closed then the model is closed.
     '''
-    delete_atoms(session, atoms)
+    delete_atoms(session, atoms, attached_hyds=attached_hyds)
 
-def delete_atoms(session, atoms):
+def delete_atoms(session, atoms, attached_hyds=True):
     '''Delete atoms.
 
     Parameters
@@ -32,6 +32,10 @@ def delete_atoms(session, atoms):
     if atoms is None:
         from chimerax.atomic import all_atoms
         atoms = all_atoms(session)
+    if attached_hyds:
+        nbs = atoms.neighbors
+        hyds = nbs.filter(nbs.elements.numbers == 1)
+        atoms = atoms.merge(hyds)
     atoms.delete()
     session.models.close([s for s in session.models if s.deleted])
 
@@ -66,12 +70,14 @@ def delete_pbonds(session, pbonds, name=None):
     pbonds.delete()
 
 def register_command(logger):
-    from chimerax.core.commands import create_alias, CmdDesc, register, Or, EmptyArg, StringArg
+    from chimerax.core.commands import create_alias, CmdDesc, register, Or, EmptyArg, StringArg, BoolArg
     from chimerax.atomic import AtomsArg, BondsArg, PseudobondsArg
     desc = CmdDesc(required=[('atoms', AtomsArg)],
+                       keyword=[('attached_hyds', BoolArg)],
                        synopsis='delete atoms')
     register('delete', desc, delete, logger=logger)
     desc = CmdDesc(required=[('atoms', Or(AtomsArg, EmptyArg))],
+                       keyword=[('attached_hyds', BoolArg)],
                        synopsis='delete atoms')
     register('delete atoms', desc, delete_atoms, logger=logger)
     desc = CmdDesc(required=[('bonds', Or(BondsArg, EmptyArg))],

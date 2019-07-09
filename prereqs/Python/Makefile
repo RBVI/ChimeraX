@@ -260,7 +260,7 @@ endif
 ifneq ($(OS),Windows)
 	# remove references to build tree from config
 	# we do not build Python on Windows, so no action is needed
-	$(APP_PYTHON_EXE) clean_config_makefile.py $(build_prefix)
+	$(APP_PYTHON_EXE) clean_config_vars.py $(build_prefix)
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
 	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
