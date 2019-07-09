@@ -97,6 +97,12 @@ The <b>frames</b> option (default <i>N</i> = <b>20</b>) indicates generating
 giving a total number of frames in the trajectory
 = 1 + <i>N</i>(number of stages).
 </p><p>
+Unless <a href="#hinges">colored to show hinge locations</a>,
+a single-chain morph trajectory will exhibit its
+<a href="colortables.html#autocolors">unique model color</a>, whereas
+a multichain morph trajectory will retain the coloring scheme of the
+first model used in its creation.
+</p><p>
 <a name="same"></a>
 The <b>same</b> option indicates that the input structures 
 have the same sequences, atom names, residue numbering, and chain IDs, 
@@ -209,11 +215,6 @@ whereas <b>colorCore</b> uses the specified
 <a href="colornames.html"><i>color</i></a> for residues in the initial core.
 Although segments are recomputed for each <a href="#stage">stage</a> 
 of a multistage morph, segment coloring only shows the first set.
-<p>
-If segment/core coloring is not done, a single-chain morph trajectory 
-will be assigned a <a href="colortables.html#autocolors">unique model color</a>,
-whereas a multichain morph trajectory will retain the coloring of the
-first model used in its creation.
 </blockquote>
 
 <a name="pairing"></a>
