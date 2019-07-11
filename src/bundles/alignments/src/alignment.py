@@ -40,6 +40,8 @@ class Alignment(State):
         self._observer_notification_suspended = 0
         self._ob_note_suspended_data = []
         self.associations = {}
+        # need to be able to look up chain obj even after demotion to Sequence
+        self._sseq_to_chain = {}
         from chimerax.atomic import Chain
         self.intrinsic = intrinsic
         self._in_destroy = False
@@ -437,6 +439,7 @@ class Alignment(State):
         aseq = match_map.align_seq
         sseq = match_map.struct_seq
         chain = sseq.chain
+        self._sseq_to_chain[sseq] = chain
         aseq.match_maps[chain] = match_map
         self.associations[chain] = aseq
 
@@ -506,7 +509,8 @@ class Alignment(State):
 
     def _mmap_mod_cb(self, trig_name, match_map):
         if len(match_map) == 0:
-            self.disassociate(match_map.struct_seq, demotion=True)
+            self.disassociate(self._sseq_to_chain[match_map.struct_seq], demotion=True)
+            del self._sseq_to_chain[match_map.struct_seq]
         else:
             self._notify_observers("modify association", ("modify association", [match_map]))
 
