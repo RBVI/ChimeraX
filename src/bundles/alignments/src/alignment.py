@@ -537,7 +537,7 @@ class Alignment(State):
         for s, mm in zip(aln.seqs, data['match maps']):
             s.match_maps = mm
             for chain, match_map in mm.items():
-                match_map.mod_handler = match_map.triggers.add_handler('modified', self._mmap_mod_cb)
+                match_map.mod_handler = match_map.triggers.add_handler('modified', aln._mmap_mod_cb)
         return aln
 
     def __str__(self):
