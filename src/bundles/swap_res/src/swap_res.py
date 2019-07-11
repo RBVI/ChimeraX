@@ -46,7 +46,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             raise LimitationError("%s rotamer library does not support %s" %(lib, r_type))
         except NoResidueRotamersError:
             if log:
-                session.info("Swapping %s to %s\n" % (res, r_type))
+                session.logger.info("Swapping %s to %s\n" % (res, r_type))
             try:
                 template_swap_res(res, r_type, bfactor=bfactor)
             except TemplateSwapError as e:
@@ -67,6 +67,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
         raise UserError("Nth-most-probable criteria cannot be mixed with"
             " other criteria")
     #TODO
+    cmp = lambda p1,p2: 1 if p1 > p2 else (0 if p1 == p2 else -1)
     for char in str(criteria):
         if char == "d":
             #TODO
@@ -115,7 +116,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     None, None, ignore_other_models)
                 chimera.openModels.remove(rots)
             fetch = lambda r: r.clashScore
-            test = lambda v1, v2: cmp(v2, v1)
+            test = cmp
         elif char == 'h':
             #TODO
             raise LimitationError("'h' criteria not implemented")
@@ -140,7 +141,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
         elif char == 'p':
             # most probable
             fetch = lambda r: r.rotamer_prob
-            test = lambda p1,p2: p1>p2
+            test = cmp
         elif isinstance(criteria, int):
             #TODO
             raise LimitationError("Nth-prob criteria not implemented")
@@ -157,41 +158,35 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: 1
             test = lambda v1, v2: 1
 
-        #TODO
         for res, rots in rotamers.items():
             best = None
             for rot in rots:
                 val = fetch(rot)
-                if best == None or test(val, bestVal) > 0:
+                if best == None or test(val, best_val) > 0:
                     best = [rot]
-                    bestVal = val
-                elif test(val, bestVal) == 0:
+                    best_val = val
+                elif test(val, best_val) == 0:
                     best.append(rot)
             if len(best) > 1:
                 rotamers[res] = best
             else:
-                if retain == "sel":
-                    scRetain = sideChainLocs(res, selected=True)
-                elif retain:
-                    scRetain = sideChainLocs(res)
+                if retain:
+                    sc_retain = side_chain_locs(res)
                 else:
-                    scRetain = []
-                useRotamer(res, [best[0]], retain=scRetain,
-                            mcAltLoc=mcAltLoc, log=log)
+                    sc_retain = []
+                use_rotamer(session, res, [best[0]], retain=sc_retain, log=log)
                 del rotamers[res]
         if not rotamers:
             break
     for res, rots in rotamers.items():
         if log:
-            replyobj.info("%s has %d equal-value rotamers; choosing"
-                " one arbitrarily.\n" % (res, len(rots)))
-        if retain == "sel":
-            scRetain = sideChainLocs(res, selected=True)
-        elif retain:
-            scRetain = sideChainLocs(res)
+            session.logger.info("%s has %d equal-value rotamers;"
+                " choosing one arbitrarily.\n" % (res, len(rots)))
+        if retain:
+            sc_retain = side_chain_locs(res)
         else:
-            scRetain = []
-        useRotamer(res, [rots[0]], retain=scRetain, mcAltLoc=mcAltLoc, log=log)
+            sc_retain = []
+        use_rotamer(session, res, [rots[0]], retain=sc_retain, log=log)
     for rot in destroy_list:
         rot.delete()
 
@@ -211,7 +206,6 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     # check that the residue has the n/c/ca atoms needed to position the rotamer
     # and to ensure that it is an amino acid
     from chimerax.atomic import Residue, AtomicStructure
-    from chimerax.core.errors import LimitationError
     match_atoms = {}
     for bb_name in Residue.aa_min_backbone_names:
         match_atoms[bb_name] = a = res.find_atom(bb_name)
@@ -573,6 +567,153 @@ def prune_by_chis(session, rots, res, cutoff, log=False):
         session.info("No rotamer with all chi angles within %g of %s; using closest one" % (cutoff, res))
     return [nearest]
 
+def side_chain_locs(residue):
+    locs = set()
+    for a in residue.atoms:
+        if a.is_backbone():
+            continue
+        locs.add(a.alt_loc)
+    return locs
+
+def use_rotamer(sesion, res, rots, retain=[], log=False):
+    """Takes a Residue instance and a list of one or more rotamers (as returned by get_rotamers)
+       and swaps the Residue's side chain with the given rotamers.  If more than one rotamer is
+       in the list, then alt locs will be used to distinguish the different side chains.  The side
+       chain(s) will be positioned using the current backbone altloc.
+
+       'retain' is a list of altloc sidechains to retain.  The presence of
+       '' in that list means also retain the non-altloc side chain.
+    """
+    N = res.find_atom("N")
+    CA = res.find_atom("CA")
+    C = res.find_atom("C")
+    if not N or not C or not CA:
+        raise LimitationError("N, CA, or C missing from %s: needed for side-chain pruning algorithm" % res)
+    import string
+    alt_locs = string.ascii_uppercase + string.ascii_lowercase + string.digits + string.punctuation
+    bb_retain = set([CA.alt_loc] + retain)
+    retain = set(retain)
+    if len(rots) + len([x for x in retain if x]) > len(alt_locs):
+        raise LimitationError("Don't have enough unique alternate "
+            "location characters to place %d rotamers." % len(rots))
+    rot_anchors = {}
+    for rot in rots:
+        rot_res = rot.residues[0]
+        rot_N, rot_CA = rot_res.find_atom("N"), rot_res.find_atom("CA")
+        if not rot_N or not rot_CA:
+            raise LimitationError("N or CA missing from rotamer: cannot matchup with original residue")
+        rot_anchors[rot] = (rot_N, rot_CA)
+    color_by_element = N.color != CA.color
+    if color_by_element:
+        carbon_color = CA.color
+    else:
+        uniform_color = N.color
+    # prune old side chains
+    for a in res.atoms:
+        a_retain = bb_retain if a.is_backbone() else retain
+        for alt_loc in a.alt_locs:
+            if alt_loc not in a_retain:
+                
+    #TODO
+    for olds in zip(oldNs, oldCAs, oldCs):
+        oldN, oldCA, oldC = olds
+        pardoned = set([old for old in olds
+                if not old.__destroyed__ and old.altLoc in mcRetain])
+        deathrow = [nb for nb in oldCA.neighbors if nb not in pardoned
+            and nb.altLoc not in retain]
+        serials = {}
+        while deathrow:
+            prune = deathrow.pop()
+            if prune.residue != res:
+                continue
+            serials[prune.name] = getattr(prune, "serialNumber", None)
+            for nb in prune.neighbors:
+                if nb not in deathrow and nb not in pardoned \
+                                    and nb.altLoc not in retain:
+                    deathrow.append(nb)
+            res.molecule.deleteAtom(prune)
+    # for proline, also prune amide hydrogens
+    if rots[0].residues[0].type == "PRO":
+        for oldN in oldNs:
+            for nnb in oldN.neighbors[:]:
+                if nnb.element.number == 1:
+                    oldN.molecule.deleteAtom(nnb)
+
+    totProb = sum([r.rotamer_prob for r in rots])
+    oldAtoms = set(["N", "CA", "C"])
+    for i, rot in enumerate(rots):
+        rot_res = rot.residues[0]
+        rot_N, rot_CA = rot_anchors[rot]
+        if len(rots) + len(retain) > 1:
+            found = 0
+            for altLoc in alt_locs:
+                if altLoc not in retain:
+                    if found == i:
+                        break
+                    found += 1
+        elif mcRetain != set(['']):
+            altLoc = mcAltLoc
+        else:
+            altLoc = ''
+        if altLoc:
+            extra = " using alt loc %s" % altLoc
+        else:
+            extra = ""
+        if log:
+            replyobj.info("Applying %s rotamer (chi angles: %s) to"
+                " %s%s\n" % (rot_res.type, " ".join(["%.1f" % c
+                for c in rot.chis]), res, extra))
+        from BuildStructure import changeResidueType
+        changeResidueType(res, rot_res.type)
+        # add new side chain
+        from chimerax.atomic.struct_edit import add_atom, add_bond
+        sprouts = [rot_CA]
+        while sprouts:
+            sprout = sprouts.pop()
+            if sprout.name in oldAtoms:
+                builtSprout = [a for a in res.atomsMap[sprout.name]
+                    if a.altLoc == mcAltLoc][-1]
+            else:
+                builtSprout = res.atomsMap[sprout.name][-1]
+            for nb, b in sprout.bondsMap.items():
+                try:
+                    builtNBs = res.atomsMap[nb.name]
+                except KeyError:
+                    needBuild = True
+                else:
+                    if nb.name in oldAtoms:
+                        needBuild = False
+                        builtNB = res.atomsMap[nb.name][0]
+                    elif altLoc in [x.altLoc for x in builtNBs]:
+                        needBuild = False
+                        builtNB = [x for x in builtNBs if x.altLoc == altLoc][0]
+                    else:
+                        needBuild = True
+                if needBuild:
+                    if i == 0:
+                        serial = serials.get(nb.name, None)
+                    else:
+                        serial = None
+                    builtNB = add_atom(nb.name, nb.element, res, nb.coord(),
+                        serialNumber=serial, bonded_to=builtSprout)
+                    if altLoc:
+                        builtNB.altLoc = altLoc
+                    if totProb == 0.0:
+                        # some rotamers in Dunbrack are zero prob!
+                        builtNB.occupancy = 1.0 / len(rots)
+                    else:
+                        builtNB.occupancy = rot.rotamer_prob / totProb
+                    if color_by_element:
+                        if builtNB.element.name == "C":
+                            builtNB.color = carbon_color
+                        else:
+                            builtNB.color = elementColor(builtNB.element.name)
+                    else:
+                        builtNB.color = uniform_color
+                    sprouts.append(nb)
+                if builtNB not in builtSprout.bondsMap:
+                    add_bond(builtSprout, builtNB)
+
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle
     bond_key = (n1, new)
@@ -607,169 +748,6 @@ class RotamerParams:
         self.p = p
         self.chis = chis
 
-
-def useRotamer(oldRes, rots, retain=[], mcAltLoc=None, log=False):
-    """Takes a Residue instance and a list of one or more rotamers (as
-       returned by get_rotamers) and swaps the Residue's side chain with
-       the given rotamers.  If more than one rotamer is in the list,
-       then alt locs will be used to distinguish the different side chains.
-
-       'retain' is a list of altloc sidechains to retain.  The presence of
-       '' in that list means also retain the non-altloc side chain.
-
-       'mcAltLoc' is the main-chain alt loc to place the rotamers on if
-       the main chain has multiple alt locs.  The other main chain alt locs
-       will be pruned unless they are listed in 'retain'. If 'mcAltLoc' is
-       not specified, then the highest-occupancy alt locs will be used.
-    """
-    try:
-        oldNs = oldRes.atomsMap["N"]
-        oldCAs = oldRes.atomsMap["CA"]
-        oldCs = oldRes.atomsMap["C"]
-    except KeyError:
-        raise LimitationError("N, CA, or C missing from %s:"
-            " needed for side-chain pruning algorithm" % oldRes)
-    import string
-    altLocs = string.ascii_uppercase + string.ascii_lowercase \
-                + string.digits + string.punctuation
-    retain = set(retain)
-    if len(rots) + len([x for x in retain if x]) > len(altLocs):
-        raise LimitationError("Don't have enough unique alternate "
-            "location characters to place %d rotamers." % len(rots))
-    rotAnchors = {}
-    for rot in rots:
-        rotRes = rot.residues[0]
-        try:
-            rotAnchors[rot] = (rotRes.atomsMap["N"][0],
-                        rotRes.atomsMap["CA"][0])
-        except KeyError:
-            raise LimitationError("N or CA missing from rotamer:"
-                    " cannot matchup with original residue")
-    # prune old side chains
-    sortFunc = lambda a1, a2: cmp(a1.altLoc, a2.altLoc)
-    most = max(len(oldNs), len(oldCAs), len(oldCs))
-    for old in (oldNs, oldCAs, oldCs):
-        if len(old) < most:
-            old.extend([old[0]] * (most - len(old)))
-    oldNs.sort(sortFunc)
-    oldCAs.sort(sortFunc)
-    oldCs.sort(sortFunc)
-    colorByElement = oldNs[0].color != oldCAs[0].color
-    if colorByElement:
-        from Midas import elementColor
-        carbonColor = oldCAs[0].color
-    else:
-        uniformColor = oldNs[0].color
-    if mcAltLoc == None:
-        bestOcc = None
-        for olds in zip(oldNs, oldCAs, oldCs):
-            oldN, oldCA, oldC = olds
-            occ = getattr(oldN, "occupancy", 1.0) + getattr(oldCA,
-                "occupancy", 1.0) + getattr(oldC, "occupancy", 1.0)
-            if bestOcc == None or occ > bestOcc:
-                bestOcc = occ
-                mcAltLoc = oldCA.altLoc
-                mcRetain = retain | set([old.altLoc for old in olds])
-    else:
-        mcRetain = retain | set([mcAltLoc, ''])
-    for olds in zip(oldNs, oldCAs, oldCs):
-        oldN, oldCA, oldC = olds
-        pardoned = set([old for old in olds
-                if not old.__destroyed__ and old.altLoc in mcRetain])
-        deathrow = [nb for nb in oldCA.neighbors if nb not in pardoned
-            and nb.altLoc not in retain]
-        serials = {}
-        while deathrow:
-            prune = deathrow.pop()
-            if prune.residue != oldRes:
-                continue
-            serials[prune.name] = getattr(prune, "serialNumber", None)
-            for nb in prune.neighbors:
-                if nb not in deathrow and nb not in pardoned \
-                                    and nb.altLoc not in retain:
-                    deathrow.append(nb)
-            oldRes.molecule.deleteAtom(prune)
-    # for proline, also prune amide hydrogens
-    if rots[0].residues[0].type == "PRO":
-        for oldN in oldNs:
-            for nnb in oldN.neighbors[:]:
-                if nnb.element.number == 1:
-                    oldN.molecule.deleteAtom(nnb)
-
-    totProb = sum([r.rotamer_prob for r in rots])
-    oldAtoms = set(["N", "CA", "C"])
-    for i, rot in enumerate(rots):
-        rotRes = rot.residues[0]
-        rot_N, rot_CA = rotAnchors[rot]
-        if len(rots) + len(retain) > 1:
-            found = 0
-            for altLoc in altLocs:
-                if altLoc not in retain:
-                    if found == i:
-                        break
-                    found += 1
-        elif mcRetain != set(['']):
-            altLoc = mcAltLoc
-        else:
-            altLoc = ''
-        if altLoc:
-            extra = " using alt loc %s" % altLoc
-        else:
-            extra = ""
-        if log:
-            replyobj.info("Applying %s rotamer (chi angles: %s) to"
-                " %s%s\n" % (rotRes.type, " ".join(["%.1f" % c
-                for c in rot.chis]), oldRes, extra))
-        from BuildStructure import changeResidueType
-        changeResidueType(oldRes, rotRes.type)
-        # add new side chain
-        from chimerax.atomic.struct_edit import add_atom, add_bond
-        sprouts = [rot_CA]
-        while sprouts:
-            sprout = sprouts.pop()
-            if sprout.name in oldAtoms:
-                builtSprout = [a for a in oldRes.atomsMap[sprout.name]
-                    if a.altLoc == mcAltLoc][-1]
-            else:
-                builtSprout = oldRes.atomsMap[sprout.name][-1]
-            for nb, b in sprout.bondsMap.items():
-                try:
-                    builtNBs = oldRes.atomsMap[nb.name]
-                except KeyError:
-                    needBuild = True
-                else:
-                    if nb.name in oldAtoms:
-                        needBuild = False
-                        builtNB = oldRes.atomsMap[nb.name][0]
-                    elif altLoc in [x.altLoc for x in builtNBs]:
-                        needBuild = False
-                        builtNB = [x for x in builtNBs if x.altLoc == altLoc][0]
-                    else:
-                        needBuild = True
-                if needBuild:
-                    if i == 0:
-                        serial = serials.get(nb.name, None)
-                    else:
-                        serial = None
-                    builtNB = add_atom(nb.name, nb.element, oldRes, nb.coord(),
-                        serialNumber=serial, bonded_to=builtSprout)
-                    if altLoc:
-                        builtNB.altLoc = altLoc
-                    if totProb == 0.0:
-                        # some rotamers in Dunbrack are zero prob!
-                        builtNB.occupancy = 1.0 / len(rots)
-                    else:
-                        builtNB.occupancy = rot.rotamer_prob / totProb
-                    if colorByElement:
-                        if builtNB.element.name == "C":
-                            builtNB.color = carbonColor
-                        else:
-                            builtNB.color = elementColor(builtNB.element.name)
-                    else:
-                        builtNB.color = uniformColor
-                    sprouts.append(nb)
-                if builtNB not in builtSprout.bondsMap:
-                    add_bond(builtSprout, builtNB)
 
         
 amino20 = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
@@ -930,19 +908,6 @@ def processVolume(rotamers, columnName, volume):
         precision += 1
         absMax *= 10
     return "%%%d.%df" % (precision+2+addMinusSign, precision)
-
-def sideChainLocs(residue, selected=False):
-    locs = set()
-    if selected:
-        from chimera import selection
-        currentAtoms = selection.currentAtoms(asDict=True)
-    mainChainNames = set(["CA", "C", "N", "O", "OXT"])
-    for a in residue.atoms:
-        if a.name in mainChainNames:
-            continue
-        if not selected or a in currentAtoms:
-            locs.add(a.altLoc)
-    return locs
 
 def nukeGroup(groupName):
     mgr = chimera.PseudoBondMgr.mgr()
