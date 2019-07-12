@@ -356,6 +356,7 @@ class Colormap(State):
                         self.color_below_value_range,
                         self.color_above_value_range,
                         self.color_no_value)
+        cmap.values_specified = self.values_specified
         return cmap
 
     # -------------------------------------------------------------------------
