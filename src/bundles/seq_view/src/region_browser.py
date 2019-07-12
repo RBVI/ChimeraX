@@ -547,8 +547,7 @@ class RegionBrowser:
                             self._seqRenamedHandlerID)
         """
         if self._sel_change_handler:
-            from chimerax import atomic
-            atomic.get_triggers().remove_handler(self._sel_change_handler)
+            self._sel_change_handler.remove()
         """
         for rd in self.rename_dialogs.values():
             rd.destroy()
