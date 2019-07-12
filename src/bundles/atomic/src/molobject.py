@@ -1746,7 +1746,7 @@ class CoordSet(State):
     '''
     The coordinates for one frame of a Structure
 
-    To create a Bond use the :class:`.AtomicStructure` new_coordset() method.
+    To create a CoordSet use the :class:`.AtomicStructure` new_coordset() method.
     '''
     def __init__(self, cs_pointer):
         set_c_pointer(self, cs_pointer)
