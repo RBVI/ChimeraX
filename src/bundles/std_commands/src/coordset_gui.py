@@ -38,6 +38,10 @@ class CoordinateSetSlider(Slider):
         from chimerax.core.models import REMOVE_MODELS
         self._model_close_handler = session.triggers.add_handler(REMOVE_MODELS, self.models_closed_cb)
 
+        if not hasattr(session, '_coord_set_sliders'):
+            session._coord_set_sliders = set()
+        session._coord_set_sliders.add(self)
+
     def change_value(self, i, playing = False):
       self._player.change_coordset(i)
 
@@ -61,6 +65,8 @@ class CoordinateSetSlider(Slider):
         t = atomic.get_triggers(self.session)
         t.remove_handler(self._coordset_change_handler)
         self._coordset_change_handler = None
+
+        self.session._coord_set_sliders.remove(self)
 
         t = self.session.triggers
         t.remove_handler(self._model_close_handler)
