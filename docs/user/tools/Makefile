@@ -43,6 +43,8 @@ TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png
 TICONDIR = $(DOCDIR)/toolbar-icons
 BASICICONS = $(TOP)/src/bundles/basic_actions/src/lib/*.svg
 BICONDIR = $(DOCDIR)/basic-icons
+UIICONS = $(TOP)/src/bundles/ui/src/icons/*.png
+UICONDIR = $(DOCDIR)/ui-icons
 
 install:
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
@@ -53,7 +55,9 @@ install:
 	$(RSYNC) $(SHORTCUTICONS) $(SICONDIR)
 	if [ ! -d "$(TICONDIR)" ]; then mkdir -p $(TICONDIR); fi
 	$(RSYNC) $(TOOLBARICONS) $(TICONDIR)
-	if [ ! -d "$(BICONDIR)" ]; then mkdir -p $(SICONDIR); fi
+	if [ ! -d "$(BICONDIR)" ]; then mkdir -p $(BICONDIR); fi
 	$(RSYNC) $(BASICICONS) $(BICONDIR)
+	if [ ! -d "$(UICONDIR)" ]; then mkdir -p $(UICONDIR); fi
+	$(RSYNC) $(UIICONS) $(UICONDIR)
 
 clean:

@@ -48,9 +48,10 @@ class Objects:
         self._cached_atoms = None	# Atoms collection containing all atoms.
         self._bonds = [] if bonds is None else [bonds]
         self._pseudobonds = [] if pseudobonds is None else [pseudobonds]
-        from weakref import WeakValueDictionary
-        self._handlers = WeakValueDictionary(
-            { m:m.triggers.add_handler("deleted", self._model_deleted_cb) for m in self._models })
+        # Using a strong ref dict;  weak vs. strong only matters for models that are never opened.
+        # Opened models will always call delete() when closed.  Unopened models will have to explicitly
+        # call delete() to clean up.
+        self._handlers = { m:m.triggers.add_handler("deleted", self._model_deleted_cb) for m in self._models }
 
     def __del__(self):
         for handler in self._handlers.values():
