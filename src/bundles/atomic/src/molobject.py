@@ -1773,6 +1773,12 @@ class CoordSet(State):
         "Session that this CoordSet is in"
         return self.structure.session
 
+    @property
+    def xyzs(self):
+        "Numpy array of coordinates"
+        f = c_function('coordset_xyzs', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
+
     # used by custom-attr registration code
     @property
     def has_custom_attrs(self):
