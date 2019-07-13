@@ -392,6 +392,10 @@ class SteamVRCamera(Camera):
         self._close = True
         self._close_cb = close_cb
         self._session.main_view.redraw_needed = True
+        m = self._vr_model_group
+        if m is not None:
+            self._session.models.close([m])
+            self._vr_model_group = None
 
     def _app_quit(self, tname, tdata):
         # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
