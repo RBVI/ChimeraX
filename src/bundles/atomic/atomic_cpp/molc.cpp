@@ -3963,6 +3963,26 @@ extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t 
     }
 }
 
+extern "C" EXPORT PyObject* coordset_xyzs(void *coordset)
+{
+    CoordSet *cs = static_cast<CoordSet*>(coordset);
+
+    PyObject* ret_val;
+    try {
+        double *v;
+        ret_val = python_double_array(cs->coords().size(), 3, &v);
+        for (auto xyz: cs->coords()) {
+            *v++ = xyz[0];
+            *v++ = xyz[1];
+            *v++ = xyz[2];
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return ret_val;
+}
+
 // -------------------------------------------------------------------------
 // sequence functions
 //
