@@ -1246,7 +1246,9 @@ ExtractMolecule::parse_atom_site()
 
         pv.emplace_back(get_column("label_entity_id"),
             [&] (const char* start, const char* end) {
-                entity_id = string(start, end - start);
+                string tmp = string(start, end - start);
+                if (tmp.size() != 1 || (tmp[0] != '?' && tmp[0] != '.'))
+                    entity_id = tmp;
             });
 
         pv.emplace_back(get_column("label_asym_id", Required),
