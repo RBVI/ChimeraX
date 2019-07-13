@@ -1246,9 +1246,9 @@ ExtractMolecule::parse_atom_site()
 
         pv.emplace_back(get_column("label_entity_id"),
             [&] (const char* start, const char* end) {
-                string tmp = string(start, end - start);
-                if (tmp.size() != 1 || (tmp[0] != '?' && tmp[0] != '.'))
-                    entity_id = tmp;
+                entity_id = string(start, end - start);
+                if (entity_id.size() == 1 && (*start == '.' || *start == '?'))
+                    entity_id.clear();
             });
 
         pv.emplace_back(get_column("label_asym_id", Required),
@@ -1258,7 +1258,7 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("auth_asym_id"),
             [&] (const char* start, const char* end) {
                 auth_chain_id = ChainID(start, end - start);
-                if (auth_chain_id == "." || auth_chain_id == "?")
+                if (auth_chain_id.size() == 1 && (*start == '.' || *start == '?'))
                     auth_chain_id.clear();
             });
         pv.emplace_back(get_column("pdbx_PDB_ins_code"),
@@ -1315,7 +1315,7 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("auth_atom_id"),
             [&] (const char* start, const char* end) {
                 auth_atom_name = AtomName(start, end - start);
-                if (auth_atom_name == "." || auth_atom_name == "?")
+                if (auth_atoms_name.size() == 1 && (*start == '.' || *start == '?'))
                     auth_atom_name.clear();
             });
 #endif
@@ -1326,7 +1326,7 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("auth_comp_id"),
             [&] (const char* start, const char* end) {
                 auth_residue_name = ResName(start, end - start);
-                if (auth_residue_name == "." || auth_residue_name == "?")
+                if (auth_residue_name.size() == 1 && (*start == '.' || *start == '?'))
                     auth_residue_name.clear();
             });
         // x, y, z are not required by mmCIF, but are by us
@@ -1376,8 +1376,8 @@ ExtractMolecule::parse_atom_site()
     ChainID cur_chain_id;
     ResName cur_comp_id;
     bool missing_seq_id_warning = false;
+    bool missing_entity_id_warning = false;
     for (;;) {
-        entity_id.clear();
         if (!parse_row(pv))
             break;
         if (model_num != cur_model_num) {
@@ -1417,6 +1417,10 @@ ExtractMolecule::parse_atom_site()
                 }
             }
         }
+
+        bool missing_entity_id = entity_id.empty();
+        if (missing_entity_id)
+            entity_id = chain_id;  // no entity_id, use chain id
 
         if (cur_residue == nullptr
         || cur_entity_id != entity_id
@@ -1467,8 +1471,6 @@ ExtractMolecule::parse_atom_site()
             cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
-            if (entity_id.empty())
-                entity_id = cid.c_str();  // no entity_id, use chain id
             if (has_poly_seq.find(entity_id) == has_poly_seq.end()) {
                 auto tr = find_template_residue(residue_name);
                 if (tr && !tr->description().empty()) {
@@ -1482,8 +1484,16 @@ ExtractMolecule::parse_atom_site()
                         }
                     } else {
                         if (poly.find(entity_id) == poly.end()) {
-                            logger::warning(_logger, "Unknown polymer entity '", entity_id,
-                                            "' near line ", line_number());
+                            if (missing_entity_id) {
+                                if (!missing_entity_id_warning) {
+                                    logger::warning(_logger, "Missing entity information.  "
+                                                    "Treating each chain as a separate entity.");
+                                    missing_entity_id_warning = true;
+                                }
+                            } else {
+                                logger::warning(_logger, "Unknown polymer entity '", entity_id,
+                                                "' near line ", line_number());
+                            }
                             // fake polymer entity to cut down on secondary warnings
                             poly.emplace(entity_id, false);
                         }
@@ -1981,7 +1991,8 @@ ExtractMolecule::parse_struct_conf()
             continue;
         }
         for (auto pi = init_ps; pi != end_ps; ++pi) {
-            auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
+            string eid = entity_id.empty() ? chain_id1 : entity_id;
+            auto ri = residue_map.find(ResidueKey(eid, pi->seq_id,
                                                   pi->mon_id));
             if (ri == residue_map.end())
                 continue;
@@ -2131,7 +2142,8 @@ ExtractMolecule::parse_struct_sheet_range()
             strand_id = ++(si->second);
         }
         for (auto pi = init_ps; pi != end_ps; ++pi) {
-            auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
+            string eid = entity_id.empty() ? chain_id1 : entity_id;
+            auto ri = residue_map.find(ResidueKey(eid, pi->seq_id,
                                                   pi->mon_id));
             if (ri == residue_map.end()) {
 #ifdef SHEET_HBONDS
