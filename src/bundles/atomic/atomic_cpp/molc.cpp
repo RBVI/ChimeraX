@@ -2927,7 +2927,8 @@ extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, i
                     auto seqi = smap.find(seq);
                     if (seqi == smap.end())
                       {
-                        si = cmap[c] = smap[seq] = smap.size()+1;
+                        int next_id = smap.size()+1;
+                        si = cmap[c] = smap[seq] = next_id;
                         PyList_Append(seqs, unicode_from_string(seq));
                       }
                     else
