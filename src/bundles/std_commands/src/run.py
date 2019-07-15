@@ -14,7 +14,7 @@
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, run
     desc = CmdDesc(required=[('text', StringArg)],
-                   optional=[('log', BoolArg),
+                   keyword=[('log', BoolArg),
                              ('downgrade_errors', BoolArg),
                          ],
                    synopsis='indirectly run a command')

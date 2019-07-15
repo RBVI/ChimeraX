@@ -11,22 +11,19 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def runscript(session, text, *, log=True, downgrade_errors=False):
-    """execute a Python script with arguments
+def runscript(session, script_file, *, args=""):
+    """Execute a Python script with arguments
 
     Parameters
     ----------
-    text : string
-        The text of the command to execute.
-    log : bool
-        Print the command text to the reply log.
-    downgrade_errors : bool
-        True if errors in the command should be logged as informational.
+    script_file : string
+        Path to Python script file
+    args : string
+        Optional string containing the arguments to pass to the script
     """
 
     import shlex
     from ..scripting import open_python_script
-    from ..errors import UserError
-    argv = shlex.split(text)
-    open_python_script(session, open(argv[0], 'rb'), argv[0], argv=argv)
+    argv = shlex.split(args)
+    open_python_script(session, open(script_file, 'rb'), script_file, argv=argv)
     return []
