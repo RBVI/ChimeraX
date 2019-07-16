@@ -1738,6 +1738,8 @@ class ShowUIMode(HandMode):
 
 class MoveSceneMode(HandMode):
     name = 'move scene'
+    def __init__(self):
+        self._zoom_center = None
     @property
     def icon_path(self):
         return MoveSceneMode.icon_location()
@@ -1752,22 +1754,23 @@ class MoveSceneMode(HandMode):
         if oc and self._other_controller_move(oc):
             # Both controllers trying to move scene -- zoom
             scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc.tip_room_position)
+            if self._zoom_center is None:
+                self._zoom_center = _choose_zoom_center(camera, center)
             if scale is not None:
-                self._pinch_zoom(camera, center, scale)
+                _pinch_zoom(camera, scale, self._zoom_center)
         else:
+            self._zoom_center = None
             move = pose * previous_pose.inverse()
             camera.move_scene(move)
 
+    def released(self, camera, hand_controller):
+        self._zoom_center = None
+        
     def _other_controller_move(self, oc):
         for m in oc._active_drag_modes:
             if isinstance(m, MoveSceneMode):
                 return True
         return False
-    def _pinch_zoom(self, camera, center, scale_factor):
-        # Two controllers have trigger pressed, scale scene.
-        from chimerax.core.geometry import translation, scale
-        scale = translation(center) * scale(scale_factor) * translation(-center)
-        camera.move_scene(scale)
 
 def _pinch_scale(prev_pos, pos, other_pos):
     from chimerax.core.geometry import distance
@@ -1784,6 +1787,7 @@ class ZoomMode(HandMode):
     size_doubling_distance = 0.1	# meters, vertical motion
     def __init__(self):
         self._zoom_center = None
+        self._use_scene_center = False
     @property
     def icon_path(self):
         return ZoomMode.icon_location()
@@ -1792,17 +1796,30 @@ class ZoomMode(HandMode):
         from chimerax.mouse_modes import ZoomMouseMode
         return ZoomMouseMode.icon_location()
     def pressed(self, camera, hand_controller):
-        self._zoom_center = hand_controller.tip_room_position
+        self._zoom_center = _choose_zoom_center(camera, hand_controller.tip_room_position)
     def drag(self, camera, hand_controller, previous_pose, pose):
-        if self._zoom_center is None:
-            return
         center = self._zoom_center
+        if center is None:
+            return
         y_motion = (pose.origin() - previous_pose.origin())[1]  # meters
         s = 2 ** (y_motion/self.size_doubling_distance)
-        s = max(min(s, 10.0), 0.1)	# Limit scaling
-        from chimerax.core.geometry import distance, translation, scale
-        scale = translation(center) * scale(s) * translation(-center)
-        camera.move_scene(scale)
+        scale_factor = max(min(s, 10.0), 0.1)	# Limit scaling
+        _pinch_zoom(camera, scale_factor, center)
+    def released(self, camera, hand_controller):
+        self._zoom_center = None
+
+def _choose_zoom_center(camera, center):
+    # Zoom in about center of scene if requested center point is outside scene bounding box.
+    # This avoids pushing a distant scene away.
+    b = camera.vr_view.drawing_bounds()
+    if b and not b.contains_point(camera.room_to_scene * center):
+        return camera.room_to_scene.inverse() * b.center()
+    return center
+
+def _pinch_zoom(camera, scale_factor, center):
+    from chimerax.core.geometry import distance, translation, scale
+    scale = translation(center) * scale(scale_factor) * translation(-center)
+    camera.move_scene(scale)
 
 class RecenterMode(HandMode):
     name = 'recenter'
