@@ -127,7 +127,10 @@ class Popup(QLabel):
             # Don't use a Qt.ToolTip which can do undesired auto-hiding on Mac. Bug #2140
             # But on Linux these flags cause huge non-updating balloons, and on Windows
             # the balloon takes the focus (Qt 5.12.4).
-            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
+            # These flags also cause problems on Mac if ChimeraX is fullscreen, the
+            # balloon replaces the entire gui, ChimeraX bug #2210.
+#            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
+            win_flags = Qt.ToolTip
         else:
             win_flags = Qt.ToolTip
         self.setWindowFlags(self.windowFlags() | win_flags)

@@ -41,11 +41,12 @@ By default, a <a href="tools/toolbar.html"><b>Toolbar</b></a> with icons
 lies right below the title bar. 
 Near the bottom right corner are additional small icons:
 <ul>
-<li><img class="iconbar" src="toggle.png"> 
-- toggle main window to fill overall window
-<li><img class="iconbar" src="rapidoff.png">
-or <img class="iconbar" src="rapidon.png"> 
-- toggle main window between 3D graphics and <b>Rapid Access</b> 
+<li><img class="iconbar" src="tools/ui-icons/expand1.png"> 
+or <img class="iconbar" src="tools/ui-icons/contract1.png">
+&ndash; toggle main window to fill overall window
+<li><img class="iconbar" src="tools/ui-icons/lightning_night.png">
+or <img class="iconbar" src="tools/ui-icons/lightning_day.png"> 
+&ndash; toggle main window between 3D graphics and <b>Rapid Access</b> 
 <br>(see <a href="tools/filehistory.html"><b>File History</b></a>)
 </ul>
 <p>
@@ -66,7 +67,7 @@ A <b><i>panel</i></b> may appear within the <a href="#top">ChimeraX window</a>
 when a tool is started (for example, from the
 <a href="menu.html#tools"><b>Tools</b> menu</a>
 or with the command <b>toolshed show</b>),
-<!-- start/show will be migrated to ui command instead of toolshed -->
+<!-&ndash; start/show will be migrated to ui command instead of toolshed -->
 or as the result of a calculation (for example,
 the <a href="commands/interfaces.html"><b>interfaces</b></a> command
 shows a chain-chain network diagram) or <a href="commands/open.html">opening</a>
@@ -96,7 +97,8 @@ on its title bar (if the panel is docked; a generic close-window button
 if the panel is undocked) or by unchecking its name in the context menu 
 from right-clicking* any docked panel's title bar
 <li>shown (if active but hidden) by checking its name in
-the context menu from right-clicking* any docked panel's title bar;
+the bottom section of the <a href="menu.html#tools"><b>Tools</b> menu</a>
+or in the context menu from right-clicking* any docked panel's title bar;
 some panels remain active when dismissed, others do not
 <li>undocked from the main ChimeraX window
 by clicking the &ldquo;rectangles&rdquo; button <img src="undock.png">
@@ -123,7 +125,9 @@ when docked, but the other methods of control are still available.
 </p><p>
 The overall window can be toggled to hide/show the current panels 
 by clicking the &ldquo;nested squares&rdquo; button
-<img width="20px" src="toggle.png"> near its bottom right corner.
+<img class="iconbar" src="tools/ui-icons/expand1.png"> 
+<img class="iconbar" src="tools/ui-icons/contract1.png">
+near its bottom right corner.
 This allows expanding the main window with a single click
 without losing the overall window configuration.
 The <a href="tools/toolbar.html"><b>Toolbar</b></a>
@@ -137,23 +141,25 @@ Panels may have their own specific <a href="#context-menu">context menus</a>
 <ul>
 <li><b>Hide Tool</b>
 <li><b>Help</b>
-- show documentation in the <a href="tools/browser.html"><b>Help Viewer</b></a>
+&ndash; show documentation in the 
+<a href="tools/browser.html"><b>Help Viewer</b></a>
 </ul>
 &nbsp;...and certain tool-specific 
 <a href="preferences.html#other">preferences</a>, when applicable:
 <ul>
 <li><b>Start at ChimeraX Startup</b>
-- whether the tool should start automatically upon subsequent ChimeraX startup
+&ndash; whether the tool should start automatically upon subsequent 
+ChimeraX startup
 <li><b>In Favorites Menu</b>
-- whether the tool should be listed in the 
+&ndash; whether the tool should be listed in the 
 <a href="menu.html#favorites"><b>Favorites</b> menu</a>
 <li><b>Dockable Tool</b>
-- whether panels of the tool should be allowed to reinsert automatically
+&ndash; whether panels of the tool should be allowed to reinsert automatically
 when dragged over the main window, as opposed to remaining separate;
 initially true for all panels except the
 <a href="tools/browser.html"><b>Help Viewer</b></a>
 <li><b>Save Tool Position</b>
-- save whether a tool panel is docked, and if so, 
+&ndash; save whether a tool panel is docked, and if so, 
 whether it is on the left, right, top, or bottom side of the main window
 (but not the specific order when multiple panels are docked on the same side);
 if undocked, save panel size and screen position
@@ -165,5 +171,5 @@ Tool autostart behavior and dockability can also be set with the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+July 2019</address>
 </body></html> 

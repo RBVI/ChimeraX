@@ -252,6 +252,7 @@ class ObjectLabels(Model):
     '''Model holding labels appearing next to atoms, residues, pseudobonds or bonds.'''
 
     pickable = False		# Don't allow mouse selection of labels
+    casts_shadows = False
     
     def __init__(self, session):
         Model.__init__(self, 'labels', session)
@@ -549,9 +550,6 @@ def label_class(object):
 #
 class ObjectLabel:
 
-    pickable = False		# Don't allow mouse selection of labels
-    casts_shadows = False
-    
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
                  size = 48, height = 0.7, font = 'Arial'):

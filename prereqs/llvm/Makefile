@@ -2,17 +2,28 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
+# Requires cmake 3.4.3 or newer
+
 VERSION = 3.9.0
 DISTRIBUTION = llvm-$(VERSION).src.tar.xz
 SOURCE = $(tmpdir)/llvm-$(VERSION).src
 BUILD = $(tmpdir)/llvm-$(VERSION)
 
 CMAKE_ARGS = -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX=$(build_prefix) \
-	     -DLLVM_INCLUDE_EXAMPLES=OFF \
+	     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	     -DLLVM_TARGETS_TO_BUILD=X86 \
+	     -DLLVM_INCLUDE_TOOLS=OFF \
 	     -DLLVM_INCLUDE_TESTS=OFF \
-	     -DLLVM_TARGET_ARCH=x86_64 \
-	     -DLLVM_ENABLE_ZLIB=OFF \
-	     -DLLVM_ENABLE_ZLIB=OFF \
+	     -DLLVM_INCLUDE_EXAMPLES=OFF \
+	     -DLLVM_INCLUDE_UTILS=ON \
+	     -DLLVM_INCLUDE_DOCS=OFF \
+	     -DLLVM_INCLUDE_BENCHMARKS=OFF \
+	     -DLLVM_BUILD_UTILS=OFF \
+	     -DLLVM_BUILD_TOOLS=OFF \
+	     -DLLVM_BUILD_LLVM_DYLIB=ON \
+	     -DLLVM_ENABLE_LIBCXX=OFF \
+	     -DLLVM_ENABLE_FFI=OFF \
+	     -DLLVM_ENABLE_LIBCXX=OFF
 
 all:
 
@@ -40,4 +51,5 @@ clean:
 	if [ -d $(SOURCE) ] ; then \
 		chmod -R +wX $(SOURCE) ; \
 		rm -rf $(SOURCE) ; \
+		rm -rf $(BUILD) ; \
 	fi

@@ -1746,7 +1746,7 @@ class CoordSet(State):
     '''
     The coordinates for one frame of a Structure
 
-    To create a Bond use the :class:`.AtomicStructure` new_coordset() method.
+    To create a CoordSet use the :class:`.AtomicStructure` new_coordset() method.
     '''
     def __init__(self, cs_pointer):
         set_c_pointer(self, cs_pointer)
@@ -1772,6 +1772,12 @@ class CoordSet(State):
     def session(self):
         "Session that this CoordSet is in"
         return self.structure.session
+
+    @property
+    def xyzs(self):
+        "Numpy array of coordinates"
+        f = c_function('coordset_xyzs', args = (ctypes.c_void_p,), ret = ctypes.py_object)
+        return f(self._c_pointer)
 
     # used by custom-attr registration code
     @property
