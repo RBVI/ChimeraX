@@ -5,12 +5,20 @@
 def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
     """Tile models onto a square(ish) grid."""
 
-    # Keep only non-container models
+    # Keep only models that we think might work
+    # Surfaces are excluded on the assumption that they will move
+    # with their associated models
     from chimerax.atomic import Structure
+    from chimerax.map.volume import Volume
+    tilable_classes = [Structure, Volume]
+    def tilable(m):
+        for klass in tilable_classes:
+            if isinstance(m, klass):
+                return True
+        return False
     if models is None:
-        models = session.models.list(type=Structure)
-    else:
-        models = [m for m in models if isinstance(m, Structure)]
+        models = [m for m in session.models.list() if tilable(m)]
+    models = [m for m in models if tilable(m)]
     if len(models) == 0:
         from chimerax.core.errors import UserError
         raise UserError("No structures found for tiling.")
