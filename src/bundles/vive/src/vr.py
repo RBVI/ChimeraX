@@ -185,7 +185,7 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
 #
 def vr_camera(session):
     c = session.main_view.camera
-    return c if isinstance(c, SteamVRCamera) else None
+    return c if isinstance(c, SteamVRCamera) and not c.closed else None
 
 # -----------------------------------------------------------------------------
 #
@@ -393,6 +393,10 @@ class SteamVRCamera(Camera):
         self._close_cb = close_cb
         self._session.main_view.redraw_needed = True
 
+    @property
+    def closed(self):
+        return self._close
+    
     def _app_quit(self, tname, tdata):
         # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
         # if VR has not been shutdown.
@@ -414,6 +418,11 @@ class SteamVRCamera(Camera):
             hc.close()
         self._hand_controllers = []
         self.user_interface.close()
+        m = self._vr_model_group
+        if m:
+            if not m.deleted:
+                self._session.models.close([m])
+            self._vr_model_group = None
         import openvr
         openvr.shutdown()
         self.vr_system = None
@@ -738,7 +747,8 @@ class UserInterface:
     def close(self):
         ui = self._ui_model
         if ui:
-            self._session.models.close([ui])
+            if not ui.deleted:
+                self._session.models.close([ui])
             self._ui_model = None
 
     @property
@@ -1338,7 +1348,8 @@ class HandController:
     def close(self):
         hm = self._hand_model
         if hm:
-            hm.session.models.close([hm])
+            if not hm.deleted:
+                hm.session.models.close([hm])
             self._hand_model = None
 
     def show_in_scene(self, show):
