@@ -195,8 +195,7 @@ def molecule_from_atoms(m, atoms, name = None):
     for r in rlist:
         cr = cm.new_residue(r.name, r.chain_id, r.number)
 #        cr.isHet = r.isHet
-        cr.is_helix = r.is_helix
-        cr.is_strand = r.is_strand
+        cr.ss_type = r.ss_type
         cr.ribbon_color = r.ribbon_color
 #        cr.ribbonStyle = r.ribbonStyle
 #        cr.ribbonDrawMode = r.ribbonDrawMode
