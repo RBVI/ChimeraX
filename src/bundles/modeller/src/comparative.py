@@ -277,12 +277,14 @@ def regularized_seq(aseq, chain):
     from chimerax.atomic import Sequence
     from chimerax.atomic.pdb import standard_polymeric_res_names as std_res_names
     in_seq_hets = []
+    num_res = 0
     for ungapped in range(len(aseq.ungapped())):
         gapped = aseq.ungapped_to_gapped(ungapped)
         if ungapped not in mmap:
             seq_chars[gapped] = '-'
         else:
             r = mmap[ungapped]
+            num_res += 1
             if r.name not in std_res_names:
                 in_seq_hets.append(r.name)
                 seq_chars[gapped] = '.'
@@ -290,7 +292,9 @@ def regularized_seq(aseq, chain):
                 seq_chars[gapped] = Sequence.rname3to1(mmap[ungapped].name)
     s = chain.structure
     het_set = getattr(s, 'in_seq_hets', set())
-    het_set.update(in_seq_hets)
+    # may want to preserve all-HET chains, so don't auto-exclude them
+    if num_res != len(in_seq_hets):
+        het_set.update(in_seq_hets)
     s.in_seq_hets = het_set
     rseq.characters = "".join(seq_chars)
     return rseq
