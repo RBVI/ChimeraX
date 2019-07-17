@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 default_criteria = "dhcp"
-def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_crieria,
+def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_criteria,
     density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=False, lib=None, log=True,
     preserve=None, relax=True, retain=False, score_method="num", threshold=None):
     '''
@@ -50,17 +50,17 @@ def register_command(logger):
         keyword = [
             ('angle_slop', FloatArg),
             ('bfactor', FloatArg),
-            ('criteria', Or(IntArg, StringArg))),
+            ('criteria', Or(IntArg, StringArg)),
             ('density', MapArg),
             ('dist_slop', FloatArg),
             ('hbond_allowance', FloatArg),
             ('ignore_other_models', BoolArg),
-            ('lib', DynamicEnum(logger.session.rotamers.library_names),
+            ('lib', DynamicEnum(logger.session.rotamers.library_names)),
             ('log', BoolArg),
             ('preserve', NonNegativeFloatArg),
             ('relax', BoolArg),
             ('retain', BoolArg),
-            ('score_method', EnumOf(('sum', 'num')),
+            ('score_method', EnumOf(('sum', 'num'))),
             ('threshold', FloatArg),
         ],
         synopsis = 'Swap amino acid side chain(s)'

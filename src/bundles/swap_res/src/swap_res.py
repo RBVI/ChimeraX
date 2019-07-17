@@ -170,11 +170,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             if len(best) > 1:
                 rotamers[res] = best
             else:
-                if retain:
-                    sc_retain = side_chain_locs(res)
-                else:
-                    sc_retain = []
-                use_rotamer(session, res, [best[0]], retain=sc_retain, log=log)
+                use_rotamer(session, res, [best[0]], retain=retain, log=log)
                 del rotamers[res]
         if not rotamers:
             break
@@ -182,11 +178,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
         if log:
             session.logger.info("%s has %d equal-value rotamers;"
                 " choosing one arbitrarily.\n" % (res, len(rots)))
-        if retain:
-            sc_retain = side_chain_locs(res)
-        else:
-            sc_retain = []
-        use_rotamer(session, res, [rots[0]], retain=sc_retain, log=log)
+        use_rotamer(session, res, [rots[0]], retain=retain, log=log)
     for rot in destroy_list:
         rot.delete()
 
@@ -253,7 +245,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     middles = {}
     ends = {}
     for i, rp in enumerate(params):
-        s = AtomicStructure(name=Killer Queen"rotamer %d of %s" % (i+1, res))
+        s = AtomicStructure(name="rotamer %d of %s" % (i+1, res))
         structs.append(s)
         r = s.new_residue(mapped_res_type, 'A', 1)
         s.rotamer_prob = rp.p
@@ -347,7 +339,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             raise TemplateSwapError("'preserve' keyword not yet implemented for amino acids")
         a1 = res.find_atom("O4'")
         a2 = res.find_atom("C1'")
-        if not a1 or not a2;
+        if not a1 or not a2:
             preserve_pos = None
         else:
             dihed_names = {
@@ -561,7 +553,7 @@ def prune_by_chis(session, rots, res, cutoff, log=False):
     if pruned:
         if log:
             session.info("Filtering rotamers with chi angles within %g of %s yields %d (of original %d)"
-                % (cutoff, res, len(pruned), len(rots))
+                % (cutoff, res, len(pruned), len(rots)))
         return pruned
     if log:
         session.info("No rotamer with all chi angles within %g of %s; using closest one" % (cutoff, res))
@@ -575,14 +567,13 @@ def side_chain_locs(residue):
         locs.add(a.alt_loc)
     return locs
 
-def use_rotamer(sesion, res, rots, retain=[], log=False):
-    """Takes a Residue instance and a list of one or more rotamers (as returned by get_rotamers)
-       and swaps the Residue's side chain with the given rotamers.  If more than one rotamer is
-       in the list, then alt locs will be used to distinguish the different side chains.  The side
-       chain(s) will be positioned using the current backbone altloc.
+def use_rotamer(sesion, res, rots, retain=False, log=False):
+    """Takes a Residue instance and a list of one or more rotamers (as returned by get_rotamers,
+       i.e. with backbone already matched) and swaps the Residue's side chain with the given rotamers.
+       If more than one rotamer is in the list, then alt locs will be used to distinguish the different
+       side chains.  The side chain(s) will be positioned using the current backbone altloc.
 
-       'retain' is a list of altloc sidechains to retain.  The presence of
-       '' in that list means also retain the non-altloc side chain.
+       If 'retain' is True, existing side chains will be retained.
     """
     N = res.find_atom("N")
     CA = res.find_atom("CA")
@@ -591,9 +582,12 @@ def use_rotamer(sesion, res, rots, retain=[], log=False):
         raise LimitationError("N, CA, or C missing from %s: needed for side-chain pruning algorithm" % res)
     import string
     alt_locs = string.ascii_uppercase + string.ascii_lowercase + string.digits + string.punctuation
+    if retain and res.name != rots[0].name:
+        raise LimitationError("Cannot retain side chains if rotamers are a different residue type")
     bb_retain = set([CA.alt_loc] + retain)
-    retain = set(retain)
-    if len(rots) + len([x for x in retain if x]) > len(alt_locs):
+    retained_alt_locs = side_chain_locs(res) if retain else []
+    num_retained = len(retained_alt_locs)
+    if len(rots) + num_retained > len(alt_locs):
         raise LimitationError("Don't have enough unique alternate "
             "location characters to place %d rotamers." % len(rots))
     rot_anchors = {}
@@ -608,111 +602,77 @@ def use_rotamer(sesion, res, rots, retain=[], log=False):
         carbon_color = CA.color
     else:
         uniform_color = N.color
-    # prune old side chains
-    for a in res.atoms:
-        a_retain = bb_retain if a.is_backbone() else retain
-        for alt_loc in a.alt_locs:
-            if alt_loc not in a_retain:
-                
-    #TODO
-    for olds in zip(oldNs, oldCAs, oldCs):
-        oldN, oldCA, oldC = olds
-        pardoned = set([old for old in olds
-                if not old.__destroyed__ and old.altLoc in mcRetain])
-        deathrow = [nb for nb in oldCA.neighbors if nb not in pardoned
-            and nb.altLoc not in retain]
+    multi_sidechain = (len(rots) + num_retained) > 1
+    # Don't know what to do if multiple rotamers being added to multi-position backbone, so check for that
+    if multi_sidechain and CA.alt_loc != ' ':
+        raise LimitationError("Cannot add multiple rotamers to multi-position backbone")
+    # prune old side chain
+    if not retain:
+        res_atoms = res.atoms
+        side_atoms = res_atoms.filter(res_atoms.is_side_onlys)
+        serials = { a.name:a.serial_number for a in side_atoms }
+        side_atoms.delete()
+    else:
         serials = {}
-        while deathrow:
-            prune = deathrow.pop()
-            if prune.residue != res:
-                continue
-            serials[prune.name] = getattr(prune, "serialNumber", None)
-            for nb in prune.neighbors:
-                if nb not in deathrow and nb not in pardoned \
-                                    and nb.altLoc not in retain:
-                    deathrow.append(nb)
-            res.molecule.deleteAtom(prune)
     # for proline, also prune amide hydrogens
-    if rots[0].residues[0].type == "PRO":
-        for oldN in oldNs:
-            for nnb in oldN.neighbors[:]:
-                if nnb.element.number == 1:
-                    oldN.molecule.deleteAtom(nnb)
+    if rots[0].residues[0].name == "PRO":
+        for nnb in N.neighbors[:]:
+            if nnb.element.number == 1:
+                N.structure.delete_atom(nnb)
 
-    totProb = sum([r.rotamer_prob for r in rots])
-    oldAtoms = set(["N", "CA", "C"])
-    for i, rot in enumerate(rots):
-        rot_res = rot.residues[0]
-        rot_N, rot_CA = rot_anchors[rot]
-        if len(rots) + len(retain) > 1:
-            found = 0
-            for altLoc in alt_locs:
-                if altLoc not in retain:
-                    if found == i:
-                        break
-                    found += 1
-        elif mcRetain != set(['']):
-            altLoc = mcAltLoc
+    tot_prob = sum([r.rotamer_prob for r in rots])
+    orig_CA_alt_loc = CA.alt_loc
+    res.structure.alt_loc_change_notify = False
+    res.name = rots[0].residues[0].name
+    from chimerax.atomic.struct_edit import add_atom, add_bond
+    for ca_alt_loc in CA.alt_locs:
+        CA.set_alt_loc(ca_alt_loc)
+        if multi_sidechain:
+            locs_rots = zip([c for c in alt_locs if c not in retained_alt_locs][:len(rots)], rots)
         else:
-            altLoc = ''
-        if altLoc:
-            extra = " using alt loc %s" % altLoc
-        else:
-            extra = ""
-        if log:
-            replyobj.info("Applying %s rotamer (chi angles: %s) to"
-                " %s%s\n" % (rot_res.type, " ".join(["%.1f" % c
-                for c in rot.chis]), res, extra))
-        from BuildStructure import changeResidueType
-        changeResidueType(res, rot_res.type)
-        # add new side chain
-        from chimerax.atomic.struct_edit import add_atom, add_bond
-        sprouts = [rot_CA]
-        while sprouts:
-            sprout = sprouts.pop()
-            if sprout.name in oldAtoms:
-                builtSprout = [a for a in res.atomsMap[sprout.name]
-                    if a.altLoc == mcAltLoc][-1]
-            else:
-                builtSprout = res.atomsMap[sprout.name][-1]
-            for nb, b in sprout.bondsMap.items():
-                try:
-                    builtNBs = res.atomsMap[nb.name]
-                except KeyError:
-                    needBuild = True
-                else:
-                    if nb.name in oldAtoms:
-                        needBuild = False
-                        builtNB = res.atomsMap[nb.name][0]
-                    elif altLoc in [x.altLoc for x in builtNBs]:
-                        needBuild = False
-                        builtNB = [x for x in builtNBs if x.altLoc == altLoc][0]
-                    else:
-                        needBuild = True
-                if needBuild:
-                    if i == 0:
-                        serial = serials.get(nb.name, None)
-                    else:
-                        serial = None
-                    builtNB = add_atom(nb.name, nb.element, res, nb.coord(),
-                        serialNumber=serial, bonded_to=builtSprout)
-                    if altLoc:
-                        builtNB.altLoc = altLoc
-                    if totProb == 0.0:
+            locs_rots = [ca_alt_loc, rots[0]]
+        for alt_loc, rot in locs_rots:
+            if log:
+                extra = " using alt loc %s" % alt_loc if alt_loc != ' ' else ""
+                session.logger.info("Applying %s rotamer (chi angles: %s) to %s%s"
+                    % (rot_res.type, " ".join(["%.1f" % c for c in rot.chis]), res, extra))
+            # add new side chain
+            rot_N, rot_CA = rot_anchors[rot]
+            visited = set([N, CA, C])
+            sprouts = [rot_CA]
+            while sprouts:
+                sprout = sprouts.pop()
+                build_sprout = res.find_atom(sprout.name)
+                for nb in sprout.neighbors:
+                    built_nb = res.find_atom(nb.name)
+                    if tot_prob == 0.0:
                         # some rotamers in Dunbrack are zero prob!
-                        builtNB.occupancy = 1.0 / len(rots)
+                        occupancy = 1.0 / len(rots)
                     else:
-                        builtNB.occupancy = rot.rotamer_prob / totProb
-                    if color_by_element:
-                        if builtNB.element.name == "C":
-                            builtNB.color = carbon_color
+                        occupancy = rot.rotamer_prob / tot_prob
+                    if not built_nb:
+                        serial = serials.get(nb.name, None)
+                        built_nb = add_atom(nb.name, nb.element, res, nb.coord, occupancy=occupancy,
+                            serial_number=serial, bonded_to=built_sprout, alt_loc=alt_loc)
+                        if color_by_element:
+                            if built_nb.element.name == "C":
+                                built_nb.color = carbon_color
+                            else:
+                                from chimerax.atomic.colors import element_color
+                                built_nb.color = element_color(built_nb.element.number)
                         else:
-                            builtNB.color = elementColor(builtNB.element.name)
-                    else:
-                        builtNB.color = uniform_color
-                    sprouts.append(nb)
-                if builtNB not in builtSprout.bondsMap:
-                    add_bond(builtSprout, builtNB)
+                            built_nb.color = uniform_color
+                    elif built_nb not in visited:
+                        built_nb.set_alt_loc(alt_loc, True)
+                        built_nb.coord = nb.coord
+                        built_nb.occupancy = occupancy
+                    if built_nb not in visited:
+                        sprouts.append(nb)
+                        visited.add(built_nb)
+                    if built_nb not in built_sprout.neighbors:
+                        add_bond(built_sprout, built_nb)
+    CA.set_alt_loc(orig_CA_alt_loc)
+    res.structure.alt_loc_change_notify = True
 
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle

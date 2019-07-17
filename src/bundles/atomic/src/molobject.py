@@ -1293,7 +1293,7 @@ class StructureData:
         doc = "Supported API. Index of the active coordinate set.")
     alt_loc_change_notify = c_property('structure_alt_loc_change_notify', npy_bool, doc=
         '''Whether notifications are issued when altlocs are changed.  Should only be
-        set to true when temporarily changing alt locs in a Python script. Boolean''')
+        set to false when temporarily changing alt locs in a Python script. Boolean''')
     atoms = c_property('structure_atoms', cptr, 'num_atoms', astype = convert.atoms, read_only = True,
         doc = "Supported API. :class:`.Atoms` collection containing all atoms of the structure.")
     ball_scale = c_property('structure_ball_scale', float32,
