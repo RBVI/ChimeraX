@@ -145,7 +145,7 @@ class OpenGLContext:
 
         # Create context
         from PyQt5.QtGui import QOpenGLContext
-        qc = QOpenGLContext(window)
+        qc = QOpenGLContext()
         qc.setScreen(self._screen)
 
         if self._share_context:
