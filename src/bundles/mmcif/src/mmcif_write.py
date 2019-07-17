@@ -74,7 +74,7 @@ def _set_standard_residues():
     _standard_residues.update(_protein1to3.values())
 
 
-def write_mmcif(session, path, *, models=None, rel_model=None):
+def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False):
     from chimerax.atomic import Structure
     if models is None:
         models = session.models.list(type=Structure)
@@ -121,10 +121,10 @@ def write_mmcif(session, path, *, models=None, rel_model=None):
             # TODO: make sure ensembles are distinguished from IHM models
             ensemble = all(m.name == models[0].name for m in models)
             if ensemble:
-                save_structure(session, f, models, [xforms[m] for m in models], used_data_names)
+                save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only)
             else:
                 for m in models:
-                    save_structure(session, f, [m], [xforms[m]], used_data_names)
+                    save_structure(session, f, [m], [xforms[m]], used_data_names, selected_only, displayed_only)
 
 
 ChimeraX_audit_conform = mmcif.CIFTable(
@@ -249,7 +249,7 @@ def _save_metadata(model, categories, file):
     return printed
 
 
-def save_structure(session, file, models, xforms, used_data_names):
+def save_structure(session, file, models, xforms, used_data_names, selected_only, displayed_only):
     # save mmCIF data section for a structure
     # 'models' should only have more than one model if NMR ensemble
     # All 'models' should have the same metadata.
@@ -276,6 +276,22 @@ def save_structure(session, file, models, xforms, used_data_names):
                 break
         name = n
     used_data_names.add(name)
+
+    restrict = None
+    if selected_only:
+        from chimerax.atomic import concatenate
+        restrict = concatenate(session.selection.items("atoms"))
+        restrict = restrict.filter([st in models for st in restrict.structures])
+    if displayed_only:
+        from chimerax.atomic import concatenate
+        displayed_atoms = concatenate([m.atoms.filter(m.atoms.displays) for m in models])
+        if restrict is None:
+            restrict = displayed_atoms
+        else:
+            restrict = restrict.intersect(displayed_atoms)
+    if restrict is not None:
+        restrict_residues = restrict.unique_residues
+        restrict_chains = restrict_residues.unique_chains
 
     def nonblank_chars(name):
         return ''.join(ch for ch in name if not ch.isspace())
@@ -335,6 +351,8 @@ def save_structure(session, file, models, xforms, used_data_names):
 
     seq_entities = OrderedDict()   # { chain.characters : (entity_id, _1to3, [chains]) }
     for c in best_m.chains:
+        if restrict is not None and c not in restrict_chains:
+            continue
         chars = c.characters
         if chars in seq_entities:
             eid, _1to3, chains = seq_entities[chars]
@@ -407,6 +425,8 @@ def save_structure(session, file, models, xforms, used_data_names):
 
     # assign label_asym_id's to each chain
     for c in best_m.chains:
+        if restrict is not None and c not in restrict_chains:
+            continue
         mcid = c.existing_residues[0].mmcif_chain_id
         label_asym_id = get_asym_id(mcid)
         chars = c.characters
@@ -423,6 +443,8 @@ def save_structure(session, file, models, xforms, used_data_names):
     residues = best_m.residues
     het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
     for r in het_residues:
+        if restrict is not None and r not in restrict_residues:
+            continue
         mcid = r.mmcif_chain_id
         n = r.name
         if n in het_entities:
@@ -500,6 +522,9 @@ def save_structure(session, file, models, xforms, used_data_names):
         else:
             group = 'HETATM'
         for atom in atoms:
+            if restrict is not None:
+                if atom not in restrict:
+                    continue
             elem = atom.element.name
             aname = atom.name
             original_alt_loc = atom.alt_loc
@@ -528,19 +553,27 @@ def save_structure(session, file, models, xforms, used_data_names):
         residues = m.residues
         het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
         for c in m.chains:
+            if restrict is not None and c not in restrict_chains:
+                continue
             chain_id = c.chain_id
             chars = c.characters
             asym_id, entity_id = asym_info[(chain_id, chars)]
             for seq_id, r in zip(range(1, sys.maxsize), c.residues):
                 if r is None:
                     continue
+                if restrict is not None and r not in restrict_residues:
+                    continue
                 atom_site_residue(r, seq_id, asym_id, entity_id, model_num, xform)
             chain_het = het_residues.filter(het_residues.chain_ids == chain_id)
             het_residues -= chain_het
             for r in chain_het:
+                if restrict is not None and r not in restrict_residues:
+                    continue
                 asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
                 atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
         for r in het_residues:
+            if restrict is not None and r not in restrict_residues:
+                continue
             asym_id, entity_id = het_asym_info[r.mmcif_chain_id]
             atom_site_residue(r, '.', asym_id, entity_id, model_num, xform)
 
@@ -637,6 +670,8 @@ def save_structure(session, file, models, xforms, used_data_names):
     # disulfide bonds
     count = 0
     atoms = best_m.atoms
+    if restrict is not None:
+        atoms = atoms.intersect(restrict)
     bonds = best_m.bonds
     has_disulf = False
     covalent = []
@@ -648,6 +683,9 @@ def save_structure(session, file, models, xforms, used_data_names):
             continue
         r0 = a0.residue
         r1 = a1.residue
+        if restrict is not None:
+            if r0 not in restrict_residues or r1 not in restrict_residues:
+                continue
         if r0 == r1:
             continue
         if r0.chain is None or r0.chain != r1.chain:
@@ -677,7 +715,12 @@ def save_structure(session, file, models, xforms, used_data_names):
         if len(bonds) > 0:
             struct_conn_type_data.append('metalc')
         for b, a0, a1 in zip(bonds, *bonds.atoms):
-            if a0.residue == a1.residue:
+            r0 = a0.residue
+            r1 = a0.residue
+            if restrict is not None:
+                if r0 not in restrict_residues or r1 not in restrict_residues:
+                    continue
+            if r0 == r1:
                 continue
             struct_conn_bond('metalc', b, a0, a1)
 
@@ -689,6 +732,9 @@ def save_structure(session, file, models, xforms, used_data_names):
         if len(bonds) > 0:
             struct_conn_type_data.append('hydrog')
         for b, a0, a1 in zip(bonds, *bonds.atoms):
+            if restrict is not None:
+                if a0 not in restrict or a1 not in restrict:
+                    continue
             struct_conn_bond('hydrog', b, a0, a1)
 
     # extra/other covalent bonds
@@ -697,6 +743,9 @@ def save_structure(session, file, models, xforms, used_data_names):
     if len(covalent) > 0:
         struct_conn_type_data.append('covale')
     for b, a0, a1 in covalent:
+        if restrict is not None:
+            if a0 not in restrict or a1 not in restrict:
+                continue
         struct_conn_bond('covale', b, a0, a1)
 
     struct_conn_data[:] = flattened(struct_conn_data)
@@ -811,7 +860,12 @@ def save_structure(session, file, models, xforms, used_data_names):
         elif ssid == last_ssid:
             end_res = r
         else:
-            if beg_res.is_helix:
+            skip = False
+            if restrict is not None:
+                skip = beg_res not in restrict_residues or end_res not in restrict_residues
+            if skip:
+                pass
+            elif beg_res.is_helix:
                 helix_count += 1
                 struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
             elif beg_res.is_strand:
@@ -820,7 +874,12 @@ def save_structure(session, file, models, xforms, used_data_names):
             beg_res = end_res = r
             last_ssid = ssid
     if last_ssid:
-        if beg_res.is_helix:
+        skip = False
+        if restrict is not None:
+            skip = beg_res not in restrict_residues or end_res not in restrict_residues
+        if skip:
+            pass
+        elif beg_res.is_helix:
             helix_count += 1
             struct_conf_entry('HELX%d' % helix_count, "HELX_P", beg_res, end_res)
         elif beg_res.is_strand:
@@ -902,5 +961,5 @@ if 0:
     # models = open_cmd(session, pdb_id, format='pdb')
     # save_mmcif(session, '%s.cif' % pdb_id, models)
     with open('%s.cif' % pdb_id, 'w') as file:
-        save_structure(session, file, models, set())  # noqa
+        save_structure(session, file, models, set(), False, False)  # noqa
     raise SystemExit(-1)
