@@ -12,10 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, runscript
-    desc = CmdDesc(required=[('text', StringArg)],
-                   optional=[('log', BoolArg),
-                             ('downgrade_errors', BoolArg),
+    from chimerax.core.commands import CmdDesc, register, OpenFileNameArg, RestOfLine, runscript
+    desc = CmdDesc(required=[('script_file', OpenFileNameArg)],
+                   optional=[('args', RestOfLine),
                          ],
                    synopsis='run a Python script with arguments')
     register('runscript', desc, runscript, logger=logger)

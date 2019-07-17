@@ -37,5 +37,6 @@ def add_updater_for_session_saving(session, updater):
     methods used by session saving.
     '''
     if not hasattr(session, '_surface_updaters'):
-        session._surface_updaters = SurfaceUpdaters()
+        session._surface_updaters = su = SurfaceUpdaters()
+        session.add_state_manager('_surface_updaters', su)
     session._surface_updaters.add(updater)

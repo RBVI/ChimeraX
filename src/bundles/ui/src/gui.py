@@ -1142,11 +1142,48 @@ class MainWindow(QMainWindow, PlainTextLog):
         more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
         more_tools.triggered.connect(_show_toolshed)
         tools_menu.addAction(more_tools)
+        # running tools will go below this...
+        self._tools_menu_separator = tools_menu.addSection("Running Tools")
+        tools_menu.aboutToShow.connect(self._update_running_tools)
         mb = self.menuBar()
         old_action = self.tools_menu.menuAction()
         mb.insertMenu(old_action, tools_menu)
         mb.removeAction(old_action)
         self.tools_menu = tools_menu
+
+    def _update_running_tools(self, *args):
+        # clear out old running tools
+        seen_sep = False
+        max_text_len = 0
+        for action in self.tools_menu.actions():
+            if seen_sep:
+                self.tools_menu.removeAction(action)
+            elif action == self._tools_menu_separator:
+                seen_sep = True
+            else:
+                max_text_len = max(max_text_len, len(action.text()))
+        ellipsis_threshold = max_text_len + 2 # account for rollover arrow
+        from PyQt5.QtWidgets import QAction
+        running_actions = []
+        for tool_instance, tool_windows in self.tool_instance_to_windows.items():
+            for tw in tool_windows:
+                if not isinstance(tw, MainToolWindow):
+                    continue
+                if len(tw.title) > ellipsis_threshold:
+                    front = int((ellipsis_threshold+1)/2)
+                    back = ellipsis_threshold - front
+                    action_text = tw.title[:front] + "\N{HORIZONTAL ELLIPSIS}" + tw.title[-back:]
+                else:
+                    action_text = tw.title
+                tool_action = QAction(action_text, self)
+                tool_action.setToolTip("%s %s tool" % (("Hide" if tw.shown else "Show"), tw.title))
+                tool_action.setCheckable(True)
+                tool_action.setChecked(tw.shown)
+                tool_action.triggered.connect(lambda arg, tw=tw: setattr(tw, 'shown', not tw.shown))
+                running_actions.append(tool_action)
+        running_actions.sort(key=lambda act: act.text())
+        for action in running_actions:
+            self.tools_menu.addAction(action)
 
     def _set_tool_checkbuttons(self, toolbar, visibility):
         if toolbar.windowTitle() in self._checkbutton_tools:
