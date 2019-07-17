@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import LimitationError, UserError
-from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError
+from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError, \
+    UnsupportedResTypeError
 
 from .cmd import default_criteria
 def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=None, clash_score_method="sum",
@@ -63,9 +64,8 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
 
     # this implementation allows tie-breaking criteria to be skipped if
     # there are no ties
-    if isinstance(criteria, basestring) and not criteria.isalpha():
-        raise UserError("Nth-most-probable criteria cannot be mixed with"
-            " other criteria")
+    if isinstance(criteria, str) and not criteria.isalpha():
+        raise UserError("Nth-most-probable criteria cannot be mixed with other criteria")
     #TODO
     cmp = lambda p1,p2: 1 if p1 > p2 else (0 if p1 == p2 else -1)
     for char in str(criteria):
@@ -158,7 +158,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: 1
             test = lambda v1, v2: 1
 
-        for res, rots in rotamers.items():
+        for res, rots in list(rotamers.items()):
             best = None
             for rot in rots:
                 val = fetch(rot)
@@ -216,27 +216,29 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
             session.logger.info("%s: phi %s, psi %s %s" % (res, _info(phi), _info(psi),
                 "cis" if cis else "trans"))
     session.logger.status("Retrieving rotamers from %s library" % lib.display_name)
-    res_template_func = lib.res_template_func()
-    params = lib.rotamer_params(res_name, phi, psi, cis=cis)
+    res_template_func = lib.res_template_func
+    params = lib.rotamer_params(res_type, phi, psi, cis=cis)
     session.logger.status("Rotamers retrieved from %s library" % lib.display_name)
 
-    mapped_res_type = library.res_name_mapping.get(res_type, res_type)
-    template = library.res_template_func(mapped_res_type)
+    mapped_res_type = lib.res_name_mapping.get(res_type, res_type)
+    template = lib.res_template_func(mapped_res_type)
     tmpl_N = template.find_atom("N")
     tmpl_CA = template.find_atom("CA")
     tmpl_C = template.find_atom("C")
     tmpl_CB = template.find_atom("CB")
     if tmpl_CB:
         res_match_atoms, tmpl_match_atoms = [match_atoms[x]
-            for x in ("c", "ca", "cb")], [tmpl_C, tmpl_CA, tmpl_CB]
+            for x in ("C", "CA", "CB")], [tmpl_C, tmpl_CA, tmpl_CB]
     else:
         res_match_atoms, tmpl_match_atoms = [match_atoms[x]
-            for x in ("n", "ca", "c")], [tmpl_N, tmpl_CA, tmpl_C]
-    from chimerax.std_commands import align
-    _ignore1, _ignore2, rmsd, _ignore3, xform = align(tmpl_match_atoms, to_atoms=res_match_atoms)
-    n_coord = xform * tmpl_N
-    ca_coord = xform * tmpl_CA
-    cb_coord = xform * tmpl_CB
+            for x in ("N", "CA", "C")], [tmpl_N, tmpl_CA, tmpl_C]
+    from chimerax.core.geometry import align_points
+    from numpy import array
+    xform, rmsd = align_points(array([fa.coord for fa in tmpl_match_atoms]),
+        array([ta.scene_coord for ta in res_match_atoms]))
+    n_coord = xform * tmpl_N.coord
+    ca_coord = xform * tmpl_CA.coord
+    cb_coord = xform * tmpl_CB.coord
     info = Residue.chi_info[mapped_res_type]
     bond_cache = {}
     angle_cache = {}
@@ -245,7 +247,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     middles = {}
     ends = {}
     for i, rp in enumerate(params):
-        s = AtomicStructure(name="rotamer %d of %s" % (i+1, res))
+        s = AtomicStructure(session, name="rotamer %d of %s" % (i+1, res))
         structs.append(s)
         r = s.new_residue(mapped_res_type, 'A', 1)
         s.rotamer_prob = rp.p
@@ -270,7 +272,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
         # N and they haven't been added by the above (which is the
         # case for Richardson proline parameters) place them now
         for tnnb in tmpl_N.neighbors:
-            if tnnb.name in r.atoms_map or tnnb.element.number == 1:
+            if r.find_atom(tnnb.name) or tnnb.element.number == 1:
                 continue
             tnnb_coord = xform * tnnb.coord
             add_atom(tnnb.name, tnnb.element, r, tnnb_coord, bonded_to=rot_N)
@@ -376,6 +378,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
     # add new sidechain
     new_atoms = []
     xf = None
+    from chimerax.atomic.struct_edit import add_bond
     while len(buds) > 0:
         bud = buds.pop()
         tmpl_bud = tmpl_res.find_atom(bud)
@@ -567,7 +570,7 @@ def side_chain_locs(residue):
         locs.add(a.alt_loc)
     return locs
 
-def use_rotamer(sesion, res, rots, retain=False, log=False):
+def use_rotamer(session, res, rots, retain=False, log=False):
     """Takes a Residue instance and a list of one or more rotamers (as returned by get_rotamers,
        i.e. with backbone already matched) and swaps the Residue's side chain with the given rotamers.
        If more than one rotamer is in the list, then alt locs will be used to distinguish the different
@@ -584,7 +587,6 @@ def use_rotamer(sesion, res, rots, retain=False, log=False):
     alt_locs = string.ascii_uppercase + string.ascii_lowercase + string.digits + string.punctuation
     if retain and res.name != rots[0].name:
         raise LimitationError("Cannot retain side chains if rotamers are a different residue type")
-    bb_retain = set([CA.alt_loc] + retain)
     retained_alt_locs = side_chain_locs(res) if retain else []
     num_retained = len(retained_alt_locs)
     if len(rots) + num_retained > len(alt_locs):
@@ -625,24 +627,25 @@ def use_rotamer(sesion, res, rots, retain=False, log=False):
     res.structure.alt_loc_change_notify = False
     res.name = rots[0].residues[0].name
     from chimerax.atomic.struct_edit import add_atom, add_bond
-    for ca_alt_loc in CA.alt_locs:
-        CA.set_alt_loc(ca_alt_loc)
+    ca_alt_locs = [' '] if orig_CA_alt_loc == ' ' else CA.alt_locs
+    for ca_alt_loc in ca_alt_locs:
+        CA.alt_loc = ca_alt_loc
         if multi_sidechain:
             locs_rots = zip([c for c in alt_locs if c not in retained_alt_locs][:len(rots)], rots)
         else:
-            locs_rots = [ca_alt_loc, rots[0]]
+            locs_rots = [(ca_alt_loc, rots[0])]
         for alt_loc, rot in locs_rots:
             if log:
                 extra = " using alt loc %s" % alt_loc if alt_loc != ' ' else ""
                 session.logger.info("Applying %s rotamer (chi angles: %s) to %s%s"
-                    % (rot_res.type, " ".join(["%.1f" % c for c in rot.chis]), res, extra))
+                    % (rot_res.name, " ".join(["%.1f" % c for c in rot.chis]), res, extra))
             # add new side chain
             rot_N, rot_CA = rot_anchors[rot]
             visited = set([N, CA, C])
             sprouts = [rot_CA]
             while sprouts:
                 sprout = sprouts.pop()
-                build_sprout = res.find_atom(sprout.name)
+                built_sprout = res.find_atom(sprout.name)
                 for nb in sprout.neighbors:
                     built_nb = res.find_atom(nb.name)
                     if tot_prob == 0.0:
@@ -671,7 +674,7 @@ def use_rotamer(sesion, res, rots, retain=False, log=False):
                         visited.add(built_nb)
                     if built_nb not in built_sprout.neighbors:
                         add_bond(built_sprout, built_nb)
-    CA.set_alt_loc(orig_CA_alt_loc)
+    CA.alt_loc = orig_CA_alt_loc
     res.structure.alt_loc_change_notify = True
 
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):

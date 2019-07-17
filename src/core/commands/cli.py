@@ -648,7 +648,7 @@ class Bounded(Annotation):
     :param url: optionally give documentation URL.
     """
 
-    def __init__(self, annotation, *, min=None, max=None, inclusive=True, name=None, url=None, html_name=None):
+    def __init__(self, annotation, min=None, max=None, *, inclusive=True, name=None, url=None, html_name=None):
         Annotation.__init__(self, name, url)
         self.anno = annotation
         self.min = min

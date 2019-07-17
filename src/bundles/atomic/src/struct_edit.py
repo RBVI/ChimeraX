@@ -28,8 +28,7 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
        or an Element instance.
 
        The atom is added to the given residue (and its molecule).
-       'loc' can be a sequence of Points if there are multiple
-       coordinate sets.
+       'loc' can be an array of xyzs if there are multiple coordinate sets.
 
        If no 'serial_number' is given, then the atom will be given a serial
        number one greater than the largest serial number of the other atoms
@@ -62,19 +61,19 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
     residue.add_atom(new_atom)
     if alt_loc is not None:
         new_atom.set_alt_loc(alt_loc, True)
+    from numpy import array
     if len(loc.shape) == 1:
-        locs = [loc]
+        locs = array([loc])
     else:
         locs = loc
     if struct.num_coordsets == 0:
-        if len(locs) == 1:
-            struct.new_coord_set(1)
-        else:
-            for i in range(1, len(loc)+1):
-                struct.new_coord_set(i)
-        struct.active_coordset_id = 1
-    for xyz, cs_id in zip(locs, struct.coordset_ids):
-        new_atom.set_coord(xyz, cs_id)
+        if len(locs) > 1:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Cannot add_atom() multi-position atom to empty structure")
+        new_atom.coord = locs[0]
+    else:
+        for xyz, cs_id in zip(locs, struct.coordset_ids):
+            new_atom.set_coord(xyz, cs_id)
     if serial_number is None:
         import numpy
         serial_number = numpy.max(struct.atoms.serial_numbers) + 1

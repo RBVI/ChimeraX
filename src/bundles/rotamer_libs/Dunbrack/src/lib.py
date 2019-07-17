@@ -14,8 +14,8 @@
 _dependent_cache = {}
 _independent_cache = {}
 
-from chimerax.atomic.rotamers.manager import RotamerLibrary, RotamerParams, \
-    UnsupportedResNameError, NoResidueRotamersError
+from chimerax.atomic.rotamers import RotamerLibrary, RotamerParams, \
+    UnsupportedResTypeError, NoResidueRotamersError
 
 class DunbrackRotamerLibrary(RotamerLibrary):
 
@@ -48,7 +48,7 @@ Structure, 19, 844-858."""
     def res_name_mapping(self):
         return { "CPR": "PRO", "CYD": "CYS", "CYH": "CYS", "TPR": "PRO" }
 
-    def rotamer_params(self, res_name, phi, psi):
+    def rotamer_params(self, res_name, phi, psi, *, cis=False):
         if phi is None or psi is None:
             file_name = res_name
             archive = "independentRotamerData2002.zip"

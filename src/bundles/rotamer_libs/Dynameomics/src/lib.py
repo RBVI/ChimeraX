@@ -13,8 +13,8 @@
 
 _cache = {}
 
-from chimerax.atomic.rotamers.manager import RotamerLibrary, RotamerParams, \
-    UnsupportedResNameError, NoResidueRotamersError
+from chimerax.atomic.rotamers import RotamerLibrary, RotamerParams, \
+    UnsupportedResTypeError, NoResidueRotamersError
 
 class DynameomicsRotamerLibrary(RotamerLibrary):
 
@@ -48,5 +48,5 @@ Protein Science 20, 341-352."""
     def res_name_mapping(self):
         return { "CYH": "CYS", "HID": "HIS", "HIE": "HIS", "HIP": "HIS" }
 
-    def rotamer_params(self, res_name, phi, psi):
+    def rotamer_params(self, res_name, phi, psi, *, cis=False):
         return self._get_params(res_name, res_name, _cache, "rotamerData.zip")

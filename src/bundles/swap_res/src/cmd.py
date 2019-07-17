@@ -30,17 +30,25 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
             if c not in "dchp":
                 raise UserError("Unknown criteria: '%s'" % c)
 
+    if lib is None:
+        available_libs = session.rotamers.library_names()
+        for lib_name in available_libs:
+            if "Dunbrack" in lib_name:
+                lib = lib_name
+                break
+        else:
+            if available_libs:
+                lib = available_libs[0]
+            else:
+                raise UserError("No rotamer libraries installed!")
     from . import swap_res
-    try:
-        swap_res.swap_aa(session, residues, res_type, bfactor=bfactor, clash_hbond_allowance=hbond_allowance,
-            clash_score_method=score_method, clash_threshold=threshold,
-            criteria=criteria, density=density, hbond_angle_slop=angle_slop,
-            hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, lib=lib, log=log,
-            preserve=preserve, hbond_relax=relax, retain=retain)
-    except swap_res.SwapError as e:
-        raise UserError(e)
+    swap_res.swap_aa(session, residues, res_type, bfactor=bfactor, clash_hbond_allowance=hbond_allowance,
+        clash_score_method=score_method, clash_threshold=threshold,
+        criteria=criteria, density=density, hbond_angle_slop=angle_slop,
+        hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, lib=lib, log=log,
+        preserve=preserve, hbond_relax=relax, retain=retain)
 
-def register_command(logger):
+def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, IntArg, Or, FloatArg, EnumOf
     from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum
     from chimerax.atomic import ResiduesArg
@@ -65,4 +73,4 @@ def register_command(logger):
         ],
         synopsis = 'Swap amino acid side chain(s)'
     )
-    register('swap_aa', desc, swapaa, logger=logger)
+    register(command_name, desc, swap_aa, logger=logger)

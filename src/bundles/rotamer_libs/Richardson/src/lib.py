@@ -14,8 +14,8 @@
 _common_cache = {}
 _mode_cache = {}
 
-from chimerax.atomic.rotamers.manager import RotamerLibrary, RotamerParams, \
-    UnsupportedResNameError, NoResidueRotamersError
+from chimerax.atomic.rotamers import RotamerLibrary, RotamerParams, \
+    UnsupportedResTypeError, NoResidueRotamersError
 
 class RichardsonBase(RotamerLibrary):
 
@@ -40,7 +40,7 @@ Proteins: Structure Function and Genetics 40: 389-408."""
         except KeyError:
             pass
         if res_name not in self.residue_names:
-            raise UnsupportedResNameError(
+            raise UnsupportedResTypeError(
                 "%s library does not support residue type '%s'" % (self.display_name, res_name))
         if res_name == "PRO":
             if cis:

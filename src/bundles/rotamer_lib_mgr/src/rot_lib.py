@@ -16,7 +16,7 @@ from abc import abstractmethod
 class NoResidueRotamersError(ValueError):
     pass
 
-class UnsupportedResNameError(NoResidueRotamersError):
+class UnsupportedResTypeError(NoResidueRotamersError):
     pass
 
 class RotamerParams:
@@ -112,7 +112,7 @@ class RotamerLibrary:
            Note that phi or psi can be None for chain-terminal residues.  Backbone-dependent libraries
            will have to use some fallback procedure for generating parameters in those cases, or throw
            NoResidueRotamersError.  If 'res_name' does not correspond to a name supported by the library,
-           throw UnsupportedResNameError.
+           throw UnsupportedResTypeError.
 
            For rotamer libraries that support cis vs. trans rotamers, the cis keyword can be used
            to decide which rotamers to return.
@@ -127,7 +127,7 @@ class RotamerLibrary:
             pass
         base_name = self._non_cistrans_res_name(res_name)
         if base_name not in self.residue_names:
-            raise UnsupportedResNameError(
+            raise UnsupportedResTypeError(
                 "%s library does not support residue type '%s'" % (self.display_name, base_name))
         import os.path, inspect
         my_dir = os.path.split(inspect.getfile(self.__class__))[0]
