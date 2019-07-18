@@ -23,7 +23,7 @@ from .mmcif import (
 from chimerax.core.toolshed import BundleAPI
 
 
-class _PDBioAPI(BundleAPI):
+class _mmCIFioAPI(BundleAPI):
 
     @staticmethod
     def fetch_from_database(session, identifier, ignore_cache=False, database_name=None,
@@ -56,10 +56,10 @@ class _PDBioAPI(BundleAPI):
                                 log_info=log_info, combine_sym_atoms=combine_sym_atoms)
 
     @staticmethod
-    def save_file(session, path, *, models=None, rel_model=None):
+    def save_file(session, path, *, models=None, rel_model=None, selected_only=None, displayed_only=None):
         # 'save_file' is called by session code to save a file
         from . import mmcif_write
-        return mmcif_write.write_mmcif(session, path, models=models, rel_model=rel_model)
+        return mmcif_write.write_mmcif(session, path, models=models, rel_model=rel_model, selected_only=selected_only, displayed_only=displayed_only)
 
 
-bundle_api = _PDBioAPI()
+bundle_api = _mmCIFioAPI()

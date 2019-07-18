@@ -75,11 +75,11 @@ through <a href="../window.html#tool-context">context menus</a>.
 <b>mousemode</b> 
 [&nbsp;<b>control</b>&nbsp;] [&nbsp;<b>alt</b>&nbsp;]
 [&nbsp;<b>command</b>&nbsp;] [&nbsp;<b>shift</b>&nbsp;]
-[&nbsp;<b>leftMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;<b>middleMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;<b>rightMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;<b>wheelMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;<b>pauseMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
+[&nbsp;<b>leftMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>middleMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>rightMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>wheelMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>pauseMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
 <blockquote>
 <p>
 The <b>mousemode</b> command (same as <b>ui mousemode</b>)
@@ -90,39 +90,6 @@ alone and in combination with the modifier keys <b>control</b>, <b>alt</b>,
 In addition, <b>wheelMode</b> refers to
 scrolling and <b>pauseMode</b> refers to pausing the cursor over something 
 in the graphics window without clicking any buttons. 
-</p><p>
-Given without arguments, the <b>mousemode</b> command reports the current
-assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
-Initial defaults include:
-</p>
-<ul>
-<li>left: rotate
-<li>middle: translate
-<li>right: translate
-<li>wheel (scrolling): zoom
-<li>Ctrl-left: new <a href="../selection.html">selection</a>
-(+Shift to toggle)
-</ul>
-<p>
-A <a href="#touchpad">trackpad or single-button mouse</a> can also be used.
-See also:
-<a href="cofr.html"><b>cofr</b></a>,
-<a href="device.html"><b>device</b></a>,
-<a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icons,
-<!--
-<a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
-<a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>,
-<a href="../tools/maperaser.html"><b>Map Eraser</b></a>,
--->
-<a href="../window.html">ChimeraX window</a>
-</p><p>
-Possible values of <i>function</i> are listed in the table 
-<a href="#functions">below</a>. They can be truncated to unique strings.
-If <i>function</i> contains spaces, it should be enclosed in quotation marks.
-Not all functions make sense for a given input mode; for example,
-only <b>identify object</b> and <b>none</b> are reasonable functions for
-<b>pauseMode</b>.
-</p><p>
 Multiple modifier keys and multiple &ldquo;buttons&rdquo;
 can be given in a single command, but all specified
 modifiers apply to all specified buttons. For example, 
@@ -134,11 +101,78 @@ two commands rather than one would be needed to assign functions to
 <br>
 <b>mousemode alt wheel contour</b>
 </blockquote>
-
+</p><p>
+Given without arguments, the <b>mousemode</b> command reports the current
+assignments in the <a href="../tools/log.html"><b>Log</b></a>. See also:
+<a href="cofr.html"><b>cofr</b></a>,
+<a href="device.html"><b>device</b></a>,
+<!--
+<a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
+<a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>,
+<a href="../tools/maperaser.html"><b>Map Eraser</b></a>,
+-->
+<a href="../window.html">ChimeraX window</a>
+</p><p>
+A <a href="#touchpad">trackpad or single-button mouse</a> can also be used.
+Summary of mouse and trackpad defaults:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center" rowspan="2"><b>rotate</b>
+<br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
+<td>left mouse button</td>
+</tr><tr>
+<td class="text">trackpad click-drag
+<br>Mac: also trackpad 2-finger rotation if 
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled</td>
+</tr><tr>
+<td align="center" rowspan="2"><b>translate</b>
+<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
+<td>middle mouse button</td>
+</tr><tr>
+<td class="text">
+Mac: trackpad + <b>Alt</b>, 3-finger drag if
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled
+<br>
+Windows: trackpad + <b>Ctrl-Alt</b>
+</td>
+</tr><tr>
+<td align="center" rowspan="2"><b>zoom</b>
+<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
+<td>mouse scroll wheel</td>
+</tr><tr>
+<td class="text">
+Mac: trackpad pinch or 4-finger drag if
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled,
+otherwise 2-finger drag
+<br>
+Windows: trackpad 2-finger drag
+</td>
+</tr><tr>
+<td align="center" rowspan="2"><b>select</b>
+<br><img src="../tools/mouse-icons/select.png" class="icon3"></td>
+<td>left mouse button + <b>Ctrl</b>, + <b>Shift</b> to toggle</td>
+</tr><tr>
+<td class="text">
+trackpad + <b>Ctrl</b>, + <b>Shift</b> to toggle</td>
+</tr></table>
+<p>
+The right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+is also assigned to <b>translate</b> by default, 
+but can be reassigned by clicking a
+<a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icon:
+&nbsp;<img class="iconbar" src="../mouse-icons.png">
+</p><p>
+The <a href="#functions"><i>function</i></a> can be truncated to a unique string. 
+If the string contains spaces, it should be enclosed in quotation marks.
+Not all functions make sense for a given input mode; for example,
+only <b>identify object</b> and <b>none</b> are reasonable functions for
+<b>pauseMode</b>.
+</p>
 <a name="functions"></a>
 <table border cellpadding="4" cellspacing="0">
 <tr>
-<td align="center"><b><i>function</i></b><br>(default assignment, if any)</td>
+<td align="center"><b><i>function</i></b><br>(default,&nbsp;if&nbsp;any)</td>
 <td align="center"><b>description</b></td>
 <td align="center"><b><a href="../tools/mousemodes.html">Right Mouse</a>
 icon</b></td>
@@ -165,7 +199,8 @@ except if wheel, Z-translate; see also <a href="move.html"><b>move</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/translate.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>zoom</b><br>(wheel)</td>
-<td align="center" class="text">zoom the view;
+<td align="center" class="text">zoom the view
+(slightly <a href="../tools/mousemodes.html#vr">different in VR</a>);
 see also <a href="zoom.html"><b>zoom</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/zoom.png" width="35px"></td>
 </tr><tr>
@@ -400,48 +435,6 @@ another finger near the middle of the trackpad. On laptops
 with a &ldquo;precision touchpad,&rdquo; a two-finger tap is also
 interpreted as right-click, but a two-finger drag still performs scrolling.
 </ul>
-<p>
-Summary of mouse and trackpad manipulation defaults:
-</p>
-<table border cellpadding="4" cellspacing="0"><tr>
-<td align="center" rowspan="2"><b>rotate</b>
-<br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
-<td>left mouse button</td>
-</tr><tr>
-<td class="text">trackpad click-drag
-<br>Mac: also trackpad 2-finger rotation if 
-<a href="../preferences.html#trackpad">multitouch gestures</a> enabled</td>
-</tr><tr>
-<td align="center" rowspan="2"><b>translate</b>
-<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
-<td>middle mouse button</td>
-</tr><tr>
-<td class="text">
-Mac: trackpad + <b>Alt</b>, 3-finger drag if
-<a href="../preferences.html#trackpad">multitouch gestures</a> enabled
-<br>
-Windows: trackpad + <b>Ctrl-Alt</b>
-</td>
-</tr><tr>
-<td align="center" rowspan="2"><b>zoom</b>
-<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
-<td>mouse scroll wheel</td>
-</tr><tr>
-<td class="text">
-Mac: trackpad pinch or 4-finger drag if
-<a href="../preferences.html#trackpad">multitouch gestures</a> enabled,
-otherwise 2-finger drag
-<br>
-Windows: trackpad 2-finger drag
-</td>
-</tr></table>
-<p>
-The right mouse button (= trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
-is also assigned to <b>translate</b> by default, 
-but can be reassigned by clicking 
-<a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icons.
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /

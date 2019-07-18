@@ -264,6 +264,7 @@ _Toolbars = {
                 ("shortcut:se", "silhouette.png", "Silhouettes", "Toggle silhouettes"),
             ],
             ("Camera", False): [
+                ("shortcut:vs", "viewsel.png", "View selected", "View selected"),
                 ("shortcut:va", "viewall.png", "View all", "View all"),
                 ("shortcut:dv", "orient.png", "Orient", "Default orientation"),
             ],

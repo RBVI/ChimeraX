@@ -2927,7 +2927,8 @@ extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, i
                     auto seqi = smap.find(seq);
                     if (seqi == smap.end())
                       {
-                        si = cmap[c] = smap[seq] = smap.size()+1;
+                        int next_id = smap.size()+1;
+                        si = cmap[c] = smap[seq] = next_id;
                         PyList_Append(seqs, unicode_from_string(seq));
                       }
                     else
@@ -3961,6 +3962,26 @@ extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t 
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT PyObject* coordset_xyzs(void *coordset)
+{
+    CoordSet *cs = static_cast<CoordSet*>(coordset);
+
+    PyObject* ret_val;
+    try {
+        double *v;
+        ret_val = python_double_array(cs->coords().size(), 3, &v);
+        for (auto xyz: cs->coords()) {
+            *v++ = xyz[0];
+            *v++ = xyz[1];
+            *v++ = xyz[2];
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return ret_val;
 }
 
 // -------------------------------------------------------------------------

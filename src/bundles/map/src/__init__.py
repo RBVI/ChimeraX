@@ -76,13 +76,6 @@ class _MapBundle(BundleAPI):
             show_coords_panel(session)
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        return None
-
-
-    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from chimerax import map

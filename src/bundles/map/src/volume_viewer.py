@@ -2054,25 +2054,21 @@ class Histogram_Pane:
       self.dialog.session.update_loop.update_graphics_now()
 
   # ---------------------------------------------------------------------------
+  # x,y in canvas coordinates
   #
   def add_threshold(self, x, y):
-      # Convert threshold panel x,y to histogram canvas cx,cy
-      from PyQt5.QtCore import QPoint
-      cp = self.canvas.mapFrom(self.frame, QPoint(x,y))
       markers = self.shown_markers()
       if markers:
-          markers.add_marker(cp.x(), cp.y())
+          markers.add_marker(x, y)
           self.dialog.redisplay_needed_cb()
 
   # ---------------------------------------------------------------------------
+  # x,y in canvas coordinates
   #
   def delete_threshold(self, x, y):
-      # Convert threshold panel x,y to histogram canvas cx,cy
-      from PyQt5.QtCore import QPoint
-      cp = self.canvas.mapFrom(self.frame, QPoint(x,y))
       markers = self.shown_markers()
       if markers:
-          m = markers.clicked_marker(cp.x(), cp.y())
+          m = markers.clicked_marker(x, y)
           if m:
               markers.delete_marker(m)
               self.dialog.redisplay_needed_cb()

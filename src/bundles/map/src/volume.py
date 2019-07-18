@@ -1849,7 +1849,8 @@ class VolumeSurface(Surface):
     self.volume = volume
     self._level = level
     self._mesh = mesh
-    self.rgba = rgba
+    color = [int(min(255,max(0,255*r))) for r in rgba]
+    Surface.set_color(self, color)	# Don't set self.rgba since that calls color changed volume callback
     self._contour_settings = {}	         	# Settings for current surface geometry
     self._min_status_message_voxels = 2**24	# Show status messages only on big surface calculations
     self._use_thread = False			# Whether to compute next surface in thread
