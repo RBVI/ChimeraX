@@ -732,7 +732,8 @@ class UserInterface:
         self._ui_model = None
         self._panels = []		# List of Panel, one for each user interface pane
         self._gui_tool_names = ['Toolbar', 'right panels']
-        self._panel_separation = 0.01	# meters
+        self._panel_y_spacing = 0.01	# meters
+        self._panel_z_spacing = 0.001	# meters
         self._start_ui_move_time = None
         self._last_ui_position = None
         self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
@@ -791,16 +792,20 @@ class UserInterface:
                 
         np = len(panels)
         if np > 1:
-            sep = self._panel_separation
-            h = sum(p._height for p in panels) + (np-1)*sep
+            sep = self._panel_y_spacing
+            dz = self._panel_z_spacing
+            h = sum(p.size[1] for p in panels) + (np-1)*sep
             # Stack panels.
-            shift = h/2
+            y = h/2
+            z = 0
             from chimerax.core.geometry import translation
             for p in panels:
-                shift -= 0.5*p._height
+                h = p.size[1]
+                y -= 0.5*h
                 pd = p._panel_drawing
-                pd.position = translation((0,shift,0)) * pd.position
-                shift -= 0.5*p._height + sep
+                pd.position = translation((0,y,z)) * pd.position
+                y -= 0.5*h + sep
+                z -= dz
         return panels
     
     def move(self, room_motion = None):
@@ -845,7 +850,9 @@ class UserInterface:
         elif pressed:
             # Button pressed.
             window_xy, panel = self._click_position(rp.origin())
-            if panel and not self._mouse_mode_pressed(window_xy, hc, b):
+            if (panel and
+                not self._mouse_mode_pressed(window_xy, hc, b) and
+                not self._clicked_on_title_bar(window_xy)): # Don't allow dragging title bar.
                 self._press(window_xy)
                 bdown[(hc,b)] = panel
                 return True
@@ -1003,6 +1010,11 @@ class UserInterface:
                 return self._hand_mode(mouse_mode)
         return None
 
+    def _clicked_on_title_bar(self, window_xy):
+        w, pos = self._clicked_widget(window_xy)
+        from PyQt5.QtWidgets import QDockWidget
+        return isinstance(w, QDockWidget)
+        
     def set_mouse_mode_click_range(self, range):
         self._mouse_mode_click_range = range
 
@@ -1078,14 +1090,13 @@ class UserInterface:
 
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
-    initial_widths = {'main window': 1, 'right panels': 0.5, 'Toolbar': 1} # Meters
+    initial_size = {'main window': (1,1), 'right panels': (0.5,1), 'Toolbar': (1,.1)} # Meters
     def __init__(self, parent, ui, tool_name = 'main window'):
         self._ui = ui
         self._gui_tool_name = tool_name	# Name of tool instance shown in VR gui panel.
-        width = Panel.initial_widths.get(tool_name, 0.5)
-        self._width = width		# Billboard width in room coords, meters.
+        self._max_size = Panel.initial_size.get(tool_name, (0.5,1))  # Room coords, meters
         x0,y0,w,h = self._panel_rectangle()
-        self._height = (h/w)*width if w > 0 else 0	# Height in room coords determined by window aspect and width.
+        self._size = self._fit_size(w,h) # Billboard width, height in room coords, meters.
         self._panel_size = None 	# Panel size in Qt device independent pixels
         self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
         self._last_image_rgba = None
@@ -1111,7 +1122,15 @@ class Panel:
     @property
     def size(self):
         '''Panel width and height in meters.'''
-        return (self._width, self._height)
+        return self._size
+
+    def _fit_size(self, w, h):
+        # Inscribe rectangle with aspect (w,h) in self._max_size rectangle.
+        mw, mh = self._max_size
+        if w == 0 and h == 0:
+            return (0,0)
+        size = ((w/h)*mh, mh) if mw*h >= mh*w else (mw, (h/w)*mw)
+        return size
 
     @property
     def drawing(self):
@@ -1122,8 +1141,11 @@ class Panel:
         Center is specified in the parent model coordinate system.
         If center is not specified then panel scales about its geometric center.
         '''
-        self._width *= scale_factor
-        self._height *= scale_factor
+        w,h = self.size
+        self._size = (scale_factor*w, scale_factor*h)
+        mw,mh = self._max_size
+        self._max_size = (scale_factor*mw, scale_factor*mh)
+
         self._update_geometry()
 
         if center is not None:
@@ -1136,7 +1158,7 @@ class Panel:
         ui = self._panel_drawing
         scene_point = self._ui._camera.room_to_scene * room_point
         x,y,z = ui.scene_position.inverse() * scene_point
-        w,h = self._width, self._height
+        w,h = self.size
         hw, hh = 0.5*w, 0.5*h
         cr = self._ui_click_range
         on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
@@ -1154,7 +1176,7 @@ class Panel:
         self._last_image_rgba = rgba
         if lrgba is None or rgba.shape != lrgba.shape:
             h,w = rgba.shape[:2]
-            self._height = (h/w) * self._width if w > 0 else 0
+            self._size = self._fit_size(w,h)
             self._update_geometry()
 
         d = self._panel_drawing
@@ -1170,7 +1192,7 @@ class Panel:
         # position matrix contains scale factor to produce scene coordinates.
 
         # Calculate rectangles for panel and raised buttons
-        w, h = self._width, self._height
+        w, h = self.size
         xmin,ymin,xmax,ymax = -0.5*w,-0.5*h,0.5*w,0.5*h
         rects = [(xmin,ymin,0,xmax,ymax,0)]
         zr = self._button_rise
@@ -1259,7 +1281,7 @@ class Panel:
         wx0,wy0 = wxy0.x(), wxy0.y()
         ww,wh = widget.width(), widget.height()
         wx1, wy1 = wx0+ww, wy0+wh
-        pw, ph = self._width, self._height
+        pw, ph = self.size
         ws = 1/w if w > 0 else 0
         hs = 1/h if h > 0 else 0
         rect = (pw*(wx0-xc)*ws, -ph*(wy0-yc)*hs, pw*(wx1-xc)*ws, -ph*(wy1-yc)*hs)
