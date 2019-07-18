@@ -716,7 +716,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             struct_conn_type_data.append('metalc')
         for b, a0, a1 in zip(bonds, *bonds.atoms):
             r0 = a0.residue
-            r1 = a0.residue
+            r1 = a1.residue
             if restrict is not None:
                 if r0 not in restrict_residues or r1 not in restrict_residues:
                     continue
