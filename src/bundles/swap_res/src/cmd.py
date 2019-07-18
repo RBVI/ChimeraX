@@ -41,6 +41,9 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
                 lib = available_libs[0]
             else:
                 raise UserError("No rotamer libraries installed!")
+    if log:
+        session.logger.info("Using %s library" % lib)
+
     from . import swap_res
     swap_res.swap_aa(session, residues, res_type, bfactor=bfactor, clash_hbond_allowance=hbond_allowance,
         clash_score_method=score_method, clash_threshold=threshold,

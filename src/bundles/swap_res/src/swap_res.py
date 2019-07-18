@@ -207,7 +207,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     if not phi and not psi:
         phi, psi = res.phi, res.psi
         omega = res.omega
-        cis = False if omega is None or abs(omega) < 90 else True
+        cis = False if omega is None or abs(omega) > 90 else True
         if log:
             def _info(ang):
                 if ang is None:
