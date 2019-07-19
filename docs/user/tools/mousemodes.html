@@ -82,8 +82,10 @@ see also <a href="../commands/move.html"><b>move</b></a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/zoom.png" width="35px"></td>
 <td align="center"><b>zoom</b><br>(wheel)</td>
-<td align="center">zoom the view;
-see also <a href="../commands/zoom.html"><b>zoom</b></a></td>
+<td align="center">zoom the view
+(slightly <a href="#vr">different in VR</a>);
+see also <a href="../commands/zoom.html"><b>zoom</b></a>
+</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/move_h2o.png" width="35px"></td>
 <td align="center"><b>translate selected models</b></td>
@@ -322,6 +324,12 @@ trackpad + <img src="../icon-clover.png" width="12px"> on Mac).
 Some of the mouse modes are modified in VR:
 </p>
 <ul>
+<li>the <b>zoom</b> mode scales the scene about the position of
+the hand-controller cone tip (or the two-cone midpoint if zooming with a 
+two-handed gesture) if that point is inside the scene bounding box, 
+otherwise the center of the scene bounding box.
+Outside of VR, <a href="../commands/zoom.html">zooming</a>
+moves the camera toward or away from the scene.
 <li>the <b>label</b> mode makes labels
 <table border cellpadding="0" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
@@ -335,5 +343,5 @@ them only upon a 45&deg; change in viewing angle rather than continuously
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+July 2019</address>
 </body></html>
