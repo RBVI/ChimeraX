@@ -2032,8 +2032,8 @@ def qimage_to_numpy(qi):
 
 # -----------------------------------------------------------------------------
 #
-def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0,
-                    pixels = False, italic = False, bold = False):
+def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, ypad = 0,
+            pixels = False, italic = False, bold = False, outline_width = 0, outline_color = None):
     '''
     Size argument is in points (1/72 inch) if pixels is False and the returned
     image has size to fit the specified text plus padding on each edge, xpad and
@@ -2041,15 +2041,17 @@ def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, yp
     and the font is chosen to fit within this image height minus ypad pixels at top
     and bottom.
     '''
-    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor
+    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
 
     p = QPainter()
 
     # Determine image size.
     weight = QFont.Bold if bold else QFont.Normal
+    xbuf = xpad + outline_width
+    ybuf = ypad + outline_width
     if pixels:
         f = QFont(font, weight=weight, italic=bool(italic))
-        f.setPixelSize(size-2*ypad)
+        f.setPixelSize(size-2*ybuf)
     else:
         f = QFont(font, size, weight=weight, italic=bool(italic))  # Size in points.
 
@@ -2061,22 +2063,40 @@ def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, yp
     #       Use pad option to add some pixels to avoid clipped text.
     tw, th = r.width(), r.height()  # pixels
     if pixels:
-        iw, ih = tw+2*xpad, size
+        iw, ih = tw+2*xbuf, size
     else:
-        iw, ih = tw+2*xpad, th+2*ypad
+        iw, ih = tw+2*xbuf, th+2*ybuf
 
     ti = QImage(iw, ih, QImage.Format_ARGB32)
     
     # Paint background
     bg = (0,0,0,0) if background_color is None else tuple(background_color)
-    ti.fill(QColor(*bg))    # Set background transparent
+    if outline_width > 0:
+        if outline_color is None:
+            from ..colors import contrast_with
+            outline_color = contrast_with(bg[:3]) + (255,)
+        fill_color = tuple(outline_color)
+    else:
+        fill_color = bg
+    ti.fill(QColor(*fill_color))    # Set background transparent
 
     # Paint text
     p.begin(ti)
+    if outline_width > 0:
+        prev_b = p.brush()
+        prev_p = p.pen()
+        bc = QColor(*bg)
+        from PyQt5.QtCore import Qt
+        pbr = QBrush(bc, Qt.SolidPattern)
+        p.setBrush(pbr)
+        ppen = QPen(Qt.NoPen)
+        p.drawRect(outline_width, outline_width, iw-2*outline_width-1, ih-2*outline_width)
+        p.setBrush(prev_b)
+        p.setPen(prev_p)
     p.setFont(f)
     c = QColor(*color)
     p.setPen(c)
-    x, y = xpad, (ih-1) - (r.bottom()+ypad)
+    x, y = xpad+outline_width, (ih-1) - (r.bottom()+ypad+outline_width)
     p.drawText(x, y, text)
 
     # Convert to numpy rgba array.

@@ -16,7 +16,8 @@
 #
 def label_create(session, name, text = '', color = None, bg_color = None,
                  size = 24, font = 'Arial', bold = None, italic = None,
-                 xpos = 0.5, ypos = 0.5, visibility = True, margin = 0):
+                 xpos = 0.5, ypos = 0.5, visibility = True, margin = 0,
+                 outline = 0):
     '''Create a label at a fixed position in the graphics window.
 
     Parameters
@@ -43,6 +44,8 @@ def label_create(session, name, text = '', color = None, bg_color = None,
       Whether or not to display the label.
     margin : float
       Amount of padding to add around text
+    outline : float
+      width of contrasting outline to place around background/margin
     '''
     if name == 'all':
         from chimerax.core.errors import UserError
@@ -58,6 +61,7 @@ def label_create(session, name, text = '', color = None, bg_color = None,
         kw['background'] = bg_color.uint8x4()
     elif bg_color == 'none':
         kw['background'] = None
+    kw['outline_width'] = kw.pop('outline')
     return Label(**kw)
 
 
@@ -65,7 +69,8 @@ def label_create(session, name, text = '', color = None, bg_color = None,
 #
 def label_change(session, name, *, text = None, color = None, bg_color = None,
                  size = None, font = None, bold = None, italic = None,
-                 xpos = None, ypos = None, visibility = None, margin = None, frames = None):
+                 xpos = None, ypos = None, visibility = None, margin = None,
+                 outline = None, frames = None):
     '''Change label parameters.'''
     lb = session_labels(session)
     if name == 'all':
@@ -89,13 +94,15 @@ def label_change(session, name, *, text = None, color = None, bg_color = None,
         if ypos is not None: l.ypos = ypos
         if visibility is not None: l.visibility = visibility
         if margin is not None: l.margin = margin
+        if outline is not None: l.outline_width = outline
         l.update_drawing()
     else:
-        _InterpolateLabel(session, l, color, bg_color, size, xpos, ypos, visibility, margin, frames)
+        _InterpolateLabel(session, l, color, bg_color, size, xpos, ypos, visibility, margin, outline, frames)
     return l
 
 class _InterpolateLabel:
-    def __init__(self, session, label, color, bg_color, size, xpos, ypos, visibility, margin, frames):
+    def __init__(self, session, label, color, bg_color, size, xpos, ypos, visibility, margin, outline_width,
+            frames):
         self.label = label
         from numpy import array_equal
         if color is None:
@@ -133,6 +140,7 @@ class _InterpolateLabel:
         self.ypos1, self.ypos2 = label.ypos, ypos
         self.visibility1, self.visibility2 = label.visibility, visibility
         self.margin1, self.margin2 = label.margin, margin
+        self.outline_width1, self.outline_width2 = label.outline_width, outline_width
         self.frames = frames
         from chimerax.core.commands import motion
         motion.CallForNFrames(self.frame_cb, frames, session)
@@ -190,6 +198,11 @@ class _InterpolateLabel:
                 self.label.margin = self.margin2
             else:
                 self.label.margin = (1 - fraction) * self.margin1 + fraction * self.margin2
+        if self.outline_width2 is not None and self.outline_width1 != self.outline_width2:
+            if frame == self.frames-1:
+                self.label.outline_width = self.outline_width2
+            else:
+                self.label.outline_width = (1 - fraction) * self.outline_width1 + fraction * self.outline_width2
         self.label.update_drawing()
 
 
@@ -233,6 +246,7 @@ def label_listfonts(session):
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
+    from chimerax.core.commands import NonNegativeFloatArg
     from .label3d import DefArg, NoneArg
 
     rargs = [('name', StringArg)]
@@ -248,7 +262,8 @@ def register_label_command(logger):
              ('xpos', FloatArg),
              ('ypos', FloatArg),
              ('visibility', BoolArg),
-             ('margin', FloatArg)]
+             ('margin', NonNegativeFloatArg),
+             ('outline', NonNegativeFloatArg)]
     create_desc = CmdDesc(required = rargs, keyword = cargs,
                           synopsis = 'Create a 2d label')
     register('2dlabels create', create_desc, label_create, logger=logger)
@@ -336,7 +351,7 @@ def session_labels(session):
 class Label:
     def __init__(self, session, name, text = '', color = None, background = None,
                  size = 24, font = 'Arial', bold = False, italic = False,
-                 xpos = 0.5, ypos = 0.5, visibility = True, margin = 0):
+                 xpos = 0.5, ypos = 0.5, visibility = True, margin = 0, outline_width = 0):
         self.session = session
         self.name = name
         self.text = text
@@ -355,6 +370,7 @@ class Label:
         self.ypos = ypos
         self.visibility = visibility
         self.margin = margin
+        self.outline_width = outline_width
         self.drawing = d = LabelDrawing(self)
         session.main_view.add_overlay(d)
 
@@ -419,7 +435,8 @@ class LabelDrawing(Drawing):
         from chimerax.core.graphics import text_image_rgba
         rgba = text_image_rgba(l.text, self.label_color, l.size, l.font,
                                background_color = l.background, xpad = xpad,
-                               ypad = ypad, bold = l.bold, italic = l.italic)
+                               ypad = ypad, bold = l.bold, italic = l.italic,
+                               outline_width=l.outline_width)
         if rgba is None:
             l.session.logger.info("Can't find font for label")
             return True
