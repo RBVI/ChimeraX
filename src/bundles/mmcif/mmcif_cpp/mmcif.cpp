@@ -119,7 +119,7 @@ residue_str(Residue* r, Residue* other = nullptr)
     if (other && other->chain_id() == r->chain_id())
         return ret;
     auto chain_id = r->chain_id();
-    if (chain_id != " ") {
+    if (!chain_id.empty() && chain_id != " ") {
         ret += ' ';
         ret += "in chain ";
         ret += chain_id;
