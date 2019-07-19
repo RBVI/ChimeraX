@@ -43,7 +43,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: mmCIF :: :: Molecular structure :: .cif,.mmcif :: :: http://mmcif.wwpdb.org/ :: :: :: Macromolecular CIF</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: mmCIF :: :: Molecular structure :: .cif,.mmcif :: chemical/x-mmcif :: http://mmcif.wwpdb.org/ :: :: :: Macromolecular CIF</ChimeraXClassifier>
     <ChimeraXClassifier>Fetch :: pdb :: mmCIF :: pdb :: 1a0m :: true</ChimeraXClassifier>
     <ChimeraXClassifier>Fetch :: pdbe :: mmCIF :: pdbe:: 1a0m :: false</ChimeraXClassifier>
     <ChimeraXClassifier>Fetch :: pdbe_updated :: mmCIF :: pdbe_updated :: 1a0m :: false</ChimeraXClassifier>

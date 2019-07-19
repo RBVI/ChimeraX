@@ -392,6 +392,10 @@ class SteamVRCamera(Camera):
         self._close = True
         self._close_cb = close_cb
         self._session.main_view.redraw_needed = True
+        m = self._vr_model_group
+        if m is not None:
+            self._session.models.close([m])
+            self._vr_model_group = None
 
     @property
     def closed(self):
@@ -732,12 +736,12 @@ class UserInterface:
         self._ui_model = None
         self._panels = []		# List of Panel, one for each user interface pane
         self._gui_tool_names = ['Toolbar', 'right panels']
-        self._panel_separation = 0.01	# meters
-        self._start_ui_move_time = None
-        self._last_ui_position = None
-        self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
+        self._panel_y_spacing = 0.01	# meters
+        self._panel_z_spacing = 0.001	# meters
         self._buttons_down = {}		# (HandController, button) -> Panel
         self._raised_buttons = {}	# maps highlight_id to (widget, panel)
+        self._move_gui = set()		# set of (HandController, button) if gui being moved by press on title bar
+        self._move_ui_mode = MoveUIMode()
 
         # Buttons that can be pressed on user interface.
         import openvr
@@ -791,16 +795,20 @@ class UserInterface:
                 
         np = len(panels)
         if np > 1:
-            sep = self._panel_separation
-            h = sum(p._height for p in panels) + (np-1)*sep
+            sep = self._panel_y_spacing
+            dz = self._panel_z_spacing
+            h = sum(p.size[1] for p in panels) + (np-1)*sep
             # Stack panels.
-            shift = h/2
+            y = h/2
+            z = 0
             from chimerax.core.geometry import translation
             for p in panels:
-                shift -= 0.5*p._height
+                h = p.size[1]
+                y -= 0.5*h
                 pd = p._panel_drawing
-                pd.position = translation((0,shift,0)) * pd.position
-                shift -= 0.5*p._height + sep
+                pd.position = translation((0,y,z)) * pd.position
+                y -= 0.5*h + sep
+                z -= dz
         return panels
     
     def move(self, room_motion = None):
@@ -837,6 +845,10 @@ class UserInterface:
                 self._release(window_xy)
                 del bdown[(hc,b)]
                 return True
+            elif (hc,b) in self._move_gui:
+                self._move_gui.remove((hc,b))
+                hc._drag_end(self._move_ui_mode, self._camera)
+                return True
             else:
                 # Button was released where we never got button press event.
                 # For example button press away from panel, then release on panel.
@@ -845,18 +857,23 @@ class UserInterface:
         elif pressed:
             # Button pressed.
             window_xy, panel = self._click_position(rp.origin())
-            if panel and not self._mouse_mode_pressed(window_xy, hc, b):
-                self._press(window_xy)
-                bdown[(hc,b)] = panel
-                return True
+            if panel:
+                hand_mode = self._clicked_mouse_mode(window_xy)
+                if hand_mode is not None:
+                    self._enable_mouse_mode(hand_mode, hc, b)
+                elif self._clicked_on_title_bar(window_xy):
+                    # Drag on title bar moves VR gui
+                    self._move_gui.add((hc,b))
+                    hc._drag_start(self._move_ui_mode, b, self._camera)
+                    return True
+                else:
+                    self._press(window_xy)
+                    bdown[(hc,b)] = panel
+                    return True
 
         return False
 
-    def _mouse_mode_pressed(self, window_xy, hand_controller, button):
-        hand_mode = self._clicked_mouse_mode(window_xy)
-        if hand_mode is None:
-            return False
-
+    def _enable_mode_pressed(self, hand_mode, hand_controller, button):
         if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
             msg = 'No VR support for mouse mode %s' % hand_mode.name
         else:
@@ -865,7 +882,6 @@ class UserInterface:
         self._session.logger.info(msg)
         self._show_pressed(window_xy)
         self.redraw_ui()	# Show log message
-        return True
 
     def process_hand_controller_motion(self, hand_controller):
         hc = hand_controller
@@ -954,8 +970,8 @@ class UserInterface:
         window_xy, panel = self._click_position(room_point)
         if panel:
             widget, wpos = self._clicked_widget(window_xy)
-            from PyQt5.QtWidgets import QAbstractButton
-            if isinstance(widget, QAbstractButton):
+            from PyQt5.QtWidgets import QAbstractButton, QTabBar
+            if isinstance(widget, (QAbstractButton, QTabBar)):
                 rb = self._raised_buttons
                 if highlight_id in rb and widget is rb[highlight_id]:
                     return # Already raised
@@ -1003,6 +1019,12 @@ class UserInterface:
                 return self._hand_mode(mouse_mode)
         return None
 
+    def _clicked_on_title_bar(self, window_xy):
+        w, pos = self._clicked_widget(window_xy)
+        from PyQt5.QtWidgets import QDockWidget
+        from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
+        return isinstance(w, (QDockWidget, TabbedToolbar))
+        
     def set_mouse_mode_click_range(self, range):
         self._mouse_mode_click_range = range
 
@@ -1038,37 +1060,16 @@ class UserInterface:
         ses.models.add([m], parent = parent)
         return m
 
-    def display_ui(self, button_pressed, hand_room_position, camera_position):
-        if button_pressed:
-            rp = hand_room_position
-            self._last_ui_position = rp
-            if self.shown():
-                from time import time
-                self._start_ui_move_time = time()
-            else:
-                # Orient horizontally and facing camera.
-                view_axis = camera_position.origin() - rp.origin()
-                from chimerax.core.geometry import orthonormal_frame, translation
-                p = orthonormal_frame(view_axis, (0,1,0), origin = rp.origin())
-                # Offset vertically
-                # p = translation(0.5 * width * p.axes()[1]) * p
-                parent = self._camera._vr_control_model_group()
-                self.show(p, parent)
-        else:
-            # End UI move, or hide.
-            stime = self._start_ui_move_time
-            from time import time
-            if stime is not None and time() < stime + self._ui_hide_time:
-                self.hide()
-            self._start_ui_move_time = None
-
-    def move_ui(self, hand_room_position):
-        if self._start_ui_move_time is None:
-            return
-        luip = self._last_ui_position
+    def display_ui(self, hand_room_position, camera_position):
         rp = hand_room_position
-        self.move(rp * luip.inverse())
-        self._last_ui_position = rp
+        # Orient horizontally and facing camera.
+        view_axis = camera_position.origin() - rp.origin()
+        from chimerax.core.geometry import orthonormal_frame, translation
+        p = orthonormal_frame(view_axis, (0,1,0), origin = rp.origin())
+        # Offset vertically
+        # p = translation(0.5 * width * p.axes()[1]) * p
+        parent = self._camera._vr_control_model_group()
+        self.show(p, parent)
 
     def scale_ui(self, scale_factor):
         from numpy import mean
@@ -1078,14 +1079,13 @@ class UserInterface:
 
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
-    initial_widths = {'main window': 1, 'right panels': 0.5, 'Toolbar': 1} # Meters
+    initial_size = {'main window': (1,1), 'right panels': (0.5,1), 'Toolbar': (1,.1)} # Meters
     def __init__(self, parent, ui, tool_name = 'main window'):
         self._ui = ui
         self._gui_tool_name = tool_name	# Name of tool instance shown in VR gui panel.
-        width = Panel.initial_widths.get(tool_name, 0.5)
-        self._width = width		# Billboard width in room coords, meters.
+        self._max_size = Panel.initial_size.get(tool_name, (0.5,1))  # Room coords, meters
         x0,y0,w,h = self._panel_rectangle()
-        self._height = (h/w)*width if w > 0 else 0	# Height in room coords determined by window aspect and width.
+        self._size = self._fit_size(w,h) # Billboard width, height in room coords, meters.
         self._panel_size = None 	# Panel size in Qt device independent pixels
         self._panel_offset = (0,0)  	# Offset from desktop main window upper left corner, to panel rectangle in Qt device independent pixels
         self._last_image_rgba = None
@@ -1111,7 +1111,15 @@ class Panel:
     @property
     def size(self):
         '''Panel width and height in meters.'''
-        return (self._width, self._height)
+        return self._size
+
+    def _fit_size(self, w, h):
+        # Inscribe rectangle with aspect (w,h) in self._max_size rectangle.
+        mw, mh = self._max_size
+        if w == 0 and h == 0:
+            return (0,0)
+        size = ((w/h)*mh, mh) if mw*h >= mh*w else (mw, (h/w)*mw)
+        return size
 
     @property
     def drawing(self):
@@ -1122,8 +1130,11 @@ class Panel:
         Center is specified in the parent model coordinate system.
         If center is not specified then panel scales about its geometric center.
         '''
-        self._width *= scale_factor
-        self._height *= scale_factor
+        w,h = self.size
+        self._size = (scale_factor*w, scale_factor*h)
+        mw,mh = self._max_size
+        self._max_size = (scale_factor*mw, scale_factor*mh)
+
         self._update_geometry()
 
         if center is not None:
@@ -1136,7 +1147,7 @@ class Panel:
         ui = self._panel_drawing
         scene_point = self._ui._camera.room_to_scene * room_point
         x,y,z = ui.scene_position.inverse() * scene_point
-        w,h = self._width, self._height
+        w,h = self.size
         hw, hh = 0.5*w, 0.5*h
         cr = self._ui_click_range
         on_panel = (x >= -hw and x <= hw and y >= -hh and y <= hh and z >= -cr and z <= cr)
@@ -1154,7 +1165,7 @@ class Panel:
         self._last_image_rgba = rgba
         if lrgba is None or rgba.shape != lrgba.shape:
             h,w = rgba.shape[:2]
-            self._height = (h/w) * self._width if w > 0 else 0
+            self._size = self._fit_size(w,h)
             self._update_geometry()
 
         d = self._panel_drawing
@@ -1170,7 +1181,7 @@ class Panel:
         # position matrix contains scale factor to produce scene coordinates.
 
         # Calculate rectangles for panel and raised buttons
-        w, h = self._width, self._height
+        w, h = self.size
         xmin,ymin,xmax,ymax = -0.5*w,-0.5*h,0.5*w,0.5*h
         rects = [(xmin,ymin,0,xmax,ymax,0)]
         zr = self._button_rise
@@ -1259,7 +1270,7 @@ class Panel:
         wx0,wy0 = wxy0.x(), wxy0.y()
         ww,wh = widget.width(), widget.height()
         wx1, wy1 = wx0+ww, wy0+wh
-        pw, ph = self._width, self._height
+        pw, ph = self.size
         ws = 1/w if w > 0 else 0
         hs = 1/h if h > 0 else 0
         rect = (pw*(wx0-xc)*ws, -ph*(wy0-yc)*hs, pw*(wx1-xc)*ws, -ph*(wy1-yc)*hs)
@@ -1394,17 +1405,19 @@ class HandController:
         
         # Call HandMode press() or release() callback.
         if m:
-            adm = self._active_drag_modes
             if pressed:
-                m.pressed(camera, self)
-                m._button_down = b
-                adm.add(m)
-            elif m in adm:
-                self._drag_ended(m, camera)
+                self._drag_start(m, b, camera)
+            else:
+                self._drag_end(m, camera)
 
-    def _drag_ended(self, mode, camera):
+    def _drag_start(self, mode, button, camera):
+        mode.pressed(camera, self)
+        mode._button_down = button
+        self._active_drag_modes.add(mode)
+
+    def _drag_end(self, mode, camera):
         mode.released(camera, self)
-        self._active_drag_modes.remove(mode)
+        self._active_drag_modes.discard(mode)
         if not isinstance(mode, (ShowUIMode, MoveSceneMode, ZoomMode)):
             camera.user_interface.redraw_ui()
         
@@ -1460,7 +1473,7 @@ class HandController:
                 # bm = openvr.ButtonMaskFromId(m._button_down)  # Routine is missing from pyopenvr
                 bm = 1 << m._button_down
                 if not pressed_mask & bm:
-                    self._drag_ended(m, camera)
+                    self._drag_end(m, camera)
         
 from chimerax.core.models import Model
 class HandModel(Model):
@@ -1709,8 +1722,40 @@ class HandMode:
     def untouch(self):
         pass
 
-class ShowUIMode(HandMode):
+class MoveUIMode(HandMode):
+    name = 'move ui'
+    def __init__(self):
+        self._last_hand_position = {}	# HandController -> Place
+        HandMode.__init__(self)
+    def pressed(self, camera, hand_controller):
+        self._last_hand_position[hand_controller] = hand_controller.room_position
+    def released(self, camera, hand_controller):
+        self._last_hand_position[hand_controller] = None
+    def drag(self, camera, hand_controller, previous_pose, pose):
+        ui = camera.user_interface
+        oc = camera.other_controller(hand_controller)
+        if oc and self._ui_zoom(oc):
+            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc.tip_room_position)
+            ui.scale_ui(scale)
+            self._last_hand_position.clear()	# Avoid jump when one button released
+        else:
+            hrp = hand_controller.room_position
+            lhrp = self._last_hand_position.get(hand_controller)
+            if lhrp is not None:
+                ui.move(hrp * lhrp.inverse())
+            self._last_hand_position[hand_controller] = hrp
+    def _ui_zoom(self, oc):
+        for m in oc._active_drag_modes:
+            if isinstance(m, MoveUIMode):
+                return True
+        return False
+
+class ShowUIMode(MoveUIMode):
     name = 'show ui'
+    def __init__(self):
+        self._start_ui_move_time = None
+        self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
+        MoveUIMode.__init__(self)
     @property
     def icon_path(self):
         return ShowUIMode.icon_location()
@@ -1719,22 +1764,21 @@ class ShowUIMode(HandMode):
         from os.path import join, dirname
         return join(dirname(__file__), 'menu_icon.png')
     def pressed(self, camera, hand_controller):
-        camera.user_interface.display_ui(True, hand_controller.room_position, camera.room_position)
-    def released(self, camera, hand_controller):
-        camera.user_interface.display_ui(False, hand_controller.room_position, camera.room_position)
-    def drag(self, camera, hand_controller, previous_pose, pose):
-        oc = camera.other_controller(hand_controller)
-        if oc and self._ui_zoom(oc):
-            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc.tip_room_position)
-            if scale is not None:
-                camera.user_interface.scale_ui(scale)
+        ui = camera.user_interface
+        if ui.shown():
+            from time import time
+            self._start_ui_move_time = time()
         else:
-            camera.user_interface.move_ui(hand_controller.room_position)
-    def _ui_zoom(self, oc):
-        for m in oc._active_drag_modes:
-            if isinstance(m, ShowUIMode):
-                return True
-        return False
+            ui.display_ui(hand_controller.room_position, camera.room_position)
+        MoveUIMode.pressed(self, camera, hand_controller)
+    def released(self, camera, hand_controller):
+        # End UI move, or hide.
+        stime = self._start_ui_move_time
+        from time import time
+        if stime is not None and time() < stime + self._ui_hide_time:
+            camera.user_interface.hide()
+        self._start_ui_move_time = None
+        MoveUIMode.released(self, camera, hand_controller)
 
 class MoveSceneMode(HandMode):
     name = 'move scene'
@@ -1756,8 +1800,7 @@ class MoveSceneMode(HandMode):
             scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc.tip_room_position)
             if self._zoom_center is None:
                 self._zoom_center = _choose_zoom_center(camera, center)
-            if scale is not None:
-                _pinch_zoom(camera, scale, self._zoom_center)
+            _pinch_zoom(camera, scale, self._zoom_center)
         else:
             self._zoom_center = None
             move = pose * previous_pose.inverse()
@@ -1778,9 +1821,11 @@ def _pinch_scale(prev_pos, pos, other_pos):
     if dp > 0:
         s = d / dp
         s = max(min(s, 10.0), 0.1)	# Limit scaling
-        center = 0.5*(pos+other_pos)
-        return s, center
-    return None, None
+    else:
+        s = 1.0
+    center = 0.5*(pos+other_pos)
+        
+    return s, center
 
 class ZoomMode(HandMode):
     name = 'zoom'

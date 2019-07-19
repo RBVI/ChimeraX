@@ -58,6 +58,7 @@ cdef class CyAtom:
         _idatm_tuple(info['geometry'], info['substituents'], info['description'].decode())
         for idatm_type, info in _non_const_map.items()
     }
+    _alt_loc_suppress_count = 0
 
     def __cinit__(self, ptr_type ptr_val):
         self.cpp_atom = <cydecl.Atom *>ptr_val
@@ -489,6 +490,22 @@ cdef class CyAtom:
         "Supported API. Whether atom is ligand, ion, etc. Read only."
         if self._deleted: raise RuntimeError("Atom already deleted")
         return _translate_struct_cat(self.cpp_atom.structure_category()).decode()
+
+    from contextlib import contextmanager
+    def suppress_alt_loc_change_notifications(self):
+        """Suppress alt loc change notifications while the code body runs.
+           Restore the original alt loc of this atom when done."""
+        orig_alt_loc = self.alt_loc
+        if self._alt_loc_suppress_count == 0:
+            self.structure.alt_loc_change_notify = False
+        self._alt_loc_suppress_count += 1
+        try:
+            yield
+        finally:
+            self.alt_loc = orig_alt_loc
+            self._alt_loc_suppress_count -= 1
+            if self._alt_loc_suppress_count == 0:
+                self.structure.alt_loc_change_notify = True
 
     @property
     def visible(self):

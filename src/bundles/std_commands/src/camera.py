@@ -46,6 +46,9 @@ def camera(session, type=None, field_of_view=None,
             for t in tuple(session.tools.list()):
                 if t.tool_name == 'Side View':
                     t.delete()
+                    session.logger.info('Restarting side view because stereo mode switched')
+                    from chimerax.core.commands import run
+                    run(session, 'toolshed show "Side View"')
         camera = None
         if type == 'mono':
             from chimerax.core.graphics import MonoCamera

@@ -586,26 +586,17 @@ by incorporating alphabetical characters
 [&nbsp;<b>format</b>&nbsp;&nbsp;mmcif&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>relModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>selectedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
 <p>
 Atomic coordinates and associated information can be saved in 
 <a href="http://mmcif.wwpdb.org/" target="_blank">mmCIF format</a>.
 A subset of the mmCIF data types are written
 (<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
-target="_blank">details...</a>). Options:
+target="_blank">details...</a>). 
+The options are as described for <a href="#pdb">saving PDB</a>.
 </p>
-<blockquote>
-<b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-<br>
-Write only the specified models, otherwise all atomic models
-(as described above for <a href="#pdb">PDB</a>).
-</blockquote>
-<blockquote>
-<b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
-<br>
-Write coordinates relative to the original coordinates of the specified model
-(as described above for <a href="#pdb">PDB</a>).
-</blockquote>
 
 <a name="mol2"></a>
 <p class="nav">

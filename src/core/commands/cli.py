@@ -1655,8 +1655,8 @@ Float2Arg = TupleOf(FloatArg, 2)
 Float3Arg = TupleOf(FloatArg, 3)
 NonNegativeIntArg = Bounded(IntArg, min=0, name="an integer >= 0")
 PositiveIntArg = Bounded(IntArg, min=1, name="an integer >= 1")
-NonNegativeFloatArg = Bounded(FloatArg, min=0, name="a float >= 0")
-PositiveFloatArg = Bounded(FloatArg, min=0, inclusive=False, name="a float > 0")
+NonNegativeFloatArg = Bounded(FloatArg, min=0, name="a number >= 0")
+PositiveFloatArg = Bounded(FloatArg, min=0, inclusive=False, name="a number > 0")
 ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix='#')
 
 
