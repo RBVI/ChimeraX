@@ -149,7 +149,7 @@ class AtomZoneMouseMode(MouseMode):
         ses = self.session
         label_delete(ses)
         label(ses, aobj, 'residues', size = self._label_size, height = self._label_height,
-              color = self._label_color, background = self._label_background)
+              color = self._label_color, bg_color = self._label_background)
         self._labeled_residues = aobj
 
     def _show_ribbons(self, hide_residues):

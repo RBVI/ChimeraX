@@ -40,11 +40,11 @@ class LabelMouseMode(MouseMode):
         ses = self.session
         from .label3d import label, label_delete
         if label_delete(ses, objects, object_type) == 0:
-            label(ses, objects, object_type, color=color, background=background,
+            label(ses, objects, object_type, color=color, bg_color=background,
                   size=size, height=height)
             from chimerax.core.commands import log_equivalent_command, residues_specifier, options_text
             rspec = residues_specifier(objects)
-            opts = options_text((('color',color), ('background',background), 
+            opts = options_text((('color',color), ('bg_color',background), 
                                  ('size',size), ('height',height)))
             log_equivalent_command(ses, 'label %s %s' % (rspec, opts))
 
