@@ -71,7 +71,7 @@ def label(session, objects = None, object_type = None, text = None,
     elif color == 'default':
         settings['color'] = None
     if isinstance(bg_color, Color):
-        settings['background'] = background.uint8x4()
+        settings['background'] = bg_color.uint8x4()
     elif bg_color == 'none':
         settings['background'] = None
     if size == 'default':
