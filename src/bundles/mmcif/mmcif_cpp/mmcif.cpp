@@ -1843,7 +1843,6 @@ ExtractMolecule::parse_struct_conf()
                             chain_id1, "\", near line ", line_number());
             continue;
         }
-        const ResidueMap& residue_map = ari->second;
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end()) {
             logger::warning(_logger, "Invalid residue range for secondary",
@@ -1884,7 +1883,7 @@ ExtractMolecule::parse_struct_conf()
             if (ari == all_residues.end())
                 continue;
             auto& crm = ari->second;
-            auto& crmi = crm.find(chain_id1);
+            const auto& crmi = crm.find(chain_id1);
             if (crmi == crm.end())
                 continue;
             const ResidueMap& residue_map = crmi->second;
@@ -2044,7 +2043,7 @@ ExtractMolecule::parse_struct_sheet_range()
             if (ari == all_residues.end())
                 continue;
             auto& crm = ari->second;
-            auto& crmi = crm.find(chain_id1);
+            const auto& crmi = crm.find(chain_id1);
             if (crmi == crm.end())
                 continue;
             const ResidueMap& residue_map = crmi->second;
