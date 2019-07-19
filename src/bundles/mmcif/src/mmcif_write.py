@@ -256,6 +256,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     # All 'models' should have the same number of atoms, but in PDB files
     # then often don't, so pick the model with the most atoms.
     #
+    from chimerax.atomic import concatenate
     if len(models) == 1:
         best_m = models[0]
     else:
@@ -279,11 +280,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     restrict = None
     if selected_only:
-        from chimerax.atomic import concatenate
         restrict = concatenate(session.selection.items("atoms"))
         restrict = restrict.filter([st in models for st in restrict.structures])
     if displayed_only:
-        from chimerax.atomic import concatenate
         displayed_atoms = concatenate([m.atoms.filter(m.atoms.displays) for m in models])
         if restrict is None:
             restrict = displayed_atoms
@@ -440,8 +439,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     del pdbx_poly_tmp
 
     het_entities = {}   # { het_name: { 'entity': entity_id, chain: (label_entity_id, label_asym_id) } }
-    residues = best_m.residues
-    het_residues = residues.filter(residues.polymer_types == Residue.PT_NONE)
+    het_residues = concatenate(
+        [m.residues.filter(m.residues.polymer_types == Residue.PT_NONE) for m in models])
     for r in het_residues:
         if restrict is not None and r not in restrict_residues:
             continue
@@ -716,7 +715,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             struct_conn_type_data.append('metalc')
         for b, a0, a1 in zip(bonds, *bonds.atoms):
             r0 = a0.residue
-            r1 = a0.residue
+            r1 = a1.residue
             if restrict is not None:
                 if r0 not in restrict_residues or r1 not in restrict_residues:
                     continue

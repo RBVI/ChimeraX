@@ -965,8 +965,8 @@ class UserInterface:
         window_xy, panel = self._click_position(room_point)
         if panel:
             widget, wpos = self._clicked_widget(window_xy)
-            from PyQt5.QtWidgets import QAbstractButton
-            if isinstance(widget, QAbstractButton):
+            from PyQt5.QtWidgets import QAbstractButton, QTabBar
+            if isinstance(widget, (QAbstractButton, QTabBar)):
                 rb = self._raised_buttons
                 if highlight_id in rb and widget is rb[highlight_id]:
                     return # Already raised
