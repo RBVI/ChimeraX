@@ -15,7 +15,7 @@
 # -----------------------------------------------------------------------------
 #
 def label(session, objects = None, object_type = None, text = None,
-          offset = None, color = None, background = None,
+          offset = None, color = None, bg_color = None,
           size = None, height = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
@@ -33,7 +33,7 @@ def label(session, objects = None, object_type = None, text = None,
     color : Color or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
-    background : Color or "none"
+    bg_color : Color or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
     size : int or "default"
       Font size in points (1/72 inch). Default 24.
@@ -70,9 +70,9 @@ def label(session, objects = None, object_type = None, text = None,
         settings['color'] = color.uint8x4()
     elif color == 'default':
         settings['color'] = None
-    if isinstance(background, Color):
-        settings['background'] = background.uint8x4()
-    elif background == 'none':
+    if isinstance(bg_color, Color):
+        settings['background'] = bg_color.uint8x4()
+    elif bg_color == 'none':
         settings['background'] = None
     if size == 'default':
         settings['size'] = 24
@@ -226,7 +226,7 @@ def register_label_command(logger):
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
                               ('color', Or(DefArg, ColorArg)),
-                              ('background', Or(NoneArg, ColorArg)),
+                              ('bg_color', Or(NoneArg, ColorArg)),
                               ('size', Or(DefArg, IntArg)),
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
                               ('font', StringArg),
