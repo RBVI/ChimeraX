@@ -1022,6 +1022,17 @@ class Render:
         stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
 
+        #
+        # On macOS 10.14.5 with Radeon Pro Vega 20 or 16 graphics selection outlines
+        # are fragmented if rendering is to the default framebuffer.  The problem
+        # appears to be that copying the default framebuffer depth to the offscreen
+        # mask framebuffer does not work correctly.  So use offscreen rendering
+        # in this case.  ChimeraX bug #2216.
+        #
+        self.outline.offscreen_outline_needed = (
+            sys.platform.startswith('darwin') and
+            self.opengl_renderer().startswith('AMD Radeon Pro Vega'))
+        
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
 
@@ -1667,6 +1678,10 @@ class Outline:
     def __init__(self, render):
         self._render = render
         self._mask_framebuf = None
+
+        # Copying depth from default framebuffer does not work for Radeon Pro Vega 20
+        # graphics on macOS 10.14.5.  This flag is to work around that bug.
+        self.offscreen_outline_needed = False
 
     def delete(self):
         fb = self._mask_framebuf

@@ -189,7 +189,11 @@ class View:
                        len(transparent_drawings) == 0 and
                        len(highlight_drawings) == 0 and
                        len(on_top_drawings) == 0)
-        offscreen = r.offscreen
+
+        offscreen = r.offscreen if r.offscreen.enabled else None
+        if highlight_drawings and r.outline.offscreen_outline_needed:
+            offscreen = r.offscreen
+            
         silhouette = self.silhouette
         shadow, multishadow = self._compute_shadowmaps(opaque_drawings + transparent_drawings, camera)
         
@@ -199,7 +203,7 @@ class View:
             if no_drawings:
                 r.draw_background()
                 continue
-            if offscreen.enabled:
+            if offscreen:
                 offscreen.start(r)
             if silhouette.enabled:
                 silhouette.start_silhouette_drawing(r)
@@ -237,7 +241,7 @@ class View:
                                        pixel_width = self._highlight_width)
             if on_top_drawings:
                 draw_on_top(r, on_top_drawings)
-            if offscreen.enabled:
+            if offscreen:
                 offscreen.finish(r)
 
                 
