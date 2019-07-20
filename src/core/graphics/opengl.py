@@ -519,7 +519,7 @@ class Render:
 
     def framebuffer_depth_bits(self):
         return GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
-                                                        GL.GL_BACK_LEFT,
+                                                        GL.GL_DEPTH,
                                                         GL.GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE)
 
     def set_offscreen_color_bits(self, bits):
@@ -970,7 +970,9 @@ class Render:
         lines = ['vendor: %s' % GL.glGetString(GL.GL_VENDOR).decode('utf-8'),
                  'renderer: %s' % GL.glGetString(GL.GL_RENDERER).decode('utf-8'),
                  'version: %s' % GL.glGetString(GL.GL_VERSION).decode('utf-8'),
-                 'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8')]
+                 'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8'),
+                 'rgba bits: %d,%d,%d,%d' % self.framebuffer_rgba_bits(),
+                 'depth bits: %d' % self.framebuffer_depth_bits()]
         ne = GL.glGetIntegerv(GL.GL_NUM_EXTENSIONS)
         for e in range(ne):
             lines.append('extension: %s' % GL.glGetStringi(GL.GL_EXTENSIONS,e).decode('utf-8'))
