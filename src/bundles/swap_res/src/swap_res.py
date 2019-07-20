@@ -41,24 +41,32 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             RotamerDialog(res, r_type, library)
             '''
             continue
-        try:
-            rots = get_rotamers(session, res, res_type=r_type, lib=lib, log=log)
-        except UnsupportedResTypeError:
-            raise LimitationError("%s rotamer library does not support %s" %(lib, r_type))
-        except NoResidueRotamersError:
-            if log:
-                session.logger.info("Swapping %s to %s\n" % (res, r_type))
-            try:
-                template_swap_res(res, r_type, bfactor=bfactor)
-            except TemplateSwapError as e:
-                raise UserError(str(e))
-            continue
-        except NoRotamerLibraryError:
-            raise UserError("No rotamer library named '%s'" % lib)
-        if preserve is not None:
-            rots = prune_by_chis(session, rots, res, preserve, log=log)
-        rotamers[res] = rots
-        destroy_list.extend(rots)
+        CA = res.find_atom("CA")
+        if not CA:
+            raise LimitationError("Residue %s is missing CA atom" % res)
+        alt_locs = [' '] if CA.alt_loc == ' ' else CA.alt_locs
+        with CA.suppress_alt_loc_change_notifications():
+            rotamers[res] = by_alt_loc = {}
+            for alt_loc in alt_locs:
+                CA.alt_loc = alt_loc
+                try:
+                    rots = get_rotamers(session, res, res_type=r_type, lib=lib, log=log)
+                except UnsupportedResTypeError:
+                    raise LimitationError("%s rotamer library does not support %s" %(lib, r_type))
+                except NoResidueRotamersError:
+                    if log:
+                        session.logger.info("Swapping %s to %s\n" % (res, r_type))
+                    try:
+                        template_swap_res(res, r_type, bfactor=bfactor)
+                    except TemplateSwapError as e:
+                        raise UserError(str(e))
+                    continue
+                except NoRotamerLibraryError:
+                    raise UserError("No rotamer library named '%s'" % lib)
+                if preserve is not None:
+                    rots = prune_by_chis(session, rots, res, preserve, log=log)
+                by_alt_loc[alt_loc] = rots
+                destroy_list.extend(rots)
     if not rotamers:
         return
 
@@ -158,27 +166,32 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: 1
             test = lambda v1, v2: 1
 
-        for res, rots in list(rotamers.items()):
-            best = None
-            for rot in rots:
-                val = fetch(rot)
-                if best == None or test(val, best_val) > 0:
-                    best = [rot]
-                    best_val = val
-                elif test(val, best_val) == 0:
-                    best.append(rot)
-            if len(best) > 1:
-                rotamers[res] = best
-            else:
-                use_rotamer(session, res, [best[0]], retain=retain, log=log)
-                del rotamers[res]
-        if not rotamers:
+        still_multiple_choices = False
+        for res, by_alt_loc in rotamers.items():
+            for alt_loc, rots in list(by_alt_loc.items()):
+                if len(rots) == 1:
+                    continue
+                best = None
+                for rot in rots:
+                    val = fetch(rot)
+                    if best == None or test(val, best_val) > 0:
+                        best = [rot]
+                        best_val = val
+                    elif test(val, best_val) == 0:
+                        best.append(rot)
+                by_alt_loc[alt_loc] = best
+                if len(best) > 1:
+                    still_multiple_choices = True
+        if not still_multiple_choices:
             break
-    for res, rots in rotamers.items():
-        if log:
-            session.logger.info("%s has %d equal-value rotamers;"
-                " choosing one arbitrarily.\n" % (res, len(rots)))
-        use_rotamer(session, res, [rots[0]], retain=retain, log=log)
+    for res, by_alt_loc in rotamers.items():
+        for alt_loc, rots in list(by_alt_loc.items()):
+            if len(rots) > 1:
+                if log:
+                    session.logger.info("%s has %d equal-value rotamers;"
+                        " choosing one arbitrarily." % (res, len(rots)))
+            by_alt_loc[alt_loc] = rots[0]
+        use_rotamer(session, res, rotamers[res], retain=retain, log=log)
     for rot in destroy_list:
         rot.delete()
 
@@ -213,7 +226,11 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
                 if ang is None:
                     return "none"
                 return "%.1f" % ang
-            session.logger.info("%s: phi %s, psi %s %s" % (res, _info(phi), _info(psi),
+            if match_atoms["CA"].alt_locs:
+                al_info = " (alt loc %s)" % match_atoms["CA"].alt_loc
+            else:
+                al_info = ""
+            session.logger.info("%s%s: phi %s, psi %s %s" % (res, al_info, _info(phi), _info(psi),
                 "cis" if cis else "trans"))
     session.logger.status("Retrieving rotamers from %s library" % lib.display_name)
     res_template_func = lib.res_template_func
@@ -571,10 +588,14 @@ def side_chain_locs(residue):
     return locs
 
 def use_rotamer(session, res, rots, retain=False, log=False):
-    """Takes a Residue instance and a list of one or more rotamers (as returned by get_rotamers,
+    """Takes a Residue instance and either a list or dictionary of rotamers (as returned by get_rotamers,
        i.e. with backbone already matched) and swaps the Residue's side chain with the given rotamers.
-       If more than one rotamer is in the list, then alt locs will be used to distinguish the different
-       side chains.  The side chain(s) will be positioned using the current backbone altloc.
+
+       If the rotamers are a dictionary, then the keys should match the alt locs of the CA atom, and
+       the corresponding rotamer will be used for that alt loc.  If the alt locs are a list, if the list
+       has only one rotamer then that rotamer will be used for each CA alt loc.  If the list has multiple
+       rotamers, then the CA must have only one alt loc (namely ' ') and all the rotamers will be attached,
+       using different alt loc characters for each.
 
        If 'retain' is True, existing side chains will be retained.
     """
@@ -585,15 +606,28 @@ def use_rotamer(session, res, rots, retain=False, log=False):
         raise LimitationError("N, CA, or C missing from %s: needed for side-chain pruning algorithm" % res)
     import string
     alt_locs = string.ascii_uppercase + string.ascii_lowercase + string.digits + string.punctuation
-    if retain and res.name != rots[0].name:
+    if retain and CA.alt_locs:
+        raise LimitationError("Cannot retain side chains if multiple CA alt locs")
+    ca_alt_locs = [' '] if not CA.alt_locs else CA.alt_locs
+    if not isinstance(rots, dict):
+        # reformat as dictionary
+        if CA.alt_locs and len(rots) > 1:
+            raise LimitationError("Cannot add multiple rotamers to multi-position backbone")
+        retained_alt_locs = side_chain_locs(res) if retain else []
+        num_retained = len(retained_alt_locs)
+        if len(rots) + num_retained > len(alt_locs):
+            raise LimitationError("Don't have enough unique alternate "
+                "location characters to place %d rotamers." % len(rots))
+        if len(rots) + num_retained > 1:
+            rots = { loc:rot for loc, rot
+                in zip([c for c in alt_locs if c not in retained_alt_locs][:len(rots)], rots) }
+        else:
+            rots = { alt_loc: rots[0] for alt_loc in ca_alt_locs }
+    swap_type = list(rots.values())[0].residues[0].name
+    if retain and res.name != swap_type:
         raise LimitationError("Cannot retain side chains if rotamers are a different residue type")
-    retained_alt_locs = side_chain_locs(res) if retain else []
-    num_retained = len(retained_alt_locs)
-    if len(rots) + num_retained > len(alt_locs):
-        raise LimitationError("Don't have enough unique alternate "
-            "location characters to place %d rotamers." % len(rots))
     rot_anchors = {}
-    for rot in rots:
+    for rot in rots.values():
         rot_res = rot.residues[0]
         rot_N, rot_CA = rot_res.find_atom("N"), rot_res.find_atom("CA")
         if not rot_N or not rot_CA:
@@ -604,10 +638,6 @@ def use_rotamer(session, res, rots, retain=False, log=False):
         carbon_color = CA.color
     else:
         uniform_color = N.color
-    multi_sidechain = (len(rots) + num_retained) > 1
-    # Don't know what to do if multiple rotamers being added to multi-position backbone, so check for that
-    if multi_sidechain and CA.alt_loc != ' ':
-        raise LimitationError("Cannot add multiple rotamers to multi-position backbone")
     # prune old side chain
     if not retain:
         res_atoms = res.atoms
@@ -617,24 +647,18 @@ def use_rotamer(session, res, rots, retain=False, log=False):
     else:
         serials = {}
     # for proline, also prune amide hydrogens
-    if rots[0].residues[0].name == "PRO":
+    if swap_type == "PRO":
         for nnb in N.neighbors[:]:
             if nnb.element.number == 1:
                 N.structure.delete_atom(nnb)
 
-    tot_prob = sum([r.rotamer_prob for r in rots])
-    orig_CA_alt_loc = CA.alt_loc
-    res.structure.alt_loc_change_notify = False
-    res.name = rots[0].residues[0].name
-    from chimerax.atomic.struct_edit import add_atom, add_bond
-    ca_alt_locs = [' '] if orig_CA_alt_loc == ' ' else CA.alt_locs
-    for ca_alt_loc in ca_alt_locs:
-        CA.alt_loc = ca_alt_loc
-        if multi_sidechain:
-            locs_rots = zip([c for c in alt_locs if c not in retained_alt_locs][:len(rots)], rots)
-        else:
-            locs_rots = [(ca_alt_loc, rots[0])]
-        for alt_loc, rot in locs_rots:
+    tot_prob = sum([r.rotamer_prob for r in rots.values()])
+    with CA.suppress_alt_loc_change_notifications():
+        res.name = swap_type
+        from chimerax.atomic.struct_edit import add_atom, add_bond
+        for alt_loc, rot in rots.items():
+            if CA.alt_locs:
+                CA.alt_loc = alt_loc
             if log:
                 extra = " using alt loc %s" % alt_loc if alt_loc != ' ' else ""
                 session.logger.info("Applying %s rotamer (chi angles: %s) to %s%s"
@@ -674,8 +698,6 @@ def use_rotamer(session, res, rots, retain=False, log=False):
                         visited.add(built_nb)
                     if built_nb not in built_sprout.neighbors:
                         add_bond(built_sprout, built_nb)
-    CA.alt_loc = orig_CA_alt_loc
-    res.structure.alt_loc_change_notify = True
 
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle
