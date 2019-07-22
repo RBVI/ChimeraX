@@ -4,7 +4,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-SUBDIRS = qt sip
+#SUBDIRS = qt sip
 
 include $(TOP)/mk/subdir.make
 
@@ -12,18 +12,26 @@ PYQT_LICENSE = commercial
 REMOTE_DIR = plato.cgl.ucsf.edu:/usr/local/src/PyQt5
 
 # VERSION is overriden by Makefile
-VERSION = 5.9
+VERSION = 5.12
+QT_MINOR_VERSION = 3
 PYQT_MINOR_VERSION = 2
-QT_MINOR_VERSION = 5
+PYQTWE_MINOR_VERSION = 1
+QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(VERSION)
 else
 PYQT_VERSION = $(VERSION).$(PYQT_MINOR_VERSION)
 endif
-QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
+ifeq (,$(PYQTWE_MINOR_VERSION))
+PYQTWE_VERSION = $(VERSION)
+else
+PYQTWE_VERSION = $(VERSION).$(PYQTWE_MINOR_VERSION)
+endif
 
-DISTRIBUTION = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION).tar.gz
-SOURCE = $(tmpdir)/PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)
+PYQT_DISTRIBUTION = PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION).tar.gz
+PYQT_SOURCE = $(tmpdir)/PyQt5_$(PYQT_LICENSE)-$(PYQT_VERSION)
+PYQTWE_DISTRIBUTION = PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION).tar.gz
+PYQTWE_SOURCE = $(tmpdir)/PyQtWebEngine_$(PYQT_LICENSE)-$(PYQTWE_VERSION)
 
 ifeq ($(OS),Darwin)
 SIP_BIN = $(PYTHON_FRAMEWORK)/bin
@@ -37,39 +45,58 @@ QT_BIN = $(bindir)
 endif
 CONFIG_ARGS = --confirm-license --verbose --sip $(SIP_BIN)/sip$(PROG_EXT) --qmake $(QT_BIN)/qmake$(PROG_EXT)
 
-PATCHES = $(wildcard PyQt-*.patch)
+PYQT_PATCHES = $(wildcard PyQt-*.patch)
 
 RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(frameworkdir)", "$(bindir)"))')
 
 all:
 
-install: $(SOURCE)
-	cd $(SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
+install: $(PYQT_SOURCE) $(PYQTWE_SOURCE)
+	cd $(PYQT_SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
+	cd $(PYQTWE_SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 
 app-install:
 	$(RSYNC) $(PYSITEDIR)/PyQt5 $(APP_PYSITEDIR)
+	# TODO: web engine
 
-distribution: $(DISTRIBUTION)
+distribution: $(PYQT_DISTRIBUTION) $(PYQTWE_DISTRIBUTION)
 
-$(DISTRIBUTION):
+$(PYQT_DISTRIBUTION):
 ifeq ($(PYQT_LICENSE),commercial)
 	rsync -a $(REMOTE_DIR)/*commercial* .
-	rsync -a $(REMOTE_DIR)/$(VERSION)/*.tar.gz .
+	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/*.tar.gz .
 endif
 
-$(SOURCE): $(DISTRIBUTION)
-	tar zxf $(DISTRIBUTION) -C $(tmpdir)
+$(PYQT_SOURCE): $(PYQT_DISTRIBUTION)
+	tar zxf $(PYQT_DISTRIBUTION) -C $(tmpdir)
 ifeq ($(PYQT_LICENSE),commercial)
-	cp -fp pyqt-commercial.sip $(SOURCE)/sip/
+	cp -fp pyqt-commercial.sip $(PYQT_SOURCE)/sip/
 endif
-ifneq (,$(PATCHES))
-	for f in $(PATCHES) ; do \
-		( cd $(SOURCE) && patch -p0 ) < $$f ; \
+ifneq (,$(PYQT_PATCHES))
+	for f in $(PYQT_PATCHES) ; do \
+		( cd $(PYQT_SOURCE) && patch -p0 ) < $$f ; \
+	done
+endif
+
+$(PYQTWE_DISTRIBUTION):
+ifeq ($(PYQT_LICENSE),commercial)
+	rsync -a $(REMOTE_DIR)/*commercial* .
+	rsync -a $(REMOTE_DIR)/$(PYQTWE_VERSION)/*.tar.gz .
+endif
+
+$(PYQTWE_SOURCE): $(PYQTWE_DISTRIBUTION)
+	tar zxf $(PYQTWE_DISTRIBUTION) -C $(tmpdir)
+ifeq ($(PYQT_LICENSE),commercial)
+	cp -fp pyqt-commercial.sip $(PYQTWE_SOURCE)/sip/
+endif
+ifneq (,$(PYQTWE_PATCHES))
+	for f in $(PYQTWE_PATCHES) ; do \
+		( cd $(PYQTWE_SOURCE) && patch -p0 ) < $$f ; \
 	done
 endif
 
 clean:
-	rm -rf $(SOURCE)
+	rm -rf $(PYQT_SOURCE) $(PYQTWE_SOURCE)
 
 distclean: clean
 	rm -f *commercial*

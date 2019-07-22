@@ -6,11 +6,13 @@ PREREQ_MAKE = 1
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-VERSION = 5.9
-MINOR_VERSION = 1
+export PATH:=$(bindir):$(PATH)
+
+VERSION = 5.12
+MINOR_VERSION = 3
 FULL_VERSION = $(VERSION).$(MINOR_VERSION)
-DISTRIBUTION = qt-everywhere-opensource-src-$(FULL_VERSION).tar.xz
-SOURCE = $(tmpdir)/qt-everywhere-opensource-src-$(FULL_VERSION)
+DISTRIBUTION = qt-everywhere-src-$(FULL_VERSION).tar.xz
+SOURCE = $(tmpdir)/qt-everywhere-src-$(FULL_VERSION)
 
 PATCHES	= $(wildcard qt-$(FULL_VERSION)-*.patch) $(wildcard qt-$(FULL_VERSION)_$(OS)-*.patch)
 
@@ -71,8 +73,7 @@ ifdef USE_MAC_FRAMEWORKS
 endif
 
 $(SOURCE): $(DISTRIBUTION)
-	$(bindir)/7za x -o'$(tmpdir)' $(DISTRIBUTION)
-	(cd $(tmpdir); tar xf $(SOURCE).tar)
+	$(bindir)/7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p1) < $$p ; \
