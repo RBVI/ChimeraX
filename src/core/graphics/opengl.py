@@ -519,7 +519,7 @@ class Render:
 
     def framebuffer_depth_bits(self):
         return GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
-                                                        GL.GL_BACK_LEFT,
+                                                        GL.GL_DEPTH,
                                                         GL.GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE)
 
     def set_offscreen_color_bits(self, bits):
@@ -970,7 +970,9 @@ class Render:
         lines = ['vendor: %s' % GL.glGetString(GL.GL_VENDOR).decode('utf-8'),
                  'renderer: %s' % GL.glGetString(GL.GL_RENDERER).decode('utf-8'),
                  'version: %s' % GL.glGetString(GL.GL_VERSION).decode('utf-8'),
-                 'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8')]
+                 'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8'),
+                 'rgba bits: %d,%d,%d,%d' % self.framebuffer_rgba_bits(),
+                 'depth bits: %d' % self.framebuffer_depth_bits()]
         ne = GL.glGetIntegerv(GL.GL_NUM_EXTENSIONS)
         for e in range(ne):
             lines.append('extension: %s' % GL.glGetStringi(GL.GL_EXTENSIONS,e).decode('utf-8'))
@@ -1020,6 +1022,17 @@ class Render:
         stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
 
+        #
+        # On macOS 10.14.5 with Radeon Pro Vega 20 or 16 graphics selection outlines
+        # are fragmented if rendering is to the default framebuffer.  The problem
+        # appears to be that copying the default framebuffer depth to the offscreen
+        # mask framebuffer does not work correctly.  So use offscreen rendering
+        # in this case.  ChimeraX bug #2216.
+        #
+        self.outline.offscreen_outline_needed = (
+            sys.platform.startswith('darwin') and
+            self.opengl_renderer().startswith('AMD Radeon Pro Vega'))
+        
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
 
@@ -1665,6 +1678,10 @@ class Outline:
     def __init__(self, render):
         self._render = render
         self._mask_framebuf = None
+
+        # Copying depth from default framebuffer does not work for Radeon Pro Vega 20
+        # graphics on macOS 10.14.5.  This flag is to work around that bug.
+        self.offscreen_outline_needed = False
 
     def delete(self):
         fb = self._mask_framebuf

@@ -87,7 +87,7 @@ class MapRegionArg(Annotation):
     @staticmethod
     def parse(text, session):
         token, text, rest = next_token(text)
-        if token == 'all':
+        if token == 'all' or token == 'shown':
             return token, text, rest
         try:
             s = tuple(int(f) for f in token.split(','))
