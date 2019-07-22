@@ -295,7 +295,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
             add_atom(tnnb.name, tnnb.element, r, tnnb_coord, bonded_to=rot_N)
 
         # fill out bonds and remaining heavy atoms
-        from chimerax.core.geometry import distance
+        from chimerax.core.geometry import distance, align_points
         done = set([rot_N, rot_CA])
         while todo:
             a = todo.pop(0)
@@ -317,7 +317,8 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
                     t1 = template.find_atom(p1.name)
                     t2 = template.find_atom(p2.name)
                     t3 = template.find_atom(p3.name)
-                    _ignore1, _ignore2, rmsd, _ignore3, xform = align([t1,t2,t3], to_atoms=[p1,p2,p3])
+                    xform = align_points(array([t.coord for t in [t1,t2,t3]]),
+                        array([p.coord for p in [p1,p2,p3]]))[0]
                     pos = xform * template.find_atom(bonded.name).coord
                     rbonded = add_atom(bonded.name, bonded.element, r, pos, bonded_to=a)
                     middles[a] = [rbonded, a, conn]
