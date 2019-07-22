@@ -492,6 +492,7 @@ cdef class CyAtom:
         return _translate_struct_cat(self.cpp_atom.structure_category()).decode()
 
     from contextlib import contextmanager
+    @contextmanager
     def suppress_alt_loc_change_notifications(self):
         """Suppress alt loc change notifications while the code body runs.
            Restore the original alt loc of this atom when done."""
