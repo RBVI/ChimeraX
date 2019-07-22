@@ -74,7 +74,6 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     # there are no ties
     if isinstance(criteria, str) and not criteria.isalpha():
         raise UserError("Nth-most-probable criteria cannot be mixed with other criteria")
-    #TODO
     cmp = lambda p1,p2: 1 if p1 > p2 else (0 if p1 == p2 else -1)
     for char in str(criteria):
         if char == "d":
@@ -108,8 +107,6 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: r.volumeScores["cmd"]
             test = cmp
         elif char == "c":
-            #TODO
-            raise LimitationError("'c' criteria not implemented")
             # clash
             if clash_hbond_allowance is None or clash_threshold is None:
                 from chimerax.atomic.clashes.settings import defaults
@@ -117,14 +114,11 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     clash_hbond_allowance = defaults['clash_hbond_allowance']
                 if clash_threshold is None:
                     clash_threshold = defaults['clash_threshold']
-            for res, rots in rotamers.items():
-                chimera.openModels.add(rots, sameAs=res.molecule, hidden=True)
-                processClashes(res, rots, clash_threshold,
-                    clash_hbond_allowance, clash_score_method, False,
-                    None, None, ignore_other_models)
-                chimera.openModels.remove(rots)
-            fetch = lambda r: r.clashScore
-            test = cmp
+            for res, by_alt_loc in rotamers.items():
+                process_clashes(session, res, by_alt_loc, clash_threshold, clash_hbond_allowance,
+                    clash_score_method, False, None, None, ignore_other_models)
+            fetch = lambda r: r.clash_score
+            test = lambda s1, s2: cmp(s2, s1)  # _lowest_ clash score
         elif char == 'h':
             #TODO
             raise LimitationError("'h' criteria not implemented")
@@ -700,6 +694,52 @@ def use_rotamer(session, res, rots, retain=False, log=False):
                     if built_nb not in built_sprout.neighbors:
                         add_bond(built_sprout, built_nb)
 
+def process_clashes(session, residue, by_alt_loc, overlap, hbond_allow, score_method,
+                make_pbs, pb_color, pb_radius, ignore_others):
+    if make_pbs:
+        pbg = session.pb_manager.get_group("clashes")
+        pbg.clear()
+        pbg.radius = pb_radius
+        pbg.color = pb_color.uint8x4()
+    else:
+        pbg = session.pb_manager.get_group("clashes", create=False)
+        if pbg:
+            session.models.close([pbg])
+    from chimerax.atomic import concatenate
+    from chimerax.atomic.clashes import find_clashes
+    CA = residue.find_atom("CA")
+    alt_locs = CA.alt_locs if CA.alt_locs else [' ']
+    res_atoms = set(residue.atoms)
+    with CA.suppress_alt_loc_change_notifications():
+        for alt_loc, rots in by_alt_loc.items():
+            CA.alt_loc = alt_loc
+            test_atoms = concatenate([rot.atoms for rot in rots])
+            clash_info = find_clashes(session, test_atoms, clash_threshold=overlap, hbond_allowance=hbond_allow)
+            for rot in rots:
+                score = 0
+                for ra in rot.atoms:
+                    if ra.name in ("CA", "N", "CB"):
+                        # any clashes of CA/N/CB are already clashes of base residue (and may
+                        # mistakenly be thought to clash with "bonded" atoms in nearby residues)
+                        continue
+                    if ra not in clash_info:
+                        continue
+                    for ca, clash in clash_info[ra].items():
+                        if ca in res_atoms:
+                            continue
+                        if ignore_others and ca.structure != residue.structure:
+                            continue
+                        if score_method == "num":
+                            score += 1
+                        else:
+                            score += clash
+                        if make_pbs:
+                            pbg.new_pseudobond(ra, ca)
+                rot.clash_score = score
+    if score_method == "num":
+        return "%2d"
+    return "%4.2f"
+
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle
     bond_key = (n1, new)
@@ -767,53 +807,6 @@ registerLibrary("Richardson.common")
 registerLibrary("Dynameomics")
 
 backboneNames = set(['CA', 'C', 'N', 'O'])
-
-def processClashes(residue, rotamers, overlap, hbondAllow, scoreMethod,
-                makePBs, pbColor, pbWidth, ignoreOthers):
-    testAtoms = []
-    for rot in rotamers:
-        testAtoms.extend(rot.atoms)
-    from DetectClash import detectClash
-    clashInfo = detectClash(testAtoms, clashThreshold=overlap,
-                interSubmodel=True, hbondAllowance=hbondAllow)
-    if makePBs:
-        from chimera.misc import getPseudoBondGroup
-        from DetectClash import groupName
-        pbg = getPseudoBondGroup(groupName)
-        pbg.deleteAll()
-        pbg.lineWidth = pbWidth
-        pbg.color = pbColor
-    else:
-        import DetectClash
-        DetectClash.nukeGroup()
-    resAtoms = set(residue.atoms)
-    for rot in rotamers:
-        score = 0
-        for ra in rot.atoms:
-            if ra.name in ("CA", "N", "CB"):
-                # any clashes of CA/N/CB are already clashes of
-                # base residue (and may mistakenly be thought
-                # to clash with "bonded" atoms in nearby
-                # residues
-                continue
-            if ra not in clashInfo:
-                continue
-            for ca, clash in clashInfo[ra].items():
-                if ca in resAtoms:
-                    continue
-                if ignoreOthers \
-                and ca.molecule.id != residue.molecule.id:
-                    continue
-                if scoreMethod == "num":
-                    score += 1
-                else:
-                    score += clash
-                if makePBs:
-                    pbg.newPseudoBond(ra, ca)
-        rot.clashScore = score
-    if scoreMethod == "num":
-        return "%2d"
-    return "%4.2f"
 
 def processHbonds(residue, rotamers, drawHbonds, bondColor, lineWidth, relax,
             distSlop, angleSlop, twoColors, relaxColor, groupName,
