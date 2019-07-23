@@ -78,7 +78,8 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     for char in str(criteria):
         if char == "d":
             #TODO
-            raise LimitationError("'d' criteria not implemented")
+            session.logger.warning("'d' criteria not yet implemented")
+            continue
             # density
             if density == None:
                 if criteria is default_criteria:
