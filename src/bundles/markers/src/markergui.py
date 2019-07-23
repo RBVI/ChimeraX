@@ -31,12 +31,14 @@ class MarkerModeSettings(ToolInstance):
             'plane': 'Place marker on volume plane',
             'surface': 'Place marker on surface',
             'center': 'Place marker at center of connected surface',
+            'point': 'Place marker at 3d pointer position',
             'link': 'Link consecutively clicked markers',
             'move': 'Move markers',
             'resize': 'Resize markers or links',
             'delete': 'Delete markers or links',
         }
-        self.mode_order = ('maximum', 'plane', 'surface', 'center', 'link', 'move', 'resize', 'delete')
+        self.mode_order = ('maximum', 'plane', 'surface', 'center', 'point',
+                          'link', 'move', 'resize', 'delete')
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self, close_destroys=False)
