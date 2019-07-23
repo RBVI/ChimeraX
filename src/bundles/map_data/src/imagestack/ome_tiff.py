@@ -118,7 +118,10 @@ def parse_ome_tiff_header(path):
             sx, sy, sz = [(float(pa[sa]) if sa in pa else 1.0)
                           for sa in ('PhysicalSizeX', 'PhysicalSizeY', 'PhysicalSizeZ')]
             nc, nt, nx, ny, nz = [int(i) for i in (pa['SizeC'], pa['SizeT'], pa['SizeX'], pa['SizeY'], pa['SizeZ'])]
-            value_type = pa['Type']
+            value_type = pa.get('Type')
+            if value_type is None:
+                # This is non-standard, but OME TIFF from Cell Image Library entry 10523 has this.
+                value_type = pa.get('PixelType')
             import numpy
             if not hasattr(numpy, value_type):
                 raise TypeError('OME TIFF value type not a numpy type, got %s' % value_type)
@@ -314,7 +317,10 @@ def plane_table(dimension_order, nz, nt, nc, path, tdata):
         else:
             raise TypeError('OME TIFF more than one UUID tag inside a TiffData tag, got %d' % len(fname))
         a = td.attrib
-        fc, ft, fz, ifd, pc = [int(i) for i in (a['FirstC'], a['FirstT'], a['FirstZ'], a['IFD'], a['PlaneCount'])]
+        try:
+            fc, ft, fz, ifd, pc = [int(a[attr]) for attr in ('FirstC', 'FirstT', 'FirstZ', 'IFD', 'PlaneCount')]
+        except KeyError:
+            continue	# OME TiffData table does not required fields.
         if pc != 1:
             raise TypeError('OME TIFF PlaneCount != 1 not supported, got %d' % pc)
         ptable[(fc,ft,fz)] = (fname, ifd)
