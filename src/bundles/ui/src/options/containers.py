@@ -38,10 +38,12 @@ class OptionsPanel(QWidget):
             sublayout = QVBoxLayout()
             self.setLayout(sublayout)
             scroller = QScrollArea()
+            scroller.setWidgetResizable(True)
+            from PyQt5.QtCore import Qt
             sublayout.addWidget(scroller)
-            scrolled = QWidget()
-            scroller.setWidget(scrolled)
-            scrolled.setLayout(self._layout)
+            scrolled_area = QWidget()
+            scroller.setWidget(scrolled_area)
+            scrolled_area.setLayout(self._layout)
         else:
             self.setLayout(self._layout)
         self._sorting = sorting
@@ -54,6 +56,8 @@ class OptionsPanel(QWidget):
         self._form.setVerticalSpacing(1)
         from PyQt5.QtCore import Qt
         self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # if we wanted to force the form contents to upper left...
+        #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
         self._layout.addLayout(self._form)
 
     def add_option(self, option):
