@@ -2106,15 +2106,30 @@ class Histogram_Pane:
   def show_data_name(self):
 
     v = self.volume
-#    if len(v.name) > 10:
-    if len(v.name) >= 0:
+    name = self._short_name
+#    if len(name) > 10:
+    if len(name) >= 0:
         self.data_name.show()
-        self.data_name.setText(v.name)
+        
+        self.data_name.setText(name)
         self.data_id.setText('#%s' % v.id_string)
     else:
         self.data_name.hide()
         self.data_name.setText('')
-        self.data_id.setText('#%s %s' % (v.id_string, v.name))
+        self.data_id.setText('#%s %s' % (v.id_string, name))
+
+
+  # ---------------------------------------------------------------------------
+  #
+  @property
+  def _short_name(self):
+    v = self.volume
+    if v is None:
+        return ''
+    name = v.name
+    if len(name) > 70:
+        name = '...' + name[-70:]
+    return name
 
   # ---------------------------------------------------------------------------
   #
