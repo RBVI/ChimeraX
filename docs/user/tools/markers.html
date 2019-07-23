@@ -1,0 +1,120 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Toolbar: Markers</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="toolbar.html">Toolbar</a>: Markers</h3>
+<p>
+Icons in the <b>Markers</b> tab of the
+<a href="toolbar.html"><b>Toolbar</b></a> 
+(along with those in the <a href="mousemodes.html"><b>Right Mouse</b></a> tab)
+allow reassigning the function or &ldquo;mouse mode&rdquo; of:
+</p>
+<ul>
+<li>any hand-controller button in
+<a href="../vr.html">ChimeraX virtual reality</a>
+<li>the right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+in the <a href="../window.html">ChimeraX graphics window</a>
+</ul>
+<p>
+(On Windows or Linux, right-click elsewhere in the ChimeraX interface raises
+a <a href="../window.html#context-menu">context menu</a>.)
+</p><p>
+With the related
+<a href="../commands/ui.html#mousemode"><b>mousemode</b></a> command,
+functions can be assigned to all mouse buttons (not just the right)
+and to scrolling, alone and in combination with modifier keys.
+See also:
+<a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>
+</p><p>
+Clicking any of the icons in the <b>Markers</b> tab shows the
+<a href="markerplacement.html"><b>Marker Placement</b></a> tool, 
+if not already shown.
+</p>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<td align="center"><b>icon</b></td>
+<td align="center"><b><a href="../commands/ui.html#mousemode">mousemode</a>
+<i>function</i></b></td>
+<td align="center"><b>description</b></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/maximum.png" width="35px"></td>
+<td align="center"><b>mark maximum</b></td>
+<td align="center" class="text">
+add marker at the nearest local maximum in
+<a href="volumeviewer.html">volume data</a> 
+above the <a href="volumeviewer.html#threshold">threshold</a> 
+along the line of sight</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/plane.png" width="35px"></td>
+<td align="center"><b>mark plane</b></td>
+<td align="center">add marker in single-plane 
+<a href="volumeviewer.html">volume</a> display</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/marker.png" width="35px"></td>
+<td align="center"><b>mark surface</b></td>
+<td align="center">
+add marker at the nearest surface point along the line of sight</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/marker2.png" width="35px"></td>
+<td align="center" class="text">
+<b>mark center</b></td>
+<td align="center" class="text">
+add marker at the geometric center of the clicked surface blob, 
+ignoring other blobs</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/point.png" width="35px"></td>
+<td align="center" class="text">
+<b>mark point</b></td>
+<td align="center" class="text">
+Place marker at the tip of the hand-controller cone
+in <a href="../vr.html">virtual reality</a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/link.png" width="35px"></td>
+<td align="center"><b>link markers</b></b>
+<td align="center"><a href="../selection.html">select</a> and link
+successively clicked markers</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/move.png" width="35px"></td>
+<td align="center"><b>move markers</b></td>
+<td align="center">drag marker to reposition</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/resize.png" width="35px"></td>
+<td align="center"><b>resize markers</b></td>
+<td align="center">drag to adjust marker/link radii</td>
+<!--
+(also acts on atoms and stick bonds; restore default radii
+with the <a href="../commands/size.html"><b>size</b></a> command)
+-->
+</tr><tr>
+<td align="center"><img src="mouse-icons/delete.png" width="35px"></td>
+<td align="center"><b>delete markers</b></td>
+<td align="center">delete markers and links</td>
+</tr>
+</table>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+July 2019</address>
+</body></html>
