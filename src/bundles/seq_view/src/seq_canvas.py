@@ -547,6 +547,7 @@ class SeqCanvas:
     """
 
     def destroy(self):
+        self._resize_timer.stop()
         for header in self.headers:
             header.destroy()
     """

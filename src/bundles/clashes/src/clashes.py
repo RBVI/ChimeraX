@@ -19,7 +19,6 @@ def find_clashes(session, test_atoms,
         bond_separation=defaults["bond_separation"],
         clash_threshold=defaults["clash_threshold"],
         distance_only=None,
-        group_name=defaults["group_name"],
         hbond_allowance=defaults["clash_hbond_allowance"],
         inter_model=True,
         inter_submodel=False,
@@ -144,6 +143,7 @@ def find_clashes(session, test_atoms,
                     if abs(residues.index(a.residue) - residues.index(nb.residue)) < res_separation:
                         continue
             if not inter_submodel \
+            and a.structure.id and nb.structure.id \
             and a.structure.id[0] == nb.structure.id[0] \
             and a.structure.id[1:] != nb.structure.id[1:]:
                 continue

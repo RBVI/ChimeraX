@@ -150,6 +150,10 @@ cdef class TmplBond:
     def atoms(self):
         return [self.cpp_bond.atoms()[0].py_instance(True), self.cpp_bond.atoms()[1].py_instance(True)]
 
+    @property
+    def length(self):
+        return self.cpp_bond.length()
+
     def other_atom(self, TmplAtom a):
         return self.cpp_bond.other_atom(a.cpp_atom).py_instance(True)
 
