@@ -331,7 +331,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
     # hack to speed up coordinate lookup...
     from chimerax.atomic import Atoms, Atom
     if len(structures) == 1 or not inter_model or (
-            len(set([m.id[0] for m in structures])) == 1 and not inter_submodel):
+            len(set([m if m.id is None else m.id[0] for m in structures])) == 1 and not inter_submodel):
         Atom._hb_coord = Atom.coord
     else:
         Atom._hb_coord = Atom.scene_coord
@@ -572,7 +572,9 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                 for acc_structure in structures:
                     if acc_structure == structure and not intra_model or acc_structure != structure and not inter_model:
                         continue
-                    if acc_structure.id[0] == structure.id[0] and not inter_submodel \
+                    if not inter_submodel \
+                    and acc_structure.id and structure.id \
+                    and acc_structure.id[0] == structure.id[0] \
                     and acc_structure.id[1:] != structure.id[1:]:
                         continue
                     if has_sulfur[acc_structure]:

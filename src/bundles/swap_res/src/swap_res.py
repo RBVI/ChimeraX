@@ -120,8 +120,6 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: r.clash_score
             test = lambda s1, s2: cmp(s2, s1)  # _lowest_ clash score
         elif char == 'h':
-            #TODO
-            raise LimitationError("'h' criteria not implemented")
             # H bonds
             if hbond_angle_slop is None or hbond_dist_slop is None:
                 from chimerax.atomic.hbonds import rec_angle_slop, rec_dist_slop
@@ -129,16 +127,12 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     hbond_angle_slop = rec_angle_slop
                 if hbond_dist_slop is None:
                     hbond_dist_slop = rec_dist_slop
-            for res, rots in rotamers.items():
-                chimera.openModels.add(rots, sameAs=res.molecule, hidden=True)
-                processHbonds(res, rots, False, None, None,
-                    relax, hbond_dist_slop, hbond_angle_slop, False,
-                    None, None, ignore_other_models,
-                    cacheDA=True)
-                chimera.openModels.remove(rots)
+            for res, by_alt_loc in rotamers.items():
+                process_hbonds(session, res, by_alt_loc, False, None, None, hbond_relax,
+                hbond_dist_slop, hbond_angle_slop, False, None, ignore_other_models, cache_da=True)
             from chimerax.atomic.hbonds import flush_cache
             flush_cache()
-            fetch = lambda r: r.numHbonds
+            fetch = lambda r: r.num_hbonds
             test = cmp
         elif char == 'p':
             # most probable
@@ -740,6 +734,59 @@ def process_clashes(session, residue, by_alt_loc, overlap, hbond_allow, score_me
         return "%2d"
     return "%4.2f"
 
+def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius, relax,
+            dist_slop, angle_slop, two_colors, relax_color, ignore_other_models, *, cache_da=False):
+    from chimerax.atomic.hbonds import find_hbonds
+    CA = residue.find_atom("CA")
+    alt_locs = CA.alt_locs if CA.alt_locs else [' ']
+    with CA.suppress_alt_loc_change_notifications():
+        for alt_loc, rotamers in by_alt_loc.items():
+            CA.alt_loc = alt_loc
+            if ignore_other_models:
+                target_models = [residue.molecule] + rotamers
+            else:
+                from chimerax.atomic import AtomicStructure
+                target_models = [s for s in session.models if isinstance(s, AtomicStructure)] + rotamers
+            if relax and two_colors:
+                color = relax_color
+            else:
+                color = bond_color
+            hbonds = { hb: color for hb in find_hbonds(session, target_models, intra_model=False,
+                dist_slop=dist_slop, angle_slop=angle_slop, cache_da=cache_da) }
+            if relax and two_colors:
+                hbonds.update({ hb: bond_color for hb in find_hbonds(session, target_models,
+                            intra_model=False) })
+            # invalid H-bonds:  involving residue side chain or rotamer backbone
+            invalid_atoms = set([ra for ra in residue.atoms if ra.is_side_chain])
+            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms if ra.is_backbone()])
+            rot_atoms = set([ra for rot in rotamers for ra in rot.atoms if ra not in invalid_atoms])
+            for rot in rotamers:
+                rot.num_hbonds = 0
+
+            if draw_hbonds:
+                pbg = session.pb_manager.get_group("hydrogen bonds")
+                pbg.clear()
+                pbg.radius = radius
+            else:
+                pbg = session.pb_manager.get_group("hydrogen bonds", create=False)
+                if pbg:
+                    session.models.close([pbg])
+            for hb, color in hbonds.items():
+                d, a = hb
+                if (d in rot_atoms) == (a in rot_atoms):
+                    # only want rotamer to non-rotamer
+                    continue
+                if d in invalid_atoms or a in invalid_atoms:
+                    continue
+                if d in rot_atoms:
+                    rot = d.structure
+                else:
+                    rot = a.structure
+                rot.num_hbonds += 1
+                if draw_hbonds:
+                    pb = pbg.new_pseudobond(d, a)
+                    pb.color = color.uint8x4()
+
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle
     bond_key = (n1, new)
@@ -807,58 +854,6 @@ registerLibrary("Richardson.common")
 registerLibrary("Dynameomics")
 
 backboneNames = set(['CA', 'C', 'N', 'O'])
-
-def processHbonds(residue, rotamers, drawHbonds, bondColor, lineWidth, relax,
-            distSlop, angleSlop, twoColors, relaxColor, groupName,
-            ignoreOtherModels, cacheDA=False):
-    from FindHBond import findHBonds
-    if ignoreOtherModels:
-        targetModels = [residue.molecule] + rotamers
-    else:
-        targetModels = chimera.openModels.list(
-                modelTypes=[chimera.Molecule]) + rotamers
-    if relax and twoColors:
-        color = relaxColor
-    else:
-        color = bondColor
-    hbonds = dict.fromkeys(findHBonds(targetModels, intramodel=False,
-        distSlop=distSlop, angleSlop=angleSlop, cacheDA=True), color)
-    if relax and twoColors:
-        hbonds.update(dict.fromkeys(findHBonds(targetModels,
-                    intramodel=False), bondColor))
-    backboneNames = set(['CA', 'C', 'N', 'O'])
-    # invalid H-bonds:  involving residue side chain or rotamer backbone
-    invalidAtoms = set([ra for ra in residue.atoms
-                    if ra.name not in backboneNames])
-    invalidAtoms.update([ra for rot in rotamers for ra in rot.atoms
-                    if ra.name in backboneNames])
-    rotAtoms = set([ra for rot in rotamers for ra in rot.atoms
-                    if ra not in invalidAtoms])
-    for rot in rotamers:
-        rot.numHbonds = 0
-
-    if drawHbonds:
-        from chimera.misc import getPseudoBondGroup
-        pbg = getPseudoBondGroup(groupName)
-        pbg.deleteAll()
-        pbg.lineWidth = lineWidth
-    elif groupName:
-        nukeGroup(groupName)
-    for hb, color in hbonds.items():
-        d, a = hb
-        if (d in rotAtoms) == (a in rotAtoms):
-            # only want rotamer to non-rotamer
-            continue
-        if d in invalidAtoms or a in invalidAtoms:
-            continue
-        if d in rotAtoms:
-            rot = d.molecule
-        else:
-            rot = a.molecule
-        rot.numHbonds += 1
-        if drawHbonds:
-            pb = pbg.newPseudoBond(d, a)
-            pb.color = color
 
 def processVolume(rotamers, columnName, volume):
     import AtomDensity
