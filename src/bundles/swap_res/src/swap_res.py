@@ -77,15 +77,12 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     cmp = lambda p1,p2: 1 if p1 > p2 else (0 if p1 == p2 else -1)
     for char in str(criteria):
         if char == "d":
-            #TODO
-            session.logger.warning("'d' criteria not yet implemented")
-            continue
             # density
             if density == None:
                 if criteria is default_criteria:
                     continue
-                raise MidasError("Density criteria requested"
-                    " but no density model specified")
+                raise UserError("Density criteria requested but no volume model specified")
+            raise LimitationError("'d' criteria not yet implemented")
             from VolumeViewer.volume import Volume
             if isinstance(density, list):
                 density = [d for d in density
