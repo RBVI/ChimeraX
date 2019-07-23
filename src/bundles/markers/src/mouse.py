@@ -61,6 +61,8 @@ class MarkerMouseMode(MouseMode):
             self.place_on_maximum(event)
         elif mode == 'plane':
             self.place_on_plane(event)
+        elif mode == 'point':
+            self.place_on_point(event)
             
     def place_on_surface(self, event):
         xyz1, xyz2 = self._view_line(event)
@@ -107,6 +109,14 @@ class MarkerMouseMode(MouseMode):
         if sxyz is not None:
             self._set_sizes(v)
             _mouse_place_marker(self.session, sxyz, link_to_selected = self.link_new)
+
+    def place_on_point(self, event):
+        if isinstance(event, LaserEvent):
+            xyz = event.xyz1
+        else:
+            xyz1, xyz2 = self._view_line(event)
+            xyz = .5 * (xyz1 + xyz2)
+        _mouse_place_marker(self.session, xyz, link_to_selected = self.link_new)
 
     def link_consecutive(self, event):
         s = self.session
