@@ -1418,6 +1418,8 @@ cdef class CyResidue:
     def get_chi(self, chi_num, account_for_symmetry):
         # Don't need to explicitly check that the standard name is not None,
         # since sending None will return None -- just the same as GLX or ALA will
+        if chi_num < 1 or chi_num > 4:
+            raise ValueError("Chi number not in the range 1-4")
         std_name = self.standard_aa_name
         chi_atoms = self.get_chi_atoms(std_name, chi_num)
         if chi_atoms is None:

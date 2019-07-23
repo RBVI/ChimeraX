@@ -542,15 +542,17 @@ def prune_by_chis(session, rots, res, cutoff, log=False):
     if res.chi1 is None:
         return rots
     pruned = rots[:]
-    for chi_num in range(4):
+    for chi_num in range(1, 5):
         next_pruned = []
         nearest = None
         target_chi = res.get_chi(chi_num, True)
         if target_chi is None:
             break
         for rot in pruned:
-            rot_chi = rot.get_chi(chi_num, True)
+            rot_chi = rot.residues[0].get_chi(chi_num, True)
             delta = abs(rot_chi - target_chi)
+            if delta > 180.0:
+                delta = 360.0 - delta
             if delta <= cutoff:
                 next_pruned.append(rot)
             if nearest is None or near_delta > delta:
@@ -559,14 +561,15 @@ def prune_by_chis(session, rots, res, cutoff, log=False):
         if next_pruned:
             pruned = next_pruned
         else:
+            pruned = None
             break
     if pruned:
         if log:
-            session.info("Filtering rotamers with chi angles within %g of %s yields %d (of original %d)"
+            session.logger.info("Filtering rotamers with chi angles within %g of %s yields %d (of original %d)"
                 % (cutoff, res, len(pruned), len(rots)))
         return pruned
     if log:
-        session.info("No rotamer with all chi angles within %g of %s; using closest one" % (cutoff, res))
+        session.logger.info("No rotamer with all chi angles within %g of %s; using closest one" % (cutoff, res))
     return [nearest]
 
 def side_chain_locs(residue):
