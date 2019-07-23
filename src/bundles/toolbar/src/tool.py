@@ -307,6 +307,24 @@ _Toolbars = {
             ],
         }
     ),
+    "Markers": (
+        "help:user/tools/markerplacement.html",
+        {
+            ("Place markers", False): [
+                ("mouse:mark maximum", None, "Maximum", "Mark maximum"),
+                ("mouse:mark plane", None, "Plane", "Mark volume plane"),
+                ("mouse:mark surface", None, "Surface", "Mark surface"),
+                ("mouse:mark center", None, "Center", "Mark center of connected surface"),
+                ("mouse:mark point", None, "Point", "Mark 3d point"),
+            ],
+            ("Adjust markers", False): [
+                ("mouse:link markers", None, "Link", "Link consecutively clicked markers"),
+                ("mouse:move markers", None, "Move", "Move markers"),
+                ("mouse:resize markers", None, "Resize", "Resize markers or links"),
+                ("mouse:delete markers", None, "Delete", "Delete markers or links"),
+            ],
+        }
+    ),
     "Right Mouse": (
         "help:user/tools/mousemodes.html",
         {
@@ -333,7 +351,6 @@ _Toolbars = {
                 ("mouse:contour level", None, "Contour level", "Adjust volume data threshold level"),
                 ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
-                ("mouse:place marker", None, "Place marker", None),
                 ("mouse:pick blobs", None, "Blob", "Measure and color connected parts of surface"),
                 ("mouse:map eraser", None, "Erase", "Erase parts of a density map setting values in a sphere to zero"),
                 ("mouse:play map series", None, "Play series", "Play map series"),

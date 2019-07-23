@@ -860,7 +860,7 @@ class UserInterface:
             if panel:
                 hand_mode = self._clicked_mouse_mode(window_xy)
                 if hand_mode is not None:
-                    self._enable_mouse_mode(hand_mode, hc, b)
+                    self._enable_mouse_mode(hand_mode, hc, b, window_xy)
                 elif self._clicked_on_title_bar(window_xy):
                     # Drag on title bar moves VR gui
                     self._move_gui.add((hc,b))
@@ -873,7 +873,7 @@ class UserInterface:
 
         return False
 
-    def _enable_mode_pressed(self, hand_mode, hand_controller, button):
+    def _enable_mouse_mode(self, hand_mode, hand_controller, button, window_xy):
         if isinstance(hand_mode, MouseMode) and not hand_mode.has_vr_support:
             msg = 'No VR support for mouse mode %s' % hand_mode.name
         else:
@@ -1302,6 +1302,7 @@ class HandController:
         from openvr import Prop_RenderModelName_String
         model_name = vr_system.getStringTrackedDeviceProperty(device_index, Prop_RenderModelName_String)
         # b'oculus_cv1_controller_right', b'oculus_cv1_controller_left'
+        # b'oculus_rifts_controller_right', b'oculus_rifts_controller_left'
         self._controller_type = model_name.decode()
         
         # Create hand model
