@@ -137,18 +137,17 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: r.rotamer_prob
             test = cmp
         elif isinstance(criteria, int):
-            #TODO
-            raise LimitationError("Nth-prob criteria not implemented")
             # Nth most probable
             index = criteria - 1
-            for res, rots in rotamers.items():
-                if index >= len(rots):
-                    if log:
-                        replyobj.status("Residue %s does not have %d %s"
-                            " rotamers; skipping" % (res, criteria, r_type),
-                            log=True, color="red")
-                    continue
-                rotamers[res] = [rots[index]]
+            for res, by_alt_loc in rotamers.items():
+                for alt_loc, rots in list(by_alt_loc.items()):
+                    if index >= len(rots):
+                        if log:
+                            session.logger.status("Residue %s does not have %d %s"
+                                " rotamers; skipping" % (res, criteria, r_type),
+                                log=True, color="red")
+                        return
+                    by_alt_loc[alt_loc] = [rots[index]]
             fetch = lambda r: 1
             test = lambda v1, v2: 1
 
