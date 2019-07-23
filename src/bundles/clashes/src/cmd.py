@@ -112,7 +112,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
     from .clashes import find_clashes
     clashes = find_clashes(session, test_atoms, attr_name=attr_name,
         bond_separation=bond_separation, clash_threshold=overlap_cutoff,
-        distance_only=distance_only, group_name=name, hbond_allowance=hbond_allowance,
+        distance_only=distance_only, hbond_allowance=hbond_allowance,
         inter_model=inter_model, inter_submodel=inter_submodel, intra_res=intra_res,
         intra_mol=intra_mol, res_separation=res_separation, test=test)
     if select:

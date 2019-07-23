@@ -5,7 +5,8 @@
 # 	debug: run ChimeraX with debugging flag set
 # 	clean: remove files used in building wheel
 
-CHIMERAX_APP = $(wildcard ../../../ChimeraX*.app)
+TOP = ../../..
+CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
 # These can be overridden by bundles for customization
 DEVEL_ARGS =

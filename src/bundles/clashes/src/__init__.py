@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .clashes import find_clashes
+
 from chimerax.core.toolshed import BundleAPI
 
 class ClashesAPI(BundleAPI):

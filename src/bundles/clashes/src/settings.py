@@ -27,7 +27,6 @@ defaults = {
     "clash_threshold": 0.6,
     "contact_hbond_allowance": 0.0,
     "contact_threshold": -0.4,
-    "group_name": "contacts",
     "intra_mol": True,
     "intra_res": False,
     "other_atom_color": None,

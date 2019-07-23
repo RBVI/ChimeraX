@@ -37,6 +37,7 @@ cdef extern from "<atomstruct/tmpl/Atom.h>" namespace "tmpl":
 cdef extern from "<atomstruct/tmpl/Bond.h>" namespace "tmpl":
     cdef cppclass Bond:
         Atom[2]* const atoms()
+        float length()
         Atom* other_atom(Atom* a)
         object py_instance(bool)
 
