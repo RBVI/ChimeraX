@@ -14,7 +14,7 @@
 default_criteria = "dhcp"
 def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_criteria,
     density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=False, lib=None, log=True,
-    preserve=None, relax=True, retain=False, score_method="num", threshold=None):
+    preserve=None, relax=True, retain=False, score_method="num", overlap_cutoff=None):
     '''
     Command to swap amino acid side chains
     '''
@@ -46,7 +46,7 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
 
     from . import swap_res
     swap_res.swap_aa(session, residues, res_type, bfactor=bfactor, clash_hbond_allowance=hbond_allowance,
-        clash_score_method=score_method, clash_threshold=threshold,
+        clash_score_method=score_method, clash_overlap_cutoff=overlap_cutoff,
         criteria=criteria, density=density, hbond_angle_slop=angle_slop,
         hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, lib=lib, log=log,
         preserve=preserve, hbond_relax=relax, retain=retain)
@@ -72,7 +72,7 @@ def register_command(command_name, logger):
             ('relax', BoolArg),
             ('retain', BoolArg),
             ('score_method', EnumOf(('sum', 'num'))),
-            ('threshold', FloatArg),
+            ('overlap_cutoff', FloatArg),
         ],
         synopsis = 'Swap amino acid side chain(s)'
     )

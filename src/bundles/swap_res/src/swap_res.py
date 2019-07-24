@@ -17,7 +17,7 @@ from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoR
 
 from .cmd import default_criteria
 def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=None, clash_score_method="sum",
-        clash_threshold=None, criteria=default_criteria, density=None, hbond_angle_slop=None,
+        clash_overlap_cutoff=None, criteria=default_criteria, density=None, hbond_angle_slop=None,
         hbond_dist_slop=None, hbond_relax=True, ignore_other_models=False, lib="Dunbrack", log=True,
         preserve=None, retain=False):
     """backend implementation of "swapaa" command."""
@@ -106,14 +106,14 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             test = cmp
         elif char == "c":
             # clash
-            if clash_hbond_allowance is None or clash_threshold is None:
+            if clash_hbond_allowance is None or clash_overlap_cutoff is None:
                 from chimerax.atomic.clashes.settings import defaults
                 if clash_hbond_allowance is None:
                     clash_hbond_allowance = defaults['clash_hbond_allowance']
-                if clash_threshold is None:
-                    clash_threshold = defaults['clash_threshold']
+                if clash_overlap_cutoff is None:
+                    clash_overlap_cutoff = defaults['clash_threshold']
             for res, by_alt_loc in rotamers.items():
-                process_clashes(session, res, by_alt_loc, clash_threshold, clash_hbond_allowance,
+                process_clashes(session, res, by_alt_loc, clash_overlap_cutoff, clash_hbond_allowance,
                     clash_score_method, False, None, None, ignore_other_models)
             fetch = lambda r: r.clash_score
             test = lambda s1, s2: cmp(s2, s1)  # _lowest_ clash score
