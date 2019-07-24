@@ -82,27 +82,9 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                 if criteria is default_criteria:
                     continue
                 raise UserError("Density criteria requested but no volume model specified")
-            raise LimitationError("'d' criteria not yet implemented")
-            from VolumeViewer.volume import Volume
-            if isinstance(density, list):
-                density = [d for d in density
-                        if isinstance(d, Volume)]
-            else:
-                density = [density]
-            if not density:
-                raise MidasError("No volume models in"
-                    " specified model numbers")
-            if len(density) > 1:
-                raise MidasError("Multiple volume models in"
-                    " specified model numbers")
-            allRots = []
-            for res, rots in rotamers.items():
-                chimera.openModels.add(rots,
-                    sameAs=res.molecule, hidden=True)
-                allRots.extend(rots)
-            processVolume(allRots, "cmd", density[0])
-            chimera.openModels.remove(allRots)
-            fetch = lambda r: r.volumeScores["cmd"]
+            for res, by_alt_loc in rotamers.items():
+                process_volume(session, res, by_alt_loc, density)
+            fetch = lambda r: r.volume_score
             test = cmp
         elif char == "c":
             # clash
@@ -787,6 +769,36 @@ def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius
                     pb = pbg.new_pseudobond(d, a)
                     pb.color = color.uint8x4()
 
+def process_volume(session, residue, by_alt_loc, volume):
+    CA = residue.find_atom("CA")
+    alt_locs = CA.alt_locs if CA.alt_locs else [' ']
+    sums = []
+    with CA.suppress_alt_loc_change_notifications():
+        for alt_loc, rotamers in by_alt_loc.items():
+            CA.alt_loc = alt_loc
+            for rot in rotamers:
+                values = volume.interpolated_values(rot.atoms.coords, point_xform=rot.scene_position)
+                total = 0
+                for a, val in zip(rot.atoms, values):
+                    print(a.residue.chi1, a.name, total)
+                    if a.is_side_chain:
+                        total += val
+                rot.volume_score = total
+                sums.append(total)
+    min_sum = min(sums)
+    max_sum = max(sums)
+    abs_max = max(max_sum, abs(min_sum))
+    if abs_max >= 100 or abs_max == 0:
+        return "%d"
+    add_minus_sign = len(str(int(min_sum))) > len(str(int(abs_max)))
+    if abs_max >= 10:
+        return "%%%d.1f" % (add_minus_sign + 4)
+    precision = 2
+    while abs_max < 1:
+        precision += 1
+        abs_max *= 10
+    return "%%%d.%df" % (precision+2+add_minus_sign, precision)
+
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle
     bond_key = (n1, new)
@@ -801,99 +813,3 @@ def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
         bond_cache[bond_key] = bl = distance(newpos, n1pos)
         angle_cache[angle_key] = ang = angle(newpos, n1pos, n2pos)
     return bl, ang
-
-'''
-
-class NoResidueRotamersError(ValueError):
-    pass
-
-class UnsupportedResTypeError(NoResidueRotamersError):
-    pass
-
-def _chimeraResTmpl(rt):
-    return chimera.restmplFindResidue(rt, False, False)
-
-class RotamerParams:
-    """ 'p' attribute is probability of this rotamer;
-        'chis' is list of chi angles
-    """
-    def __init__(self, p, chis):
-        self.p = p
-        self.chis = chis
-
-
-        
-amino20 = ["ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
-    "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"]
-class RotamerLibraryInfo:
-    """holds information about a rotamer library:
-       how to import it, what citation to display, etc.
-    """
-    def __init__(self, importName):
-        self.importName = importName
-        exec "import %s as RotLib" % importName
-        self.displayName = getattr(RotLib, "displayName", importName)
-        self.description = getattr(RotLib, "description", None)
-        self.citation = getattr(RotLib, "citation", None)
-        self.citeName = getattr(RotLib, "citeName", None)
-        self.citePubmedID = getattr(RotLib, "citePubmedID", None)
-        self.residueTypes = getattr(RotLib, "residueTypes", amino20)
-        self.resTypeMapping = getattr(RotLib, "resTypeMapping", {})
-
-libraries = []
-def registerLibrary(importName):
-    """Takes a string indicated the "import name" of a library
-       (i.e. what name to use in an import statement) and adds a  
-       RotamerLibraryInfo instance for it to the list of known
-       rotamer libraries ("Rotamers.libraries").
-    """
-    libraries.append(RotamerLibraryInfo(importName))
-registerLibrary("Dunbrack")
-registerLibrary("Richardson.mode")
-registerLibrary("Richardson.common")
-registerLibrary("Dynameomics")
-
-backboneNames = set(['CA', 'C', 'N', 'O'])
-
-def processVolume(rotamers, columnName, volume):
-    import AtomDensity
-    sums = []
-    for rot in rotamers:
-        AtomDensity.set_atom_volume_values(rot, volume, "_vscore")
-        scoreSum = 0
-        for a in rot.atoms:
-            if a.name not in backboneNames:
-                scoreSum += a._vscore
-            delattr(a, "_vscore")
-        if not hasattr(rot, "volumeScores"):
-            rot.volumeScores = {}
-        rot.volumeScores[columnName] = scoreSum
-        sums.append(scoreSum)
-    minSum = min(sums)
-    maxSum = max(sums)
-    absMax = max(maxSum, abs(minSum))
-    if absMax >= 100 or absMax == 0:
-        return "%d"
-    addMinusSign = len(str(int(minSum))) > len(str(int(absMax)))
-    if absMax >= 10:
-        return "%%%d.1f" % (addMinusSign + 4)
-    precision = 2
-    while absMax < 1:
-        precision += 1
-        absMax *= 10
-    return "%%%d.%df" % (precision+2+addMinusSign, precision)
-
-def nukeGroup(groupName):
-    mgr = chimera.PseudoBondMgr.mgr()
-    group = mgr.findPseudoBondGroup(groupName)
-    if group:
-        chimera.openModels.close([group])
-
-from math import pi, cos, sin
-import chimera
-from chimera import angle, dihedral, cross, Coord
-from chimera.molEdit import addAtom, addDihedralAtom, addBond
-from chimera.idatm import tetrahedral, planar, linear, single, typeInfo
-from chimera.bondGeom import bondPositions
-from chimera.match import matchPositions
-'''
