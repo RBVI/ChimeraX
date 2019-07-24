@@ -17,7 +17,7 @@ from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoR
 
 from .cmd import default_criteria
 def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=None, clash_score_method="sum",
-        clash_threshold=None, criteria=default_criteria, density=None, hbond_angle_slop=None,
+        clash_overlap_cutoff=None, criteria=default_criteria, density=None, hbond_angle_slop=None,
         hbond_dist_slop=None, hbond_relax=True, ignore_other_models=False, lib="Dunbrack", log=True,
         preserve=None, retain=False):
     """backend implementation of "swapaa" command."""
@@ -77,15 +77,12 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     cmp = lambda p1,p2: 1 if p1 > p2 else (0 if p1 == p2 else -1)
     for char in str(criteria):
         if char == "d":
-            #TODO
-            session.logger.warning("'d' criteria not yet implemented")
-            continue
             # density
             if density == None:
                 if criteria is default_criteria:
                     continue
-                raise MidasError("Density criteria requested"
-                    " but no density model specified")
+                raise UserError("Density criteria requested but no volume model specified")
+            raise LimitationError("'d' criteria not yet implemented")
             from VolumeViewer.volume import Volume
             if isinstance(density, list):
                 density = [d for d in density
@@ -109,14 +106,14 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             test = cmp
         elif char == "c":
             # clash
-            if clash_hbond_allowance is None or clash_threshold is None:
+            if clash_hbond_allowance is None or clash_overlap_cutoff is None:
                 from chimerax.atomic.clashes.settings import defaults
                 if clash_hbond_allowance is None:
                     clash_hbond_allowance = defaults['clash_hbond_allowance']
-                if clash_threshold is None:
-                    clash_threshold = defaults['clash_threshold']
+                if clash_overlap_cutoff is None:
+                    clash_overlap_cutoff = defaults['clash_threshold']
             for res, by_alt_loc in rotamers.items():
-                process_clashes(session, res, by_alt_loc, clash_threshold, clash_hbond_allowance,
+                process_clashes(session, res, by_alt_loc, clash_overlap_cutoff, clash_hbond_allowance,
                     clash_score_method, False, None, None, ignore_other_models)
             fetch = lambda r: r.clash_score
             test = lambda s1, s2: cmp(s2, s1)  # _lowest_ clash score
@@ -140,18 +137,17 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             fetch = lambda r: r.rotamer_prob
             test = cmp
         elif isinstance(criteria, int):
-            #TODO
-            raise LimitationError("Nth-prob criteria not implemented")
             # Nth most probable
             index = criteria - 1
-            for res, rots in rotamers.items():
-                if index >= len(rots):
-                    if log:
-                        replyobj.status("Residue %s does not have %d %s"
-                            " rotamers; skipping" % (res, criteria, r_type),
-                            log=True, color="red")
-                    continue
-                rotamers[res] = [rots[index]]
+            for res, by_alt_loc in rotamers.items():
+                for alt_loc, rots in list(by_alt_loc.items()):
+                    if index >= len(rots):
+                        if log:
+                            session.logger.status("Residue %s does not have %d %s"
+                                " rotamers; skipping" % (res, criteria, r_type),
+                                log=True, color="red")
+                        return
+                    by_alt_loc[alt_loc] = [rots[index]]
             fetch = lambda r: 1
             test = lambda v1, v2: 1
 
@@ -542,15 +538,17 @@ def prune_by_chis(session, rots, res, cutoff, log=False):
     if res.chi1 is None:
         return rots
     pruned = rots[:]
-    for chi_num in range(4):
+    for chi_num in range(1, 5):
         next_pruned = []
         nearest = None
         target_chi = res.get_chi(chi_num, True)
         if target_chi is None:
             break
         for rot in pruned:
-            rot_chi = rot.get_chi(chi_num, True)
+            rot_chi = rot.residues[0].get_chi(chi_num, True)
             delta = abs(rot_chi - target_chi)
+            if delta > 180.0:
+                delta = 360.0 - delta
             if delta <= cutoff:
                 next_pruned.append(rot)
             if nearest is None or near_delta > delta:
@@ -559,14 +557,15 @@ def prune_by_chis(session, rots, res, cutoff, log=False):
         if next_pruned:
             pruned = next_pruned
         else:
+            pruned = None
             break
     if pruned:
         if log:
-            session.info("Filtering rotamers with chi angles within %g of %s yields %d (of original %d)"
+            session.logger.info("Filtering rotamers with chi angles within %g of %s yields %d (of original %d)"
                 % (cutoff, res, len(pruned), len(rots)))
         return pruned
     if log:
-        session.info("No rotamer with all chi angles within %g of %s; using closest one" % (cutoff, res))
+        session.logger.info("No rotamer with all chi angles within %g of %s; using closest one" % (cutoff, res))
     return [nearest]
 
 def side_chain_locs(residue):
