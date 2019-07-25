@@ -348,6 +348,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     pdbx_poly_info = []  # [(entity_id, asym_id, mon_id, seq_id, pdb_strand_id, auth_seq_num, pdb_ins_code)]
     residue_info = {}    # { residue: (label_asym_id, label_seq_id) }
 
+    skipped_sequence_info = False
+
     seq_entities = OrderedDict()   # { chain.characters : (entity_id, _1to3, [chains]) }
     for c in best_m.chains:
         if restrict is not None and c not in restrict_chains:
@@ -368,6 +370,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
             nstd = 'yes' if names.difference(_standard_residues) else 'no'
             # _1to3 is reverse map to handle missing residues
             if not c.from_seqres:
+                skipped_sequence_info = True
                 _1to3 = None
             else:
                 if c.polymer_type == Residue.PT_AMINO:
@@ -382,6 +385,9 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
                     _1to3 = _rna1to3
                     poly_info.append((eid, nstd, 'polydeoxyribonucleotide', chars))
             seq_entities[chars] = (eid, _1to3, [c])
+
+    if skipped_sequence_info:
+        session.logger.warning("Not saving entity_poly_seq for non-authoritative sequences")
 
     # use all chains of the same entity to figure out what the sequence's residues are named
     pdbx_poly_tmp = {}
