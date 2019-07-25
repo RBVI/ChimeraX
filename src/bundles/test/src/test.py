@@ -83,8 +83,8 @@ commands = [
     'movie record super 3',
     'wait',
     'movie encode ~/Desktop/test_movie.mp4 quality high',
-#    'vr on',
-#    'vr off',
+    # 'vr on',
+    # 'vr off',
     'perframe "turn y 15" frames 10',
     'pwd',
     'roll z',
@@ -94,7 +94,7 @@ commands = [
     '~ribbon',
     'run "echo run run run"',
     'measure sasa /d',
-#    'save ~/Desktop/test_image.jpg',  # JPEG support missing, bug #186
+    # 'save ~/Desktop/test_image.jpg',  # JPEG support missing, bug #186
     'save ~/Desktop/test_image.png',
     'surface #1',
     'color #1 byatom',
@@ -126,7 +126,9 @@ commands = [
     'debug exectest',
     'echo finished test',
 ]
-def run_commands(session, commands = commands, stderr = False):
+
+
+def run_commands(session, commands=commands, stderr=False):
     log = session.logger
     from chimerax.core.commands import run
     for c in commands:
@@ -141,7 +143,8 @@ def run_exectest(session, bi):
     exec_dir = bi.executable_dir()
     if not exec_dir:
         raise RuntimeError("no executable directory in module %r" % bi.name)
-    import os.path, subprocess
+    import os.path
+    import subprocess
     log = session.logger
     executable = os.path.join(exec_dir, "exectest.exe")
     command = [executable]
@@ -157,3 +160,14 @@ def run_exectest(session, bi):
         log.warning("Output on stderr:\n%s\n-----" % result.stderr)
     else:
         log.info("No output on stderr")
+
+
+def run_expectfail(session, command):
+    from chimerax.core.errors import NotABug
+    from chimerax.core.commands import run
+    try:
+        run(session, command)
+    except NotABug:
+        session.logger.info("Failed as expected")
+    else:
+        session.logger.error("Command failed to fail")
