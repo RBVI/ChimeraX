@@ -163,11 +163,18 @@ def run_exectest(session, bi):
 
 
 def run_expectfail(session, command):
-    from chimerax.core.errors import NotABug
-    from chimerax.core.commands import run
+    from chimerax.core.errors import NotABug, UserError
+    from chimerax.core.commands import run, Command
+
+    # first confirm that command is an actual command
+    cmd = Command(session)
+    cmd.current_text = command
+    cmd._find_command_name(no_aliases=True)
+    if not cmd._ci:
+        raise UserError("Unknown commmand")
     try:
-        run(session, command)
+        cmd.run(command)
     except NotABug:
         session.logger.info("Failed as expected")
     else:
-        session.logger.error("Command failed to fail")
+        raise UserError("Command failed to fail")
