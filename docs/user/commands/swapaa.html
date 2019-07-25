@@ -24,28 +24,282 @@ or derivations thereof.
 class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: swapaa</h3>
+
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>swapaa</b> 
+&nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
+<i>new-type</i> &nbsp;<a href="#options"><i>options</i></a>
+</h3>
+<a name="mousemode"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>swapaa mousemode</b> 
 &nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
 <i>new-type</i>
 </h3>
 <p>
-The <b>swapaa</b> command performs a simple virtual mutation by
-replacing one type of amino acid with another.
+The <b>swapaa</b> command performs a virtual mutation by
+replacing one type of amino acid sidechain with another.
+A residue can be changed to a different sidechain conformation (rotamer)
+of the same type of amino acid or mutated into a different type; 
+backbone atoms are not replaced.
 The <i>new-type</i> can be the three-letter code for any of 
 the 20 standard amino acids (with or without capitalization),
-and one or more protein residues 
-to change to that type can be 
+and one or more protein residues to change to that type can be 
 <a href="atomspec.html">specified</a> in a single command.
+See also:
+<a href="torsion.html"><b>torsion</b></a>
 </p><p>
-The command will be improved to use a rotamer library, but currently 
-sidechain replacement is done by matching a single conformation of the
-new residue type onto the backbone atoms of the existing residue.
-The backbone atoms are not replaced.
-See also: the <b>swapaa</b> <a href="ui.html#mousemode"><b>mouse mode</b></a>
+The command <b>swapaa mousemode</b> simply matches a single conformation 
+of the new residue type onto the backbone atoms of the existing residue.
+The <b>swapaa</b> <a href="ui.html#mousemode"><b>mouse mode</b></a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/swapaa.png"></a>
+uses this &ldquo;quick and dirty&rdquo; method.
+</p><p>
+The main <b>swapaa</b> command uses a <a href="#lib">rotamer library</a>
+and several <a href="#criteria">criteria</a> for choosing the best rotamer:
+lowest clash score, most H-bonds, best fit to an electron density map,
+and/or highest probability according to the library.
+Bond lengths and angles are taken from the
+<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+parameter files <b>all*94.lib</b>, and hydrogens are not included.
+</p><p>
+Although sidechains at multiple positions can be replaced simultaneously,
+<b>swapaa</b> is not recommended for predicting the conformations of
+multiple sidechains in an interacting cluster. Programs such as
+<a href="http://dunbrack.fccc.edu/scwrl4/" target="_blank">SCWRL</a>
+are more appropriate for that purpose.
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: swapaa</a>]
+</p>
+<h3>Options</h3>
+
+<p>
+The following options can be used with the main <b>swapaa</b> command.
+They do not apply to the simpler <b>swapaa mousemode</b> method.
+</p>
+<blockquote>
+<a name="lib"><b>lib</b> &nbsp;<i>rotamer-library</i></a>
+<br>
+What rotamer library to use; the source of rotamer torsion angles
+and probabilities. Possible values of <i>rotamer-library</i>
+(capitalization optional):
+<ul>
+  <li><b>Dunbrack</b> (default)
+&ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
+target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
+(5% stepdown; for chain-terminal residues,
+the Dunbrack 2002 backbone-independent version is used instead):
+   <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
+A smoothed backbone-dependent rotamer library for proteins derived from
+adaptive kernel density estimates and regressions.</a>
+Shapovalov MV, Dunbrack RL Jr.
+<i>Structure.</i> 2011 Jun 8;19(6):844-58.
+   </blockquote>
+  <li><b>Dynameomics</b> &ndash;
+<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
+target="_blank">Dyameomics rotamer library</a>:
+   <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
+The Dynameomics rotamer library: amino acid side chain conformations
+and dynamics from comprehensive molecular dynamics simulations in water.</a>
+Scouras AD, Daggett V.
+<i>Protein Sci.</i> 2011 Feb;20(2):341-52.
+   </blockquote>
+<p>
+This library includes multiple choices of <i>new-type</i> for cysteine and
+histidine, depending on the oxidation or protonation state of the sidechain:
+</p>
+<ul>
+<li>CYH &ndash; cysteine reduced free sulfhydryl
+<li>CYS &ndash; cysteine oxidized disulfide-bonded (half-cystine)
+<li>HID &ndash; histidine neutral &delta;-protonated
+<li>HIE &ndash; histidine neutral &epsilon;-protonated
+<li>HIS &ndash; histidine neutral (HID and HIE combined)
+<li>HIP &ndash; histidine positive protonated on both sidechain nitrogens
+</ul>
+<p>
+These refer to the species for which conformational data were collected,
+but the rotamers do not include hydrogens and will be given
+standard residue names (CYS or HIS) if incorporated into a structure.
+</p>
+ <li><b>Richardson.common</b> &ndash; common-atom values (author-recommended)
+from the <a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
+target="_blank">Richardson backbone-independent rotamer library</a>:
+   <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
+The penultimate rotamer library.</a>
+Lovell SC, Word JM, Richardson JS, Richardson DC.
+<i>Proteins.</i> 2000 Aug 15;40(3):389-408.
+   </blockquote>
+ <li><b>Richardson.mode</b> &ndash; mode values from the
+<a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
+target="_blank">Richardson backbone-independent rotamer library</a>
+</ul>
+</blockquote>
+<blockquote>
+<a name="criteria"></a>
+<!-- <b>criteria</b> &nbsp;<i>method</i>&nbsp;|&nbsp;manual -->
+<b>criteria</b> &nbsp;<i>method</i>&nbsp;|&nbsp;<i>N</i>
+<br>How to choose the rotamer. 
+<!-- 
+If <b>manual</b>, all rotamers will be
+displayed in the graphics window and listed in a
+<a href="../../ContributedSoftware/rotamers/rotamers.html#rotamerlist">
+dialog</a> so that the user can choose interactively;
+otherwise (default), a single rotamer will be chosen automatically
+according to the <i>method</i>.
+-->
+The <a href="#preserve"><b>preserve</b></a> option can be used to filter
+the set of rotamers by chi angle similarity to the current sidechain
+before the <i>method</i> is applied.
+The <i>method</i> can be any combination,
+without spaces, of one or more of the following letters (default <b>dchp</b>):
+<ul>
+<li><b>d</b> &ndash; by best fit into <a href="#density">density</a>
+(ignored if no density map is <a href="#density">specified</a>)
+<li><b>c</b> &ndash; by lowest <a href="#clash">clash score</a>
+<li><b>h</b> &ndash; by highest number of <a href="#H-bond">H-bonds</a>
+<li><b>p</b> &ndash; by highest probability according to the 
+<a href="#lib">rotamer library</a> 
+(probabilities are simply taken from the library and are not
+affected by the structural environment,
+except by phi and psi angles when the Dunbrack library is used)
+</ul>
+Each successive method is only used when the previous method(s) have
+produced a tie. For example, with the default criteria,
+if no density map is <a href="#density">specified</a>,
+clashes will be evaluated; if the
+<a href="#clashscore">clash scoring method</a> is <b>num</b>
+and more than one rotamer ties for the lowest number of clashes,
+H-bonds will be evaluated to break the tie; if the lowest-clashing
+rotamers also have equal numbers of H-bonds, the one with the highest
+probability will be used. 
+<p>
+Only the sidechain atoms of a rotamer are evaluated.  For
+<a href="#clash">clash</a> and <a href="#H-bond">H-bond</a> detection,
+interactions with other rotamers in the same set and the current residue at that
+position are disregarded, but all other atoms in the vicinity will be included
+unless <a href="#ignore"><b>ignoreOtherModels</b></a> is used.
+In addition, atoms in the same model that are unwanted
+for such calculations (for example, <a href="atomspec.html#builtin">solvent</a>)
+should be deleted beforehand.
+</p><p>
+Alternatively, an integer <i>N</i> can be given instead of the <i>method</i>.
+This indicates ignoring all criteria other than probability and
+choosing the rotamer with the Nth highest probability.
+Specifying <i>N</i> as <b>0</b> (zero) indicates the rotamer 
+with the lowest probability.
+</p>
+</blockquote>
+<blockquote>
+<a name="preserve"></a>
+<b>preserve</b> &nbsp;<i>angle</i>
+<br>Whether to discard rotamers (regardless of the
+<a href="#criteria">criteria</a>) 
+<!-- except ignored if <b>manual</b>) -->
+with any chi angle &gt; <i>angle</i>&deg; different from that in
+the current sidechain. If the current sidechain has symmetrical branching
+(as in Asp, Glu, Phe, Tyr), the chi angle for comparison
+is calculated in both possible ways.
+</blockquote>
+<blockquote>
+<a name="retain"></a>
+<b>retain</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;sel
+<br>What to do with the pre-existing sidechain(s):
+retain, replace (default), or retain only those with any atom
+<a href="../selection.html">selected</a> (keyword <b>sel</b>).
+Regardless of this setting, sidechains will always be replaced
+where the incoming residue type is glycine or alanine.
+When there will be multiple sidechains at a given residue position,
+the new sidechain(s) will be assigned different alternative location
+identifiers.
+</blockquote>
+<blockquote>
+<a name="log"></a>
+<b>log</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>Whether to report torsion angles in the
+<a href="../tools/log.html"><b>Log</b></a>.  Values are reported
+for the backbone (phi, psi, and whether the peptide bond is
+cis or trans) and the chosen sidechain rotamer (chi angles)
+for each swapped residue.  Pre-swap chi angles are also reported when
+the <a href="#preserve"><b>preserve</b></a> option is used.
+</blockquote>
+<blockquote>
+<a name="ignore"></a>
+<b>ignoreOtherModels</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>In <a href="#clash">clash</a>
+and <a href="#H-bond">H-bond</a> detection, whether to include
+only atoms in the same model as the residue being swapped;
+useful for preventing superimposed related proteins
+or additional copies of the starting structure from affecting the results.
+</blockquote>
+
+<font color="brown">
+<a name="density"></a>
+Density parameters (not yet implemented):
+<blockquote>
+<b>density</b> &nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>
+<br>
+Specify a map (<a href="../tools/volumeviewer.html">volume data</a>)
+to use for the <a href="#criteria">density criterion</a>.
+</blockquote>
+</font>
+
+<a name="clash"></a>
+Clash parameters:
+<blockquote>
+<a name="cutoff"></a>
+<b>overlapCutoff</b> &nbsp;<i>cutoff</i>
+<br>
+The <i>cutoff</i> is how much VDW overlap should count as a clash
+(default <b>0.6</b> &Aring;).
+A larger positive <i>cutoff</i> restricts the results to more severe clashes
+(<a href="clashes.html#overlap-def">details</a>).
+</blockquote>
+<blockquote>
+<b>hbondAllowance</b> &nbsp;<i>allowance</i>
+<br>
+When VDW overlap is calculated,
+an <i>allowance</i> (default <b>0.4</b> &Aring;)
+is subtracted for atom pairs comprised of
+a possible hydrogen bond donor (or its hydrogen) and a possible acceptor
+(<a href="clashes.html#hbondAllowance">details</a>).
+</blockquote>
+<blockquote>
+<a name="clashscore"></a>
+<b>scoreMethod</b> &nbsp;sum&nbsp;|&nbsp;<b>num</b>
+<br>How to calculate the clash score: as a simple count of the number
+of clashes (<b>num</b>) or a sum of all overlaps &ge;
+<a href="#cutoff"><i>cutoff</i></a> (<b>sum</b>).
+</blockquote>
+
+<a name="H-bond"></a>
+H-bond parameters:
+<blockquote>
+<a name="relax"><b>relax</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>
+<br>
+Whether to relax the
+<a href="hbonds.html#criteria">precise criteria</a> for hydrogen bonding.
+</blockquote>
+<blockquote>
+<b>distSlop</b> &nbsp;<i>tolerance</i>
+<br>
+The <i>tolerance</i> is how much to relax the distance criteria if
+<a href="#relax"><b>relax</b></a> is <b>true</b> (default <b>0.4</b> &Aring;).
+</blockquote>
+<blockquote>
+<b>angleSlop</b> &nbsp;<i>tolerance</i>
+<br>
+The <i>tolerance</i> is how much to relax the angle criteria if
+<a href="#relax"><b>relax</b></a> is <b>true</b> (default <b>20.0</b>&deg;).
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+July 2019</address>
 </body></html>

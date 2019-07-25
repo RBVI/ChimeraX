@@ -19,7 +19,7 @@ class MarkerSet(Structure):
         self.ball_scale = 1.0
 
     def create_marker(self, xyz, rgba, radius, id = None):
-        a = self.new_atom('', 'H')
+        a = self.new_atom('M', 'H')
         a.coord = xyz
         a.color = rgba	# 0-255 values
         a.radius = radius

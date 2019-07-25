@@ -3,6 +3,7 @@ open 2tpk autostyle false
 alias foo bar
 alias list
 alias delete foo
+alias foo bar
 ~alias foo
 align #1 to #1
 camera
