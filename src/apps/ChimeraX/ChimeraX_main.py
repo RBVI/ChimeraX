@@ -728,7 +728,7 @@ def init(argv, event_loop=True):
         try:
             from chimerax.core.commands import quote_if_necessary
             commands.run(sess, 'open %s' % quote_if_necessary(arg))
-        except (IOError, errors.UserError) as e:
+        except (IOError, errors.NotABug) as e:
             sess.logger.error(str(e))
             return os.EX_SOFTWARE
         except Exception as e:
