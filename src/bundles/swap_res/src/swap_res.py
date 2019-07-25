@@ -780,8 +780,8 @@ def process_volume(session, residue, by_alt_loc, volume):
                 values = volume.interpolated_values(rot.atoms.coords, point_xform=rot.scene_position)
                 total = 0
                 for a, val in zip(rot.atoms, values):
-                    print(a.residue.chi1, a.name, total)
-                    if a.is_side_chain:
+                    # 'is_side_chain' only works for actual polymers
+                    if a.name not in a.residue.aa_max_backbone_names:
                         total += val
                 rot.volume_score = total
                 sums.append(total)

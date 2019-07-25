@@ -650,6 +650,13 @@ class Residue(CyResidue, State):
         return f(self.name.encode('utf-8'), atom_name.encode('utf-8'))
 
     aa_min_backbone_names = c_function('residue_aa_min_backbone_names', args = (), ret = ctypes.py_object)()
+    aa_max_backbone_names = c_function('residue_aa_max_backbone_names', args = (), ret = ctypes.py_object)()
+    aa_side_connector_names = c_function('residue_aa_side_connector_names', args = (), ret = ctypes.py_object)()
+    aa_min_ordered_backbone_names = c_function('residue_aa_min_ordered_backbone_names', args = (), ret = ctypes.py_object)()
+    na_min_backbone_names = c_function('residue_na_min_backbone_names', args = (), ret = ctypes.py_object)()
+    na_max_backbone_names = c_function('residue_na_max_backbone_names', args = (), ret = ctypes.py_object)()
+    na_side_connector_names = c_function('residue_na_side_connector_names', args = (), ret = ctypes.py_object)()
+    na_min_ordered_backbone_names = c_function('residue_na_min_ordered_backbone_names', args = (), ret = ctypes.py_object)()
 
 Residue.set_py_class(Residue)
 
