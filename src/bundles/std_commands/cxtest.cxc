@@ -45,7 +45,7 @@ hide
 lighting
 material
 material ref .8 spec .8 exp 50 amb .2 trans true
-measure buriedarea #1 with #1
+measure buriedarea #1:1-18 with #1:19-36
 surface
 measure convexity #1
 measure length #1
