@@ -214,8 +214,16 @@ is calculated in both possible ways.
 <br>What to do with the pre-existing sidechain(s): retain or replace (default).
 Regardless of this setting, sidechains will always be replaced
 where the incoming residue type is glycine or alanine.
-When there will be multiple sidechains at a given residue position,
-the new sidechain(s) will be assigned different alternative location identifiers.
+When there will be multiple sidechains at a given residue position, the 
+new sidechain(s) will be assigned different alternative location identifiers.
+</blockquote>
+<blockquote>
+<a name="bfactor"></a>
+<b>bfactor</b> &nbsp;&nbsp;<i>value</i>
+<br>
+Specify a bfactor value for the new sidechain atoms; 
+if this option is not used, the atoms will be assigned the
+highest bfactor value found in the residue before the swap.
 </blockquote>
 <blockquote>
 <a name="log"></a>
