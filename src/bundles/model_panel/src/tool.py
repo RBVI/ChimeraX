@@ -67,18 +67,22 @@ class ModelPanel(ToolInstance):
             button.clicked.connect(lambda chk, self=self, mf=model_func, ses=session:
                 mf([self.models[row] for row in [self._items.index(i)
                     for i in self.tree.selectedItems()]] or self.models, ses))
-        from chimerax.core.models import MODEL_DISPLAY_CHANGED
-        session.triggers.add_handler(MODEL_DISPLAY_CHANGED, self._initiate_fill_tree)
+        self.simply_changed_models = set()
+        self.check_model_list = True
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
-            MODEL_ID_CHANGED, MODEL_NAME_CHANGED
+            MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         from chimerax.core.selection import SELECTION_CHANGED
-        self.session.triggers.add_handler(SELECTION_CHANGED, self._initiate_fill_tree)
-        self.session.triggers.add_handler(ADD_MODELS, self._initiate_fill_tree)
-        self.session.triggers.add_handler(REMOVE_MODELS, self._initiate_fill_tree)
-        self.session.triggers.add_handler(MODEL_ID_CHANGED,
+        session.triggers.add_handler(SELECTION_CHANGED, self._initiate_fill_tree)
+        session.triggers.add_handler(MODEL_DISPLAY_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, simple_change=True))
+        session.triggers.add_handler(ADD_MODELS,
             lambda *args: self._initiate_fill_tree(*args, always_rebuild=True))
-        self.session.triggers.add_handler(MODEL_NAME_CHANGED,
-            lambda *args: self._initiate_fill_tree(*args, refresh=True))
+        session.triggers.add_handler(REMOVE_MODELS,
+            lambda *args: self._initiate_fill_tree(*args, always_rebuild=True))
+        session.triggers.add_handler(MODEL_ID_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, always_rebuild=True))
+        session.triggers.add_handler(MODEL_NAME_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, refresh=True, simple_change=True))
         from chimerax import atomic
         atomic.get_triggers().add_handler("changes", self._changes_cb)
         self._frame_drawn_handler = None
@@ -94,6 +98,7 @@ class ModelPanel(ToolInstance):
     def _shown_changed(self, shown):
         if shown:
             # Update panel when it is shown.
+            self.check_model_list = True
             self._initiate_fill_tree(refresh=True)
 
     @classmethod
@@ -110,13 +115,18 @@ class ModelPanel(ToolInstance):
         # ensure that the newly visible model id isn't just "..."
         self.tree.resizeColumnToContents(self.ID_COLUMN)
 
-    def _initiate_fill_tree(self, *args, always_rebuild=False, refresh=False):
+    def _initiate_fill_tree(self, *args, always_rebuild=False, refresh=False, simple_change=False):
         # in order to allow molecules to be drawn as quickly as possible,
         # delay the update of the tree until the 'frame drawn' trigger fires,
         # unless no models are open, in which case update immediately because
         # Rapid Access will come up and 'frame drawn' may not fire for awhile.
         # Also do immediately if the cause is a model-name change, since the
         # frame-drawn trigger may not fire for awhile
+        if self.simply_changed_models is not None:
+            if simple_change and args:
+                self.simply_changed_models.add(args[-1])
+            else:
+                self.simply_changed_models = None
         if len(self.session.models) == 0 or refresh:
             if self._frame_drawn_handler is not None:
                 self.session.triggers.remove_handler(self._frame_drawn_handler)
@@ -134,7 +144,11 @@ class ModelPanel(ToolInstance):
             # Don't update panel when it is hidden.
             return
         self.tree.blockSignals(True) # particularly itemChanged
-        update = self._process_models() and not always_rebuild
+        if self.check_model_list or always_rebuild:
+            update = self._process_models() and not always_rebuild
+            self.check_model_list = False
+        else:
+            update = not always_rebuild
         if not update:
             expanded_models = { i._model : i.isExpanded()
                                 for i in self._items if hasattr(i, '_model')}
@@ -178,6 +192,8 @@ class ModelPanel(ToolInstance):
                 
                     
                 
+            if self.simply_changed_models and model not in self.simply_changed_models:
+                continue
             item.setText(self.ID_COLUMN, model_id_string)
             bg = item.background(self.ID_COLUMN)
             if bg_color is False:
@@ -210,6 +226,7 @@ class ModelPanel(ToolInstance):
         for i in range(1,self.tree.columnCount()):
             self.tree.resizeColumnToContents(i)
         self.tree.blockSignals(False)
+        self.simply_changed_models = set()
 
         self._frame_drawn_handler = None
         from chimerax.core.triggerset import DEREGISTER

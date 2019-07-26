@@ -1516,6 +1516,8 @@ class Multishadow:
         m = self._max_multishadows
         if m is None:
             m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
+            if m > 2 ** 17:                                         # Limit maximum to limit size
+                m = 2 ** 17                                         #    of buffer in shader.
             m = m // 64                                             # 64 bytes per matrix.
             self._max_multishadows = m
         return m
