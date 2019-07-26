@@ -170,6 +170,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
         void set_coord(const cycoord.Point&)
         void set_coord(const cycoord.Point&, CoordSet*)
+        void set_coord_index(unsigned int) except +
         void set_display(bool)
         void set_draw_mode(DrawMode)
         void set_hide(int)
