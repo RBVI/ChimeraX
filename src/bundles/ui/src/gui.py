@@ -713,6 +713,16 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.session.ui.settings.last_window_size = wh
         self.triggers.activate_trigger('resized', wh)
 
+    def moveEvent(self, event):
+        # If window is moved to another screen with different pixel scale
+        # then update the framebuffer size.  Bug #2251.
+        gw = self.graphics_window
+        r = gw.view.render
+        if not hasattr(self, '_last_pixel_scale') or r.pixel_scale() != self._last_pixel_scale:
+            self._last_pixel_scale = r.pixel_scale()
+            r.set_default_framebuffer_size(gw.width(), gw.height())
+            gw.view.redraw_needed = True
+        
     def show_define_selector_dialog(self, *args):
         if self._define_selector_dialog is None:
             self._define_selector_dialog = DefineSelectorDialog(self.session)
