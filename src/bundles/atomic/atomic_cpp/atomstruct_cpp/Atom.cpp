@@ -1324,6 +1324,19 @@ Atom::set_coord(const Coord& coord, CoordSet* cs, bool track_change)
 }
 
 void
+Atom::set_coord_index(unsigned int ci)
+{
+    if (_coord_index != COORD_UNASSIGNED)
+        throw std::logic_error("Coordinate index already assigned");
+    auto cs = structure()->active_coord_set();
+    if (cs == nullptr)
+        throw std::logic_error("Cannot assign coordinate index with no coordinate sets");
+    if (cs->coords().size() <= ci)
+        throw std::logic_error("Coordinate index larger than coordinate set");
+    _coord_index = ci;
+}
+
+void
 Atom::set_display(bool d)
 {
     if (d == _display)

@@ -252,6 +252,11 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.coord_index()
 
+    @coord_index.setter
+    def coord_index(self, index):
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        self.cpp_atom.set_coord_index(index)
+
     @property
     def default_radius(self):
         "Supported API. Default atom radius. Read only."
