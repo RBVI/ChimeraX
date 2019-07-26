@@ -69,20 +69,23 @@ class ModelPanel(ToolInstance):
                     for i in self.tree.selectedItems()]] or self.models, ses))
         self.simply_changed_models = set()
         self.check_model_list = True
+        self.countdown = 1
+        self.self_initiated = False
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS, \
             MODEL_DISPLAY_CHANGED, MODEL_ID_CHANGED, MODEL_NAME_CHANGED
         from chimerax.core.selection import SELECTION_CHANGED
-        session.triggers.add_handler(SELECTION_CHANGED, self._initiate_fill_tree)
+        session.triggers.add_handler(SELECTION_CHANGED,
+            lambda *args: self._initiate_fill_tree(*args, countdown=3))
         session.triggers.add_handler(MODEL_DISPLAY_CHANGED,
-            lambda *args: self._initiate_fill_tree(*args, simple_change=True))
+            lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=(0,3)))
         session.triggers.add_handler(ADD_MODELS,
-            lambda *args: self._initiate_fill_tree(*args, always_rebuild=True))
+            lambda *args: self._initiate_fill_tree(*args, always_rebuild=True, countdown=(3,10)))
         session.triggers.add_handler(REMOVE_MODELS,
             lambda *args: self._initiate_fill_tree(*args, always_rebuild=True))
         session.triggers.add_handler(MODEL_ID_CHANGED,
-            lambda *args: self._initiate_fill_tree(*args, always_rebuild=True))
+            lambda *args: self._initiate_fill_tree(*args, always_rebuild=True, countdown=3))
         session.triggers.add_handler(MODEL_NAME_CHANGED,
-            lambda *args: self._initiate_fill_tree(*args, refresh=True, simple_change=True))
+            lambda *args: self._initiate_fill_tree(*args, simple_change=True, countdown=3))
         from chimerax import atomic
         atomic.get_triggers().add_handler("changes", self._changes_cb)
         self._frame_drawn_handler = None
@@ -99,7 +102,7 @@ class ModelPanel(ToolInstance):
         if shown:
             # Update panel when it is shown.
             self.check_model_list = True
-            self._initiate_fill_tree(refresh=True)
+            self._initiate_fill_tree()
 
     @classmethod
     def get_singleton(self, session):
@@ -109,40 +112,61 @@ class ModelPanel(ToolInstance):
     def _changes_cb(self, trigger_name, changes):
         reasons = changes.atom_reasons()
         if "color changed" in reasons or 'display changed' in reasons:
-            self._initiate_fill_tree()
+            self._initiate_fill_tree(countdown=3)
 
     def _ensure_id_width(self, *args):
         # ensure that the newly visible model id isn't just "..."
         self.tree.resizeColumnToContents(self.ID_COLUMN)
 
-    def _initiate_fill_tree(self, *args, always_rebuild=False, refresh=False, simple_change=False):
-        # in order to allow molecules to be drawn as quickly as possible,
-        # delay the update of the tree until the 'frame drawn' trigger fires,
-        # unless no models are open, in which case update immediately because
-        # Rapid Access will come up and 'frame drawn' may not fire for awhile.
-        # Also do immediately if the cause is a model-name change, since the
-        # frame-drawn trigger may not fire for awhile
+    def _initiate_fill_tree(self, *args, always_rebuild=False,
+            simple_change=False, countdown=1):
+        # in order to allow models to be drawn as quickly as possible,
+        # delay the update of the tree until the 'new frame' trigger fires
+        # a time of times ('countdown' -- if a tuple then it varies based on
+        # the number of models, from (lowest, highest)).  However, if no models
+        # are open, we update immediately because Rapid Access will come up and
+        # 'new frame' may not fire for awhile.
+        # We used to work off the 'frame drawn' trigger with no delay, but
+        # that is problematic if some other code is trying to do something
+        # quickly every frame (e.g. volume series playback) that causes the
+        # triggers we react to to fire.
+        if self.self_initiated:
+            self.countdown = 1
+            self.self_initiated = False
+        else:
+            if isinstance(countdown, tuple):
+                # base countdown on how expensive updating the table is
+                least, most = countdown
+                target = int(len(self.session.models) / 50)
+                countdown = max(least, min(target, most))
+            self.countdown = max(countdown, self.countdown)
         if self.simply_changed_models is not None:
             if simple_change and args:
                 self.simply_changed_models.add(args[-1])
             else:
                 self.simply_changed_models = None
-        if len(self.session.models) == 0 or refresh:
+        if len(self.session.models) == 0:
             if self._frame_drawn_handler is not None:
                 self.session.triggers.remove_handler(self._frame_drawn_handler)
             self._fill_tree(always_rebuild=always_rebuild)
         elif self._frame_drawn_handler is None:
-            self._frame_drawn_handler = self.session.triggers.add_handler("frame drawn",
+            self._frame_drawn_handler = self.session.triggers.add_handler("new frame",
                 lambda *args, ft=self._fill_tree, ar=always_rebuild: ft(always_rebuild=ar))
         elif always_rebuild:
             self.session.triggers.remove_handler(self._frame_drawn_handler)
-            self._frame_drawn_handler = self.session.triggers.add_handler("frame drawn",
+            self._frame_drawn_handler = self.session.triggers.add_handler("new frame",
                 lambda *args, ft=self._fill_tree: ft(always_rebuild=True))
 
     def _fill_tree(self, *, always_rebuild=False):
         if not self.displayed():
             # Don't update panel when it is hidden.
+            from chimerax.core.triggerset import DEREGISTER
+            return DEREGISTER
+
+        self.countdown -= 1
+        if self.countdown > 0:
             return
+
         self.tree.blockSignals(True) # particularly itemChanged
         if self.check_model_list or always_rebuild:
             update = self._process_models() and not always_rebuild
@@ -272,9 +296,11 @@ class ModelPanel(ToolInstance):
         from PyQt5.QtCore import Qt
         model = self.models[self._items.index(item)]
         if column == self.SHOWN_COLUMN:
+            self.self_initiated = True
             command_name = "show" if item.checkState(self.SHOWN_COLUMN) == Qt.Checked else "hide"
             run(self.session, "%s #!%s models" % (command_name, model.id_string))
         elif column == self.SELECT_COLUMN:
+            self.self_initiated = True
             prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.Checked else "~"
             run(self.session, prefix + "select #" + model.id_string)
 
@@ -286,11 +312,13 @@ class ModelPanelSettings(Settings):
 
 from chimerax.core.commands import run, concise_model_spec
 def close(models, session):
+    _mp.self_initiated = True
     from chimerax.core.models import Model
     run(session, "close %s" %
         concise_model_spec(session, [m for m in models if isinstance(m, Model)]))
 
 def hide(models, session):
+    _mp.self_initiated = True
     run(session, "hide %s target m" % concise_model_spec(session, models))
 
 _mp = None
@@ -301,6 +329,7 @@ def model_panel(session, tool_name):
     return _mp
 
 def show(models, session):
+    _mp.self_initiated = True
     run(session, "show %s target m" % concise_model_spec(session, models))
 
 def view(objs, session):
