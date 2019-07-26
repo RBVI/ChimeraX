@@ -209,15 +209,21 @@ is calculated in both possible ways.
 </blockquote>
 <blockquote>
 <a name="retain"></a>
-<b>retain</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;sel
-<br>What to do with the pre-existing sidechain(s):
-retain, replace (default), or retain only those with any atom
-<a href="../selection.html">selected</a> (keyword <b>sel</b>).
+<!-- <b>retain</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;sel -->
+<b>retain</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>What to do with the pre-existing sidechain(s): retain or replace (default).
 Regardless of this setting, sidechains will always be replaced
 where the incoming residue type is glycine or alanine.
-When there will be multiple sidechains at a given residue position,
-the new sidechain(s) will be assigned different alternative location
-identifiers.
+When there will be multiple sidechains at a given residue position, the 
+new sidechain(s) will be assigned different alternative location identifiers.
+</blockquote>
+<blockquote>
+<a name="bfactor"></a>
+<b>bfactor</b> &nbsp;&nbsp;<i>value</i>
+<br>
+Specify a bfactor value for the new sidechain atoms; 
+if this option is not used, the atoms will be assigned the
+highest bfactor value found in the residue before the swap.
 </blockquote>
 <blockquote>
 <a name="log"></a>
@@ -239,16 +245,14 @@ useful for preventing superimposed related proteins
 or additional copies of the starting structure from affecting the results.
 </blockquote>
 
-<font color="brown">
 <a name="density"></a>
-Density parameters (not yet implemented):
+Density parameters:
 <blockquote>
 <b>density</b> &nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>
 <br>
 Specify a map (<a href="../tools/volumeviewer.html">volume data</a>)
 to use for the <a href="#criteria">density criterion</a>.
 </blockquote>
-</font>
 
 <a name="clash"></a>
 Clash parameters:

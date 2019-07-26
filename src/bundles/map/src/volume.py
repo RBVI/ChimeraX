@@ -565,6 +565,8 @@ class Volume(Model):
     '''
     Set display style to "surface", "mesh", or "image".
     '''
+    self._style_when_shown = None
+
     if style == 'image' and self.image_shown and not self.surface_shown:
       return
     if (style in ('surface', 'mesh') and self.surface_shown
@@ -583,8 +585,6 @@ class Volume(Model):
       ijk_min, ijk_max = self.region[:2]
       self.new_region(ijk_min, ijk_max)
 
-    self._style_when_shown = None
-    
     # Show or hide surfaces
     surfshow = (style in ('surface', 'mesh'))
     mesh = (style == 'mesh')
@@ -1856,7 +1856,7 @@ class VolumeSurface(Surface):
     self._use_thread = False			# Whether to compute next surface in thread
     self._surf_calc_thread = None
     self.clip_cap = True			# Cap surface when clipped
-    
+
   def delete(self):
     self.volume._surfaces.remove(self)
     Surface.delete(self)
