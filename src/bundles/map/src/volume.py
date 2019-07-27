@@ -647,7 +647,7 @@ class Volume(Model):
   def _set_display(self, display):
     if display == self.display:
       return
-    Model._set_display(self, display)
+    Model.display.fset(self, display)
     if display:
       self._drawings_need_update()	# Create model geometry if needed.
     self.call_change_callbacks('displayed')
