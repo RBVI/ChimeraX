@@ -682,17 +682,17 @@ ExtractMolecule::finished_parse()
         }
 
         // connect residues in molecule with all_residues information
-        bool has_ambiguous = false;
+        bool has_metal = false;
         for (auto&& r : mol->residues()) {
             auto tr = find_template_residue(r->name());
             if (tr == nullptr) {
                 if (model_num == first_model_num) {
                     logger::warning(_logger, "Missing or invalid residue template for ", residue_str(r));
-                    has_ambiguous = true;   // safe to treat as ambiguous
+                    has_metal = true;   // it's okay to do extra work
                 }
                 pdb_connect::connect_residue_by_distance(r);
             } else {
-                has_ambiguous = has_ambiguous || tr->pdbx_ambiguous;
+                has_metal = has_metal || tr->has_metal();
                 connect_residue_by_template(r, tr, model_num);
             }
         }
@@ -790,7 +790,7 @@ ExtractMolecule::finished_parse()
         }
         if (found_missing_poly_seq && !no_polymer && model_num == first_model_num)
             logger::warning(_logger, "Missing or incomplete entity_poly_seq table.  Inferred polymer connectivity.");
-        if (has_ambiguous)
+        if (has_metal)
             pdb_connect::find_and_add_metal_coordination_bonds(mol);
         if (found_missing_poly_seq)
             pdb_connect::find_missing_structure_bonds(mol);
@@ -1688,7 +1688,7 @@ ExtractMolecule::parse_struct_conn()
             Atom* a1 = r1->find_atom(atom_name1);
             if (!a1)
                 continue;
-            Residue* r2 =  find_residue(crm, chain_id2, rk2);
+            Residue* r2 = find_residue(crm, chain_id2, rk2);
             if (!r2)
                 continue;
             Atom* a2 = r2->find_atom(atom_name2);
@@ -2270,7 +2270,7 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
             auto i1 = std::find(strand1.rbegin(), strand1.rend(), r1);
             auto i2 = std::find(strand2.begin(), strand2.end(), r2);
             logger::info(_logger, "pdbx_stuct_sheet_hbond: lengths ", std::distance(i1, strand1.rend()),
-                         ' ',  std::distance(i2, strand2.end()));
+                         ' ', std::distance(i2, strand2.end()));
             while (i1 != strand1.rend() && i2 != strand2.end()) {
                 Residue* r1 = *i1;
                 Residue* r2 = *i2;

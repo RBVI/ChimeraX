@@ -133,10 +133,11 @@ Residue::atoms() const
 }
 
 void
-Residue::add_atom(Atom *element)
+Residue::add_atom(Atom *atom)
 {
-    element->_residue = this;
-    _atoms[element->name()] = element;
+    atom->_residue = this;
+    _atoms[atom->name()] = atom;
+    _has_metal = _has_metal || atom->element().is_metal();
 }
 
 Atom *
@@ -156,7 +157,7 @@ Residue::add_link_atom(Atom *element)
     _link_atoms.push_back(element);
 }
 
-Residue::Residue(Molecule *, const char *n): pdbx_ambiguous(false), _name(n), _chief(0), _link(0)
+Residue::Residue(Molecule *, const char *n): pdbx_ambiguous(false), _name(n), _chief(0), _link(0), _has_metal(false)
 {
 }
 
