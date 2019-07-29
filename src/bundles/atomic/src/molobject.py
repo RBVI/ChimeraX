@@ -1429,7 +1429,7 @@ class StructureData:
         '''Add coordinate sets.  If 'replace' is True, clear out existing coordinate sets first'''
         if len(xyzs.shape) != 3:
             raise ValueError('add_coordsets(): array must be (frames)x(atoms)x3-dimensional')
-        if xyzs.shape[1] != self.num_atoms:
+        if self.num_atoms and xyzs.shape[1] != self.num_atoms:
             raise ValueError('add_coordsets(): second dimension of coordinate array'
                 ' must be same as number of atoms')
         if xyzs.shape[2] != 3:
