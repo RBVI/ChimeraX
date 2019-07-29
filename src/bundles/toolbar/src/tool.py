@@ -267,6 +267,7 @@ _Toolbars = {
                 ("shortcut:vs", "viewsel.png", "View selected", "View selected"),
                 ("shortcut:va", "viewall.png", "View all", "View all"),
                 ("shortcut:dv", "orient.png", "Orient", "Default orientation"),
+                ("cmd:tool show 'Side View'", "sideview.png", "Side view", "Show side view tool"),
             ],
         }
     ),
