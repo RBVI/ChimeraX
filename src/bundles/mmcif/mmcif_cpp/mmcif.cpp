@@ -1332,6 +1332,11 @@ ExtractMolecule::parse_atom_site()
         bool missing_entity_id = entity_id.empty();
         if (missing_entity_id)
             entity_id = chain_id;  // no entity_id, use chain id
+        bool missing_position = position == 0;
+        if (missing_position)
+            position = auth_position;
+        if (auth_position == INT_MAX)
+            auth_position = position;
 
         if (cur_residue == nullptr
         || cur_entity_id != entity_id
@@ -1341,7 +1346,6 @@ ExtractMolecule::parse_atom_site()
         || cur_comp_id != residue_name) {
             ResName rname;
             ChainID cid;
-            long pos;
             if (!auth_residue_name.empty())
                 rname = auth_residue_name;
             else
@@ -1358,10 +1362,6 @@ ExtractMolecule::parse_atom_site()
                     }
                 }
             }
-            if (auth_position != INT_MAX)
-                pos = auth_position;
-            else
-                pos = position;
             bool make_new_residue = true;
             if (coordsets) {
                 auto& res_map = all_residues[model_num][chain_id];
@@ -1374,7 +1374,7 @@ ExtractMolecule::parse_atom_site()
                 }
             }
             if (make_new_residue) {
-                cur_residue = mol->new_residue(rname, cid, pos, ins_code);
+                cur_residue = mol->new_residue(rname, cid, auth_position, ins_code);
                 cur_residue->set_mmcif_chain_id(chain_id);
             }
             cur_entity_id = entity_id;
@@ -1386,7 +1386,7 @@ ExtractMolecule::parse_atom_site()
                 auto tr = find_template_residue(residue_name);
                 if (tr && !tr->description().empty()) {
                     // only save polymer residues
-                    if (position == 0) {
+                    if (missing_position) {
                         if (!missing_seq_id_warning) {
                             logger::warning(_logger, "Unable to infer polymer connectivity due to "
                                             "unspecified label_seq_id for residue \"",
@@ -1549,6 +1549,8 @@ ExtractMolecule::parse_struct_conn()
     // bonds from struct_conn records
     ChainID chain_id1, chain_id2;           // ptnr[12]_label_asym_id
     long position1, position2;              // ptnr[12]_label_seq_id
+    long auth_position1 = INT_MAX,          // ptnr1_auth_seq_id
+         auth_position2 = INT_MAX;          // ptnr2_auth_seq_id
     //char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptnr[12]_label_alt_id
     AtomName atom_name1, atom_name2;        // ptnr[12]_label_atom_id
     ResName residue_name1, residue_name2;   // ptnr[12]_label_comp_id
@@ -1574,6 +1576,13 @@ ExtractMolecule::parse_struct_conn()
         pv.emplace_back(get_column(P1 SEQ_ID, Required),
             [&] (const char* start) {
                 position1 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column(P1 AUTH_SEQ_ID),
+            [&] (const char* start) {
+                if (*start == '.' || *start == '?')
+                    auth_position1 = INT_MAX;
+                else
+                    auth_position1 = readcif::str_to_int(start);
             });
 #if 0
         pv.emplace_back(get_column("pdbx_" P1 ALT_ID),
@@ -1607,6 +1616,13 @@ ExtractMolecule::parse_struct_conn()
         pv.emplace_back(get_column(P2 SEQ_ID, Required),
             [&] (const char* start) {
                 position2 = readcif::str_to_int(start);
+            });
+        pv.emplace_back(get_column(P2 AUTH_SEQ_ID),
+            [&] (const char* start) {
+                if (*start == '.' || *start == '?')
+                    auth_position2 = INT_MAX;
+                else
+                    auth_position2 = readcif::str_to_int(start);
             });
 #if 0
         pv.emplace_back(get_column("pdbx_" P2 ALT_ID),
@@ -1668,6 +1684,10 @@ ExtractMolecule::parse_struct_conn()
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end())
             continue;
+        if (position1 == 0)
+            position1 = auth_position1;
+        if (position2 == 0)
+            position2 = auth_position2;
         auto entity1 = cemi->second;
         ResidueKey rk1(entity1, position1, residue_name1);
         cemi = chain_entity_map.find(chain_id2);
