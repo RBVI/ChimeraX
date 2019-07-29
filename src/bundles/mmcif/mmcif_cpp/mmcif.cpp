@@ -1557,6 +1557,7 @@ ExtractMolecule::parse_struct_conn()
     string conn_type;                       // conn_type_id
     string symmetry1, symmetry2;            // ptnr[12]_symmetry
     float distance = std::numeric_limits<float>::quiet_NaN();  // pdbx_dist_value
+    std::set<std::pair<Atom*, Atom*>>   metal_bonds;
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
@@ -1715,11 +1716,18 @@ ExtractMolecule::parse_struct_conn()
             if (!a2)
                 continue;
             if (metal) {
+                // make sure only once metal coordination bond is created between atoms
+                if (a2 < a1)
+                    std::swap(a1, a2);
+                auto key = std::make_pair(a1, a2);
+                if (metal_bonds.find(key) != metal_bonds.end())
+                    continue;
                 auto metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
                         atomstruct::AS_PBManager::GRP_PER_CS);
                 for (auto& cs: mol->coord_sets()) {
                     metal_pbg->new_pseudobond(a1, a2, cs);
                 }
+                metal_bonds.insert(key);
                 continue;
             }
             if (hydro) {
