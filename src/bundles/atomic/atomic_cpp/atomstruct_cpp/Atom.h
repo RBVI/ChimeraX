@@ -219,6 +219,7 @@ public:
         set_coord(coord, nullptr, track_change);
     }
     void  set_coord(const Point& coord, CoordSet* cs, bool track_change);
+    void  set_coord_index(unsigned int);
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);

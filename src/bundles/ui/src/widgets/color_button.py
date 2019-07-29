@@ -49,6 +49,7 @@ class ColorButton(QPushButton):
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
         self._color = None
+        self._color_dialog = None
 
     def get_color(self):
         return self._color
@@ -63,10 +64,13 @@ class ColorButton(QPushButton):
     color = property(get_color, set_color)
 
     def show_color_chooser(self):
-        from PyQt5.QtWidgets import QColorDialog
-        cd = QColorDialog(self)
-        cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
-        cd.setOption(cd.NoButtons, True)
+        if self._color_dialog is None:
+            from PyQt5.QtWidgets import QColorDialog
+            cd = QColorDialog(self)
+            cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
+            cd.setOption(cd.NoButtons, True)
+        else:
+            cd = self._color_dialog
         if self._color is not None:
             cd.setCurrentColor(QColor(*tuple(self._color)))
         cd.currentColorChanged.connect(self._color_changed_cb)

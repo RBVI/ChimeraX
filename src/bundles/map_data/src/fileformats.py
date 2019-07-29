@@ -111,7 +111,7 @@ def suffix_warning(paths):
   suffixes = sum([f.suffixes for f in file_formats], [])
   suffix_string = ' '.join(['.'+s for s in suffixes])
 
-  prefixes = sum([f.prefixes for s in file_formats], [])
+  prefixes = sum([f.prefixes for f in file_formats], [])
   prefix_string = ' '.join([s+':' for s in prefixes])
   
   msg = ('Warning: Unrecognized file suffix%s for %s.\n' %

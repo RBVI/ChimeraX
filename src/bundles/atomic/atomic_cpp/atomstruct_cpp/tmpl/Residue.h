@@ -65,6 +65,7 @@ public:
     typedef std::map<AtomName, Atom *> AtomsMap;
     const AtomsMap &atoms_map() const { return _atoms; }
     bool        pdbx_ambiguous;      // for mmCIF ambiguous chemistry
+    bool        has_metal() const { return _has_metal; }
 private:
     Residue(Molecule *, const char *t);
     ResName     _name;
@@ -72,6 +73,7 @@ private:
     Atom        *_chief, *_link;
     std::string _description;
     AtomList    _link_atoms;
+    bool        _has_metal;
 };
 
 }  // namespace tmpl
