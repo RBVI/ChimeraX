@@ -51,7 +51,7 @@ the <a href="../preferences.html#startup">custom preset example</a>,
 the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#mlp"
 target="_blank">ChimeraX MLP highlight</a>,
 <a href="http://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/"
-target="_blank">lipophilicity comparisons</a> (with discussion of limitations)
+target="_blank">lipophilicity coloring comparisons</a>
 </p><p>
 The calculation is based on 
 <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>:
@@ -70,16 +70,32 @@ Laguerre M, Saux M, Dubost JP, Carpy A.
 <i>Pharm. Sci.</i> 1997;3(5-6):217-22.
 </blockquote>
 <p>
-Optimizations for speed, including a 
-distance cutoff, have been added in ChimeraX.
-</p><p>
-The <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>
-program includes values for nonhydrogen atoms in the 20 standard 
-amino acids plus HYP (hydroxyproline) and PCA (pyroglutamic acid). 
+... except with atomic lipophilicity values taken from:
+</p>
+<blockquote>
+<a href="https://pubs.acs.org/doi/full/10.1021/jp980230o" target="_blank">
+Prediction of Hydrophobic (Lipophilic) Properties of Small Organic Molecules Using Fragmental Methods:  An Analysis of ALOGP and CLOGP Methods.</a>
+Ghose AK, Viswanadhan VN, Wendoloski JJ.
+<i>J Phys Chem A.</i> 1998; 102(21):3762-3772.
+</blockquote>
+<p>
+To allow MLP coloring without adding explicit hydrogens, 
+values for any attached hydrogens were &ldquo;collapsed&rdquo; onto those
+for the corresponding heavy atoms (see
+<a href="http://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/#update"
+target="_blank">details and comparisons</a> to the original values 
+from <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>).
+The resulting lookup table includes the standard amino acids plus
+MLE (selenomethionine), HYP (hydroxyproline), UNK (backbone-only, typically
+used in lower-resolution protein structures where the amino acid type
+could not be discerned), and the peptide-capping residues 
+PCA (pyroglutamic acid), ACE (acetyl), NME (methylamine),  and NH2.
 Other atoms are ignored.
+</p><p>
 The potential at each grid point is a sum over the atomic contributions.
 Positive potentials correspond to more lipophilic (more hydrophobic) areas,
 negative to less lipophilic (more hydrophilic) areas. 
+Optimizations for speed, including a distance cutoff, have been added in ChimeraX.
 </p><p>
 The <b>method</b> specifies how the atomic values propagate through space,
 with factors based on the distance <i>d</i> from the atom
