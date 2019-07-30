@@ -74,6 +74,12 @@ def _set_standard_residues():
     _standard_residues.update(_protein1to3.values())
 
 
+def _same_chains(chain0, chain1):
+    c0 = {c.name: c.characters for c in chain0}
+    c1 = {c.name: c.characters for c in chain1}
+    return c0 == c1
+
+
 def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=False, displayed_only=False):
     from chimerax.atomic import Structure
     if models is None:
@@ -105,22 +111,28 @@ def write_mmcif(session, path, *, models=None, rel_model=None, selected_only=Fal
         _set_standard_residues()
 
     # Need to figure out which ChimeraX models should be grouped together
-    # as mmCIF models.  For now assume all models with the same "parent"
-    # id (other than blank) are actually a nmr ensemble.
-    # TODO: fix for docking models and hierarchical models
+    # as mmCIF models.  Start with assumption that all models with the same
+    # "parent" id (other than blank) are a nmr ensemble.
     grouped = {}
     for m in models:
         grouped.setdefault(m.id[:-1], []).append(m)
+
+    # Go through grouped models and confirm they look like an NMR ensemble
+    # This should catch fix for docking models and hierarchical models (IHM)
+    is_ensemble = {}
+    for g, models in grouped.items():
+        if len(models) == 1:
+            is_ensemble[g] = False
+            continue
+        chains = models[0].chains
+        is_ensemble[g] = all(_same_chains(chains, m.chains) for m in models[1:])
 
     used_data_names = set()
     with open(path, 'w', encoding='utf-8', newline='\r\n') as f:
         print("#\\#CIF_1.1", file=f)
         print("# mmCIF", file=f)
-        for g in grouped:
-            models = grouped[g]
-            # TODO: make sure ensembles are distinguished from IHM models
-            ensemble = all(m.name == models[0].name for m in models)
-            if ensemble:
+        for g, models in grouped.items():
+            if is_ensemble[g]:
                 save_structure(session, f, models, [xforms[m] for m in models], used_data_names, selected_only, displayed_only)
             else:
                 for m in models:

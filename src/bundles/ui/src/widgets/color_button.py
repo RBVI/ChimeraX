@@ -36,6 +36,19 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QPushButton
 from numpy import array, uint8, ndarray
 
+# some hackery to attempt to make it one color-chooser dialog for the
+# entire app, rather than one per color button
+
+_color_dialog = None
+_color_callback = None
+def _make_color_callback(*args):
+    if _color_callback is not None:
+        _color_callback(*args)
+
+def _color_dialog_destroyed(button):
+    global _color_dialog
+    _color_dialog = None
+
 class ColorButton(QPushButton):
 
     color_changed = pyqtSignal(ndarray)
@@ -49,7 +62,6 @@ class ColorButton(QPushButton):
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
         self._color = None
-        self._color_dialog = None
 
     def get_color(self):
         return self._color
@@ -64,16 +76,25 @@ class ColorButton(QPushButton):
     color = property(get_color, set_color)
 
     def show_color_chooser(self):
-        if self._color_dialog is None:
+        global _color_dialog, _color_callback, _color_dialog_destroyed
+        _color_callback = None
+        if _color_dialog is None:
             from PyQt5.QtWidgets import QColorDialog
-            cd = QColorDialog(self)
-            cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
+            _color_dialog = cd = QColorDialog(self)
             cd.setOption(cd.NoButtons, True)
+            cd.currentColorChanged.connect(_make_color_callback)
+            cd.destroyed.connect(_color_dialog_destroyed)
         else:
-            cd = self._color_dialog
+            cd = _color_dialog
+            cd.setParent(self)
+            # on Mac, Qt doesn't realize it when the color dialog has been hidden
+            # with the red 'X' button, so "hide" it now so that Qt doesn't believe
+            # that the later show() is a no op.
+            cd.hide()
+        cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
         if self._color is not None:
             cd.setCurrentColor(QColor(*tuple(self._color)))
-        cd.currentColorChanged.connect(self._color_changed_cb)
+        _color_callback = self._color_changed_cb
         cd.show()
 
     def _color_changed_cb(self, color):
