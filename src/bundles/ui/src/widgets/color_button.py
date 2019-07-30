@@ -80,13 +80,12 @@ class ColorButton(QPushButton):
         _color_callback = None
         if _color_dialog is None:
             from PyQt5.QtWidgets import QColorDialog
-            _color_dialog = cd = QColorDialog(self)
+            _color_dialog = cd = QColorDialog()
             cd.setOption(cd.NoButtons, True)
             cd.currentColorChanged.connect(_make_color_callback)
             cd.destroyed.connect(_color_dialog_destroyed)
         else:
             cd = _color_dialog
-            cd.setParent(self)
             # on Mac, Qt doesn't realize it when the color dialog has been hidden
             # with the red 'X' button, so "hide" it now so that Qt doesn't believe
             # that the later show() is a no op.
