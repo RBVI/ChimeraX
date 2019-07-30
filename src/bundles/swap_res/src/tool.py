@@ -38,7 +38,32 @@ class PrepRotamersDialog(ToolInstance):
         installed_lib_names = set(session.rotamers.library_names(installed_only=True))
         all_lib_names = session.rotamers.library_names(installed_only=False)
         all_lib_names.sort()
+        if not all_lib_names:
+            raise AssertionError("No rotamers libraries available?!?")
+        from chimerax.ui.options import SymbolicEnumOption, EnumOption
+        class RotLibOption(SymbolicEnumOption):
+            labels = [(session.rotamers.library(lib_name).display_name if lib_name in installed_lib_names
+                else "%s [not installed]" % lib_name) for lib_name in all_lib_names]
+            values = all_lib_names
+        from .settings import get_settings
+        settings = get_settings(session)
+        if settings.library in all_lib_names:
+            def_lib = settings.library
+        else:
+            def_lib = installed_lib_names[0] if installed_lib_names else all_lib_names[0]
+        self.rot_lib_option = RotLibOption("Rotamer library", def_lib, self._lib_change_cb)
 
+        lib_res_types = session.rotamers.library(self.rot_lib_option.value).residue_names
+        from chimerax.atomic import selected_atoms
+        sel_residues = selected_atoms(session).residues.unique()
+        sel_res_types = set([r.name for r in sel_residues])
+        if len(sel_res_types) == 1:
+            def_res_type = self._map_res_type(sel_res_types.pop(), lib_res_types, exemplar=sel_residues[0])
+        else:
+            def_res_type = lib_res_types[0]
+        class ResTypeOption(EnumOption):
+            values = lib_res_types
+        self.res_type_option("Rotamer type", def_res_type, None)
         """
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
