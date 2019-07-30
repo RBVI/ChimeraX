@@ -1421,7 +1421,6 @@ class Thresholds_Panel(PopupPanel):
     self.active_order = []              # Histogram_Panes
     self.active_color = 'white'
     self.update_timer = None
-    self._color_dialog = None
 
     frame = self.frame
     frame.resizeEvent = lambda e, self=self: self.panel_resized(e)
@@ -1661,8 +1660,6 @@ class Thresholds_Panel(PopupPanel):
         ao.remove(hp)
       ao.insert(0, hp)
 
-    self._set_color_dialog_color()
-    
   # ---------------------------------------------------------------------------
   #
   def histogram_shown(self, data_region):
@@ -1679,55 +1676,6 @@ class Thresholds_Panel(PopupPanel):
         if hp.histogram_shown:
             hp.set_threshold_parameters_from_gui()
         volume.set_display_style(hp.display_style)
-
-  # ---------------------------------------------------------------------------
-  #
-  def show_color_chooser(self):
-      from PyQt5.QtWidgets import QColorDialog
-      self._color_dialog = cd = QColorDialog(self.frame)
-      cd.setOptions(QColorDialog.ShowAlphaChannel)
-# Following hiding of buttons avoids crash on exit on Mac Sierra, Qt bug 56448
-#      cd.setOption(QColorDialog.NoButtons, True)
-      self._set_color_dialog_color()
-#      cd.colorSelected.connect(self.color_changed_cb) # Does not update until Ok pressed
-      cd.currentColorChanged.connect(self.color_changed_cb) # Updates whenever color in dialog changes
-      cd.finished.connect(self.color_dialog_closed_cb)
-      cd.show()
-      
-  # ---------------------------------------------------------------------------
-  #
-  def _set_color_dialog_color(self):
-      hp = self.active_histogram()
-      cd = self._color_dialog
-      if hp is None or cd is None:
-          return
-      from PyQt5.QtGui import QColor, QPalette
-      markers, m = hp.selected_histogram_marker()
-      if m:
-          color = QColor(*tuple(int(c*255) for c in m.rgba))
-      else:
-          color = hp.color.palette().color(QPalette.Window)
-      cd.setCurrentColor(color)
-      
-  # ---------------------------------------------------------------------------
-  #
-  def color_changed_cb(self, color):
-      hp = self.active_histogram()
-      if hp is None:
-          return
-      markers, m = hp.selected_histogram_marker()
-      if m is None:
-          return
-      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
-      m.set_color(rgba, markers.canvas)	# Set histogram marker color
-      from .histogram import hex_color_name
-      hp.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
-      hp.set_threshold_parameters_from_gui(show = True)
-      
-  # ---------------------------------------------------------------------------
-  #
-  def color_dialog_closed_cb(self, result_code):
-      self._color_dialog = None
   
 # -----------------------------------------------------------------------------
 # Manages histogram and heading with data name, step size, shown indicator,
@@ -1783,10 +1731,9 @@ class Histogram_Pane:
     self.shown_handlers = []
 
     # Color button
-    self.color = cl = QPushButton(df)
-    cl.setMaximumSize(16,16)
-    cl.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-    cl.clicked.connect(self.show_color_chooser)
+    from chimerax.ui.widgets import ColorButton
+    self._color_button = cl = ColorButton(df, max_size = (16,16), has_alpha_channel = True)
+    cl.color_changed.connect(self._color_chosen)
     layout.addWidget(cl)    
 
     self.data_id = did = QLabel(df)
@@ -1900,14 +1847,6 @@ class Histogram_Pane:
       #a.setStatusTip("Info about this menu entry")
       a.triggered.connect(cb)
       menu.addAction(a)
-
-  # ---------------------------------------------------------------------------
-  #
-  def show_color_chooser(self):
-      tp = self.dialog.thresholds_panel
-      if tp.active_histogram() != self:
-          tp.set_active_histogram(self)
-      tp.show_color_chooser()
       
   # ---------------------------------------------------------------------------
   #
@@ -2523,8 +2462,18 @@ class Histogram_Pane:
         if v:
             rgba = v.default_rgba
     if rgba is not None:
-        from .histogram import hex_color_name
-        self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3]))
+        from chimerax.core.colors import rgba_to_rgba8
+        self._color_button.color = rgba_to_rgba8(rgba)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _color_chosen(self, color):
+      markers, m = self.selected_histogram_marker()
+      if m is None:
+          return
+      rgba = tuple(r/255 for r in color)	# Convert 0-255 to 0-1 color values
+      m.set_color(rgba, markers.canvas)	# Set histogram marker color
+      self.set_threshold_parameters_from_gui(show = True)
 
   # ---------------------------------------------------------------------------
   #
