@@ -16,9 +16,10 @@ from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoR
     UnsupportedResTypeError
 
 from .cmd import default_criteria
+from .settings import defaults
 def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=None, clash_score_method="sum",
         clash_overlap_cutoff=None, criteria=default_criteria, density=None, hbond_angle_slop=None,
-        hbond_dist_slop=None, hbond_relax=True, ignore_other_models=False, lib="Dunbrack", log=True,
+        hbond_dist_slop=None, hbond_relax=True, ignore_other_models=False, lib=defaults['library'], log=True,
         preserve=None, retain=False):
     """backend implementation of "swapaa" command."""
     rotamers = {}

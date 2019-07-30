@@ -27,6 +27,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: swapaa :: Structure Editing :: swap residue side chain </ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Rotamers :: General :: swap residue side chain</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

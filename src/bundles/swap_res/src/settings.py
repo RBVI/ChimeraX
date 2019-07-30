@@ -11,18 +11,19 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.toolshed import BundleAPI
+defaults = {
+    "library": "Dunbrack",
+}
 
-class SwapResAPI(BundleAPI):
+from  chimerax.core.settings import Settings
+from copy import deepcopy
 
-    @staticmethod
-    def register_command(command_name, logger):
-        from . import cmd
-        cmd.register_command(command_name, logger)
+class _RotamersSettings(Settings):
+	EXPLICIT_SAVE = deepcopy(defaults)
 
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import prep_rotamers_dialog
-        return prep_rotamers_dialog(session, tool_name)
-
-bundle_api = SwapResAPI()
+_settings = None
+def get_settings(session):
+    global _settings
+    if _settings is None:
+        _settings = _RotamersSettings(session, "Rotamers")
+    return _settings
