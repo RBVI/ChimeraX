@@ -124,9 +124,8 @@ class UpdateLoop:
             # Redraw only if enough time has elapsed since last frame to process some events.
             # This keeps the user interface responsive even during slow rendering
             self._last_redraw_start_time = t
-            s = self.session
-            if not self.draw_new_frame():
-                s.ui.mouse_modes.mouse_pause_tracking()
+            self.draw_new_frame()
+            self.session.ui.mouse_modes.mouse_pause_tracking()
             self._last_redraw_finish_time = time.perf_counter()
 
     def update_graphics_now(self):
