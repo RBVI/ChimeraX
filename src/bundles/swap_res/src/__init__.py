@@ -20,4 +20,9 @@ class SwapResAPI(BundleAPI):
         from . import cmd
         cmd.register_command(command_name, logger)
 
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import RotamersTool
+        return RotamersTool(session, tool_name)
+
 bundle_api = SwapResAPI()

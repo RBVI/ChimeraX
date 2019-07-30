@@ -416,7 +416,6 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             new_atom.bfactor = bfactor
             new_atoms.append(new_atom)
 
-            # TODO: need to iterate over CoordSets
             for bonded in a.neighbors:
                 bond_atom = res.find_atom(bonded.name)
                 if not bond_atom:
