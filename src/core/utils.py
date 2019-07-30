@@ -133,14 +133,9 @@ def string_to_attr(string, *, prefix="", collapse=True):
 
 class CustomSortString(str):
 
-    def __new__(cls, str_val,  sort_val=None, other_sort=None):
-        # 'other_sort' is how this sorts against regular strings:
-        #   None (or 0): alphabetical
-        #   -1: before
-        #   1: after
+    def __new__(cls, str_val,  sort_val=None):
         obj = str.__new__(cls, str_val)
         obj.sort_val = sort_val
-        obj.other_sort = other_sort
         return obj
 
     def lower(self, *args, **kw):
@@ -157,8 +152,6 @@ class CustomSortString(str):
             if self.sort_val == other.sort_val:
                 return super().__lt__(other)
             return self.sort_val < other.sort_val
-        if other_sort:
-            return True if other_sort < 0 else False
         return super().__lt__(other)
 
     def __le__(self, other):
@@ -166,8 +159,6 @@ class CustomSortString(str):
             if self.sort_val == other.sort_val:
                 return super().__le__(other)
             return self.sort_val <= other.sort_val
-        if other_sort:
-            return True if other_sort < 0 else False
         return super().__le__(other)
 
     def __eq__(self, other):
@@ -175,26 +166,20 @@ class CustomSortString(str):
             if self.sort_val == other.sort_val:
                 return super().__eq__(other)
             return False
-        if not other_sort:
-            return super().__eq__(other)
-        return False
+        return super().__eq__(other)
 
     def __ne__(self, other):
         if isinstance(other, CustomSortString):
             if self.sort_val == other.sort_val:
                 return super().__ne__(other)
             return True
-        if not other_sort:
-            return super().__eq__(other)
-        return True
+        return super().__ne__(other)
 
     def __gt__(self, other):
         if isinstance(other, CustomSortString):
             if self.sort_val == other.sort_val:
                 return super().__gt__(other)
             return self.sort_val > other.sort_val
-        if other_sort:
-            return True if other_sort > 0 else False
         return super().__gt__(other)
 
     def __ge__(self, other):
@@ -202,6 +187,4 @@ class CustomSortString(str):
             if self.sort_val == other.sort_val:
                 return super().__ge__(other)
             return self.sort_val >= other.sort_val
-        if other_sort:
-            return True if other_sort > 0 else False
         return super().__ge__(other)
