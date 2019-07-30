@@ -41,13 +41,22 @@ from numpy import array, uint8, ndarray
 
 _color_dialog = None
 _color_callback = None
+_color_setter_id = None
 def _make_color_callback(*args):
     if _color_callback is not None:
         _color_callback(*args)
 
-def _color_dialog_destroyed(button):
+def _color_dialog_destroyed(*args):
     global _color_dialog
     _color_dialog = None
+
+def _check_color_chooser(dead_button_id):
+    global _color_setter_id, _color_callback
+    if _color_setter_id == dead_button_id:
+        _color_callback = _color_setter_id = None
+        if _color_dialog:
+            _color_dialog.hide()
+
 
 class ColorButton(QPushButton):
 
@@ -61,6 +70,7 @@ class ColorButton(QPushButton):
         self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
+        self.destroyed.connect(lambda *args, ident=id(self): _check_color_chooser(ident))
         self._color = None
 
     def get_color(self):
@@ -76,7 +86,8 @@ class ColorButton(QPushButton):
     color = property(get_color, set_color)
 
     def show_color_chooser(self):
-        global _color_dialog, _color_callback, _color_dialog_destroyed
+        global _color_dialog, _color_callback, _color_dialog_destroyed, _color_setter_id
+        _color_setter_id = id(self)
         _color_callback = None
         if _color_dialog is None:
             from PyQt5.QtWidgets import QColorDialog
