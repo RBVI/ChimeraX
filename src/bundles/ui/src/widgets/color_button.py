@@ -80,16 +80,20 @@ class ColorButton(QPushButton):
         _color_callback = None
         if _color_dialog is None:
             from PyQt5.QtWidgets import QColorDialog
-            _color_dialog = cd = QColorDialog()
+            _color_dialog = cd = QColorDialog(self.window())
             cd.setOption(cd.NoButtons, True)
             cd.currentColorChanged.connect(_make_color_callback)
             cd.destroyed.connect(_color_dialog_destroyed)
         else:
             cd = _color_dialog
-            # on Mac, Qt doesn't realize it when the color dialog has been hidden
+            # On Mac, Qt doesn't realize it when the color dialog has been hidden
             # with the red 'X' button, so "hide" it now so that Qt doesn't believe
-            # that the later show() is a no op.
-            cd.hide()
+            # that the later show() is a no op.  Whereas on Windows doing a hide
+            # followed by a show causes the chooser to jump back to it's original
+            # position, so do the hide _only_ on Mac
+            import sys
+            if sys.platform == 'darwin':
+                cd.hide()
         cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
         if self._color is not None:
             cd.setCurrentColor(QColor(*tuple(self._color)))
