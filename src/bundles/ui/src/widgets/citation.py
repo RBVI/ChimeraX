@@ -20,7 +20,7 @@ from PyQt5.QtCore import Qt
 
 class Citation(QFrame):
 
-    def __init__(self, session, cite, prefix=None, suffix=None, url=None, pubmed_id=None, image=True):
+    def __init__(self, session, cite, *, prefix=None, suffix=None, url=None, pubmed_id=None, image=True):
         """
             'cite' is the citation text
             'prefix'/'suffix' is text to precede/follow the citation

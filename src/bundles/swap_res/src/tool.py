@@ -31,9 +31,10 @@ class PrepRotamersDialog(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
         from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
-        layout = QVBoxLayout()
+        from PyQt5.QtCore import Qt
+        self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
-        layout.addWidget(QLabel("Show rotamers for selected residues..."))
+        layout.addWidget(QLabel("Show rotamers for selected residues..."), alignment=Qt.AlignCenter)
 
         installed_lib_names = set(session.rotamers.library_names(installed_only=True))
         all_lib_names = session.rotamers.library_names(installed_only=False)
@@ -53,88 +54,38 @@ class PrepRotamersDialog(ToolInstance):
             def_lib = installed_lib_names[0] if installed_lib_names else all_lib_names[0]
         self.rot_lib_option = RotLibOption("Rotamer library", def_lib, self._lib_change_cb)
 
-        rot_lib = session.rotamers.library(self.rot_lib_option.value)
-        from chimerax.atomic import selected_atoms
-        sel_residues = selected_atoms(session).residues.unique()
-        sel_res_types = set([r.name for r in sel_residues])
-        res_name_list = self.lib_res_list(rot_lib)
-        if len(sel_res_types) == 1:
-            def_res_type = rot_lib.map_res_name(sel_res_types.pop(), exemplar=sel_residues[0])
-            if def_res_type is None:
-                def_res_type = res_name_list[0]
-        else:
-            def_res_type = res_name_list[0]
+        self.rot_lib = session.rotamers.library(self.rot_lib_option.value)
+        res_name_list = self.lib_res_list()
         class ResTypeOption(EnumOption):
             values = res_name_list
+        def_res_type = self._sel_res_type() or res_name_list[0]
         self.res_type_option = ResTypeOption("Rotamer type", def_res_type, None)
 
         opts = OptionsPanel(scrolled=False)
         opts.add_option(self.res_type_option)
         opts.add_option(self.rot_lib_option)
-        layout.addWidget(opts)
-        """
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(0)
-        parent.setLayout(layout)
-        self.table = QTableWidget()
-        self.table.setColumnCount(3)
-        self.table.keyPressEvent = session.ui.forward_keystroke
-        self.table.setHorizontalHeaderLabels(["Atom 1", "Atom 2", "Distance"])
-        #self.table.itemClicked.connect(self._table_change_cb)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        table_layout = QVBoxLayout()
-        table_layout.setContentsMargins(0,0,0,0)
-        table_layout.setSpacing(0)
-        table_layout.addWidget(self.table)
-        table_layout.setStretchFactor(self.table, 1)
-        layout.addLayout(table_layout)
-        layout.setStretchFactor(table_layout, 1)
-        button_layout = QHBoxLayout()
-        create_button = QPushButton("Create")
-        create_button.clicked.connect(self._create_distance)
-        create_button.setToolTip("Create distance monitor between two (currently selected) atoms;\n"
-            "Alternatively, control-click one atom in graphics view and control-shift-\n"
-            "double-click another to bring up context menu with 'Distance' entry")
-        button_layout.addWidget(create_button)
-        delete_button = QPushButton("Delete")
-        delete_button.clicked.connect(self._delete_distance)
-        delete_button.setToolTip("Delete distances selected in table (or all if none selected)")
-        button_layout.addWidget(delete_button)
-        save_info_button = QPushButton("Save Info...")
-        save_info_button.clicked.connect(self._save_info)
-        save_info_button.setToolTip("Save distance information into a file")
-        button_layout.addWidget(save_info_button)
-        table_layout.addLayout(button_layout)
+        layout.addWidget(opts, alignment=Qt.AlignCenter)
 
-        from chimerax.ui.options import SettingsPanel, BooleanOption, ColorOption, IntOption, FloatOption
-        panel = SettingsPanel()
-        from chimerax.dist_monitor.settings import settings
+        self.lib_description = QLabel(self.rot_lib.description)
+        layout.addWidget(self.lib_description, alignment=Qt.AlignCenter)
+
+        self.citation_widgets = {}
+        cw = self.citation_widgets[def_lib] = self.citation_widgets['showing'] = self._make_citation_widget()
+        if cw:
+            layout.addWidget(cw, alignment=Qt.AlignCenter)
+
+        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        #bbox.accepted.connect(self.TODO)
+        #bbox.button(qbbox.Apply).clicked.connect(self.TODO)
+        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
+        bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        from chimerax.ui.widgets import hex_color_name
-        for opt_name, attr_name, opt_class, opt_class_kw, cmd_arg in [
-                ("Color", 'color', ColorOption, {}, 'color %s'),
-                ("Number of dashes", 'dashes', IntOption, {'min': 0}, 'dashes %d'),
-                ("Decimal places", 'decimal_places', IntOption, {'min': 0}, 'decimalPlaces %d'),
-                ("Radius", 'radius', FloatOption, {'min': 'positive', 'decimal_places': 3}, 'radius %g'),
-                ("Show \N{ANGSTROM SIGN} symbol", 'show_units', BooleanOption, {}, 'symbol %s')]:
-            converter = hex_color_name if opt_class == ColorOption else None
-            panel.add_option(opt_class(opt_name, None,
-                lambda opt, run=run, converter=converter, ses=self.session, cmd_suffix=cmd_arg:
-                run(ses, "distance style " + cmd_suffix
-                % (opt.value if converter is None else converter(opt.value))),
-                attr_name=attr_name, settings=settings, auto_set_attr=False))
-        layout.addWidget(panel)
+        bbox.button(qbbox.Help).setEnabled(False)
+        #bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        layout.addWidget(bbox)
+        self.cite_insert_index = layout.indexOf(bbox)
 
-        from chimerax.dist_monitor.cmd import group_triggers
-        self.handlers = [
-            group_triggers.add_handler("update", self._fill_table),
-            group_triggers.add_handler("delete", self._fill_table)
-        ]
-        self._fill_table()
-        """
         tw.manage(placement=None)
 
     def delete(self):
@@ -142,13 +93,43 @@ class PrepRotamersDialog(ToolInstance):
         _prd = None
         super().delete()
 
-    def lib_res_list(self, rot_lib):
-        res_name_list = list(rot_lib.residue_names) + ["ALA", "GLY"]
+    def lib_res_list(self):
+        res_name_list = list(self.rot_lib.residue_names) + ["ALA", "GLY"]
         res_name_list.sort()
         return res_name_list
 
     def _lib_change_cb(self, opt):
-        rot_lib = self.session.rotamers.library(self.rot_lib_option.value)
         cur_val = self.res_type_option.value
-        self.res_type_option.values = self.lib_res_list(rot_lib)
+        self.rot_lib = self.session.rotamers.library(self.rot_lib_option.value)
+        self.res_type_option.values = self.lib_res_list()
         self.res_type_option.remake_menu()
+        if cur_val not in self.res_type_option.values:
+            self.res_type_option.value = self._sel_res_type() or self.res_type_option.values[0]
+        self.lib_description.setText(self.rot_lib.description)
+        prev_cite = self.citation_widgets['showing']
+        if prev_cite:
+            self.layout.removeWidget(prev_cite)
+            prev_cite.hide()
+        if self.rot_lib_option.value not in self.citation_widgets:
+            self.citation_widgets[self.rot_lib_option.value] = self._make_citation_widget()
+        new_cite = self.citation_widgets[self.rot_lib_option.value]
+        if new_cite:
+            from PyQt5.QtCore import Qt
+            self.layout.insertWidget(self.cite_insert_index, new_cite, alignment=Qt.AlignCenter)
+            new_cite.show()
+        self.citation_widgets['showing'] = new_cite
+
+    def _make_citation_widget(self):
+        if not self.rot_lib.citation:
+            return None
+        from chimerax.ui.widgets import Citation
+        return Citation(self.session, self.rot_lib.citation, prefix="Publication using %s rotamers should"
+            " cite:" % self.rot_lib.cite_name, pubmed_id=self.rot_lib.cite_pubmed_id)
+
+    def _sel_res_type(self):
+        from chimerax.atomic import selected_atoms
+        sel_residues = selected_atoms(self.session).residues.unique()
+        sel_res_types = set([r.name for r in sel_residues])
+        if len(sel_res_types) == 1:
+            return self.rot_lib.map_res_name(sel_res_types.pop(), exemplar=sel_residues[0])
+        return None
