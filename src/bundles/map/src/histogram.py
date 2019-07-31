@@ -126,7 +126,7 @@ class Markers:
         b.setColor(c)
         b.setStyle(Qt.SolidPattern)
         if self.marker_type == 'line':
-          m.graphics_item = gi = s.addRect(x, y0+bs, 2*bs, y1-y0-bs, pen = p, brush = b)
+          m.graphics_item = gi = s.addRect(x-bs, y0+bs, 2*bs, y1-y0-bs, pen = p, brush = b)
           gi.setZValue(1.0)	# Show on top of histogram
         elif self.marker_type == 'box':
           m.graphics_item = gi = s.addRect(x-bs, y-bs, 2*bs, 2*bs, pen = p, brush = b)
@@ -245,7 +245,7 @@ class Markers:
       cxy = self.user_xy_to_canvas_xy(m.xy)
       x, y = self.clamp_canvas_xy(cxy)
       if self.marker_type == 'line':
-        m.graphics_item.setRect(QRectF(x, y0+bs, 2*bs, y1-y0-2*bs))
+        m.graphics_item.setRect(QRectF(x-bs, y0+bs, 2*bs, y1-y0-2*bs))
       elif self.marker_type == 'box':
         m.graphics_item.setRect(QRectF(x-bs, y-bs, 2*bs, 2*bs))
   
