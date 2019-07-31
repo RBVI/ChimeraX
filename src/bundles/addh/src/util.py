@@ -169,18 +169,17 @@ def determine_naming_schemas(structure, type_info):
 
     The possible schemas are:
         1) 'prepend' -- put 'H' in front of atom element name
-        2) a set of hetero atoms that should be prepended (others
-        will have the element symbol replaced with 'H'); in this
-        case the prepend will be in front of the entire atom name
+        2) a set of hetero atoms that should be prepended (others will have the element symbol replaced
+            with 'H'); in this case the prepend will be in front of the entire atom name
+        3) 'simple' -- first hydrogen is H1, second is H2, etc.  Used if there are 4-character heavy
+            atom names in the residue.
     
-    In both cases, a number will be appended if more than one hydrogen
-    is to be added. (Unless the base atom name ends in a prime [']
-    character, in which case additional primes will be added as long
-    as the resulting name is 4 characters or less)
+    In the first two cases, a number will be appended if more than one hydrogen is to be added.
+    (Unless the base atom name ends in a prime ['] character, in which case additional primes
+    will be added as long as the resulting name is 4 characters or less)
     
-    The "set" is the preferred scheme and is used when the heavy atoms
-    have been given reasonably distinctive names.  'Prepend' is used
-    mostly in small molecules where the atoms have names such as 'C1',
+    The "set" is the preferred scheme and is used when the heavy atoms have been given reasonably
+    distinctive names.  'Prepend' is used mostly in small molecules where the atoms have names such as 'C1',
     'C2', 'C3', 'N1', 'N2', etc. and 'replace' would not work."""
 
     schemas = {structure: 3} # default to PDB version 3 naming
@@ -189,6 +188,11 @@ def determine_naming_schemas(structure, type_info):
             # DNA thymine is "DT" in version 3
             # (but RNA still has A/C/G so can't check those)
             schemas[structure] = 2 # PDB version 2
+
+        heavy_names = [len(a.name) for a in residue.atoms if a.element.number > 1]
+        if heavy_names and max(heavy_names) >= 4:
+            schemas[residue] = 'simple'
+            continue
         carbons = set()
         hets = set()
         identifiers = set()

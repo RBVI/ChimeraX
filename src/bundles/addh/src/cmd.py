@@ -901,6 +901,11 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
     find_atom = atom.residue.find_atom
 
     res_schema, pdb_version = naming_schema
+    if res_schema == "simple":
+        i = 1
+        while atom.residue.find_atom("H%d" % i):
+            i += 1
+        return "H%d" % i
     if res_name in naming_exceptions and atom.name in naming_exceptions[res_name]:
         except_names = naming_exceptions[res_name][atom.name]
         for name in except_names:
