@@ -65,15 +65,19 @@ class MolecularSurface(Surface):
       Whether to subdivide triangles composing the surface so that
       triangle edges lie exactly between atoms. This creates less jagged
       edges when showing or coloring patches of surfaces for a subset of atoms.
+    update : bool
+      Whether the surface automically updates its shape when atom coordinates change.
+      Default true.
     '''
 
     def __init__(self, session, enclose_atoms, show_atoms, probe_radius, grid_spacing,
-                 resolution, level, name, color, visible_patches, sharp_boundaries):
+                 resolution, level, name, color, visible_patches, sharp_boundaries, update=True):
         
         Surface.__init__(self, name, session)
         self.selection_coupled = enclose_atoms.unique_structures
 
         self.atoms = enclose_atoms
+        self._atom_count = len(self.atoms)	# Used to determine when atoms deleted.
         self.show_atoms = show_atoms	# Atoms for surface patch to show
         self.probe_radius = probe_radius # Only used for solvent excluded surface
         self.grid_spacing = grid_spacing
@@ -86,6 +90,11 @@ class MolecularSurface(Surface):
         self.sharp_boundaries = sharp_boundaries
         self._joined_triangles = None
         self._refinement_steps = 1	# Used for fixing sharp edge problems near 3 atom junctions.
+        self._auto_update = update
+        if update:
+            from chimerax.atomic import get_triggers
+            t = get_triggers()
+            t.add_handler('changes', self._atoms_changed)
 
         self._vertex_to_atom = None
         self._vertex_to_atom_count = None	# Used to check if atoms deleted
@@ -124,15 +133,57 @@ class MolecularSurface(Surface):
             shape_change = True
 
         if shape_change:
-            self.set_geometry(None, None, None)
-            self.color = self._average_color()
-            self.vertex_colors = None
-            self._vertex_to_atom = None
-            self._max_radius = None
-            self._joined_triangles = None
+            self._clear_shape()
         elif shown_changed:
             self.triangle_mask = self._calc_triangle_mask()
-                
+
+    def _clear_shape(self):
+        self.set_geometry(None, None, None)
+        self.color = self._average_color()
+        self.vertex_colors = None
+        self._vertex_to_atom = None
+        self._max_radius = None
+        self._joined_triangles = None
+
+    def _atoms_changed(self, trigger_name, changes):
+        if self.deleted:
+            return 'delete handler'
+        if self._coordinates_changed(changes):
+            self._recompute_shape()
+
+    def _coordinates_changed(self, changes):
+        if 'active_coordset changed' in changes.structure_reasons():
+            # Active coord set index changed.  Playing a trajectory.
+            changed_structures = set(changes.modified_structures())
+            for s in self.atoms.unique_structures:
+                if s in changed_structures:
+                    return True
+        if 'coord changed' in changes.atom_reasons():
+            # Atom coordinates changed through Atom or Atoms set_coord()
+            if self.atoms.intersects(changes.modified_atoms()):
+                return True
+        elif 'coordset changed' in changes.coordset_reasons():
+            # Atom coordinates changed through CoordSet object.
+            # TODO: If 'coord changed' and 'coordset changed' currently we only
+            #   look at 'coord changed' atoms to avoid updating surfaces for
+            #   atoms that have not changed.  For example changing one rotamer
+            #   only updates one chain surface instead of all chain surfaces.
+            #   Currently there is no Python CoordSet method to set coordinates.
+            changed_structures = set(cs.structure for cs in changes.modified_coordsets())
+            for s in self.atoms.unique_structures:
+                if s in changed_structures:
+                    return True
+        if changes.num_deleted_atoms() > 0 and len(self.atoms) < self._atom_count:
+            return True
+        return False
+
+    def _recompute_shape(self):
+        if len(self.atoms) == 0:
+            self.session.models.close([self])
+        else:
+            self._clear_shape()
+            self.calculate_surface_geometry()
+        
     @property
     def atom_count(self):
         '''Number of atoms for calculating the surface. Read only.'''
@@ -176,6 +227,7 @@ class MolecularSurface(Surface):
         self.triangle_mask = self._calc_triangle_mask()
         self._show_atom_patch_colors()
         self.update_selection()
+        self._atom_count = len(atoms)
 
     def _calc_triangle_mask(self):
         tmask = self._patch_display_mask(self.show_atoms)
@@ -361,9 +413,10 @@ class MolecularSurface(Surface):
 
     def _show_atom_patch_colors(self):
         apc = self._atom_patch_colors
-        if apc is not None:
-            m = self._atom_patch_color_mask
-            self.color_atom_patches(self.atoms.filter(m), per_atom_colors = apc[m])
+        if apc is None or len(apc) != len(self.atoms):
+            return
+        m = self._atom_patch_color_mask
+        self.color_atom_patches(self.atoms.filter(m), per_atom_colors = apc[m])
             
     def set_color_and_opacity(self, color = None, opacity = None):
         c8 = self.color if color is None else color.uint8x4()
