@@ -38,10 +38,10 @@ class RotamerLibManager(ProviderManager):
 
     def library_names(self, *, installed_only=False):
         if not installed_only:
-            return self._library_info.keys()
+            return list(self._library_info.keys())
         from . import RotamerLibrary
         lib_names = []
-        for name, info in self.library_info.items():
+        for name, info in self._library_info.items():
             if isinstance(info, RotamerLibrary) or info.installed:
                 lib_names.append(name)
         return lib_names

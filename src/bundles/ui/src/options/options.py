@@ -217,6 +217,9 @@ class EnumOption(Option):
             action = QAction(menu_label, self.widget)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)
+        if self.values and self.value not in self.values and self.value != self.multiple_value:
+            self.value = labels[0]
+            self.make_callback()
 
     def set_multiple(self):
         self.widget.setText(self.multiple_value)

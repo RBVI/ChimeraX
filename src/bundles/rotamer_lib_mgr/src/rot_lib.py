@@ -77,13 +77,71 @@ class RotamerLibrary:
         """
         return self.display_name
 
+    def map_res_name(self, res_name, exemplar=None):
+        """Take a residue name and map it to a name that this library supports.  For, example if
+           the library supports HIE, HID, and HID but not HIS per se, then map "HIS" to one of the
+           three supported names.  'exemplar', if provided, is an example residue whose name needs
+           mapping.  The default implementation handles some common HIS, PRO and CYS variants.
+
+           This routine should return None if no mapping can be determined, though "ALA" and "GLY"
+           should simply return themselves.
+        """
+        if res_name == "ALA" or res_name == "GLY":
+            return res_name
+
+        supported_names = set(self.residue_names)
+        if res_name == "HIS":
+            if "HID" in supported_names and "HIE" in supported_names:
+                if exemplar:
+                    if exemplar.find_atom("HD1"):
+                        if "HIP" in supported_names and exemplar.find_atom("HE2"):
+                            return "HIP"
+                        return "HID"
+                    return "HIE"
+                return "HID"
+        elif res_name in ["HID", "HIE", "HIP"]:
+            if res_name in supported_names:
+                return res_name
+            if "HIS" in  supported_names:
+                return "HIS"
+        elif res_name == "CYS":
+            if "CYH" in supported_names or "CYD" in supported_names:
+                if exemplar:
+                    sg = exemplar.find_atom("SG")
+                    if sg:
+                        for nb in sg.neighbors:
+                            if nb.residue != sg.residue:
+                                if "CYD" in supported_names:
+                                    return "CYD"
+                                break
+                        else:
+                            if "CYH" in supported_names:
+                                return "CYH"
+        elif res_name == "CYH" or res_name == "CYD":
+            if res_name in supported_names:
+                return res_name
+            if "CYS" in supported_names:
+                return "CYS"
+        elif res_name == "PRO":
+            if "CPR" in supported_names or "TPR" in supported_names:
+                if exemplar:
+                    omega = res.omega
+                    if omega is not None and abs(omega) < 90:
+                        if "CPR" in supported_names:
+                            return "CPR"
+                    elif "TPR" in supported_names:
+                        return "TPR"
+        if res_name in supported_names:
+            return res_name
+        return None
+
     std_rotamer_res_names = set(["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS", "ILE", "LEU", "LYS", "MET",
                 "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"])
     @property
     def residue_names(self):
-        """The residue names that this rotamer library provides rotamers for.  Typically just the
-           18 standard amino acids that actually have side chains, but some libraries provide rotamers
-           for certain protonation states (e.g. CYH for non-disulphide cysteine) or conformers
+        """A set of the residue names that this rotamer library provides rotamers for.  Typically just
+           the 18 standard amino acids that actually have side chains, but some libraries provide
+           rotamers for certain protonation states (e.g. CYH for non-disulphide cysteine) or conformers
            (e.g. CPR for cis-proline).
         """
         return self.std_rotamer_res_names

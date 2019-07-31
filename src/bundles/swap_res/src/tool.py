@@ -40,7 +40,7 @@ class PrepRotamersDialog(ToolInstance):
         all_lib_names.sort()
         if not all_lib_names:
             raise AssertionError("No rotamers libraries available?!?")
-        from chimerax.ui.options import SymbolicEnumOption, EnumOption
+        from chimerax.ui.options import SymbolicEnumOption, EnumOption, OptionsPanel
         class RotLibOption(SymbolicEnumOption):
             labels = [(session.rotamers.library(lib_name).display_name if lib_name in installed_lib_names
                 else "%s [not installed]" % lib_name) for lib_name in all_lib_names]
@@ -53,17 +53,25 @@ class PrepRotamersDialog(ToolInstance):
             def_lib = installed_lib_names[0] if installed_lib_names else all_lib_names[0]
         self.rot_lib_option = RotLibOption("Rotamer library", def_lib, self._lib_change_cb)
 
-        lib_res_types = session.rotamers.library(self.rot_lib_option.value).residue_names
+        rot_lib = session.rotamers.library(self.rot_lib_option.value)
         from chimerax.atomic import selected_atoms
         sel_residues = selected_atoms(session).residues.unique()
         sel_res_types = set([r.name for r in sel_residues])
+        res_name_list = self.lib_res_list(rot_lib)
         if len(sel_res_types) == 1:
-            def_res_type = self._map_res_type(sel_res_types.pop(), lib_res_types, exemplar=sel_residues[0])
+            def_res_type = rot_lib.map_res_name(sel_res_types.pop(), exemplar=sel_residues[0])
+            if def_res_type is None:
+                def_res_type = res_name_list[0]
         else:
-            def_res_type = lib_res_types[0]
+            def_res_type = res_name_list[0]
         class ResTypeOption(EnumOption):
-            values = lib_res_types
-        self.res_type_option("Rotamer type", def_res_type, None)
+            values = res_name_list
+        self.res_type_option = ResTypeOption("Rotamer type", def_res_type, None)
+
+        opts = OptionsPanel(scrolled=False)
+        opts.add_option(self.res_type_option)
+        opts.add_option(self.rot_lib_option)
+        layout.addWidget(opts)
         """
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -134,66 +142,13 @@ class PrepRotamersDialog(ToolInstance):
         _prd = None
         super().delete()
 
-    def _create_distance(self):
-        from chimerax.atomic import selected_atoms
-        sel_atoms = selected_atoms(self.session)
-        if len(sel_atoms) != 2:
-            from chimerax.core.errors import UserError
-            raise UserError("Exactly two atoms must be selected!")
-        from chimerax.core.commands import run
-        run(self.session, "distance %s %s" % tuple(a.string(style="command") for a in sel_atoms))
+    def lib_res_list(self, rot_lib):
+        res_name_list = list(rot_lib.residue_names) + ["ALA", "GLY"]
+        res_name_list.sort()
+        return res_name_list
 
-    def _delete_distance(self):
-        from chimerax.core.errors import UserError
-        from chimerax.core.commands import run
-        dist_grp = self.session.pb_manager.get_group("distances", create=False)
-        if not dist_grp:
-            raise UserError("No distances to delete!")
-        pbs = dist_grp.pseudobonds
-        if not pbs:
-            raise UserError("No distances to delete!")
-        rows = set([index.row() for index in self.table.selectedIndexes()])
-        if not rows:
-            raise UserError("Must select one or more distances in the table")
-        del_pbs = []
-        for i, pb in enumerate(pbs):
-            if i in rows:
-                del_pbs.append(pb)
-        for pb in del_pbs:
-            run(self.session, "~distance %s %s" % tuple([a.string(style="command") for a in pb.atoms]))
-
-    def _save_info(self):
-        from chimerax.core.errors import UserError
-        from chimerax.core.commands import run
-        dist_grp = self.session.pb_manager.get_group("distances", create=False)
-        if not dist_grp:
-            raise UserError("No distances to save!")
-        pbs = dist_grp.pseudobonds
-        if not pbs:
-            raise UserError("No distances to save!")
-        run(self.session, "distance save browse")
-
-    def _fill_table(self, *args):
-        dist_grp = self.session.pb_manager.get_group("distances", create=False)
-        if not dist_grp:
-            self.table.clearContents()
-            self.table.setRowCount(0)
-            return
-        fmt = self.session.pb_dist_monitor.distance_format
-        from PyQt5.QtWidgets import QTableWidgetItem
-        pbs = dist_grp.pseudobonds
-        update = len(pbs) == self.table.rowCount()
-        if not update:
-            self.table.clearContents()
-            self.table.setRowCount(len(pbs))
-        for row, pb in enumerate(pbs):
-            a1, a2 = pb.atoms
-            strings = a1.string(), a2.string(relative_to=a1), fmt % pb.length
-            for col, string in enumerate(strings):
-                if update:
-                    self.table.item(row, col).setText(string)
-                else:
-                    self.table.setItem(row, col, QTableWidgetItem(string))
-        for i in range(self.table.columnCount()):
-            self.table.resizeColumnToContents(i)
-
+    def _lib_change_cb(self, opt):
+        rot_lib = self.session.rotamers.library(self.rot_lib_option.value)
+        cur_val = self.res_type_option.value
+        self.res_type_option.values = self.lib_res_list(rot_lib)
+        self.res_type_option.remake_menu()
