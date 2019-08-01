@@ -641,6 +641,7 @@ class Drawing:
         self._vertex_colors = None
         self._edge_mask = None
         self._triangle_mask = None
+        self._highlighted_triangles_mask = None
         self.redraw_needed(shape_changed=True)
 
         arv = self.auto_recolor_vertices
@@ -1140,6 +1141,7 @@ class Drawing:
         self._normals = None
         self._edge_mask = None
         self._triangle_mask = None
+        self._highlighted_triangles_mask = None
         if self.texture:
             self.texture.delete_texture()
             self.texture = None

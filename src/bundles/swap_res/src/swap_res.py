@@ -210,7 +210,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     tmpl_CA = template.find_atom("CA")
     tmpl_C = template.find_atom("C")
     tmpl_CB = template.find_atom("CB")
-    if tmpl_CB:
+    if match_atoms['CB']:
         res_match_atoms, tmpl_match_atoms = [match_atoms[x]
             for x in ("C", "CA", "CB")], [tmpl_C, tmpl_CA, tmpl_CB]
     else:
