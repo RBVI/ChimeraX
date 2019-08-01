@@ -205,7 +205,7 @@ class CustomizedInstanceManager(StateManager):
         # pure Sequence instances don't have 'session' attrs since they shouldn't
         # be saved if nothing else in the Python layer wants them saved
         return { 'instances': [inst for inst in all_python_instances()
-            if inst.has_custom_attrs and getattr(inst, 'session', None) == session] }
+            if getattr(inst, 'has_custom_attrs', False) and getattr(inst, 'session', None) == session] }
 
     @staticmethod
     def restore_snapshot(session, data):

@@ -495,6 +495,14 @@ class ObjectLabels(Model):
         from numpy import array, int32
         ta = array(tlist, int32)
         return ta
+
+    def picked_label(self, triangle_number):
+        lnum = triangle_number//2
+        vlabels = [l for l in self._labels if l.visible()]
+        if lnum < len(vlabels):
+            return vlabels[lnum]
+        return None
+        
         
     SESSION_SAVE = True
     
@@ -726,3 +734,28 @@ class BondLabel(EdgeLabel):
 #
 class PseudobondLabel(EdgeLabel):
     pass
+
+# -----------------------------------------------------------------------------
+#
+def picked_3d_label(session, win_x, win_y):
+    xyz1, xyz2 = session.main_view.clip_plane_points(win_x, win_y)
+    if xyz1 is None or xyz2 is None:
+        return None
+    pick = None
+    from chimerax.core.graphics import PickedTriangle
+    for m in session.models.list(type = ObjectLabels):
+        mtf = m.parent.scene_position.inverse()
+        mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2
+        p = m.first_intercept(mxyz1, mxyz2)
+        if isinstance(p, PickedTriangle) and (pick is None or p.distance < pick.distance):
+            pick = p
+
+    if pick:
+        # Return ObjectLabel instance
+        lmodel = pick.drawing()
+        lobject = lmodel.picked_label(pick.triangle_number)
+        if lobject:
+            lobject._label_model = lmodel
+            return lobject
+
+    return None
