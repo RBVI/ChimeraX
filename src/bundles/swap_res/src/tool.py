@@ -25,10 +25,11 @@ class PrepRotamersDialog(ToolInstance):
 
     #help = "help:user/tools/rotamers.html"
 
-    def __init__(self, session, rotamers_tool_name):
-        ToolInstance.__init__(self, session, "Choose Rotamer Parameters")
+    def __init__(self, session, tool_name):
+        ToolInstance.__init__(self, session, tool_name)
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
+        tw.title = "Choose Rotamer Parameters"
         parent = tw.ui_area
         from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
         from PyQt5.QtCore import Qt
@@ -76,8 +77,8 @@ class PrepRotamersDialog(ToolInstance):
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        #bbox.accepted.connect(self.TODO)
-        #bbox.button(qbbox.Apply).clicked.connect(self.TODO)
+        bbox.accepted.connect(self.launch_rotamers)
+        bbox.button(qbbox.Apply).clicked.connect(self.launch_rotamers)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
@@ -92,6 +93,31 @@ class PrepRotamersDialog(ToolInstance):
         global _prd
         _prd = None
         super().delete()
+
+    def launch_rotamers(self):
+        from chimerax.atomic import selected_atoms
+        sel_residues = selected_atoms(self.session).residues.unique()
+        if not sel_residues:
+            from chimerax.core.errors import UserError
+            raise UserError("No residues selected")
+        num_sel = len(sel_residues)
+        if num_sel > 10:
+            from chimerax.ui.ask import ask
+            confirm = ask(self.session, "You have %d residues selected, which could bring up %d"
+                " rotamer dialogs\nContinue?" % (num_sel, num_sel), title="Many Rotamer Dialogs")
+            if confirm == "no":
+                return
+        res_type = self.res_type_option.value
+        from chimerax.atomic.rotamers import NoResidueRotamersError
+        try:
+            for r in sel_residues:
+                raise NoResidueRotamersError("testing")
+                RotamerDialog(r, res_type, self.rot_lib)
+        except NoResidueRotamersError:
+            lib_name = self.rot_lib_option.value
+            from chimerax.core.commands import run
+            for r in sel_residues:
+                run(self.session, "swapaa %s %s lib %s" % (r.string(style="command"), res_type, lib_name))
 
     def lib_res_list(self):
         res_name_list = list(self.rot_lib.residue_names) + ["ALA", "GLY"]
