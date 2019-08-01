@@ -501,9 +501,9 @@ class Volume(Model):
     if mstats is None:
       mstats = self.matrix_value_statistics()
     if mfrac is None:
-      v = mstats.rank_data_value(1-vfrac[0])
+      v = mstats.rank_data_value(1-vfrac[0], estimate = 'high')
     else:
-      v = mstats.mass_rank_data_value(1-mfrac[0])
+      v = mstats.mass_rank_data_value(1-mfrac[0], estimate = 'high')
     rgba = self.default_rgba
     binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)

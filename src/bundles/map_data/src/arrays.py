@@ -144,12 +144,16 @@ class MatrixValueStatistics:
   # Find the data value where a specified fraction of voxels have lower value.
   # Result is an approximation using binned data.
   #
-  def rank_data_value(self, fraction):
+  def rank_data_value(self, fraction, estimate = 'center'):
     
     ccounts = self.cumulative_counts()
     b = ccounts.searchsorted(fraction*ccounts[-1])
     fbc, lbc, bsize = self.bin_range(self.bins)
-    v = fbc + b * (lbc - fbc) / self.bins
+    v = fbc + b * bsize		# Center of bin where rank crossed.
+    if estimate == 'high':
+      v += 0.5 * bsize		# Right edge of bin where rank crossed.
+    elif estimate == 'low':
+      v -= 0.5 * bsize		# Left edge of bin where rank crossed.
     return v
 
   # ---------------------------------------------------------------------------
@@ -187,12 +191,16 @@ class MatrixValueStatistics:
   # Find the data value where the specified fraction of total mass of non-negative
   # values is below the level.  Result is an approximation using binned data.
   #
-  def mass_rank_data_value(self, fraction):
+  def mass_rank_data_value(self, fraction, estimate = 'center'):
     
     cmass = self.cumulative_mass()
     fbc, lbc, bsize = self.bin_range(self.bins)
     b = cmass.searchsorted(fraction*cmass[-1])
-    v = fbc + b * (lbc - fbc) / self.bins
+    v = fbc + b * bsize		# Center of bin where rank crossed.
+    if estimate == 'high':
+      v += 0.5 * bsize		# Right edge of bin where rank crossed.
+    elif estimate == 'low':
+      v -= 0.5 * bsize		# Left edge of bin where rank crossed.
     return v
 
   # ---------------------------------------------------------------------------

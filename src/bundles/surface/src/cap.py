@@ -33,7 +33,7 @@ def show_surface_clip_caps(planes, drawings, offset = 0.01, subdivision = 0.0):
             if (hasattr(d, 'clip_cap') and d.clip_cap and
                 d.triangles is not None and not hasattr(d, 'clip_cap_owner')):
                 varray, narray, tarray = compute_cap(d, p, offset)
-                if subdivision > 0:
+                if subdivision > 0 and tarray is not None:
                     from . import refine_mesh
                     varray, tarray = refine_mesh(varray, tarray, subdivision)
                     if len(narray) > 0:
