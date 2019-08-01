@@ -111,7 +111,6 @@ class PrepRotamersDialog(ToolInstance):
         from chimerax.atomic.rotamers import NoResidueRotamersError
         try:
             for r in sel_residues:
-                raise NoResidueRotamersError("testing")
                 RotamerDialog(r, res_type, self.rot_lib)
         except NoResidueRotamersError:
             lib_name = self.rot_lib_option.value
