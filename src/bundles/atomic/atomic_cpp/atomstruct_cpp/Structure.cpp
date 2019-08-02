@@ -304,8 +304,7 @@ void Structure::_copy(Structure* s) const
             s->_position[i][j] = _position[i][j];
 
     std::map<Residue*, Residue*> rmap;
-    for (auto ri = residues().begin() ; ri != residues().end() ; ++ri) {
-        Residue* r = *ri;
+    for (auto r: residues()) {
         Residue* cr = s->new_residue(r->name(), r->chain_id(), r->number(), r->insertion_code());
         cr->set_mmcif_chain_id(r->mmcif_chain_id());
         cr->set_ribbon_display(r->ribbon_display());
@@ -329,8 +328,7 @@ void Structure::_copy(Structure* s) const
     s->set_active_coord_set(cs_map[active_coord_set()]);
 
     std::map<Atom*, Atom*> amap;
-    for (auto ai = atoms().begin() ; ai != atoms().end() ; ++ai) {
-        Atom* a = *ai;
+    for (auto a: atoms()) {
         Atom* ca = s->new_atom(a->name(), a->element());
         Residue *cr = rmap[a->residue()];
         cr->add_atom(ca);	// Must set residue before setting alt locs
@@ -356,14 +354,30 @@ void Structure::_copy(Structure* s) const
         amap[a] = ca;
     }
     
-    for (auto bi = bonds().begin() ; bi != bonds().end() ; ++bi) {
-        Bond* b = *bi;
+    for (auto b: bonds()) {
         const Bond::Atoms& a = b->atoms();
         Bond* cb = s->new_bond(amap[a[0]], amap[a[1]]);
         cb->set_display(b->display());
         cb->set_color(b->color());
         cb->set_halfbond(b->halfbond());
         cb->set_radius(b->radius());
+    }
+
+    if (_chains != nullptr) {
+        s->_chains = new Chains();
+        for (auto c: chains()) {
+            auto cc = s->_new_chain(c->chain_id(), c->polymer_type());
+            StructureSeq::Residues bulk_residues;
+            for (auto r: c->residues()) {
+                if (r == nullptr)
+                    bulk_residues.push_back(nullptr);
+                else
+                    bulk_residues.push_back(rmap[r]);
+            }
+            cc->bulk_set(bulk_residues, &c->contents());
+            cc->set_circular(c->circular());
+            cc->set_from_seqres(c->from_seqres());
+        }
     }
 
     // Copy pseudobond groups.
