@@ -1679,23 +1679,6 @@ class Structure(Model, StructureData):
                 colors[:,3] = around(colors[:,3] * self.ribbon_tether_opacity).astype(int)
                 tp.colors = colors
 
-    def bounds(self):
-        #
-        # TODO: Updating ribbon graphics during bounds() calc is precarious.
-        # This caused bug #1717 where ribbons got unexpectedly deleted during a call
-        # to bounds() by the shadow calculation code during rendering.
-        # Probably should define bounds to mean the displayed graphics bounds
-        # which may not include pending updates to graphics.  Code that needs to
-        # include the pending graphics changes would need to explicitly update the graphics.
-        #
-        self._update_graphics_if_needed()       # Ribbon bounds computed from graphics
-        # import sys, time
-        # start = time.time()
-        b = super().bounds()
-        # stop = time.time()
-        # print('structure bounds time:', (stop - start) * 1e6, file=sys.__stderr__)
-        return b
-
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and exclude(self)):
             return None
