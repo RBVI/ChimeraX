@@ -212,6 +212,10 @@ class ModelListWidget(ItemListWidget):
 
        'balloon_help' is the balloon help to provide with the list (if any); if none provided then
        some generic help for  the 'extended' selection mode is provided if applicable
+
+       Do not access or set the value of this widget in trigger handlers that also update the widget.
+       For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
+       MODEL_ID_CHANGED and MODEL_NAME_CHANGED
     """
     def __init__(self, session, **kw):
         super().__init__(**_process_model_kw(session, **kw))
@@ -331,6 +335,10 @@ class ModelMenuButton(ItemMenuButton):
        text, and choosing that menu item is treated as setting self.value to None.
 
        'balloon_help' is the balloon help to provide with the list (if any).
+
+       Do not access or set the value of this widget in trigger handlers that also update the widget.
+       For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
+       MODEL_ID_CHANGED and MODEL_NAME_CHANGED
     """
     def __init__(self, session, **kw):
         super().__init__(**_process_model_kw(session, **kw))
