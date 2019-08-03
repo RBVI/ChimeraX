@@ -57,6 +57,7 @@ class _StatusBarOpenGL:
         self._window = pw = QWindow()
         pw.exposeEvent = self._expose_event
         pw.resizeEvent = self._resize_event
+        pw.keyPressEvent = self.session.ui.forward_keystroke
         pwidget = QWidget.createWindowContainer(pw, sb)
         pw.setSurfaceType(QSurface.OpenGLSurface)
         sb.addWidget(pwidget, stretch = 1)
