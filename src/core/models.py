@@ -72,10 +72,14 @@ class Model(State, Drawing):
         '''Delete this model.'''
         if self._deleted:
             raise RuntimeError('Model %s was deleted twice' % self._name)
+        models = self.session.models
+        if models.have_id(self.id) and self in models.list(model_id = self.id):
+            models.close([self])	# Remove from open models list.
+            return
         self._deleted = True
         Drawing.delete(self)
         self.triggers.activate_trigger("deleted", self)
-        delattr(self, "session")
+        self.session = None
 
     @property
     def selection_coupled(self):
