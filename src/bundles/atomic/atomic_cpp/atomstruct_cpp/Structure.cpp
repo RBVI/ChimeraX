@@ -458,6 +458,8 @@ Structure::_delete_atom(Atom* a)
     // if we're a backbone atom connecting to a backbone atom in an "adjacent" residue,
     // need to insert missing-structure pseudobond. "adjacent" considers missing-structure
     // pseudobonds
+    if (a->_rings.size() > 0)
+        _recompute_rings = true;
     if (a->is_backbone(BBE_MIN)) {
         std::vector<Atom*> missing_partners;
         auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
@@ -636,6 +638,8 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
     std::set<Bond*> del_bonds;
     std::set<Atom*> bond_losers;
     for (auto a: atoms) {
+        if (a->_rings.size() > 0)
+            _recompute_rings = true;
         for (auto b: a->bonds()) {
             del_bonds.insert(b);
             auto oa = b->other_atom(a);
@@ -774,6 +778,8 @@ Structure::delete_bond(Bond *b)
     set_gc_adddel();
     _structure_cats_dirty = true;
     _idatm_valid = false;
+    if (b->_rings.size() > 0)
+        _recompute_rings = true;
     delete b;
 }
 

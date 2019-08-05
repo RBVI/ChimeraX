@@ -37,7 +37,7 @@ webcolors==1.9.1
 # Documentation
 #
 blockdiag==1.5.4
-docutils==0.15.1.post1
+docutils==0.15.2
 Jinja2==2.10.1
 numpydoc==0.9.1
 Pygments==2.4.2

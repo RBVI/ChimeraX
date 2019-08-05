@@ -27,7 +27,7 @@ class UpdateLoop:
 
         self._minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
                                                    # of time since start of last drawing
-        self._last_redraw_start_time = self._last_redraw_finish_time = 0
+        self._last_timer_start_time = self._last_timer_finish_time = 0
         self._timer = None
         
     def draw_new_frame(self):
@@ -44,6 +44,7 @@ class UpdateLoop:
 
         # TODO: Would be nice to somehow minimize all the ugly timing.
         # TODO: Maybe timing is slowing things down a little, if so make it optional.
+        drew = False
         session = self.session
         view = session.main_view
         self.block_redraw()
@@ -71,6 +72,7 @@ class UpdateLoop:
                         t0 = time()
                         view.draw(check_for_changes = False)
                         self.last_draw_time = time() - t0
+                        drew = True
                 except OpenGLVersionError as e:
                     self.block_redraw()
                     session.logger.error(str(e))
@@ -89,7 +91,7 @@ class UpdateLoop:
 
         view.frame_number += 1
 
-        return changed
+        return drew
 
     def block_redraw(self):
         # Avoid redrawing when we are already in the middle of drawing.
@@ -119,14 +121,15 @@ class UpdateLoop:
     def _redraw_timer_callback(self):
         import time
         t = time.perf_counter()
-        dur = t - self._last_redraw_start_time
-        if t >= self._last_redraw_finish_time + self._minimum_event_processing_ratio * dur:
+        time_since_last_timer = t - self._last_timer_start_time
+        after_timer_interval = t - self._last_timer_finish_time
+        self._last_timer_start_time = t
+        if  after_timer_interval >= self._minimum_event_processing_ratio * time_since_last_timer:
             # Redraw only if enough time has elapsed since last frame to process some events.
             # This keeps the user interface responsive even during slow rendering
-            self._last_redraw_start_time = t
-            self.draw_new_frame()
+            drew = self.draw_new_frame()
             self.session.ui.mouse_modes.mouse_pause_tracking()
-            self._last_redraw_finish_time = time.perf_counter()
+        self._last_timer_finish_time = time.perf_counter()
 
     def update_graphics_now(self):
         '''
