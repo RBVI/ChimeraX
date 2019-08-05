@@ -95,6 +95,16 @@ See also: <a href="commands/set.html#bgColor"><b>set bgColor</b></a>
 </p>
 <h3>Clipping</h3>
 <ul>
+<li><b>Cap clipped surfaces</b>
+&ndash; whether to cap surfaces when they are sliced by
+<a href="commands/clip.html">clipping</a> (initial default <b>true</b>).
+See also: <a href="commands/surface.html#cap"><b>surface cap</b></a>
+<li><b>Cap subdivision factor</b>
+&ndash; fineness of triangulation (initial default <b>1.0</b>), which
+affects appearance when the cap is multicolored, such as 
+<a href="commands/color.html#map">by map value</a> or
+<a href="commands/color.html#zone">by zone</a>. 
+Higher values give finer triangulations, and the minimum value is 0.0.
 <li><b>Mouse clipping enables</b>
 &ndash; which type of <a href="commands/clip.html">clipping planes</a>
 are enabled by the <b>clip</b>
@@ -107,10 +117,6 @@ are enabled by the <b>clip</b>
   <li><b>screen planes</b>
   &ndash; those which remain fixed parallel to the screen (near/far)
   </ul>
-<li><b>Surface caps</b>
-&ndash; whether to cap surfaces initially when they are sliced by
-<a href="commands/clip.html">clipping</a>.
-See also: <a href="commands/surface.html#cap"><b>surface cap</b></a>
 </ul>
 
 <a name="distances"></a>
@@ -368,5 +374,5 @@ Example: <a href="tools/modeller.html"><b>Modeller Comparative</b></a>
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2019</address>
+August 2019</address>
 </body></html> 
