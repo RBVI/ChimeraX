@@ -60,7 +60,7 @@ and maps
   &ndash; molecular and nonmolecular surfaces
   </ul>
 <li><a href="#zone"><b>Coloring by Zone</b></a>
-&ndash; coloring nonmolecular surfaces to match nearby atoms
+&ndash; color molecular and nonmolecular surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
 </ul>
 <p>
@@ -503,6 +503,12 @@ molecular surfaces can be colored to match with:
 <b><a href="#simple">color</a> fromatoms target s</b>
 </blockquote>
 -->
+<p>
+To apply attribute coloring to a <a href="surface.html#cap">surface cap</a> 
+(from <a href="clip.html">clipping</a>), it is necessary to first color
+the atoms by attribute, then use <a href="color.html#zone"><b>color zone</b></a>
+to make the cap match the nearby atoms.
+</p>
 
 <a name="map"></a>
 <a name="sample"></a>
@@ -538,7 +544,8 @@ can be set independently.
 The <b>update</b> option (default <b>true</b>)
 indicates whether to update the coloring automatically 
 when the shape of the surface changes.
-See also: <a href="mlp.html"><b>mlp</b></a>
+See also: <a href="mlp.html"><b>mlp</b></a>,
+<a href="surface.html#cap"><b>surface cap</b></a>
 </p>
 <ul>
 <li><b>color sample</b> colors by map value.
@@ -666,9 +673,14 @@ and the <a href="view.html#screencoords">screen coordinate system</a>
 </blockquote>
 <p>
 Coloring by <b>zone</b> to match nearby atoms or
-<a href="../markers.html">markers</a> applies to nonmolecular surfaces only.
-The <i>cutoff</i> is specified in physical units of distance,
+<a href="../markers.html">markers</a> applies to surfaces only.
+The <b>distance</b> <i>cutoff</i> is specified in physical units,
 typically &Aring; (default <b>2.0</b>).
+For coloring a <a href="surface.html">molecular surface</a>
+(and/or its <a href="surface.html#cap">caps</a> where sliced by
+<a href="clip.html">clipping</a>)
+to match the underlying atoms, a cutoff of at least the diameter of the 
+surface-calculation probe (which defaults to 2.8 &Aring;) is recommended.
 When multiple specified atoms fall within the cutoff distance of a 
 surface vertex, the vertex will be colored to match the closest one.
 If <b>bondPointSpacing</b> is specified, points
@@ -676,6 +688,7 @@ spaced <i>s</i> &Aring; apart along bonds will be used
 in addition to the atoms to define the zone.
 Vertices not within the cutoff of any of the atoms are assigned 
 the default color of the surface model (single-color mode).
+</p><p>
 The <b>sharpEdges</b> option (default <b>false</b>) subdivides surface
 triangles to create sharp boundaries between the different colored regions.
 The <b>update</b> option (default <b>true</b>)
@@ -954,5 +967,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+August 2019</address>
 </body></html>

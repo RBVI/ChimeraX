@@ -217,6 +217,17 @@ class BundleBuilder:
                 source = e.getAttribute("source")
                 filename = self._get_element_text(e)
                 files.append(("file", source, filename))
+            for e in self._get_elements(dfs, "ExtraFileGroup"):
+                source = e.getAttribute("source")
+                source_base_dir = os.path.dirname(source)
+                while '*' in source_base_dir or '?' in source_base_dir:
+                    source_base_dir = os.path.split(source_base_dir)[0]
+                dirname = self._get_element_text(e)
+                sourcefiles = glob.glob(source, recursive=True)
+                if not len(sourcefiles):
+                    raise RuntimeError('ExtraFileGroup pattern {} does not match any files!'.format(source))
+                for sf in sourcefiles:
+                    files.append(("file", sf, os.path.join(dirname, os.path.relpath(sf, source_base_dir))))
             for e in self._get_elements(dfs, "ExtraDir"):
                 source = e.getAttribute("source")
                 dirname = self._get_element_text(e)
