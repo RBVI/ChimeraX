@@ -448,10 +448,10 @@ class MolecularSurface(Surface):
 
     def first_intercept(self, mxyz1, mxyz2, exclude = None):
         # Pick atom associated with surface patch
-        from chimerax.core.graphics import Drawing
+        from chimerax.core.graphics import Drawing, PickedTriangle
         p = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
-        if p is None:
-            return None
+        if not isinstance(p, PickedTriangle) or p.drawing() is not self:
+            return p
         t = p.triangle_number
         v = self.triangles[t,0]
         v2a = self.vertex_to_atom_map()
