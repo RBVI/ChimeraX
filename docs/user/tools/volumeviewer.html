@@ -169,45 +169,52 @@ of the data grid; it can be limited with the
 The <b><i>thresholds</i></b> on the <a href="#top"><b>Volume Viewer</b></a>
 histogram, each associated with a data <b>Level</b>,
 control how data values are mapped to the display.
-</p>
-<blockquote>
-<b>surface</b> or <b>mesh</b> style:<br>
-Each threshold is shown on the histogram as a vertical bar
-that can be moved horizontally.
-For unsigned data types, an initial threshold is set so that 1% of voxels
-(1% of the volume encompassed by the data region) lie above it;
-for signed data types, positive and negative thresholds are placed
-symmetrically about zero.
-Each threshold corresponds to a contour surface, generated as a
-<a href="modelpanel.html">submodel</a> of the data model.
-</blockquote>
-<blockquote>
-<b>volume</b> (<b>image</b>) style:<br>
-Each threshold is shown as a small square that can be moved horizontally
-and/or vertically.
-For unsigned data types, initial thresholds are set to give zero intensity
-for the 10% of voxels (in the data region) with the lowest values,
-scaling up to 0.99 intensity for the 1% of voxels
-with the highest values;
-for signed data types, positive and negative thresholds are placed
-symmetrically about zero.
-The thresholds and connecting lines on each histogram define a 
-<a href="../commands/volume.html#transferfunction">transfer function</a>
-that maps data values to colors and intensities.
-The rightmost threshold does not have to be at the far right of the histogram,
-and a threshold at a lower data value can be higher (vertically)
-than a threshold at a higher data value.
-<p>
-Threshold levels can be adjusted interactively by dragging in the
-<b>Volume Viewer</b> histogram
-or by using the <a href="../commands/ui.html#mousemode">mouse mode</a>
-for <b>contour level</b>
+They can be added and deleted using the
+<a href="../window.html#context-menu">context menu</a>
+and adjusted interactively by dragging in the histogram,
+or by dragging in the graphics window with the 
+<a href="../commands/ui.html#mousemode">mouse mode</a> for <b>contour level</b>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/contour.png"></a>
 or <b>windowing</b>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/windowing.png"></a>
-in the graphics window.
+<img class="icon" border=1 src="mouse-icons/windowing.png"></a>.
+The <a href="../commands/volume.html#settings"><b>volume settings</b></a>
+command reports the current threshold levels.
+</p>
+<blockquote>
+For the <b>surface</b> or <b>mesh</b> style:<br>
+Each threshold is shown on the histogram as a vertical bar
+that can be moved horizontally. 
+Each threshold corresponds to a contour surface, generated as a
+<a href="modelpanel.html">submodel</a> of the data model.
+For most types of volume data, an initial threshold is set so that 1% of voxels
+(1% of the data grid points) lie above it.
+For data types typically used for electrostatic potential
+(APBS, UHBD, DelPhi) or electron localization (Gaussian, gOpenMol),
+two initial thresholds are placed symmetrically about zero.
+</blockquote>
+<blockquote>
+For the <b>volume</b> (<b>image</b>) style:<br>
+Each threshold is shown as a small square that can be moved horizontally
+and/or vertically. 
+The thresholds and connecting lines on each histogram define a 
+<a href="../commands/volume.html#transferfunction">transfer function</a>
+that maps data values to colors and intensities.
+For most types of volume data, three initial thresholds are set: 
+zero intensity at the 10% rank value, 0.8 intensity at 99% rank, 
+and full intensity at the largest value.
+<a href="../dicom/dicom.html">DICOM</a> data are initially shown 
+with thresholds: (&ndash;1000,0),(300,0.9),(3000,1).
+For data types typically used for electrostatic potential
+(APBS, UHBD, DelPhi) or electron localization (Gaussian, gOpenMol),
+five initial thresholds are set: zero intensity at zero
+and two more on either side, ramping up to full intensities at the 
+largest negative and largest positive values. The image representation is a
+<a href="modelpanel.html">submodel</a> of the data model.
+Initial threshold positions for the image style can be restored by clicking the
+<a href="densitymaps.html"><b>Map</b></a> icon
+<img class="icon" src="shortcut-icons/initialcurve.png">.
 </blockquote>
 <a name="context"></a>
 <p>
@@ -268,5 +275,5 @@ target="_blank">ChimeraX light microscopy highlight</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2019</address>
+August 2019</address>
 </body></html>

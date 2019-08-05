@@ -262,7 +262,7 @@ class Model(State, Drawing):
 
     def take_snapshot(self, session, flags):
         p = self.parent
-        if p is session.models.drawing:
+        if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
         data = {
             'name': self.name,
@@ -280,7 +280,7 @@ class Model(State, Drawing):
     @classmethod
     def restore_snapshot(cls, session, data):
         if cls is Model and data['id'] is ():
-            return session.models.drawing
+            return session.models.scene_root_model
         # TODO: Could call the cls constructor here to handle a derived class,
         #       but that would require the derived constructor have the same args.
         m = Model(data['name'], session)
@@ -402,7 +402,7 @@ class Models(StateManager):
         t.add_trigger(MODEL_POSITION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
         self._models = {}				# Map id to Model
-        self.drawing = r = Model("root", session)
+        self._scene_root_model = r = Model("root", session)
         r.id = ()
 
     def take_snapshot(self, session, flags):
@@ -430,6 +430,10 @@ class Models(StateManager):
     def reset_state(self, session):
         self.close([m for m in self.list() if not m.SESSION_ENDURING])
 
+    @property
+    def scene_root_model(self):
+        return self._scene_root_model
+
     def list(self, model_id=None, type=None):
         if model_id is None:
             models = list(self._models.values())
@@ -448,7 +452,7 @@ class Models(StateManager):
             _need_fire_id_trigger = []
         start_count = len(self._models)
 
-        d = self.drawing if parent is None else parent
+        d = self.scene_root_model if parent is None else parent
         for m in models:
             if m.parent is None or m.parent is not d:
                 d.add_drawing(m)
@@ -499,7 +503,7 @@ class Models(StateManager):
         del mt[model.id]
         model.id = id
         mt[id] = model
-        p = mt[id[:-1]] if len(id) > 1 else self.drawing
+        p = mt[id[:-1]] if len(id) > 1 else self.scene_root_model
         p._next_unused_id = None
         self.add([model], parent = p)
 
@@ -524,7 +528,7 @@ class Models(StateManager):
         # gaps it can take O(N**2) time to figure out ids to assign for N models.
         # This code handles the common case of no gaps quickly.
         if parent is None:
-            parent = self.drawing
+            parent = self.scene_root_model
         nid = getattr(parent, '_next_unused_id', None)
         if nid is None:
             # Find next unused id.
@@ -572,7 +576,7 @@ class Models(StateManager):
                 del self._models[model_id]
                 model.id = None
                 if len(model_id) == 1:
-                    parent = self.drawing
+                    parent = self.scene_root_model
                 else:
                     parent = self._models[model_id[:-1]]
                 parent.remove_drawing(model, delete=False)

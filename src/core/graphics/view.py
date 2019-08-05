@@ -554,7 +554,7 @@ class View:
 
     def _shadow_bounds(self, drawings):
         if drawings is None:
-            b = self.drawing_bounds()
+            b = self.drawing_bounds(allow_drawing_changes = False)
             sdrawings = [self.drawing]
         else:
             sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
@@ -571,13 +571,14 @@ class View:
             return 0	# OpenGL not available
         return self._render.multishadow.max_multishadows()
 
-    def drawing_bounds(self, clip=False, cached_only=False):
+    def drawing_bounds(self, clip=False, cached_only=False, allow_drawing_changes=True):
         '''Return bounds of drawing, displayed part only.'''
         dm = self._drawing_manager
         if cached_only:
             return dm.cached_drawing_bounds
-        # Cause graphics update so bounds include changes in models.
-        self.check_for_drawing_change()
+        if allow_drawing_changes:
+            # Cause graphics update so bounds include changes in models.
+            self.check_for_drawing_change()
         b = dm.cached_drawing_bounds
         if b is None:
             dm.cached_drawing_bounds = b = self.drawing.bounds()
@@ -825,7 +826,7 @@ class View:
         return cnear, cfar
 
     def _near_far_bounds(self, camera_pos, view_dir):
-        b = self.drawing_bounds()
+        b = self.drawing_bounds(allow_drawing_changes = False)
         if b is None:
             return self._min_near_fraction, 1  # Nothing shown
         from ..geometry import inner_product

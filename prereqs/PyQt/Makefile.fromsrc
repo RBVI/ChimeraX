@@ -4,7 +4,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-#SUBDIRS = qt sip
+SUBDIRS = qt sip
 
 include $(TOP)/mk/subdir.make
 
