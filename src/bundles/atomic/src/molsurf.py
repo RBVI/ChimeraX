@@ -564,7 +564,7 @@ def surfaces_overlapping_atoms(surfs, atoms):
 def surfaces_with_atoms(atoms):
     if atoms is None or len(atoms) == 0:
         return []
-    top_drawing = atoms[0].structure.session.models.drawing
+    top_drawing = atoms[0].structure.session.models.scene_root_model
 
     surfs = []
     for m in list(atoms.unique_structures) + [top_drawing]:

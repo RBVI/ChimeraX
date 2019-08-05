@@ -381,7 +381,7 @@ class SideViewUI(ToolInstance):
         # UI content code
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QCheckBox, QStackedWidget
-        self.view = v = View(session.models.drawing, window_size=(0, 0))
+        self.view = v = View(session.models.scene_root_model, window_size=(0, 0))
         v.initialize_rendering(session.main_view.render.opengl_context)
         # TODO: from chimerax.core.graphics.camera import OrthographicCamera
         v.camera = OrthoCamera()
