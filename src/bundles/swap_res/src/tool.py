@@ -24,6 +24,7 @@ def prep_rotamers_dialog(session, rotamers_tool_name):
 class PrepRotamersDialog(ToolInstance):
 
     #help = "help:user/tools/rotamers.html"
+    SESSION_SAVE = False
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -111,7 +112,7 @@ class PrepRotamersDialog(ToolInstance):
         from chimerax.atomic.rotamers import NoResidueRotamersError
         try:
             for r in sel_residues:
-                RotamerDialog(r, res_type, self.rot_lib)
+                RotamerDialog(self.session, r, res_type, self.rot_lib)
         except NoResidueRotamersError:
             lib_name = self.rot_lib_option.value
             from chimerax.core.commands import run
@@ -158,3 +159,18 @@ class PrepRotamersDialog(ToolInstance):
         if len(sel_res_types) == 1:
             return self.rot_lib.map_res_name(sel_res_types.pop(), exemplar=sel_residues[0])
         return None
+
+class RotamerDialog(ToolInstance):
+
+    #help = "help:user/tools/rotamers.html"
+
+    #TODO: restoring from session
+    def __init__(self, session, residue, res_type, lib):
+        ToolInstance.__init__(self, session, "%s Side-Chain Rotamers" % residue)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self)
+        parent = tw.ui_area
+        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
+        from PyQt5.QtCore import Qt
+        self.layout = layout = QVBoxLayout()
+        parent.setLayout(layout)
