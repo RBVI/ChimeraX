@@ -166,7 +166,11 @@ class HtmlView(QWebEngineView):
         url :    a string containing URL corresponding to content.
         """
         from PyQt5.QtCore import QUrl
+        # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
         self.setEnabled(False)
+        # HACK ALERT: to get around a QWebEngineView bug where HTML
+        # source is converted into a "data:" link and runs into the
+        # URL length limit.
         if len(html) < 1000000:
             if url is None:
                 url = QUrl()
