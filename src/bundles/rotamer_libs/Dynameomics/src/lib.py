@@ -45,8 +45,8 @@ Protein Science 20, 341-352."""
         return self._rotamer_res_names
 
     @property
-    def res_name_description(self):
-        mapping = super().res_name_description
+    def res_name_descriptions(self):
+        mapping = super().res_name_descriptions
         mapping.update({
             "CYH": "non-disulfide-bonded cysteine",
             "CYS": "disulfide-bonded cysteine",

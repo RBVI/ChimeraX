@@ -135,8 +135,8 @@ class RotamerLibrary:
             return res_name
         return None
 
-    std_rotamer_res_names = set(["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS", "ILE", "LEU", "LYS", "MET",
-                "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"])
+    std_rotamer_res_names = frozenset(["ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "HIS", "ILE", "LEU",
+            "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL"])
     @property
     def residue_names(self):
         """A set of the residue names that this rotamer library provides rotamers for.  Typically just
@@ -144,36 +144,22 @@ class RotamerLibrary:
            rotamers for certain protonation states (e.g. CYH for non-disulphide cysteine) or conformers
            (e.g. CPR for cis-proline).
         """
-        return self.std_rotamer_res_names
+        return self.std_rotamer_res_names.copy()
 
+    std_rotamer_res_descriptions = { "ALA": "alanine", "ASN": "asparagine", "ASP": "aspartic acid",
+            "CYS": "cysteine", "GLN": "glutamine", "GLU": "glutamic acid", "GLY": "glycine",
+            "HIS": "histidine", "ILE": "isoleucine", "LEU": "leucine", "LYS": "lysine",
+            "MET": "methionine", "PHE": "phenylalinine", "PRO": "proline", "SER": "serine",
+            "THR": "threonine", "TRP": "tryptophan", "TYR": "tyrosine", "VAL": "valine",
+        }
     @property
-    def res_name_description(self):
+    def res_name_descriptions(self):
         """A dictionary mapping the 3-letter residue name to a full text description of the residue,
            e.g. "leucine" for LEU or "doubly protonated histidine" for HIP.  All normal amino acids
            are included in the default implementation.  All residues provided by the library should
            be in the dictionary that this property returns.
         """
-        return {
-            "ALA": "alanine",
-            "ASN": "asparagine",
-            "ASP": "aspartic acid",
-            "CYS": "cysteine",
-            "GLN": "glutamine",
-            "GLU": "glutamic acid",
-            "GLY": "glycine",
-            "HIS": "histidine",
-            "ILE": "isoleucine",
-            "LEU": "leucine",
-            "LYS": "lysine",
-            "MET": "methionine",
-            "PHE": "phenylalinine",
-            "PRO": "proline",
-            "SER": "serine",
-            "THR": "threonine",
-            "TRP": "tryptophan",
-            "TYR": "tyrosine",
-            "VAL": "valine",
-        }
+        return self.std_rotamer_res_descriptions.copy()
 
     @property
     def res_name_mapping(self):

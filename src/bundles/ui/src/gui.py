@@ -1519,6 +1519,22 @@ class ToolWindow(StatusLogger):
         is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
         pass
 
+    def shrink_to_fit(self):
+        dw = self.__toolkit.dock_widget
+        if self.floating:
+            resize = lambda dw=dw: dw.resize(0,0)
+        else:
+            dock_area = self.session.ui.main_window.dockWidgetArea(dw)
+            from PyQt5.QtCore import Qt
+            if dock_area == Qt.LeftDockWidgetArea or dock_area == Qt.RightDockWidgetArea:
+                orientation = Qt.Vertical
+            else:
+                orientation = Qt.Horizontal
+            resize = lambda mw=self.session.ui.main_window, dw=dw, orientation=orientation: \
+                mw.resizeDocks([dw], [1], orientation)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, resize)
+
     def status(self, *args, **kw):
         """Supported API.  Show a status message for the tool."""
         if self._have_statusbar:

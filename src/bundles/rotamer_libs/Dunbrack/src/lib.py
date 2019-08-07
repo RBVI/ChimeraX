@@ -45,8 +45,8 @@ Structure, 19, 844-858."""
         return self._rotamer_res_names
 
     @property
-    def res_name_description(self):
-        mapping = super().res_name_description
+    def res_name_descriptions(self):
+        mapping = super().res_name_descriptions
         mapping.update({
             "CPR": "cis proline",
             "CYD": "disulfide-bonded cysteine",

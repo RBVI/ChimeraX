@@ -32,10 +32,11 @@ class PrepRotamersDialog(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         tw.title = "Choose Rotamer Parameters"
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
+        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QGroupBox
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
+        layout.setContentsMargins(0,0,0,0)
         layout.addWidget(QLabel("Show rotamers for selected residues..."), alignment=Qt.AlignCenter)
 
         installed_lib_names = set(session.rotamers.library_names(installed_only=True))
@@ -63,7 +64,7 @@ class PrepRotamersDialog(ToolInstance):
         def_res_type = self._sel_res_type() or res_name_list[0]
         self.res_type_option = ResTypeOption("Rotamer type", def_res_type, None)
 
-        opts = OptionsPanel(scrolled=False)
+        opts = OptionsPanel(scrolled=False, contents_margins=(0,0,3,3))
         opts.add_option(self.res_type_option)
         opts.add_option(self.rot_lib_option)
         layout.addWidget(opts, alignment=Qt.AlignCenter)
@@ -71,13 +72,22 @@ class PrepRotamersDialog(ToolInstance):
         self.lib_description = QLabel(self.rot_lib.description)
         layout.addWidget(self.lib_description, alignment=Qt.AlignCenter)
 
+        self.rot_description_box = QGroupBox("Unusual rotamer codes")
+        self.rot_description = QLabel("")
+        box_layout = QVBoxLayout()
+        box_layout.setContentsMargins(10,0,10,0)
+        box_layout.addWidget(self.rot_description)
+        self.rot_description_box.setLayout(box_layout)
+        layout.addWidget(self.rot_description_box, alignment=Qt.AlignCenter)
+        self._update_rot_description()
+
         self.citation_widgets = {}
         cw = self.citation_widgets[def_lib] = self.citation_widgets['showing'] = self._make_citation_widget()
         if cw:
             layout.addWidget(cw, alignment=Qt.AlignCenter)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
-        bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_rotamers)
         bbox.button(qbbox.Apply).clicked.connect(self.launch_rotamers)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
@@ -86,7 +96,6 @@ class PrepRotamersDialog(ToolInstance):
         bbox.button(qbbox.Help).setEnabled(False)
         #bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
-        self.cite_insert_index = layout.indexOf(bbox)
 
         tw.manage(placement=None)
 
@@ -141,9 +150,11 @@ class PrepRotamersDialog(ToolInstance):
         new_cite = self.citation_widgets[self.rot_lib_option.value]
         if new_cite:
             from PyQt5.QtCore import Qt
-            self.layout.insertWidget(self.cite_insert_index, new_cite, alignment=Qt.AlignCenter)
+            self.layout.insertWidget(self.layout.indexOf(self.bbox), new_cite, alignment=Qt.AlignCenter)
             new_cite.show()
         self.citation_widgets['showing'] = new_cite
+        self._update_rot_description()
+        self.tool_window.shrink_to_fit()
 
     def _make_citation_widget(self):
         if not self.rot_lib.citation:
@@ -159,6 +170,20 @@ class PrepRotamersDialog(ToolInstance):
         if len(sel_res_types) == 1:
             return self.rot_lib.map_res_name(sel_res_types.pop(), exemplar=sel_residues[0])
         return None
+
+    def _update_rot_description(self):
+        from chimerax.atomic.rotamers import RotamerLibrary
+        unusual_info = []
+        std_descriptions = RotamerLibrary.std_rotamer_res_descriptions
+        for code, desc in self.rot_lib.res_name_descriptions.items():
+            if code not in std_descriptions or std_descriptions[code] != desc:
+                unusual_info.append((code, desc))
+        if unusual_info:
+            unusual_info.sort()
+            self.rot_description.setText("\n".join(["%s: %s" % (code, desc) for code, desc in unusual_info]))
+            self.rot_description_box.show()
+        else:
+            self.rot_description_box.hide()
 
 class RotamerDialog(ToolInstance):
 

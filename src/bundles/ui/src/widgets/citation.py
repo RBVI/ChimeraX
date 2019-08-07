@@ -36,6 +36,7 @@ class Citation(QFrame):
         self.session = session
 
         layout = QGridLayout()
+        layout.setContentsMargins(5,5,5,5)
         self.setLayout(layout)
 
         if prefix is not None:
