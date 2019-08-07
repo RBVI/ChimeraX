@@ -144,7 +144,7 @@ class _InterpolateLabel:
                 self.interp_color = False
             else:
                 self.color1 = label.color
-                self.color2 = bg2
+                self.color2 = color2
                 self.interp_color = True
         if bg_color is None:
             # no change
