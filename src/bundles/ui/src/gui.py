@@ -1520,6 +1520,9 @@ class ToolWindow(StatusLogger):
         pass
 
     def shrink_to_fit(self):
+        """Supported API. Resize the window to take up the minimum size needed by its contents.
+           Typically used after hiding widgets.
+        """
         dw = self.__toolkit.dock_widget
         if self.floating:
             resize = lambda dw=dw: dw.resize(0,0)
@@ -1570,6 +1573,10 @@ class ToolWindow(StatusLogger):
 
     @property
     def _dock_widget(self):
+        """This is for emergency access to the QDockWidget.  If you find yourself needing to use this,
+           you should send mail to chimerax-users and request an enhancement to the ToolWindow API to
+           directly support whatever you are using the dock widget for.
+        """
         return self.__toolkit.dock_widget
 
     def _forward_keystroke(self, event):
