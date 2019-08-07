@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-VERSION = 18.2.5
+VERSION = 19.0.8
 DISTRIBUTION = mesa-$(VERSION).tar.xz
 SOURCE = $(tmpdir)/mesa-$(VERSION)
 
@@ -31,7 +31,8 @@ CONFIG_OPTS = --prefix=$(build_prefix) \
 	--disable-va \
 	--disable-vdpau \
 	--disable-xvmc \
-	--disable-shared-glapi
+	--disable-shared-glapi \
+	--enable-autotools
 
 ifneq (,$(wildcard $(tmpdir)/llvm-*))
 #if using our own llvm:
@@ -48,7 +49,7 @@ install: $(SOURCE)
 app-install:;
 	$(RSYNC) $(shlibdir)/libOSMesa.*$(SHLIB_EXT)* $(app_shlibdir)
 
-$(SOURCE):
+$(SOURCE) source:
 	$(bindir)/7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \

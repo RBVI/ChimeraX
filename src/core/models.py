@@ -72,10 +72,14 @@ class Model(State, Drawing):
         '''Delete this model.'''
         if self._deleted:
             raise RuntimeError('Model %s was deleted twice' % self._name)
+        models = self.session.models
+        if models.have_id(self.id) and self in models.list(model_id = self.id):
+            models.close([self])	# Remove from open models list.
+            return
         self._deleted = True
         Drawing.delete(self)
         self.triggers.activate_trigger("deleted", self)
-        delattr(self, "session")
+        self.session = None
 
     @property
     def selection_coupled(self):
@@ -419,12 +423,12 @@ class Models(StateManager):
     @staticmethod
     def restore_snapshot(session, data):
         mdict = data['models']
-        session.triggers.activate_trigger(RESTORED_MODELS, tuple(mdict.values()))
         m = session.models
         for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
-                if model.parent is None:
+                if model.parent is None and not m.have_id(id):
                     m.add([model], _from_session=True)
+        session.triggers.activate_trigger(RESTORED_MODELS, session)
         return m
 
     def reset_state(self, session):
@@ -446,20 +450,24 @@ class Models(StateManager):
     def empty(self):
         return len(self._models) == 0
 
-    def add(self, models, parent=None, minimum_id = 1,
+    def add(self, models, parent=None, minimum_id = 1, root_model = False,
             _notify=True, _need_fire_id_trigger=None, _from_session=False):
         if _need_fire_id_trigger is None:
             _need_fire_id_trigger = []
         start_count = len(self._models)
 
-        d = self.scene_root_model if parent is None else parent
-        for m in models:
-            if m.parent is None or m.parent is not d:
-                d.add_drawing(m)
+        if parent is None and not root_model:
+            parent = self.scene_root_model
+
+        # Add models to parent
+        if parent:
+            for m in models:
+                if m.parent is None or m.parent is not parent:
+                    parent.add_drawing(m)
 
         # Handle already added models being moved to a new parent.
         for model in models:
-            if model.id and model.id[:-1] != d.id and model.id in self._models:
+            if model.id and (parent is None or model.id[:-1] != parent.id) and model.id in self._models:
                 # Model has id that is not a subid of parent, so assign new id.
                 _need_fire_id_trigger.append(model)
                 del self._models[model.id]
@@ -470,11 +478,11 @@ class Models(StateManager):
         # Assign new model ids
         for model in models:
             if model.id is None:
-                model.id = self.next_id(parent = d, minimum_id = minimum_id)
+                model.id = self.next_id(parent = parent, minimum_id = minimum_id)
             self._models[model.id] = model
             children = model.child_models()
             if children:
-                self.add(children, model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
+                self.add(children, parent=model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
 
         # Notify that models were added
         if _notify:
@@ -533,6 +541,10 @@ class Models(StateManager):
         if nid is None:
             # Find next unused id.
             cids = set(m.id[-1] for m in parent.child_models() if m.id is not None)
+            if parent is self.scene_root_model:
+                # Include ids of overlay models that are not part of scene root.
+                for id in self._models.keys():
+                    cids.add(id[0])
             for nid in range(minimum_id, minimum_id + len(cids) + 1):
                 if nid not in cids:
                     break
@@ -575,12 +587,10 @@ class Models(StateManager):
             if model_id is not None:
                 del self._models[model_id]
                 model.id = None
-                if len(model_id) == 1:
-                    parent = self.scene_root_model
-                else:
-                    parent = self._models[model_id[:-1]]
-                parent.remove_drawing(model, delete=False)
-                parent._next_unused_id = None
+                parent = model.parent
+                if parent:
+                    parent.remove_drawing(model, delete=False)
+                    parent._next_unused_id = None
 
         # it's nice to have an accurate list of current models
         # when firing this trigger, so do it last

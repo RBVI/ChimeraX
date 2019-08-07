@@ -690,6 +690,7 @@ def standard_metadata(previous_metadata={}):
     from html import unescape
     import os
     import datetime
+    from . import buildinfo
 
     metadata = {}
     if previous_metadata:
@@ -728,6 +729,11 @@ def standard_metadata(previous_metadata={}):
     if len(tmp) == 1:
         tmp = tmp[0]
     metadata['dateCopyrighted'] = tmp
+    # build information
+    # version is in 'generator'
+    metadata['%s-commit' % app_dirs.appname] = buildinfo.commit
+    metadata['%s-date' % app_dirs.appname] = buildinfo.date
+    metadata['%s-branch' % app_dirs.appname] = buildinfo.branch
     return metadata
 
 

@@ -147,6 +147,35 @@ class RotamerLibrary:
         return self.std_rotamer_res_names
 
     @property
+    def res_name_description(self):
+        """A dictionary mapping the 3-letter residue name to a full text description of the residue,
+           e.g. "leucine" for LEU or "doubly protonated histidine" for HIP.  All normal amino acids
+           are included in the default implementation.  All residues provided by the library should
+           be in the dictionary that this property returns.
+        """
+        return {
+            "ALA": "alanine",
+            "ASN": "asparagine",
+            "ASP": "aspartic acid",
+            "CYS": "cysteine",
+            "GLN": "glutamine",
+            "GLU": "glutamic acid",
+            "GLY": "glycine",
+            "HIS": "histidine",
+            "ILE": "isoleucine",
+            "LEU": "leucine",
+            "LYS": "lysine",
+            "MET": "methionine",
+            "PHE": "phenylalinine",
+            "PRO": "proline",
+            "SER": "serine",
+            "THR": "threonine",
+            "TRP": "tryptophan",
+            "TYR": "tyrosine",
+            "VAL": "valine",
+        }
+
+    @property
     def res_name_mapping(self):
         """For libraries that have non-standard residue names that correspond to certain states of
            standard residues (see the residue_names method), this dictionary maps the non-standard
