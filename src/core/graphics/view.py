@@ -166,8 +166,9 @@ class View:
         camera.combine_rendered_camera_views(r)
 
         if self._overlays:
+            odrawings = sum([o.all_drawings(displayed_only = True) for o in self._overlays], [])
             from .drawing import draw_overlays
-            draw_overlays(self._overlays, r)
+            draw_overlays(odrawings, r)
 
         if use_calllist:
             gllist.call_opengl_list(self, trace=True)
@@ -389,12 +390,13 @@ class View:
         '''The current list of overlay Drawings.'''
         return self._overlays
 
-    def remove_overlays(self, overlays=None):
+    def remove_overlays(self, overlays=None, delete = True):
         '''Remove the specified overlay Drawings.'''
         if overlays is None:
             overlays = self._overlays
-        for o in overlays:
-            o.delete()
+        if delete:
+            for o in overlays:
+                o.delete()
         oset = set(overlays)
         self._overlays = [o for o in self._overlays if o not in oset]
         self.redraw_needed = True

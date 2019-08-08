@@ -17,7 +17,7 @@ class Selection:
 
     def __init__(self, sess):
         self._all_models = sess.models	# Models object
-        self._promotion = SelectionPromoter(self._all_models.drawing)
+        self._promotion = SelectionPromoter(self._all_models.scene_root_model)
         sess.triggers.add_trigger(SELECTION_CHANGED)
         # XXX: SELECTION_CHANGED trigger is currently fired in by
         # atomic.structure.StructureGraphicsChangeManager

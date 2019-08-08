@@ -404,7 +404,7 @@ class Session:
         from . import models
         self.models = models.Models(self)
         from .graphics.view import View
-        self.main_view = View(self.models.drawing, window_size=(256, 256),
+        self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
                               trigger_set=self.triggers)
         self.user_aliases = UserAliases()
 
@@ -690,6 +690,7 @@ def standard_metadata(previous_metadata={}):
     from html import unescape
     import os
     import datetime
+    from . import buildinfo
 
     metadata = {}
     if previous_metadata:
@@ -728,6 +729,11 @@ def standard_metadata(previous_metadata={}):
     if len(tmp) == 1:
         tmp = tmp[0]
     metadata['dateCopyrighted'] = tmp
+    # build information
+    # version is in 'generator'
+    metadata['%s-commit' % app_dirs.appname] = buildinfo.commit
+    metadata['%s-date' % app_dirs.appname] = buildinfo.date
+    metadata['%s-branch' % app_dirs.appname] = buildinfo.branch
     return metadata
 
 

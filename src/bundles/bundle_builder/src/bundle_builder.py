@@ -218,6 +218,7 @@ class BundleBuilder:
                 filename = self._get_element_text(e)
                 files.append(("file", source, filename))
             for e in self._get_elements(dfs, "ExtraFileGroup"):
+                import os.path, glob
                 source = e.getAttribute("source")
                 source_base_dir = os.path.dirname(source)
                 while '*' in source_base_dir or '?' in source_base_dir:

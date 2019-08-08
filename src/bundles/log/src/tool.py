@@ -132,6 +132,7 @@ class Log(ToolInstance, HtmlLog):
         ToolInstance.__init__(self, session, tool_name)
         from .settings import settings
         self.settings = settings
+        self.suppress_scroll = False
         from chimerax.ui import MainToolWindow
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
@@ -195,6 +196,17 @@ class Log(ToolInstance, HtmlLog):
                 # defer context menu to parent
                 #from PyQt5.QtCore import Qt
                 #self.setContextMenuPolicy(Qt.NoContextMenu)
+
+            def link_clicked(self, *args, **kw):
+                # for #2289, don't scroll log when a link in it is clicked
+                self.log.suppress_scroll = True
+                super().link_clicked(*args, **kw)
+                def defer(log_tool):
+                    log_tool.suppress_scroll = False
+                # clicked link is executed via thread_safe, so add another
+                # that is executed after that one
+                self.session.ui.thread_safe(defer, self.log)
+
 
             ## Moved into ui/widgets/htmlview.py
             ## def contextMenuEvent(self, event):
@@ -342,41 +354,19 @@ class Log(ToolInstance, HtmlLog):
         self.session.ui.thread_safe(self._show)
 
     def _show(self):
-        html = "<style>%s%s</style>\n<body onload=\"window.scrollTo(0, document.body.scrollHeight);\">%s</body>" % (
+        if self.suppress_scroll:
+            sp = self.log_window.page().scrollPosition()
+            height = str(sp.y())
+        else:
+            height = 'document.body.scrollHeight'
+        html = "<style>%s%s</style>\n<body onload=\"window.scrollTo(0, %s);\">%s</body>" % (
             cxcmd_css,
             cxcmd_as_cmd_css if self.settings.exec_cmd_links else cxcmd_as_doc_css,
+            height,
             self.page_source
         )
         lw = self.log_window
-        # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
-        lw.setEnabled(False)
-        # HACK ALERT: to get around a QWebEngineView bug where HTML
-        # source is converted into a "data:" link and runs into the
-        # URL length limit.
-        if len(html) < 1000000:
-            lw.setHtml(html)
-        else:
-            try:
-                tf = open(self._tf_name, "wb")
-            except AttributeError:
-                import tempfile, atexit
-                tf = tempfile.NamedTemporaryFile(prefix="chtmp", suffix=".html",
-                                                 delete=False, mode="wb")
-                self._tf_name = tf.name
-                def clean(filename):
-                    import os
-                    try:
-                        os.remove(filename)
-                    except OSError:
-                        pass
-                atexit.register(clean, tf.name)
-            from PyQt5.QtCore import QUrl
-            tf.write(bytes(html, "utf-8"))
-            # On Windows, we have to close the temp file before
-            # trying to open it again (like loading HTML from it).
-            tf.close()
-            lw.load(QUrl.fromLocalFile(self._tf_name))
-        lw.setEnabled(True)
+        lw.setHtml(html)
 
     def plain_text(self):
         """Convert HTML to plain text"""

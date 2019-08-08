@@ -78,7 +78,6 @@
     <ChimeraXClassifier>Command :: rainbow :: Depiction :: "rainbow" color (parts of) structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rename :: General Controls :: change name or ID of model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: roll :: General Controls :: continuously turn model(s) about an axis</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: run :: Utilities :: execute arguments as a command</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: runscript :: General Controls :: run a Python script with arguments</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: select :: General Controls :: select models or parts thereof</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~select :: General Controls :: unselect models or parts thereof</ChimeraXClassifier>

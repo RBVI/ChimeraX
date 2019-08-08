@@ -1519,6 +1519,25 @@ class ToolWindow(StatusLogger):
         is hidden (\ `shown` = False) or shown (\ `shown` = True)"""
         pass
 
+    def shrink_to_fit(self):
+        """Supported API. Resize the window to take up the minimum size needed by its contents.
+           Typically used after hiding widgets.
+        """
+        dw = self.__toolkit.dock_widget
+        if self.floating:
+            resize = lambda dw=dw: dw.resize(0,0)
+        else:
+            dock_area = self.session.ui.main_window.dockWidgetArea(dw)
+            from PyQt5.QtCore import Qt
+            if dock_area == Qt.LeftDockWidgetArea or dock_area == Qt.RightDockWidgetArea:
+                orientation = Qt.Vertical
+            else:
+                orientation = Qt.Horizontal
+            resize = lambda mw=self.session.ui.main_window, dw=dw, orientation=orientation: \
+                mw.resizeDocks([dw], [1], orientation)
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, resize)
+
     def status(self, *args, **kw):
         """Supported API.  Show a status message for the tool."""
         if self._have_statusbar:
@@ -1554,6 +1573,10 @@ class ToolWindow(StatusLogger):
 
     @property
     def _dock_widget(self):
+        """This is for emergency access to the QDockWidget.  If you find yourself needing to use this,
+           you should send mail to chimerax-users and request an enhancement to the ToolWindow API to
+           directly support whatever you are using the dock widget for.
+        """
         return self.__toolkit.dock_widget
 
     def _forward_keystroke(self, event):
