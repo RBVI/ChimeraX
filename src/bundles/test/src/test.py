@@ -92,7 +92,6 @@ commands = [
     'ribbon /b/c',
     '~disp /b/c',
     '~ribbon',
-    'run "echo run run run"',
     'measure sasa /d',
     # 'save ~/Desktop/test_image.jpg',  # JPEG support missing, bug #186
     'save ~/Desktop/test_image.png',
