@@ -591,6 +591,8 @@ class Models(StateManager):
                 if parent:
                     parent.remove_drawing(model, delete=False)
                     parent._next_unused_id = None
+                else:
+                    self.scene_root_model._next_unused_id = None             
 
         # it's nice to have an accurate list of current models
         # when firing this trigger, so do it last
