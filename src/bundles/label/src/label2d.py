@@ -249,8 +249,11 @@ def label_under_window_position(session, win_x, win_y):
     
 # -----------------------------------------------------------------------------
 #
-def label_delete(session, labels):
+def label_delete(session, labels = None):
     '''Delete label.'''
+    if labels is None:
+        lm = session_labels(session)
+        labels = lm.all_labels if lm else ()
     for l in tuple(labels):
         l.delete()
 
@@ -277,7 +280,7 @@ class NamedLabelsArg(Annotation):
     def parse(text, session):
         from chimerax.core.commands import AnnotationError, next_token
         if not text:
-            raise AnnotationError("Expected %s" % NameArg.name)
+            raise AnnotationError("Expected %s" % NamedLabelsArg.name)
         lm = session_labels(session)
         token, text, rest = next_token(text)
         if lm.named_label(token) is None:
@@ -333,7 +336,7 @@ def register_label_command(logger):
     change_desc = CmdDesc(required = labels_arg, keyword = cargs + [('frames', IntArg)],
                           synopsis = 'Change a 2d label')
     register('2dlabels change', change_desc, label_change, logger=logger)
-    delete_desc = CmdDesc(required = labels_arg,
+    delete_desc = CmdDesc(optional = labels_arg,
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
     fonts_desc = CmdDesc(synopsis = 'List available fonts')
