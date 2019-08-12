@@ -455,8 +455,10 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
         idatm_lookup = {}
         if template:
             template_lookup = {}
+            from chimerax.atomic import TmplResidue
+            get_template = TmplResidue.get_template
             for res in struct.residues:
-                if Sequence.rname3to1(res.name) != 'X':
+                if get_template(res.name):
                     continue
                 try:
                     exemplar = template_lookup[res.name]
@@ -465,6 +467,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                     tmpl = find_template_residue(session, res.name)
                     if not tmpl:
                         continue
+                    print("Using template for", res.name)
                     from chimerax.atomic import AtomicStructure
                     s = AtomicStructure(session)
                     r = exemplar = template_lookup[res.name] = s.new_residue(res.name, 'A', 1)
