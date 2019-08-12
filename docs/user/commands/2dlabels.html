@@ -30,7 +30,8 @@ class="clRight" title="User Guide Index"/></a>
 <a href="prc.png" title="click to enlarge...">
 <img class="outline" src="prc.png" alt="2D labels example" 
 width="300px"></a></td></tr>
-<tr><td><font size="-1"><a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html"
+<tr><td align="center"><font size="-1">
+<a href="http://www.rbvi.ucsf.edu/chimerax/gallery.html"
 target="_blank">Get this session...</a></font></td></tr>
 </table>
 
@@ -99,23 +100,25 @@ lists the available font names in the <a href="../tools/log.html"><b>Log</b></a>
 </p>
 
 <a name="create"></a>
-<p>
-Creating a 2D label:
+<p class="nav">
+[<a href="#top">back to top: 2dlabels</a>]
 </p>
-<a href="#top" class="nounder">&bull;</a>
-  <b>2dlabels</b> [&nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;]
-  [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-  [&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
-  [&nbsp;<b>margin</b>&nbsp;&nbsp;<i>rectangle-padding</i>&nbsp;]
-  [&nbsp;<b>outline</b>&nbsp;&nbsp;<i>rectangle-outline-width</i>&nbsp;]
-  [&nbsp;<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
-  [&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
-  [&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
-  [&nbsp;<b>font</b>&nbsp;&nbsp;<i>font-name</i>&nbsp;]
-  [&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-  [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-  [&nbsp;<b>visibility</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<h3>Creating a 2D Label</h3>
 <blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>2dlabels</b> [&nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
+[&nbsp;<b>margin</b>&nbsp;&nbsp;<i>rectangle-padding</i>&nbsp;]
+[&nbsp;<b>outline</b>&nbsp;&nbsp;<i>rectangle-outline-width</i>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
+[&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
+[&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
+[&nbsp;<b>font</b>&nbsp;&nbsp;<i>font-name</i>&nbsp;]
+[&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>visibility</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
 The 2D label is added as a new model, and the model ID number 
 (or the word <b>all</b> to indicate all 2D labels) 
 can be used as the specifier for subsequently 
@@ -164,26 +167,28 @@ The <b>visibility</b> option specifies whether the label should be displayed.
 </blockquote>
 
 <a name="change"></a>
-<p>
-Changing an existing 2D label:
+<p class="nav">
+[<a href="#top">back to top: 2dlabels</a>]
 </p>
-<a href="#top" class="nounder">&bull;</a>
+<h3>Changing a 2D Label</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
 <b>2dlabels</b>
 (&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>&nbsp;|&nbsp;<b>all</b>&nbsp;)
-  [&nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;]
-  [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-  [&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
-  [&nbsp;<b>margin</b>&nbsp;&nbsp;<i>rectangle-padding</i>&nbsp;]
-  [&nbsp;<b>outline</b>&nbsp;&nbsp;<i>rectangle-outline-width</i>&nbsp;]
-  [&nbsp;<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
-  [&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
-  [&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
-  [&nbsp;<b>font</b>&nbsp;&nbsp;<i>font-name</i>&nbsp;]
-  [&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-  [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-  [&nbsp;<b>visibility</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-  [&nbsp;<b>frames</b>&nbsp;<i>N</i>&nbsp;]
-<blockquote>
+[&nbsp;<b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>none</b>&nbsp;]
+[&nbsp;<b>margin</b>&nbsp;&nbsp;<i>rectangle-padding</i>&nbsp;]
+[&nbsp;<b>outline</b>&nbsp;&nbsp;<i>rectangle-outline-width</i>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
+[&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
+[&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
+[&nbsp;<b>font</b>&nbsp;&nbsp;<i>font-name</i>&nbsp;]
+[&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>visibility</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>frames</b>&nbsp;<i>N</i>&nbsp;]
+</blockquote>
 The 2D label(s) to change are specified by 
 <a href="atomspec.html#othermodels">model number</a>
 or the word <b>all</b> to specify all 2D labels collectively.
@@ -201,15 +206,23 @@ instead of <b>none</b>.
 </blockquote>
 
 <a name="delete"></a>
-<a href="#top" class="nounder">&bull;</a>
-<b>2dlabels delete</b>
-(&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>&nbsp;|&nbsp;<b>all</b>&nbsp;)
+<p class="nav">
+[<a href="#top">back to top: 2dlabels</a>]
+</p>
+<h3>Deletion</h3>
 <blockquote>
-The 2D label(s) to delete are specified by 
-<a href="atomspec.html#othermodels">model number</a>
-or the word <b>all</b> to specify all 2D labels collectively.
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>2dlabels delete</b>
+[&nbsp;<a href="atomspec.html#othermodels"><i>2dlabel-spec</i></a>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 </blockquote>
-
+<p>
+The 2D label(s) to delete can be specified by
+<a href="atomspec.html#othermodels">model number</a>,
+or a blank specification or the word <b>all</b>
+to indicate all 2D labels collectively.
+Alternatively, 2D label models can be closed with the 
+<a href="close.html"><b>close</b></a> command.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

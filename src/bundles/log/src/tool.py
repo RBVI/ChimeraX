@@ -197,10 +197,14 @@ class Log(ToolInstance, HtmlLog):
                 #from PyQt5.QtCore import Qt
                 #self.setContextMenuPolicy(Qt.NoContextMenu)
 
-            def link_clicked(self, *args, **kw):
+            def link_clicked(self, request_info, *args, **kw):
                 # for #2289, don't scroll log when a link in it is clicked
+                qurl = request_info.requestUrl()
+                if qurl.scheme() == 'data':
+                    # fix #2303, spurious link_clicked
+                    return
                 self.log.suppress_scroll = True
-                super().link_clicked(*args, **kw)
+                super().link_clicked(request_info, *args, **kw)
                 def defer(log_tool):
                     log_tool.suppress_scroll = False
                 # clicked link is executed via thread_safe, so add another

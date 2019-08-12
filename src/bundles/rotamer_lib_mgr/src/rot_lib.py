@@ -127,9 +127,9 @@ class RotamerLibrary:
 
     @property
     def res_template_func(self):
-        """If a rotamer library support non-standard residues, this should return a function that
+        """If a rotamer library supports non-standard residues, this should return a function that
            when given the residue name as its argument, returns a TmplResidue that can be used
-           to build out the rotamer.
+           to build out the rotamer (and returns None for residues not in the library).
         """
         from chimerax.atomic import TmplResidue
         return TmplResidue.get_template
