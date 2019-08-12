@@ -408,6 +408,7 @@ class Models(StateManager):
         self._models = {}				# Map id to Model
         self._scene_root_model = r = Model("root", session)
         r.id = ()
+        self._initialize_camera = True
 
     def take_snapshot(self, session, flags):
         models = {}
@@ -454,7 +455,9 @@ class Models(StateManager):
             _notify=True, _need_fire_id_trigger=None, _from_session=False):
         if _need_fire_id_trigger is None:
             _need_fire_id_trigger = []
-        start_count = len(self._models)
+
+        if len(self._models) == 0:
+            self._initialize_camera = True
 
         if parent is None and not root_model:
             parent = self.scene_root_model
@@ -500,10 +503,12 @@ class Models(StateManager):
                 session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
 
         # Initialize view if first model added
-        if _notify and not _from_session and start_count == 0 and len(self._models) > 0:
+        if self._initialize_camera and _notify and not _from_session:
             v = session.main_view
-            v.initial_camera_view()
-            v.clip_planes.clear()   # Turn off clipping
+            if v.drawing_bounds():
+                self._initialize_camera = False
+                v.initial_camera_view()
+                v.clip_planes.clear()   # Turn off clipping
 
     def assign_id(self, model, id):
         '''Parent model for new id must already exist.'''
