@@ -55,7 +55,7 @@ def save(session, filename, models=None, format=None, **kw):
     # ideal solution to put this update here.
     session.update_loop.update_graphics_now()
     
-    if models:
+    if models is not None:
         kw["models"] = models
     try:
         fmt.export(session, filename, fmt.nicknames[0], **kw)
