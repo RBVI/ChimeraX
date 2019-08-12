@@ -343,6 +343,8 @@ class MapEraserSettings(ToolInstance):
 #
 from chimerax.core.models import Model
 class SphereModel(Model):
+    SESSION_SAVE = False
+    
     def __init__(self, name, session, color, center, radius):
         self._num_triangles = 1000
         Model.__init__(self, name, session)
