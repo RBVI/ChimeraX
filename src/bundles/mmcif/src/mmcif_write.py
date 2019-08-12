@@ -917,7 +917,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file)
     _save_metadata(best_m, ['cell', 'symmetry'], file)
-    _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_sruct_oper_list'], file)
+    _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_struct_oper_list'], file)
 
 
 def save_components(model, file):
