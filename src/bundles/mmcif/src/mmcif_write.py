@@ -322,7 +322,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         citation_author = ChimeraX_authors
     elif not citation.field_has('id', 'chimerax'):
         citation.extend(ChimeraX_citation)
-        citation_author.extend(ChimeraX_authors)
+        if citation_author is None:
+            citation_author = ChimeraX_authors
+        else:
+            citation_author.extend(ChimeraX_authors)
     citation.print(file, fixed_width=True)
     citation_author.print(file, fixed_width=True)
     if not software:
