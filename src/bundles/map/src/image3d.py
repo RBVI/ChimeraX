@@ -105,7 +105,7 @@ class Image3d(Model):
     bi = self._blend_image
     if bi:
       bi._need_color_update()
-      
+
   # ---------------------------------------------------------------------------
   #
   def set_options(self, rendering_options):
@@ -970,7 +970,7 @@ class ViewAlignedPlanes(PlanesDrawing):
   
   def __init__(self, image_render):
 
-    name = 'grayscale view aligned planes'
+    name = 'Image3D view aligned planes'
     PlanesDrawing.__init__(self, name, image_render)
 
     ir = image_render
@@ -1037,11 +1037,11 @@ class ViewAlignedPlanes(PlanesDrawing):
       t.reload_texture(td, now = True)
 
   def _texture_3d(self):
-    td = self._texture_3d_data()
+    # Create texture but do not fill in texture data values.
     ir = self._image_render
     lo = ir._rendering_options.linear_interpolation
     from chimerax.core.graphics import Texture
-    t = Texture(td, dimension = 3, linear_interpolation = lo)
+    t = Texture(dimension = 3, linear_interpolation = lo)
     if isinstance(ir, BlendedImage):
       t.initialize_rgba(ir._region_size)
     return t
