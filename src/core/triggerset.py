@@ -128,8 +128,8 @@ class _TriggerHandler:
     def invoke(self, data, remove_if_error):
         try:
             return self._func(self._name, data)
-        except Exception as e:
-            _report('%s "%s": %s' % (TRIGGER_ERROR, self._name, str(e)))
+        except Exception:
+            _report('%s "%s"' % (TRIGGER_ERROR, self._name))	# Report function will add exception info.
             if remove_if_error:
                 return DEREGISTER
 
