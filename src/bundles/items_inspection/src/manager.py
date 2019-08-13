@@ -33,6 +33,13 @@ class ItemsInspection(ProviderManager):
         return info[:]
 
     def add_provider(self, bundle_info, name, **kw):
+        """ The provider's run_provider method should return a list of chimerax.ui.options classes
+            that can be instantiated to inspect various properties of the item type.  The instances
+            should have a "command_format" attribute that is a string with a single '%s', into which
+            the "end user" inspector will interpolate command-line-target text (e.g., 'sel').  The
+            result should be executable as a command when the option's value is changed to in turn
+            accomplish the change in the data itself.
+        """
         self._item_info[name] = bundle_info
 
     def end_providers(self):
