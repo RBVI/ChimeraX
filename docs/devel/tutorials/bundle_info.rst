@@ -439,7 +439,7 @@ of ``mac``.
       If ``init_provider`` needs additional information, it should
       query the manager instance fetched from the session.
     - Bundles that supply providers should implement the method:
-        ``run_provider(session, bundle_info, provider_name, manager, **kw)``
+        ``run_provider(session, provider_name, manager, **kw)``
       which may be used by the manager to invoke provider functionality.
 
 - **PythonClassifier**

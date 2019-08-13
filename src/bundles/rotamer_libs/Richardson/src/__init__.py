@@ -16,7 +16,7 @@ from chimerax.core.toolshed import BundleAPI
 class _RichardsonLibBundleAPI(BundleAPI):
 
     @staticmethod
-    def run_provider(session, bundle_info, name, mgr, **kw):
+    def run_provider(session, name, mgr, **kw):
         if name.endswith("common"):
             from .lib import RichardsonCommonRotamerLibrary
             return RichardsonCommonRotamerLibrary()
