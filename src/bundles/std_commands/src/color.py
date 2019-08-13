@@ -18,7 +18,7 @@ _SequentialLevels = ["residues", "chains", "polymers", "structures"]
 # More possible sequential levels: "helix", "helices", "strands", "SSEs", "volmodels", "allmodels"
 
 DEFAULT_TARGETS = 'acsbpf'
-ALL_TARGETS = 'acrsbpf'
+ALL_TARGETS = 'acrsbpfl'
 WHAT_TARGETS = {
     'atoms': 'a',
     'cartoons': 'c', 'ribbons': 'c',
@@ -26,6 +26,7 @@ WHAT_TARGETS = {
     'bonds': 'b',
     'pseudobonds': 'p',
     'rings': 'f',
+    'labels': 'l',
     'All': ALL_TARGETS
 }
 
@@ -56,13 +57,13 @@ def color(session, objects, color=None, what=None, target=None,
       Which objects to color.
     color : Color
       Color can be a standard color name or "byatom", "byelement", "byhetero", "bychain", "bypolymer", "bynucleotide", "bymodel".
-    what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds' or None
+    what :  'atoms', 'cartoons', 'ribbons', 'surfaces', 'bonds', 'pseudobonds', 'labels' or None
       What to color. Everything is colored if option is not specified.
     target : string containing letters 'a', 'b', 'c', 'p', 'r', 's', 'f'
       Alternative to the "what" option for specifying what to color.
       Characters indicating what to color, a = atoms, c = cartoon, r = cartoon, s = surfaces,
       b = bonds, p = pseudobonds, f = (filled) rings
-      Everything is colored if no target is specified.
+      Everything except labels is colored if no target is specified.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
     halfbond : bool
@@ -121,10 +122,12 @@ def color(session, objects, color=None, what=None, target=None,
                                  undo_state=undo_state)
         # Handle non-molecular surfaces like density maps
         if color not in _SpecialColors:
-            mlist = [m for m in objects.models if not isinstance(m, (Structure, MolecularSurface, PseudobondGroup))]
-            for m in mlist:
+            from chimerax.core.models import Surface
+            surfs = [m for m in objects.models
+                     if isinstance(m, Surface) and not isinstance(m, MolecularSurface)]
+            for m in surfs:
                 _set_model_colors(session, m, color, opacity)
-            ns += len(mlist)
+            ns += len(surfs)
         items.append('%d surfaces' % ns)
 
     residues = None
@@ -158,6 +161,11 @@ def color(session, objects, color=None, what=None, target=None,
                 pbonds.colors = color_array
                 items.append('%d pseudobonds' % len(pbonds))
 
+    if 'l' in target:
+        if color not in _SpecialColors:
+            nl = _set_label_colors(session, objects, color, opacity)
+            if nl > 0:
+                items.append('%d labels' % nl)
     if not items:
         items.append('nothing')
 
@@ -334,6 +342,28 @@ def _set_model_colors(session, m, color, opacity):
     elif not m.single_color is None:
         c[3] = m.single_color[3]
     m.single_color = c
+
+def _set_label_colors(session, objects, color, opacity):
+    nl = 0
+
+    # 2D labels
+    from chimerax.label.label2d import LabelModel
+    labels = [m for m in objects.models if isinstance(m, LabelModel)]
+    for m in labels:
+        _set_model_colors(session, m, color, opacity)
+    nl += len(labels)
+
+    # 3D labels
+    from chimerax.label.label3d import label_objects
+    lmodels, lobjects = label_objects(objects)
+    rgba = color.uint8x4()
+    for lo in lobjects:
+        lo.color = rgba
+    for lm in lmodels:
+        lm.update_labels()
+    nl += len(lobjects)
+
+    return nl
 
 # -----------------------------------------------------------------------------
 # Chain ids in each structure are colored from color map ordered alphabetically.
