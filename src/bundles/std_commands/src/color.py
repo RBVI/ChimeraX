@@ -125,8 +125,7 @@ def color(session, objects, color=None, what=None, target=None,
             from chimerax.core.models import Surface
             surfs = [m for m in objects.models
                      if isinstance(m, Surface) and not isinstance(m, MolecularSurface)]
-            for m in surfs:
-                _set_model_colors(session, m, color, opacity)
+            _set_model_colors(session, surfs, color, opacity)
             ns += len(surfs)
         items.append('%d surfaces' % ns)
 
@@ -163,7 +162,7 @@ def color(session, objects, color=None, what=None, target=None,
 
     if 'l' in target:
         if color not in _SpecialColors:
-            nl = _set_label_colors(session, objects, color, opacity)
+            nl = _set_label_colors(session, objects, color, opacity, undo_state=undo_state)
             if nl > 0:
                 items.append('%d labels' % nl)
     if not items:
@@ -335,28 +334,40 @@ def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state
         ns = color_surfaces_at_atoms(atoms, color, opacity=opacity)
     return ns
 
-def _set_model_colors(session, m, color, opacity):
-    c = color.uint8x4()
-    if not opacity is None:
-        c[3] = opacity
-    elif not m.single_color is None:
-        c[3] = m.single_color[3]
-    m.single_color = c
+def _set_model_colors(session, model_list, color, opacity):
+    for m in model_list:
+        c = color.uint8x4()
+        if not opacity is None:
+            c[3] = opacity
+        elif not m.single_color is None:
+            c[3] = m.single_color[3]
+        m.single_color = c
 
-def _set_label_colors(session, objects, color, opacity):
+def _set_label_colors(session, objects, color, opacity, undo_state=None):
     nl = 0
 
     # 2D labels
     from chimerax.label.label2d import LabelModel
     labels = [m for m in objects.models if isinstance(m, LabelModel)]
-    for m in labels:
-        _set_model_colors(session, m, color, opacity)
+    if undo_state:
+        old_colors = [label.color for label in labels]
+    for label in labels:
+        label.color = _color_with_opacity(color, opacity, label.color)
+    if undo_state:
+        new_colors = [label.color for label in labels]
+        for label, old_color, new_color in zip(labels, old_colors, new_colors):
+            undo_state.add(label, 'color', old_color, new_color)
     nl += len(labels)
 
     # 3D labels
     from chimerax.label.label3d import label_objects
     lmodels, lobjects = label_objects(objects)
     rgba = color.uint8x4()
+    if undo_state:
+        for lo in lobjects:
+            undo_state.add(lo, 'color', lo.color, rgba)
+        for lm in lmodels:
+            undo_state.add(lm, 'update_labels', (), (), option = 'MA')
     for lo in lobjects:
         lo.color = rgba
     for lm in lmodels:
@@ -365,6 +376,11 @@ def _set_label_colors(session, objects, color, opacity):
 
     return nl
 
+def _color_with_opacity(color, opacity, rgba):
+    c = color.uint8x4()
+    c[3] = rgba[3] if opacity is None else opacity
+    return c
+    
 # -----------------------------------------------------------------------------
 # Chain ids in each structure are colored from color map ordered alphabetically.
 #
