@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Sel_Inspect" version="1.0" package="chimerax.sel_inspect"
+<BundleInfo name="ChimeraX-Items_Inspection" version="1.0" package="chimerax.items_inspection"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -8,8 +8,8 @@
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>Selection Inspection</Synopsis>
-  <Description>Tool to examine the contents of the current selection in detail</Description>
+  <Synopsis>Inspection of attributes of a set of items</Synopsis>
+  <Description>Infrastructure for generic inspection of a set of items (attributes/values)</Description>
 
   <!-- Categories is a list where this bundle should appear -->
   <Categories>
@@ -23,18 +23,17 @@
   </Dependencies>
 
   <Managers>
-    <Manager name="selection inspector" uiOnly="true"/>
+    <Manager name="items inspection" uiOnly="true"/>
   </Managers>
 
   <Providers>
-    <Provider category="Models" manager="selection inspector"/>
+    <Provider name="models" manager="items inspection"/>
   </Providers>
 
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Selection Inspector :: General Controls :: display contents of current selection</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

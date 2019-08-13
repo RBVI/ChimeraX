@@ -13,20 +13,20 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _PresetsBundleAPI(BundleAPI):
+class _InspectionBundleAPI(BundleAPI):
 
     @staticmethod
     def get_class(class_name):
-        if class_name == "SelectionInspector":
+        if class_name == "ItemsInspection":
             from . import manager
-            return manager.SelectionInspector
+            return manager.ItemsInspection
 
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
-        if name == "selection inspector":
-            from .manager import SelectionInspection
-            session.selection_inspection = SelectionInspection(session)
-            return session.selection_inspection
+        if name == "items inspection":
+            from .manager import ItemsInspection
+            session.items_inspection = ItemsInspection(session)
+            return session.items_inspection
         raise ValueError("No manager named '%s' in %s module" % (name, __module__))
 
     @staticmethod
@@ -38,11 +38,6 @@ class _PresetsBundleAPI(BundleAPI):
 
     @staticmethod
     def finish(session, bundle_info):
-        del session.selection_inspector
+        del session.items_inspection
 
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import SelectionInspector
-        return SelectionInspector(session, tool_name)
-
-bundle_api = _PresetsBundleAPI()
+bundle_api = _InspectionBundleAPI()
