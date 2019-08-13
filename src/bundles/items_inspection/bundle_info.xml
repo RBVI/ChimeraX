@@ -26,10 +26,6 @@
     <Manager name="items inspection" uiOnly="true"/>
   </Managers>
 
-  <Providers>
-    <Provider name="models" manager="items inspection"/>
-  </Providers>
-
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

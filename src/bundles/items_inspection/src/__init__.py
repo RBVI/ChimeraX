@@ -30,13 +30,6 @@ class _InspectionBundleAPI(BundleAPI):
         raise ValueError("No manager named '%s' in %s module" % (name, __module__))
 
     @staticmethod
-    def run_provider(session, bundle_info, name, mgr, **kw):
-        #TODO
-        pass
-        #from .builtin import run_preset
-        #run_preset(session, name, mgr, **kw)
-
-    @staticmethod
     def finish(session, bundle_info):
         del session.items_inspection
 
