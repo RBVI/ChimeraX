@@ -1381,7 +1381,7 @@ class BundleAPI:
         raise NotImplementedError("BundleAPI.init_manager")
 
     @staticmethod
-    def run_provider(session, bundle_info, name, mgr, **kw):
+    def run_provider(session, name, mgr, **kw):
         """Supported API. Called to invoke a provider in a bundle.
 
         Must be defined if there is a ``Provider`` tag in the bundle.
@@ -1391,7 +1391,6 @@ class BundleAPI:
         Parameters
         ----------
         session : :py:class:`~chimerax.core.session.Session` instance.
-        bundle_info : :py:class:`BundleInfo` instance.
         name : str.
             Name of provider to initialize.
         mgr : str.
@@ -1527,8 +1526,8 @@ class _CallBundleAPIv0:
         return cls._get_func(api, "init_manager")(session, bi, name, **kw)
 
     @classmethod
-    def run_provider(cls, api, session, bi, name, mgr, **kw):
-        return cls._get_func(api, "run_provider")(session, bi, name, mgr, **kw)
+    def run_provider(cls, api, session, name, mgr, **kw):
+        return cls._get_func(api, "run_provider")(session, name, mgr, **kw)
 
     @classmethod
     def finish(cls, api, session, bi):
