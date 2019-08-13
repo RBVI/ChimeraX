@@ -39,6 +39,12 @@ class ItemsInspection(ProviderManager):
             the "end user" inspector will interpolate command-line-target text (e.g., 'sel').  The
             result should be executable as a command when the option's value is changed to in turn
             accomplish the change in the data itself.
+
+            If the option controls a particular attribute of the item that could be used in a
+            'setattr' command (or '##', '@@', etc. command line attribute selectors), it is expected
+            that the balloon help will have "attribute: blah" at the bottom (space separated from any
+            preceding balloon help), and possibly an explanation of possible values if non-obvious
+            (e.g. integer equivalents of an enumeration).
         """
         self._item_info[name] = bundle_info
 
