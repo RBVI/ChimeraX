@@ -1744,7 +1744,7 @@ class StructureData:
     _ADDDEL_CHANGE = 0x10
     _DISPLAY_CHANGE = 0x20
     _RING_CHANGE = 0x40
-    _ALL_CHANGE = 0x6f  # not _ADDDEL_CHANGE
+    _ALL_CHANGE = 0x7f		# Mask including all change bits
     _graphics_changed = c_property('structure_graphics_change', int32)
 
 # -----------------------------------------------------------------------------
