@@ -398,11 +398,12 @@ of ``mac``.
     - Other attributes listed in the **Manager** tag are passed
       as keyword arguments to ``init_manager``.
     - ``init_manager`` should create and return an instance of a
-      subclass of :py:class:`chimerax.core.state.StateManager`.
+      subclass of :py:class:`chimerax.core.toolshed.ProviderManager`.
       The subclass must implement at least one method:
         ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager
-      name matches this manager.  A second method:
+      name matches this manager (whether the bundle with the provider
+      is installed or not).  A second method:
         ``end_providers()``
       is optional.  ``end_providers`` is called after all calls
       to ``add_provider`` have been made and is useful for finishing

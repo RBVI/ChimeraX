@@ -17,6 +17,7 @@
 #define    templates_Residue
 
 #include <map>
+#include <pyinstance/PythonInstance.declare.h>
 #include <vector>
 #include "../imex.h"
 #include "../string_types.h"
@@ -30,12 +31,13 @@ using atomstruct::ResName;
 class Atom;
 class Molecule;
 
-class ATOMSTRUCT_IMEX Residue {
+class ATOMSTRUCT_IMEX Residue: public pyinstance::PythonInstance<Residue> {
     friend class Molecule;
     void    operator=(const Residue &);    // disable
     Residue(const Residue &);    // disable
     ~Residue();
 public:
+    std::vector<Atom*>  atoms() const;
     void    add_atom(Atom *element);
     Atom    *find_atom(const AtomName&) const;
 
@@ -58,11 +60,12 @@ public:
     // alternative to chief/link for mmCIF templates
     typedef std::vector<Atom *> AtomList;
     void    add_link_atom(Atom *);
-    const AtomList link_atoms() const { return _link_atoms; }
+    const AtomList &link_atoms() const { return _link_atoms; }
 
     typedef std::map<AtomName, Atom *> AtomsMap;
     const AtomsMap &atoms_map() const { return _atoms; }
     bool        pdbx_ambiguous;      // for mmCIF ambiguous chemistry
+    bool        has_metal() const { return _has_metal; }
 private:
     Residue(Molecule *, const char *t);
     ResName     _name;
@@ -70,6 +73,7 @@ private:
     Atom        *_chief, *_link;
     std::string _description;
     AtomList    _link_atoms;
+    bool        _has_metal;
 };
 
 }  // namespace tmpl

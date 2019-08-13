@@ -28,12 +28,11 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
        or an Element instance.
 
        The atom is added to the given residue (and its molecule).
-       'loc' can be a sequence of Points if there are multiple
-       coordinate sets.
+       'loc' can be an array of xyzs if there are multiple coordinate sets.
 
-       If you are adding atoms in bulk, make sure that you provide the
-       optional 'serial_number' argument, since the code that automatically
-       determines the serial number is slow.
+       If no 'serial_number' is given, then the atom will be given a serial
+       number one greater than the largest serial number of the other atoms
+       in the structure.
 
        'bonded_to' is None or an Atom.  If an Atom, then the new atom
        inherits various attributes [display, altloc, style, occupancy]
@@ -62,21 +61,22 @@ def add_atom(name, element, residue, loc, serial_number=None, bonded_to=None,
     residue.add_atom(new_atom)
     if alt_loc is not None:
         new_atom.set_alt_loc(alt_loc, True)
+    from numpy import array
     if len(loc.shape) == 1:
-        locs = [loc]
+        locs = array([loc])
     else:
         locs = loc
     if struct.num_coordsets == 0:
-        if len(locs) == 1:
-            struct.new_coord_set(1)
-        else:
-            for i in range(1, len(loc)+1):
-                struct.new_coord_set(i)
-        struct.active_coordset_id = 1
-    for xyz, cs_id in zip(locs, struct.coordset_ids):
-        new_atom.set_coord(xyz, cs_id)
+        if len(locs) > 1:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Cannot add_atom() multi-position atom to empty structure")
+        new_atom.coord = locs[0]
+    else:
+        for xyz, cs_id in zip(locs, struct.coordset_ids):
+            new_atom.set_coord(xyz, cs_id)
     if serial_number is None:
-        serial_number = max(struct.atoms.serial_numbers) + 1
+        import numpy
+        serial_number = numpy.max(struct.atoms.serial_numbers) + 1
     new_atom.serial_number = serial_number
     if occupancy is not None or info_from and hasattr(info_from, 'occupancy'):
         new_atom.occupancy = getattr(info_from, 'occupancy', occupancy)
@@ -135,7 +135,8 @@ def add_dihedral_atom(name, element, n1, n2, n3, dist, angle, dihed,
     
     final_pt = find_pt(n1, n2, n3, dist, angle, dihed)
 
-    return add_atom(name, element, residue, final_pt, bonded_to=bonded_to, occupancy=occupancy)
+    return add_atom(name, element, residue, final_pt, bonded_to=bonded_to, occupancy=occupancy,
+        info_from=info_from)
 
 def add_bond(a1, a2, halfbond=None, color=None):
     if a1.num_bonds > 0:

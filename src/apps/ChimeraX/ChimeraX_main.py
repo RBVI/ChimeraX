@@ -293,6 +293,17 @@ def init(argv, event_loop=True):
         # "any number of threads more than one leads to 200% CPU usage"
         os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
+    # distlib, since 0.2.8, does not recognize "Obsoletes" as a legal
+    # metadata classifier, but jurko 0.6 (SOAP package) claims to be
+    # Metadata-Version 2.1 but specifies Obsolete.  Hack below makes
+    # Obsolete not cause a traceback.
+    from distlib import metadata
+    try:
+        if "Obsoletes" not in metadata._566_FIELDS:
+            metadata._566_FIELDS = metadata._566_FIELDS + ("Obsoletes",)
+    except AttributeError:
+        pass
+
     # for modules that moved out of core, allow the old imports to work for awhile...
     from importlib.abc import MetaPathFinder, Loader
     class CoreCompatFinder(MetaPathFinder):
@@ -575,8 +586,7 @@ def init(argv, event_loop=True):
                                 next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print("Initializing bundles", flush=True)
-        if not opts.safe_mode:
-            sess.toolshed.bootstrap_bundles(sess)
+        sess.toolshed.bootstrap_bundles(sess, opts.safe_mode)
         from chimerax.core import tools
         sess.tools = tools.Tools(sess, first=True)
         from chimerax.core import tasks
@@ -656,25 +666,9 @@ def init(argv, event_loop=True):
         log_version(sess.logger)  # report version in log
 
     if opts.gui or hasattr(core, 'offscreen_rendering'):
-        r = sess.main_view.render
-        log = sess.logger
-        from chimerax.core.graphics import OpenGLVersionError, OpenGLError
-        try:
-            mc = r.make_current()
-        except (OpenGLVersionError, OpenGLError) as e:
-            mc = False
-            log.error(str(e))
-            sess.update_loop.block_redraw()	# Avoid further opengl errors
-        if mc:
-            info = log.info
-            e = r.check_for_opengl_errors()
-            if e:
-                msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
-                msg += '\n\n\t"%s"' % e
-                log.error(msg)
-            sess.update_loop.start_redraw_timer()
-            info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
-                is_html=True)
+        sess.update_loop.start_redraw_timer()
+        sess.logger.info('<a href="cxcmd:help help:credits.html">How to cite UCSF ChimeraX</a>',
+                         is_html=True)
 
     # Show any messages from installing bundles on restart
     if restart_install_msgs:
@@ -722,7 +716,8 @@ def init(argv, event_loop=True):
         sys.argv = args
         sys.argv[0] = '-c'
         global_dict = {
-            'session': sess
+            'session': sess,
+            '__name__': '__main__',
         }
         exec(opts.cmd, global_dict)
         return os.EX_OK
@@ -731,9 +726,11 @@ def init(argv, event_loop=True):
     from chimerax.core import errors, commands
     for arg in args:
         try:
-            commands.run(sess, 'open %s' % arg)
-        except (IOError, errors.UserError) as e:
+            from chimerax.core.commands import quote_if_necessary
+            commands.run(sess, 'open %s' % quote_if_necessary(arg))
+        except (IOError, errors.NotABug) as e:
             sess.logger.error(str(e))
+            return os.EX_SOFTWARE
         except Exception as e:
             import traceback
             traceback.print_exc()

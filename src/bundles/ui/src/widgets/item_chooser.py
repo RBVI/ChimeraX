@@ -212,6 +212,10 @@ class ModelListWidget(ItemListWidget):
 
        'balloon_help' is the balloon help to provide with the list (if any); if none provided then
        some generic help for  the 'extended' selection mode is provided if applicable
+
+       Do not access or set the value of this widget in trigger handlers that also update the widget.
+       For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
+       MODEL_ID_CHANGED and MODEL_NAME_CHANGED
     """
     def __init__(self, session, **kw):
         super().__init__(**_process_model_kw(session, **kw))
@@ -257,7 +261,16 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
     @value.setter
     def value(self, val):
         self._sleep_check()
-        if self.value == val:
+        # if value is being set to a special item, it may not be safe to call 'self.value', so handle that
+        if val in self._special_items:
+            if val != self.text():
+                self.setText(val)
+                if not self.signalsBlocked():
+                    self.value_changed.emit()
+            return
+        # if value is being set to None, it may not be safe to call 'self.value' either, so handle that too
+        if (val is None and self.text() in [self._no_value_button_text, ""]) \
+        or (val is not None and self.value == val):
             if val is None and not self.text():
                 self.setText(self._no_value_button_text)
             return
@@ -290,11 +303,13 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             menu.addSeparator()
         for item_name in item_names:
             menu.addAction(item_name)
-        if prev_value not in self.value_map:
+        if prev_value not in self.value_map and prev_value not in self._special_items:
             if len(self.value_map) + len(self._special_items) == 1 and self._autoselect_single:
                 self.value = (list(self.value_map.keys()) + self._special_items)[0]
             else:
                 self.value = None
+        if del_recursion:
+            delattr(self, '_recursion')
 
     def _sel_change(self, action):
         if action.text() == self._no_value_menu_text:
@@ -320,6 +335,10 @@ class ModelMenuButton(ItemMenuButton):
        text, and choosing that menu item is treated as setting self.value to None.
 
        'balloon_help' is the balloon help to provide with the list (if any).
+
+       Do not access or set the value of this widget in trigger handlers that also update the widget.
+       For generic models, those triggers are in session.triggers and are named ADD_MODELS, REMOVE_MODELS,
+       MODEL_ID_CHANGED and MODEL_NAME_CHANGED
     """
     def __init__(self, session, **kw):
         super().__init__(**_process_model_kw(session, **kw))

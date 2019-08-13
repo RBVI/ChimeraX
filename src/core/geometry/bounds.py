@@ -62,6 +62,12 @@ class Bounds:
         c = array(corners, float32)
         return c
 
+    def contains_point(self, p):
+        for a in (0,1,2):
+            if p[a] < self.xyz_min[a] or p[a] > self.xyz_max[a]:
+                return False
+        return True
+                
 
 def point_bounds(xyz, placements=None):
     '''

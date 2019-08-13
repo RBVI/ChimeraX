@@ -52,7 +52,25 @@ class GraphicsWindow(QWindow):
         from PyQt5.QtCore import QEvent
         if event.type() == QEvent.Show:
             self.session.ui.mouse_modes.set_graphics_window(self)
+            self._check_opengl()
         return QWindow.event(self, event)
+
+    def _check_opengl(self):
+        r = self.view.render
+        log = self.session.logger
+        from chimerax.core.graphics import OpenGLVersionError, OpenGLError
+        try:
+            mc = r.make_current()
+        except (OpenGLVersionError, OpenGLError) as e:
+            mc = False
+            log.error(str(e))
+            self.session.update_loop.block_redraw()	# Avoid further opengl errors
+        if mc:
+            e = r.check_for_opengl_errors()
+            if e:
+                msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
+                msg += '\n\n\t"%s"' % e
+                log.error(msg)
 
     def handle_drag_and_drop(self, event):
         from PyQt5.QtCore import QEvent
@@ -104,7 +122,18 @@ class Popup(QLabel):
     def __init__(self, graphics_window):
         from PyQt5.QtCore import Qt
         QLabel.__init__(self)
-        self.setWindowFlags(self.windowFlags() | Qt.ToolTip)
+        import sys
+        if sys.platform == 'darwin':
+            # Don't use a Qt.ToolTip which can do undesired auto-hiding on Mac. Bug #2140
+            # But on Linux these flags cause huge non-updating balloons, and on Windows
+            # the balloon takes the focus (Qt 5.12.4).
+            # These flags also cause problems on Mac if ChimeraX is fullscreen, the
+            # balloon replaces the entire gui, ChimeraX bug #2210.
+#            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
+            win_flags = Qt.ToolTip
+        else:
+            win_flags = Qt.ToolTip
+        self.setWindowFlags(self.windowFlags() | win_flags)
         self.graphics_window = graphics_window
 
     def show_text(self, text, position):

@@ -31,6 +31,7 @@ class Plot(ToolInstance):
 
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
         self.canvas = c = Canvas(f)
+        parent.setMinimumHeight(1)  # Matplotlib gives divide by zero error when plot resized to 0 height.
         c.setParent(parent)
 
         from PyQt5.QtWidgets import QHBoxLayout

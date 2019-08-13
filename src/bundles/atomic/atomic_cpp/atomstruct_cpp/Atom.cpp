@@ -119,10 +119,14 @@ Atom::clear_aniso_u()
     if (_alt_loc != ' ') {
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
         assert(i != _alt_loc_map.end());
-        (*i).second.aniso_u.reset();
+        if ((*i).second.aniso_u.use_count() > 0) {
+            (*i).second.aniso_u.reset();
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ANISO_U);
+        }
     } else if (_aniso_u != nullptr) {
         delete _aniso_u;
         _aniso_u = nullptr;
+        change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ANISO_U);
     }
 }
 
@@ -1317,6 +1321,19 @@ Atom::set_coord(const Coord& coord, CoordSet* cs, bool track_change)
             _coord_index = _new_coord(coord);
     } else
         _coordset_set_coord(coord, cs, track_change);
+}
+
+void
+Atom::set_coord_index(unsigned int ci)
+{
+    if (_coord_index != COORD_UNASSIGNED)
+        throw std::logic_error("Coordinate index already assigned");
+    auto cs = structure()->active_coord_set();
+    if (cs == nullptr)
+        throw std::logic_error("Cannot assign coordinate index with no coordinate sets");
+    if (cs->coords().size() <= ci)
+        throw std::logic_error("Coordinate index larger than coordinate set");
+    _coord_index = ci;
 }
 
 void

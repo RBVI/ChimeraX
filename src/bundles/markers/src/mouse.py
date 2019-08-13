@@ -16,14 +16,10 @@
 #
 from chimerax.mouse_modes import MouseMode
 class MarkerMouseMode(MouseMode):
-    name = 'place marker'
-    icon_file = 'icons/marker.png'
 
     def __init__(self, session):
 
         MouseMode.__init__(self, session)
-
-        self.mode_name = 'place markers'
 
         self._moving_marker = None		# Atom
         self._resizing_marker_or_link = None	# Atom or Bond
@@ -34,33 +30,33 @@ class MarkerMouseMode(MouseMode):
         p = marker_panel(self.session, 'Markers')
         p.update_settings()
         p.show()
-        s = _mouse_marker_settings(self.session)
-        s['placement_mode'] = 'maximum'
-
-    @property
-    def placement_mode(self):
-        return _mouse_marker_settings(self.session, 'placement_mode')
 
     @property
     def link_new(self):
         return _mouse_marker_settings(self.session, 'link_new_markers')
 
+    @property
+    def marker_mode(self):
+        return self.name	# Name of mouse mode
+    
     def mouse_down(self, event):
-        mode = self.placement_mode
-        if mode == 'link':
+        mode = self.marker_mode
+        if mode == 'link markers':
             self.link_consecutive(event)
-        elif mode == 'move':
+        elif mode == 'move markers':
             self.move_marker_begin(event)
-        elif mode == 'resize':
+        elif mode == 'resize markers':
             self.resize_begin(event)
-        elif mode == 'delete':
+        elif mode == 'delete markers':
             self.delete_marker_or_link(event)
-        elif mode in ('surface', 'center'):
+        elif mode in ('mark surface', 'mark center'):
             self.place_on_surface(event)
-        elif mode == 'maximum':
+        elif mode == 'mark maximum':
             self.place_on_maximum(event)
-        elif mode == 'plane':
+        elif mode == 'mark plane':
             self.place_on_plane(event)
+        elif mode == 'mark point':
+            self.place_on_point(event)
             
     def place_on_surface(self, event):
         xyz1, xyz2 = self._view_line(event)
@@ -70,7 +66,7 @@ class MarkerMouseMode(MouseMode):
         p = picked_object_on_segment(xyz1, xyz2, s.main_view)
         if p is None:
             c = None
-        elif self.placement_mode == 'center' and hasattr(p, 'triangle_pick'):
+        elif self.marker_mode == 'mark center' and hasattr(p, 'triangle_pick'):
             c, vol = connected_center(p.triangle_pick)
             log.info('Enclosed volume for marked surface: %.3g' % vol)
         else:
@@ -108,6 +104,14 @@ class MarkerMouseMode(MouseMode):
             self._set_sizes(v)
             _mouse_place_marker(self.session, sxyz, link_to_selected = self.link_new)
 
+    def place_on_point(self, event):
+        if isinstance(event, LaserEvent):
+            xyz = event.xyz1
+        else:
+            xyz1, xyz2 = self._view_line(event)
+            xyz = .5 * (xyz1 + xyz2)
+        _mouse_place_marker(self.session, xyz, link_to_selected = self.link_new)
+
     def link_consecutive(self, event):
         s = self.session
         from chimerax.atomic import selected_atoms
@@ -126,7 +130,7 @@ class MarkerMouseMode(MouseMode):
 
         ms = _mouse_marker_settings(self.session)
         from .markers import create_link
-        b = create_link(a1, a2, radius = ms['link radius'])
+        b = create_link(a1, a2, radius = ms['link radius'], rgba = ms['link color'])
         s.logger.status('Made connection, distance %.3g' % b.length)
         return True
 
@@ -136,7 +140,7 @@ class MarkerMouseMode(MouseMode):
     
     def picked_marker_or_link(self, event, select = False):
         xyz1, xyz2 = self._view_line(event)
-        from chimerax.mouse_modes import picked_object_on_segment, select_pick
+        from chimerax.mouse_modes import picked_object_on_segment
         pick = picked_object_on_segment(xyz1, xyz2, self.session.main_view)
         m = l = None
         from chimerax.atomic import PickedAtom, PickedBond
@@ -146,7 +150,11 @@ class MarkerMouseMode(MouseMode):
         elif isinstance(pick, PickedBond) and isinstance(pick.bond.structure, MarkerSet):
             l = pick.bond
         if select and (m or l):
-            select_pick(self.session, pick, 'replace')
+            self.session.selection.clear()
+            if m:
+                m.selected = True
+            if l:
+                l.selected = True
         return m, l
 
     def _view_line(self, event):
@@ -202,7 +210,10 @@ class MarkerMouseMode(MouseMode):
             s['marker radius'] = r
         else:
             s['link radius'] = r
-
+        from .markergui import marker_panel
+        p = marker_panel(self.session, 'Markers')
+        p.update_settings()
+            
     def delete_marker_or_link(self, event):
         m, l = self.picked_marker_or_link(event)
         if m:
@@ -230,13 +241,60 @@ class MarkerMouseMode(MouseMode):
         rm = self._resizing_marker_or_link
         if rm:
             from math import exp
-            scale = exp(2*delta_z)
+            scale = exp(5*delta_z)
             self._resize_ml(rm, scale)
 
     def vr_release(self):
         # Virtual reality hand controller button release.
         self.mouse_up()
-        
+
+# -----------------------------------------------------------------------------
+#
+class MarkMaximumMouseMode(MarkerMouseMode):
+    name = 'mark maximum'
+    icon_file = 'icons/maximum.png'
+    description = 'Place marker at density maximum'
+    
+class MarkPlaneMouseMode(MarkerMouseMode):
+    name = 'mark plane'
+    icon_file = 'icons/plane.png'
+    description = 'Place marker on volume plane'
+    
+class MarkSurfaceMouseMode(MarkerMouseMode):
+    name = 'mark surface'
+    icon_file = 'icons/surface.png'
+    description = 'Place marker on surface'
+    
+class MarkCenterMouseMode(MarkerMouseMode):
+    name = 'mark center'
+    icon_file = 'icons/center.png'
+    description = 'Place marker at center of connected surface'
+    
+class MarkPointMouseMode(MarkerMouseMode):
+    name = 'mark point'
+    icon_file = 'icons/point.png'
+    description = 'Place marker at 3d pointer position'
+    
+class LinkMarkersPointMouseMode(MarkerMouseMode):
+    name = 'link markers'
+    icon_file = 'icons/link.png'
+    description = 'Link consecutively clicked markers'
+    
+class MoveMarkersPointMouseMode(MarkerMouseMode):
+    name = 'move markers'
+    icon_file = 'icons/move.png'
+    description = 'Move markers'
+    
+class ResizeMarkersPointMouseMode(MarkerMouseMode):
+    name = 'resize markers'
+    icon_file = 'icons/resize.png'
+    description = 'Resize markers or links'
+    
+class DeleteMarkersPointMouseMode(MarkerMouseMode):
+    name = 'delete markers'
+    icon_file = 'icons/delete.png'
+    description = 'Delete markers or links'
+    
 # -----------------------------------------------------------------------------
 #
 class LaserEvent:
@@ -247,14 +305,6 @@ class LaserEvent:
         
 # -----------------------------------------------------------------------------
 #
-class ConnectMouseMode(MarkerMouseMode):
-    name = 'connect markers'
-    icon_file = None
-
-    def enable(self):
-        MarkerMouseMode.enable(self)
-        s = _mouse_marker_settings(self.session)
-        s['placement_mode'] = 'link'
         
 # -----------------------------------------------------------------------------
 #
@@ -388,8 +438,6 @@ def _mouse_marker_settings(session, attr = None):
             'marker radius': 1.0,
             'link color': (101,156,239,255),	# cornflowerblue
             'link radius': 0.5,
-            'placement_mode': 'maximum',        # Modes: 'maximum', 'plane', 'surface', 'center'
-                                                #        'link', 'move', 'resize', 'delete'
             'link_new_markers': False,
         }
     s = session._marker_settings
@@ -422,7 +470,7 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
             al = atoms[0]
             if a.structure == al.structure and a is not al:
                 from .markers import create_link
-                create_link(al, a, radius = ms['link radius'])
+                create_link(al, a, radius = ms['link radius'], rgba = ms['link color'])
     if select:
         session.selection.clear()
         a.selected = True
@@ -430,6 +478,15 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
 # -----------------------------------------------------------------------------
 #
 def register_mousemode(session):
+    marker_modes = [MarkMaximumMouseMode,
+                    MarkPlaneMouseMode,
+                    MarkSurfaceMouseMode,
+                    MarkCenterMouseMode,
+                    MarkPointMouseMode,
+                    LinkMarkersPointMouseMode,
+                    MoveMarkersPointMouseMode,
+                    ResizeMarkersPointMouseMode,
+                    DeleteMarkersPointMouseMode]
     mm = session.ui.mouse_modes
-    mm.add_mode(MarkerMouseMode(session))
-    mm.add_mode(ConnectMouseMode(session))
+    for marker_class in marker_modes:
+        mm.add_mode(marker_class(session))

@@ -11,10 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def get_triggers(session):
-    """Get the atomic triggers for this session"""
-    if not hasattr(session, "_atomic_triggers"):
+_triggers = None
+def get_triggers(session=None):
+    """Get the atomic triggers (prior implementation used 'session' arg)"""
+    global _triggers
+    if _triggers is None:
         from chimerax.core.triggerset import TriggerSet
-        session._atomic_triggers = TriggerSet()
-        session._atomic_triggers.add_trigger("changes")
-    return session._atomic_triggers
+        _triggers = TriggerSet()
+        _triggers.add_trigger("changes")
+    return _triggers

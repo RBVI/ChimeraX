@@ -85,16 +85,25 @@ residue          = ':' parts:part_list [ '::' attrs:attribute_list ]
                  | { atom+:atom }+
                  ;
 
-atom             = '@' parts:part_list [ '@@' attrs:attribute_list ]
-                 | '@@' attrs:attribute_list
-                 ;
-
 part_list        = range:part_range_list ',' part:part_list
                  | range:part_range_list 
                  ;
 
 part_range_list  = start:/-?[a-zA-Z0-9'"*?\[\]\\]+/
                    [ /-/ end:/[-a-zA-Z0-9'"\\]+/ ]
+                 ;
+
+(* Atom ranges are not allowed. *)
+
+atom             = '@' parts:atom_list [ '@@' attrs:attribute_list ]
+                 | '@@' attrs:attribute_list
+                 ;
+
+atom_list        = name:atom_name ',' part:atom_list
+                 | name:atom_name 
+                 ;
+
+atom_name        = name:/-?[a-zA-Z0-9'"*?\[\]\\]+/
                  ;
 
 attribute_list   = attr_test { ',' attr_test }*

@@ -30,6 +30,10 @@ density maps, electrostatic potential maps, 3D imaging data, and other
 data sets with numerical values associated with points on a 3D grid.
 Volume data can be <a href="#multichannel">multichannel</a> and/or
 <a href="../trajectories.html#vseries">time series</a>.
+Volume data can be opened with the command
+<a href="../commands/open.html"><b>open</b></a>
+(which automatically starts <b>Volume Viewer</b>) and saved to a file with 
+<a href="../commands/save.html"><b>save</b></a>.
 </p>
 <table class="clRight">
 <tr><td>
@@ -43,26 +47,28 @@ and other aspects of volume data display.
 Alternatively, these settings and more can be adjusted with the 
 <a href="../commands/volume.html"><b>volume</b></a> command.
 </p><p>
-Volume data can be opened with the command
-<a href="../commands/open.html"><b>open</b></a>
-(which automatically starts <b>Volume Viewer</b>) and saved to a file with 
-<a href="../commands/save.html"><b>save</b></a>.
-</p><p>
-Data set statistics and isosurface-enclosed volumes can be reported
-with <a href="../commands/measure.html"><b>measure</b></a>.
-See also: 
-<a href="densitymaps.html"><b>Map</b></a> icons,
+See also:
+<a href="toolbar.html"><b>Toolbar</b></a>,
+<a href="mapcoords.html"><b>Map Coordinates</b></a>,
+<a href="fitmap.html"><b>Fit in Map</b></a>,
+<a href="segment.html"><b>Segment Map</b></a>,
+<a href="fitsegments.html"><b>Fit to Segments</b></a>,
+<a href="maperaser.html"><b>Map Eraser</b></a>,
+<a href="measureblobs.html"><b>Measure and Color Blobs</b></a>,
 <a href="markerplacement.html"><b>Marker Placement</b></a>,
 <a href="../commands/show.html"><b>show</b></a>,
 <a href="../commands/color.html"><b>color</b></a>,
 <a href="../commands/transparency.html"><b>transparency</b></a>,
 <a href="../commands/vseries.html"><b>vseries</b></a>,
 <a href="../commands/molmap.html"><b>molmap</b></a>,
-<a href="../commands/fitmap.html"><b>fitmap</b></a>,
 <a href="../commands/surface.html#sop"><b>surface</b> operations</a>,
+<a href="../commands/volume.html#vop"><b>volume</b> operations</a>,
 <a href="../measurements.html">measurements</a>,
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
 </p><p>
+Even without data, <b>Volume Viewer</b> can be started
+from the <b>Volume Data</b> section of the <b>Tools</b> menu
+or with the command <b>toolshed show</b>.
 The <b>Volume Viewer</b> window can be manipulated
 like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 </p><p>
@@ -160,46 +166,55 @@ of the data grid; it can be limited with the
 <img class="icon" border=1 src="mouse-icons/crop.png"></a>.
 </p><p>
 <a name="threshold"></a>
-The <b><i>thresholds</i></b> on the histogram control how data values 
-are mapped to the display:
-<blockquote>
-<b>surface</b> or <b>mesh</b> style:<br>
-Each threshold is shown on the histogram as a vertical bar
-that can be moved horizontally.
-For unsigned data types, an initial threshold is set so that 1% of voxels
-(1% of the volume encompassed by the data region) lie above it;
-for signed data types, positive and negative thresholds are placed
-symmetrically about zero.
-Each threshold corresponds to a contour surface, generated as a
-<a href="modelpanel.html">submodel</a> of the data model.
-</blockquote>
-<blockquote>
-<b>volume</b> (<b>image</b>) style:<br>
-Each threshold is shown as a small square that can be moved horizontally
-and/or vertically.
-For unsigned data types, initial thresholds are set to give zero intensity
-for the 10% of voxels (in the data region) with the lowest values,
-scaling up to 0.99 intensity for the 1% of voxels
-with the highest values;
-for signed data types, positive and negative thresholds are placed
-symmetrically about zero.
-The thresholds and connecting lines on each histogram define a 
-<a href="../commands/volume.html#transferfunction">transfer function</a>
-that maps data values to colors and intensities.
-The rightmost threshold does not have to be at the far right of the histogram,
-and a threshold at a lower data value can be higher (vertically)
-than a threshold at a higher data value.
-<p>
-Threshold levels can be adjusted interactively by dragging in the
-<b>Volume Viewer</b> histogram
-or by using the <a href="../commands/ui.html#mousemode">mouse mode</a>
-for <b>contour level</b>
+The <b><i>thresholds</i></b> on the <a href="#top"><b>Volume Viewer</b></a>
+histogram, each associated with a data <b>Level</b>,
+control how data values are mapped to the display.
+They can be added and deleted using the
+<a href="../window.html#context-menu">context menu</a>
+and adjusted interactively by dragging in the histogram,
+or by dragging in the graphics window with the 
+<a href="../commands/ui.html#mousemode">mouse mode</a> for <b>contour level</b>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="mouse-icons/contour.png"></a>
 or <b>windowing</b>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/windowing.png"></a>
-in the graphics window.
+<img class="icon" border=1 src="mouse-icons/windowing.png"></a>.
+The <a href="../commands/volume.html#settings"><b>volume settings</b></a>
+command reports the current threshold levels.
+</p>
+<blockquote>
+For the <b>surface</b> or <b>mesh</b> style:<br>
+Each threshold is shown on the histogram as a vertical bar
+that can be moved horizontally. 
+Each threshold corresponds to a contour surface, generated as a
+<a href="modelpanel.html">submodel</a> of the data model.
+For most types of volume data, an initial threshold is set so that 1% of voxels
+(1% of the data grid points) lie above it.
+For data types typically used for electrostatic potential
+(APBS, UHBD, DelPhi) or electron localization (Gaussian, gOpenMol),
+two initial thresholds are placed symmetrically about zero.
+</blockquote>
+<blockquote>
+For the <b>volume</b> (<b>image</b>) style:<br>
+Each threshold is shown as a small square that can be moved horizontally
+and/or vertically. 
+The thresholds and connecting lines on each histogram define a 
+<a href="../commands/volume.html#transferfunction">transfer function</a>
+that maps data values to colors and intensities.
+For most types of volume data, three initial thresholds are set: 
+zero intensity at the 10% rank value, 0.8 intensity at 99% rank, 
+and full intensity at the largest value.
+<a href="../dicom/dicom.html">DICOM</a> data are initially shown 
+with thresholds: (&ndash;1000,0),(300,0.9),(3000,1).
+For data types typically used for electrostatic potential
+(APBS, UHBD, DelPhi) or electron localization (Gaussian, gOpenMol),
+five initial thresholds are set: zero intensity at zero
+and two more on either side, ramping up to full intensities at the 
+largest negative and largest positive values. The image representation is a
+<a href="modelpanel.html">submodel</a> of the data model.
+Initial threshold positions for the image style can be restored by clicking the
+<a href="densitymaps.html"><b>Map</b></a> icon
+<img class="icon" src="shortcut-icons/initialcurve.png">.
 </blockquote>
 <a name="context"></a>
 <p>
@@ -260,5 +275,5 @@ target="_blank">ChimeraX light microscopy highlight</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+August 2019</address>
 </body></html>

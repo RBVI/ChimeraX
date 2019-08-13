@@ -58,7 +58,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         # TODO: Need to update if parent of structure moves.
         t = session.triggers
         from . import get_triggers
-        ta = get_triggers(session)
+        ta = get_triggers()
         def pbg_update(*args, self=self):
             self._update_graphics()
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
@@ -228,9 +228,9 @@ class PseudobondGroup(PseudobondGroupData, Model):
         ba1, ba2 = bond_atoms
         if self._global_group:
             to_pbg = self.scene_position.inverse()
-            axyz0, axyz1 = to_pbg*ba1.scene_coords, to_pbg*ba2.scene_coords
+            axyz0, axyz1 = to_pbg*ba1.pb_scene_coords, to_pbg*ba2.pb_scene_coords
         else:
-            axyz0, axyz1 = ba1.coords, ba2.coords
+            axyz0, axyz1 = ba1.pb_coords, ba2.pb_coords
         from . import structure as s
         return s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
 

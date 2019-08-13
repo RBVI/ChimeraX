@@ -23,13 +23,24 @@ class MoveLabelMouseMode(MouseMode):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
         from .label2d import label_under_window_position
-        self._label = label_under_window_position(self.session, x, y)
+        self._label = label = label_under_window_position(self.session, x, y)
+        if label is None:
+            from .label3d import picked_3d_label
+            self._label = picked_3d_label(self.session, x, y)
 
     def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         lbl = self._label
-        if lbl:
-            ses = self.session
+        ses = self.session
+        from .label3d import ObjectLabel
+        from .label2d import Label
+        if isinstance(lbl, ObjectLabel):
+            lmodel = lbl._label_model
+            ps = ses.main_view.pixel_size(lmodel.scene_position * lbl.location())
+            ox,oy,oz = lbl.offset
+            lbl.offset = (ox + ps*dx, oy - ps*dy, oz)
+            lmodel._positions_need_update = True
+        elif isinstance(lbl, Label):
             w,h = ses.main_view.window_size
             xpos = lbl.xpos + dx/w
             ypos = lbl.ypos - dy/h
@@ -43,7 +54,8 @@ class MoveLabelMouseMode(MouseMode):
 
     def _log_label_move_command(self):
         lbl = self._label
-        if lbl:
+        from .label2d import Label
+        if isinstance(lbl, Label):
             command = '2dlabel change %s xpos %.3f ypos %.3f' % (lbl.name, lbl.xpos, lbl.ypos)
             from chimerax.core.commands import log_equivalent_command
             log_equivalent_command(self.session, command)

@@ -16,6 +16,7 @@
 #ifndef templates_CoordSet
 #define    templates_CoordSet
 
+#include <pyinstance/PythonInstance.declare.h>
 #include <vector>
 #include "../imex.h"
 #include "Coord.h"
@@ -24,7 +25,7 @@ namespace tmpl {
 
 class Molecule;
 
-class ATOMSTRUCT_IMEX CoordSet {
+class ATOMSTRUCT_IMEX CoordSet: public pyinstance::PythonInstance<CoordSet> {
     friend class Molecule;
     void    operator=(const CoordSet &);    // disable
         CoordSet(const CoordSet &);    // disable

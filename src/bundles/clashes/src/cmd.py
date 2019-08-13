@@ -102,17 +102,17 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
                         from chimerax.core.triggerset import DEREGISTER
                         return DEREGISTER
                     _cmd(*tuple(call_data))
-            setattr(session, _continuous_attr, get_triggers(session).add_handler(
+            setattr(session, _continuous_attr, get_triggers().add_handler(
                         'changes', changes_cb))
         else:
             ongoing = True
     elif getattr(session, _continuous_attr, None) != None:
-        get_triggers(session).remove_handler(getattr(session, _continuous_attr))
+        get_triggers().remove_handler(getattr(session, _continuous_attr))
         delattr(session, _continuous_attr)
     from .clashes import find_clashes
     clashes = find_clashes(session, test_atoms, attr_name=attr_name,
         bond_separation=bond_separation, clash_threshold=overlap_cutoff,
-        distance_only=distance_only, group_name=name, hbond_allowance=hbond_allowance,
+        distance_only=distance_only, hbond_allowance=hbond_allowance,
         inter_model=inter_model, inter_submodel=inter_submodel, intra_res=intra_res,
         intra_mol=intra_mol, res_separation=res_separation, test=test)
     if select:
@@ -273,7 +273,7 @@ def cmd_xcontacts(session, name="contacts"):
 def _xcmd(session, group_name):
     if getattr(session, _continuous_attr, None) != None:
         from chimerax.atomic import get_triggers
-        get_triggers(session).remove_handler(getattr(session, _continuous_attr))
+        get_triggers().remove_handler(getattr(session, _continuous_attr))
         delattr(session, _continuous_attr)
     pbg = session.pb_manager.get_group(group_name, create=False)
     pbgs = [pbg] if pbg else []

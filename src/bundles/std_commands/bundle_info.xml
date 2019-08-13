@@ -61,12 +61,14 @@
     <ChimeraXClassifier>Command :: ~show :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~display :: Viewing Controls :: stop displaying (parts of) a model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: lighting :: Viewing Controls :: change lighting</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: lighting model :: Viewing Controls :: change per-model lighting</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: material :: Depiction :: change visual surface properties of 3D objects</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure buriedarea :: Surface/Binding Analysis :: measure surface area buried by contacting structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure center :: Volume :: measure center of mass of maps or atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure convexity :: Surface/Binding Analysis :: color surface based on local convexity</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure inertia :: General Controls :: measure moments of inertia</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure length :: Volume :: measure path length of connected markers</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: measure symmetry :: Volume :: compute map symmetry</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: move :: General Controls :: move (parts of) a model relative to others</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: palette :: General Controls :: list available color palettes</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: pdbimages :: Input/Output :: batch processing of mmCIF files into images</ChimeraXClassifier>
@@ -76,7 +78,6 @@
     <ChimeraXClassifier>Command :: rainbow :: Depiction :: "rainbow" color (parts of) structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rename :: General Controls :: change name or ID of model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: roll :: General Controls :: continuously turn model(s) about an axis</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: run :: Utilities :: execute arguments as a command</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: runscript :: General Controls :: run a Python script with arguments</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: select :: General Controls :: select models or parts thereof</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~select :: General Controls :: unselect models or parts thereof</ChimeraXClassifier>
@@ -90,6 +91,7 @@
     <ChimeraXClassifier>Command :: stop :: General Controls :: stop an ongoing motion</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: style :: Depiction :: change style of depiction for strcutural elements</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: sym :: Higher-Order Structure :: generate symmetry mates</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: tile :: General Controls :: tile models onto grid</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: time :: Utilities :: time execution and redisplay of commands</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: transparency :: Depiction :: change transparency of (parts of) models</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: turn :: General Controls :: rotate a model about an axis</ChimeraXClassifier>

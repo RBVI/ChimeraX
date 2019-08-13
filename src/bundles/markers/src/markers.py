@@ -19,7 +19,7 @@ class MarkerSet(Structure):
         self.ball_scale = 1.0
 
     def create_marker(self, xyz, rgba, radius, id = None):
-        a = self.new_atom('', 'H')
+        a = self.new_atom('M', 'H')
         a.coord = xyz
         a.color = rgba	# 0-255 values
         a.radius = radius
@@ -50,3 +50,15 @@ def create_link(atom1, atom2, rgba = None, radius = None):
     b.color = rgba
     b.halfbond = False
     return b
+
+def selected_markers(session):
+    from chimerax import atomic
+    atoms = atomic.selected_atoms(session)
+    mask = [isinstance(a.structure, MarkerSet) for a in atoms]
+    return atoms.filter(mask)
+
+def selected_links(session):
+    from chimerax import atomic
+    bonds = atomic.selected_bonds(session)
+    mask = [isinstance(b.structure, MarkerSet) for b in bonds]
+    return bonds.filter(mask)

@@ -50,12 +50,13 @@ class SelectMouseMode(MouseMode):
         if event.shift_down() and mode == 'replace':
             mode = 'toggle'
 
-        if self._is_drag(event):
-            # Select objects in rectangle
-            mouse_drag_select(self.mouse_down_position, event, mode, self.session, self.view)
-        elif not self.double_click:
-            # Select object under pointer
-            mouse_select(event, mode, self.session, self.view)
+        if not self.double_click:
+            if self._is_drag(event):
+                # Select objects in rectangle
+                mouse_drag_select(self.mouse_down_position, event, mode, self.session, self.view)
+            else:
+                # Select object under pointer
+                mouse_select(event, mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
 
     def mouse_double_click(self, event):
@@ -496,11 +497,27 @@ class ClipMouseMode(MouseMode):
     name = 'clip'
     icon_file = 'icons/clip.png'
 
-    def mouse_drag(self, event):
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
 
+        # Create new clip planes if needed
+        cp = self.view.clip_planes
+        nplanes = len(cp.planes())
+        front_shift, back_shift = self.which_planes(event)
+        self._planes(front_shift, back_shift)
+        self._created_planes = (len(cp.planes()) > nplanes)
+
+    def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         front_shift, back_shift = self.which_planes(event)
         self.clip_move((dx,-dy), front_shift, back_shift)
+
+    def mouse_up(self, event):
+        moved = (event.position() != self.mouse_down_position)
+        MouseMode.mouse_up(self, event)	# This clears mouse down position.
+        if not moved and not self._created_planes:
+            # Click without drag -> turn off clipping.
+            self.view.clip_planes.clear()
 
     def which_planes(self, event):
         shift, alt = event.shift_down(), event.alt_down()
@@ -512,20 +529,21 @@ class ClipMouseMode(MouseMode):
         d = event.wheel_value()
         psize = self.pixel_size()
         front_shift, back_shift = self.which_planes(event)
-        self.clip_move(None, front_shift, back_shift, delta = 100*psize*d)
+        self.clip_move(None, front_shift, back_shift, delta = 10*psize*d)
 
     def clip_move(self, delta_xy, front_shift, back_shift, delta = None):
         pf, pb = self._planes(front_shift, back_shift)
         if pf is None and pb is None:
             return
 
+        from chimerax.core.graphics import SceneClipPlane, CameraClipPlane
         p = pf or pb
         if delta is not None:
             d = delta
-        elif p and p.camera_normal is None:
+        elif isinstance(p, SceneClipPlane):
             # Move scene clip plane
             d = self._tilt_shift(delta_xy, self.view.camera, p.normal)
-        else:
+        elif isinstance(p, CameraClipPlane):
             # near/far clip
             d = delta_xy[1]*self.pixel_size()
 
@@ -546,8 +564,14 @@ class ClipMouseMode(MouseMode):
     def _planes(self, front_shift, back_shift):
         v = self.view
         p = v.clip_planes
-        pfname, pbname = (('front','back') if p.find_plane('front') or p.find_plane('back') or not p.planes() 
-                          else ('near','far'))
+
+        if not p.planes():
+            from .settings import clip_settings
+            use_scene_planes = (clip_settings.mouse_clip_plane_type == 'scene planes')
+        else:
+            use_scene_planes = (p.find_plane('front') or p.find_plane('back'))
+                
+        pfname, pbname = ('front','back') if use_scene_planes else ('near','far')
         
         pf, pb = p.find_plane(pfname), p.find_plane(pbname)
         from chimerax.std_commands.clip import adjust_plane
@@ -604,11 +628,26 @@ class ClipRotateMouseMode(MouseMode):
     name = 'clip rotate'
     icon_file = 'icons/cliprot.png'
 
-    def mouse_drag(self, event):
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
 
+        # Create new clip planes if needed
+        cp = self.view.clip_planes
+        nplanes = len(cp.planes())
+        self._planes()
+        self._created_planes = (len(cp.planes()) > nplanes)
+
+    def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         axis, angle = self._drag_axis_angle(dx, dy)
         self.clip_rotate(axis, angle)
+
+    def mouse_up(self, event):
+        moved = (event.position() != self.mouse_down_position)
+        MouseMode.mouse_up(self, event)	# This clears mouse down position.
+        if not moved and not self._created_planes:
+            # Click without drag -> turn off clipping.
+            self.view.clip_planes.clear()
 
     def _drag_axis_angle(self, dx, dy):
         '''Axis in camera coords, angle in degrees.'''
@@ -634,7 +673,8 @@ class ClipRotateMouseMode(MouseMode):
     def _planes(self):
         v = self.view
         cp = v.clip_planes
-        rplanes = [p for p in cp.planes() if p.camera_normal is None]
+        from chimerax.core.graphics import SceneClipPlane
+        rplanes = [p for p in cp.planes() if isinstance(p, SceneClipPlane)]
         if len(rplanes) == 0:
             from chimerax.std_commands.clip import adjust_plane
             pn, pf = cp.find_plane('near'), cp.find_plane('far')

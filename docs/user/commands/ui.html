@@ -75,11 +75,11 @@ through <a href="../window.html#tool-context">context menus</a>.
 <b>mousemode</b> 
 [&nbsp;<b>control</b>&nbsp;] [&nbsp;<b>alt</b>&nbsp;]
 [&nbsp;<b>command</b>&nbsp;] [&nbsp;<b>shift</b>&nbsp;]
-[&nbsp;<b>leftMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;<b>middleMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;<b>rightMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;<b>wheelMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
-[&nbsp;<b>pauseMode</b>&nbsp;&nbsp;<i>function</i>&nbsp;]
+[&nbsp;<b>leftMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>middleMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>rightMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>wheelMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
+[&nbsp;<b>pauseMode</b>&nbsp;&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
 <blockquote>
 <p>
 The <b>mousemode</b> command (same as <b>ui mousemode</b>)
@@ -90,34 +90,6 @@ alone and in combination with the modifier keys <b>control</b>, <b>alt</b>,
 In addition, <b>wheelMode</b> refers to
 scrolling and <b>pauseMode</b> refers to pausing the cursor over something 
 in the graphics window without clicking any buttons. 
-</p><p>
-A <a href="#touchpad">trackpad or single-button mouse</a> can also be used.
-See also:
-<a href="device.html"><b>device</b></a>,
-<a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icons,
-<a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
-<a href="../window.html">ChimeraX window</a>
-</p><p>
-Given without arguments, the <b>mousemode</b> command reports the current
-assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
-Initial defaults include:
-</p>
-<ul>
-<li>left: rotate
-<li>middle: translate
-<li>right: translate
-<li>wheel (scrolling): zoom
-<li>Ctrl-left: new <a href="../selection.html">selection</a>
-(+Shift to toggle)
-</ul>
-<p>
-Possible values of <i>function</i> are listed in the table 
-<a href="#functions">below</a>. They can be truncated to unique strings.
-If <i>function</i> contains spaces, it should be enclosed in quotation marks.
-Not all functions make sense for a given input mode; for example,
-only <b>identify object</b> and <b>none</b> are reasonable functions for
-<b>pauseMode</b>.
-</p><p>
 Multiple modifier keys and multiple &ldquo;buttons&rdquo;
 can be given in a single command, but all specified
 modifiers apply to all specified buttons. For example, 
@@ -129,11 +101,85 @@ two commands rather than one would be needed to assign functions to
 <br>
 <b>mousemode alt wheel contour</b>
 </blockquote>
-
+</p><p>
+Given without arguments, the <b>mousemode</b> command reports the current
+assignments in the <a href="../tools/log.html"><b>Log</b></a>. See also:
+<a href="cofr.html"><b>cofr</b></a>,
+<a href="device.html"><b>device</b></a>,
+<!--
+<a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
+<a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>,
+<a href="../tools/maperaser.html"><b>Map Eraser</b></a>,
+-->
+<a href="../window.html">ChimeraX window</a>
+</p><p>
+A <a href="#touchpad">trackpad or single-button mouse</a> can also be used.
+Summary of mouse and trackpad defaults:
+</p>
+<table border cellpadding="4" cellspacing="0"><tr>
+<td align="center" rowspan="2"><b>rotate</b>
+<br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
+<td>left mouse button</td>
+</tr><tr>
+<td class="text">trackpad click-drag
+<br>Mac: also trackpad 2-finger rotation if 
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled</td>
+</tr><tr>
+<td align="center" rowspan="2"><b>translate</b>
+<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
+<td>middle mouse button</td>
+</tr><tr>
+<td class="text">
+Mac: trackpad + <b>Alt</b>, 3-finger drag if
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled
+<br>
+Windows: trackpad + <b>Ctrl-Alt</b>
+</td>
+</tr><tr>
+<td align="center" rowspan="2"><b>zoom</b>
+<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
+<td>mouse scroll wheel</td>
+</tr><tr>
+<td class="text">
+Mac: trackpad pinch or 4-finger drag if
+<a href="../preferences.html#trackpad">multitouch gestures</a> enabled,
+otherwise 2-finger drag
+<br>
+Windows: trackpad 2-finger drag
+</td>
+</tr><tr>
+<td align="center" rowspan="2"><b>select</b>
+<br><img src="../tools/mouse-icons/select.png" class="icon3"></td>
+<td>left mouse button + <b>Ctrl</b>, + <b>Shift</b> to toggle</td>
+</tr><tr>
+<td class="text">
+trackpad + <b>Ctrl</b>, + <b>Shift</b> to toggle</td>
+</tr></table>
+<p>
+The right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+is also assigned to <b>translate</b> by default, 
+but can be reassigned by clicking an icon in the following tabs of the
+<a href="../tools/toolbar.html"><b>Toolbar</b></a>
+(details on the functions <a href="#functions">below</a>):
+</p>
+<ul>
+<li><a href="../tools/mousemodes.html"><b>Right Mouse</b></a>:&nbsp;
+&nbsp;<img class="iconbar" src="../mouse-icons.png">
+<li><a href="../tools/markers.html"><b>Markers</b></a>:&nbsp;
+<img class="iconbar" src="../marker-icons.png">
+</ul>
+<p>
+The <a href="#functions"><i>function</i></a> can be truncated to a unique string. 
+If the string contains spaces, it should be enclosed in quotation marks.
+Not all functions make sense for a given input mode; for example,
+only <b>identify object</b> and <b>none</b> are reasonable functions for
+<b>pauseMode</b>.
+</p>
 <a name="functions"></a>
 <table border cellpadding="4" cellspacing="0">
 <tr>
-<td align="center"><b><i>function</i></b><br>(default assignment, if any)</td>
+<td align="center"><b><i>function</i></b><br>(default,&nbsp;if&nbsp;any)</td>
 <td align="center"><b>description</b></td>
 <td align="center"><b><a href="../tools/mousemodes.html">Right Mouse</a>
 icon</b></td>
@@ -160,7 +206,8 @@ except if wheel, Z-translate; see also <a href="move.html"><b>move</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/translate.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>zoom</b><br>(wheel)</td>
-<td align="center" class="text">zoom the view;
+<td align="center" class="text">zoom the view
+(slightly <a href="../tools/mousemodes.html#vr">different in VR</a>);
 see also <a href="zoom.html"><b>zoom</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/zoom.png" width="35px"></td>
 </tr><tr>
@@ -209,21 +256,32 @@ see also <a href="label.html"><b>label</b></a></td>
 </tr><tr>
 <td align="center"><b>move label</b></td>
 <td align="center" class="text">
-move <a href="../commands/2dlabels.html">2D label</a>;
-see also <a href="../commands/2dlabels.html"><b>2dlabels</b></a></td>
+move <a href="2dlabels.html">2D label</a>
+or <a href="label.html">&ldquo;3D&rdquo; label</a>;
+see also <a href="2dlabels.html"><b>2dlabels</b></a>,
+<a href="label.html"><b>label</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/movelabel.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>clip</b> </td>
-<td align="center" class="text">activate and translate front clipping plane,
-+<b>Alt</b> back plane, +<b>Shift</b> slab (front and back in same direction),
-+<b>Alt-Shift</b> slab thickness (front and back in opposite directions);
-if only near/far (fixed-orientation) planes already active, move those 
-instead of front/back (rotatable) planes;
+<td align="center" class="text">
+click without dragging to activate/deactivate clipping,
+click-drag to activate (if clipping is not yet active) 
+and translate front or near plane,
++<b>Alt</b> back or far plane, +<b>Shift</b> 
+slab (translate paired planes in same direction), 
++<b>Alt-Shift</b> slab thickness (translate paired planes
+in opposite directions); whether activation applies to
+front/back planes that rotate with the scene or near/far planes 
+that remain parallel to the screen is set in the
+<a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>;
 see also <a href="clip.html"><b>clip</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/clip.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>clip rotate</b></td>
-<td align="center" class="text">activate and rotate front/back clipping planes;
+<td align="center" class="text">click without dragging to 
+activate/deactivate clipping,
+click-drag to activate (if not already active) and
+rotate front/back clipping planes;
 see also <a href="clip.html"><b>clip</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/cliprot.png" width="35px"></td>
 </tr><tr>
@@ -255,15 +313,17 @@ and adjust region size by dragging any face;
 see also <a href="volume.html"><b>volume</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/crop.png" width="35px"></td>
 </tr><tr>
-<td align="center"><b>place marker</b></td>
-<td align="center" class="text">place <a href="../markers.html">marker</a>
-(<a href="../tools/markerplacement.html">details...</a>)</td>
-<td align="center"><img src="../tools/mouse-icons/marker.png" width="35px"></td>
+<td align="center"><b>pick blobs</b></td>
+<td align="center" class="text"><a href="../tools/measureblobs.html">pick
+surface blob</a> to measure area, volume, size; see also
+<a href="measure.html#blob"><b>measure blob</b></a></td>
+<td align="center"><img src="../tools/mouse-icons/pickblobs.png" width="35px"></td>
 </tr><tr>
-<td align="center"><b>connect markers</b></td>
-<td align="center" class="text"><a href="../selection">select</a> and link
-successively clicked <a href="../markers.html">markers</a></td>
-<td align="center"><img src="../tools/mouse-icons/link.png" width="35px"></td>
+<td align="center"><b>map eraser</b></td>
+<td align="center" class="text">move
+<a href="../tools/maperaser.html">map eraser</a> sphere; see also
+<a href="volume.html#erase"><b>volume erase</b></a></td>
+<td align="center"><img src="../tools/mouse-icons/eraser.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>play map series</b></td>
 <td align="center" class="text">play 
@@ -288,7 +348,8 @@ not retained); see also <a href="torsion.html"><b>torsion</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/bondrot.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>swapaa</b></td>
-<td align="center" class="text">&ldquo;<a href="swapaa.html">mutate</a>&rdquo;
+<td align="center" class="text">
+&ldquo;<a href="swapaa.html#mousemode">mutate</a>&rdquo;
 and <a href="label.html">label</a> the amino acid residue
 under the mouseclick,
 with vertical drag cycling through the 20 standard types
@@ -335,6 +396,72 @@ see also <a href="select.html"><b>select</b></a>
 <td>&nbsp;</td>
 </tr>
 </table>
+<p>
+The following mouse modes pertain to <a href="../markers.html">markers
+and links</a>.
+See also: <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>
+</p>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<td align="center"><b><i>function</i></b></td>
+<td align="center"><b>description</b></td>
+<td align="center"><b><a href="../tools/markers.html">Markers</a>
+icon</b></td>
+</tr><tr>
+<td align="center"><b>mark maximum</b></td>
+<td align="center" class="text">
+add marker at the nearest local maximum in
+<a href="../tools/volumeviewer.html">volume data</a>
+above the <a href="../tools/volumeviewer.html#threshold">threshold</a>
+along the line of sight</td>
+<td align="center"><img src="../tools/mouse-icons/maximum.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>mark plane</b></td>
+<td align="center">add marker in single-plane
+<a href="../tools/volumeviewer.html">volume</a> display</td>
+<td align="center"><img src="../tools/mouse-icons/plane.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>mark surface</b></td>
+<td align="center">
+add marker at the nearest surface point along the line of sight</td>
+<td align="center"><img src="../tools/mouse-icons/marker.png" width="35px"></td>
+</tr><tr>
+<td align="center" class="text">
+<b>mark center</b></td>
+<td align="center" class="text">
+add marker at the geometric center of the clicked surface blob,
+ignoring other blobs</td>
+<td align="center"><img src="../tools/mouse-icons/marker2.png" width="35px"></td>
+</tr><tr>
+<td align="center" class="text">
+<b>mark point</b></td>
+<td align="center" class="text">
+Place marker at the tip of the hand-controller cone
+in <a href="../vr.html">virtual reality</a></td>
+<td align="center"><img src="../tools/mouse-icons/point.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>link markers</b></b>
+<td align="center"><a href="../selection.html">select</a> and link
+successively clicked markers</td>
+<td align="center"><img src="../tools/mouse-icons/link.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>move markers</b></td>
+<td align="center">drag marker to reposition</td>
+<td align="center"><img src="../tools/mouse-icons/move.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>resize markers</b></td>
+<td align="center">drag to adjust marker/link radii</td>
+<!--
+(also acts on atoms and stick bonds; restore default radii
+with the <a href="commands/size.html"><b>size</b></a> command)
+-->
+<td align="center"><img src="../tools/mouse-icons/resize.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>delete markers</b></td>
+<td align="center">delete markers and links</td>
+<td align="center"><img src="../tools/mouse-icons/delete.png" width="35px"></td>
+</tr>
+</table>
 </blockquote>
  
 <a name="touchpad"></a>
@@ -346,24 +473,24 @@ is generally interpreted as left click,
 but can be combined with modifier keys to emulate middle and right:
 </p>
 <ul>
-<li>On a Mac, the modifier keys 
+<li>On a <b>Mac</b>, the modifier keys 
 to emulate middle and right are <b>alt</b> and <b>command</b>
 (<img src="../icon-clover.png" width="12px">), respectively.
 In other words, leaving <b>alt left</b> and <b>command left</b>
 unassigned allows them to serve the middle- and right-button functions.
-Multitouch actions can also be used for manipulation, if enabled in the
-<a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>;
-if multitouch is turned off, a two-finger drag is interpreted as scrolling
-(<b>wheel</b>, default assignment zoom). Regardless of the multitouch setting,
+<p>
+With <b>Trackpad gestures</b> enabled
+in the <a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>,
+multitouch gestures can also be used on Mac trackpads:
+two-finger rotation, three-finger translation, pinch-zoom, and four-finger
+scrolling; with the setting turned off, a two-finger drag is interpreted as 
+scrolling. Either way,
 if &ldquo;secondary click&rdquo; is enabled in the Trackpad system preferences,
 a two-finger click-and-drag performs the right-button action.
-<p>
-Magic Mouse issue: scrolling to zoom with the Magic Mouse will not work
-after a trackpad has been used, unless multitouch actions have been disabled
-in the <a href="../preferences.html#trackpad"><b>Trackpad</b> preferences</a>
-(the <b>Trackpad gestures</b> option is unchecked).
+Magic Mouse scrolling will not work after a trackpad has been used 
+unless the <b>Trackpad gestures</b> option has been turned off.
 </p>
-<li>On Windows, the modifier keys to emulate middle and right are 
+<li>On <b>Windows</b>, the modifier keys to emulate middle and right are 
 <b>control alt</b> and <b>alt</b>, respectively.
 In addition, on many Windows 10 laptops, a click in the 
 lower right corner of the trackpad is a right click, and
@@ -373,50 +500,8 @@ another finger near the middle of the trackpad. On laptops
 with a &ldquo;precision touchpad,&rdquo; a two-finger tap is also
 interpreted as right-click, but a two-finger drag still performs scrolling.
 </ul>
-<p>
-Summary of mouse and trackpad manipulation defaults:
-</p>
-<table border cellpadding="4" cellspacing="0"><tr>
-<td align="center" rowspan="2"><b>rotate</b>
-<br><img src="../tools/mouse-icons/rotate.png" class="icon3"></td>
-<td>left mouse button</td>
-</tr><tr>
-<td class="text">trackpad click-drag
-<br>Mac: also trackpad 2-finger rotation if 
-<a href="../preferences.html#trackpad">multitouch gestures</a> enabled</td>
-</tr><tr>
-<td align="center" rowspan="2"><b>translate</b>
-<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
-<td>middle mouse button</td>
-</tr><tr>
-<td class="text">
-Mac: trackpad + <b>Alt</b>, 3-finger drag if
-<a href="../preferences.html#trackpad">multitouch gestures</a> enabled
-<br>
-Windows: trackpad + <b>Ctrl-Alt</b>
-</td>
-</tr><tr>
-<td align="center" rowspan="2"><b>zoom</b>
-<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
-<td>mouse scroll wheel</td>
-</tr><tr>
-<td class="text">
-Mac: trackpad pinch or 4-finger drag if
-<a href="../preferences.html#trackpad">multitouch gestures</a> enabled,
-otherwise 2-finger drag
-<br>
-Windows: trackpad 2-finger drag
-</td>
-</tr></table>
-<p>
-The right mouse button (= trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
-is also assigned to <b>translate</b> by default, 
-but can be reassigned by clicking 
-<a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icons.
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+August 2019</address>
 </body></html>

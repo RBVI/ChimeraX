@@ -68,7 +68,7 @@ public:
     static const unsigned int  HIDE_NUCLEOTIDE = 0x4;
 
     typedef std::vector<Bond*> Bonds;
-    enum class DrawMode: unsigned char { Sphere, Ball, EndCap };
+    enum DrawMode: unsigned char { Sphere, Ball, EndCap };
     enum IdatmGeometry { Ion=0, Single=1, Linear=2, Planar=3, Tetrahedral=4 };
     struct IdatmInfo {
         IdatmGeometry  geometry;
@@ -219,6 +219,7 @@ public:
         set_coord(coord, nullptr, track_change);
     }
     void  set_coord(const Point& coord, CoordSet* cs, bool track_change);
+    void  set_coord_index(unsigned int);
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);

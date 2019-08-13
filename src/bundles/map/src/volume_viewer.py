@@ -21,6 +21,7 @@ from chimerax.core.tools import ToolInstance
 # ------------------------------------------------------------------------------
 #
 class VolumeViewer(ToolInstance):
+    help = "help:user/tools/volumeviewer.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -1109,6 +1110,8 @@ def vector_value(text, v, allow_singleton = False):
       for a in range(3):
         if vfields[a] != float_format(v[a], 5):
           nv[a] = string_to_float(vfields[a], v[a])
+    else:
+        return None
     if nv == list(v):
       return v
     return tuple(nv)
@@ -1418,7 +1421,6 @@ class Thresholds_Panel(PopupPanel):
     self.active_order = []              # Histogram_Panes
     self.active_color = 'white'
     self.update_timer = None
-    self._color_dialog = None
 
     frame = self.frame
     frame.resizeEvent = lambda e, self=self: self.panel_resized(e)
@@ -1658,8 +1660,6 @@ class Thresholds_Panel(PopupPanel):
         ao.remove(hp)
       ao.insert(0, hp)
 
-    self._set_color_dialog_color()
-    
   # ---------------------------------------------------------------------------
   #
   def histogram_shown(self, data_region):
@@ -1676,55 +1676,6 @@ class Thresholds_Panel(PopupPanel):
         if hp.histogram_shown:
             hp.set_threshold_parameters_from_gui()
         volume.set_display_style(hp.display_style)
-
-  # ---------------------------------------------------------------------------
-  #
-  def show_color_chooser(self):
-      from PyQt5.QtWidgets import QColorDialog
-      self._color_dialog = cd = QColorDialog(self.frame)
-      cd.setOptions(QColorDialog.ShowAlphaChannel)
-# Following hiding of buttons avoids crash on exit on Mac Sierra, Qt bug 56448
-#      cd.setOption(QColorDialog.NoButtons, True)
-      self._set_color_dialog_color()
-#      cd.colorSelected.connect(self.color_changed_cb) # Does not update until Ok pressed
-      cd.currentColorChanged.connect(self.color_changed_cb) # Updates whenever color in dialog changes
-      cd.finished.connect(self.color_dialog_closed_cb)
-      cd.show()
-      
-  # ---------------------------------------------------------------------------
-  #
-  def _set_color_dialog_color(self):
-      hp = self.active_histogram()
-      cd = self._color_dialog
-      if hp is None or cd is None:
-          return
-      from PyQt5.QtGui import QColor, QPalette
-      markers, m = hp.selected_histogram_marker()
-      if m:
-          color = QColor(*tuple(int(c*255) for c in m.rgba))
-      else:
-          color = hp.color.palette().color(QPalette.Window)
-      cd.setCurrentColor(color)
-      
-  # ---------------------------------------------------------------------------
-  #
-  def color_changed_cb(self, color):
-      hp = self.active_histogram()
-      if hp is None:
-          return
-      markers, m = hp.selected_histogram_marker()
-      if m is None:
-          return
-      rgba = (color.redF(), color.greenF(), color.blueF(), color.alphaF())
-      m.set_color(rgba, markers.canvas)	# Set histogram marker color
-      from .histogram import hex_color_name
-      hp.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3])) # set button color
-      hp.set_threshold_parameters_from_gui(show = True)
-      
-  # ---------------------------------------------------------------------------
-  #
-  def color_dialog_closed_cb(self, result_code):
-      self._color_dialog = None
   
 # -----------------------------------------------------------------------------
 # Manages histogram and heading with data name, step size, shown indicator,
@@ -1780,10 +1731,9 @@ class Histogram_Pane:
     self.shown_handlers = []
 
     # Color button
-    self.color = cl = QPushButton(df)
-    cl.setMaximumSize(16,16)
-    cl.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-    cl.clicked.connect(self.show_color_chooser)
+    from chimerax.ui.widgets import ColorButton
+    self._color_button = cl = ColorButton(df, max_size = (16,16), has_alpha_channel = True)
+    cl.color_changed.connect(self._color_chosen)
     layout.addWidget(cl)    
 
     self.data_id = did = QLabel(df)
@@ -1797,11 +1747,16 @@ class Histogram_Pane:
     # Subsampling step menu
     sl = QLabel('step', df)
     layout.addWidget(sl)
-    layout.addSpacing(-7)
+    import sys
+    if sys.platform == 'darwin':
+        gap = -12
+        menu_button_style = 'padding-left: 15px; padding-right: 20px;'
+    else:
+        gap = -8
+        menu_button_style = 'padding-left: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px'
+    layout.addSpacing(gap)
     self.data_step = dsm = QPushButton(df)
-    dsm.setStyleSheet('padding-left: 4px; padding-right: 0px;')
-    dsm.setMaximumSize(30,20)
-    # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
+    dsm.setStyleSheet(menu_button_style)
     dsm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
     for step in (1,2,4,8,16):
@@ -1824,9 +1779,7 @@ class Histogram_Pane:
 
     # Display style menu
     self.style = stm = QPushButton(df)
-    stm.setStyleSheet('padding-left: 4px; padding-right: 0px;')
-    stm.setMaximumSize(90,20)
-    # TODO: Need to hide the menu indicator.  Can set it to 1x1 pixel image with style sheet.
+    stm.setStyleSheet(menu_button_style)
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu()
     for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box'):
@@ -1852,12 +1805,12 @@ class Histogram_Pane:
     # Add histogram below row of controls
     h = self.make_histogram(f, histogram_height, new_marker_color = (1,1,1,1))
     flayout.addWidget(h)
+    h.contextMenuEvent = self.show_context_menu
 
     # Create planes slider below histogram if requested.
     self._planes_slider_shown = False
     self._planes_slider_frame = None
     
-    f.contextMenuEvent = self.show_context_menu
 
   # ---------------------------------------------------------------------------
   #
@@ -1894,14 +1847,6 @@ class Histogram_Pane:
       #a.setStatusTip("Info about this menu entry")
       a.triggered.connect(cb)
       menu.addAction(a)
-
-  # ---------------------------------------------------------------------------
-  #
-  def show_color_chooser(self):
-      tp = self.dialog.thresholds_panel
-      if tp.active_histogram() != self:
-          tp.set_active_histogram(self)
-      tp.show_color_chooser()
       
   # ---------------------------------------------------------------------------
   #
@@ -2048,25 +1993,21 @@ class Histogram_Pane:
       self.dialog.session.update_loop.update_graphics_now()
 
   # ---------------------------------------------------------------------------
+  # x,y in canvas coordinates
   #
   def add_threshold(self, x, y):
-      # Convert threshold panel x,y to histogram canvas cx,cy
-      from PyQt5.QtCore import QPoint
-      cp = self.canvas.mapFrom(self.frame, QPoint(x,y))
       markers = self.shown_markers()
       if markers:
-          markers.add_marker(cp.x(), cp.y())
+          markers.add_marker(x, y)
           self.dialog.redisplay_needed_cb()
 
   # ---------------------------------------------------------------------------
+  # x,y in canvas coordinates
   #
   def delete_threshold(self, x, y):
-      # Convert threshold panel x,y to histogram canvas cx,cy
-      from PyQt5.QtCore import QPoint
-      cp = self.canvas.mapFrom(self.frame, QPoint(x,y))
       markers = self.shown_markers()
       if markers:
-          m = markers.clicked_marker(cp.x(), cp.y())
+          m = markers.clicked_marker(x, y)
           if m:
               markers.delete_marker(m)
               self.dialog.redisplay_needed_cb()
@@ -2104,15 +2045,30 @@ class Histogram_Pane:
   def show_data_name(self):
 
     v = self.volume
-#    if len(v.name) > 10:
-    if len(v.name) >= 0:
+    name = self._short_name
+#    if len(name) > 10:
+    if len(name) >= 0:
         self.data_name.show()
-        self.data_name.setText(v.name)
+        
+        self.data_name.setText(name)
         self.data_id.setText('#%s' % v.id_string)
     else:
         self.data_name.hide()
         self.data_name.setText('')
-        self.data_id.setText('#%s %s' % (v.id_string, v.name))
+        self.data_id.setText('#%s %s' % (v.id_string, name))
+
+
+  # ---------------------------------------------------------------------------
+  #
+  @property
+  def _short_name(self):
+    v = self.volume
+    if v is None:
+        return ''
+    name = v.name
+    if len(name) > 70:
+        name = '...' + name[-70:]
+    return name
 
   # ---------------------------------------------------------------------------
   #
@@ -2506,8 +2462,18 @@ class Histogram_Pane:
         if v:
             rgba = v.default_rgba
     if rgba is not None:
-        from .histogram import hex_color_name
-        self.color.setStyleSheet('background-color: %s' % hex_color_name(rgba[:3]))
+        from chimerax.core.colors import rgba_to_rgba8
+        self._color_button.color = rgba_to_rgba8(rgba)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _color_chosen(self, color):
+      markers, m = self.selected_histogram_marker()
+      if m is None:
+          return
+      rgba = tuple(r/255 for r in color)	# Convert 0-255 to 0-1 color values
+      m.set_color(rgba, markers.canvas)	# Set histogram marker color
+      self.set_threshold_parameters_from_gui(show = True)
 
   # ---------------------------------------------------------------------------
   #

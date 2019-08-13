@@ -29,10 +29,17 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<a href="#preset"><i>preset</i></a>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>
 </h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>lighting model</b>
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+&nbsp;<a href="#model"><i>model-options</i></a>
+</h3>
 <p>
-The <b>lighting</b> command controls lighting parameters,
+The <b>lighting</b> command controls global lighting parameters,
 through individual <a href="#options">options</a> and
 in convenient <a href="#preset">preset</a> combinations.
+Related <a href="#model">per-model settings</a> can be adjusted with
+the <b>lighting model</b> command.
 Without arguments, <b>lighting</b> reports the current settings in the
 <a href="../tools/log.html"><b>Log</b></a>.
 Colors are reported as red, green, and blue components
@@ -172,6 +179,7 @@ Set ambient-light color (<b>white</b> in <b>simple</b> lighting).
 <br>
 Whether to use depth-cueing, front-to-back shading of the scene
 (<b>true</b> in <b>simple</b> lighting).
+See also <a href="#model">per-model settings</a>.
 </blockquote>
 <blockquote>
 <b>depthCueColor</b>
@@ -201,6 +209,7 @@ Whether the key light should cast shadows
 (<b>false</b> in <b>simple</b> lighting).
 This will only have a visible effect when the key light is on
 (<a href="#intensity"><b>intensity</b></a> &gt; 0).
+See also <a href="#model">per-model settings</a>.
 </blockquote>
 <blockquote>
 <b>qualityOfShadows</b> &nbsp;coarse&nbsp;|&nbsp;<b>normal</b>&nbsp;|&nbsp;fine&nbsp;|&nbsp;finer&nbsp;|&nbsp;<i>M<sub>k</sub></i>
@@ -231,6 +240,7 @@ used to avoid a surface shadowing itself due to rounding errors
 <br>
 How many directions should be used to generate ambient shadows
 (<b>0</b> in <b>simple</b> lighting, meaning no ambient shadows; maximum 1024).
+See also <a href="#model">per-model settings</a>.
 </blockquote>
 <blockquote>
 <a name="msMapSize"></a>
@@ -258,6 +268,50 @@ because a smaller depth map is typically used.
 Whether directional lighting should be pinned to the camera viewpoint
 (<a href="view.html#screencoords">screen coordinate system</a>, default) 
 or to the <a href="view.html#scenecoords">scene coordinate system</a>.
+</blockquote>
+
+<a name="model"></a>
+<p class="nav">
+[<a href="#top">back to top: lighting</a>]
+</p>
+<h3>Per-Model Lighting Options</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>lighting model</b>
+&nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
+[&nbsp;<b>depthCue</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>shadows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>multiShadow</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+<p>
+The <b>lighting model</b> command allows turning off a setting for 
+an individual model or models when that setting is globally enabled. 
+If the setting is globally disabled, the per-model settings will not be evident.
+</p>
+
+<blockquote>
+<a name="model-depthCue"></a>
+<b>depthCue</b> &nbsp;true | false
+<br>
+Whether depth-cueing should apply to the specified model(s) when
+depth-cueing is <a href="#depthCue">enabled globally</a>.
+</blockquote>
+<blockquote>
+<a name="model-shadows"></a>
+<b>shadows</b> &nbsp;true | false
+<br>
+Whether the key light should cast shadows on the specified model(s).
+This will only have a visible effect when the key light is on
+(<a href="#intensity"><b>intensity</b></a> &gt; 0) and shadows are
+<a href="#shadows">enabled globally</a>.
+</blockquote>
+<blockquote>
+<a name="model-multiShadow"></a>
+<b>multiShadow</b> &nbsp;true | false
+<br>
+Whether ambient shadowing should be shown on the specified model(s) 
+when ambient shadowing is <a href="#multiShadow">enabled globally</a>
+(number of directions <i>N</i> &gt; 0).
 </blockquote>
 
 <hr>

@@ -72,7 +72,7 @@ def hide_models(objects, undo_state):
                 dp = ninst
             else:
                 logical_and(dp, ninst, dp)
-            if m in ud:
+            if m in ud_positions:
                 ud_positions[m][1] = dp
             else:
                 ud_positions[m] = [m.display_positions, dp]

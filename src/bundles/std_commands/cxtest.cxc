@@ -3,6 +3,7 @@ open 2tpk autostyle false
 alias foo bar
 alias list
 alias delete foo
+alias foo bar
 ~alias foo
 align #1 to #1
 camera
@@ -45,7 +46,8 @@ hide
 lighting
 material
 material ref .8 spec .8 exp 50 amb .2 trans true
-measure buriedarea #1 with #1
+debug expectfail measure buriedarea #1 with #1
+measure buriedarea #1:1-18 with #1:19-36
 surface
 measure convexity #1
 measure length #1
@@ -61,7 +63,6 @@ rainbow residues palette RdBu-10
 rename #1 snafu
 roll
 roll z rock 100
-run "echo hi"
 # runscript
 select :12
 select up
@@ -98,7 +99,7 @@ version bundles
 version packages
 view
 view initial
-wait
+# debug expectfail wait
 windowsize
 windowsize 512 256
 zoom

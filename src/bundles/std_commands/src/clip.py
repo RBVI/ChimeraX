@@ -103,7 +103,8 @@ def adjust_plane(name, offset, origin, normal, planes, view = None, camera_norma
         return
 
     if camera_normal is not None and view is not None:
-        normal = view.camera.position.transform_vector(camera_normal)
+        cpos = view.camera.position
+        normal = cpos.transform_vector(camera_normal)
 
     p = planes.find_plane(name)
     if p is None:
@@ -120,8 +121,13 @@ def adjust_plane(name, offset, origin, normal, planes, view = None, camera_norma
         if origin is None:
             origin = plane_origin(view)
         plane_point = origin + offset * n
-        from chimerax.core.graphics import ClipPlane
-        p = ClipPlane(name, n, plane_point, camera_normal)
+        if camera_normal is None or view is None:
+            from chimerax.core.graphics import SceneClipPlane
+            p = SceneClipPlane(name, n, plane_point)
+        else:
+            camera_plane_point = cpos.inverse() * plane_point
+            from chimerax.core.graphics import CameraClipPlane
+            p = CameraClipPlane(name, camera_normal, camera_plane_point, view)
         planes.add_plane(p)
     else:
         n = p.normal if normal is None else normal
@@ -159,7 +165,8 @@ def report_clip_info(viewer, log):
     if planes:
         b = viewer.drawing_bounds()
         c0 = b.center() if b else (0,0,0)
-        pinfo = ['%s %.5g' % (p.name,  p.offset(c0)) for p in planes]
+        pinfo = ['%s %.5g' % (p.name,  -p.offset(c0) if p.name in ('far', 'back') else p.offset(c0))
+                 for p in planes]
         msg = 'Using %d clip planes: %s' % (len(planes), ', '.join(pinfo))
     else:
         msg = 'Clipping is off'

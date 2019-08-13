@@ -132,7 +132,7 @@ class OpenGLContext:
 
         w = self.window if window is None else window
         if not qc.makeCurrent(w):
-            raise RuntimeError("Could not make graphics context current")
+            raise OpenGLError("Could not make graphics context current")
         return True
     
     def _initialize_context(self, mode = None, window = None):
@@ -145,7 +145,7 @@ class OpenGLContext:
 
         # Create context
         from PyQt5.QtGui import QOpenGLContext
-        qc = QOpenGLContext(window)
+        qc = QOpenGLContext()
         qc.setScreen(self._screen)
 
         if self._share_context:
@@ -494,6 +494,10 @@ class Render:
         return self._default_framebuffer
 
     def set_default_framebuffer_size(self, width, height):
+        '''
+        This does not update the viewport.
+        Use Render.update_viewport() when OpenGL context current to update viewport
+        '''
         s = self._opengl_context.pixel_scale()
         w, h = int(s*width), int(s*height)
         fb = self.default_framebuffer()
@@ -515,7 +519,7 @@ class Render:
 
     def framebuffer_depth_bits(self):
         return GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
-                                                        GL.GL_BACK_LEFT,
+                                                        GL.GL_DEPTH,
                                                         GL.GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE)
 
     def set_offscreen_color_bits(self, bits):
@@ -543,7 +547,7 @@ class Render:
         The capabilities are specified as at bit field of values from
         SHADER_LIGHTING, SHADER_DEPTH_CUE, SHADER_TEXTURE_2D, SHADER_TEXTURE_3D,
         SHADER_COLORMAP, SHADER_DEPTH_TEXTURE, SHADER_TEXTURE_CUBEMAP,
-        SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOWS, SHADER_MULTISHADOW,
+        SHADER_TEXTURE_3D_AMBIENT, SHADER_SHADOW, SHADER_MULTISHADOW,
         SHADER_SHIFT_AND_SCALE, SHADER_INSTANCING, SHADER_TEXTURE_OUTLINE,
         SHADER_DEPTH_OUTLINE, SHADER_VERTEX_COLORS,
         SHADER_TRANSPARENT_ONLY, SHADER_OPAQUE_ONLY, SHADER_STEREO_360
@@ -551,7 +555,7 @@ class Render:
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
-        p = self.opengl_shader(options)
+        p = self._opengl_shader(options)
         return p
 
     def _use_shader(self, shader):
@@ -570,7 +574,7 @@ class Render:
                 shader.set_integer('tex3d', 0)    # Tex unit 0.
             if self.SHADER_MULTISHADOW & c:
                 self.multishadow._set_multishadow_shader_variables(shader)
-            if self.SHADER_SHADOWS & c:
+            if self.SHADER_SHADOW & c:
                 self.shadow._set_shadow_shader_variables(shader)
             if self.SHADER_DEPTH_CUE & c:
                 self.set_depth_cue_parameters()
@@ -615,7 +619,7 @@ class Render:
         s = self.framebuffer_stack
         pfb = s.pop()
         if len(s) == 0:
-            raise RuntimeError('No framebuffer left on stack.')
+            raise OpenGLError('No framebuffer left on stack.')
         fb = s[-1]
         fb.activate()
         self.set_viewport(*fb.viewport)
@@ -624,13 +628,27 @@ class Render:
     def rendering_to_screen(self):
         return len(self.framebuffer_stack) == 1
 
-    def opengl_shader(self, capabilities):
-        'Private.  Return OpenGL shader program id, creating shader if needed.'
+    def _opengl_shader(self, capabilities):
+        'Return OpenGL shader program id, creating shader if needed.'
 
+        p = None
         sp = self._opengl_context.shader_programs
         if capabilities in sp:
             p = sp[capabilities]
         else:
+            # Shadow or depth cue off overrides on.
+            # On is usually a global setting where off is per-drawing.
+            orig_cap = capabilities
+            cap_pairs = ((self.SHADER_NO_SHADOW, self.SHADER_SHADOW),
+                         (self.SHADER_NO_MULTISHADOW, self.SHADER_MULTISHADOW),
+                         (self.SHADER_NO_DEPTH_CUE, self.SHADER_DEPTH_CUE))
+            for nc, c in cap_pairs:
+                if capabilities & nc:
+                    capabilities &= ~(c | nc)
+            if capabilities in sp:
+                p = sp[capabilities]
+                sp[orig_cap] = p
+        if p is None:
             p = Shader(capabilities, self.multishadow.max_multishadows())
             sp[capabilities] = p
             if capabilities & self.SHADER_LIGHTING:
@@ -638,6 +656,7 @@ class Render:
                 if capabilities & self.SHADER_MULTISHADOW:
                     GL.glUseProgram(p.program_id)
                     self.multishadow._set_multishadow_shader_constants(p)
+
         self._use_shader(p)
         return p
 
@@ -759,9 +778,9 @@ class Render:
             self.enable_capabilities &= ~self.SHADER_DEPTH_CUE
 
         if lp.shadows:
-            self.enable_capabilities |= self.SHADER_SHADOWS
+            self.enable_capabilities |= self.SHADER_SHADOW
         else:
-            self.enable_capabilities &= ~self.SHADER_SHADOWS
+            self.enable_capabilities &= ~self.SHADER_SHADOW
 
         if lp.multishadow > 0:
             self.enable_capabilities |= self.SHADER_MULTISHADOW
@@ -951,7 +970,9 @@ class Render:
         lines = ['vendor: %s' % GL.glGetString(GL.GL_VENDOR).decode('utf-8'),
                  'renderer: %s' % GL.glGetString(GL.GL_RENDERER).decode('utf-8'),
                  'version: %s' % GL.glGetString(GL.GL_VERSION).decode('utf-8'),
-                 'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8')]
+                 'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8'),
+                 'rgba bits: %d,%d,%d,%d' % self.framebuffer_rgba_bits(),
+                 'depth bits: %d' % self.framebuffer_depth_bits()]
         ne = GL.glGetIntegerv(GL.GL_NUM_EXTENSIONS)
         for e in range(ne):
             lines.append('extension: %s' % GL.glGetStringi(GL.GL_EXTENSIONS,e).decode('utf-8'))
@@ -1001,6 +1022,17 @@ class Render:
         stencil8_needed = (sys.platform.startswith('linux') and vendor and
                            vendor.startswith((b'AMD', b'ATI')))
 
+        #
+        # On macOS 10.14.5 with Radeon Pro Vega 20 or 16 graphics selection outlines
+        # are fragmented if rendering is to the default framebuffer.  The problem
+        # appears to be that copying the default framebuffer depth to the offscreen
+        # mask framebuffer does not work correctly.  So use offscreen rendering
+        # in this case.  ChimeraX bug #2216.
+        #
+        self.outline.offscreen_outline_needed = (
+            sys.platform.startswith('darwin') and
+            self.opengl_renderer().startswith('AMD Radeon Pro Vega'))
+        
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
 
@@ -1016,6 +1048,12 @@ class Render:
         fb = self.current_framebuffer()
         self.set_viewport(0, 0, fb.width, fb.height)
 
+    def update_viewport(self):
+        'Update viewport if framebuffer viewport different from current viewport.'
+        fb = self.current_framebuffer()
+        if fb and fb.viewport != self.current_viewport:
+            self.set_viewport(*fb.viewport)
+        
     def set_background_color(self, rgba):
         'Set the OpenGL clear color.'
         r, g, b, a = rgba
@@ -1176,7 +1214,7 @@ class Render:
             self._texture_win = tw = TextureWindow(self)
         tw.activate()
         texture.bind_texture()
-        self.opengl_shader(shader_options)
+        self._opengl_shader(shader_options)
         return tw
 
     def allow_equal_depth(self, equal):
@@ -1286,7 +1324,7 @@ class Shadow:
         p = r.current_shader_program
         if p is not None:
             c = p.capabilities
-            if r.SHADER_SHADOWS & c and r.SHADER_LIGHTING & c:
+            if r.SHADER_SHADOW & c and r.SHADER_LIGHTING & c:
                 p.set_matrix("shadow_transform", stf.opengl_matrix())
 
     def _start_rendering_shadowmap(self, center, radius, size=1024):
@@ -1478,6 +1516,8 @@ class Multishadow:
         m = self._max_multishadows
         if m is None:
             m = GL.glGetIntegerv(GL.GL_MAX_UNIFORM_BLOCK_SIZE)      # OpenGL requires >= 16384.
+            if m > 2 ** 17:                                         # Limit maximum to limit size
+                m = 2 ** 17                                         #    of buffer in shader.
             m = m // 64                                             # 64 bytes per matrix.
             self._max_multishadows = m
         return m
@@ -1641,6 +1681,10 @@ class Outline:
         self._render = render
         self._mask_framebuf = None
 
+        # Copying depth from default framebuffer does not work for Radeon Pro Vega 20
+        # graphics on macOS 10.14.5.  This flag is to work around that bug.
+        self.offscreen_outline_needed = False
+
     def delete(self):
         fb = self._mask_framebuf
         if fb:
@@ -1739,6 +1783,7 @@ class BlendTextures:
             self._background_cleared = False
         else:
             r.draw_background()
+            self._background_cleared = True
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFuncSeparate(GL.GL_ONE, GL.GL_ONE, GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
         
@@ -1794,6 +1839,7 @@ class BlendTextures:
 shader_options = (
     'SHADER_LIGHTING',
     'SHADER_DEPTH_CUE',
+    'SHADER_NO_DEPTH_CUE',
     'SHADER_TEXTURE_2D',
     'SHADER_TEXTURE_3D',
     'SHADER_COLORMAP',
@@ -1803,8 +1849,10 @@ shader_options = (
     'SHADER_BLEND_TEXTURE_2D',
     'SHADER_BLEND_TEXTURE_3D',
     'SHADER_BLEND_COLORMAP',
-    'SHADER_SHADOWS',
+    'SHADER_SHADOW',
+    'SHADER_NO_SHADOW',
     'SHADER_MULTISHADOW',
+    'SHADER_NO_MULTISHADOW',
     'SHADER_SHIFT_AND_SCALE',
     'SHADER_INSTANCING',
     'SHADER_TEXTURE_OUTLINE',
@@ -1951,7 +1999,7 @@ class Framebuffer:
 
     def __del__(self):
         if not self._deleted and self._fbo != 0:
-            raise RuntimeError('OpenGL framebuffer "%s" was not deleted before core.graphics.Framebuffer destroyed'
+            raise OpenGLError('OpenGL framebuffer "%s" was not deleted before core.graphics.Framebuffer destroyed'
                                % self.name)
 
     def delete(self, make_current = False):
@@ -2228,7 +2276,7 @@ class Bindings:
 
     def __del__(self):
         if self._vao_id is not None:
-            raise RuntimeError('OpenGL vertex array object was not deleted before core.graphics.Bindings destroyed')
+            raise OpenGLError('OpenGL vertex array object was not deleted before core.graphics.Bindings destroyed')
 
     def delete_bindings(self):
         'Delete the OpenGL vertex array object.'
@@ -2389,7 +2437,7 @@ class Buffer:
 
     def __del__(self):
         if self.opengl_buffer is not None:
-            raise RuntimeError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
+            raise OpenGLError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
                                % self.shader_variable_name)
 
     def delete_buffer(self):
@@ -2535,7 +2583,7 @@ class Shader:
             p = self.program_id
             uid = GL.glGetUniformLocation(p, name.encode('utf-8'))
             if uid == -1:
-                raise RuntimeError('Shader does not have uniform variable "%s"\n shader capabilities %s'
+                raise OpenGLError('Shader does not have uniform variable "%s"\n shader capabilities %s'
                                    % (name, ', '.join(shader_capability_names(self.capabilities))))
             uids[name] = uid
         return uid
@@ -2588,7 +2636,7 @@ class Shader:
         GL.glLinkProgram(program)
         link_status = GL.glGetProgramiv(program, GL.GL_LINK_STATUS)
         if link_status == GL.GL_FALSE:
-            raise RuntimeError( 'Link failure (%s): %s'
+            raise OpenGLError( 'Link failure (%s): %s'
                                 % (link_status, GL.glGetProgramInfoLog(program)))
         GL.glDeleteShader(vs)
         GL.glDeleteShader(fs)
@@ -2604,7 +2652,7 @@ class Shader:
         GL.glValidateProgram(p)
         validation = GL.glGetProgramiv(p, GL.GL_VALIDATE_STATUS )
         if validation == GL.GL_FALSE:
-            raise RuntimeError('OpenGL Program validation failure (%r): %s'
+            raise OpenGLError('OpenGL Program validation failure (%r): %s'
                                % (validation, GL.glGetProgramInfoLog(p)))
 
     # Add #define lines after #version line of shader
@@ -2756,7 +2804,7 @@ class Texture:
 
     def __del__(self):
         if self.id is not None:
-            raise RuntimeError('OpenGL texture was not deleted before core.graphics.Texture destroyed')
+            raise OpenGLError('OpenGL texture was not deleted before core.graphics.Texture destroyed')
 
     def delete_texture(self):
         'Delete the OpenGL texture.'
@@ -2924,7 +2972,7 @@ class TextureWindow:
 
     def __del__(self):
         if self.vao is not None:
-            raise RuntimeError('core.graphics.TextureWindow delete() not called')
+            raise OpenGLError('core.graphics.TextureWindow delete() not called')
         
     def delete(self):
         if self.vao is None:
@@ -3021,9 +3069,9 @@ class OffScreenRenderingContext:
         try:
             self.context = osmesa.OSMesaCreateContextAttribs(attribs, None)
         except error.NullFunctionError:
-            raise RuntimeError('Need OSMesa version 12.0 or newer for OpenGL Core Context API.')
+            raise OpenGLError('Need OSMesa version 12.0 or newer for OpenGL Core Context API.')
         if not self.context:
-            raise RuntimeError('OSMesa needs to be configured with --enable-gallium-osmesa for OpenGL Core Context support.')
+            raise OpenGLError('OSMesa needs to be configured with --enable-gallium-osmesa for OpenGL Core Context support.')
         buf = arrays.GLubyteArray.zeros((height, width, 4))
         self.buffer = buf
         # call make_current to induce exception if an older Mesa

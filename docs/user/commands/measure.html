@@ -34,27 +34,36 @@ Possible values of <i>property</i>:
 </p>
 <ul>
 <li><a href="#area"><b>area</b></a> 
-- report the area of an existing surface (sum of surface triangles)
+&ndash; report the area of an existing surface (sum of surface triangles)
+<li><a href="#blob"><b>blob</b></a> 
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/pickblobs.png"></a>
+&ndash; measure surface area, enclosed volume, and dimensions of a disconnected
+surface blob
 <li><a href="#buriedarea"><b>buriedarea</b></a> 
-- calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
+&ndash; calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
 <li><a href="#center"><b>center</b></a>
-- calculate center of mass of map and/or atoms
+&ndash; calculate center of mass of map and/or atoms
 <li><a href="#convexity"><b>convexity</b></a>
-- calculate convexity at each surface vertex, color the surface accordingly
+&ndash; calculate convexity at each surface vertex,
+color the surface accordingly
 <li><a href="#inertia"><b>inertia</b></a>
-- calculate inertia ellipsoid
+&ndash; calculate inertia ellipsoid
 <li><a href="#length"><b>length</b></a>
-- sum bond lengths
+&ndash; sum bond lengths
 <li><a href="#mapstats"><b>mapstats</b></a>
-- report <a href="../tools/volumeviewer.html">volume data</a> 
+&ndash; report <a href="../tools/volumeviewer.html">volume data</a> 
 min, max, mean, SD, and RMSD values
 <li><a href="#motion"><b>motion</b></a>
-- show changes in surface position by drawing lines
+&ndash; show changes in surface position by drawing lines
 <li><a href="#sasa"><b>sasa</b></a>
-- calculate <a href="surface.html#surfdefs">solvent-accessible surface</a> area
+&ndash; calculate 
+<a href="surface.html#surfdefs">solvent-accessible surface</a> area
+<li><a href="#symmetry"><b>symmetry</b></a>
+&ndash; check map for certain symmetries in standard orientations
 <li><a href="#volume"><b>volume</b></a> 
-- report the volume enclosed by an existing surface
+&ndash; report the volume enclosed by an existing surface
 </ul>
 <p>
 See also: <a href="interfaces.html"><b>interfaces</b></a>,
@@ -77,6 +86,43 @@ such as with <a href="surface.html#dust"><b>surface dust</b></a>
 or <a href="surface.html#zone"><b>surface zone</b></a>
 (<a href="clip.html">clipping</a> does not affect the measurement, however).
 See also: <a href="#sasa"><b>measure sasa</b></a>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="blob"><b>measure blob</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
+<b>triangleNumber</b>&nbsp;&nbsp;<i>N</i>&nbsp;
+[&nbsp;<b>reportSize</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>outline</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>outlineColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+<blockquote>
+Report measurements for the blob (disconnected surface part) in
+the specified surface model containing <b>triangleNumber</b> &nbsp;<i>N</i>. 
+The surface-model specification cannot be blank. Although not generally
+known in advance, the triangle number is included in the command echoed
+to the <a href="../tools/log.html"><b>Log</b></a> when the 
+<b>pick blob</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/pickblobs.png"></a>
+is used, so that the action could be replicated in a script.
+Measurements include:
+<ul>
+<li><b>volume</b> enclosed in the blob
+<li><b>area</b> of its triangulated surface
+<li>if <b>reportSize</b> is <b>true</b> (default),
+the <b>size</b> in dimensions from longest to shortest
+of the bounding box aligned with principal axes
+(<a href="../tools/measureblobs.html#axesbox">details...</a>)
+</ul>
+Blob color is left unchanged unless a <b>color</b> is given.
+The <b>outline</b> option shows the bounding box as an outline
+in the specified <b>outlineColor</b> (default <b>lime</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor=lime width="10px" title="lime"></td>
+</tr></table>). See also:
+<a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -374,6 +420,100 @@ See also: <a href="#area"><b>measure area</b></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="symmetry"><b>measure symmetry</b></a>
+&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<b>minimumCorrelation</b>&nbsp;<i>mincorr</i>&nbsp;]
+[&nbsp;<b>nMax</b>&nbsp;<i>n</i>&nbsp;]
+[&nbsp;<b>points</b>&nbsp;<i>maxpts</i>&nbsp;]
+[&nbsp;<b>set</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>helix</b>&nbsp;<i>rise</i>,<i>angle</i>[,<i>n</i>][,<b>opt</b>]&nbsp;]
+<blockquote>
+Check each specified <a href="../tools/volumeviewer.html">volume data</a>
+model (map) for cyclic, dihedral, tetrahedral, octahedral,
+and icosahedral symmetries in standard coordinate systems.
+Helical symmetry can be considered if approximate parameters are supplied.
+The symmetry assignment can be used by
+other commands such as <a href="sym.html"><b>sym</b></a>,
+<a href="molmap.html"><b>molmap</b></a>,
+and <a href="fitmap.html"><b>fitmap</b></a>, and is included in
+<a href="save.html#chimap">Chimera map</a> format.
+For direct assignment of a specified symmetry, see
+<a href="volume.html#symmetry"><b>volume symmetry</b></a>.
+<p>
+If the <a href="fitmap.html#corrzero">correlation</a>
+of the map with itself after symmetry transformation
+is at least <i>mincorr</i> (default <b>0.99</b>), the detected
+type of symmetry will be reported, and if <b>set</b> is true (default),
+assigned to the map in ChimeraX.
+The correlation calculation uses only map points with values
+above the displayed <a href="volume.html#level">contour level</a>;
+if the number of such points exceeds
+<i>maxpts</i> (default <b>10,000</b>), a random sample of <i>maxpts</i>
+is chosen from them and used. Values in the first copy of the map
+are compared with the superimposed (interpolated) values in the
+rotated copy of the map.
+</p><p>
+Center of point symmetry is considered only at the following:
+<ul>
+<li> the grid point nearest the average indices of grid points
+with values above the displayed contour level.
+The map's lowest contour level in
+<a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> is used.
+<li> one or two grid points based on the overall map dimensions:
+only the midpoint along axes with odd numbers of points, and
+along axes with even numbers of points, those on either side of the midpoint.
+Rather than all possible combinations for axes with even numbers of points,
+only the two points with all indices lower or all higher are evaluated.
+</ul>
+For cyclic and dihedral symmetry, rotation is considered only
+about the Z axis, and for dihedral symmetry, flipping symmetry only
+about the X or Y axes. Cyclic (C<i>n</i>) symmetry is
+checked for order <i>n</i> up to <b>nMax</b>, default <b>8</b>.
+If more than one C<i>n</i> symmetry meets the criterion,
+those for which a higher multiple is also found are discarded, and of
+the remaining, the one with the highest correlation is assigned.
+For example, if <i>n</i> = 2, 3, 6, and 7 were to meet the criterion,
+6-fold would override 2- and 3-fold, and 6-fold or 7-fold symmetry,
+whichever gave the highest correlation, would be assigned.
+Tetrahedral symmetry is considered in two orientations:
+<ul>
+<li>2-folds along X, Y, and Z, with a 3-fold along axis (1,1,1)
+<li>3-fold along Z, with a second 3-fold in the YZ plane such that
+rotation about the X axis by ~110&deg; is a symmetry operation
+(EMAN convention)
+</ul>
+<p>
+Icosahedral symmetries are only considered in eight orientations:
+</p>
+<ul>
+<li>222 &ndash; with two-fold symmetry axes along the X, Y, and Z axes
+<li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
+<li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
+<li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
+<li>222r &ndash; same as 222 except rotated 90&deg; about Z
+<li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
+<li>n25r &ndash; same as n25 except rotated 180&deg; about X
+<li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
+</ul>
+<p>
+The <b>helix</b> option specifies looking for helical symmetry with
+approximate <i>rise</i> (in physical units of distance, typically &Aring;)
+and <i>angle</i> (degrees) per asymmetric unit.  If this option is
+used, the other types of symmetry are not considered except for
+combined helical and cyclic symmetry (for example,
+<a href="http://www.ebi.ac.uk/pdbe-srv/emsearch/atlas/1757_summary.html"
+target="_blank">EMD-1757</a>, approximately
+42 &Aring; rise and 21&deg; twist per subunit).
+Helical symmetry is infinite, but the number of copies to place
+when considering that symmetry, <i>n</i>, is necessarily finite.
+If not given, <i>n</i> will be determined by dividing the apparent length of
+the helix in the map by the rise and rounding to the nearest positive integer.
+The <b>opt</b> keyword indicates optimizing the fit of the map copies to
+itself to identify more accurate helical parameters.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="volume"><b>measure volume</b></a>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 [&nbsp;<b>includeMasked</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -428,5 +568,5 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+June 2019</address>
 </body></html>

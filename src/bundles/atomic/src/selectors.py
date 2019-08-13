@@ -71,15 +71,11 @@ def _backbone_selector(session, models, results):
         results.add_atoms(backbone, bonds=True)
 
 def _polymer_selector(models, results, protein):
-    from chimerax.atomic import Structure
+    from chimerax.atomic import Structure, Residue
     for m in models:
         if isinstance(m, Structure):
-            pas = m.residues.existing_principal_atoms
-            pas = pas.filter(pas.structure_categories != "ions")
-            if protein:
-                residues = pas.residues.filter(pas.names=="CA")
-            else:
-                residues = pas.residues.filter(pas.names!="CA")
+            residues = m.residues.filter(
+                m.residues.polymer_types == (Residue.PT_PROTEIN if protein else Residue.PT_NUCLEIC))
             atoms = residues.atoms
             pbs, pbg = _get_missing_structure(m, atoms)
             if residues:
@@ -186,7 +182,7 @@ def add_select_menu_items(session):
     select_chains_menu.aboutToShow.connect(lambda ses=session: _update_select_chains_menu(ses))
     select_chains_menu.setToolTipsVisible(True)
     from . import get_triggers
-    atom_triggers = get_triggers(session)
+    atom_triggers = get_triggers()
     atom_triggers.add_handler("changes", _check_chains_update_status)
 
     parent_menus = ["Che&mistry", "&Element"]
@@ -228,7 +224,7 @@ def add_select_menu_items(session):
     select_residues_menu.aboutToShow.connect(lambda ses=session: _update_select_residues_menu(ses))
     select_residues_menu.setToolTipsVisible(True)
     from . import get_triggers
-    atom_triggers = get_triggers(session)
+    atom_triggers = get_triggers()
     atom_triggers.add_handler("changes", _check_residues_update_status)
 
     parent_menus = ["&Structure"]

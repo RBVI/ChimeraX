@@ -48,6 +48,7 @@ class View:
         self._view_matrix = Place()		# Temporary used during rendering
 
         # Clip planes
+        from .clipping import ClipPlanes
         self.clip_planes = ClipPlanes()
         self._near_far_pad = 0.01		# Extra near-far clip plane spacing.
         self._min_near_fraction = 0.001		# Minimum near distance, fraction of depth
@@ -152,6 +153,7 @@ class View:
         r = self._render
         r.set_frame_number(self.frame_number)
         r.set_background_color(self.background_color)
+        r.update_viewport()	# Need this when window resized.
 
         if self.update_lighting:
             self.update_lighting = False
@@ -164,8 +166,9 @@ class View:
         camera.combine_rendered_camera_views(r)
 
         if self._overlays:
+            odrawings = sum([o.all_drawings(displayed_only = True) for o in self._overlays], [])
             from .drawing import draw_overlays
-            draw_overlays(self._overlays, r)
+            draw_overlays(odrawings, r)
 
         if use_calllist:
             gllist.call_opengl_list(self, trace=True)
@@ -179,7 +182,7 @@ class View:
     def _draw_scene(self, camera, drawings):
 
         r = self._render
-        self.clip_planes.enable_clip_planes(r, camera.position)
+        self.clip_planes.enable_clip_plane_graphics(r, camera.position)
         mdraw = [self.drawing] if drawings is None else drawings
         (opaque_drawings, transparent_drawings,
          highlight_drawings, on_top_drawings) = self._drawings_by_pass(mdraw)
@@ -187,7 +190,11 @@ class View:
                        len(transparent_drawings) == 0 and
                        len(highlight_drawings) == 0 and
                        len(on_top_drawings) == 0)
-        offscreen = r.offscreen
+
+        offscreen = r.offscreen if r.offscreen.enabled else None
+        if highlight_drawings and r.outline.offscreen_outline_needed:
+            offscreen = r.offscreen
+            
         silhouette = self.silhouette
         shadow, multishadow = self._compute_shadowmaps(opaque_drawings + transparent_drawings, camera)
         
@@ -197,7 +204,7 @@ class View:
             if no_drawings:
                 r.draw_background()
                 continue
-            if offscreen.enabled:
+            if offscreen:
                 offscreen.start(r)
             if silhouette.enabled:
                 silhouette.start_silhouette_drawing(r)
@@ -235,7 +242,7 @@ class View:
                                        pixel_width = self._highlight_width)
             if on_top_drawings:
                 draw_on_top(r, on_top_drawings)
-            if offscreen.enabled:
+            if offscreen:
                 offscreen.finish(r)
 
                 
@@ -267,9 +274,12 @@ class View:
             if trig:
                 trig.activate_trigger('shape changed', self)	# Used for updating pseudobond graphics
 
-        if dm.shape_changed or cp.changed:
-            if self.center_of_rotation_method == 'front center':
+        corm = self.center_of_rotation_method
+        if corm == 'front center':
+            if dm.shape_changed or cp.changed:
                 self._update_center_of_rotation = True
+        elif corm == 'center of view' and cp.changed:
+            self._update_center_of_rotation = True
 
         if dm.shape_changed or cp.changed or dm.transparency_changed:
             # TODO: If model transparency effects multishadows, will need to detect those changes.
@@ -280,6 +290,7 @@ class View:
 
         c.redraw_needed = False
         dm.clear_changes()
+        cp.changed = False
 
         self.redraw_needed = True
 
@@ -379,12 +390,13 @@ class View:
         '''The current list of overlay Drawings.'''
         return self._overlays
 
-    def remove_overlays(self, overlays=None):
+    def remove_overlays(self, overlays=None, delete = True):
         '''Remove the specified overlay Drawings.'''
         if overlays is None:
             overlays = self._overlays
-        for o in overlays:
-            o.delete()
+        if delete:
+            for o in overlays:
+                o.delete()
         oset = set(overlays)
         self._overlays = [o for o in self._overlays if o not in oset]
         self.redraw_needed = True
@@ -544,7 +556,7 @@ class View:
 
     def _shadow_bounds(self, drawings):
         if drawings is None:
-            b = self.drawing_bounds()
+            b = self.drawing_bounds(allow_drawing_changes = False)
             sdrawings = [self.drawing]
         else:
             sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
@@ -561,13 +573,14 @@ class View:
             return 0	# OpenGL not available
         return self._render.multishadow.max_multishadows()
 
-    def drawing_bounds(self, clip=False, cached_only=False):
+    def drawing_bounds(self, clip=False, cached_only=False, allow_drawing_changes=True):
         '''Return bounds of drawing, displayed part only.'''
         dm = self._drawing_manager
         if cached_only:
             return dm.cached_drawing_bounds
-        # Cause graphics update so bounds include changes in models.
-        self.check_for_drawing_change()
+        if allow_drawing_changes:
+            # Cause graphics update so bounds include changes in models.
+            self.check_for_drawing_change()
         b = dm.cached_drawing_bounds
         if b is None:
             dm.cached_drawing_bounds = b = self.drawing.bounds()
@@ -663,19 +676,34 @@ class View:
     def _center_of_view_cofr(self):
         '''
         Keep the center of rotation in the middle of the view at a depth
-        such that the new and previous center of rotation are in the same
-        plane perpendicular to the camera view direction.
+        midway between near and far clip planes.  If only the near plane
+        or only the far plane is enabled use center on that plane.  If neither
+        near nor far planes are enabled use depth equal to center of bounding box.
         '''
-        cam_pos = self.camera.position.origin()
-        vd = self.camera.view_direction()
-        old_cofr = self._center_of_rotation
-        hyp = old_cofr - cam_pos
-        from ..geometry import inner_product, norm
-        distance = inner_product(hyp, vd)
-        cr = cam_pos + distance*vd
-        if norm(cr - old_cofr) < 1e-6 * distance:
-            # Avoid jitter if camera has not moved
-            cr = old_cofr
+        p = self.clip_planes
+        np, fp = p.find_plane('near'), p.find_plane('far')
+        if np and fp:
+            cr = 0.5 * (np.plane_point + fp.plane_point)
+        elif np:
+            cr = np.plane_point
+        elif fp:
+            cr = fp.plane_point
+        else:
+            # No clip planes.
+            # Keep the center of rotation in the middle of the view at a depth
+            # such that the new and previous center of rotation are in the same
+            # plane perpendicular to the camera view direction.
+            cam_pos = self.camera.position.origin()
+            vd = self.camera.view_direction()
+            old_cofr = self._center_of_rotation
+            hyp = old_cofr - cam_pos
+            from ..geometry import inner_product, norm
+            distance = inner_product(hyp, vd)
+            cr = cam_pos + distance*vd
+            if norm(cr - old_cofr) < 1e-6 * distance:
+                # Avoid jitter if camera has not moved
+                cr = old_cofr
+
         return cr
     
     def _front_center_cofr(self):
@@ -800,7 +828,7 @@ class View:
         return cnear, cfar
 
     def _near_far_bounds(self, camera_pos, view_dir):
-        b = self.drawing_bounds()
+        b = self.drawing_bounds(allow_drawing_changes = False)
         if b is None:
             return self._min_near_fraction, 1  # Nothing shown
         from ..geometry import inner_product
@@ -879,10 +907,23 @@ class View:
             return
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
+        self._shift_near_far_clip_planes(shift)
         from ..geometry import translation
         t = translation(shift)
         self.move(t, drawings)
 
+    def _shift_near_far_clip_planes(self, shift):
+        p = self.clip_planes
+        np, fp = p.find_plane('near'), p.find_plane('far')
+        if np or fp:
+            vd = self.camera.view_direction()
+            from ..geometry import inner_product
+            plane_shift = inner_product(shift,vd)*vd
+            if np:
+                np.plane_point += plane_shift
+            if fp:
+                fp.plane_point += plane_shift
+        
     def move(self, tf, drawings=None):
         '''
         Move camera to simulate a motion of drawings.
@@ -928,128 +969,6 @@ class View:
         c.eye_separation_scene *= f
         c.redraw_needed = True
 
-
-class ClipPlanes:
-    '''
-    Manage multiple clip planes and track when any change so that redrawing is done.
-    '''
-    def __init__(self):
-        self._clip_planes = []		# List of ClipPlane
-        self._changed = False
-
-    def planes(self):
-        return self._clip_planes
-
-    def add_plane(self, p):
-        self._clip_planes.append(p)
-        self._changed = True
-
-    def find_plane(self, name):
-        np = [p for p in self._clip_planes if p.name == name]
-        return np[0] if len(np) == 1 else None
-
-    def replace_planes(self, planes):
-        self._clip_planes = list(planes)
-        self.changed = True
-
-    def remove_plane(self, name):
-        self._clip_planes = [p for p in self._clip_planes if p.name != name]
-        self._changed = True
-
-    def _get_changed(self):
-        return self._changed or len([p for p in self._clip_planes if p._changed]) > 0
-    def _set_changed(self, changed):
-        self._changed  = changed
-        for p in self._clip_planes:
-            p._changed = changed
-    changed = property(_get_changed, _set_changed)
-
-    def have_camera_plane(self):
-        for p in self._clip_planes:
-            if p.camera_normal is not None:
-                return True
-        return False
-
-    def clear(self):
-        self._clip_planes = []
-        self._changed = True
-
-    def set_clip_position(self, name, point, camera):
-        p = self.find_plane(name)
-        if p:
-            p.plane_point = point
-        elif name in ('near', 'far'):
-            camera_normal = (0,0,(-1 if name == 'near' else 1))
-            normal = camera.position.transform_vector(camera_normal)
-            p = ClipPlane(name, normal, point, camera_normal)
-            self.add_plane(p)
-        else:
-            normal = camera.view_direction()
-            p = ClipPlane(name, normal, point)
-            self.add_plane(p)
-
-    def enable_clip_planes(self, render, camera_position):
-        cp = self._clip_planes
-        if cp:
-            render.enable_capabilities |= render.SHADER_CLIP_PLANES
-            for p in cp:
-                p.update_direction(camera_position)
-            planes = tuple(p.opengl_vec4() for p in cp)
-            render.set_clip_parameters(planes)
-        else:
-            render.enable_capabilities &= ~render.SHADER_CLIP_PLANES
-
-class ClipPlane:
-    '''
-    Clip plane that is either fixed in scene coordinates or camera coordinates (near/far planes).
-    Normal vector and  plane point are given in scene coordinates. If clip plane is fixed in
-    camera coordinates, then camera_normal is given in camera coordinates.
-    '''
-
-    def __init__(self, name, normal, plane_point, camera_normal = None):
-        self.name = name
-        self.normal = normal		# Vector perpendicular to plane, points toward shown half-space
-        self.plane_point = plane_point	# Point on clip plane in scene coordinates
-        self.camera_normal = camera_normal # Used for near/far clip planes, normal in camera coords.
-        self._last_distance = None	# For handling rotation with camera_normal.
-        self._changed = False
-
-    def __setattr__(self, key, value):
-        if key in ('normal', 'plane_point', 'camera_normal'):
-            self._changed = True
-        super(ClipPlane, self).__setattr__(key, value)
-
-    def copy(self):
-        p = ClipPlane(self.name, self.normal.copy(), self.plane_point.copy(), self.camera_normal)
-        p._last_distance = self._last_distance
-        return p
-
-    def offset(self, origin):
-        from ..geometry import inner_product
-        return inner_product(self.plane_point - origin, self.normal)
-
-    def opengl_vec4(self):
-        from ..geometry import inner_product
-        nx,ny,nz = n = self.normal
-        c0 = inner_product(n, self.plane_point)
-        return (nx, ny, nz, -c0)
-
-    def update_direction(self, camera_position):
-        cn = self.camera_normal
-        if cn is None:
-            return
-        vd = camera_position.transform_vector(cn)
-        cp = camera_position.origin()
-        p, lvd = self.plane_point, self.normal
-        from numpy import array_equal
-        if not array_equal(vd, lvd):
-            if self._last_distance is not None:
-                # Adjust plane point when view direction changes.
-                # Place at the last distance.
-                self.plane_point = p = cp + vd*self._last_distance
-            self.normal = vd
-        from ..geometry import inner_product
-        self._last_distance = inner_product(p - cp, vd)
 
 class _RedrawNeeded:
 

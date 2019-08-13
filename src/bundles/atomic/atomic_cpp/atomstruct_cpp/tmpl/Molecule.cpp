@@ -14,9 +14,13 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "restmpl.h"
 
 #include <algorithm> // for std::find
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<tmpl::Molecule>;
 
 namespace tmpl {
 

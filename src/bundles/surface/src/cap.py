@@ -15,24 +15,31 @@ def update_clip_caps(view):
         return
     cp = view.clip_planes
     planes = cp.planes()
-    cpos = view.camera.position
-    for p in planes:
-        p.update_direction(cpos)
-    update = (cp.changed or (view.shape_changed and planes))
+    update = (cp.changed or
+              (planes and
+               (view.shape_changed or
+                (view.camera.redraw_needed and cp.have_camera_plane()))))
     # TODO: Update caps only on specific drawings whose shape changed.
     if update:
-        drawings = view.drawing.all_drawings()
-        show_surface_clip_caps(planes, drawings, offset = settings.clipping_cap_offset)
-        cp.changed = False
-        view.redraw_needed = True
+        drawings = view.drawing.all_drawings(displayed_only = True)
+        show_surface_clip_caps(planes, drawings,
+                               offset = settings.clipping_cap_offset,
+                               subdivision = settings.clipping_cap_subdivision)
 
-def show_surface_clip_caps(planes, drawings, offset = 0.01):
+def show_surface_clip_caps(planes, drawings, offset = 0.01, subdivision = 0.0):
     for p in planes:
         for d in drawings:
             # Clip only drawings that have "clip_cap" attribute true.
             if (hasattr(d, 'clip_cap') and d.clip_cap and
                 d.triangles is not None and not hasattr(d, 'clip_cap_owner')):
                 varray, narray, tarray = compute_cap(d, p, offset)
+                if subdivision > 0 and tarray is not None:
+                    from . import refine_mesh
+                    varray, tarray = refine_mesh(varray, tarray, subdivision)
+                    if len(narray) > 0:
+                        normal = narray[0,:]
+                        narray = varray.copy()
+                        narray[:] = normal
                 set_cap_drawing_geometry(d, p.name, varray, narray, tarray)
 
     # Remove caps for clip planes that are gone.
@@ -61,17 +68,20 @@ def remove_clip_caps(drawings):
 def compute_cap(drawing, plane, offset):
     # Undisplay cap for drawing with no geometry shown.
     d = drawing
-    if (not d.display or
-        (d.triangle_mask is not None and
-         d.triangle_mask.sum() < len(d.triangle_mask))):
+    if not d.display or not d.parents_displayed:
         return None, None, None
 
     # Handle surfaces with duplicate vertices, such as molecular
     # surfaces with sharp edges between atoms.
     if hasattr(d, 'joined_triangles'):
         t = d.joined_triangles
+        if d.triangle_mask is not None and d.triangle_mask.sum() < len(d.triangle_mask):
+            # TODO: triangle mask not handled for joined triangles.
+            return None, None, None
     else:
         t = d.triangles
+        if d.triangle_mask is not None and d.triangle_mask.sum() < len(d.triangle_mask):
+            t = t[d.triangle_mask]
 
     # Compute cap geometry.
     # TODO: Cap instances

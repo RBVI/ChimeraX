@@ -58,6 +58,7 @@ cdef class CyAtom:
         _idatm_tuple(info['geometry'], info['substituents'], info['description'].decode())
         for idatm_type, info in _non_const_map.items()
     }
+    _alt_loc_suppress_count = 0
 
     def __cinit__(self, ptr_type ptr_val):
         self.cpp_atom = <cydecl.Atom *>ptr_val
@@ -220,6 +221,22 @@ cdef class CyAtom:
         crd = self.cpp_atom.coord()
         return array((crd[0], crd[1], crd[2]))
 
+    @property
+    def pb_coord(self):
+        "Pseudobond coordinates.  If atom is not visible and is part of a residue"
+        " displayed as a cartoon, return coordinates on the cartoon.  Otherwise,"
+        " return the actual atomic coordinates."
+        if not self.visible and self.residue.ribbon_display:
+            try:
+                return self.ribbon_coord
+            except KeyError:
+                pass
+        return self.coord
+
+    @property
+    def pb_scene_coord(self):
+        return self.structure.scene_position * self.pb_coord
+
     @coord.setter
     @cython.boundscheck(False)  # turn off bounds checking
     @cython.wraparound(False)  # turn off negative index wrapping
@@ -227,13 +244,18 @@ cdef class CyAtom:
         if len(xyz) != 3:
             raise ValueError("set_coord(xyz): 'xyz' must be length 3")
         if self._deleted: raise RuntimeError("Atom already deleted")
-        self.cpp_atom.set_coord(cydecl.Point(xyz[0], xyz[1], xyz[2]))
+        self.cpp_atom.set_coord(cydecl.cycoord.Point(xyz[0], xyz[1], xyz[2]))
 
     @property
     def coord_index(self):
         "Supported API. Coordinate index of atom in coordinate set."
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.coord_index()
+
+    @coord_index.setter
+    def coord_index(self, index):
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        self.cpp_atom.set_coord_index(index)
 
     @property
     def default_radius(self):
@@ -474,6 +496,23 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         return _translate_struct_cat(self.cpp_atom.structure_category()).decode()
 
+    from contextlib import contextmanager
+    @contextmanager
+    def suppress_alt_loc_change_notifications(self):
+        """Suppress alt loc change notifications while the code body runs.
+           Restore the original alt loc of this atom when done."""
+        orig_alt_loc = self.alt_loc
+        if self._alt_loc_suppress_count == 0:
+            self.structure.alt_loc_change_notify = False
+        self._alt_loc_suppress_count += 1
+        try:
+            yield
+        finally:
+            self.alt_loc = orig_alt_loc
+            self._alt_loc_suppress_count -= 1
+            if self._alt_loc_suppress_count == 0:
+                self.structure.alt_loc_change_notify = True
+
     @property
     def visible(self):
         "Supported API. Whether atom is displayed and not hidden."
@@ -593,7 +632,7 @@ cdef class CyAtom:
         if not cs:
             raise ValueError("No such coordset ID: %d" % cs_id)
         if self._deleted: raise RuntimeError("Atom already deleted")
-        self.cpp_atom.set_coord(cydecl.Point(xyz[0], xyz[1], xyz[2]), cs)
+        self.cpp_atom.set_coord(cydecl.cycoord.Point(xyz[0], xyz[1], xyz[2]), cs)
 
     def set_hide_bits(self, bit_mask):
         '''Set the hide bits 'on' that are 'on' in "bitmask"'''
@@ -654,12 +693,12 @@ cdef class CyAtom:
 
 cdef class Element:
     '''A chemical element having a name, number, mass, and other physical properties.'''
-    cdef cydecl.Element *cpp_element
+    cdef cydecl.cyelem.Element *cpp_element
 
-    NUM_SUPPORTED_ELEMENTS = cydecl.Element.AS.NUM_SUPPORTED_ELEMENTS
+    NUM_SUPPORTED_ELEMENTS = cydecl.cyelem.Element.AS.NUM_SUPPORTED_ELEMENTS
 
     def __cinit__(self, ptr_type ptr_val):
-        self.cpp_element = <cydecl.Element *>ptr_val
+        self.cpp_element = <cydecl.cyelem.Element *>ptr_val
 
     def __init__(self, ptr_val):
         if not isinstance(ptr_val, int) or ptr_val < 256:
@@ -717,7 +756,7 @@ cdef class Element:
         "Supported API. Atomic symbol.  Read only"
         return self.cpp_element.name().decode()
 
-    names = { sym.decode() for sym in cydecl.Element.names() }
+    names = { sym.decode() for sym in cydecl.cyelem.Element.names() }
     '''Set of known element names'''
 
     @property
@@ -736,8 +775,8 @@ cdef class Element:
 
     @staticmethod
     cdef float _bond_length(ptr_type e1, ptr_type e2):
-        return cydecl.Element.bond_length(
-            dereference(<cydecl.Element*>e1), dereference(<cydecl.Element*>e2))
+        return cydecl.cyelem.Element.bond_length(
+            dereference(<cydecl.cyelem.Element*>e1), dereference(<cydecl.cyelem.Element*>e2))
 
     @staticmethod
     def bond_length(e1, e2):
@@ -751,7 +790,7 @@ cdef class Element:
 
     @staticmethod
     cdef float _bond_radius(ptr_type e):
-        return cydecl.Element.bond_radius(dereference(<cydecl.Element*>e))
+        return cydecl.cyelem.Element.bond_radius(dereference(<cydecl.cyelem.Element*>e))
 
     @staticmethod
     def bond_radius(e):
@@ -764,32 +803,32 @@ cdef class Element:
 
     @staticmethod
     def c_ptr_to_existing_py_inst(ptr_type ptr_val):
-        return (<cydecl.Element *>ptr_val).py_instance(False)
+        return (<cydecl.cyelem.Element *>ptr_val).py_instance(False)
 
     @staticmethod
     def c_ptr_to_py_inst(ptr_type ptr_val):
-        return (<cydecl.Element *>ptr_val).py_instance(True)
+        return (<cydecl.cyelem.Element *>ptr_val).py_instance(True)
 
     @staticmethod
-    cdef const cydecl.Element* _string_to_cpp_element(const char* ident):
-        return &cydecl.Element.get_named_element(ident)
+    cdef const cydecl.cyelem.Element* _string_to_cpp_element(const char* ident):
+        return &cydecl.cyelem.Element.get_named_element(ident)
 
     @staticmethod
-    cdef const cydecl.Element* _int_to_cpp_element(int ident):
-        return &cydecl.Element.get_element(ident)
+    cdef const cydecl.cyelem.Element* _int_to_cpp_element(int ident):
+        return &cydecl.cyelem.Element.get_element(ident)
 
     @staticmethod
     def get_element(ident):
         "Supported API.  Given an atomic symbol or atomic number, return the"
         " corresponding Element instance."
-        cdef const cydecl.Element* ele_ptr
+        cdef const cydecl.cyelem.Element* ele_ptr
         if isinstance(ident, int):
             ele_ptr = Element._int_to_cpp_element(ident)
         else:
             ele_ptr = Element._string_to_cpp_element(ident.encode())
         return ele_ptr.py_instance(True)
 
-cydecl.Element.set_py_class(Element)
+cydecl.cyelem.Element.set_py_class(Element)
 
 cdef class CyResidue:
     '''Base class for Residue, and is present only for performance reasons.'''
@@ -1384,6 +1423,8 @@ cdef class CyResidue:
     def get_chi(self, chi_num, account_for_symmetry):
         # Don't need to explicitly check that the standard name is not None,
         # since sending None will return None -- just the same as GLX or ALA will
+        if chi_num < 1 or chi_num > 4:
+            raise ValueError("Chi number not in the range 1-4")
         std_name = self.standard_aa_name
         chi_atoms = self.get_chi_atoms(std_name, chi_num)
         if chi_atoms is None:
@@ -1413,7 +1454,7 @@ cdef class CyResidue:
         return chi_atoms
 
     # Cython kind of has trouble with a C++ class variable that is a map of maps, and where the key
-    # type of the nested map is a varidic template; so ideal_chirality is exposes via ctypes instead
+    # type of the nested map is a varidic template; so ideal_chirality is exposed via ctypes instead
 
     def set_alt_loc(self, loc):
         "Set the appropriate atoms in the residue to the given (existing) alt loc"
@@ -1496,4 +1537,3 @@ def _set_angle(session, torsion_atom2, bond, new_angle, cur_angle, attr_name):
     br.angle += new_angle - cur_angle
     res = bond.atoms[0].residue
     res.structure.change_tracker.add_modified(res, attr_name + " changed")
-

@@ -180,8 +180,8 @@ class GridData:
 
     from chimerax.core.geometry import place
     saxes = place.skew_axes(self.cell_angles).axes()
-    r = place.Place()
-    r.matrix[:,:3] = self.rotation
+    from numpy import transpose
+    r = place.Place(axes = transpose(self.rotation))
     rsaxes = r * saxes
     tf, tf_inv = transformation_and_inverse(self.origin, self.step, rsaxes)
     if (self.ijk_to_xyz_transform is None or not tf.same(self.ijk_to_xyz_transform) or
@@ -224,7 +224,7 @@ class GridData:
   #
   def plane_spacings(self):
 
-    spacings = [1.0/norm(u[:3]) for u in self.xyz_to_ijk_transform]
+    spacings = [1.0/norm(u[:3]) for u in self.xyz_to_ijk_transform.matrix]
     return spacings
     
   # ---------------------------------------------------------------------------
@@ -245,7 +245,21 @@ class GridData:
 
     m = self.cached_data(ijk_origin, ijk_size, ijk_step)
     if m is None and not from_cache_only:
-      m = self.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+      try:
+        m = self.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+      except IOError as e:
+        import errno
+        if e.errno == errno.ENOENT:
+          # File not found
+          msg = ('\nYou deleted or moved a volume file that is still open in ChimeraX.\n\n%s\n\n'
+                 'To allow fast initial display of volume data ChimeraX does not read '
+                 'all data from the file when it is first opened, and will later '
+                 'read more data when needed. '
+                 'ChimeraX got an error trying to read the above file.') % e.filename
+          from chimerax.core.errors import UserError
+          raise UserError(msg)
+        raise
+
       self.cache_data(m, ijk_origin, ijk_size, ijk_step)
 
     return m

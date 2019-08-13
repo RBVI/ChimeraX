@@ -82,9 +82,13 @@ across the top of the ChimeraX window are useful for working with DICOM data:
 volume models (medical image stacks, density maps, <i>etc.</i>):
 <br><img class="iconbar" src="density-icons.png">
 <br><br>
-<li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>
-icons assign functions or &ldquo;modes&rdquo; to the mouse/trackpad:
+<li><a href="tools/mousemodes.html"><b>Right Mouse</b></a> icons
+assign functions or &ldquo;modes&rdquo; to the mouse/trackpad:
 <br><img class="iconbar" src="mouse-icons.png">
+<br><br>
+<li><a href="tools/markers.html"><b>Markers</b></a> icons also assign modes,
+specifically those related to <a href="markers.html">markers</a>:
+<br><img class="iconbar" src="marker-icons.png">
 </ul>
 
 <a name="initial"></a>
@@ -160,9 +164,11 @@ upon initial display or when the amount of data shown is changed.
 </p><p>
 When multiple datasets or other models are open at the same time,
 they can be hidden or shown individually, such as with the
-&ldquo;eye&rdquo; icons above their histograms in
+<img class="iconbar" src="tools/ui-icons/shown.png" 
+title="eye icon" alt="eye icon"> icons above their histograms in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>, the 
-<img class="iconbar" src="tools/eye.png" title="eye icon" alt="eye icon">
+<img class="iconbar" src="tools/ui-icons/shown.png" 
+title="eye icon" alt="eye icon">
 checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>,
 or the <a href="commands/volume.html"><b>volume</b></a> command.
 Many settings can be adjusted with either the
@@ -174,14 +180,18 @@ Commands that are frequently useful:
 <br>
 For orthographic projection:
 <b><a href="commands/camera.html">camera ortho</a></b>
-&nbsp;...or to go back to perspective projection:
+&nbsp; ...or to go back to perspective projection:
 <b><a href="commands/camera.html">camera mono</a></b>
 <br>
 To center and scale the display to fit in the graphics window:
-<b><a href="commands/view.html#initial">view</a> clip false</b>
+<b><a href="commands/view.html#initial">view</a></b>
+&nbsp; ...or click <a href="tools/graphics.html">graphics icon</a>
+<img class="icon" border=1 src="tools/shortcut-icons/viewall.png">
 <br>
 To center and scale as above, plus reset to initial orientation:
-<b><a href="commands/view.html#initial">view</a> orient clip false</b>
+<b><a href="commands/view.html#initial">view</a> orient</b>
+&nbsp; ...or click <a href="tools/graphics.html">graphics icon</a>
+<img class="icon" border=1 src="tools/shortcut-icons/orient.png">
 </p>
 <table>
 <tr><th align="center" class="shaded">
@@ -269,10 +279,16 @@ Initially, the right mouse button (= trackpad + <b>Alt</b> on Windows,
 trackpad + <img src="icon-clover.png" width="12px"> on Mac)
 is also assigned to <b>translate</b> 
 &nbsp;<img class="icon" border=1 src="tools/mouse-icons/translate.png">,
-but clicking any other <a href="tools/mousemodes.html"><b>Right Mouse</b></a>
-icon reassigns it:
-<br><img class="iconbar" src="mouse-icons.png">
-</p><p>
+but can be reassigned by clicking any icon in the following tabs of the
+<a href="tools/toolbar.html"><b>Toolbar</b></a>:
+</p>
+<ul>
+<li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>:&nbsp;
+&nbsp;<img class="iconbar" src="mouse-icons.png">
+<li><a href="tools/markers.html"><b>Markers</b></a>:&nbsp;
+<img class="iconbar" src="marker-icons.png">
+</ul>
+<p>
 Buttons can also be reassigned with the 
 <a href="commands/ui.html#mousemode"><b>mousemode</b></a> command.
 </p>
@@ -481,10 +497,10 @@ tab of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
 can be clicked to perform some action on volume models, including:
 </p>
 <ul class="none">
-<li><img class="icon" border=1 src="tools/shortcut-icons/hidemap.png">
-&nbsp;hide
 <li><img class="icon" border=1 src="tools/shortcut-icons/showmap.png">
 &nbsp;show
+<li><img class="icon" border=1 src="tools/shortcut-icons/hidemap.png">
+&nbsp;hide
 <li><img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
 &nbsp;toggle outline box
 <li><img class="icon" border=1 src="tools/shortcut-icons/step1.png">
@@ -518,7 +534,8 @@ for image display
 <p>
 These icons act on all displayed volume models unless
 only specific ones are <a href="selection.html">selected</a>, such as with the
-<img class="iconbar" src="tools/hand.png" title="hand icon" alt="hand icon">
+<img class="iconbar" src="tools/ui-icons/select.png"
+title="hand icon" alt="hand icon">
 checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>.
 </p>
 
@@ -605,5 +622,5 @@ a significant feature of the scan is a tumor in the right lung.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+July 2019</address>
 </body></html>

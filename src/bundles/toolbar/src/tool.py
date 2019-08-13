@@ -35,12 +35,9 @@ class ToolbarTool(ToolInstance):
         self.display_name = "Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False)
+        self.tool_window = MainToolWindow(self, close_destroys=False, hide_title_bar=True)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
-        # kludge to hide title bar
-        from PyQt5.QtWidgets import QWidget
-        self.tool_window._kludge.dock_widget.setTitleBarWidget(QWidget())
 
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -83,6 +80,9 @@ class ToolbarTool(ToolInstance):
 
     def handle_scheme(self, cmd):
         # First check that the path is a real command
+        if callable(cmd):
+            cmd(self.session)
+            return
         kind, value = cmd.split(':', maxsplit=1)
         if kind == "shortcut":
             from chimerax.shortcuts import shortcuts
@@ -116,7 +116,7 @@ class ToolbarTool(ToolInstance):
                         kw = {}
                     else:
                         (what, icon_file, descrip, tooltip, kw) = item
-                    kind, value = what.split(':', 1)
+                    kind, value = what.split(':', 1) if isinstance(what, str) else (None, None)
                     if kind == "mouse":
                         m = self.session.ui.mouse_modes.named_mode(value)
                         if m is None:
@@ -132,7 +132,7 @@ class ToolbarTool(ToolInstance):
                     icon = QIcon(pm)
                     if not tooltip:
                         tooltip = descrip
-                    if what.startswith("mouse:"):
+                    if kind == "mouse":
                         kw["vr_mode"] = what[6:]   # Allows VR to recognize mouse mode tool buttons
                     if descrip and not descrip[0].isupper():
                         descrip = descrip.capitalize()
@@ -142,14 +142,18 @@ class ToolbarTool(ToolInstance):
                         icon, tooltip, **kw)
         self.ttb.show_tab('Home')
 
+def _file_open(session):
+    session.ui.main_window.file_open_cb(session)
+def _file_save(session):
+    session.ui.main_window.file_save_cb(session)
 
 _Toolbars = {
     "Home": (
         None,
         {
             ("File", False): [
-                ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
-                ("cmd:save browse", "content-save.png", "Save", "Save session file"),
+                (_file_open, "open-in-app.png", "Open", "Open data file"),
+                (_file_save, "content-save.png", "Save", "Save session file"),
                 #("cmd:close session", "close-box.png", "Close", "Close current session"),
                 #("cmd:exit", "exit.png", "Exit", "Exit application"),
             ],
@@ -204,6 +208,10 @@ _Toolbars = {
                 ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
                 ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
+                ("cmd:nucleotides selAtoms atoms; style nucleic & selAtoms stick", "nuc-atoms.png", "Plain", "Remove nucleotides styling", {'group': 'nuc'}),
+                ("cmd:nucleotides selAtoms fill; style nucleic & selAtoms stick", "nuc-fill.png", "Filled", "Show nucleotides with filled rings", {'group': 'nuc'}),
+                ("cmd:nucleotides selAtoms tube/slab shape box", "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes", {'group': 'nuc'}),
+                ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotides as H-bond ladders", {'group': 'nuc'}),
             ],
             ("Coloring", False): [
                 ("shortcut:ce", "colorbyelement.png", "heteroatom", "Color non-carbon atoms by element"),
@@ -211,6 +219,7 @@ _Toolbars = {
                 ("shortcut:rB", "rainbow.png", "rainbow", 'Rainbow color N to C-terminus'),
                 ("shortcut:bf", "bfactor.png", "b-factor", 'Color by b-factor'),
                 ("shortcut:hp", "hydrophobicity.png", "hydrophobic", 'Color surface by hydrophobicity'),
+                ("cmd:color selAtoms bynuc", "nuc-color.png", "nucleotide", "Color by nucleotide"),
             ],
             ("Analysis", False): [
                 ("shortcut:hb", "hbondsflat.png", "H-bonds", "Show hydrogen bonds"),
@@ -224,9 +233,9 @@ _Toolbars = {
         None,
         {
             ("Styles", False): [
-                ("cmd:nucleotides selAtoms atoms", "nuc-atoms.png", "Plain", "Remove nucleotides styling"),
-                ("cmd:nucleotides selAtoms fill", "nuc-fill.png", "Filled", "Show nucleotides with filled rings"),
-                ("cmd:nucleotides selAtoms slab", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
+                ("cmd:nucleotides selAtoms atoms; style nucleic & selAtoms stick", "nuc-atoms.png", "Plain", "Remove nucleotides styling"),
+                ("cmd:nucleotides selAtoms fill; style nucleic & selAtoms stick", "nuc-fill.png", "Filled", "Show nucleotides with filled rings"),
+                ("cmd:nucleotides selAtoms slab; style nucleic & selAtoms stick", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
                 ("cmd:nucleotides selAtoms tube/slab shape box", "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes"),
                 ("cmd:nucleotides selAtoms tube/slab shape ellipsoid", "nuc-elli.png", "Tube/\nEllipsoid", "Show nucleotide bases as ellipsoids and sugars as tubes"),
                 ("cmd:nucleotides selAtoms tube/slab shape muffler", "nuc-muff.png", "Tube/\nMuffler", "Show nucleotide bases as mufflers and sugars as tubes"),
@@ -255,8 +264,10 @@ _Toolbars = {
                 ("shortcut:se", "silhouette.png", "Silhouettes", "Toggle silhouettes"),
             ],
             ("Camera", False): [
+                ("shortcut:vs", "viewsel.png", "View selected", "View selected"),
                 ("shortcut:va", "viewall.png", "View all", "View all"),
                 ("shortcut:dv", "orient.png", "Orient", "Default orientation"),
+                ("cmd:tool show 'Side View'", "sideview.png", "Side view", "Show side view tool"),
             ],
         }
     ),
@@ -297,6 +308,24 @@ _Toolbars = {
             ],
         }
     ),
+    "Markers": (
+        "help:user/tools/markerplacement.html",
+        {
+            ("Place markers", False): [
+                ("mouse:mark maximum", None, "Maximum", "Mark maximum"),
+                ("mouse:mark plane", None, "Plane", "Mark volume plane"),
+                ("mouse:mark surface", None, "Surface", "Mark surface"),
+                ("mouse:mark center", None, "Center", "Mark center of connected surface"),
+                ("mouse:mark point", None, "Point", "Mark 3d point"),
+            ],
+            ("Adjust markers", False): [
+                ("mouse:link markers", None, "Link", "Link consecutively clicked markers"),
+                ("mouse:move markers", None, "Move", "Move markers"),
+                ("mouse:resize markers", None, "Resize", "Resize markers or links"),
+                ("mouse:delete markers", None, "Delete", "Delete markers or links"),
+            ],
+        }
+    ),
     "Right Mouse": (
         "help:user/tools/mousemodes.html",
         {
@@ -323,7 +352,8 @@ _Toolbars = {
                 ("mouse:contour level", None, "Contour level", "Adjust volume data threshold level"),
                 ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
-                ("mouse:place marker", None, "Place marker", None),
+                ("mouse:pick blobs", None, "Blob", "Measure and color connected parts of surface"),
+                ("mouse:map eraser", None, "Erase", "Erase parts of a density map setting values in a sphere to zero"),
                 ("mouse:play map series", None, "Play series", "Play map series"),
                 ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
             ],

@@ -63,13 +63,23 @@ class Model(State, Drawing):
         self._added_to_session = False
         self._deleted = False
         self._selection_coupled = None
+        from .triggerset import TriggerSet
+        self.triggers  = TriggerSet()
+        self.triggers.add_trigger("deleted")
         # TODO: track.created(Model, [self])
 
     def delete(self):
         '''Delete this model.'''
+        if self._deleted:
+            raise RuntimeError('Model %s was deleted twice' % self._name)
+        models = self.session.models
+        if models.have_id(self.id) and self in models.list(model_id = self.id):
+            models.close([self])	# Remove from open models list.
+            return
         self._deleted = True
         Drawing.delete(self)
-        delattr(self, "session")
+        self.triggers.activate_trigger("deleted", self)
+        self.session = None
 
     @property
     def selection_coupled(self):
@@ -162,9 +172,8 @@ class Model(State, Drawing):
                 if isinstance(d, Model):
                     if d.get_selected(include_children=True):
                         return True
-                    else:
-                        if d.highlighted:
-                            return True
+                elif d.highlighted:
+                    return True
 
         return False
     
@@ -257,7 +266,7 @@ class Model(State, Drawing):
 
     def take_snapshot(self, session, flags):
         p = self.parent
-        if p is session.models.drawing:
+        if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
         data = {
             'name': self.name,
@@ -265,6 +274,9 @@ class Model(State, Drawing):
             'parent': p,
             'positions': self.positions.array(),
             'display_positions': self.display_positions,
+            'allow_depth_cue': self.allow_depth_cue,
+            'accept_shadow': self.accept_shadow,
+            'accept_multishadow': self.accept_multishadow,
             'version': CORE_STATE_VERSION,
         }
         return data
@@ -272,7 +284,7 @@ class Model(State, Drawing):
     @classmethod
     def restore_snapshot(cls, session, data):
         if cls is Model and data['id'] is ():
-            return session.models.drawing
+            return session.models.scene_root_model
         # TODO: Could call the cls constructor here to handle a derived class,
         #       but that would require the derived constructor have the same args.
         m = Model(data['name'], session)
@@ -293,8 +305,11 @@ class Model(State, Drawing):
             pa = pa.astype(float64)
         from .geometry import Places
         self.positions = Places(place_array=pa)
-        if 'display_positions' in data:
-            self.display_positions = data['display_positions']
+        self.display_positions = data['display_positions']
+        for d in self.all_drawings():
+            for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
+                if attr in data:
+                    setattr(d, attr, data[attr])
 
     def selected_items(self, itype):
         return []
@@ -391,8 +406,9 @@ class Models(StateManager):
         t.add_trigger(MODEL_POSITION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
         self._models = {}				# Map id to Model
-        self.drawing = r = Model("root", session)
+        self._scene_root_model = r = Model("root", session)
         r.id = ()
+        self._initialize_camera = True
 
     def take_snapshot(self, session, flags):
         models = {}
@@ -408,16 +424,20 @@ class Models(StateManager):
     @staticmethod
     def restore_snapshot(session, data):
         mdict = data['models']
-        session.triggers.activate_trigger(RESTORED_MODELS, tuple(mdict.values()))
         m = session.models
         for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
-                if model.parent is None:
+                if model.parent is None and not m.have_id(id):
                     m.add([model], _from_session=True)
+        session.triggers.activate_trigger(RESTORED_MODELS, session)
         return m
 
     def reset_state(self, session):
         self.close([m for m in self.list() if not m.SESSION_ENDURING])
+
+    @property
+    def scene_root_model(self):
+        return self._scene_root_model
 
     def list(self, model_id=None, type=None):
         if model_id is None:
@@ -431,20 +451,26 @@ class Models(StateManager):
     def empty(self):
         return len(self._models) == 0
 
-    def add(self, models, parent=None, minimum_id = 1,
+    def add(self, models, parent=None, minimum_id = 1, root_model = False,
             _notify=True, _need_fire_id_trigger=None, _from_session=False):
         if _need_fire_id_trigger is None:
             _need_fire_id_trigger = []
-        start_count = len(self._models)
 
-        d = self.drawing if parent is None else parent
-        for m in models:
-            if m.parent is None or m.parent is not d:
-                d.add_drawing(m)
+        if len(self._models) == 0:
+            self._initialize_camera = True
+
+        if parent is None and not root_model:
+            parent = self.scene_root_model
+
+        # Add models to parent
+        if parent:
+            for m in models:
+                if m.parent is None or m.parent is not parent:
+                    parent.add_drawing(m)
 
         # Handle already added models being moved to a new parent.
         for model in models:
-            if model.id and model.id[:-1] != d.id and model.id in self._models:
+            if model.id and (parent is None or model.id[:-1] != parent.id) and model.id in self._models:
                 # Model has id that is not a subid of parent, so assign new id.
                 _need_fire_id_trigger.append(model)
                 del self._models[model.id]
@@ -455,11 +481,11 @@ class Models(StateManager):
         # Assign new model ids
         for model in models:
             if model.id is None:
-                model.id = self.next_id(parent = d, minimum_id = minimum_id)
+                model.id = self.next_id(parent = parent, minimum_id = minimum_id)
             self._models[model.id] = model
             children = model.child_models()
             if children:
-                self.add(children, model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
+                self.add(children, parent=model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
 
         # Notify that models were added
         if _notify:
@@ -477,10 +503,12 @@ class Models(StateManager):
                 session.triggers.activate_trigger(MODEL_ID_CHANGED, id_changed_model)
 
         # Initialize view if first model added
-        if _notify and not _from_session and start_count == 0 and len(self._models) > 0:
+        if self._initialize_camera and _notify and not _from_session:
             v = session.main_view
-            v.initial_camera_view()
-            v.clip_planes.clear()   # Turn off clipping
+            if v.drawing_bounds():
+                self._initialize_camera = False
+                v.initial_camera_view()
+                v.clip_planes.clear()   # Turn off clipping
 
     def assign_id(self, model, id):
         '''Parent model for new id must already exist.'''
@@ -488,7 +516,7 @@ class Models(StateManager):
         del mt[model.id]
         model.id = id
         mt[id] = model
-        p = mt[id[:-1]] if len(id) > 1 else self.drawing
+        p = mt[id[:-1]] if len(id) > 1 else self.scene_root_model
         p._next_unused_id = None
         self.add([model], parent = p)
 
@@ -513,11 +541,15 @@ class Models(StateManager):
         # gaps it can take O(N**2) time to figure out ids to assign for N models.
         # This code handles the common case of no gaps quickly.
         if parent is None:
-            parent = self.drawing
+            parent = self.scene_root_model
         nid = getattr(parent, '_next_unused_id', None)
         if nid is None:
             # Find next unused id.
             cids = set(m.id[-1] for m in parent.child_models() if m.id is not None)
+            if parent is self.scene_root_model:
+                # Include ids of overlay models that are not part of scene root.
+                for id in self._models.keys():
+                    cids.add(id[0])
             for nid in range(minimum_id, minimum_id + len(cids) + 1):
                 if nid not in cids:
                     break
@@ -560,12 +592,12 @@ class Models(StateManager):
             if model_id is not None:
                 del self._models[model_id]
                 model.id = None
-                if len(model_id) == 1:
-                    parent = self.drawing
+                parent = model.parent
+                if parent:
+                    parent.remove_drawing(model, delete=False)
+                    parent._next_unused_id = None
                 else:
-                    parent = self._models[model_id[:-1]]
-                parent.remove_drawing(model, delete=False)
-                parent._next_unused_id = None
+                    self.scene_root_model._next_unused_id = None             
 
         # it's nice to have an accurate list of current models
         # when firing this trigger, so do it last

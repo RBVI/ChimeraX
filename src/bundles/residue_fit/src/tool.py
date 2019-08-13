@@ -18,7 +18,7 @@ from chimerax.ui.widgets.slider import Slider
 class ResidueFit(Slider):
 
     def __init__(self, session, tool_name, residues, map, residue_range = (-2,1),
-                 pause_frames = 50, motion_frames = 50, movie_framerate = 25):
+                 pause_frames = 50, motion_frames = 50, movie_framerate = 2):
 
         self.residues = {r.number:r for r in residues}
         self.map = map
@@ -52,7 +52,7 @@ class ResidueFit(Slider):
         res =  self.residues.get(rnum, None)
         if res is not None:
             self.structure.atoms.displays = False
-            mf = self.motion_frames if playing else 0
+            mf = self.motion_frames if playing and not self.recording else 0
             lp = show_residue_fit(self.session, self.zone_residues(res), self.map,
                                   last_pos = self._last_pos, motion_frames = mf)
             if lp:
@@ -78,12 +78,21 @@ class ResidueFit(Slider):
         return zone_res
 
     def update_label(self, res):
-        if self._label is None:
-            from chimerax.label import Label
-            self._label = Label(self.session, 'resfit', xpos = 0.7, ypos = 0.9)
         l = self._label
+        if l is None:
+            self._label = l = self._create_label()
         l.text = '%s %d' % (res.name, res.number)
         l.update_drawing()
+
+    def _create_label(self):
+        from chimerax.label import Label, find_label
+        label_name = 'resfit'
+        # Each 2D label must have a unique name.
+        i = 0
+        while find_label(self.session, label_name):
+            i += 1
+            label_name = 'resfit%d' % i
+        return Label(self.session, label_name, xpos = 0.7, ypos = 0.9)
             
     def models_closed_cb(self, name, models):
         if self.structure in models or self.map in models:
@@ -98,8 +107,9 @@ class ResidueFit(Slider):
         self.structure = None
         self.residues = None
         self.map = None
-        if self._label is not None:
-            self._label.delete()
+        l = self._label
+        if l is not None:
+            l.delete()
             self._label = None
             
 
@@ -129,6 +139,8 @@ def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_
         tc = Place(((-0.46696,0.38225,-0.79739,-3.9125),
                     (0.81905,-0.15294,-0.55296,-4.3407),
                     (-0.33332,-0.91132,-0.24166,-1.4889)))
+        if c.name == 'orthographic':
+            c.field_width = 12		# Set orthographic field of view, Angstroms
     else:
         # Maintain same relative camera position to backbone.
         tc = last_pos.inverse() * cp

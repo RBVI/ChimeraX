@@ -39,15 +39,19 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
     models = []
 
     # Fetch files from databases.
+    status = None
     for db_id, db_name, db_format in db_fetches:
-        db_models = _fetch_from_database(session, db_id, db_name, db_format, name, ignore_cache, **kw)
+        db_models, status = _fetch_from_database(session, db_id, db_name, db_format, name, ignore_cache, **kw)
         models.extend(db_models)
 
     # Remember fetch in history.  TODO: Handle fetching multiple ids as one history entry.
     if len(db_fetches) == 1:
-        db_id, db_name, db_format in db_fetches[0]
-        from chimerax.core.filehistory import remember_file
-        remember_file(session, db_id, db_format, models, database=db_name, open_options = kw)
+        db_id, db_name, db_format = db_fetches[0]
+        # Files opened in the browser are done asynchronously and might have
+        # been misspelled and can't be deleted from file history.  So skip them
+        if not status.endswith(' in browser'):
+            from chimerax.core.filehistory import remember_file
+            remember_file(session, db_id, db_format, models, database=db_name, open_options = kw)
 
     if paths:
         # Get correct format name.
@@ -66,7 +70,7 @@ def open(session, filename, format=None, name=None, from_database=None, ignore_c
             from chimerax.core.errors import UserError
             raise UserError(e)
         except TypeError as e:
-            _handle_unexpected_keyword_error(e)
+            _handle_unexpected_keyword_error(e, 4)
         models.extend(path_models)
 
         # Remember in file history
@@ -143,7 +147,7 @@ def _fetch_from_database(session, filename, from_database, format, name, ignore_
                                              format=format, name=name,
                                              ignore_cache=ignore_cache, **kw)
     except TypeError as e:
-        _handle_unexpected_keyword_error(e)
+        _handle_unexpected_keyword_error(e, 4)
 
     if len(models) > 1:
         session.models.add_group(models)
@@ -151,7 +155,7 @@ def _fetch_from_database(session, filename, from_database, format, name, ignore_
         session.models.add(models)
 
     session.logger.status(status, log=True)
-    return models
+    return models, status
 
 def _check_db_format(database, format):
     if format is None:
@@ -165,7 +169,7 @@ def _check_db_format(database, format):
                         % (commas(['"%s"' % f for f in db_formats], 'and'),
                            plural_form(db_formats, "format"), database))
 
-def _handle_unexpected_keyword_error(e):
+def _handle_unexpected_keyword_error(e, expected_stack_depth):
     if 'unexpected keyword' in str(e):
         # try to distinguish between keywords typed by the user that are not appropriate for
         # the format and that produce TypeError from similar-looking errors from actual code,
@@ -173,9 +177,13 @@ def _handle_unexpected_keyword_error(e):
         import sys
         etype, evalue, etraceback = sys.exc_info()
         import traceback
-        if len(traceback.format_tb(etraceback)) == 4:
+        if len(traceback.format_tb(etraceback)) == expected_stack_depth:
+            from .cli import _user_kw
+            message = str(e).split("'")
+            for i in range(1, len(message), 2):
+                message[i] = _user_kw(message[i])
             from chimerax.core.errors import UserError
-            raise UserError(str(e))
+            raise UserError("'".join(message))
     raise
 
 def format_from_name(name, open=True, save=False):

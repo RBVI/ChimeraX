@@ -69,6 +69,7 @@ def standard_shortcuts(session):
         # Scene
         ('va', 'view cofr false', 'View all', gcat, noarg, smenu),
         ('dv', 'view orient cofr false', 'Default orientation', gcat, noarg, smenu),
+        ('vs', view_selected, 'View selected', gcat, sesarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
@@ -205,9 +206,9 @@ def standard_shortcuts(session):
         ('mS', enable_move_selected_mouse_mode, 'Move selected mouse mode', gcat, mmarg, msmenu),
         ('mP', enable_move_planes_mouse_mode, 'Move planes mouse mode', mapcat, mmarg, msmenu),
         ('ct', enable_contour_mouse_mode, 'Adjust contour level mouse mode', mapcat, mmarg, msmenu),
-        ('mk', enable_marker_mouse_mode, 'Place marker mouse mode', mapcat, mmarg, msmenu),
-        ('mC', enable_mark_center_mouse_mode, 'Mark center mouse mode', mapcat, mmarg, msmenu),
-        ('vs', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, mmarg, msmenu),
+        ('mk', enable_marker_mouse_mode, 'Place marker mouse mode', mapcat, sesarg, msmenu),
+        ('mC', enable_mark_center_mouse_mode, 'Mark center mouse mode', mapcat, sesarg, msmenu),
+        ('MS', enable_map_series_mouse_mode, 'Map series mouse mode', mapcat, mmarg, msmenu),
 #        ('sl', selection_mouse_mode, 'Select models mouse mode', gcat, sesarg),
 
         # Devices
@@ -527,15 +528,13 @@ def enable_contour_mouse_mode(mouse_modes, button = 'right'):
     from chimerax.map import ContourLevelMouseMode
     m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
 
-def enable_marker_mouse_mode(mouse_modes, button = 'right'):
-    m = mouse_modes
-    from chimerax import markers
-    m.bind_mouse_mode(button, markers.MarkerMouseMode(m.session))
+def enable_marker_mouse_mode(session, button = 'right'):
+    from chimerax.core.commands import run
+    run(session, 'mousemode %s "mark maximum"' % button)
 
-def enable_mark_center_mouse_mode(mouse_modes, button = 'right'):
-    m = mouse_modes
-    from chimerax import markers
-    m.bind_mouse_mode(button, markers.MarkCenterMouseMode(m.session))
+def enable_mark_center_mouse_mode(session, button = 'right'):
+    from chimerax.core.commands import run
+    run(session, 'mousemode %s "mark center"' % button)
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m = mouse_modes
@@ -750,6 +749,11 @@ def show_surface_transparent(session, alpha = 0.5):
 
 def show_surface_opaque(session):
     show_surface_transparent(session, alpha = 1)
+
+def view_selected(session):
+    v = session.main_view
+    from chimerax.core.commands import run
+    run(session, 'view' if session.selection.empty() else 'view sel')
 
 def toggle_shadows(session):
     lp = session.main_view.lighting

@@ -53,7 +53,7 @@ or <a href="../tools/toolbar.html#home"><b>Toolbar</b></a> icon
 border=1 src="../tools/toolbar-icons/content-save.png"></a>.
 See also: <a href="open.html"><b>open</b></a>,
 <a href="log.html"><b>log</b></a>,
-<a href="../../devel/mmcif_writing.html"
+<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
 target="_blank">Writing mmCIF Files in ChimeraX</a>
 </p><p>
 An initial
@@ -77,6 +77,7 @@ There may be several additional options, depending on the file type:
 <li><a href="#session"><b>Save Session</b></a>
 <li><a href="#map"><b>Save Map</b></a>
 <li><a href="#pdb"><b>Save PDB</b></a>
+<li><a href="#mmcif"><b>Save mmCIF</b></a>
 <li><a href="#mol2"><b>Save Mol2</b></a>
 <li><a href="#sequence"><b>Save Sequence Data</b></a>
 </ul>
@@ -153,21 +154,19 @@ atomic coordinates,<br>PDB<br>
 <a href="../pseudobonds.html">pseudobonds</a><br>
 (see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
 </tr><tr>
+<td align="center"><b>mmcif</b></td>
+<td align="center">.cif</td>
+<td align="center">
+atomic coordinates,<br>
+mmCIF<br>
+(see <a href="#mmcif"><b>Save mmCIF</b></a>)</td>
+</tr><tr>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
 <td align="center">
 atomic coordinates,<br>
 Sybyl Mol2<br>
 (see <a href="#mol2"><b>Save Mol2</b></a>)</td>
-</tr><tr>
-<td align="center"><b>mmcif</b></td>
-<td align="center">.cif</td>
-<td align="center">
-atomic coordinates,<br>
-mmCIF<br>
-(includes a subset of mmCIF data types, see
-<a href="../../devel/mmcif_writing.html"
-target="_blank">details</a>)</td>
 </tr><tr>
 <td align="center"><b>dcd</b></td>
 <td align="center">.dcd</td>
@@ -310,7 +309,7 @@ interpreted correctly by Adobe Photoshop.)
 <p>
 A <b><i>ChimeraX session file</i></b> encodes most aspects of a
 modeling session in ChimeraX, including atomic and other models, sequences,
-<a href="view.html#name">camera views</a>, coloring, display styles, lighting,
+<a href="view.html#name">camera views</a>, lighting, display styles, coloring,
 labels (<a href="2dlabels.html">2D</a> and <a href="label.html">3D</a>),
 <a href="../selection.html">selections</a>, 
 selection highlighting <a href="set.html#selectionColor">color</a> and 
@@ -318,7 +317,9 @@ selection highlighting <a href="set.html#selectionColor">color</a> and
 <a href="../attributes.html">attributes</a>,
 <a href="color.html#name">custom colors</a>,
 <a href="buttonpanel.html">custom button panels</a>,
-and <a href="name.html">defined targets</a>.
+<a href="alias.html">aliases</a>, <a href="name.html">defined targets</a>,
+<a href="surface.html#zone">surface zones</a>,
+and <a href="../tools/segment.html">segmentation results</a>.
 Saving and later opening a session file 
 restores the session and allows resuming work in ChimeraX.
 A common use is to store setups for 
@@ -439,9 +440,9 @@ If <a name="chimap"><b><i>Chimera map</i></b></a> format is
  (multiple volume models can be specified)
  <li>the <b>append</b> option (default <b>false</b>) indicates whether to
  append the data to an existing file instead of overwriting the file
- <li>the file will include symmetry (if any) previously 
- <a href="volume.html#dimensions">assigned</a> with 
- <a href="volume.html"><b>volume</b></a>
+ <li>the file will include symmetry if previously assigned 
+ (such as with <a href="volume.html#symmetry"><b>volume symmetry</b></a> or 
+ <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
  <li>the file can be compressed with <b>compress true</b> (default <b>false</b>)
  <li>the data layout can be controlled with <b>chunkShapes</b>
  </ul>
@@ -498,7 +499,8 @@ target="_blank">PDB format</a>.
 The <i>filename</i> can include [NAME] and/or [ID]
 to indicate substitution with model name and/or model number, respectively,
 as needed to save multiple atomic models to multiple files with a 
-single command. See also: <a href="getcrd.html"><b>getcrd</b></a>
+single command. See also: <a href="getcrd.html"><b>getcrd</b></a>,
+<a href="view.html"><b>view</b></a>
 </p>
 <blockquote>
 <b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -573,6 +575,29 @@ by incorporating alphabetical characters
 </ul>
 </blockquote>
 
+<a name="mmcif"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>Save mmCIF</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;mmcif&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>relModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>selectedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>displayedOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<p>
+Atomic coordinates and associated information can be saved in 
+<a href="http://mmcif.wwpdb.org/" target="_blank">mmCIF format</a>.
+A subset of the mmCIF data types are written
+(<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
+target="_blank">details...</a>). 
+The options are as described for <a href="#pdb">saving PDB</a>.
+</p>
+
 <a name="mol2"></a>
 <p class="nav">
 [<a href="#top">back to top: save</a>]
@@ -606,7 +631,7 @@ and/or <a href="#skipAtoms"><b>skipAtoms</b></a>).
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Write coordinates relative to the original coordinates of the specified model
-(same as described above for <a href="#pdb">PDB</a>).
+(as described above for <a href="#pdb">PDB</a>).
 </blockquote>
 <blockquote>
 <b>combineModels</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -727,5 +752,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+July 2019</address>
 </body></html>

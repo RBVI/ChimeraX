@@ -3,13 +3,13 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # PYTHON_VERSION is in config.make
-PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).2
+PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).4
 DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 
-PIP_VERSION = 19.0.3
-WHEEL_VERSION = 0.33.1
-SETUPTOOLS_VERSION = 40.8.0
+PIP_VERSION = 19.2.1
+WHEEL_VERSION = 0.33.4
+SETUPTOOLS_VERSION = 41.0.1
 
 ifdef WIN32
 DYNLOAD_DIR = $(bindir)/DLLs
@@ -256,6 +256,11 @@ else
 	$(RSYNC) $(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI) $(app_includedir)
 	$(RSYNC) $(datadir)/valgrind-python.supp $(app_datadir)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(app_datadir)/valgrind-python.supp
+endif
+ifneq ($(OS),Windows)
+	# remove references to build tree from config
+	# we do not build Python on Windows, so no action is needed
+	$(APP_PYTHON_EXE) clean_config_vars.py $(build_prefix)
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
 	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)

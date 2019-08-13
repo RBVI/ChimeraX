@@ -28,6 +28,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>morph</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+[&nbsp;<b>wrap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>frames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>same</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>hideModels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -41,16 +42,24 @@ more atomic models. The trajectory can be played back
 with the <a href="coordset.html"><b>coordset</b></a> command
 or the <a href="#slider">slider</a> graphical interface.
 See also: 
-<a href="../movies.html">making movies</a>,
+<a href="volume.html#morph"><b>volume morph</b></a>,
+<a href="../movies.html">making movies</a>, 
 the <a href="http://www.rbvi.ucsf.edu/chimerax/features.html#morphing"
-target="_blank">ChimeraX morphing highlight</a>
+target="_blank">ChimeraX morphing highlight</a>, movie tutorials:
+[<a href="http://www.rbvi.ucsf.edu/chimerax/tutorials.html#movies-atomic"
+target="_blank">2019</a>]
+[<a href="http://www.rbvi.ucsf.edu/chimerax/tutorials.html#movies-volume"
+target="_blank">2017</a>]
 </p><p>
 Before morphing, the atomic models should be superimposed
 (such as with <a href="matchmaker.html"><b>matchmaker</b></a>).
 In the <b>morph</b> command, the models should be specified in the order
 desired for morphing.
-Although the same model number cannot be given more than once, a given structure 
-can be opened multiple times to give copies with different model numbers.
+Although the same model number cannot be given more than once, 
+using <b>wrap true</b> indicates the morph should also go from the
+last specified model to the first. For a more complicated trajectory
+that visits the same conformation more than once, another approach is to open
+a given structure multiple times to give copies with different model numbers.
 Examples:
 </p>
 <blockquote><b>
@@ -58,7 +67,7 @@ morph #3,1,2 frames 40
 <br>
 morph #1.1-20 same t
 <br>
-morph #2,5 core 0.1 frames 30
+morph #2,5 core 0.1 frames 30 wrap t
 </b></blockquote>
 <p>
 Only the <a href="#pairing"><b><i>atoms in common</i></b></a>
@@ -92,6 +101,12 @@ The <b>frames</b> option (default <i>N</i> = <b>20</b>) indicates generating
 <i>N</i>&ndash;1 intermediate coordinate sets per <a href="#stage">stage</a>,
 giving a total number of frames in the trajectory
 = 1 + <i>N</i>(number of stages).
+</p><p>
+Unless <a href="#hinges">colored to show hinge locations</a>,
+a single-chain morph trajectory will exhibit its
+<a href="colortables.html#autocolors">unique model color</a>, whereas
+a multichain morph trajectory will retain the coloring scheme of the
+first model used in its creation.
 </p><p>
 <a name="same"></a>
 The <b>same</b> option indicates that the input structures 
@@ -307,5 +322,5 @@ and unattractive morph trajectory.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2019</address>
+July 2019</address>
 </body></html>

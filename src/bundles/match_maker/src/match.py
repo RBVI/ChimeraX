@@ -528,11 +528,13 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
 
             if verbose:
                 seq_pairings.append((s1, s2))
-        if len(match_atoms) < 3:
-            logger.error("Fewer than 3 residues aligned; cannot match %s with %s"
-                % (s1.name, s2.name))
-            continue
         from chimerax.std_commands import align
+        if len(match_atoms) < 3:
+            msg = "Fewer than 3 residues aligned; cannot match %s with %s" % (s1.name, s2.name)
+            if always_raise_errors:
+                raise align.IterationError(msg)
+            logger.error(msg)
+            continue
         from chimerax.atomic import Atoms
         try:
             ret_vals.append(align.align(session, Atoms(match_atoms), Atoms(ref_atoms),

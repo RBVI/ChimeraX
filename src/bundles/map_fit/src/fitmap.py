@@ -489,9 +489,7 @@ def maximum_ijk_motion(points, xyz_to_ijk_transform, move_tf):
 #
 def atom_coordinates(atoms):
 
-    from _multiscale import get_atom_coordinates
-    points = get_atom_coordinates(atoms, transformed = True)
-    return points
+    return atoms.scene_coords
 
 # -----------------------------------------------------------------------------
 #
@@ -542,8 +540,8 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
     if above_threshold:
         # Keep only points where density is above lowest displayed threshold
         threshold = v.minimum_surface_level
-        from .. import _map
-        points_int = _map.high_indices(m, threshold)
+        from chimerax.map import high_indices
+        points_int = high_indices(m, threshold)
         from numpy import single as floatc
         points = points_int.astype(floatc)
         weights = m[points_int[:,2],points_int[:,1],points_int[:,0]]
@@ -569,8 +567,8 @@ def map_overlap_and_correlation(map1, map2, above_threshold, xform = None):
 
     p, w1 = map_points_and_weights(map1, above_threshold)
     if xform is None:
-        from chimera import Xform
-        xform = Xform()
+        from chimerax.core.geometry import Place
+        xform = Place()
     w2 = map2.interpolated_values(p, xform, subregion = None, step = None)
     return overlap_and_correlation(w1, w2)
 

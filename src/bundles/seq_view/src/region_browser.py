@@ -547,8 +547,7 @@ class RegionBrowser:
                             self._seqRenamedHandlerID)
         """
         if self._sel_change_handler:
-            from chimerax import atomic
-            atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
+            self._sel_change_handler.remove()
         """
         for rd in self.rename_dialogs.values():
             rd.destroy()
@@ -1137,8 +1136,8 @@ class RegionBrowser:
             fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
         sel_region.clear()
 
-        from chimerax.atomic import selected_atoms
-        sel_residues = set(selected_atoms(self.tool_window.session).residues)
+        from chimerax.atomic import selected_residues
+        sel_residues = set(selected_residues(self.tool_window.session))
         blocks = []
         for aseq in self.seq_canvas.alignment.seqs:
             for match_map in aseq.match_maps.values():
@@ -1724,8 +1723,6 @@ class RegionBrowser:
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
-        if "selected changed" not in changes.atom_reasons():
-            return
         settings = self.seq_canvas.sv.settings
         sel_region = self.get_region("ChimeraX selection", create=True,
             fill=settings.sel_region_interior, outline=settings.sel_region_border)
@@ -1752,10 +1749,11 @@ class RegionBrowser:
         from chimerax import atomic
         if self.seq_canvas.sv.settings.show_sel:
             self.show_chimerax_selection()
-            self._sel_change_handler = atomic.get_triggers(self.tool_window.session).add_handler(
-                "changes", self._sel_change_cb)
+            from chimerax.core.selection import SELECTION_CHANGED
+            self._sel_change_handler = self.tool_window.session.triggers.add_handler(
+                SELECTION_CHANGED, self._sel_change_cb)
         else:
-            atomic.get_triggers(self.tool_window.session).remove_handler(self._sel_change_handler)
+            self._sel_change_handler.remove()
             self._sel_change_handler = None
             sel_region = self.get_region("ChimeraX selection")
             if sel_region:

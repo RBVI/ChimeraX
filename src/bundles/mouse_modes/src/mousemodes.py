@@ -83,6 +83,13 @@ class MouseMode:
         self.last_mouse_position = pos
         self.double_click = False
 
+    def mouse_drag(self, event):
+        '''
+        Supported API.
+        Override this method to handle mouse drag events.
+        '''
+        pass
+
     def mouse_up(self, event):
         '''
         Supported API.
@@ -325,6 +332,8 @@ class MouseModes:
         x,y = cp
         if x < 0 or y < 0 or x >= w or y >= h:
             return      # Cursor outside of graphics window
+        if self._mouse_buttons_down():
+            return
         from time import time
         t = time()
         moved = (cp != self._mouse_pause_position)
@@ -359,6 +368,10 @@ class MouseModes:
         p = self.graphics_window.mapFromGlobal(QCursor.pos())
         return p.x(), p.y()
 
+    def _mouse_buttons_down(self):
+        from PyQt5.QtCore import Qt
+        return self.session.ui.mouseButtons() != Qt.NoButton
+        
     def _dispatch_mouse_event(self, event, action):
         button, modifiers = self._event_type(event)
         if button is None:
@@ -461,11 +474,14 @@ class MouseEvent:
     Provides an interface to mouse event coordinates and modifier keys
     so that mouse modes do not directly depend on details of the window toolkit.
     '''
-    def __init__(self, event, modifiers = None):
+    def __init__(self, event = None, modifiers = None, position = None, wheel_value = None):
         self._event = event		# Window toolkit event object
         self._modifiers = modifiers	# List of 'shift', 'alt', 'control', 'command'
                                         # May differ from event modifiers when modifier used
                                         # for mouse button emulation.
+        self._position = position	# x,y in pixels, can be None
+        self._wheel_value = wheel_value # wheel clicks (usually 1 click equals 15 degrees rotation).
+        
     def shift_down(self):
         '''
         Supported API.
@@ -473,8 +489,10 @@ class MouseEvent:
         '''
         if self._modifiers is not None:
             return 'shift' in self._modifiers
-        from PyQt5.QtCore import Qt
-        return bool(self._event.modifiers() & Qt.ShiftModifier)
+        if self._event is not None:
+            from PyQt5.QtCore import Qt
+            return bool(self._event.modifiers() & Qt.ShiftModifier)
+        return False
 
     def alt_down(self):
         '''
@@ -483,8 +501,10 @@ class MouseEvent:
         '''
         if self._modifiers is not None:
             return 'alt' in self._modifiers
-        from PyQt5.QtCore import Qt
-        return bool(self._event.modifiers() & Qt.AltModifier)
+        if self._event is not None:
+            from PyQt5.QtCore import Qt
+            return bool(self._event.modifiers() & Qt.AltModifier)
+        return False
 
     def position(self):
         '''
@@ -492,8 +512,17 @@ class MouseEvent:
         Pair of floating point x,y pixel coordinates relative to upper-left corner of graphics window.
         These values can be fractional if pointer device gives subpixel resolution.
         '''
-        p = self._event.localPos()
-        return p.x(), p.y()
+        if self._position is not None:
+            return self._position
+        e = self._event
+        if e is not None:
+            if hasattr(e, 'localPos'):	# QMouseEvent
+                p = e.localPos()
+                return p.x(), p.y()
+            elif hasattr(e, 'posF'):	# QWheelEvent
+                p = e.posF()
+                return p.x(), p.y()
+        return 0,0
 
     def wheel_value(self):
         '''
@@ -501,12 +530,16 @@ class MouseEvent:
         Number of clicks the mouse wheel was turned, signed float.
         One click is typically 15 degrees of wheel rotation.
         '''
-        deltas = self._event.angleDelta()
-        delta = max(deltas.x(), deltas.y())
-        if delta == 0:
-            delta = min(deltas.x(), deltas.y())
-        return delta/120.0   # Usually one wheel click is delta of 120
-
+        if self._wheel_value is not None:
+            return self._wheel_value
+        if self._event is not None:
+            deltas = self._event.angleDelta()
+            delta = max(deltas.x(), deltas.y())
+            if delta == 0:
+                delta = min(deltas.x(), deltas.y())
+            return delta/120.0   # Usually one wheel click is delta of 120
+        return 0
+        
 def mod_key_info(key_function):
     """Qt swaps control/meta on Mac, so centralize that knowledge here.
     The possible "key_functions" are: alt, control, command, and shift
@@ -534,6 +567,23 @@ def mod_key_info(key_function):
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
 
+def keyboard_modifier_names(qt_keyboard_modifiers):
+    from PyQt5.QtCore import Qt
+    import sys
+    if sys.platform == 'darwin':
+        modifiers = [(Qt.ShiftModifier, 'shift'),
+                     (Qt.ControlModifier, 'command'),
+                     (Qt.AltModifier, 'option'),
+                     (Qt.AltModifier, 'alt'),
+                     (Qt.MetaModifier, 'control')]
+    else:
+        modifiers = [(Qt.ShiftModifier, 'shift'),
+                     (Qt.ControlModifier, 'control'),
+                     (Qt.AltModifier, 'alt'),
+                     (Qt.MetaModifier, 'windows')]
+    mnames = [mname for mflag, mname in modifiers if mflag & qt_keyboard_modifiers]
+    return mnames
+    
 def picked_object(window_x, window_y, view, max_transparent_layers = 3):
     xyz1, xyz2 = view.clip_plane_points(window_x, window_y)
     if xyz1 is None or xyz2 is None:

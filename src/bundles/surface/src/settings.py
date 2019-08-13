@@ -17,18 +17,24 @@ class _SurfaceSettings(Settings):
     EXPLICIT_SAVE = {
         'clipping_surface_caps': True,
         'clipping_cap_offset': 0.01,
+        'clipping_cap_subdivision': 1.0,
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.options import BooleanOption
+    from chimerax.ui.options import BooleanOption, FloatOption
     settings_info = {
         'clipping_surface_caps': (
-            'Surface caps',
+            'Cap clipped surfaces',
             BooleanOption,
             'surface cap %s',
             'Whether to cap surface holes created by clipping'),
+        'clipping_cap_subdivision': (
+            'Cap subdivision factor',
+            FloatOption,
+            'surface cap subdivision %s',
+            'How fine to make the triangles on clip caps, for multi-coloring'),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, updater, balloon = setting_info

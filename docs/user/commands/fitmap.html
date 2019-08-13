@@ -36,7 +36,10 @@ to fit an atomic model or map into a map.
 <img class="icon" border=1 src="../tools/shortcut-icons/fitmap.png"></a>
 The maps usually represent electron density, but other types of
 <a href="../tools/volumeviewer.html">volume data</a> can also be used.
+Some of its features are implemented as
+<a href="../tools/fitmap.html"><b>Fit in Map</b></a>.
 See also:
+<a href="../tools/fitsegments.html"><b>Fit to Segments</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="molmap.html"><b>molmap</b></a>,
 <a href="resfit.html"><b>resfit</b></a>,
@@ -46,10 +49,10 @@ See also:
 <a href="align.html"><b>align</b></a>,
 <a href="save.html#pdb"><b>save</b> PDB</a>
 </p><p>
-</p><p>
 The <i>fit-structure</i>, a <a href="atomspec.html">specified</a> 
 set of atoms or map model, will be fit to <i>ref-map</i> (a map model).
-If atoms are specified, only those atoms will be used in the fitting calculation, 
+If atoms are specified, 
+only those atoms will be used in the fitting calculation, 
 but the entire model(s) containing them will be repositioned unless
 <a href="#moveWholeMolecules"><b>moveWholeMolecules</b></a> is set to false.
 </p><p>
@@ -57,8 +60,14 @@ Prior to
 <a href="#optimization">local optimization</a>,
 the fit model should be placed in a trial position 
 relative to the reference map before fitting.
-This usually involves interactive manipulation
-unless <a href="#global">global search</a> is used.
+Unless <a href="#global">global search</a> is used,
+this usually involves interactive manipulation with
+<a href="../commands/ui.html#mousemode">mouse modes</a> that move
+only the <a href="../selection.html">selected</a> model(s).
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/move_h2o.png"></a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotate_h2o.png"></a>
 </p><p>
 The calculation will stop and the fit structure will be repositioned after
 <a href="#gridStepMin">convergence</a>
@@ -70,10 +79,11 @@ especially if convergence was not reached.
 Information such as the number of optimization steps, shift, and rotation
 is sent to the <a href="../tools/log.html"><b>Log</b></a>. 
 The transformation of the fit structure 
-relative to the reference map is given as a
-<a href="#matrices">transformation matrix</a>
-and as an axis of rotation (a unit vector), point on the axis,
-degrees of rotation, and shift parallel to the axis.
+relative to the reference map is given as a matrix in which the
+first three columns describe a rotation
+and the fourth describes a translation (performed after the rotation).
+The transformation is also described as an axis of rotation (a unit vector),
+point on the axis, degrees of rotation, and shift parallel to the axis.
 </p><p>
 The following advanced modes are mutually exclusive:
 </p>
@@ -143,6 +153,7 @@ and <b>cam</b> (correlation about the mean):
 <tr><td></td><td valign="bottom">
 &lt;<b>u</b>,<b>v</b>&gt;
 </td></tr>
+<a name="corrzero"></a>
 <tr><td><b><i>correlation</i></b> =&nbsp;&nbsp;</td>
 <td height="1"><hr></td></tr>
 <tr><td></td><td valign="top">
@@ -155,6 +166,7 @@ and <b>cam</b> (correlation about the mean):
 <tr><td></td><td valign="bottom">
 &lt;<b>u</b>&ndash;<b>u</b><sub>ave</sub>,<b>v</b>&ndash;<b>v</b><sub>ave</sub>&gt;
 </td></tr>
+<a name="corrmean"></a>
 <tr><td><b><i>cam</i></b> =&nbsp;&nbsp;</td>
 <td height="1"><hr></td></tr>
 <tr><td></td><td valign="top">
@@ -277,8 +289,9 @@ Currently sequential fitting cannot be done in the same command as
   <a name="symmetric"><b>symmetric</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
   <br>
 Whether to use the symmetry of the reference map while fitting.
-Only applies when the reference map has a 
-<a href="volume.html#symmetry">symmetry assignment</a>, and to
+Only applies when the reference map has a symmetry assignment
+(such as from <a href="volume.html#symmetry"><b>volume symmetry</b></a>
+or <a href="measure.html#symmetry"><b>measure symmetry</b></a>), and to
 <a href="#fitmaps">map-in-map</a> fitting; if atoms were specified, the 
 <a href="#resolution"><b>resolution</b></a> option must be used to generate
 a map from those atoms. During symmetric fitting,
@@ -344,7 +357,7 @@ initial placements to only rotations or shifts from the current position.
   <br>
 In global search, how to generate initial placements of the fit model:
 <ul>
-<li><b>s</b> - random shifts (translations) starting from the current position,
+<li><b>s</b> &ndash; random shifts (translations) starting from the current position,
 keeping the geometric center of the fit atoms or fit map grid points
 within the bounding box of the displayed part of the reference map.
 The search radius can be restricted further with the
@@ -352,8 +365,8 @@ The search radius can be restricted further with the
 The <a href="#envelope"><b>envelope</b></a> setting determines whether all
 nonzero-valued fit map grid points or only those above the contour level 
 (default) are used to calculate the center.
-<li><b>r</b> - random rotations starting from the current position
-<li><b>sr</b> (default) - both shifts and rotations
+<li><b>r</b> &ndash; random rotations starting from the current position
+<li><b>sr</b> (default) &ndash; both shifts and rotations
 </ul>
 This option does not affect what movements are allowed during 
 local optimization, which are instead set by
@@ -420,12 +433,12 @@ and moves the fit model to regenerate it.
 Columns:
 <ul>
 <li><b>Corr</b>
-- <a href="#fitmaps">map-in-map</a> fitting metric: correlation about zero
+&ndash; <a href="#fitmaps">map-in-map</a> fitting metric: correlation about zero
 <li><b>Ave</b>
-- <a href="#fitatoms">atoms-in-map</a> fitting metric:
+&ndash; <a href="#fitatoms">atoms-in-map</a> fitting metric:
 average map value at fit atom positions
 <li><b>Inside</b>
-- what proportion of fit atoms 
+&ndash; what proportion of fit atoms 
 (<a href="#fitatoms">atoms-in-map</a> fitting)
 or fit map grid points
 (<a href="#fitmaps">map-in-map</a> fitting)
@@ -434,22 +447,22 @@ The <a href="#envelope"><b>envelope</b></a> setting determines whether all
 nonzero-valued fit map grid points or only those above the contour level 
 (default) are considered.
 <li><b>Clash</b> 
-- overlap of the fit model contour surface with its symmetry-related copies,
+&ndash; overlap of the fit model contour surface with its symmetry-related copies,
 see <a href="#fitlist-options"><b>Fit List</b> options</a>
 (applies only to <a href="#fitmaps">map-in-map</a> fitting 
 when the reference map has symmetry information)
-<li><b>Molecule</b> - fit model
-<li><b>Map</b> - reference model
-<li><b>Hits</b> - number of fits in the uniqueness cluster
+<li><b>Molecule</b> &ndash; fit model
+<li><b>Map</b> &ndash; reference model
+<li><b>Hits</b> &ndash; number of fits in the uniqueness cluster
 </ul>
 Clicking <a name="fitlist-options"><b>Options</b></a> 
 reveals additional settings:
 <ul>
 <li><b>Smooth motion between fits [&nbsp;M&nbsp;] steps</b>
-- number of frames over which to move the fit model from its current position
+&ndash; number of frames over which to move the fit model from its current position
 to the fit position when a row is clicked
 <li><b>Show clash volume fraction between symmetric copies</b>
-- whether to show a column of <b>Clash</b> values, the amount of overlap
+&ndash; whether to show a column of <b>Clash</b> values, the amount of overlap
 between the fit model contour surface and its symmetry-related
 copies (applies only to <a href="#fitmaps">map-in-map</a> fitting 
 when the reference map has symmetry information).  The values depend on the 
@@ -459,15 +472,15 @@ divided by the total number of grid points within the original.
 </ul>
 Other buttons:
 <ul>
-<li><b>Place Copy</b> - if atoms were specified as the fit structure,
+<li><b>Place Copy</b> &ndash; if atoms were specified as the fit structure,
 open a copy for each <a href="#choosefit">chosen fit</a> as a new model
-<li><b>Save PDB</b> - if atoms were specified as the fit structure, 
+<li><b>Save PDB</b> &ndash; if atoms were specified as the fit structure, 
 save each <a href="#choosefit">chosen fit</a> as a PDB file
 <li><b>Delete</b> 
-- remove each <a href="#choosefit">chosen fit</a> from the list
-<li><b>Clear List</b> - remove all fits
-<li><b>Close</b> - dismiss the <b>Fit List</b>
-<li><b>Help</b> - show documentation in a browser window
+&ndash; remove each <a href="#choosefit">chosen fit</a> from the list
+<li><b>Clear List</b> &ndash; remove all fits
+<li><b>Close</b> &ndash; dismiss the <b>Fit List</b>
+<li><b>Help</b> &ndash; show documentation in a browser window
 </ul>
 </p>
 -->
@@ -503,19 +516,8 @@ criterion are repeated until
 or a <a href="#maxSteps">maximum number of steps</a> (default 2000),
 whichever comes first.
 </p>
-<p>
-<a name="matrices"><b>Transformation matrices</b></a>.
-The transformation matrix of the fit model
-relative to the reference map
-is reported in the <a href="../tools/log.html"><b>Log</b></a>.
-The first three columns of the matrix describe a rotation and the
-fourth describes a translation (performed after the rotation).
-The transformation is also described
-as an axis of rotation (a unit vector), point on the axis,
-degrees of rotation, and shift parallel to the axis.
-</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+July 2019</address>
 </body></html>
