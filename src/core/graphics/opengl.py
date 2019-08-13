@@ -1783,6 +1783,7 @@ class BlendTextures:
             self._background_cleared = False
         else:
             r.draw_background()
+            self._background_cleared = True
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFuncSeparate(GL.GL_ONE, GL.GL_ONE, GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
         

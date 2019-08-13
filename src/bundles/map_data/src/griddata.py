@@ -245,7 +245,21 @@ class GridData:
 
     m = self.cached_data(ijk_origin, ijk_size, ijk_step)
     if m is None and not from_cache_only:
-      m = self.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+      try:
+        m = self.read_matrix(ijk_origin, ijk_size, ijk_step, progress)
+      except IOError as e:
+        import errno
+        if e.errno == errno.ENOENT:
+          # File not found
+          msg = ('\nYou deleted or moved a volume file that is still open in ChimeraX.\n\n%s\n\n'
+                 'To allow fast initial display of volume data ChimeraX does not read '
+                 'all data from the file when it is first opened, and will later '
+                 'read more data when needed. '
+                 'ChimeraX got an error trying to read the above file.') % e.filename
+          from chimerax.core.errors import UserError
+          raise UserError(msg)
+        raise
+
       self.cache_data(m, ijk_origin, ijk_size, ijk_step)
 
     return m

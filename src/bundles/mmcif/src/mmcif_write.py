@@ -322,7 +322,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
         citation_author = ChimeraX_authors
     elif not citation.field_has('id', 'chimerax'):
         citation.extend(ChimeraX_citation)
-        citation_author.extend(ChimeraX_authors)
+        if citation_author is None:
+            citation_author = ChimeraX_authors
+        else:
+            citation_author.extend(ChimeraX_authors)
     citation.print(file, fixed_width=True)
     citation_author.print(file, fixed_width=True)
     if not software:
@@ -917,7 +920,7 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     _save_metadata(best_m, ['entity_src_gen', 'entity_src_nat'], file)
     _save_metadata(best_m, ['cell', 'symmetry'], file)
-    _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_sruct_oper_list'], file)
+    _save_metadata(best_m, ['pdbx_struct_assembly', 'pdbx_struct_assembly_gen', 'pdbx_struct_oper_list'], file)
 
 
 def save_components(model, file):
