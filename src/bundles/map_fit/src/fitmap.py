@@ -536,7 +536,10 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
 
     m, xyz_to_ijk_tf = v.matrix_and_transform(point_to_world_xform,
                                               subregion = None, step = None)
-          
+
+    if above_threshold and v.minimum_surface_level is None:
+        above_threshold = False
+        
     if above_threshold:
         # Keep only points where density is above lowest displayed threshold
         threshold = v.minimum_surface_level
