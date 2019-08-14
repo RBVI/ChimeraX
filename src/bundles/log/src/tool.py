@@ -403,10 +403,10 @@ class Log(ToolInstance, HtmlLog):
             executable_links = self.settings.exec_cmd_links
         from os.path import expanduser
         path = expanduser(path)
-        with open(path, 'w') as f:
-            f.write("<!DOCTYPE html>\n"
-                    "<html>\n"
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write("<html>\n"
                     "<head>\n"
+                    "<meta charset='utf-8'>\n"
                     "<title> ChimeraX Log </title>\n"
                     '<script type="text/javascript">\n'
                     "%s"

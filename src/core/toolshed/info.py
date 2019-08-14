@@ -451,7 +451,7 @@ class BundleInfo:
         """Supported API. Called by manager to invoke bundle provider."""
         try:
             api = self._get_api(session.logger)
-            return api._api_caller.run_provider(api, session, self, name, mgr, **kw)
+            return api._api_caller.run_provider(api, session, name, mgr, **kw)
         except Exception as e:
             import traceback
             session.logger.warning(traceback.format_exc())

@@ -30,7 +30,7 @@ class _SchemesBundleAPI(BundleAPI):
             return session.url_schemes
 
     @staticmethod
-    def run_provider(session, bundle_info, name, mgr, **kw):
+    def run_provider(session, name, mgr, **kw):
         """Run scheme provider (which does nothing)"""
         return
 
