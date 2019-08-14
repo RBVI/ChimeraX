@@ -189,7 +189,7 @@ For <a href="#fitmaps">map-in-map</a> fitting,
 whether to use only the grid points in the fit map* with values above 
 the map's lowest contour level (normally default <b>true</b>, but default
 <b>false</b> when the map has not been shown as an isosurface).
-Otherwise, all nonzero-valued points in the map will be included, 
+If <b>false</b>, all nonzero-valued points in the map will be included, 
 plus the zero-valued points if <a href="#zeros"><b>zeros</b></a> is <b>true</b>.
 <p>
 *For <a href="#symmetric">symmetric fitting</a>, the <b>envelope</b> option
@@ -199,9 +199,11 @@ controls which points in the reference map, rather than the fit map, are used.
 <blockquote>
   <a name="zeros"><b>zeros</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
   <br>
-Whether to include zero-valued grid points
-in <a href="#fitmaps">map-in-map</a> fitting with
-<a href="#envelope"><b>envelope</b></a> <b>false</b>.
+Whether <a href="#fitmaps">map-in-map</a> fitting
+with <a href="#envelope"><b>envelope</b></a> <b>false</b>
+should include the zero-valued grid points.
+If <a href="#envelope"><b>envelope</b></a> is <b>true</b>,
+this option is ignored.
 </blockquote>
 
 <blockquote>
