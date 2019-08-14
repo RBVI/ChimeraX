@@ -55,7 +55,8 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
       Optimization function to use.  Overlap is pointwise sum.  Cam is correlation
       about mean (ie. mean value is subtracted from maps before computing correlation).
     envelope : bool
-      Whether to consider fit only within lowest displayed contour level if moving map.
+      Whether to consider fit only within lowest displayed contour level of moving map.
+      If no surface exists then all grid points are used.
     resolution : float
       Resolution for making simulated maps from atomic models.  Required when correlation
       or cam metric is used and atomic models are being fit.
