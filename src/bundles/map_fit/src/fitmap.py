@@ -532,7 +532,8 @@ def average_map_value(points, xyz_to_ijk_transform, data_array, syminv = []):
 # If above_threshold is false filter out points with zero density.
 #
 from chimerax.core.geometry import Place
-def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
+def map_points_and_weights(v, above_threshold, point_to_world_xform = Place(),
+                           include_zeros = True):
 
     m, xyz_to_ijk_tf = v.matrix_and_transform(point_to_world_xform,
                                               subregion = None, step = None)
@@ -553,11 +554,12 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
         from ..data import grid_indices
         points = grid_indices(m.shape[::-1], floatc)        # i,j,k indices
         weights = ravel(m).astype(floatc)
-        # TODO: use numpy.count_nonzero() after updating to numpy 1.6
-        nz = nonzero(weights)[0]
-        if len(nz) < len(weights):
-            points = take(points, nz, axis=0)
-            weights = take(weights, nz, axis=0)
+        if not include_zeros:
+            # TODO: use numpy.count_nonzero() after updating to numpy 1.6
+            nz = nonzero(weights)[0]
+            if len(nz) < len(weights):
+                points = take(points, nz, axis=0)
+                weights = take(weights, nz, axis=0)
 
     xyz_to_ijk_tf.inverse().transform_points(points, in_place = True)
 
@@ -566,9 +568,9 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place()):
 # -----------------------------------------------------------------------------
 # xform is transform to apply to first map in global coordinates.
 #
-def map_overlap_and_correlation(map1, map2, above_threshold, xform = None):
+def map_overlap_and_correlation(map1, map2, above_threshold, xform = None, include_zeros = False):
 
-    p, w1 = map_points_and_weights(map1, above_threshold)
+    p, w1 = map_points_and_weights(map1, above_threshold, include_zeros = include_zeros)
     if xform is None:
         from chimerax.core.geometry import Place
         xform = Place()

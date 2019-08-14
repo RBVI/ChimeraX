@@ -14,7 +14,7 @@ from chimerax.core.errors import UserError
 # -----------------------------------------------------------------------------
 #
 def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
-           metric = None, envelope = True, resolution = None,
+           metric = None, envelope = True, zeros = False, resolution = None,
            shift = True, rotate = True, symmetric = False,
            move_whole_molecules = True,
            search = 0, placement = 'sr', radius = None,
@@ -57,6 +57,10 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
     envelope : bool
       Whether to consider fit only within lowest displayed contour level of moving map.
       If no surface exists then all grid points are used.
+    zeros : bool
+      If envelope is false, then the zeros option determines whether grid points of
+      the moving map with zero values are used in the fit.  Default false.  If envelope
+      is true, this option is ignored and zeros inside the envelope are used.
     resolution : float
       Resolution for making simulated maps from atomic models.  Required when correlation
       or cam metric is used and atomic models are being fit.
@@ -116,23 +120,23 @@ def fitmap(session, atoms_or_map, in_map = None, subtract_maps = None,
     amlist = atoms_and_map(atoms_or_map, resolution, mwm, sequence, symmetric, each_model, session)
     for atoms, v in amlist:
         if sequence > 0 or subtract_maps:
-            fits = fit_sequence(v, volume, smaps, metric, envelope, resolution,
+            fits = fit_sequence(v, volume, smaps, metric, envelope, zeros, resolution,
                                 shift, rotate, mwm, sequence,
                                 max_steps, grid_step_min, grid_step_max, log)
         elif search:
-            fits = fit_search(atoms, v, volume, metric, envelope, shift, rotate,
+            fits = fit_search(atoms, v, volume, metric, envelope, zeros, shift, rotate,
                               mwm, search, placement, radius,
                               cluster_angle, cluster_shift, asymmetric_unit, level_inside,
                               max_steps, grid_step_min, grid_step_max, log)
         elif symmetric:
-            fits = [fit_map_in_symmetric_map(v, volume, metric, envelope,
+            fits = [fit_map_in_symmetric_map(v, volume, metric, envelope, zeros,
                                              shift, rotate, mwm,
                                              atoms, max_steps, grid_step_min, grid_step_max, log)]
         elif v is None:
             fits = [fit_atoms_in_map(atoms, volume, shift, rotate, mwm,
                                      max_steps, grid_step_min, grid_step_max, log)]
         else:
-            fits = [fit_map_in_map(v, volume, metric, envelope,
+            fits = [fit_map_in_map(v, volume, metric, envelope, zeros,
                                    shift, rotate, mwm, atoms,
                                    max_steps, grid_step_min, grid_step_max, log)]
 
@@ -185,12 +189,12 @@ def atoms_and_map(atoms_or_map, resolution, move_whole_molecules,
         if resolution is None:
             from .. import Volume
             vlist = [v for v in atoms_or_map.models if isinstance(v, Volume)]
-            if len(vlist) < 2:
+            if len(vlist) < 1:
                 if len(atoms_or_map.atoms) > 0:
                     raise UserError('Fit sequence requires "resolution"'
                                     ' argument to fit atomic models')
                 else:
-                    raise UserError('Fit sequence requires 2 or more maps to place')
+                    raise UserError('Fit sequence requires 1 or more maps to place')
         else:
             from chimerax.atomic import Structure
             mlist = [m for m in atoms_or_map.models if isinstance(m, Structure)]
@@ -293,12 +297,13 @@ def fit_atoms_in_map(atoms, volume, shift, rotate, move_whole_molecules,
 
 # -----------------------------------------------------------------------------
 #
-def fit_map_in_map(v, volume, metric, envelope,
+def fit_map_in_map(v, volume, metric, envelope, zeros,
                    shift, rotate, move_whole_molecules, map_atoms,
                    max_steps, grid_step_min, grid_step_max, log = None):
 
     me = fitting_metric(metric)
-    points, point_weights = map_fitting_points(v, envelope)
+    points, point_weights = map_fitting_points(v, envelope,
+                                               include_zeros = zeros)
     symmetries = []
 
     from . import fitmap as F
@@ -323,14 +328,15 @@ def fit_map_in_map(v, volume, metric, envelope,
 
 # -----------------------------------------------------------------------------
 #
-def fit_map_in_symmetric_map(v, volume, metric, envelope,
+def fit_map_in_symmetric_map(v, volume, metric, envelope, zeros,
                              shift, rotate, move_whole_molecules, map_atoms,
                              max_steps, grid_step_min, grid_step_max, log = None):
 
     from . import fitmap as F
     me = fitting_metric(metric)
     points, point_weights = map_fitting_points(volume, envelope,
-                                               local_coords = True)
+                                               local_coords = True,
+                                               include_zeros = zeros)
     refpt = F.volume_center_point(v, volume.position)
     symmetries = volume.data.symmetries
     indices = F.asymmetric_unit_points(points, refpt, symmetries)
@@ -374,7 +380,7 @@ def fit_map_in_symmetric_map(v, volume, metric, envelope,
 
 # -----------------------------------------------------------------------------
 #
-def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
+def fit_search(atoms, v, volume, metric, envelope, zeros, shift, rotate,
                move_whole_molecules, search, placement, radius,
                cluster_angle, cluster_shift, asymmetric_unit, level_inside,
                max_steps, grid_step_min, grid_step_max, log = None):
@@ -387,7 +393,7 @@ def fit_search(atoms, v, volume, metric, envelope, shift, rotate,
         volume.position.inverse().transform_points(points, in_place = True)
         point_weights = None
     else:
-        points, point_weights = map_fitting_points(v, envelope)
+        points, point_weights = map_fitting_points(v, envelope, include_zeros = zeros)
         points = volume.position.inverse()*points
     from . import search as FS
     rotations = 'r' in placement
@@ -448,7 +454,8 @@ def report_fit_search_results(flist, search, outside, level_inside, log):
 
 # -----------------------------------------------------------------------------
 #
-def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope = True,
+def fit_sequence(vlist, volume, subtract_maps = [],
+                 metric = 'overlap', envelope = True, include_zeros = False,
                  resolution = None, shift = True, rotate = True, move_whole_molecules = True,
                  sequence = 1, max_steps = 2000, grid_step_min = 0.01, grid_step_max = 0.5,
                  log = None):
@@ -461,8 +468,13 @@ def fit_sequence(vlist, volume, subtract_maps = [], metric = 'overlap', envelope
     def stop_cb(msg, task = None, log = log):
         return request_stop_cb(msg, task = task, log = log)
 #    try:
-    flist = fit_sequence(vlist, volume, sequence, subtract_maps, envelope, me, shift, rotate,
-                         max_steps, grid_step_min, grid_step_max, stop_cb, log)
+    flist = fit_sequence(vlist, volume, sequence,
+                         subtract_maps = subtract_maps, envelope = envelope,
+                         include_zeros = include_zeros, metric = me,
+                         optimize_translation = shift, optimize_rotation = rotate,
+                         max_steps = max_steps, ijk_step_size_min = grid_step_min,
+                         ijk_step_size_max = grid_step_max, request_stop_cb = stop_cb,
+                         log = log)
 #    finally:
 #        task.finished()
 
@@ -505,14 +517,15 @@ def fitting_metric(metric):
 # -----------------------------------------------------------------------------
 # Returns points in global coordinates.
 #
-def map_fitting_points(v, envelope, local_coords = False):
+def map_fitting_points(v, envelope, local_coords = False, include_zeros = False):
 
     from chimerax.core.geometry import identity
     point_to_scene_transform = None if local_coords else identity()
     from . import fitmap as F
     try:
         points, point_weights = F.map_points_and_weights(v, envelope,
-                                                         point_to_scene_transform)
+                                                         point_to_scene_transform,
+                                                         include_zeros = include_zeros)
     except (MemoryError, ValueError) as e:
         raise UserError('Out of memory, too many points in %s' % v.name)
 
@@ -551,6 +564,7 @@ def register_fitmap_command(logger):
 # Fitting settings
             ('metric', EnumOf(('overlap', 'correlation', 'cam'))),  # overlap, correlation or cam.
             ('envelope', BoolArg),
+            ('zeros', BoolArg),
             ('resolution', FloatArg),
             ('shift', BoolArg),
             ('rotate', BoolArg),
