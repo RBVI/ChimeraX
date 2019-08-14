@@ -44,6 +44,7 @@
               order="3" manager="presets"/>
     <Provider category="Initial Styles" name="Space-Filling (single color)"
               order="4" manager="presets"/>
+	<Provider name="atoms" manager="items inspection"/>
   </Providers>
 
   <Classifiers>

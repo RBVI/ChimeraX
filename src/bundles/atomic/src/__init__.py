@@ -85,8 +85,12 @@ class _AtomicBundleAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from .presets import run_preset
-        run_preset(session, name, mgr, **kw)
+        if mgr == session.presets:
+            from .presets import run_preset
+            run_preset(session, name, mgr, **kw)
+        else:
+            from .inspectors import item_options
+            return item_options(session, name, **kw)
 
     @staticmethod
     def finish(session, bundle_info):
