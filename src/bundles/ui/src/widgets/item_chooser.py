@@ -305,6 +305,14 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
             menu.addAction(item_name)
         if prev_value not in self.value_map and prev_value not in self._special_items:
             if len(self.value_map) + len(self._special_items) == 1 and self._autoselect_single:
+                # value setter may use previous value, so prevent that by setting to None first,
+                # blocking the value_changed signal as we do so
+                preblocked = self.signalsBlocked()
+                if not preblocked:
+                    self.blockSignals(True)
+                self.value = None
+                if not preblocked:
+                    self.blockSignals(False)
                 self.value = (list(self.value_map.keys()) + self._special_items)[0]
             else:
                 self.value = None

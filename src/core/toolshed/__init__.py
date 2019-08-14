@@ -1359,8 +1359,6 @@ class BundleAPI:
 
         Must be defined if there is a ``Manager`` tag in the bundle.
         ``init_manager`` is called when bundles are first loaded.
-        ``init_manager`` methods for all bundles are called before any
-        ``init_provider`` methods are called for any bundle.
         It is the responsibility of ``init_manager`` to make the manager
         locatable, e.g., assign as an attribute of `session`.
 

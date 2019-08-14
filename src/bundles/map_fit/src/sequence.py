@@ -14,7 +14,7 @@
 # subtracted from map.
 #
 def fit_sequence(models, volume, steps, subtract_maps = [],
-                 envelope = True, metric = 'overlap',
+                 envelope = True, include_zeros = False, metric = 'overlap',
                  optimize_translation = True, optimize_rotation = True,
                  max_steps = 2000,
                  ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
@@ -59,7 +59,7 @@ def fit_sequence(models, volume, steps, subtract_maps = [],
                 multiply(values, scale, values)
                 add(d, values.reshape(d.shape), d)
         # Fit in difference map.
-        points, point_weights = F.map_points_and_weights(v, envelope)
+        points, point_weights = F.map_points_and_weights(v, envelope, include_zeros = include_zeros)
         move_tf, stats = F.locate_maximum(
             points, point_weights, d, xyz_to_ijk_transform,
             max_steps, ijk_step_size_min, ijk_step_size_max,
