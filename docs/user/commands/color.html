@@ -154,9 +154,6 @@ without commas or spaces:
  <ul>
  <li><b>a</b> &ndash; atoms/bonds
  (coloring shown for bonds in <a href="#halfbond">halfbond mode</a>)
-<!--
- <li><b>l</b> &ndash; atom labels
--->
  <li><b>b</b> &ndash; bonds-only
  (coloring shown for bonds not in <a href="#halfbond">halfbond mode</a>)
  <li><b>c</b> &nbsp;or&nbsp; <b>r</b>
@@ -177,18 +174,18 @@ molecular surfaces can be colored to match with the command:
  not in <a href="#halfbond">halfbond mode</a>)
  <li><b>f</b> &ndash; <a href="style.html">ring fill</a>
  and <a href="nucleotides.html">nucleotide representations</a>
+ <li><b>l</b> &ndash; labels
+(<a href="label.html">3D</a> and <a href="2dlabels">2D</a>)
 <!--
  <li><b>n</b> &ndash; nonmolecular models (model-level color)
  <li><b>m</b> &ndash; molecular models (model-level color)
  <li><b>d</b> &ndash; distances and other pseudobond labels
 -->
  </ul>
-The default is all of the above (<b>target abcspf</b>), plus  
-<a href="label.html">3D labels</a>
-in the case of <a href="#simple">simple coloring</a> using any 
-<a href="colornames.html">color name</a> that specifies a single color.
-3D labels can be colored independently
-with the <a href="label.html"><b>label</b></a> command.
+The default is all of the above (<b>target abcspf</b>)
+except labels, which can be colored independently:
+3D labels with the <a href="label.html"><b>label</b></a> command,
+2D labels with the <a href="2dlabels"><b>2dlabels</b></a> command.
 <p>
 Alternatively, for certain types of coloring,
 targets can be specified with one or more of the following keywords
@@ -203,7 +200,8 @@ or <b>target r</b>
 <li><b>pseudobonds</b> &ndash; equivalent to <b>target p</b>
 <li><b>rings</b> &ndash; <a href="style.html">ring fill</a>
 and <a href="nucleotides.html">nucleotide representations</a>
-<li><b>All</b> &ndash; equivalent to <b>target abcspf</b>
+<li><b>labels</b> &ndash; equivalent to <b>target l</b>
+<li><b>All</b> &ndash; equivalent to <b>target abcspfl</b>
 </ul>
 These target keywords must be given in the right place in the command:
 <ul>
