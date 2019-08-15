@@ -103,35 +103,35 @@ def standard_shortcuts(session):
         ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
-        ('sM', 'volume selMaps show', 'Show map', mapcat, noarg, mmenu),
-        ('hM', 'volume selMaps hide', 'Hide map', mapcat, noarg, mmenu),
+        ('sM', if_sel_maps('volume sel show'), 'Show map', mapcat, sesarg, mmenu),
+        ('hM', if_sel_maps('volume sel hide'), 'Hide map', mapcat, sesarg, mmenu),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fT', fit_map_in_map, 'Fit map in map', mapcat, sesarg, mmenu),
         ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
         ('sb', subtract_maps, 'Subtract map from map', mapcat, sesarg, mmenu),
         ('gf', smooth_map, 'Smooth map', mapcat, sesarg, mmenu),
-        ('fr', 'volume selMaps step 1', 'Show map at full resolution', mapcat, noarg, mmenu),
+        ('fr', if_sel_maps('volume sel step 1'), 'Show map at full resolution', mapcat, sesarg, mmenu),
         ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
 
-        ('fl', 'volume selMaps style surface', 'Show map or surface in filled style', mapcat, noarg, mmenu),
-        ('me', 'volume selMaps style mesh', 'Show map or surface as mesh', mapcat, noarg, mmenu),
-        ('gs', 'volume selMaps style solid', 'Show map as grayscale', mapcat, noarg, mmenu, sep),
+        ('fl', if_sel_maps('volume sel style surface'), 'Show map or surface in filled style', mapcat, sesarg, mmenu),
+        ('me', if_sel_maps('volume sel style mesh'), 'Show map or surface as mesh', mapcat, sesarg, mmenu),
+        ('gs', if_sel_maps('volume sel style solid'), 'Show map as grayscale', mapcat, sesarg, mmenu, sep),
 
-        ('s1', 'volume selMaps step 1', 'Show map at step 1', mapcat, noarg, mmenu, sep),
-        ('s2', 'volume selMaps step 2', 'Show map at step 2', mapcat, noarg, mmenu, sep),
-        ('s4', 'volume selMaps step 4', 'Show map at step 4', mapcat, noarg, mmenu, sep),
+        ('s1', if_sel_maps('volume sel step 1'), 'Show map at step 1', mapcat, sesarg, mmenu, sep),
+        ('s2', if_sel_maps('volume sel step 2'), 'Show map at step 2', mapcat, sesarg, mmenu, sep),
+        ('s4', if_sel_maps('volume sel step 4'), 'Show map at step 4', mapcat, sesarg, mmenu, sep),
 
-        ('pl', 'volume selMaps plane z orthoplanes off style solid', 'Show one plane', mapcat, maparg, mmenu),
-        ('pa', 'volume selMaps region all orthoplanes off', 'Show all planes', mapcat, maparg, mmenu),
+        ('pl', if_sel_maps('volume sel plane z orthoplanes off style solid'), 'Show one plane', mapcat, sesarg, mmenu),
+        ('pa', if_sel_maps('volume sel region all orthoplanes off'), 'Show all planes', mapcat, sesarg, mmenu),
         ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
-        ('aw', 'volume selMaps appearance "Airways II"', 'Airways preset', mapcat, maparg, mmenu),
-        ('as', 'volume selMaps appearance CT_Skin', 'Skin preset', mapcat, maparg, mmenu),
-        ('dc', 'volume selMaps appearance initial', 'Default volume curve', mapcat, maparg, mmenu),
-        ('zs', 'volume selMaps projectionMode 2d-xyz', 'Volume xyz slices', mapcat, maparg, mmenu),
-        ('ps', 'volume selMaps projectionMode 3d', 'Volume perpendicular slices', mapcat, maparg, mmenu),
+        ('aw', if_sel_maps('volume sel appearance "Airways II"'), 'Airways preset', mapcat, sesarg, mmenu),
+        ('as', if_sel_maps('volume sel appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
+        ('dc', if_sel_maps('volume sel appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
+        ('zs', if_sel_maps('volume sel projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
+        ('ps', if_sel_maps('volume sel projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
 
         # Molecules
         ('da', if_sel_atoms('show sel atoms'), 'Show atoms', molcat, sesarg, mlmenu),
@@ -477,6 +477,16 @@ def if_sel_atoms(sel_cmd, no_sel_cmd = None):
     def sel_or_nosel(session):
         from chimerax.atomic import selected_atoms
         cmd = sel_cmd if len(selected_atoms(session)) > 0 else no_sel_cmd
+        run(session, cmd)
+    return sel_or_nosel
+  
+def if_sel_maps(sel_cmd, no_sel_cmd = None):
+    if no_sel_cmd is None:
+        no_sel_cmd = sel_cmd.replace(' sel', '')
+    def sel_or_nosel(session):
+        from chimerax.map import Volume
+        msel = [m for m in session.models.list(type = Volume) if m.selected]
+        cmd = sel_cmd if msel else no_sel_cmd
         run(session, cmd)
     return sel_or_nosel
     
