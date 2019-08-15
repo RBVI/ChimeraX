@@ -200,13 +200,14 @@ from keyword import iskeyword as is_python_keyword
 import re
 import sys
 from collections import OrderedDict
+from contextlib import contextmanager
 from ..errors import UserError
 
 _debugging = False
 _normal_token = re.compile(r"[^;\s]*")
 _single_quote = re.compile(r"'(.|\')*?'(\s|$)")
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
-_whitespace = re.compile("\s*")
+_whitespace = re.compile(r"\s*")
 
 
 def commas(text_seq, conjunction='or'):
@@ -397,7 +398,7 @@ class Annotation(metaclass=abc.ABCMeta):
         Empty text should raise a ValueError or AnnotationError exception
         (the exceptions being NoArg and EmptyArg).
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     @classmethod
     def html_name(cls, name=None):
@@ -456,7 +457,7 @@ class Aggregate(Annotation):
     def __init__(self, annotation, min_size=None,
                  max_size=None, name=None, url=None, prefix=None):
         if (not isinstance(annotation, Annotation) and (
-            not isinstance(annotation, type) or not issubclass(annotation, Annotation))):
+                not isinstance(annotation, type) or not issubclass(annotation, Annotation))):
             raise ValueError("need an annotation, not %s" % annotation)
         Annotation.__init__(self, name, url)
         self.annotation = annotation
@@ -482,7 +483,7 @@ class Aggregate(Annotation):
         :returns: None for mutable containers, or a new
             container if immutable.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def parse(self, text, session):
         result = self.constructor()
@@ -697,11 +698,13 @@ class Bounded(Annotation):
     def parse(self, text, session):
         value, new_text, rest = self.anno.parse(text, session)
         if self.min is not None and ((value < self.min) if self.inclusive else (value <= self.min)):
-            raise AnnotationError("Must be greater than %s%s"
-                % (self.min, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+            raise AnnotationError(
+                "Must be greater than %s%s" % (
+                    self.min, "or equal to " if self.inclusive else ""), len(text) - len(rest))
         if self.max is not None and ((value > self.max) if self.inclusive else (value >= self.max)):
-            raise AnnotationError("Must be less than %s%s"
-                % (self.max, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+            raise AnnotationError(
+                "Must be less than %s%s" % (
+                    self.max, "or equal to " if self.inclusive else ""), len(text) - len(rest))
         return value, new_text, rest
 
 
@@ -776,7 +779,7 @@ class EnumOf(Annotation):
             i, ident = matches[0]
             return self.values[i], quote_if_necessary(ident), rest
         elif len(matches) > 1:
-            ms = ', '.join(self.values[i] for i,ident in matches)
+            ms = ', '.join(self.values[i] for i, ident in matches)
             raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
         raise AnnotationError("Should be %s" % self.name)
 
@@ -798,7 +801,7 @@ class DynamicEnum(Annotation):
         if self.__name is not None:
             return self.__name
         return 'one of ' + commas(["'%s'" % str(v)
-                                     for v in sorted(self.values_func())])
+                                  for v in sorted(self.values_func())])
 
     @property
     def _html_name(self):
@@ -809,7 +812,7 @@ class DynamicEnum(Annotation):
             name = self.__name
         else:
             name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
-                                         for v in sorted(self.values_func())])
+                                      for v in sorted(self.values_func())])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -1028,6 +1031,7 @@ class OpenFileNameArg(FileNameArg):
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
 
+
 class OpenFileNamesArg(Annotation):
     """Annotation for opening one or more files"""
     name = "file names to open"
@@ -1044,8 +1048,9 @@ class OpenFileNamesArg(Annotation):
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
         else:
             accept_mode = dialog_mode = None
-        return  _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
-            return_list=True)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+                             return_list=True)
+
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
@@ -1128,7 +1133,6 @@ class ObjectsArg(AtomSpecArg):
         return objects, text, rest
 
 
-
 class ModelArg(AtomSpecArg):
     """Parse command model specifier"""
     name = "a model specifier"
@@ -1152,6 +1156,7 @@ class SurfacesArg(ModelsArg):
         from ..models import Surface
         surfs = [m for m in models if isinstance(m, Surface)]
         return surfs, text, rest
+
 
 class SurfaceArg(SurfacesArg):
     """Parse command surfaces specifier"""
@@ -1196,7 +1201,7 @@ class AxisArg(Annotation):
         if axis is None:
             try:
                 coords, atext, rest = Float3Arg.parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 axis = Axis(coords)
@@ -1206,7 +1211,7 @@ class AxisArg(Annotation):
             try:
                 from chimerax.atomic import AtomsArg
                 atoms, atext, rest = AtomsArg.parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 if len(atoms) == 2:
@@ -1265,7 +1270,7 @@ class CenterArg(Annotation):
         if c is None:
             try:
                 coords, atext, rest = Float3Arg.parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 c = Center(coords)
@@ -1274,7 +1279,7 @@ class CenterArg(Annotation):
         if c is None:
             try:
                 cam, atext, rest = EnumOf(['camera']).parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 c = Center(coords=session.main_view.camera.position.origin())
@@ -1283,7 +1288,7 @@ class CenterArg(Annotation):
         if c is None:
             try:
                 cam, atext, rest = EnumOf(['cofr']).parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 c = Center(coords=session.main_view.center_of_rotation)
@@ -1292,7 +1297,7 @@ class CenterArg(Annotation):
         if c is None:
             try:
                 obj, atext, rest = ObjectsArg.parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 if obj.empty():
@@ -1386,7 +1391,7 @@ def as_parser(annotation):
     :raises AnnotationError: if unable to convert text
 
     For example:
-    
+
         from chimerax.core.commands import as_parser, ColorArg
         convert_to_color = as_parser(ColorArg)
         color = convert_to_color(session, "red")
@@ -1691,14 +1696,14 @@ class Postcondition(metaclass=abc.ABCMeta):
             to command callback function.
         :returns: True if arguments are consistent
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def error_message(self):
         """Appropriate error message if check fails.
 
         :returns: error message
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class Limited(Postcondition):
@@ -1970,7 +1975,6 @@ class _WordInfo:
         if isinstance(self.cmd_desc, _Defer):
             self.cmd_desc = None  # prevent reuse
 
-
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
             _check_autocomplete(word, self.subcommands, name)
@@ -2015,11 +2019,14 @@ class _WordInfo:
 
 
 class RegisteredCommandInfo:
+
     def __init__(self):
         # keep track of commands
         self.commands = _WordInfo(self)
         # keep track of commands that have been overridden by an alias
         self.aliased_commands = {}  # { name: _WordInfo instance }
+
+
 _command_info = RegisteredCommandInfo()
 # keep track of available commands
 _available_commands = None
@@ -2091,7 +2098,6 @@ def _get_help_url(words):
     # return help: URLs so links work in log as well as help viewer
     import os
     from urllib.parse import urlunparse
-    from urllib.request import pathname2url
     cname = words[0]
     if cname.startswith('~'):
         cname = cname[1:]
@@ -2202,8 +2208,8 @@ def add_keyword_arguments(name, kw_info, *, registry=None):
         else:
             reg_class = reg_type.__class__
             arg_class = arg_type.__class__
-        if ( reg_class.__module__ != arg_class.__module__
-        or reg_class.__name__ != arg_class.__name__):
+        if (reg_class.__module__ != arg_class.__module__
+                or reg_class.__name__ != arg_class.__name__):
             raise ValueError(
                 "%s-command keyword '%s' being registered with different type (%s)"
                 " than previous registration (%s)" % (
@@ -2435,7 +2441,7 @@ class Command:
                             return last_anno, None
                         try:
                             value, text = self._parse_arg(anno, text, session, False)
-                        except:
+                        except Exception:
                             break
                         if expand and isinstance(value, list):
                             values.extend(value)
@@ -2767,7 +2773,6 @@ class Command:
             session.logger.info(msg, is_html=True, add_newline=False)
 
 
-from contextlib import contextmanager
 @contextmanager
 def command_trigger(session, log, cmd_text):
     if session is not None and log:
@@ -2826,7 +2831,7 @@ def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True
 
 
 def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-          show_hidden=False, *, registry=None, _shown_cmds=None):
+           show_hidden=False, *, registry=None, _shown_cmds=None):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2949,14 +2954,14 @@ def html_usage(session, name, no_aliases=False, show_subcommands=5, expand_alias
             raise e
         try:
             text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
-                          registry=_available_commands)
+                               registry=_available_commands)
         except ValueError:
             raise e
     return text
 
 
 def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-               show_hidden=False, *, registry=None, _shown_cmds=None):
+                show_hidden=False, *, registry=None, _shown_cmds=None):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
@@ -3057,7 +3062,7 @@ def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 if name not in _shown_cmds:
                     syntax += '<br>' + _html_usage(name, registry=registry, _shown_cmds=_shown_cmds)
                     _shown_cmds.add(name)
-            except:
+            except Exception:
                 pass
 
     if (show_subcommands and cmd.word_info is not None and
@@ -3299,7 +3304,7 @@ def create_alias(name, text, *, user=False, logger=None, url=None, registry=None
     try:
         register(name, alias.cmd_desc(synopsis='alias of "%s"' % text, url=url),
                  alias, logger=logger, registry=registry)
-    except:
+    except Exception:
         raise
 
 
