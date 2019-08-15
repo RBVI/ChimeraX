@@ -382,9 +382,6 @@ class IntOption(Option):
        Supports 'preceding_text' and 'trailing_text' keywords for putting text before
        and after the entry widget on the right side of the form"""
 
-    default_minimum = -(2^31)
-    default_maximum = 2^31 - 1
-
     def get_value(self):
         return self._spin_box.value()
 
@@ -399,25 +396,21 @@ class IntOption(Option):
         self._spin_box.setValue(self._spin_box.minimum())
 
     def _make_widget(self, min=None, max=None, preceding_text=None, trailing_text=None, **kw):
-        from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
-        self._spin_box = QSpinBox(**kw)
-        self._spin_box.setMinimum(self.default_minimum if min is None else min)
-        self._spin_box.setMaximum(self.default_maximum if max is None else max)
+        self._spin_box = _make_int_spinbox(min, max, **kw)
         self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
         if not preceding_text and not trailing_text:
             self.widget = self._spin_box
             return
+        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
         self.widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(2)
         if preceding_text:
             layout.addWidget(QLabel(preceding_text))
-            l = 0
         layout.addWidget(self._spin_box)
         if trailing_text:
             layout.addWidget(QLabel(trailing_text))
-            r = 0
         self.widget.setLayout(layout)
 
 class RGBA8Option(Option):
@@ -616,9 +609,6 @@ class PhysicalSizeOption(FloatEnumOption):
 class StringIntOption(Option):
     """Supported API. Option for a string and an int (as a 2-tuple), for something such as host and port"""
 
-    default_minimum = IntOption.default_minimum
-    default_maximum = IntOption.default_maximum
-
     def get_value(self):
         return (self._line_edit.text(), self._spin_box.value())
 
@@ -644,11 +634,9 @@ class StringIntOption(Option):
         self._line_edit.editingFinished.connect(lambda s=self: s.make_callback())
         if initial_text_width:
             self._line_edit.setStyleSheet("* { width: %s }" % initial_text_width)
-        from PyQt5.QtWidgets import QSpinBox, QWidget, QHBoxLayout, QLabel
-        self._spin_box = QSpinBox(**kw)
-        self._spin_box.setMinimum(self.default_minimum if min is None else min)
-        self._spin_box.setMaximum(self.default_maximum if max is None else max)
+        self._spin_box = _make_int_spinbox(min, max, **kw)
         self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
+        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel
         self.widget = QWidget()
         layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
@@ -760,4 +748,13 @@ def _make_float_spinbox(min, max, step, decimal_places, **kw):
     spin_box.setMinimum(minimum)
     spin_box.setMaximum(maximum)
     spin_box.setSingleStep(step)
+    return spin_box
+
+def _make_int_spinbox(min, max, **kw):
+    from PyQt5.QtWidgets import QSpinBox
+    spin_box = QSpinBox(**kw)
+    default_minimum = -(2^31)
+    default_maximum = 2^31 - 1
+    spin_box.setMinimum(self.default_minimum if min is None else min)
+    spin_box.setMaximum(self.default_maximum if max is None else max)
     return spin_box
