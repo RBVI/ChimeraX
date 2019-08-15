@@ -422,16 +422,24 @@ class SteamVRCamera(Camera):
         t.remove_handler(self._new_frame_handler)
         self._new_frame_handler = None
         t.remove_handler(self._app_quit_handler)
+
         self._app_quit_handler = None
         for hc in self._hand_controllers:
             hc.close()
         self._hand_controllers = []
+        
         self.user_interface.close()
         m = self._vr_model_group
         if m:
             if not m.deleted:
                 self._session.models.close([m])
             self._vr_model_group = None
+            
+        td = self._texture_drawing
+        if td is not None:
+            td.delete()
+            self._texture_drawing = None
+
         import openvr
         openvr.shutdown()
         self.vr_system = None
