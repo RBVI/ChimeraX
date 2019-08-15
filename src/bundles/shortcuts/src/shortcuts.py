@@ -74,8 +74,8 @@ def standard_shortcuts(session):
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-        ('dm', 'show selModels models', 'Display selected models', ocat, noarg, smenu),
-        ('hm', 'hide selModels models', 'Hide selected models', ocat, noarg, smenu),
+        ('dm', if_sel_models('show sel models'), 'Display selected models', ocat, sesarg, smenu),
+        ('hm', if_sel_models('hide sel models'), 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
         ('cs', 'select clear', 'Clear selection', gcat, noarg, smenu),
 
@@ -486,6 +486,15 @@ def if_sel_maps(sel_cmd, no_sel_cmd = None):
     def sel_or_nosel(session):
         from chimerax.map import Volume
         msel = [m for m in session.models.list(type = Volume) if m.selected]
+        cmd = sel_cmd if msel else no_sel_cmd
+        run(session, cmd)
+    return sel_or_nosel
+  
+def if_sel_models(sel_cmd, no_sel_cmd = None):
+    if no_sel_cmd is None:
+        no_sel_cmd = sel_cmd.replace(' sel', '')
+    def sel_or_nosel(session):
+        msel = [m for m in session.models.list() if m.selected]
         cmd = sel_cmd if msel else no_sel_cmd
         run(session, cmd)
     return sel_or_nosel
