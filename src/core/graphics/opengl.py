@@ -2491,6 +2491,9 @@ class Buffer:
         Update the buffer with data supplied by a numpy array and bind it to
         the associated shader variable.  Return true if the buffer is deleted and replaced.
         '''
+        if self._deleted_buffer:
+            raise RuntimeError('Attempt to update a deleted buffer')
+        
         bdata = self.buffered_data
         replace_buffer = (data is None or bdata is None
                           or data.shape != bdata.shape)
