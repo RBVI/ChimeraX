@@ -332,7 +332,7 @@ def _user_kw_cnt(kw_name):
 
 
 class AnnotationError(UserError, ValueError):
-    """Error, with optional offset, in annotation"""
+    """Error, with optional offset, in an annotation"""
 
     def __init__(self, message, offset=None):
         super().__init__(message)
@@ -340,7 +340,12 @@ class AnnotationError(UserError, ValueError):
 
 
 class Annotation(metaclass=abc.ABCMeta):
-    """Base class for all annotations
+    """Supported API.  Base class for all annotations
+
+    Annotations encapsulate how to parse text into a particular
+    type.  Both subclasses and instances of subclasses can be
+    used as annotations.  An instance is used when an annotation
+    is parameterized, e.g., with the length of a sequence.
 
     Each annotation should have the following attributes:
 
@@ -348,9 +353,17 @@ class Annotation(metaclass=abc.ABCMeta):
 
         Set to textual description of the annotation, including
         the leading article, *e.g.*, `"an integer"`.
+
+    .. py:attribute:: url
+
+       URL for help information.
+
+    .. py:method:: html_name
+
+        A class or instance method that returns the HTML version of the name.
     """
-    name = None  #: article name, *e.g.*, "an integer"
-    url = None  #: URL for help information
+    name = "an unspecified type"
+    url = None
     _html_name = None
 
     def __init__(self, name=None, url=None, html_name=None):
@@ -363,20 +376,20 @@ class Annotation(metaclass=abc.ABCMeta):
         elif name is not None:
             from html import escape
             self._html_name = escape(name)
-        # If __init__ is callled, then an Annotation instance is being
+        # If __init__ is called, then an Annotation instance is being
         # created, and we should use the instance's HTML name
         self.html_name = self.inst_html_name
 
     @staticmethod
     def parse(text, session):
-        """Convert text to appropriate type.
+        """Supported API.  Convert text to appropriate type.
 
         :param text: command line text to parse
         :param session: for session-dependent data types
         :returns: 3-tuple with the converted value, consumed text
             (possibly altered with expanded abbreviations), and the
             remaining unconsumed text
-        :raises ValueError: if unable to convert text
+        :raises AnnotationError: if unable to convert text
 
         The leading space in text must already be removed.
         It is up to the particular annotation to support abbreviations.
@@ -388,6 +401,10 @@ class Annotation(metaclass=abc.ABCMeta):
 
     @classmethod
     def html_name(cls, name=None):
+        """Supported API.  Return HTML verison of name attribute
+
+        If the :py:attr:`url` attribute is set, then a HTML href using that
+        URL is returned."""
         if cls._html_name is not None:
             return cls._html_name
         from html import escape
@@ -398,8 +415,7 @@ class Annotation(metaclass=abc.ABCMeta):
         return '<a href="%s">%s</a>' % (escape(cls.url), escape(name))
 
     def inst_html_name(self, name=None):
-        """Subclasses that are to be used as instances, should set their
-        html_name method to be Annotation.inst_html_name"""
+        # used to override html_name class method with an instance method
         if self._html_name is not None:
             return self._html_name
         from html import escape
@@ -1364,20 +1380,25 @@ def _remove_child_models(models):
 
 
 def as_parser(annotation):
-    """Use any annotation as simple parser
+    """Supported API.  Use any annotation to convert text to annotation's type
 
     :param annotation: the annotation to use
+    :raises AnnotationError: if unable to convert text
 
     For example:
     
-        color = as_parser(ColorArg)(session, "red")
+        from chimerax.core.commands import as_parser, ColorArg
+        convert_to_color = as_parser(ColorArg)
+        color = convert_to_color(session, "red")
     """
     def use_annotation(session, text):
         value, _, rest = annotation.parse(text, session)
         if rest:
+            offset = len(text) - len(rest)
             raise AnnotationError("extra text at end of %s" % discard_article(
-                annotation.name))
+                annotation.name), offset)
         return value
+    use_annotation.__doc__ = "Convert text to %s" % annotation.name
     return use_annotation
 
 
