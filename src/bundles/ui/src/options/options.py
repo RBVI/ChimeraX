@@ -29,7 +29,7 @@ class Option(metaclass=ABCMeta):
 
         if attr_name:
             self.attr_name = attr_name
-        else:
+        elif not hasattr(self, 'attr_name'):
             if self.name:
                 self.attr_name = self.name
             else:
@@ -108,6 +108,28 @@ class Option(metaclass=ABCMeta):
         if self.settings_handler:
             self.settings_handler.remove()
             self.settings_handler = None
+
+    def display_for_items(self, items):
+        """Supported API.  Use the option's 'attr_name' attribute to survey the given items for
+           their value or values for that attribute and display the value or values in the option.
+           The 'items' can be a chimerax.atomic.Collection or a normal Python sequence. If a Collection,
+           the "plural form" of attr_name will be used to check the Collection.
+        """
+        if not items:
+            return
+        from chimerax.atomic import Collection
+        if isinstance(items, Collection):
+            from chimerax.core.commands import plural_of
+            values = getattr(items, plural_of(self.attr_name))
+        else:
+            values = [getattr(i, self.attr_name) for i in items]
+        from numpy import array_equal
+        value = values[0]
+        for val in values[1:]:
+            if not array_equal(val, value):
+                self.set_multiple()
+                return
+        self.value = value
 
     @property
     def enabled(self):

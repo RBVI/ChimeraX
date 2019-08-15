@@ -19,7 +19,9 @@ def item_options(session, name, **kw):
 from chimerax.ui.options import RGBAOption
 
 class AtomColorOption(RGBAOption):
-    balloon = "Atom color\n\nattribute: color"
+    attr_name = "color"
+    balloon = "Atom color"
+    name = "Color"
     @property
     def command_format(self):
-        return "color %%s %g,%g,%g,%g atoms" % self.value
+        return "color %%s %g,%g,%g,%g atoms" % tuple([100.0 * x for x in self.value])

@@ -33,86 +33,91 @@ class SelInspector(ToolInstance):
 
         self.chooser = QPushButton()
         self.item_menu = QMenu()
+        self.item_menu.triggered.connect(self._menu_cb)
         self.chooser.setMenu(self.item_menu)
         layout.addWidget(self.chooser)
 
-        self.options_area = QWidget()
-        layout.addWidget(self.options_area)
+        self.options_layout = QVBoxLayout()
+        layout.addLayout(self.options_layout)
+        self.options_container = None
 
-        #TODO
         from chimerax.dist_monitor.cmd import group_triggers
         self.handlers = [
-            group_triggers.add_handler("update", self._fill_table),
-            group_triggers.add_handler("delete", self._fill_table)
+            session.items_inspection.triggers.add_handler("inspection items changed", self._new_items),
+            session.triggers.add_handler("selection changed", self._sel_changed)
         ]
-        self._fill_table()
-        tw.manage(placement="side")
+        self._new_items()
+        self._sel_changed()
+        tw.manage(placement=None)
 
     def delete(self):
         for handler in self.handlers:
             handler.remove()
         super().delete()
 
-    def _create_distance(self):
-        from chimerax.atomic import selected_atoms
-        sel_atoms = selected_atoms(self.session)
-        if len(sel_atoms) != 2:
-            from chimerax.core.errors import UserError
-            raise UserError("Exactly two atoms must be selected!")
-        from chimerax.core.commands import run
-        run(self.session, "distance %s %s" % tuple(a.string(style="command") for a in sel_atoms))
+    def _menu_cb(self, action):
+        if self.options_container:
+            self.options_layout.removeWidget(self.options_container)
+        from chimerax.ui.options import OptionsPanel
+        container = self.options_container = OptionsPanel()
+        self.options_layout.addWidget(container)
+        for option in self.session.items_inspection.item_options(self.menu_mapping[action]):
+            container.add_option(option(None, None, self._option_cb))
 
-    def _delete_distance(self):
-        from chimerax.core.errors import UserError
-        from chimerax.core.commands import run
-        dist_grp = self.session.pb_manager.get_group("distances", create=False)
-        if not dist_grp:
-            raise UserError("No distances to delete!")
-        pbs = dist_grp.pseudobonds
-        if not pbs:
-            raise UserError("No distances to delete!")
-        rows = set([index.row() for index in self.table.selectedIndexes()])
-        if not rows:
-            raise UserError("Must select one or more distances in the table")
-        del_pbs = []
-        for i, pb in enumerate(pbs):
-            if i in rows:
-                del_pbs.append(pb)
-        for pb in del_pbs:
-            run(self.session, "~distance %s %s" % tuple([a.string(style="command") for a in pb.atoms]))
+    def _new_items(self, *args, **kw):
+        cur_text = None if self.item_menu.isEmpty() else self.item_menu.menuAction().text()
+        self.menu_mapping = {}
+        self.item_menu.clear()
+        cur_action = None
+        self.item_types = self.session.items_inspection.item_types
+        self.item_types.sort(key=lambda x: x.lower())
+        for item_type in self.item_types:
+            menu_text = item_type.capitalize() if item_type.islower() else item_type
+            action = self.item_menu.addAction(menu_text)
+            self.menu_mapping[action] = item_type
+            if cur_text == menu_text:
+                cur_action = action
+        if cur_action:
+            self.item_menu.setActiveAction(cur_action)
+        elif not self.item_menu.isEmpty():
+            first_action = self.item_menu.actions()[0]
+            self.item_menu.setActiveAction(first_action)
+            self.chooser.setText(first_action.text())
+            self._menu_cb(first_action)
 
-    def _save_info(self):
-        from chimerax.core.errors import UserError
+    def _option_cb(self, opt):
         from chimerax.core.commands import run
-        dist_grp = self.session.pb_manager.get_group("distances", create=False)
-        if not dist_grp:
-            raise UserError("No distances to save!")
-        pbs = dist_grp.pseudobonds
-        if not pbs:
-            raise UserError("No distances to save!")
-        run(self.session, "distance save browse")
+        run(self.session, opt.command_format % "sel")
 
-    def _fill_table(self, *args):
-        dist_grp = self.session.pb_manager.get_group("distances", create=False)
-        if not dist_grp:
-            self.table.clearContents()
-            self.table.setRowCount(0)
+    def _sel_changed(self, *args, **kw):
+        cur_item_type = self.menu_mapping[self.item_menu.activeAction()]
+        sel_strings = []
+        for item_type in self.item_types:
+            sel_items = self.session.selection.items(item_type)
+            if item_type == cur_item_type:
+                cur_items = sel_items
+            if not sel_items:
+                continue
+            num = sum([len(x) for x in sel_items])
+            sel_strings.append("%d %s"
+                % (num, item_type if num != 1 or item_type[-1] != 's' else item_type[:-1]))
+        if sel_strings:
+            description = "\n".join(sel_strings)
+        elif self.session.selection.empty():
+            description = "Nothing selected"
+        else:
+            description = "Nothing inspectable selected"
+        self.text_description.setText(description)
+        if not cur_items:
             return
-        fmt = self.session.pb_dist_monitor.distance_format
-        from PyQt5.QtWidgets import QTableWidgetItem
-        pbs = dist_grp.pseudobonds
-        update = len(pbs) == self.table.rowCount()
-        if not update:
-            self.table.clearContents()
-            self.table.setRowCount(len(pbs))
-        for row, pb in enumerate(pbs):
-            a1, a2 = pb.atoms
-            strings = a1.string(), a2.string(relative_to=a1), fmt % pb.length
-            for col, string in enumerate(strings):
-                if update:
-                    self.table.item(row, col).setText(string)
-                else:
-                    self.table.setItem(row, col, QTableWidgetItem(string))
-        for i in range(self.table.columnCount()):
-            self.table.resizeColumnToContents(i)
+        from chimerax.atomic import Collection
+        if [isinstance(x, Collection) for x in cur_items].count(True) == len(cur_items):
+            from  chimerax.atomic import concatenate
+            items = concatenate(cur_items)
+        else:
+            items = []
+            for ci in cur_items:
+                items.extend(ci)
+        for option in self.options_container.options():
+            option.display_for_items(items)
 
