@@ -160,13 +160,13 @@ def show_models(session, objects, only, undo_state):
             else:
                 from numpy import logical_or
                 logical_or(dp, inst, dp)
-            if m in ud:
+            if m in ud_positions:
                 ud_positions[m][1] = dp
             else:
                 ud_positions[m] = [m.display_positions, dp]
             m.display_positions = dp
         for m in ancestor_models(minst.keys()):
-            if m in ud:
+            if m in ud_display:
                 ud_display[m][1] = True
             else:
                 ud_display[m] = [m.display, True]

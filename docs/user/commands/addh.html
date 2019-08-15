@@ -30,6 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>hbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>inIsolation</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>metalDist</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>template</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>residue-name-options</i></a>
 </h3>
 <p>
@@ -66,15 +67,23 @@ are always treated in isolation from one another, even if this option is
 The <b>metalDist</b> option specifies a distance between a heavy atom X
 and metal ion M (default <b>3.6</b> &Aring;)
 within which to suppress adding a hydrogen to X
-if all of the following also apply:
+if both of the following also apply:
 </p>
 <ul>
 <li>X is electronegative (O or N, but more generally, periodic table groups 15-16)
 <li>the X-H-M angle would be &gt;120&deg;
-<li>if X is <i>sp</i><sup>2</sup>-hybridized,
-it is bonded to two other heavy atoms 
 </ul>
 <p>
+The <b>template</b> option (default <b>false</b>) allows using idealized
+coordinates to discern <a href="../atomtypes.html">atom types</a> 
+in nonstandard residues, instead of their actual coordinates in the structure.
+The idealized coordinates are looked up by residue name
+in the <a href="http://www.wwpdb.org/data/ccd" target="_blank">PDB
+Chemical Component Dictionary</a>. Setting <b>template true</b> is useful
+for structures with poorly (structurally) determined ligands that could be
+mis-typed, potentially causing addition of the wrong number of hydrogens or
+hydrogens in incorrect positions.
+</p>
 <a name="options"></a>
 The remaining options allow alternative protonation states of certain amino acids
 to be specified with special residue names:
@@ -121,5 +130,5 @@ and/or to match their bond partners.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2019</address>
+August 2019</address>
 </body></html>

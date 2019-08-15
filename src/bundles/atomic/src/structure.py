@@ -2048,6 +2048,10 @@ class AtomsDrawing(Drawing):
         if not self.display or self.visible_atoms is None or (exclude and exclude(self)):
             return None
 
+        if len(self.visible_atoms) < len(self.positions):
+            # Some atoms were deleted since the last time the graphics was drawn.
+            return None
+
         xyzr = self.positions.shift_and_scale_array()
         coords, radii = xyzr[:,:3], xyzr[:,3]
 

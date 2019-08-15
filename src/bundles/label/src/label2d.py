@@ -14,6 +14,22 @@
 
 # -----------------------------------------------------------------------------
 #
+def label2d(session, labels = None, *, text = None, color = None, bg_color = None,
+            size = None, font = None, bold = None, italic = None,
+            xpos = None, ypos = None, visibility = None, margin = None,
+            outline = None, frames = None):
+    keywords = ('text', 'color', 'bg_color', 'size', 'font', 'bold', 'italic',
+                'xpos', 'ypos', 'visibility', 'margin', 'outline')
+    loc = locals()
+    kw = {attr:loc[attr] for attr in keywords if loc[attr] is not None}
+    if labels is None:
+        return label_create(session, name = '', **kw)
+
+    kw['frames'] = frames
+    return [_update_label(session, l, **kw) for l in labels]
+
+# -----------------------------------------------------------------------------
+#
 def label_create(session, name, text = '', color = None, bg_color = None,
                  size = 24, font = 'Arial', bold = None, italic = None,
                  xpos = 0.5, ypos = 0.5, visibility = True, margin = 0,
@@ -50,36 +66,44 @@ def label_create(session, name, text = '', color = None, bg_color = None,
     if name == 'all':
         from chimerax.core.errors import UserError
         raise UserError("'all' is reserved to refer to all labels")
-    kw = locals().copy()
+
+    kw = {'text':text, 'color':color, 'size':size, 'font':font,
+          'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'visibility':visibility,
+          'margin':margin, 'outline_width':outline}
+
     from chimerax.core.colors import Color
     if isinstance(color, Color):
         kw['color'] = color.uint8x4()
     elif color == 'default':
         kw['color'] = None
-    del kw['bg_color']
+
     if isinstance(bg_color, Color):
         kw['background'] = bg_color.uint8x4()
     elif bg_color == 'none':
         kw['background'] = None
-    kw['outline_width'] = kw.pop('outline')
-    return Label(**kw)
+        
+    return Label(session, name, **kw)
 
 
 # -----------------------------------------------------------------------------
 #
-def label_change(session, name, *, text = None, color = None, bg_color = None,
+def label_change(session, labels, *, text = None, color = None, bg_color = None,
                  size = None, font = None, bold = None, italic = None,
                  xpos = None, ypos = None, visibility = None, margin = None,
                  outline = None, frames = None):
     '''Change label parameters.'''
-    lb = session_labels(session)
-    if name == 'all':
-        for n in lb.labels.keys():
-            label_change(session, n, text=text, color=color, bg_color=bg_color,
-                         size=size, font=font, bold=bold, italic=italic,
-                         xpos=xpos, ypos=ypos, visibility=visibility, frames=frames)
-        return
-    l = lb.labels[name]
+    kw = {'text':text, 'color':color, 'bg_color':bg_color, 'size':size, 'font':font,
+          'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'visibility':visibility,
+          'margin':margin, 'outline':outline, 'frames':frames}
+    return [_update_label(session, l, **kw) for l in labels]
+
+
+# -----------------------------------------------------------------------------
+#
+def _update_label(session, l, *, text = None, color = None, bg_color = None,
+                 size = None, font = None, bold = None, italic = None,
+                 xpos = None, ypos = None, visibility = None, margin = None,
+                 outline = None, frames = None):
     if font is not None: l.font = font
     if bold is not None: l.bold = bold
     if text is not None: l.text = text
@@ -98,8 +122,10 @@ def label_change(session, name, *, text = None, color = None, bg_color = None,
         l.update_drawing()
     else:
         _InterpolateLabel(session, l, color, bg_color, size, xpos, ypos, visibility, margin, outline, frames)
-    return l
 
+
+# -----------------------------------------------------------------------------
+#
 class _InterpolateLabel:
     def __init__(self, session, label, color, bg_color, size, xpos, ypos, visibility, margin, outline_width,
             frames):
@@ -118,7 +144,7 @@ class _InterpolateLabel:
                 self.interp_color = False
             else:
                 self.color1 = label.color
-                self.color2 = bg2
+                self.color2 = color2
                 self.interp_color = True
         if bg_color is None:
             # no change
@@ -211,7 +237,10 @@ class _InterpolateLabel:
 def label_under_window_position(session, win_x, win_y):
     w,h = session.main_view.window_size
     fx,fy = (win_x+.5)/w, 1-(win_y+.5)/h    # win_y is 0 at top
-    for lbl in session_labels(session).labels.values():
+    lm = session_labels(session)
+    if lm is None:
+        return None
+    for lbl in lm.all_labels:
         dx,dy = fx - lbl.xpos, fy - lbl.ypos
         lw,lh = lbl.drawing.size
         if dx >=0 and dx < lw and dy >=0 and dy < lh:
@@ -220,15 +249,13 @@ def label_under_window_position(session, win_x, win_y):
     
 # -----------------------------------------------------------------------------
 #
-def label_delete(session, name):
+def label_delete(session, labels = None):
     '''Delete label.'''
-    lb = session_labels(session)
-    if name == 'all':
-        for l in tuple(lb.labels.values()):
-            l.delete()
-        return
-    l = lb.labels[name]
-    l.delete()
+    if labels is None:
+        lm = session_labels(session)
+        labels = lm.all_labels if lm else ()
+    for l in tuple(labels):
+        l.delete()
 
 # -----------------------------------------------------------------------------
 #
@@ -243,14 +270,53 @@ def label_listfonts(session):
 
 # -----------------------------------------------------------------------------
 #
+from chimerax.core.commands import Annotation
+class NamedLabelsArg(Annotation):
+
+    name = "'all' or a 2d label name"
+    _html_name = "<b>all</b> or a 2d label name"
+
+    @staticmethod
+    def parse(text, session):
+        from chimerax.core.commands import AnnotationError, next_token
+        if not text:
+            raise AnnotationError("Expected %s" % NamedLabelsArg.name)
+        lm = session_labels(session)
+        token, text, rest = next_token(text)
+        if lm.named_label(token) is None:
+            possible = [name for name in lm.label_names() if name.startswith(token)]
+            if 'all'.startswith(token):
+                possible.append('all')
+            if not possible:
+                raise AnnotationError("Unknown label identifier: '%s'" % token)
+            possible.sort(key=len)
+            token = possible[0]
+        labels = lm.all_labels if token == 'all' else [lm.named_label(token)]
+        return labels, token, rest
+
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.commands import ModelsArg
+class LabelsArg(ModelsArg):
+    """Parse command label model specifier"""
+    name = "a label models specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        models, text, rest = super().parse(text, session)
+        labels = [m.label for m in models if isinstance(m, LabelModel)]
+        return labels, text, rest
+
+# -----------------------------------------------------------------------------
+#
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
     from chimerax.core.commands import NonNegativeFloatArg
     from .label3d import DefArg, NoneArg
 
-    rargs = [('name', StringArg)]
-    existing_arg = [('name', NameArg)]
+    labels_arg = [('labels', Or(NamedLabelsArg, LabelsArg))]
     # Create and change have same arguments
     cargs = [('text', StringArg),
              ('color', Or(DefArg, ColorArg)),
@@ -264,46 +330,73 @@ def register_label_command(logger):
              ('visibility', BoolArg),
              ('margin', NonNegativeFloatArg),
              ('outline', NonNegativeFloatArg)]
-    create_desc = CmdDesc(required = rargs, keyword = cargs,
+    create_desc = CmdDesc(required = [('name', StringArg)], keyword = cargs,
                           synopsis = 'Create a 2d label')
     register('2dlabels create', create_desc, label_create, logger=logger)
-    change_desc = CmdDesc(required = existing_arg, keyword = cargs + [('frames', IntArg)],
-                          synopsis = 'Change an existing 2d label')
+    change_desc = CmdDesc(required = labels_arg, keyword = cargs + [('frames', IntArg)],
+                          synopsis = 'Change a 2d label')
     register('2dlabels change', change_desc, label_change, logger=logger)
-    delete_desc = CmdDesc(required = existing_arg,
+    delete_desc = CmdDesc(optional = labels_arg,
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
     fonts_desc = CmdDesc(synopsis = 'List available fonts')
     register('2dlabels listfonts', fonts_desc, label_listfonts, logger=logger)
 
 
+    label_desc = CmdDesc(optional = labels_arg,
+                         keyword = cargs + [('frames', IntArg)],
+                          synopsis = 'Create or change a 2d label')
+    register('2dlabels', label_desc, label2d, logger=logger)
+    
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.state import StateManager
-class Labels(StateManager):
-    def __init__(self):
-        StateManager.__init__(self)
-        self.labels = {}    # Map label name to Label object
+from chimerax.core.models import Model
+class Labels(Model):
+    def __init__(self, session):
+        Model.__init__(self, '2D labels', session)
+        self._labels = []	   
+        self._named_labels = {}    # Map label name to Label object
         from chimerax.core.core_settings import settings
         settings.triggers.add_handler('setting changed', self._background_color_changed)
+        session.main_view.add_overlay(self)
+        self.model_panel_show_expanded = False
 
-    def add(self, label):
+    def delete(self):
+        self.session.main_view.remove_overlays([self], delete = False)
+        Model.delete(self)
+
+    def add_label(self, label):
+        self._labels.append(label)
         n = label.name
-        ls = self.labels
-        if n in ls:
-            ls[n].delete()
-        ls[n] = label
+        if n:
+            nl = self._named_labels.get(n)
+            if nl:
+                self._labels.remove(nl)
+                nl.delete()
+            self._named_labels[n] = label
+        self.add([label.drawing])
 
-    def delete(self, label):
-        del self.labels[label.name]
+    @property
+    def all_labels(self):
+        return self._labels
 
-    def find_label(self, name):
-        return self.labels.get(name)
+    def named_label(self, name):
+        return self._named_labels.get(name)
+
+    def label_names(self):
+        return tuple(self._named_labels.keys())
+    
+    def delete_label(self, label):
+        if label.name:
+            del self._named_labels[label.name]
+        self._labels.remove(label)
+        if len(self._labels) == 0:
+            self.delete()
 
     def _background_color_changed(self, tname, tdata):
         # Update label color when graphics background color changes.
         if tdata[0] == 'background_color':
-            for l in self.labels.values():
+            for l in self.all_labels:
                 if l.background is None:
                     l.update_drawing()
                     
@@ -313,38 +406,52 @@ class Labels(StateManager):
         lattrs = ('name', 'text', 'color', 'background', 'size', 'font',
                   'bold', 'italic', 'xpos', 'ypos', 'visibility')
         lstate = tuple({attr:getattr(l, attr) for attr in lattrs}
-                       for l in self.labels.values())
-        data = {'labels state': lstate, 'version': 2}
+                       for l in self.all_labels)
+        data = {'labels state': lstate,
+                'model state': Model.take_snapshot(self, session, flags),
+                'version': 3}
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
-        s = session_labels(session)
-        s.set_state_from_snapshot(session, data)
+        if 'model state' in data:
+            s = Labels(session)
+            Model.set_state_from_snapshot(s, session, data['model state'])
+            session.models.add([s], root_model = True)
+            s.set_state_from_snapshot(session, data)
+        else:
+            # Restoring old session before 2d labels were Models.
+            # Need to create labels model after all models created
+            # so it does not use a model id already in use.
+            def restore_old_labels(trigger_name, session, data=data):
+                s = session_labels(session, create=True)
+                s.set_state_from_snapshot(session, data)
+                return 'delete handler'
+            session.triggers.add_handler('end restore session', restore_old_labels)
+            s = None
         return s
 
     def set_state_from_snapshot(self, session, data):
-        self.labels = {ls['name']:Label(session, **ls) for ls in data['labels state']}
-
-    def reset_state(self, session):
-        for l in tuple(self.labels.values()):
-            l.delete()
-        self.labels = {}
+        self._labels = [Label(session, **ls) for ls in data['labels state']]
+        self._named_labels = {l.name:l for l in self._labels if l.name}
 
 
 # -----------------------------------------------------------------------------
 #
 def find_label(session, name):
-    return session_labels(session).find_label(name)
+    lm = session_labels(session)
+    return lm.named_label(name) if lm else None
 
 # -----------------------------------------------------------------------------
 #
-def session_labels(session):
-    lb = getattr(session, '_2d_labels', None)
-    if lb is None:
-        session._2d_labels = lb = Labels()
-    return lb
-        
+def session_labels(session, create=False):
+    lmlist = session.models.list(type = Labels)
+    if lmlist:
+        lm = lmlist[0]
+    elif create:
+        lm = Labels(session)
+        session.models.add([lm], root_model = True)
+    return lm
 
 # -----------------------------------------------------------------------------
 #
@@ -371,11 +478,9 @@ class Label:
         self.visibility = visibility
         self.margin = margin
         self.outline_width = outline_width
-        self.drawing = d = LabelDrawing(self)
-        session.main_view.add_overlay(d)
-
-        lb = session_labels(session)
-        lb.add(self)
+        self.drawing = d = LabelModel(session, self)
+        lb = session_labels(session, create = True)
+        lb.add_label(self)
 
     def update_drawing(self):
         d = self.drawing
@@ -387,29 +492,33 @@ class Label:
         if d is None:
             return
         self.drawing = None
-        s = self.session
-        s.main_view.remove_overlays([d])
-        session_labels(s).delete(self)
+        d.delete()
+        lm = session_labels(self.session)
+        if lm:
+            lm.delete_label(self)
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.graphics.drawing import Drawing
-class LabelDrawing(Drawing):
+#from chimerax.core.graphics.drawing import Drawing
+from chimerax.core.models import Model
+class LabelModel(Model):
 
     pickable = False
     casts_shadows = False
+    SESSION_SAVE = False	# LabelsModel saves all labels
     
-    def __init__(self, label):
-        Drawing.__init__(self, 'label %s' % label.name)
+    def __init__(self, session, label):
+        name = label.name if label.name else label.text
+        Model.__init__(self, name, session)
         self.label = label
         self.window_size = None
         self.texture_size = None
         self.needs_update = True
-        
+
     def draw(self, renderer, draw_pass):
         if not self.update_drawing():
             self.resize()
-        Drawing.draw(self, renderer, draw_pass)
+        Model.draw(self, renderer, draw_pass)
 
     @property
     def label_color(self):
@@ -424,6 +533,14 @@ class LabelDrawing(Drawing):
         else:
             rgba8 = tuple(l.color)
         return rgba8
+
+    def _get_single_color(self):
+        return self.label_color
+    def _set_single_color(self, color):
+        l = self.label
+        l.color = color
+        l.update_drawing()
+    single_color = property(_get_single_color, _set_single_color)
 
     def update_drawing(self):
         if not self.needs_update:
@@ -481,29 +598,3 @@ class LabelDrawing(Drawing):
     def custom_x3d(self, stream, x3d_scene, indent, place):
         # TODO
         pass
-
-# -----------------------------------------------------------------------------
-#
-from chimerax.core.commands import Annotation
-class NameArg(Annotation):
-
-    name = "'all' or a label identifier"
-    _html_name = "<b>all</b> or a label identifier"
-
-    @staticmethod
-    def parse(text, session):
-        from chimerax.core.commands import AnnotationError, next_token
-        if not text:
-            raise AnnotationError("Expected %s" % NameArg.name)
-        lmap = session_labels(session).labels
-        token, text, rest = next_token(text)
-        if token not in lmap:
-            possible = [name for name in lmap if name.startswith(token)]
-            if 'all'.startswith(token):
-                possible.append('all')
-            if not possible:
-                raise AnnotationError("Unknown label identifier: '%s'" % token)
-            possible.sort(key=len)
-            token = possible[0]
-        return token, token, rest
-

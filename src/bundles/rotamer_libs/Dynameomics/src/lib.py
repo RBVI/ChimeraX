@@ -45,6 +45,19 @@ Protein Science 20, 341-352."""
         return self._rotamer_res_names
 
     @property
+    def res_name_description(self):
+        mapping = super().res_name_description
+        mapping.update({
+            "CYH": "non-disulfide-bonded cysteine",
+            "CYS": "disulfide-bonded cysteine",
+            "HID": "\N{GREEK SMALL LETTER DELTA}-protonated histidine",
+            "HIE": "\N{GREEK SMALL LETTER EPSILON}-protonated histidine",
+            "HIP": "doubly protonated histidine",
+            "HIS": "singly protonated histidine (HID+HIE)"
+        })
+        return mapping
+
+    @property
     def res_name_mapping(self):
         return { "CYH": "CYS", "HID": "HIS", "HIE": "HIS", "HIP": "HIS" }
 

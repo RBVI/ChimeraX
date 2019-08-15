@@ -84,9 +84,9 @@ class _AtomicBundleAPI(BundleAPI):
                 settings.register_settings_options(ses))
 
     @staticmethod
-    def run_provider(session, bundle_info, name, mgr, **kw):
+    def run_provider(session, name, mgr, **kw):
         from .presets import run_preset
-        run_preset(session, bundle_info, name, mgr, **kw)
+        run_preset(session, name, mgr, **kw)
 
     @staticmethod
     def finish(session, bundle_info):
