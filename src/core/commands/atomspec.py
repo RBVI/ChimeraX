@@ -370,9 +370,9 @@ class _AtomSpecSemantics:
                 quoted = True
             if ast.name.lower().endswith("color"):
                 # if ast.name ends with color, convert to color
-                from . import ColorArg, as_parser
+                from . import ColorArg, make_converter
                 try:
-                    c = as_parser(ColorArg)(self._session, av)
+                    c = make_converter(ColorArg)(self._session, av)
                 except ValueError as e:
                     from ..errors import UserError
                     raise UserError("bad color: %s: %s" % (av, e))
