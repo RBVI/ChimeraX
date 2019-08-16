@@ -420,13 +420,13 @@ def shortcut_models(session, mclass = None, undisplayed = True, at_least = None)
              and (undisplayed or m.display)]
     if len(mlist) == 0:
         mlist = [m for m in session.models.list()
-                 if (mclass is None or isinstance(m,mclass)) and (undisplayed or m.display)]
+                 if (mclass is None or isinstance(m,mclass)) and (undisplayed or m.visible)]
     elif at_least is not None and len(mlist) < at_least:
         # Include unselected models too if at_least option given.
         mlist += [m for m in session.models.list()
                   if m not in sel and
                   (mclass is None or isinstance(m,mclass)) and
-                  (undisplayed or m.display)]
+                  (undisplayed or m.visible)]
     return mlist
 
 def shortcut_maps(session, undisplayed = True, at_least = None):
@@ -454,14 +454,14 @@ def shortcut_atoms(session):
 
 def shortcut_surfaces(session):
     sel = session.selection
-    models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
+    models = [m for m in session.models.list() if m.visible] if sel.empty() else sel.models()
     from chimerax.core.models import Surface
     surfs = [m for m in models if isinstance(m, Surface)]
     return surfs
 
 def shortcut_surfaces_and_maps(session):
     sel = session.selection
-    models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
+    models = [m for m in session.models.list() if m.visible] if sel.empty() else sel.models()
     from chimerax.map import Volume
     from chimerax.core.models import Surface
     sm = [m for m in models if isinstance(m,Volume) or isinstance(m, Surface)]
@@ -471,33 +471,55 @@ def run(session, command, **kw):
   from chimerax.core.commands import run as run_command
   run_command(session, command, **kw)
   
-def if_sel_atoms(sel_cmd, no_sel_cmd = None):
-    if no_sel_cmd is None:
-        no_sel_cmd = sel_cmd.replace(' sel', '')
-    def sel_or_nosel(session):
-        from chimerax.atomic import selected_atoms
-        cmd = sel_cmd if len(selected_atoms(session)) > 0 else no_sel_cmd
+def if_sel_atoms(sel_cmd, all_cmd = None):
+    if all_cmd is None:
+        all_cmd = sel_cmd.replace(' sel', '')
+    def sel_or_all(session):
+        from chimerax.atomic import selected_atoms, Structure
+        mspec = shown_models_spec(session, Structure)
+        if len(selected_atoms(session)) > 0 or mspec == '':
+            cmd = sel_cmd
+        else:
+            cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
         run(session, cmd)
-    return sel_or_nosel
+    return sel_or_all
   
-def if_sel_maps(sel_cmd, no_sel_cmd = None):
-    if no_sel_cmd is None:
-        no_sel_cmd = sel_cmd.replace(' sel', '')
-    def sel_or_nosel(session):
+def if_sel_maps(sel_cmd, all_cmd = None):
+    if all_cmd is None:
+        all_cmd = sel_cmd.replace(' sel', '')
+    def sel_or_all(session):
         from chimerax.map import Volume
         msel = [m for m in session.models.list(type = Volume) if m.selected]
-        cmd = sel_cmd if msel else no_sel_cmd
+        mspec = shown_models_spec(session, Volume)
+        if msel or mspec == '':
+            cmd = sel_cmd
+        else:
+            cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
         run(session, cmd)
-    return sel_or_nosel
+    return sel_or_all
   
-def if_sel_models(sel_cmd, no_sel_cmd = None):
-    if no_sel_cmd is None:
-        no_sel_cmd = sel_cmd.replace(' sel', '')
-    def sel_or_nosel(session):
+def if_sel_models(sel_cmd, all_cmd = None):
+    if all_cmd is None:
+        all_cmd = sel_cmd.replace(' sel', '')
+    def sel_or_all(session):
         msel = [m for m in session.models.list() if m.selected]
-        cmd = sel_cmd if msel else no_sel_cmd
+        mspec = shown_models_spec(session)
+        if msel:
+            cmd = sel_cmd
+        else:
+            cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
         run(session, cmd)
-    return sel_or_nosel
+    return sel_or_all
+
+def shown_models_spec(session, model_class = None):
+    mlist = [m for m in session.models.list(type = model_class)]
+    mshown = [m for m in mlist if m.visible]
+    if len(mlist) == len(mshown):
+        spec = 'all' if mshown else ''
+    else:
+        from chimerax.core.commands import concise_model_spec
+        spec = concise_model_spec(session, mshown)
+    return spec
     
 def show_mesh(session):
     for m in shortcut_surfaces(session):
