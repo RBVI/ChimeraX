@@ -485,25 +485,15 @@ def if_sel_atoms(sel_cmd, all_cmd = None):
     return sel_or_all
   
 def if_sel_maps(sel_cmd, all_cmd = None):
-    if all_cmd is None:
-        all_cmd = sel_cmd.replace(' sel', '')
-    def sel_or_all(session):
-        from chimerax.map import Volume
-        msel = [m for m in session.models.list(type = Volume) if m.selected]
-        mspec = shown_models_spec(session, Volume)
-        if msel or mspec == '':
-            cmd = sel_cmd
-        else:
-            cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
-        run(session, cmd)
-    return sel_or_all
+    from chimerax.map import Volume
+    return if_sel_models(sel_cmd, all_cmd, model_class = Volume)
   
-def if_sel_models(sel_cmd, all_cmd = None):
+def if_sel_models(sel_cmd, all_cmd = None, model_class = None):
     if all_cmd is None:
         all_cmd = sel_cmd.replace(' sel', '')
     def sel_or_all(session):
-        msel = [m for m in session.models.list() if m.selected]
-        mspec = shown_models_spec(session)
+        msel = [m for m in session.models.list(type = model_class) if m.selected]
+        mspec = shown_models_spec(session, model_class)
         if msel:
             cmd = sel_cmd
         else:
@@ -768,13 +758,10 @@ def hide_surface(session):
                 m.display_positions = logical_and(dp,logical_not(sp))
 
 def toggle_surface_transparency(session):
-    for m in shortcut_surfaces(session):
-        for d in m.all_drawings():
-            c = d.colors
-            opaque = (c[:,3] == 255)
-            c[:,3] = 255                # Make transparent opaque
-            c[opaque,3] = 128           # and opaque transparent.
-            d.colors = c
+    mtrans = [m for m in shortcut_surfaces(session) if m.showing_transparent()]
+    trans = 0 if mtrans else 50
+    from chimerax.core.models import Surface
+    if_sel_models('transparency sel %d' % trans, model_class = Surface)(session)
 
 def show_surface_transparent(session, alpha = 0.5):
     from chimerax.map import Volume
