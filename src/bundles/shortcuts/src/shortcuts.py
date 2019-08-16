@@ -111,7 +111,7 @@ def standard_shortcuts(session):
         ('sb', subtract_maps, 'Subtract map from map', mapcat, sesarg, mmenu),
         ('gf', smooth_map, 'Smooth map', mapcat, sesarg, mmenu),
         ('fr', if_sel_maps('volume sel step 1'), 'Show map at full resolution', mapcat, sesarg, mmenu),
-        ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
+        ('ob', toggle_outline_box, 'Toggle outline box', mapcat, sesarg, mmenu, sep),
 
         ('fl', if_sel_maps('volume sel style surface'), 'Show map or surface in filled style', mapcat, sesarg, mmenu),
         ('me', if_sel_maps('volume sel style mesh'), 'Show map or surface as mesh', mapcat, sesarg, mmenu),
@@ -536,9 +536,11 @@ def show_dots(session):
 def show_grayscale(m):
   m.set_display_style('image')
 
-def toggle_outline_box(m):
-    ro = m.rendering_options
-    m.set_parameters(show_outline_box = not ro.show_outline_box)
+def toggle_outline_box(session):
+    maps = shortcut_maps(session, undisplayed = False)
+    oshown = [v for v in maps if v.rendering_options.show_outline_box]
+    show = 'false' if oshown else 'true'
+    if_sel_maps('volume sel showOutlineBox %s' % show)(session)
 
 def show_one_plane(m):
   ijk_step = (1,1,1)
