@@ -214,7 +214,7 @@ class EnumBase:
             display_value = self.default
         self.__widget = QPushButton(display_value, **kw)
         menu = QMenu()
-        self.widget.setMenu(menu)
+        self.__widget.setMenu(menu)
         self.remake_menu()
         return self.__widget
 
@@ -755,6 +755,6 @@ def _make_int_spinbox(min, max, **kw):
     spin_box = QSpinBox(**kw)
     default_minimum = -(2^31)
     default_maximum = 2^31 - 1
-    spin_box.setMinimum(self.default_minimum if min is None else min)
-    spin_box.setMaximum(self.default_maximum if max is None else max)
+    spin_box.setMinimum(default_minimum if min is None else min)
+    spin_box.setMaximum(default_maximum if max is None else max)
     return spin_box

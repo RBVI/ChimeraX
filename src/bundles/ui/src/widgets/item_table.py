@@ -15,12 +15,12 @@ from PyQt5.QtWidgets import QWidget
 
 class ItemTable(QWidget):
     """ Typical usage is to add_column()s, set_data(), and launch() (see doc strings for those).
-
-        However, if you saved the table's state (via session_info() call), then you would just
-        set_data() and launch(session_data=saved-state).
+        If you saved the table's state (via session_info() call), then provide the 'session_data'
+        keyword to the launch() call with the saved state as the value.
     """
 
     PREF_SUBKEY_COL_DISP = "default col display"
+    PREF_SUBKEY_WRAP = "col wrap width"
 
     def __init__(self, *, auto_multiline_headers=True, column_control_info=None, allow_user_sorting=True,
             settings_attr="item_table_info"):
@@ -62,16 +62,40 @@ class ItemTable(QWidget):
             settings = column_control_info[1]
             prefs = getattr(settings, settings_attr, None)
             if prefs is None:
-                setattr(settings, settings_attr, { self.PREF_SUBKEY_COL_DISP: column_control_info[2] })
+                prefs = { self.PREF_SUBKEY_COL_DISP: column_control_info[2] }
+                setattr(settings, settings_attr, prefs)
             if isinstance(column_control_info[0], QWidget):
-                from PyQt5.QtWidgets import QVBoxLyout, QGridLayout
+                from PyQt5.QtWidgets import QVBoxLyout, QGridLayout, QHBoxLayout, QWidget, QLabel
+                from PyQt5.QtCore import Qt
                 main_layout = QVBoxLayout()
                 column_control_info[0].setLayout(main_layout)
                 self._col_checkbutton_layout = QGridLayout()
                 main_layout.addLayout(self._col_checkbutton_layout)
                 if column_control_info[-2] is not None:
-                    #TODO: implement PhysicalSizeOption
+                    wrap_val = prefs.get(self.PREF_SUBKEY_WRAP, column_control_info[-2])
+                    from chimerax.ui.options import PhysicalSizeOption, OptionsPanel
+                    panel = OptionsPanel()
+                    panel.add_option(PhysicalSizeOption("Maximum column width", wrap_val, self._col_wrap))
+                    main_layout.addWidget(panel, alignment=Qt.AlignLeft)
+                from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+                buttons_widget = QWidget()
+                main_layout.addWidget(buttons_widget, alignment=Qt.AlignLeft)
+                buttons_layout = QHBoxLayout()
+                buttons_widget.setLayout(buttons_layout)
+                buttons_layout.addWidget(QLabel("Show columns"))
+                bbox = qbbox()
+                buttons_layout.addWidget(bbox)
+                bbox.addButton("All", qbbox.ActionRole).clicked.connect(self._show_all_columns)
+                bbox.addButton("Default", qbbox.ActionRole).clicked.connect(self._show_default)
+                bbox.addButton("Standard", qbbox.ActionRole).clicked.connect(self._show_standard)
+                bbox.addButton("Set Default", qbbox.ActionRole).clicked.connect(self._set_default)
+        self._highlighted = []
 
     def destroy(self):
         #TODO
         pass
+
+class _ItemColumn:
+    def __init__(self, title, data_fetch, display_format, title_display, alignment, wrap_length,
+            font, color, header_alignment):
+        
