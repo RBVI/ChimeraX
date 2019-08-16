@@ -36,92 +36,79 @@ See also:
 </p><p>
 Clicking an icon shows the executed command in the
 <a href="log.html"><b>Log</b></a>. 
-The <a href="../commands/atomspec.html#builtin"><b>selAtoms</b></a> 
-specifier indicates the current atomic
-<a href="../selection.html">selection</a>,
-or if nothing is selected, all atomic models.
+The icons act on the current <a href="../selection.html">selection</a>, if any
+(specified with <a href="../commands/atomspec.html#builtin"><b>sel</b></a>),
+otherwise the currently displayed models (specified as a list of
+<a href="../commands/atomspec.html#hierarchy">model numbers</a>).
 There may be alternative commands for performing the same action.
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
 <td align="center"><b>icon</b></td>
 <td align="center"><b>description</b></td>
-<td align="center"><b>command equivalent</b></td>
+<td align="center"><b>command(s)</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/atomshow.png" width="35px"></td>
 <td align="center">show atoms/bonds</td>
 <td align="center">
-<b><a href="../commands/show.html">show</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b></td>
+<b><a href="../commands/show.html">show</a></b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/atomhide.png" width="35px"></td>
 <td align="center">hide atoms/bonds</td>
 <td align="center">
-<b><a href="../commands/show.html">hide</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b></td>
+<b><a href="../commands/show.html">hide</a></b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/ribshow.png" width="35px"></td>
 <td align="center">&nbsp;show biopolymer ribbons (cartoons)</td>
 <td align="center">
-<b><a href="../commands/show.html">show</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> ribbons</b>
+<b><a href="../commands/show.html">show</a> ribbons</b>
 <p style="margin-top:2px;margin-bottom:3px">
-(same as <b><a href="../commands/cartoon.html">cartoon</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b>)
+(same as <b><a href="../commands/cartoon.html">cartoon</a></b>)
 </p>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/ribhide.png" width="35px"></td>
 <td align="center">hide biopolymer ribbons</td>
 <td align="center">
-<b><a href="../commands/show.html">hide</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> ribbons</b>
+<b><a href="../commands/show.html">hide</a> ribbons</b>
 <br>
 <p style="margin-top:2px;margin-bottom:3px">
-(same as <b><a href="../commands/cartoon.html">~cartoon</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b>)
+(same as <b><a href="../commands/cartoon.html">~cartoon</a></b>)
 </p>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/surfshow.png" width="35px"></td>
 <td align="center">show molecular surface</td>
 <td align="center">
-<b><a href="../commands/show.html">show</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> surfaces</b>
+<b><a href="../commands/show.html">show</a> surfaces</b>
 <p style="margin-top:2px;margin-bottom:3px">
-(same as <b><a href="../commands/surface.html">surface</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b>)
+(same as <b><a href="../commands/surface.html">surface</a></b>)
 </p>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/surfhide.png" width="35px"></td>
 <td align="center">hide molecular surface</td>
 <td align="center">
-<b><a href="../commands/show.html">hide</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> surfaces</b>
+<b><a href="../commands/show.html">hide</a> surfaces</b>
 <p style="margin-top:2px;margin-bottom:3px">
-(same as <b><a href="../commands/surface.html">surface</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> hide</b>)
+(same as <b><a href="../commands/surface.html">surface</a> hide</b>)
 </p>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/stick.png" width="35px"></td>
 <td align="center">stick-style atoms/bonds</td>
 <td align="center">
-<b><a href="../commands/style.html">style</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> stick</b></td>
+<b><a href="../commands/style.html">style</a> stick</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/sphere.png" width="35px"></td>
 <td align="center">sphere-style atoms</td>
 <td align="center">
-<b><a href="../commands/style.html">style</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> sphere</b></td>
+<b><a href="../commands/style.html">style</a> sphere</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/ball.png" width="35px"></td>
 <td align="center">ball-and-stick atoms/bonds</td>
 <td align="center">
-<b><a href="../commands/style.html">style</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> ball</b></td>
+<b><a href="../commands/style.html">style</a> ball</b></td>
 </tr><tr>
 <td align="center"><img src="toolbar-icons/nuc-atoms.png" width="35px">
 <img src="toolbar-icons/nuc-fill.png" width="35px">
@@ -140,33 +127,26 @@ There may be alternative commands for performing the same action.
 <td align="center">
 <p style="border-style:none none dotted none;border-width:2px;
 margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> atoms;
+<b><a href="../commands/nucleotides.html">nucleotides</a> atoms;
 <a href="../commands/style.html">style</a>
-<a href="../commands/atomspec.html#builtin">nucleic</a> &amp;
-<a href="../commands/atomspec.html#builtin">selAtoms</a> stick</b>
+<a href="../commands/atomspec.html#builtin">nucleic</a> stick</b>
 <p style="border-style:none none dotted none;border-width:2px;
 margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> fill;
+<b><a href="../commands/nucleotides.html">nucleotides</a> fill;
 <a href="../commands/style.html">style</a>
-<a href="../commands/atomspec.html#builtin">nucleic</a> &amp;
-<a href="../commands/atomspec.html#builtin">selAtoms</a> stick</b>
+<a href="../commands/atomspec.html#builtin">nucleic</a> stick</b>
 <p style="border-style:none none dotted none;border-width:2px;
 margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> tube/slab
+<b><a href="../commands/nucleotides.html">nucleotides</a> tube/slab
 shape&nbsp;box</b>
 <p style="margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> ladder</b></td>
+<b><a href="../commands/nucleotides.html">nucleotides</a> ladder</b></td>
 <!--
 </tr><tr>
 <td align="center"><img src="toolbar-icons/nuc-atoms.png" width="35px"></td>
 <td align="center" class="text">nucleotide atomic display (no abstraction)</td>
 <td align="center">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> atoms</b></td>
+<b><a href="../commands/nucleotides.html">nucleotides</a> atoms</b></td>
 </tr><tr>
 <td align="center"><img src="toolbar-icons/nuc-fill.png" width="35px">
 <img src="toolbar-icons/nuc-slab.png" width="35px"></td>
@@ -175,11 +155,9 @@ shape&nbsp;box</b>
 <td align="center">
 <p style="border-style:none none dotted none;border-width:2px;
 margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> fill</b>
+<b><a href="../commands/nucleotides.html">nucleotides</a> fill</b>
 <p style="margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> slab</b></td>
+<b><a href="../commands/nucleotides.html">nucleotides</a> slab</b></td>
 </tr><tr>
 <td align="center"><img src="toolbar-icons/nuc-box.png" width="35px">
 <img src="toolbar-icons/nuc-elli.png" width="35px">
@@ -191,17 +169,14 @@ nucleotide tube ribose, slab base
 <td align="center">
 <p style="border-style:none none dotted none;border-width:2px;
 margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> tube/slab
+<b><a href="../commands/nucleotides.html">nucleotides</a> tube/slab
 shape&nbsp;box</b>
 <p style="border-style:none none dotted none;border-width:2px;
 margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> tube/slab
+<b><a href="../commands/nucleotides.html">nucleotides</a> tube/slab
 shape&nbsp;ellipsoid</b>
 <p style="margin:0; padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> tube/slab
+<b><a href="../commands/nucleotides.html">nucleotides</a> tube/slab
 shape&nbsp;muffler</b></td>
 </tr><tr>
 <td align="center"><img src="toolbar-icons/nuc-ladder.png" width="35px">
@@ -211,59 +186,50 @@ shape&nbsp;muffler</b></td>
 <td align="center">
 <p style="border-style:none none dotted none;border-width:2px;
 margin:0;padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> ladder</b>
+<b><a href="../commands/nucleotides.html">nucleotides</a> ladder</b>
 <p style="margin:0; padding:3">
-<b><a href="../commands/nucleotides.html">nucleotides</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> stubs</b></td>
+<b><a href="../commands/nucleotides.html">nucleotides</a> stubs</b></td>
 -->
 </tr><tr>
 <td align="center"><img src="shortcut-icons/colorbyelement.png" width="35px"></td>
 <td align="center">color-code heteroatoms
 <a href="../commands/colortables.html#element">by element</a></td>
 <td align="center">
-<b><a href="../commands/color.html#simple">color</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> byhetero</b></td>
+<b><a href="../commands/color.html#simple">color</a> byhetero</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/colorbychain.png" width="35px"></td>
 <td align="center">color-code chains 
 <a href="../commands/colortables.html#autocolors">by chain ID</a></td>
 <td align="center">
-<b><a href="../commands/color.html#simple">color</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> bychain</b></td>
+<b><a href="../commands/color.html#simple">color</a> bychain</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/rainbow.png" width="35px"></td>
 <td align="center">rainbow-color chains blue &rarr; red</td>
 <td align="center">
-<b><a href="../commands/color.html#sequential">rainbow</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b></td>
+<b><a href="../commands/color.html#sequential">rainbow</a></b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/bfactor.png" width="35px"></td>
 <td align="center">color by B-factor</td>
 <td align="center">
-<b><a href="../commands/color.html#byattribute">color bfactor</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b></td>
+<b><a href="../commands/color.html#byattribute">color bfactor</a></b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/hydrophobicity.png" width="35px"></td>
 <td align="center" class="text">color 
 <a href="../commands/surface.html">molecular surface</a> by hydrophobicity 
 <br>(<a href="../commands/mlp.html">molecular lipophilic potential</a>)</td>
 <td align="center">
-<b><a href="../commands/mlp.html">mlp</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b></td>
+<b><a href="../commands/mlp.html">mlp</a></b></td>
 </tr><tr>
 <td align="center"><img src="toolbar-icons/nuc-color.png" width="35px"></td>
 <td align="center" class="text">color-code nucleic acids
 <a href="../commands/colortables.html#residue">by residue type</a></td>
 <td align="center">
-<b><a href="../commands/color.html#simple">color</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a> bynucleotide</b></td>
+<b><a href="../commands/color.html#simple">color</a> bynucleotide</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/hbondsflat.png" width="35px"></td>
 <td align="center">show hydrogen bonds</td>
 <td align="center">
-<b><a href="../commands/hbonds.html">hbonds</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a></b></td>
+<b><a href="../commands/hbonds.html">hbonds</a></b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/hbondsflathide.png" width="35px"></td>
 <td align="center">remove all hydrogen bonds</td>
@@ -281,8 +247,7 @@ chain</a></b>)</td>
 <td align="center">show chain-interface network</td>
 <td align="center">
 <b><a href="../commands/interfaces.html">interfaces</a>
-<a href="../commands/atomspec.html#builtin">selAtoms</a>
-& ~<a href="../commands/atomspec.html#builtin">solvent</a></b></td>
+~<a href="../commands/atomspec.html#builtin">solvent</a></b></td>
 <!--
 </tr><tr>
 <td align="center"><img src="toolbar-icons/undo-variant.png" width="35px"></td>
@@ -299,5 +264,5 @@ chain</a></b>)</td>
 </table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+August 2019</address>
 </body></html>
