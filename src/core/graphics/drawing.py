@@ -1585,6 +1585,7 @@ class _DrawShape:
             for b in self.instance_buffers:
                 b.delete_buffer()
             self.instance_buffers = []
+        self._buffers_need_update = None
 
         if self.bindings:
             self.bindings.delete_bindings()
@@ -1635,11 +1636,8 @@ class _DrawShape:
         self.elements = e = self.masked_elements(triangles, style, triangle_mask, edge_mask)
 
         eb = self.element_buffer
-        if len(e) > 0 and eb is None:
+        if eb is None and len(e) > 0:
             self.element_buffer = eb = self.create_element_buffer()
-        elif len(e) == 0 and eb:
-            eb.delete_buffer()
-            self.element_buffer = eb = None
 
         if eb:
             self.buffer_needs_update(eb)

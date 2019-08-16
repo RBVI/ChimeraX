@@ -350,13 +350,13 @@ def _set_label_colors(session, objects, color, opacity, undo_state=None):
     from chimerax.label.label2d import LabelModel
     labels = [m for m in objects.models if isinstance(m, LabelModel)]
     if undo_state:
-        old_colors = [label.color for label in labels]
+        old_colors = [label.single_color for label in labels]
     for label in labels:
-        label.color = _color_with_opacity(color, opacity, label.color)
+        label.single_color = _color_with_opacity(color, opacity, label.color)
     if undo_state:
-        new_colors = [label.color for label in labels]
+        new_colors = [label.single_color for label in labels]
         for label, old_color, new_color in zip(labels, old_colors, new_colors):
-            undo_state.add(label, 'color', old_color, new_color)
+            undo_state.add(label, 'single_color', old_color, new_color)
     nl += len(labels)
 
     # 3D labels

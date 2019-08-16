@@ -2435,14 +2435,23 @@ class Buffer:
         self.instance_buffer = t.instance_buffer
         self.requires_capabilities = t.requires_capabilities
 
+        self._deleted_buffer = False
+        
     def __del__(self):
-        if self.opengl_buffer is not None:
+        if not self._deleted_buffer:
             raise OpenGLError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
                                % self.shader_variable_name)
 
     def delete_buffer(self):
         'Delete the OpenGL buffer object.'
+        self._deleted_buffer = True
+        self.release_buffer()
 
+    def release_buffer(self):
+        '''
+        Releases OpenGL buffer and array data, but Buffer can still be used
+        by calling update_buffer_data() to recreate it.
+        '''
         if self.opengl_buffer is None:
             return
         GL.glDeleteBuffers(1, [self.opengl_buffer])
@@ -2482,11 +2491,14 @@ class Buffer:
         Update the buffer with data supplied by a numpy array and bind it to
         the associated shader variable.  Return true if the buffer is deleted and replaced.
         '''
+        if self._deleted_buffer:
+            raise RuntimeError('Attempt to update a deleted buffer')
+        
         bdata = self.buffered_data
         replace_buffer = (data is None or bdata is None
                           or data.shape != bdata.shape)
         if replace_buffer:
-            self.delete_buffer()
+            self.release_buffer()
 
         if data is not None:
             b = GL.glGenBuffers(1) if replace_buffer else self.opengl_buffer

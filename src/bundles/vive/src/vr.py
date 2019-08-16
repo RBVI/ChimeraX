@@ -157,6 +157,11 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         from chimerax.core.errors import UserError
         raise UserError('Failed to import OpenVR module: %s' % str(e))
 
+    import sys
+    if sys.platform == 'darwin':
+        # SteamVR on Mac is older then what PyOpenVR expects.
+        openvr.IVRSystem_Version = "IVRSystem_019"
+        
     mv = session.main_view
     try:
         mv.camera = SteamVRCamera(session)
@@ -417,16 +422,24 @@ class SteamVRCamera(Camera):
         t.remove_handler(self._new_frame_handler)
         self._new_frame_handler = None
         t.remove_handler(self._app_quit_handler)
+
         self._app_quit_handler = None
         for hc in self._hand_controllers:
             hc.close()
         self._hand_controllers = []
+        
         self.user_interface.close()
         m = self._vr_model_group
         if m:
             if not m.deleted:
                 self._session.models.close([m])
             self._vr_model_group = None
+            
+        td = self._texture_drawing
+        if td is not None:
+            td.delete()
+            self._texture_drawing = None
+
         import openvr
         openvr.shutdown()
         self.vr_system = None
@@ -460,8 +473,7 @@ class SteamVRCamera(Camera):
         c = self.compositor
         if c is None:
             return
-        import openvr
-        c.waitGetPoses(self._poses, openvr.k_unMaxTrackedDeviceCount, None, 0)
+        c.waitGetPoses(renderPoseArray = self._poses, gamePoseArray = None)
         self._frame_started = True
 
     def next_frame(self, *_):
@@ -598,8 +610,7 @@ class SteamVRCamera(Camera):
         self._check_for_compositor_error(side, result, render)
 
     def _check_for_compositor_error(self, eye, result, render):
-        import openvr
-        if result != openvr.VRCompositorError_None:
+        if result is not None:
             self._session.logger.info('SteamVR compositor submit for %s eye returned error %d'
                                       % (eye, result))
         err_msg = render.check_for_opengl_errors()
@@ -1301,9 +1312,10 @@ class HandController:
 
         from openvr import Prop_RenderModelName_String
         model_name = vr_system.getStringTrackedDeviceProperty(device_index, Prop_RenderModelName_String)
-        # b'oculus_cv1_controller_right', b'oculus_cv1_controller_left'
-        # b'oculus_rifts_controller_right', b'oculus_rifts_controller_left'
-        self._controller_type = model_name.decode()
+        # 'vr_controller_vive_1_5' for vive pro
+        # 'oculus_cv1_controller_right', 'oculus_cv1_controller_left'
+        # 'oculus_rifts_controller_right', 'oculus_rifts_controller_left'
+        self._controller_type = model_name
         
         # Create hand model
         name = 'Hand %s' % device_index

@@ -74,8 +74,8 @@ def standard_shortcuts(session):
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
 
 #        ('dA', display_all_positions, 'Display all copies', gcat, sesarg, smenu),
-        ('dm', 'show selModels models', 'Display selected models', ocat, noarg, smenu),
-        ('hm', 'hide selModels models', 'Hide selected models', ocat, noarg, smenu),
+        ('dm', if_sel_models('show sel models'), 'Display selected models', ocat, sesarg, smenu),
+        ('hm', if_sel_models('hide sel models'), 'Hide selected models', ocat, sesarg, smenu),
         ('Ds', 'close sel', 'Delete selected models', ocat, noarg, smenu, sep),
         ('cs', 'select clear', 'Clear selection', gcat, noarg, smenu),
 
@@ -103,46 +103,46 @@ def standard_shortcuts(session):
         ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
-        ('sM', 'volume selMaps show', 'Show map', mapcat, noarg, mmenu),
-        ('hM', 'volume selMaps hide', 'Hide map', mapcat, noarg, mmenu),
+        ('sM', if_sel_maps('volume sel show'), 'Show map', mapcat, sesarg, mmenu),
+        ('hM', if_sel_maps('volume sel hide'), 'Hide map', mapcat, sesarg, mmenu),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fT', fit_map_in_map, 'Fit map in map', mapcat, sesarg, mmenu),
         ('fs', fit_subtract, 'Fit molecule in map subtracting other molecules', mapcat, sesarg, mmenu),
         ('sb', subtract_maps, 'Subtract map from map', mapcat, sesarg, mmenu),
         ('gf', smooth_map, 'Smooth map', mapcat, sesarg, mmenu),
-        ('fr', 'volume selMaps step 1', 'Show map at full resolution', mapcat, noarg, mmenu),
-        ('ob', toggle_outline_box, 'Toggle outline box', mapcat, maparg, mmenu, sep),
+        ('fr', if_sel_maps('volume sel step 1'), 'Show map at full resolution', mapcat, sesarg, mmenu),
+        ('ob', toggle_outline_box, 'Toggle outline box', mapcat, sesarg, mmenu, sep),
 
-        ('fl', 'volume selMaps style surface', 'Show map or surface in filled style', mapcat, noarg, mmenu),
-        ('me', 'volume selMaps style mesh', 'Show map or surface as mesh', mapcat, noarg, mmenu),
-        ('gs', 'volume selMaps style solid', 'Show map as grayscale', mapcat, noarg, mmenu, sep),
+        ('fl', if_sel_maps('volume sel style surface'), 'Show map or surface in filled style', mapcat, sesarg, mmenu),
+        ('me', if_sel_maps('volume sel style mesh'), 'Show map or surface as mesh', mapcat, sesarg, mmenu),
+        ('gs', if_sel_maps('volume sel style solid'), 'Show map as grayscale', mapcat, sesarg, mmenu, sep),
 
-        ('s1', 'volume selMaps step 1', 'Show map at step 1', mapcat, noarg, mmenu, sep),
-        ('s2', 'volume selMaps step 2', 'Show map at step 2', mapcat, noarg, mmenu, sep),
-        ('s4', 'volume selMaps step 4', 'Show map at step 4', mapcat, noarg, mmenu, sep),
+        ('s1', if_sel_maps('volume sel step 1'), 'Show map at step 1', mapcat, sesarg, mmenu, sep),
+        ('s2', if_sel_maps('volume sel step 2'), 'Show map at step 2', mapcat, sesarg, mmenu, sep),
+        ('s4', if_sel_maps('volume sel step 4'), 'Show map at step 4', mapcat, sesarg, mmenu, sep),
 
-        ('pl', 'volume selMaps plane z orthoplanes off style solid', 'Show one plane', mapcat, maparg, mmenu),
-        ('pa', 'volume selMaps region all orthoplanes off', 'Show all planes', mapcat, maparg, mmenu),
+        ('pl', if_sel_maps('volume sel plane z orthoplanes off style solid'), 'Show one plane', mapcat, sesarg, mmenu),
+        ('pa', if_sel_maps('volume sel region all orthoplanes off'), 'Show all planes', mapcat, sesarg, mmenu),
         ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
-        ('aw', 'volume selMaps appearance "Airways II"', 'Airways preset', mapcat, maparg, mmenu),
-        ('as', 'volume selMaps appearance CT_Skin', 'Skin preset', mapcat, maparg, mmenu),
-        ('dc', 'volume selMaps appearance initial', 'Default volume curve', mapcat, maparg, mmenu),
-        ('zs', 'volume selMaps projectionMode 2d-xyz', 'Volume xyz slices', mapcat, maparg, mmenu),
-        ('ps', 'volume selMaps projectionMode 3d', 'Volume perpendicular slices', mapcat, maparg, mmenu),
+        ('aw', if_sel_maps('volume sel appearance "Airways II"'), 'Airways preset', mapcat, sesarg, mmenu),
+        ('as', if_sel_maps('volume sel appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
+        ('dc', if_sel_maps('volume sel appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
+        ('zs', if_sel_maps('volume sel projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
+        ('ps', if_sel_maps('volume sel projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
 
         # Molecules
-        ('da', 'show selAtoms', 'Show atoms', molcat, noarg, mlmenu),
-        ('ha', 'hide selAtoms', 'Hide atoms', molcat, noarg, mlmenu, sep),
+        ('da', if_sel_atoms('show sel atoms'), 'Show atoms', molcat, sesarg, mlmenu),
+        ('ha', if_sel_atoms('hide sel atoms'), 'Hide atoms', molcat, sesarg, mlmenu, sep),
 
-        ('bs', 'style selAtoms ball', 'Display atoms in ball and stick', molcat, noarg, mlmenu),
-        ('sp', 'style selAtoms sphere', 'Display atoms in sphere style', molcat, noarg, mlmenu),
-        ('st', 'style selAtoms stick', 'Display atoms in stick style', molcat, noarg, mlmenu, sep),
+        ('bs', if_sel_atoms('style sel ball'), 'Display atoms in ball and stick', molcat, sesarg, mlmenu),
+        ('sp', if_sel_atoms('style sel sphere'), 'Display atoms in sphere style', molcat, sesarg, mlmenu),
+        ('st', if_sel_atoms('style sel stick'), 'Display atoms in stick style', molcat, sesarg, mlmenu, sep),
 
-        ('rb', 'show selAtoms ribbon', 'Display ribbon', molcat, noarg, mlmenu),
-        ('hr', 'hide selAtoms ribbon', 'Undisplay ribbon', molcat, noarg, mlmenu),
+        ('rb', if_sel_atoms('show sel cartoon'), 'Display ribbon', molcat, sesarg, mlmenu),
+        ('hr', if_sel_atoms('hide sel cartoon'), 'Undisplay ribbon', molcat, sesarg, mlmenu),
 #        ('r+', fatter_ribbons, 'Thicker ribbons', molcat, molarg, mlmenu),
 #        ('r-', thinner_ribbons, 'Thinner ribbons', molcat, molarg, mlmenu, sep),
 
@@ -150,27 +150,27 @@ def standard_shortcuts(session):
         ('sw', 'show solvent', 'Show water atoms', molcat, noarg, mlmenu),
         ('hw', 'hide solvent', 'Hide water atoms', molcat, noarg, mlmenu, sep),
 
-        ('sB', 'show selAtoms bonds', 'Display bonds', molcat, noarg, mlmenu),
-        ('hB', 'hide selAtoms bonds', 'Hide bonds', molcat, noarg, mlmenu),
-        ('hb', 'hbonds selAtoms', 'Show hydrogen bonds', molcat, noarg, mlmenu),
+        ('sB', if_sel_atoms('show sel bonds'), 'Display bonds', molcat, sesarg, mlmenu),
+        ('hB', if_sel_atoms('hide sel bonds'), 'Hide bonds', molcat, sesarg, mlmenu),
+        ('hb', if_sel_atoms('hbonds sel'), 'Show hydrogen bonds', molcat, sesarg, mlmenu),
         ('HB', '~hbonds', 'Hide all hydrogen bonds', molcat, noarg, mlmenu),
-#        ('sq', 'sequence chain selAtoms', 'Show polymer sequence', molcat, noarg, mlmenu),
+        #        ('sq', if_sel_atoms('sequence chain sel', 'seq chain all'), 'Show polymer sequence', molcat, sesarg, mlmenu),
         ('sq', show_sequence, 'Show polymer sequence', molcat, atomsarg, mlmenu),
-        ('if', 'interfaces selAtoms & ~solvent', 'Chain interfaces diagram', molcat, noarg, mlmenu),
+        ('if', if_sel_atoms('interfaces sel & ~solvent', 'interfaces ~solvent'), 'Chain interfaces diagram', molcat, sesarg, mlmenu),
 
-        ('Hb', 'color selAtoms halfbond true', 'Half bond coloring', molcat, noarg, mlmenu),
-        ('Sb', 'color selAtoms halfbond false', 'Single color bonds', molcat, noarg, mlmenu),
+        ('Hb', if_sel_atoms('color sel halfbond true'), 'Half bond coloring', molcat, sesarg, mlmenu),
+        ('Sb', if_sel_atoms('color sel halfbond false'), 'Single color bonds', molcat, sesarg, mlmenu),
 
 #        ('c1', color_one_color, 'Color molecule one color', molcat, molarg, mlmenu),
-        ('cc', 'color selAtoms bychain', 'Color chains', molcat, noarg, mlmenu, sep),
-        ('ce', 'color selAtoms byhet', 'Color non-carbon atoms by element', molcat, noarg, mlmenu),
-        ('rc', 'color selAtoms random', 'Random color atoms and residues', molcat, noarg, mlmenu),
-        ('bf', 'color bfactor selAtoms', 'Color by bfactor', molcat, atomsarg, mlmenu),
-        ('rB', 'rainbow selAtoms', 'Rainbow color N to C-terminus', molcat, noarg, mlmenu),
+        ('cc', if_sel_atoms('color sel bychain'), 'Color chains', molcat, sesarg, mlmenu, sep),
+        ('ce', if_sel_atoms('color sel byhet'), 'Color non-carbon atoms by element', molcat, sesarg, mlmenu),
+        ('rc', if_sel_atoms('color sel random'), 'Random color atoms and residues', molcat, sesarg, mlmenu),
+        ('bf', if_sel_atoms('color bfactor sel'), 'Color by bfactor', molcat, sesarg, mlmenu),
+        ('rB', if_sel_atoms('rainbow sel'), 'Rainbow color N to C-terminus', molcat, sesarg, mlmenu),
 
-        ('ms', 'show selAtoms surface', 'Show molecular surface', molcat, noarg, mlmenu),
-        ('sa', 'sasa selAtoms', 'Compute solvent accesible surface area', molcat, noarg, mlmenu, sep),
-        ('hp', 'mlp selAtoms', 'Show hydrophobicity surface', molcat, noarg, mlmenu),
+        ('ms', if_sel_atoms('show sel surface'), 'Show molecular surface', molcat, sesarg, mlmenu),
+        ('sa', if_sel_atoms('measure sasa sel'), 'Compute solvent accesible surface area', molcat, sesarg, mlmenu, sep),
+        ('hp', if_sel_atoms('mlp sel'), 'Show hydrophobicity surface', molcat, sesarg, mlmenu),
 
         ('xm', lambda m,s=s: minimize_crosslinks(m,s), 'Minimize link lengths', molcat, atomsarg, mlmenu),
 
@@ -181,7 +181,7 @@ def standard_shortcuts(session):
 
         # Surfaces
         ('ds', display_surface, 'Display surface', surfcat, sesarg, sfmenu),
-        ('hs', 'hide selAtoms surface', 'Hide surface', surfcat, noarg, sfmenu),
+        ('hs', if_sel_atoms('hide sel surface'), 'Hide surface', surfcat, sesarg, sfmenu),
 # TODO: hs used to also hide non-molecular surfaces.
 #        ('hs', hide_surface, 'Hide surface', surfcat, sesarg, sfmenu),
 # TODO: Show filled and mesh used to work on surfaces, now only maps.
@@ -420,13 +420,13 @@ def shortcut_models(session, mclass = None, undisplayed = True, at_least = None)
              and (undisplayed or m.display)]
     if len(mlist) == 0:
         mlist = [m for m in session.models.list()
-                 if (mclass is None or isinstance(m,mclass)) and (undisplayed or m.display)]
+                 if (mclass is None or isinstance(m,mclass)) and (undisplayed or m.visible)]
     elif at_least is not None and len(mlist) < at_least:
         # Include unselected models too if at_least option given.
         mlist += [m for m in session.models.list()
                   if m not in sel and
                   (mclass is None or isinstance(m,mclass)) and
-                  (undisplayed or m.display)]
+                  (undisplayed or m.visible)]
     return mlist
 
 def shortcut_maps(session, undisplayed = True, at_least = None):
@@ -454,19 +454,63 @@ def shortcut_atoms(session):
 
 def shortcut_surfaces(session):
     sel = session.selection
-    models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
+    models = [m for m in session.models.list() if m.visible] if sel.empty() else sel.models()
     from chimerax.core.models import Surface
     surfs = [m for m in models if isinstance(m, Surface)]
     return surfs
 
 def shortcut_surfaces_and_maps(session):
     sel = session.selection
-    models = [m for m in session.models.list() if m.display] if sel.empty() else sel.models()
+    models = [m for m in session.models.list() if m.visible] if sel.empty() else sel.models()
     from chimerax.map import Volume
     from chimerax.core.models import Surface
     sm = [m for m in models if isinstance(m,Volume) or isinstance(m, Surface)]
     return sm
 
+def run(session, command, **kw):
+  from chimerax.core.commands import run as run_command
+  run_command(session, command, **kw)
+  
+def if_sel_atoms(sel_cmd, all_cmd = None):
+    if all_cmd is None:
+        all_cmd = sel_cmd.replace(' sel', '')
+    def sel_or_all(session):
+        from chimerax.atomic import selected_atoms, Structure
+        mspec = shown_models_spec(session, Structure)
+        if len(selected_atoms(session)) > 0 or mspec == '':
+            cmd = sel_cmd
+        else:
+            cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
+        run(session, cmd)
+    return sel_or_all
+  
+def if_sel_maps(sel_cmd, all_cmd = None):
+    from chimerax.map import Volume
+    return if_sel_models(sel_cmd, all_cmd, model_class = Volume)
+  
+def if_sel_models(sel_cmd, all_cmd = None, model_class = None):
+    if all_cmd is None:
+        all_cmd = sel_cmd.replace(' sel', '')
+    def sel_or_all(session):
+        msel = [m for m in session.models.list(type = model_class) if m.selected]
+        mspec = shown_models_spec(session, model_class)
+        if msel:
+            cmd = sel_cmd
+        else:
+            cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
+        run(session, cmd)
+    return sel_or_all
+
+def shown_models_spec(session, model_class = None):
+    mlist = [m for m in session.models.list(type = model_class)]
+    mshown = [m for m in mlist if m.visible]
+    if len(mlist) == len(mshown):
+        spec = 'all' if mshown else ''
+    else:
+        from chimerax.core.commands import concise_model_spec
+        spec = concise_model_spec(session, mshown)
+    return spec
+    
 def show_mesh(session):
     for m in shortcut_surfaces(session):
         m.display_style = m.Mesh
@@ -482,9 +526,11 @@ def show_dots(session):
 def show_grayscale(m):
   m.set_display_style('image')
 
-def toggle_outline_box(m):
-    ro = m.rendering_options
-    m.set_parameters(show_outline_box = not ro.show_outline_box)
+def toggle_outline_box(session):
+    maps = shortcut_maps(session, undisplayed = False)
+    oshown = [v for v in maps if v.rendering_options.show_outline_box]
+    show = 'false' if oshown else 'true'
+    if_sel_maps('volume sel showOutlineBox %s' % show)(session)
 
 def show_one_plane(m):
   ijk_step = (1,1,1)
@@ -504,7 +550,6 @@ def show_orthoplanes(m):
   p = tuple(s//2 for s in m.data.size)
   cmd = ('volume #%s ' % m.id_string +
          'orthoplanes xyz positionPlanes %d,%d,%d style solid region all' % p)
-  from chimerax.core.commands import run
   run(m.session, cmd)
 
 def toggle_box_faces(m):
@@ -529,11 +574,9 @@ def enable_contour_mouse_mode(mouse_modes, button = 'right'):
     m.bind_mouse_mode(button, ContourLevelMouseMode(m.session))
 
 def enable_marker_mouse_mode(session, button = 'right'):
-    from chimerax.core.commands import run
     run(session, 'mousemode %s "mark maximum"' % button)
 
 def enable_mark_center_mouse_mode(session, button = 'right'):
-    from chimerax.core.commands import run
     run(session, 'mousemode %s "mark center"' % button)
 
 def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
@@ -645,7 +688,6 @@ def fit_map_in_map(session):
         return
 
     map1, map2 = maps
-    from chimerax.core.commands import run
     run(session, 'fit #%s in #%s' % (map1.id_string, map2.id_string))
 
 def subtract_maps(session):
@@ -657,7 +699,6 @@ def subtract_maps(session):
         return
 
     map1, map2 = maps
-    from chimerax.core.commands import run
     run(session, 'vop subtract #%s #%s minrms' % (map1.id_string, map2.id_string))
 
 def smooth_map(session):
@@ -670,7 +711,6 @@ def smooth_map(session):
 
     map = maps[0]
     sdev = 3*max(map.data.step)
-    from chimerax.core.commands import run
     run(session, 'vop gaussian #%s sdev %.3g' % (map.id_string, sdev))
 
 def show_biological_unit(m, session):
@@ -718,13 +758,10 @@ def hide_surface(session):
                 m.display_positions = logical_and(dp,logical_not(sp))
 
 def toggle_surface_transparency(session):
-    for m in shortcut_surfaces(session):
-        for d in m.all_drawings():
-            c = d.colors
-            opaque = (c[:,3] == 255)
-            c[:,3] = 255                # Make transparent opaque
-            c[opaque,3] = 128           # and opaque transparent.
-            d.colors = c
+    mtrans = [m for m in shortcut_surfaces(session) if m.showing_transparent()]
+    trans = 0 if mtrans else 50
+    from chimerax.core.models import Surface
+    if_sel_models('transparency sel %d' % trans, model_class = Surface)(session)
 
 def show_surface_transparent(session, alpha = 0.5):
     from chimerax.map import Volume
@@ -752,7 +789,6 @@ def show_surface_opaque(session):
 
 def view_selected(session):
     v = session.main_view
-    from chimerax.core.commands import run
     run(session, 'view' if session.selection.empty() else 'view sel')
 
 def toggle_shadows(session):
@@ -760,12 +796,10 @@ def toggle_shadows(session):
     cmd = 'light shadow %s' % ('false' if lp.shadows else 'true')
     if lp.key_light_intensity == 0 and not lp.shadows:
         cmd += ' intensity 0.5'		# Make sure shadow is visible.
-    from chimerax.core.commands import run
     run(session, cmd)
 
 def toggle_silhouettes(session):
     v = session.main_view
-    from chimerax.core.commands import run
     run(session, 'set silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
 
 def depth_cue(viewer):
@@ -827,7 +861,6 @@ def show_sequence(atoms):
                                  for s,sclist in chains_by_struct.items())
         # Don't log since sequence commmand syntax has not been finalized.
         session = schains[0].structure.session
-        from chimerax.core.commands import run
         run(session, 'sequence chain %s' % seq_chain_spec, log = False)
 
 def list_keyboard_shortcuts(session):
@@ -1035,13 +1068,11 @@ def minimize_crosslinks(atoms, session):
 
 def save_image(session, directory = None, basename = 'image', suffix = '.png'):
     cmd = 'save %s supersample 3' % unused_file_name(directory, basename, suffix)
-    from chimerax.core.commands import run
     run(session, cmd)
 
 def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp4'):
     cmd = ('movie record ; turn y 2 180 ; wait 180 ; movie encode %s'
            % unused_file_name(directory, basename, suffix))
-    from chimerax.core.commands import run
     run(session, cmd)
 
 def unused_file_name(directory, basename, suffix):
