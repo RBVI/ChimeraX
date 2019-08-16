@@ -302,11 +302,41 @@ class _BaseTool(HtmlToolInstance):
 class TableTool(_BaseTool):
 
     CUSTOM_SCHEME = "vdxtable"
+    _name_map = {}
 
-    def __init__(self, session, tool_name, structures=None, html_state=None):
-        self.display_name = "ViewDockX Table"
-        super().__init__(session, tool_name)
+    def __init__(self, session, tool_name, name=None,
+                 structures=None, html_state=None):
+        if name is None:
+            start = 1
+            while str(start) in self._name_map:
+                start += 1
+            name = str(start)
+        elif name in self._name_map:
+            raise KeyError("ViewDock name %r already in use" % name)
+        self.name = name
+        self._name_map[name] = self
+        super().__init__(session,"ViewDockX Table (%s)" % name)
         self.setup_page("viewdockx_table.html")
+
+    def delete(self):
+        del self._name_map[self.name]
+        super().delete()
+
+    @classmethod
+    def find(cls, name):
+        if name is None:
+            keys = cls._name_map.keys()
+            if len(cls._name_map) > 1:
+                raise KeyError("ViewDockX name must be specified when "
+                               "there are multiple instances.")
+            elif len(cls._name_map) == 0:
+                raise KeyError("No active ViewDockX instance.")
+            return list(cls._name_map.values())[0]
+        else:
+            try:
+                return cls._name_map[name]
+            except KeyError:
+                raise KeyError("No ViewDockX instance named %s" % name)
 
     def _update_ratings(self, trigger=None, trigger_data=None):
         if trigger_data is None:
@@ -325,6 +355,16 @@ class TableTool(_BaseTool):
         method = getattr(self, "_cb_" + url.path())
         query = parse_qs(url.query())
         method(query)
+
+    def arrow_down(self):
+        self._arrow_key(1)
+
+    def arrow_up(self):
+        self._arrow_key(-1)
+
+    def _arrow_key(self, offset):
+        js = "%s.arrow_key(%d);" % (self.CUSTOM_SCHEME, offset)
+        self.html_view.runJavaScript(js)
 
     def _cb_show_all(self, query):
         """shows or hides all structures"""
@@ -447,8 +487,7 @@ class ChartTool(_BaseTool):
     help = "help:user/tools/viewdockx.html#plots"
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
-        self.display_name = "ViewDockX Chart"
-        super().__init__(session, tool_name)
+        super().__init__(session, "ViewDockX Chart")
         self.setup_page("viewdockx_chart.html")
 
     def handle_scheme(self, url):
@@ -475,8 +514,7 @@ class PlotTool(_BaseTool):
     help = "help:user/tools/viewdockx.html#plots"
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
-        self.display_name = "ViewDockX Plot"
-        super().__init__(session, tool_name)
+        super().__init__(session, "ViewDockX Plot")
         self.setup_page("viewdockx_plot.html")
 
     def handle_scheme(self, url):

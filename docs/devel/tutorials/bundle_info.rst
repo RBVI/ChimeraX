@@ -419,6 +419,10 @@ of ``mac``.
 - **Providers**
 
   - List of providers that bundle provides
+  - Attribute:
+
+    - **manager**: optional default manager for nested **Provider** elements
+
   - Child elements:
 
     - **Provider** (one or more)
@@ -428,7 +432,8 @@ of ``mac``.
   - Attribute:
 
     - **manager**: name of the manager with which this provider
-      will be registered.
+      will be registered.  Optional if **manager** is given in
+      parent **Providers** element.
     - **name**: name of provider.
     - Other attributes listed in the **Provider** tag are passed
       as keyword arguments to the manager's ``add_provider`` method.
