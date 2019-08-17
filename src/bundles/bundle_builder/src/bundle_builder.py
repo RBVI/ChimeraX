@@ -382,6 +382,7 @@ class BundleBuilder:
             self.packages.append((pkg_name, pkg_folder))
 
     def _get_classifiers(self, bi):
+        from chimerax.core.commands import quote_if_necessary
         self.python_classifiers = [
             "Framework :: ChimeraX",
             "Intended Audience :: Science/Research",
@@ -412,13 +413,13 @@ class BundleBuilder:
             self.chimerax_classifiers.append(
                 "ChimeraX :: ExecutableDir :: " + self.installed_executable_dir)
         for m, kw in self.managers.items():
-            args = [m] + ["%s:%s" % item for item in kw.items()]
+            args = [m] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
                 "ChimeraX :: Manager :: " + " :: ".join(args))
         for p, values in self.providers.items():
             mgr = values[0]
             kw = values[1]
-            args = [p, mgr] + ["%s:%s" % item for item in kw.items()]
+            args = [p, mgr] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
                 "ChimeraX :: Provider :: " + " :: ".join(args))
         for t, bundles in self.initializations.items():
