@@ -34,5 +34,11 @@ class _MyAPI(BundleAPI):
         from chimerax.core.commands import create_alias
         create_alias("~" + base_cmd, base_cmd + " $* atoms", logger=logger)
 
+    @staticmethod
+    def run_provider(session, name, mgr, *, display_name=None):
+        """Run toolbar provider"""
+        from . import cmd
+        cmd.run_provider(session, name, display_name)
+
 
 bundle_api = _MyAPI()

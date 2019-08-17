@@ -145,3 +145,30 @@ def nucleotides(session, representation, *,
         stubs_only = representation == 'stubs'
         NA.set_ladder(residues, rung_radius=radius, stubs_only=stubs_only,
                       show_stubs=show_stubs, skip_nonbase_Hbonds=base_only, hide=hide_atoms)
+
+
+def run_provider(session, name, display_name):
+    from chimerax.shortcuts.shortcuts import if_sel_atoms
+    if display_name == "Plain":
+        if_sel_atoms("nucleotides sel atoms; style nucleic & sel stick",
+                          "nucleotides atoms; style nucleic stick")(session)
+    elif display_name == "Filled":
+        if_sel_atoms("nucleotides sel fill; style nucleic & sel stick",
+                           "nucleotides fill; style nucleic stick")(session)
+    elif display_name == "Slab":
+        if_sel_atoms("nucleotides sel slab; style nucleic & sel stick",
+                           "nucleotides slab; style nucleic stick")(session)
+    elif display_name == "Tube/\nSlab":
+        if_sel_atoms("nucleotides sel tube/slab shape box")(session)
+    elif display_name == "Tube/\nEllipsoid":
+        if_sel_atoms("nucleotides sel tube/slab shape ellipsoid")(session)
+    elif display_name == "Tube/\nMuffler":
+        if_sel_atoms("nucleotides sel tube/slab shape muffler")(session)
+    elif display_name == "Ladder":
+        if_sel_atoms("nucleotides sel ladder")(session)
+    elif display_name == "Stubs":
+        if_sel_atoms("nucleotides sel stubs")(session)
+    elif display_name == "nucleotide":
+        if_sel_atoms("color sel bynuc")(session)
+    else:
+        session.logger.warning("Unknown nucleotides provider: %r" % name)
