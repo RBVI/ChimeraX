@@ -898,6 +898,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         select_menu.setObjectName("Select")
         self._populate_select_menu(select_menu)
 
+        actions_menu = mb.addMenu("&Actions")
+        actions_menu.setObjectName("Actions")
+
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
         self.update_tools_menu(session)
