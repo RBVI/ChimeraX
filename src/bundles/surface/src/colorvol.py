@@ -222,12 +222,12 @@ class VolumeColor(State):
     def volume_values(self):
 
         s = self.surface
-        # Transform from surface to volume coordinates
-        tf = self.volume.scene_position.inverse() * s.scene_position
         v = s.vertices
         if v is None:
             return None, None
         n = s.normals
+        # Transform from surface to scene coordinates
+        tf = s.scene_position
         return self.offset_values(v, n, tf)
 
     # -------------------------------------------------------------------------
