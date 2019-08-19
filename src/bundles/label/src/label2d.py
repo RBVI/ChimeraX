@@ -451,6 +451,8 @@ def session_labels(session, create=False):
     elif create:
         lm = Labels(session)
         session.models.add([lm], root_model = True)
+    else:
+        lm = None
     return lm
 
 # -----------------------------------------------------------------------------

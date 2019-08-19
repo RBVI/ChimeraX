@@ -44,8 +44,8 @@ class MoveLabelMouseMode(MouseMode):
             w,h = ses.main_view.window_size
             xpos = lbl.xpos + dx/w
             ypos = lbl.ypos - dy/h
-            from .label2d import label_change
-            label_change(ses, lbl.name, xpos = xpos, ypos = ypos)
+            from .label2d import label2d
+            label2d(ses, [lbl], xpos = xpos, ypos = ypos)
 
     def mouse_up(self, event):
         self._log_label_move_command()
@@ -56,7 +56,7 @@ class MoveLabelMouseMode(MouseMode):
         lbl = self._label
         from .label2d import Label
         if isinstance(lbl, Label):
-            command = '2dlabel change %s xpos %.3f ypos %.3f' % (lbl.name, lbl.xpos, lbl.ypos)
+            command = '2dlabel #%s xpos %.3f ypos %.3f' % (lbl.drawing.id_string, lbl.xpos, lbl.ypos)
             from chimerax.core.commands import log_equivalent_command
             log_equivalent_command(self.session, command)
         
