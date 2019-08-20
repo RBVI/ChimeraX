@@ -1,5 +1,5 @@
 CHIMERAX_APP = $(realpath $(wildcard ../../../ChimeraX*.app))
-SEGGER_SRC = seggerx_2019_08_02.tar.gz
+SEGGER_SRC = seggerx_2019_08_15.tar.gz
 
 app-install install: seggerx
 	cd seggerx/Segger && env CHIMERAX_APP=$(CHIMERAX_APP) make install

@@ -510,6 +510,9 @@ class Models(StateManager):
                 v.initial_camera_view()
                 v.clip_planes.clear()   # Turn off clipping
 
+        if _from_session:
+            self._initialize_camera = False
+            
     def assign_id(self, model, id):
         '''Parent model for new id must already exist.'''
         mt = self._models

@@ -119,7 +119,43 @@ var vdxtable = function() {
                              .on("rating:change", change_rating);
                  window.location = custom_scheme + ":columns_updated";
              })
-             .bootgrid("append", rows);
+             .bootgrid("append", rows)
+             .attr("tabindex", 0)           // make table accept focus
+             .keydown(function(ev) {
+                switch (ev.which) {
+                  case 38:
+                      arrow_key(-1);
+                      break
+                  case 40:
+                      arrow_key(1);
+                      break
+                  default:
+                      return;
+                }
+                ev.preventDefault();
+             });
+    }
+
+    function arrow_key(offset) {
+        var table = $("#viewdockx_table");
+        var grid = table.bootgrid().data('.rs.jquery.bootgrid');
+        var selected = table.bootgrid("getSelectedRows");
+        var rows = grid.currentRows;
+        var indices = [];
+        for (var i = 0; i < rows.length; i++) {
+            if (selected.includes(rows[i].id))
+                indices.push(i);
+        }
+        var newsel = [];
+        for (var i = 0; i < indices.length; i++) {
+            var n = indices[i] + offset;
+            if (n >= 0 && n < rows.length)
+                newsel.push(rows[n].id);
+        }
+        if (newsel.length > 0) {
+            var url = custom_scheme + ":show_only?id=" + newsel;
+            window.location = url;
+        }
     }
 
     function update_shown() {
@@ -199,6 +235,7 @@ var vdxtable = function() {
         update_columns: update_columns,
         update_display: update_display,
         update_ratings: update_ratings,
+        arrow_key: arrow_key,
         get_state: get_state,
         set_state: set_state,
         init: init

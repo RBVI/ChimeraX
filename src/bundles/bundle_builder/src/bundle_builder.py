@@ -250,18 +250,27 @@ class BundleBuilder:
                 keywords = {}
                 if e.attributes:
                     keywords.update(e.attributes.items())
-                name = keywords.pop("name")
+                name = keywords.pop("name", None)
+                if name is None:
+                    raise ValueError("Missing Manager's name")
                 self.managers[name] = keywords
 
     def _get_providers(self, bi):
         self.providers = {}
         for prvs in self._get_elements(bi, "Providers"):
+            default_manager = prvs.getAttribute('manager')
             for e in self._get_elements(prvs, "Provider"):
                 keywords = {}
                 if e.attributes:
                     keywords.update(e.attributes.items())
-                manager = keywords.pop("manager")
-                name = keywords.pop("name")
+                manager = keywords.pop("manager", '')
+                if len(manager) == 0:
+                    manager = default_manager
+                if len(manager) == 0:
+                    raise ValueError("Missing Provider's manager")
+                name = keywords.pop("name", None)
+                if name is None:
+                    raise ValueError("Missing Provider's name")
                 self.providers[name] = (manager, keywords)
 
     def _get_dependencies(self, bi):
@@ -373,6 +382,7 @@ class BundleBuilder:
             self.packages.append((pkg_name, pkg_folder))
 
     def _get_classifiers(self, bi):
+        from chimerax.core.commands import quote_if_necessary
         self.python_classifiers = [
             "Framework :: ChimeraX",
             "Intended Audience :: Science/Research",
@@ -403,13 +413,13 @@ class BundleBuilder:
             self.chimerax_classifiers.append(
                 "ChimeraX :: ExecutableDir :: " + self.installed_executable_dir)
         for m, kw in self.managers.items():
-            args = [m] + ["%s:%s" % item for item in kw.items()]
+            args = [m] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
                 "ChimeraX :: Manager :: " + " :: ".join(args))
         for p, values in self.providers.items():
             mgr = values[0]
             kw = values[1]
-            args = [p, mgr] + ["%s:%s" % item for item in kw.items()]
+            args = [p, mgr] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
                 "ChimeraX :: Provider :: " + " :: ".join(args))
         for t, bundles in self.initializations.items():

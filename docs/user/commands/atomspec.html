@@ -37,7 +37,7 @@ and associated <a href="surface.html">molecular surfaces</a>
 can be specified using:
   <ul>
   <li><a href="#hierarchy">hierarchical specifiers</a>
-  - model number, chain ID, residue name or number, atom name
+  &ndash; model number, chain ID, residue name or number, atom name
     <ul>
     <li><a href="#capitalization">capitalization</a>
     <li><a href="#lists">lists and ranges</a>
@@ -45,13 +45,13 @@ can be specified using:
     <li><a href="#wildcards">wild cards</a>
     </ul>
   <li><a href="#builtin">built-in classifications</a>
-  - <b>sel</b> (current <a href="../selection.html">selection</a>),
+  &ndash; <b>sel</b> (current <a href="../selection.html">selection</a>),
   <b>protein</b>, <b>helix</b>, <b>strand</b>, <b>ligand</b>, <b>solvent</b>,
   <b>hbonds</b>, element symbols, functional groups, <i>etc.</i>
-  <li><a href="#user">user-defined targets</a> - named selections 
+  <li><a href="#user">user-defined targets</a> &ndash; named selections 
   or other targets defined with <a href="name.html"><b>name</b></a>
   <li><a href="#attributes">attribute</a> names and values
-  <li><a href="#zones">zones</a> - by distance from other items
+  <li><a href="#zones">zones</a> &ndash; by distance from other items
   <li><a href="#combinations">combinations</a> of the above
   </ul>
 <br>
@@ -60,12 +60,15 @@ Nonatomic models such as nonmolecular surfaces or maps
 (<a href="../tools/volumeviewer.html">volume</a> models) can be specified
 in a more limited set of ways, namely:
   <ul>
-  <li><a href="#hierarchy">hierarchical specifiers</a> - model number
+  <li><a href="#hierarchy">hierarchical specifiers</a> &ndash; model number
   <li><a href="#builtin">built-in classifications</a>
-  - <b>sel</b> (the current <a href="../selection.html">selection</a>, 
-  which could include nonatomic models), <b>selMaps</b> (the currently
+  &ndash; <b>sel</b> (the current <a href="../selection.html">selection</a>, 
+  which could include nonatomic models)
+<!-- 
+  <b>selMaps</b> (the currently
   <a href="../selection.html">selected</a> volume models, 
   or if none are selected, all displayed volume models)
+-->
   </ul>
 </ul>
 <p>
@@ -190,56 +193,56 @@ Examples:
 <blockquote>
 <b>#1</b>
 </blockquote>
-- all atoms in model 1, including any models lower in the hierarchy
+&ndash; all atoms in model 1, including any models lower in the hierarchy
 (1.N, 1.N.N, <i>etc.</i>)
 <blockquote>
 <b>#1/B-D,F</b>
 </blockquote>
-- chains B, C, D, and F in model 1
+&ndash; chains B, C, D, and F in model 1
 <blockquote>
 <b>:start-40</b>
 </blockquote>
-- residue numbers up to 40 in all chains
+&ndash; residue numbers up to 40 in all chains
 <blockquote>
 <b>#1,2:50,70-85@ca</b>
 </blockquote>
-- atoms named CA in residues 50 and 70-85 in models 1 and 2
+&ndash; atoms named CA in residues 50 and 70-85 in models 1 and 2
 <blockquote>
 <b>/a,d-f:43-256</b>
 </blockquote>
-- residues 43-256 in chains A, D, E, and F
+&ndash; residues 43-256 in chains A, D, E, and F
 <blockquote>
 <b>:12-25,48@ca,n</b>
 </blockquote>
-- atoms named CA and N in residues 12-25 and 48
+&ndash; atoms named CA and N in residues 12-25 and 48
 <blockquote>
 <b>:lys,arg</b>
 </blockquote>
-- lysine and arginine residues
+&ndash; lysine and arginine residues
 <blockquote>
 <b>:lys,arg@cb</b>
 </blockquote>
-- atoms named CB in lysine and arginine residues
+&ndash; atoms named CB in lysine and arginine residues
 <blockquote>
 <b>/A@n,ca,c,o</b>
 </blockquote>
-- atoms named N, CA, C, O in chain A
+&ndash; atoms named N, CA, C, O in chain A
 <blockquote>
 <b>/A:195,221@n,ca,c,o</b>
 </blockquote>
-- atoms named N, CA, C, O in residues 195 and 221 of chain A
+&ndash; atoms named N, CA, C, O in residues 195 and 221 of chain A
 <blockquote>
 <b>#1.2-end</b>
 </blockquote>
-- all submodels of 1 except 1.1 
+&ndash; all submodels of 1 except 1.1 
 <blockquote>
 <b>#2.1-3,5</b>
 </blockquote>
-- models 2.1, 2.2, 2.3, and 2.5 (submodels 1-3 and 5 of model 2)
+&ndash; models 2.1, 2.2, 2.3, and 2.5 (submodels 1-3 and 5 of model 2)
 <blockquote>
 <b>#5,2.1-3</b>
 </blockquote>
-- models 5.1, 5.2, 5.3, 2.1, 2.2, and 2.3 (submodels 1-3 of models 5 and 2)
+&ndash; models 5.1, 5.2, 5.3, 2.1, 2.2, and 2.3 (submodels 1-3 of models 5 and 2)
 </p>
 
 <a name="implicit"></a>
@@ -254,40 +257,40 @@ Examples:
 <blockquote>
 <b>:12,14@CA</b>
 </blockquote>
-- atoms named CA in residues 12 and 14
+&ndash; atoms named CA in residues 12 and 14
 (successive narrowing, as in previous examples)
 <blockquote>
 <b>:12:14@CA</b>
 </blockquote>
-- <i>all</i> atoms of residue 12, CA atom of residue 14 
+&ndash; <i>all</i> atoms of residue 12, CA atom of residue 14 
 <blockquote>
 <b>/A/B:12-20@CA:14@N</b>
 <br>- or -<br>
 <b>/B:12-20@CA:14@N/A</b>
 </blockquote>
-- <i>all</i> atoms of chain A,
+&ndash; <i>all</i> atoms of chain A,
 CA atoms of residues 12-20 and N atom of residue 14 in chain B
 <blockquote>
 <b>/a:10-20,26/b:12-22,29@n,ca,c,o</b>
 </blockquote>
-- <i>all</i> atoms of chain A residues 10-20 and 26, plus
+&ndash; <i>all</i> atoms of chain A residues 10-20 and 26, plus
 atoms named N, CA, C, O in chain B residues 12-22 and 29
 <blockquote>
 <b>/a:10-20,26@n,ca,c,o/b:12-22,29@n,ca,c,o</b>
 <br>- or -<br>
 <b>/a:10-20,26/b:12-22,29 & @n,ca,c,o</b>
 </blockquote>
-- atoms named N, CA, C, O in chain A residues 10-20, 26
+&ndash; atoms named N, CA, C, O in chain A residues 10-20, 26
 and in chain B residues 12-22, 29 (<b>&amp;</b> means intersection,
 see <a href="#combinations">combinations</a>)
 <blockquote>
 <b>#1,2.1</b>
 </blockquote>
-- models 1.1 and 2.1
+&ndash; models 1.1 and 2.1
 <blockquote>
 <b>#1#2.1</b>
 </blockquote>
-- models 1 (including any submodels) and 2.1
+&ndash; models 1 (including any submodels) and 2.1
 </p>
 
 <a name="wildcards"></a>
@@ -306,27 +309,27 @@ Examples:
 <blockquote>
 <b>@S*</b>
 </blockquote>
-- atoms with names starting with S
+&ndash; atoms with names starting with S
 <blockquote>
 <b>#2:G??</b>
 </blockquote>
-- residues in model 2 with three-letter names starting with G
+&ndash; residues in model 2 with three-letter names starting with G
 <blockquote>
 <b>@c[ab]</b>
 </blockquote>
-- atoms named CA and atoms named CB (unordered)
+&ndash; atoms named CA and atoms named CB (unordered)
 <blockquote>
 <b>:[*][*][*]</b>
 </blockquote>
-- residues named ***
+&ndash; residues named ***
 <blockquote>
 <b>:fmn@?1</b>
 </blockquote>
-- atoms in residue FMN with two-letter names ending with 1
+&ndash; atoms in residue FMN with two-letter names ending with 1
 <blockquote>
 <b>@h,h?,h??</b>
 </blockquote>
-- atoms with one-, two-, or three-letter names starting with H
+&ndash; atoms with one-, two-, or three-letter names starting with H
 <p>
 The wild card <b>*</b> can also signify &ldquo;all,&rdquo; 
 for example, all atoms in a residue or all residues in a model.
@@ -337,7 +340,7 @@ for example:
 <blockquote>
 <b>#*.1-3</b>
 </blockquote>
-- submodels 1-3 of all models that have them
+&ndash; submodels 1-3 of all models that have them
 
 <hr>
 <a name="builtin"></a>
@@ -354,16 +357,16 @@ Built-in classifications include:
 <li>biopolymer types <b>protein</b>, <b>nucleic</b> or <b>nucleic-acid</b>,
 and their subparts:
   <ul>
-  <li><b>sidechain</b> - amino acid sidechain + CA (for connectivity
+  <li><b>sidechain</b> &ndash; amino acid sidechain + CA (for connectivity
   to <a href="cartoon.html">cartoon</a> representations), nucleic acid base
   + <b>ribose</b> (see below), and any directly attached hydrogens
-  <li><b>sideonly</b> - amino acid sidechain,
+  <li><b>sideonly</b> &ndash; amino acid sidechain,
   nucleic acid base, and any directly attached hydrogens
   <li><b>mainchain</b> (or <b>backbone</b>) 
-  - the complement of <b>sideonly</b>, namely:
+  &ndash; the complement of <b>sideonly</b>, namely:
   peptide N, CA, C, O, nucleic acid phosphoribosyl backbone,
   and any directly attached hydrogens
-  <li><b>ribose</b> - backbone ribose and deoxyribose moieties
+  <li><b>ribose</b> &ndash; backbone ribose and deoxyribose moieties
   </ul>
 <li>protein/peptide secondary structure types:
 <b>helix</b>, <b>strand</b>, <b>coil</b>
@@ -378,16 +381,18 @@ as in the <a href="../menu.html#select"><b>Select</b> menu</a>
 as in the <a href="../menu.html#select"><b>Select</b> menu</a>, except
 in lowercase and with hyphens instead of spaces in multiword names 
 (for example, <b>aromatic-ring</b>)
-<li><b>sel</b> - the current <a href="../selection.html">selection</a>
-<li><b>selAtoms</b> - the current atomic
+<li><b>sel</b> &ndash; the current <a href="../selection.html">selection</a>
+<!--
+<li><b>selAtoms</b> &ndash; the current atomic
 <a href="../selection.html">selection</a>,
 or if nothing is selected, all atomic models
-<li><b>selMaps</b> - the currently <a href="../selection.html">selected</a>
+<li><b>selMaps</b> &ndash; the currently <a href="../selection.html">selected</a>
 volume models, or if none are selected, all displayed volume models
-<li><b>pbonds</b> - all <a href="../pseudobonds.html">pseudobonds</a>
-<li><b>hbonds</b> - H-bond <a href="../pseudobonds.html">pseudobonds</a>
+-->
+<li><b>pbonds</b> &ndash; all <a href="../pseudobonds.html">pseudobonds</a>
+<li><b>hbonds</b> &ndash; H-bond <a href="../pseudobonds.html">pseudobonds</a>
 (those in a pseudobond model named <b>hydrogen bonds</b>)
-<li><b>hbondatoms</b> - H-bond <a href="../pseudobonds.html">pseudobonds</a>
+<li><b>hbondatoms</b> &ndash; H-bond <a href="../pseudobonds.html">pseudobonds</a>
 and their endpoint atoms
 </ul>
 <p>
@@ -459,27 +464,27 @@ The parent menu can be included in this manner even when not necessary.
 <blockquote>
 <b>helix &amp; :arg,lys</b>
 </blockquote>
-- arginine and lysine residues in &alpha;-helices
+&ndash; arginine and lysine residues in &alpha;-helices
 (using <b>&amp;</b> for intersection, 
 see <a href="#combinations">combinations</a>)
 <blockquote>
 <b>nucleic &amp; backbone</b>
 </blockquote>
-- nucleic acid ribose-phosphate backbone
+&ndash; nucleic acid ribose-phosphate backbone
 <blockquote>
 <b>Car &amp; :phe,tyr</b>
 <br>&ndash; or &ndash;<br>
 <b>aromatic-ring &amp; :phe,tyr</b>
 </blockquote>
-- aromatic ring carbons of phenylalanine and tyrosine
+&ndash; aromatic ring carbons of phenylalanine and tyrosine
 <blockquote>
 <b>H &amp; ~HC</b>
 </blockquote>
-- polar hydrogens (those not bonded to carbon)
+&ndash; polar hydrogens (those not bonded to carbon)
 <blockquote>
 <b>carboxylate</b>
 </blockquote>
-- atoms in carboxylate groups
+&ndash; atoms in carboxylate groups
 
 <hr>
 <a name="user"></a>
@@ -579,55 +584,55 @@ see <a href="#combinations">combinations</a>:
 <blockquote>
 <b>@@display</b>
 </blockquote>
-- atoms that are displayed
+&ndash; atoms that are displayed
 <blockquote>
 <b>~@@display</b>
 </blockquote>
-- atoms that are not displayed
+&ndash; atoms that are not displayed
 <blockquote>
 <b>@ca & @@bfactor>40</b>
 </blockquote>
-- atoms named CA with B-factor values over 40
+&ndash; atoms named CA with B-factor values over 40
 <blockquote>
 <b>:asn & @@bfactor>40</b>
 </blockquote>
-- atoms with B-factor values over 40 in asparagine residues
+&ndash; atoms with B-factor values over 40 in asparagine residues
 <blockquote>
 <b>@@bfactor>=20 & @@bfactor<=40</b>
 </blockquote>
-- atoms with B-factor values ranging from 20 to 40
+&ndash; atoms with B-factor values ranging from 20 to 40
 <blockquote>
 <b>C & ~ @@idatm_type=Car</b>
 </blockquote>
-- non-aromatic carbon atoms
+&ndash; non-aromatic carbon atoms
 (see <a href="../atomtypes.html">atom types</a>)
 <!-- label not attr in ChimeraX, and color doesn't work
 <blockquote>
 <b>N & @@draw_mode=0 & @@label</b>
 </blockquote>
-- nitrogen atoms that are drawn as spheres and labeled
+&ndash; nitrogen atoms that are drawn as spheres and labeled
 <blockquote>
 <b>N & (@@draw_mode=0 | @@label)</b>
 </blockquote>
-- nitrogen atoms that are drawn as spheres and/or labeled
+&ndash; nitrogen atoms that are drawn as spheres and/or labeled
 <blockquote>
 <b>@ca & ~ (@@label | @@color=green | @@color=red)</b>
 </blockquote>
-- atoms named CA that are not labeled, and are not green or red
+&ndash; atoms named CA that are not labeled, and are not green or red
 <blockquote>
 <b>~ @@color=yellow | ~ @@color=blue</b>
 </blockquote>
-- all atoms, because if an atom is yellow it fulfills the criterion of not
+&ndash; all atoms, because if an atom is yellow it fulfills the criterion of not
 being blue, and <i>vice versa</i>
 -->
 <blockquote>
 <b>::num_atoms>=10</b>
 </blockquote>
-- residues with 10 or more atoms
+&ndash; residues with 10 or more atoms
 <blockquote>
 <b>##name="2gbp map 5"</b>
 </blockquote>
-- any model named &ldquo;2gbp map 5&rdquo;
+&ndash; any model named &ldquo;2gbp map 5&rdquo;
 
 <hr>
 <a name="zones"></a>
@@ -662,16 +667,16 @@ Examples:
 <blockquote>
 <b>@nz &nbsp;@&lt; &nbsp;3.8</b>
 </blockquote>
-- atoms within 3.8 &Aring; of atoms named NZ
+&ndash; atoms within 3.8 &Aring; of atoms named NZ
 <blockquote>
 <b>#1:gtp &nbsp;:&lt; &nbsp;10.5</b>
 </blockquote>
-- residues with any atom within 10.5 &Aring; of any atom 
+&ndash; residues with any atom within 10.5 &Aring; of any atom 
 in GTP residue(s) of model 1
 <blockquote>
 <b>#1:gtp &nbsp;:&gt; &nbsp;10.5</b>
 </blockquote>
-- residues farther than 10.5 &Aring; from any atom
+&ndash; residues farther than 10.5 &Aring; from any atom
 in GTP residue(s) of model 1; the complement of the previous example
 </p><p>
 Zone specifiations are also useful in <a href="#combinations">combination</a>
@@ -703,39 +708,39 @@ Examples:
 <blockquote>
 <b>/A &amp; protein</b>
 </blockquote>
-- chain A protein residues only
+&ndash; chain A protein residues only
 <blockquote>
 <b>/A &amp; ~ :hem</b>
 </blockquote>
-- chain A residues other than HEM
+&ndash; chain A residues other than HEM
 <blockquote>
 <b>@ca & #1/B,E#2/A,D</b>
 </blockquote>
-- atoms named CA in chains B, E of model 1 and chains A, D of model 2
+&ndash; atoms named CA in chains B, E of model 1 and chains A, D of model 2
 <blockquote>
 <b>#1:asp,glu &amp; (#2 :&lt; 10)</b>
 </blockquote>
-- aspartate and glutamate residues in model 1 
+&ndash; aspartate and glutamate residues in model 1 
 that are within 10 &Aring; of model 2
 <blockquote>
 <b>(ligand | ions) @&lt; 4.8</b>
 </blockquote>
-- atoms within 4.8 &Aring; of <a href="#surfcats">ligand</a> or 
+&ndash; atoms within 4.8 &Aring; of <a href="#surfcats">ligand</a> or 
 <a href="#surfcats">ions</a>
 <blockquote>
 <b>ligand | (ions @&lt; 4.8)</b>
 </blockquote>
-- <a href="#surfcats">ligand</a> plus atoms within 4.8 &Aring; of
+&ndash; <a href="#surfcats">ligand</a> plus atoms within 4.8 &Aring; of
 <a href="#surfcats">ions</a>
 <blockquote>
 <b>(ions @&lt; 4) &amp; ~ions</b>
 </blockquote>
-- atoms within 4 &Aring; of <a href="#surfcats">ions</a>,
+&ndash; atoms within 4 &Aring; of <a href="#surfcats">ions</a>,
 excluding the ions themselves
 <blockquote>
 <b>Ng+ | N3+</b>
 </blockquote>
-- guanidinium nitrogens and <i>sp</i><sup>3</sup>-hybridized, 
+&ndash; guanidinium nitrogens and <i>sp</i><sup>3</sup>-hybridized, 
 formally positive nitrogens
 (see <a href="../atomtypes.html">atom types</a>)
 <blockquote>
@@ -743,23 +748,23 @@ formally positive nitrogens
 <br>- or -<br>
 <b>:cys &amp; S &amp; ~disulfide</b>
 </blockquote>
-- cysteine sulfur atoms not participating in a disulfide bond
+&ndash; cysteine sulfur atoms not participating in a disulfide bond
 <blockquote>
 <b>:phe,tyr &amp; <a href="#builtin">sidechain</a></b>
 </blockquote>
-- phenylalanine and tyrosine sidechains (including CA)
+&ndash; phenylalanine and tyrosine sidechains (including CA)
 <blockquote>
 <b><a href="#builtin">sidechain</a> & ligand :<4</b>
 </blockquote>
-- sidechains (including peptide CA and nucleic acid ribose) 
+&ndash; sidechains (including peptide CA and nucleic acid ribose) 
 of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 <blockquote>
 <b><a href="#builtin">sideonly</a> & ligand @<4</b>
 </blockquote>
-- sidechain atoms within 4 &Aring; of <a href="#surfcats">ligand</a>
+&ndash; sidechain atoms within 4 &Aring; of <a href="#surfcats">ligand</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+August 2019</address>
 </body></html> 
