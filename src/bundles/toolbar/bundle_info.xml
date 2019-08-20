@@ -1,3 +1,4 @@
+<!-- vi:set shiftwidth=2: -->
 <BundleInfo name="ChimeraX-Toolbar"
 	    version="0.1" package="chimerax.toolbar"
   	    minSessionVersion="1" maxSessionVersion="1">
@@ -32,6 +33,59 @@ Provides a Windows ribbon-style toolbar interface
     <Dependency name="ChimeraX-Tug" version=">=1.0"/>
     <Dependency name="ChimeraX-Zone" version=">=1.0"/>
   </Dependencies>
+
+  <Managers>
+    <Manager name="toolbar"/>
+  </Managers>
+
+  <Providers manager="toolbar" guiOnly="true">
+  <!--
+    <Provider tab="Home" section="File" 
+      name="Open" icon="open-in-app.png" description="Open data file"/>
+    <Provider tab="Home" section="File"
+      name="Save" icon="content-save.png" description="Save session file"/>
+    <Provider tab="hidden" section="File"
+      name="Close" icon="close-box.png" description="Close current session"/>
+    <Provider tab="hidden" section="File"
+      name="Exit" icon="exit.png" description="Exit application"/>
+    <Provider tab="Home" section="File" 
+      name="__tab__" layout="Open:Save"/>
+    <Provider tab="Home" section="Images" 
+      name="Snapshot" icon="camera.png" description="Save snapshot to desktop"/>
+    <Provider tab="Home" section="Images" 
+      name="Spin movie" icon="video.png" description="Record spin movie"/>
+    <Provider tab="Home" section="Atoms" 
+      name="Show" icon="atomshow.png" description="Show atoms"/>
+    <Provider tab="Home" section="Atoms" 
+      name="Hide" icon="atomhide.png" description="Hide atoms"/>
+    <Provider tab="Home" section="Cartoons" 
+      name="Show" icon="ribshow.png" description="Show cartoons"/>
+    <Provider tab="Home" section="Cartoons" 
+      name="Hide" icon="ribhide.png" description="Hide cartoons"/>
+    <Provider tab="Home" section="Styles" 
+      name="Stick" icon="stick.png" description="Display atoms in stick style"/>
+    <Provider tab="Home" section="Styles" 
+      name="Sphere" icon="sphere.png" description="Display atoms in sphere style"/>
+    <Provider tab="Home" section="Styles" 
+      name="Ball && stick" icon="ball.png" description="Display atoms in ball and stick style"/>
+    <Provider tab="Home" section="Background" 
+      name="White" icon="whitebg.png" description="White background"/>
+    <Provider tab="Home" section="Background" 
+      name="Black" icon="blackbg.png" description="Black background"/>
+    <Provider tab="Home" section="Lighting" 
+      name="Simple" icon="simplelight.png" description="Simple lighting"/>
+    <Provider tab="Home" section="Lighting" 
+      name="Soft" icon="softlight.png" description="Ambient lighting"/>
+    <Provider tab="Home" section="Lighting" 
+      name="Full" icon="fulllight.png" description="Full lighting"/>
+    <Provider tab="Home" section="Undo" 
+      name="Undo" icon="undo-variant.png" description="Undo last action"/>
+    <Provider tab="Home" section="Undo" 
+      name="Redo" icon="redo-variant.png" description="Redo last action"/>
+    <Provider tab="Home" before="Molecule Display"
+      name="__tab__" layout="File:Images:Atoms:Cartoons:Styles:Background:Lighting"/>
+  -->
+  </Providers>
 
   <DataFiles>
     <DataDir>icons</DataDir>

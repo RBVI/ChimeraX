@@ -44,10 +44,10 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
-  <Providers>
-    <Provider name="vdxchart" manager="url_schemes"/>
-    <Provider name="vdxplot" manager="url_schemes"/>
-    <Provider name="vdxtable" manager="url_schemes"/>
+  <Providers manager="url_schemes">
+    <Provider name="vdxchart"/>
+    <Provider name="vdxplot"/>
+    <Provider name="vdxtable"/>
   </Providers>
 
   <Classifiers>
@@ -56,6 +56,8 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: ViewDockX :: General :: display docking results</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: viewdockx :: General :: Display docking results</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: viewdockx down :: General :: Simulate down-arrow key in ViewDockX</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: viewdockx up :: General :: Simulate up-arrow key in ViewDockX</ChimeraXClassifier>
     <ChimeraXClassifier>DataFormat :: mol2 :: :: Molecule structure :: .mol2 :: :: :: :: :: mol2 format :: utf-8</ChimeraXClassifier>
     <ChimeraXClassifier>Open :: mol2 :: mol2 ::</ChimeraXClassifier>
     <ChimeraXClassifier>DataFormat :: pdbqt :: :: Molecule structure :: .pdbqt :: :: :: :: :: pdbqt format :: utf-8</ChimeraXClassifier>

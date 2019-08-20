@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 nospheres = (["style (protein|nucleic|solvent) & @@draw_mode=0 stick"])
-cardef    = (["surf hide"] +
+cardef    = (["show nucleic", "hide protein|solvent|H", "surf hide"] +
              nospheres +
              ["cartoon",
               "cartoon style modeh def arrows t arrowshelix f "

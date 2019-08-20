@@ -37,82 +37,97 @@ def run(session, text, *, log=True, downgrade_errors=False):
         results = []
     return results[0] if len(results) == 1 else results
 
-def concise_model_spec(session, models):
-    model_ids = _form_id_dict(models)
-    all_ids = _form_id_dict(session.models)
-    _compact_fully_selected(model_ids, all_ids)
-    _compact_identical_partials(model_ids)
-    spec = _range_strings(model_ids, joiner=' #')
-    # a lone '#' doesn't select everything for some reason, so...
-    return '#' + spec if spec else ""
+def concise_model_spec(session, models, relevant_types=None):
+    """For commands where the spec will be automatically narrowed down to specific types of models
+       (e.g. command uses AtomicStructureArg rather than ModelsArgs), providing the 'relevant_types'
+       arg (e.g. relevant_types=AtomicStructure) may allow a more concise spec to be generated.
+       The 'models' arg will be pruned down to only those types.
+    """
+    universe = set(session.models if relevant_types is None else [x for x in session.models
+        if isinstance(x, relevant_types)])
+    if relevant_types:
+        models = [m for m in models if isinstance(m, relevant_types)]
+    models = [m for m in models if m.id is not None]
+    if not models:
+        return '#'
+    u_id_tree = _make_id_tree(universe)
+    m_id_tree = _make_id_tree(models)
 
-def _form_id_dict(models):
-    ids = {}
-    for model in models:
-        if model.id is None:
-            continue
-        id_dict = ids
-        for part in model.id:
-            id_dict = id_dict.setdefault(part, {})
-        # need next line in case there is a model 1 and 1.1
-        id_dict[0] = {}
-    return ids
+    if u_id_tree == m_id_tree:
+        # for some reason '#' doesn't select all models, so...
+        return ""
 
-def _compact_fully_selected(model_ids, all_ids):
-    if model_ids == all_ids:
-        model_ids.clear()
-        return
-    for part, part_dict in model_ids.items():
-        _compact_fully_selected(part_dict, all_ids[part])
-
-class IDRange:
-    def __init__(self, _id):
-        self.ids = [_id]
-
-    def append(self, _id):
-        self.ids.append(_id)
-
-    def __str__(self):
-        self.ids.sort()
-        def append_range(ids_str, range_start, range_end):
-            if ids_str:
-                ids_str += ","
-            if range_start == range_end:
-                ids_str += str(range_start)
-            else:
-                ids_str += str(range_start) + '-' + str(range_end)
-            return ids_str
-        ids_str = ""
-        prev = None
-        for id_num in self.ids:
-            if prev is None:
-                range_start = range_end = id_num
-            elif id_num == prev+1:
-                range_end = id_num
-            else:
-                ids_str = append_range(ids_str, range_start, range_end)
-                range_start = range_end = id_num
-            prev = id_num
-        return append_range(ids_str, range_start, range_end)
-
-def _compact_identical_partials(model_ids):
-    partials = {}
-    for part, part_ids in model_ids.items():
-        compacted = _compact_identical_partials(part_ids)
-        for id_range, partial in partials.items():
-            if compacted == partial:
-                id_range.append(part)
-                break
+    full_idents = []
+    for ident in m_id_tree.keys():
+        u_subtree = u_id_tree[ident]
+        m_subtree = m_id_tree[ident]
+        full_idents.extend(_traverse_tree([ident], m_subtree, u_subtree))
+    # full idents that end in '0' have submodels under them that should be excluded,
+    # so handle them separately
+    hash_idents = []
+    hash_bang_idents = []
+    for ident in full_idents:
+        if ident[-1] == 0:
+            hash_bang_idents.append(ident[:-1])
         else:
-            partials[IDRange(part)] = compacted
-    model_ids.clear()
-    model_ids.update(partials)
-    return model_ids
+            hash_idents.append(ident)
+    full_spec = ""
+    for prefix, idents in [('#', hash_idents), ('#!', hash_bang_idents)]:
+        if not idents:
+            continue
+        idents.sort(key=lambda x: ((len(x), x)))
+        spec = prefix
+        ident1 = ident2 = idents[0]
+        show_full = True
+        for ident in idents[1:]:
+            if len(ident) != len(ident1) or ident[:-1] != ident2[:-1]:
+                spec += _make_spec(ident1, ident2, show_full) + prefix
+                ident1 = ident2 = ident
+                show_full = True
+            else:
+                if ident[-1] == ident2[-1] + 1:
+                    ident2 = ident
+                else:
+                    spec += _make_spec(ident1, ident2, show_full) + ','
+                    ident1 = ident2 = ident
+                    show_full = False
+        spec += _make_spec(ident1, ident2, show_full)
+        full_spec += spec
+    return full_spec if full_spec else '#'
 
-def _range_strings(id_ranges, joiner = ','):
-    return joiner.join([_part_strings(id_range, partial) for id_range, partial in id_ranges.items()])
+def _make_id_tree(models):
+    tree = {}
+    for m in models:
+        subtree = tree
+        for i, ident in enumerate(m.id):
+            subtree = subtree.setdefault(ident, { 0: i == len(m.id)-1 })
+    return tree
 
-def _part_strings(id_range, subpart):
-    if not subpart or (len(subpart) == 1 and list(subpart.keys())[0].ids == [0]):
-        return str(id_range)
-    return str(id_range) + '.' + _range_strings(subpart)
+def _traverse_tree(prefix, m_tree, u_tree):
+    if m_tree == u_tree:
+        return [prefix]
+    idents = []
+    for ident in m_tree.keys():
+        if ident == 0 and not m_tree[ident]:
+            continue
+        m_subtree = m_tree[ident]
+        u_subtree = u_tree[ident]
+        if isinstance(m_subtree, bool):
+            if m_subtree:
+                idents.append(prefix + [ident])
+        elif m_subtree == u_subtree:
+            idents.append(prefix + [ident])
+        else:
+            idents.extend(_traverse_tree(prefix +[ident], m_subtree, u_subtree))
+    return idents
+
+def _make_spec(ident1, ident2, show_full):
+    if show_full:
+        full1 = '.'.join([str(x) for x in ident1])
+        if ident1 == ident2:
+            return full1
+        else:
+            return "%s-%d" % (full1, ident2[-1])
+    if ident1 == ident2:
+        return "%d" % ident1[-1]
+    return "%d-%d" % (ident1[-1], ident2[-1])
