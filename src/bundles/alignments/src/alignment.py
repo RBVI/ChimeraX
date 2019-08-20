@@ -496,6 +496,8 @@ class Alignment(State):
         self.observers = []
         for sseq, aseq in self.associations.items():
             aseq.match_maps[sseq].mod_handler.remove()
+            aseq.match_maps.clear()
+        self.associations.clear()
         if self._assoc_handler:
             self._assoc_handler.remove()
 

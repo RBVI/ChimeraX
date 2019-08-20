@@ -84,8 +84,7 @@ public:
     Sequence(const Contents& chars, std::string name = "sequence"):
         _contents(chars), _name(name) {}
     Sequence(const std::vector<ResName>& res_names, std::string name = "sequence");  // 3-letter codes
-    virtual  ~Sequence() {}
-
+    virtual  ~Sequence() { } 
     template <class InputIterator> void  assign(InputIterator first,
         InputIterator last) { _clear_cache(); _contents.assign(first, last); }
     Contents::reference  at(Contents::size_type n)
