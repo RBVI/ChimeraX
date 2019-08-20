@@ -1600,7 +1600,7 @@ class StructureData:
            residues as the structure currently has.
         '''
         f = c_function('structure_reorder_residues', args = (ctypes.c_void_p, ctypes.py_object))
-        f(self._c_pointer, [r._c_pointer for r in new_order])
+        f(self._c_pointer, [r._c_pointer.value for r in new_order])
 
     @classmethod
     def restore_snapshot(cls, session, data):
