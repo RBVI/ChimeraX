@@ -90,7 +90,8 @@ class SelInspector(ToolInstance):
         run(self.session, opt.command_format % "sel")
 
     def _sel_changed(self, *args, **kw):
-        cur_item_type = self.menu_mapping[self.item_menu.activeAction()]
+        cur_item_type = None if self.item_menu.isEmpty() \
+            else self.menu_mapping[self.item_menu.activeAction()]
         sel_strings = []
         for item_type in self.item_types:
             sel_items = self.session.selection.items(item_type)
@@ -108,7 +109,7 @@ class SelInspector(ToolInstance):
         else:
             description = "Nothing inspectable selected"
         self.text_description.setText(description)
-        if not cur_items:
+        if not sel_strings:
             return
         from chimerax.atomic import Collection
         if [isinstance(x, Collection) for x in cur_items].count(True) == len(cur_items):

@@ -59,9 +59,7 @@ class Option(metaclass=ABCMeta):
 
         if balloon or not hasattr(self, 'balloon'):
             self.balloon = balloon
-        command_line = False
-        if hasattr(self, 'in_class'):
-            command_line = self.attr_name and '.' not in self.attr_name
+        command_line = self.attr_name and not self.settings
         if self.balloon or command_line:
             balloon = self.balloon if self.balloon else ""
             if command_line:
