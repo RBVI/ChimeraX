@@ -39,6 +39,7 @@ H-ras (the protein part of PDB entry
 <a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
 target="_blank">121p</a>)
 </p><p>
+<a name="formats"></a>
 Currently supported formats:
 </p>
 <ul>
@@ -61,10 +62,10 @@ can be shown by starting <b>ViewDockX</b> from the <b>Tools</b> menu
 or by using the command:
 </p>
 <blockquote>
-<b>viewdockx</b>
+<a href="../commands/viewdockx.html"><b>viewdockx</b></a>
 <br>&ndash; or &ndash;<br>
-<b>viewdockx 
-&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a></b>
+<a href="../commands/viewdockx.html"><b>viewdockx</b></a>
+&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a>
 </blockquote>
 <p>
 ...the latter to limit the table to only a subset of the docked compound
@@ -103,6 +104,16 @@ A text-search box allows finding hits that contain terms of interest.
 A pull-down menu to the right of the search box can be used to adjust
 which of the available columns of information are shown in the table.
 Clicking a column header sorts by the values in that column.
+</p><p>
+When the <b>ViewDockX</b> dialog has the focus (it may be necessary to click
+into it after interacting with other windows) and one compound is shown,
+pressing the keyboard down (up) arrow key hides the compound and shows
+the next (previous) compound in the list. The commands
+<a href="../commands/viewdockx.html#down"><b>viewdockx down</b></a>
+and <a href="../commands/viewdockx.html#up"><b>viewdockx up</b></a>
+can be used to do the same thing. If multiple compounds are shown,
+the entire set of shown compounds shifts one position in the list
+for each use of the down (up) arrow key or equivalent command.
 </p><p>
 Buttons above the table:
 </p>
@@ -167,5 +178,5 @@ in the graphics window and hides the others.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+August 2019</address>
 </body></html>

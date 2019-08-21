@@ -19,6 +19,8 @@ or derivations thereof.
 </head><body>
 
 <a name="top"></a>
+<a name="up"></a>
+<a name="down"></a>
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
@@ -26,17 +28,48 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: viewdockx</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>viewdockx</b> 
-[&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;[&nbsp;<i>name</i>&nbsp;]]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>viewdockx down</b> [&nbsp;<i>name</i>&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>viewdockx up</b> [&nbsp;<i>name</i>&nbsp;]
 </h3>
 <p>
-The <b>viewdockx</b> command creates the selected models
-with molecular docking data in a table.
-The table user interface is described in the
-<a href="help:user/tools/viewdockx.html">viewdockx tool</a>
-documentation.
+The <a href="../tools/viewdockx.html"><b>ViewDockx</b></a>
+tool allows users to click through a list of docked compounds (or different
+poses of the same compound) to view them individually in the context
+of a binding site. After one or more files of
+<a href="../tools/viewdockx.html#formats">docking results</a> have been opened, 
+an instance of <a href="../tools/viewdockx.html"><b>ViewDockx</b></a> 
+can be started with the command:
+<blockquote>
+<b>viewdockx</b>
+<br>&ndash; or &ndash;<br>
+<b>viewdockx</b>
+&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a>&nbsp;[&nbsp;<i>name</i>&nbsp;]
+</blockquote>
+<p>
+...the latter to limit the table to only a subset of the docked compound
+models currently open.
+A <i>name</i> for the 
+<a href="../tools/viewdockx.html"><b>ViewDockx</b></a> instance 
+can be supplied to allow addressing it specifically when multiple 
+different instances will be open at the same time.
+</p><p>
+When the <a href="../tools/viewdockx.html#table"><b>ViewDockx</b> table</a>
+has the focus (it may be necessary to click
+into it after interacting with other windows) and one compound is shown,
+pressing the keyboard down (up) arrow key hides the compound and shows
+the next (previous) compound in the list. The commands
+<b>viewdockx down</b></a> and <b>viewdockx up</b></a>
+can be used to do the same thing. If multiple compounds are shown,
+the entire set of shown compounds shifts one position in the list
+for each use of the down (up) arrow key or equivalent command.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+August 2019</address>
 </body></html>
