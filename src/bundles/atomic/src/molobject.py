@@ -1545,8 +1545,10 @@ class StructureData:
                     args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int))
                 f(index, size)
 
-    def new_residue(self, residue_name, chain_id, pos, insert=' '):
+    def new_residue(self, residue_name, chain_id, pos, insert=None):
         '''Supported API. Create a new :class:`.Residue`.'''
+        if not insert:
+            insert = ' '
         f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                        ret = ctypes.py_object)
