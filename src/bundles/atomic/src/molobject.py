@@ -1545,8 +1545,10 @@ class StructureData:
                     args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int))
                 f(index, size)
 
-    def new_residue(self, residue_name, chain_id, pos, insert=' '):
+    def new_residue(self, residue_name, chain_id, pos, insert=None):
         '''Supported API. Create a new :class:`.Residue`.'''
+        if not insert:
+            insert = ' '
         f = c_function('structure_new_residue',
                        args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
                        ret = ctypes.py_object)
@@ -1600,7 +1602,7 @@ class StructureData:
            residues as the structure currently has.
         '''
         f = c_function('structure_reorder_residues', args = (ctypes.c_void_p, ctypes.py_object))
-        f(self._c_pointer, [r._c_pointer for r in new_order])
+        f(self._c_pointer, [r._c_pointer.value for r in new_order])
 
     @classmethod
     def restore_snapshot(cls, session, data):

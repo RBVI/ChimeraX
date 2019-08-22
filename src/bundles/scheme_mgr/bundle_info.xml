@@ -25,9 +25,9 @@
     <Manager name="url_schemes" guiOnly="true"/>
   </Managers>
 
-  <Providers>
-    <Provider name="cxcmd" manager="url_schemes" syntax="Path"/>
-    <Provider name="help" manager="url_schemes" syntax="Path"/>
+  <Providers manager="url_schemes">
+    <Provider name="cxcmd" syntax="Path"/>
+    <Provider name="help" syntax="Path"/>
   </Providers>
 
   <Classifiers>

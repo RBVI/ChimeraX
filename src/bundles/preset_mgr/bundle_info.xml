@@ -25,23 +25,23 @@
     <Manager name="presets"/>
   </Managers>
 
-  <Providers>
+  <Providers manager="presets">
     <Provider category="Cartoons/Nucleotides" name="ribbons/slabs"
-              order="1" manager="presets"/>
+              order="1"/>
     <Provider category="Cartoons/Nucleotides" name="cylinders/stubs"
-              order="2" manager="presets"/>
+              order="2"/>
     <Provider category="Cartoons/Nucleotides" name="licorice/ovals"
-              order="3" manager="presets"/>
+              order="3"/>
     <Provider category="Molecular Surfaces" name="ghostly white"
-              order="1" manager="presets"/>
+              order="1"/>
     <Provider category="Molecular Surfaces" name="atomic coloring (transparent)"
-              order="2" manager="presets"/>
+              order="2"/>
     <Provider category="Molecular Surfaces" name="chain ID coloring (opaque)"
-              order="3" manager="presets"/>
+              order="3"/>
     <Provider category="Overall Look" name="publication"
-              order="1" manager="presets"/>
+              order="1"/>
     <Provider category="Overall Look" name="interactive"
-              order="2" manager="presets"/>
+              order="2"/>
   </Providers>
 
   <Classifiers>

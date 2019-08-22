@@ -396,7 +396,7 @@ class Annotation(metaclass=abc.ABCMeta):
         It is up to the particular annotation to support abbreviations.
 
         Empty text should raise a ValueError or AnnotationError exception
-        (the exceptions being NoArg and EmptyArg).
+        (the exceptions being :py:class:`NoArg` and :py:class:`EmptyArg`).
         """
         raise NotImplementedError
 
@@ -1384,7 +1384,7 @@ def _remove_child_models(models):
     return tuple(m for m in models if m in s)
 
 
-def as_parser(annotation):
+def make_converter(annotation):
     """Supported API.  Use any annotation to convert text to annotation's type
 
     :param annotation: the annotation to use
@@ -1392,8 +1392,8 @@ def as_parser(annotation):
 
     For example:
 
-        from chimerax.core.commands import as_parser, ColorArg
-        convert_to_color = as_parser(ColorArg)
+        from chimerax.core.commands import make_converter, ColorArg
+        convert_to_color = make_converter(ColorArg)
         color = convert_to_color(session, "red")
     """
     def use_annotation(session, text):
@@ -1405,6 +1405,12 @@ def as_parser(annotation):
         return value
     use_annotation.__doc__ = "Convert text to %s" % annotation.name
     return use_annotation
+
+
+# TODO: @deprecated(version='0.91', reason='Use make_converter() instead')
+def as_parser(annotation):
+    """Deprecated API.  Use make_converter() instead"""
+    return make_converter(annotation)
 
 
 def quote_if_necessary(s, additional_special_map={}):

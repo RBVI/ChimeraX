@@ -1,3 +1,4 @@
+<!-- vi:set shiftwidth=2 expandtab: -->
 <BundleInfo name="ChimeraX-Nucleotides" version="0.1"
 	package="chimerax.atomic.nucleotides"
   	minSessionVersion="1" maxSessionVersion="1">
@@ -28,6 +29,58 @@
     <Dependency name="ChimeraX-Surface" version=">=1.0"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
+  <Providers manager="toolbar">
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-plain" display_name="Plain" icon="nuc-atoms.png" 
+      description="Remove nucleotides styling"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-filled" display_name="Filled" icon="nuc-fill.png" 
+      description="Show nucleotides with filled rings"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-slab" display_name="Slab" icon="nuc-slab.png"
+      description="Show nucleotide bases as slabs and fill sugars"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-box" display_name="Tube/&#10;Slab" icon="nuc-box.png"
+      description="Show nucleotide bases as boxes and sugars as tubes"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-ellipsoid" display_name="Tube/&#10;Ellipsoid" icon="nuc-elli.png"
+      description="Show nucleotide bases as ellipsoids and sugars as tubes"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-muffler" display_name="Tube/&#10;Muffler" icon="nuc-muff.png"
+      description="Show nucleotide bases as mufflers and sugars as tubes"/>
+    <Provider tab="Nucleotides" section="Styles" 
+      name="nucleotide-ladder" display_name="Ladder" icon="nuc-ladder.png"
+      description="Show nucleotides as H-bond ladders"/>
+    <Provider tab="Nucleotides" section="Styles"
+      name="nucleotide-stubs" display_name="Stubs" icon="nuc-stubs.png"
+      description="Show nucleotides as stubs"/>
+    <Provider tab="Nucleotides" section="Coloring" 
+      name="nucleotide-color" display_name="nucleotide" icon="nuc-color.png"
+      description="Color by nucleotide"/>
+
+    <!-- duplicates in Molecule Display tab with different names -->
+    <Provider tab="Molecule Display" section="Styles" group="nuc"
+      name="nucleotide2-plain" display_name="Plain" icon="nuc-atoms.png" 
+      description="Remove nucleotides styling"/>
+    <Provider tab="Molecule Display" section="Styles" group="nuc"
+      name="nucleotide2-filled" display_name="Filled" icon="nuc-fill.png" 
+      description="Show nucleotides with filled rings"/>
+    <Provider tab="Molecule Display" section="Styles" group="nuc"
+      name="nucleotide2-box" display_name="Tube/&#10;Slab" icon="nuc-box.png"
+      description="Show nucleotide bases as boxes and sugars as tubes"/>
+    <Provider tab="Molecule Display" section="Styles" group="nuc"
+      name="nucleotide2-ladder" display_name="Ladder" icon="nuc-ladder.png"
+      description="Show nucleotides as H-bond ladders"/>
+    <Provider tab="Molecule Display" section="Coloring"
+      name="nucleotide2-color" display_name="nucleotide" icon="nuc-color.png"
+      description="Color by nucleotide"/>
+
+  </Providers>
 
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
