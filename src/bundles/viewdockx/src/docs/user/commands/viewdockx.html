@@ -28,13 +28,13 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: viewdockx</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>viewdockx</b> 
-[&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;[&nbsp;<i>name</i>&nbsp;]]
+[[&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]&nbsp;<i>identifier</i>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>viewdockx down</b> [&nbsp;<i>name</i>&nbsp;]
+<br><b>viewdockx down</b> [&nbsp;<i>identifier</i>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>viewdockx up</b> [&nbsp;<i>name</i>&nbsp;]
+<br><b>viewdockx up</b> [&nbsp;<i>identifier</i>&nbsp;]
 </h3>
 <p>
 The <a href="../tools/viewdockx.html"><b>ViewDockx</b></a>
@@ -45,18 +45,20 @@ of a binding site. After one or more files of
 an instance of <a href="../tools/viewdockx.html"><b>ViewDockx</b></a> 
 can be started with the command:
 <blockquote>
-<b>viewdockx</b>
+<b>viewdockx</b> [&nbsp;<b>name</b>&nbsp;&nbsp;<i>identifier</i>&nbsp;]
 <br>&ndash; or &ndash;<br>
 <b>viewdockx</b>
-&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a>&nbsp;[&nbsp;<i>name</i>&nbsp;]
+&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a>&nbsp;[&nbsp;<i>identifier</i>&nbsp;]
 </blockquote>
 <p>
 ...the latter to limit the table to only a subset of the docked compound
-models currently open.
-A <i>name</i> for the 
+models currently open. An <i>identifier</i> for the 
 <a href="../tools/viewdockx.html"><b>ViewDockx</b></a> instance 
 can be supplied to allow addressing it specifically when multiple 
 different instances will be open at the same time.
+If no <i>identifier</i> is given, one will still be assigned automatically
+and shown in parentheses in the title bar of the 
+<a href="../tools/viewdockx.html#table"><b>ViewDockX</b> table</a>.
 </p><p>
 When the <a href="../tools/viewdockx.html#table"><b>ViewDockx</b> table</a>
 has the focus (it may be necessary to click
