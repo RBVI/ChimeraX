@@ -22,20 +22,28 @@ class SelInspector(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QWidget, QLabel, QPushButton, QMenu
+        from PyQt5.QtWidgets import QVBoxLayout, QWidget, QLabel, QPushButton, QMenu, QHBoxLayout
+        from PyQt5.QtCore import Qt
         layout = QVBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(3,3,0,0)
         layout.setSpacing(0)
         parent.setLayout(layout)
 
         self.text_description = QLabel()
         layout.addWidget(self.text_description)
 
+        container = QWidget()
+        layout.addWidget(container, alignment=Qt.AlignLeft)
+        button_layout = QHBoxLayout()
+        button_layout.setContentsMargins(0,0,0,0)
+        button_layout.setSpacing(0)
+        container.setLayout(button_layout)
+        button_layout.addWidget(QLabel("Inspect"), alignment=Qt.AlignRight)
         self.chooser = QPushButton()
         self.item_menu = QMenu()
         self.item_menu.triggered.connect(self._menu_cb)
         self.chooser.setMenu(self.item_menu)
-        layout.addWidget(self.chooser)
+        button_layout.addWidget(self.chooser, alignment=Qt.AlignLeft)
 
         self.options_layout = QVBoxLayout()
         layout.addLayout(self.options_layout)
@@ -46,57 +54,64 @@ class SelInspector(ToolInstance):
             session.items_inspection.triggers.add_handler("inspection items changed", self._new_items),
             session.triggers.add_handler("selection changed", self._sel_changed)
         ]
+        self.current_item_handlers = []
         self._new_items()
         self._sel_changed()
         tw.manage(placement=None)
 
     def delete(self):
-        for handler in self.handlers:
+        for handler in self.handlers + self.current_item_handlers:
             handler.remove()
         super().delete()
 
-    def _menu_cb(self, action):
+    def _menu_cb(self, action=None):
+        if action:
+            cur_text = action.text()
+            self.chooser.setText(cur_text)
+        else:
+            cur_text = self.chooser.text()
         if self.options_container:
             self.options_layout.removeWidget(self.options_container)
+            self.options_container.destroy()
+        for handler in self.current_item_handlers:
+            handler.remove()
+        self.current_item_handlers = []
         from chimerax.ui.options import OptionsPanel
         container = self.options_container = OptionsPanel()
         self.options_layout.addWidget(container)
-        for option in self.session.items_inspection.item_options(self.menu_mapping[action]):
+        options, trigger_info = self.session.items_inspection.item_info(self.button_mapping[cur_text])
+        for option in options:
             container.add_option(option(None, None, self._option_cb))
+        for trigger_set, trigger_name, check_func in trigger_info:
+            def cb(trig_name, trig_data, *, refresh=self.refresh, check_func=check_func):
+                if check_func(trig_data):
+                    refresh()
+            self.current_item_handlers.append(trigger_set.add_handler(trigger_name, cb))
+        self.refresh()
 
     def _new_items(self, *args, **kw):
-        cur_text = None if self.item_menu.isEmpty() else self.item_menu.menuAction().text()
-        self.menu_mapping = {}
+        cur_text = self.chooser.text()
+        self.button_mapping = {}
         self.item_menu.clear()
-        cur_action = None
         self.item_types = self.session.items_inspection.item_types
         self.item_types.sort(key=lambda x: x.lower())
         for item_type in self.item_types:
             menu_text = item_type.capitalize() if item_type.islower() else item_type
-            action = self.item_menu.addAction(menu_text)
-            self.menu_mapping[action] = item_type
-            if cur_text == menu_text:
-                cur_action = action
-        if cur_action:
-            self.item_menu.setActiveAction(cur_action)
-        elif not self.item_menu.isEmpty():
+            self.item_menu.addAction(menu_text)
+            self.button_mapping[menu_text] = item_type
+        if not cur_text and not self.item_menu.isEmpty():
             first_action = self.item_menu.actions()[0]
-            self.item_menu.setActiveAction(first_action)
             self.chooser.setText(first_action.text())
-            self._menu_cb(first_action)
+            self._menu_cb()
 
     def _option_cb(self, opt):
         from chimerax.core.commands import run
         run(self.session, opt.command_format % "sel")
 
     def _sel_changed(self, *args, **kw):
-        cur_item_type = None if self.item_menu.isEmpty() \
-            else self.menu_mapping[self.item_menu.activeAction()]
         sel_strings = []
         for item_type in self.item_types:
             sel_items = self.session.selection.items(item_type)
-            if item_type == cur_item_type:
-                cur_items = sel_items
             if not sel_items:
                 continue
             num = sum([len(x) for x in sel_items])
@@ -109,16 +124,26 @@ class SelInspector(ToolInstance):
         else:
             description = "Nothing inspectable selected"
         self.text_description.setText(description)
-        if not sel_strings:
+        self.refresh()
+
+    def refresh(self):
+        button_text = self.chooser.text()
+        cur_item_type = self.button_mapping[button_text] if button_text else None
+        sel_items = None
+        for item_type in self.item_types:
+            if item_type == cur_item_type:
+                sel_items = self.session.selection.items(item_type)
+                break
+        if not sel_items:
             return
         from chimerax.atomic import Collection
-        if [isinstance(x, Collection) for x in cur_items].count(True) == len(cur_items):
+        if [isinstance(x, Collection) for x in sel_items].count(True) == len(sel_items):
             from  chimerax.atomic import concatenate
-            items = concatenate(cur_items)
+            items = concatenate(sel_items)
         else:
             items = []
-            for ci in cur_items:
-                items.extend(ci)
+            for si in sel_items:
+                items.extend(si)
         for option in self.options_container.options():
             option.display_for_items(items)
 

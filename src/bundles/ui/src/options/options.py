@@ -70,7 +70,7 @@ class Option(metaclass=ABCMeta):
                 elif hasattr(self, 'mapping'):
                     attr_vals = self.mapping.items()
                 elif hasattr(self, 'labels') and hasattr(self, 'values'):
-                    if not isinstance(BooleanOption) or self.labels != BooleanOption.labels:
+                    if not isinstance(self, BooleanOption) or self.labels != BooleanOption.labels:
                         attr_vals = zip(self.values, self.labels)
                 if attr_vals:
                     attr_balloon += '\n'

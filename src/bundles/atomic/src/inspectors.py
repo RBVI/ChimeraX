@@ -12,16 +12,33 @@
 # === UCSF ChimeraX Copyright ===
 
 def item_options(session, name, **kw):
+    from .triggers import get_triggers
     return {
-        'atoms': [AtomColorOption]
+        'atoms': ([AtomColorOption, AtomBondStyleOption], [(get_triggers(), "changes", lambda changes:
+            'color changed' in changes.atom_reasons() or 'draw_mode changed' in changes.atom_reasons())]),
+        'bonds': ([AtomBondStyleOption], [(get_triggers(), "changes", lambda changes:
+            'draw_mode changed' in changes.bond_reasons())])
     }[name]
 
-from chimerax.ui.options import RGBAOption
+from chimerax.ui.options import RGBAOption, SymbolicEnumOption
 
 class AtomColorOption(RGBAOption):
     attr_name = "color"
     balloon = "Atom color"
+    default = "white"
     name = "Color"
     @property
     def command_format(self):
         return "color %%s %g,%g,%g,%g atoms" % tuple([100.0 * x for x in self.value])
+
+class AtomBondStyleOption(SymbolicEnumOption):
+    values = (0, 1, 2)
+    labels = ("sphere", "ball", "stick")
+    attr_name = "draw_mode"
+    balloon = "Atom/bond display style"
+    default = 0
+    name = "Style"
+    @property
+    def command_format(self):
+        return "style %%s %s" % self.labels[self.value]
+

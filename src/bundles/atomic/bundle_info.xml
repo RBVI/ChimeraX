@@ -47,6 +47,7 @@
   </Providers>
   <Providers manager="items inspection">
 	<Provider name="atoms"/>
+	<Provider name="bonds"/>
   </Providers>
 
   <Classifiers>
