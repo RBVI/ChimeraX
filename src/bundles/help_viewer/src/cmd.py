@@ -163,12 +163,9 @@ def _update_list(toolshed, node, what, callback, logger):
             ab = li[0]
             t = li.text
             valid = t is None or t.strip() == ''  # should not have any text after <li>
-            if ab.tag == 'b':
-                name = ab.text.strip()
-                if d == doc_ul:
-                    errors.append("bad <b> on line", ab.sourceline)  # DEBUG
-                    valid = False
-            elif ab.tag == 'a':
+            if ab.tag == 'a':
+                if len(ab) == 0:
+                    continue  # nothing inside
                 if 'href' not in ab.attrib:
                     continue
                 href = ab.attrib["href"]
@@ -176,13 +173,21 @@ def _update_list(toolshed, node, what, callback, logger):
                 if w != what:
                     errors.append("didn't expect href to be to %s on line %d" % (
                         href, ab.sourceline))
-                name = name.split('.')[0]
-                if d == undoc_ul:
-                    errors.append("bad <a> on line", ab.sourceline)  # DEBUG
+                #if d == undoc_ul:
+                #    errors.append("bad <a> on line", ab.sourceline)  # DEBUG
+                #    valid = False
+                ab = ab[0]
+            if ab.tag == 'b':
+                name = ab.text.strip()
+                if d == doc_ul:
+                    errors.append("bad <b> on line", ab.sourceline)  # DEBUG
                     valid = False
+            else:
+                valid = False
             if not valid:
                 errors.append("expected %s tag as first part of <li> on line %d" % (
                     "<a>" if d == doc else "<b>", li.sourceline))
+                continue
             d[name] = li
     # TODO: only report error in daily (non-production) builds
     if errors:
@@ -239,6 +244,8 @@ def _update_tools(toolshed, doc_ul, doc):
             href = bi.get_path(os.path.join("docs", "user", "tools", "%s.html" % pname))
             if href:
                 missing[name] = ("tools/%s.html" % pname, t.synopsis)
+            else:
+                missing[name] = (None, t.synopsis)
     names = list(doc)
     missing_names = list(missing)
     all_names = names + missing_names
@@ -248,5 +255,8 @@ def _update_tools(toolshed, doc_ul, doc):
         href, synopsis = missing[name]
         if synopsis:
             synopsis = " \N{En dash} " + synopsis
-        doc_ul.insert(
-            i, E.LI(E.A(E.B(name), href=href), synopsis))
+        if href is None:
+            doc_ul.insert(i, E.LI(E.B(name), synopsis))
+        else:
+            doc_ul.insert(
+                i, E.LI(E.A(E.B(name), href=href), synopsis))
