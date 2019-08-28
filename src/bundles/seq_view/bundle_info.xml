@@ -1,7 +1,7 @@
 <BundleInfo name="ChimeraX-SeqView" version="1.0"
 	    package="chimerax.seq-view"
 	    supercedes="ChimeraX-SEQ-VIEW"
-  	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
+  	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
@@ -21,9 +21,11 @@
     <Dependency name="ChimeraX-AlignmentHdrs" version=">=1.0"/>
   </Dependencies>
 
-  <Initializations>
-    <InitAfter type="custom" bundle="ChimeraX-Alignments"/>
-  </Initializations>
+  <Providers manager="alignments">
+	<!-- subcommand_name also used in tool.py -->
+    <Provider name="seqview" synonyms="sv,view" subcommand_name="viewer" type="viewer"/>
+  </Providers>
+
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

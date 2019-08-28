@@ -161,16 +161,20 @@ class _BaseTool(HtmlToolInstance):
     def _update_display(self, trigger=None, trigger_data=None):
         if self._block_updates:
             return
-        import json
-        onoff = json.dumps(self._make_display(trigger_data))
-        js = "%s.update_display(%s);" % (self.CUSTOM_SCHEME, onoff)
-        self.html_view.runJavaScript(js)
+        data = self._make_display(trigger_data)
+        if data:
+            import json
+            onoff = json.dumps(data)
+            js = "%s.update_display(%s);" % (self.CUSTOM_SCHEME, onoff)
+            self.html_view.runJavaScript(js)
 
     def _make_display(self, s=None):
-        if s:
+        if s is None:
+            structures = self.structures
+        elif s in self.structures:
             structures = [s]
         else:
-            structures = self.structures
+            return None
         return [(s.atomspec[1:], True if s.display else False)
                 for s in structures]
 
