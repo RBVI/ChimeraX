@@ -45,6 +45,16 @@ class RMSD(DynamicStructureHeaderSequence):
             return
         self.settings.atoms = domain
 
+    @property
+    def chain_matching(self):
+        return self.settings.chain_matching
+
+    @chain_matching.setter
+    def chain_matching(self, matching):
+        if self.settings.chain_matching == matching:
+            return
+        self.settings.chain_matching = matching
+
     def destroy(self):
         for handler in self.handlers:
             handler.remove()
@@ -75,8 +85,14 @@ class RMSD(DynamicStructureHeaderSequence):
         return 1
 
     def option_data(self):
-        return super().option_data() + [ ("Atoms used for RMSD", 'atoms', RmsdDomainOption, {},
-            "The atoms from each residue that are used in computing the RMSD") ]
+        return super().option_data() + [
+            ("Atoms used for RMSD", 'atoms', RmsdDomainOption, {},
+                "The atoms from each residue that are used in computing the RMSD"),
+            ("Chain matching", 'chain_matching', ChainMatchingOption, {},
+                "Which associated chains to use in the matching:\nif 'smart' then "
+                "use one chain per structure and try to find the set with the lowest overall RMSD;\n"
+                "if 'all' simply use all associated chains."),
+        ]
 
     def position_color(self, pos):
         return 'dark gray'
@@ -85,8 +101,62 @@ class RMSD(DynamicStructureHeaderSequence):
         name, defaults = super().settings_info()
         defaults.update({
             'atoms': carbon_alpha,
+            'chain_matching': "smart",
         })
         return "RMSD sequence header", defaults
+
+    def reevaluate(self, pos1=0, pos2=None):
+        if self.chain_matching == "all":
+            self._eval_chains = self.alignment.associations.keys()
+        elif pos1 == 0 and pos2 == None:
+            original_eval_chains = getattr(self, '_eval_chains', [])
+            by_struct = {}
+            for chain in self.alignment.associations:
+                by_struct.setdefault(chain.structure, []).append(chain)
+            chain_lists = list(by_struct.values())
+            if len(chain_lists) < 2:
+                self._eval_chains = [cl[0] for cl in chain_lists]
+            else:
+                cb = self.refresh_callback
+                self.refresh_callback = None
+                chain_lists.sort(key=lambda x: len(x))
+                cl1, cl2 = chain_lists[:2]
+                lowest = None
+                for c1 in cl1:
+                    for c2 in cl2:
+                        self._eval_chains = [c1, c2]
+                        super().reevaluate()
+                        vals = [v for v in self[:] if v is not None]
+                        if not vals:
+                            continue
+                        avg = sum(vals) / len(vals)
+                        if lowest is None or avg < lowest:
+                            lowest = avg
+                            best_chains = [c1, c2]
+                if lowest is None:
+                    best_chains = [cl1[0], cl2[0]]
+                for cl in chain_lists[2:]:
+                    lowest = None
+                    for c in cl:
+                        self._eval_chains = best_chains + [c]
+                        super().reevaluate()
+                        vals = [v for v in self[:] if v is not None]
+                        if not vals:
+                            continue
+                        avg = sum(vals) / len(vals)
+                        if lowest is None or avg < lowest:
+                            lowest = avg
+                            best_chain = c
+                    if lowest is None:
+                        best_chains.append(cl[0])
+                    else:
+                        best_chains.append(best_chain)
+                self._eval_chains = best_chains
+                if set(best_chains) != set(original_eval_chains):
+                    self.alignment.session.logger.info("Chains used in RMSD evaluation for alignment %s: %s"
+                        % (self.alignment, ', '.join(str(c) for c in self._eval_chains)))
+                self.refresh_callback = cb
+        super().reevaluate(pos1, pos2)
 
     def _gather_coords(self, pos):
         if self.atoms == carbon_alpha:
@@ -94,7 +164,8 @@ class RMSD(DynamicStructureHeaderSequence):
         else:
             bb_names = None
         residues = []
-        for chain, seq in self.alignment.associations.items():
+        for chain in self._eval_chains:
+            seq = self.alignment.associations[chain]
             ungapped = seq.gapped_to_ungapped(pos)
             if ungapped is None:
                 continue
@@ -142,7 +213,12 @@ class RMSD(DynamicStructureHeaderSequence):
             self.reevaluate()
             self._set_name()
             self.refresh_callback(self, "name")
+        elif attr_name == "chain_matching":
+            self.reevaluate()
 
-from chimerax.ui.options import EnumOption, SymbolicEnumOption
+from chimerax.ui.options import EnumOption
 class RmsdDomainOption(EnumOption):
     values = [carbon_alpha, "backbone"]
+
+class ChainMatchingOption(EnumOption):
+    values = ["all", "smart"]
