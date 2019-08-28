@@ -286,6 +286,7 @@ def surface_cap(session, enable = None, offset = None, subdivision = None):
       are about the length of the edge lengths on the perimeter of the cap which are usually
       comparable to the size of the triangles of the surface that is being clipped.
     '''
+    update = False
     from .settings import settings
     if enable is not None and enable != settings.clipping_surface_caps:
         settings.clipping_surface_caps = enable
