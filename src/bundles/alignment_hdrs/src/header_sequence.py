@@ -27,6 +27,12 @@ class HeaderSequence(list):
     single_column_updateable = True # can a single column be updated, or only the entire header?
 
     def __init__(self, alignment, refresh_callback, name=None, eval_while_hidden=False):
+        """ 'refresh_callback' is called with a single argument, which can be:
+              1) A two-tuple of indices into the header sequence, indicating the limits (inclusive)
+                 needing refreshing
+              2) None, indicating the entire (non-name) contents needs refreshing
+              3) "name", indicating the name has changed
+        """
         if name is None:
             if not hasattr(self, 'name'):
                 self.name = ""
@@ -218,7 +224,7 @@ class HeaderSequence(list):
 
     def _final_option_label(self, base_label, verbose_labels):
         if verbose_labels:
-            return "%s: %s" % (self.name, base_label)
+            return "%s: %s" % (getattr(self, "settings_name", self.name), base_label)
         return base_label[0].upper() + base_label[1:]
 
 class FixedHeaderSequence(HeaderSequence):

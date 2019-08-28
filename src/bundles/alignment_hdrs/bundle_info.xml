@@ -28,7 +28,7 @@
   <Providers manager="alignments">
     <Provider name="Consensus" single_seq_relevant="false" type="header"/>
     <Provider name="Conservation" single_seq_relevant="false" type="header"/>
-    <!-- <Provider name="RMSD" single_seq_relevant="true" type="header"/> -->
+    <Provider name="RMSD" single_seq_relevant="true" type="header"/>
   </Providers>
 
   <Classifiers>

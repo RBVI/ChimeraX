@@ -13,17 +13,24 @@
 
 """Header sequence to show RMSD of associated structures"""
 
+carbon_alpha = "C\N{GREEK SMALL LETTER ALPHA}"
+
 from .header_sequence import DynamicStructureHeaderSequence
 
 class RMSD(DynamicStructureHeaderSequence):
 
-    name = "RMSD"
+    settings_name = "RMSD"
 
     def __init__(self, alignment, *args, **kw):
         from math import log
         self.scaling = log(0.5) / (-3.0)
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
-        self.handler_ID = self.settings.triggers.add_handler('setting changed', self._setting_changed_cb)
+        from chimerax.core.models import MODEL_POSITION_CHANGED
+        self.handlers = [
+            self.settings.triggers.add_handler('setting changed', self._setting_changed_cb),
+            alignment.session.triggers.add_handler(MODEL_POSITION_CHANGED, self._model_position_changed_cb)
+        ]
+        self._set_name()
 
     def add_options(self, options_container, *, category=None, verbose_labels=True):
         self._add_options(options_container, category, verbose_labels, self.option_data())
@@ -39,7 +46,8 @@ class RMSD(DynamicStructureHeaderSequence):
         self.settings.atoms = domain
 
     def destroy(self):
-        self.handler_ID.remove()
+        for handler in self.handlers:
+            handler.remove()
         super().destroy()
 
     def depiction_val(self, pos):
@@ -76,12 +84,12 @@ class RMSD(DynamicStructureHeaderSequence):
     def settings_info(self):
         name, defaults = super().settings_info()
         defaults.update({
-            'atoms': "CA",
+            'atoms': carbon_alpha,
         })
         return "RMSD sequence header", defaults
 
     def _gather_coords(self, pos):
-        if self.atoms == "CA":
+        if self.atoms == carbon_alpha:
             bb_names = ["CA"]
         else:
             bb_names = None
@@ -116,12 +124,25 @@ class RMSD(DynamicStructureHeaderSequence):
                 coord_lists.append(coords)
         return coord_lists
 
+    def _model_position_changed_cb(self, trig_name, model):
+        for chain in self.alignment.associations:
+            if chain.structure == model:
+                self.reevaluate()
+                break
+
+    def _set_name(self):
+        if self.atoms == carbon_alpha:
+            self.name = carbon_alpha + " RMSD"
+        else:
+            self.name = "Backbone RMSD"
+
     def _setting_changed_cb(self, trig_name, trig_data):
         attr_name, prev_val, new_val = trig_data
         if attr_name == "atoms":
             self.reevaluate()
-            #TODO: update name
+            self._set_name()
+            self.refresh_callback(self, "name")
 
 from chimerax.ui.options import EnumOption, SymbolicEnumOption
 class RmsdDomainOption(EnumOption):
-    values = ["CA", "backbone"]
+    values = [carbon_alpha, "backbone"]

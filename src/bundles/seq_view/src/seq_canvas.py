@@ -1042,11 +1042,20 @@ class SeqCanvas:
         self.sv.status("Alignment reformatted")
 
     def refresh_header(self, hdr, bounds):
-        if bounds is None:
-            bounds = (0, len(hdr)-1)
         if hasattr(self, 'lead_block'):
-            self.lead_block.refresh(hdr, *bounds)
-            self.main_scene.update()
+            if bounds == "name":
+                if self.label_width == _find_label_width(self.alignment.seqs +
+                        [hdr for hdr in self.headers if self.display_header[hdr]], self.sv.settings,
+                        self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad):
+                    self.lead_block.replace_label(hdr)
+                    self.label_scene.update()
+                else:
+                    self._reformat()
+            else:
+                if bounds is None:
+                    bounds = (0, len(hdr)-1)
+                self.lead_block.refresh(hdr, *bounds)
+                self.main_scene.update()
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
         if seq in self.display_header and not self.display_header[seq]:
@@ -2459,67 +2468,6 @@ class SeqBlock:
         return self.seq_offset + offset
 
     """TODO
-    def recolor(self, seq):
-        if self.next_block:
-            self.next_block.recolor(seq)
-
-        color_func = self._color_func(seq)
-
-        for i, line_item in enumerate(self.line_items[seq]):
-            if line_item is None:
-                continue
-            line_item.configure(fill=color_func(seq, self.seq_offset + i))
-    """
-
-    def refresh(self, seq, left, right):
-        if self.seq_offset + self.line_width <= right:
-            self.next_block.refresh(seq, left, right)
-        if left >= self.seq_offset + self.line_width:
-            return
-        my_left = max(left - self.seq_offset, 0)
-        my_right = min(right - self.seq_offset, self.line_width - 1)
-
-        half_x, left_rect_off, right_rect_off = self.base_layout_info()
-        line_items = self.line_items[seq]
-        item_aux_info = self.item_aux_info[seq]
-        if self._large_alignment():
-            res_status = hasattr(seq, "match_maps") and seq.match_maps
-        else:
-            res_status = seq in self.alignment.seqs
-        color_func = self._color_func(seq)
-        for i in range(my_left, my_right+1):
-            line_item = line_items[i]
-            if line_item is not None:
-                self.main_scene.removeItem(line_item)
-            x, y = item_aux_info[i]
-            line_items[i] = self.make_item(seq, self.seq_offset + i,
-                        x, y, half_x, left_rect_off,
-                        right_rect_off, color_func)
-            if res_status:
-                self._assoc_res_bind(line_items[i], seq, self.seq_offset + i)
-        if self.show_numberings[0] and seq.numbering_start != None and my_left == 0:
-            self.main_scene.removeItem(self.numbering_texts[seq][0])
-            self.numbering_texts[seq][0] = self._make_numbering(seq,0)
-        if self.show_numberings[1] and seq.numbering_start != None \
-                    and my_right == self.line_width - 1:
-            self.main_scene.removeItem(self.numbering_texts[seq][1])
-            self.numbering_texts[seq][1] = self._make_numbering(seq,1)
-
-    def relative_y(self, rawY):
-        '''return the y relative to the block the y is in'''
-        if rawY < self.top_y:
-            if not self.prev_block:
-                return 0
-            else:
-                return self.prev_block.relative_y(rawY)
-        if rawY > self.bottom_y + self.block_gap:
-            if not self.next_block:
-                return self.bottom_y - self.top_y
-            else:
-                return self.next_block.relative_y(rawY)
-        return min(rawY - self.top_y, self.bottom_y - self.top_y)
-            
-    """TODO
     def realign(self, prevLen):
         '''sequences globally realigned'''
 
@@ -2607,7 +2555,71 @@ class SeqBlock:
                     self.label_bindings, self.status_func, self.show_ruler, self.tree_balloon,
                     self.show_numberings, self.settings, self.label_width, self.font_pixels,
                     self.numbering_widths, self.letter_gaps)
+
+    def recolor(self, seq):
+        if self.next_block:
+            self.next_block.recolor(seq)
+
+        color_func = self._color_func(seq)
+
+        for i, line_item in enumerate(self.line_items[seq]):
+            if line_item is None:
+                continue
+            line_item.configure(fill=color_func(seq, self.seq_offset + i))
     """
+
+    def refresh(self, seq, left, right):
+        if self.seq_offset + self.line_width <= right:
+            self.next_block.refresh(seq, left, right)
+        if left >= self.seq_offset + self.line_width:
+            return
+        my_left = max(left - self.seq_offset, 0)
+        my_right = min(right - self.seq_offset, self.line_width - 1)
+
+        half_x, left_rect_off, right_rect_off = self.base_layout_info()
+        line_items = self.line_items[seq]
+        item_aux_info = self.item_aux_info[seq]
+        if self._large_alignment():
+            res_status = hasattr(seq, "match_maps") and seq.match_maps
+        else:
+            res_status = seq in self.alignment.seqs
+        color_func = self._color_func(seq)
+        for i in range(my_left, my_right+1):
+            line_item = line_items[i]
+            if line_item is not None:
+                self.main_scene.removeItem(line_item)
+            x, y = item_aux_info[i]
+            line_items[i] = self.make_item(seq, self.seq_offset + i,
+                        x, y, half_x, left_rect_off,
+                        right_rect_off, color_func)
+            if res_status:
+                self._assoc_res_bind(line_items[i], seq, self.seq_offset + i)
+        if self.show_numberings[0] and seq.numbering_start != None and my_left == 0:
+            self.main_scene.removeItem(self.numbering_texts[seq][0])
+            self.numbering_texts[seq][0] = self._make_numbering(seq,0)
+        if self.show_numberings[1] and seq.numbering_start != None \
+                    and my_right == self.line_width - 1:
+            self.main_scene.removeItem(self.numbering_texts[seq][1])
+            self.numbering_texts[seq][1] = self._make_numbering(seq,1)
+
+    def relative_y(self, rawY):
+        '''return the y relative to the block the y is in'''
+        if rawY < self.top_y:
+            if not self.prev_block:
+                return 0
+            else:
+                return self.prev_block.relative_y(rawY)
+        if rawY > self.bottom_y + self.block_gap:
+            if not self.next_block:
+                return self.bottom_y - self.top_y
+            else:
+                return self.next_block.relative_y(rawY)
+        return min(rawY - self.top_y, self.bottom_y - self.top_y)
+
+    def replace_label(self, line):
+        self.label_texts[line].setText(line.name)
+        if self.next_block:
+            self.next_block.replace_label(line)
 
     def row_index(self, y, bound=None):
         '''Given a relative y, return the row index'''
