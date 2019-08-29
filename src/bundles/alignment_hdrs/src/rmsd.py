@@ -25,10 +25,10 @@ class RMSD(DynamicStructureHeaderSequence):
         from math import log
         self.scaling = log(0.5) / (-3.0)
         super().__init__(alignment, *args, eval_while_hidden=True, **kw)
-        from chimerax.core.models import MODEL_POSITION_CHANGED
+        from chimerax.atomic import get_triggers
         self.handlers = [
             self.settings.triggers.add_handler('setting changed', self._setting_changed_cb),
-            alignment.session.triggers.add_handler(MODEL_POSITION_CHANGED, self._model_position_changed_cb)
+            get_triggers().add_handler('changes', self._atomic_changes_cb)
         ]
         self._set_name()
 
@@ -154,8 +154,10 @@ class RMSD(DynamicStructureHeaderSequence):
                 self._eval_chains = best_chains
                 if set(best_chains) != set(original_eval_chains):
                     self.alignment.session.logger.info("Chains used in RMSD evaluation for alignment %s: %s"
-                        % (self.alignment, ', '.join(str(c) for c in self._eval_chains)))
+                        % (self.alignment, ', '.join(str(c) for c in sorted(best_chains))))
                 self.refresh_callback = cb
+                # to force the refresh callback to happen...
+                self.clear()
         super().reevaluate(pos1, pos2)
 
     def _gather_coords(self, pos):
@@ -195,9 +197,11 @@ class RMSD(DynamicStructureHeaderSequence):
                 coord_lists.append(coords)
         return coord_lists
 
-    def _model_position_changed_cb(self, trig_name, model):
+    def _atomic_changes_cb(self, trig_name, changes):
+        if 'scene_coord changed' not in changes.structure_reasons():
+            return
         for chain in self.alignment.associations:
-            if chain.structure == model:
+            if chain.structure in changes.modified_structures():
                 self.reevaluate()
                 break
 
