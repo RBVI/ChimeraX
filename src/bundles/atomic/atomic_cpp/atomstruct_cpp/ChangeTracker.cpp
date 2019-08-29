@@ -50,6 +50,7 @@ const std::string ChangeTracker::REASON_RIBBON_MODE("ribbon_mode changed");
 const std::string ChangeTracker::REASON_RING_COLOR("ring color changed");
 const std::string ChangeTracker::REASON_RING_DISPLAY("ring display changed");
 const std::string ChangeTracker::REASON_RING_MODE("ring mode changed");
+const std::string ChangeTracker::REASON_SCENE_COORD("scene_coord changed");
 const std::string ChangeTracker::REASON_SELECTED("selected changed");
 const std::string ChangeTracker::REASON_SEQUENCE("sequence changed");
 const std::string ChangeTracker::REASON_SERIAL_NUMBER("serial_number changed");
