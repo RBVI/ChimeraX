@@ -106,6 +106,7 @@ public:
     static const std::string  REASON_RING_COLOR;
     static const std::string  REASON_RING_DISPLAY;
     static const std::string  REASON_RING_MODE;
+    static const std::string  REASON_SCENE_COORD;
     static const std::string  REASON_SELECTED;
     static const std::string  REASON_SEQUENCE;
     static const std::string  REASON_SERIAL_NUMBER;

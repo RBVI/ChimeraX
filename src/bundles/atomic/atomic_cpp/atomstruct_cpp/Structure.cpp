@@ -1711,6 +1711,7 @@ Structure::set_active_coord_set(CoordSet *cs)
             set_gc_shape();
             set_gc_ribbon();
             change_tracker()->add_modified(this, this, ChangeTracker::REASON_ACTIVE_COORD_SET);
+            change_tracker()->add_modified(this, this, ChangeTracker::REASON_SCENE_COORD);
         }
     }
 }
@@ -1789,6 +1790,7 @@ Structure::set_position_matrix(double* pos)
     double *_pos = &_position[0][0];
     for (int i=0; i<12; ++i)
         *_pos++ = *pos++;
+    change_tracker()->add_modified(this, this, ChangeTracker::REASON_SCENE_COORD);
 }
 
 void

@@ -59,6 +59,9 @@ CoordSet::set_coords(Real *xyz, size_t n)
     add_coord(Coord(xyz[c], xyz[c+1], xyz[c+2]));
 
     _structure->change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_COORDSET);
+    if (_structure->active_coord_set() == this)
+        _structure->change_tracker()->add_modified(_structure, _structure,
+            ChangeTracker::REASON_SCENE_COORD);
 }
 
 float
