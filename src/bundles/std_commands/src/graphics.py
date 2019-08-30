@@ -128,7 +128,51 @@ def graphics_quality(session, atom_triangles = None, bond_triangles = None,
         msg = ('Atom triangles %d, bond triangles %d, ribbon divisions %d' %
                (lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions))
         session.logger.status(msg, log = True)
-    
+
+def graphics_silhouettes(session, enable=None, width=None, color=None, depth_jump=None):
+    '''Set graphics silhouette parameters.  With no options reports the current settings.
+
+    Parameters
+    ----------
+    enable : bool
+        Enable or disable silhouette edges (black lines drawn at boundaries of objects
+        where the depth of the scene jumps.
+    width : float
+        Width in pixels of silhouette edges. Minimum width is 1 pixel.
+    color : Color
+        Color of silhouette edges.
+    depth_jump : float
+        Fraction of scene depth giving minimum depth change to draw a silhouette edge. Default 0.03.
+    '''
+    had_arg = False
+    view = session.main_view
+    silhouette = view.silhouette
+    if enable is not None:
+        had_arg = True
+        silhouette.enabled = enable
+        view.redraw_needed = True
+    if width is not None:
+        had_arg = True
+        silhouette.thickness = width
+        view.redraw_needed = True
+    if color is not None:
+        had_arg = True
+        silhouette.color = color.rgba
+        view.redraw_needed = True
+    if depth_jump is not None:
+        had_arg = True
+        silhouette.depth_jump = depth_jump
+        view.redraw_needed = True
+
+    if not had_arg:
+        msg = '\n'.join(('Current silhouette settings:',
+                         '  enabled: ' + str(silhouette.enabled),
+                         '  width: %.3g' % silhouette.thickness,
+                         '  color: %d,%d,%d' % tuple(100*r for r in silhouette.color[:3]),
+                         '  depth jump: %.3g' % silhouette.depth_jump))
+        session.logger.info(msg)
+
+        
 def graphics_restart(session):
     '''
     Restart graphics rendering after it has been stopped due to an error.
@@ -159,9 +203,18 @@ def register_command(logger):
                  ('ribbon_divisions', IntArg),
                  ('ribbon_sides', IntArg),
                  ],
-        synopsis='Set graphics rendering parameters'
+        synopsis='Set graphics quality parameters'
     )
     register('graphics quality', desc, graphics_quality, logger=logger)
+    from chimerax.core.commands import CmdDesc, register, ColorArg, BoolArg, FloatArg, EnumOf
+    desc = CmdDesc(
+        optional=[('enable', BoolArg)],
+        keyword=[('width', FloatArg),
+                 ('color', ColorArg),
+                 ('depth_jump', FloatArg)],
+        synopsis="set silhouette parameters"
+    )
+    register('graphics silhouettes', desc, graphics_silhouettes, logger=logger)
 
     desc = CmdDesc(synopsis='Restart graphics drawing after an error')
     register('graphics restart', desc, graphics_restart, logger=logger)
