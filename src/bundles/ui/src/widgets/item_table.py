@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QWidget, QAction, QCheckBox
-from PyQt5.QtCore import QAbstractTableModel, Qt, QString, QVariant, QModelIndex, pyqtSignal
+from PyQt5.QtWidgets import QWidget, QAction, QCheckBox, QTableView
+from PyQt5.QtCore import QAbstractTableModel, Qt, QVariant, QModelIndex, pyqtSignal
 from PyQt5.QtGui import QFontDatabase, QBrush, QColor
 
 class QCxTableModel(QAbstractTableModel):
@@ -27,7 +27,23 @@ class QCxTableModel(QAbstractTableModel):
         col = self._item_table._columns[index.column()]
         item = self._item_table._data[index.row()]
         if role is None or role == Qt.DisplayRole:
-            return QString(str(col.display_value(item)))
+            val = col.display_value(item)
+            from chimerax.core.colors import Color
+            if isinstance(val, bool):
+                cell = self._item_table.item(index.row(), index.column())
+                if not cell.isCheckable():
+                    cell.toggled.connect(lambda chk, c=col, i=item: c.set_value(i, chk))
+                cell.setCheckState(Qt.Checked if val else Qt.Unchecked)
+            elif isinstance(val, Color) or isinstance(val, tuple) and 3 <= len(val) <= 4:
+                widget = self._item_table.indexWidget(index)
+                if not widget:
+                    has_alpha = len(val.rgba) == 4 if isinstance(val, Color) else len(val) == 4
+                    from .color_button import ColorButton
+                    widget = ColorButton(has_alpha=has_alpha)
+                    widget.color_changed.connect(lambda clr, c=col, i=item: c.set_value(i, clr))
+                    self._item_table.setIndexWidget(index, widget)
+                widget.color = val
+            return str(val)
         if role == Qt.FontRole and (item in self._item_table._highlighted or col.justification == "decimal"
                 or col.font is not None):
             if col.justification == "decimal":
@@ -50,10 +66,10 @@ class QCxTableModel(QAbstractTableModel):
         col = self._item_table._columns[section]
         if role is None or role == Qt.DisplayRole:
             if self._item_table._auto_mulitline_headers:
-                title = self._make_multiline(col.title):
+                title = self._make_multiline(col.title)
             else:
                 title = col.title
-            return QString(title)
+            return title
 
         elif role == Qt.TextAlignmentRole:
             return self._convert_justification(col.header_justification)
@@ -89,7 +105,7 @@ class QCxTableModel(QAbstractTableModel):
         longest = max([len(w) for w in words])
         while True:
             best_diff = best_index = None
-            for i range(len(words)-1):
+            for i in range(len(words)-1):
                 w1, w2 = words[i:i+2]
                 cur_diff = max(abs(longest - len(w1)), abs(longest - len(w2)))
                 diff = abs(longest - len(w1) - len(w2) - 1)
@@ -200,7 +216,7 @@ class ItemTable(QTableView):
 
             'format' describes how to show that data item's value.  If 'format' is COL_FORMAT_BOOLEAN,
             use a check box.  If it is COL_FORMAT_TRANSPARENT_COLOR or COL_FORMAT_OPAQUE_COLOR then
-            use a color button with the appropraite transparency option.  Otherwise it should
+            use a color button with the appropriate transparency option.  Otherwise it should
             ether be a callable or a text string.  If it's a callable, the callable will be invoked
             with the value returned by 'data_fetch' and should return a textual representation of the
             value.  If it's a text string, it should be a format string such that (format %
@@ -264,7 +280,7 @@ class ItemTable(QTableView):
         if refresh:
             num_existing = len(self._columns)
             self._table_model.beginInsertColumns(QModelIndex(),
-                num_existing, num_existing + len(self._pending_columns)
+                num_existing, num_existing + len(self._pending_columns))
             self._columns.extend(self._pending_columns)
             self._table_model.endInsertColumns()
             self._pending_columns = []
@@ -307,7 +323,7 @@ class ItemTable(QTableView):
             self._data = data[:]
             self._table_model.endResetModel()
             if emit_signal:
-                self.selected(self.selection_changed.emit([])
+                self.selection_changed.emit([])
             return
         while True:
             for i, datum in enumerate(self._data):
@@ -334,10 +350,10 @@ class ItemTable(QTableView):
                     break
             else:
                 done = True
-    
+
     def destroy(self):
-        #TODO
-        pass
+        self._data = []
+        super().destroy()
 
     def highlight(self, highlight_data):
         new = set(highlight_data)
@@ -401,14 +417,14 @@ class ItemTable(QTableView):
             check_box = QCheckBox(col.title)
             check_box.addAction(action)
             self._col_checkboxes.append(check_box)
-            if self._table_model
+            if self._table_model:
                 # we've been launch()ed
                 self._arrange_col_checkboxes()
         else:
             widget.addAction(action)
 
     def _arrange_col_checkboxes(self):
-        while(self._col_checkbox_layout.count() > 0)
+        while self._col_checkbox_layout.count() > 0:
             self._col_checkbox_layout.takeAt(0)
         self._col_checkboxes.sort(key=lambda cb: cb.text())
         requested_cols = self._column_control_info[-1]
@@ -418,7 +434,7 @@ class ItemTable(QTableView):
             num_cols = int(sqrt(num_buttons)+0.5)
         else:
             num_cols = requested_cols
-        num_rows = int(ceil(num_buttons/num_cols)))
+        num_rows = int(ceil(num_buttons/num_cols))
         row = col = 0
         for checkbox in self._col_checkboxes:
             self.col_checkbox_layout.addWidget(checkbox, row, col, alignment=Qt.AlignLeft)
@@ -430,15 +446,28 @@ class ItemTable(QTableView):
     def _relay_selection_change(self, selected, deselected):
         self.selection_changed.emit([self._data[i.row()] for i in selected.indexes()])
 
+    def _set_default(self):
+        shown = {}
+        for col in self._columns:
+            shown[col.title] = col.display
+        settings = self._column_control_info[1]
+        setattr(settings, self.PREF_SUBKEY_COL_DISP, shown)
+
     def _show_all_columns(self):
         for col in self._columns:
             self._column_update(col, display=True)
 
-    def _show_defaults(self):
+    def _show_default(self):
         widget, settings, display_defaults, fallback = self._column_control_info[:4]
         for col in self._columns:
             lookup = getattr(settings, self._settings_attr).get(self.PREF_SUBKEY_COL_DISP, display_defaults)
             display = lookup.get(col.title, fallback)
+            self._column_update(col, display=display)
+
+    def _show_standard(self):
+        widget, settings, display_defaults, fallback = self._column_control_info[:4]
+        for col in self._columns:
+            display = display_defaults.get(col.title, fallback)
             self._column_update(col, display=display)
 
 class _ItemColumn:
