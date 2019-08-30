@@ -142,8 +142,8 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         run(session, 'lighting simple')
 
     if simplify_graphics:
-        from chimerax.std_commands.graphics import graphics
-        graphics(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
+        from chimerax.std_commands.graphics import graphics_quality
+        graphics_quality(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
     from chimerax.label.label3d import label_orient
     label_orient(session, label_reorient)	# Don't continuously reorient labels.
@@ -208,8 +208,8 @@ def stop_vr(session, simplify_graphics = True):
         v.camera = MonoCamera()
         s.update_loop.set_redraw_interval(10)
         if simplify_graphics:
-            from chimerax.std_commands.graphics import graphics
-            graphics(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+            from chimerax.std_commands.graphics import graphics_quality
+            graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
         from chimerax.label.label3d import label_orient
         label_orient(session, 0)	# Continuously reorient labels.
         v.view_all()
