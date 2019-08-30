@@ -99,10 +99,10 @@ def register_command(logger):
                   'silhouette_color', 'silhouette_depth_jump',
                   'selection_color', 'selection_width',
                   'max_frame_rate'],
-        synopsis="set preferences"
+        synopsis="set miscellaneous parameters"
     )
     register('set', desc, set, logger=logger)
     xdesc = CmdDesc(required=[('setting', EnumOf(['bgColor']))],
-        synopsis="reset preference to default"
+        synopsis="reset parameters to default"
     )
     register('~set', xdesc, xset, logger=logger)
