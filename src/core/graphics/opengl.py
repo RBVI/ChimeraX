@@ -1642,6 +1642,19 @@ class Silhouette:
                                  self.color, self.depth_jump,
                                  self.perspective_near_far_ratio)
 
+    def draw_silhouette(self, render):
+        r = render
+        fb = r.current_framebuffer()
+
+        # Can't have depth texture attached to framebuffer and sampled.
+        fb.attach_depth_texture(None)  # Detach depth texture
+        
+        self._draw_depth_outline(render, fb.depth_texture, self.thickness,
+                                 self.color, self.depth_jump,
+                                 self.perspective_near_far_ratio)
+
+        fb.attach_depth_texture(fb.depth_texture)  # Reattach depth texture
+
     def _silhouette_framebuffer(self, render):
         r = render
         size = r.render_size()
@@ -1961,10 +1974,7 @@ class Framebuffer:
             self._draw_buffer = GL.GL_NONE
 
         if isinstance(depth_buf, Texture):
-            level = 0
-            GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
-                                      GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D,
-                                      depth_buf.id, level)
+            self.attach_depth_texture(depth_buf)
         elif depth_buf is not None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_DEPTH_ATTACHMENT,
@@ -1996,6 +2006,13 @@ class Framebuffer:
         self.width = w
         self.height = h
         self.viewport = (0,0,w,h)
+
+    def attach_depth_texture(self, depth_texture):
+        tid = 0 if depth_texture is None else depth_texture.id
+        level = 0
+        GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
+                                  GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D,
+                                  tid, level)
 
     def __del__(self):
         if not self._deleted and self._fbo != 0:

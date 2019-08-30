@@ -231,7 +231,11 @@ class View:
                 draw_opaque(r, opaque_drawings)
             if highlight_drawings:
                 r.outline.set_outline_mask()       # copy depth to outline framebuffer
-            draw_transparent(r, transparent_drawings)
+            if transparent_drawings:
+                if silhouette.enabled:
+                    # Draw opaque object silhouettes behind transparent surfaces
+                    silhouette.draw_silhouette(r)
+                draw_transparent(r, transparent_drawings)
             self._finish_timing()
             if multishadow:
                 r.allow_equal_depth(False)
