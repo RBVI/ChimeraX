@@ -45,8 +45,8 @@ def set(session, bg_color=None,
     view = session.main_view
     if bg_color is not None:
         had_arg = True
-        view.background_color = bg_color.rgba
-        view.redraw_needed = True
+        from .graphics import graphics
+        graphics(session, background_color = bg_color)
     if (silhouettes is not None
         or silhouette_width is not None
         or silhouette_color is not None
@@ -65,17 +65,12 @@ def set(session, bg_color=None,
         graphics_quality(session, subdivision = subdivision)
     if max_frame_rate is not None:
         had_arg = True
-        msec = 1000.0 / max_frame_rate
-        session.update_loop.set_redraw_interval(msec)
+        from .graphics import graphics_rate
+        graphics_rate(session, max_frame_rate = max_frame_rate)
 
     if not had_arg:
         from chimerax import atomic
         lod = atomic.level_of_detail(session)
-        if session.ui.is_gui:
-            msec = session.update_loop.redraw_interval
-            rate = 1000.0 / msec if msec > 0 else 1000.0
-        else:
-            rate = 0
         msg = '\n'.join(('Current settings:',
                          '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
                          '  Subdivision: %.3g'  % lod.quality))

@@ -11,6 +11,25 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+def graphics(session, background_color=None):
+    '''Set graphics parameters.  With no options reports the current settings.
+
+    Parameters
+    ----------
+    background_color : Color
+        Set the graphics window background color.
+    '''
+    had_arg = False
+    view = session.main_view
+    if background_color is not None:
+        had_arg = True
+        view.background_color = background_color.rgba
+        view.redraw_needed = True
+
+    if not had_arg:
+        msg = 'Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3])
+        session.logger.info(msg)
+
 def graphics_rate(session, report_frame_rate = None,
                   max_frame_rate = None, wait_for_vsync = None):
     '''
@@ -218,6 +237,13 @@ def graphics_restart(session):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, ColorArg, TopModelsArg
+
+    desc = CmdDesc(
+        keyword=[('background_color', ColorArg)],
+        synopsis="set graphics parameters"
+    )
+    register('graphics', desc, graphics, logger=logger)
+
     desc = CmdDesc(
         optional = [('report_frame_rate', BoolArg)],
         keyword=[('max_frame_rate', FloatArg),
