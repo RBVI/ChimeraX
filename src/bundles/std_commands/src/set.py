@@ -55,12 +55,10 @@ def set(session, bg_color=None,
         from .graphics import graphics_silhouettes
         graphics_silhouettes(session, enable = silhouettes, width = silhouette_width,
                              color = silhouette_color, depth_jump = silhouette_depth_jump)
-    if selection_color is not None:
+    if selection_color is not None or selection_width is not None:
         had_arg = True
-        view.highlight_color = selection_color.rgba
-    if selection_width is not None:
-        had_arg = True
-        view.highlight_thickness = selection_width
+        from .graphics import graphics_selection
+        graphics_selection(session, color = selection_color, width = selection_width)
     if subdivision is not None:
         had_arg = True
         from chimerax import atomic
@@ -80,10 +78,7 @@ def set(session, bg_color=None,
             rate = 0
         msg = '\n'.join(('Current settings:',
                          '  Background color: %d,%d,%d' % tuple(100*r for r in view.background_color[:3]),
-                         '  Selection color: %d,%d,%d' % tuple(100*r for r in view.highlight_color[:3]),
-                         '  Selection width: %.3g' % view.highlight_thickness,
-                         '  Subdivision: %.3g'  % lod.quality,
-                         '  Max frame rate: %.3g' % rate))
+                         '  Subdivision: %.3g'  % lod.quality))
         session.logger.info(msg)
 
 def xset(session, setting):
@@ -106,7 +101,9 @@ def register_command(logger):
                  ('subdivision', FloatArg),
                  ('max_frame_rate', FloatArg)],
         hidden = ['silhouettes', 'silhouette_width',
-                  'silhouette_color', 'silhouette_depth_jump'],
+                  'silhouette_color', 'silhouette_depth_jump',
+                  'selection_color', 'selection_width',
+                  'max_frame_rate'],
         synopsis="set preferences"
     )
     register('set', desc, set, logger=logger)

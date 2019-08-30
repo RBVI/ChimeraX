@@ -172,6 +172,31 @@ def graphics_silhouettes(session, enable=None, width=None, color=None, depth_jum
                          '  depth jump: %.3g' % silhouette.depth_jump))
         session.logger.info(msg)
 
+
+def graphics_selection(session, color=None, width=None):
+    '''Set selection outline parameters.  With no options reports the current settings.
+
+    Parameters
+    ----------
+    color : Color
+        Color to use when outlining selected objects.  Initially green.
+    width : float
+        Width in pixels of the selection outline.  Initially 1 (or 2 for high DPI screens).
+    '''
+    had_arg = False
+    view = session.main_view
+    if color is not None:
+        had_arg = True
+        view.highlight_color = color.rgba
+    if width is not None:
+        had_arg = True
+        view.highlight_thickness = width
+
+    if not had_arg:
+        msg = '\n'.join(('Current selection outline settings:',
+                         '  color: %d,%d,%d' % tuple(100*r for r in view.highlight_color[:3]),
+                         '  width: %.3g' % view.highlight_thickness))
+        session.logger.info(msg)
         
 def graphics_restart(session):
     '''
@@ -184,7 +209,7 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, TopModelsArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, ColorArg, TopModelsArg
     desc = CmdDesc(
         keyword=[('max_frame_rate', FloatArg),
                  ('frame_rate', BoolArg),
@@ -206,7 +231,7 @@ def register_command(logger):
         synopsis='Set graphics quality parameters'
     )
     register('graphics quality', desc, graphics_quality, logger=logger)
-    from chimerax.core.commands import CmdDesc, register, ColorArg, BoolArg, FloatArg, EnumOf
+
     desc = CmdDesc(
         optional=[('enable', BoolArg)],
         keyword=[('width', FloatArg),
@@ -215,6 +240,13 @@ def register_command(logger):
         synopsis="set silhouette parameters"
     )
     register('graphics silhouettes', desc, graphics_silhouettes, logger=logger)
+
+    desc = CmdDesc(
+        keyword=[('width', FloatArg),
+                 ('color', ColorArg)],
+        synopsis="set selewction outline parameters"
+    )
+    register('graphics selection', desc, graphics_selection, logger=logger)
 
     desc = CmdDesc(synopsis='Restart graphics drawing after an error')
     register('graphics restart', desc, graphics_restart, logger=logger)
