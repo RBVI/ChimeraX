@@ -61,8 +61,8 @@ def set(session, bg_color=None,
         graphics_selection(session, color = selection_color, width = selection_width)
     if subdivision is not None:
         had_arg = True
-        from chimerax import atomic
-        atomic.structure_graphics_updater(session).set_subdivision(subdivision)
+        from .graphics import graphics_quality
+        graphics_quality(session, subdivision = subdivision)
     if max_frame_rate is not None:
         had_arg = True
         msec = 1000.0 / max_frame_rate

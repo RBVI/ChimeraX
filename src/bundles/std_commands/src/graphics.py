@@ -63,7 +63,8 @@ def graphics(session, max_frame_rate = None, frame_rate = None,
         msg = ('max framerate %.3g' % rate)
         session.logger.status(msg, log = True)
 
-def graphics_quality(session, atom_triangles = None, bond_triangles = None,
+def graphics_quality(session, subdivision = None,
+                     atom_triangles = None, bond_triangles = None,
                      total_atom_triangles = None, total_bond_triangles = None,
                      ribbon_divisions = None, ribbon_sides = None):
     '''
@@ -71,6 +72,9 @@ def graphics_quality(session, atom_triangles = None, bond_triangles = None,
 
     Parameters
     ----------
+    subdivision : float
+        Controls the rendering quality of spheres and cylinders for drawing atoms and bonds.
+        Default value is 1, higher values give smoother spheres and cylinders.
     atom_triangles : integer
         Number of triangles for drawing an atom sphere, minimum 4.
         If 0, then automatically compute number of triangles.
@@ -93,6 +97,10 @@ def graphics_quality(session, atom_triangles = None, bond_triangles = None,
     lod = gu.level_of_detail
     change = False
     from chimerax.core.errors import UserError
+    if subdivision is not None:
+        from chimerax import atomic
+        atomic.structure_graphics_updater(session).set_subdivision(subdivision)
+        change = True
     if atom_triangles is not None:
         if atom_triangles != 0 and atom_triangles < 4:
             raise UserError('Minimum number of atom triangles is 4')
@@ -125,8 +133,8 @@ def graphics_quality(session, atom_triangles = None, bond_triangles = None,
         gu.update_level_of_detail()
     else:
         na = gu.num_atoms_shown
-        msg = ('Atom triangles %d, bond triangles %d, ribbon divisions %d' %
-               (lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions))
+        msg = ('Subdivision %.3g, atom triangles %d, bond triangles %d, ribbon divisions %d' %
+               (lod.quality, lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions))
         session.logger.status(msg, log = True)
 
 def graphics_silhouettes(session, enable=None, width=None, color=None, depth_jump=None):
@@ -221,7 +229,8 @@ def register_command(logger):
     register('graphics', desc, graphics, logger=logger)
 
     desc = CmdDesc(
-        keyword=[('atom_triangles', IntArg),
+        keyword=[('subdivision', FloatArg),
+                 ('atom_triangles', IntArg),
                  ('bond_triangles', IntArg),
                  ('total_atom_triangles', IntArg),
                  ('total_bond_triangles', IntArg),
