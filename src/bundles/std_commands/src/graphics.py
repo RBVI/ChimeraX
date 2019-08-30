@@ -11,12 +11,63 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def graphics(session, atom_triangles = None, bond_triangles = None,
-             total_atom_triangles = None, total_bond_triangles = None,
-             ribbon_divisions = None, ribbon_sides = None, max_frame_rate = None,
-             frame_rate = None, wait_for_vsync = None, color_depth = None):
+def graphics(session, max_frame_rate = None, frame_rate = None,
+             wait_for_vsync = None, color_depth = None):
     '''
     Set graphics rendering parameters.
+
+    Parameters
+    ----------
+    max_frame_rate : float
+        Set maximum graphics frame rate (default 60).
+    frame_rate : bool
+        Whether to show status message with average frame rate each second.
+    wait_for_vsync : bool
+        Whether drawing is synchronized to the display vertical refresh rate,
+        typically 60 Hz.  Disabling wait allows frame rates faster than vsync
+        but can exhibit image tearing.  Currently only supported on Windows.
+    color_depth : 8 or 16
+        Number of bits per color channel (red, green, blue, alpha) in framebuffer.
+        If 16 is specified then offscreen rendering is used since it is not easy or
+        possible to switch on-screen framebuffer depth.
+    '''
+
+    change = False
+    if max_frame_rate is not None:
+        msec = 1000.0 / max_frame_rate
+        session.update_loop.set_redraw_interval(msec)
+        change = True
+    if frame_rate is not None:
+        show_frame_rate(session, frame_rate)
+        change = True
+    if wait_for_vsync is not None:
+        r = session.main_view.render
+        r.make_current()
+        if not r.wait_for_vsync(wait_for_vsync):
+            session.logger.warning('Changing wait for vsync is only supported on Windows by some drivers')
+        change = True
+    if color_depth is not None:
+        if color_depth not in (8, 16):
+            from chimerax.core.errors import UserError
+            raise UserError('Only color depths 8 or 16 allowed, got %d' % color_depth)
+        v = session.main_view
+        r = v.render
+        r.set_offscreen_color_bits(color_depth)
+        r.offscreen.enabled = (color_depth == 16)
+        v.redraw_needed = True
+        change = True
+
+    if not change and session.ui.is_gui:
+        msec = session.update_loop.redraw_interval
+        rate = 1000.0 / msec if msec > 0 else 1000.0
+        msg = ('max framerate %.3g' % rate)
+        session.logger.status(msg, log = True)
+
+def graphics_quality(session, atom_triangles = None, bond_triangles = None,
+                     total_atom_triangles = None, total_bond_triangles = None,
+                     ribbon_divisions = None, ribbon_sides = None):
+    '''
+    Set graphics quality parameters.
 
     Parameters
     ----------
@@ -36,18 +87,6 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         Number of segments to use for one residue of a ribbon, minimum 2 (default 20).
     ribbon_sides : integer
         Number of segments to use around circumference of ribbon, minimum 4 (default 12).
-    max_frame_rate : float
-        Set maximum graphics frame rate (default 60).
-    frame_rate : bool
-        Whether to show status message with average frame rate each second.
-    wait_for_vsync : bool
-        Whether drawing is synchronized to the display vertical refresh rate,
-        typically 60 Hz.  Disabling wait allows frame rates faster than vsync
-        but can exhibit image tearing.  Currently only supported on Windows.
-    color_depth : 8 or 16
-        Number of bits per color channel (red, green, blue, alpha) in framebuffer.
-        If 16 is specified then offscreen rendering is used since it is not easy or
-        possible to switch on-screen framebuffer depth.
     '''
     from chimerax.atomic.structure import structure_graphics_updater
     gu = structure_graphics_updater(session)
@@ -81,41 +120,13 @@ def graphics(session, atom_triangles = None, bond_triangles = None,
         from .cartoon import cartoon_style
         cartoon_style(session, sides = 2*(ribbon_sides//2))
         change = True
-    if max_frame_rate is not None:
-        msec = 1000.0 / max_frame_rate
-        session.update_loop.set_redraw_interval(msec)
-        change = True
-    if frame_rate is not None:
-        show_frame_rate(session, frame_rate)
-        change = True
-    if wait_for_vsync is not None:
-        r = session.main_view.render
-        r.make_current()
-        if not r.wait_for_vsync(wait_for_vsync):
-            session.logger.warning('Changing wait for vsync is only supported on Windows by some drivers')
-        change = True
-    if color_depth is not None:
-        if color_depth not in (8, 16):
-            raise UserError('Only color depths 8 or 16 allowed, got %d' % color_depth)
-        v = session.main_view
-        r = v.render
-        r.set_offscreen_color_bits(color_depth)
-        r.offscreen.enabled = (color_depth == 16)
-        v.redraw_needed = True
-        change = True
 
     if change:
         gu.update_level_of_detail()
     else:
         na = gu.num_atoms_shown
-        if session.ui.is_gui:
-            msec = session.update_loop.redraw_interval
-            rate = 1000.0 / msec if msec > 0 else 1000.0
-        else:
-            rate = 0
-        msg = ('Atom triangles %d, bond triangles %d, ribbon divisions %d, max framerate %.3g' %
-               (lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions,
-                rate))
+        msg = ('Atom triangles %d, bond triangles %d, ribbon divisions %d' %
+               (lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions))
         session.logger.status(msg, log = True)
     
 def graphics_restart(session):
@@ -131,13 +142,7 @@ def graphics_restart(session):
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, TopModelsArg
     desc = CmdDesc(
-        keyword=[('atom_triangles', IntArg),
-                 ('bond_triangles', IntArg),
-                 ('total_atom_triangles', IntArg),
-                 ('total_bond_triangles', IntArg),
-                 ('ribbon_divisions', IntArg),
-                 ('ribbon_sides', IntArg),
-                 ('max_frame_rate', FloatArg),
+        keyword=[('max_frame_rate', FloatArg),
                  ('frame_rate', BoolArg),
                  ('wait_for_vsync', BoolArg),
                  ('color_depth', IntArg),
@@ -145,6 +150,18 @@ def register_command(logger):
         synopsis='Set graphics rendering parameters'
     )
     register('graphics', desc, graphics, logger=logger)
+
+    desc = CmdDesc(
+        keyword=[('atom_triangles', IntArg),
+                 ('bond_triangles', IntArg),
+                 ('total_atom_triangles', IntArg),
+                 ('total_bond_triangles', IntArg),
+                 ('ribbon_divisions', IntArg),
+                 ('ribbon_sides', IntArg),
+                 ],
+        synopsis='Set graphics rendering parameters'
+    )
+    register('graphics quality', desc, graphics_quality, logger=logger)
 
     desc = CmdDesc(synopsis='Restart graphics drawing after an error')
     register('graphics restart', desc, graphics_restart, logger=logger)
