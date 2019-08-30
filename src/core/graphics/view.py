@@ -90,7 +90,9 @@ class View:
             r.lighting = self._lighting
             r.material = self._material
             r.silhouette = self._silhouette
-            self.highlight_thickness = opengl_context.pixel_scale()
+            pscale = opengl_context.pixel_scale()
+            self.silhouette.thickness = pscale
+            self.highlight_thickness = pscale
         elif opengl_context is r.opengl_context:
             # OpenGL context switched between stereo and mono mode
             self._opengl_initialized = False
