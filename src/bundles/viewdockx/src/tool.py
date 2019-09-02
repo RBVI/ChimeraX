@@ -208,36 +208,55 @@ class _BaseTool(HtmlToolInstance):
             return self.structures
 
     def show_only(self, model_id):
-        self._block_updates = True
-        any_change = False
+        on = []
+        off = []
         structures = self.get_structures(model_id)
         for s in self.structures:
             onoff = s in structures
             if s.display != onoff:
-                s.display = onoff
-                any_change = True
-        self._block_updates = False
-        if any_change:
-            self._update_display()
+                if onoff:
+                    on.append(s)
+                else:
+                    off.append(s)
+        self._show_hide(on, off)
 
     def show_toggle(self, model_id):
-        self._block_updates = True
+        on = []
+        off = []
         structures = self.get_structures(model_id)
         for s in structures:
             if s in self.structures:
-                s.display = not s.display
-        self._block_updates = False
-        self._update_display()
+                if s.display:
+                    off.append(s)
+                else:
+                    on.append(s)
+        self._show_hide(on, off)
 
     def show_set(self, model_id, onoff):
-        self._block_updates = True
-        any_change = False
         structures = self.get_structures(model_id)
+        on = []
+        off = []
         for s in structures:
             if s.display != onoff and s in self.structures:
-                s.display = onoff
-        self._block_updates = False
-        if any_change:
+                if onoff:
+                    on.append(s)
+                else:
+                    off.append(s)
+        self._show_hide(on, off)
+
+    def _show_hide(self, on, off):
+        if on or off:
+            from chimerax.core.commands import concise_model_spec, run
+            self._block_updates = True
+            cmd = []
+            if off:
+                models = concise_model_spec(self.session, off)
+                cmd.append("hide %s models" % models)
+            if on:
+                models = concise_model_spec(self.session, on)
+                cmd.append("show %s models" % models)
+            run(self.session, " ; ".join(cmd))
+            self._block_updates = False
             self._update_display()
 
     # Session stuff
