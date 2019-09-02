@@ -475,6 +475,12 @@ class TableTool(_BaseTool):
         self._update_display()
         self._update_ratings()
 
+    def _cb_arrow(self, query):
+        from chimerax.core.commands import run
+        direction = query["direction"][0]
+        cmd = "viewdock %s name %s" % (direction, self.name)
+        run(self.session, cmd)
+
 
 class OutputCache(StringIO):
 

@@ -124,16 +124,21 @@ var vdxtable = function() {
              .keydown(function(ev) {
                 switch (ev.which) {
                   case 38:
-                      arrow_key(-1);
+                      process_arrow_key("up");
                       break
                   case 40:
-                      arrow_key(1);
+                      process_arrow_key("down");
                       break
                   default:
                       return;
                 }
                 ev.preventDefault();
              });
+    }
+
+    function process_arrow_key(direction) {
+        var url = custom_scheme + ":arrow?direction=" + direction;
+        window.location = url;
     }
 
     function arrow_key(offset) {
