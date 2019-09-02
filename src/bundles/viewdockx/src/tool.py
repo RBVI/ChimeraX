@@ -431,9 +431,13 @@ class TableTool(_BaseTool):
     def _cb_hb(self, query):
         # Create hydrogen bonds between receptor(s) and ligands
         from chimerax.core.commands import concise_model_spec, run
-        cmd = "hbonds %s restrict cross reveal true" % concise_model_spec(
-                                                            self.session,
-                                                            self.structures)
+        from chimerax.atomic import AtomicStructure
+        mine = concise_model_spec(self.session, self.structures)
+        all = self.session.models.list(type=AtomicStructure)
+        others = concise_model_spec(self.session,
+                                    set(all) - set(self.structures))
+        cmd = ("hbonds %s restrict %s "
+               "reveal true intersubmodel true" % (mine, others))
         run(self.session, cmd)
         self._count_pb("hydrogen bonds", "HBonds")
 
