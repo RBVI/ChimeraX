@@ -192,6 +192,9 @@ class RotamerDialog(ToolInstance):
     #TODO: restoring from session
     def __init__(self, session, residue, res_type, lib):
         ToolInstance.__init__(self, session, "%s Side-Chain Rotamers" % residue)
+        self._finalize_init(session, residue, res_type, lib)
+
+    def _finalize_init(self, session, residue, res_type, lib):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
