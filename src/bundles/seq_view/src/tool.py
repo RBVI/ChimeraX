@@ -52,9 +52,9 @@ class SequenceViewer(ToolInstance):
         ToolInstance.__init__(self, session, tool_name)
         if alignment is None:
             return
-        self._finalize_init(session, alignment)
+        self._finalize_init(alignment)
 
-    def _finalize_init(self, session, alignment):
+    def _finalize_init(self, alignment):
         """TODO
         from chimera import triggerSet
         self.triggers = triggerSet.TriggerSet()
@@ -84,7 +84,7 @@ class SequenceViewer(ToolInstance):
         # subcommand_name also in bundle_info.xml
         alignment.attach_viewer(self, subcommand_name="viewer")
         from . import settings
-        self.settings = settings.init(session)
+        self.settings = settings.init(self.session)
         """
         from SeqCanvas import shouldWrap
         if numberingDisplay:
@@ -598,7 +598,7 @@ class SequenceViewer(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(session, data['alignment'])
+        inst._finalize_init(data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])
