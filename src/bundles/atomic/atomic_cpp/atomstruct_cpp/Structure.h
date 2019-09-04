@@ -95,8 +95,9 @@ public:
 class ATOMSTRUCT_IMEX Structure: public GraphicsChanges,
         public pyinstance::PythonInstance<Structure> {
     friend class Atom; // for IDATM stuff and structure categories
-    friend class Bond; // for checking if make_chains() has been run yet, struct categories
+    friend class Bond; // for _form_chain_check, struct categories
     friend class Residue; // for _polymers_computed
+    friend class StructurePBGroup; // for _form_chain_check
     friend class StructureSeq; // for remove_chain()
 public:
     typedef std::vector<Atom*>  Atoms;
@@ -174,6 +175,7 @@ protected:
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
+    void  _form_chain_check(Atom* a1, Atom* a2, Bond* b=nullptr);
     void  _get_interres_connectivity(std::map<Residue*, int>& res_lookup,
             std::map<int, Residue*>& index_lookup,
             std::map<Residue*, bool>& res_connects_to_next,

@@ -25,7 +25,7 @@ class _AlignmentHdrsAPI(BundleAPI):
         return getattr(hdr_mod, class_name)
 
     @classmethod
-    def run_provider(cls, session, bundle_info, name, mgr, **kw):
+    def run_provider(cls, session, name, mgr, **kw):
         return cls.get_class(name)
 
 bundle_api = _AlignmentHdrsAPI()

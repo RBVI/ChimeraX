@@ -20,7 +20,7 @@ name_mapping = {
 }
 
 
-def run_preset(session, bundle_info, name, mgr, **kw):
+def run_preset(session, name, mgr, **kw):
     mgr.execute(lambda session=session, name=name: _execute(session, name))
 
 

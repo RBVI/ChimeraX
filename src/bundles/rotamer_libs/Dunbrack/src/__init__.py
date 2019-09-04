@@ -16,7 +16,7 @@ from chimerax.core.toolshed import BundleAPI
 class _DunbrackLibBundleAPI(BundleAPI):
 
     @staticmethod
-    def run_provider(session, bundle_info, name, mgr, **kw):
+    def run_provider(session, name, mgr, **kw):
         from .lib import DunbrackRotamerLibrary
         return DunbrackRotamerLibrary()
 

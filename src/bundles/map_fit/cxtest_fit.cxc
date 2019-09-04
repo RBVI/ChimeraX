@@ -1,0 +1,14 @@
+# Test various uses of the fitmap command
+open 1a0m
+molmap #1 5
+molmap /A 5
+molmap /B 5
+volume #2-4 calculateSurfaces true
+fit #1 in #2
+fit #3 in #2
+fit #3 in #2 subtract #4
+fit #3,4 in #2 sequence 4
+fit #1 in #2 search 3
+vol #2 sym C2
+fit #3 in #2 sym true
+fit #4 in #2 envelope false zeros true

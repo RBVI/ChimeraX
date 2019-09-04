@@ -419,6 +419,10 @@ of ``mac``.
 - **Providers**
 
   - List of providers that bundle provides
+  - Attribute:
+
+    - **manager**: optional default manager for nested **Provider** elements
+
   - Child elements:
 
     - **Provider** (one or more)
@@ -428,18 +432,13 @@ of ``mac``.
   - Attribute:
 
     - **manager**: name of the manager with which this provider
-      will be registered.
-    - **name**: name of provider.  The bundle must implement the
-      ``init_provider`` method.  The three positional arguments to
-      ``init_provider`` are the session instance, the provider name,
-      and the manager name (which can be used to fetch the manager
-      instance from the session).
+      will be registered.  Optional if **manager** is given in
+      parent **Providers** element.
+    - **name**: name of provider.
     - Other attributes listed in the **Provider** tag are passed
-      as keyword arguments to ``init_provider``.
-      If ``init_provider`` needs additional information, it should
-      query the manager instance fetched from the session.
+      as keyword arguments to the manager's ``add_provider`` method.
     - Bundles that supply providers should implement the method:
-        ``run_provider(session, bundle_info, provider_name, manager, **kw)``
+        ``run_provider(session, provider_name, manager, **kw)``
       which may be used by the manager to invoke provider functionality.
 
 - **PythonClassifier**

@@ -31,9 +31,11 @@ var vdxtable = function() {
 
     function update_columns(columns) {
         // Clean up previous incarnation and save some state.
+        var preserve_hidden = false;
         if ($("#viewdockx_table").bootgrid("getTotalRowCount") > 0) {
             // Only save column state if there was something there before.
             // Also preserves "hidden" if we were just restored.
+            preserve_hidden = true;
             hidden = {};
             var settings = $("#viewdockx_table").bootgrid("getColumnSettings");
             for (var i = 0; i < settings.length; i++) {
@@ -54,6 +56,21 @@ var vdxtable = function() {
         var numeric = columns["numeric"];
         var text = columns["text"];
         var ids = text["id"];
+
+        // If we are not preserving column visibility (probably
+        // first time through), then look at text columns and
+        // hide those with unacceptably long values
+        if (!preserve_hidden)
+            $.each(text, function(key, v) {
+                if (key != "id" && key != "name") {
+                    var num_bad = 0;
+                    for (var i = 0; i < 10; i++)
+                        if (v[i].length > 50)
+                            num_bad++;
+                    if (num_bad > 5)
+                        hidden[key] = true;
+                }
+            });
 
         // Build column lists
         var thead = $("<thead/>").appendTo(table);
@@ -119,7 +136,48 @@ var vdxtable = function() {
                              .on("rating:change", change_rating);
                  window.location = custom_scheme + ":columns_updated";
              })
-             .bootgrid("append", rows);
+             .bootgrid("append", rows)
+             .attr("tabindex", 0)           // make table accept focus
+             .keydown(function(ev) {
+                switch (ev.which) {
+                  case 38:
+                      process_arrow_key("up");
+                      break
+                  case 40:
+                      process_arrow_key("down");
+                      break
+                  default:
+                      return;
+                }
+                ev.preventDefault();
+             });
+    }
+
+    function process_arrow_key(direction) {
+        var url = custom_scheme + ":arrow?direction=" + direction;
+        window.location = url;
+    }
+
+    function arrow_key(offset) {
+        var table = $("#viewdockx_table");
+        var grid = table.bootgrid().data('.rs.jquery.bootgrid');
+        var selected = table.bootgrid("getSelectedRows");
+        var rows = grid.currentRows;
+        var indices = [];
+        for (var i = 0; i < rows.length; i++) {
+            if (selected.includes(rows[i].id))
+                indices.push(i);
+        }
+        var newsel = [];
+        for (var i = 0; i < indices.length; i++) {
+            var n = indices[i] + offset;
+            if (n >= 0 && n < rows.length)
+                newsel.push(rows[n].id);
+        }
+        if (newsel.length > 0) {
+            var url = custom_scheme + ":show_only?id=" + newsel;
+            window.location = url;
+        }
     }
 
     function update_shown() {
@@ -199,6 +257,7 @@ var vdxtable = function() {
         update_columns: update_columns,
         update_display: update_display,
         update_ratings: update_ratings,
+        arrow_key: arrow_key,
         get_state: get_state,
         set_state: set_state,
         init: init

@@ -223,7 +223,7 @@ class ColormapArg(cli.Annotation):
             if len(values) == 0:
                 values = None
             from ..colors import Colormap
-            consumed = text
+            consumed = f'^{text}' if reversed else text
             cmap = Colormap(values, [c.rgba for c in colors])
         else:
             ci_token = token.casefold()
@@ -232,7 +232,7 @@ class ColormapArg(cli.Annotation):
                 if i < len(session.user_colormaps):
                     name = session.user_colormaps.iloc[i]
                     if name.startswith(ci_token):
-                        consumed = name
+                        consumed = f'^{name}' if reversed else name
                         cmap = session.user_colormaps[name]
             if cmap is None:
                 from ..colors import BuiltinColormaps
@@ -240,10 +240,10 @@ class ColormapArg(cli.Annotation):
                 if i < len(BuiltinColormaps):
                     name = BuiltinColormaps.iloc[i]
                     if name.startswith(ci_token):
-                        consumed = name
+                        consumed = f'^{name}' if reversed else name
                         cmap = BuiltinColormaps[name]
             if cmap is None and session is not None:
-                consumed = text
+                consumed = f'^{text}' if reversed else text
                 cmap = _fetch_colormap(session, palette_id=token)
         if cmap is None:
             from ..errors import UserError

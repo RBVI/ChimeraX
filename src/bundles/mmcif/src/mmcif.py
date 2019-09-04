@@ -836,4 +836,5 @@ class CIFTable:
 
 # TODO: @deprecated(version='1.1', reason='Use get_cif_tables() instead')
 def get_mmcif_tables(filename, table_names):
+    """Deprecated API.  Use get_cif_tables() instead."""
     return get_cif_tables(filename, table_names)

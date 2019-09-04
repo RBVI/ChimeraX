@@ -194,6 +194,21 @@ def labeled_objects_by_model(session, otype):
     oclass = label_object_class(otype)
     return [(lm.parent, lm.labeled_objects(oclass))
             for lm in session.models.list(type = ObjectLabels)]
+
+# -----------------------------------------------------------------------------
+#
+def label_objects(objects, object_types = ['atoms', 'residues', 'pseudobonds', 'bonds']):
+    lobjects = []
+    lmodels = set()
+    for otype in object_types:
+        for m, lbl_objects in objects_by_model(objects, otype):
+            lm = labels_model(m)
+            if lm is not None:
+                lo = lm.labels(lbl_objects)
+                if lo:
+                    lobjects.extend(lo)
+                    lmodels.add(lm)
+    return lmodels, lobjects
         
 # -----------------------------------------------------------------------------
 #
@@ -308,9 +323,14 @@ class ObjectLabels(Model):
     def _set_single_color(self, color):
         for ld in self._labels:
             ld.color = color
-        self._texture_needs_update = True
-        self.redraw_needed()
+        self.update_labels()
     single_color = property(_get_single_color, _set_single_color)
+
+    def labels(self, objects = None):
+        if objects is None:
+            self._labels
+        ol = self._object_label
+        return [ol[o] for o in objects if o in ol]
     
     def add_labels(self, objects, label_class, view, settings = {}, on_top = None):
         if on_top is not None:
@@ -326,8 +346,11 @@ class ObjectLabels(Model):
                     setattr(lo, k, v)
         self._count_pixel_sized_labels()
         if objects:
-            self._texture_needs_update = True
-            self.redraw_needed()
+            self.update_labels()
+
+    def update_labels(self):
+        self._texture_needs_update = True
+        self.redraw_needed()
             
     def _count_pixel_sized_labels(self):
         self._num_pixel_labels = len([l for l in self._labels if l.height is None])

@@ -220,11 +220,14 @@ StructurePBGroup::new_pseudobond(Atom* a1, Atom* a2)
     pb->set_color(color());
     pb->set_halfbond(halfbond());
     pb->set_radius(radius());
-    _pbonds.insert(pb); return pb;
+    _pbonds.insert(pb);
     if (category() == Structure::PBG_METAL_COORDINATION) {
         a1->_uncache_radius();
         a2->_uncache_radius();
     }
+    if (category() == Structure::PBG_MISSING_STRUCTURE)
+        structure()->_form_chain_check(a1, a2);
+    return pb;
 }
 
 const PBGroup::Pseudobonds&

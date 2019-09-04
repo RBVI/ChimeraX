@@ -33,17 +33,17 @@
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
 
-  <Providers>
+  <Providers manager="presets">
     <Provider category="Initial Styles" name="Original Look"
-              order="0" manager="presets"/>
+              order="0"/>
     <Provider category="Initial Styles" name="Sticks"
-              order="1" manager="presets"/>
+              order="1"/>
     <Provider category="Initial Styles" name="Cartoon"
-              order="2" manager="presets"/>
+              order="2"/>
     <Provider category="Initial Styles" name="Space-Filling (chain colors)"
-              order="3" manager="presets"/>
+              order="3"/>
     <Provider category="Initial Styles" name="Space-Filling (single color)"
-              order="4" manager="presets"/>
+              order="4"/>
   </Providers>
 
   <Classifiers>

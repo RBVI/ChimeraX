@@ -30,7 +30,9 @@ def fit_search(models, points, point_weights, volume, n,
 
     bounds = volume.surface_bounds()
     if bounds is None:
-        bounds = volume.xyz_bounds(step = 1)
+        xyz_min, xyz_max = volume.xyz_bounds(step = 1)
+        from chimerax.core.geometry import Bounds
+        bounds = Bounds(xyz_min, xyz_max)
 
     asym_center_f = (.75,.55,.55)
     asym_center = tuple(x0 + (x1-x0)*f

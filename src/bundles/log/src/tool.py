@@ -197,10 +197,20 @@ class Log(ToolInstance, HtmlLog):
                 #from PyQt5.QtCore import Qt
                 #self.setContextMenuPolicy(Qt.NoContextMenu)
 
-            def link_clicked(self, *args, **kw):
+            def link_clicked(self, request_info, *args, **kw):
                 # for #2289, don't scroll log when a link in it is clicked
-                self.log.suppress_scroll = True
-                super().link_clicked(*args, **kw)
+                qurl = request_info.requestUrl()
+                scheme = qurl.scheme()
+                if scheme == 'data':
+                    # fix #2303, spurious link_clicked
+                    return
+                if scheme == 'cxcmd':
+                    cmd = qurl.url(qurl.None_)[6:].lstrip()  # skip cxcmd:
+                    self.log.suppress_scroll = cmd and (
+                            cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
+                super().link_clicked(request_info, *args, **kw)
+                if not self.log.suppress_scroll:
+                    return
                 def defer(log_tool):
                     log_tool.suppress_scroll = False
                 # clicked link is executed via thread_safe, so add another
@@ -399,10 +409,10 @@ class Log(ToolInstance, HtmlLog):
             executable_links = self.settings.exec_cmd_links
         from os.path import expanduser
         path = expanduser(path)
-        with open(path, 'w') as f:
-            f.write("<!DOCTYPE html>\n"
-                    "<html>\n"
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write("<html>\n"
                     "<head>\n"
+                    "<meta charset='utf-8'>\n"
                     "<title> ChimeraX Log </title>\n"
                     '<script type="text/javascript">\n'
                     "%s"

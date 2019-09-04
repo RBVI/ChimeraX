@@ -63,7 +63,6 @@ rainbow residues palette RdBu-10
 rename #1 snafu
 roll
 roll z rock 100
-run "echo hi"
 # runscript
 select :12
 select up
@@ -100,7 +99,7 @@ version bundles
 version packages
 view
 view initial
-debug expectfail wait
+# debug expectfail wait
 windowsize
 windowsize 512 256
 zoom

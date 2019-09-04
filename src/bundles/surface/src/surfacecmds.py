@@ -61,6 +61,10 @@ def surface(session, atoms = None, enclose = None, include = None,
       Whether to replace an existing surface for the same atoms or make a copy.
     '''
 
+    if resolution is not None and probe_radius is not None:
+        session.logger.warning('surface: Can only use probeRadius or resolution,'
+                               ' not both, ignoring probeRadius')
+        
     from chimerax.atomic.molsurf import MolecularSurface, remove_solvent_ligands_ions
     from chimerax.atomic.molsurf import surface_rgba, update_color, surfaces_overlapping_atoms
 
@@ -151,9 +155,11 @@ def surface(session, atoms = None, enclose = None, include = None,
     #       to write an error message to the log, not in the main thread.
 
     if not resolution is None and resolution > 0 and level is None:
-        log = session.logger
-        log.info('\n'.join('%s contour level %.3f' % (s.name, s.gaussian_level)
-                           for s in surfs))
+        msg = '\n'.join('%s contour level %.3f' % (s.name, s.gaussian_level)
+                        for s in surfs if hasattr(s, 'gaussian_level'))
+        if msg:
+            log = session.logger
+            log.info(msg)
             
     # Add new surfaces to open models list.
     for s, parent in new_surfs:
@@ -280,6 +286,7 @@ def surface_cap(session, enable = None, offset = None, subdivision = None):
       are about the length of the edge lengths on the perimeter of the cap which are usually
       comparable to the size of the triangles of the surface that is being clipped.
     '''
+    update = False
     from .settings import settings
     if enable is not None and enable != settings.clipping_surface_caps:
         settings.clipping_surface_caps = enable

@@ -18,17 +18,17 @@
 #
 def register_molmap_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, PositiveFloatArg
     from chimerax.core.commands import CenterArg, AxisArg, CoordSysArg
     from chimerax.atomic import SymmetryArg, AtomsArg
     from . import MapArg
     molmap_desc = CmdDesc(
         required = [
             ('atoms', AtomsArg),
-            ('resolution', FloatArg),
+            ('resolution', PositiveFloatArg),
         ],
         keyword = [
-            ('grid_spacing', FloatArg),
+            ('grid_spacing', PositiveFloatArg),
             ('edge_padding', FloatArg),
             ('on_grid', MapArg),
             ('cutoff_range', FloatArg),

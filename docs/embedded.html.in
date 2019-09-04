@@ -43,6 +43,42 @@ or as a binary package written in C or C++.
 <br>
 License: ChimeraX is develped with a commercial license for PyQt.
 See the Riverbank <a href="https://www.riverbankcomputing.com/commercial/license-faq" target="_blank"> License FAQ </a> for more details.
+<p>
+<dt>Rotamer libraries (amino acid sidechain conformations and associated information) from the following sources:
+<dd>
+<p>
+<ul>
+<li><a href="http://dunbrack.fccc.edu/bbdep2010/"
+target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>,
+described in:
+  <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
+A smoothed backbone-dependent rotamer library for proteins derived from 
+adaptive kernel density estimates and regressions.</a>
+Shapovalov MV, Dunbrack RL Jr.
+<i>Structure.</i> 2011 Jun 8;19(6):844-58.
+  </blockquote>
+</li>
+<li><a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
+target="_blank">Dynameomics rotamer library</a>, described in:
+   <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
+The Dynameomics rotamer library: amino acid side chain conformations 
+and dynamics from comprehensive molecular dynamics simulations in water.</a>
+Scouras AD, Daggett V.
+<i>Protein Sci.</i> 2011 Feb;20(2):341-52.
+   </blockquote>
+</li>
+<li><a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
+target="_blank">Richardson backbone-independent rotamer library</a>, described in:
+   <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
+The penultimate rotamer library.</a>
+Lovell SC, Word JM, Richardson JS, Richardson DC.
+<i>Proteins.</i> 2000 Aug 15;40(3):389-408.
+   </blockquote>
+</li>
+</ul>
 
 <!--ffmpeg-->
 

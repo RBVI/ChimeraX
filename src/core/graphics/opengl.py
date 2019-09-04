@@ -1642,6 +1642,19 @@ class Silhouette:
                                  self.color, self.depth_jump,
                                  self.perspective_near_far_ratio)
 
+    def draw_silhouette(self, render):
+        r = render
+        fb = r.current_framebuffer()
+
+        # Can't have depth texture attached to framebuffer and sampled.
+        fb.attach_depth_texture(None)  # Detach depth texture
+        
+        self._draw_depth_outline(render, fb.depth_texture, self.thickness,
+                                 self.color, self.depth_jump,
+                                 self.perspective_near_far_ratio)
+
+        fb.attach_depth_texture(fb.depth_texture)  # Reattach depth texture
+
     def _silhouette_framebuffer(self, render):
         r = render
         size = r.render_size()
@@ -1783,6 +1796,7 @@ class BlendTextures:
             self._background_cleared = False
         else:
             r.draw_background()
+            self._background_cleared = True
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFuncSeparate(GL.GL_ONE, GL.GL_ONE, GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
         
@@ -1960,10 +1974,7 @@ class Framebuffer:
             self._draw_buffer = GL.GL_NONE
 
         if isinstance(depth_buf, Texture):
-            level = 0
-            GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
-                                      GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D,
-                                      depth_buf.id, level)
+            self.attach_depth_texture(depth_buf)
         elif depth_buf is not None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_DEPTH_ATTACHMENT,
@@ -1995,6 +2006,13 @@ class Framebuffer:
         self.width = w
         self.height = h
         self.viewport = (0,0,w,h)
+
+    def attach_depth_texture(self, depth_texture):
+        tid = 0 if depth_texture is None else depth_texture.id
+        level = 0
+        GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
+                                  GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D,
+                                  tid, level)
 
     def __del__(self):
         if not self._deleted and self._fbo != 0:
@@ -2434,14 +2452,23 @@ class Buffer:
         self.instance_buffer = t.instance_buffer
         self.requires_capabilities = t.requires_capabilities
 
+        self._deleted_buffer = False
+        
     def __del__(self):
-        if self.opengl_buffer is not None:
+        if not self._deleted_buffer:
             raise OpenGLError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
                                % self.shader_variable_name)
 
     def delete_buffer(self):
         'Delete the OpenGL buffer object.'
+        self._deleted_buffer = True
+        self.release_buffer()
 
+    def release_buffer(self):
+        '''
+        Releases OpenGL buffer and array data, but Buffer can still be used
+        by calling update_buffer_data() to recreate it.
+        '''
         if self.opengl_buffer is None:
             return
         GL.glDeleteBuffers(1, [self.opengl_buffer])
@@ -2481,11 +2508,14 @@ class Buffer:
         Update the buffer with data supplied by a numpy array and bind it to
         the associated shader variable.  Return true if the buffer is deleted and replaced.
         '''
+        if self._deleted_buffer:
+            raise RuntimeError('Attempt to update a deleted buffer')
+        
         bdata = self.buffered_data
         replace_buffer = (data is None or bdata is None
                           or data.shape != bdata.shape)
         if replace_buffer:
-            self.delete_buffer()
+            self.release_buffer()
 
         if data is not None:
             b = GL.glGenBuffers(1) if replace_buffer else self.opengl_buffer

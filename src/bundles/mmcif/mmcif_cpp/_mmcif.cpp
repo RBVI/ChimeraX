@@ -290,9 +290,7 @@ _mmcif_find_template_residue(PyObject*, PyObject* _ptArg)
 		Py_ssize_t size;
 		const char *name = PyUnicode_AsUTF8AndSize(_ptArg, &size);
 		std::string cppArg(name, size);
-std::cerr << "find_template_residue('" << cppArg << "')\n";
 		const tmpl::Residue* r = find_template_residue(cppArg);
-std::cerr << "  --> " << r << '\n';
 		if (!r) {
 			PyErr_Format(PyExc_ValueError, "No template for residue type %s", name);
 			return NULL;
