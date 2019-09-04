@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .swap_res import swap_aa, get_rotamers
+
 from chimerax.core.toolshed import BundleAPI
 
 class SwapResAPI(BundleAPI):

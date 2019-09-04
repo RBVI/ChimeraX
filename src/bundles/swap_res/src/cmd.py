@@ -11,19 +11,15 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import UserError
+
 default_criteria = "dhcp"
 def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_criteria,
     density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=False, lib=None, log=True,
     preserve=None, relax=True, retain=False, score_method="num", overlap_cutoff=None):
-    '''
-    Command to swap amino acid side chains
-    '''
-    from chimerax.core.errors import UserError
-    residues = [r for r in residues if r.polymer_type == r.PT_AMINO]
-    if not residues:
-        raise UserError("No amino acid residues specified for swapping")
+    ''' Command to swap amino acid side chains '''
 
-    # res_type and lib are handled by underlying call
+    residues = _check_residues(residues)
 
     if type(criteria) == str:
         for c in criteria:
@@ -31,16 +27,8 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
                 raise UserError("Unknown criteria: '%s'" % c)
 
     if lib is None:
-        available_libs = session.rotamers.library_names()
-        for lib_name in available_libs:
-            if "Dunbrack" in lib_name:
-                lib = lib_name
-                break
-        else:
-            if available_libs:
-                lib = available_libs[0]
-            else:
-                raise UserError("No rotamer libraries installed!")
+        lib = _get_lib(session)
+
     if log:
         session.logger.info("Using %s library" % lib)
 
@@ -50,6 +38,51 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
         criteria=criteria, density=density, hbond_angle_slop=angle_slop,
         hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, lib=lib, log=log,
         preserve=preserve, hbond_relax=relax, retain=retain)
+
+def rotamers(session, residues, res_type, *, lib=None, log=True):
+    ''' Command to display possible side-chain rotamers '''
+
+    residues = _check_residues(residues)
+
+    if lib is None:
+        lib = _get_lib(session)
+
+    if log:
+        session.logger.info("Using %s library" % lib)
+
+    ret_val = []
+    from . import swap_res
+    #TODO: don't register attribute, use state manager for each rotamers group
+    from chimerax.atomic import AtomicStructures, AtomicStructure
+    AtomicStructure.register_attr(session, "rotamer_base_res", "Rotamers")
+    for r in residues:
+        rotamers = swap_res.get_rotamers(session, r, res_type=res_type, lib=lib, log=log)
+        for rot in rotamers:
+            rot.rotamer_base_res = r
+        rot_structs = AtomicStructures(rotamers)
+        from chimerax.std_commands.color import color
+        color(session, rot_structs, color="byhetero")
+        ret_val.append(rot_structs)
+    return ret_val
+
+def _check_residues(residues):
+    residues = [r for r in residues if r.polymer_type == r.PT_AMINO]
+    if not residues:
+        raise UserError("No amino acid residues specified for swapping")
+    return residues
+
+def _get_lib(session):
+    available_libs = session.rotamers.library_names()
+    for lib_name in available_libs:
+        if "Dunbrack" in lib_name:
+            lib = lib_name
+            break
+    else:
+        if available_libs:
+            lib = available_libs[0]
+        else:
+            raise UserError("No rotamer libraries installed!")
+    return lib
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, IntArg, Or, FloatArg, EnumOf
@@ -76,4 +109,14 @@ def register_command(command_name, logger):
         ],
         synopsis = 'Swap amino acid side chain(s)'
     )
-    register(command_name, desc, swap_aa, logger=logger)
+    register("swapaa", desc, swap_aa, logger=logger)
+
+    desc = CmdDesc(
+        required = [('residues', ResiduesArg), ('res_type', StringArg)],
+        keyword = [
+            ('lib', DynamicEnum(logger.session.rotamers.library_names)),
+            ('log', BoolArg),
+        ],
+        synopsis = 'Show possible side-chain rotamers'
+    )
+    register("rotamers", desc, rotamers, logger=logger)

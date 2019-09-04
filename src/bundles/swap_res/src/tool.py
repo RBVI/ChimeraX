@@ -189,14 +189,41 @@ class RotamerDialog(ToolInstance):
 
     #help = "help:user/tools/rotamers.html"
 
-    #TODO: restoring from session
+    #TODO: restoring from session; including getting rot_lib to save/restore
     def __init__(self, session, tool_name, *args):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # called directly rather than during session restore
-            self._finalize_init(*args)
+            self.finalize_init(*args)
 
-    def _finalize_init(self, residue, res_type, lib):
+    def destroy(self):
+        for handler in self.handlers:
+            handler.remove()
+        live_rotamers = [rot for rot in self.rotamers if not rot.deleted]
+        if live_rotamers:
+            self.session.models.close(live_rotamers)
+        super().destroy()
+
+    def finalize_init(self, residue, res_type, lib, session_data=None):
+        self.residue = residue
+        self.res_type = res_type
+        self.rot_lib = rot_lib
+
+        if session_data:
+            self.rotamers, table_data = session_data
+        else:
+            from . import get_rotamers
+            self.rotamers = get_rotamers(residue, log=True, lib=lib, res_type=res_type)
+            from chimerax.atomic import AtomicStructures
+            rot_structs = AtomicStructures(self.rotamers)
+            from chimerax.std_commands.color import color
+            color(self.session, rot_structs, color="byhetero")
+
+        #TODO: dependent dialogs (H-bonds, clashes, density)
+        from chimerax.atomic import get_triggers
+        self.handlers = [
+            get_triggers().add_handler('changes', self._atomic_changes_cb),
+        ]
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
@@ -204,3 +231,17 @@ class RotamerDialog(ToolInstance):
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
+
+    def _atomic_changes_cb(self, trig_name, changes):
+        if changes.num_deleted_residues() == 0:
+            return
+        if self.residue.deleted:
+            self.destroy()
+        else:
+            live_rotamers = [r for r in self.rotamers if not r.deleted]
+            if len(live_rotamers) != len(self.rotamers):
+                self.rotamers = rotamers
+                if not self.rotamers:
+                    self.destroy()
+                else:
+                    self.rot_table.set_data(self.rotamers)
