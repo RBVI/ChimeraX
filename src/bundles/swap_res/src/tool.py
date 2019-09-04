@@ -121,7 +121,7 @@ class PrepRotamersDialog(ToolInstance):
         from chimerax.atomic.rotamers import NoResidueRotamersError
         try:
             for r in sel_residues:
-                RotamerDialog(self.session, r, res_type, self.rot_lib)
+                RotamerDialog(self.session, "%s Side-Chain Rotamers" % residue, r, res_type, self.rot_lib)
         except NoResidueRotamersError:
             lib_name = self.rot_lib_option.value
             from chimerax.core.commands import run
@@ -190,11 +190,13 @@ class RotamerDialog(ToolInstance):
     #help = "help:user/tools/rotamers.html"
 
     #TODO: restoring from session
-    def __init__(self, session, residue, res_type, lib):
-        ToolInstance.__init__(self, session, "%s Side-Chain Rotamers" % residue)
-        self._finalize_init(session, residue, res_type, lib)
+    def __init__(self, session, tool_name, *args):
+        ToolInstance.__init__(self, session, tool_name)
+        if args:
+            # called directly rather than during session restore
+            self._finalize_init(*args)
 
-    def _finalize_init(self, session, residue, res_type, lib):
+    def _finalize_init(self, residue, res_type, lib):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
