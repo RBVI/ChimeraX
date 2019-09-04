@@ -47,10 +47,6 @@ class SequenceViewer(ToolInstance):
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
             set_state_from_snapshot will be called later.
-
-            if 'autoAssociate' is None then it is the same as False except
-            that any StructureSequences in the alignment will be associated
-            with their structures
         """
 
         ToolInstance.__init__(self, session, tool_name)
