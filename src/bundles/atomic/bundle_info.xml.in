@@ -56,6 +56,7 @@
     <ChimeraXClassifier>Selector :: protein :: proteins</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: nucleic :: nucleic acids</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: nucleic-acid :: nucleic acids</ChimeraXClassifier>
+    <ChimeraXClassifier>Selector :: sel-residues :: current selection promoted to full residues</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: strand :: beta sheet strands</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: helix :: protein helices</ChimeraXClassifier>
     <ChimeraXClassifier>Selector :: coil :: protein coils</ChimeraXClassifier>
