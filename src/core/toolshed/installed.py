@@ -327,6 +327,7 @@ def _report_difference(logger, before, after):
 def _make_bundle_info(d, installed, logger):
     """Convert distribution into a list of :py:class:`BundleInfo` instances."""
     from .info import BundleInfo, ToolInfo, CommandInfo, SelectorInfo, FormatInfo
+    from ..commands import unescape
     import pkginfo
     name = d.project_name
     version = d.version
@@ -351,7 +352,7 @@ def _make_bundle_info(d, installed, logger):
         return None
     kw['packages'] = _get_installed_packages(d, logger)
     for classifier in md.classifiers:
-        parts = [v.strip() for v in classifier.split("::")]
+        parts = [v.strip() for v in classifier.split(" ::")]
         if parts[0] != 'ChimeraX':
             continue
         if parts[1] == 'Bundle':
@@ -476,7 +477,7 @@ def _make_bundle_info(d, installed, logger):
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None
             if len(parts) != 7:
-                logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
+                logger.warning("Malformed ChimeraX :: Fetch line in %s skipped." % name)
                 logger.warning("Expected 7 fields and got %d." % len(parts))
                 continue
             database_name, format_name, prefixes, example_id, is_default = parts[2:]
@@ -549,6 +550,10 @@ def _make_bundle_info(d, installed, logger):
             kw = {}
             for p in parts[3:]:
                 k, v = p.split(':', 1)
+                if v[0] in '\'"':
+                    v = unescape(v[1:-1])
+                else:
+                    v = unescape(v)
                 kw[k] = v
             bi.managers[name] = kw
         elif parts[1] == 'Provider':
@@ -564,6 +569,10 @@ def _make_bundle_info(d, installed, logger):
             kw = {}
             for p in parts[4:]:
                 k, v = p.split(':', 1)
+                if v[0] in '\'"':
+                    v = unescape(v[1:-1])
+                else:
+                    v = unescape(v)
                 kw[k] = v
             bi.providers[name] = (mgr, kw)
         elif parts[1] == 'InitAfter':

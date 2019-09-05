@@ -44,10 +44,10 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
-  <Providers>
-    <Provider name="vdxchart" manager="url_schemes"/>
-    <Provider name="vdxplot" manager="url_schemes"/>
-    <Provider name="vdxtable" manager="url_schemes"/>
+  <Providers manager="url_schemes">
+    <Provider name="vdxchart"/>
+    <Provider name="vdxplot"/>
+    <Provider name="vdxtable"/>
   </Providers>
 
   <Classifiers>

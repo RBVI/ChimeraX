@@ -67,6 +67,8 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     rots = prune_by_chis(session, rots, res, preserve, log=log)
                 by_alt_loc[alt_loc] = rots
                 destroy_list.extend(rots)
+            if not by_alt_loc:
+                del rotamers[res]
     if not rotamers:
         return
 

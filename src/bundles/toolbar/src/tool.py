@@ -140,6 +140,24 @@ class ToolbarTool(ToolInstance):
                         tab, section, descrip,
                         lambda e, what=what, self=self: self.handle_scheme(what),
                         icon, tooltip, **kw)
+        # add buttons from toolbar manager
+        for tab, tab_info in self.session.toolbar._toolbar.items():
+            if tab.startswith("hidden"):
+                continue
+            # TODO: compact
+            for section, section_info in tab_info.items():
+                for display_name, args in section_info.items():
+                    (name, bundle_info, icon_path, description, kw) = args
+                    if description and not description[0].isupper():
+                        description = description.capitalize()
+                    pm = QPixmap(icon_path)
+                    icon = QIcon(pm)
+                    def callback(event, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
+                        bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
+                    # TODO: vr_mode
+                    self.ttb.add_button(
+                            tab, section, display_name, callback,
+                            icon, description, **kw)
         self.ttb.show_tab('Home')
 
 def _file_open(session):
@@ -210,16 +228,6 @@ _Toolbars = {
                 ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
                 ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
                 ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
-                (if_sel_atoms("nucleotides sel atoms; style nucleic & sel stick",
-                              "nucleotides atoms; style nucleic stick"),
-                 "nuc-atoms.png", "Plain", "Remove nucleotides styling", {'group': 'nuc'}),
-                (if_sel_atoms("nucleotides sel fill; style nucleic & sel stick",
-                              "nucleotides fill; style nucleic stick"),
-                 "nuc-fill.png", "Filled", "Show nucleotides with filled rings", {'group': 'nuc'}),
-                (if_sel_atoms("nucleotides sel tube/slab shape box"),
-                 "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes", {'group': 'nuc'}),
-                (if_sel_atoms("nucleotides sel ladder"),
-                 "nuc-ladder.png", "Ladder", "Show nucleotides as H-bond ladders", {'group': 'nuc'}),
             ],
             ("Coloring", False): [
                 ("shortcut:ce", "colorbyelement.png", "heteroatom", "Color non-carbon atoms by element"),
@@ -227,43 +235,12 @@ _Toolbars = {
                 ("shortcut:rB", "rainbow.png", "rainbow", 'Rainbow color N to C-terminus'),
                 ("shortcut:bf", "bfactor.png", "b-factor", 'Color by b-factor'),
                 ("shortcut:hp", "hydrophobicity.png", "hydrophobic", 'Color surface by hydrophobicity'),
-                (if_sel_atoms("color sel bynuc"), "nuc-color.png", "nucleotide", "Color by nucleotide"),
             ],
             ("Analysis", False): [
                 ("shortcut:hb", "hbondsflat.png", "H-bonds", "Show hydrogen bonds"),
                 ("shortcut:HB", "hbondsflathide.png", "Hide H-bonds", "Hide hydrogen bonds"),
                 ("shortcut:sq", "sequence.png", "Sequence", "Show polymer sequence"),
                 ("shortcut:if", "interfaces.png", "Interfaces", "Show chain contacts diagram"),
-            ],
-        },
-    ),
-    "Nucleotides": (
-        None,
-        {
-            ("Styles", False): [
-                (if_sel_atoms("nucleotides sel atoms; style nucleic & sel stick",
-                              "nucleotides atoms; style nucleic stick"),
-                 "nuc-atoms.png", "Plain", "Remove nucleotides styling"),
-                (if_sel_atoms("nucleotides sel fill; style nucleic & sel stick",
-                              "nucleotides fill; style nucleic stick"),
-                 "nuc-fill.png", "Filled", "Show nucleotides with filled rings"),
-                (if_sel_atoms("nucleotides sel slab; style nucleic & sel stick",
-                              "nucleotides slab; style nucleic stick"),
-                 "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
-                (if_sel_atoms("nucleotides sel tube/slab shape box"),
-                 "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes"),
-                (if_sel_atoms("nucleotides sel tube/slab shape ellipsoid"),
-                 "nuc-elli.png", "Tube/\nEllipsoid", "Show nucleotide bases as ellipsoids and sugars as tubes"),
-                (if_sel_atoms("nucleotides sel tube/slab shape muffler"),
-                 "nuc-muff.png", "Tube/\nMuffler", "Show nucleotide bases as mufflers and sugars as tubes"),
-                (if_sel_atoms("nucleotides sel ladder"),
-                 "nuc-ladder.png", "Ladder", "Show nucleotides as H-bond ladders"),
-                (if_sel_atoms("nucleotides sel stubs"),
-                 "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
-            ],
-            ("Coloring", False): [
-                (if_sel_atoms("color sel bynuc"),
-                 "nuc-color.png", "nucleotide", "Color by nucleotide"),
             ],
         },
     ),

@@ -47,18 +47,14 @@ class SequenceViewer(ToolInstance):
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
             set_state_from_snapshot will be called later.
-
-            if 'autoAssociate' is None then it is the same as False except
-            that any StructureSequences in the alignment will be associated
-            with their structures
         """
 
         ToolInstance.__init__(self, session, tool_name)
         if alignment is None:
             return
-        self._finalize_init(session, alignment)
+        self._finalize_init(alignment)
 
-    def _finalize_init(self, session, alignment):
+    def _finalize_init(self, alignment):
         """TODO
         from chimera import triggerSet
         self.triggers = triggerSet.TriggerSet()
@@ -85,10 +81,10 @@ class SequenceViewer(ToolInstance):
         self.seqs = seqs
         """
         self.alignment = alignment
-        from . import subcommand_name
-        alignment.attach_viewer(self, subcommand_name=subcommand_name)
+        # subcommand_name also in bundle_info.xml
+        alignment.attach_viewer(self, subcommand_name="viewer")
         from . import settings
-        self.settings = settings.init(session)
+        self.settings = settings.init(self.session)
         """
         from SeqCanvas import shouldWrap
         if numberingDisplay:
@@ -602,7 +598,7 @@ class SequenceViewer(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(session, data['alignment'])
+        inst._finalize_init(data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])

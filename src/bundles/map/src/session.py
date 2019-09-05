@@ -342,6 +342,8 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     from gzip import decompress
     from base64 import b64decode
     a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
+    if not a.flags.writeable:
+      a = a.copy()
     array = a.reshape(s['size'][::-1])
     from .data import ArrayGridData
     dlist = [ArrayGridData(array)]

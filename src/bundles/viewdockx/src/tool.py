@@ -161,16 +161,20 @@ class _BaseTool(HtmlToolInstance):
     def _update_display(self, trigger=None, trigger_data=None):
         if self._block_updates:
             return
-        import json
-        onoff = json.dumps(self._make_display(trigger_data))
-        js = "%s.update_display(%s);" % (self.CUSTOM_SCHEME, onoff)
-        self.html_view.runJavaScript(js)
+        data = self._make_display(trigger_data)
+        if data:
+            import json
+            onoff = json.dumps(data)
+            js = "%s.update_display(%s);" % (self.CUSTOM_SCHEME, onoff)
+            self.html_view.runJavaScript(js)
 
     def _make_display(self, s=None):
-        if s:
+        if s is None:
+            structures = self.structures
+        elif s in self.structures:
             structures = [s]
         else:
-            structures = self.structures
+            return None
         return [(s.atomspec[1:], True if s.display else False)
                 for s in structures]
 
@@ -204,36 +208,55 @@ class _BaseTool(HtmlToolInstance):
             return self.structures
 
     def show_only(self, model_id):
-        self._block_updates = True
-        any_change = False
+        on = []
+        off = []
         structures = self.get_structures(model_id)
         for s in self.structures:
             onoff = s in structures
             if s.display != onoff:
-                s.display = onoff
-                any_change = True
-        self._block_updates = False
-        if any_change:
-            self._update_display()
+                if onoff:
+                    on.append(s)
+                else:
+                    off.append(s)
+        self._show_hide(on, off)
 
     def show_toggle(self, model_id):
-        self._block_updates = True
+        on = []
+        off = []
         structures = self.get_structures(model_id)
         for s in structures:
             if s in self.structures:
-                s.display = not s.display
-        self._block_updates = False
-        self._update_display()
+                if s.display:
+                    off.append(s)
+                else:
+                    on.append(s)
+        self._show_hide(on, off)
 
     def show_set(self, model_id, onoff):
-        self._block_updates = True
-        any_change = False
         structures = self.get_structures(model_id)
+        on = []
+        off = []
         for s in structures:
             if s.display != onoff and s in self.structures:
-                s.display = onoff
-        self._block_updates = False
-        if any_change:
+                if onoff:
+                    on.append(s)
+                else:
+                    off.append(s)
+        self._show_hide(on, off)
+
+    def _show_hide(self, on, off):
+        if on or off:
+            from chimerax.core.commands import concise_model_spec, run
+            self._block_updates = True
+            cmd = []
+            if off:
+                models = concise_model_spec(self.session, off)
+                cmd.append("hide %s models" % models)
+            if on:
+                models = concise_model_spec(self.session, on)
+                cmd.append("show %s models" % models)
+            run(self.session, " ; ".join(cmd))
+            self._block_updates = False
             self._update_display()
 
     # Session stuff
@@ -315,7 +338,7 @@ class TableTool(_BaseTool):
             raise KeyError("ViewDock name %r already in use" % name)
         self.name = name
         self._name_map[name] = self
-        super().__init__(session,"ViewDockX Table (%s)" % name)
+        super().__init__(session,"ViewDockX Table (name: %s)" % name)
         self.setup_page("viewdockx_table.html")
 
     def delete(self):
@@ -408,9 +431,13 @@ class TableTool(_BaseTool):
     def _cb_hb(self, query):
         # Create hydrogen bonds between receptor(s) and ligands
         from chimerax.core.commands import concise_model_spec, run
-        cmd = "hbonds %s restrict cross reveal true" % concise_model_spec(
-                                                            self.session,
-                                                            self.structures)
+        from chimerax.atomic import AtomicStructure
+        mine = concise_model_spec(self.session, self.structures)
+        all = self.session.models.list(type=AtomicStructure)
+        others = concise_model_spec(self.session,
+                                    set(all) - set(self.structures))
+        cmd = ("hbonds %s restrict %s "
+               "reveal true intersubmodel true" % (mine, others))
         run(self.session, cmd)
         self._count_pb("hydrogen bonds", "HBonds")
 
@@ -470,6 +497,12 @@ class TableTool(_BaseTool):
     def _cb_columns_updated(self, query):
         self._update_display()
         self._update_ratings()
+
+    def _cb_arrow(self, query):
+        from chimerax.core.commands import run
+        direction = query["direction"][0]
+        cmd = "viewdock %s name %s" % (direction, self.name)
+        run(self.session, cmd, log=False)
 
 
 class OutputCache(StringIO):

@@ -13,7 +13,6 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-subcommand_name = "viewer"
 class _SeqViewerBundleAPI(BundleAPI):
 
     @staticmethod
@@ -35,14 +34,10 @@ class _SeqViewerBundleAPI(BundleAPI):
             return Conservation
 
     @staticmethod
-    def initialize(session, bundle_info):
+    def run_provider(session, name, manager, *, alignment=None):
         """Register sequence viewer with alignments manager"""
-        session.alignments.register_viewer("Sequence Viewer", _show_alignment,
-            synonyms=["sv", "view"], subcommand_name=subcommand_name)
+        from .tool import _start_seq_viewer
+        return _start_seq_viewer(session, "Sequence Viewer", alignment)
 
 
 bundle_api = _SeqViewerBundleAPI()
-
-def _show_alignment(session, tool_name, alignment):
-    from .tool import _start_seq_viewer
-    return _start_seq_viewer(session, tool_name, alignment)

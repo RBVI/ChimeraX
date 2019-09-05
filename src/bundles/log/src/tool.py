@@ -200,11 +200,17 @@ class Log(ToolInstance, HtmlLog):
             def link_clicked(self, request_info, *args, **kw):
                 # for #2289, don't scroll log when a link in it is clicked
                 qurl = request_info.requestUrl()
-                if qurl.scheme() == 'data':
+                scheme = qurl.scheme()
+                if scheme == 'data':
                     # fix #2303, spurious link_clicked
                     return
-                self.log.suppress_scroll = True
+                if scheme == 'cxcmd':
+                    cmd = qurl.url(qurl.None_)[6:].lstrip()  # skip cxcmd:
+                    self.log.suppress_scroll = cmd and (
+                            cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
                 super().link_clicked(request_info, *args, **kw)
+                if not self.log.suppress_scroll:
+                    return
                 def defer(log_tool):
                     log_tool.suppress_scroll = False
                 # clicked link is executed via thread_safe, so add another

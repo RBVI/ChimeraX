@@ -454,17 +454,21 @@ def shortcut_atoms(session):
 
 def shortcut_surfaces(session):
     sel = session.selection
-    models = [m for m in session.models.list() if m.visible] if sel.empty() else sel.models()
     from chimerax.core.models import Surface
-    surfs = [m for m in models if isinstance(m, Surface)]
+    surfs = [m for m in sel.models() if isinstance(m, Surface)]
+    if surfs:
+        return surfs
+    surfs = [m for m in session.models.list(type = Surface) if m.visible]
     return surfs
 
 def shortcut_surfaces_and_maps(session):
     sel = session.selection
-    models = [m for m in session.models.list() if m.visible] if sel.empty() else sel.models()
     from chimerax.map import Volume
     from chimerax.core.models import Surface
-    sm = [m for m in models if isinstance(m,Volume) or isinstance(m, Surface)]
+    sm = [m for m in sel.models() if isinstance(m,(Surface, Volume))]
+    if sm:
+        return sm
+    sm = [m for m in session.models.list(type = (Surface, Volume)) if m.visible]
     return sm
 
 def run(session, command, **kw):
@@ -800,7 +804,7 @@ def toggle_shadows(session):
 
 def toggle_silhouettes(session):
     v = session.main_view
-    run(session, 'set silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
+    run(session, 'graphics silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
 
 def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue

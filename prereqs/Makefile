@@ -29,7 +29,7 @@ endif
 
 ifeq ($(OS),Darwin)
 NEED_EXPAT=1
-NEED_HDF5=1
+# NEED_HDF5=1
 NEED_OPENSSL=1
 NEED_PKGCONFIG=1
 NEED_P7ZIP=1
@@ -42,7 +42,7 @@ ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
 NEED_MESA=1
-NEED_HDF5=1
+# NEED_HDF5=1
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
 NEED_EXPAT=1
@@ -146,7 +146,7 @@ endif
 SUBDIRS	+= imex lineprofiler numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
-	   scipy tables
+	   scipy
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

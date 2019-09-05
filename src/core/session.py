@@ -190,6 +190,27 @@ class _UniqueName:
         return cls
 
 
+def _obj_chain(parents, obj):
+    # string representation of chain of objects
+    # first element of chain is string with name of state manager
+    chain = []
+    for o in parents + (obj,):
+        name = None
+        if hasattr(o, 'name'):
+            try:
+                if callable(o.name):
+                    name = o.name()
+                else:
+                    name = o.name
+            except Exception:
+                pass
+        if name is None:
+            chain.append(repr(o))
+        else:
+            chain.append(repr(o) + " %r" % o.name)
+    return " -> ".join(chain)
+
+
 class _SaveManager:
     """Manage session saving"""
 
@@ -217,33 +238,33 @@ class _SaveManager:
                 continue
             try:
                 if sm is None:
-                    self.processed[key] = self.process(value)
+                    self.processed[key] = self.process(value, (key,))
                     self.graph[key] = self._found_objs
                 else:
-                    self.unprocessed.append(value)
+                    self.unprocessed.append((value, (key,)))
                     uid = _UniqueName.from_obj(self.session, value)
                     self.processed[key] = uid
                     self.graph[key] = [uid]
-            except ValueError as e:
-                raise ValueError("error processing: %r" % key)
+            except ValueError:
+                raise ValueError("error processing state container: %r" % key)
         while self.unprocessed:
-            obj = self.unprocessed.pop()
+            obj, parents = self.unprocessed.pop()
             key = _UniqueName.from_obj(self.session, obj)
             if key not in self.processed:
                 try:
-                    self.processed[key] = self.process(obj)
+                    self.processed[key] = self.process(obj, parents)
                 except ValueError as e:
-                    raise ValueError("error processing key: %s: %s" % (key, e))
+                    raise ValueError("error processing: %s: %s" % (_obj_chain(parents, obj), e))
                 self.graph[key] = self._found_objs
 
-    def _add_obj(self, obj):
+    def _add_obj(self, obj, parents=()):
         uid = _UniqueName.from_obj(self.session, obj)
         self._found_objs.append(uid)
         if uid not in self.processed:
-            self.unprocessed.append(obj)
+            self.unprocessed.append((obj, parents))
         return uid
 
-    def process(self, obj):
+    def process(self, obj, parents):
         self._found_objs = []
         if isinstance(obj, type):
             return None
@@ -254,14 +275,17 @@ class _SaveManager:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
             except Exception as e:
-                msg = 'Error while saving session data for "%s": %s' % (str(type(obj)), str(e))
+                msg = 'Error while saving session data for %s: %s' % (_obj_chain(parents, obj), e)
                 raise RuntimeError(msg)
         elif isinstance(obj, type):
             return None
         if data is None:
-            session.logger.warning('Unable to save "%s".  Session might not restore properly.'
-                                   % obj.__class__.__name__)
-        return copy_state(data, convert=self._add_obj)
+            session.logger.warning('Unable to save %s".  Session might not restore properly.'
+                                   % _obj_chain(parents, obj))
+
+        def convert(obj, parents=parents + (obj,), add_obj=self._add_obj):
+            return add_obj(obj, parents)
+        return copy_state(data, convert=convert)
 
     def walk(self):
         # generator that walks processed items in correct order
@@ -416,9 +440,9 @@ class Session:
         # from .scenes import Scenes
         # sess.add_state_manager('scenes', Scenes(sess))
 
-        self.save_options = {}		# Options used when saving session files.
-        self.restore_options = {}	# Options used when restoring session files.
-        
+        self.save_options = {}          # Options used when saving session files.
+        self.restore_options = {}       # Options used when restoring session files.
+
     def _get_view(self):
         return self._state_containers['main_view']
 
@@ -590,7 +614,7 @@ class Session:
         if resize_window is not None:
             self.restore_options['resize window'] = resize_window
         self.restore_options['restore camera'] = restore_camera
-        
+
         self.triggers.activate_trigger("begin restore session", self)
         is_gui = hasattr(self, 'ui') and self.ui.is_gui
         from .tools import ToolInstance
@@ -628,10 +652,10 @@ class Session:
                         else:
                             obj = sm.restore_snapshot(self, data)
                     mgr.add_reference(name, obj)
-        except:
+        except Exception:
             import traceback
             self.logger.bug("Unable to restore session, resetting.\n\n%s"
-                              % traceback.format_exc())
+                            % traceback.format_exc())
             self.reset()
         finally:
             self.triggers.activate_trigger("end restore session", self)
@@ -755,6 +779,7 @@ def save(session, path, version=3, uncompressed=False, include_maps=False):
         else:
             # Save compressed files
             from .safesave import SaveFile
+
             def my_open(path):
                 import gzip
                 f = SaveFile(path, open=lambda path: gzip.GzipFile(path, 'wb'))
@@ -767,7 +792,7 @@ def save(session, path, version=3, uncompressed=False, include_maps=False):
     session.session_file_path = path
     try:
         session.save(output, version=version, include_maps=include_maps)
-    except Exception as e:
+    except Exception:
         if my_open is not None:
             output.close("exceptional")
         session.logger.report_exception()
@@ -956,7 +981,7 @@ def register_session_format(session):
         save(session, filename, **kw)
     register('save session', desc, save_session, logger=session.logger)
     add_keyword_arguments('save session', {'include_maps': BoolArg})
-    
+
     import sys
     if sys.platform.startswith('linux'):
         from .commands.linux import register_command
@@ -980,7 +1005,7 @@ def common_startup(sess):
 
     from .triggerset import set_exception_reporter
     set_exception_reporter(lambda preface, logger=sess.logger:
-        logger.report_exception(preface=preface))
+                           logger.report_exception(preface=preface))
 
     from .selection import Selection
     sess.selection = Selection(sess)
@@ -1016,12 +1041,14 @@ def common_startup(sess):
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")
 
+
 def register_session_save_options_gui(save_dialog):
     '''
     Session save gui options are registered in the ui module instead of when the
     format is registered because the ui does not exist when the format is registered.
     '''
     from chimerax.ui import SaveOptionsGUI
+
     class SessionSaveOptionsGUI(SaveOptionsGUI):
         @property
         def format_name(self):
@@ -1031,7 +1058,7 @@ def register_session_save_options_gui(save_dialog):
             from chimerax.ui.open_save import export_file_filter
             from chimerax.core import toolshed
             return export_file_filter(toolshed.SESSION)
-        
+
         def make_ui(self, parent):
             from PyQt5.QtWidgets import QFrame, QVBoxLayout, QCheckBox
 
@@ -1062,6 +1089,7 @@ def register_session_save_options_gui(save_dialog):
             run(session, cmd)
 
     save_dialog.register(SessionSaveOptionsGUI())
+
 
 def _register_core_file_formats(session):
     register_session_format(session)

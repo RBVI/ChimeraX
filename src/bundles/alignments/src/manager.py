@@ -27,16 +27,69 @@ class AlignmentsManager(StateManager, ProviderManager):
         self.bundle_info = bundle_info
         self.session = session
         self.viewer_info = {'alignment': {}, 'sequence': {}}
-        self.tool_to_subcommand = {}
+        self.viewer_to_subcommand = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("new alignment")
         self.triggers.add_trigger("destroy alignment")
         self._installed_headers = {}
+        self._installed_viewers = {}
 
-    def add_provider(self, bundle_info, name, *, single_seq_relevant=False, type=None, **kw):
+    def add_provider(self, bundle_info, name, *, single_seq_relevant=False, type=None,
+            synonyms=[], subcommand_name=None, sequence_viewer=True, alignment_viewer=True, **kw):
+        """Register an alignment header, or an alignment/sequence viewer and its associated subcommand.
+
+        Common Parameters
+        ----------
+        name : str
+            Header or viewer name.
+        type : str
+            "header" or "viewer"
+
+        Header Parameters
+        ----------
+        single_seq_relevant : bool
+            Is this header relevant if only a single sequence is being displayed rather than an alignment?
+
+        'run_provider' for headers should return the header's class object.
+
+        Viewer Parameters
+        ----------
+        sequence_viewer : bool
+            Can this viewer show single sequences
+        alignment_viewer : bool
+            Can this viewer show sequence alignments
+        synonyms : list of str
+           Shorthands that the user could type instead of standard_name to refer to your tool
+           in commands.  Example:  ['sv']
+        subcommand_name : str
+            If the viewer can be controlled by a subcommand of the 'sequence' command, the subcommand
+            word to use after 'sequence'.
+
+        'run_provider' for viewers should will receive an 'alignment' keyword argument with the alignment
+            to view and should return the viewer instance.
+        """
         if type == "header":
             self._installed_headers[name] = (bundle_info, single_seq_relevant)
+        elif type == "viewer":
+            if subcommand_name:
+                if subcommand_name in _builtin_subcommands:
+                    raise ValueError("Viewer subcommand '%s' is already a builtin"
+                        " 'sequence' subcommand name" % subcommand_name)
+                if subcommand_name in _viewer_subcommands:
+                    raise ValueError("Viewer subcommand name '%s' is already taken" % subcommand_name)
+                _viewer_subcommands.add(subcommand_name)
+                self.viewer_to_subcommand[name] = subcommand_name
+                if _commands_registered:
+                    _register_viewer_subcommand(self.session.logger, subcommand_name)
+            if synonyms:
+                # comma-separated text -> list
+                synonyms = [x.strip() for x in synonyms.split(',')]
+            if sequence_viewer:
+                self.viewer_info['sequence'][name] = synonyms
+            if alignment_viewer:
+                self.viewer_info['alignment'][name] = synonyms
+            self._installed_viewers[name] = bundle_info
         elif type is None:
             raise ValueError("Provider failed to specify type to alignments manager")
         else:
@@ -49,15 +102,6 @@ class AlignmentsManager(StateManager, ProviderManager):
     @property
     def alignments_map(self):
         return {k:v for k,v in self._alignments.items()}
-
-    def deregister_viewer(self, tool_name, *, sequence_viewer=True, alignment_viewer=True):
-        if sequence_viewer:
-            del self.viewer_info['sequence'][tool_name]
-        if alignment_viewer:
-            del self.viewer_info['alignment'][tool_name]
-        sc = self.tool_to_subcommand.get(tool_name, None)
-        if sc:
-            _viewer_subcommands.remove(sc)
 
     def destroy_alignment(self, alignment):
         if alignment.ident is not False:
@@ -136,30 +180,32 @@ class AlignmentsManager(StateManager, ProviderManager):
         """
         if self.session.ui.is_gui and identify_as is not False:
             if len(seqs) > 1:
-                viewer = align_viewer
+                viewer_text = align_viewer
                 attr = 'align_viewer'
-                text = "alignment"
+                type_text = "alignment"
             else:
-                viewer = seq_viewer
+                viewer_text = seq_viewer
                 attr = 'seq_viewer'
-                text = "sequence"
-            if viewer is None:
+                type_text = "sequence"
+            if viewer_text is None:
                 from .settings import settings
-                viewer = getattr(settings, attr)
-            if viewer:
-                for tool_name, info in self.viewer_info[text].items():
-                    viewer_startup_cb, syms = info
-                    if tool_name == viewer:
+                viewer_text = getattr(settings, attr).lower()
+            if viewer_text:
+                viewer_text = viewer_text.lower()
+                for name, syms in self.viewer_info[type_text].items():
+                    if name == viewer_text:
+                        viewer_name = name
                         break
-                    if viewer in syms:
+                    if viewer_text in syms:
+                        viewer_name = name
                         break
                 else:
                     self.session.logger.warning("No registered %s viewer corresponds to '%s'"
-                        % (text, viewer))
-                    viewer = False
+                        % (type_text, viewer_text))
+                    viewer_text = False
         else:
-            viewer = False
-        if auto_destroy is None and viewer:
+            viewer_text = False
+        if auto_destroy is None and viewer_text:
             auto_destroy = True
 
         from .alignment import Alignment
@@ -197,44 +243,11 @@ class AlignmentsManager(StateManager, ProviderManager):
             auto_associate, description, intrinsic)
         if identify_as:
             self._alignments[identify_as] = alignment
-        if viewer:
-            viewer_startup_cb(self.session, tool_name, alignment)
+        if viewer_text:
+            self._installed_viewers[viewer_name].run_provider(self.session, viewer_name, self,
+                alignment=alignment)
         self.triggers.activate_trigger("new alignment", alignment)
         return alignment
-
-    def register_viewer(self, tool_name, startup_cb, *,
-            sequence_viewer=True, alignment_viewer=True, synonyms=[], subcommand_name=None):
-        """Register an alignment viewer for possible use by the user.
-
-        Parameters
-        ----------
-        tool_name : str
-            The toolshed tool_name for your tool.
-        startup_cb:
-            A callback function used to start the viewer.  The callback will be given the
-            session, the tool_name, and an Alignment object as its arguments.
-        sequence_viewer : bool
-            Can this viewer show single sequences
-        alignment_viewer : bool
-            Can this viewer show sequence alignments
-        synonyms : list of str
-           Shorthands that the user could type instead of standard_name to refer to your tool
-           in commands.  Example:  ['sv']
-        """
-        if subcommand_name:
-            if subcommand_name in _builtin_subcommands:
-                raise ValueError("Viewer subcommand '%s' is already a builtin"
-                    " 'sequence' subcommand name" % subcommand_name)
-            if subcommand_name in _viewer_subcommands:
-                raise ValueError("Viewer subcommand name '%s' is already taken" % subcommand_name)
-            _viewer_subcommands.add(subcommand_name)
-            self.tool_to_subcommand[tool_name] = subcommand_name
-            if _commands_registered:
-                _register_viewer_subcommand(self.session.logger, subcommand_name)
-        if sequence_viewer:
-            self.viewer_info['sequence'][tool_name] = (startup_cb, synonyms)
-        if alignment_viewer:
-            self.viewer_info['alignment'][tool_name] = (startup_cb, synonyms)
 
     @property
     def registered_viewers(self, seq_or_align):
