@@ -64,10 +64,11 @@ var vdxtable = function() {
             $.each(text, function(key, v) {
                 if (key != "id" && key != "name") {
                     var num_bad = 0;
-                    for (var i = 0; i < 10; i++)
+                    var limit = Math.min(v.length, 10);
+                    for (var i = 0; i < limit; i++)
                         if (v[i].length > 50)
                             num_bad++;
-                    if (num_bad > 5)
+                    if (num_bad > limit / 2)
                         hidden[key] = true;
                 }
             });
