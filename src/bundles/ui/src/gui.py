@@ -1010,7 +1010,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _populate_actions_menu(self, actions_menu):
         from PyQt5.QtWidgets import QAction
-        from chimerax.core.commands import run
+        from chimerax.core.commands import run, sel_or_all
         #
         # Atoms/Bonds...
         #
@@ -2400,9 +2400,3 @@ class InitWindowSizeOption(Option):
         self.current_proportional_size_label.setText("Current: %d%% wide, %d%% high" % (
                 int(100.0 * window_width / screen_width),
                 int(100.0 * window_height / screen_height)))
-
-def sel_or_all(session, sel_types, sel="sel"):
-    for sel_type in sel_types:
-        if session.selection.items(sel_type):
-            return sel
-    return "#*"
