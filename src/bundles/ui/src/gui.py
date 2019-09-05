@@ -1011,6 +1011,9 @@ class MainWindow(QMainWindow, PlainTextLog):
     def _populate_actions_menu(self, actions_menu):
         from PyQt5.QtWidgets import QAction
         from chimerax.core.commands import run
+        #
+        # Atoms/Bonds...
+        #
         atoms_bonds_menu = actions_menu.addMenu("Atoms/Bonds")
         action = QAction("Show", self)
         atoms_bonds_menu.addAction(action)
@@ -1041,6 +1044,40 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="show %s & sidechain target ab":
             run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues")))
+
+        atoms_bonds_menu.addSeparator()
+
+        style_info = [("Stick", "stick"), ("Ball && Stick", "ball"), ("Sphere", "sphere")]
+        for menu_entry, style_name in style_info:
+            action = QAction(menu_entry, self)
+            atoms_bonds_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="style %%s %s" % style_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        rings_menu = atoms_bonds_menu.addMenu("Rings")
+        rings_info = [("Fill Thick", "thick"), ("Fill Thin", "thin"), ("No Fill", "off")]
+        for menu_entry, ring_style in rings_info:
+            action = QAction(menu_entry, self)
+            rings_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="style %%s ringFill %s" % ring_style:
+                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Depiction")
+        nuc_info = [("Filled Rings", "fill"), ("Ladder", "ladder"), ("Slab", "slab"),
+            ("Broken Rungs", "stubs"), ("Tube/Slab", "tube/slab"), ("None", "atoms")]
+        for menu_entry, nuc_style in nuc_info:
+            action = QAction(menu_entry, self)
+            nuc_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="nucleotides %%s %s" % nuc_style:
+                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+
+        atoms_bonds_menu.addSeparator()
+
+        action = QAction("Delete", self)
+        atoms_bonds_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="delete atoms %s; delete bonds %s":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
