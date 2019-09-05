@@ -1108,6 +1108,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
 
+        #
+        # Surface...
+        #
+        surface_menu = actions_menu.addMenu("Surface")
+        action = QAction("Show", self)
+        surface_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="surface %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action = QAction("Hide", self)
+        surface_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="surface hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
         sel_seq_action = QAction("Sequence...", self)
