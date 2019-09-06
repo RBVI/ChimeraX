@@ -974,6 +974,17 @@ extern "C" EXPORT void set_atom_name(void *atoms, size_t n, pyobject_t *names)
     }
 }
 
+extern "C" EXPORT void atom_num_alt_locs(void *atoms, size_t n, size_t *nlocs)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            nlocs[i] = a[i]->alt_locs().size();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_num_bonds(void *atoms, size_t n, size_t *nbonds)
 {
     Atom **a = static_cast<Atom **>(atoms);
