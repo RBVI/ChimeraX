@@ -1550,9 +1550,10 @@ class RegionBrowser:
                 control_name = mod_key_info("control")[1]
                 self.seq_canvas.sv.status(
                     "%s-drag to add to region; "
-                    "%s-drag to start new region" % (shift_name.capitalize(), control_name),
-                    follow_with="Tools->Region Browser to change region colors; "
-                    "%s left/right arrow to realign region" % control_name, follow_time=15)
+                    "%s-drag to start new region" % (shift_name.capitalize(), control_name))
+                    #TODO:
+                    #follow_with="Info->Region Browser to change region colors; "
+                    #"%s left/right arrow to realign region" % control_name, follow_time=15)
             else:
                 sv = self.seq_canvas.sv
                 sv.status("Region RMSD: %.3f" % rmsd)
