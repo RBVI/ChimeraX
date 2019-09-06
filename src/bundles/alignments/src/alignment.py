@@ -494,8 +494,11 @@ class Alignment(State):
         self._notify_observers("destroyed", None)
         self.viewers = []
         self.observers = []
+        aseqs = set()
         for sseq, aseq in self.associations.items():
             aseq.match_maps[sseq].mod_handler.remove()
+            aseqs.add(aseq)
+        for aseq in aseqs:
             aseq.match_maps.clear()
         self.associations.clear()
         if self._assoc_handler:

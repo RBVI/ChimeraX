@@ -13,7 +13,7 @@
 
 from chimerax.core.errors import UserError
 
-default_criteria = "dhcp"
+default_criteria = "dchp"
 def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_criteria,
     density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=False, lib=None, log=True,
     preserve=None, relax=True, retain=False, score_method="num", overlap_cutoff=None):

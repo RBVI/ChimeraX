@@ -81,12 +81,21 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     for char in str(criteria):
         if char == "d":
             # density
-            if density == None:
+            from chimerax.map import Volume
+            maps = [m for m in session.models if isinstance(m, Volume)]
+            if not maps:
                 if criteria is default_criteria:
                     continue
-                raise UserError("Density criteria requested but no volume model specified")
+                raise UserError("Density criteria requested but no volume models are open")
+            elif len(maps) > 1:
+                if density is None:
+                    raise UserError("Density criteria with multiple volume models open;\n"
+                        "Need to specify one to use via 'density' keyword.")
+                map = density
+            else:
+                map = maps[0]
             for res, by_alt_loc in rotamers.items():
-                process_volume(session, res, by_alt_loc, density)
+                process_volume(session, res, by_alt_loc, map)
             fetch = lambda r: r.volume_score
             test = cmp
         elif char == "c":
@@ -110,9 +119,11 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     hbond_angle_slop = rec_angle_slop
                 if hbond_dist_slop is None:
                     hbond_dist_slop = rec_dist_slop
+            session.logger.status("Processing H-bonds for %s" % res)
             for res, by_alt_loc in rotamers.items():
                 process_hbonds(session, res, by_alt_loc, False, None, None, hbond_relax,
                 hbond_dist_slop, hbond_angle_slop, False, None, ignore_other_models, cache_da=True)
+            session.logger.status("")
             from chimerax.atomic.hbonds import flush_cache
             flush_cache()
             fetch = lambda r: r.num_hbonds
@@ -736,7 +747,7 @@ def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius
             else:
                 color = bond_color
             hbonds = { hb: color for hb in find_hbonds(session, target_models, intra_model=False,
-                dist_slop=dist_slop, angle_slop=angle_slop, cache_da=cache_da) }
+                dist_slop=dist_slop, angle_slop=angle_slop, cache_da=cache_da, status=False) }
             if relax and two_colors:
                 hbonds.update({ hb: bond_color for hb in find_hbonds(session, target_models,
                             intra_model=False) })

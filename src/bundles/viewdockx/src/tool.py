@@ -338,7 +338,7 @@ class TableTool(_BaseTool):
             raise KeyError("ViewDock name %r already in use" % name)
         self.name = name
         self._name_map[name] = self
-        super().__init__(session,"ViewDockX Table (%s)" % name)
+        super().__init__(session,"ViewDockX Table (name: %s)" % name)
         self.setup_page("viewdockx_table.html")
 
     def delete(self):
@@ -502,7 +502,7 @@ class TableTool(_BaseTool):
         from chimerax.core.commands import run
         direction = query["direction"][0]
         cmd = "viewdock %s name %s" % (direction, self.name)
-        run(self.session, cmd)
+        run(self.session, cmd, log=False)
 
 
 class OutputCache(StringIO):

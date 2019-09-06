@@ -280,7 +280,7 @@ class _SaveManager:
         elif isinstance(obj, type):
             return None
         if data is None:
-            session.logger.warning('Unable to save %".  Session might not restore properly.'
+            session.logger.warning('Unable to save %s".  Session might not restore properly.'
                                    % _obj_chain(parents, obj))
 
         def convert(obj, parents=parents + (obj,), add_obj=self._add_obj):
