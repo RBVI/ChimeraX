@@ -695,8 +695,8 @@ class Drawing:
                     passes.append(self.OPAQUE_DRAW_PASS)
                 if any_transp:
                     passes.append(self.TRANSPARENT_DRAW_PASS)
-                if self.highlighted:
-                    passes.append(self.HIGHLIGHT_DRAW_PASS)
+            if self.highlighted:
+                passes.append(self.HIGHLIGHT_DRAW_PASS)
             for p in passes:
                 if p in pass_drawings:
                     pass_drawings[p].append(self)
@@ -1464,6 +1464,9 @@ def draw_overlays(drawings, renderer):
     r.enable_blending(True)
     _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS)
     r.enable_blending(False)
+    highlight_drawings = [d for d in drawings if d.highlighted]
+    if highlight_drawings:
+        draw_highlight_outline(r, highlight_drawings)
     r.enable_depth_test(True)
     r.disable_shader_capabilities(0)
 
@@ -1582,9 +1585,9 @@ class _DrawShape:
         if self.element_buffer:
             self.element_buffer.delete_buffer()
             self.element_buffer = None
-            for b in self.instance_buffers:
-                b.delete_buffer()
-            self.instance_buffers = []
+        for b in self.instance_buffers:
+            b.delete_buffer()
+        self.instance_buffers = []
         self._buffers_need_update = None
 
         if self.bindings:

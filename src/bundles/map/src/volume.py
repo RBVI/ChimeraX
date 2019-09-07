@@ -195,7 +195,7 @@ class Volume(Model):
     Supported API.  Remove a list of VolumeSurface instances from this Volume.
     If surfaces is None then all current surfaces are removed.
     '''
-    surfs = self._surfaces if surfaces is None else surfaces
+    surfs = tuple(self._surfaces if surfaces is None else surfaces)
     if self.id is None:
       self.remove_drawings(surfs)
     else:
@@ -875,12 +875,18 @@ class Volume(Model):
 
     if copy_colors:
       # Copy colors
+
+      color_kw = {}
+      if len(self.surfaces) == len(v.surfaces):
+        color_kw['surface_colors'] = [s.rgba for s in v.surfaces]
+      if len(self.image_colors) == len(v.image_colors):
+        color_kw['image_colors'] = v.image_colors
+
       self.set_parameters(
-        surface_colors = [s.rgba for s in v.surfaces],
-        image_colors = v.image_colors,
         transparency_depth = v.transparency_depth,
         image_brightness_factor = v.image_brightness_factor,
-        default_rgba = v.default_rgba
+        default_rgba = v.default_rgba,
+        **color_kw
         )
 
     if copy_rendering_options:

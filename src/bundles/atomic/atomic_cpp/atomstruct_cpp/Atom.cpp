@@ -159,6 +159,9 @@ Atom::_coordset_set_coord(const Point &coord, CoordSet *cs, bool track_change)
             if (in_ribbon())
                 graphics_changes()->set_gc_ribbon();
             change_tracker()->add_modified(structure(), cs, ChangeTracker::REASON_COORDSET);
+            if (structure()->active_coord_set() == cs)
+                structure()->change_tracker()->add_modified(structure(), structure(),
+                    ChangeTracker::REASON_SCENE_COORD);
         }
     }
 }
@@ -1248,8 +1251,11 @@ Atom::set_alt_loc(char alt_loc, bool create, bool _from_residue)
         _Alt_loc_info &info = (*i).second;
         _serial_number = info.serial_number;
         _alt_loc = alt_loc;
-        if (structure()->alt_loc_change_notify())
+        if (structure()->alt_loc_change_notify()) {
             change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
+            structure()->change_tracker()->add_modified(structure(), structure(),
+                ChangeTracker::REASON_SCENE_COORD);
+        }
     } else {
         residue()->set_alt_loc(alt_loc);
     }
@@ -1301,8 +1307,12 @@ Atom::set_color(const Rgba& rgba)
 void
 Atom::set_coord(const Coord& coord, CoordSet* cs, bool track_change)
 {
-    if (track_change)
+    if (track_change) {
         change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COORD);
+        if (structure()->active_coord_set() == cs)
+            structure()->change_tracker()->add_modified(structure(), structure(),
+                ChangeTracker::REASON_SCENE_COORD);
+    }
     if (cs == nullptr) {
         cs = structure()->active_coord_set();
         if (cs == nullptr) {

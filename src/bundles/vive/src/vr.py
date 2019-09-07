@@ -113,6 +113,56 @@ def vr(session, enable = None, room_position = None, display = None,
                 tb.display_panel(True)
 
 # -----------------------------------------------------------------------------
+# Assign VR hand controller buttons
+#
+def vr_button(session, button, mode, hand = None):
+    '''
+    Assign VR hand controller buttons
+
+    Parameters
+    ----------
+    button : 'trigger', 'grip', 'touchpad', 'menu', 'A', 'B', 'X', 'Y'
+      Name of button to assign.  Buttons A/B are for Oculus controllers and imply hand = 'right',
+      and X/Y imply hand = 'left'
+    mode : HandMode instance
+      VR hand mode to assign to button.
+    hand : 'left', 'right', None
+      Which hand controller to assign.  If None then assign button on both hand controllers.
+      If button is A, B, X, or Y then hand is ignored since A/B implies right and X/Y implies left.
+    '''
+
+    c = vr_camera(session)
+    if c is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Must have VR started (command "vr on") before assigning VR buttons')
+
+    if button in ('A', 'B'):
+        hand = 'right'
+    elif button in ('X', 'Y'):
+        hand = 'left'
+        
+    hclist = [hc for hc in c.hand_controllers() if hand is None or hc.left_or_right == hand]
+    if len(hclist) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Hand controller is not enabled.')
+
+    import openvr
+    openvr_buttons = {
+        'grip': openvr.k_EButton_Grip,
+        'menu': openvr.k_EButton_ApplicationMenu,
+        'trigger': openvr.k_EButton_SteamVR_Trigger,
+        'touchpad': openvr.k_EButton_SteamVR_Touchpad,
+        'A': openvr.k_EButton_A,
+        'B': openvr.k_EButton_ApplicationMenu,
+        'X': openvr.k_EButton_A,
+        'Y': openvr.k_EButton_ApplicationMenu
+    }
+    openvr_button = openvr_buttons[button]
+
+    for hc in hclist:
+        hc._set_hand_mode(openvr_button, mode)
+
+# -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
 def register_vr_command(logger):
@@ -132,6 +182,33 @@ def register_vr_command(logger):
     register('device vr', desc, vr, logger=logger)
     create_alias('vr', 'device vr $*', logger=logger)
 
+    desc = CmdDesc(required = [('button', EnumOf(('trigger', 'grip', 'touchpad', 'menu', 'A', 'B', 'X', 'Y'))),
+                               ('mode', VRModeArg)],
+                   keyword = [('hand', EnumOf(('left', 'right')))],
+                   synopsis = 'Assign VR hand controller buttons')
+    register('device vr button', desc, vr_button, logger=logger)
+    create_alias('vr button', 'device vr button $*', logger=logger)
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.commands import Annotation, AnnotationError
+class VRModeArg(Annotation):
+    '''Command argument for specifying VR hand controller mode.'''
+
+    @staticmethod
+    def parse(text, session):
+        modes = session.ui.mouse_modes.modes
+        from chimerax.core.commands import EnumOf
+        mode_arg = EnumOf(tuple(m.name for m in modes))
+        value, used, rest = mode_arg.parse(text, session)
+        mmap = {m.name:m for m in modes}
+        mouse_mode = mmap[value]
+        c = vr_camera(session)
+        if c is None:
+            raise AnnotationError('VR hand modes can only be specified when VR is enabled')
+        hm = c.user_interface._hand_mode(mouse_mode)
+        return hm, used, rest
+
 # -----------------------------------------------------------------------------
 #
 def start_vr(session, multishadow_allowed = False, simplify_graphics = True, label_reorient = 45):
@@ -142,8 +219,8 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         run(session, 'lighting simple')
 
     if simplify_graphics:
-        from chimerax.std_commands.graphics import graphics
-        graphics(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
+        from chimerax.std_commands.graphics import graphics_quality
+        graphics_quality(session, total_atom_triangles=1000000, total_bond_triangles=1000000)
 
     from chimerax.label.label3d import label_orient
     label_orient(session, label_reorient)	# Don't continuously reorient labels.
@@ -208,8 +285,8 @@ def stop_vr(session, simplify_graphics = True):
         v.camera = MonoCamera()
         s.update_loop.set_redraw_interval(10)
         if simplify_graphics:
-            from chimerax.std_commands.graphics import graphics
-            graphics(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+            from chimerax.std_commands.graphics import graphics_quality
+            graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
         from chimerax.label.label3d import label_orient
         label_orient(session, 0)	# Continuously reorient labels.
         v.view_all()
@@ -1368,6 +1445,12 @@ class HandController:
     @property
     def button_modes(self):
         return self._modes
+
+    @property
+    def left_or_right(self):
+        import openvr
+        left_id = self.vr_system.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_LeftHand)
+        return 'left' if self.device_index == left_id else 'right'
     
     def close(self):
         hm = self._hand_model

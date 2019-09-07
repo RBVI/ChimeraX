@@ -4,10 +4,20 @@ def open_mae(session, path, file_name, auto_style, atomic):
     with open(path) as stream:
         p = MaestroParser(session, stream, file_name, auto_style, atomic)
     structures = p.structures
+    def num_atoms(s):
+        try:
+            return s.num_atoms
+        except AttributeError:
+            return sum([num_atoms(c) for c in s.child_models()])
+    def num_bonds(s):
+        try:
+            return s.num_bonds
+        except AttributeError:
+            return sum([num_bonds(c) for c in s.child_models()])
     status = "Opened %s containing %d structures (%d atoms, %d bonds)" % (
                     file_name, len(structures),
-                    sum([s.num_atoms for s in structures]),
-                    sum([s.num_bonds for s in structures]))
+                    sum([num_atoms(s) for s in structures]),
+                    sum([num_bonds(s) for s in structures]))
     return structures, status
 
 
@@ -36,16 +46,33 @@ class MaestroParser:
             raise UserError("%s: not a v2.0.0 Maestro file" % path)
 
         # Convert all subsequent blocks named "f_m_ct" to molecules
-        self.structures = []
+        receptors = []
+        ligands = []
         for block in mf_iter:
             if block.name != "f_m_ct":
                 print("%s: Skipping \"%s\" block" % (name, block.name))
             #print "Convert %s block to molecule" % block.name
             s = self._make_structure(block)
             if s:
-                self.structures.append(s)
+                try:
+                    if block.get_attribute("b_glide_receptor"):
+                        receptors.append(s)
+                    else:
+                        ligands.append(s)
+                except (KeyError, ValueError):
+                    ligands.append(s)
                 s.name = name
                 self._add_properties(s, block)
+        if not receptors:
+            self.structures = ligands
+        elif not ligands:
+            self.structures = receptors
+        else:
+            from chimerax.core.models import Model
+            self.structures = receptors
+            container = Model(name, self.session)
+            container.add(ligands)
+            self.structures.append(container)
 
     def _make_structure(self, block):
         from numpy import array

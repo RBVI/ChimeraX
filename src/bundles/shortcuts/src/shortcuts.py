@@ -804,7 +804,7 @@ def toggle_shadows(session):
 
 def toggle_silhouettes(session):
     v = session.main_view
-    run(session, 'set silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
+    run(session, 'graphics silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
 
 def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue
