@@ -2070,6 +2070,12 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     else:
         iw, ih = tw+2*xbuf, th+2*ybuf
 
+    # Can't paint to zero size labels, make min size 1.
+    if iw == 0:
+        iw = 1
+    if ih == 0:
+        ih = 1
+        
     ti = QImage(iw, ih, QImage.Format_ARGB32)
     
     # Paint background
