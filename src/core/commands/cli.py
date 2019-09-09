@@ -1413,6 +1413,9 @@ def as_parser(annotation):
     return make_converter(annotation)
 
 
+def quote_path_if_necessary(path):
+    return quote_if_necessary(path)
+
 def quote_if_necessary(s, additional_special_map={}):
     """quote a string
 
