@@ -399,7 +399,7 @@ class MolecularSurface(Surface):
             acolors = atoms.intersect(self.atoms).colors
         ai = self.atoms.mask(atoms)
         apc = self._atom_patch_colors
-        if apc is None:
+        if apc is None or len(apc) != len(self.atoms):
             na = len(self.atoms)
             from numpy import empty, uint8, bool
             self._atom_patch_colors = c = empty((na,4), uint8)
