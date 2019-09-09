@@ -23,7 +23,10 @@ def label2d(session, labels = None, *, text = None, color = None, bg_color = Non
     loc = locals()
     kw = {attr:loc[attr] for attr in keywords if loc[attr] is not None}
     if labels is None:
-        return label_create(session, name = '', **kw)
+        if text is None:
+            labels = all_labels(session)
+        else:
+            return label_create(session, name = '', **kw)
 
     kw['frames'] = frames
     return [_update_label(session, l, **kw) for l in labels]
@@ -441,6 +444,12 @@ class Labels(Model):
 def find_label(session, name):
     lm = session_labels(session)
     return lm.named_label(name) if lm else None
+
+# -----------------------------------------------------------------------------
+#
+def all_labels(session):
+    lm = session_labels(session)
+    return lm.all_labels if lm else []
 
 # -----------------------------------------------------------------------------
 #
