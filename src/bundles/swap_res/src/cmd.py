@@ -39,6 +39,47 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
         hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, lib=lib, log=log,
         preserve=preserve, hbond_relax=relax, retain=retain)
 
+from chimerax.core.state import StateManager
+class _RotamerStateManager(StateManager):
+    def __init__(self, session, base_res, rotamers):
+        self.init_state_manager(session, "residue rotamers")
+        self.session = session
+        self.base_res = base_res
+        self.rotamers = list(rotamers) # don't want auto-shrinking of a Collection
+        from chimerax.atomic import get_triggers
+        self.handler = get_triggers().add_handler('changes', self._changes_cb)
+        from chimerax.core.triggerset import TriggerSet
+        self.triggers = TriggerSet()
+        self.triggers.add_trigger('fewer rotamers') # but not zero
+        self.triggers.add_trigger('self destroyed')
+
+    def destroy(self):
+        self.base_res = self.rotamers = self.session = None
+        self.handler.remove()
+        super().destroy()
+
+    def reset_state(self, session):
+        self.triggers.activate_trigger('self destroyed', self)
+        self.destroy()
+
+    def _changes_cb(self, trigger_name, changes):
+        if changes.num_deleted_residues() == 0:
+            return
+        remaining = [rot for rot in self.rotamers if not rot.deleted]
+        if self.base_res.deleted:
+            self.triggers.activate_trigger('self destroyed', self)
+            self.session.models.close(remaining)
+            self.destroy()
+            return
+        remaining = [rot for rot in self.rotamers if not rot.deleted]
+        if len(remaining) < len(self.rotamers):
+            if remaining:
+                self.rotamers = remaining
+                self.triggers.activate_trigger('fewer rotamers', self)
+            else:
+                self.triggers.activate_trigger('self destroyed', self)
+                self.destroy()
+
 def rotamers(session, residues, res_type, *, lib=None, log=True):
     ''' Command to display possible side-chain rotamers '''
 
@@ -52,17 +93,15 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
 
     ret_val = []
     from . import swap_res
-    #TODO: don't register attribute, use state manager for each rotamers group
-    from chimerax.atomic import AtomicStructures, AtomicStructure
-    AtomicStructure.register_attr(session, "rotamer_base_res", "Rotamers")
+    from chimerax.atomic import AtomicStructures
+    from chimerax.core.objects import Objects
     for r in residues:
         rotamers = swap_res.get_rotamers(session, r, res_type=res_type, lib=lib, log=log)
-        for rot in rotamers:
-            rot.rotamer_base_res = r
+        session.models.add(rotamers)
+        ret_val.append(_RotamerStateManager(session, r, rotamers))
         rot_structs = AtomicStructures(rotamers)
         from chimerax.std_commands.color import color
-        color(session, rot_structs, color="byhetero")
-        ret_val.append(rot_structs)
+        color(session, Objects(atoms=rot_structs.atoms), color="byhetero")
     return ret_val
 
 def _check_residues(residues):
@@ -79,7 +118,7 @@ def _get_lib(session):
             break
     else:
         if available_libs:
-            lib = available_libs[0]
+            lib = list(available_libs)[0]
         else:
             raise UserError("No rotamer libraries installed!")
     return lib

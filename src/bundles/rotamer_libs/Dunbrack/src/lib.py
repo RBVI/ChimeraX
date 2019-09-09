@@ -21,7 +21,7 @@ class DunbrackRotamerLibrary(RotamerLibrary):
 
     @property
     def display_name(self):
-        return "Dunbrack 2010"
+        return "Dunbrack"
 
     @property
     def description(self):

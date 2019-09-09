@@ -121,7 +121,7 @@ class PrepRotamersDialog(ToolInstance):
         from chimerax.atomic.rotamers import NoResidueRotamersError
         try:
             for r in sel_residues:
-                RotamerDialog(self.session, "%s Side-Chain Rotamers" % residue, r, res_type, self.rot_lib)
+                RotamerDialog(self.session, "%s Side-Chain Rotamers" % r, r, res_type, self.rot_lib)
         except NoResidueRotamersError:
             lib_name = self.rot_lib_option.value
             from chimerax.core.commands import run
@@ -196,33 +196,29 @@ class RotamerDialog(ToolInstance):
             # called directly rather than during session restore
             self.finalize_init(*args)
 
-    def destroy(self):
+    def destroy(self, from_mgr=False):
         for handler in self.handlers:
             handler.remove()
-        live_rotamers = [rot for rot in self.rotamers if not rot.deleted]
-        if live_rotamers:
-            self.session.models.close(live_rotamers)
+        if not from_mgr:
+            self.mgr.destroy()
         super().destroy()
 
     def finalize_init(self, residue, res_type, lib, session_data=None):
         self.residue = residue
         self.res_type = res_type
-        self.rot_lib = rot_lib
+        self.lib = lib
 
         if session_data:
-            self.rotamers, table_data = session_data
+            self.ngr, table_data = session_data
         else:
-            from . import get_rotamers
-            self.rotamers = get_rotamers(residue, log=True, lib=lib, res_type=res_type)
-            from chimerax.atomic import AtomicStructures
-            rot_structs = AtomicStructures(self.rotamers)
-            from chimerax.std_commands.color import color
-            color(self.session, rot_structs, color="byhetero")
+            from chimerax.core.commands import run, quote_if_necessary as quote
+            self.mgr = run(self.session, "rotamers %s %s lib %s" % (quote(residue.string(style="command")),
+                res_type, quote(self.lib.display_name)))[0]
 
         #TODO: dependent dialogs (H-bonds, clashes, density)
-        from chimerax.atomic import get_triggers
         self.handlers = [
-            get_triggers().add_handler('changes', self._atomic_changes_cb),
+            self.mgr.triggers.add_handler('fewer rotamers', self._fewer_rots_cb),
+            self.mgr.triggers.add_handler('self destroyed', self._mgr_destroyed_cb),
         ]
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
@@ -231,17 +227,10 @@ class RotamerDialog(ToolInstance):
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
+        self.tool_window.manage(placement=None)
 
-    def _atomic_changes_cb(self, trig_name, changes):
-        if changes.num_deleted_residues() == 0:
-            return
-        if self.residue.deleted:
-            self.destroy()
-        else:
-            live_rotamers = [r for r in self.rotamers if not r.deleted]
-            if len(live_rotamers) != len(self.rotamers):
-                self.rotamers = rotamers
-                if not self.rotamers:
-                    self.destroy()
-                else:
-                    self.rot_table.set_data(self.rotamers)
+    def _fewer_rots_cb(self, trig_name, mgr):
+        self.rot_table.set_data(self.mgr.rotamers)
+
+    def _mgr_destroyed_cb(self, trig_name, mgr):
+        self.destroy(from_mgr=True)

@@ -194,8 +194,19 @@ class BooleanOption(Option):
         self.widget = QCheckBox(**kw)
         self.widget.clicked.connect(lambda state, s=self: s.make_callback())
 
-class EnumBase:
+class EnumBase(Option):
     values = ()
+    def get_value(self):
+        return self.__widget.text()
+
+    def set_value(self, value):
+        self.__widget.setText(value)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.__widget.setText(self.multiple_value)
+
     def remake_menu(self, labels=None):
         from PyQt5.QtWidgets import QAction
         if labels is None:
@@ -225,19 +236,8 @@ class EnumBase:
         self.value = label
         self.make_callback()
 
-class EnumOption(Option, EnumBase):
+class EnumOption(EnumBase):
     """Supported API. Option for enumerated values"""
-
-    def get_value(self):
-        return self.widget.text()
-
-    def set_value(self, value):
-        self.widget.setText(value)
-
-    value = property(get_value, set_value)
-
-    def set_multiple(self):
-        self.widget.setText(self.multiple_value)
 
     def _make_widget(self, *, display_value=None, **kw):
         self.widget = EnumBase._make_widget(self, display_value=display_value, **kw)
@@ -292,7 +292,7 @@ class FloatOption(Option):
             r = 0
         self.widget.setLayout(layout)
 
-class FloatEnumOption(Option, EnumBase):
+class FloatEnumOption(EnumBase):
     """Supported API. Option for a floating-point number and an enum (as a 2-tuple), for something
        such as size and units"""
 
