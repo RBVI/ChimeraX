@@ -1545,14 +1545,17 @@ class StructureData:
                     args = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int))
                 f(index, size)
 
-    def new_residue(self, residue_name, chain_id, pos, insert=None):
-        '''Supported API. Create a new :class:`.Residue`.'''
+    def new_residue(self, residue_name, chain_id, pos, insert=None, *, precedes=None):
+        ''' Supported API. Create a new :class:`.Residue`.
+            If 'precedes' is None, new residue will be appended to residue list, otherwise the
+            new residue will be inserted before the 'precedes' resdidue.
+        '''
         if not insert:
             insert = ' '
         f = c_function('structure_new_residue',
-                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
+                       args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char, ctypes.c_void_p),
                        ret = ctypes.py_object)
-        return f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
+        return f(self._c_pointer, residue_name.encode('utf-8'), chain_id.encode('utf-8'), pos, insert.encode('utf-8'), ctypes.c_void_p(0) if precedes is None else precedes._c_pointer)
 
     @property
     def nonstandard_residue_names(self):
