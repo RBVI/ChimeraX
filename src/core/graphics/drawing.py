@@ -1585,9 +1585,9 @@ class _DrawShape:
         if self.element_buffer:
             self.element_buffer.delete_buffer()
             self.element_buffer = None
-            for b in self.instance_buffers:
-                b.delete_buffer()
-            self.instance_buffers = []
+        for b in self.instance_buffers:
+            b.delete_buffer()
+        self.instance_buffers = []
         self._buffers_need_update = None
 
         if self.bindings:

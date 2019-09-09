@@ -101,7 +101,6 @@ class ToolbarTool(ToolInstance):
     def _build_buttons(self):
         import os
         import chimerax.shortcuts
-        from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QPixmap, QIcon
         shortcut_icon_dir = os.path.join(chimerax.shortcuts.__path__[0], 'icons')
         dir_path = os.path.join(os.path.dirname(__file__), 'icons')
@@ -127,8 +126,6 @@ class ToolbarTool(ToolInstance):
                         if not os.path.exists(icon_path):
                             icon_path = os.path.join(dir_path, icon_file)
                     pm = QPixmap(icon_path)
-                    # Toolbutton will scale down, but not up, so give large icons
-#                    icon = QIcon(pm.scaledToHeight(128, Qt.SmoothTransformation))
                     icon = QIcon(pm)
                     if not tooltip:
                         tooltip = descrip
@@ -152,6 +149,7 @@ class ToolbarTool(ToolInstance):
                         description = description.capitalize()
                     pm = QPixmap(icon_path)
                     icon = QIcon(pm)
+
                     def callback(event, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
                         bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
                     # TODO: vr_mode
@@ -160,12 +158,14 @@ class ToolbarTool(ToolInstance):
                             icon, description, **kw)
         self.ttb.show_tab('Home')
 
+
 def _file_open(session):
     session.ui.main_window.file_open_cb(session)
+
+
 def _file_save(session):
     session.ui.main_window.file_save_cb(session)
 
-from chimerax.shortcuts.shortcuts import if_sel_atoms
 
 _Toolbars = {
     "Home": (
@@ -174,8 +174,8 @@ _Toolbars = {
             ("File", False): [
                 (_file_open, "open-in-app.png", "Open", "Open data file"),
                 (_file_save, "content-save.png", "Save", "Save session file"),
-                #("cmd:close session", "close-box.png", "Close", "Close current session"),
-                #("cmd:exit", "exit.png", "Exit", "Exit application"),
+                # ("cmd:close session", "close-box.png", "Close", "Close current session"),
+                # ("cmd:exit", "exit.png", "Exit", "Exit application"),
             ],
             ("Images", False): [
                 ("shortcut:sx", "camera.png", "Snapshot", "Save snapshot to desktop"),
@@ -203,10 +203,10 @@ _Toolbars = {
                 ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
                 ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
             ],
-#            ("Undo", True): [
-#                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-#                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-#            ],
+            # ("Undo", True): [
+            #     ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
+            #     ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
+            # ],
         },
     ),
     "Molecule Display": (
