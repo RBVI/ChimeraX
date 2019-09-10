@@ -255,7 +255,7 @@ inline bool normalize(float *v)
             return true;
         }
         return false;
-    } catch (std::domain_error) {
+    } catch (std::domain_error &) {
         return false;
     }
 }
@@ -5256,11 +5256,12 @@ extern "C" EXPORT void structure_new_coordset_index_size(void *mol, int32_t inde
     }
 }
 
-extern "C" EXPORT PyObject *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert)
+extern "C" EXPORT PyObject *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert, void* precedes)
 {
     Structure *m = static_cast<Structure *>(mol);
+    Residue *nb = static_cast<Residue *>(precedes);
     try {
-        Residue *r = m->new_residue(residue_name, chain_id, pos, insert);
+        Residue *r = m->new_residue(residue_name, chain_id, pos, insert, nb, false);
         return r->py_instance(true);
     } catch (...) {
         molc_error();

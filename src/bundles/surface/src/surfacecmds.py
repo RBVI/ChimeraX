@@ -202,12 +202,19 @@ def surface_hide(session, objects = None):
     objects : Objects
       Hide atom patches for specified molecular surfaces or for specified atoms.
     '''
-    from chimerax.atomic import molsurf
-    sma = molsurf.hide_surface_atom_patches(objects.atoms) if objects else []
+    from chimerax.atomic import all_atoms, molsurf
+    atoms = objects.atoms if objects else all_atoms(session)
+    sma = molsurf.hide_surface_atom_patches(atoms)
+
+    # Hide surfaces not associated with atoms.
+    atom_surfs = set(sma)
     sm = _molecular_surfaces(session, objects)
     for s in sm:
-        s.display = False
+        if s not in atom_surfs:
+            s.display = False
+            
 #    molsurf.hide_surface_patches(sm)
+
     return sma + sm
 
 # -------------------------------------------------------------------------------------
@@ -230,11 +237,12 @@ def surface_close(session, objects = None):
 # -------------------------------------------------------------------------------------
 #
 def _molecular_surfaces(session, objects):
-    from chimerax.atomic.molsurf import MolecularSurface
+    from chimerax.atomic import MolecularSurface, surfaces_with_atoms
     if objects is None:
         surfs = session.models.list(type = MolecularSurface)
     else:
-        surfs = [s for s in objects.models if isinstance(s, MolecularSurface)]
+        surfs = ([s for s in objects.models if isinstance(s, MolecularSurface)]
+                 + list(surfaces_with_atoms(objects.atoms)))
     return surfs
 
 # -------------------------------------------------------------------------------------

@@ -399,7 +399,7 @@ class MolecularSurface(Surface):
             acolors = atoms.intersect(self.atoms).colors
         ai = self.atoms.mask(atoms)
         apc = self._atom_patch_colors
-        if apc is None:
+        if apc is None or len(apc) != len(self.atoms):
             na = len(self.atoms)
             from numpy import empty, uint8, bool
             self._atom_patch_colors = c = empty((na,4), uint8)
@@ -575,7 +575,7 @@ def surfaces_with_atoms(atoms):
     return surfs
 
 def show_surface_atom_patches(atoms, only = False):
-    surfs = surfaces_with_atoms(atoms)
+    surfs = [s for s in surfaces_with_atoms(atoms) if s.has_atom_patches()]
     for s in surfs:
         s.show(atoms & s.atoms, only = only)
     return surfs
@@ -585,7 +585,7 @@ def show_surface_patches(surf_models, only = False):
         s.show(s.atoms, only = only)
 
 def hide_surface_atom_patches(atoms):
-    surfs = surfaces_with_atoms(atoms)
+    surfs = [s for s in surfaces_with_atoms(atoms) if s.has_atom_patches()]
     for s in surfs:
         s.hide(atoms & s.atoms)
     return surfs

@@ -162,10 +162,8 @@ class FileSpec:
         self.image = models_image(session, models, size)
 
     def open_command(self):
-        p = self.path
-        if ' ' in p:
-            p = '"%s"' % p 	# Quote path
-        cmd = 'open %s' % p
+        from chimerax.core.commands import quote_path_if_necessary
+        cmd = 'open %s' % quote_path_if_necessary(self.path)
         f = self.format
         if f:
             if ' ' in f:
