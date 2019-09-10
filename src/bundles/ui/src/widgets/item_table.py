@@ -18,7 +18,7 @@ from PyQt5.QtGui import QFontDatabase, QBrush, QColor
 class QCxTableModel(QAbstractTableModel):
     def __init__(self, item_table, **kw):
         self._item_table = item_table
-        super.__init__(**kw)
+        super().__init__(**kw)
 
     def columnCount(self):
         return len(self._item_table._columns)
@@ -134,14 +134,14 @@ class ItemTable(QTableView):
 
     selection_changed = pyqtSignal(list)
 
-    PREF_SUBKEY_COL_DISP = "default col display"
+    DEFAULT_SETTINGS_ATTR = "item_table_info"
 
     COL_FORMAT_BOOLEAN = "boolean"
     COL_FORMAT_TRANSPARENT_COLOR = "alpha"
     COL_FORMAT_OPAQUE_COLOR = "no alpha"
 
     def __init__(self, *, auto_multiline_headers=True, column_control_info=None, allow_user_sorting=True,
-            settings_attr="item_table_info"):
+            settings_attr=None):
         """ 'auto_multiline_headers' controls whether header titles can be split into multiple
             lines on word boundaries.
 
@@ -157,7 +157,8 @@ class ItemTable(QTableView):
                 (QWidget instance, chimerax.core.settings.Settings instance, defaults dictionary,
                   fallback default, display callback, number of check box columns)
             The Settings instance will be used to remember the displayed column preferences (as
-            an attribute given by 'settings_attr').  The defaults dictionary controls whether the
+            an attribute given by 'settings_attr', which defaults to DEFAULT_SETTINGS_ATTR and which
+            should be declared as 'EXPLICIT_SAVE').  The defaults dictionary controls whether the
             column is shown by default, which column titles as keys and booleans as values (True =
             displayed).  The fallback default (a boolean) is for columns missing from the defaults
             dictionary.  The display callback, if not None, is called when a column is configured
@@ -172,17 +173,12 @@ class ItemTable(QTableView):
         self._allow_user_sorting = allow_user_sorting
         self._auto_multiline_headers = auto_multiline_headers
         self._column_control_info = column_control_info
-        self._settings_attr = settings_attr
+        self._settings_attr = self.DEFAULT_SETTINGS_ATTR if settings_attr is None else settings_attr
         self._pending_columns = []
         if column_control_info:
             self._checkables = {}
-            settings = column_control_info[1]
-            prefs = getattr(settings, settings_attr, None)
-            if prefs is None:
-                prefs = { self.PREF_SUBKEY_COL_DISP: column_control_info[2] }
-                setattr(settings, settings_attr, prefs)
+            from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QWidget, QLabel
             if isinstance(column_control_info[0], QWidget):
-                from PyQt5.QtWidgets import QVBoxLyout, QGridLayout, QHBoxLayout, QWidget, QLabel
                 from PyQt5.QtCore import Qt
                 main_layout = QVBoxLayout()
                 column_control_info[0].setLayout(main_layout)
@@ -202,10 +198,11 @@ class ItemTable(QTableView):
                 bbox.addButton("Standard", qbbox.ActionRole).clicked.connect(self._show_standard)
                 bbox.addButton("Set Default", qbbox.ActionRole).clicked.connect(self._set_default)
         self._highlighted = set()
+        super().__init__()
 
     def add_column(self, title, data_fetch, *, format="%s", display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
-            header_justifcation=None):
+            header_justification=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -251,23 +248,22 @@ class ItemTable(QTableView):
             'justification' except no "decimal". Default to the same justification as 'justification'
             (but "right" if 'justification' is "decimal").
         """
-        if title in [c.title for c in self.columns]:
+        if title in [c.title for c in self._columns]:
             return
 
         if display is None:
             if self._column_control_info:
                 widget, settings, defaults, fallback = self._column_control_info[:4]
-                lookup = getattr(settings, self._settings_attr)[self.PREF_SUBKEY_COL_DISP]
-                display = lookup.get(title, fallback)
+                display = getattr(settings, self._settings_attr).get(title, fallback)
             else:
                 display = True
         if header_justification is None:
             header_justification = justification if justification != "decimal" else "right"
 
-        c = ItemColumn(title, data_fetch, format, title_display, justification, font, color,
+        c = _ItemColumn(title, data_fetch, format, title_display, justification, font, color,
             header_justification, balloon)
 
-        if self.column_control_info:
+        if self._column_control_info:
             self._add_column_control_entry(c)
         if display != c.display:
             self.column_update(c, display=display)
@@ -365,7 +361,6 @@ class ItemTable(QTableView):
         self._table_model.dataChanged(top_left, bottom_right, [Qt.FontRole]).emit()
 
     def launch(self, session_info=None):
-        super().__init__()
         self._table_model = QCxTableModel(self)
         if self._allow_user_sorting:
             sort_model = QSortFilterProxyModel()
@@ -451,7 +446,8 @@ class ItemTable(QTableView):
         for col in self._columns:
             shown[col.title] = col.display
         settings = self._column_control_info[1]
-        setattr(settings, self.PREF_SUBKEY_COL_DISP, shown)
+        setattr(settings, self._settings_attr, shown)
+        settings.save(setting=self._settings_attr)
 
     def _show_all_columns(self):
         for col in self._columns:
@@ -460,8 +456,7 @@ class ItemTable(QTableView):
     def _show_default(self):
         widget, settings, display_defaults, fallback = self._column_control_info[:4]
         for col in self._columns:
-            lookup = getattr(settings, self._settings_attr).get(self.PREF_SUBKEY_COL_DISP, display_defaults)
-            display = lookup.get(col.title, fallback)
+            display = display_defaults.get(col.title, fallback)
             self._column_update(col, display=display)
 
     def _show_standard(self):

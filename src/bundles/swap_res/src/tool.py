@@ -185,6 +185,16 @@ class PrepRotamersDialog(ToolInstance):
         else:
             self.rot_description_box.hide()
 
+from chimerax.ui import MainToolWindow
+class RotamerToolWindow(MainToolWindow):
+    def __init__(self, tool_instance):
+        super().__init__(tool_instance)
+
+    def fill_context_menu(self, menu, x, y):
+        menu.addMenu(self.tool_instance.column_menu)
+
+_settings = None
+
 class RotamerDialog(ToolInstance):
 
     #help = "help:user/tools/rotamers.html"
@@ -201,7 +211,7 @@ class RotamerDialog(ToolInstance):
             handler.remove()
         if not from_mgr:
             self.mgr.destroy()
-        super().destroy()
+        super().delete()
 
     def finalize_init(self, residue, res_type, lib, session_data=None):
         self.residue = residue
@@ -220,13 +230,27 @@ class RotamerDialog(ToolInstance):
             self.mgr.triggers.add_handler('fewer rotamers', self._fewer_rots_cb),
             self.mgr.triggers.add_handler('self destroyed', self._mgr_destroyed_cb),
         ]
-        from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self)
+        from chimerax.ui.widgets import ItemTable
+        global _settings
+        if _settings is None:
+            from chimerax.core.settings import Settings
+            class _RotamerSettings(Settings):
+                EXPLICIT_SAVE = { ItemTable.DEFAULT_SETTINGS_ATTR: {} }
+            _settings = _RotamerSettings(self.session, "Rotamers")
+        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QMenu
+        self.column_menu = QMenu()
+        self.tool_window = tw = RotamerToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
+        layout.addWidget(QLabel("%s %s rotamers" % (lib.display_name, res_type)))
+        self.table = ItemTable(column_control_info=(self.column_menu, _settings, {}, True))
+        for i in range(len(self.mgr.rotamers[0].chis)):
+            self.table.add_column("Chi %d" % (i+i), lambda r: "chis[%d]" % i, format="%6.1f")
+        self.table.add_column("Probability", "p", format="%.6f ", justification="decimal")
+        self.table.data = self.mgr.rotamers
+        self.table.launch(session_info=session_data)
         self.tool_window.manage(placement=None)
 
     def _fewer_rots_cb(self, trig_name, mgr):

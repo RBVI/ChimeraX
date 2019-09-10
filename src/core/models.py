@@ -566,19 +566,19 @@ class Models(StateManager):
         id = parent.id + (nid,)
         return id
 
-    def add_group(self, models, name=None, id=None):
+    def add_group(self, models, name=None, id=None, parent=None):
         if name is None:
             names = set([m.name for m in models])
             if len(names) == 1:
                 name = names.pop() + " group"
             else:
                 name = "group"
-        parent = Model(name, self._session())
+        group = Model(name, self._session())
         if id is not None:
-            parent.id = id
-        parent.add(models)
-        self.add([parent])
-        return parent
+            group.id = id
+        group.add(models)
+        self.add([group], parent=parent)
+        return group
 
     def remove(self, models):
         # Also remove all child models, and remove deepest children first.

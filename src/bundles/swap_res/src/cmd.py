@@ -46,6 +46,8 @@ class _RotamerStateManager(StateManager):
         self.session = session
         self.base_res = base_res
         self.rotamers = list(rotamers) # don't want auto-shrinking of a Collection
+        self.group = session.models.add_group(rotamers, name="%s rotamers"
+            % base_res.string(omit_structure=True), parent=base_res.structure)
         from chimerax.atomic import get_triggers
         self.handler = get_triggers().add_handler('changes', self._changes_cb)
         from chimerax.core.triggerset import TriggerSet
@@ -54,8 +56,10 @@ class _RotamerStateManager(StateManager):
         self.triggers.add_trigger('self destroyed')
 
     def destroy(self):
-        self.base_res = self.rotamers = self.session = None
         self.handler.remove()
+        if self.group.id is not None:
+            self.session.models.close([self.group])
+        self.group = self.base_res = self.rotamers = self.session = None
         super().destroy()
 
     def reset_state(self, session):
@@ -68,7 +72,6 @@ class _RotamerStateManager(StateManager):
         remaining = [rot for rot in self.rotamers if not rot.deleted]
         if self.base_res.deleted:
             self.triggers.activate_trigger('self destroyed', self)
-            self.session.models.close(remaining)
             self.destroy()
             return
         remaining = [rot for rot in self.rotamers if not rot.deleted]
@@ -97,11 +100,10 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
     from chimerax.core.objects import Objects
     for r in residues:
         rotamers = swap_res.get_rotamers(session, r, res_type=res_type, lib=lib, log=log)
-        session.models.add(rotamers)
         ret_val.append(_RotamerStateManager(session, r, rotamers))
         rot_structs = AtomicStructures(rotamers)
         from chimerax.std_commands.color import color
-        color(session, Objects(atoms=rot_structs.atoms), color="byhetero")
+        color(session, Objects(atoms=rot_structs.atoms), color="byelement")
     return ret_val
 
 def _check_residues(residues):

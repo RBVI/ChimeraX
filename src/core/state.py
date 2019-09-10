@@ -105,7 +105,6 @@ class StateManager(State, metaclass=abc.ABCMeta):
             attributes, when the manager should be disposed of.
         '''
         self.__session.remove_state_manager(self.__tag)
-        super().destroy()
 
     @abc.abstractmethod
     def reset_state(self, session):

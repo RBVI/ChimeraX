@@ -245,7 +245,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     middles = {}
     ends = {}
     for i, rp in enumerate(params):
-        s = AtomicStructure(session, name="rotamer %d of %s" % (i+1, res))
+        s = AtomicStructure(session, name="rotamer %d" % (i+1))
         structs.append(s)
         r = s.new_residue(mapped_res_type, 'A', 1)
         s.rotamer_prob = rp.p
