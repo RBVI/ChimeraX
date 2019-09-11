@@ -138,8 +138,7 @@ class AtomSpecArg(Annotation):
             offset = index_map[ast.parseinfo.endpos] + 1
             raise AnnotationError("mangled atom specifier", offset=offset)
         # Success!
-        from .cli import quote_if_necessary
-        return ast, quote_if_necessary(consumed), rest
+        return ast, consumed, rest
 
     @classmethod
     def _parse_unquoted(cls, text, session):
