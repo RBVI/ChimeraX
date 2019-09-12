@@ -206,7 +206,9 @@ from ..errors import UserError
 _debugging = False
 _normal_token = re.compile(r"[^;\s]*")
 _single_quote = re.compile(r"'(.|\')*?'(\s|$)")
+_internal_single_quote = re.compile(r"'\s")
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
+_internal_double_quote = re.compile(r'"\s')
 _whitespace = re.compile(r"\s*")
 
 
@@ -984,18 +986,20 @@ class FileNameArg(Annotation):
 
     @classmethod
     def parse(cls, text, session):
-        # TODO: don't use StringArg
-        token, text, rest = StringArg.parse(text, session)
+        if not text:
+            raise AnnotationError("Expected %s" % cls.name)
+        token, text, rest = string_token(text, convert=False)
         import os.path
-        return os.path.expanduser(token), quote_path_if_necessary(text), rest
+        token = os.path.expanduser(token)
+        return token, text, rest
 
 
-_browse_string = "browse"
+_BROWSE_STRING = "browse"
 
 
 def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
-    if path == _browse_string:
+    if path == _BROWSE_STRING:
         if not session.ui.is_gui:
             raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
         from PyQt5.QtWidgets import QFileDialog
@@ -1417,17 +1421,35 @@ def as_parser(annotation):
 def quote_path_if_necessary(path):
     """quote a string
 
-    So a :py:class:`FileNameArg` (or subclass) treats it like a singe value
+    So a :py:class:`FileNameArg` (or subclass) treats it like a singe value.
+    String escape sequences are not recognized in paths, so there no way to
+    quote a path so that both single and double quotes that would need
+    quoting.
     """
-    return quote_if_necessary(path)
+    if not path:
+        return path
+    has_single_quote = path[0] == "'" or path[-1] == "'" or _internal_single_quote.search(path) is not None
+    has_double_quote = path[0] == '"' or path[-1] == '"' or _internal_double_quote.search(path) is not None
+    if has_single_quote and has_double_quote:
+        raise ValueError("Unable to quote path: %r" % path)
+    if has_single_quote:
+        return '"%s"' % path
+    if has_double_quote:
+        return '"%s"' % path
+    has_whitespace = _whitespace.search(path) is not None
+    if has_whitespace:
+        return '"%s"' % path
+    return path
 
 def quote_if_necessary(s, additional_special_map={}):
     """quote a string
 
     So :py:class:`StringArg` treats it like a single value"""
+    if not s:
+        return s
     import unicodedata
-    has_single_quote = "'" in s
-    has_double_quote = '"' in s
+    has_single_quote = s[0] == "'" or s[-1] == "'" or _internal_single_quote.search(s) is not None
+    has_double_quote = s[0] == '"' or s[-1] == '"' or _internal_double_quote.search(s) is not None
     has_special = False
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
@@ -1452,12 +1474,14 @@ def quote_if_necessary(s, additional_special_map={}):
         elif ch == '"':
             if use_single_quote:
                 result.append('"')
-            else:
+            elif has_double_quote:
                 result.append('\\"')
+            else:
+                result.append('"')
         elif ch in special_map:
             has_special = True
             result.append(special_map[ch])
-        elif ord(ch) < 32:
+        elif i < 32:
             has_special = True
             result.append('\\x%02x' % i)
         elif ch.strip() == '':
@@ -1584,16 +1608,17 @@ def unescape_with_index_map(text):
     return text, index_map
 
 
-def string_token(text):
+def string_token(text, convert=True):
     """
-    Extract next token from given text.
+    Extract next, optionally quoted, token from given text.
 
     :param text: text to parse without leading whitespace
+    :param convert: convert escape sequences to characters
     :returns: a 3-tuple of first argument in text, the actual text used,
               and the rest of the text.
 
-    Tokens may be quoted, in which case the text between the quotes is
-    returned.  In either case, the escape sequences in the string are to
+    If the Tokens is quoted, then the text between the quotes is returned.
+    In either case, the escape sequences in the string are to
     the actual character.  The escape sequences are the same as Python's
     as documented in :ref:`literals`.
     """
@@ -1620,7 +1645,8 @@ def string_token(text):
         m = _normal_token.match(text)
         end = m.end()
         token = text[0:end]
-    token = unescape(token)
+    if convert:
+        token = unescape(token)
     return token, text[:end], text[end:]
 
 
@@ -1633,7 +1659,7 @@ def next_token(text):
               and the rest of the text.
 
     Tokens are delimited by whitespace.  If this is too simplistic, then
-    a 
+    write some code :-). 
     """
     assert(text and not text[0].isspace())
     if text[0] == ';':
