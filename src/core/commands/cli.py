@@ -1428,8 +1428,8 @@ def quote_path_if_necessary(path):
     """
     if not path:
         return path
-    has_single_quote = path[0] == "'" or path[-1] == "'" or _internal_single_quote.search(path) is not None
-    has_double_quote = path[0] == '"' or path[-1] == '"' or _internal_double_quote.search(path) is not None
+    has_single_quote = path[0] == "'" or _internal_single_quote.search(path) is not None
+    has_double_quote = path[0] == '"' or _internal_double_quote.search(path) is not None
     if has_single_quote and has_double_quote:
         raise ValueError("Unable to quote path: %r" % path)
     if has_single_quote:
@@ -1448,8 +1448,8 @@ def quote_if_necessary(s, additional_special_map={}):
     if not s:
         return s
     import unicodedata
-    has_single_quote = s[0] == "'" or s[-1] == "'" or _internal_single_quote.search(s) is not None
-    has_double_quote = s[0] == '"' or s[-1] == '"' or _internal_double_quote.search(s) is not None
+    has_single_quote = s[0] == "'" or _internal_single_quote.search(s) is not None
+    has_double_quote = s[0] == '"' or _internal_double_quote.search(s) is not None
     has_special = False
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
