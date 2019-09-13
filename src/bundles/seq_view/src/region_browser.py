@@ -815,7 +815,7 @@ class RegionBrowser:
             if path is None:
                 return
             settings.scf_colors_structures = cbox.isChecked()
-            from chimerax.core.commands import quote_if_necessary as q_if, run
+            from chimerax.core.commands import quote_path_if_necessary as q_if, run
             from . import subcommand_name
             run(self.tool_window.session, "sequence %s %s scfLoad %s color %s"
                 % (subcommand_name, q_if(sv.alignment.ident),

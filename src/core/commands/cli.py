@@ -50,8 +50,8 @@ Multiple value arguments are separated by commas
 and the commas may be followed by whitespace.
 Depending on the type of an argument, *e.g.*, a color name,
 whitespace can also appear within an argument value.
-Argument values may be quoted with double quotes.
-And in quoted text, Python's textual escape sequences are recognized,
+String argument values may be quoted with double or single quotes,
+and Python's textual escape sequences are recognized,
 *e.g.*, ``\\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign,
 \N{LATIN CAPITAL LETTER A WITH RING ABOVE}.
 
@@ -206,7 +206,9 @@ from ..errors import UserError
 _debugging = False
 _normal_token = re.compile(r"[^;\s]*")
 _single_quote = re.compile(r"'(.|\')*?'(\s|$)")
+_internal_single_quote = re.compile(r"'\s")
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
+_internal_double_quote = re.compile(r'"\s')
 _whitespace = re.compile(r"\s*")
 
 
@@ -766,7 +768,7 @@ class EnumOf(Annotation):
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
-        token, text, rest = next_token(text)
+        token, text, rest = string_token(text)
         folded = token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
@@ -940,7 +942,7 @@ class StringArg(Annotation):
     def parse(text, session):
         if not text:
             raise AnnotationError("Expected %s" % StringArg.name)
-        token, text, rest = next_token(text)
+        token, text, rest = string_token(text)
         # use quote_if_necessary(token) since token will have had
         # it's surrounding quotes stripped, and you don't want them
         # quoted a second time
@@ -972,7 +974,7 @@ class AttrNameArg(StringArg):
                                   " characters and underscores")
         if text[0].isdigit():
             raise AnnotationError("Attribute names cannot start with a digit")
-        return token, quote_if_necessary(text), rest
+        return token, text, rest
 
 
 class FileNameArg(Annotation):
@@ -984,17 +986,20 @@ class FileNameArg(Annotation):
 
     @classmethod
     def parse(cls, text, session):
-        token, text, rest = StringArg.parse(text, session)
+        if not text:
+            raise AnnotationError("Expected %s" % cls.name)
+        token, text, rest = string_token(text, convert=False)
         import os.path
-        return os.path.expanduser(token), quote_if_necessary(text), rest
+        token = os.path.expanduser(token)
+        return token, text, rest
 
 
-_browse_string = "browse"
+_BROWSE_STRING = "browse"
 
 
 def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
-    if path == _browse_string:
+    if path == _BROWSE_STRING:
         if not session.ui.is_gui:
             raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
         from PyQt5.QtWidgets import QFileDialog
@@ -1015,7 +1020,7 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
             raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
     else:
         paths = [path]
-    return (paths if return_list else paths[0]), " ".join([quote_if_necessary(p) for p in paths]), rest
+    return (paths if return_list else paths[0]), " ".join([quote_path_if_necessary(p) for p in paths]), rest
 
 
 class OpenFileNameArg(FileNameArg):
@@ -1414,15 +1419,37 @@ def as_parser(annotation):
 
 
 def quote_path_if_necessary(path):
-    return quote_if_necessary(path)
+    """quote a string
+
+    So a :py:class:`FileNameArg` (or subclass) treats it like a singe value.
+    String escape sequences are not recognized in paths, so there no way to
+    quote a path so that both single and double quotes that would need
+    quoting.
+    """
+    if not path:
+        return path
+    has_single_quote = path[0] == "'" or _internal_single_quote.search(path) is not None
+    has_double_quote = path[0] == '"' or _internal_double_quote.search(path) is not None
+    if has_single_quote and has_double_quote:
+        raise ValueError("Unable to quote path: %r" % path)
+    if has_single_quote:
+        return '"%s"' % path
+    if has_double_quote:
+        return '"%s"' % path
+    has_whitespace = _whitespace.search(path) is not None
+    if has_whitespace:
+        return '"%s"' % path
+    return path
 
 def quote_if_necessary(s, additional_special_map={}):
     """quote a string
 
-    So :py:func`next_token` treats it like a single value"""
+    So :py:class:`StringArg` treats it like a single value"""
+    if not s:
+        return s
     import unicodedata
-    has_single_quote = "'" in s
-    has_double_quote = '"' in s
+    has_single_quote = s[0] == "'" or _internal_single_quote.search(s) is not None
+    has_double_quote = s[0] == '"' or _internal_double_quote.search(s) is not None
     has_special = False
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
@@ -1447,12 +1474,14 @@ def quote_if_necessary(s, additional_special_map={}):
         elif ch == '"':
             if use_single_quote:
                 result.append('"')
-            else:
+            elif has_double_quote:
                 result.append('\\"')
+            else:
+                result.append('"')
         elif ch in special_map:
             has_special = True
             result.append(special_map[ch])
-        elif ord(ch) < 32:
+        elif i < 32:
             has_special = True
             result.append('\\x%02x' % i)
         elif ch.strip() == '':
@@ -1518,15 +1547,20 @@ def unescape_with_index_map(text):
             # Assumes that replacement is a single character
             index_map = index_map[:index] + index_map[index + 1:]
             start = index + 1
-        elif escaped == 'o':
+        elif escaped in '01234567':
+            # up to 3 octal digits
+            for count in range(2, 5):
+                if text[index + count] not in '01234567':
+                    break
             try:
-                char = chr(int(text[index + 2: index + 5], 8))
-                text = text[:index] + char + text[index + 5:]
-                index_map = index_map[:index] + index_map[index + 4:]
+                char = chr(int(text[index + 1: index + count], 8))
+                text = text[:index] + char + text[index + count:]
+                index_map = index_map[:index] + index_map[index + count - 1:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == 'x':
+            # 2 hex digits
             try:
                 char = chr(int(text[index + 2: index + 4], 16))
                 text = text[:index] + char + text[index + 4:]
@@ -1535,6 +1569,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'u':
+            # 4 hex digits
             try:
                 char = chr(int(text[index + 2: index + 6], 16))
                 text = text[:index] + char + text[index + 6:]
@@ -1543,6 +1578,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'U':
+            # 8 hex digits
             try:
                 char = chr(int(text[index + 2: index + 10], 16))
                 text = text[:index] + char + text[index + 10:]
@@ -1551,6 +1587,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'N':
+            # named unicode character
             if len(text) < index + 2 or text[index + 2] != '{':
                 start = index + 1
                 continue
@@ -1571,7 +1608,49 @@ def unescape_with_index_map(text):
     return text, index_map
 
 
-def next_token(text, *, no_raise=False):
+def string_token(text, convert=True):
+    """
+    Extract next, optionally quoted, token from given text.
+
+    :param text: text to parse without leading whitespace
+    :param convert: convert escape sequences to characters
+    :returns: a 3-tuple of first argument in text, the actual text used,
+              and the rest of the text.
+
+    If the Tokens is quoted, then the text between the quotes is returned.
+    In either case, the escape sequences in the string are to
+    the actual character.  The escape sequences are the same as Python's
+    as documented in :ref:`literals`.
+    """
+    assert(text and not text[0].isspace())
+    if text[0] == '"':
+        m = _double_quote.match(text)
+        if not m:
+            raise AnnotationError("incomplete quoted text")
+        end = m.end()
+        if text[end - 1].isspace():
+            end -= 1
+        token = text[1:end - 1]
+    elif text[0] == "'":
+        m = _single_quote.match(text)
+        if not m:
+            raise AnnotationError("incomplete quoted text")
+        end = m.end()
+        if text[end - 1].isspace():
+            end -= 1
+        token = text[1:end - 1]
+    elif text[0] == ';':
+        return ';', ';', text[1:]
+    else:
+        m = _normal_token.match(text)
+        end = m.end()
+        token = text[0:end]
+    if convert:
+        token = unescape(token)
+    return token, text[:end], text[end:]
+
+
+def next_token(text):
     """
     Extract next token from given text.
 
@@ -1579,50 +1658,16 @@ def next_token(text, *, no_raise=False):
     :returns: a 3-tuple of first argument in text, the actual text used,
               and the rest of the text.
 
-    Tokens may be quoted, in which case the text between
-    the quotes is returned.
+    Tokens are delimited by whitespace.  If this is too simplistic, then
+    write some code :-). 
     """
     assert(text and not text[0].isspace())
-    # m = _whitespace.match(text)
-    # start = m.end()
-    # if start == len(text):
-    #     return '', text, ''
-    start = 0
-    if text[start] == '"':
-        m = _double_quote.match(text, start)
-        if m:
-            end = m.end()
-            if text[end - 1].isspace():
-                end -= 1
-            token = text[start + 1:end - 1]
-        else:
-            end = len(text)
-            token = text[start + 1:end]
-            if no_raise:
-                return '', '', text
-            raise AnnotationError("incomplete quoted text")
-        token = unescape(token)
-    elif text[start] == "'":
-        m = _single_quote.match(text, start)
-        if m:
-            end = m.end()
-            if text[end - 1].isspace():
-                end -= 1
-            token = text[start + 1:end - 1]
-        else:
-            end = len(text)
-            token = text[start + 1:end]
-            if no_raise:
-                return '', '', text
-            raise AnnotationError("incomplete quoted text")
-        token = unescape(token)
-    elif text[start] == ';':
-        return ';', ';', text[start + 1:]
-    else:
-        m = _normal_token.match(text, start)
-        end = m.end()
-        token = text[start:end]
-    return token, text[:end], text[end:]
+    if text[0] == ';':
+        return ';', ';', text[1:]
+    m = _normal_token.match(text)
+    end = m.end()
+    token = text[:end]
+    return token, token, text[end:]
 
 
 def _upto_semicolon(text):
@@ -2493,7 +2538,7 @@ class Command:
         # check if next token matches a keyword
         if not text:
             return True
-        _, tmp, _ = next_token(text, no_raise=True)
+        _, tmp, _ = next_token(text)
         if not tmp:
             return True
         if tmp[0].isalpha():

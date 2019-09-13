@@ -134,6 +134,11 @@ class _InterpolateLabel:
             frames):
         self.label = label
         from numpy import array_equal
+        # even if color/background not changing, need color1/2 and bg1/2 for visibility changes
+        from numpy import array, uint8
+        self.orig_color1 = None if label.color is None else label.color.copy()
+        self.color1, self.color2 = array(label.drawing.label_color, dtype=uint8), (color.uint8x4() if color else color)
+        self.bg1, self.bg2 = (None if label.background is None else label.background.copy()), bg_color
         if color is None:
             # no change
             self.interp_color = False
@@ -141,13 +146,7 @@ class _InterpolateLabel:
             color2 = None if color == 'none' else color.uint8x4()
             if array_equal(label.color, color2):
                 self.interp_color = False
-            elif label.color is None or color2 is None:
-                # abrupt transition if color going to/from default
-                label.color = color2
-                self.interp_color = False
             else:
-                self.color1 = label.color
-                self.color2 = color2
                 self.interp_color = True
         if bg_color is None:
             # no change
@@ -206,8 +205,8 @@ class _InterpolateLabel:
         if self.visibility2 is not None and self.visibility1 != self.visibility2:
             if frame == self.frames-1:
                 self.label.visibility = self.visibility2
-                self.label.color = self.color1 if self.color2 is None else self.color2
-                self.label.background = self.bg2
+                self.label.color = self.orig_color1 if self.color2 is None else self.color2
+                self.label.background = self.bg1 if self.bg2 is None else self.bg2
             else:
                 # fake gradual change in visibility via alpha channel
                 if self.visibility2:
@@ -496,6 +495,8 @@ class Label:
     def update_drawing(self):
         d = self.drawing
         d.needs_update = True
+        # Used to be in LabelModel.update_drawing(), but that doesn't get called if display is False!
+        d.display = self.visibility
         d.redraw_needed()
         
     def delete(self):
@@ -569,7 +570,6 @@ class LabelModel(Model):
             l.session.logger.info("Can't find font for label")
             return True
         self.set_text_image(rgba)
-        self.display = l.visibility
         return True
         
     def set_text_image(self, rgba):

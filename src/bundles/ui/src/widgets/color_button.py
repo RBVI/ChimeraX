@@ -157,8 +157,9 @@ class MultiColorButton(ColorButton):
                 import os
                 if os.path.exists(test_icon):
                     icon_file = test_icon
-            from chimerax.core.commands import quote_if_necessary
-            self.setStyleSheet("background-image: url(%s);" % quote_if_necessary(icon_file))
+            from urllib.request import pathname2url
+            path = pathname2url(icon_file)
+            self.setStyleSheet("background-image: url(%s);" % path)
         else:
             ColorButton.set_color(self, color)
 
