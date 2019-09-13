@@ -55,14 +55,15 @@ class MaestroParser:
             s = self._make_structure(block)
             if s:
                 try:
-                    if block.get_attribute("b_glide_receptor"):
-                        receptors.append(s)
-                    else:
-                        ligands.append(s)
+                    is_receptor = block.get_attribute("b_glide_receptor")
                 except (KeyError, ValueError):
+                    is_receptor = False
+                if is_receptor:
+                    receptors.append(s)
+                else:
+                    self._add_properties(s, block)
                     ligands.append(s)
                 s.name = name
-                self._add_properties(s, block)
         if not receptors:
             self.structures = ligands
         elif not ligands:
