@@ -557,6 +557,9 @@ class Toolshed:
                     a["has_save"].add((bi.name, bi.version))
         from chimerax.core import io
         for name, a in available.items():
+            if io.format_from_name(name) is not None:
+                # Do not register formats that are already handled
+                continue
             try:
                 format = io.register_format(name, a["category"], a["suffixes"], a["nicknames"],
                                             mime=a["mime_types"], synopsis=a["synopsis"])
