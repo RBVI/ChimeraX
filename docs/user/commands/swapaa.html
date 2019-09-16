@@ -160,8 +160,15 @@ before the <i>method</i> is applied.
 The <i>method</i> can be any combination,
 without spaces, of one or more of the following letters (default <b>dchp</b>):
 <ul>
-<li><b>d</b> &ndash; by best fit into <a href="#density">density</a>
-(ignored if no density map is <a href="#density">specified</a>)
+<li><b>d</b> &ndash; by best fit into a density map:
+  <ul>
+  <li>if no maps are open but <b>d</b> was just being used by default,
+  this criterion will be skipped; if <b>d</b> was entered explicitly 
+  in the command, however, an error will be raised
+  <li>if one map is open, that map will be used
+  <li>if multiple maps are open, which map to use must be specified with
+  the <a href="#density"><b>density</b></a> option
+  </ul>
 <li><b>c</b> &ndash; by lowest <a href="#clash">clash score</a>
 <li><b>h</b> &ndash; by highest number of <a href="#H-bond">H-bonds</a>
 <li><b>p</b> &ndash; by highest probability according to the 
@@ -170,9 +177,9 @@ without spaces, of one or more of the following letters (default <b>dchp</b>):
 affected by the structural environment,
 except by phi and psi angles when the Dunbrack library is used)
 </ul>
+<p>
 Each successive method is only used when the previous method(s) have
-produced a tie. For example, with the default criteria,
-if no density map is <a href="#density">specified</a>,
+produced a tie. For example, with the default criteria but no map open,
 clashes will be evaluated; if the
 <a href="#clashscore">clash scoring method</a> is <b>num</b>
 and more than one rotamer ties for the lowest number of clashes,
@@ -305,5 +312,5 @@ The <i>tolerance</i> is how much to relax the angle criteria if
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2019</address>
+September 2019</address>
 </body></html>

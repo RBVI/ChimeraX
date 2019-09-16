@@ -36,7 +36,11 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
+<a name="delete"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>hbonds delete</b> 
+[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
+<br>&ndash; or &ndash;
 <br><b>~hbonds</b> 
 [&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
 </h3>
@@ -75,9 +79,10 @@ so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
 The pseudobonds can be <a href="#showDist">labeled by distance</a>, 
 and their <a href="#color">color</a>, <a href="#radius">radius</a>,
 and <a href="#dashes">number of dashes</a> can be specified.
-The pseudobonds can be removed with the <b>~hbonds</b> command.
+The pseudobonds can be removed with the <b>hbonds delete</b> or
+<b>~hbonds</b> command.
 The default <a href="#name">name</a> of the pseudobond model(s) for creation
-(and for removal with the <b>~hbonds</b> command) is <b>hydrogen bonds</b>.
+and removal is <b>hydrogen bonds</b>.
 When multiple pseudobond models have the same name, specific models can be 
 removed with the <a href="close.html"><b>close</b></a> command.
 </p><p>
@@ -101,7 +106,8 @@ write results to the <a href="../tools/log.html"><b>Log</b></a>
 <b><a href="show.html">hide</a>; <a href="cartoon.html">cartoon</a> suppress f
 <br>hb (/a & protein) restrict (/b & protein) reveal t show t</b>
 </blockquote>
-&ndash; hide all atoms and show cartoon (enabling coincident backbone-atom display),
+&ndash; hide all atoms and show cartoon
+(enabling coincident backbone-atom display),
 then identify H-bonds between chain A protein and chain B protein,
 displaying atoms as needed to show all H-bonds, labeled by distance;
 the parentheses are not required, just included for clarity
@@ -284,8 +290,8 @@ can be changed later with <a href="style.html"><b>style</b></a>.
 <b>name</b> &nbsp;<i>name</i>
 <br>Name for the <a href="../pseudobonds.html">pseudobond model</a>
 created to show interactions
-(default <b>hydrogen bonds</b>, also the default name for deletion
-with <b>~hbonds</b>). Using a new name creates a separate
+(default <b>hydrogen bonds</b>, also the default name for 
+<a href="#delete">deletion</a>). Using a new name creates a separate
 model that can be hidden/shown/closed independently.
 Names containing spaces must be enclosed in quotation marks.
 </blockquote>
@@ -472,5 +478,5 @@ all of its possible positions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+September 2019</address>
 </body></html>
