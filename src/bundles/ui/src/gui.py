@@ -660,7 +660,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             icon = self._expand_icon
             for tw, state in self._hide_tools_shown_states.items():
                 if state:
-                    tw.shown = True
+                    tw._mw_set_shown(True)
             self._hide_tools_shown_states.clear()
             if self._pref_dialog_state:
                 self.settings_ui_widget.show()
