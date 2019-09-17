@@ -237,20 +237,31 @@ class RotamerDialog(ToolInstance):
             class _RotamerSettings(Settings):
                 EXPLICIT_SAVE = { ItemTable.DEFAULT_SETTINGS_ATTR: {} }
             _settings = _RotamerSettings(self.session, "Rotamers")
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QMenu
-        self.column_menu = QMenu()
+        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QMenu, QCheckBox
+        self.column_menu = QMenu("Columns")
         self.tool_window = tw = RotamerToolWindow(self)
         parent = tw.ui_area
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
         layout.addWidget(QLabel("%s %s rotamers" % (lib.display_name, res_type)))
-        self.table = ItemTable(column_control_info=(self.column_menu, _settings, {}, True))
+        class RotamerTable(ItemTable):
+            def sizeHint(self):
+                from PyQt5.QtCore import QSize
+                return QSize(350, 450)
+        self.table = RotamerTable(column_control_info=(self.column_menu, _settings, {}, True))
         for i in range(len(self.mgr.rotamers[0].chis)):
-            self.table.add_column("Chi %d" % (i+i), lambda r: "chis[%d]" % i, format="%6.1f")
-        self.table.add_column("Probability", "p", format="%.6f ", justification="decimal")
+            self.table.add_column("Chi %d" % (i+1), lambda r, i=i: r.chis[i], format="%6.1f")
+        self.table.add_column("Probability", "rotamer_prob", format="%.6f ")
         self.table.data = self.mgr.rotamers
         self.table.launch(session_info=session_data)
+        if not session_data:
+            self.table.sortByColumn(len(self.mgr.rotamers[0].chis), Qt.DescendingOrder)
+        self.table.selection_changed.connect(self._selection_change)
+        layout.addWidget(self.table)
+        self.retain_side_chain = QCheckBox("Retain original side chain")
+        self.retain_side_chain.setChecked(False)
+        layout.addWidget(self.retain_side_chain)
         self.tool_window.manage(placement=None)
 
     def _fewer_rots_cb(self, trig_name, mgr):
@@ -258,3 +269,11 @@ class RotamerDialog(ToolInstance):
 
     def _mgr_destroyed_cb(self, trig_name, mgr):
         self.destroy(from_mgr=True)
+
+    def _selection_change(self, selected, deselected):
+        if self.table.selected:
+            display = set(self.table.selected)
+        else:
+            display = set(self.mgr.rotamers)
+        for rot in self.mgr.rotamers:
+            rot.display = rot in display
