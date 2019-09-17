@@ -584,8 +584,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
 
         def _qt_safe(session=session, paths=paths):
-            from chimerax.core.commands import run, quote_if_necessary
-            run(session, "open " + " ".join([quote_if_necessary(p) for p in paths]))
+            from chimerax.core.commands import run, quote_path_if_necessary
+            run(session, "open " + " ".join([quote_path_if_necessary(p) for p in paths]))
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover
         # events correctly, nor tool tips.
@@ -660,7 +660,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             icon = self._expand_icon
             for tw, state in self._hide_tools_shown_states.items():
                 if state:
-                    tw.shown = True
+                    tw._mw_set_shown(True)
             self._hide_tools_shown_states.clear()
             if self._pref_dialog_state:
                 self.settings_ui_widget.show()
@@ -1488,8 +1488,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 def _open_dropped_file(session, path):
     if not path:
         return
-    from chimerax.core.commands import run, quote_if_necessary
-    run(session, 'open %s' % quote_if_necessary(path))
+    from chimerax.core.commands import run, quote_path_if_necessary
+    run(session, 'open %s' % quote_path_if_necessary(path))
 
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):

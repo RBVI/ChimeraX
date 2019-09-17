@@ -33,6 +33,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>hbondAllowance</b>&nbsp;&nbsp;<i>allowance</i>&nbsp;]
 [&nbsp;<b>distanceOnly</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
 -->
+[&nbsp;<b>select</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>showDist</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
@@ -206,14 +207,11 @@ and using center-to-center distance &le; <i>dist</i>
 as the interaction criterion instead.
 </blockquote>
 <blockquote>
-<a name="makePseudobonds"></a>
-<b>makePseudobonds</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<a name="select"></a>
+<b>select</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
-Whether to create 
-<a href="../pseudobonds.html">pseudobonds</a> to show contacts/clashes.
-Pseudobonds are only displayed when both endpoint atoms are displayed,
-but the <a href="#reveal"><b>reveal</b></a> option can be used to ensure
-showing all of the identified interactions.
+Whether to <a href="../selection.html">select</a>
+the identified clash/contact atoms (and deselect all other atoms).
 </blockquote>
 <blockquote>
 <a name="reveal"></a>
@@ -233,6 +231,16 @@ Floating pseudobonds in the presence of cartoon can be hidden with the command
 <b><a href="cartoon.html">cartoon suppress false</a></b>,
 with the side effect of showing any backbone atoms that are
 displayed but suppressed by the cartoon.
+</blockquote>
+<blockquote>
+<a name="makePseudobonds"></a>
+<b>makePseudobonds</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to create 
+<a href="../pseudobonds.html">pseudobonds</a> to show contacts/clashes.
+Pseudobonds are only displayed when both endpoint atoms are displayed,
+but the <a href="#reveal"><b>reveal</b></a> option can be used to ensure
+showing all of the identified interactions.
 </blockquote>
 <blockquote>
 <a name="showDist"></a>
@@ -335,13 +343,6 @@ or <b>clashes</b> (<b>contacts</b>) is used again without setting this option to
 Only moving a model relative to another will trigger a new check.
 </blockquote>
 <blockquote>
-<a name="select"></a>
-<b>select</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>
-Whether to <a href="../selection.html">select</a>
-the identified clash/contact atoms (and deselect all other atoms).
-</blockquote>
-<blockquote>
 <a name="colorAtoms"></a>
 <b>colorAtoms</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -438,5 +439,5 @@ but only the initial and final summaries are reported in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+September 2019</address>
 </body></html>

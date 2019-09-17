@@ -94,8 +94,8 @@ target="_blank">Linux</a>
 <img class="outline" src="tutorials/dicom-vr3.png" title="click to enlarge..."
 alt="Vive hand controllers" width="300px"></a>
 </td></tr>
-<tr><td align="center"><font size="-1">click image to enlarge, or see
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">diagram at Vive website</a>
+<tr><td align="center"><font size="-1">
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">Vive</a> hand controllers
 </font></td></tr>
 </table>
 <p>
@@ -141,13 +141,13 @@ target="_blank">SteamVR</a>
 </blockquote>
 </ol>
 
-</p><p>
+<p>
 Models in ChimeraX should then appear in the VR headset.
+<a name="default-controller"></a>
 The hand-controller positions are shown in the headset as cones,
 and icons on the cones indicate button functions
 or <a href="#mousemodes">modes</a>:
 </p>
-<a name="default-controller"></a>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center">rotate
 <br><img src="tools/mouse-icons/rotate.png" class="icon3"></td>
@@ -174,17 +174,21 @@ is assigned to center and rescale.
 &nbsp;move hand controllers farther apart or closer
 together with both <b><i>triggers</i></b> pressed
 <br>&ndash; or &ndash;<br>
-&nbsp;move hand controller vertically with <b><i>trackpad</i></b> pressed
+&nbsp;move hand controller vertically with 
+Vive <b><i>trackpad</i></b> pressed (Oculus A/X button)
 </td>
 </tr><tr>
 <td align="center">center and rescale
 <br>(useful to recover the view)
 <br><img src="tools/shortcut-icons/viewall.png" class="icon2"></td>
-<td class="text">&nbsp;click <b><i>grip</i></b> button</td>
+<td class="text">&nbsp;click Vive <b><i>grip</i></b> button
+</td>
 </tr><tr>
 <td align="center" class="text">
 show, hide, move control panel</td>
-<td class="text">&nbsp;use <b><i>menu</i></b> button</td>
+<td class="text">
+&nbsp;use Vive <b><i>menu</i></b> button (Oculus B/Y button)
+</td>
 </tr></table>
 <p>
 The control panel is just the ChimeraX desktop user interface 
@@ -193,6 +197,7 @@ the righthand panel of tool windows). Displaying this panel in the
 headset allows &ldquo;clicking&rdquo; normal desktop controls
 such as to <a href="#displayicons">adjust the display</a> 
 and to <a href="#mousemodes">reassign modes</a>.
+Oculus <b><i>grip</i></b> buttons have the same defaults as the triggers.
 </p><p>
 The physical room bounds are shown
 with blue squares when the headset or a hand controller 
@@ -234,7 +239,10 @@ to reassign that button to the function;
 the icon will pop up slightly when the cone tip is in position to click it.
 </ol>
 <p>
-There are three assignable buttons on each controller, so six modes 
+Hand-controller modes can also be assigned with the command 
+<a href="commands/device.html#vr-button"><b>vr button</b></a>.
+</p><p>
+With N assignable buttons on each controller, up to 2N modes
 can be assigned. However, leaving the <b><i>triggers</i></b> with their
 default assignments
 (rotation, translation, zooming) is recommended to allow manipulation
@@ -436,5 +444,5 @@ coordset <b>pauseFrames 9</b> option to slow the playback rate from the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2019</address>
+September 2019</address>
 </body></html> 

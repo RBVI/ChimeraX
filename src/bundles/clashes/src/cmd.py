@@ -290,6 +290,7 @@ def register_command(command_name, logger):
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, NoneArg, \
             SaveFileNameArg, NonNegativeIntArg, StringArg, AttrNameArg, PositiveIntArg
     from chimerax.atomic import AtomsArg
+    del_kw = { 'keyword': [('name', StringArg)] }
     if command_name in ["clashes", "contacts"]:
         kw = { 'required': [('test_atoms', AtomsArg)],
             'keyword': [('name', StringArg), ('hbond_allowance', FloatArg),
@@ -307,8 +308,12 @@ def register_command(command_name, logger):
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
         register('contacts', CmdDesc(**kw, synopsis="Find contacts", url="help:user/commands/clashes.html"),
             cmd_contacts, logger=logger)
+        register('clashes delete',
+            CmdDesc(synopsis="Remove clash pseudobonds", **del_kw), cmd_xclashes, logger=logger)
+        register('contacts delete', CmdDesc(synopsis="Remove contact pseudobonds",
+            url="help:user/commands/clashes.html", **del_kw), cmd_xcontacts, logger=logger)
     else:
-        kw = { 'keyword': [('name', StringArg)] }
-        register('~clashes', CmdDesc(synopsis="Remove clash pseudobonds", **kw), cmd_xclashes, logger=logger)
+        register('~clashes',
+            CmdDesc(synopsis="Remove clash pseudobonds", **del_kw), cmd_xclashes, logger=logger)
         register('~contacts', CmdDesc(synopsis="Remove contact pseudobonds",
-            url="help:user/commands/clashes.html", **kw), cmd_xcontacts, logger=logger)
+            url="help:user/commands/clashes.html", **del_kw), cmd_xcontacts, logger=logger)

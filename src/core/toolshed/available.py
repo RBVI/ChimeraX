@@ -301,8 +301,8 @@ def _build_bundle(d):
             keywords = fd.get("keywords", None)
             if keywords:
                 keywords = _extract_extra_keywords(keywords)
-            fi.has_open = True
-            fi.open_kwds = keywords
+            fi.has_save = True
+            fi.save_kwds = keywords
 
     #
     # Finished.  Return BundleInfo instance.

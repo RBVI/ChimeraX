@@ -47,8 +47,8 @@ class ModelSaveOptionsGUI(SaveOptionsGUI):
         
     def save(self, session, filename):
         path = self.add_missing_file_suffix(filename, self._format)
-        from chimerax.core.commands import run, quote_if_necessary
-        cmd = 'save %s model #%s' % (quote_if_necessary(path),
+        from chimerax.core.commands import run, quote_path_if_necessary
+        cmd = 'save %s model #%s' % (quote_path_if_necessary(path),
                                      self._map_menu.value.id_string)
         run(session, cmd)
 

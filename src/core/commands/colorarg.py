@@ -40,7 +40,7 @@ class ColorArg(cli.Annotation):
     @staticmethod
     def parse(text, session):
         if not text:
-            raise ValueError("Missing color name or specifier")
+            raise cli.AnnotationError("Missing color name or specifier")
         if text[0] == '#':
             token, text, rest = cli.next_token(text)
             c = Color(token)
@@ -59,8 +59,8 @@ class ColorArg(cli.Annotation):
                 from ..colors import BuiltinColors
                 name, color, rest = find_named_color(BuiltinColors, text)
             if color is None:
-                raise ValueError("Invalid color name or specifier")
-            return color, cli.quote_if_necessary(name), rest
+                raise cli.AnnotationError("Invalid color name or specifier")
+            return color, name, rest
         color_space = m.group(1)
         numbers = _parse_numbers(m.group(2))
         rest = text[m.end():]
@@ -77,7 +77,7 @@ class ColorArg(cli.Annotation):
                 raise
             c = Color([x, x, x, alpha])
             c.explicit_transparency = (len(numbers) == 2)
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         if color_space == 'rgb' and len(numbers) == 3:
             # rgb( number [%], number [%], number [%])
             try:
@@ -89,7 +89,7 @@ class ColorArg(cli.Annotation):
                 raise
             c = Color([red, green, blue, 1])
             c.explicit_transparency = False
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         if color_space == 'rgba' and len(numbers) == 4:
             # rgba( number [%], number [%], number [%], number [%])
             try:
@@ -102,7 +102,7 @@ class ColorArg(cli.Annotation):
                 raise
             c = Color([red, green, blue, alpha])
             c.explicit_transparency = True
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         if color_space == 'hsl' and len(numbers) == 3:
             # hsl( number [%], number [%], number [%])
             try:
@@ -116,7 +116,7 @@ class ColorArg(cli.Annotation):
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             c = Color([red, green, blue, 1])
             c.explicit_transparency = False
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         if color_space == 'hsla' and len(numbers) == 4:
             # hsla( number [%], number [%], number [%], number [%])
             try:
@@ -131,7 +131,7 @@ class ColorArg(cli.Annotation):
             red, green, blue = colorsys.hls_to_rgb(hue, light, sat)
             c = Color([red, green, blue, alpha])
             c.explicit_transparency = True
-            return c, cli.quote_if_necessary(m.group()), rest
+            return c, m.group(), rest
         raise cli.AnnotationError(
             "Wrong number of components for %s specifier" % color_space,
             offset=m.end())
@@ -139,11 +139,11 @@ class ColorArg(cli.Annotation):
 def _parse_rgba_values(text):
     values = text.split(',')
     if len(values) not in (3,4):
-        raise ValueError('Color must be 3 or 4 comma-separated numbers 0-100')
+        raise cli.AnnotationError('Color must be 3 or 4 comma-separated numbers 0-100')
     try:
-        rgba = tuple(float(v)/100.0 for v in values)
+        rgba = tuple(float(v) / 100.0 for v in values)
     except:
-        raise ValueError('Color must be 3 or 4 comma-separated numbers 0-100')
+        raise cli.AnnotationError('Color must be 3 or 4 comma-separated numbers 0-100')
     transparent = (len(rgba) == 4)
     if len(rgba) == 3:
         rgba += (1.0,)
@@ -254,17 +254,40 @@ def find_named_color(color_dict, name):
     # handle color names with spaces
     # returns key, value, part of name that was unused
     num_colors = len(color_dict)
+    if num_colors == 0:
+        return None, None, name
     # extract up to 10 words from name
-    from chimerax.core.commands import cli
+    from . import cli
     first = True
-    text = name
+    if name[0] == '"':
+        m = cli._double_quote.match(name)
+        if not m:
+            raise cli.AnnotationError("incomplete quoted text")
+        end = m.end()
+        if name[end - 1].isspace():
+            end -= 1
+        text = name[1:end - 1]
+        quoted = name[end:]
+    elif name[0] == "'":
+        quoted = True
+        m = cli._single_quote.match(name)
+        if not m:
+            raise cli.AnnotationError("incomplete quoted text")
+        end = m.end()
+        if name[end - 1].isspace():
+            end -= 1
+        text = name[1:end - 1]
+        quoted = named[end:]
+    else:
+        quoted = None
+        text = name
     words = []
     while len(words) < 10:
         m = cli._whitespace.match(text)
         text = text[m.end():]
         if not text:
             break
-        word, _, rest = cli.next_token(text, no_raise=True)
+        word, _, rest = cli.next_token(text)
         if not word or word == ';':
             break
         if first and ' ' in word:
@@ -305,9 +328,11 @@ def find_named_color(color_dict, name):
     if last_real_name:
         w -= 1
         real_name = last_real_name
-    if first and w + 1 != len(words):
+    if (first or quoted) and w + 1 != len(words):
         return None, None, name
     if real_name:
+        if quoted is not None:
+            return real_name, color_dict[real_name], quoted
         return real_name, color_dict[real_name], words[w][1]
     return None, None, name
 
@@ -387,7 +412,7 @@ def _parse_numbers(text):
     # parse comma separated list of number [units]
     result = []
     start = 0
-    while 1:
+    while True:
         m = _number.match(text, start)
         if not m:
             raise cli.AnnotationError("Expected a number", start)
