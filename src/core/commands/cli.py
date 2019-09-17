@@ -210,6 +210,7 @@ _internal_single_quote = re.compile(r"'\s")
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
 _internal_double_quote = re.compile(r'"\s')
 _whitespace = re.compile(r"\s*")
+_internal_whitespace = re.compile(r"\s+")
 
 
 def commas(text_seq, conjunction='or'):
@@ -1436,7 +1437,7 @@ def quote_path_if_necessary(path):
         return '"%s"' % path
     if has_double_quote:
         return '"%s"' % path
-    has_whitespace = _whitespace.search(path) is not None
+    has_whitespace = _internal_whitespace.search(path) is not None
     if has_whitespace:
         return '"%s"' % path
     return path
