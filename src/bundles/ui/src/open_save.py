@@ -134,7 +134,6 @@ def open_file_filter(all=False, format_name=None):
     combine = {}
     from chimerax.core import io
     for fmt in io.formats(export=False):
-        print(fmt.category)
         exts = combine.setdefault(fmt.category, [])
         exts.extend(fmt.extensions)
     result = []
