@@ -1044,10 +1044,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("Ribbons (Lipped Edges)", self)
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style (%s & coil) xsection oval;"
+            cmd="cartoon %s; cartoon style %s xsection oval;"
             " cartoon style %s xsection barbell modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']),
-            sel_or_all(ses, ['atoms', 'bonds']))))
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']),
+            sel_or_all(ses, ['atoms', 'bonds'], restriction="coil"), sel_or_all(ses, ['atoms', 'bonds']))))
         action = QAction("Helix Tubes", self)
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
@@ -1061,23 +1061,25 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("Backbone Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s & (protein|nucleic) target %s; cartoon hide %s; show %s & backbone target ab":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"), precise_target(ses),
+            cmd="hide %s target %s; cartoon hide %s; show %s target ab":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
+            restriction="(protein|nucleic)"), precise_target(ses),
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
-            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"))))
+            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues", restriction="backbone"))))
         action = QAction("Chain Trace Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s & (protein|nucleic) target %s; cartoon hide %s;"
-            " show %s & ((protein&@ca)|(nucleic&@p)) target ab":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"), precise_target(ses),
-            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
-            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"))))
+            cmd="hide %s target %s; cartoon hide %s; show %s target ab":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
+                restriction="(protein|nucleic)"),
+            precise_target(ses), sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
+            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
+                restriction="((protein&@ca)|(nucleic&@p))"))))
         action = QAction("Show Side Chain/Base", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="show %s & sidechain target ab":
-            run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues")))
+            cmd="show %s target ab":
+            run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues", restriction="sidechain")))
 
         atoms_bonds_menu.addSeparator()
 
