@@ -1059,14 +1059,17 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("Backbone Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s & (protein|nucleic) target %s; show %s & backbone target ab":
+            cmd="hide %s & (protein|nucleic) target %s; cartoon hide %s; show %s & backbone target ab":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"), precise_target(ses),
+            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"))))
         action = QAction("Chain Trace Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s & (protein|nucleic) target %s; show %s & ((protein&@ca)|(nucleic&@p)) target ab":
+            cmd="hide %s & (protein|nucleic) target %s; cartoon hide %s;"
+            " show %s & ((protein&@ca)|(nucleic&@p)) target ab":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"), precise_target(ses),
+            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"))))
         action = QAction("Show Side Chain/Base", self)
         atoms_bonds_menu.addAction(action)
