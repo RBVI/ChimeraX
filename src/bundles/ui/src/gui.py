@@ -1029,6 +1029,33 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="hide %s target %s":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), precise_target(ses))))
+        # Cartoon submenu...
+        cartoon_menu = atoms_bonds_menu.addMenu("Cartoon")
+        action = QAction("Ribbons (Smooth Edges)", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon %s; cartoon style %s xsection oval modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Ribbons (Sharp Edges)", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon %s; cartoon style %s xsection rectangle modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Ribbons (Lipped Edges)", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon %s; cartoon style %s xsection barbell modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Helix Tubes", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon %s; cartoon style %s modeHelix tube sides 20":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("None", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Cartoon submenu
         action = QAction("Backbone Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
@@ -1080,35 +1107,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="delete atoms %s; delete bonds %s":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-
-        #
-        # Cartoon...
-        #
-        cartoon_menu = actions_menu.addMenu("Cartoon")
-        action = QAction("Ribbons (Smooth Edges)", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection oval modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Ribbons (Sharp Edges)", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection rectangle modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Ribbons (Lipped Edges)", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection barbell modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Helix Tubes", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s modeHelix tube sides 20":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("None", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
 
         #
         # Surface...
