@@ -1044,8 +1044,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("Ribbons (Lipped Edges)", self)
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection barbell modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+            cmd="cartoon %s; cartoon style (%s & coil) xsection oval;"
+            " cartoon style %s xsection barbell modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']),
+            sel_or_all(ses, ['atoms', 'bonds']))))
         action = QAction("Helix Tubes", self)
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
