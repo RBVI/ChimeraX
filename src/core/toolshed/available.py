@@ -225,7 +225,7 @@ def _build_bundle(d):
         for fmt_name, fd in fmt_d.items():
             # _debug("processing data format: %s" % fmt_name)
             nicknames = fd.get("nicknames", [])
-            categories = fd.get("categories", [])
+            category = fd.get("category", "")
             suffixes = fd.get("suffixes", [])
             mime_types = fd.get("mime_types", [])
             url = fd.get("url", "")
@@ -234,7 +234,7 @@ def _build_bundle(d):
             synopsis = fd.get("synopsis", "")
             encoding = fd.get("encoding", "")
             fi = FormatInfo(name=fmt_name, nicknames=nicknames,
-                            category=categories, suffixes=suffixes,
+                            category=category, suffixes=suffixes,
                             mime_types=mime_types, url=url, icon=icon,
                             dangerous=dangerous, synopsis=synopsis,
                             encoding=encoding)
@@ -301,8 +301,8 @@ def _build_bundle(d):
             keywords = fd.get("keywords", None)
             if keywords:
                 keywords = _extract_extra_keywords(keywords)
-            fi.has_open = True
-            fi.open_kwds = keywords
+            fi.has_save = True
+            fi.save_kwds = keywords
 
     #
     # Finished.  Return BundleInfo instance.

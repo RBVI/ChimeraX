@@ -35,9 +35,13 @@ where the <i>device-type</i> can be:
 </p>
 <ul>
 <li><a href="#snav"><b>snav</b></a> 
-- SpaceNavigator<sup>&reg;</sup> 3D mouse
+&ndash; SpaceNavigator<sup>&reg;</sup> 3D mouse
 <li><a href="#vr"><b>vr</b></a>
-- HTC Vive, Oculus Rift, Samsung Odyssey virtual reality systems
+&ndash; HTC Vive, Oculus Rift, Samsung Odyssey virtual reality systems
+  <ul>
+  <li>the <a href="#vr-button"><b>vr button</b></a> subcommand
+  assigns functions to hand controller buttons
+  </ul>
 </ul>
 <p>
 <a name="status"></a>
@@ -92,22 +96,24 @@ and started before the mode is enabled.
 In addition, Oculus Rift users should start the Oculus runtime 
 before starting SteamVR. For details and related issues, 
 see <a href="../vr.html">ChimeraX virtual reality</a>.
-See also: <a href="camera.html"><b>camera</b></a>,
-<a href="view.html"><b>view</b></a>,
+See also: 
+<a href="#vr-button"><b>vr button</b></a>,
 <a href="meeting.html"><b>meeting</b></a>,
+<a href="camera.html"><b>camera</b></a>,
+<a href="view.html"><b>view</b></a>,
 <a href="../movies.html">making movies</a>
 <p>
 The <b>display</b> option indicates what to show in the ChimeraX graphics
 window on the desktop:
 <ul>
-<li><b>mirror</b> (default) - the right-eye view seen in the VR headset,
+<li><b>mirror</b> (default) &ndash; the right-eye view seen in the VR headset,
 with <a href="graphics.html#waitForVsync"><b>graphics waitForVsync</b></a>
 automatically set to false so that VR rendering will not slow down
 to the desktop rendering rate
-<li><b>independent</b> - a separate camera view
+<li><b>independent</b> &ndash; a separate camera view
 fixed in the VR room coordinates, set to match the viewpoint of
 the VR headset when the command is issued
-<li><b>blank</b> - no graphics, allowing all graphics computing
+<li><b>blank</b> &ndash; no graphics, allowing all graphics computing
 resources to be dedicated to VR headset rendering
 </ul>
 Updating the graphics window can cause flicker in the VR headset
@@ -194,7 +200,64 @@ restored when VR is turned off.
 </p>
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="vr-button"><b>vr button</b></a> 
+&nbsp;<i>button-name</i>
+&nbsp;<i>function</i>
+[&nbsp;<b>hand</b>&nbsp;&nbsp;left&nbsp;|&nbsp;right&nbsp;]
+<blockquote>
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="tutorials/dicom-vr3.png">
+<img class="outline" src="../tutorials/dicom-vr3.png" title="click to enlarge..."
+alt="Vive hand controllers" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1">
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">Vive</a> hand controllers
+</font></td></tr>
+</table>
+<p>
+The <b>vr button</b> command assigns modes (functions) to 
+the hand-controller buttons in <a href="../vr.html">virtual reality</a>.
+The available <a href="ui.html#functions"><i>function</i></a> names
+are the same as for <a href="ui.html#mousemode"><b>mousemode</b></a>
+(command <a href="usage.html"><b>usage</b></a> <b>mousemode</b>
+lists them in the <a href="../tools/log.html"><b>Log</b></a>)
+and should be enclosed in quotation marks if they contain spaces.
+The <b>hand</b> option can be given to assign a function 
+to the specified button of only one hand controller; 
+otherwise, those on both controllers will be assigned.
+The <i>button-name</i> can be:
+</p>
+<ul>
+<li><b>trigger</b>
+<li><b>grip</b>
+<li><b>touchpad</b> 
+&ndash; Vive touchpad (trackpad)
+<li><b>menu</b>
+&ndash; Vive menu button
+<li><b>A</b> 
+&ndash; a button on the Oculus right hand controller
+(<b>hand</b> option ignored)
+<li><b>B</b>
+&ndash; a button on the Oculus right hand controller
+(<b>hand</b> option ignored)
+<li><b>X</b>
+&ndash; a button on the Oculus left hand controller
+(<b>hand</b> option ignored)
+<li><b>Y</b>
+&ndash; a button on the Oculus left hand controller
+(<b>hand</b> option ignored)
+</ul>
+<p>
+Initial defaults are to <b>translate</b> and <b>rotate</b> with triggers,
+<b>zoom</b> with Vive touchpad or Oculus A/X button,
+and show the ChimeraX control panel with the Vive menu or Oculus B/Y button
+(<a href="../vr.html#default-controller">more...</a>).
+</p>
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+September 2019</address>
 </body></html>

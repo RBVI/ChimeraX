@@ -195,7 +195,7 @@ class Volume(Model):
     Supported API.  Remove a list of VolumeSurface instances from this Volume.
     If surfaces is None then all current surfaces are removed.
     '''
-    surfs = self._surfaces if surfaces is None else surfaces
+    surfs = tuple(self._surfaces if surfaces is None else surfaces)
     if self.id is None:
       self.remove_drawings(surfs)
     else:

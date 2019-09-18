@@ -160,6 +160,7 @@ class ModelPanel(ToolInstance):
     def _fill_tree(self, *, always_rebuild=False):
         if not self.displayed():
             # Don't update panel when it is hidden.
+            self._frame_drawn_handler = None
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
 

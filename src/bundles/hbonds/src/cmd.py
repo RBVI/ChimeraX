@@ -440,6 +440,7 @@ def register_command(command_name, logger):
         import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, \
             SaveFileNameArg, NonNegativeIntArg, StringArg, EmptyArg
     from chimerax.atomic import StructuresArg, AtomsArg
+    tilde_desc = CmdDesc(keyword = [('name', StringArg)], synopsis = 'Clear hydrogen bonds')
     if command_name == "hbonds":
         desc = CmdDesc(required=[('atoms', Or(AtomsArg,EmptyArg))],
             keyword = [('make_pseudobonds', BoolArg), ('radius', FloatArg), ('color', ColorArg),
@@ -456,6 +457,6 @@ def register_command(command_name, logger):
             synopsis = 'Find hydrogen bonds'
         )
         register('hbonds', desc, cmd_hbonds, logger=logger)
+        register('hbonds delete', tilde_desc, cmd_xhbonds, logger=logger)
     else:
-        desc = CmdDesc(keyword = [('name', StringArg)], synopsis = 'Clear hydrogen bonds')
-        register('~hbonds', desc, cmd_xhbonds, logger=logger)
+        register('~hbonds', tilde_desc, cmd_xhbonds, logger=logger)

@@ -55,14 +55,15 @@ class MaestroParser:
             s = self._make_structure(block)
             if s:
                 try:
-                    if block.get_attribute("b_glide_receptor"):
-                        receptors.append(s)
-                    else:
-                        ligands.append(s)
+                    is_receptor = block.get_attribute("b_glide_receptor")
                 except (KeyError, ValueError):
+                    is_receptor = False
+                if is_receptor:
+                    receptors.append(s)
+                else:
                     ligands.append(s)
+                self._add_properties(s, block, is_receptor)
                 s.name = name
-                self._add_properties(s, block)
         if not receptors:
             self.structures = ligands
         elif not ligands:
@@ -158,7 +159,7 @@ class MaestroParser:
                 b.order = attrs["i_m_order"]
         return s
 
-    def _add_properties(self, s, block):
+    def _add_properties(self, s, block, is_receptor):
         """Add properties to molecule."""
         from .maestro import get_value
         attrs = block.get_attribute_map()
@@ -184,7 +185,8 @@ class MaestroParser:
                 d[name] = converted_value
             raw_text.append("%s: %s" % (name, value))
         s.maestro_text = '\n'.join(raw_text)
-        s.viewdockx_data = d
+        if not is_receptor:
+            s.viewdockx_data = d
 
     def _split_key(self, key, limit):
         parts = []

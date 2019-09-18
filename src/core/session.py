@@ -1082,8 +1082,8 @@ def register_session_save_options_gui(save_dialog):
             exts = fmt.extensions
             if exts and ext not in exts:
                 filename += exts[0]
-            from chimerax.core.commands import run, quote_if_necessary
-            cmd = "save session %s" % quote_if_necessary(filename)
+            from chimerax.core.commands import run, quote_path_if_necessary
+            cmd = "save session %s" % quote_path_if_necessary(filename)
             if self._include_maps.isChecked():
                 cmd += ' includeMaps true'
             run(session, cmd)

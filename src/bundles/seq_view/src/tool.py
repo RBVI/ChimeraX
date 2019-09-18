@@ -503,13 +503,13 @@ class SequenceViewer(ToolInstance):
         from PyQt5.QtWidgets import QAction
         save_as_menu = menu.addMenu("Save As")
         from chimerax.core import io
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, quote_path_if_necessary
         for fmt in io.formats(open=False):
             if fmt.category == "Sequence alignment":
                 action = QAction(fmt.name, save_as_menu)
                 action.triggered.connect(lambda arg, fmt=fmt:
                     run(self.session, "save browse format %s alignment %s"
-                    % (fmt.name, quote_if_necessary(self.alignment.ident))))
+                    % (fmt.name, quote_path_if_necessary(self.alignment.ident))))
                 save_as_menu.addAction(action)
 
         settings_action = QAction("Settings...", menu)

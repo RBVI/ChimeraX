@@ -1585,9 +1585,9 @@ class _DrawShape:
         if self.element_buffer:
             self.element_buffer.delete_buffer()
             self.element_buffer = None
-            for b in self.instance_buffers:
-                b.delete_buffer()
-            self.instance_buffers = []
+        for b in self.instance_buffers:
+            b.delete_buffer()
+        self.instance_buffers = []
         self._buffers_need_update = None
 
         if self.bindings:
@@ -2070,6 +2070,12 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     else:
         iw, ih = tw+2*xbuf, th+2*ybuf
 
+    # Can't paint to zero size labels, make min size 1.
+    if iw == 0:
+        iw = 1
+    if ih == 0:
+        ih = 1
+        
     ti = QImage(iw, ih, QImage.Format_ARGB32)
     
     # Paint background

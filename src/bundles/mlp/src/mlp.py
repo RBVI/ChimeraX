@@ -99,8 +99,9 @@ def mlp_map(session, atoms, method, spacing, max_dist, nexp, name, open_map):
     g.polar_values = True
     from chimerax.map import volume_from_grid_data
     v = volume_from_grid_data(g, session, open_model = open_map, show_dialog = open_map)
-    v.update_drawings()  # Compute surface levels
-    v.set_parameters(surface_colors = [(0, 139/255, 139/255, 1), (184/255, 134/255, 11/255, 1)])
+    if open_map:
+        v.update_drawings()  # Compute surface levels
+        v.set_parameters(surface_colors = [(0, 139/255, 139/255, 1), (184/255, 134/255, 11/255, 1)])
     return v
 
 #

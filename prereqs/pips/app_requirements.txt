@@ -9,7 +9,7 @@ distlib==0.2.9.post0
 filelock==3.0.12
 grako==3.16.5
 html2text==2019.8.11
-ihm==0.10
+ihm==0.11
 imagecodecs-lite==2019.4.20
 ipykernel==5.1.2
 ipython==7.8.0
