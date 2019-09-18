@@ -225,7 +225,7 @@ def _build_bundle(d):
         for fmt_name, fd in fmt_d.items():
             # _debug("processing data format: %s" % fmt_name)
             nicknames = fd.get("nicknames", [])
-            categories = fd.get("categories", [])
+            categories = fd.get("categories", [""])[0]
             suffixes = fd.get("suffixes", [])
             mime_types = fd.get("mime_types", [])
             url = fd.get("url", "")
