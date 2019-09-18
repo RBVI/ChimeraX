@@ -1022,22 +1022,24 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("Show Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide #* target ab; show %s target ab": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+            cmd="hide #* target %s; show %s target ab":
+            run(ses, cmd % (precise_target(ses), sel_or_all(ses, ['atoms', 'bonds']))))
         action = QAction("Hide", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s target ab": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+            cmd="hide %s target %s":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), precise_target(ses))))
         action = QAction("Backbone Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s & (protein|nucleic) target ab; show %s & backbone target ab":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
+            cmd="hide %s & (protein|nucleic) target %s; show %s & backbone target ab":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"), precise_target(ses),
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"))))
         action = QAction("Chain Trace Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s & (protein|nucleic) target ab; show %s & ((protein&@ca)|(nucleic&@p)) target ab":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
+            cmd="hide %s & (protein|nucleic) target %s; show %s & ((protein&@ca)|(nucleic&@p)) target ab":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"), precise_target(ses),
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"))))
         action = QAction("Show Side Chain/Base", self)
         atoms_bonds_menu.addAction(action)
@@ -2413,3 +2415,16 @@ class InitWindowSizeOption(Option):
         self.current_proportional_size_label.setText("Current: %d%% wide, %d%% high" % (
                 int(100.0 * window_width / screen_width),
                 int(100.0 * window_height / screen_height)))
+
+def precise_target(session):
+    sel_bonds = session.selection.items('bonds')
+    if not sel_bonds:
+        return 'a'
+    sel_atoms = session.selection.items('atoms')
+    if not sel_atoms:
+        return 'b'
+    a_bonds = sel_atoms[0].bonds
+    if sel_bonds[0] - a_bonds:
+        # some selected bonds have neither endpoint atom selected
+        return 'ab'
+    return 'a'
