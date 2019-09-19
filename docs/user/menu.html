@@ -40,6 +40,7 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
 <li><a href="#file"><b>File</b></a>
 <li><a href="#edit"><b>Edit</b></a>
 <li><a href="#select"><b>Select</b></a>
+<li><a href="#actions"><b>Actions</b></a>
 <li><a href="#tools"><b>Tools</b></a>
 <li><a href="#favorites"><b>Favorites</b></a>
 <li><a href="#presets"><b>Presets</b></a>
@@ -155,6 +156,83 @@ level in the <a href="selection.html#cascade">selection cascade</a>
 <a href="commands/atomspec.html">target specification</a> string
   </ul>
 
+<a name="actions"></a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Actions</b>
+<p>
+The <b>Actions</b> menu works on the current
+<a href="selection.html">selection</a>, 
+or if nothing is selected, all applicable items.
+</p>
+<ul>
+<li><b>Atoms/Bonds</b></a>
+  (see commands <a href="commands/show.html"><b>show</b></a>
+  and <a href="commands/style.html"><b>style</b></a>)
+  <ul>
+  <li><b>Show</b>
+  <li><b>Show Only</b>
+  <li><b>Hide</b>
+  </ul>
+<br>
+The following three apply only to residues in bonded chains of amino acids 
+or nucleic acids:
+  <ul>
+  <li><b>Backbone Only</b>
+&ndash; peptide backbone, nucleic acid phosphoribosyl backbone
+  <li><b>Chain Trace Only</b>
+&ndash; one atom per residue: amino acid CA, nucleic acid P
+  <li><b>Show Side Chain/Base</b>
+&ndash; amino acid sidechain + CA (for connectivity to 
+<a href="cartoon.html">cartoon</a> representations), 
+nucleic acid base + ribose, and any directly attached hydrogens
+  </ul>
+<br>
+  <ul>
+  <li><b>Stick</b>
+(stick <a href="representation.html">representation</a>)
+  <li><b>Ball & Stick</b>
+(ball-and-stick <a href="representation.html">representation</a>)
+  <li><b>Sphere</b>
+(sphere or CPK <a href="representation.html">representation</a>)
+  <li><b>Rings</b>
+    <ul>
+    <li><b>Fill Thick</b>
+    <li><b>Fill Thin</b>
+    <li><b>Fill Off</b>
+    </ul>
+  <li><b>Nucleotide Depiction</b>
+  (see also <a href="commands/nucleotides.html"><b>nucleotides</b></a>)
+    <ul>
+    <li><b>Slab</b>
+    <li><b>Tube/Slab</b>
+    <li><b>Ladder</b>
+    <li><b>Broken Rungs</b>
+    <li><b>None</b> 
+&ndash; show atoms instead of sugar/base abstractions, 
+remove any nucleotide ring fill
+    </ul>
+  <li><b>Delete</b> &ndash; remove atoms/bonds (<b>caution: irreversible</b>)
+  like the command <a href="commands/delete.html"><b>delete</b></a>
+  </ul>
+<br>
+<li><b>Cartoons</b></a>
+&ndash; ribbon and tube representations of protein and nucleic acid backbones
+(see commands <a href="commands/cartoon.html"><b>cartoon</b></a>
+and <a href="commands/cartoon.html#style"><b>cartoon style</b></a>).
+By <a href="commands/cartoon.html#suppress">default</a>, 
+showing cartoons hides the corresponding mainchain atoms.
+Protein helix and strand assignments are taken from the input structure
+file or generated with <a href="dssp.html"><b>dssp</b></a>.
+</a>
+  <ul>
+  <li><b>Ribbons (Smooth Edges)</b>
+  <li><b>Ribbons (Sharp Edges)</b>
+  <li><b>Ribbons (Lipped Edges)</b>
+  <li><b>Helix Tubes</b>
+  <li><b>None</b>
+  </ul>
+</ul>
+
 <a name="tools"></a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
 <b>Tools</b>
@@ -213,7 +291,7 @@ without 2&deg;-structure detail +
 <li><b>Initial Styles</b>
 &ndash; based on <a href="autostyle.html">automatic styling</a>
   <ul>
-  <li><b>Original Look</b> - initial appearance from
+  <li><b>Original Look</b> &ndash; initial appearance from
 <a href="autostyle.html">automatic styling</a>,
 which depends on the number of chains in an atomic structure (however,
 settings such as <a href="commands/set.html#silhouettes">silhouettes</a>
@@ -288,5 +366,5 @@ and subsequently hidden with its own entry: <b>Hide Volume Menu</b>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2019</address>
+September 2019</address>
 </body></html> 
