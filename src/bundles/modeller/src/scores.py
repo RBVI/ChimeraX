@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def fetch_scores(session, structures, *, block=True, license_key=None):
+def fetch_scores(session, structures, *, block=True, license_key=None, refresh=False):
     """
     Fetch scores for models from Modeller web site.
 
@@ -25,6 +25,10 @@ def fetch_scores(session, structures, *, block=True, license_key=None):
         If True, wait for all scoring jobs to finish before returning.  Otherwise return immediately.
     license_key
         Modeller license key.  If not provided, try to use settings to find one.
+    refresh
+        Normally existing scores of a particular type are more accurate than those fetched from the
+        web, and are therefore retained (refresh == False).  If 'refresh' is True, existing scores
+        will be overwitten by fetched scores.
     """
 
     from .common import get_license_key
@@ -43,7 +47,7 @@ def fetch_scores(session, structures, *, block=True, license_key=None):
     results_lock = Lock()
     for s in structures:
         slot = httpq.new_slot(modeller_host)
-        slot.request(ModellerScoringJob, session, modeller_host, license_key, s)
+        slot.request(ModellerScoringJob, session, modeller_host, license_key, refresh, s)
 
     if block:
         # The jobs update score in their "on_finish" method, which runs in the main thread,
@@ -57,13 +61,13 @@ def fetch_scores(session, structures, *, block=True, license_key=None):
 from chimerax.core.tasks import Job
 class ModellerScoringJob(Job):
 
-    def __init__(self, session, modeller_host, license_key, structure):
+    def __init__(self, session, modeller_host, license_key, refresh, structure):
         super().__init__(session)
-        self.start(session, modeller_host, license_key, structure, blocking=True)
+        self.start(session, modeller_host, license_key, structure, refresh, blocking=True)
 
-    def launch(self, session, modeller_host, license_key, structure, **kw):
+    def launch(self, session, modeller_host, license_key, structure, refresh, **kw):
         self.structure = structure
-        self.results = {}
+        self.results = {'chimerax refresh': refresh}
 
         thread_safe = session.ui.thread_safe
         from io import StringIO
@@ -123,14 +127,15 @@ class ModellerScoringJob(Job):
                     self.results[name] = val
 
     def running(self):
-        return not self.results
+        return len(self.results) < 2
 
     def on_finish(self):
-        if self.results:
+        if len(self.results) > 1:
             if not self.structure.deleted:
+                refresh = self.results.pop('chimerax refresh')
                 for attr_suffix, val in self.results.items():
                     attr_name = "modeller_" + attr_suffix
-                    if not hasattr(self.structure, attr_name):
+                    if refresh or not hasattr(self.structure, attr_name):
                         setattr(self.structure, attr_name, val)
                         self.session.change_tracker.add_modified(self.structure, attr_name + " changed")
                 self.session.logger.status("Modeller scores for %s fetched" % self.structure)

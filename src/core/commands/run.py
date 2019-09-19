@@ -95,11 +95,20 @@ def concise_model_spec(session, models, relevant_types=None):
         full_spec += spec
     return full_spec if full_spec else '#'
 
-def sel_or_all(session, sel_types, sel="sel"):
+def sel_or_all(session, sel_types, sel="sel", restriction=None):
     for sel_type in sel_types:
         if session.selection.items(sel_type):
+            if restriction:
+                return '(%s & %s)' % (sel, restriction)
             return sel
-    return "##display"
+    for m in session.models:
+        if not m.display:
+            if restriction:
+                return "(##display & %s)" % restriction
+            return "##display"
+    if restriction:
+        return restriction
+    return ""
 
 def _make_id_tree(models):
     tree = {}

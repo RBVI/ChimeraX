@@ -115,7 +115,7 @@ def export_file_filter(category=None, format_name=None, all=False):
             continue
         if category and fmt.category != category:
             continue
-        exts = '*' + ' *'.join(fmt.extensions)
+        exts = '*' + ' *'.join(sorted(fmt.extensions, key=str.casefold))
         result.append("%s files (%s)" % (fmt.name, exts))
     if all:
         result.append("All files (*)")
@@ -136,10 +136,12 @@ def open_file_filter(all=False, format_name=None):
     for fmt in io.formats(export=False):
         exts = combine.setdefault(fmt.category, [])
         exts.extend(fmt.extensions)
+    compression_suffixes = list(io.compression_suffixes())
+    compression_suffixes.sort(key=str.casefold)
     result = []
     for k in combine:
+        combine[k].sort(key=str.casefold)
         exts = '*' + ' *'.join(combine[k])
-        compression_suffixes = io.compression_suffixes()
         if compression_suffixes:
             for ext in combine[k]:
                 exts += ' ' + ' '.join('*%s%s' % (ext, c) for c in compression_suffixes)

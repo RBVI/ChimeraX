@@ -36,7 +36,7 @@ def label(session, objects = None, object_type = None, text = None,
     bg_color : Color or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
     size : int or "default"
-      Font size in points (1/72 inch). Default 24.
+      Font size in points (1/72 inch). Default 48.
     height : float or "fixed"
       Text height in scene units.  Or if "fixed" use fixed pixel height on screen.  Initial value 0.7.
     font : string or "default"
@@ -75,7 +75,7 @@ def label(session, objects = None, object_type = None, text = None,
     elif bg_color == 'none':
         settings['background'] = None
     if size == 'default':
-        settings['size'] = 24
+        settings['size'] = 48
     elif size is not None:
         settings['size'] = size
     if height == 'fixed':

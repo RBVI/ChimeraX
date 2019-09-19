@@ -62,7 +62,7 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         Whether to preserve water in generated models
     """
 
-    from chimerax.core.errors import LimitationError
+    from chimerax.core.errors import LimitationError, UserError
     from .common import modeller_copy
     if multichain:
         # So, first find structure with most associated chains and least non-associated chains.
@@ -77,6 +77,8 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
         for alignment, orig_target in targets:
             # Copy the target sequence, changing name to conform to Modeller limitations
             target = modeller_copy(orig_target)
+            if not alignment.associations:
+                raise UserError("Alignment %s has no associated chains" % alignment.ident)
             for chain, aseq in alignment.associations.items():
                 if len(chain.chain_id) > 1:
                     raise LimitationError("Modeller cannot handle templates with multi-character chain IDs")

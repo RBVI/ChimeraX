@@ -537,20 +537,20 @@ class Toolshed:
                     a = {
                         "has_open": set(),
                         "has_save": set(),
-                        "category": set(fi.category),
                         "suffixes": set(fi.suffixes),
                         "nicknames": set(fi.nicknames),
                         "mime_types": set(fi.mime_types),
                         "synopsis": fi.synopsis,
+                        "category": fi.category,
                     }
                     available[fi.name] = a
                 else:
-                    a["category"].update(fi.category)
                     a["suffixes"].update(fi.suffixes)
                     a["nicknames"].update(fi.nicknames)
                     a["mime_types"].update(fi.mime_types)
                     a["synopsis"] = fi.synopsis
-                    # TODO: update synopsis only if newer version of bundle
+                    a["category"] = fi.category
+                    # TODO: use synopsis and category from newest version
                 if fi.has_open:
                     a["has_open"].add((bi.name, bi.version))
                 if fi.has_save:
