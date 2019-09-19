@@ -262,7 +262,18 @@ class RotamerDialog(ToolInstance):
         self.retain_side_chain = QCheckBox("Retain original side chain")
         self.retain_side_chain.setChecked(False)
         layout.addWidget(self.retain_side_chain)
+        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
+        bbox.accepted.connect(self._apply_rotamer)
+        bbox.rejected.connect(lambda self=self: ToolInstance.delete(self))
+        #from chimerax.core.commands import run
+        #bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.Help))
+        bbox.button(qbbox.Help).setDisabled(True)
+        layout.addWidget(bbox)
         self.tool_window.manage(placement=None)
+
+    def _apply_rotamer(self):
+        pass
 
     def _fewer_rots_cb(self, trig_name, mgr):
         self.rot_table.set_data(self.mgr.rotamers)

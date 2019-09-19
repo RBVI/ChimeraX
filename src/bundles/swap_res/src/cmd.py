@@ -25,6 +25,8 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
         for c in criteria:
             if c not in "dchp":
                 raise UserError("Unknown criteria: '%s'" % c)
+    elif preserve is not None:
+        raise UserError("'preserve' not compatible with Nth-most-probable criteria")
 
     if lib is None:
         lib = _get_lib(session)
@@ -126,8 +128,8 @@ def _get_lib(session):
     return lib
 
 def register_command(command_name, logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, IntArg, Or, FloatArg, EnumOf
-    from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, NonNegativeIntArg, Or
+    from chimerax.core.commands import NonNegativeFloatArg, DynamicEnum, ListOf, FloatArg, EnumOf
     from chimerax.atomic import ResiduesArg
     from chimerax.map import MapArg
     desc = CmdDesc(
@@ -135,7 +137,7 @@ def register_command(command_name, logger):
         keyword = [
             ('angle_slop', FloatArg),
             ('bfactor', FloatArg),
-            ('criteria', Or(IntArg, StringArg)),
+            ('criteria', Or(ListOf(NonNegativeIntArg), StringArg)),
             ('density', MapArg),
             ('dist_slop', FloatArg),
             ('hbond_allowance', FloatArg),
