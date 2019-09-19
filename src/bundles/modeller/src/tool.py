@@ -231,15 +231,19 @@ class ModellerResultsViewer(ToolInstance):
         self.row_item_lookup = {}
         ToolInstance.delete(self)
 
-    def fetch_additional_scores(self):
+    def fetch_additional_scores(self, refresh=False):
         self.scores_fetched = True
         from chimerax.core.commands import run, concise_model_spec
-        run(self.session, "modeller scores %s" % concise_model_spec(self.session, self.models))
+        run(self.session, "modeller scores %s refresh %s" % (
+            concise_model_spec(self.session, self.models), str(refresh).lower()))
 
     def fill_context_menu(self, menu, x, y):
+        from PyQt5.QtWidgets import QAction
+        refresh_action = QAction("Refresh Scores", menu)
+        refresh_action.triggered.connect(lambda arg: self.fetch_additional_scores(refresh=True))
+        menu.addAction(refresh_action)
         if self.scores_fetched:
             return
-        from PyQt5.QtWidgets import QAction
         fetch_action = QAction("Fetch Additional Scores", menu)
         fetch_action.triggered.connect(lambda arg: self.fetch_additional_scores())
         menu.addAction(fetch_action)

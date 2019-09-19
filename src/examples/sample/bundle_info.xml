@@ -59,7 +59,7 @@ Implements command "sample count" to report number of atoms and bonds.
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Sample Tool :: General :: Log model atom and bond counts</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: sample count :: General :: Log model atom and bond counts</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: XYZ :: :: Molecule structure :: .xyz :: :: :: :: :: XYZ format :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: XYZ :: :: Molecular structure :: .xyz :: :: :: :: :: XYZ format :: utf-8</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: XYZ :: XYZ ::</ChimeraXClassifier>
   </Classifiers>
 
