@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGrid
 class OptionsPanel(QWidget):
     """Supported API. OptionsPanel is a container for single-use (not savable) Options"""
 
-    def __init__(self, parent=None, *, sorting=True, scrolled=True):
+    def __init__(self, parent=None, *, sorting=True, scrolled=True, contents_margins=None):
         """sorting:
             False; options shown in order added
             True: options sorted alphabetically by name
@@ -34,6 +34,8 @@ class OptionsPanel(QWidget):
         """
         QWidget.__init__(self, parent)
         self._layout = QVBoxLayout()
+        if contents_margins is not None:
+            self._layout.setContentsMargins(*contents_margins)
         if scrolled:
             sublayout = QVBoxLayout()
             self.setLayout(sublayout)
@@ -111,6 +113,7 @@ class CategorizedOptionsPanel(QTabWidget):
             True: categories/options sorted alphabetically by name
             func: categories/options sorted based on the provided key function
         """
+        self._contents_margins = kw.pop('contents_margins', None)
         QTabWidget.__init__(self, parent, **kw)
         self._category_sorting = category_sorting
         self._option_sorting = option_sorting
@@ -121,7 +124,7 @@ class CategorizedOptionsPanel(QTabWidget):
         try:
             panel = self._category_to_panel[category]
         except KeyError:
-            panel = OptionsPanel(sorting=self._option_sorting)
+            panel = OptionsPanel(sorting=self._option_sorting, contents_margins=self._contents_margins)
             self.add_tab(category, panel)
         panel.add_option(option)
 
@@ -129,7 +132,7 @@ class CategorizedOptionsPanel(QTabWidget):
         try:
             panel = self._category_to_panel[category]
         except KeyError:
-            panel = OptionsPanel(sorting=self._option_sorting)
+            panel = OptionsPanel(sorting=self._option_sorting, contents_margins=self._contents_margins)
             self.add_tab(category, panel)
         return panel.add_option_group(**kw)
 
@@ -160,13 +163,13 @@ class CategorizedOptionsPanel(QTabWidget):
 class SettingsPanelBase(QWidget):
     def __init__(self, parent, option_sorting, multicategory,
             *, category_sorting=None, buttons=True, help_cb=None, **kw):
-        QWidget.__init__(self, parent, **kw)
+        QWidget.__init__(self, parent)
         self.multicategory = multicategory
         if multicategory:
             self.options_panel = CategorizedOptionsPanel(option_sorting=option_sorting,
-                    category_sorting=category_sorting)
+                    category_sorting=category_sorting, **kw)
         else:
-            self.options_panel = OptionsPanel(sorting=option_sorting)
+            self.options_panel = OptionsPanel(sorting=option_sorting, **kw)
 
         layout = QVBoxLayout()
         layout.setSpacing(5)

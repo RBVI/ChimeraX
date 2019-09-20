@@ -52,7 +52,7 @@ def find_clashes(session, test_atoms,
        Intra-residue clashes are ignored unless intra_res is True.
        Intra-molecule (covalently connected fragment) clashes are ignored
        unless intra_mol is True.
-       Inter-submodel clashes are ignored unless inter_submodel is True.
+       Inter-(sibling)submodel clashes are ignored unless inter_submodel is True.
        Inter-model clashes are ignored unless inter_model is True.
 
        If res_separation is not None, it should be a positive integer -- in which
@@ -145,6 +145,7 @@ def find_clashes(session, test_atoms,
             if not inter_submodel \
             and a.structure.id and nb.structure.id \
             and a.structure.id[0] == nb.structure.id[0] \
+            and a.structure.id[:-1] == nb.structure.id[:-1] \
             and a.structure.id[1:] != nb.structure.id[1:]:
                 continue
             if use_scene_coords:

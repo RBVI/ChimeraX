@@ -44,6 +44,9 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>~clashes</b>&nbsp;|&nbsp;<b>~contacts</b>&nbsp;)
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<br>&ndash; or &ndash;
+<br>(&nbsp;<b>clashes</b>&nbsp;|&nbsp;<b>contacts</b>&nbsp;) <b>delete</b>
+[&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 </h3>
 <p>
 The <b>clashes</b> and <b>contacts</b> commands are the same 
@@ -56,6 +59,7 @@ except for their default interaction criteria, meant to identify:
 - all kinds of direct interactions:
 polar and nonpolar, favorable and unfavorable (including clashes)
 </ul>
+<p>
 See also: 
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="distance.html"><b>distance</b></a>,
@@ -63,12 +67,26 @@ See also:
 <a href="select.html#new"><b>select</b> by pseudobond length</a>,
 <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>,
 <a href="../measurements.html">measurements</a>
+</p><p>
+By <a href="#makePseudobonds">default</a>,
+clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
+The command <b>~clashes</b> (same as <b>clashes delete</b>)
+or <b>~contacts</b> (same as <b>contacts delete</b>)
+removes the indicated pseudobonds and halts any
+<a href="#continuous">continuous monitoring</a>.
 <p>
 A non-blank <a href="atomspec.html"><i>atom-spec1</i></a> is required.
 The <a href="#options"><b>test</b></a> option indicates
 whether to look for interactions among the specified atoms or between
-them and other atoms (<a href="#options">details...</a>).
-</p><p>
+them and other atoms (<a href="#options">details...</a>). Examples:
+</p>
+<blockquote><b>
+contacts protein test ligand reveal true
+<br>contacts delete
+<br>clashes&nbsp;#1&nbsp;reveal&nbsp;t&nbsp;showdist&nbsp;t;&nbsp;<a href="label.html">label</a>&nbsp;height&nbsp;1
+<br>~clashes
+</b></blockquote>
+<p>
 The <a name="overlap-def"><b><i>overlap</i></b></a>
 between two atoms is defined as the sum of their
 <a href="../radii.html">VDW radii</a> minus the
@@ -116,25 +134,23 @@ Both measures are reported in the detailed results.
 By <a href="#makePseudobonds">default</a>,
 clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
 A pseudobond is only shown when both of its endpoint atoms are shown;
-<b>reveal true</b> can be used to display atoms as needed
-so that all of the interactions will be shown (<a href="#reveal">details...</a>).
+<b>reveal true</b> can be used to display atoms as needed so that 
+all of the interactions will be shown (<a href="#reveal">details...</a>).
 The pseudobonds can be <a href="#showDist">labeled by distance</a>,
 and their <a href="#color">color</a>, <a href="#radius">radius</a>,
 and <a href="#dashes">number of dashes</a> can be specified.
 The default <a href="#name">name</a> of the pseudobond model for creation
 (and for removal with <b>~clashes</b> or <b>~contacts</b>) 
-is <b>clashes</b> or <b>contacts</b>.
-When multiple pseudobond models have the same name, specific models can be
-removed with the <a href="close.html"><b>close</b></a> command.
+is <b>clashes</b> or <b>contacts</b>, depending on which command was used.
+If multiple pseudobond models have the same name, specific models can be
+removed by model number with the <a href="close.html"><b>close</b></a> command.
 </p><p>
 During <a href="#continuous">continuous monitoring</a>,
-such interactions can also be shown with 
+clashes/contacts can also be shown with 
 <a href="../selection.html">selection</a> and atom coloring.
 Discontinuous monitoring additionally allows 
 <a href="#log">logging</a> the detailed results
 and/or <a href="#saveFile">saving</a> them to a file.
-The command <b>~clashes</b> or <b>~contacts</b>
-removes the indicated pseudobonds and halts any continuous monitoring.
 </p><p>
 <a href="../pseudobonds.html">Pseudobonds</a> can be labeled by length with 
 the <a href="label.html"><b>label</b></a> command and changed between 
@@ -338,8 +354,8 @@ where a molecule is defined as a covalently bonded set of atoms.
 <br>
 Whether to initiate continuous checking, which will continue until
 the specified atoms are removed, or <b>~clashes</b> (<b>~contacts</b>) is used,
-or <b>clashes</b> (<b>contacts</b>) is used again without setting this option to 
-<b>true</b> (since <b>false</b> is the default).
+or <b>clashes</b> (<b>contacts</b>) is used again without setting this option
+to <b>true</b> (since <b>false</b> is the default).
 Only moving a model relative to another will trigger a new check.
 </blockquote>
 <blockquote>
