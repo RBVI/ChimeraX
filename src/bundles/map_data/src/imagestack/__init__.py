@@ -14,11 +14,28 @@
 #
 def open(paths):
 
-  from .imagestack_grid import image_stack_grids
-  from .imagestack_format import is_3d_image
   if isinstance(paths, str):
     paths = [paths]
 
+  tc_paths = paths_by_time_and_channel(paths)
+  grids = []
+  for t,c,path_list in tc_paths:
+    grids.extend(open_stack(path_list, t, c))
+
+  # Assign default channel colors
+  gc = [g for g in grids if g.rgba is None and g.channel is not None]
+  if len(set(g.channel for g in gc)) > 1:
+    for g in gc:
+      g.rgba = default_channel_colors[g.channel % len(default_channel_colors)]
+
+  return grids
+
+# -----------------------------------------------------------------------------
+#
+def open_stack(paths, time=None, channel=None):
+
+  from .imagestack_grid import image_stack_grids
+  from .imagestack_format import is_3d_image
   if len(paths) > 1 and not is_3d_image(paths[0]):
     # Stack of 2d images as a single map.
     grids = image_stack_grids(paths)
@@ -34,24 +51,92 @@ def open(paths):
           continue	# OME file already referenced by a previous OME file.
         from . import ome_tiff
         pgrids = ome_tiff.ome_image_grids(p, fpaths)
-        grids.extend(pgrids)
         series_check = False
       elif tiff_type == 'ImageJ':
         from . import imagej_tiff
-        grids.extend(imagej_tiff.imagej_grids(p))
+        pgrids = imagej_tiff.imagej_grids(p)
       else:
-        grids.extend(image_stack_grids([p]))
+        pgrids = image_stack_grids([p])
+      grids.extend(pgrids)
 
+  if time is None and channel is None:
     assign_series_and_channels(grids)
-
-    # Assign default channel colors
-    gc = [g for g in grids if g.rgba is None and g.channel is not None]
-    if len(set(g.channel for g in gc)) > 1:
-      for g in gc:
-        g.rgba = default_channel_colors[g.channel % len(default_channel_colors)]
+  else:
+    for g in grids:
+      g.time = g.series_index = time
+      g.channel = channel
 
   return grids
 
+# -----------------------------------------------------------------------------
+#
+def paths_by_time_and_channel(paths):
+
+  tc_paths = []
+  reg_paths = []
+  from os.path import split
+  for path in paths:
+    dir, filename = split(path)
+    if '{t}' in filename or '{c}' in filename or '{z}' in filename:
+      tc_zpaths = parse_path_tcz(dir, filename)
+      if len(tc_zpaths) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No file matching pattern not found: %s' % path)
+      tc_paths.extend(tc_zpaths)
+    else:
+      from glob import glob
+      gpaths = glob(path)
+      if len(gpaths) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('File not found: %s' % path)
+      reg_paths.extend(gpaths)
+
+  if reg_paths:
+    tc_paths.append((None, None, reg_paths))
+
+  return tc_paths
+
+# -----------------------------------------------------------------------------
+#
+def parse_path_tcz(dir, filename):
+
+  # Make a regular expression to match filenames.
+  pattern = filename
+  fields = []
+  for c in ('t', 'c', 'z'):
+    field = '{%s}' % c
+    if field in pattern:
+      pattern = pattern.replace(field,'(?P<%s>[0-9]+)' % c)
+      fields.append(c)
+  if '*' in pattern:
+    pattern = pattern.replace('*', '.*?')	# Convert glob * to regex equivalent.
+  import re
+  rexpr = re.compile(pattern)
+
+  from os import listdir
+  filenames = listdir(dir if dir else '.')
+
+  # Collect all paths for each time and channel and sort in z order.
+  tc_zpaths = {}
+  for fname in filenames:
+    m = rexpr.fullmatch(fname)
+    if m:
+      tcz = {}
+      for c in fields:
+        value = m.group(c)
+        tcz[c] = int(value)
+      tc = (tcz.get('t'), tcz.get('c'))
+      if tc not in tc_zpaths:
+        tc_zpaths[tc] = []
+      tc_zpaths[tc].append((tcz.get('z'), fname))
+
+  from os.path import join
+  tc_zpaths_list = [(t,c,[join(dir,fname) for z,fname in sorted(zpaths)])
+                    for (t,c),zpaths in tc_zpaths.items()]
+  
+  return tc_zpaths_list
+    
+    
 # -----------------------------------------------------------------------------
 #
 def assign_series_and_channels(grids):

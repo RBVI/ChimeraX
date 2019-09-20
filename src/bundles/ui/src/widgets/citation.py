@@ -20,7 +20,7 @@ from PyQt5.QtCore import Qt
 
 class Citation(QFrame):
 
-    def __init__(self, session, cite, prefix=None, suffix=None, url=None, pubmed_id=None, image=True):
+    def __init__(self, session, cite, *, prefix=None, suffix=None, url=None, pubmed_id=None, image=True):
         """
             'cite' is the citation text
             'prefix'/'suffix' is text to precede/follow the citation
@@ -36,6 +36,7 @@ class Citation(QFrame):
         self.session = session
 
         layout = QGridLayout()
+        layout.setContentsMargins(5,5,5,5)
         self.setLayout(layout)
 
         if prefix is not None:

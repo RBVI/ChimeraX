@@ -123,7 +123,7 @@ class ModellerLauncher(ToolInstance):
         ToolInstance.delete(self)
 
     def launch_modeller(self):
-        from chimerax.core.commands import run, quote_if_necessary as quote_if, quote_path_if_necessary as quote_p_if
+        from chimerax.core.commands import run, FileNameArg, quote_if_necessary as quote_if
         from chimerax.core.errors import UserError
         alignments = self.alignment_list.value
         if not alignments:
@@ -146,7 +146,7 @@ class ModellerLauncher(ToolInstance):
             repr(settings.fast).lower(),
             repr(settings.het_preserve).lower(),
             repr(settings.hydrogens).lower(),
-            " tempPath %s" % quote_p_if(settings.temp_path) if settings.temp_path else "",
+            " tempPath %s" % FileNameArg.unparse(settings.temp_path) if settings.temp_path else "",
             repr(settings.water_preserve).lower()
             ))
         self.delete()
@@ -239,14 +239,14 @@ class ModellerResultsViewer(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from PyQt5.QtWidgets import QAction
-        refresh_action = QAction("Refresh Scores", menu)
-        refresh_action.triggered.connect(lambda arg: self.fetch_additional_scores(refresh=True))
-        menu.addAction(refresh_action)
         if self.scores_fetched:
-            return
-        fetch_action = QAction("Fetch Additional Scores", menu)
-        fetch_action.triggered.connect(lambda arg: self.fetch_additional_scores())
-        menu.addAction(fetch_action)
+            refresh_action = QAction("Refresh Scores", menu)
+            refresh_action.triggered.connect(lambda arg: self.fetch_additional_scores(refresh=True))
+            menu.addAction(refresh_action)
+        else:
+            fetch_action = QAction("Fetch Additional Scores", menu)
+            fetch_action.triggered.connect(lambda arg: self.fetch_additional_scores())
+            menu.addAction(fetch_action)
 
     @classmethod
     def restore_snapshot(cls, session, data):

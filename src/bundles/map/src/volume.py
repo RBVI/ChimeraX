@@ -3599,7 +3599,7 @@ def register_map_format(session, map_format):
     io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
                        open_func=open_map_format, batch=True,
                        allow_directory=map_format.allow_directory,
-                       export_func=save_func)
+                       export_func=save_func, check_path=map_format.check_path)
 
 # -----------------------------------------------------------------------------
 #

@@ -584,8 +584,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
 
         def _qt_safe(session=session, paths=paths):
-            from chimerax.core.commands import run, quote_path_if_necessary
-            run(session, "open " + " ".join([quote_path_if_necessary(p) for p in paths]))
+            from chimerax.core.commands import run, FileNameArg
+            run(session, "open " + " ".join([FileNameArg.unparse(p) for p in paths]))
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover
         # events correctly, nor tool tips.
@@ -992,7 +992,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _add_preset_entries(self, session, menu, preset_names, category=None):
         from PyQt5.QtWidgets import QAction
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         # the menu names may be instances of CustomSortString, so sort them
         # before applying menu_capitalize(); also 'preset_names' may be a keys view
         menu_names = list(preset_names)
@@ -1001,11 +1001,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         if category is None:
             cat_string = ""
         else:
-            cat_string = quote_if_necessary(category.lower()) + " "
+            cat_string = StringArg.unparse(category.lower()) + " "
         for name in menu_names:
             action = QAction(name, menu)
             action.triggered.connect(lambda checked, ses=session, name=name, cat=cat_string:
-                run(ses, "preset %s%s" % (cat, quote_if_necessary(name.lower()))))
+                run(ses, "preset %s%s" % (cat, StringArg.unparse(name.lower()))))
             menu.addAction(action)
 
     def _populate_actions_menu(self, actions_menu):
@@ -1211,7 +1211,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def update_favorites_menu(self, session):
         from PyQt5.QtWidgets import QAction
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         # Due to Settings possibly being displayed in another menu (but the actions
         # still being in this menu), be tricky about clearing out menu
         prev_actions = self.favorites_menu.actions()
@@ -1222,7 +1222,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         for fave in session.ui.settings.favorites:
             fave_action = QAction(fave, self)
             fave_action.triggered.connect(lambda arg, ses=session, run=run, fave=fave:
-                run(ses, "toolshed show %s" % (quote_if_necessary(fave))))
+                run(ses, "toolshed show %s" % (StringArg.unparse(fave))))
             if prev_actions:
                 self.favorites_menu.insertAction(separator, fave_action)
             else:
@@ -1248,7 +1248,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                     categories.setdefault(cat, {})[tool.name] = (bi, tool)
         cat_keys = sorted(categories.keys())
         one_menu = len(cat_keys) == 1
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         active_tool_names = set([tool.display_name for tool in session.tools.list()])
         for cat in cat_keys:
             if one_menu:
@@ -1267,12 +1267,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                     tool_action.triggered.connect(
                         lambda arg, ses=session, run=run, tool_name=tool_name:
                         run(ses, "toolshed %s %s" % (("show" if arg else "hide"),
-                        quote_if_necessary(tool_name))))
+                        StringArg.unparse(tool_name))))
                     self._checkbutton_tools[tool_name] = tool_action
                 else:
                     tool_action.triggered.connect(
                         lambda arg, ses=session, run=run, tool_name=tool_name:
-                        run(ses, "toolshed show %s" % quote_if_necessary(tool_name)))
+                        run(ses, "toolshed show %s" % StringArg.unparse(tool_name)))
                 cat_menu.addAction(tool_action)
         def _show_toolshed(arg):
             from chimerax.help_viewer import show_url
@@ -1508,8 +1508,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 def _open_dropped_file(session, path):
     if not path:
         return
-    from chimerax.core.commands import run, quote_path_if_necessary
-    run(session, 'open %s' % quote_path_if_necessary(path))
+    from chimerax.core.commands import run, FileNameArg
+    run(session, 'open %s' % FileNameArg.unparse(path))
 
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):
@@ -1965,7 +1965,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
     menu.addAction(hide_tool_action)
     help_url = getattr(tool_window, "help", None) or ti.help
     session = ti.session
-    from chimerax.core.commands import run, quote_if_necessary
+    from chimerax.core.commands import run, StringArg
     if help_url is not None:
         help_action = QAction("Help")
         help_action.setStatusTip("Show tool help")
@@ -1984,27 +1984,27 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         auto_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
-            quote_if_necessary(ti.tool_name))))
+            StringArg.unparse(ti.tool_name))))
         menu.addAction(auto_action)
         favorite = ti.tool_name in session.ui.settings.favorites
         fav_action = QAction("In Favorites Menu")
         fav_action.setCheckable(True)
         fav_action.setChecked(favorite)
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         fav_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui favorite %s %s" % (("true" if arg else "false"),
-            quote_if_necessary(ti.tool_name))))
+            StringArg.unparse(ti.tool_name))))
         menu.addAction(fav_action)
     undockable = ti.tool_name in session.ui.settings.undockable
     dock_action = QAction("Dockable Tool")
     dock_action.setCheckable(True)
     dock_action.setChecked(not undockable)
-    from chimerax.core.commands import run, quote_if_necessary
+    from chimerax.core.commands import run, StringArg
     dock_action.triggered.connect(
         lambda arg, ses=session, run=run, tool_name=ti.tool_name:
         run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
-        quote_if_necessary(ti.tool_name))))
+        StringArg.unparse(ti.tool_name))))
     menu.addAction(dock_action)
     if memorable:
         position_action = QAction("Save Tool Position")
@@ -2101,14 +2101,14 @@ class DefineSelectorDialog(QDialog):
         self._update_button_states()
 
     def def_selector(self, *args):
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         if self.push_button.text() == self.cur_sel_text:
             command = "name frozen"
             spec = "sel"
         else:
             command = "name"
-            spec = quote_if_necessary(self.atom_spec_edit.text())
-        run(self.session, "%s %s %s" % (command, quote_if_necessary(self.name_edit.text()), spec))
+            spec = self.atom_spec_edit.text()
+        run(self.session, "%s %s %s" % (command, StringArg.unparse(self.name_edit.text()), spec))
 
     def _update_button_states(self, *args):
         enable = bool(self.name_edit.text().strip())
@@ -2144,8 +2144,8 @@ class SelSeqDialog(QDialog):
         self.setLayout(layout)
 
     def search(self, *args):
-        from chimerax.core.commands import run, quote_if_necessary
-        run(self.session, "sel seq %s" % quote_if_necessary(self.edit.text().strip()))
+        from chimerax.core.commands import run, StringArg
+        run(self.session, "sel seq %s" % StringArg.unparse(self.edit.text().strip()))
 
     def _update_button_states(self, text):
         enable = bool(text.strip())
