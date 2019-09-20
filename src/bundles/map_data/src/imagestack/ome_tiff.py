@@ -131,15 +131,16 @@ def parse_ome_tiff_header(path, found_paths = None):
             ccolor = channel_colors(channels)
             tdata = [td for td in p if tag_name(td) == 'TiffData']
             ptable = plane_table(dorder, nz, nt, nc, path, found_paths, tdata)
-            if len(ptable) > nc*nt*nz:
+            if len(ptable) != nc*nt*nz:
                 maxc = maxt = maxz = 0
                 for c,t,z in ptable.keys():
                     maxc = max(maxc,c)
                     maxt = max(maxt,t)
                     maxz = max(maxz,z)
                 nc, nt, nz = maxc + 1, maxt + 1, maxz + 1
-                if len(ptable) != nc*nt*nz:
-                    raise TypeError('OME TIFF file has max channel %d, time %d, z %d, but not all planes are listed: %s' % (nc, nt, nz, ' '.join('%d,%d,%d' % ctz for ctz in ptable.keys())))
+            if len(ptable) != nc*nt*nz:
+                raise TypeError('OME TIFF file has max channel %d, time %d, z %d, but not all planes are specified in OME header, got %s'
+                                % (nc, nt, nz, ' '.join('%d,%d,%d' % ctz for ctz in ptable.keys())))
                 
             pi = OME_Pixels(path, name, dorder, (sx,sy,sz), (nx,ny,nz), nt, nc, value_type, ptable, cnames, ccolor)
             images.append(pi)
@@ -215,7 +216,11 @@ class OME_Pixels:
         dir = dirname(self.path)
         for fname, fp in fplanes:
             with TiffFile(join(dir,fname)) as tif:
-                a = tif.asarray(key = fp)
+                try:
+                    a = tif.asarray(key = fp)
+                except IndexError:
+                    print('Error reading TIFF file', fname, 'planes', fp)
+                    raise
                 if a.ndim == 2:
                     a = a.reshape((1,) + tuple(a.shape))	# Make single-plane 3d
                 arrays.append(a)
