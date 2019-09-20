@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
-
+from chimerax.core.errors import UserError
 
 _prd = None
 def prep_rotamers_dialog(session, rotamers_tool_name):
@@ -108,7 +108,6 @@ class PrepRotamersDialog(ToolInstance):
         from chimerax.atomic import selected_atoms
         sel_residues = selected_atoms(self.session).residues.unique()
         if not sel_residues:
-            from chimerax.core.errors import UserError
             raise UserError("No residues selected")
         num_sel = len(sel_residues)
         if num_sel > 10:
@@ -265,15 +264,33 @@ class RotamerDialog(ToolInstance):
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self._apply_rotamer)
-        bbox.rejected.connect(lambda self=self: ToolInstance.delete(self))
+        bbox.rejected.connect(self.destroy)
         #from chimerax.core.commands import run
         #bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.Help))
         bbox.button(qbbox.Help).setDisabled(True)
         layout.addWidget(bbox)
         self.tool_window.manage(placement=None)
 
+    def destroy(self, from_mgr=False):
+        for handler in self.handlers:
+            handler.remove()
+        if not from_mgr:
+            self.mgr.destroy()
+        super().delete()
+
     def _apply_rotamer(self):
-        pass
+        rots = self.table.selected
+        if not rots:
+            raise UserError("No rotamers selected")
+        rot_nums = [r.id[-1] for r in rots]
+        from chimerax.core.commands import run
+        run(self.session, "swapaa %s %s criteria %s retain %s" % (
+            self.residue.string(style="command"),
+            self.res_type,
+            ",".join(["%d" % rn for rn in rot_nums]),
+            str(self.retain_side_chain.isChecked()).lower()
+        ))
+        self.destroy()
 
     def _fewer_rots_cb(self, trig_name, mgr):
         self.rot_table.set_data(self.mgr.rotamers)
