@@ -331,7 +331,17 @@ def plane_table(dimension_order, nz, nt, nc, path, found_paths, tdata):
         a = td.attrib
         fc, ft, fz, ifd, pc = [int(a.get(attr,default_value))
                                for attr, default_value in (('FirstC',0), ('FirstT',0), ('FirstZ',0), ('IFD',0), ('PlaneCount',1))]
-        if pc != 1:
-            raise TypeError('OME TIFF PlaneCount != 1 not supported, got %d' % pc)
-        ptable[(fc,ft,fz)] = (fname, ifd)
+        if pc == 1:
+            ptable[(fc,ft,fz)] = (fname, ifd)
+        else:
+            # Fill in IFD indices for multiple C,T,Z planes.
+            ctz = {'C':fc, 'T':ft, 'Z':fz}
+            for p in range(pc):
+                ptable[(ctz['C'],ctz['T'],ctz['Z'])] = (fname, ifd + p)
+                # Increment c,t,z index to next plane
+                for a in dimension_order[2:]:
+                    ctz[a] += 1
+                    if ctz[a] >= sizes[a]:
+                        ctz[a] = 0
+
     return ptable
