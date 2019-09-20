@@ -16,7 +16,8 @@
 #
 class MapFileFormat:
   def __init__(self, description, name, prefixes, suffixes, *,
-               writable = False, writer_options = (), batch = False, allow_directory = False):
+               writable = False, writer_options = (), batch = False, allow_directory = False,
+               check_path = True):
     self.description = description
     self.name = name
     self.prefixes = prefixes
@@ -25,6 +26,7 @@ class MapFileFormat:
     self.writer_options = writer_options
     self.batch = batch
     self.allow_directory = allow_directory
+    self.check_path = check_path
 
   @property
   def open_func(self):
@@ -58,7 +60,7 @@ file_formats = [
   MapFileFormat('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5']),
   MapFileFormat('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub']),
   MapFileFormat('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt']),
-  MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True),
+  MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True, check_path = False),
   MapFileFormat('Imaris map', 'ims', ['ims'], ['ims']),
   MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),
   MapFileFormat('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp']),
