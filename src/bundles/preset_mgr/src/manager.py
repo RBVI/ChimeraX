@@ -71,9 +71,10 @@ class PresetsManager(ProviderManager):
         else:
             from chimerax.core.commands import run
             num_lines = 0
-            for line in preset.splitlines():
-                run(self.session, line, log=False)
-                num_lines += 1
+            with self.session.undo.aggregate("preset"):
+                for line in preset.splitlines():
+                    run(self.session, line, log=False)
+                    num_lines += 1
             if num_lines == 1:
                 parts = [p.strip() for p in preset.split(';')]
                 display_lines = '\n'.join(parts)
