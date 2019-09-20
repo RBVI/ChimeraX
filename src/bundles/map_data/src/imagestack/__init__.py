@@ -108,6 +108,8 @@ def parse_path_tcz(dir, filename):
     if field in pattern:
       pattern = pattern.replace(field,'(?P<%s>[0-9]+)' % c)
       fields.append(c)
+  if '*' in pattern:
+    pattern = pattern.replace('*', '.*?')	# Convert glob * to regex equivalent.
   import re
   rexpr = re.compile(pattern)
 
