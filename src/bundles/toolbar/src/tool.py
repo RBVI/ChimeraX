@@ -90,7 +90,9 @@ class ToolbarTool(ToolInstance):
         elif kind == "mouse":
             button_to_bind = 'right'
             from chimerax.core.commands import run
-            run(self.session, f'ui mousemode {button_to_bind} "{value}"')
+            if ' ' in value:
+                value = '"%s"' % value
+            run(self.session, f'ui mousemode {button_to_bind} {value}')
         elif kind == "cmd":
             from chimerax.core.commands import run
             run(self.session, f'{value}')

@@ -123,7 +123,7 @@ class ModellerLauncher(ToolInstance):
         ToolInstance.delete(self)
 
     def launch_modeller(self):
-        from chimerax.core.commands import run, quote_if_necessary as quote_if, quote_path_if_necessary as quote_p_if
+        from chimerax.core.commands import run, FileNameArg, quote_if_necessary as quote_if
         from chimerax.core.errors import UserError
         alignments = self.alignment_list.value
         if not alignments:
@@ -146,7 +146,7 @@ class ModellerLauncher(ToolInstance):
             repr(settings.fast).lower(),
             repr(settings.het_preserve).lower(),
             repr(settings.hydrogens).lower(),
-            " tempPath %s" % quote_p_if(settings.temp_path) if settings.temp_path else "",
+            " tempPath %s" % FileNameArg.unparse(settings.temp_path) if settings.temp_path else "",
             repr(settings.water_preserve).lower()
             ))
         self.delete()
