@@ -8,7 +8,7 @@ Distance information:
 from tempfile import NamedTemporaryFile
 tempf = NamedTemporaryFile(delete=False)
 tempf.close()
-from chimerax.core.commands import run, FilenameArg
+from chimerax.core.commands import run, FileNameArg
 run(session, "open 3fx2 ; distance /A:62@OD1 /A:100@OH ; distance /A:62@OD2 /A:98@OH ; distance /A:300@O /A:396@O; distance save %s" % FileNameArg.unparse(tempf.name))
 f = open(tempf.name)
 file_contents = f.read()
