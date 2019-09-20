@@ -239,14 +239,14 @@ class ModellerResultsViewer(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from PyQt5.QtWidgets import QAction
-        refresh_action = QAction("Refresh Scores", menu)
-        refresh_action.triggered.connect(lambda arg: self.fetch_additional_scores(refresh=True))
-        menu.addAction(refresh_action)
         if self.scores_fetched:
-            return
-        fetch_action = QAction("Fetch Additional Scores", menu)
-        fetch_action.triggered.connect(lambda arg: self.fetch_additional_scores())
-        menu.addAction(fetch_action)
+            refresh_action = QAction("Refresh Scores", menu)
+            refresh_action.triggered.connect(lambda arg: self.fetch_additional_scores(refresh=True))
+            menu.addAction(refresh_action)
+        else:
+            fetch_action = QAction("Fetch Additional Scores", menu)
+            fetch_action.triggered.connect(lambda arg: self.fetch_additional_scores())
+            menu.addAction(fetch_action)
 
     @classmethod
     def restore_snapshot(cls, session, data):
