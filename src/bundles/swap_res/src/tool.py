@@ -205,7 +205,7 @@ class RotamerDialog(ToolInstance):
             # called directly rather than during session restore
             self.finalize_init(*args)
 
-    def destroy(self, from_mgr=False):
+    def delete(self, from_mgr=False):
         for handler in self.handlers:
             handler.remove()
         if not from_mgr:
@@ -258,20 +258,23 @@ class RotamerDialog(ToolInstance):
             self.table.sortByColumn(len(self.mgr.rotamers[0].chis), Qt.DescendingOrder)
         self.table.selection_changed.connect(self._selection_change)
         layout.addWidget(self.table)
-        self.retain_side_chain = QCheckBox("Retain original side chain")
-        self.retain_side_chain.setChecked(False)
-        layout.addWidget(self.retain_side_chain)
+        if residue.name == res_type:
+            self.retain_side_chain = QCheckBox("Retain original side chain")
+            self.retain_side_chain.setChecked(False)
+            layout.addWidget(self.retain_side_chain)
+        else:
+            self.retain_side_chain = None
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self._apply_rotamer)
-        bbox.rejected.connect(self.destroy)
+        bbox.rejected.connect(self.delete)
         #from chimerax.core.commands import run
         #bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.Help))
         bbox.button(qbbox.Help).setDisabled(True)
         layout.addWidget(bbox)
         self.tool_window.manage(placement=None)
 
-    def destroy(self, from_mgr=False):
+    def delete(self, from_mgr=False):
         for handler in self.handlers:
             handler.remove()
         if not from_mgr:
@@ -284,19 +287,21 @@ class RotamerDialog(ToolInstance):
             raise UserError("No rotamers selected")
         rot_nums = [r.id[-1] for r in rots]
         from chimerax.core.commands import run
-        run(self.session, "swapaa %s %s criteria %s retain %s" % (
+        cmd = "swapaa %s %s criteria %s" % (
             self.residue.string(style="command"),
             self.res_type,
             ",".join(["%d" % rn for rn in rot_nums]),
-            str(self.retain_side_chain.isChecked()).lower()
-        ))
-        self.destroy()
+        )
+        if self.retain_side_chain:
+            cmd += " retain %s" % str(self.retain_side_chain.isChecked()).lower()
+        run(self.session, cmd)
+        self.delete()
 
     def _fewer_rots_cb(self, trig_name, mgr):
         self.rot_table.set_data(self.mgr.rotamers)
 
     def _mgr_destroyed_cb(self, trig_name, mgr):
-        self.destroy(from_mgr=True)
+        self.delete(from_mgr=True)
 
     def _selection_change(self, selected, deselected):
         if self.table.selected:
