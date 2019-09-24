@@ -166,70 +166,86 @@ or if nothing is selected, all applicable items.
 </p>
 <ul>
 <li><b>Atoms/Bonds</b></a>
-  (see commands <a href="commands/show.html"><b>show</b></a>
-  and <a href="commands/style.html"><b>style</b></a>)
+&ndash; <a href="commands/show.html"><b>show</b></a>
+and <a href="commands/show.html"><b>hide</b></a> atom and bond representations
   <ul>
   <li><b>Show</b>
   <li><b>Show Only</b>
   <li><b>Hide</b>
   </ul>
-<br>
-The following three apply only to residues in bonded chains of amino acids 
-or nucleic acids:
+<p>
+The following set of entries applies
+only to residues in bonded chains of amino acids or nucleic acids:
+</p>
   <ul>
+  <li><b>Cartoon</b></a>
+&ndash; <a href="commands/show.html"><b>show</b></a>
+and <a href="commands/show.html"><b>hide</b></a> cartoon representations
+(see also commands <a href="commands/cartoon.html"><b>cartoon</b></a>
+and <a href="commands/cartoon.html#style"><b>cartoon style</b></a>).
+By <a href="commands/cartoon.html#suppress">default</a>,
+showing cartoons hides the corresponding backbone atoms.
+</a>
+    <ul>
+    <li><b>Ribbons (Smooth Edges)</b>
+&ndash; cartoon with oval cross-section
+    <li><b>Ribbons (Sharp Edges)</b>
+&ndash; cartoon with rectangular cross-section
+    <li><b>Ribbons (Lipped Edges)</b>
+&ndash; cartoon
+with barbell cross-section
+    <li><b>Helix Tubes</b>
+&ndash; cartoon with curved-tube helices
+    <li><b>None</b> 
+    </ul>
   <li><b>Backbone Only</b>
-&ndash; peptide backbone, nucleic acid phosphoribosyl backbone
+&ndash; hide cartoon and show atoms in
+peptide backbone, nucleic acid phosphoribosyl backbone
   <li><b>Chain Trace Only</b>
-&ndash; one atom per residue: amino acid CA, nucleic acid P
+&ndash; hide cartoon and show trace atoms: amino acid CA, nucleic acid P
   <li><b>Show Side Chain/Base</b>
-&ndash; amino acid sidechain + CA (for connectivity to 
-<a href="cartoon.html">cartoon</a> representations), 
-nucleic acid base + ribose, and any directly attached hydrogens
+&ndash; show amino acid sidechain + CA (for connectivity to cartoons),
+nucleic acid base + ribose
   </ul>
-<br>
+<p>
+The <a href="commands/style.html"><b>style</b></a> settings do not
+show/hide atoms, only change their styles:
+</p>
   <ul>
   <li><b>Stick</b>
-(stick <a href="representation.html">representation</a>)
   <li><b>Ball & Stick</b>
-(ball-and-stick <a href="representation.html">representation</a>)
   <li><b>Sphere</b>
-(sphere or CPK <a href="representation.html">representation</a>)
   <li><b>Rings</b>
     <ul>
     <li><b>Fill Thick</b>
     <li><b>Fill Thin</b>
-    <li><b>Fill Off</b>
+    <li><b>No Fill</b>
     </ul>
   <li><b>Nucleotide Depiction</b>
-  (see also <a href="commands/nucleotides.html"><b>nucleotides</b></a>)
+  &ndash; <a href="commands/nucleotides.html"><b>nucleotides</b></a>
+  style settings
     <ul>
-    <li><b>Slab</b>
-    <li><b>Tube/Slab</b>
+    <li><b>Filled Rings</b>
     <li><b>Ladder</b>
+    <li><b>Slab</b>
     <li><b>Broken Rungs</b>
+    <li><b>Tube/Slab</b>
     <li><b>None</b> 
 &ndash; show atoms instead of sugar/base abstractions, 
 remove any nucleotide ring fill
     </ul>
+<br>
   <li><b>Delete</b> &ndash; remove atoms/bonds (<b>caution: irreversible</b>)
   like the command <a href="commands/delete.html"><b>delete</b></a>
   </ul>
 <br>
-<li><b>Cartoons</b></a>
-&ndash; ribbon and tube representations of protein and nucleic acid backbones
-(see commands <a href="commands/cartoon.html"><b>cartoon</b></a>
-and <a href="commands/cartoon.html#style"><b>cartoon style</b></a>).
-By <a href="commands/cartoon.html#suppress">default</a>, 
-showing cartoons hides the corresponding mainchain atoms.
-Protein helix and strand assignments are taken from the input structure
-file or generated with <a href="dssp.html"><b>dssp</b></a>.
-</a>
+<li><b>Surface</b>
+&ndash; <a href="commands/show.html"><b>show</b></a>
+and <a href="commands/show.html"><b>hide</b></a> atomic patches (if any)
+of <a href="commands/surface.html">molecular surface</a>
   <ul>
-  <li><b>Ribbons (Smooth Edges)</b>
-  <li><b>Ribbons (Sharp Edges)</b>
-  <li><b>Ribbons (Lipped Edges)</b>
-  <li><b>Helix Tubes</b>
-  <li><b>None</b>
+  <li><b>Show</b>
+  <li><b>Hide</b>
   </ul>
 </ul>
 
