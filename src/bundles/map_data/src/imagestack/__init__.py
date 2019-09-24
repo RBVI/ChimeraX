@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # Image stack file reader.
 #
-def open(paths):
+def open(paths, log=None):
 
   if isinstance(paths, str):
     paths = [paths]
@@ -20,7 +20,7 @@ def open(paths):
   tc_paths = paths_by_time_and_channel(paths)
   grids = []
   for t,c,path_list in tc_paths:
-    grids.extend(open_stack(path_list, t, c))
+    grids.extend(open_stack(path_list, t, c, log=log))
 
   # Assign default channel colors
   gc = [g for g in grids if g.rgba is None and g.channel is not None]
@@ -32,7 +32,7 @@ def open(paths):
 
 # -----------------------------------------------------------------------------
 #
-def open_stack(paths, time=None, channel=None):
+def open_stack(paths, time=None, channel=None, log=None):
 
   from .imagestack_grid import image_stack_grids
   from .imagestack_format import is_3d_image
@@ -50,7 +50,7 @@ def open_stack(paths, time=None, channel=None):
         if p in fpaths:
           continue	# OME file already referenced by a previous OME file.
         from . import ome_tiff
-        pgrids = ome_tiff.ome_image_grids(p, fpaths)
+        pgrids = ome_tiff.ome_image_grids(p, fpaths, log=log)
         series_check = False
       elif tiff_type == 'ImageJ':
         from . import imagej_tiff
