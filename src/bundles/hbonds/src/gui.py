@@ -136,12 +136,24 @@ class HBondsGUI(QWidget):
                     " differently", default_value, None, **kw)
                 slop_color_options.add_option(self.__slop_dist_option)
 
-        bottom_options = OptionsPanel(sorting=False)
+        self.__bottom_options = bottom_options = OptionsPanel(sorting=False)
         layout.addWidget(bottom_options)
         if show_model_restrict:
-            #TODO: have an actual callback that updates the form label
-            self.__model_restrict_option = ModelRestrictOption(session, "Restrict to models...", None, None)
-            top_left_options.add_option(self.__model_restrict_option)
+            self.__model_restrict_option = ModelRestrictOption(session, "Restrict to models...", None,
+                self._model_restrict_cb, class_filter=AtomicStructure)
+            bottom_options.add_option(self.__model_restrict_option)
+        if show_bond_restrict:
+            # BondRestrict, like ModelRestrict, are "optional" Options, use Optional metaclass for
+            # implementation (of at least BondRestrict)
+            self.__bond_restrict_option = BondRestrictOption(session, "Only find H-bonds", None, None)
+            bottom_options.add_option(self.__bond_restrict_option)
+
+    def _model_restrict_cb(self, opt):
+        if opt.value is None:
+            new_label = "Restrict to models..."
+        else:
+            new_label = "Restrict to models:"
+        self.__bottom_options.change_label_for_option(opt, new_label)
 
 class ModelRestrictOption(Option):
     def __init__(self, session, *args, **kw):
