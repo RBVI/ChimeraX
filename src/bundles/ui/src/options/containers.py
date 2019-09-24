@@ -93,6 +93,9 @@ class OptionsPanel(QWidget):
         self._option_groups.append(suboptions)
         return grouping_widget, suboptions
 
+    def change_label_for_option(self, option, new_label):
+        self._form.labelForField(option.widget).setText(new_label)
+
     def options(self):
         all_options = self._options[:]
         for grp in self._option_groups:
