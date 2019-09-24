@@ -1,0 +1,376 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Rotamers</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Rotamers</h3>
+<p>
+<p>
+The <b>Rotamers</b> tool allows amino acid sidechain rotamers to be viewed and
+<!-- <a href="#evaluation">evaluated</a>, and -->
+<a href="#incorporation">incorporated</a> into structures.
+A residue can be changed into a different rotamer of the same type
+of amino acid or mutated into a different type.
+<!-- 
+The state of <b>Rotamers</b> is included in saved
+<a href="../commands/save.html#session">sessions</a>.
+-->
+</p><p>
+Although sidechains at multiple positions can be replaced simultaneously, the
+<b>Rotamers</b> tool is not recommended for predicting the conformations of
+multiple sidechains in an interacting cluster.  Programs such as
+<a href="http://dunbrack.fccc.edu/scwrl4/" target="_blank">SCWRL</a>
+are more appropriate for that purpose. See also:
+<a href="modeller.html"><b>Modeller Comparative</b></a>
+</p><p>
+Like other tools, the <b>Rotamers</b> tool can be opened
+from the <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
+It is also implemented as the command
+<a href="../commands/swapaa.html"><b>swapaa</b></a>.
+</p><p>
+One or more amino acid residues should be
+<a href="../selection.html">selected</a>
+to indicate where rotamers should be placed.
+Partially selected residues are considered selected, and if more than
+one residue is selected, a rotamer set (of the same residue type)
+will be placed at each.
+</p>
+<ul>
+<li><a name="library"><b>Rotamer library</b></a>
+&ndash; source of rotamer torsion values and probabilities
+  <ul>
+  <li><b>Dunbrack 2010</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
+target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
+(5% stepdown; for chain-terminal residues,
+the Dunbrack 2002 backbone-independent version is used instead):
+   <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/21645855" target="_blank">
+A smoothed backbone-dependent rotamer library for proteins derived from
+adaptive kernel density estimates and regressions.</a>
+Shapovalov MV, Dunbrack RL Jr.
+<i>Structure.</i> 2011 Jun 8;19(6):844-58.
+   </blockquote>
+  <li><b>Dynameomics</b> -
+<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
+target="_blank">Dynameomics rotamer library</a>:
+   <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
+The Dynameomics rotamer library: amino acid side chain conformations
+and dynamics from comprehensive molecular dynamics simulations in water.</a>
+Scouras AD, Daggett V.
+<i>Protein Sci.</i> 2011 Feb;20(2):341-52.
+   </blockquote>
+ <li><b>Richardson (common-atom)</b> &ndash; common-atom values (author-recommended)
+from the <a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
+target="_blank">Richardson backbone-independent rotamer library</a>:
+   <blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
+The penultimate rotamer library.</a>
+Lovell SC, Word JM, Richardson JS, Richardson DC.
+<i>Proteins.</i> 2000 Aug 15;40(3):389-408.
+   </blockquote>
+ <li><b>Richardson (mode)</b> &ndash; mode values from the
+<a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
+target="_blank">Richardson backbone-independent rotamer library</a>
+ </ul>
+<br>
+<li><b>Rotamer type</b>
+&ndash; of the 20 standard amino acids, which type of rotamers to show
+at each <a href="../selection.html">selected</a> position. Additional
+(nonstandard) names may also be available depending on the specific library.
+These names refer to the species for which conformational data were collected,
+but the rotamers do not include hydrogens and will be given the appropriate
+standard residue names (PRO, CYS, or HIS) if incorporated into a structure.
+</p><p>
+In the <b>Dunbrack</b> <a href="#library">rotamer library</a>,
+the following are available:
+</p>
+<ul>
+<li>CPR &ndash; <i>cis</i>-proline
+<li>TPR &ndash; <i>trans</i>-proline
+<li>PRO &ndash; combined statistics (CPR + TPR)
+<li>CYD &ndash; disulfide-bonded cysteine
+<li>CYH &ndash; non-disulfide-bonded cysteine
+<li>CYS &ndash; combined statistics (CYD + CYH)
+</ul>
+<p>
+In the <b>Dynameomics</b> <a href="#library">rotamer library</a>,
+the following are available:
+</p>
+<ul>
+<li>CYH &ndash; cysteine reduced free sulfhydryl
+<li>CYS &ndash; cysteine oxidized disulfide-bonded (half-cystine)
+<li>HID &ndash; histidine neutral &delta;-protonated
+<li>HIE &ndash; histidine neutral &epsilon;-protonated
+<li>HIS &ndash; histidine neutral (HID and HIE combined)
+<li>HIP &ndash; histidine positive protonated on both sidechain nitrogens
+</ul>
+</ul>
+<p>
+<b>Close</b> dismisses the <b>Rotamers</b> dialog, while <b>Help</b>
+opens this manual page in a browser window.
+</p><p>
+When <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+is clicked, phi and psi angles at each
+<a href="../selection.html">selected</a> position are measured
+and reported in the <a href="log.html"><b>Log</b></a>.
+If a type without a rotamer set (namely GLY or ALA) has been specified,
+the residue(s) will simply be changed to the new type,
+and the change cannot be undone.
+Otherwise, for each
+<a href="../selection.html">selected</a> position,
+the specified rotamer set will be displayed and a
+<a href="#rotamerlist">rotamer list</a> will appear.
+Bond lengths and angles are taken from the
+<a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
+parameter files <b>all*94.lib</b>, and hydrogens are not included.
+The rotamers are placed on the existing residue by superimposing the
+CA, CB, and C atoms, or if the existing residue does not have a CB atom,
+the N, CA, and C atoms.
+</p>
+
+<a name="rotamerlist"></a>
+<p class="nav">
+[<a href="#top">back to top: Rotamers</a>]
+</p>
+<h3>Rotamer List</h3>
+<p>
+Each rotamer list includes sidechain torsion (<b>Chi <i>N</i></b>) and
+<b>Probability</b> values. Probabilities are simply taken from the
+<a href="#library">rotamer library</a> and are <b><i>not</i></b>
+affected by the structural environment,
+except by phi and psi angles when the <a href="#library">Dunbrack library</a>
+is used. See the <a href="commands/swapaa.html"><b>swapaa</b></a> command
+to use H-bonds, clashes, and/or electron density in choosing a rotamer.
+Rotamers are initially listed in order of decreasing probability, but
+the listing can be sorted by the values in any column by clicking
+the header. Clicking the header once sorts the entries in
+order of increasing value and places an up arrowhead in the header.
+Clicking again sorts the entries in decreasing order and places a
+down arrowhead in the header.
+<!--
+</p><p>
+The rotamer-list
+<a href="#colmenu"><b>Columns</b> menu</a> controls which columns are shown
+and allows rotamers to be <a href="#evaluation">evaluated</a> in terms of
+clashes or contacts, hydrogen bonds, and/or overlap with a density map.
+The rotamer-list <a href="#selmenu"><b>Select</b> menu</a> allows
+rotamers to be <a href="../selection.html">selected</a>
+for subsequent operations.
+-->
+</p><p>
+<a name="chosen">
+One or more rotamers can be <b><i>chosen</i></b> from the list</a>
+by clicking and dragging with the left mouse button; <b>Ctrl</b>-click 
+(or <b>command</b>-click if using a Mac trackpad or single-button mouse)
+toggles whether a rotamer is chosen. Only the chosen rotamers are displayed.
+</p><p>
+<a name="incorporation">
+Clicking <b>OK</b> incorporates the chosen rotamer(s) and dismisses the list.
+If the rotamers are for the same residue type as the current residue,
+there is an option to <b>Retain original side chain</b>, <i>i.e.</i> to
+keep the original sidechain conformation when incorporating 
+the chosen rotamer(s).
+When there will be multiple sidechains at a given residue position,
+the new sidechain(s) will be assigned different alternative location
+identifiers. After a sidechain has been replaced,
+it cannot be recovered except by reopening the structure.
+The <a href="../style.html">display style</a>
+of the former sidechain will be used. Other
+characteristics, however, will not be transferred and may need to be
+regenerated (for example, with
+<a href="../commands/addh.html"><b>addh</b></a> or
+<a href="../commands/select.html"><b>select</b></a>).
+<b>Cancel</b> dismisses the list and deletes the set of rotamers
+without modifying the structure.
+</p>
+
+<!--
+<a name="evaluation"></a>
+<p class="nav">
+[<a href="#top">back to top: Rotamers</a>]
+</p>
+<h3>Rotamer Evaluation</h3>
+<p>
+Rotamers can be evaluated in the context of the structural environment or
+<a href="#density">compared to density</a> (or other
+<a href="volumeviewer.html">volume data</a>).
+Only the sidechain atoms of a rotamer are evaluated.  For
+<a href="#hbonds">hydrogen bond</a> and <a href="#clashes">clash</a> detection,
+interactions with rotamers in the same set and the current residue at that
+position are disregarded, but all other atoms in the vicinity will be included
+unless <b>Ignore... other models</b> (see below) is used.
+That setting is useful for preventing superimposed related proteins
+or additional copies of the starting structure from contributing to the counts.
+In addition, atoms in the same model that are unwanted
+for such calculations, such as solvent, should be deleted beforehand.
+</p><p>
+<a name="clashes"></a>
+<a href="#colmenu"><b>Columns...  Add... Clashes</b>
+brings up a dialog for finding clashes or contacts</a>
+and showing the results in the <a href="#rotamerlist">rotamer list</a>.
+This uses the
+<a href="../commands/clashes.html"><b>clashes/contacts</b></a> command:
+<ul>
+<a name="cutoff">
+<li><b>Find atoms with VDW overlap >=[ <i>cutoff</i> ] angstroms</b></a>
+(default <b>0.6</b> &Aring;)
+<li><b>Subtract [ <i>allowance</i> ]
+from overlap for potentially H-bonding pairs</b>
+(default <b>0.4</b> &Aring;)
+</ul>
+<blockquote>
+The <a name="overlap"><b><i>overlap</i></b></a>
+between two atoms is defined as the sum of their
+<a href="../radii.html">VDW radii</a> minus the
+distance between them and minus an allowance
+for potentially hydrogen-bonded pairs:
+  <blockquote>
+  <i>overlap<sub>ij</sub></i> =
+  r<sub>VDW<i>i</i></sub> + r<sub>VDW<i>j</i></sub>
+  &ndash; d<sub>ij</sub> &ndash; <i>allowance<sub>ij</sub></i>
+  </blockquote>
+An <i>allowance</i> &gt; 0
+reflects the observation that atoms sharing a hydrogen bond can come
+closer to each other than would be expected from their
+<a href="../radii.html">VDW radii</a>.
+It is only subtracted for pairs comprised of a possible hydrogen-bond
+donor atom (or donor-borne hydrogen) and possible acceptor atom.
+</p><p>
+The <b>Default criteria</b> are appropriate for clash detection.
+For detecting <b><i>clashes</i></b>,</a>
+<i>cutoff</i> values of 0.4-1.0 &Aring;
+and <i>allowance</i> values of 0.2-0.6 &Aring; are
+generally reasonable.
+For detecting <b><i>contacts</i></b>, negative <i>cutoff</i> values
+of 0.0-(&ndash;1.0) &Aring;
+with an <i>allowance</i> of 0.0 &Aring; are generally reasonable.
+</blockquote>
+<ul>
+<li><b>Column Value</b> &ndash; what to show in the <b>Clashes</b> column
+of the <a href="#rotamerlist">rotamer list</a>
+  <ul>
+  <li><b>Number of clashes</b> (default)
+  &ndash; how many interactions with <a href="#overlap"><i>overlap</i></a>
+  &ge; <a href="#cutoff"><i>cutoff</i></a> are found for the rotamer
+  <li><b>Sum of overlaps</b>
+  &ndash; the sum of rotamer <a href="#overlap"><i>overlap</i></a> values
+  &ge; <a href="#cutoff"><i>cutoff</i></a>
+  </ul>
+<li><b>Draw pseudobonds of color</b>
+[ <a href="../../UsersGuide/coloring.html#colorwell">color well</a> ]
+<b>and width</b> [ <i>linewidth</i> ]
+&ndash; whether to show the interactions as
+  <a href="../../UsersGuide/pbpanel.html#pbdef">pseudobonds</a> of the
+  specified color and linewidth
+<li><b>Ignore clashes with other models</b>
+&ndash; whether to count only interactions with the model
+for which the rotamer set is shown
+</ul>
+<a name="hbonds">
+<a href="#colmenu"><b>Columns...  Add... H-Bonds</b></a>
+brings up a dialog for finding hydrogen bonds (H-bonds)</a>
+and showing the results in the <a href="#rotamerlist">rotamer list</a>.
+This uses capabilities from
+<a href="../findhbond/findhbond.html"><b>FindHBond</b></a>:
+<ul>
+<li><b>Draw H-bonds of color</b>
+[ <a href="../../UsersGuide/coloring.html#colorwell">color well</a> ]
+<b>and width</b> [ <i>linewidth</i> ]
+&ndash; whether to show the H-bonds as
+  <a href="../../UsersGuide/pbpanel.html#pbdef">pseudobonds</a>
+  of the specified color and linewidth
+<li><b>Relax H-bond constraints</b> (<b>on</b> by default)
+&ndash; whether the tolerances to <b>Relax constraints by</b>
+(default <b>0.4</b> &Aring; and <b>20.0</b> degrees)
+should be applied to the precise
+<a href="../findhbond/findhbond.html#criteria">geometric criteria</a>
+for hydrogen bonding
+<li><b>Color H-bonds not meeting precise criteria differently</b>
+[ <a href="../../UsersGuide/coloring.html#colorwell">color well</a> ]
+&ndash; whether to use the specified color for H-bonds meeting the
+relaxed but not the precise
+<a href="../findhbond/findhbond.html#criteria">geometric criteria</a>
+<li><b>Ignore H-bonds with other models</b>
+&ndash; whether to count only interactions with the model
+for which the rotamer set is shown
+</ul>
+<a name="density">
+<a href="#colmenu"><b>Columns...  Add... Density</b></a>
+brings up a dialog for comparing rotamer sidechain atoms with
+a density map</a> (or other
+<a href="../../UsersGuide/filetypes.html#volume">volume data</a>)
+and showing the results in the <a href="#rotamerlist">rotamer list</a>.
+The <b>Volume data</b> should be chosen from the list of open volume data sets.
+<b>Browse...</b> can be used to locate and open a volume data file if it
+is not already open.  Map values at the rotamer sidechain atom positions
+(see <a href="../density/density.html"><b>Values at Atom Positions</b></a>)
+will be summed and shown using the specified <b>Column name</b>.
+</p><p>
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+performs the calculation and shows the results
+in the <a href="#rotamerlist">rotamer list</a>.
+<b>Close</b> simply dismisses the dialog, while <b>Help</b> opens this
+manual page in a browser window.
+</p>
+
+<a name="menu"></a>
+<p class="nav">
+[<a href="#top">back to top: Rotamers</a>]
+</p>
+<h3>Rotamer List Menu</h3>
+<a name="selmenu"><h4>Select</h4></a>
+<ul>
+<li><b>Current Rotamers</b>
+&ndash; <a href="../../UsersGuide/selection.html">select</a> all rotamers
+currently <a href="#chosen">chosen</a> in the
+<a href="#rotamerlist">rotamer list</a>
+<li><b>All Rotamers</b>
+&ndash; <a href="../../UsersGuide/selection.html">select</a> all rotamers in the
+<a href="#rotamerlist">rotamer list</a>
+</ul>
+<a name="colmenu"><h4>Columns</h4></a>
+<ul>
+<li><b>Add</b>
+  <ul>
+  <li><b>Clashes...</b> <a href="#evaluation">evaluate</a>
+  rotamer <a href="#clashes">clashes/contacts</a>
+  and show the results in a <b>Clashes</b> column
+  <li><b>H-Bonds...</b> <a href="#evaluation">evaluate</a>
+  rotamer <a href="#hbonds">H-bonds</a>
+  and show the results in an <b>H-Bonds</b> column
+  <li><b>Density...</b> <a href="#evaluation">evaluate</a>
+  rotamer <a href="#density">fit with density</a> or other
+  <a href="../../UsersGuide/filetypes.html#volume">volume data</a>
+  and show the results in a column
+  </ul>
+</ul><ul>
+<li>[<b><i>currently available columns</i></b>]
+&ndash; show/hide column according to checkbox
+</ul>
+-->
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+September 2019</address>
+</body></html>

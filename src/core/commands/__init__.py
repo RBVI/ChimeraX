@@ -25,7 +25,7 @@ from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg, NonNegativeFloatArg,
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded
 from .cli import SurfacesArg, SurfaceArg
 from .cli import ModelIdArg, ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine, WholeRestOfLine
-from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, OpenFileNamesArg
+from .cli import FileNameArg, OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, OpenFileNamesArg
 from .cli import AttrNameArg, PasswordArg
 
 from .colorarg import ColorArg, Color8Arg, ColormapArg, ColormapRangeArg
