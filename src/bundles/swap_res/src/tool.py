@@ -159,7 +159,7 @@ class PrepRotamersDialog(ToolInstance):
         if not self.rot_lib.citation:
             return None
         from chimerax.ui.widgets import Citation
-        return Citation(self.session, self.rot_lib.citation, prefix="Publication using %s rotamers should"
+        return Citation(self.session, self.rot_lib.citation, prefix="Publications using %s rotamers should"
             " cite:" % self.rot_lib.cite_name, pubmed_id=self.rot_lib.cite_pubmed_id)
 
     def _sel_res_type(self):

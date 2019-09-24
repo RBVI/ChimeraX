@@ -349,6 +349,17 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
         if tmpl_res.find_atom(bud) is None:
             raise TemplateError("New residue type (%s) not compatible with"
                 " starting residue type (%s)" % (res_type, res.name))
+    color_by_element = False
+    uniform_color = res.find_atom(buds[0]).color
+    het = res.find_atom("N") or res.find_atom("O4'")
+    if het:
+        carbon = res.find_atom("CA") or res.find_atom("C4'")
+        if carbon:
+            color_by_element = het.color != carbon.color
+            if color_by_element:
+                carbon_color = carbon.color
+            else:
+                uniform_color = het.color
 
     # if bfactor not specified, find highest bfactor in residue and use that for swapped-in atoms
     if bfactor is None:
@@ -448,6 +459,14 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             new_atom = form_dihedral(res_bud, real1, tmpl_res, a, b, **kw)
             new_atom.draw_mode = res_bud.draw_mode
             new_atom.bfactor = bfactor
+            if color_by_element:
+                if new_atom.element.name == "C":
+                    new_atom.color = carbon_color
+                else:
+                    from chimerax.atomic.colors import element_color
+                    new_atom.color = element_color(new_atom.element.number)
+            else:
+                new_atom.color = uniform_color
             new_atoms.append(new_atom)
 
             for bonded in a.neighbors:
