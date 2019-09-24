@@ -219,9 +219,11 @@ is calculated in both possible ways.
 <!-- <b>retain</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;sel -->
 <b>retain</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>What to do with the pre-existing sidechain(s): retain or replace (default).
-Regardless of this setting, sidechains will always be replaced
-where the incoming residue type is glycine or alanine.
-When there will be multiple sidechains at a given residue position, the 
+Retention (setting <b>retain true</b>) can only be used when
+the incoming residue type is the same as the pre-existing type,
+<i>i.e.</i>, the residue is not being &ldquo;mutated.&rdquo; Further,
+the option is ignored/irrelevant if the residue type is alanine or glycine.
+When the result will be multiple sidechains at a given residue position, the 
 new sidechain(s) will be assigned different alternative location identifiers.
 </blockquote>
 <blockquote>
