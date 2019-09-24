@@ -23,7 +23,7 @@ def prep_rotamers_dialog(session, rotamers_tool_name):
 
 class PrepRotamersDialog(ToolInstance):
 
-    #help = "help:user/tools/rotamers.html"
+    help = "help:user/tools/rotamers.html"
     SESSION_SAVE = False
 
     def __init__(self, session, tool_name):
@@ -93,8 +93,7 @@ class PrepRotamersDialog(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        bbox.button(qbbox.Help).setEnabled(False)
-        #bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(placement=None)
@@ -196,7 +195,7 @@ _settings = None
 
 class RotamerDialog(ToolInstance):
 
-    #help = "help:user/tools/rotamers.html"
+    help = "help:user/tools/rotamers.html"
 
     #TODO: restoring from session; including getting rot_lib to save/restore
     def __init__(self, session, tool_name, *args):
@@ -268,9 +267,8 @@ class RotamerDialog(ToolInstance):
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self._apply_rotamer)
         bbox.rejected.connect(self.delete)
-        #from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.Help))
-        bbox.button(qbbox.Help).setDisabled(True)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
         self.tool_window.manage(placement=None)
 
