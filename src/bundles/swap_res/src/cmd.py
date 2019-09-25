@@ -101,7 +101,11 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
     from chimerax.atomic import AtomicStructures
     from chimerax.core.objects import Objects
     for r in residues:
-        rotamers = swap_res.get_rotamers(session, r, res_type=res_type, lib=lib, log=log)
+        if res_type == "same":
+            r_type = res.name
+        else:
+            r_type = res_type.upper()
+        rotamers = swap_res.get_rotamers(session, r, res_type=r_type, lib=lib, log=log)
         ret_val.append(_RotamerStateManager(session, r, rotamers))
         rot_structs = AtomicStructures(rotamers)
         from chimerax.std_commands.color import color
