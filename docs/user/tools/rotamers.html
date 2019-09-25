@@ -25,12 +25,20 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Rotamers</h3>
 <p>
-<p>
 The <b>Rotamers</b> tool allows amino acid sidechain rotamers to be viewed and
 <!-- <a href="#evaluation">evaluated</a>, and -->
 <a href="#incorporation">incorporated</a> into structures.
 A residue can be changed into a different rotamer of the same type
-of amino acid or mutated into a different type.
+of amino acid or &ldquo;mutated&rdquo; into a different type.
+</p><p>
+The related command <a href="../commands/swapaa.html"><b>swapaa</b></a>
+chooses and incorporates a rotamer automatically based on criteria
+that may include clashes, H-bonds, and/or agreement with a density map.
+Evaluation of these criteria is not yet integrated into the <b>Rotamers</b>
+graphical interface, but examples of running the
+<a href="../commands/clashes.html"><b>clashes</b></a>
+and <a href="../commands/hbonds.html"><b>hbonds</b></a> commands
+separately are given <a href="#rotamerlist">below</a>.
 <!-- 
 The state of <b>Rotamers</b> is included in saved
 <a href="../commands/save.html#session">sessions</a>.
@@ -45,8 +53,11 @@ are more appropriate for that purpose. See also:
 </p><p>
 Like other tools, the <b>Rotamers</b> tool can be opened
 from the <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
-It is also implemented as the command
-<a href="../commands/swapaa.html"><b>swapaa</b></a>.
+Initial display of the rotamers &ldquo;bouquet&rdquo;
+<!-- and <a href="#rotamerlist">rotamer list</a> -->
+is implemented as the command <b>rotamers</b>,
+whereas <a href="../commands/swapaa.html"><b>swapaa</b></a>
+performs the substitution.
 </p><p>
 One or more amino acid residues should be
 <a href="../selection.html">selected</a>
@@ -59,7 +70,7 @@ will be placed at each.
 <li><a name="library"><b>Rotamer library</b></a>
 &ndash; source of rotamer torsion values and probabilities
   <ul>
-  <li><b>Dunbrack 2010</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
+  <li><b>Dunbrack</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
 target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
 (5% stepdown; for chain-terminal residues,
 the Dunbrack 2002 backbone-independent version is used instead):
@@ -106,12 +117,12 @@ In the <b>Dunbrack</b> <a href="#library">rotamer library</a>,
 the following are available:
 </p>
 <ul>
+<li>CYH &ndash; cysteine reduced free sulfhydryl
+<li>CYD &ndash; cysteine oxidized disulfide-bonded (half-cystine)
+<li>CYS &ndash; combined statistics (CYH + CYD)
 <li>CPR &ndash; <i>cis</i>-proline
 <li>TPR &ndash; <i>trans</i>-proline
 <li>PRO &ndash; combined statistics (CPR + TPR)
-<li>CYD &ndash; disulfide-bonded cysteine
-<li>CYH &ndash; non-disulfide-bonded cysteine
-<li>CYS &ndash; combined statistics (CYD + CYH)
 </ul>
 <p>
 In the <b>Dynameomics</b> <a href="#library">rotamer library</a>,
@@ -160,8 +171,32 @@ Each rotamer list includes sidechain torsion (<b>Chi <i>N</i></b>) and
 <a href="#library">rotamer library</a> and are <b><i>not</i></b>
 affected by the structural environment,
 except by phi and psi angles when the <a href="#library">Dunbrack library</a>
-is used. See the <a href="commands/swapaa.html"><b>swapaa</b></a> command
-to use H-bonds, clashes, and/or electron density in choosing a rotamer.
+is used. 
+</p><p>
+The related command <a href="../commands/swapaa.html"><b>swapaa</b></a>
+chooses and incorporates a rotamer automatically based on criteria
+that may include clashes, H-bonds, and/or agreement with a density map.
+Evaluation of these criteria is not yet integrated into the <b>Rotamers</b>
+graphical interface, but the 
+<a href="../commands/clashes.html"><b>clashes</b></a>
+and
+<a href="../commands/hbonds.html"><b>hbonds</b></a>
+commands can be run separately on the rotamers model.
+For example, if rotamers model #1.1 is shown for residue 17 in chain A,
+commands could be something like:
+<p>
+<blockquote><b>
+<a href="../commands/clashes.html">clashes</a>
+&nbsp;#1.1&~@n,ca&nbsp;&nbsp;test&nbsp;protein&nbsp;&~/A:17:16,18@n,ca,c,o&nbsp;&nbsp;reveal&nbsp;t&nbsp;log&nbsp;t
+<br>
+<a href="../commands/hbonds.html">hbonds</a>&nbsp;#1.1&~@n,ca&nbsp;&nbsp;restrict&nbsp;protein&nbsp;&~/A:17:16,18@n,ca,c,o&nbsp;&nbsp;reveal&nbsp;t&nbsp;log&nbsp;t
+</b></blockquote>
+</p>
+...to calculate interactions between the rotamers and the 
+other residues of the protein (excluding all atoms of the residue 
+at the same position and the backbone atoms of the flanking residues
+and the rotamers).
+</p><p>
 Rotamers are initially listed in order of decreasing probability, but
 the listing can be sorted by the values in any column by clicking
 the header. Clicking the header once sorts the entries in
@@ -181,16 +216,16 @@ for subsequent operations.
 </p><p>
 <a name="chosen">
 One or more rotamers can be <b><i>chosen</i></b> from the list</a>
-by clicking and dragging with the left mouse button; <b>Ctrl</b>-click 
-(or <b>command</b>-click if using a Mac trackpad or single-button mouse)
+by clicking and dragging with the left mouse button;
+<b>Ctrl</b>-click (or <b>command</b>-click if using a Mac)
 toggles whether a rotamer is chosen. Only the chosen rotamers are displayed.
-</p><p>
-<a name="incorporation">
-Clicking <b>OK</b> incorporates the chosen rotamer(s) and dismisses the list.
 If the rotamers are for the same residue type as the current residue,
 there is an option to <b>Retain original side chain</b>, <i>i.e.</i> to
 keep the original sidechain conformation when incorporating 
 the chosen rotamer(s).
+</p><p>
+<a name="incorporation"></a>
+Clicking <b>OK</b> incorporates the chosen rotamer(s) and dismisses the list.
 When there will be multiple sidechains at a given residue position,
 the new sidechain(s) will be assigned different alternative location
 identifiers. After a sidechain has been replaced,
