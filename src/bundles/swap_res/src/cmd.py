@@ -43,13 +43,13 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
 
 from chimerax.core.state import StateManager
 class _RotamerStateManager(StateManager):
-    def __init__(self, session, base_res, rotamers):
+    def __init__(self, session, base_residue, rotamers):
         self.init_state_manager(session, "residue rotamers")
         self.session = session
-        self.base_res = base_res
+        self.base_residue = base_residue
         self.rotamers = list(rotamers) # don't want auto-shrinking of a Collection
         self.group = session.models.add_group(rotamers, name="%s rotamers"
-            % base_res.string(omit_structure=True), parent=base_res.structure)
+            % base_residue.string(omit_structure=True), parent=base_residue.structure)
         from chimerax.atomic import get_triggers
         self.handler = get_triggers().add_handler('changes', self._changes_cb)
         from chimerax.core.triggerset import TriggerSet
@@ -61,7 +61,7 @@ class _RotamerStateManager(StateManager):
         self.handler.remove()
         if self.group.id is not None:
             self.session.models.close([self.group])
-        self.group = self.base_res = self.rotamers = self.session = None
+        self.group = self.base_residue = self.rotamers = self.session = None
         super().destroy()
 
     def reset_state(self, session):
@@ -72,7 +72,7 @@ class _RotamerStateManager(StateManager):
         if changes.num_deleted_residues() == 0:
             return
         remaining = [rot for rot in self.rotamers if not rot.deleted]
-        if self.base_res.deleted:
+        if self.base_residue.deleted:
             self.triggers.activate_trigger('self destroyed', self)
             self.destroy()
             return
@@ -106,7 +106,12 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
         else:
             r_type = res_type.upper()
         rotamers = swap_res.get_rotamers(session, r, res_type=r_type, lib=lib, log=log)
-        ret_val.append(_RotamerStateManager(session, r, rotamers))
+        mgr = _RotamerStateManager(session, r, rotamers)
+        if session.ui.is_gui:
+            from .tool import RotamerDialog
+            RotamerDialog(session,
+                "%s Side-Chain Rotamers" % r, mgr, res_type, session.rotamers.library(lib))
+        ret_val.append(mgr)
         rot_structs = AtomicStructures(rotamers)
         from chimerax.std_commands.color import color
         color(session, Objects(atoms=rot_structs.atoms), color="byelement")

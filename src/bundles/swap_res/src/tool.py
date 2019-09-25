@@ -116,13 +116,14 @@ class PrepRotamersDialog(ToolInstance):
             if confirm == "no":
                 return
         res_type = self.res_type_option.value
+        from chimerax.core.commands import run, quote_if_necessary as quote
         from chimerax.atomic.rotamers import NoResidueRotamersError
         try:
             for r in sel_residues:
-                RotamerDialog(self.session, "%s Side-Chain Rotamers" % r, r, res_type, self.rot_lib)
+                run(self.session, "rotamers %s %s lib %s" % (quote(r.string(style="command")),
+                    res_type, quote(self.rot_lib.display_name)))[0]
         except NoResidueRotamersError:
             lib_name = self.rot_lib_option.value
-            from chimerax.core.commands import run
             for r in sel_residues:
                 run(self.session, "swapaa %s %s lib %s" % (r.string(style="command"), res_type, lib_name))
 
@@ -211,17 +212,13 @@ class RotamerDialog(ToolInstance):
             self.mgr.destroy()
         super().delete()
 
-    def finalize_init(self, residue, res_type, lib, session_data=None):
-        self.residue = residue
+    def finalize_init(self, mgr, res_type, lib, session_data=None):
+        self.mgr = mgr
         self.res_type = res_type
         self.lib = lib
 
         if session_data:
-            self.ngr, table_data = session_data
-        else:
-            from chimerax.core.commands import run, quote_if_necessary as quote
-            self.mgr = run(self.session, "rotamers %s %s lib %s" % (quote(residue.string(style="command")),
-                res_type, quote(self.lib.display_name)))[0]
+            table_data = session_data
 
         #TODO: dependent dialogs (H-bonds, clashes, density)
         self.handlers = [
@@ -257,7 +254,7 @@ class RotamerDialog(ToolInstance):
             self.table.sortByColumn(len(self.mgr.rotamers[0].chis), Qt.DescendingOrder)
         self.table.selection_changed.connect(self._selection_change)
         layout.addWidget(self.table)
-        if residue.name == res_type:
+        if mgr.base_residue.name == res_type:
             self.retain_side_chain = QCheckBox("Retain original side chain")
             self.retain_side_chain.setChecked(False)
             layout.addWidget(self.retain_side_chain)
@@ -286,7 +283,7 @@ class RotamerDialog(ToolInstance):
         rot_nums = [r.id[-1] for r in rots]
         from chimerax.core.commands import run
         cmd = "swapaa %s %s criteria %s" % (
-            self.residue.string(style="command"),
+            self.mgr.base_residue.string(style="command"),
             self.res_type,
             ",".join(["%d" % rn for rn in rot_nums]),
         )
