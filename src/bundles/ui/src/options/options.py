@@ -174,6 +174,59 @@ class Option(metaclass=ABCMeta):
         # create (as self.widget) the widget to display the option value
         pass
 
+def make_optional(cls, *, allow_subwidget_disable=True):
+    def get_value(self):
+        if self._check_box.isChecked():
+            # substitute the original widget back before asking for the value
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+            val = self._super_class.value.fget(self)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+            return val
+        return None
+
+    def set_value(self, value):
+        if value is None:
+            self._check_box.setChecked(False)
+            if self._allow_subwidget_disable:
+                self._orig_widget.setEnabled(False)
+        else:
+            self._check_box.setChecked(True)
+            if self._allow_subwidget_disable:
+                self._orig_widget.setEnabled(True)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+            self._super_class.value.fset(self, value)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+
+    def set_multiple(self):
+        self._check_box.setChecked(True)
+        self.widget, self._orig_widget = self._orig_widget, self.widget
+        self._super_class.set_multiple(self)
+        self.widget, self._orig_widget = self._orig_widget, self.widget
+
+    def _make_widget(self, **kw):
+        self._super_class._make_widget(self, **kw)
+        self._orig_widget = self.widget
+        from PyQt5.QtWidgets import QWidget, QCheckBox, QHBoxLayout
+        self.widget = QWidget()
+        layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        self._check_box = cb = QCheckBox()
+        cb.clicked.connect(lambda state, s=self: s.make_callback())
+        layout.addWidget(cb)
+        layout.addWidget(self._orig_widget)
+        self.widget.setLayout(layout)
+
+    attr_dict = {
+        'value': property(get_value, set_value),
+        'set_multiple': set_multiple,
+        '_make_widget': _make_widget,
+        '_super_class': cls,
+        '_allow_subwidget_disable': allow_subwidget_disable
+    }
+    opt_class = type('Optional' + cls.__name__, (cls,), attr_dict)
+    return opt_class
+
+
 class BooleanOption(Option):
     """Supported API. Option for true/false values"""
 
@@ -453,6 +506,9 @@ class ColorOption(RGBA8Option):
 
     value = property(get_value, RGBA8Option.set_value)
 
+OptionalRGBA8Option = make_optional(RGBA8Option, allow_subwidget_disable=False)
+OptionalRGBA8Option.default_initial_color = [0.75, 0.75, 0.75, 1.0]
+'''
 class OptionalRGBA8Option(Option):
     """Option for 8-bit (0-255) rgba colors, with possibility of None.
 
@@ -496,6 +552,7 @@ class OptionalRGBA8Option(Option):
         mcb.color_changed.connect(lambda c, s=self: s.make_callback())
         layout.addWidget(mcb)
         self.widget.setLayout(layout)
+'''
 
 class OptionalRGBAOption(OptionalRGBA8Option):
     """Option for floating-point (0-1) rgba colors, with possibility of None.
