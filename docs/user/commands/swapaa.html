@@ -28,7 +28,10 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>swapaa</b> 
 &nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp;
-<i>new-type</i> &nbsp;<a href="#options"><i>options</i></a>
+<i>new-type</i> 
+[&nbsp;<a href="#lib"><b>lib</b></a>&nbsp;&nbsp;<i>rotamer-library</i>&nbsp;]
+[&nbsp;<a href="#criteria"><b>criteria</b></a>&nbsp;&nbsp;<i>method</i>&nbsp;|&nbsp;<i>N</i>&nbsp;]
+&nbsp;<a href="#options"><i>other-options</i></a>
 </h3>
 <a name="mousemode"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -46,8 +49,28 @@ The <i>new-type</i> can be the three-letter code for any of
 the 20 standard amino acids (with or without capitalization),
 and one or more protein residues to change to that type can be 
 <a href="atomspec.html">specified</a> in a single command.
+</p><p>
+Although sidechains at multiple positions can be replaced simultaneously,
+<b>swapaa</b> is not recommended for predicting the conformations of
+multiple sidechains in an interacting cluster. Programs such as
+<a href="http://dunbrack.fccc.edu/scwrl4/" target="_blank">SCWRL</a>
+are more appropriate for that purpose. See also:
+<a href="modeller.html#comparative"><b>modeller comparative</b></a>
+</p><p>
+As detailed below, depending on the <a href="#lib">rotamer library</a>,
+certain (nonstandard) residue names can also be used as the <i>new-type</i>
+to indicate the specific oxidation or protonation state of the residue
+for which conformational data were collected. However, the resulting
+rotamers do not include hydrogens and will be given the appropriate
+standard residue names (PRO, CYS, or HIS) if incorporated into a structure.
+</p><p>
+The related <a href="../tools/rotamers.html"><b>Rotamers</b></a> tool
+can be used to show the entire &ldquo;bouquet&rdquo; of rotamers at a
+position so that they can be inspected and chosen interactively.
 See also:
-<a href="torsion.html"><b>torsion</b></a>
+<a href="torsion.html"><b>torsion</b></a>,
+<a href="hbonds.html"><b>hbonds</b></a>,
+<a href="clashes.html"><b>clashes</b></a>
 </p><p>
 The command <b>swapaa mousemode</b> simply matches a single conformation 
 of the new residue type onto the backbone atoms of the existing residue.
@@ -63,12 +86,6 @@ and/or highest probability according to the library.
 Bond lengths and angles are taken from the
 <a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
 parameter files <b>all*94.lib</b>, and hydrogens are not included.
-</p><p>
-Although sidechains at multiple positions can be replaced simultaneously,
-<b>swapaa</b> is not recommended for predicting the conformations of
-multiple sidechains in an interacting cluster. Programs such as
-<a href="http://dunbrack.fccc.edu/scwrl4/" target="_blank">SCWRL</a>
-are more appropriate for that purpose.
 </p>
 
 <a name="options"></a>
@@ -82,10 +99,11 @@ The following options can be used with the main <b>swapaa</b> command.
 They do not apply to the simpler <b>swapaa mousemode</b> method.
 </p>
 <blockquote>
-<a name="lib"><b>lib</b> &nbsp;<i>rotamer-library</i></a>
+<a name="lib"></a>
+<b>lib</b> &nbsp;<i>rotamer-library</i>
 <br>
-What rotamer library to use; the source of rotamer torsion angles
-and probabilities. Possible values of <i>rotamer-library</i>
+What rotamer library to use; the source of rotamer torsion angles and 
+probabilities. Possible values of <i>rotamer-library</i>
 (capitalization optional):
 <ul>
   <li><b>Dunbrack</b> (default)
@@ -100,6 +118,19 @@ adaptive kernel density estimates and regressions.</a>
 Shapovalov MV, Dunbrack RL Jr.
 <i>Structure.</i> 2011 Jun 8;19(6):844-58.
    </blockquote>
+...with multiple choices of <i>new-type</i> for cysteine and proline:
+<ul>
+<li>CYH &ndash; cysteine reduced free sulfhydryl
+<li>CYD &ndash; cysteine oxidized disulfide-bonded (half-cystine)
+<li>CYS &ndash; combined statistics (CYH + CYD)
+<li>CPR &ndash; <i>cis</i>-proline
+<li>TPR &ndash; <i>trans</i>-proline
+<li>PRO &ndash; combined statistics (CPR + TPR)
+</ul>
+These indicate the species for which conformational data were collected,
+but the appropriate standard name (CYS or PRO)
+will be used for what is incorporated into the structure.
+<br><br>
   <li><b>Dynameomics</b> &ndash;
 <a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
 target="_blank">Dyameomics rotamer library</a>:
@@ -110,10 +141,7 @@ and dynamics from comprehensive molecular dynamics simulations in water.</a>
 Scouras AD, Daggett V.
 <i>Protein Sci.</i> 2011 Feb;20(2):341-52.
    </blockquote>
-<p>
-This library includes multiple choices of <i>new-type</i> for cysteine and
-histidine, depending on the oxidation or protonation state of the sidechain:
-</p>
+...with multiple choices of <i>new-type</i> for cysteine and histidine:
 <ul>
 <li>CYH &ndash; cysteine reduced free sulfhydryl
 <li>CYS &ndash; cysteine oxidized disulfide-bonded (half-cystine)
@@ -122,11 +150,10 @@ histidine, depending on the oxidation or protonation state of the sidechain:
 <li>HIS &ndash; histidine neutral (HID and HIE combined)
 <li>HIP &ndash; histidine positive protonated on both sidechain nitrogens
 </ul>
-<p>
-These refer to the species for which conformational data were collected,
-but the rotamers do not include hydrogens and will be given
-standard residue names (CYS or HIS) if incorporated into a structure.
-</p>
+These indicate the species for which conformational data were collected,
+but the appropriate standard name (CYS or HIS)
+will be used for what is incorporated into the structure.
+<br><br>
  <li><b>Richardson.common</b> &ndash; common-atom values (author-recommended)
 from the <a href="http://kinemage.biochem.duke.edu/databases/rotamer.php#PRL"
 target="_blank">Richardson backbone-independent rotamer library</a>:
