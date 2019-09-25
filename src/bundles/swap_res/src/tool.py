@@ -120,7 +120,7 @@ class PrepRotamersDialog(ToolInstance):
         from chimerax.atomic.rotamers import NoResidueRotamersError
         try:
             for r in sel_residues:
-                run(self.session, "rotamers %s %s lib %s" % (quote(r.string(style="command")),
+                run(self.session, "swapaa interactive %s %s lib %s" % (quote(r.string(style="command")),
                     res_type, quote(self.rot_lib.display_name)))[0]
         except NoResidueRotamersError:
             lib_name = self.rot_lib_option.value

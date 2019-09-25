@@ -171,4 +171,4 @@ def register_command(command_name, logger):
         ],
         synopsis = 'Show possible side-chain rotamers'
     )
-    register("rotamers", desc, rotamers, logger=logger)
+    register("swapaa interactive", desc, rotamers, logger=logger)
