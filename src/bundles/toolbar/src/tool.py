@@ -164,6 +164,9 @@ class ToolbarTool(ToolInstance):
 def _file_open(session):
     session.ui.main_window.file_open_cb(session)
 
+def _file_recent(session):
+    mw = session.ui.main_window
+    mw.rapid_access_shown = not mw.rapid_access_shown
 
 def _file_save(session):
     session.ui.main_window.file_save_cb(session)
@@ -175,6 +178,7 @@ _Toolbars = {
         {
             ("File", False): [
                 (_file_open, "open-in-app.png", "Open", "Open data file"),
+                (_file_recent, "recentfiles.png", "Recent", "Open recent files"),
                 (_file_save, "content-save.png", "Save", "Save session file"),
                 # ("cmd:close session", "close-box.png", "Close", "Close current session"),
                 # ("cmd:exit", "exit.png", "Exit", "Exit application"),
