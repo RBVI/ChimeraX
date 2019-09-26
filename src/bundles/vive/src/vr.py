@@ -884,9 +884,10 @@ class UserInterface:
         panels = []
 
         # Menu bar
-        menu_bar = self._session.ui.main_window.menuBar()
-        p = Panel(menu_bar, ui, self, tool_name = 'menu bar')
-        panels.append(p)
+        if self._gui_tool_names is None:
+            menu_bar = self._session.ui.main_window.menuBar()
+            p = Panel(menu_bar, ui, self, tool_name = 'menu bar')
+            panels.append(p)
 
         # Tools
         exclude_tools = set(['Command Line Interface'])
