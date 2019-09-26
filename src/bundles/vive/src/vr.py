@@ -894,7 +894,8 @@ class UserInterface:
         if tool_names is None:
             # Show all displayed tools.
             tools = [ti for ti in self._session.tools.list()
-                     if ti.displayed() and ti.tool_name not in exclude_tools]
+                     if hasattr(ti, 'tool_window') and ti.displayed()
+                        and ti.tool_name not in exclude_tools]
             tools.sort(key = _tool_y_position)
             tool_names = [ti.tool_name for ti in tools]
         for tool_name in tool_names:
