@@ -29,19 +29,6 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             r_type = res.name
         else:
             r_type = res_type.upper()
-        if criteria == "manual":
-            raise LimitationError("swapaa 'manual' criteria not implemented yet")
-            #TODO
-            '''
-            for library in libraries:
-                if library.importName == lib:
-                    break
-            else:
-                raise MidasError("No such rotamer library: %s" % lib)
-            from gui import RotamerDialog
-            RotamerDialog(res, r_type, library)
-            '''
-            continue
         CA = res.find_atom("CA")
         if not CA:
             raise LimitationError("Residue %s is missing CA atom" % res)
