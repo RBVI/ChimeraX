@@ -792,7 +792,8 @@ def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius
                             intra_model=False) })
             # invalid H-bonds:  involving residue side chain or rotamer backbone
             invalid_atoms = set([ra for ra in residue.atoms if ra.is_side_chain])
-            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms if ra.is_backbone()])
+            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms
+                if ra.name in ra.residue.aa_max_backbone_names])
             rot_atoms = set([ra for rot in rotamers for ra in rot.atoms if ra not in invalid_atoms])
             for rot in rotamers:
                 rot.num_hbonds = 0
