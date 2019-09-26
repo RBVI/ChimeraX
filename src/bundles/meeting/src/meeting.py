@@ -793,6 +793,7 @@ class VRTracking(PointerModels):
                 gui_state['room position'] = rpos
                 msg['vr gui position'] = _place_matrix(rpos)
 
+            # Notify about changes in panel size, position or image.
             pchanges = []	# GUI panel changes
             for panel in ui.panels:
                 name, size, pos, rgba = panel.name, panel.size, panel.drawing.position, panel.panel_image_rgba()
@@ -809,9 +810,17 @@ class VRTracking(PointerModels):
                 if pchange:
                     pchange['name'] = panel.name
                     pchanges.append(pchange)
+
+            # Notify about removed panels
+            panel_names = set(panel.name for panel in ui.panels)
+            for pname in tuple(gui_state.keys()):
+                if (isinstance(pname, tuple) and len(pname) == 2 and pname[0] == 'panel'
+                    and pname[1] not in panel_names):
+                    pchanges.append({'name':name, 'closed':True})
+                    del gui_state[pname]
+
             if pchanges:
                 msg['vr gui panels'] = pchanges
-            # TODO: Need to handle deleted panels
 
         return msg
     
@@ -978,6 +987,13 @@ class VRGUIModel(Model):
     def update_panel(self, panel_changes):
         name = panel_changes['name']
         panels = self._panels
+
+        if 'closed' in panel_changes:
+            if name in panels:
+                self.remove_drawing(panels[name])
+                del panels[name]
+            return
+        
         if name in panels:
             p = panels[name]
         else:
