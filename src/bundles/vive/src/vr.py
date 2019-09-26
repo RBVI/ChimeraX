@@ -2013,7 +2013,8 @@ class HandButtons:
             voffset += b.num_vertices
     
 class ButtonGeometry:
-    def __init__(self, button, z, radius, azimuth, tex_range, rise = 0.002, num_vertices = 30):
+    def __init__(self, button, z, radius, azimuth, tex_range, rise = 0.002,
+                 circle_divisions = 30):
         '''
         z is button center position from cone tip at 0 to base at 1.
         radius is in meters
@@ -2027,7 +2028,8 @@ class ButtonGeometry:
         self.azimuth = azimuth
         self.tex_range = tex_range
         self.rise = rise
-        self.num_vertices = num_vertices
+        self._circle_divisions = circle_divisions
+        self.num_vertices = 3*circle_divisions
 
     def cone_button_geometry(self, cone_length, cone_radius):
         '''
@@ -2044,11 +2046,15 @@ class ButtonGeometry:
         cca = cl/e  # cos(cone_angle)
         y0 = self.z * e
         aoffset = self.azimuth * pi/180
-        from numpy import empty, float32, int32
-        n = self.num_vertices
-        va = empty((n,3), float32)
-        na = empty((n,3), float32)
-        tc = empty((n,2), float32)
+        co, so = cos(aoffset), sin(aoffset)
+        from numpy import empty, float32, int32, array
+        bz = array((cca*co, cca*so, -sca), float32)	# Button push axis
+        bx,by = array((-so, co, 0)), array((sca*co, sca*so, cca))  # Button plane axes
+        n = self._circle_divisions
+        nv = self.num_vertices
+        va = empty((nv,3), float32)
+        na = empty((nv,3), float32)
+        tc = empty((nv,2), float32)
         u0,u1 = self.tex_range[::-1]
         v0,v1 = 1,0
         for i in range(n):
@@ -2059,18 +2065,37 @@ class ButtonGeometry:
             r = sqrt(x*x + y*y)
             va[i,:] = (r*sca*cos(az), r*sca*sin(az), r*cca)
             na[i,:] = (cca*cos(az), cca*sin(az), -sca)
+            na[n+i,:] = ca*bx + sa*by
             tc[i,:] = (u0+(u1-u0)*0.5*(1+ca), v0+(v1-v0)*0.5*(1+sa))
 
-        self.vertices_lowered = va + 0.1*self.rise*na
-        va += self.rise*na
-        self.vertices_raised = va.copy()
+        n2 = 2*n
+        va[n:n2] = va[n2:] = va[:n]
+        rise = self.rise*bz
+        va[n2:] -= rise
+        na[n2:] = na[n:n2]
+        tc[n:] = (u0,v0)	# Sides
 
-        ta = empty((n-2,3), int32)
+        vl = va.copy()
+        vl += 0.1*rise
+        self.vertices_lowered = vl
+        vr = va.copy()
+        vr += rise
+        self.vertices_raised = vr
+
+        nt = (n-2) + 2*n
+        ta = empty((nt,3), int32)
+        # Top of button
         for i in range(n//2-1):
             ta[2*i,:] = (i, i+1, n-1-i)
             ta[2*i+1,:] = (i+1, n-2-i, n-1-i)
+        # Sides of button
+        tas = ta[n-2:]
+        for i in range(n):
+            i1 = (i+1)%n
+            tas[2*i,:] = (n+i, n2+i, n2+i1)
+            tas[2*i+1,:] = (n+i, n2+i1, n+i1)
 
-        return va, na, tc, ta
+        return vr, na, tc, ta
 
     def set_icon_image(self, tex_rgba, icon_path, image_size):
         if icon_path is None:
