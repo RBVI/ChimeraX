@@ -1333,7 +1333,7 @@ class Panel:
         lrgba = self._last_image_rgba
         self._last_image_rgba = rgba
         if lrgba is None or rgba.shape != lrgba.shape:
-            h,w = rgba.shape[:2]
+            w,h = self._panel_size
             ps = self._pixel_size
             self._size = (ps*w,ps*h)
             self._update_geometry()
