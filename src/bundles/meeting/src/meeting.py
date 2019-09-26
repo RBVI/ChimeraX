@@ -816,7 +816,7 @@ class VRTracking(PointerModels):
             for pname in tuple(gui_state.keys()):
                 if (isinstance(pname, tuple) and len(pname) == 2 and pname[0] == 'panel'
                     and pname[1] not in panel_names):
-                    pchanges.append({'name':name, 'closed':True})
+                    pchanges.append({'name':pname[1], 'closed':True})
                     del gui_state[pname]
 
             if pchanges:
