@@ -102,7 +102,7 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
     from chimerax.core.objects import Objects
     for r in residues:
         if res_type == "same":
-            r_type = res.name
+            r_type = r.name
         else:
             r_type = res_type.upper()
         rotamers = swap_res.get_rotamers(session, r, res_type=r_type, lib=lib, log=log)
