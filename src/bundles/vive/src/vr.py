@@ -884,9 +884,10 @@ class UserInterface:
         panels = []
 
         # Menu bar
-        menu_bar = self._session.ui.main_window.menuBar()
-        p = Panel(menu_bar, ui, self, tool_name = 'menu bar')
-        panels.append(p)
+        if self._gui_tool_names is None:
+            menu_bar = self._session.ui.main_window.menuBar()
+            p = Panel(menu_bar, ui, self, tool_name = 'menu bar')
+            panels.append(p)
 
         # Tools
         exclude_tools = set(['Command Line Interface'])
@@ -1242,6 +1243,7 @@ class Panel:
         self._last_image_rgba = None
         self._ui_click_range = 0.05 	# Maximum distance of click from plane, room coords, meters.
         self._button_rise = 0.01	# meters rise when pointer over button
+        self._panel_thickness = 0.01	# meters
 
         # Drawing that renders this panel.
         self._panel_drawing = self._create_panel_drawing(drawing_parent)
@@ -1354,7 +1356,8 @@ class Panel:
         # Calculate rectangles for panel and raised buttons
         w, h = self.size
         xmin,ymin,xmax,ymax = -0.5*w,-0.5*h,0.5*w,0.5*h
-        rects = [(xmin,ymin,0,xmax,ymax,0)]
+        th = self._panel_thickness
+        rects = [(xmin,ymin,-th,xmax,ymax,0)]
         zr = self._button_rise
         rb = self._ui._raised_buttons
         for widget, panel in rb.values():
@@ -1364,24 +1367,31 @@ class Panel:
                     continue
                 x0,y0,x1,y1 = r
                 z = .5*zr if getattr(widget, '_show_pressed', False) else zr
-                rects.append((x0,y0,z,x1,y1,z))
+                rects.append((x0,y0,z-th,x1,y1,z))
 
         # Create geometry for rectangles
         nr = len(rects)
-        nv = 4*nr
-        nt = 2*nr
+        nv = 12*nr
+        nt = 12*nr
         from numpy import empty, float32, int32
         v = empty((nv,3), float32)
         tc = empty((nv,2), float32)
         t = empty((nt,3), int32)
+        ws = 1/w if w > 0 else 0
+        hs = 1/h if h > 0 else 0
         for r, (x0,y0,z0,x1,y1,z1) in enumerate(rects):
-            ov, ot = 4*r, 2*r
-            v[ov:ov+4] = ((x0,y0,z0), (x1,y0,z0), (x1,y1,z0), (x0,y1,z0))
-            ws = 1/w if w > 0 else 0
-            hs = 1/h if h > 0 else 0
+            ov, ot = 12*r, 12*r
+            v[ov:ov+12] = ((x0,y0,z1), (x1,y0,z1), (x1,y1,z1), (x0,y1,z1), # Front
+                           (x0,y0,z1), (x1,y0,z1), (x1,y1,z1), (x0,y1,z1), # Sides and back
+                           (x0,y0,z0), (x1,y0,z0), (x1,y1,z0), (x0,y1,z0)) # Sides and back
             tx0, ty0, tx1, ty1 = (x0-xmin)*ws, (y0-ymin)*hs, (x1-xmin)*ws, (y1-ymin)*hs
-            tc[ov:ov+4] = ((tx0,ty0), (tx1,ty0), (tx1,ty1), (tx0,ty1))
-            t[ot:ot+2] = ((ov,ov+1,ov+2), (ov,ov+2,ov+3))
+            tc[ov:ov+12] = ((tx0,ty0), (tx1,ty0), (tx1,ty1), (tx0,ty1), # Front
+                            (tx0,ty0), (tx0,ty0), (tx0,ty0), (tx0,ty0), # Sides and back
+                            (tx0,ty0), (tx0,ty0), (tx0,ty0), (tx0,ty0)) # Sides and back
+            faces = [(ov+i,ov+j,ov+k) for i,j,k in ((0,1,2),(0,2,3),(4,8,9),(4,9,5),
+                                                    (5,9,10),(5,10,6),(6,10,11),(6,11,7),
+                                                    (7,11,8),(7,8,4),(8,11,10),(8,10,9))]
+            t[ot:ot+12] = faces
 
         # Update Drawing
         d = self._panel_drawing
@@ -2004,7 +2014,8 @@ class HandButtons:
             voffset += b.num_vertices
     
 class ButtonGeometry:
-    def __init__(self, button, z, radius, azimuth, tex_range, rise = 0.002, num_vertices = 30):
+    def __init__(self, button, z, radius, azimuth, tex_range, rise = 0.002,
+                 circle_divisions = 30):
         '''
         z is button center position from cone tip at 0 to base at 1.
         radius is in meters
@@ -2018,7 +2029,8 @@ class ButtonGeometry:
         self.azimuth = azimuth
         self.tex_range = tex_range
         self.rise = rise
-        self.num_vertices = num_vertices
+        self._circle_divisions = circle_divisions
+        self.num_vertices = 3*circle_divisions
 
     def cone_button_geometry(self, cone_length, cone_radius):
         '''
@@ -2035,11 +2047,15 @@ class ButtonGeometry:
         cca = cl/e  # cos(cone_angle)
         y0 = self.z * e
         aoffset = self.azimuth * pi/180
-        from numpy import empty, float32, int32
-        n = self.num_vertices
-        va = empty((n,3), float32)
-        na = empty((n,3), float32)
-        tc = empty((n,2), float32)
+        co, so = cos(aoffset), sin(aoffset)
+        from numpy import empty, float32, int32, array
+        bz = array((cca*co, cca*so, -sca), float32)	# Button push axis
+        bx,by = array((-so, co, 0)), array((sca*co, sca*so, cca))  # Button plane axes
+        n = self._circle_divisions
+        nv = self.num_vertices
+        va = empty((nv,3), float32)
+        na = empty((nv,3), float32)
+        tc = empty((nv,2), float32)
         u0,u1 = self.tex_range[::-1]
         v0,v1 = 1,0
         for i in range(n):
@@ -2050,18 +2066,37 @@ class ButtonGeometry:
             r = sqrt(x*x + y*y)
             va[i,:] = (r*sca*cos(az), r*sca*sin(az), r*cca)
             na[i,:] = (cca*cos(az), cca*sin(az), -sca)
+            na[n+i,:] = ca*bx + sa*by
             tc[i,:] = (u0+(u1-u0)*0.5*(1+ca), v0+(v1-v0)*0.5*(1+sa))
 
-        self.vertices_lowered = va + 0.1*self.rise*na
-        va += self.rise*na
-        self.vertices_raised = va.copy()
+        n2 = 2*n
+        va[n:n2] = va[n2:] = va[:n]
+        rise = self.rise*bz
+        va[n2:] -= rise
+        na[n2:] = na[n:n2]
+        tc[n:] = (u0,v0)	# Sides
 
-        ta = empty((n-2,3), int32)
+        vl = va.copy()
+        vl += 0.1*rise
+        self.vertices_lowered = vl
+        vr = va.copy()
+        vr += rise
+        self.vertices_raised = vr
+
+        nt = (n-2) + 2*n
+        ta = empty((nt,3), int32)
+        # Top of button
         for i in range(n//2-1):
             ta[2*i,:] = (i, i+1, n-1-i)
             ta[2*i+1,:] = (i+1, n-2-i, n-1-i)
+        # Sides of button
+        tas = ta[n-2:]
+        for i in range(n):
+            i1 = (i+1)%n
+            tas[2*i,:] = (n+i, n2+i, n2+i1)
+            tas[2*i+1,:] = (n+i, n2+i1, n+i1)
 
-        return va, na, tc, ta
+        return vr, na, tc, ta
 
     def set_icon_image(self, tex_rgba, icon_path, image_size):
         if icon_path is None:
