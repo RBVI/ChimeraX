@@ -29,19 +29,6 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             r_type = res.name
         else:
             r_type = res_type.upper()
-        if criteria == "manual":
-            raise LimitationError("swapaa 'manual' criteria not implemented yet")
-            #TODO
-            '''
-            for library in libraries:
-                if library.importName == lib:
-                    break
-            else:
-                raise MidasError("No such rotamer library: %s" % lib)
-            from gui import RotamerDialog
-            RotamerDialog(res, r_type, library)
-            '''
-            continue
         CA = res.find_atom("CA")
         if not CA:
             raise LimitationError("Residue %s is missing CA atom" % res)
@@ -792,7 +779,8 @@ def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius
                             intra_model=False) })
             # invalid H-bonds:  involving residue side chain or rotamer backbone
             invalid_atoms = set([ra for ra in residue.atoms if ra.is_side_chain])
-            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms if ra.is_backbone()])
+            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms
+                if ra.name in ra.residue.aa_max_backbone_names])
             rot_atoms = set([ra for rot in rotamers for ra in rot.atoms if ra not in invalid_atoms])
             for rot in rotamers:
                 rot.num_hbonds = 0
