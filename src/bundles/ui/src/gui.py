@@ -124,6 +124,8 @@ class UI(QApplication):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('ready')
+        self.triggers.add_trigger('tool window show or hide')
+
 
     @property
     def mouse_modes(self):
@@ -178,7 +180,6 @@ class UI(QApplication):
         (e.g. Log, or file history) which come out blank.  Hidden windows also
         may render an image at the wrong size with a new layout (e.g. Model Panel).
         '''
-        screen = self.primaryScreen()
         w = self.main_window
         pixmap = w.grab()
         im = pixmap.toImage()
@@ -419,6 +420,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
 
+        self.use_native_open_dialog = True
+        
         from .open_folder import OpenFolderDialog
         self._open_folder = OpenFolderDialog(self, session)
 
@@ -577,9 +580,17 @@ class MainWindow(QMainWindow, PlainTextLog):
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
         filters = open_file_filter(all=True, format_name=format_name)
-        paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
-                                                       directory=initial_directory)
-        paths, types = paths_and_types
+        if self.use_native_open_dialog:
+            from PyQt5.QtWidgets import QFileDialog
+            paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
+                                                           directory=initial_directory)
+            paths, types = paths_and_types
+        else:
+            from .open_save import OpenDialog
+            d = OpenDialog(parent = self, starting_directory = initial_directory,
+                           filter = filters)
+            paths = d.get_paths()
+
         if not paths:
             return
 
@@ -1237,7 +1248,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
         from PyQt5.QtWidgets import QMenu, QAction
-        tools_menu = QMenu("&Tools")
+        tools_menu = QMenu("&Tools", self.menuBar())
         tools_menu.setToolTipsVisible(True)
         categories = {}
         self._tools_cache = set()
@@ -1634,7 +1645,9 @@ class ToolWindow(StatusLogger):
 
     @shown.setter
     def shown(self, shown):
-        self.session.ui.main_window._tool_window_request_shown(self, shown)
+        ui = self.session.ui
+        ui.main_window._tool_window_request_shown(self, shown)
+        ui.triggers.activate_trigger('tool window show or hide', self)
 
     def shown_changed(self, shown):
         """Supported API. Perform actions when window hidden/shown
