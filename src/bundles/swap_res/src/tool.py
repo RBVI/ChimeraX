@@ -121,7 +121,7 @@ class PrepRotamersDialog(ToolInstance):
         try:
             for r in sel_residues:
                 run(self.session, "swapaa interactive %s %s lib %s" % (quote(r.string(style="command")),
-                    res_type, quote(self.rot_lib.display_name)))[0]
+                    res_type, quote(self.rot_lib.display_name)))
         except NoResidueRotamersError:
             lib_name = self.rot_lib_option.value
             for r in sel_residues:
@@ -212,7 +212,7 @@ class RotamerDialog(ToolInstance):
             self.mgr.destroy()
         super().delete()
 
-    def finalize_init(self, mgr, res_type, lib, session_data=None):
+    def finalize_init(self, mgr, res_type, lib, *, session_data=None):
         self.mgr = mgr
         self.res_type = res_type
         self.lib = lib

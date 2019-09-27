@@ -32,8 +32,8 @@ class _ToolbarAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         """Run toolbar provider"""
-        # none registered yet
-        return
+        from . import tool
+        tool.run_provider(session, name)
 
 
 bundle_api = _ToolbarAPI()
