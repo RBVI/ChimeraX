@@ -35,6 +35,8 @@
   </DataFiles>
 
   <Providers manager="toolbar">
+    <Provider tab="Nucleotides"
+      name="tab-nuc" after="Molecule Display" before="Graphics"/>
     <Provider tab="Nucleotides" section="Styles" 
       name="nucleotide-plain" display_name="Plain" icon="nuc-atoms.png" 
       description="Remove nucleotides styling"/>
