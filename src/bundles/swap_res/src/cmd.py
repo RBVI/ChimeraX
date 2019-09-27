@@ -85,16 +85,13 @@ class _RotamerStateManager(StateManager):
                 self.triggers.activate_trigger('self destroyed', self)
                 self.destroy()
 
-def rotamers(session, residues, res_type, *, lib=None, log=True):
+def rotamers(session, residues, res_type, *, lib=None):
     ''' Command to display possible side-chain rotamers '''
 
     residues = _check_residues(residues)
 
     if lib is None:
         lib = _get_lib(session)
-
-    if log:
-        session.logger.info("Using %s library" % lib)
 
     ret_val = []
     from . import swap_res
@@ -105,7 +102,7 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
             r_type = r.name
         else:
             r_type = res_type.upper()
-        rotamers = swap_res.get_rotamers(session, r, res_type=r_type, lib=lib, log=log)
+        rotamers = swap_res.get_rotamers(session, r, res_type=r_type, lib=lib)
         mgr = _RotamerStateManager(session, r, rotamers)
         if session.ui.is_gui:
             from .tool import RotamerDialog
@@ -167,7 +164,6 @@ def register_command(command_name, logger):
         required = [('residues', ResiduesArg), ('res_type', StringArg)],
         keyword = [
             ('lib', DynamicEnum(logger.session.rotamers.library_names)),
-            ('log', BoolArg),
         ],
         synopsis = 'Show possible side-chain rotamers'
     )
