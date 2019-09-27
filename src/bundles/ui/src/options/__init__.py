@@ -16,4 +16,4 @@ from .containers import OptionsPanel, CategorizedOptionsPanel, \
 from .options import Option, BooleanOption, ColorOption, EnumOption, FloatOption, HostPortOption, \
     InputFolderOption, IntOption, OutputFolderOption, PasswordOption, OptionalRGBAOption, \
     OptionalRGBAPairOption, OptionalRGBA8Option, OptionalRGBA8PairOption, RGBAOption, RGBA8Option, \
-    StringOption, StringIntOption, StringsOption, SymbolicEnumOption
+    StringOption, StringIntOption, StringsOption, SymbolicEnumOption, make_optional
