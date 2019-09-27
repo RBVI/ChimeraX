@@ -487,6 +487,9 @@ class RGBA8Option(Option):
     def _make_widget(self, **kw):
         from ..widgets import MultiColorButton
         self.widget = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
+        initial_color = kw.get('initial_color', getattr(self, 'default_initial_color', None))
+        if initial_color is not None:
+            self.widget.color = initial_color
         self.widget.color_changed.connect(lambda c, s=self: s.make_callback())
 
 class RGBAOption(RGBA8Option):
