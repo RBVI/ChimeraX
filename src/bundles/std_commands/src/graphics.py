@@ -283,7 +283,7 @@ def register_command(logger):
     desc = CmdDesc(
         keyword=[('width', FloatArg),
                  ('color', ColorArg)],
-        synopsis="set selewction outline parameters"
+        synopsis="set selection outline parameters"
     )
     register('graphics selection', desc, graphics_selection, logger=logger)
 
