@@ -259,7 +259,7 @@ class OpenGLContext:
         self.current_viewport = None
         self.done_current()
 
-        # Replace current context with stereo context sharing state.
+        # Replace current context with stereo context while sharing opengl state.
         qc = self._contexts.get(mode)
         if not qc:
             # This can raise OpenGLError
@@ -267,6 +267,17 @@ class OpenGLContext:
 
         self._mode = mode
         self.window = window
+
+        import sys
+        if sys.platform == 'linux':
+            # On Linux get GL_BACK_RIGHT error after switching
+            # into stereo a second time.  Bug #2446.  To work around
+            # this delete the stereo context after switching to mono.
+            if not stereo:
+                sqc = self._contexts.get('stereo')
+                if sqc:
+                    del self._contexts['stereo']
+                    sqc.deleteLater()
 
     def set_offscreen_color_bits(self, bits):
         cbits = self._framebuffer_color_bits
