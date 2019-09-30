@@ -40,7 +40,7 @@ Provides a Windows ribbon-style toolbar interface
 
   <Providers manager="toolbar">
     <!-- Molecule Display tab -->
-    <Provider tab="Molecule Display" after="Home"
+    <Provider tab="Molecule Display"
       name="tab-md" help="help:user/tools/moldisplay.html"/>
     <Provider tab="Molecule Display" section="Atoms"
       name="layout-atoms" compact="true"/>

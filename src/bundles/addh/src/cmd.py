@@ -15,6 +15,7 @@ from .util import complete_terminal_carboxylate, determine_termini, determine_na
 from chimerax.atomic import Element
 from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_colors
+from chimerax.atomic.bond_geom import linear
 
 def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.6, template=False,
     use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
@@ -795,8 +796,8 @@ def roomiest(positions, attached, check_dist, atom_type_info):
     return list(zip(*pos_info))[1]
 
 def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
-    if parent_atom.element.valence < 5:
-        # carbons, et al, can't coordinate metals
+    if parent_atom.element.valence < 5 and parent_type_info.geometry != linear:
+        # non-sp1 carbons, et al, can't coordinate metals
         return False
     from chimerax.core.geometry import distance, angle
     if distance(metal_pos, parent_pos) > _metal_dist:

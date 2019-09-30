@@ -179,13 +179,29 @@ class ToolbarTool(ToolInstance):
 
 
 def _layout(d, what):
+    # Home is always first
     if "__layout__" not in d:
-        return d.keys()
+        keys = list(d.keys())
+        try:
+            home = keys.index("Home")
+        except ValueError:
+            keys.insert(0, "Home")
+        else:
+            if home != 0:
+                keys = ["Home"] + keys[0:home] + keys[home + 1:]
+        return keys
     import copy
     layout = copy.deepcopy(d["__layout__"])
     for k in d:
+        if k == "Home":
+            continue
         if k not in layout:
-            layout[k] = []
+            layout[k] = ["Home"]
+        else:
+            layout[k].add("Home")
+    if "Home" in layout and layout["Home"]:
+        raise RuntimeError("%s: 'Home' must be first" % what)
+    layout["Home"] = []
     from chimerax.core import order_dag
     ordered = []
     try:
