@@ -266,6 +266,7 @@ def register_command(logger):
                  ('total_bond_triangles', IntArg),
                  ('ribbon_divisions', IntArg),
                  ('ribbon_sides', IntArg),
+                 ('color_depth', IntArg),
                  ],
         synopsis='Set graphics quality parameters'
     )
