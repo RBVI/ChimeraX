@@ -90,7 +90,7 @@
     <Provider tab="Graphics" section="Camera"
       name="va" display_name="View all" icon="viewall.png" description="View all"/>
     <Provider tab="Graphics" section="Camera"
-      name="dV" display_name="Orient" icon="orient.png" description="Default orientation"/>
+      name="dv" display_name="Orient" icon="orient.png" description="Default orientation"/>
 
     <!-- Map tab -->
     <Provider tab="Map" section="Map"
