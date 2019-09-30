@@ -54,11 +54,13 @@ class ToolbarManager(ProviderManager):
         section = kw.pop('section', None)
         before = kw.pop('before', None)
         after = kw.pop('after', None)
+        help = kw.pop('help', None)
         if section is None:
-            if before is None and after is None:
+            if before is None and after is None and help is None:
                 self.session.logger.warning('Missing section %s' % where())
                 return
             self._add_layout(self._toolbar, tab, before, after)
+            # TODO: help
             return
         tab_dict = self._toolbar.setdefault(tab, {})
         section_dict = tab_dict.setdefault(section, {})
