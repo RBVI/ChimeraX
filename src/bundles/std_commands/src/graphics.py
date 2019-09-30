@@ -11,19 +11,22 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def graphics(session, background_color=None):
+def graphics(session, bg_color=None, background_color=None):
     '''Set graphics parameters.  With no options reports the current settings.
 
     Parameters
     ----------
     background_color : Color
         Set the graphics window background color.
+    bg_color : Color
+        Synonym for background_color.
     '''
     had_arg = False
     view = session.main_view
-    if background_color is not None:
+    bgc = (background_color or bg_color)
+    if bgc is not None:
         had_arg = True
-        view.background_color = background_color.rgba
+        view.background_color = bgc.rgba
         view.redraw_needed = True
 
     if not had_arg:
@@ -239,7 +242,9 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, ColorArg, TopModelsArg
 
     desc = CmdDesc(
-        keyword=[('background_color', ColorArg)],
+        keyword=[('background_color', ColorArg),
+                 ('bg_color', ColorArg)],
+        hidden = ['background_color'],	# Deprecated in favor of bg_color
         synopsis="set graphics parameters"
     )
     register('graphics', desc, graphics, logger=logger)
