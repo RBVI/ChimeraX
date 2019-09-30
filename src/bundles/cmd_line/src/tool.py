@@ -258,7 +258,7 @@ class CommandLine(ToolInstance):
                 except errors.UserError as err:
                     logger.status(str(err), color="crimson")
                     from chimerax.core.logger import error_text_format
-                    logger.info(error_text_format % err, is_html=True)
+                    logger.info(error_text_format % escape(str(err)), is_html=True)
                 except:
                     raise
         self.set_focus()

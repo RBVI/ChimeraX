@@ -29,7 +29,7 @@ def register_settings_options(session):
 
     settings_info = {
         'atomspec_contents': (
-            "Atomspec display style",
+            "Balloon-help specifier style",
             AtomSpecOption,
             """How to format display of atomic data<br>
             <table>

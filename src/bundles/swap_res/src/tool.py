@@ -104,8 +104,8 @@ class PrepRotamersDialog(ToolInstance):
         super().delete()
 
     def launch_rotamers(self):
-        from chimerax.atomic import selected_atoms
-        sel_residues = selected_atoms(self.session).residues.unique()
+        from chimerax.atomic import selected_residues
+        sel_residues = selected_residues(self.session)
         if not sel_residues:
             raise UserError("No residues selected")
         num_sel = len(sel_residues)
@@ -119,13 +119,11 @@ class PrepRotamersDialog(ToolInstance):
         from chimerax.core.commands import run, quote_if_necessary as quote
         from chimerax.atomic.rotamers import NoResidueRotamersError
         try:
-            for r in sel_residues:
-                run(self.session, "swapaa interactive %s %s lib %s" % (quote(r.string(style="command")),
-                    res_type, quote(self.rot_lib.display_name)))[0]
+            run(self.session, "swapaa interactive sel %s lib %s" % (res_type,
+                quote(self.rot_lib.display_name)))
         except NoResidueRotamersError:
             lib_name = self.rot_lib_option.value
-            for r in sel_residues:
-                run(self.session, "swapaa %s %s lib %s" % (r.string(style="command"), res_type, lib_name))
+            run(self.session, "swapaa sel %s lib %s" % (res_type, lib_name))
 
     def lib_res_list(self):
         res_name_list = list(self.rot_lib.residue_names) + ["ALA", "GLY"]
@@ -163,8 +161,8 @@ class PrepRotamersDialog(ToolInstance):
             " cite:" % self.rot_lib.cite_name, pubmed_id=self.rot_lib.cite_pubmed_id)
 
     def _sel_res_type(self):
-        from chimerax.atomic import selected_atoms
-        sel_residues = selected_atoms(self.session).residues.unique()
+        from chimerax.atomic import selected_residues
+        sel_residues = selected_residues(self.session)
         sel_res_types = set([r.name for r in sel_residues])
         if len(sel_res_types) == 1:
             return self.rot_lib.map_res_name(sel_res_types.pop(), exemplar=sel_residues[0])
@@ -212,7 +210,7 @@ class RotamerDialog(ToolInstance):
             self.mgr.destroy()
         super().delete()
 
-    def finalize_init(self, mgr, res_type, lib, session_data=None):
+    def finalize_init(self, mgr, res_type, lib, *, session_data=None):
         self.mgr = mgr
         self.res_type = res_type
         self.lib = lib

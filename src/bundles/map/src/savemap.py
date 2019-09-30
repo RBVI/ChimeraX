@@ -20,7 +20,8 @@ class ModelSaveOptionsGUI(SaveOptionsGUI):
         self._format = format			# FileFormat from chimerax.core.io
         self._model_class = model_class		# e.g. Volume
         self._menu_label = menu_label		# Menu label
-
+        self._map_menu = None
+        
     @property
     def format_name(self):
         return self._format.name
@@ -53,6 +54,8 @@ class ModelSaveOptionsGUI(SaveOptionsGUI):
         run(session, cmd)
 
     def update(self, session, save_dialog):
+        if self._map_menu is None:
+            return
         m = None
         mlist = session.models.list(type = self._model_class)
         msel = [m for m in mlist if m.selected]
