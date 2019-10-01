@@ -24,9 +24,10 @@ class _LabelBundle(BundleAPI):
     @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
-        from . import label2d, label3d
+        from . import label2d, label3d, arrows
         label2d.register_label_command(logger)
         label3d.register_label_command(logger)
+        arrows.register_arrow_command(logger)
 
     @staticmethod
     def get_class(class_name):
