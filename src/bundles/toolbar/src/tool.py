@@ -100,7 +100,8 @@ class ToolbarTool(ToolInstance):
             from chimerax.core.errors import UserError
             raise UserError("unknown toolbar command: %s" % cmd)
 
-    def _build_buttons(self):
+    def _add_mouse_modes(self):
+        # legacy support
         import os
         import chimerax.shortcuts
         from PyQt5.QtGui import QPixmap, QIcon
@@ -139,14 +140,28 @@ class ToolbarTool(ToolInstance):
                         tab, section, descrip,
                         lambda e, what=what, self=self: self.handle_scheme(what),
                         icon, tooltip, **kw)
+
+    def _build_buttons(self):
         # add buttons from toolbar manager
-        for tab, tab_info in self.session.toolbar._toolbar.items():
-            if tab.startswith("hidden"):
+        from PyQt5.QtGui import QPixmap, QIcon
+        toolbar = self.session.toolbar._toolbar
+        for tab in _layout(toolbar, "tabs"):
+            if tab.startswith("__") or tab not in toolbar:
                 continue
-            # TODO: compact
-            for section, section_info in tab_info.items():
-                for display_name, args in section_info.items():
+            tab_info = toolbar[tab]
+            for section in _layout(tab_info, "%s sections" % tab):
+                if section.startswith("__") or section not in tab_info:
+                    continue
+                section_info = tab_info[section]
+                has_buttons = False
+                for display_name in _layout(section_info, "%s %s buttons" % (tab, section)):
+                    if display_name.startswith("__") or display_name not in section_info:
+                        continue
+                    args = section_info[display_name]
                     (name, bundle_info, icon_path, description, kw) = args
+                    if "hidden" in kw:
+                        continue
+                    has_buttons = True
                     if description and not description[0].isupper():
                         description = description.capitalize()
                     pm = QPixmap(icon_path)
@@ -158,155 +173,63 @@ class ToolbarTool(ToolInstance):
                     self.ttb.add_button(
                             tab, section, display_name, callback,
                             icon, description, **kw)
+                if has_buttons:
+                    compact = "__compact__" in section_info
+                    if compact:
+                        self.ttb.set_section_compact(tab, section, True)
+        self._add_mouse_modes()
         self.ttb.show_tab('Home')
+
+
+def _layout(d, what):
+    # Home is always first
+    if "__layout__" not in d:
+        keys = list(d.keys())
+        try:
+            home = keys.index("Home")
+        except ValueError:
+            keys.insert(0, "Home")
+        else:
+            if home != 0:
+                keys = ["Home"] + keys[0:home] + keys[home + 1:]
+        return keys
+    import copy
+    layout = copy.deepcopy(d["__layout__"])
+    for k in d:
+        if k == "Home":
+            continue
+        if k not in layout:
+            layout[k] = ["Home"]
+        else:
+            layout[k].add("Home")
+    if "Home" in layout and layout["Home"]:
+        raise RuntimeError("%s: 'Home' must be first" % what)
+    layout["Home"] = []
+    from chimerax.core import order_dag
+    ordered = []
+    try:
+        for n in order_dag.order_dag(layout):
+            ordered.append(n)
+    except order_dag.OrderDAGError as e:
+        raise RuntimeError("%s: %s" % (what, e))
+    return ordered
 
 
 def _file_open(session):
     session.ui.main_window.file_open_cb(session)
 
 
+def _file_recent(session):
+    mw = session.ui.main_window
+    mw.rapid_access_shown = not mw.rapid_access_shown
+
+
 def _file_save(session):
     session.ui.main_window.file_save_cb(session)
 
 
+# TODO: old style toolbars until mouse mode support is added
 _Toolbars = {
-    "Home": (
-        None,
-        {
-            ("File", False): [
-                (_file_open, "open-in-app.png", "Open", "Open data file"),
-                (_file_save, "content-save.png", "Save", "Save session file"),
-                # ("cmd:close session", "close-box.png", "Close", "Close current session"),
-                # ("cmd:exit", "exit.png", "Exit", "Exit application"),
-            ],
-            ("Images", False): [
-                ("shortcut:sx", "camera.png", "Snapshot", "Save snapshot to desktop"),
-                ("shortcut:vd", "video.png", "Spin movie", "Record spin movie"),
-            ],
-            ("Atoms", True): [
-                ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
-                ("shortcut:ha", "atomhide.png", "Hide", "Hide atoms"),
-            ],
-            ("Cartoons", True): [
-                ("shortcut:rb", "ribshow.png", "Show", "Show cartoons"),
-                ("shortcut:hr", "ribhide.png", "Hide", "Hide cartoons"),
-            ],
-            ("Styles", False): [
-                ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
-                ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
-            ],
-            ("Background", False): [
-                ("shortcut:wb", "whitebg.png", "White", "White background"),
-                ("shortcut:bk", "blackbg.png", "Black", "Black background"),
-            ],
-            ("Lighting", False): [
-                ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
-                ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
-                ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
-            ],
-            # ("Undo", True): [
-            #     ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-            #     ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-            # ],
-        },
-    ),
-    "Molecule Display": (
-        "help:user/tools/moldisplay.html",
-        {
-            ("Atoms", True): [
-                ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
-                ("shortcut:ha", "atomhide.png", "Hide", "Hide atoms"),
-            ],
-            ("Cartoons", True): [
-                ("shortcut:rb", "ribshow.png", "Show", "Show cartoons"),
-                ("shortcut:hr", "ribhide.png", "Hide", "Hide cartoons"),
-            ],
-            ("Surfaces", True): [
-                ("shortcut:ms", "surfshow.png", "Show", "Show surfaces"),
-                ("shortcut:hs", "surfhide.png", "Hide", "Hide surfaces"),
-            ],
-            ("Styles", False): [
-                ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
-                ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
-            ],
-            ("Coloring", False): [
-                ("shortcut:ce", "colorbyelement.png", "heteroatom", "Color non-carbon atoms by element"),
-                ("shortcut:cc", "colorbychain.png", "chain", "Color by chain"),
-                ("shortcut:rB", "rainbow.png", "rainbow", 'Rainbow color N to C-terminus'),
-                ("shortcut:bf", "bfactor.png", "b-factor", 'Color by b-factor'),
-                ("shortcut:hp", "hydrophobicity.png", "hydrophobic", 'Color surface by hydrophobicity'),
-            ],
-            ("Analysis", False): [
-                ("shortcut:hb", "hbondsflat.png", "H-bonds", "Show hydrogen bonds"),
-                ("shortcut:HB", "hbondsflathide.png", "Hide H-bonds", "Hide hydrogen bonds"),
-                ("shortcut:sq", "sequence.png", "Sequence", "Show polymer sequence"),
-                ("shortcut:if", "interfaces.png", "Interfaces", "Show chain contacts diagram"),
-            ],
-        },
-    ),
-    "Graphics": (
-        "help:user/tools/graphics.html",
-        {
-            ("Background", True): [
-                ("shortcut:wb", "whitebg.png", "White", "White background"),
-                ("shortcut:gb", "graybg.png", "Gray", "Gray background"),
-                ("shortcut:bk", "blackbg.png", "Black", "Black background"),
-            ],
-            ("Lighting & Effects", False): [
-                ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
-                ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
-                ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
-                ("shortcut:lF", "flat.png", "Flat", "Flat lighting"),
-                ("shortcut:sh", "shadow.png", "Shadow", "Toggle shadows"),
-                ("shortcut:se", "silhouette.png", "Silhouettes", "Toggle silhouettes"),
-            ],
-            ("Camera", False): [
-                ("shortcut:vs", "viewsel.png", "View selected", "View selected"),
-                ("shortcut:va", "viewall.png", "View all", "View all"),
-                ("shortcut:dv", "orient.png", "Orient", "Default orientation"),
-                ("cmd:tool show 'Side View'", "sideview.png", "Side view", "Show side view tool"),
-            ],
-        }
-    ),
-    "Map": (
-        "help:user/tools/densitymaps.html",
-        {
-            ("Map", False): [
-                ("shortcut:sM", "showmap.png", "Show", "Show map"),
-                ("shortcut:hM", "hidemap.png", "Hide", "Hide map"),
-            ],
-            ("Style", False): [
-                ("shortcut:fl", "mapsurf.png", "surface", "Show map or surface in filled style"),
-                ("shortcut:me", "mesh.png", "mesh", "Show map or surface as mesh"),
-                ("shortcut:gs", "mapimage.png", "image", "Show map as grayscale"),
-                ("shortcut:tt", "icecube.png", "Transparent surface", "Toggle surface transparency"),
-                ("shortcut:ob", "outlinebox.png", "Outline box", "Toggle outline box"),
-            ],
-            ("Steps", False): [
-                ("shortcut:s1", "step1.png", "Step 1", "Show map at step 1"),
-                ("shortcut:s2", "step2.png", "Step 2", "Show map at step 2"),
-            ],
-            ("Subregions", False): [
-                ("shortcut:pl", "plane.png", "Z-plane", "Show one plane"),
-                ("shortcut:o3", "orthoplanes.png", "Orthoplanes", "Show 3 orthogonal planes"),
-                ("shortcut:pa", "fullvolume.png", "Full", "Show all planes"),
-            ],
-            ("Calculations", False): [
-                ("shortcut:fT", "fitmap.png", "Fit", "Fit map in map"),
-                ("shortcut:sb", "diffmap.png", "Subtract", "Subtract map from map"),
-                ("shortcut:gf", "smooth.png", "Smooth", "Smooth map"),
-            ],
-            ("Image Display", False): [
-                ("shortcut:zs", "xyzslice.png", "XYZ slices", "Volume XYZ slices"),
-                ("shortcut:ps", "perpslice.png", "Perpendicular slices", "Volume perpendicular slices"),
-                ("shortcut:aw", "airways.png", "Airways preset", "Airways preset"),
-                ("shortcut:as", "ear.png", "skin preset", "skin preset"),
-                ("shortcut:dc", "initialcurve.png", "Default thresholds", "Default volume curve"),
-            ],
-        }
-    ),
     "Markers": (
         "help:user/tools/markerplacement.html",
         {
@@ -365,3 +288,24 @@ _Toolbars = {
         }
     ),
 }
+
+
+_providers = {
+    "Open": _file_open,
+    "Recent": _file_recent,
+    "Save": _file_save,
+    "Close": "close session",
+    "Exit": "exit",
+    "Undo": "undo",
+    "Redo": "redo",
+    "sideview": "tool show 'Side View'"
+}
+
+def run_provider(session, name):
+    what = _providers[name]
+    if not isinstance(what, str):
+        what(session)
+    else:
+        from chimerax.core.commands import run
+        run(session, what)
+

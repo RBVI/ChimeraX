@@ -64,6 +64,7 @@ CENTOS_DEPENDENCIES = {
         "libXext": "1.3.3",
         "libXfixes": "5.0.3",
         "libXi": "1.7.9",
+        "libxkbcommon-x11":  "0.7.1",
         "libXrandr": "1.5.1",
         "libXrender": "0.9.10",
         "libXtst": "1.2.3",

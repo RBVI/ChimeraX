@@ -1758,7 +1758,7 @@ class Histogram_Pane:
     self.data_step = dsm = QPushButton(df)
     dsm.setStyleSheet(menu_button_style)
     dsm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-    sm = QMenu()
+    sm = QMenu(df)
     for step in (1,2,4,8,16):
         sm.addAction('%d' % step, lambda s=step: self.data_step_cb(s))
     dsm.setMenu(sm)
@@ -1781,7 +1781,7 @@ class Histogram_Pane:
     self.style = stm = QPushButton(df)
     stm.setStyleSheet(menu_button_style)
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
-    sm = QMenu()
+    sm = QMenu(df)
     for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box'):
         sm.addAction(style, lambda s=style: self.display_style_changed_cb(s))
     stm.setMenu(sm)

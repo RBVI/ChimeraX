@@ -105,9 +105,10 @@ class MainSaveDialog:
             self._format_selected()
 
         if format is not None:
-            fd = self._file_dialog
-            if fd:
-                fd.setFilter(fmt.wildcard())
+            fd = self.file_dialog
+            fmt = self._registered_formats.get(format)
+            fd.selectNameFilter(fmt.wildcard())
+            self._format_selected()
         
         fmt = self.current_format()
         if fmt:

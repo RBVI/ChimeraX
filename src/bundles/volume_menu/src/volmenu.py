@@ -37,7 +37,10 @@ class VolumeMenu(ToolInstance):
             self.show()
         else:
             self.hide()
-            
+
+    def displayed(self):
+        return self._shown
+    
     def show(self):
         if self._shown:
             return
