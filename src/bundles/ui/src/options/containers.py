@@ -64,7 +64,7 @@ class OptionsPanel(QWidget):
 
     def add_option(self, option):
         """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
-        if self._sorting is None:
+        if self._sorting is False:
             insert_row = len(self._options)
         else:
             if self._sorting is True:
