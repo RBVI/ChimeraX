@@ -133,7 +133,8 @@ def parse_path_tcz(dir, filename):
   from os.path import join
   tc_zpaths_list = [(t,c,[join(dir,fname) for z,fname in sorted(zpaths)])
                     for (t,c),zpaths in tc_zpaths.items()]
-  
+  tc_zpaths_list.sort(key = lambda tczs: tczs[:2])
+                      
   return tc_zpaths_list
     
     
