@@ -75,8 +75,8 @@ class SettingsTool:
                     if opt.attr_name.startswith("error_region") else self.sv.GAP_REGION_STRING
                 regions = []
                 for region in self.sv.region_browser.regions:
-                    if region.name.startswith(name_part) \
-                    or region.name.startswith("partial " + name_part):
+                    if region.name and (region.name.startswith(name_part) or
+                            region.name.startswith("partial " + name_part)):
                         regions.append(region)
             if opt.attr_name.endswith("shown"):
                 shown = opt.value

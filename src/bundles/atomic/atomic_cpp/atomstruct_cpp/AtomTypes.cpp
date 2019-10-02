@@ -840,7 +840,8 @@ clock_t start_t = clock();
             if (mapped[a])
                 continue;
 #endif
-            if (sqlen <= p3c1c1 && bondee_type == "C1") {
+            if (sqlen <= p3c1c1 && bondee_type == "C1"
+            || sqlen <= p3n1c1 && bondee->element() == Element::N) {
                 a->set_computed_idatm_type("C1");
             } else if (sqlen <= p3c2c &&
               bondee->element() == Element::C) {
@@ -860,7 +861,7 @@ clock_t start_t = clock();
             if (mapped[a])
                 continue;
 #endif
-            if ((sqlen <= p3n1c1 && bondee_type == "C1" ||
+            if ((sqlen <= p3n1c1 && (bondee_type == "C1" || bondee->element() == Element::N) ||
               bondee_type == "N1+") || (sqlen < p3n1o1 &&
               bondee->element() == Element::O)) {
                 a->set_computed_idatm_type("N1");

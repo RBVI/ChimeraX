@@ -29,19 +29,6 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             r_type = res.name
         else:
             r_type = res_type.upper()
-        if criteria == "manual":
-            raise LimitationError("swapaa 'manual' criteria not implemented yet")
-            #TODO
-            '''
-            for library in libraries:
-                if library.importName == lib:
-                    break
-            else:
-                raise MidasError("No such rotamer library: %s" % lib)
-            from gui import RotamerDialog
-            RotamerDialog(res, r_type, library)
-            '''
-            continue
         CA = res.find_atom("CA")
         if not CA:
             raise LimitationError("Residue %s is missing CA atom" % res)
@@ -349,6 +336,17 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
         if tmpl_res.find_atom(bud) is None:
             raise TemplateError("New residue type (%s) not compatible with"
                 " starting residue type (%s)" % (res_type, res.name))
+    color_by_element = False
+    uniform_color = res.find_atom(buds[0]).color
+    het = res.find_atom("N") or res.find_atom("O4'")
+    if het:
+        carbon = res.find_atom("CA") or res.find_atom("C4'")
+        if carbon:
+            color_by_element = het.color != carbon.color
+            if color_by_element:
+                carbon_color = carbon.color
+            else:
+                uniform_color = het.color
 
     # if bfactor not specified, find highest bfactor in residue and use that for swapped-in atoms
     if bfactor is None:
@@ -448,6 +446,14 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             new_atom = form_dihedral(res_bud, real1, tmpl_res, a, b, **kw)
             new_atom.draw_mode = res_bud.draw_mode
             new_atom.bfactor = bfactor
+            if color_by_element:
+                if new_atom.element.name == "C":
+                    new_atom.color = carbon_color
+                else:
+                    from chimerax.atomic.colors import element_color
+                    new_atom.color = element_color(new_atom.element.number)
+            else:
+                new_atom.color = uniform_color
             new_atoms.append(new_atom)
 
             for bonded in a.neighbors:
@@ -773,7 +779,8 @@ def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius
                             intra_model=False) })
             # invalid H-bonds:  involving residue side chain or rotamer backbone
             invalid_atoms = set([ra for ra in residue.atoms if ra.is_side_chain])
-            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms if ra.is_backbone()])
+            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms
+                if ra.name in ra.residue.aa_max_backbone_names])
             rot_atoms = set([ra for rot in rotamers for ra in rot.atoms if ra not in invalid_atoms])
             for rot in rotamers:
                 rot.num_hbonds = 0

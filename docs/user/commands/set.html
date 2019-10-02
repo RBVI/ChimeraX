@@ -35,9 +35,7 @@ The <b>set</b> command sets various global parameters.
 If given without arguments, it reports the current settings in the
 <a href="../tools/log.html"><b>Log</b></a>.
 See also:
-<a href="preset.html"><b>preset</b></a>,
-<a href="lighting.html"><b>lighting</b></a>,
-<a href="camera.html"><b>camera</b></a>,
+<a href="graphics.html"><b>graphics</b></a>,
 <a href="../tools/graphics.html"><b>Graphics</b></a> icons
 </p><p>
 Parameter <i>keyword</i>:
@@ -51,35 +49,10 @@ Parameter <i>keyword</i>:
 <a href="../tools/graphics.html" title="Graphics icons...">
 <img class="icon" border=1 src="../tools/shortcut-icons/blackbg.png"></a>
 &ndash; background color
-<li><a href="#maxFrameRate" class="nounder"><b>maxFrameRate</b></a>
-&ndash; target redraw rate
-<li><a href="#selectionColor" class="nounder"><b>selectionColor</b></a>
-&ndash; <a href="../selection.html">selection</a> outline color
-<li><a href="#selectionWidth" class="nounder"><b>selectionWidth</b></a>
-&ndash; <a href="../selection.html">selection</a> outline thickness
-<li><a href="#silhouettes" class="nounder"><b>silhouettes</b></a>
-<a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
-&ndash; whether to outline borders
-<li><a href="#silhouetteColor" class="nounder"><b>silhouetteColor</b></a>
-&ndash; outline color
-<li><a href="#silhouetteWidth" class="nounder"><b>silhouetteWidth</b></a>
-&ndash; outline thickness
-<li><a href="#silhouetteDepthJump" 
-class="nounder"><b>silhouetteDepthJump</b></a>
-&ndash; change in depth needed to trigger drawing an outline
 <li><a href="#subdivision" class="nounder"><b>subdivision</b></a>
 &ndash; fineness of triangulation
 of stick, ball-and-stick, and sphere <a href="style.html">display styles</a>
 </ul>
-<p>
-One or more parameters can be specified in a single command. Examples:
-</p>
-<blockquote><b>
-set bg sky blue
-<br>
-set sil true silhouettew 2 
-</b></blockquote>
 <p>
 Parameters that are not specified remain at their current values.
 </p>
@@ -98,79 +71,8 @@ with a (completely) transparent background using the
 <b>transparentBackground true</b>.
 Using <b>~set bgColor</b> restores background color according to the user
 <a href="../preferences.html#background">preference</a>.
-See also:
-<a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/whitebg.png"></a>
-<a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/graybg.png"></a>
-<a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/blackbg.png"></a>
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="maxFrameRate"><b>set maxFrameRate</b></a> &nbsp;<i>N</i>
-<blockquote>
-Set the maximum <a href="../movies.html#framerate">frame rate</a>
-in ChimeraX to <i>N</i> frames per second (initial default <b>60</b>).
-Although <i>N</i> is the target value, the actual rate may be lower
-depending on the rendering speed of the computer and the complexity of the scene.
-The maximum frame rate can also be reported/changed with
-<a href="graphics.html"><b>graphics</b></a>.
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="selectionColor"><b>set selectionColor</b></a>
-&nbsp;<a href="colornames.html"><i>color-spec</i></a>
-<blockquote>
-Set <a href="../selection.html">selection</a> outline color 
-(initial default <b>lime</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=lime width="10px" title="lime"></td></tr></table>).
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="selectionWidth"><b>set selectionWidth</b></a> &nbsp;<i>linewidth</i>
-<blockquote>
-Set <a href="../selection.html">selection</a> outline
-linewidth in pixels (initial default is the system display scaling factor,
-typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina).
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="silhouettes"><b>set silhouettes</b></a>
-&nbsp;true&nbsp;|&nbsp;<b>false</b>
-<blockquote>
-Whether to show <b><i>silhouettes</i></b>,
-outlines that emphasize borders and discontinuities.
-Synonyms for true: True, 1. Synonyms for false: False, 0.
-See also: <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="silhouetteColor"><b>set silhouetteColor</b></a> 
-&nbsp;<a href="colornames.html"><i>color-spec</i></a>
-<blockquote>
-Set silhouette color (initial default <b>black</b>).
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="silhouetteWidth"><b>set silhouetteWidth</b></a> &nbsp;<i>linewidth</i>
-<blockquote>
-Set silhouette
-linewidth in pixels (initial default is the system display scaling factor,
-typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina).
-</blockquote>
-
-<a href="#top" class="nounder">&bull;</a>
-<a name="silhouetteDepthJump"><b>set silhouetteDepthJump</b></a> &nbsp;<i>depth</i>
-<blockquote>
-Set depth change needed to trigger drawing silhouettes,
-as a fraction of scene depth (the distance between the 
-<a href="clip.html">near and far clipping planes</a>);
-initial default <b>0.03</b>, but changed to <b>0.01</b> by the
-<a href="lighting.html#preset"><b>flat</b> lighting preset</a>.
+Background color can also be changed with
+<a href="graphics.html#bgColor"><b>graphics bgColor</b></a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -185,13 +87,13 @@ is adjusted automatically depending on the display contents
 (<i>e.g.</i>, the number of atoms displayed), within the range
 of 10-2000 triangles per atom and 24-160 per bond.
 Alternatively, a fixed number of triangles per atom or bond can be specified
-with the <a href="graphics.html"><b>graphics</b></a> command.
-Using <b>set subdivision</b> returns to automatic adjustment,
-overriding any fixed values specified beforehand with 
-<a href="graphics.html"><b>graphics</b></a>.
-For cartoons, see <a href="graphics.html"><b>graphics</b></a>
-or the <b>divisions</b>, <b>sides</b>, and <b>barSides</b> options of
-<a href="cartoon.html#style"><b>cartoon style</b></a>.
+with the <a href="graphics.html#quality"><b>graphics quality</b></a> command.
+Using <b>set subdivision</b> (or the <b>subdivision</b> option of
+<a href="graphics.html#quality"><b>graphics quality</b></a>)
+returns to automatic adjustment, overriding any fixed values specified beforehand.
+For cartoon subdivision settings, 
+see <a href="graphics.html#quality"><b>graphics quality</b></a>
+or <a href="cartoon.html#style"><b>cartoon style</b></a>.
 For molecular surfaces, see the 
 <a href="surface.html#parameters"><b>gridSpacing</b></a>
 option of <a href="surface.html"><b>surface</b></a>.

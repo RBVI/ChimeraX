@@ -59,10 +59,12 @@ Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
 See also: <a href="addh.html"><b>addh</b></a>,
 <a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
+<a href="swapaa.html"><b>swapaa</b></a>,
 <a href="distance.html"><b>distance</b></a>,
 <a href="interfaces.html"><b>interfaces</b></a>,
 <a href="select.html#new"><b>select</b> by pseudobond length</a>,
 <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>,
+<a href="../tools/rotamers.html"><b>Rotamers</b></a>,
 <a href="#related">H-bond-related features</a>,
 <a href="../measurements.html">measurements</a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
@@ -166,12 +168,16 @@ can be shown as ladder rungs with
 <a href="nucleotides.html#ladder"><b>nucleotides ladder</b></a>
 </ul>
 <p>
-By default, <a href="addh.html"><b>addh</b></a> places hydrogens to form
-H-bonds, where possible.
-The <a href="dssp.html"><b>dssp</b></a> command also identifies H-bonds
-as part of its algorithm to assign protein secondary structure,
-but does not show them.
+Some other commands evaluate H-bonds but do not show them:
 </p>
+<ul>
+<li><a href="addh.html"><b>addh</b></a> can place hydrogens to form
+H-bonds, where possible
+<li><a href="dssp.html"><b>dssp</b></a> identifies H-bonds
+as part of its algorithm to assign protein secondary structure
+<li><a href="swapaa.html"><b>swapaa</b></a> may use
+H-bonds as a criterion for choosing a rotamer
+</ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -404,19 +410,21 @@ to specify it interactively in a file browser window.
 <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
 <blockquote>
-  <a name="namingStyle"><b>namingStyle</b> &nbsp;<b>simple</b>&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
+  <a name="namingStyle"><b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
 <br>How to describe atoms in H-bond information
 written to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
-<li><b>simple</b> (default) - chain ID (preceded by slash), 
+<li><b>simple</b> &ndash; chain ID (preceded by slash), 
 residue name, residue number, atom name (for example, /B ASN 21 OD1)
 <li><b>command</b>
-- <a href="atomspec.html#hierarchy">command-line specifier</a>
+&ndash; <a href="atomspec.html#hierarchy">command-line specifier</a>
 (for example, /B:21@OD1)
-<li><b>serial</b> - atom serial number
+<li><b>serial</b> &ndash; atom serial number
 (for example, 126)
 </ul>
 Model number will be included when multiple models are present.
+The <a href="../preferences.html#labels"><b>Labels</b> preference</a>
+<b>Balloon-help specifier style</b> sets the default.
 </blockquote>
 <blockquote>
   <b>batch</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
