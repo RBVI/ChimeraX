@@ -27,17 +27,17 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>clashes</b>&nbsp;|&nbsp;<b>contacts</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
-[&nbsp;<b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>others</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+[&nbsp;<a href="#test"><b>test</b></a>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>others</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 <!--
 [&nbsp;<b>overlapCutoff</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>hbondAllowance</b>&nbsp;&nbsp;<i>allowance</i>&nbsp;]
 [&nbsp;<b>distanceOnly</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
 -->
-[&nbsp;<b>select</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>showDist</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<a href="#select"><b>select</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#reveal"><b>reveal</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#showDist"><b>showDist</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#color"><b>color</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<a href="#radius"><b>radius</b></a>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a>
 </h3>
@@ -73,15 +73,23 @@ See also:
 </p><p>
 By <a href="#makePseudobonds">default</a>,
 clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
+A pseudobond is only shown when both of its endpoint atoms are shown;
+<a href="#reveal"><b>reveal true</b></a> can be used to display atoms as needed
+so that all of the H-bonds will be shown.
+The pseudobonds can be <a href="#showDist">labeled by distance</a>,
+and their <a href="#color">color</a>, <a href="#radius">radius</a>,
+and <a href="#dashes">number of dashes</a> can be specified.
 The command <b>~clashes</b> (same as <b>clashes delete</b>)
 or <b>~contacts</b> (same as <b>contacts delete</b>)
 removes the indicated pseudobonds and halts any
 <a href="#continuous">continuous monitoring</a>.
+When multiple pseudobond models have the same name, specific models can be
+removed with the <a href="close.html"><b>close</b></a> command.
 <p>
 A non-blank <a href="atomspec.html"><i>atom-spec1</i></a> is required.
 The <a href="#options"><b>test</b></a> option indicates
 whether to look for interactions among the specified atoms or between
-them and other atoms (<a href="#options">details...</a>). Examples:
+them and other atoms. Examples:
 </p>
 <blockquote><b>
 contacts protein test ligand reveal true
@@ -137,8 +145,8 @@ Both measures are reported in the detailed results.
 By <a href="#makePseudobonds">default</a>,
 clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
 A pseudobond is only shown when both of its endpoint atoms are shown;
-<b>reveal true</b> can be used to display atoms as needed so that 
-all of the interactions will be shown (<a href="#reveal">details...</a>).
+<a href="#reveal"><b>reveal true</b></a> can be used to display atoms 
+as needed so that all of the interactions will be shown.
 The pseudobonds can be <a href="#showDist">labeled by distance</a>,
 and their <a href="#color">color</a>, <a href="#radius">radius</a>,
 and <a href="#dashes">number of dashes</a> can be specified.
@@ -171,6 +179,7 @@ shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
 <h3>Options</h3>
 
 <blockquote>
+<a name="test"></a>
 <b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>others</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
 <br>
 Which interactions to find:
@@ -180,7 +189,13 @@ between <a href="atomspec.html"><i>atom-spec1</i></a> and all other atoms
 and <a href="atomspec.html"><i>atom-spec2</i></a>.
 If set to <b>others</b> but there are no other atoms
 (because <a href="atomspec.html"><i>atom-spec1</i></a> contains all atoms),
-<b>self</b> is automatically used instead.
+<b>self</b> is automatically used instead. See also options:
+<a href="#interSubmodel"><b>interSubmodel</b></a>,
+<a href="#interModel"><b>interModel</b></a>,
+<a href="#intraMol"><b>intraMol</b></a>,
+<a href="#intraRes"><b>intraRes</b></a>,
+<a href="#resSeparation"><b>resSeparation</b></a>,
+<a href="#bondSeparation"><b>bondSeparation</b></a>
 </blockquote>
 <blockquote>
 <a name="overlapCutoff"></a>
@@ -244,12 +259,9 @@ except that amino acid and nucleic acid residues are split into
 <a href="atomspec.html#builtin">sidechain</a> and
 <a href="atomspec.html#builtin">backbone</a>
 moieties separately displayed by this option.
-Note that displayed backbone atoms may still be invisible when
-cartoon is also shown.
-Floating pseudobonds in the presence of cartoon can be hidden with the command
-<b><a href="cartoon.html">cartoon suppress false</a></b>,
-with the side effect of showing any backbone atoms that are
-displayed but suppressed by the cartoon.
+Displayed backbone atoms may still be invisible where cartoon is shown,
+unless their simultaneous display has been enabled with
+<b><a href="cartoon.html">cartoon suppress false</a></b>.
 </blockquote>
 <blockquote>
 <a name="makePseudobonds"></a>
@@ -320,11 +332,7 @@ model that can be hidden/shown/closed independently.
 Names containing spaces must be enclosed in quotation marks.
 </blockquote>
 <blockquote>
-<b>interModel</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
-<br>
-Whether to look for interactions between models.
-</blockquote>
-<blockquote>
+<a name="interSubmodel"></a>
 <b>interSubmodel</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to look for interactions between direct sibling
@@ -334,25 +342,35 @@ finest level). For example, this setting would affect finding interactions
 between #1.2.1 and #1.2.2 but not between #1.2.1 and #1.3.1.
 </blockquote>
 <blockquote>
-<b>bondSeparation</b> &nbsp;<i>N</i>
+<a name="interModel"></a>
+<b>interModel</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
-Interactions between atoms that are &le; <i>N</i> bonds apart
-will be ignored (<i>N</i>=<b>4</b> by default).
+Whether to look for interactions between models.
 </blockquote>
 <blockquote>
+<a name="intraMol"></a>
+<b>intraMol</b> <b>true</b>&nbsp;|&nbsp;false
+<br>Whether to include intramolecular interactions,
+where a molecule is defined as a covalently bonded set of atoms.
+</blockquote>
+<blockquote>
+<a name="intraRes"></a>
+<b>intraRes</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>Whether to include intraresidue interactions.
+</blockquote>
+<blockquote>
+<a name="resSeparation"></a>
 <b>resSeparation</b> &nbsp;<i>N</i>
 <br>
 If given, only consider interactions between residues
 at least <i>N</i> apart in sequence.
 </blockquote>
 <blockquote>
-<b>intraRes</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>Whether to include intraresidue interactions.
-</blockquote>
-<blockquote>
-<b>intraMol</b> <b>true</b>&nbsp;|&nbsp;false
-<br>Whether to include intramolecular interactions,
-where a molecule is defined as a covalently bonded set of atoms.
+<a name="bondSeparation"></a>
+<b>bondSeparation</b> &nbsp;<i>N</i>
+<br>
+Interactions between atoms that are &le; <i>N</i> bonds apart
+will be ignored (<i>N</i>=<b>4</b> by default).
 </blockquote>
 <blockquote>
 <a name="continuous"></a>
@@ -446,7 +464,7 @@ residue name, residue number, atom name (for example, /B ASN 21 OD1)
 </ul>
 Model number will be included when multiple models are present.
 The <a href="../preferences.html#labels"><b>Labels</b> preference</a>
-<b>Balloon-help specifier style</b> sets the default.
+<b>Balloon-help specifier style</b> sets which is the default.
 </blockquote>
 <blockquote>
 <a name="summary"><b>summary</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>
@@ -463,5 +481,5 @@ but only the initial and final summaries are reported in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2019</address>
+October 2019</address>
 </body></html>
