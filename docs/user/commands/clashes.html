@@ -54,9 +54,10 @@ except for their default interaction criteria, meant to identify:
 </p>
 <ul>
 <li><b><i>clashes</i></b>
-- unfavorable interactions where atoms are too close together; close contacts
+&ndash; unfavorable interactions where atoms are too close together;
+close contacts
 <li><b><i>contacts</i></b>
-- all kinds of direct interactions:
+&ndash; all kinds of direct interactions:
 polar and nonpolar, favorable and unfavorable (including clashes)
 </ul>
 <p>
@@ -430,20 +431,22 @@ Disallowed with <a href="#continuous">continuous monitoring</a>.
 </blockquote>
 <blockquote>
 <a name="namingStyle"></a>
-<b>namingStyle</b> &nbsp;<b>simple</b>&nbsp;|&nbsp;command&nbsp;|&nbsp;serial
+<b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial
 <br>
 How to describe atoms in contact/clash information written
 to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
-<li><b>simple</b> (default) - chain ID (preceded by slash),
+<li><b>simple</b> &ndash; chain ID (preceded by slash),
 residue name, residue number, atom name (for example, /B ASN 21 OD1)
 <li><b>command</b>
-- <a href="atomspec.html#hierarchy">command-line specifier</a>
+&ndash; <a href="atomspec.html#hierarchy">command-line specifier</a>
 (for example, /B:21@OD1)
-<li><b>serial</b> - atom serial number
+<li><b>serial</b> &ndash; atom serial number
 (for example, 126)
 </ul>
 Model number will be included when multiple models are present.
+The <a href="../preferences.html#labels"><b>Labels</b> preference</a>
+<b>Balloon-help specifier style</b> sets the default.
 </blockquote>
 <blockquote>
 <a name="summary"><b>summary</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>

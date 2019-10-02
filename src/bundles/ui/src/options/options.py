@@ -294,6 +294,7 @@ class EnumOption(EnumBase):
 
     def _make_widget(self, *, display_value=None, **kw):
         self.widget = EnumBase._make_widget(self, display_value=display_value, **kw)
+OptionalEnumOption = make_optional(EnumOption)
 
 class FloatOption(Option):
     """Supported API. Option for floating-point values.
@@ -735,6 +736,7 @@ class SymbolicEnumOption(EnumOption):
     def _menu_cb(self, label):
         self.value = self.values[self.labels.index(label)]
         self.make_callback()
+OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
 def _make_float_spinbox(min, max, step, decimal_places, **kw):
     def compute_bound(bound, default_bound):
