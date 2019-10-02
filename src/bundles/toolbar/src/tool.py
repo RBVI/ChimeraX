@@ -146,23 +146,22 @@ class ToolbarTool(ToolInstance):
         from PyQt5.QtGui import QPixmap, QIcon
         toolbar = self.session.toolbar._toolbar
         for tab in _layout(toolbar, "tabs"):
-            if tab.startswith("_") or tab not in toolbar:
+            if tab.startswith("__") or tab not in toolbar:
                 continue
             tab_info = toolbar[tab]
             for section in _layout(tab_info, "%s sections" % tab):
-                if section.startswith("_") or section not in tab_info:
+                if section.startswith("__") or section not in tab_info:
                     continue
                 section_info = tab_info[section]
-                compact = "__compact__" in section_info
-                if compact:
-                    self.ttb.set_section_compact(tab, section, True)
+                has_buttons = False
                 for display_name in _layout(section_info, "%s %s buttons" % (tab, section)):
-                    if display_name.startswith("_") or display_name not in section_info:
+                    if display_name.startswith("__") or display_name not in section_info:
                         continue
                     args = section_info[display_name]
                     (name, bundle_info, icon_path, description, kw) = args
                     if "hidden" in kw:
                         continue
+                    has_buttons = True
                     if description and not description[0].isupper():
                         description = description.capitalize()
                     pm = QPixmap(icon_path)
@@ -174,6 +173,10 @@ class ToolbarTool(ToolInstance):
                     self.ttb.add_button(
                             tab, section, display_name, callback,
                             icon, description, **kw)
+                if has_buttons:
+                    compact = "__compact__" in section_info
+                    if compact:
+                        self.ttb.set_section_compact(tab, section, True)
         self._add_mouse_modes()
         self.ttb.show_tab('Home')
 
