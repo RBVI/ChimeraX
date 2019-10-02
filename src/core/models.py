@@ -27,6 +27,7 @@ MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
 MODEL_POSITION_CHANGED = 'model position changed'
 RESTORED_MODELS = 'restored models'
+RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
 
 
@@ -405,6 +406,7 @@ class Models(StateManager):
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
+        t.add_trigger(RESTORED_MODEL_TABLE)
         self._models = {}				# Map id to Model
         self._scene_root_model = r = Model("root", session)
         r.id = ()
@@ -424,6 +426,7 @@ class Models(StateManager):
     @staticmethod
     def restore_snapshot(session, data):
         mdict = data['models']
+        session.triggers.activate_trigger(RESTORED_MODEL_TABLE, mdict)
         m = session.models
         for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
