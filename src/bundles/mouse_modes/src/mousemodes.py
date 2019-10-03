@@ -135,6 +135,11 @@ class MouseMode:
         '''
         pass
 
+    @property
+    def uses_wheel(self):
+        '''Return True if derived class implements the wheel() method.'''
+        return getattr(self, 'wheel') != MouseMode.wheel
+    
     def pause(self, position):
         '''
         Supported API.

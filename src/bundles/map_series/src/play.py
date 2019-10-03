@@ -422,6 +422,11 @@ class PlaySeriesMouseMode(MouseMode):
       return 'accumulate drag'
     self._take_step(tstep)
 
+  def vr_thumbstick(self, xyz1, xyz2, step):
+    # Virtual reality hand controller thumbstick tilt.
+    self._take_step(step)
+        
+
 # -----------------------------------------------------------------------------
 #
 def label_value_in_range(text, imin, imax):

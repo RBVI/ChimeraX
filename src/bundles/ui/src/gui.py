@@ -1484,6 +1484,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         return parent_menu
 
     def _tool_window_destroy(self, tool_window):
+        # via request from non-UI code to destroy window
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
@@ -1491,7 +1492,14 @@ class MainWindow(QMainWindow, PlainTextLog):
             tool_instance.delete()
             return
         tool_window._destroy()
+
+    def _tool_window_destroyed(self, tool_window):
+        # tool window (is about to be) destroyed, both via UI and non-UI code
+        all_windows = self.tool_instance_to_windows[tool_window.tool_instance]
         all_windows.remove(tool_window)
+        if tool_window in getattr(self, '_hide_tools_shown_states', {}):
+            del self._hide_tools_shown_states[tool_window]
+
 
     def _tool_window_request_shown(self, tool_window, shown):
         if self.hide_tools:
@@ -1827,6 +1835,7 @@ class _Qt:
             # already destroyed
             return
         is_floating = self.dock_widget.isFloating()
+        self.main_window._tool_window_destroyed(self.tool_window)
         self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None
