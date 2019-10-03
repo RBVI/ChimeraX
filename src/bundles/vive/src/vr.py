@@ -2394,15 +2394,19 @@ class MouseMode(HandMode):
     def _click(self, camera, hand_controller, pressed):
         m = self._mouse_mode
         if hasattr(m, 'vr_press') and pressed:
-            p = hand_controller.position
-            xyz1 = p * (0,0,0)
-            range_scene = self._laser_range
-            xyz2 = p * (0,0,-range_scene)
+            xyz1, xyz2 = self._picking_segment(hand_controller)
             m.vr_press(xyz1, xyz2)
         if hasattr(m, 'vr_motion'):
             self._last_drag_room_position = hand_controller.room_position if pressed else None
         if hasattr(m, 'vr_release') and not pressed:
             m.vr_release()
+
+    def _picking_segment(self, hand_controller):
+        p = hand_controller.position
+        xyz1 = p * (0,0,0)
+        range_scene = self._laser_range
+        xyz2 = p * (0,0,-range_scene)
+        return xyz1, xyz2
 
     def drag(self, camera, hand_controller, previous_pose, pose):
         m = self._mouse_mode
@@ -2416,6 +2420,36 @@ class MouseMode(HandMode):
             p = rts * rp
             if m.vr_motion(p, move, delta_z) != 'accumulate drag':
                 self._last_drag_room_position = rp
+
+    def uses_thumbstick(self):
+        return hasattr(self._mouse_mode, 'vr_thumbstick')
+    
+    def thumbstick(self, camera, hand_controller, x, y):
+        '''Generate a mouse mode wheel event when thumbstick pushed.'''
+        if not hasattr(self, '_thumb_released'):
+            self._thumb_released = False
+        if not self._thumb_released:
+            release = .2
+            if abs(x) < release and abs(y) < release:
+                self._thumb_released = True
+            elif hasattr(self, '_thumb_time'):
+                repeat_interval = 0.33  # seconds
+                from time import time
+                if time() - self._thumb_time > repeat_interval:
+                    self._thumb_released = True
+        if not self._thumb_released:
+            return
+        click = .5
+        if abs(x) < click and abs(y) < click:
+            return
+        v = x if abs(x) > abs(y) else y
+        step = 1 if v > 0 else -1
+        xyz1, xyz2 = self._picking_segment(hand_controller)
+        m = self._mouse_mode
+        m.vr_thumbstick(xyz1, xyz2, step)
+        self._thumb_released = False
+        from time import time
+        self._thumb_time = time()
             
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32
