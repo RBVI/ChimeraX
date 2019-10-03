@@ -448,7 +448,7 @@ def register_command(command_name, logger):
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
                 ('inter_submodel', BoolArg), ('inter_model', BoolArg),
                 ('intra_model', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
-                ('cache_DA', FloatArg), ('relax', BoolArg), ('dist_slop', FloatArg),
+                ('cache_DA', BoolArg), ('relax', BoolArg), ('dist_slop', FloatArg),
                 ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
                 ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
