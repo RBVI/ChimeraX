@@ -1497,7 +1497,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         # tool window (is about to be) destroyed, both via UI and non-UI code
         all_windows = self.tool_instance_to_windows[tool_window.tool_instance]
         all_windows.remove(tool_window)
-        if tool_window in self._hide_tools_shown_states:
+        if tool_window in getattr(self, '_hide_tools_shown_states', {}):
             del self._hide_tools_shown_states[tool_window]
 
 
