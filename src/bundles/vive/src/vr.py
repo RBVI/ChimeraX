@@ -1698,17 +1698,24 @@ class HandController:
         # Assign actions bound to controller buttons
         self._modes = {}			# Maps button name to HandMode
         self._active_drag_modes = set() # Modes with an active drag (ie. button down and not yet released).
-        oculus = self._controller_type.startswith('oculus')
+        ctype = self._controller_type
+        oculus = ctype.startswith('oculus')
         self._is_oculus = oculus
+        self._is_oculus_left = (oculus and ctype.endswith('left'))
+        self._is_oculus_right = (oculus and ctype.endswith('right'))
         grip_mode = MoveSceneMode() if oculus else RecenterMode()
         import openvr
         initial_modes = [(openvr.k_EButton_Grip, grip_mode),
                          (openvr.k_EButton_ApplicationMenu, ShowUIMode()),
                          (openvr.k_EButton_SteamVR_Trigger, MoveSceneMode()),
-                         (openvr.k_EButton_SteamVR_Touchpad, ZoomMode()),
         ]
         if oculus:
             initial_modes.append((openvr.k_EButton_A, ZoomMode()))
+            thumbstick_mode = ZoomMode() if self._is_oculus_right else MoveSceneMode()
+            initial_modes.append((openvr.k_EButton_SteamVR_Touchpad, thumbstick_mode))
+        else:
+            initial_modes.append((openvr.k_EButton_SteamVR_Touchpad, ZoomMode()))
+
         # Oculus touch controller left and right buttons:
         #    trigger = k_EButton_Axis1 = 33 = k_EButton_SteamVR_Trigger
         #    grip = k_EButton_Grip = 2 and k_EButton_Axis2 = 34 both
@@ -1817,9 +1824,13 @@ class HandController:
         self._hand_model._set_button_icon(button, hand_mode.icon_path)
 
     def _thumbstick_mode(self):
-        import openvr
-        return self._is_oculus and self._modes.get(openvr.k_EButton_SteamVR_Touchpad)
-        
+        if self._is_oculus:
+            import openvr
+            mode = self._modes.get(openvr.k_EButton_SteamVR_Touchpad)
+        else:
+            mode = None
+        return mode
+            
     def _process_touch_event(self, e):
         t = e.eventType
         import openvr
@@ -1963,7 +1974,8 @@ class HandButtons:
         buttons = [
         ]
         if controller_type.startswith('oculus'):
-            side, thumb_side, menu_side, stick_side = (180,110,140,80) if controller_type.endswith('right') else (0,70,40,100)
+            right_hand = controller_type.endswith('right')
+            side, thumb_side, menu_side, stick_side = (180,110,140,80) if right_hand else (0,70,40,100)
             buttons = [
                 ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.4, radius=.01, azimuth=270, tex_range=(.167,.333)),
                 ButtonGeometry(openvr.k_EButton_SteamVR_Touchpad, z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
@@ -2258,6 +2270,28 @@ class MoveSceneMode(HandMode):
                 return True
         return False
 
+    def uses_thumbstick(self):
+        return True
+
+    def thumbstick(self, camera, hand_controller, x, y):
+        from math import sqrt
+        r = sqrt(x*x + y*y)
+        limit = .2
+        if r < limit:
+            return
+
+        f = (r-limit)/(1-limit)
+        angle = f*f	# degrees
+        center = _choose_zoom_center(camera)
+        (vx,vy,vz) = center - camera.room_position.origin()
+        from chimerax.core.geometry import normalize_vector, rotation
+        horz_dir = normalize_vector((vz,0,-vx))
+        from numpy import array, float32
+        vert_dir = array((0,1,0),float32)  # y-axis is up in room coordinates
+        axis = normalize_vector(x*vert_dir + y*horz_dir)
+        move = rotation(axis, angle, center)
+        camera.move_scene(move)
+
 def _pinch_scale(prev_pos, pos, other_pos):
     from chimerax.core.geometry import distance
     d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
@@ -2305,12 +2339,14 @@ class ZoomMode(HandMode):
             scale_factor = 1.0 - 0.02 * v * abs(v)
             _pinch_zoom(camera, scale_factor, center)
 
-def _choose_zoom_center(camera, center):
+def _choose_zoom_center(camera, center = None):
     # Zoom in about center of scene if requested center point is outside scene bounding box.
     # This avoids pushing a distant scene away.
     b = camera.vr_view.drawing_bounds()
-    if b and not b.contains_point(camera.room_to_scene * center):
+    if b and (center is None or not b.contains_point(camera.room_to_scene * center)):
         return camera.room_to_scene.inverse() * b.center()
+    if center is None:
+        return camera.room_position.origin()
     return center
 
 def _pinch_zoom(camera, scale_factor, center):
