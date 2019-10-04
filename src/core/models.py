@@ -181,9 +181,12 @@ class Model(State, Drawing):
     def set_selected(self, sel, *, fire_trigger=True):
         Drawing.set_highlighted(self, sel)
         if fire_trigger:
-            from chimerax.core.selection import SELECTION_CHANGED
-            self.session.ui.thread_safe(self.session.triggers.activate_trigger,
-                SELECTION_CHANGED, None)
+            self._selection_changed()
+
+    def _selection_changed(self):
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.session.ui.thread_safe(self.session.triggers.activate_trigger,
+                                    SELECTION_CHANGED, None)
 
     # Provide a direct way to set only the model selection status
     # without subclass interference
@@ -317,7 +320,8 @@ class Model(State, Drawing):
 
     def clear_selection(self):
         self.clear_highlight()
-
+        self._selection_changed()
+        
     def added_to_session(self, session):
         html_title = self.get_html_title(session)
         if not html_title:
