@@ -77,7 +77,8 @@ def color(session, objects, color=None, what=None, target=None,
     if color == "byhetero":
         atoms = atoms.filter(atoms.element_numbers != 6)
 
-    target, is_default_target = get_targets(target, what)
+    default_targets = 'l' if _only_2d_labels(objects) else DEFAULT_TARGETS 
+    target, is_default_target = get_targets(target, what, default_targets = default_targets)
 
     from chimerax.core.undo import UndoState
     undo_state = UndoState(undo_name)
@@ -209,6 +210,17 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         c = None
     return c
 
+def _only_2d_labels(objects):
+    if (objects.num_atoms > 0 or
+        objects.num_bonds > 0 or
+        objects.num_pseudobonds > 0 or
+        len(objects.models) == 0):
+        return False
+    from chimerax.label.label2d import Labels, LabelModel
+    for m in objects.models:
+        if not isinstance(m, (Labels, LabelModel)):
+            return False
+    return True
 
 def _element_colors(atoms, opacity=None):
     from chimerax.atomic.colors import element_colors
