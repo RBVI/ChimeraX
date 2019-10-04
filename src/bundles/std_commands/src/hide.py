@@ -63,27 +63,31 @@ def hide_models(objects, undo_state):
     models, instances = _models_and_instances(objects)
     ud_positions = {}
     ud_display = {}
-    if instances:
-        from numpy import logical_and, logical_not
-        for m,inst in instances.items():
-            dp = m.display_positions
-            ninst = logical_not(inst)
-            if dp is None:
-                dp = ninst
-            else:
-                logical_and(dp, ninst, dp)
-            if m in ud_positions:
-                ud_positions[m][1] = dp
-            else:
-                ud_positions[m] = [m.display_positions, dp]
-            m.display_positions = dp
-    else:
-        for m in models:
-            if m in ud_display:
-                ud_display[m][1] = False
-            else:
-                ud_display[m] = [m.display, True]
-            m.display = False
+
+    # Hide model instances
+    from numpy import logical_and, logical_not
+    for m,inst in instances.items():
+        dp = m.display_positions
+        ninst = logical_not(inst)
+        if dp is None:
+            dp = ninst
+        else:
+            logical_and(dp, ninst, dp)
+        if m in ud_positions:
+            ud_positions[m][1] = dp
+        else:
+            ud_positions[m] = [m.display_positions, dp]
+        m.display_positions = dp
+
+    # Hide models
+    for m in models:
+        if m in ud_display:
+            ud_display[m][1] = False
+        else:
+            ud_display[m] = [m.display, True]
+        m.display = False
+
+    # Record undo state
     for m, values in ud_positions.items():
         undo_state.add(m, "display_positions", *values)
     for m, values in ud_display.items():
