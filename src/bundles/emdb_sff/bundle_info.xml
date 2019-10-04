@@ -1,0 +1,27 @@
+<BundleInfo name="ChimeraX-EMDB-SFF" version="1.0"
+	    package="chimerax.emdb_sff"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>EMDB SFF file reader</Synopsis>
+  <Description>Read segmentation files in EMDB SFF format.</Description>
+
+  <Categories>
+    <Category name="Volume Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: EMDB SFF :: sff :: Volume data :: .sff :: :: https://sfftk.readthedocs.io/en/latest/toolkit.html :: :: :: EMDB SFF</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: Open :: EMDB SFF :: sff ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
