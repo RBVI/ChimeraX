@@ -60,12 +60,12 @@ def hide(session, objects=None, what=None, target=None):
     session.undo.register(undo_state)
 
 def hide_models(objects, undo_state):
-    minst = objects.model_instances
+    models, instances = _models_and_instances(objects)
     ud_positions = {}
     ud_display = {}
-    if minst:
+    if instances:
         from numpy import logical_and, logical_not
-        for m,inst in minst.items():
+        for m,inst in instances.items():
             dp = m.display_positions
             ninst = logical_not(inst)
             if dp is None:
@@ -78,7 +78,7 @@ def hide_models(objects, undo_state):
                 ud_positions[m] = [m.display_positions, dp]
             m.display_positions = dp
     else:
-        for m in objects.models:
+        for m in models:
             if m in ud_display:
                 ud_display[m][1] = False
             else:
@@ -88,6 +88,18 @@ def hide_models(objects, undo_state):
         undo_state.add(m, "display_positions", *values)
     for m, values in ud_display.items():
         undo_state.add(m, "display", *values)
+
+def _models_and_instances(objects):
+    models = set(objects.models)
+    instances = dict()
+    for m,inst in objects.model_instances.items():
+        ni = inst.sum()
+        np = len(m.positions)
+        if ni > 0 and ni < np:
+            instances[m] = inst
+        elif ni == np:
+            models.add(m)
+    return models, instances
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ObjectsArg, EnumOf, EmptyArg, Or, \
