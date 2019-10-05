@@ -80,6 +80,7 @@ class ToolbarManager(ProviderManager):
                 icon = bundle_info.get_path('icons/%s' % icon)
                 if icon is None:
                     self.session.logger.warning('Unable to find icon %s' % where())
+                # TODO: use default icon
         else:
             link = kw.pop("link")
             try:
@@ -102,8 +103,8 @@ class ToolbarManager(ProviderManager):
             display_name = kw.pop('display_name', None)
             if display_name is None:
                 display_name = pi_kw.get("display_name", None)
-            if "display_name" is None:
-                display_name = provider
+                if display_name is None:
+                    display_name = provider
             try:
                 icon = pi_kw["icon"]
                 description = pi_kw["description"]
