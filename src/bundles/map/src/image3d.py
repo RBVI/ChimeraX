@@ -1135,6 +1135,8 @@ class BlendedImage(Image3d):
 
     self.images = images
 
+    self.position = images[0].scene_position	# Make sure it has same position as each image.
+
     ro = self._rendering_options
     ro.colormap_on_gpu = False
 
