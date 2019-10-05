@@ -39,6 +39,18 @@ Provides a Windows ribbon-style toolbar interface
   </Managers>
 
   <Providers manager="toolbar">
+    <!-- hidden File tab -->
+    <Provider tab="File" section="File" hidden="true"
+      name="Open" icon="open-in-app.png" description="Open data file"/>
+    <Provider tab="File" section="File" hidden="true"
+      name="Recent" icon="recentfiles.png" description="Open recent files" after="Open"/>
+    <Provider tab="File" section="File" hidden="true"
+      name="Save" icon="content-save.png" description="Save session file" after="Recent"/>
+    <Provider tab="File" section="File" hidden="true"
+      name="Close" icon="close-box.png" description="Close current session" after="Save"/>
+    <Provider tab="File" section="File" hidden="true"
+      name="Exit" icon="exit.png" description="Exit application" after="Close"/>
+
     <!-- Molecule Display tab -->
     <Provider tab="Molecule Display"
       name="tab-md" help="help:user/tools/moldisplay.html"/>
@@ -82,64 +94,60 @@ Provides a Windows ribbon-style toolbar interface
       name="layout-map-calculations" after="Calculations"/>
 
     <!-- Home tab -->
-    <Provider tab="Home" section="File" 
-      name="Open" icon="open-in-app.png" description="Open data file"/>
     <Provider tab="Home" section="File"
-      name="Recent" icon="recentfiles.png" description="Open recent files" after="Open"/>
+      name="Open-1" link="ChimeraX-Toolbar:Open"/>
     <Provider tab="Home" section="File"
-      name="Save" icon="content-save.png" description="Save session file" after="Recent"/>
-    <Provider tab="Home" section="File" hidden="true"
-      name="Close" icon="close-box.png" description="Close current session" after="Save"/>
-    <Provider tab="Home" section="File" hidden="true"
-      name="Exit" icon="exit.png" description="Exit application" after="Close"/>
+      name="Recent-1" link="ChimeraX-Toolbar:Recent" after="Open"/>
+    <Provider tab="Home" section="File"
+      name="Save-1" link="ChimeraX-Toolbar:Save" after="Recent"/>
 
-    <Provider tab="Home" section="Images" 
+    <Provider tab="Home" section="Images"
       name="layout-Images" after="File"/>
 
-    <Provider tab="Home" section="Atoms" 
+    <Provider tab="Home" section="Atoms"
       name="layout-Atoms" after="Images"/>
-    <Provider tab="Home" section="Atoms" 
+    <Provider tab="Home" section="Atoms"
       name="atomshow-1" link="ChimeraX-Shortcuts:da"/>
-    <Provider tab="Home" section="Atoms" 
+    <Provider tab="Home" section="Atoms"
       name="atomhide-1" link="ChimeraX-Shortcuts:ha"/>
 
-    <Provider tab="Home" section="Cartoons" 
+    <Provider tab="Home" section="Cartoons"
       name="layout-Cartoons" after="Atoms"/>
-    <Provider tab="Home" section="Cartoons" 
+    <Provider tab="Home" section="Cartoons"
       name="ribshow-1" link="ChimeraX-Shortcuts:rb"/>
-    <Provider tab="Home" section="Cartoons" 
+    <Provider tab="Home" section="Cartoons"
       name="ribhide-1" link="ChimeraX-Shortcuts:hr"/>
 
-    <Provider tab="Home" section="Styles" 
+    <Provider tab="Home" section="Styles"
       name="layout-Styles" after="Cartoons"/>
-    <Provider tab="Home" section="Styles" 
+    <Provider tab="Home" section="Styles"
       name="stick-1" link="ChimeraX-Shortcuts:st"/>
-    <Provider tab="Home" section="Styles" 
+    <Provider tab="Home" section="Styles"
       name="sphere-1" link="ChimeraX-Shortcuts:sp"/>
-    <Provider tab="Home" section="Styles" 
+    <Provider tab="Home" section="Styles"
       name="ball-1" link="ChimeraX-Shortcuts:bs"/>
 
-    <Provider tab="Home" section="Background" 
+    <Provider tab="Home" section="Background"
       name="layout-Background" after="Styles"/>
-    <Provider tab="Home" section="Background" 
+    <Provider tab="Home" section="Background"
       name="White-1" link="ChimeraX-Shortcuts:wb"/>
-    <Provider tab="Home" section="Background" 
+    <Provider tab="Home" section="Background"
       name="Black-1" link="ChimeraX-Shortcuts:bk"/>
 
-    <Provider tab="Home" section="Lighting" 
+    <Provider tab="Home" section="Lighting"
       name="layout-Lighting" after="Background"/>
-    <Provider tab="Home" section="Lighting" 
+    <Provider tab="Home" section="Lighting"
       name="Simple-1" link="ChimeraX-Shortcuts:ls"/>
-    <Provider tab="Home" section="Lighting" 
+    <Provider tab="Home" section="Lighting"
       name="Soft-1" link="ChimeraX-Shortcuts:la"/>
-    <Provider tab="Home" section="Lighting" 
+    <Provider tab="Home" section="Lighting"
       name="Full-1" link="ChimeraX-Shortcuts:lf"/>
   <!--
-    <Provider tab="Home" section="Undo" 
+    <Provider tab="Home" section="Undo"
       name="layout-Undo" after="Lighting"/>
-    <Provider tab="Home" section="Undo" 
+    <Provider tab="Home" section="Undo"
       name="Undo" icon="undo-variant.png" description="Undo last action"/>
-    <Provider tab="Home" section="Undo" 
+    <Provider tab="Home" section="Undo"
       name="Redo" icon="redo-variant.png" description="Redo last action"/>
   -->
 
