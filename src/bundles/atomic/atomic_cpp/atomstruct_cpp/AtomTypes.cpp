@@ -311,6 +311,11 @@ find_best_assignment(std::vector<std::map<Bond*, int>>& assignments,
                     }
                     pi_electrons++;
                 } else if (valence_electrons > 4) {
+                    if (valence_electrons == 5 && sum != 3 && ring->size() == 5) {
+                        // nitrogen needs to feel 3 bonds (see residue YG in 6tna)
+                        pi_electrons = 0;
+                        break;
+                    }
                     pi_electrons += 2 - (sum != 2);
                 } else if (a->bonds().size() == 2 && sum == 2) {
                     pi_electrons++;
