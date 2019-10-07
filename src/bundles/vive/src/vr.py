@@ -121,7 +121,7 @@ def vr_button(session, button, mode, hand = None):
 
     Parameters
     ----------
-    button : 'trigger', 'grip', 'touchpad', 'menu', 'A', 'B', 'X', 'Y'
+    button : 'trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y'
       Name of button to assign.  Buttons A/B are for Oculus controllers and imply hand = 'right',
       and X/Y imply hand = 'left'
     mode : HandMode instance
@@ -152,6 +152,7 @@ def vr_button(session, button, mode, hand = None):
         'menu': openvr.k_EButton_ApplicationMenu,
         'trigger': openvr.k_EButton_SteamVR_Trigger,
         'touchpad': openvr.k_EButton_SteamVR_Touchpad,
+        'thumbstick': openvr.k_EButton_SteamVR_Touchpad,
         'A': openvr.k_EButton_A,
         'B': openvr.k_EButton_ApplicationMenu,
         'X': openvr.k_EButton_A,
@@ -182,7 +183,7 @@ def register_vr_command(logger):
     register('device vr', desc, vr, logger=logger)
     create_alias('vr', 'device vr $*', logger=logger)
 
-    desc = CmdDesc(required = [('button', EnumOf(('trigger', 'grip', 'touchpad', 'menu', 'A', 'B', 'X', 'Y'))),
+    desc = CmdDesc(required = [('button', EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y'))),
                                ('mode', VRModeArg)],
                    keyword = [('hand', EnumOf(('left', 'right')))],
                    synopsis = 'Assign VR hand controller buttons')
