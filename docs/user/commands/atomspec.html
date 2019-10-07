@@ -161,6 +161,12 @@ In <a href="http://www.cgl.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbin
 standard nomenclature is used for standard amino acid and nucleic acid residues.
 Asterisks (<b>*</b>) in PDB input atom names will be translated 
 to prime symbols (<b>'</b>).
+Residue names containing at least one letter can be used directly 
+with the colon symbol.
+However, to avoid interpretation as residue numbers,
+residue names containing numbers only should be specified as 
+<a href="#attributes">attribute</a> values instead
+(<i>e.g.</i>, <b>::name="276"</b>).
 </p>
 
 <a name="capitalization"></a>
@@ -768,5 +774,5 @@ of residues with any atom within 4 &Aring; of <a href="#surfcats">ligand</a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2019</address>
+October 2019</address>
 </body></html> 
