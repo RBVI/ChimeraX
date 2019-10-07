@@ -1698,16 +1698,33 @@ class HandController:
         # Assign actions bound to controller buttons
         self._modes = {}			# Maps button name to HandMode
         self._active_drag_modes = set() # Modes with an active drag (ie. button down and not yet released).
-        oculus = self._controller_type.startswith('oculus')
+        ctype = self._controller_type
+        oculus = ctype.startswith('oculus')
+        self._is_oculus = oculus
+        self._is_oculus_left = (oculus and ctype.endswith('left'))
+        self._is_oculus_right = (oculus and ctype.endswith('right'))
         grip_mode = MoveSceneMode() if oculus else RecenterMode()
         import openvr
         initial_modes = [(openvr.k_EButton_Grip, grip_mode),
                          (openvr.k_EButton_ApplicationMenu, ShowUIMode()),
                          (openvr.k_EButton_SteamVR_Trigger, MoveSceneMode()),
-                         (openvr.k_EButton_SteamVR_Touchpad, ZoomMode()),
         ]
         if oculus:
             initial_modes.append((openvr.k_EButton_A, ZoomMode()))
+            thumbstick_mode = ZoomMode() if self._is_oculus_right else MoveSceneMode()
+            initial_modes.append((openvr.k_EButton_SteamVR_Touchpad, thumbstick_mode))
+        else:
+            initial_modes.append((openvr.k_EButton_SteamVR_Touchpad, ZoomMode()))
+
+        # Settings for Oculus thumbstick used as single-step control
+        self._thumbstick_released = False
+        self._thumbstick_release_level = 0.2
+        self._thumbstick_click_level = 0.5
+        self._thumbstick_repeating = False
+        self._thumbstick_repeat_delay = 0.3  # seconds
+        self._thumbstick_repeat_interval = 0.1  # seconds
+        self._thumbstick_time = None
+        
         # Oculus touch controller left and right buttons:
         #    trigger = k_EButton_Axis1 = 33 = k_EButton_SteamVR_Trigger
         #    grip = k_EButton_Grip = 2 and k_EButton_Axis2 = 34 both
@@ -1815,6 +1832,38 @@ class HandController:
         self._modes[button] = hand_mode
         self._hand_model._set_button_icon(button, hand_mode.icon_path)
 
+    def _thumbstick_mode(self):
+        if self._is_oculus:
+            import openvr
+            mode = self._modes.get(openvr.k_EButton_SteamVR_Touchpad)
+        else:
+            mode = None
+        return mode
+
+    def thumbstick_step(self, x, y):
+        if not self._thumbstick_released:
+            release = self._thumbstick_release_level
+            if abs(x) < release and abs(y) < release:
+                self._thumbstick_released = True
+                self._thumbstick_repeating = False
+            elif self._thumbstick_time is not None:
+                repeat = self._thumbstick_repeat_interval if self._thumbstick_repeating else self._thumbstick_repeat_delay
+                from time import time
+                if time() - self._thumbstick_time > repeat:
+                    self._thumbstick_released = True
+                    self._thumbstick_repeating = True
+        if not self._thumbstick_released:
+            return 0
+        click = self._thumbstick_click_level
+        if abs(x) < click and abs(y) < click:
+            return
+        self._thumbstick_released = False
+        from time import time
+        self._thumbstick_time = time()
+        v = x if abs(x) > abs(y) else y
+        step = 1 if v > 0 else -1
+        return step
+    
     def _process_touch_event(self, e):
         t = e.eventType
         import openvr
@@ -1851,6 +1900,15 @@ class HandController:
             for m in self._active_drag_modes:
                 m.drag(camera, self, previous_pose, pose)
 
+        # Check for Oculus thumbstick position
+        ts_mode = self._thumbstick_mode()
+        if ts_mode and ts_mode.uses_thumbstick():
+            success, cstate = self.vr_system.getControllerState(self.device_index)
+            if success:
+                # On Oculus Rift S, axis 0=thumbstick, 1=trigger, 2=grip
+                astate = cstate.rAxis[0]
+                ts_mode.thumbstick(camera, self, astate.x, astate.y)
+
     def _check_for_missing_button_release(self, camera):
         '''Cancel drag modes if button has been released even if we didn't get a button up event.'''
         adm = self._active_drag_modes
@@ -1864,7 +1922,7 @@ class HandController:
                 bm = 1 << m._button_down
                 if not pressed_mask & bm:
                     self._drag_end(m, camera)
-        
+
 from chimerax.core.models import Model
 class HandModel(Model):
     casts_shadows = False
@@ -1949,12 +2007,14 @@ class HandButtons:
         buttons = [
         ]
         if controller_type.startswith('oculus'):
-            side, thumb_side, menu_side = (180,110,140) if controller_type.endswith('right') else (0,70,40)
+            right_hand = controller_type.endswith('right')
+            side, thumb_side, menu_side, stick_side = (180,110,140,80) if right_hand else (0,70,40,100)
             buttons = [
-                ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.4, radius=.01, azimuth=270, tex_range=(.2,.4)),
-                ButtonGeometry(openvr.k_EButton_A, z=.5, radius=.01, azimuth=thumb_side, tex_range=(.4,.6)),
-                ButtonGeometry(openvr.k_EButton_Grip, z=.6, radius=.01, azimuth=side, tex_range=(.6,.8)),
-                ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.4, radius=.006, azimuth=menu_side, tex_range=(.8,1)),
+                ButtonGeometry(openvr.k_EButton_SteamVR_Trigger, z=.4, radius=.01, azimuth=270, tex_range=(.167,.333)),
+                ButtonGeometry(openvr.k_EButton_SteamVR_Touchpad, z=.35, radius=.008, azimuth=stick_side, tex_range=(.333,.5)),
+                ButtonGeometry(openvr.k_EButton_A, z=.47, radius=.006, azimuth=thumb_side, tex_range=(.5,.667)),
+                ButtonGeometry(openvr.k_EButton_Grip, z=.6, radius=.01, azimuth=side, tex_range=(.667,.833)),
+                ButtonGeometry(openvr.k_EButton_ApplicationMenu, z=.4, radius=.006, azimuth=menu_side, tex_range=(.833,1)),
             ]
         else:
             # Vive controllers
@@ -2136,7 +2196,11 @@ class HandMode:
         pass
     def untouch(self):
         pass
-
+    def uses_thumbstick(self):
+        return False
+    def thumbstick(self, x, y):
+        pass
+    
 class MoveUIMode(HandMode):
     name = 'move ui'
     def __init__(self):
@@ -2239,6 +2303,28 @@ class MoveSceneMode(HandMode):
                 return True
         return False
 
+    def uses_thumbstick(self):
+        return True
+
+    def thumbstick(self, camera, hand_controller, x, y):
+        from math import sqrt
+        r = sqrt(x*x + y*y)
+        limit = .2
+        if r < limit:
+            return
+
+        f = (r-limit)/(1-limit)
+        angle = f*f	# degrees
+        center = _choose_zoom_center(camera)
+        (vx,vy,vz) = center - camera.room_position.origin()
+        from chimerax.core.geometry import normalize_vector, rotation
+        horz_dir = normalize_vector((vz,0,-vx))
+        from numpy import array, float32
+        vert_dir = array((0,1,0),float32)  # y-axis is up in room coordinates
+        axis = normalize_vector(x*vert_dir + y*horz_dir)
+        move = rotation(axis, angle, center)
+        camera.move_scene(move)
+
 def _pinch_scale(prev_pos, pos, other_pos):
     from chimerax.core.geometry import distance
     d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
@@ -2276,13 +2362,24 @@ class ZoomMode(HandMode):
         _pinch_zoom(camera, scale_factor, center)
     def released(self, camera, hand_controller):
         self._zoom_center = None
+    def uses_thumbstick(self):
+        return True
+    def thumbstick(self, camera, hand_controller, x, y):
+        limit = .2
+        if abs(y) > limit:
+            center = _choose_zoom_center(camera, hand_controller.tip_room_position)
+            v = (y-limit if y > 0 else y+limit)/(1-limit)
+            scale_factor = 1.0 - 0.02 * v * abs(v)
+            _pinch_zoom(camera, scale_factor, center)
 
-def _choose_zoom_center(camera, center):
+def _choose_zoom_center(camera, center = None):
     # Zoom in about center of scene if requested center point is outside scene bounding box.
     # This avoids pushing a distant scene away.
     b = camera.vr_view.drawing_bounds()
-    if b and not b.contains_point(camera.room_to_scene * center):
+    if b and (center is None or not b.contains_point(camera.room_to_scene * center)):
         return camera.room_to_scene.inverse() * b.center()
+    if center is None:
+        return camera.room_position.origin()
     return center
 
 def _pinch_zoom(camera, scale_factor, center):
@@ -2311,6 +2408,8 @@ class MouseMode(HandMode):
         self.name = mouse_mode.name
         self._last_drag_room_position = None # Hand controller position at last vr_motion call
         self._laser_range = click_range	# Range for mouse mode laser clicks in scene units (Angstroms)
+        self._thumbstick_repeat_delay = 0.3	# seconds
+        self._thumbstick_repeat_interval = 0.1	# seconds
 
     @property
     def has_vr_support(self):
@@ -2330,15 +2429,19 @@ class MouseMode(HandMode):
     def _click(self, camera, hand_controller, pressed):
         m = self._mouse_mode
         if hasattr(m, 'vr_press') and pressed:
-            p = hand_controller.position
-            xyz1 = p * (0,0,0)
-            range_scene = self._laser_range
-            xyz2 = p * (0,0,-range_scene)
+            xyz1, xyz2 = self._picking_segment(hand_controller)
             m.vr_press(xyz1, xyz2)
         if hasattr(m, 'vr_motion'):
             self._last_drag_room_position = hand_controller.room_position if pressed else None
         if hasattr(m, 'vr_release') and not pressed:
             m.vr_release()
+
+    def _picking_segment(self, hand_controller):
+        p = hand_controller.position
+        xyz1 = p * (0,0,0)
+        range_scene = self._laser_range
+        xyz2 = p * (0,0,-range_scene)
+        return xyz1, xyz2
 
     def drag(self, camera, hand_controller, previous_pose, pose):
         m = self._mouse_mode
@@ -2352,6 +2455,17 @@ class MouseMode(HandMode):
             p = rts * rp
             if m.vr_motion(p, move, delta_z) != 'accumulate drag':
                 self._last_drag_room_position = rp
+
+    def uses_thumbstick(self):
+        return hasattr(self._mouse_mode, 'vr_thumbstick')
+    
+    def thumbstick(self, camera, hand_controller, x, y):
+        '''Generate a mouse mode wheel event when thumbstick pushed.'''
+        step = hand_controller.thumbstick_step(x, y)
+        if step:
+            xyz1, xyz2 = self._picking_segment(hand_controller)
+            m = self._mouse_mode
+            m.vr_thumbstick(xyz1, xyz2, step)
             
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32

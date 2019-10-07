@@ -43,7 +43,7 @@ else
 SIP_BIN = $(bindir)
 QT_BIN = $(bindir)
 endif
-CONFIG_ARGS = --confirm-license --verbose --sip $(SIP_BIN)/sip$(PROG_EXT) --qmake $(QT_BIN)/qmake$(PROG_EXT)
+CONFIG_ARGS = --verbose --sip $(SIP_BIN)/sip$(PROG_EXT) --qmake $(QT_BIN)/qmake$(PROG_EXT)
 
 PYQT_PATCHES = $(wildcard PyQt-*.patch)
 
@@ -52,7 +52,7 @@ RELPATH = $(shell $(PYTHON_EXE) -c 'import os; print(os.path.relpath("$(framewor
 all:
 
 install: $(PYQT_SOURCE) $(PYQTWE_SOURCE)
-	cd $(PYQT_SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
+	cd $(PYQT_SOURCE) && $(PYTHON_EXE) configure.py --confirm-license $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 	cd $(PYQTWE_SOURCE) && $(PYTHON_EXE) configure.py $(CONFIG_ARGS) && $(MAKE) && $(MAKE) install
 
 app-install:

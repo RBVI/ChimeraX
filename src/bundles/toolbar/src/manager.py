@@ -80,6 +80,7 @@ class ToolbarManager(ProviderManager):
                 icon = bundle_info.get_path('icons/%s' % icon)
                 if icon is None:
                     self.session.logger.warning('Unable to find icon %s' % where())
+                # TODO: use default icon
         else:
             link = kw.pop("link")
             try:
@@ -99,8 +100,12 @@ class ToolbarManager(ProviderManager):
             if pi_manager != 'toolbar':  # double check that is a toolbar entry
                 self.session.logger.warning('Linked button is not managed by "toolbar" %s' % where())
                 return
+            display_name = kw.pop('display_name', None)
+            if display_name is None:
+                display_name = pi_kw.get("display_name", None)
+                if display_name is None:
+                    display_name = provider
             try:
-                display_name = pi_kw["display_name"]
                 icon = pi_kw["icon"]
                 description = pi_kw["description"]
             except KeyError as e:

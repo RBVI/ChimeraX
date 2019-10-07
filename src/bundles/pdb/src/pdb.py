@@ -258,7 +258,8 @@ def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
         nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
         update_nonstd_res_info(model, nonstd_info)
         def fmt_component(abbr, name, syns):
-            text = '<a title="select residue" href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
+            text = '<a title="select residue" href="cxcmd:sel ::name=&quot;%s&quot;">%s</a> &mdash; ' % (
+                abbr, abbr)
             if name:
                 text += '<a title="show residue info" href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
                     process_chem_name(name))

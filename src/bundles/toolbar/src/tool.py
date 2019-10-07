@@ -184,7 +184,7 @@ class ToolbarTool(ToolInstance):
 def _layout(d, what):
     # Home is always first
     if "__layout__" not in d:
-        keys = list(d.keys())
+        keys = [k for k in d if not k.startswith("__")]
         try:
             home = keys.index("Home")
         except ValueError:
@@ -196,7 +196,7 @@ def _layout(d, what):
     import copy
     layout = copy.deepcopy(d["__layout__"])
     for k in d:
-        if k == "Home":
+        if k == "Home" or k.startswith("__"):
             continue
         if k not in layout:
             layout[k] = ["Home"]
