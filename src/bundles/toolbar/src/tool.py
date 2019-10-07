@@ -298,7 +298,7 @@ _providers = {
     "Exit": "exit",
     "Undo": "undo",
     "Redo": "redo",
-    "sideview": "tool show 'Side View'"
+    "Side view": "tool show 'Side View'"
 }
 
 def run_provider(session, name):
