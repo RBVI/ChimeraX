@@ -1716,6 +1716,15 @@ class HandController:
         else:
             initial_modes.append((openvr.k_EButton_SteamVR_Touchpad, ZoomMode()))
 
+        # Settings for Oculus thumbstick used as single-step control
+        self._thumbstick_released = False
+        self._thumbstick_release_level = 0.2
+        self._thumbstick_click_level = 0.5
+        self._thumbstick_repeating = False
+        self._thumbstick_repeat_delay = 0.3  # seconds
+        self._thumbstick_repeat_interval = 0.1  # seconds
+        self._thumbstick_time = None
+        
         # Oculus touch controller left and right buttons:
         #    trigger = k_EButton_Axis1 = 33 = k_EButton_SteamVR_Trigger
         #    grip = k_EButton_Grip = 2 and k_EButton_Axis2 = 34 both
@@ -1830,7 +1839,31 @@ class HandController:
         else:
             mode = None
         return mode
-            
+
+    def thumbstick_step(self, x, y):
+        if not self._thumbstick_released:
+            release = self._thumbstick_release_level
+            if abs(x) < release and abs(y) < release:
+                self._thumbstick_released = True
+                self._thumbstick_repeating = False
+            elif self._thumbstick_time is not None:
+                repeat = self._thumbstick_repeat_interval if self._thumbstick_repeating else self._thumbstick_repeat_delay
+                from time import time
+                if time() - self._thumbstick_time > repeat:
+                    self._thumbstick_released = True
+                    self._thumbstick_repeating = True
+        if not self._thumbstick_released:
+            return 0
+        click = self._thumbstick_click_level
+        if abs(x) < click and abs(y) < click:
+            return
+        self._thumbstick_released = False
+        from time import time
+        self._thumbstick_time = time()
+        v = x if abs(x) > abs(y) else y
+        step = 1 if v > 0 else -1
+        return step
+    
     def _process_touch_event(self, e):
         t = e.eventType
         import openvr
@@ -2375,6 +2408,8 @@ class MouseMode(HandMode):
         self.name = mouse_mode.name
         self._last_drag_room_position = None # Hand controller position at last vr_motion call
         self._laser_range = click_range	# Range for mouse mode laser clicks in scene units (Angstroms)
+        self._thumbstick_repeat_delay = 0.3	# seconds
+        self._thumbstick_repeat_interval = 0.1	# seconds
 
     @property
     def has_vr_support(self):
@@ -2426,30 +2461,11 @@ class MouseMode(HandMode):
     
     def thumbstick(self, camera, hand_controller, x, y):
         '''Generate a mouse mode wheel event when thumbstick pushed.'''
-        if not hasattr(self, '_thumb_released'):
-            self._thumb_released = False
-        if not self._thumb_released:
-            release = .2
-            if abs(x) < release and abs(y) < release:
-                self._thumb_released = True
-            elif hasattr(self, '_thumb_time'):
-                repeat_interval = 0.33  # seconds
-                from time import time
-                if time() - self._thumb_time > repeat_interval:
-                    self._thumb_released = True
-        if not self._thumb_released:
-            return
-        click = .5
-        if abs(x) < click and abs(y) < click:
-            return
-        v = x if abs(x) > abs(y) else y
-        step = 1 if v > 0 else -1
-        xyz1, xyz2 = self._picking_segment(hand_controller)
-        m = self._mouse_mode
-        m.vr_thumbstick(xyz1, xyz2, step)
-        self._thumb_released = False
-        from time import time
-        self._thumb_time = time()
+        step = hand_controller.thumbstick_step(x, y)
+        if step:
+            xyz1, xyz2 = self._picking_segment(hand_controller)
+            m = self._mouse_mode
+            m.vr_thumbstick(xyz1, xyz2, step)
             
 def hmd44_to_opengl44(hm44):
     from numpy import array, float32
