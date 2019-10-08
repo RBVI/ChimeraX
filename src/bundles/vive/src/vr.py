@@ -94,8 +94,6 @@ def vr(session, enable = None, room_position = None, display = None,
                 if not wait_for_vsync(session, False):
                     session.logger.warning('Graphics on desktop display may cause VR to flicker.')
             c.desktop_display = display
-            if display == 'independent':
-                c.initialize_desktop_camera_position = True
         if show_controllers is not None:
             c.show_hand_controllers(show_controllers)
         if gui is not None:
@@ -332,9 +330,8 @@ class SteamVRCamera(Camera):
         self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
 
         self.desktop_display = 'mirror'	# What to show in desktop graphics window, 'mirror', 'independent' or 'blank'.
-        self._desktop_camera_position = Place()	#  Used only for desktop_display = "independent" mode.
+        self._desktop_camera_model = None	#  Used only for desktop_display = "independent" mode.
         self.desktop_field_of_view = 90		# Degrees. Used only for desktop_display = "independent" mode.
-        self.initialize_desktop_camera_position = False
 
         self.room_position = Place()	# ChimeraX camera coordinates to room coordinates
         self._room_to_scene = None	# Maps room coordinates to scene coordinates
@@ -396,7 +393,16 @@ class SteamVRCamera(Camera):
     @property
     def desktop_camera_position(self):
         '''Used for moving view with mouse when desktop camera is indpendent of vr camera.'''
-        return self._desktop_camera_position if self.desktop_display == 'independent' else None
+        if self.desktop_display == 'independent':
+            dcm = self._desktop_camera_model
+            if dcm is None:
+                from chimerax.core.geometry import Place
+                p = Place()
+            else:
+                p = dcm.position 
+        else:
+            p = None
+        return p
     
     def _get_room_to_scene(self):
         return self._room_to_scene
@@ -413,23 +419,21 @@ class SteamVRCamera(Camera):
         rts = self._room_to_scene
         if rts is None:
             return   # VR room to scene not yet set.  Leave desktop camera unchanged.
-        tf = new_rts * rts.inverse()
-        mpos = tf * self._desktop_camera_position
-        # Need to remove scale factor.
-        x,y,z = tf.matrix[:,0]
-        from math import sqrt
-        s = 1/sqrt(x*x + y*y + z*z)
-        m = mpos.matrix
-        m[:3,:3] *= s
-        from chimerax.core.geometry import Place
-        self._desktop_camera_position = Place(m)
+        dcm = self._desktop_camera_model
+        if dcm:
+            dcm.update_room_position(new_rts, rts)
     
     def _move_camera_in_room(self, position):
         '''Move camera to given scene position without changing scene position in room.'''
         Camera.set_position(self, position)
-        if self.initialize_desktop_camera_position:
-            self._desktop_camera_position = position
-            self.initialize_desktop_camera_position = False
+        if self.desktop_display == 'independent' and self._desktop_camera_model is None and not self._close:
+            dcm = CameraModel('fixed camera', self._session,
+                              field_of_view = self.desktop_field_of_view,
+                              scene_scale = self.scene_scale)
+            dcm.position = position
+            g = self._vr_control_model_group()
+            g.add([dcm])
+            self._desktop_camera_model = dcm
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
@@ -481,6 +485,7 @@ class SteamVRCamera(Camera):
         if m is not None:
             self._session.models.close([m])
             self._vr_model_group = None
+            self._desktop_camera_model = None
 
     @property
     def closed(self):
@@ -617,7 +622,7 @@ class SteamVRCamera(Camera):
         if view_num is None:
             v = camera_position
         elif view_num == 2:
-            v = self._desktop_camera_position
+            v = self.desktop_camera_position
         else:
             # Stereo eyes view in same direction with position shifted along x.
             es = self.eye_shift_left if view_num == 0 else self.eye_shift_right
@@ -807,6 +812,70 @@ class SteamVRCamera(Camera):
                 return hc
         return None
 
+from chimerax.core.models import Model
+class CameraModel(Model):
+    '''
+    Depict camera in scene when fixed position camera is used
+    to render the desktop graphics window.
+    '''
+    casts_shadows = False
+    pickable = False
+    SESSION_SAVE = False
+
+    def __init__(self, name, session, field_of_view = 90, aspect = 0.6,
+                 width = 0.10, depth = 0.05, scene_scale = 1,
+                 color = (100,255,100,255)):
+        '''Width, height and depth in meters.  Scene scale converts scene to room units.'''
+        Model.__init__(self, name, session)
+        va, na, ta = self._geometry(field_of_view, aspect, width/scene_scale, depth/scene_scale)
+        self.set_geometry(va, na, ta)
+        self.color = color
+
+    def _geometry(self, field_of_view, aspect, width, depth):
+        '''Depict camera as a rectangular cone, with large end along -z axis.'''
+        w = .5 * width
+        h = w * aspect
+        d = depth
+        from math import pi, tan, sin, cos, atan
+        ax = 0.5*field_of_view*pi/180
+        ay = atan(aspect*tan(ax))
+        e = d*tan(ax)
+        w0,h0 = w+e,h+aspect*e
+        from numpy import array, float32, int32, uint8
+        vertices = array([(-w0,h0,-d),(-w,h,0),(w,h,0),(w0,h0,-d),
+                          (-w0,-h0,-d),(-w,-h,0),(w,-h,0),(w0,-h0,-d),
+                          (w0,-h0,-d),(w0,h0,-d),(w,h,0),(w,-h,0),
+                          (-w0,-h0,-d),(-w0,h0,-d),(-w,h,0),(-w,-h,0)],
+                         float32)
+        sx,cx = sin(ax), cos(ax)
+        sy,cy = sin(ay), cos(ay)
+        normals = array([(0,cy,sy),(0,cy,sy),(0,cy,sy),(0,cy,sy),
+                         (0,-cy,sy),(0,-cy,sy),(0,-cy,sy),(0,-cy,sy),
+                         (cx,0,sx),(cx,0,sx),(cx,0,sx),(cx,0,sx),
+                         (-cx,0,sx),(-cx,0,sx),(-cx,0,sx),(-cx,0,sx)],
+                        float32)
+        triangles = array([(0,1,2),(0,2,3),(4,6,5),(4,7,6),
+                           (8,9,10),(8,10,11),(12,14,13),(12,15,14)],
+                          int32)
+        return vertices, normals, triangles
+
+    def update_room_position(self, new_rts, old_rts):
+        tf = new_rts * old_rts.inverse()
+        mpos = tf * self.position
+        # Need to remove scale factor.
+        x,y,z = tf.matrix[:,0]
+        from math import sqrt
+        s = sqrt(x*x + y*y + z*z)
+        m = mpos.matrix
+        m[:3,:3] *= 1/s
+        from chimerax.core.geometry import Place
+        self.position = Place(m)
+        if abs(s - 1) > 1e-5:
+            # Keep camera same size in room coordinates.
+            colors = self.vertex_colors
+            self.set_geometry(s*self.vertices, self.normals, self.triangles)
+            self.vertex_colors = colors
+    
 class UserInterface:
     '''
     Panel in VR showing ChimeraX main window.
