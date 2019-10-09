@@ -316,7 +316,7 @@ class RunModeller(State):
                 setattr(model, attr_name, val)
             model.name = self.target_seq_name
             if model.num_chains == len(self.match_chains):
-                pairings = list(zip(model.chains, self.match_chains))
+                pairings = list(zip(self.match_chains, model.chains))
                 mm.match(self.session, mm.CP_SPECIFIC_SPECIFIC, pairings, mm.defaults['matrix'],
                     mm.defaults['alignment_algorithm'], mm.defaults['gap_open'], mm.defaults['gap_extend'],
                     cutoff_distance=mm.defaults['iter_cutoff'])

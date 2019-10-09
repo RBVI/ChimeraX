@@ -80,6 +80,11 @@ class ContourLevelMouseMode(MouseMode):
         self.log_volume_command()
         self._maps = []
 
+    def vr_thumbstick(self, xyz1, xyz2, step):
+        # Virtual reality hand controller button press.
+        maps = self._picked_maps_on_segment(xyz1, xyz2)
+        adjust_threshold_levels(maps, 0.001*step)
+
     def log_volume_command(self):
         for v in self._maps:
             if isinstance(v, tuple):

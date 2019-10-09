@@ -14,8 +14,7 @@
 #
 def vr(session, enable = None, room_position = None, display = None,
        show_controllers = True, gui = None, click_range = None,
-       multishadow_allowed = False, simplify_graphics = True,
-       toolbar_panels = True):
+       multishadow_allowed = False, simplify_graphics = True):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
@@ -57,9 +56,6 @@ def vr(session, enable = None, room_position = None, display = None,
       Adjust level-of-detail total number of triangles for atoms and bonds to a reduced value
       when VR is enabled, and restore to default value when VR disabled.  This helps maintain
       full rendering speed in VR.  Default true.
-    toolbar_panels : bool
-      Whether to hide mouse modes and shortcut toolbars and instead show them as tool panels.
-      This is useful for consolidating the controls in the VR gui panel.  Default true.
     '''
     
     if enable is None and room_position is None:
@@ -94,23 +90,12 @@ def vr(session, enable = None, room_position = None, display = None,
                 if not wait_for_vsync(session, False):
                     session.logger.warning('Graphics on desktop display may cause VR to flicker.')
             c.desktop_display = display
-            if display == 'independent':
-                c.initialize_desktop_camera_position = True
         if show_controllers is not None:
             c.show_hand_controllers(show_controllers)
         if gui is not None:
             c.user_interface.set_gui_panels([tool_name.strip() for tool_name in gui.split(',')])
         if click_range is not None:
             c.user_interface.set_mouse_mode_click_range(click_range)
-
-    if toolbar_panels:
-        from chimerax.mouse_modes.tool import MouseModePanel
-        from chimerax.shortcuts.tool import ShortcutPanel
-        toolbar_classes = (MouseModePanel, ShortcutPanel)
-        for tb in session.tools.list():
-            if isinstance(tb, toolbar_classes) and tb.displayed():
-                tb.display(False)
-                tb.display_panel(True)
 
 # -----------------------------------------------------------------------------
 # Assign VR hand controller buttons
@@ -121,7 +106,7 @@ def vr_button(session, button, mode, hand = None):
 
     Parameters
     ----------
-    button : 'trigger', 'grip', 'touchpad', 'menu', 'A', 'B', 'X', 'Y'
+    button : 'trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y'
       Name of button to assign.  Buttons A/B are for Oculus controllers and imply hand = 'right',
       and X/Y imply hand = 'left'
     mode : HandMode instance
@@ -152,6 +137,7 @@ def vr_button(session, button, mode, hand = None):
         'menu': openvr.k_EButton_ApplicationMenu,
         'trigger': openvr.k_EButton_SteamVR_Trigger,
         'touchpad': openvr.k_EButton_SteamVR_Touchpad,
+        'thumbstick': openvr.k_EButton_SteamVR_Touchpad,
         'A': openvr.k_EButton_A,
         'B': openvr.k_EButton_ApplicationMenu,
         'X': openvr.k_EButton_A,
@@ -176,13 +162,12 @@ def register_vr_command(logger):
                               ('click_range', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
-                              ('toolbar_panels', BoolArg),
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
     create_alias('vr', 'device vr $*', logger=logger)
 
-    desc = CmdDesc(required = [('button', EnumOf(('trigger', 'grip', 'touchpad', 'menu', 'A', 'B', 'X', 'Y'))),
+    desc = CmdDesc(required = [('button', EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y'))),
                                ('mode', VRModeArg)],
                    keyword = [('hand', EnumOf(('left', 'right')))],
                    synopsis = 'Assign VR hand controller buttons')
@@ -320,9 +305,7 @@ class SteamVRCamera(Camera):
         from sys import platform
         self._use_opengl_flush = (platform == 'darwin')	# On macOS 10.14.1 flickers without glFlush().
 
-        from chimerax.core.geometry import Place
-
-        self._close = False
+        self._close = False		# Whether camera has been closed.
         self._hand_controllers = []	# List of HandController
         self._controller_show = True	# Whether to show hand controllers
         self._controller_next_id = 0	# Used when searching for controllers.
@@ -330,11 +313,11 @@ class SteamVRCamera(Camera):
         self._vr_model_group = None	# Grouping model for hand controllers and UI models
         self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
 
-        self.desktop_display = 'mirror'	# What to show in desktop graphics window, 'mirror', 'independent' or 'blank'.
-        self._desktop_camera_position = Place()	#  Used only for desktop_display = "independent" mode.
-        self.desktop_field_of_view = 90		# Degrees. Used only for desktop_display = "independent" mode.
-        self.initialize_desktop_camera_position = False
+        # What to show in desktop graphics window, 'mirror', 'independent' or 'blank'.
+        self._desktop_display = 'mirror'
+        self._room_camera = RoomCamera() # Used for "independent" desktop display
 
+        from chimerax.core.geometry import Place
         self.room_position = Place()	# ChimeraX camera coordinates to room coordinates
         self._room_to_scene = None	# Maps room coordinates to scene coordinates
 
@@ -378,57 +361,60 @@ class SteamVRCamera(Camera):
         # Exit cleanly
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
         self._close_cb = None
+    
+    def _move_camera_in_room(self, position):
+        '''
+        Move camera to the given scene position without changing
+        the scene position within the room.  This is done whenever
+        the VR headset moves.
+        '''
+        Camera.set_position(self, position)
         
     def _get_position(self):
-        # In independent desktop camera mode this is the desktop camera position,
-        # otherwise it is the VR head mounted display position.
+        '''VR head mounted display position in the scene.'''
         return Camera.get_position(self)
     def _set_position(self, position):
-        '''Move camera in scene while keeping camera in a fixed position in room.'''
-        self.room_to_scene = position * self.position.inverse() * self.room_to_scene
+        '''
+        Move camera scene position while keeping it at a fixed position in the room.
+        This is for when the mouse moves the camera while in VR.
+        '''
+        move = position * self.position.inverse()
         Camera.set_position(self, position)
-        ui = self.user_interface
-        if ui.shown():
-            ui.move()
+        self.room_to_scene = move * self.room_to_scene
     position = property(_get_position, _set_position)
-
-    @property
-    def desktop_camera_position(self):
-        '''Used for moving view with mouse when desktop camera is indpendent of vr camera.'''
-        return self._desktop_camera_position if self.desktop_display == 'independent' else None
     
     def _get_room_to_scene(self):
         return self._room_to_scene
     def _set_room_to_scene(self, p):
-        self._update_desktop_camera(p)
         self._room_to_scene = p
+        # Update positions of models that have fixed room positions.
         self._reposition_user_interface()
+        self._room_camera.scene_moved(p)
     room_to_scene = property(_get_room_to_scene, _set_room_to_scene)
+    '''Transformation from room coordinates to scene coordinates.'''
+        
+    def _reposition_user_interface(self):
+        ui = self.user_interface
+        if ui.shown():
+            ui.move()
 
-    def _update_desktop_camera(self, new_rts):
-        if self.desktop_display != 'independent':
+    def _get_desktop_display(self):
+        return self._desktop_display
+    def _set_desktop_display(self, type):
+        if type == self._desktop_display:
             return
-        # Main camera stays at same position in room.
-        rts = self._room_to_scene
-        if rts is None:
-            return   # VR room to scene not yet set.  Leave desktop camera unchanged.
-        tf = new_rts * rts.inverse()
-        mpos = tf * self._desktop_camera_position
-        # Need to remove scale factor.
-        x,y,z = tf.matrix[:,0]
-        from math import sqrt
-        s = 1/sqrt(x*x + y*y + z*z)
-        m = mpos.matrix
-        m[:3,:3] *= s
-        from chimerax.core.geometry import Place
-        self._desktop_camera_position = Place(m)
+        self._desktop_display = type
+        self._enable_room_camera(type == 'independent')
+    desktop_display = property(_get_desktop_display, _set_desktop_display)
     
-    def _move_camera_in_room(self, position):
-        '''Move camera to given scene position without changing scene position in room.'''
-        Camera.set_position(self, position)
-        if self.initialize_desktop_camera_position:
-            self._desktop_camera_position = position
-            self.initialize_desktop_camera_position = False
+    def _enable_room_camera(self, enable):
+        rc = self._room_camera
+        if enable:
+            texture = self._desktop_drawing().texture
+            parent = self._vr_control_model_group()
+            rc.create_camera_model(parent, self.room_to_scene, texture)
+        else:
+            rc.close(self.render)
         
     def fit_scene_to_room(self,
                           scene_bounds = None,
@@ -466,20 +452,11 @@ class SteamVRCamera(Camera):
         self.room_to_scene = self.room_to_scene * move.inverse()
         for hc in self._hand_controllers:
             hc.update_scene_position(self)
-        
-    def _reposition_user_interface(self):
-        ui = self.user_interface
-        if ui.shown():
-            ui.move()
 
     def close(self, close_cb = None):
         self._close = True
         self._close_cb = close_cb
         self._session.main_view.redraw_needed = True
-        m = self._vr_model_group
-        if m is not None:
-            self._session.models.close([m])
-            self._vr_model_group = None
 
     @property
     def closed(self):
@@ -508,6 +485,10 @@ class SteamVRCamera(Camera):
         self._hand_controllers = []
         
         self.user_interface.close()
+
+        self._room_camera.close(self.render)
+        self._room_camera = None
+
         m = self._vr_model_group
         if m:
             if not m.deleted:
@@ -524,6 +505,7 @@ class SteamVRCamera(Camera):
         self.vr_system = None
         self.compositor = None
         self._delete_framebuffers()
+
         if self._close_cb:
             self._close_cb()	# Replaces the main view camera and resets redraw rate.
 
@@ -607,7 +589,12 @@ class SteamVRCamera(Camera):
 
         for hc in self.hand_controllers():
             hc.process_motion(self)
-        
+
+    @property
+    def desktop_camera_position(self):
+        '''Used for moving view with mouse when desktop camera is indpendent of vr camera.'''
+        return self._room_camera.camera_position
+
     def view(self, camera_position, view_num):
         '''
         Return the Place coordinate frame of the camera.
@@ -616,7 +603,7 @@ class SteamVRCamera(Camera):
         if view_num is None:
             v = camera_position
         elif view_num == 2:
-            v = self._desktop_camera_position
+            v = self._room_camera.camera_position
         else:
             # Stereo eyes view in same direction with position shifted along x.
             es = self.eye_shift_left if view_num == 0 else self.eye_shift_right
@@ -645,10 +632,8 @@ class SteamVRCamera(Camera):
     def projection_matrix(self, near_far_clip, view_num, window_size):
         '''The 4 by 4 OpenGL projection matrix for rendering the scene.'''
         if view_num == 2:
-            pixel_shift = (0,0)
-            fov = self.desktop_field_of_view
-            from chimerax.core.graphics.camera import perspective_projection_matrix
-            return perspective_projection_matrix(fov, window_size, near_far_clip, pixel_shift)
+            p = self._room_camera.projection_matrix(near_far_clip, view_num, window_size)
+            return p
         elif view_num == 0:
             p = self.projection_left
         elif view_num == 1:
@@ -664,17 +649,16 @@ class SteamVRCamera(Camera):
         left_fb, right_fb = self._eye_framebuffers(render)
         if view_num == 0:  # VR left-eye
             render.push_framebuffer(left_fb)
-            render.mix_video = False
         elif view_num == 1:  # VR right-eye
             # Submit left eye texture (view 0) before rendering right eye (view 1)
             self._submit_eye_image('left', left_fb.openvr_texture, render)
             render.pop_framebuffer()
             render.push_framebuffer(right_fb)
-        elif view_num == 2: # desktop view
+        elif view_num == 2: # independent camera desktop view
             # Submit right eye texture (view 1) before rendering desktop (view 2)
             self._submit_eye_image('right', right_fb.openvr_texture, render)
-            render.mix_video = True  # For making mixed reality videos
-            render.mix_depth_scale = self.scene_scale
+            render.pop_framebuffer()
+            self._room_camera.start_rendering(render, self.scene_scale)
 
     def _submit_eye_image(self, side, texture, render):
         '''Side is "left" or "right".'''
@@ -710,9 +694,13 @@ class SteamVRCamera(Camera):
         
         if self.desktop_display in ('mirror', 'independent'):
             # Render right eye to ChimeraX window.
+            drawing = self._desktop_drawing()
             from chimerax.core.graphics.drawing import draw_overlays
-            draw_overlays([self._desktop_drawing(render.render_size())], render)
+            draw_overlays([drawing], render)
 
+        if self.desktop_display == 'independent':
+            self._room_camera.finish_rendering(render)
+            
         if self._close:
             self._delayed_close()
 
@@ -739,15 +727,21 @@ class SteamVRCamera(Camera):
                 ovrt.eColorSpace = openvr.ColorSpace_Gamma
         return fbs
 
-    def _desktop_drawing(self, window_size):
+    def _desktop_drawing(self):
         '''Used  to render ChimeraX desktop graphics window.'''
+        if self.desktop_display == 'independent':
+            texture = self._room_camera.framebuffer(self.render).color_texture
+        else:
+            texture = self._framebuffers[1].color_texture
         td = self._texture_drawing
         if td is None:
             # Drawing object for rendering to ChimeraX window
             from chimerax.core.graphics.drawing import _texture_drawing
-            t = self._framebuffers[1].color_texture
-            self._texture_drawing = td = _texture_drawing(t)
+            self._texture_drawing = td = _texture_drawing(texture)
             td.opaque_texture = True
+        else:
+            td.texture = texture
+        window_size = self.render.render_size()
         from chimerax.core.graphics.drawing import match_aspect_ratio
         match_aspect_ratio(td, window_size)
         return td
@@ -806,16 +800,209 @@ class SteamVRCamera(Camera):
                 return hc
         return None
 
+class RoomCamera:
+    '''Camera fixed in room for mirroring to desktop.'''
+    def __init__(self):
+        self._framebuffer = None	# Framebuffer for rendering room camera view.
+        self._camera_model = None	# Shows camera in VR scene.
+#        self._field_of_view = 90	# Degrees.  Horizontal.
+        self._field_of_view = 69.4	# Degrees.  Horizontal.
+        self._background_color = (.1,.1,.1,1)	# RGBA, float 0-1
+        self._settings = None		# Saved preferences, room position.
+
+    def delete(self, render):
+        self._delete_framebuffer(render)
+
+    def close(self, render):
+        self._delete_framebuffer(render)
+        self._save_camera_position()
+        cm = self._camera_model
+        if cm:
+            cm.delete()
+            self._camera_model = None
+        
+    @property
+    def enabled(self):
+        return self._camera_model is not None
+
+    @property
+    def camera_position(self):
+        cm = self._camera_model
+        if cm is None:
+            from chimerax.core.geometry import Place
+            p = Place()
+        else:
+            p = cm.position
+        return p
+
+    def scene_moved(self, new_room_to_scene):
+        '''
+        Adjust camera scene position so that it stays
+        at the same position in the room.
+        '''
+        cm = self._camera_model
+        if cm:
+            cm.update_scene_position(new_room_to_scene)
+
+    def projection_matrix(self, near_far_clip, view_num, window_size):
+        pixel_shift = (0,0)
+        fov = self._field_of_view
+        from chimerax.core.graphics.camera import perspective_projection_matrix
+        return perspective_projection_matrix(fov, window_size, near_far_clip, pixel_shift)
+    
+    def create_camera_model(self, parent, room_to_scene, texture):
+        if self._camera_model:
+            return
+
+        cm = RoomCameraModel('Room camera', parent.session, texture, room_to_scene)
+        cm.room_position = self._initial_room_position(parent.session)
+        self._camera_model = cm
+        parent.add([cm])
+
+    def _initial_room_position(self, session):
+        if self._settings is None:
+            from chimerax.core.geometry import translation
+            # Centered 1.5 meters off floor, 2 meters from center
+            default_position = translation((0, 1.5, 2))
+            m = tuple(tuple(row) for row in default_position.matrix)
+            from chimerax.core.settings import Settings
+            class _VRRoomCameraSettings(Settings):
+                EXPLICIT_SAVE = {
+                    'independent_camera_position': m,
+                }
+            self._settings = _VRRoomCameraSettings(session, "vr_room_camera")
+        from chimerax.core.geometry import Place
+        p = Place(self._settings.independent_camera_position)
+        return p
+
+    def _save_camera_position(self):
+        settings = self._settings
+        cm = self._camera_model
+        if settings is None or cm is None:
+            return
+        m = tuple(tuple(row) for row in cm.room_position.matrix)
+        settings.independent_camera_position = m
+        settings.save()
+        
+    def start_rendering(self, render, scene_scale):
+        fb = self.framebuffer(render)
+        render.push_framebuffer(fb)
+
+        # Set paramters for mixed reality blending.
+        render.mix_video = True  # For making mixed reality videos
+        render.mix_depth_scale = scene_scale
+
+        # Don't render camera model in desktop camera view.
+        self.enable_draw = False
+        
+        # Make background contrast with room background so vr user can see boundary.
+        render.set_background_color(self._background_color)
+
+    def finish_rendering(self, render):
+        # Turn off mixed reality blending.
+        render.mix_video = False
+
+        # Reenable camera model rendering for VR eye views.
+        self.enable_draw = True
+
+    def enable_draw(self, enable):
+        cm = self._camera_model
+        if cm:
+            cm.enable_draw = enable
+
+    def framebuffer(self, render):
+        rfb = render.default_framebuffer()
+        tw,th = rfb.width, rfb.height
+        fb = self._framebuffer
+        if fb is None or fb.width != tw or fb.height != th:
+            self._delete_framebuffer(render)
+            from chimerax.core.graphics import Texture, opengl
+            t = Texture()
+            t.initialize_rgba((tw,th))
+            fb = opengl.Framebuffer('VR desktop', render.opengl_context, color_texture = t)
+            self._framebuffer = fb
+            cm = self._camera_model
+            if cm:
+                cm.texture = t
+        return fb
+
+    def _delete_framebuffer(self, render):
+        fb = self._framebuffer
+        if fb:
+            render.make_current()
+            fb.delete()
+            self._framebuffer = None
+    
+from chimerax.core.models import Model
+class RoomCameraModel(Model):
+    '''
+    Depict camera in scene when fixed position camera is used
+    to render the desktop graphics window.  The camera looks in the -z direction.
+    The camera is shown as a rectangle and texture mapped onto it is what the camera sees.
+    '''
+    casts_shadows = False
+#    skip_bounds = True   # Camera screen disappears if it is far from models
+    SESSION_SAVE = False
+
+    def __init__(self, name, session, texture, room_to_scene, width = 1):
+        '''Width in meters.'''
+        self.enable_draw = True
+        self._last_room_to_scene = room_to_scene
+        Model.__init__(self, name, session)
+        from chimerax.core.geometry import norm
+        scene_width = width * room_to_scene.scale_factor()
+        tw, th = texture.size
+        scene_height = th * scene_width/tw
+        va, na, tc, ta = self._geometry(scene_width, scene_height)
+        self.set_geometry(va, na, ta)
+        self.use_lighting = False
+        self.texture_coordinates = tc
+        self.texture = texture
+        self.opaque_texture = True
+
+        # Avoid camera disappearing when far from models
+        self.allow_depth_cue = False
+
+    def _get_room_position(self):
+        return (self._last_room_to_scene.inverse() * self.position).remove_scale()
+    def _set_room_position(self, room_position):
+        self.position = (self._last_room_to_scene * room_position).remove_scale()
+    room_position = property(_get_room_position, _set_room_position)
+    
+    def _geometry(self, width, height):
+        '''Depict camera as a rectangle perpendicular to z axis.'''
+        w, h = .5 * width, .5 * height
+        from numpy import array, float32, int32, uint8
+        vertices = array([(-w,-h,0),(-w,h,0),(w,h,0),(w,-h,0)], float32)
+        normals = array([(0,0,-1),(0,0,-1),(0,0,-1),(0,0,-1)], float32)
+        texcoords = array([(1,0),(1,1),(0,1),(0,0)], float32)
+        triangles = array([(0,1,2),(0,2,3)], int32)
+        return vertices, normals, texcoords, triangles
+
+    def draw(self, renderer, draw_pass):
+        if self.enable_draw:
+            Model.draw(self, renderer, draw_pass)
+            
+    def update_scene_position(self, new_rts):
+        old_rts = self._last_room_to_scene
+        self._last_room_to_scene = new_rts
+        move = new_rts * old_rts.inverse()
+        mpos = move * self.position
+        # Need to remove scale factor.
+        from chimerax.core.geometry import norm, Place
+        s = norm(move.matrix[:,0])
+        m = mpos.matrix
+        m[:3,:3] *= 1/s
+        self.position = Place(m)
+        if abs(s - 1) > 1e-5:
+            # Keep camera same size in room coordinates.
+            self.set_geometry(s*self.vertices, self.normals, self.triangles)
+
 class UserInterface:
     '''
     Panel in VR showing ChimeraX main window.
     Buttons can be clicked with hand controllers.
     '''
-    casts_shadows = False
-    pickable = False
-    skip_bounds = True
-    SESSION_SAVE = False
-
     def __init__(self, camera, session):
         self._camera = camera
         self._session = session
@@ -1204,9 +1391,12 @@ class UserInterface:
         ses = self._session
         from chimerax.core.models import Model
         m = Model('User interface', ses)
-        m.skip_bounds = True
         m.color = (255,255,255,255)
         m.use_lighting = False
+        # m.skip_bounds = True  # User interface clipped if far from models.
+        m.casts_shadows = False
+        m.pickable = False
+        m.SESSION_SAVE = False
         ses.models.add([m], parent = parent)
         return m
 
@@ -1262,7 +1452,7 @@ class Panel:
         d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
-        d.skip_bounds = True
+        # d.skip_bounds = True	# Clips if far from models.
         drawing_parent.add_drawing(d)
         return d
 
@@ -1471,7 +1661,7 @@ class Panel:
         '''In pixels.'''
         pw = self.widget
         if pw is None:
-            return None, Non
+            return None, None
         return pw.width(),pw.height() + self._titlebar_height
 
     def _button_rectangle(self, widget):
