@@ -29,7 +29,7 @@ class HBondsTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
         from .gui import HBondsGUI
-        self.gui = HBondsGUI(session)
+        self.gui = HBondsGUI(session, tw)
         layout.addWidget(self.gui)
         tw.manage(placement=None)
 

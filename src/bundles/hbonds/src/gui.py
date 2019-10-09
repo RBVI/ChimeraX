@@ -15,11 +15,12 @@ from chimerax.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
 from .hbond import rec_dist_slop, rec_angle_slop
 from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import Qt
 from chimerax.ui.options import Option, OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
     OptionalRGBAOption, make_optional
 
 class HBondsGUI(QWidget):
-    def __init__(self, session, *, settings_name="",
+    def __init__(self, session, tool_window, *, settings_name="",
             # settings_name values:
             #   empty string: remembered across sessions and the same as for the main H-bond GUI
             #   custom string (e.g. "rotamers"):  remembered across sessions and specific to your
@@ -60,7 +61,6 @@ class HBondsGUI(QWidget):
 
         super().__init__()
         from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, QRadioButton
-        from PyQt5.QtCore import Qt
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -121,7 +121,7 @@ class HBondsGUI(QWidget):
                 relax_layout.addLayout(slop_layout)
                 slop_layout.addWidget(QLabel("Relax constraints by:"),
                     alignment=Qt.AlignRight | Qt.AlignVCenter)
-                slop_options = OptionsPanel(sorting=False, scrolled=False)
+                slop_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
                 slop_layout.addWidget(slop_options, alignment=Qt.AlignLeft | Qt.AlignVCenter)
                 self.__dist_slop_option = FloatOption("", None if settings else dist_slop, None,
                     attr_name="dist_slop", settings=settings)
@@ -132,7 +132,7 @@ class HBondsGUI(QWidget):
                 self.__angle_slop_option.widget.setSuffix("\N{DEGREE SIGN}")
                 slop_options.add_option(self.__angle_slop_option)
             if show_slop_color:
-                slop_color_options = OptionsPanel(sorting=False, scrolled=False)
+                slop_color_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
                 relax_layout.addWidget(slop_color_options)
                 if final_val['two_colors']:
                     default_value = final_val['slop_color']
@@ -144,16 +144,17 @@ class HBondsGUI(QWidget):
                     " differently", default_value, None, **kw)
                 slop_color_options.add_option(self.__slop_color_option)
 
-        self.__bottom_options = bottom_options = OptionsPanel(sorting=False, scrolled=False)
+        self.__bottom_options = bottom_options = OptionsPanel(sorting=False, scrolled=False,
+            contents_margins=(0,0,0,0))
         layout.addWidget(bottom_options)
 
         if show_model_restrict:
-            self.__model_restrict_option = OptionalModelRestrictOption(session, "Restrict to models...",
-                None, self._model_restrict_cb, class_filter=AtomicStructure)
+            self.__model_restrict_option = OptionalModelRestrictOption(session, tool_window,
+                "Restrict to models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
             bottom_options.add_option(self.__model_restrict_option)
 
         if show_bond_restrict:
-            self.__bond_restrict_option = HBondRestrictOption("Only find H-bonds",
+            self.__bond_restrict_option = HBondRestrictOption(tool_window, "Only find H-bonds",
                 None if settings else restrict, None, attr_name="restrict", settings=settings)
             bottom_options.add_option(self.__bond_restrict_option)
 
@@ -194,29 +195,34 @@ class HBondsGUI(QWidget):
         self.__bottom_options.change_label_for_option(opt, new_label)
 
 class ModelRestrictOption(Option):
-    def __init__(self, session, *args, **kw):
+    def __init__(self, session, tool_window, *args, **kw):
         self.session = session
+        self.tool_window = tool_window
         super().__init__(*args, **kw)
 
     def get_value(self):
         return self.widget.value
 
     def set_value(self, value):
-        self.widget.value = value
+        if value is None:
+            self._model_chooser.hide()
+            self.tool_window.shrink_to_fit()
+        else:
+            self._model_chooser.show()
+            self.widget.value = value
 
     value = property(get_value, set_value)
 
+    def make_callback(self):
+        if self.value is None:
+            self._model_chooser.hide()
+            self.tool_window.shrink_to_fit()
+        else:
+            self._model_chooser.show()
+        super().make_callback()
+
     def set_multiple(self):
         pass
-
-    def _set_enabled(self, enabled):
-        if enabled:
-            self._model_chooser.show()
-        else:
-            self._model_chooser.hide()
-        super().enabled = enabled
-
-    enabled = property(Option.enabled.fget, _set_enabled)
 
     def _make_widget(self, **kw):
         from chimerax.ui.widgets import ModelListWidget
@@ -231,6 +237,10 @@ class HBondRestrictOption(Option):
         "with both ends selected")
     atom_spec_menu_text = "between selection and atom spec..."
 
+    def __init__(self, tool_window, *args, **kw):
+        self.tool_window = tool_window
+        super().__init__(*args, **kw)
+
     def get_value(self):
         text = self.__push_button.text()
         for val, val_text in zip(self.restrict_kw_vals, self.fixed_kw_menu_texts):
@@ -239,10 +249,11 @@ class HBondRestrictOption(Option):
         return self.__line_edit.text()
 
     def set_value(self, value):
-        try:
-            self.__push_button.setText(self.fixed_kw_menu_texts[0])
+        if value in self.restrict_kw_vals:
+            self.__push_button.setText(self.fixed_kw_menu_texts[self.restrict_kw_vals.index(value)])
             self.__line_edit.hide()
-        except KeyError:
+            self.tool_window.shrink_to_fit()
+        else:
             self.__push_button.setText(self.atom_spec_menu_text)
             self.__line_edit.setText(value)
             self.__line_edit.show()
@@ -255,20 +266,22 @@ class HBondRestrictOption(Option):
     def _make_widget(self, *, display_value=None, **kw):
         if display_value is None:
             display_value = self.fixed_kw_menu_texts[0]
-        from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QMenu, QAction, QLineEdit
-        self.widget = QWidget()
-        layout = QHBoxLayout()
-        self.widget.setLayout(layout)
+        from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QMenu, QAction, QLineEdit
+        self.widget = layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
         self.__push_button = QPushButton(display_value, **kw)
+        self.__push_button.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         menu = QMenu()
         self.__push_button.setMenu(menu)
         for label in self.fixed_kw_menu_texts + (self.atom_spec_menu_text,):
             action = QAction(label, self.__push_button)
             action.triggered.connect(lambda arg, s=self, lab=label: self._menu_cb(lab))
             menu.addAction(action)
-        layout.addWidget(self.__push_button)
+        layout.addWidget(self.__push_button, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         self.__line_edit = QLineEdit()
-        layout.addWidget(self.__line_edit)
+        self.__line_edit.setMinimumWidth(72)
+        layout.addWidget(self.__line_edit, alignment=Qt.AlignCenter)
 
     def _menu_cb(self, label):
         if label in self.fixed_kw_menu_texts:
