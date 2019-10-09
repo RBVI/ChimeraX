@@ -14,8 +14,7 @@
 #
 def vr(session, enable = None, room_position = None, display = None,
        show_controllers = True, gui = None, click_range = None,
-       multishadow_allowed = False, simplify_graphics = True,
-       toolbar_panels = True):
+       multishadow_allowed = False, simplify_graphics = True):
     '''
     Enable stereo viewing and head motion tracking with virtual reality headsets using SteamVR.
 
@@ -57,9 +56,6 @@ def vr(session, enable = None, room_position = None, display = None,
       Adjust level-of-detail total number of triangles for atoms and bonds to a reduced value
       when VR is enabled, and restore to default value when VR disabled.  This helps maintain
       full rendering speed in VR.  Default true.
-    toolbar_panels : bool
-      Whether to hide mouse modes and shortcut toolbars and instead show them as tool panels.
-      This is useful for consolidating the controls in the VR gui panel.  Default true.
     '''
     
     if enable is None and room_position is None:
@@ -100,15 +96,6 @@ def vr(session, enable = None, room_position = None, display = None,
             c.user_interface.set_gui_panels([tool_name.strip() for tool_name in gui.split(',')])
         if click_range is not None:
             c.user_interface.set_mouse_mode_click_range(click_range)
-
-    if toolbar_panels:
-        from chimerax.mouse_modes.tool import MouseModePanel
-        from chimerax.shortcuts.tool import ShortcutPanel
-        toolbar_classes = (MouseModePanel, ShortcutPanel)
-        for tb in session.tools.list():
-            if isinstance(tb, toolbar_classes) and tb.displayed():
-                tb.display(False)
-                tb.display_panel(True)
 
 # -----------------------------------------------------------------------------
 # Assign VR hand controller buttons
@@ -175,7 +162,6 @@ def register_vr_command(logger):
                               ('click_range', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
-                              ('toolbar_panels', BoolArg),
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('device vr', desc, vr, logger=logger)
