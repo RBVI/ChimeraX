@@ -208,7 +208,7 @@ void main (void)
   zt = (zt == 0 ? 1 : zt);  // Depth 0 means unknown depth, change to maximum depth
   float znear = tex_depth_projection.x, fdfmn = tex_depth_projection.y;
   float zs = max(znear, zt*dscale);
-  gl_FragDepth = min(.99, fdfmn * (zs - znear) / zs);
+  gl_FragDepth = min(.99999, fdfmn * (zs - znear) / zs);
 #endif
 
 #ifdef USE_TEXTURE_2D
