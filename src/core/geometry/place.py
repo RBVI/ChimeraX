@@ -207,6 +207,25 @@ class Place:
         m = self._matrix.copy()
         m[:, 3] *= s
         return Place(m)
+
+    def scale_factor(self):
+        '''
+        Scale factor assuming a rotation times a scale factor.
+        '''
+        m = self._matrix
+        from math import sqrt
+        s = sqrt(m[0,0]*m[0,0] + m[1,0]*m[1,0] + m[2,0]*m[2,0])
+        return s
+
+    def remove_scale(self):
+        '''
+        Return a copy of the transform with unit scale factor
+        assuming it is a rotation times a scale factor.
+        '''
+        s = self.scale_factor()
+        m = self._matrix.copy()
+        m[:3,:3] *= 1/s
+        return Place(m)
         
     def opengl_matrix(self):
         '''
