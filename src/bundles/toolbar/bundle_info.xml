@@ -76,6 +76,8 @@ Provides a Windows ribbon-style toolbar interface
       name="layout-lighting" after="Background"/>
     <Provider tab="Graphics" section="Camera"
       name="layout-cam" after="Lighting &amp; Effects"/>
+    <Provider tab="Graphics" section="Camera"
+      name="Side view" icon="sideview.png" description="Show side view tool"/>
 
     <!-- Map tab -->
     <Provider tab="Map" after="Graphics"
