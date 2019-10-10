@@ -92,11 +92,6 @@ class Structure(Model, StructureData):
             return id
         return '%s %s' % (self.name, id)
 
-    @property
-    def atomspec(self):
-        '''Return the atom specifier string for this structure.'''
-        return '#' + self.id_string
-
     def delete(self):
         '''Delete this structure.'''
         t = self.session.triggers
