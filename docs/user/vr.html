@@ -29,9 +29,10 @@ class="clRight" title="User Guide Index"/></a>
 <table align=center border=1 cellpadding=8 cellspacing=0 bgcolor="#f0f0f0">
 <tr><td width=600>
 <font color="red"><b>Warning</b></font>:
-ChimeraX virtual reality (VR) capabilities are a work in progress.  We recommend using
-Windows 10 where VR equipment works best.  It is possible to use on Mac and Linux but less
-stable, see details for <a href="http://www.cgl.ucsf.edu/chimera/data/mac-vr-nov2018/mac-vr.html"
+ChimeraX virtual reality (VR) capabilities are a work in progress. 
+We recommend using Windows 10 where VR equipment works best.
+It is possible to use on Mac and Linux but less stable, see details for 
+<a href="http://www.cgl.ucsf.edu/chimera/data/mac-vr-nov2018/mac-vr.html"
 target="_blank">Mac VR</a>,
 <a href="http://www.cgl.ucsf.edu/chimera/data/linux-vr-oct2018/linuxvr.html"
 target="_blank">Linux VR</a>.
@@ -102,8 +103,8 @@ alt="Vive hand controllers" width="300px"></a>
 Any models displayed in ChimeraX can be shown in virtual reality headsets
 supported by <a href="http://steamvr.com">SteamVR</a>, such as HTC Vive, 
 Oculus Rift and Samsung Odyssey.
-Descriptions here are for Vive hand controllers, but other hand controllers
-have buttons that are generally similar in position and function.
+Most descriptions here are for Vive hand controllers, but other systems have 
+hand-controller buttons that are generally similar in position and function.
 </p><p>
 Vive controllers each have a <b><i>trigger</i></b>
 to &ldquo;pull&rdquo; with the index finger,
@@ -146,22 +147,31 @@ Models in ChimeraX should then appear in the VR headset.
 <a name="default-controller"></a>
 The hand-controller positions are shown in the headset as cones,
 and icons on the cones indicate button functions
-or <a href="#mousemodes">modes</a>:
+or <a href="#mousemodes">modes</a>. Default assignments:
 </p>
+
+<a name="default-controller"></a>
 <table border cellpadding="4" cellspacing="0"><tr>
-<td align="center">rotate
+<td align="center" width="35%">rotate
 <br><img src="tools/mouse-icons/rotate.png" class="icon3"></td>
 <td class="text">&nbsp;rotate hand controller
 with <b><i>trigger</i></b> pressed</td>
 <td rowspan="5" align="center" valign="center" width="200px">
 <a href="tutorials/dicom-vr6.png">
 <img class="outline" src="tutorials/dicom-vr6.png" title="click to enlarge..."
-alt="underside of cone" width="160px"></a>
+alt="underside of cone" width="120px"></a>
 <br><br><font size="-1">
-The icon on the cone &ldquo;underside&rdquo; shows that the
+The icon on the cone &ldquo;underside&rdquo; shows that the Vive
 <b><i>trigger</i></b> is assigned to translation (and rotation),
 and the icon on the side shows that the <b><i>grip</i></b> button
 is assigned to center and rescale.
+</font>
+<br><br><a href="tutorials/oculus-cone2.png">
+<img class="outline" src="tutorials/oculus-cone2.png" title="click to enlarge..."
+alt="cone for Oculus" width="50px"></a>
+<br><br><font size="-1">
+For Oculus (<i>vs.</i> Vive), the icons are arranged differently on the cones
+to reflect the different physical positions of the buttons on the controllers.
 </font>
 </tr><tr>
 <td align="center">translate in 3D
@@ -173,31 +183,40 @@ is assigned to center and rescale.
 <td class="text">
 &nbsp;move hand controllers farther apart or closer
 together with both <b><i>triggers</i></b> pressed
-<br>&ndash; or &ndash;<br>
+<br>&nbsp;&nbsp;&ndash; or &ndash;<br>
 &nbsp;move hand controller vertically with 
 Vive <b><i>trackpad</i></b> pressed (Oculus A/X button)
 </td>
 </tr><tr>
 <td align="center">center and rescale
-<br>(useful to recover the view)
 <br><img src="tools/shortcut-icons/viewall.png" class="icon2"></td>
-<td class="text">&nbsp;click Vive <b><i>grip</i></b> button
+<td class="text">&nbsp;Vive <b><i>grip</i></b> button
 </td>
 </tr><tr>
 <td align="center" class="text">
-show, hide, move control panel</td>
+collectively show, hide, move tool panels
+<br><br>
+(a panel can be moved individually by
+click-dragging with any button on the title bar, 
+or on a blank area if no title bar)
+</td>
 <td class="text">
-&nbsp;use Vive <b><i>menu</i></b> button (Oculus B/Y button)
+&nbsp;Vive <b><i>menu</i></b> button (Oculus B/Y button)
 </td>
 </tr></table>
 <p>
-The control panel is just the ChimeraX desktop user interface 
-(by <a href="commands/device.html#vr">default</a>,
-the righthand panel of tool windows). Displaying this panel in the
-headset allows &ldquo;clicking&rdquo; normal desktop controls
-such as to <a href="#displayicons">adjust the display</a> 
-and to <a href="#mousemodes">reassign modes</a>.
-Oculus <b><i>grip</i></b> buttons have the same defaults as the triggers.
+The Oculus <b><i>grip</i></b> buttons have the same defaults as the 
+<b><i>triggers</i></b>. The Oculus <b><i>thumbstick</i></b> righthand
+default is to zoom with forward/backward tilt, and the lefthand 
+default is to rotate about the vertical axis with left/right tilt
+and about the horizontal axis with forward/backward tilt.
+</p><p>
+Showing the ChimeraX tool panels including the 
+<a href="tools/toolbar.html"><b>Toolbar</b></a> allows
+&ldquo;clicking&rdquo; icons to <a href="#displayicons">adjust the display</a> 
+and <a href="#mousemodes">reassign button functions</a>.
+In Windows only, the ChimeraX <a href="menu.html">main menu</a> is among
+the tool panels shown.
 </p><p>
 The physical room bounds are shown
 with blue squares when the headset or a hand controller 
@@ -219,26 +238,29 @@ desktop display, use the ChimeraX command:
 <p>
 Most of the ChimeraX &ldquo;mouse&rdquo; modes
 (function assignments) can be used with the VR hand controllers.
-To assign a function to a hand-controller button:
+The function of a hand-controller button can be reassigned
+by using it to &ldquo;click&rdquo; the corresponding mode icon in
+one of the following <a href="tools/toolbar.html"><b>Toolbar</b></a> tabs:
 </p>
-<ol>
-<li>Press the Vive <b><i>menu</i></b> button to show the ChimeraX control panel
-with <a href="tools/toolbar.html"><b>Toolbar</b></a> icons in the headset. 
-Icons in the following tabs are used to assign modes:
-  <ul>
-  <li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>:&nbsp;
-  <img class="iconbar" src="mouse-icons.png">
-  <li><a href="tools/markers.html"><b>Markers</b></a>:&nbsp;
-  <img class="iconbar" src="marker-icons.png">
-  </ul>
-<br>
-<li>Put the tip of a hand controller cone on a mode-assignment icon
-and click with the
-<b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b> button
-to reassign that button to the function;
-the icon will pop up slightly when the cone tip is in position to click it.
-</ol>
+<ul>
+<li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>:&nbsp;
+<img class="iconbar" src="mouse-icons.png">
+<li><a href="tools/markers.html"><b>Markers</b></a>:&nbsp;
+<img class="iconbar" src="marker-icons.png">
+</ul>
 <p>
+Headset display of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+and other ChimeraX tool panels can be toggled with the
+the Vive <b><i>menu</i></b> button or Oculus B/Y button.
+</p><p>
+Putting the tip of a hand controller cone on a mode-assignment icon
+and clicking with the Vive
+<b><i>trigger</i></b>, <b><i>trackpad</i></b>, or <b><i>grip</i></b> button
+(or Oculus <b><i>trigger</i></b>, <b><i>grip</i></b>, A, X, or
+<b><i>thumbstick</i></b>) reassigns that button to the function;
+the icon will pop up slightly when the cone tip is in position to click it.
+However, the only modes that can be controlled by tilting the Oculus 
+<b><i>thumbstick</i></b> are rotate, zoom, contour level, and play map series.
 Hand-controller modes can also be assigned with the command 
 <a href="commands/device.html#vr-button"><b>vr button</b></a>.
 </p><p>
@@ -280,7 +302,7 @@ Functions are described in more detail in the
   <li>swap an amino acid
   <li>limit atomic and map display to a zone around a residue
   <li>&ldquo;windowing&rdquo; 
-   &ndash; adjust volume image display thresholds collectively
+   &ndash; adjust map thresholds collectively
 </ul>
 <p>
 Modes that require clicking on an atom such as selection or labeling 
@@ -300,11 +322,9 @@ separate mouse modes on the desktop but a single hand-controller mode in VR.
 </p>
 <h3>Changing the Display</h3>
 <p>
-Molecule or map display (styles, <i>etc.</i>)
-can be changed by displaying the ChimeraX
-control panel in the headset using the Vive controller <b><i>menu</i></b>
-button, then using the hand controllers to &ldquo;click&rdquo;
-<a href="tools/toolbar.html"><b>Toolbar</b></a> icons:
+Molecule and map display styles, <i>etc.</i> can be changed 
+by using the hand controllers to &ldquo;click&rdquo;
+icons in the <a href="tools/toolbar.html"><b>Toolbar</b></a>:
 </p>
 <ul>
 <li><a href="tools/moldisplay.html"><b>Molecule Display</b></a>:&nbsp;
@@ -313,12 +333,13 @@ button, then using the hand controllers to &ldquo;click&rdquo;
 <img class="iconbar" src="density-icons.png">
 </ul>
 <p>
+Headset display of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+and other ChimeraX tool panels can be toggled with the
+the Vive <b><i>menu</i></b> button or Oculus B/Y button.
+</p><p>
 An icon will pop up slightly when the cone tip is in position to click it.
 The scope of action of these icons can be limited by
 <a href="selection.html">selection</a>.
-</p><p>
-Alternatively, the display can be changed by removing the headset and using
-the ChimeraX interface on the conventional display with mouse and keyboard.
 </p>
 
 <a name="interactive"></a>
@@ -431,18 +452,19 @@ coordset <b>pauseFrames 9</b> option to slow the playback rate from the
 </p>
 
 <p>
-  <b>SteamVR room boundaries wrong.</b>
-  Sometimes tracing room boundaries using room-scale room setup in SteamVR produces
-  incorrect results (November 2018).
-  We have observed this when the traced space is not a simple rectangle because of a desk
-  against one wall.  Tracing around the desk joins the 6 corners of the bounds in
-  the wrong order -- a different order than they were traced.  It is unclear what is wrong
-  with the SteamVR room setup algorithm.  But we have found that clicking the room tracing
-  "Advanced Mode" checkbutton which allows you to click at each corner of the room reliably
-  produces the correct SteamVR bounds.
+<b>SteamVR room boundaries wrong.</b>
+Sometimes tracing room boundaries using room-scale room setup in SteamVR produces
+incorrect results (November 2018).
+We have observed this when the traced space is not a simple rectangle 
+because of a desk against one wall.
+Tracing around the desk joins the 6 corners of the bounds in the wrong order 
+&ndash; a different order than they were traced. It is unclear what is wrong
+with the SteamVR room setup algorithm, but we have found that clicking 
+the room tracing "Advanced Mode" checkbutton which allows you to click 
+at each corner of the room reliably produces the correct SteamVR bounds.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2019</address>
+October 2019</address>
 </body></html> 
