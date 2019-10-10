@@ -58,7 +58,7 @@ ChimeraX can also <a href="vrphone.html">record 360&deg; movies</a>.
 <ul class="none">
 <li><a href="#starting"><b>Starting VR Mode</b></a>
 <li><a href="#mousemodes"><b>Hand-Controller Modes</b></a>
-<li><a href="#displayicons"><b>Changing the Display</b></a>
+<li><a href="#displayicons"><b>Other Icons: Changing the Display, Etc.</b></a>
 <li><a href="#interactive"><b>Limitations of Interactive Viewing</b></a>
 </ul>
 
@@ -197,19 +197,20 @@ Vive <b><i>trackpad</i></b> pressed (Oculus A/X button)
 collectively show, hide, move tool panels
 <br><br>
 (a panel can be moved individually by
-click-dragging with any button on the title bar, 
-or on a blank area if no title bar)
+click-dragging with any button on its title bar, 
+or on a blank area in the panel if no title bar)
 </td>
 <td class="text">
 &nbsp;Vive <b><i>menu</i></b> button (Oculus B/Y button)
 </td>
 </tr></table>
 <p>
-The Oculus <b><i>grip</i></b> buttons have the same defaults as the 
+The Oculus <b><i>grip</i></b> buttons have the same defaults as the
 <b><i>triggers</i></b>. The Oculus <b><i>thumbstick</i></b> righthand
-default is to zoom with forward/backward tilt, and the lefthand 
-default is to rotate about the vertical axis with left/right tilt
-and about the horizontal axis with forward/backward tilt.
+default is to zoom (forward and rightward tilts push models away),
+and the lefthand default is to rotate models about the center of their
+bounding box (left/right tilt to rotate around the vertical axis,
+forward/backward tilt to rotate around the horizontal axis).
 </p><p>
 Showing the ChimeraX tool panels including the 
 <a href="tools/toolbar.html"><b>Toolbar</b></a> allows
@@ -259,10 +260,20 @@ and clicking with the Vive
 (or Oculus <b><i>trigger</i></b>, <b><i>grip</i></b>, A, X, or
 <b><i>thumbstick</i></b>) reassigns that button to the function;
 the icon will pop up slightly when the cone tip is in position to click it.
-However, the only modes that can be controlled by tilting the Oculus 
-<b><i>thumbstick</i></b> are rotate, zoom, contour level, and play map series.
 Hand-controller modes can also be assigned with the command 
 <a href="commands/device.html#vr-button"><b>vr button</b></a>.
+However, the only modes that can be controlled by tilting the Oculus 
+<b><i>thumbstick</i></b> are rotate
+<a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/rotate.png"></a>,
+zoom <a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/zoom.png"></a>,
+contour level
+<a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/contour.png"></a>,
+and play map series
+<a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/vseries.png"></a>.
 </p><p>
 With N assignable buttons on each controller, up to 2N modes
 can be assigned. However, leaving the <b><i>triggers</i></b> with their
@@ -320,15 +331,22 @@ separate mouse modes on the desktop but a single hand-controller mode in VR.
 <p class="nav">
 [<a href="#top">back to top: Virtual Reality</a>]
 </p>
-<h3>Changing the Display</h3>
+<h3>Other Icons: Changing the Display, Etc.</h3>
 <p>
-Molecule and map display styles, <i>etc.</i> can be changed 
-by using the hand controllers to &ldquo;click&rdquo;
-icons in the <a href="tools/toolbar.html"><b>Toolbar</b></a>:
+Several other <a href="tools/toolbar.html"><b>Toolbar</b></a> icons
+(besides those for <a href="#mousemodes">mode assignment</a>)
+may also be useful in virtual reality:
 </p>
 <ul>
+<li><a href="tools/toolbar.html#home"><b>Home</b></a>
+&ndash; show recent files as tool panel, <i>etc.</i>
+&nbsp;<img class="iconbar" src="home-icons.png">&nbsp;[...]
 <li><a href="tools/moldisplay.html"><b>Molecule Display</b></a>:&nbsp;
 <img class="iconbar" src="molecule-icons.png">
+<li><a href="tools/nucdisplay.html"><b>Nucleotides</b></a>:&nbsp;
+<img class="iconbar" src="nuc-icons.png">
+<li><a href="tools/graphics.html"><b>Graphics</b></a>:&nbsp;
+<img class="iconbar" src="graphics-icons.png">
 <li><a href="tools/densitymaps.html"><b>Map</b></a>:&nbsp;
 <img class="iconbar" src="density-icons.png">
 </ul>
@@ -338,7 +356,7 @@ and other ChimeraX tool panels can be toggled with the
 the Vive <b><i>menu</i></b> button or Oculus B/Y button.
 </p><p>
 An icon will pop up slightly when the cone tip is in position to click it.
-The scope of action of these icons can be limited by
+The scope of action of some of these icons can be specified/limited by
 <a href="selection.html">selection</a>.
 </p>
 
