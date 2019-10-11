@@ -171,7 +171,9 @@ class Option(metaclass=ABCMeta):
 
     @abstractmethod
     def _make_widget(self):
-        # create (as self.widget) the widget to display the option value
+        # Create (as self.widget) the widget to display the option value.
+        # The "widget" can actually be a layout, if several widgets are needed
+        # to compose/display the value of the option
         pass
 
 def make_optional(cls, *, allow_subwidget_disable=True):
@@ -188,11 +190,15 @@ def make_optional(cls, *, allow_subwidget_disable=True):
         if value is None:
             self._check_box.setChecked(False)
             if self._allow_subwidget_disable:
-                self._orig_widget.setEnabled(False)
+                self.widget, self._orig_widget = self._orig_widget, self.widget
+                self._super_class.enabled.fset(self, False)
+                self.widget, self._orig_widget = self._orig_widget, self.widget
         else:
             self._check_box.setChecked(True)
             if self._allow_subwidget_disable:
-                self._orig_widget.setEnabled(True)
+                self.widget, self._orig_widget = self._orig_widget, self.widget
+                self._super_class.enabled.fset(self, True)
+                self.widget, self._orig_widget = self._orig_widget, self.widget
             self.widget, self._orig_widget = self._orig_widget, self.widget
             self._super_class.value.fset(self, value)
             self.widget, self._orig_widget = self._orig_widget, self.widget
@@ -206,15 +212,18 @@ def make_optional(cls, *, allow_subwidget_disable=True):
     def _make_widget(self, **kw):
         self._super_class._make_widget(self, **kw)
         self._orig_widget = self.widget
-        from PyQt5.QtWidgets import QWidget, QCheckBox, QHBoxLayout
-        self.widget = QWidget()
-        layout = QHBoxLayout()
+        from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLayout
+        self.widget = layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
+        from PyQt5.QtCore import Qt
         self._check_box = cb = QCheckBox()
+        cb.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         cb.clicked.connect(lambda state, s=self: s.make_callback())
-        layout.addWidget(cb)
-        layout.addWidget(self._orig_widget)
-        self.widget.setLayout(layout)
+        layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignTop)
+        if isinstance(self._orig_widget, QLayout):
+            layout.addLayout(self._orig_widget)
+        else:
+            layout.addWidget(self._orig_widget)
 
     attr_dict = {
         'value': property(get_value, set_value),
@@ -327,7 +336,7 @@ class FloatOption(Option):
 
     def _make_widget(self, min=None, max=None, preceding_text=None, trailing_text=None,
             decimal_places=3, step=None, **kw):
-        self._spin_box = _make_float_spinbox(min, max, step, decimal_places)
+        self._spin_box = _make_float_spinbox(min, max, step, decimal_places, **kw)
         self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
         if not preceding_text and not trailing_text:
             self.widget = self._spin_box

@@ -138,7 +138,7 @@ class ColorArg(Annotation):
 
     @staticmethod
     def unparse(color, session):
-        for name, c in session.user_colors:
+        for name, c in session.user_colors.items():
             if color is c:
                 return name
         if color.opaque():
