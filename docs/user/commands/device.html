@@ -266,20 +266,30 @@ The <b>vr roomCamera</b> command sets up a separate camera view fixed
 in the VR room coordinates, useful for making video tutorials.
 The camera view is shown in the desktop graphics window 
 and as &ldquo;picture in picture&rdquo; in the VR headset. 
+See also: <a href="camera.html"><b>camera</b></a>,
+<a href="../movies.html">making movies</a>
+<p>
 The <b>vr roomCamera</b> command can only be used in 
 <a href="../vr.html">virtual reality</a>
 (after using <a href="#vr"><b>vr on</b></a>).
 In VR, the room camera is shown as a rectangle at the 
-camera position (initially 1.5 meters above the floor 
-and 2 meters from the center) that shows what that camera sees.
+camera position (initially 1.5 meters above the floor and offset 2 meters 
+from the center horizontally) that shows what that camera sees.
 The <b>width</b> of the rectangle is given in meters (default <b>1.0</b>),
 and the height is chosen to match the aspect ratio of the desktop graphics
 window. The default <b>fieldOfView</b> for the room camera is <b>90</b>&deg;.
 The background color of the room camera can be set separately from the VR
 background; default is a dark gray (<b>10,10,10</b>)
 so that the rectangle is visible against a black scene background.
-See also: <a href="camera.html"><b>camera</b></a>,
-<a href="../movies.html">making movies</a>
+</p><p>
+The room camera is a model that can be <a href="../selection.html">selected</a>
+and repositioned using the modes to <b>translate selected models</b>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" src="../tools/mouse-icons/move_h2o.png" border="1"></a>
+and <b>rotate selected models</b>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" src="../tools/mouse-icons/rotate_h2o.png" border="1"></a>.
+</p>
 </blockquote>
 
 <hr>
