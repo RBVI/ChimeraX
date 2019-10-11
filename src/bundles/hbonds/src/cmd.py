@@ -53,7 +53,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             structures = [m for m in session.models if isinstance(m, AtomicStructure)]
         else:
             structures = atoms.unique_structures
-    else: # another Atom collection
+    else: # another Atoms collection
         if not restrict and not batch:
             raise UserError("'restrict' atom specifier selects no atoms")
         combined = atoms | restrict

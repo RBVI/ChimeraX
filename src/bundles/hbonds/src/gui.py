@@ -31,6 +31,11 @@ class HBondsGUI(QWidget):
             # The settings will be saved when get_command() is called.  The defaults for the
             # settings will be the same as the values provided for the arguments below (i.e.
             # can be overriden by providing explicit values when calling this function).
+            #
+            # Controls configured to not show in the interface will not have their corresponding
+            # keyword/value added to the command returned by get_command, nor will they have their
+            # settings value changed/saved.  If needed, you will have to add the keyword/value to
+            # the command yourself.
             angle_slop=rec_angle_slop, color=AtomicStructure.default_hbond_color,
             dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
             inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
@@ -45,12 +50,17 @@ class HBondsGUI(QWidget):
             show_reveal=True, show_salt_only=True, show_save_file=True, show_show_dist=True,
             show_slop=True, show_slop_color=True, show_two_colors=True):
 
+        self.session = session
+
         from inspect import getargvalues, currentframe
         arg_names, var_args, var_kw, frame_dict = getargvalues(currentframe())
         settings_defaults = {}
+        self.__show_values = {}
         for arg_name in arg_names:
             if not arg_name.startswith('show_') or 'show_' + arg_name in arg_names:
                 settings_defaults[arg_name] = frame_dict[arg_name]
+            else:
+                self.__show_values[arg_name[5:]] = frame_dict[arg_name]
         if settings_name is None:
             self.__settings = settings = None
         else:
@@ -154,8 +164,8 @@ class HBondsGUI(QWidget):
             bottom_options.add_option(self.__model_restrict_option)
 
         if show_bond_restrict:
-            self.__bond_restrict_option = HBondRestrictOption(tool_window, "Only find H-bonds",
-                None if settings else restrict, None, attr_name="restrict", settings=settings)
+            self.__bond_restrict_option = OptionalHBondRestrictOption(tool_window, "Only find H-bonds",
+                None, None)
             bottom_options.add_option(self.__bond_restrict_option)
 
         if show_intra_mol:
@@ -187,12 +197,211 @@ class HBondsGUI(QWidget):
                 None if settings else log, None, attr_name="log", settings=settings)
             bottom_options.add_option(self.__log_option)
 
+    def get_command(self):
+        """Used to generate the 'hbonds' command that can be run to produce the requested H-bonds.
+           Returns three strings:
+              1) The command name
+              2) The atom spec to provide just after the command name
+              3) The keyword/value pairs that follow that
+           The atom spec will be an empty string if no bond or model restriction was requested
+           (or those controls weren't shown).
+        """
+        from chimerax.core.errors import UserError
+        settings = {}
+        command_values = {}
+
+        # never saved in settings
+        if self.__show_values['model_restrict']:
+            models = self.__model_restrict_option.value
+            if models is None:
+                atom_spec = ""
+            else:
+                if not models:
+                    raise UserError("Model restriction enabled but no models chosen")
+                from chimerax.core.commands import concise_model_spec
+                atom_spec = concise_model_spec(models)
+        else:
+            atom_spec = ""
+
+        if self.__show_values['bond_restrict']:
+            bond_restrict = self.__bond_restrict_option.value
+            if bond_restrict is not None:
+                command_values['restrict'] = bond_restrict
+                if atom_spec:
+                    atom_spec += " & sel"
+                else:
+                    atom_spec = "sel"
+
+        if self.__show_values['save_file']:
+            if self.__save_file_option.value:
+                from PyQt5.QtWidgets import QFileDialog
+                fname = QFileDialog.getSaveFileName(self, "Save H-Bonds File")[0]
+                if fname:
+                    command_values['save_file'] = fname
+                else:
+                    from chimerax.core.errors import CancelOperation
+                    raise CancelOperation("H-bonds save file cancelled")
+            else:
+                command_values['save_file'] = None
+        else:
+            command_values['save_file'] = None
+
+        # may be saved in settings
+        if self.__show_values['color']:
+            settings['color'] = self.__color_option.value
+        else:
+            settings['color'] = None
+
+        if self.__show_values['radius']:
+            settings['radius'] = self.__radius_option.value
+        else:
+            settings['radius'] = None
+
+        if self.__show_values['dashes']:
+            settings['dashes'] = self.__dashes_option.value
+        else:
+            settings['dashes'] = None
+
+        if self.__show_values['show_dist']:
+            settings['show_dist'] = self.__show_dist_option.value
+        else:
+            settings['show_dist'] = None
+
+        if self.__show_values['inter_intra_model']:
+            if self.__intra_model_button.isChecked():
+                intra = True
+                inter = False
+            elif self.__inter_model_button.isChecked():
+                intra = False
+                inter = True
+            else:
+                intra = True
+                inter = True
+            settings['intra_model'] = intra
+            settings['inter_model'] = inter
+        else:
+            settings['intra_model'] = settings['inter_model'] = None
+
+        if self.__show_values['relax']:
+            settings['relax'] = self.__relax_group.isChecked()
+            if self.__show_values['slop']:
+                settings['dist_slop'] = self.__dist_slop_option.value
+                settings['angle_slop'] = self.__angle_slop_option.value
+            else:
+                settings['dist_slop'] = settings['angle_slop'] = None
+            if self.__show_values['slop_color']:
+                slop_color_value = self.__slop_color_option.value
+                if slop_color_value is None:
+                    settings['two_colors'] = False
+                    settings['slop_color'] = None
+                else:
+                    settings['two_colors'] = True
+                    settings['slop_color'] = slop_color_value
+            else:
+                settings['two_colors'] = settings['slop_color'] = None
+        else:
+            settings['relax'] = settings['dist_slop'] = settings['angle_slop'] = None
+            settings['two_colors'] = settings['slop_color'] = None
+
+        if self.__show_values['intra_mol']:
+            settings['intra_mol'] = self.__intra_mol_option.value
+        else:
+            settings['intra_mol'] = None
+
+        if self.__show_values['intra_res']:
+            settings['intra_res'] = self.__intra_res_option.value
+        else:
+            settings['intra_res'] = None
+
+        if self.__show_values['reveal']:
+            settings['reveal'] = self.__reveal_option.value
+        else:
+            settings['reveal'] = None
+
+        if self.__show_values['retain_current']:
+            settings['retain_current'] = self.__retain_current_option.value
+        else:
+            settings['retain_current'] = None
+
+        if self.__show_values['log']:
+            settings['log'] = self.__log_option.value
+        else:
+            settings['log'] = None
+
+        if self.__settings:
+            saveables = []
+            for attr_name, value in settings.items():
+                if value is not None:
+                    setattr(self.__settings, attr_name, value)
+                    saveables.append(attr_name)
+            if saveables:
+                self.__settings.save(settings=saveables)
+
+        def val_to_str(ses, val, kw):
+            from chimerax.core.commands import \
+                BoolArg, IntArg, FloatArg, ColorArg, StringArg, SaveFileNameArg
+            if type(val) == bool:
+                return BoolArg.unparse(val, ses)
+            if type(val) == int:
+                return IntArg.unparse(val, ses)
+            if type(val) == float:
+                return FloatArg.unparse(val, ses)
+            if kw.endswith('color'):
+                from chimerax.core.colors import Color
+                return ColorArg.unparse(Color(rgba=val), ses)
+            if kw == 'save_file':
+                return SaveFileNameArg.unparse(val, ses)
+            return StringArg.unparse(str(val), ses)
+
+        command_values.update(settings)
+        from .cmd import cmd_hbonds
+        kw_values = ""
+        for kw, val in command_values.items():
+            if val is None:
+                continue
+            if is_default(cmd_hbonds, kw, val):
+                continue
+            # 'dashes' default checking requires special handling
+            if kw == 'dashes' and val == AtomicStructure.default_hbond_dashes \
+            and not command_values['retain_current']:
+                continue
+            camel = ""
+            next_upper = False
+            for c in kw:
+                if c == '_':
+                    next_upper = True
+                else:
+                    if next_upper:
+                        camel += c.upper()
+                    else:
+                        camel += c
+                    next_upper = False
+            kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
+        return "hbonds", atom_spec, kw_values
+
     def _model_restrict_cb(self, opt):
         if opt.value is None:
             new_label = "Restrict to models..."
         else:
             new_label = "Restrict to models:"
         self.__bottom_options.change_label_for_option(opt, new_label)
+
+def is_default(func, kw, val):
+    from inspect import signature
+    sig = signature(func)
+    param = sig.parameters[kw]
+    if kw.endswith('color'):
+        from chimerax.core.colors import Color
+        if isinstance(val, Color):
+            cval = val
+        else:
+            cval = Color(val)
+        if isinstance(param.default, Color):
+            pval = param.default
+        else:
+            pval = Color(param.default)
+        return cval == pval
+    return param.default == val
 
 class ModelRestrictOption(Option):
     def __init__(self, session, tool_window, *args, **kw):
@@ -289,6 +498,7 @@ class HBondRestrictOption(Option):
         else:
             self.value = self.__line_edit.text()
         self.make_callback()
+OptionalHBondRestrictOption = make_optional(HBondRestrictOption)
 
 def _get_settings(session, base_name, settings_defaults):
     if base_name:
