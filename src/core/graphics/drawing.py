@@ -1987,11 +1987,15 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     return d
 
 def match_aspect_ratio(texture_drawing, window_size):
-    if hasattr(texture_drawing, '_td_window_size') and texture_drawing._td_window_size == window_size:
+    tsize = texture_drawing.texture.size
+    if (hasattr(texture_drawing, '_td_window_size')
+        and texture_drawing._td_window_size == window_size
+        and texture_drawing._td_texture_size == tsize):
         return
     texture_drawing._td_window_size = window_size
+    texture_drawing._td_texture_size = tsize
     wx, wy = window_size
-    tx, ty = texture_drawing.texture.size
+    tx, ty = tsize
     if wx == 0 or wy == 0 or tx == 0 or ty == 0:
         xtrim, ytrim = 0, 0
     elif wx/wy > tx/ty:
