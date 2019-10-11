@@ -367,7 +367,7 @@ class Drawing:
 
     @property
     def num_displayed_positions(self):
-        dp = self.display_positions
+        dp = self._displayed_positions
         ndp = len(self.positions) if dp is None else dp.sum()
         return ndp
 
@@ -485,7 +485,7 @@ class Drawing:
             c._scene_positions_changed()
         
     def get_positions(self, displayed_only=False):
-        if displayed_only:
+        if displayed_only and self.num_displayed_positions < len(self._positions):
             return self._positions.masked(self.display_positions)
         return self._positions
 
