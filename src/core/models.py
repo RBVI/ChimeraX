@@ -133,6 +133,11 @@ class Model(State, Drawing):
             return ''
         return '.'.join(str(i) for i in self.id)
 
+    @property
+    def atomspec(self):
+        '''Return the atom specifier string for this structure.'''
+        return '#' + self.id_string
+
     def __str__(self):
         if self.id is None:
             return self.name
