@@ -25,9 +25,11 @@ class AtomZoneMouseMode(MouseMode):
         self._label_color = BuiltinColors['yellow']
         self._label_background = BuiltinColors['black']
         self._surface_distance = 8
-        self._coil_width_thickness = (0.2, 0.2)
-        self._helix_width_thickness = (0.6, 0.2)
-        self._sheet_width_thickness = (0.6, 0.2)
+        self._coil_width_scale = (0.2, 0.2)
+        self._helix_width_scale = (0.6, 0.2)
+        self._helix_arrow_scale = (1.2, 0.2, 0.2, 0.2)
+        self._sheet_width_scale = (0.6, 0.2)
+        self._sheet_arrow_scale = (1.2, 0.2, 0.2, 0.2)
         self._ribbon_transparency = 100		# 0 = completely transparent, 255 = opaque
         self._labeled_residues = None
         self._scale_accum = 1
@@ -158,15 +160,14 @@ class AtomZoneMouseMode(MouseMode):
             res = struct.residues
             if not hasattr(struct, '_zone_ribbon_setup'):
                 struct._zone_ribbon_setup = True
+                rm = struct.ribbon_xs_mgr
+                rm.set_coil_scale(*self._coil_width_scale)
+                rm.set_helix_scale(*self._helix_width_scale)
+                rm.set_helix_arrow_scale(*self._helix_arrow_scale)
+                rm.set_sheet_scale(*self._sheet_width_scale)
+                rm.set_sheet_arrow_scale(*self._sheet_arrow_scale)
                 res.ribbon_displays = True
                 res.ribbon_hide_backbones = False
-                rm = struct.ribbon_xs_mgr
-                cw,ch = self._coil_width_thickness
-                rm.set_coil_scale(cw, ch)
-                hw,hh = self._helix_width_thickness
-                rm.set_helix_scale(hw, hh)
-                sw,sh = self._sheet_width_thickness
-                rm.set_sheet_scale(sw, sh)
 
             res.ribbon_displays = True
             hide_residues.ribbon_displays = False
