@@ -29,6 +29,7 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include "destruct.h"
+#include "polymer.h"
 #include "Sequence.h"
 #include "Structure.h"
 #include "PBGroup.h"
@@ -710,7 +711,11 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
     // If initial construction is over (i.e. Python instance exists) and make_chains()
     // has been called (i.e. _chains is not null), then need to check if new bond
     // or missing-structure pseudobond creates a chain or coalesces chain fragments
-    if (_chains == nullptr || py_instance(false) == Py_None)
+    if (_chains == nullptr)
+        return;
+    auto inst = py_instance(false);
+    Py_DECREF(inst);
+    if (inst == Py_None)
         return;
     Residue* start_r;
     Residue* other_r;
@@ -926,6 +931,49 @@ Structure::new_bond(Atom *a1, Atom *a2)
     b->finish_construction(); // virtual calls work now
     add_bond(b);
     _idatm_valid = false;
+    if (_chains != nullptr) {
+        auto inst = py_instance(false);
+        Py_DECREF(inst);
+        if (inst != Py_None) {
+            auto sa = b->polymeric_start_atom();
+            if (sa != nullptr) {
+                auto sres = sa->residue();
+                auto eres = b->other_atom(sa)->residue();
+                auto schain = sres->chain();
+                auto echain = eres->chain();
+                if (schain == nullptr) {
+                    if (echain == nullptr) {
+                        // start a chain
+                        auto pt = Sequence::rname_polymer_type(sres->name());
+                        if (pt == PT_NONE)
+                            pt = Sequence::rname_polymer_type(eres->name());
+                        if (pt == PT_NONE)
+                            pt = (sres->find_atom("CA") || eres->find_atom("CA")) ? PT_AMINO : PT_NUCLEIC;
+                        Chain* chain;
+                        std::vector<Residue*> res_list;
+                        chain = _new_chain(sres->chain_id(), pt);
+                        res_list.push_back(sres);
+                        res_list.push_back(eres);
+                        chain->bulk_set(res_list, nullptr);
+                    } else {
+                        // prepend to echain
+                        echain->push_front(sres);
+                    }
+                } else {
+                    if (echain == nullptr) {
+                        // append to schain
+                        schain->push_back(eres);
+                    } else {
+                        if (schain != echain) {
+                            // combine chains
+                            *schain += *echain;
+                        }
+                        // else: already the same chain; do nothing?
+                    }
+                }
+            }
+        }
+    }
     return b;
 }
 
