@@ -51,13 +51,13 @@ class AtomicShapeDrawing(Drawing, State):
         DrawingState.set_state_from_snapshot(d, session, data['drawing'])
         d._shapes = [_AtomicShape(*args) for args in data['shapes']]
         d._selected_shapes.update([d._shapes[i] for i in data['selected']])
-        if any(s.atoms for s in self._shapes):
+        if any(s.atoms for s in d._shapes):
             # After drawing is added to parent, add back the selection handler
             def post_shape_handler(trigger, trigger_data, drawing=d):
                 from chimerax.core.triggerset import DEREGISTER
                 drawing._add_handler_if_needed()
                 return DEREGISTER
-        session.triggers.add_handler("end restore session", post_shape_handler)
+            session.triggers.add_handler("end restore session", post_shape_handler)
         return d
 
     def delete(self):
