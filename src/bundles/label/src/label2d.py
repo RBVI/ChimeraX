@@ -285,6 +285,8 @@ class NamedLabelsArg(Annotation):
             raise AnnotationError("Expected %s" % NamedLabelsArg.name)
         lm = session_labels(session)
         token, text, rest = next_token(text)
+        if lm is None:
+            raise AnnotationError("No label with name: '%s'" % token)
         if lm.named_label(token) is None:
             possible = [name for name in lm.label_names() if name.startswith(token)]
             if 'all'.startswith(token):
