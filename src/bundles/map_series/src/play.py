@@ -406,11 +406,10 @@ class PlaySeriesMouseMode(MouseMode):
     s0 = ser[0]
     t = s0.last_shown_time
     tn = t + tstep
-    tmax = s0.number_of_times() - 1
-    if tn > tmax:
-      tn = tmax
-    elif tn < 0:
-      tn = 0
+    nt = s0.number_of_times()
+    tmax = nt - 1
+    if tn > tmax or tn < 0:
+      tn = tn % nt
     if tn != t:
       p.change_time(tn)
     p.session.logger.status('%s time %d' % (s0.name, tn+1))
