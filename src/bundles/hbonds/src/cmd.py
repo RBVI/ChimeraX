@@ -53,7 +53,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             structures = [m for m in session.models if isinstance(m, AtomicStructure)]
         else:
             structures = atoms.unique_structures
-    else: # another Atom collection
+    else: # another Atoms collection
         if not restrict and not batch:
             raise UserError("'restrict' atom specifier selects no atoms")
         combined = atoms | restrict
@@ -90,7 +90,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         # to assess which histidines should be considered salt-bridge donors
         if salt_only:
             sb_donors, sb_acceptors = salt_preprocess(hbonds)
-            hbonds = [hb for hb in hbonds
+            hbonds[:] = [hb for hb in hbonds
                 if hb[0] in sb_donors and hb[1] in sb_acceptors]
         hbonds[:] = restrict_hbonds(hbonds, atoms, restrict)
         if not intra_mol:
@@ -416,8 +416,8 @@ def salt_preprocess(hbonds):
             donors.add(nd)
             continue
         import numpy
-        ne_has_protons = numpy.any(ne.neighbors.elements.numbers == 1)
-        nd_has_protons = numpy.any(nd.neighbors.elements.numbers == 1)
+        ne_has_protons = [ne_nb for ne_nb in ne.neighbors if ne_nb.element.number == 1]
+        nd_has_protons = [nd_nb for nd_nb in nd.neighbors if nd_nb.element.number == 1]
         if ne_has_protons and nd_has_protons:
             donors.add(ne)
             donors.add(nd)

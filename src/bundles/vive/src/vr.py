@@ -704,7 +704,7 @@ class SteamVRCamera(Camera):
             # Submit right eye texture (view 1) before rendering desktop (view 2)
             self._submit_eye_image('right', right_fb.openvr_texture, render)
             render.pop_framebuffer()
-            self._room_camera.start_rendering(render, self.scene_scale)
+            self._room_camera.start_rendering(render)
 
     def _submit_eye_image(self, side, texture, render):
         '''Side is "left" or "right".'''
@@ -933,13 +933,12 @@ class RoomCamera:
         settings.independent_camera_position = m
         settings.save()
         
-    def start_rendering(self, render, scene_scale):
+    def start_rendering(self, render):
         fb = self.framebuffer(render)
         render.push_framebuffer(fb)
 
         # Set paramters for mixed reality blending.
         render.mix_video = True  # For making mixed reality videos
-        render.mix_depth_scale = scene_scale
 
         # Don't render camera model in desktop camera view.
         self.enable_draw = False

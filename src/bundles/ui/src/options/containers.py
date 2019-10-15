@@ -64,7 +64,7 @@ class OptionsPanel(QWidget):
 
     def add_option(self, option):
         """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
-        if self._sorting is None:
+        if self._sorting is False:
             insert_row = len(self._options)
         else:
             if self._sorting is True:
@@ -92,6 +92,9 @@ class OptionsPanel(QWidget):
         suboptions = OptionsPanel(scrolled=False, **kw)
         self._option_groups.append(suboptions)
         return grouping_widget, suboptions
+
+    def change_label_for_option(self, option, new_label):
+        self._form.labelForField(option.widget).setText(new_label)
 
     def options(self):
         all_options = self._options[:]

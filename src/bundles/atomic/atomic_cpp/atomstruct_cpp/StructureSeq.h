@@ -84,6 +84,7 @@ public:
     bool  from_seqres() const { return _from_seqres; }
     Contents::const_reference  front() const { return Sequence::front(); }
     Residue*  get(unsigned i) const { return _residues[i]; }
+    void  insert(Residue* follower, Residue* insertion);
     virtual bool  is_chain() const { return false; }
     bool  is_sequence() const { return _structure == nullptr; }
     const std::string&  name() const { return Sequence::name(); }

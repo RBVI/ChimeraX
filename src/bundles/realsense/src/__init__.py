@@ -1,4 +1,4 @@
-# vim: set expandtab shiftwidth=4 softtabstop=4:
+# vim: set expandtab ts=4 sw=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -11,20 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .hbond import find_hbonds, rec_dist_slop, rec_angle_slop, find_coordset_hbonds, flush_cache
-
 from chimerax.core.toolshed import BundleAPI
 
-class HBondsAPI(BundleAPI):
+class _RealSenseBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        from . import cmd
-        cmd.register_command(command_name, logger)
+        from . import depth_video
+        depth_video.register_command(logger)
 
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .tool import HBondsTool
-        return HBondsTool(session, tool_name)
-
-bundle_api = HBondsAPI()
+bundle_api = _RealSenseBundle()
