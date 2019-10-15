@@ -167,8 +167,8 @@ and the icon on the side shows that the <b><i>grip</i></b> button
 is assigned to center and rescale.
 </font>
 <br><br><a href="tutorials/oculus-cone2.png">
-<img class="outline" src="tutorials/oculus-cone2.png" title="click to enlarge..."
-alt="cone for Oculus" width="50px"></a>
+<img class="outline" src="tutorials/oculus-cone2.png" 
+title="click to enlarge..." alt="cone for Oculus" width="50px"></a>
 <br><br><font size="-1">
 For Oculus (<i>vs.</i> Vive), the icons are arranged differently on the cones
 to reflect the different physical positions of the buttons on the controllers.
@@ -205,6 +205,16 @@ or on a blank area in the panel if no title bar)
 </td>
 </tr></table>
 <p>
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="tutorials/oculus-touch.png">
+<img class="outline" src="tutorials/oculus-touch.png"
+title="click to enlarge..." alt="Oculus hand controllers" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1"><a href="https://www.oculus.com/"
+target="_blank">Oculus</a> &ldquo;Touch&rdquo; hand controllers
+</font></td></tr>
+</table>
 The Oculus <b><i>grip</i></b> buttons have the same defaults as the
 <b><i>triggers</i></b>. The Oculus <b><i>thumbstick</i></b> righthand
 default is to zoom (forward and rightward tilts push models away),
@@ -212,8 +222,9 @@ and the lefthand default is to rotate models about the center of their
 bounding box (left/right tilt to rotate around the vertical axis,
 forward/backward tilt to rotate around the horizontal axis).
 </p><p>
-Showing the ChimeraX tool panels including the 
-<a href="tools/toolbar.html"><b>Toolbar</b></a> allows
+Showing ChimeraX tool panels including the 
+<a href="tools/toolbar.html"><b>Toolbar</b></a> with the <b><i>menu</i></b>
+(or B/Y) button allows
 &ldquo;clicking&rdquo; icons to <a href="#displayicons">adjust the display</a> 
 and <a href="#mousemodes">reassign button functions</a>.
 In Windows only, the ChimeraX <a href="menu.html">main menu</a> is among
@@ -239,8 +250,29 @@ desktop display, use the ChimeraX command:
 <p>
 Most of the ChimeraX &ldquo;mouse&rdquo; modes
 (function assignments) can be used with the VR hand controllers.
+Functions are described in more detail in the
+<a href="tools/mousemodes.html"><b>Right Mouse</b></a> and 
+<a href="tools/markers.html"><b>Markers</b></a> documentation, but include:
+</p>
+<ul>
+  <li><a href="selection.html">select</a>
+  <li>rotate + translate (single mode in VR)
+   &ndash; default/recommended for <b><i>triggers</i></b>
+  <li>zoom
+  <li>move clip planes
+  <li>place <a href="markers.html">markers</a>
+  <li>measure distances between atoms or <a href="markers.html">markers</a>
+  <li>label residues
+  <li>set center of rotation to atom
+  <li>rotate bond
+  <li>change map contour level
+  <li>view map planes
+  <li>crop map box
+  <li>play map time series
+</ul>
+<p>
 The function of a hand-controller button can be reassigned
-by using it to &ldquo;click&rdquo; the corresponding mode icon in
+by using it to &ldquo;click&rdquo; the corresponding icon in
 one of the following <a href="tools/toolbar.html"><b>Toolbar</b></a> tabs:
 </p>
 <ul>
@@ -286,41 +318,12 @@ either the <b>rotate</b>
 or <b>translate</b>
 &nbsp;<img class="icon" border=1 src="tools/mouse-icons/translate.png">&nbsp;
 mode icon returns it to the default behavior.
-</p><p>
-Functions are described in more detail in the 
-<a href="tools/mousemodes.html"><b>Right Mouse</b></a> and 
-<a href="tools/markers.html"><b>Markers</b></a> documentation, but include:
-</p>
-<ul>
-  <li><a href="selection.html">select</a>
-  <li>rotate + translate (single mode in VR)
-   &ndash; default/recommended for <b><i>triggers</i></b>
-  <li>zoom &ndash; default for <b><i>trackpad</i></b>
-  <li>rotate and translate <a href="selection.html">selected</a> models only
-  <li>move clip planes
-  <li>rotate clip planes
-  <li>measure distances between atoms or <a href="markers.html">markers</a>
-  <li>label residues
-  <li>set pivot to atom
-  <li>rotate bond
-  <li>change map contour level
-  <li>view map planes
-  <li>crop map box
-  <li>place, move, resize, connect, or delete <a href="markers.html">markers</a>
-  <li>play 3D image time series
-  <li>tug on atoms with molecular dynamics
-  <li>run molecular dynamics on residue and neighbors
-  <li>swap an amino acid
-  <li>limit atomic and map display to a zone around a residue
-  <li>&ldquo;windowing&rdquo; 
-   &ndash; adjust map thresholds collectively
-</ul>
 <p>
 Modes that require clicking on an atom such as selection or labeling 
-require pointing at the atom with the hand controller cone. 
+require pointing at the atom with the hand-controller cone. 
 This is easiest to do at close range; it can work at a distance,
 but requires accurate pointing. Modes that involve dragging on the desktop 
-such as changing the contour level of a map or zooming are operated by 
+such as changing the contour level of a map are operated by 
 clicking and moving the hand controller vertically. The bond-rotation 
 mouse mode operates by dragging on the desktop, but in VR operates by 
 rotating the hand controller. Translation and rotation are 
@@ -356,7 +359,7 @@ and other ChimeraX tool panels can be toggled with the
 the Vive <b><i>menu</i></b> button or Oculus B/Y button.
 </p><p>
 An icon will pop up slightly when the cone tip is in position to click it.
-The scope of action of some of these icons can be specified/limited by
+The scope of action of some of the icons can be specified/limited by
 <a href="selection.html">selection</a>.
 </p>
 
