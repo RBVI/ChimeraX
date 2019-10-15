@@ -168,6 +168,11 @@ class HBondsGUI(QWidget):
                 None, None)
             bottom_options.add_option(self.__bond_restrict_option)
 
+        if show_salt_only:
+            self.__salt_only_option = BooleanOption("Salt bridges only",
+                None if settings else salt_only, None, attr_name="salt_only", settings=settings)
+            bottom_options.add_option(self.__salt_only_option)
+
         if show_intra_mol:
             self.__intra_mol_option = BooleanOption("Include intra-molecule H-bonds",
                 None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
@@ -302,6 +307,11 @@ class HBondsGUI(QWidget):
         else:
             settings['relax'] = settings['dist_slop'] = settings['angle_slop'] = None
             settings['two_colors'] = settings['slop_color'] = None
+
+        if self.__show_values['salt_only']:
+            settings['salt_only'] = self.__salt_only_option.value
+        else:
+            settings['salt_only'] = None
 
         if self.__show_values['intra_mol']:
             settings['intra_mol'] = self.__intra_mol_option.value
