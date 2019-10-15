@@ -506,7 +506,8 @@ class Label:
         if d is None:
             return
         self.drawing = None
-        d.delete()
+        if not d.deleted:
+            d.delete()
         lm = session_labels(self.session)
         if lm:
             lm.delete_label(self)
@@ -529,6 +530,10 @@ class LabelModel(Model):
         self.texture_size = None
         self.needs_update = True
 
+    def delete(self):
+        Model.delete(self)
+        self.label.delete()
+        
     def draw(self, renderer, draw_pass):
         if not self.update_drawing():
             self.resize()
