@@ -119,6 +119,7 @@ class UI(QApplication):
         self.redirect_qt_messages()
 
         self._keystroke_sinks = []
+        self._key_callbacks = {}	# Maps Qt key number to callback func(session, key_num).
         self._files_to_open = []
 
         from chimerax.core.triggerset import TriggerSet
@@ -269,15 +270,28 @@ class UI(QApplication):
            promote/demote the graphics window selection
         """
         from PyQt5.QtCore import Qt
-        if event.key() == Qt.Key_Up:
+        k = event.key()
+        if self.key_intercepted(k):
+            return
+        elif k == Qt.Key_Up:
             from chimerax.core.commands import run
             run(self.session, 'select up')
-        elif event.key() == Qt.Key_Down:
+        elif k == Qt.Key_Down:
             from chimerax.core.commands import run
             run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
 
+    def intercept_key(self, qt_key_number, callback):
+        self._key_callbacks[qt_key_number] = callback
+
+    def key_intercepted(self, key_num):
+        if key_num in self._key_callbacks:
+            f = self._key_callbacks[key_num]
+            f(self.session, key_num)
+            return True
+        return False
+        
     def register_for_keystrokes(self, sink):
         """'sink' is interested in receiving keystrokes from the main
            graphics window.  That object's 'forwarded_keystroke'
@@ -486,7 +500,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._stack.setCurrentWidget(g.widget)
 
         return True
-    
+
+    def keyPressEvent(self, event):
+        self.session.ui.forward_keystroke(event)
+        
     def dragEnterEvent(self, event):
         md = event.mimeData()
         if md.hasUrls():
