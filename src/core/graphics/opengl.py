@@ -417,6 +417,9 @@ class Render:
         self.outline.delete()
         self.outline = None
 
+        self.offscreen.delete()
+        self.offscreen = None
+
         self.blend.delete()
         self.blend = None
         
