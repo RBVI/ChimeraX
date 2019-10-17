@@ -203,13 +203,6 @@ class RotamerDialog(ToolInstance):
             # called directly rather than during session restore
             self.finalize_init(*args)
 
-    def delete(self, from_mgr=False):
-        for handler in self.handlers:
-            handler.remove()
-        if not from_mgr:
-            self.mgr.destroy()
-        super().delete()
-
     def finalize_init(self, mgr, res_type, lib, *, session_data=None):
         self.mgr = mgr
         self.res_type = res_type
@@ -218,7 +211,7 @@ class RotamerDialog(ToolInstance):
         if session_data:
             table_data = session_data
 
-        #TODO: dependent dialogs (H-bonds, clashes, density)
+        self.subdialogs = {}
         self.handlers = [
             self.mgr.triggers.add_handler('fewer rotamers', self._fewer_rots_cb),
             self.mgr.triggers.add_handler('self destroyed', self._mgr_destroyed_cb),
@@ -230,10 +223,17 @@ class RotamerDialog(ToolInstance):
             class _RotamerSettings(Settings):
                 EXPLICIT_SAVE = { ItemTable.DEFAULT_SETTINGS_ATTR: {} }
             _settings = _RotamerSettings(self.session, "Rotamers")
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QMenu, QCheckBox
-        self.column_menu = QMenu("Columns")
         self.tool_window = tw = RotamerToolWindow(self)
         parent = tw.ui_area
+        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QMenu, QCheckBox, QAction
+        self.column_menu = QMenu("Columns")
+        self.add_menu = add_menu = QMenu("Add")
+        for add_type in ["H-Bonds"]:
+            action = QAction(add_type + "...", parent)
+            action.triggered.connect(lambda arg, dtype=add_type: self._show_subdialog(dtype))
+            add_menu.addAction(action)
+        self.column_menu.addMenu(add_menu)
+        self.column_menu.addSeparator()
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -270,6 +270,9 @@ class RotamerDialog(ToolInstance):
     def delete(self, from_mgr=False):
         for handler in self.handlers:
             handler.remove()
+        for sd in self.subdialogs.values():
+            sd.destroy()
+        self.subdialogs.clear()
         if not from_mgr:
             self.mgr.destroy()
         super().delete()
@@ -303,3 +306,40 @@ class RotamerDialog(ToolInstance):
             display = set(self.mgr.rotamers)
         for rot in self.mgr.rotamers:
             rot.display = rot in display
+
+    def _process_subdialog(self, sd_type):
+        sd = self.subdialogs[sd_type]
+        from chimerax.core.commands import run
+        if sd_type == "H-Bonds":
+            cmd_name, spec, args = sd.hbonds_gui.get_command()
+            res = self.mgr.base_residue
+            base_spec = "#!%s & ~%s" % (res.structure.id_string, res.string(style="command"))
+            for rotamer in self.mgr.rotamers:
+                hbs = run(self.session, "%s %s %s restrict #%s" %
+                    (cmd_name, base_spec, args, rotamer.id_string))
+                rotamer.num_hbonds = len(hbs)
+            self.table.add_column(sd_type, "num_hbonds", format="%d")
+            #TODO: get hbonds command to actually return the hbonds
+            #TODO: table needs to be improved to find columns and allow data refresh (check if inherent Qt methods do this)
+            #TODO: log fake combined command, or maybe use actual combined command and sort hbonds afterward
+
+    def _show_subdialog(self, sd_type):
+        print("sd_type:", sd_type)
+        if sd_type not in self.subdialogs:
+            self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type)
+            from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
+            layout = QVBoxLayout()
+            sd.ui_area.setLayout(layout)
+            if sd_type == "H-Bonds":
+                from chimerax.atomic.hbonds.gui import HBondsGUI
+                sd.hbonds_gui = HBondsGUI(self.session, sd, settings_name="rotamers",
+                    show_inter_intra_model=False, show_intra_mol=False, show_intra_res=False,
+                    show_model_restrict=False, show_bond_restrict=False, show_save_file=False)
+                layout.addWidget(sd.hbonds_gui)
+            bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+            bbox.accepted.connect(lambda sdt=sd_type: self._process_subdialog(sdt))
+            bbox.accepted.connect(lambda sd=sd: setattr(sd, 'shown', False))
+            bbox.rejected.connect(lambda sd=sd: setattr(sd, 'shown', False))
+            layout.addWidget(bbox)
+            sd.manage(placement=None)
+        self.subdialogs[sd_type].shown = True

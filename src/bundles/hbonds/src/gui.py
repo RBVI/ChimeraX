@@ -38,17 +38,17 @@ class HBondsGUI(QWidget):
             # the command yourself.
             angle_slop=rec_angle_slop, color=AtomicStructure.default_hbond_color,
             dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
-            inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
+            intra_model=True, intra_mol=True, intra_res=True, intra_submodel=False, log=False,
             radius=AtomicStructure.default_hbond_radius, relax=True, restrict="any", retain_current=False,
             reveal=False, salt_only=False, save_file=None, show_dist=False,
             slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
             show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_intra_model=True,
-            show_intra_mol=True, show_intra_res=True, show_log=True, show_model_restrict=True,
-            show_radius=True, show_relax=True, show_restrict=True, show_retain_current=True,
-            show_reveal=True, show_salt_only=True, show_save_file=True, show_show_dist=True,
-            show_slop=True, show_slop_color=True, show_two_colors=True):
+            show_intra_mol=True, show_intra_res=True, show_intra_submodel=False, show_log=True,
+            show_model_restrict=True, show_radius=True, show_relax=True, show_restrict=True,
+            show_retain_current=True, show_reveal=True, show_salt_only=True, show_save_file=True,
+            show_show_dist=True, show_slop=True, show_slop_color=True, show_two_colors=True):
 
         self.session = session
 
@@ -182,6 +182,11 @@ class HBondsGUI(QWidget):
             self.__intra_res_option = BooleanOption("Include intra-residue H-bonds",
                 None if settings else intra_res, None, attr_name="intra_res", settings=settings)
             bottom_options.add_option(self.__intra_res_option)
+
+        if show_intra_submodel:
+            self.__intra_submodel_option = BooleanOption("Include intra-submodel H-bonds",
+                None if settings else intra_submodel, None, attr_name="intra_submodel", settings=settings)
+            bottom_options.add_option(self.__intra_submodel_option)
 
         if show_reveal:
             self.__reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
@@ -322,6 +327,11 @@ class HBondsGUI(QWidget):
             settings['intra_res'] = self.__intra_res_option.value
         else:
             settings['intra_res'] = None
+
+        if self.__show_values['intra_submodel']:
+            settings['intra_submodel'] = self.__intra_submodel_option.value
+        else:
+            settings['intra_submodel'] = None
 
         if self.__show_values['reveal']:
             settings['reveal'] = self.__reveal_option.value
