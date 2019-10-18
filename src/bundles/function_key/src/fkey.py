@@ -57,13 +57,14 @@ class CommandArg(Annotation):
         return value
 
 def register_functionkey_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, WholeRestOfLine
+    from chimerax.core.commands import CmdDesc, register, create_alias, StringArg, WholeRestOfLine
     desc = CmdDesc(
         optional = [('key_name', StringArg),
                     ('command', CommandArg)],
         synopsis = 'Assign a command to a function key'
     )
-    register('functionkey', desc, functionkey, logger=logger)
+    register('ui functionkey', desc, functionkey, logger=logger)
+    create_alias('functionkey', 'ui functionkey $*', logger=logger)
 
 def function_key_commands(session):
     if not hasattr(session, '_function_key_commands'):
