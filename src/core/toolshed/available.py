@@ -105,6 +105,8 @@ class AvailableBundleCache(list):
 
 
 def has_cache_file(cache_dir):
+    if cache_dir is None:
+        return False
     import os
     return os.path.exists(os.path.join(cache_dir, _CACHE_FILE))
 
