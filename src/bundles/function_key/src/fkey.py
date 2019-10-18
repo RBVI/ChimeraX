@@ -39,7 +39,7 @@ def functionkey(session, key_name = None, command = None):
         session.logger.status(msg, log = True)
         return
 
-    fkc[key_num] = command
+    _set_function_key_command(session, key_num, command)
 
 from chimerax.core.commands import Annotation
 class CommandArg(Annotation):
@@ -67,9 +67,24 @@ def register_functionkey_command(logger):
     create_alias('functionkey', 'ui functionkey $*', logger=logger)
 
 def function_key_commands(session):
-    if not hasattr(session, '_function_key_commands'):
-        session._function_key_commands = {}
-    return session._function_key_commands
+    settings = _function_key_settings(session)
+    return settings.function_key_commands
+
+def _set_function_key_command(session, key_num, command):
+    settings = _function_key_settings(session)
+    fkc = settings.function_key_commands
+    d = fkc.copy()	# Need to make a copy or Settings does not save new value.
+    d[key_num] = command
+    settings.function_key_commands = d
+    settings.save()
+
+def _function_key_settings(session):
+    if not hasattr(session, '_function_key_settings'):
+        from chimerax.core.settings import Settings
+        class _FunctionKeySettings(Settings):
+            EXPLICIT_SAVE = { 'function_key_commands': {}, }
+        session._function_key_settings = _FunctionKeySettings(session, "function_keys")
+    return session._function_key_settings
 
 def function_key_pressed(session, key_num):
     fkc = function_key_commands(session)
