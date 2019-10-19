@@ -79,8 +79,16 @@ PythonInstance<C>::~PythonInstance() {
         return;
     PyObject* py_inst = (*i).second;
     AcquireGIL gil; // Py_DECREF can cause code to run
+    PyObject* py_callback = nullptr;
+    if (PyObject_HasAttrString(py_inst, "cpp_destroyed"))
+        py_callback = PyObject_GetAttrString(py_inst, "cpp_destroyed");
     PyObject_DelAttrString(py_inst, "_c_pointer");
     PyObject_DelAttrString(py_inst, "_c_pointer_ref");
+    if (py_callback != nullptr) {
+        if (PyCallable_Check(py_callback))
+            PyObject_CallObject(py_callback, nullptr);
+        Py_DECREF(py_callback);
+    }
     Py_DECREF(py_inst);
     _pyinstance_object_map.erase(i);
 }
