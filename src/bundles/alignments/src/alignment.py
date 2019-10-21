@@ -547,6 +547,8 @@ class Alignment(State):
             s.match_maps = mm
             for chain, match_map in mm.items():
                 match_map.mod_handler = match_map.triggers.add_handler('modified', aln._mmap_mod_cb)
+        if 'sseq to chain' in data:
+            aln._sseq_to_chain = data['sseq to chain']
         return aln
 
     def __str__(self):
@@ -558,7 +560,8 @@ class Alignment(State):
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
             'associations': self.associations, 'match maps': [s.match_maps for s in self._seqs],
             'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate,
-            'description' : self.description, 'intrinsic' : self.intrinsic }
+            'description' : self.description, 'intrinsic' : self.intrinsic,
+            'sseq to chain': self._sseq_to_chain }
 
 
 def nw_assoc(session, align_seq, struct_seq):

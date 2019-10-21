@@ -69,6 +69,15 @@ class Model(State, Drawing):
         self.triggers.add_trigger("deleted")
         # TODO: track.created(Model, [self])
 
+    def cpp_destroyed(self):
+        '''Called by the C++ layer by the destructor.  Models destroyed directly by the C++
+           layer need to be removed from the models list.
+        '''
+        if self.session and self.id:
+            models = self.session.models
+            if models.have_id(self.id) and self in models.list(model_id = self.id):
+                models.remove([self])
+
     def delete(self):
         '''Delete this model.'''
         if self._deleted:
