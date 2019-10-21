@@ -224,7 +224,7 @@ class HBondsGUI(QWidget):
                 if not models:
                     raise UserError("Model restriction enabled but no models chosen")
                 from chimerax.core.commands import concise_model_spec
-                atom_spec = concise_model_spec(models)
+                atom_spec = concise_model_spec(self.session, models)
         else:
             atom_spec = ""
 
