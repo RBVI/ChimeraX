@@ -47,7 +47,23 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>hbonds</b> command uses <a href="../atomtypes.html">atom types</a> and
 <a href="#criteria">geometric criteria</a> to identify hydrogen bonds (H-bonds)
-involving the specified atoms.
+involving the specified atoms. It is the command-line implementation of the 
+<a href="../tools/hbonds.html"><b>H-Bonds</b></a> tool.
+See also: 
+<a href="#related">H-bond-related features</a>,
+<a href="distance.html"><b>distance</b></a>,
+<a href="addh.html"><b>addh</b></a>,
+<a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
+<a href="interfaces.html"><b>interfaces</b></a>,
+<!--
+<a href="../tools/rotamers.html"><b>Rotamers</b></a>,
+-->
+<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/hbondsflat.png"></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/hbondsflathide.png"></a>
+</p><p>
 The <a href="#saltOnly"><b>saltOnly</b></a> option allows finding just 
 the salt bridges, and the <a href="#restrict"><b>restrict</b></a>
 option allows finding only H-bonds within the specified 
@@ -57,21 +73,6 @@ The total number of H-bonds found is reported in the
 consistent with the criteria, even if they could not coexist simultaneously.
 Distances and other details can be <a href="#log">logged</a>
 and/or <a href="#saveFile">saved</a> to a file.
-See also: <a href="addh.html"><b>addh</b></a>,
-<a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
-<a href="swapaa.html"><b>swapaa</b></a>,
-<a href="distance.html"><b>distance</b></a>,
-<a href="interfaces.html"><b>interfaces</b></a>,
-<a href="select.html#new"><b>select</b> by pseudobond length</a>,
-<a href="../tools/viewdockx.html"><b>ViewDockX</b></a>,
-<a href="../tools/rotamers.html"><b>Rotamers</b></a>,
-<a href="#related">H-bond-related features</a>,
-<a href="../measurements.html">measurements</a>,
-<a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/hbondsflat.png"></a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/hbondsflathide.png"></a>
 </p><p>
 By <a href="#makePseudobonds">default</a>, 
 the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>.
@@ -258,9 +259,14 @@ unless their simultaneous display has been enabled with
 <a name="showDist"></a>
 <b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>Whether to label the <a href="../pseudobonds.html">pseudobonds</a>
-with the corresponding distances. Label color, size, and font can be
+with the corresponding distances. Label color, height, and font can be
 adjusted with the <a href="label.html"><b>label</b></a> command,
 which can also be used to add the labels later or to delete them.
+Label height can also be set beforehand in the
+<a href="../preferences.html#labels"><b>Labels</b> preferences</a>.
+The number of decimal places and whether to show the &Aring; symbol can be
+changed with <a href="distance.html#style"><b>distance style</b></a> or set beforehand
+in the <a href="../preferences.html#distances"><b>Distances</b> preferences</a>.
 The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
 </blockquote>
@@ -469,7 +475,7 @@ User-specified <a href="#tolerances">tolerances</a>
 are added to each criterion's upper bound and/or subtracted from
 its lower bound (depending on the particular criterion).
 </p><p>
-Chimera uses atom and residue names, or if these are not &ldquo;standard,&rdquo;
+ChimeraX uses atom and residue names, or if these are not &ldquo;standard,&rdquo;
 the coordinates of atoms, to determine connectivity and
 <a href="../atomtypes.html">atom types</a>,
 which in turn determine which geometric criteria are appropriate for
