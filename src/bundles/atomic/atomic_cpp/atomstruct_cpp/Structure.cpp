@@ -59,6 +59,7 @@ Structure::Structure(PyObject* logger):
             _position[i][j] = (i == j ? 1.0 : 0.0);
         }
     }
+    make_py_destructor_callback = true;
     change_tracker()->add_created(this, this);
 }
 
