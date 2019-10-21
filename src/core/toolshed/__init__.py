@@ -1102,7 +1102,8 @@ class Toolshed:
                 if self._abc_updating:
                     logger.warning("still retrieving bundle list from toolshed")
                 else:
-                    logger.warning("could not retrieve bundle list from toolshed")
+                    pass  # Fix #1254 -- already warned during initialization
+                    # logger.warning("could not retrieve bundle list from toolshed")
                 from .available import AvailableBundleCache
                 self._available_bundle_info = AvailableBundleCache(self._cache_dir)
             elif self._abc_updating:

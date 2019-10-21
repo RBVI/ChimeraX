@@ -57,7 +57,7 @@ class MarkerMouseMode(MouseMode):
             self.place_on_plane(event)
         elif mode == 'mark point':
             self.place_on_point(event)
-            
+
     def place_on_surface(self, event):
         xyz1, xyz2 = self._view_line(event)
         s = self.session
@@ -210,6 +210,8 @@ class MarkerMouseMode(MouseMode):
             s['marker radius'] = r
         else:
             s['link radius'] = r
+
+    def _update_marker_panel(self):
         from .markergui import marker_panel
         p = marker_panel(self.session, 'Markers')
         p.update_settings()
@@ -227,7 +229,9 @@ class MarkerMouseMode(MouseMode):
 
     def mouse_up(self, event = None):
         self._moving_marker = None
-        self._resizing_marker_or_link = None
+        if self._resizing_marker_or_link:
+            self._update_marker_panel()
+            self._resizing_marker_or_link = None
 
     def vr_press(self, xyz1, xyz2):
         # Virtual reality hand controller button press.

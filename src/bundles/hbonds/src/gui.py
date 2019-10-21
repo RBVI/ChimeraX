@@ -224,7 +224,7 @@ class HBondsGUI(QWidget):
                 if not models:
                     raise UserError("Model restriction enabled but no models chosen")
                 from chimerax.core.commands import concise_model_spec
-                atom_spec = concise_model_spec(models)
+                atom_spec = concise_model_spec(self.session, models)
         else:
             atom_spec = ""
 
@@ -500,6 +500,8 @@ class HBondRestrictOption(Option):
         layout.addWidget(self.__push_button, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         self.__line_edit = QLineEdit()
         self.__line_edit.setMinimumWidth(72)
+        if display_value in self.fixed_kw_menu_texts:
+            self.__line_edit.hide()
         layout.addWidget(self.__line_edit, alignment=Qt.AlignCenter)
 
     def _menu_cb(self, label):

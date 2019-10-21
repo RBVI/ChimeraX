@@ -394,6 +394,10 @@ class PlaySeriesMouseMode(MouseMode):
     self.last_mouse_x = x
 
     self._take_step(tstep)
+    
+  def wheel(self, event):
+    d = event.wheel_value()
+    self._take_step(-int(d))
 
   def _take_step(self, tstep):
     p = self.play_series()
