@@ -107,10 +107,13 @@ def main():
         print('  Build-type is one of "release", "candidate", or "daily"', file=sys.stderr)
         raise SystemExit(2)
     dependencies = CENTOS_DEPENDENCIES[os_version]
-    full_version = subprocess.check_output([
+    output = subprocess.check_output([
         CHIMERAX_BIN, "--nocolor", "--version"], stderr=subprocess.DEVNULL).decode()
-    full_version = full_version.strip().split('\n')[1]
-    full_version = full_version.split(':', maxsplit=1)[1].strip()
+    full_version = [line for line in output.split('\n') if 'version:' in line]
+    if not full_version:
+        print("Not able to determine version number")
+        raise SystemExit(1)
+    full_version = full_version[0].split(':', maxsplit=1)[1].strip()
     version_number, version_date = full_version.split(maxsplit=1)
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
