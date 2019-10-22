@@ -29,6 +29,7 @@ namespace pyinstance {
 
 template <class C> std::string PythonInstance<C>::_buffer;
 template <class C> PyObject* PythonInstance<C>::_py_class = nullptr;
+template <class C> bool PythonInstance<C>::make_py_destructor_callback = false;
 
 template <class C>
 double PythonInstance<C>::get_py_float_attr(std::string& attr_name, bool create) const
@@ -80,8 +81,10 @@ PythonInstance<C>::~PythonInstance() {
     PyObject* py_inst = (*i).second;
     AcquireGIL gil; // Py_DECREF can cause code to run
     PyObject* py_callback = nullptr;
-    if (PyObject_HasAttrString(py_inst, "cpp_destroyed"))
-        py_callback = PyObject_GetAttrString(py_inst, "cpp_destroyed");
+    if (make_py_destructor_callback) {
+        if (PyObject_HasAttrString(py_inst, "cpp_destroyed"))
+            py_callback = PyObject_GetAttrString(py_inst, "cpp_destroyed");
+    }
     PyObject_DelAttrString(py_inst, "_c_pointer");
     PyObject_DelAttrString(py_inst, "_c_pointer_ref");
     if (py_callback != nullptr) {
