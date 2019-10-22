@@ -62,43 +62,39 @@ If the hydroxyl group has an explicit hydrogen atom,
 however, only H-bonds compatible with the position
 of the hydrogen will be found.
 </p><p>
-The calculation can be limited to salt bridges or specified sets of atoms,
-and details including endpoint atoms and distances can be written to
-a file and/or the <a href="log.html"><b>Log</b></a>.
 Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
 runs the calculation. Several of the dialog settings are remembered as 
 <a href="../preferences.html#other">preferences</a>.
-</p><p>
-Options:
 </p>
 <ul>
-<li><b>H-bond color</b>
-(initial default <b>deep sky blue</b>
+<li><b>Display as pseudobonds</b> (initial default <b>on</b>)
+&ndash; whether to show H-bonds as 
+<a href="../pseudobonds.html">pseudobonds</a>.
+The pseudobonds will be drawn between the donor and acceptor atoms,
+or if hydrogens are present, between the hydrogens and acceptor atoms. 
+H-bond pseudobonds can be removed with the command 
+<a href="../commands/hbonds.html#delete"><b>hbonds delete</b></a> or
+<a href="../commands/hbonds.html#delete"><b>~hbonds</b></a>.
+A <a href="../pseudobonds.html">pseudobond model</a> can also be closed
+with the <a href="modelpanel.html"><b>Model Panel</b></b></a> 
+or the <a href="../commands/close.html"><b>close</b></a> command.
+  <ul>
+  <li><b>Color</b> (initial default <b>deep sky blue</b>
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=deepskyblue width="10px"></td> </tr></table>)
-&ndash; color for 
-<a href="../pseudobonds.html">pseudobonds</a> representing H-bonds; can be 
-changed later with <a href="../commands/color.html#simple"><b>color</b></a>
-<p>
-A <a href="../pseudobonds.html">pseudobond</a>
-is only shown when both of its endpoint atoms are shown; see the option
-<a href="#reveal"><b>If endpoint atom hidden...</b></a> below.
-H-bond pseudobonds can be removed with the command 
-<a href="../commands/hbonds.html"><b>hbonds delete</b></a> or
-<a href="../commands/hbonds.html"><b>~hbonds</b></a>.
-When there are multiple pseudobond models, specific ones can be
-closed using the <a href="modelpanel.html"><b>Model Panel</b></b></a> 
-or the <a href="../commands/close.html"><b>close</b></a> command.
-</p>
-<li><b>Radius</b> (initial default <b>0.075</b> &Aring;)
+&ndash; color of H-bond <a href="../pseudobonds.html">pseudobonds</a>; can be
+changed later with <a href="../commands/color.html#simple"><b>color</b></a>,
+for example:
+<b><a href="../commands/color.html#simple">color</a>&nbsp;<a href="../commands/atomspec.html#builtin">hbonds</a>&nbsp;goldenrod</b>
+  <li><b>Radius</b> (initial default <b>0.075</b> &Aring;)
 &ndash; radius for H-bond <a href="../pseudobonds.html">pseudobonds</a>;
 can be changed later with <a href="../commands/size.html"><b>size</b></a>
-<li><b>Number of dashes</b> (initial default <b>6</b>)
-&ndash; number of dashes in H-bond <a href="../pseudobonds.html">pseudobonds</a>;
-can be changed later with <a href="../commands/style.html"><b>style</b></a>
-<li><b>Label H-bond with distance</b>
-(initial default <b>off</b>)
+  <li><b>Dashes</b> (initial default <b>6</b>) &ndash; 
+number of dashes in H-bond <a href="../pseudobonds.html">pseudobonds</a>;
+can be changed later with <a href="../commands/style.html"><b>style</b></a>.
+Currently, odd numbers are rounded down to give an even number of dashes. 
+  <li><b>Distance label</b> (initial default <b>off</b>)
 &ndash; whether to show &Aring; distances as bond labels;
 the number of decimal places and whether to show the &Aring; symbol can be 
 changed with <a href="../commands/distance.html#style"><b>distance style</b></a>
@@ -107,25 +103,38 @@ or set beforehand in the
 and label height in &Aring; can be changed with 
 <a href="../commands/label.html#height"><b>label height</b></a>
 or set beforehand in the
-<a href="../preferences.html#labels"><b>Labels</b> preferences</a>
-<br><br>
-<li><b>Find these bonds</b>:
-  <ul>
-  <li><b>inter-model</b>
-  <li><b>intra-model</b>
-  <li><b>both</b> (initial default)
+<a href="../preferences.html#labels"><b>Labels</b> preferences</a>.
+The distances (pseudobond lengths) can also be plotted as a histogram with
+<a href="../commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
+  <li><b>If endpoint atom hidden, show endpoint residue</b>
+(initial default <b>off</b>) &ndash; 
+since a <a href="../pseudobonds.html">pseudobond</a> 
+is only shown when both of its endpoint atoms are shown,
+whether to ensure all showing all H-bonds by displaying all of the endpoint 
+atoms. To avoid showing disconnected atoms, the entire residues will be shown,
+except that amino acid and nucleic acid residues are split into 
+<a href="../commands/atomspec.html#builtin">sidechain</a> and
+<a href="../commands/atomspec.html#builtin">backbone</a>
+moieties separately displayed by this option.
+Displayed backbone atoms may still be invisible where cartoon is shown,
+unless their simultaneous display has been enabled with
+<b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
+  <li><b>Retain pre-existing H-bonds</b> (initial default <b>off</b>) 
   </ul>
 <br>
-<li><b>Relax H-bond constraints</b> (initial default <b>on</b>)
+<li><b>Relax distance and angle criteria</b> (initial default <b>on</b>)
 &ndash; whether to add tolerance values to the 
 <a href="../commands/hbonds.html#criteria">precise criteria</a> for identifying
 H-bonds (several different distance and angle cutoffs depending on the 
-<a href="../atomtypes.html">atom types</a> involved).
-If so, <b>Relax constraints by</b>:
+<a href="../atomtypes.html">atom types</a> involved). As the precise
+cutoffs were based on high-resolution small-molecule crystal structures,
+relaxing them is generally recommended for macromolecules and 
+structures at a broader range of resolutions.
   <ul>
-  <li>[<i>distance tolerance</i>] (initial default <b>0.4</b> &Aring;)
-  <li>[<i>angle tolerance</i>] (initial default <b>20</b>&deg;)
+  <li><b>Distance tolerance</b> (initial default <b>0.4</b> &Aring;)
+  <li><b>Angle tolerance</b> (initial default <b>20</b>&deg;)
   <li><b>Color H-bonds not meeting precise criteria differently</b>
+(initial default <b>off</b>)
 &ndash; whether to use a different color for
 <a href="../pseudobonds.html">pseudobonds</a> 
 representing H-bonds within the tolerance values but not meeting the
@@ -136,32 +145,59 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=darkorange width="10px" title="dark orange"></td></tr></table>)
   </ul>
 <br>
+<li><b>Limit results</b>: 
+Any combination of the settings can be used, except that the first two
+are mutually exclusive (cannot both be <b>on</b>).
+To find H-bonds between sibling 
+<a href="../commands/atomspec.html#hierarchy">submodels</a>
+of the same parent model,
+use the <a href="../commands/hbonds.html"><b>hbonds</b></a> command with 
+<a href="../commands/hbonds.html#interSubmodel"><b>interSubmodel true</b></a>.
+</p>
+  <ul>
 <!--
-<li><b>Restrict to models...</b> (initial default <b>off</b>) 
+  <li><b>Restrict to models...</b> (initial default <b>off</b>) 
 &ndash; choose specific models from the list shown when the option is on
 -->
-<li><b>Only find H-bonds</b> (initial default <b>off</b>) 
+  <li><b>Intermodel only</b> (initial default <b>off</b>)
+  <li><b>Intramodel only </b> (initial default <b>off</b>)
+  <li><b>Limit by selection</b> (initial default <b>off</b>) 
 &ndash; whether to limit the results by the current
 <a href="../selection.html">selection</a> according to one of the following
 choices in the pulldown menu:
-  <ul>
-  <li><b>with at least one end selected</b>
-  <li><b>with exactly one end selected</b>
-  <li><b>with both ends selected</b>
-  <li><b>between selection and atom spec...</b> 
-  [<a href="../commands/atomspec.html"><i>atom-spec</i></a>]
+    <ul>
+    <li><b>with at least one end selected</b>
+    <li><b>with exactly one end selected</b>
+    <li><b>with both ends selected</b>
+    <li><b>between selection and atom spec...</b> 
+    [<a href="../commands/atomspec.html"><i>atom-spec</i></a>]
+The two sets of atoms may overlap, but will not overrule other restrictions.
+    </ul>
+  <li><b>Salt bridges only</b> (initial default <b>off</b>) 
+&ndash; whether to limit the results to salt bridges, that is, 
+H-bonds between formally charged functional groups.
+Such groups are identified by their <a href="../atomtypes.html">atom types</a>,
+where possible. In the absence of explicit hydrogens, 
+a histidine sidechain is assumed to be formally charged unless one of 
+its nitrogens is coordinating a metal ion or identified unambiguously 
+as an H-bond acceptor. 
+  <li><b>Include intramolecule</b> (initial default <b>on</b>) 
+&ndash; whether to include intramolecular H-bonds, 
+where a molecule is defined as a covalently bonded set of atoms
+  <li><b>Include intraresidue</b> (initial default <b>on</b>) 
   </ul>
-<li><b>Salt bridges only</b> (initial default <b>off</b>) 
-<li><b>Include intra-molecule H-bonds</b> (initial default <b>on</b>) 
-<li><b>Include intra-residue H-bonds</b> (initial default <b>on</b>) 
-<li><a name="reveal"></a><b>If endpoint atom hidden, show endpoint residue</b>
-(initial default <b>off</b>) 
-<li><b>Retain existing H-bonds</b> (initial default <b>off</b>) 
-<li><b>Write information to file</b> (initial default <b>off</b>) 
-&ndash; whether to write detailed information to a text file
-<li><b>Write information to log</b> (initial default <b>off</b>) 
-&ndash; whether to report details (endpoint atoms, distances, <i>etc.</i>)
-in the <a href="log.html"><b>Log</b></a>
+<br>
+<li><b>Write information to:</b> Where to write H-bond information,
+including donor and acceptor atom specifications 
+(see the <a href="../preferences.html#labels"><b>Labels</b> preferences</a>
+for specifier style), donor-acceptor distances, and when hydrogens are present, 
+hydrogen atom specifications and hydrogen-acceptor distances.
+  <ul>
+  <li><b>Log</b> (initial default <b>off</b>) 
+&ndash; show the information in the <a href="log.html"><b>Log</b></a>
+  <li><b>File</b> (initial default <b>off</b>) 
+&ndash; save the information to a text file
+  </ul>
 </ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
