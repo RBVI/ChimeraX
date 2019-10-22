@@ -38,17 +38,18 @@ class HBondsGUI(QWidget):
             # the command yourself.
             angle_slop=rec_angle_slop, color=AtomicStructure.default_hbond_color,
             dashes=AtomicStructure.default_hbond_dashes, dist_slop=rec_dist_slop, inter_model=True,
-            intra_model=True, intra_mol=True, intra_res=True, intra_submodel=False, log=False,
-            radius=AtomicStructure.default_hbond_radius, relax=True, restrict="any", retain_current=False,
-            reveal=False, salt_only=False, save_file=None, show_dist=False,
+            inter_submodel=False, intra_model=True, intra_mol=True, intra_res=True, log=False,
+            make_pseudobonds=True, radius=AtomicStructure.default_hbond_radius, relax=True, restrict="any",
+            retain_current=False, reveal=False, salt_only=False, save_file=None, show_dist=False,
             slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
             show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_intra_model=True,
-            show_intra_mol=True, show_intra_res=True, show_intra_submodel=False, show_log=True,
-            show_model_restrict=True, show_radius=True, show_relax=True, show_restrict=True,
-            show_retain_current=True, show_reveal=True, show_salt_only=True, show_save_file=True,
-            show_show_dist=True, show_slop=True, show_slop_color=True, show_two_colors=True):
+            show_intra_mol=True, show_intra_res=True, show_inter_submodel=False, show_log=True,
+            show_make_pseudobonds=True, show_model_restrict=True, show_radius=True, show_relax=True,
+            show_restrict=True, show_retain_current=True, show_reveal=True, show_salt_only=True,
+            show_save_file=True, show_show_dist=True, show_slop=True, show_slop_color=True,
+            show_two_colors=True):
 
         self.session = session
 
@@ -74,49 +75,46 @@ class HBondsGUI(QWidget):
         layout = QVBoxLayout()
         self.setLayout(layout)
 
-        top_layout = QHBoxLayout()
-        layout.addLayout(top_layout)
-
-        top_left_options = OptionsPanel(sorting=False, scrolled=False)
-        top_layout.addWidget(top_left_options)
-        if show_color:
-            self.__color_option = ColorOption("H-bond color", None if settings else color, None,
-                attr_name="color", settings=settings)
-            top_left_options.add_option(self.__color_option)
-        if show_radius:
-            self.__radius_option = FloatOption("Radius", None if settings else radius, None,
-                attr_name="radius", min='positive', settings=settings)
-            self.__radius_option.widget.setSuffix("\N{ANGSTROM SIGN}")
-            top_left_options.add_option(self.__radius_option)
-        if show_dashes:
-            self.__dashes_option = IntOption("Number of dashes", None if settings else dashes, None,
-                attr_name="dashes", min=0, settings=settings)
-            top_left_options.add_option(self.__dashes_option)
-        if show_show_dist:
-            self.__show_dist_option = BooleanOption("Label H-bond with distance",
-                None if settings else show_dist, None, attr_name="show_dist", settings=settings)
-            top_left_options.add_option(self.__show_dist_option)
-
-        if show_inter_intra_model:
-            group = QGroupBox("Find these bonds")
-            top_layout.addWidget(group)
-            group_layout = QVBoxLayout()
-            group.setLayout(group_layout)
-            self.__inter_model_button = QRadioButton("inter-model")
-            group_layout.addWidget(self.__inter_model_button)
-            self.__intra_model_button = QRadioButton("intra-model")
-            group_layout.addWidget(self.__intra_model_button)
-            self.__both_model_button = QRadioButton("both")
-            group_layout.addWidget(self.__both_model_button)
-            if final_val['inter_model'] and final_val['intra_model']:
-                self.__both_model_button.setChecked(True)
-            elif final_val['inter_model']:
-                self.__inter_model_button.setChecked(True)
-            else:
-                self.__intra_model_button.setChecked(True)
+        if show_make_pseudobonds:
+            self.__make_pb_group = group = QGroupBox("Display as pseudobonds")
+            layout.addWidget(group)
+            group.setCheckable(True)
+            group.setChecked(final_val['make_pseudobonds'])
+            make_pb_layout = QVBoxLayout()
+            make_pb_layout.setContentsMargins(0,0,0,0)
+            make_pb_layout.setSpacing(0)
+            group.setLayout(make_pb_layout)
+            make_pb_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+            make_pb_layout.addWidget(make_pb_options)
+            if show_color:
+                self.__color_option = ColorOption("Color", None if settings else color, None,
+                    attr_name="color", settings=settings)
+                make_pb_options.add_option(self.__color_option)
+            if show_radius:
+                self.__radius_option = FloatOption("Radius", None if settings else radius, None,
+                    attr_name="radius", min='positive', settings=settings)
+                self.__radius_option.widget.setSuffix("\N{ANGSTROM SIGN}")
+                make_pb_options.add_option(self.__radius_option)
+            if show_dashes:
+                self.__dashes_option = IntOption("Dashes", None if settings else dashes, None,
+                    attr_name="dashes", min=0, settings=settings)
+                make_pb_options.add_option(self.__dashes_option)
+            if show_show_dist:
+                self.__show_dist_option = BooleanOption("Distance label",
+                    None if settings else show_dist, None, attr_name="show_dist", settings=settings)
+                make_pb_options.add_option(self.__show_dist_option)
+            if show_reveal:
+                self.__reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
+                    None if settings else reveal, None, attr_name="reveal", settings=settings)
+                make_pb_options.add_option(self.__reveal_option)
+            if show_retain_current:
+                self.__retain_current_option = BooleanOption("Retain pre-existing H-bonds",
+                    None if settings else retain_current, None, attr_name="retain_current",
+                    settings=settings)
+                make_pb_options.add_option(self.__retain_current_option)
 
         if show_relax:
-            self.__relax_group = group = QGroupBox("Relax H-bond constraints")
+            self.__relax_group = group = QGroupBox("Relax distance and angle criteria")
             layout.addWidget(group)
             group.setCheckable(True)
             group.setChecked(final_val['relax'])
@@ -124,26 +122,18 @@ class HBondsGUI(QWidget):
             relax_layout.setContentsMargins(0,0,0,0)
             relax_layout.setSpacing(0)
             group.setLayout(relax_layout)
+            relax_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+            relax_layout.addWidget(relax_options)
             if show_slop:
-                slop_layout = QHBoxLayout()
-                slop_layout.setContentsMargins(0,0,0,0)
-                slop_layout.setSpacing(0)
-                relax_layout.addLayout(slop_layout)
-                slop_layout.addWidget(QLabel("Relax constraints by:"),
-                    alignment=Qt.AlignRight | Qt.AlignVCenter)
-                slop_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
-                slop_layout.addWidget(slop_options, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-                self.__dist_slop_option = FloatOption("", None if settings else dist_slop, None,
-                    attr_name="dist_slop", settings=settings)
+                self.__dist_slop_option = FloatOption("Distance tolerance", None if settings else dist_slop,
+                    None, attr_name="dist_slop", settings=settings)
                 self.__dist_slop_option.widget.setSuffix("\N{ANGSTROM SIGN}")
-                slop_options.add_option(self.__dist_slop_option)
-                self.__angle_slop_option = FloatOption("", None if settings else angle_slop, None,
-                    attr_name="angle_slop", settings=settings)
+                relax_options.add_option(self.__dist_slop_option)
+                self.__angle_slop_option = FloatOption("Angle tolerance", None if settings else angle_slop,
+                    None, attr_name="angle_slop", settings=settings)
                 self.__angle_slop_option.widget.setSuffix("\N{DEGREE SIGN}")
-                slop_options.add_option(self.__angle_slop_option)
+                relax_options.add_option(self.__angle_slop_option)
             if show_slop_color:
-                slop_color_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
-                relax_layout.addWidget(slop_color_options)
                 if final_val['two_colors']:
                     default_value = final_val['slop_color']
                     kw = {}
@@ -152,60 +142,75 @@ class HBondsGUI(QWidget):
                     kw = { 'initial_color': final_val['slop_color'] }
                 self.__slop_color_option = OptionalRGBAOption("Color H-bonds not meeting precise criteria"
                     " differently", default_value, None, **kw)
-                slop_color_options.add_option(self.__slop_color_option)
+                relax_options.add_option(self.__slop_color_option)
 
-        self.__bottom_options = bottom_options = OptionsPanel(sorting=False, scrolled=False,
+        group = QGroupBox("Limit results:")
+        layout.addWidget(group)
+        limit_layout = QVBoxLayout()
+        limit_layout.setContentsMargins(0,0,0,0)
+        limit_layout.setSpacing(0)
+        group.setLayout(limit_layout)
+        self.__limit_options = limit_options = OptionsPanel(sorting=False, scrolled=False,
             contents_margins=(0,0,0,0))
-        layout.addWidget(bottom_options)
+        limit_layout.addWidget(limit_options)
 
         if show_model_restrict:
             self.__model_restrict_option = OptionalModelRestrictOption(session, tool_window,
-                "Restrict to models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
-            bottom_options.add_option(self.__model_restrict_option)
+                "Choose specific models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
+            limit_options.add_option(self.__model_restrict_option)
+
+        if show_inter_intra_model:
+            inter_val = final_val['inter_model'] and not final_val['intra_model']
+            self.__inter_model_only_option = BooleanOption("Intermodel only", inter_val,
+                self._inter_model_cb)
+            limit_options.add_option(self.__inter_model_only_option)
+            intra_val = final_val['intra_model'] and not final_val['inter_model']
+            self.__intra_model_only_option = BooleanOption("Intramodel only", intra_val,
+                self._intra_model_cb, attr_name="intra_model", settings=settings)
+            limit_options.add_option(self.__intra_model_only_option)
 
         if show_bond_restrict:
-            self.__bond_restrict_option = OptionalHBondRestrictOption(tool_window, "Only find H-bonds",
+            self.__bond_restrict_option = OptionalHBondRestrictOption(tool_window, "Limit by selection",
                 None, None)
-            bottom_options.add_option(self.__bond_restrict_option)
+            limit_options.add_option(self.__bond_restrict_option)
 
         if show_salt_only:
             self.__salt_only_option = BooleanOption("Salt bridges only",
                 None if settings else salt_only, None, attr_name="salt_only", settings=settings)
-            bottom_options.add_option(self.__salt_only_option)
+            limit_options.add_option(self.__salt_only_option)
 
         if show_intra_mol:
-            self.__intra_mol_option = BooleanOption("Include intra-molecule H-bonds",
+            self.__intra_mol_option = BooleanOption("Include intramolecule",
                 None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
-            bottom_options.add_option(self.__intra_mol_option)
+            limit_options.add_option(self.__intra_mol_option)
 
         if show_intra_res:
-            self.__intra_res_option = BooleanOption("Include intra-residue H-bonds",
+            self.__intra_res_option = BooleanOption("Include intraresidue",
                 None if settings else intra_res, None, attr_name="intra_res", settings=settings)
-            bottom_options.add_option(self.__intra_res_option)
+            limit_options.add_option(self.__intra_res_option)
 
-        if show_intra_submodel:
-            self.__intra_submodel_option = BooleanOption("Include intra-submodel H-bonds",
-                None if settings else intra_submodel, None, attr_name="intra_submodel", settings=settings)
-            bottom_options.add_option(self.__intra_submodel_option)
+        if show_inter_submodel:
+            self.__intra_submodel_option = BooleanOption("Include inter-submodel",
+                None if settings else intra_submodel, None, attr_name="inter_submodel", settings=settings)
+            limit_options.add_option(self.__intra_submodel_option)
 
-        if show_reveal:
-            self.__reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
-                None if settings else reveal, None, attr_name="reveal", settings=settings)
-            bottom_options.add_option(self.__reveal_option)
-
-        if show_retain_current:
-            self.__retain_current_option = BooleanOption("Retain existing H-bonds",
-                None if settings else retain_current, None, attr_name="retain_current", settings=settings)
-            bottom_options.add_option(self.__retain_current_option)
-
-        if show_save_file:
-            self.__save_file_option = BooleanOption("Write information to file", False, None)
-            bottom_options.add_option(self.__save_file_option)
+        group = QGroupBox("Write information to:")
+        layout.addWidget(group)
+        info_layout = QVBoxLayout()
+        info_layout.setContentsMargins(0,0,0,0)
+        info_layout.setSpacing(0)
+        group.setLayout(info_layout)
+        info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+        info_layout.addWidget(info_options)
 
         if show_log:
-            self.__log_option = BooleanOption("Write information to log",
-                None if settings else log, None, attr_name="log", settings=settings)
-            bottom_options.add_option(self.__log_option)
+            self.__log_option = BooleanOption("Log", None if settings else log, None, attr_name="log",
+                settings=settings)
+            info_options.add_option(self.__log_option)
+
+        if show_save_file:
+            self.__save_file_option = BooleanOption("File", False, None)
+            info_options.add_option(self.__save_file_option)
 
     def get_command(self):
         """Used to generate the 'hbonds' command that can be run to produce the requested H-bonds.
@@ -229,7 +234,7 @@ class HBondsGUI(QWidget):
                 if not models:
                     raise UserError("Model restriction enabled but no models chosen")
                 from chimerax.core.commands import concise_model_spec
-                atom_spec = concise_model_spec(models)
+                atom_spec = concise_model_spec(self.session, models)
         else:
             atom_spec = ""
 
@@ -278,19 +283,10 @@ class HBondsGUI(QWidget):
             settings['show_dist'] = None
 
         if self.__show_values['inter_intra_model']:
-            if self.__intra_model_button.isChecked():
-                intra = True
-                inter = False
-            elif self.__inter_model_button.isChecked():
-                intra = False
-                inter = True
-            else:
-                intra = True
-                inter = True
-            settings['intra_model'] = intra
-            settings['inter_model'] = inter
+            settings['inter_model'] = not self.__intra_model_only_option.value
+            settings['intra_model'] = not self.__inter_model_only_option.value
         else:
-            settings['intra_model'] = settings['inter_model'] = None
+            settings['inter_model'] = settings['intra_model'] = None
 
         if self.__show_values['relax']:
             settings['relax'] = self.__relax_group.isChecked()
@@ -328,10 +324,10 @@ class HBondsGUI(QWidget):
         else:
             settings['intra_res'] = None
 
-        if self.__show_values['intra_submodel']:
-            settings['intra_submodel'] = self.__intra_submodel_option.value
+        if self.__show_values['inter_submodel']:
+            settings['inter_submodel'] = self.__inter_submodel_option.value
         else:
-            settings['intra_submodel'] = None
+            settings['inter_submodel'] = None
 
         if self.__show_values['reveal']:
             settings['reveal'] = self.__reveal_option.value
@@ -399,12 +395,20 @@ class HBondsGUI(QWidget):
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
         return "hbonds", atom_spec, kw_values
 
+    def _inter_model_cb(self, opt):
+        if opt.value:
+            self.__intra_model_only_option.value = False
+
+    def _intra_model_cb(self, opt):
+        if opt.value:
+            self.__inter_model_only_option.value = False
+
     def _model_restrict_cb(self, opt):
         if opt.value is None:
             new_label = "Restrict to models..."
         else:
             new_label = "Restrict to models:"
-        self.__bottom_options.change_label_for_option(opt, new_label)
+        self.__limit_options.change_label_for_option(opt, new_label)
 
 def is_default(func, kw, val):
     from inspect import signature
@@ -510,6 +514,8 @@ class HBondRestrictOption(Option):
         layout.addWidget(self.__push_button, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         self.__line_edit = QLineEdit()
         self.__line_edit.setMinimumWidth(72)
+        if display_value in self.fixed_kw_menu_texts:
+            self.__line_edit.hide()
         layout.addWidget(self.__line_edit, alignment=Qt.AlignCenter)
 
     def _menu_cb(self, label):

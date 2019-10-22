@@ -320,7 +320,7 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if hasattr(dt, 'series_index'):
     s['series_index'] = dt.series_index
   if hasattr(dt, 'channel') and dt.channel is not None:
-    s['channel_index'] = dt.channel
+    s['channel'] = dt.channel
   if hasattr(dt, 'time') and dt.time is not None:
     s['time'] = dt.time
 

@@ -1517,6 +1517,7 @@ values (&ndash;&pi; to &pi;) instead.
 <a name="gaussian"><b>volume gaussian</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>sDev</b>&nbsp;&nbsp;<i>&sigma;</i>&nbsp;|&nbsp;<i>&sigma;<font size="-1">x</font>,&sigma;<font size="-1">y</font>,&sigma;<font size="-1">z</font>&nbsp;</i>]
 [&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>bfactor</b>&nbsp;&nbsp;<i>B</i>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
@@ -1531,6 +1532,13 @@ can be specified with <b>invert true</b>.
 Sharpening with <i>&sigma;</i> values smaller than the pixel size
 is most useful; larger values overemphasize high frequencies, in effect
 amplifying noise.
+<p>
+Alternatively, <b>bfactor</b>&nbsp;<i>B</i> can be given instead of 
+<b>sDev</b>&nbsp;<i>&sigma;</i>,
+where <i>B</i> = 8&pi;<sup>2</sup><i>&sigma;</i><sup>2</sup>.
+Positive values of <i>B</i> correspond to smoothing, and negative values
+to sharpening (implying <b>invert true</b>).
+</p><p>
 The <i>value-type</i> defaults to the current type
 and can be 8-, 16-, or 32-bit signed integer
 (<b>int8</b>, <b>int16</b>, or <b>int32</b>),
@@ -2337,5 +2345,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2019</address>
+October 2019</address>
 </body></html>

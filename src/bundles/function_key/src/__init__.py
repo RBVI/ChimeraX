@@ -18,6 +18,8 @@ class _FunctionKeyBundleAPI(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         """Register to get function key presses"""
+        if not session.ui.is_gui:
+            return
         def fkey_press(session, key):
             from PyQt5.QtCore import Qt
             key_num = key - Qt.Key_F1 + 1
