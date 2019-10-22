@@ -205,7 +205,7 @@ def _update_list(toolshed, node, what, callback, logger):
 
 def _update_commands(toolshed, doc_ul, doc):
     from lxml.html import builder as E
-    missing = OrderedDict()
+    missing = {}
     for bi in toolshed.bundle_info(None):
         for cmd in bi.commands:
             words = cmd.name.split(maxsplit=2)
@@ -221,6 +221,7 @@ def _update_commands(toolshed, doc_ul, doc):
                 missing[name] = ("commands/%s.html" % name, synopsis)
     names = list(doc)
     missing_names = list(missing)
+    missing_names.sort(key=str.casefold)
     all_names = names + missing_names
     all_names.sort(key=str.casefold)
     for name in missing_names:
@@ -234,7 +235,7 @@ def _update_commands(toolshed, doc_ul, doc):
 
 def _update_tools(toolshed, doc_ul, doc):
     from lxml.html import builder as E
-    missing = OrderedDict()
+    missing = {}
     for bi in toolshed.bundle_info(None):
         for t in bi.tools:
             name = t.name
@@ -248,6 +249,7 @@ def _update_tools(toolshed, doc_ul, doc):
                 missing[name] = (None, t.synopsis)
     names = list(doc)
     missing_names = list(missing)
+    missing_names.sort(key=str.casefold)
     all_names = names + missing_names
     all_names.sort(key=str.casefold)
     for name in missing_names:

@@ -157,8 +157,11 @@ class MultiColorButton(ColorButton):
                 import os
                 if os.path.exists(test_icon):
                     icon_file = test_icon
-            from urllib.request import pathname2url
-            path = pathname2url(icon_file)
+            # convert Windows 'C:' et al to something that doesn't look like the 'scheme'
+            # part of an URL (pathname2url) and yet don't have spaces and such represented
+            # as '%20' and such (unquote)
+            from urllib.request import pathname2url, unquote
+            path = unquote(pathname2url(icon_file))
             self.setStyleSheet("background-image: url(%s);" % path)
         else:
             ColorButton.set_color(self, color)

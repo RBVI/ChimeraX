@@ -33,7 +33,7 @@ class HBondsTool(ToolInstance):
         layout.addWidget(self.gui)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.run_hbonds)
         bbox.button(qbbox.Apply).clicked.connect(self.run_hbonds)
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
