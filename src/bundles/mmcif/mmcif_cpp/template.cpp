@@ -25,7 +25,6 @@
 #include <readcif.h>
 #include <float.h>
 #include <fcntl.h>
-#include <math.h>
 #ifndef _WIN32
 #include <unistd.h>
 #include <sys/mman.h>
@@ -351,7 +350,7 @@ ExtractTemplate::parse_chem_comp_atom()
     while (parse_row(pv)) {
         const Element& elem = Element::get_element(symbol);
         tmpl::Atom* a = templates->new_atom(name, elem);
-        if (isnan(pdbx_x)) {
+        if (std::isnan(pdbx_x)) {
             tmpl::Coord c(x, y, z);
             a->set_coord(c);
         } else {

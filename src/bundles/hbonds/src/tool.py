@@ -16,7 +16,7 @@ from chimerax.core.tools import ToolInstance
 
 class HBondsTool(ToolInstance):
 
-    #help = "help:user/tools/distances.html"
+    help = "help:user/tools/hbonds.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -29,7 +29,7 @@ class HBondsTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
         from .gui import HBondsGUI
-        self.gui = HBondsGUI(session, tw)
+        self.gui = HBondsGUI(session, tw, show_model_restrict=False)
         layout.addWidget(self.gui)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
@@ -39,8 +39,7 @@ class HBondsTool(ToolInstance):
         bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
-        bbox.button(bbox.Help).setEnabled(False)
+        bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
 
         tw.manage(placement=None)
