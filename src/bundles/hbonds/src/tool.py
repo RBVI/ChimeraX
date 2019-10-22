@@ -29,7 +29,7 @@ class HBondsTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
         from .gui import HBondsGUI
-        self.gui = HBondsGUI(session, tw)
+        self.gui = HBondsGUI(session, tw, show_model_restrict=False)
         layout.addWidget(self.gui)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
