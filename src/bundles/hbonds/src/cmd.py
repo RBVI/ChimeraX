@@ -129,7 +129,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     else:
         session.logger.status("%d hydrogen bonds found" % len(result), log=True, blank_after=120)
     if not make_pseudobonds:
-        return
+        return hb_lists if doing_coordsets else hb_lists[0]
 
     if two_colors:
         # color relaxed constraints differently
@@ -257,6 +257,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             session.pb_dist_monitor.add_group(pbg)
         else:
             session.pb_dist_monitor.remove_group(pbg)
+    return hb_lists if doing_coordsets else hb_lists[0]
 
 def restrict_hbonds(hbonds, atoms, restrict):
     filtered = []

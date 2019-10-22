@@ -212,6 +212,7 @@ class RotamerDialog(ToolInstance):
             table_data = session_data
 
         self.subdialogs = {}
+        self.opt_columns = {}
         self.handlers = [
             self.mgr.triggers.add_handler('fewer rotamers', self._fewer_rots_cb),
             self.mgr.triggers.add_handler('self destroyed', self._mgr_destroyed_cb),
@@ -227,7 +228,7 @@ class RotamerDialog(ToolInstance):
         parent = tw.ui_area
         from PyQt5.QtWidgets import QVBoxLayout, QLabel, QMenu, QCheckBox, QAction
         self.column_menu = QMenu("Columns")
-        self.add_menu = add_menu = QMenu("Add")
+        self.add_menu = add_menu = QMenu("Add/Update")
         for add_type in ["H-Bonds"]:
             action = QAction(add_type + "...", parent)
             action.triggered.connect(lambda arg, dtype=add_type: self._show_subdialog(dtype))
@@ -242,7 +243,8 @@ class RotamerDialog(ToolInstance):
             def sizeHint(self):
                 from PyQt5.QtCore import QSize
                 return QSize(350, 450)
-        self.table = RotamerTable(column_control_info=(self.column_menu, _settings, {}, True))
+        self.table = RotamerTable(column_control_info=(self.column_menu, _settings, {}, True),
+            auto_multiline_headers=False)
         for i in range(len(self.mgr.rotamers[0].chis)):
             self.table.add_column("Chi %d" % (i+1), lambda r, i=i: r.chis[i], format="%6.1f")
         self.table.add_column("Probability", "rotamer_prob", format="%.6f ")
@@ -273,6 +275,7 @@ class RotamerDialog(ToolInstance):
         for sd in self.subdialogs.values():
             sd.destroy()
         self.subdialogs.clear()
+        self.opt_columns.clear()
         if not from_mgr:
             self.mgr.destroy()
         super().delete()
@@ -314,17 +317,21 @@ class RotamerDialog(ToolInstance):
             cmd_name, spec, args = sd.hbonds_gui.get_command()
             res = self.mgr.base_residue
             base_spec = "#!%s & ~%s" % (res.structure.id_string, res.string(style="command"))
+            hbs = run(self.session, "%s %s %s restrict #%s & ~@c,ca,n" %
+                    (cmd_name, base_spec, args, self.mgr.group.id_string))
             for rotamer in self.mgr.rotamers:
-                hbs = run(self.session, "%s %s %s restrict #%s" %
-                    (cmd_name, base_spec, args, rotamer.id_string))
-                rotamer.num_hbonds = len(hbs)
-            self.table.add_column(sd_type, "num_hbonds", format="%d")
-            #TODO: get hbonds command to actually return the hbonds
-            #TODO: table needs to be improved to find columns and allow data refresh (check if inherent Qt methods do this)
-            #TODO: log fake combined command, or maybe use actual combined command and sort hbonds afterward
+                rotamer.num_hbonds = 0
+            for d, a in hbs:
+                if d.structure == res.structure:
+                    a.structure.num_hbonds += 1
+                else:
+                    d.structure.num_hbonds += 1
+            if sd_type in self.opt_columns:
+                self.table.update_column(self.opt_columns[sd_type], data=True)
+            else:
+                self.opt_columns[sd_type] = self.table.add_column(sd_type, "num_hbonds", format="%d")
 
     def _show_subdialog(self, sd_type):
-        print("sd_type:", sd_type)
         if sd_type not in self.subdialogs:
             self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type)
             from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
@@ -342,4 +349,6 @@ class RotamerDialog(ToolInstance):
             bbox.rejected.connect(lambda sd=sd: setattr(sd, 'shown', False))
             layout.addWidget(bbox)
             sd.manage(placement=None)
+        else:
+            self.subdialogs[sd_type].title = "Update %s Column" % sd_type
         self.subdialogs[sd_type].shown = True
