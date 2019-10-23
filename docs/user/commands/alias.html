@@ -63,8 +63,17 @@ alias or <b>all</b> aliases.
 Within <i>wordlist</i>, <b>$1</b>, <b>$2</b>, <b>$3</b> ... 
 may be used to indicate the first, second, third ... arguments of
 <i>name</i>. In addition, <b>$$</b> indicates $ itself, and <b>$*</b>
-indicates the rest of the line, which could contain different numbers
-of arguments depending on how many options the user supplies.
+indicates the rest of the line, which allows for variable numbers of arguments.
+For example, <b>ribbon</b> is aliased to
+<b><a href="cartoon.html">cartoon</a> $*</b>,
+allowing any of the following to work:
+<blockquote><b>
+ribbon
+<br>
+ribbon #1/A
+<br>
+ribbon #4 suppress false
+</b></blockquote>
 A string that contains spaces can be designated as a single 
 argument by enclosing it in single or double quotation marks.
 The quotation marks will be omitted when the alias is expanded.

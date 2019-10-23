@@ -81,7 +81,7 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 <a href="#top" class="nounder">&bull;</a>
 <a name="vr"><b>vr</b></a> [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
 [&nbsp;<b>mirror</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>clickRange</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>gui</b>&nbsp;&nbsp;<i>tool1</i>[<i>,tool2</i>&nbsp;...&nbsp;]]
 [&nbsp;<b>simplifyGraphics</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -106,6 +106,13 @@ See also:
 <a href="view.html"><b>view</b></a>,
 <a href="../movies.html">making movies</a>
 <p>
+VR status, model positions in the room, and hand-controller
+<a href="#vr-button">button assignments</a> are saved in
+<a href="save.html#session">ChimeraX session files</a>.
+The VR model positions and button assignments
+are also retained through uses of <b>vr on</b> and <b>vr off</b>,
+but not after exiting ChimeraX.
+</p><p>
 The <b>mirror</b> option indicates whether to show the ChimeraX scene
 in the desktop graphics window. If true (default), 
 the VR headset right-eye view is shown,
@@ -120,10 +127,8 @@ slows rendering to headset. ChimeraX turns off syncing to
 vertical refresh if possible. Another way to mirror is to use
 SteamVR's menu entry to display mirror window.
 </p><p>
-The <b>showControllers</b> option (default <b>true</b>)
-shows representations of the hand controllers in the scene.
-Not showing the representations may be useful to avoid time-consuming
-calculations of the shadows they cast. 
+The <b>center</b> option (default <b>true</b>)
+centers and scales models in the room.
 <p><p>
 The <b>clickRange</b> option sets the depth range for
 picking objects with the hand-controller cones, where <i>r</i>
@@ -218,10 +223,13 @@ as a scriptable alternative to
 <a href="../vr.html#mousemodes">clicking icons
 to assign modes interactively</a>.
 The available <a href="ui.html#functions"><i>function</i></a> names
-are the same as for <a href="ui.html#mousemode"><b>mousemode</b></a>
+are the same as for <a href="ui.html#mousemode"><b>mousemode</b></a>,
+including <b>none</b>
 (command <a href="usage.html"><b>usage</b></a> <b>mousemode</b>
-lists them in the <a href="../tools/log.html"><b>Log</b></a>)
+lists them in the <a href="../tools/log.html"><b>Log</b></a>),
 and should be enclosed in quotation marks if they contain spaces.
+The function can also be given as the word <b>default</b> to reset to
+<a href="../vr.html#default-controller">default functions</a>.
 The <b>hand</b> option can be given to assign a function 
 to the specified button of only one hand controller; 
 otherwise, those on both controllers will be assigned.
@@ -246,6 +254,9 @@ The <i>button-name</i> can be:
 <li><b>Y</b>
 &ndash; a button on the Oculus left hand controller
 (<b>hand</b> option ignored; same as <b>menu</b> with <b>hand left</b>)
+<li><b>all</b>
+&ndash; all hand-controller buttons, primarily for use in the command:
+<b>vr button all default</b>
 </ul>
 <p>
 Initial defaults are to <b>translate</b> and <b>rotate</b> with triggers,
