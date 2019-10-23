@@ -759,7 +759,8 @@ class VRTracking(PointerModels):
     
     def _hand_positions(self, vr_camera):
         # Hand controller room position includes scaling from room to scene coordinates
-        return [_place_matrix(h.room_position) for h in vr_camera._hand_controllers]
+        return [_place_matrix(h.room_position)
+                for h in vr_camera._hand_controllers if h.on]
 
     def _hand_buttons_update(self, vr_camera):
         bu = []
