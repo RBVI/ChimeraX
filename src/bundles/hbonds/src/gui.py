@@ -45,10 +45,11 @@ class HBondsGUI(QWidget):
 
             # what controls to show in the interface
             show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_intra_model=True,
-            show_intra_mol=True, show_intra_res=True, show_log=True, show_make_pseudobonds=True,
-            show_model_restrict=True, show_radius=True, show_relax=True, show_restrict=True,
-            show_retain_current=True, show_reveal=True, show_salt_only=True, show_save_file=True,
-            show_show_dist=True, show_slop=True, show_slop_color=True, show_two_colors=True):
+            show_intra_mol=True, show_intra_res=True, show_inter_submodel=False, show_log=True,
+            show_make_pseudobonds=True, show_model_restrict=True, show_radius=True, show_relax=True,
+            show_restrict=True, show_retain_current=True, show_reveal=True, show_salt_only=True,
+            show_save_file=True, show_show_dist=True, show_slop=True, show_slop_color=True,
+            show_two_colors=True):
 
         self.session = session
 
@@ -143,68 +144,77 @@ class HBondsGUI(QWidget):
                     " differently", default_value, None, **kw)
                 relax_options.add_option(self.__slop_color_option)
 
-        group = QGroupBox("Limit results:")
-        layout.addWidget(group)
-        limit_layout = QVBoxLayout()
-        limit_layout.setContentsMargins(0,0,0,0)
-        limit_layout.setSpacing(0)
-        group.setLayout(limit_layout)
-        self.__limit_options = limit_options = OptionsPanel(sorting=False, scrolled=False,
-            contents_margins=(0,0,0,0))
-        limit_layout.addWidget(limit_options)
+        if show_model_restrict or show_inter_intra_model or show_bond_restrict or show_salt_only \
+        or show_intra_mol or show_intra_res or show_inter_submodel:
+            group = QGroupBox("Limit results:")
+            layout.addWidget(group)
+            limit_layout = QVBoxLayout()
+            limit_layout.setContentsMargins(0,0,0,0)
+            limit_layout.setSpacing(0)
+            group.setLayout(limit_layout)
+            self.__limit_options = limit_options = OptionsPanel(sorting=False, scrolled=False,
+                contents_margins=(0,0,0,0))
+            limit_layout.addWidget(limit_options)
 
-        if show_model_restrict:
-            self.__model_restrict_option = OptionalModelRestrictOption(session, tool_window,
-                "Choose specific models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
-            limit_options.add_option(self.__model_restrict_option)
+            if show_model_restrict:
+                self.__model_restrict_option = OptionalModelRestrictOption(session, tool_window,
+                    "Choose specific models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
+                limit_options.add_option(self.__model_restrict_option)
 
-        if show_inter_intra_model:
-            inter_val = final_val['inter_model'] and not final_val['intra_model']
-            self.__inter_model_only_option = BooleanOption("Intermodel only", inter_val,
-                self._inter_model_cb)
-            limit_options.add_option(self.__inter_model_only_option)
-            intra_val = final_val['intra_model'] and not final_val['inter_model']
-            self.__intra_model_only_option = BooleanOption("Intramodel only", intra_val,
-                self._intra_model_cb, attr_name="intra_model", settings=settings)
-            limit_options.add_option(self.__intra_model_only_option)
+            if show_inter_intra_model:
+                inter_val = final_val['inter_model'] and not final_val['intra_model']
+                self.__inter_model_only_option = BooleanOption("Intermodel only", inter_val,
+                    self._inter_model_cb)
+                limit_options.add_option(self.__inter_model_only_option)
+                intra_val = final_val['intra_model'] and not final_val['inter_model']
+                self.__intra_model_only_option = BooleanOption("Intramodel only", intra_val,
+                    self._intra_model_cb, attr_name="intra_model", settings=settings)
+                limit_options.add_option(self.__intra_model_only_option)
 
-        if show_bond_restrict:
-            self.__bond_restrict_option = OptionalHBondRestrictOption(tool_window, "Limit by selection",
-                None, None)
-            limit_options.add_option(self.__bond_restrict_option)
+            if show_bond_restrict:
+                self.__bond_restrict_option = OptionalHBondRestrictOption(tool_window, "Limit by selection",
+                    None, None)
+                limit_options.add_option(self.__bond_restrict_option)
 
-        if show_salt_only:
-            self.__salt_only_option = BooleanOption("Salt bridges only",
-                None if settings else salt_only, None, attr_name="salt_only", settings=settings)
-            limit_options.add_option(self.__salt_only_option)
+            if show_salt_only:
+                self.__salt_only_option = BooleanOption("Salt bridges only",
+                    None if settings else salt_only, None, attr_name="salt_only", settings=settings)
+                limit_options.add_option(self.__salt_only_option)
 
-        if show_intra_mol:
-            self.__intra_mol_option = BooleanOption("Include intramolecule",
-                None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
-            limit_options.add_option(self.__intra_mol_option)
+            if show_intra_mol:
+                self.__intra_mol_option = BooleanOption("Include intramolecule",
+                    None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
+                limit_options.add_option(self.__intra_mol_option)
 
-        if show_intra_res:
-            self.__intra_res_option = BooleanOption("Include intraresidue",
-                None if settings else intra_res, None, attr_name="intra_res", settings=settings)
-            limit_options.add_option(self.__intra_res_option)
+            if show_intra_res:
+                self.__intra_res_option = BooleanOption("Include intraresidue",
+                    None if settings else intra_res, None, attr_name="intra_res", settings=settings)
+                limit_options.add_option(self.__intra_res_option)
 
-        group = QGroupBox("Write information to:")
-        layout.addWidget(group)
-        info_layout = QVBoxLayout()
-        info_layout.setContentsMargins(0,0,0,0)
-        info_layout.setSpacing(0)
-        group.setLayout(info_layout)
-        info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
-        info_layout.addWidget(info_options)
+            if show_inter_submodel:
+                self.__intra_submodel_option = BooleanOption("Include inter-submodel",
+                    None if settings else intra_submodel, None, attr_name="inter_submodel",
+                    settings=settings)
+                limit_options.add_option(self.__intra_submodel_option)
 
-        if show_log:
-            self.__log_option = BooleanOption("Log", None if settings else log, None, attr_name="log",
-                settings=settings)
-            info_options.add_option(self.__log_option)
+        if show_log or show_save_file:
+            group = QGroupBox("Write information to:")
+            layout.addWidget(group)
+            info_layout = QVBoxLayout()
+            info_layout.setContentsMargins(0,0,0,0)
+            info_layout.setSpacing(0)
+            group.setLayout(info_layout)
+            info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+            info_layout.addWidget(info_options)
 
-        if show_save_file:
-            self.__save_file_option = BooleanOption("File", False, None)
-            info_options.add_option(self.__save_file_option)
+            if show_log:
+                self.__log_option = BooleanOption("Log", None if settings else log, None, attr_name="log",
+                    settings=settings)
+                info_options.add_option(self.__log_option)
+
+            if show_save_file:
+                self.__save_file_option = BooleanOption("File", False, None)
+                info_options.add_option(self.__save_file_option)
 
     def get_command(self):
         """Used to generate the 'hbonds' command that can be run to produce the requested H-bonds.
@@ -317,6 +327,11 @@ class HBondsGUI(QWidget):
             settings['intra_res'] = self.__intra_res_option.value
         else:
             settings['intra_res'] = None
+
+        if self.__show_values['inter_submodel']:
+            settings['inter_submodel'] = self.__inter_submodel_option.value
+        else:
+            settings['inter_submodel'] = None
 
         if self.__show_values['reveal']:
             settings['reveal'] = self.__reveal_option.value

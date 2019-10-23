@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Command: ui, mousemode</title>
+<title>Command: ui, functionkey, mousemode</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,12 +23,14 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#commands">Command</a>: ui, mousemode</h3>
+<h3><a href="../index.html#commands">Command</a>:
+ui, functionkey, mousemode</h3>
 
 <p>
-The <b>ui</b> command sets generic tool-interface preferences
-and adjusts <a href="#mousemode">mouse-button assignments</a>
-for interactive manipulation.
+The <b>ui</b> command sets generic tool-interface 
+<a href="../preferences.html#other">preferences</a>
+and assigns actions to the <a href="#mousemode">mouse/touchpad</a>
+and <a href="#functionkey">function keys</a>.
 </p>
 
 <a name="autostart"></a>
@@ -68,6 +70,29 @@ Whether the tool should be listed in the <a href="../menu.html#favorites">
 <b>Favorites</b> menu</a>; saved in 
 <a href="../preferences.html#other">preferences</a>. Can also be adjusted 
 through <a href="../window.html#tool-context">context menus</a>.
+</blockquote>
+
+<a name="functionkey"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>functionkey</b> &nbsp;<i>key</i> [&nbsp;<i>wordlist</i>&nbsp;]
+<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>functionkey</b> [&nbsp;<i>key</i>&nbsp;]
+<blockquote>
+The <b>functionkey</b> command (same as <b>ui functionkey</b>) assigns
+ChimeraX commands to the keyboard function keys. The <i>key</i> can be given
+as <b>F1</b>, <b>F2</b>, <i>etc.</i>, with or without capitalization.
+The <i>wordlist</i> may contain one or more command(s) and their options. 
+If multiple commands are included, they must be separated by semicolons and
+the entire <i>wordlist</i> enclosed in quotation marks.
+If no <i>wordlist</i> is given, the key's current function
+is reported in the <a href="../tools/log.html"><b>Log</b></a>.
+If no key is specified, any/all function-key assignments are reported.
+Function key assignments are saved as 
+<a href="../preferences.html#other">preferences</a>.
+See also: <a href="alias.html"><b>alias</b></a>,
+<a href="buttonpanel.html"><b>buttonpanel</b></a>,
+<a href="#mousemode"><b>mousemode</b></a>
 </blockquote>
 
 <a name="mousemode"></a>
@@ -110,6 +135,7 @@ hand controllers is <a href="device.html#vr-button"><b>vr button</b></a>.
 See also:
 <a href="cofr.html"><b>cofr</b></a>,
 <a href="device.html"><b>device</b></a>,
+<a href="#functionkey"><b>functionkey</b></a>,
 <!--
 <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
 <a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>,

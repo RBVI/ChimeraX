@@ -48,6 +48,7 @@ For assigning a name to a <a href="../selection.html">selection</a> or
 longer <a href="atomspec.html">target specification</a>, see
 the <a href="name.html"><b>name</b></a> command instead. See also:
 <a href="buttonpanel.html"><b>buttonpanel</b></a>,
+<a href="ui.html#functionkey"><b>functionkey</b></a>,
 <a href="../preferences.html#startup">user-defined presets</a>
 </p><p>
 Aliases are saved in <a href="save.html#session">sessions</a>.
@@ -61,7 +62,10 @@ alias or <b>all</b> aliases.
 </p><p>
 Within <i>wordlist</i>, <b>$1</b>, <b>$2</b>, <b>$3</b> ... 
 may be used to indicate the first, second, third ... arguments of
-<i>name</i>. A string that contains spaces can be designated as a single 
+<i>name</i>. In addition, <b>$$</b> indicates $ itself, and <b>$*</b>
+indicates the rest of the line, which could contain different numbers
+of arguments depending on how many options the user supplies.
+A string that contains spaces can be designated as a single 
 argument by enclosing it in single or double quotation marks.
 The quotation marks will be omitted when the alias is expanded.
 For example,
@@ -84,5 +88,5 @@ An example of multiple commands, in this case without arguments:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+October 2019</address>
 </body></html>
