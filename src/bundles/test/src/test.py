@@ -115,6 +115,7 @@ commands = [
     'toolshed reload',
     'toolshed hide \"Command Line Interface\"',
     'toolshed show \"Command Line Interface\"',
+    'toolshed hide Help',
     'info models',
     'molmap #1 5 grid 1',
     'volume #3 level .05',

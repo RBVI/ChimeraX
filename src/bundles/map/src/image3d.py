@@ -1135,6 +1135,8 @@ class BlendedImage(Image3d):
 
     self.images = images
 
+    self.position = images[0].scene_position	# Make sure it has same position as each image.
+
     ro = self._rendering_options
     ro.colormap_on_gpu = False
 
@@ -1149,8 +1151,14 @@ class BlendedImage(Image3d):
     Image3d.set_options(self, ro)
 
   def draw(self, renderer, draw_pass):
+    self._update_position()
     Image3d.draw(self, renderer, draw_pass)
 
+  def _update_position(self):
+    p = self.images[0].scene_position
+    if p != self.position:
+      self.position = p	      # Make sure it has same position as each image.
+    
   @property
   def master_image(self):
     return self.images[0]

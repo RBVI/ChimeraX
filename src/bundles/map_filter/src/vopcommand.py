@@ -129,6 +129,7 @@ def register_volume_filtering_subcommands(logger):
 
     gaussian_desc = CmdDesc(required = varg,
                             keyword = [('s_dev', Float1or3Arg),
+                                       ('bfactor', FloatArg),
                                        ('value_type', ValueTypeArg),
                                        ('invert', BoolArg)] + ssm_kw,
                             synopsis = 'Convolve map with a Gaussian for smoothing'
@@ -555,10 +556,17 @@ def volume_fourier(session, volumes, subregion = 'all', step = 1, model_id = Non
 
 # -----------------------------------------------------------------------------
 #
-def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0),
+def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
                  subregion = 'all', step = 1, value_type = None, invert = False,
                  model_id = None):
     '''Smooth maps by Gaussian convolution.'''
+    if bfactor is not None:
+        if bfactor < 0:
+            invert = True
+        from math import pi, sqrt
+        sd = sqrt(abs(bfactor)/(8*pi**2))
+        s_dev = (sd,sd,sd)
+        
     from .gaussian import gaussian_convolve
     for v in volumes:
         gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)

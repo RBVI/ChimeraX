@@ -252,8 +252,9 @@ class ItemTable(QTableView):
             'justification' except no "decimal". Default to the same justification as 'justification'
             (but "right" if 'justification' is "decimal").
         """
-        if title in [c.title for c in self._columns]:
-            return
+        titles = [c.title for c in self._columns]
+        if title in titles:
+            return self._columns[titles.index(title)]
 
         if display is None:
             if self._column_control_info:
@@ -270,22 +271,23 @@ class ItemTable(QTableView):
         if self._column_control_info:
             self._add_column_control_entry(c)
         if display != c.display:
-            self.column_update(c, display=display)
+            self.update_column(c, display=display)
         if not self._table_model:
             # not yet launch()ed
             self._columns.append(c)
-            return
+            return c
 
         self._pending_columns.append(c)
         if refresh:
             num_existing = len(self._columns)
             self._table_model.beginInsertColumns(QModelIndex(),
-                num_existing, num_existing + len(self._pending_columns))
+                num_existing, num_existing + len(self._pending_columns)-1)
             self._columns.extend(self._pending_columns)
             self._table_model.endInsertColumns()
             self._pending_columns = []
+        return c
 
-    def column_update(self, column, **kw):
+    def update_column(self, column, **kw):
         display_change = 'display' in kw and column.display != kw['display']
         changes = column._update(**kw)
         if not self._table_model:
@@ -299,8 +301,8 @@ class ItemTable(QTableView):
             return
         top_left = self._table_model.index(0, self._columns.index(column))
         bottom_right = self._table_model.index(len(self._data)-1, self._columns.index(column))
-        self._table_model.dataChanged(top_left, bottom_right, changes).emit()
-        if self.column_control_info and 'display' in kw:
+        self._table_model.dataChanged.emit(top_left, bottom_right, changes)
+        if self._column_control_info and 'display' in kw:
             self._checkables[column.title].setChecked(kw['display'])
 
     @property
@@ -414,7 +416,7 @@ class ItemTable(QTableView):
         action.setCheckable(True)
         action.setChecked(col.display)
         self._checkables[col.title] = action
-        action.triggered.connect(lambda checked, c=col: self.column_update(c, display=checked))
+        action.triggered.connect(lambda checked, c=col: self.update_column(c, display=checked))
 
         widget = self._column_control_info[0]
         if isinstance(widget, QMenu):
@@ -466,19 +468,19 @@ class ItemTable(QTableView):
 
     def _show_all_columns(self):
         for col in self._columns:
-            self.column_update(col, display=True)
+            self.update_column(col, display=True)
 
     def _show_default(self):
         widget, settings, display_defaults, fallback = self._column_control_info[:4]
         for col in self._columns:
             display = display_defaults.get(col.title, fallback)
-            self._column_update(col, display=display)
+            self.update_column(col, display=display)
 
     def _show_standard(self):
         widget, settings, display_defaults, fallback = self._column_control_info[:4]
         for col in self._columns:
             display = display_defaults.get(col.title, fallback)
-            self._column_update(col, display=display)
+            self.update_column(col, display=display)
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, title_display, justification, font, color,
@@ -523,8 +525,10 @@ class _ItemColumn:
             instance = getattr(instance, fetch)
         setattr(instance, fields[-1], val)
 
-    def _update(self, data_fetch=None, format=None, display=None, justification=None, font=None):
+    def _update(self, data=False, data_fetch=None, format=None, display=None, justification=None, font=None):
         changed = []
+        if data:
+            changed.append(Qt.DisplayRole)
         if data_fetch is not None and data_fetch != self.data_fetch:
             self.data_fetch = data_fetch
             changed.append(Qt.DisplayRole)

@@ -240,14 +240,14 @@ class MapSeries(Model):
 
     # Parent models are always restored before child models.
     # Restore child map list after child maps are restored.
-    def restore_maps(trigger_name, session, series = s, map_ids = data['map ids']):
+    def restore_maps(trigger_name, model_table, series = s, map_ids = data['map ids']):
       idm = {m.id : m for m in s.child_models()}
       maps = [idm[id] for id in map_ids if id in idm]
       series.set_maps(maps)
       from chimerax.core.triggerset import DEREGISTER
       return DEREGISTER
-    from chimerax.core.models import RESTORED_MODELS
-    session.triggers.add_handler(RESTORED_MODELS, restore_maps)
+    from chimerax.core.models import RESTORED_MODEL_TABLE
+    session.triggers.add_handler(RESTORED_MODEL_TABLE, restore_maps)
     
     return s
 

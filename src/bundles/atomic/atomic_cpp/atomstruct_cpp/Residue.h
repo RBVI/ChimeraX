@@ -150,6 +150,7 @@ public:
     static std::set<ResName>  std_water_names;
     static std::map<ResName, std::map<AtomName, char>>  ideal_chirality; // populated by mmCIF CCDs
     const std::set<AtomName>*  backbone_atom_names(BackboneExtent bbe) const;
+    const std::vector<AtomName>*  ordered_min_backbone_atom_names() const;
     const std::set<AtomName>*  ribose_atom_names() const;
     const std::set<AtomName>*  side_connector_atom_names() const;
 
@@ -207,6 +208,17 @@ Residue::backbone_atom_names(BackboneExtent bbe) const
         if (bbe == BBE_MAX) return &na_max_backbone_names;
         return &na_min_backbone_names;
     }
+    return nullptr;
+}
+
+inline const std::vector<AtomName>*
+Residue::ordered_min_backbone_atom_names() const
+{
+    if (!structure()->_polymers_computed) structure()->polymers();
+    if (polymer_type() == PT_AMINO)
+        return &aa_min_ordered_backbone_names;
+    if (polymer_type() == PT_NUCLEIC)
+        return &na_min_ordered_backbone_names;
     return nullptr;
 }
 

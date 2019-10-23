@@ -29,6 +29,7 @@
 #include "Bond.h"
 #include "CoordSet.h"
 #include "destruct.h"
+#include "polymer.h"
 #include "Sequence.h"
 #include "Structure.h"
 #include "PBGroup.h"
@@ -58,6 +59,7 @@ Structure::Structure(PyObject* logger):
             _position[i][j] = (i == j ? 1.0 : 0.0);
         }
     }
+    make_py_destructor_callback = true;
     change_tracker()->add_created(this, this);
 }
 
@@ -710,7 +712,11 @@ Structure::_form_chain_check(Atom* a1, Atom* a2, Bond* b)
     // If initial construction is over (i.e. Python instance exists) and make_chains()
     // has been called (i.e. _chains is not null), then need to check if new bond
     // or missing-structure pseudobond creates a chain or coalesces chain fragments
-    if (_chains == nullptr || py_instance(false) == Py_None)
+    if (_chains == nullptr)
+        return;
+    auto inst = py_instance(false);
+    Py_DECREF(inst);
+    if (inst == Py_None)
         return;
     Residue* start_r;
     Residue* other_r;
@@ -919,6 +925,17 @@ Structure::new_atom(const char* name, const Element& e)
     return a;
 }
 
+static bool
+backbone_increases(Atom* a1, Atom* a2, const std::vector<AtomName>* names)
+{
+    if (a1->residue() == a2->residue())
+        return std::find(names->begin(), names->end(), a1->name()) <
+                std::find(names->begin(), names->end(), a2->name());
+    const auto& residues = a1->structure()->residues();
+    return std::find(residues.begin(), residues.end(), a1->residue()) <
+            std::find(residues.begin(), residues.end(), a2->residue());
+}
+
 Bond *
 Structure::new_bond(Atom *a1, Atom *a2)
 {
@@ -926,6 +943,94 @@ Structure::new_bond(Atom *a1, Atom *a2)
     b->finish_construction(); // virtual calls work now
     add_bond(b);
     _idatm_valid = false;
+    auto inst = py_instance(false);
+    Py_DECREF(inst);
+    if (inst != Py_None) {
+        if (_chains != nullptr) {
+            // adjust chain data
+            auto sa = b->polymeric_start_atom();
+            if (sa != nullptr) {
+                auto sres = sa->residue();
+                auto eres = b->other_atom(sa)->residue();
+                auto schain = sres->chain();
+                auto echain = eres->chain();
+                if (schain == nullptr) {
+                    if (echain == nullptr) {
+                        // start a chain
+                        auto pt = Sequence::rname_polymer_type(sres->name());
+                        if (pt == PT_NONE)
+                            pt = Sequence::rname_polymer_type(eres->name());
+                        if (pt == PT_NONE)
+                            pt = (sres->find_atom("CA") || eres->find_atom("CA")) ? PT_AMINO : PT_NUCLEIC;
+                        Chain* chain;
+                        std::vector<Residue*> res_list;
+                        chain = _new_chain(sres->chain_id(), pt);
+                        res_list.push_back(sres);
+                        res_list.push_back(eres);
+                        chain->bulk_set(res_list, nullptr);
+                    } else {
+                        // prepend to echain
+                        echain->push_front(sres);
+                    }
+                } else {
+                    if (echain == nullptr) {
+                        // append to schain
+                        schain->push_back(eres);
+                    } else {
+                        if (schain != echain) {
+                            // combine chains
+                            *schain += *echain;
+                        }
+                        // else: already the same chain; do nothing?
+                    }
+                }
+            }
+        }
+        auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+        if (pbg != nullptr) {
+            // possibly adjust missing-chain pseudobonds
+            if (a1->is_backbone(BBE_MIN) && a2->is_backbone(BBE_MIN)) {
+                for (auto pb: pbg->pseudobonds()) {
+                    auto pb_a1 = pb->atoms()[0];
+                    auto pb_a2 = pb->atoms()[1];
+                    Atom* match_a1 = a1 == pb_a1 ? pb_a1 : (a1 == pb_a2 ? pb_a2 : nullptr);
+                    Atom* match_a2 = a2 == pb_a1 ? pb_a1 : (a2 == pb_a2 ? pb_a2 : nullptr);
+                    Atom* matched_a;
+                    Atom* other_a;
+                    if (match_a1 == nullptr) {
+                        if (match_a2 == nullptr)
+                            continue;
+                        matched_a = a2;
+                        other_a = a1;
+                    } else {
+                        if (match_a2 == nullptr) {
+                            matched_a = a1;
+                            other_a = a2;
+                        } else {
+                            pbg->delete_pseudobond(pb);
+                            if (pbg->pseudobonds().size() == 0)
+                                pbg->manager()->delete_group(pbg);
+                            break;
+                        }
+                    }
+                    // is the unmatched pb atom in "the direction of" the other "a" atom?
+                    auto other_pb = pb->other_atom(matched_a);
+                    auto ordered_names = matched_a->residue()->ordered_min_backbone_atom_names();
+                    if (ordered_names == nullptr)
+                        continue;
+                    bool a_other_increases = backbone_increases(matched_a, other_a, ordered_names);
+                    bool pb_other_increases = backbone_increases(matched_a, other_pb, ordered_names);
+                    if (a_other_increases == pb_other_increases) {
+                        // Okay, the new bond points into the structure gap, shorten the pseudobond
+                        auto shortened = pbg->new_pseudobond(other_a, other_pb);
+                        shortened->copy_style(pb);
+                        pbg->delete_pseudobond(pb);
+                        break;
+                    }
+                }
+            }
+        }
+    }
     return b;
 }
 

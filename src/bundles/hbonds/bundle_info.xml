@@ -22,6 +22,7 @@
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-Atom_Search" version=">=1.0"/>
     <Dependency name="ChimeraX-ChemGroup" version=">=1.0"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
@@ -30,6 +31,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: hbonds :: Structure Analysis :: Find hydrogen bonds</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~hbonds :: Structure Analysis :: Clear hydrogen bonds</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: H-Bonds :: Structure Analysis :: Find hydrogen bonds</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

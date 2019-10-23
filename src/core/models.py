@@ -27,6 +27,7 @@ MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
 MODEL_POSITION_CHANGED = 'model position changed'
 RESTORED_MODELS = 'restored models'
+RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
 
 
@@ -67,6 +68,15 @@ class Model(State, Drawing):
         self.triggers  = TriggerSet()
         self.triggers.add_trigger("deleted")
         # TODO: track.created(Model, [self])
+
+    def cpp_destroyed(self):
+        '''Called by the C++ layer by the destructor.  Models destroyed directly by the C++
+           layer need to be removed from the models list.
+        '''
+        if self.session and self.id:
+            models = self.session.models
+            if models.have_id(self.id) and self in models.list(model_id = self.id):
+                models.remove([self])
 
     def delete(self):
         '''Delete this model.'''
@@ -132,6 +142,11 @@ class Model(State, Drawing):
             return ''
         return '.'.join(str(i) for i in self.id)
 
+    @property
+    def atomspec(self):
+        '''Return the atom specifier string for this structure.'''
+        return '#' + self.id_string
+
     def __str__(self):
         if self.id is None:
             return self.name
@@ -180,9 +195,12 @@ class Model(State, Drawing):
     def set_selected(self, sel, *, fire_trigger=True):
         Drawing.set_highlighted(self, sel)
         if fire_trigger:
-            from chimerax.core.selection import SELECTION_CHANGED
-            self.session.ui.thread_safe(self.session.triggers.activate_trigger,
-                SELECTION_CHANGED, None)
+            self._selection_changed()
+
+    def _selection_changed(self):
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.session.ui.thread_safe(self.session.triggers.activate_trigger,
+                                    SELECTION_CHANGED, None)
 
     # Provide a direct way to set only the model selection status
     # without subclass interference
@@ -316,7 +334,8 @@ class Model(State, Drawing):
 
     def clear_selection(self):
         self.clear_highlight()
-
+        self._selection_changed()
+        
     def added_to_session(self, session):
         html_title = self.get_html_title(session)
         if not html_title:
@@ -405,6 +424,7 @@ class Models(StateManager):
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
+        t.add_trigger(RESTORED_MODEL_TABLE)
         self._models = {}				# Map id to Model
         self._scene_root_model = r = Model("root", session)
         r.id = ()
@@ -424,6 +444,7 @@ class Models(StateManager):
     @staticmethod
     def restore_snapshot(session, data):
         mdict = data['models']
+        session.triggers.activate_trigger(RESTORED_MODEL_TABLE, mdict)
         m = session.models
         for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file

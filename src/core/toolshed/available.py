@@ -39,9 +39,10 @@ class AvailableBundleCache(list):
             import json
             data = json.loads(f.read())
         import os
-        with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
-            import json
-            json.dump(data, f, indent=0)
+        if self.cache_dir is not None:
+            with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
+                import json
+                json.dump(data, f, indent=0)
         try:
             from chimerax.registration import nag
         except ImportError:
@@ -105,6 +106,8 @@ class AvailableBundleCache(list):
 
 
 def has_cache_file(cache_dir):
+    if cache_dir is None:
+        return False
     import os
     return os.path.exists(os.path.join(cache_dir, _CACHE_FILE))
 

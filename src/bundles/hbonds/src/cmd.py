@@ -53,7 +53,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             structures = [m for m in session.models if isinstance(m, AtomicStructure)]
         else:
             structures = atoms.unique_structures
-    else: # another Atom collection
+    else: # another Atoms collection
         if not restrict and not batch:
             raise UserError("'restrict' atom specifier selects no atoms")
         combined = atoms | restrict
@@ -90,7 +90,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         # to assess which histidines should be considered salt-bridge donors
         if salt_only:
             sb_donors, sb_acceptors = salt_preprocess(hbonds)
-            hbonds = [hb for hb in hbonds
+            hbonds[:] = [hb for hb in hbonds
                 if hb[0] in sb_donors and hb[1] in sb_acceptors]
         hbonds[:] = restrict_hbonds(hbonds, atoms, restrict)
         if not intra_mol:
@@ -129,7 +129,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     else:
         session.logger.status("%d hydrogen bonds found" % len(result), log=True, blank_after=120)
     if not make_pseudobonds:
-        return
+        return hb_lists if doing_coordsets else hb_lists[0]
 
     if two_colors:
         # color relaxed constraints differently
@@ -257,6 +257,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             session.pb_dist_monitor.add_group(pbg)
         else:
             session.pb_dist_monitor.remove_group(pbg)
+    return hb_lists if doing_coordsets else hb_lists[0]
 
 def restrict_hbonds(hbonds, atoms, restrict):
     filtered = []
@@ -416,8 +417,8 @@ def salt_preprocess(hbonds):
             donors.add(nd)
             continue
         import numpy
-        ne_has_protons = numpy.any(ne.neighbors.elements.numbers == 1)
-        nd_has_protons = numpy.any(nd.neighbors.elements.numbers == 1)
+        ne_has_protons = [ne_nb for ne_nb in ne.neighbors if ne_nb.element.number == 1]
+        nd_has_protons = [nd_nb for nd_nb in nd.neighbors if nd_nb.element.number == 1]
         if ne_has_protons and nd_has_protons:
             donors.add(ne)
             donors.add(nd)
@@ -448,7 +449,7 @@ def register_command(command_name, logger):
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)),
                 ('inter_submodel', BoolArg), ('inter_model', BoolArg),
                 ('intra_model', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg),
-                ('cache_DA', FloatArg), ('relax', BoolArg), ('dist_slop', FloatArg),
+                ('cache_DA', BoolArg), ('relax', BoolArg), ('dist_slop', FloatArg),
                 ('angle_slop', FloatArg), ('two_colors', BoolArg), ('slop_color', ColorArg),
                 ('reveal', BoolArg), ('retain_current', BoolArg), ('save_file', SaveFileNameArg),
                 ('log', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),

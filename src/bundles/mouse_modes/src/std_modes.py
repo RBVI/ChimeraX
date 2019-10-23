@@ -234,6 +234,9 @@ class RotateMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self.mouse_perimeter = False
 
+        # Restrict rotation to this axis using coordinate system of first model.
+        self._restrict_to_axis = None
+        
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
@@ -270,7 +273,11 @@ class RotateMouseMode(MouseMode):
         dx, dy = self.mouse_motion(event)
         import math
         angle = 0.5*math.sqrt(dx*dx+dy*dy)
-        if self.mouse_perimeter:
+        if self._restrict_to_axis is not None:
+            axis = self._restricted_axis()
+            if dy*axis[0]+dx*axis[1] < 0:
+                angle = -angle
+        elif self.mouse_perimeter:
             # z-rotation
             axis = (0,0,1)
             w, h = self.view.window_size
@@ -280,7 +287,19 @@ class RotateMouseMode(MouseMode):
                 angle = -angle
         else:
             axis = (dy,dx,0)
+            
         return axis, angle
+
+    def _restricted_axis(self):
+        '''Return restricted axis of rotation.'''
+        raxis = self._restrict_to_axis
+        models = self.models()
+        if models is None:
+            scene_axis = raxis
+        else:
+            scene_axis = models[0].position.transform_vector(raxis)
+        axis = self.camera_position.inverse().transform_vector(scene_axis)	# Camera coords
+        return axis
 
     def models(self):
         return None
@@ -314,6 +333,15 @@ class RotateSelectedMouseMode(RotateMouseMode):
     def models(self):
         return top_selected(self.session)
 
+class RotateZSelectedMouseMode(RotateSelectedMouseMode):
+    '''
+    Rotate selected models about first model z axis.
+    '''
+    name = 'rotate z selected models'
+    def __init__(self, session):
+        RotateSelectedMouseMode.__init__(self, session)
+        self._restrict_to_axis = (0,0,1)
+
 def top_selected(session):
     # Don't include parents of selected models.
     mlist = [m for m in session.selection.models()
@@ -333,17 +361,38 @@ class TranslateMouseMode(MouseMode):
     name = 'translate'
     icon_file = 'icons/translate.png'
 
-    def mouse_drag(self, event):
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
 
+        # Restrict translation to be perpendicular to this axis.
+        self._restrict_to_plane = None	# Axis vector perpendicular to plane
+
+    def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
-        self.translate((dx, -dy, 0))
+        shift = (dx, -dy, 0)
+        if self._restrict_to_plane is not None:
+            shift = self._restricted_shift(shift)
+        self.translate(shift)
+
+    def _restricted_shift(self, shift):
+        '''Return shift resticted to be in a plane.'''
+        raxis = self._restrict_to_plane
+        models = self.models()
+        if models is None:
+            scene_axis = raxis
+        else:
+            scene_axis = models[0].position.transform_vector(raxis)
+        axis = self.camera_position.inverse().transform_vector(scene_axis)	# Camera coords
+        from chimerax.core.geometry import normalize_vector, inner_product
+        axis = normalize_vector(axis)
+        rshift = -inner_product(axis, shift) * axis + shift
+        return rshift
 
     def wheel(self, event):
         d = event.wheel_value()
         self.translate((0,0,100*d))
 
     def translate(self, shift):
-
         psize = self.pixel_size()
         s = tuple(dx*psize for dx in shift)     # Scene units
         step = self.camera_position.transform_vector(s)    # Scene coord system
@@ -369,6 +418,15 @@ class TranslateSelectedMouseMode(TranslateMouseMode):
     def models(self):
         return top_selected(self.session)
 
+class TranslateXYSelectedMouseMode(TranslateSelectedMouseMode):
+    '''
+    Translate selected models only in x and y of the first selected models coordinate system.
+    '''
+    name = 'translate xy selected models'
+    def __init__(self, session):
+        TranslateSelectedMouseMode.__init__(self, session)
+        self._restrict_to_plane = (0,0,1)
+        
 class ZoomMouseMode(MouseMode):
     '''
     Mouse mode to move objects in z, actually the camera is moved
@@ -711,7 +769,9 @@ def standard_mouse_mode_classes():
         ZoomMouseMode,
         RotateAndSelectMouseMode,
         TranslateSelectedMouseMode,
+        TranslateXYSelectedMouseMode,
         RotateSelectedMouseMode,
+        RotateZSelectedMouseMode,
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,

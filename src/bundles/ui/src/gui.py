@@ -119,6 +119,7 @@ class UI(QApplication):
         self.redirect_qt_messages()
 
         self._keystroke_sinks = []
+        self._key_callbacks = {}	# Maps Qt key number to callback func(session, key_num).
         self._files_to_open = []
 
         from chimerax.core.triggerset import TriggerSet
@@ -269,15 +270,28 @@ class UI(QApplication):
            promote/demote the graphics window selection
         """
         from PyQt5.QtCore import Qt
-        if event.key() == Qt.Key_Up:
+        k = event.key()
+        if self.key_intercepted(k):
+            return
+        elif k == Qt.Key_Up:
             from chimerax.core.commands import run
             run(self.session, 'select up')
-        elif event.key() == Qt.Key_Down:
+        elif k == Qt.Key_Down:
             from chimerax.core.commands import run
             run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
 
+    def intercept_key(self, qt_key_number, callback):
+        self._key_callbacks[qt_key_number] = callback
+
+    def key_intercepted(self, key_num):
+        if key_num in self._key_callbacks:
+            f = self._key_callbacks[key_num]
+            f(self.session, key_num)
+            return True
+        return False
+        
     def register_for_keystrokes(self, sink):
         """'sink' is interested in receiving keystrokes from the main
            graphics window.  That object's 'forwarded_keystroke'
@@ -486,7 +500,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._stack.setCurrentWidget(g.widget)
 
         return True
-    
+
+    def keyPressEvent(self, event):
+        self.session.ui.forward_keystroke(event)
+        
     def dragEnterEvent(self, event):
         md = event.mimeData()
         if md.hasUrls():
@@ -1484,6 +1501,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         return parent_menu
 
     def _tool_window_destroy(self, tool_window):
+        # via request from non-UI code to destroy window
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
@@ -1491,7 +1509,14 @@ class MainWindow(QMainWindow, PlainTextLog):
             tool_instance.delete()
             return
         tool_window._destroy()
+
+    def _tool_window_destroyed(self, tool_window):
+        # tool window (is about to be) destroyed, both via UI and non-UI code
+        all_windows = self.tool_instance_to_windows[tool_window.tool_instance]
         all_windows.remove(tool_window)
+        if tool_window in getattr(self, '_hide_tools_shown_states', {}):
+            del self._hide_tools_shown_states[tool_window]
+
 
     def _tool_window_request_shown(self, tool_window, shown):
         if self.hide_tools:
@@ -1827,6 +1852,7 @@ class _Qt:
             # already destroyed
             return
         is_floating = self.dock_widget.isFloating()
+        self.main_window._tool_window_destroyed(self.tool_window)
         self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None

@@ -285,6 +285,8 @@ class NamedLabelsArg(Annotation):
             raise AnnotationError("Expected %s" % NamedLabelsArg.name)
         lm = session_labels(session)
         token, text, rest = next_token(text)
+        if lm is None:
+            raise AnnotationError("No label with name: '%s'" % token)
         if lm.named_label(token) is None:
             possible = [name for name in lm.label_names() if name.startswith(token)]
             if 'all'.startswith(token):
@@ -504,7 +506,8 @@ class Label:
         if d is None:
             return
         self.drawing = None
-        d.delete()
+        if not d.deleted:
+            d.delete()
         lm = session_labels(self.session)
         if lm:
             lm.delete_label(self)
@@ -527,6 +530,10 @@ class LabelModel(Model):
         self.texture_size = None
         self.needs_update = True
 
+    def delete(self):
+        Model.delete(self)
+        self.label.delete()
+        
     def draw(self, renderer, draw_pass):
         if not self.update_drawing():
             self.resize()
