@@ -314,22 +314,19 @@ def stop_vr(session, simplify_graphics = True):
     c = vr_camera(session, create = False)
     if c is None:
         return
-    
-    # Have to delay shutdown of SteamVR connection until draw callback
-    # otherwise it clobbers the Qt OpenGL context making entire gui black.
-    def replace_camera(s = session):
-        from chimerax.core.graphics import MonoCamera
-        v = s.main_view
-        v.camera = MonoCamera()
-        s.update_loop.set_redraw_interval(10)
-        if simplify_graphics:
-            from chimerax.std_commands.graphics import graphics_quality
-            graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
-        from chimerax.label.label3d import label_orient
-        label_orient(session, 0)	# Continuously reorient labels.
-        v.view_all()
 
-    c.close(replace_camera)
+    c.close()
+    
+    from chimerax.core.graphics import MonoCamera
+    v = session.main_view
+    v.camera = MonoCamera()
+    session.update_loop.set_redraw_interval(10)
+    if simplify_graphics:
+        from chimerax.std_commands.graphics import graphics_quality
+        graphics_quality(session, total_atom_triangles=5000000, total_bond_triangles=5000000)
+    from chimerax.label.label3d import label_orient
+    label_orient(session, 0)	# Continuously reorient labels.
+    v.view_all()
     wait_for_vsync(session, True)
 
 # -----------------------------------------------------------------------------
@@ -358,7 +355,6 @@ class SteamVRCamera(Camera, StateManager):
         from sys import platform
         self._use_opengl_flush = (platform == 'darwin')	# On macOS 10.14.1 flickers without glFlush().
 
-        self._closed = True		# Whether camera has been closed.
         self._hand_controllers = [HandController(self, 'right'),
                                   HandController(self, 'left')]	# List of HandController
         self._controller_show = True	# Whether to show hand controllers
@@ -417,8 +413,6 @@ class SteamVRCamera(Camera, StateManager):
 
         # Exit cleanly
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
-        self._close_cb = None
-        self._closed = False
 
     @property
     def active(self):
@@ -527,26 +521,8 @@ class SteamVRCamera(Camera, StateManager):
         for hc in self._hand_controllers:
             hc.update_scene_position()
 
-    def close(self, close_cb = None):
-        self._closed = True
-        self._close_cb = close_cb
-        self._session.main_view.redraw_needed = True
-        self._delayed_close()
-    
-    def _app_quit(self, tname, tdata):
-        # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
-        # if VR has not been shutdown.
-        import openvr
-        openvr.shutdown()
-        self._closed = True	# Make sure openvr is not used any more.
-        
-    def _delayed_close(self):
-        # Apparently OpenVR doesn't make its OpenGL context current
-        # before deleting resources.  If the Qt GUI opengl context is current
-        # openvr deletes the Qt resources instead.  So delay openvr close
-        # until after rendering so that openvr opengl context is current.
-        # TODO: This does not make sense since once we close there are no
-        #   openvr calls so it cannot make its context current.
+    def close(self):
+
         t = self._session.triggers
         nfh = self._new_frame_handler
         if nfh:
@@ -585,8 +561,13 @@ class SteamVRCamera(Camera, StateManager):
         self._compositor = None
         self._delete_framebuffers()
 
-        if self._close_cb:
-            self._close_cb()	# Replaces the main view camera and resets redraw rate.
+        self._session.main_view.redraw_needed = True
+    
+    def _app_quit(self, tname, tdata):
+        # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
+        # if VR has not been shutdown.
+        import openvr
+        openvr.shutdown()
 
     def _delete_framebuffers(self):
         fbs = self._framebuffers
@@ -608,8 +589,6 @@ class SteamVRCamera(Camera, StateManager):
         return self._session.main_view.render
     
     def _start_frame(self):
-        if self._closed:
-            return
         c = self._compositor
         if c is None:
             return
@@ -622,7 +601,7 @@ class SteamVRCamera(Camera, StateManager):
     
     def next_frame(self, *_):
         c = self._compositor
-        if c is None or self._closed:
+        if c is None:
             return
 
         self._start_frame()
@@ -745,8 +724,6 @@ class SteamVRCamera(Camera, StateManager):
 
     def _submit_eye_image(self, side, texture, render):
         '''Side is "left" or "right".'''
-        if self._closed:
-            return
         import openvr
         eye = openvr.Eye_Left if side == 'left' else openvr.Eye_Right
         # Caution: compositor.submit() changes the OpenGL read framebuffer binding to 0.
@@ -769,7 +746,7 @@ class SteamVRCamera(Camera, StateManager):
         Submit right eye texture image to OpenVR. Left eye was already submitted
         by set_render_target() when render target switched to right eye.
         '''
-        if self.number_of_views() == 2 and not self._closed:
+        if self.number_of_views() == 2:
             rtex = render.current_framebuffer().openvr_texture
             self._submit_eye_image('right', rtex, render)
 
@@ -785,9 +762,6 @@ class SteamVRCamera(Camera, StateManager):
         if rc:
             rc.finish_rendering(render)
             
-#        if self._closed:
-#            self._delayed_close()
-
         self._frame_started = False
 
     def _eye_framebuffers(self, render):
@@ -835,7 +809,7 @@ class SteamVRCamera(Camera, StateManager):
         return self.mirror
 
     def hand_controllers(self):
-        if not self._all_hand_controllers_on and not self._closed:
+        if not self._all_hand_controllers_on:
             self._find_new_hand_controllers()
         return self._hand_controllers
 
