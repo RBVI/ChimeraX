@@ -491,8 +491,9 @@ class Structure(Model, StructureData):
         #   if thick, use stick radius to separate fills
         ring_count = 0
         all_rings = self.rings(all_size_threshold=6)
-        for ring in all_rings:
-            atoms = ring.ordered_atoms
+        # Ring info will change spontaneously when we ask for radii, so remember what we need now
+        ring_atoms = [ring.ordered_atoms for ring in all_rings]
+        for atoms in ring_atoms:
             residue = atoms[0].residue
             if not residue.ring_display or not all(atoms.visibles):
                 continue
