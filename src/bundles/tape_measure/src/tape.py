@@ -24,6 +24,8 @@ class TapeMeasureMouseMode(MouseMode):
         self._color = (255,255,0,255)
         self._radius = .2
         self._min_move = 5	# minimum pixels to draw tape
+        self._start_time = 0
+        self._clear_time = 0.3	# seconds. Fast click/release causes clear.
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -169,10 +171,16 @@ class TapeMeasureMouseMode(MouseMode):
     def vr_press(self, xyz1, xyz2):
         # Virtual reality hand controller button press.
         self._start_point = xyz1
+        from time import time
+        self._start_time = time()
 
     def vr_motion(self, position, move, delta_z):
-        self._show_distance(position)
+        self._show_distance(position.origin())
 
     def vr_release(self):
         # Virtual reality hand controller button release.
         self._markers = []
+        from time import time
+        end_time = time()
+        if end_time - self._start_time < self._clear_time:
+            self._clear()
