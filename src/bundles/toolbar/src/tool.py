@@ -274,6 +274,7 @@ _Toolbars = {
                 ("mouse:contour level", None, "Contour level", "Adjust volume data threshold level"),
                 ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
                 ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
+                ("mouse:tape measure", None, "Tape", "Measure distance between two map points"),
                 ("mouse:pick blobs", None, "Blob", "Measure and color connected parts of surface"),
                 ("mouse:map eraser", None, "Erase", "Erase parts of a density map setting values in a sphere to zero"),
                 ("mouse:play map series", None, "Play series", "Play map series"),
