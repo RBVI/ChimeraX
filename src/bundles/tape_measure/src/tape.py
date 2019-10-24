@@ -23,20 +23,21 @@ class TapeMeasureMouseMode(MouseMode):
         self._markers = []
         self._color = (255,255,0,255)
         self._radius = .2
-        # TODO: Need to choose radius according to distance
         self._min_move = 5	# minimum pixels to draw tape
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
-        p = self._picked_point(event)
+        p, v = self._picked_point(event)
         self._start_point = p
+        if v:
+            self._radius = 0.25 * min(v.data.step)
     
     def mouse_drag(self, event):
         if self._start_point is None:
             return
         if not self._minimum_move(event):
             return
-        p = self._picked_point(event)
+        p, v = self._picked_point(event)
         if p is None:
             p = self._closest_point(event)
         self._show_distance(p)
@@ -79,7 +80,7 @@ class TapeMeasureMouseMode(MouseMode):
         from chimerax.core.geometry import distance
         m1, m2 = self._markers
         d = distance(m1.coord, m2.coord)
-        h = max(self._radius, 0.1*d)
+        h = max(2*self._radius, 0.1*d)
         from chimerax.core.colors import Color
         label(self.session, objects = b, object_type = 'bonds',
               text = '%.4g' % d, height = h, color = Color(self._color))
@@ -102,14 +103,19 @@ class TapeMeasureMouseMode(MouseMode):
         
     def _picked_point(self, event):
         xyz1, xyz2 = self._view_line(event)
-        points = [self._surface_point(xyz1, xyz2),
-                  self._volume_maximum_point(xyz1, xyz2),
-                  self._volume_plane_point(xyz1, xyz2)]
-        # Find closest point.
+        p = d = v = None
         from chimerax.core.geometry import distance
-        dp = [(distance(xyz1,p), p) for p in points if p is not None]
-        p = min(dp, key = lambda d_p: d_p[0])[1] if dp else None
-        return p
+        for method in [self._surface_point,
+                       self._volume_maximum_point,
+                       self._volume_plane_point]:
+            pm, vm = method(xyz1, xyz2)
+            if pm is not None:
+                dm = distance(xyz1,pm)
+                if d is None or dm < d:
+                    p = pm
+                    d = dm
+                    v = vm
+        return p, v
                 
     def _surface_point(self, xyz1, xyz2):
         from chimerax.mouse_modes import picked_object_on_segment
@@ -117,11 +123,15 @@ class TapeMeasureMouseMode(MouseMode):
                                      exclude = self._exclude_markers_from_surface_pick)
         from chimerax.core.graphics import PickedTriangle
         from chimerax.map.volume import PickedMap
-        if isinstance(p, PickedTriangle) or (isinstance(p, PickedMap) and hasattr(p, 'triangle_pick')):
+        if isinstance(p, PickedMap) and hasattr(p, 'triangle_pick'):
             sxyz = p.position
+            v = p.map
+        elif isinstance(p, PickedTriangle):
+            sxyz = p.position
+            v = None
         else:
-            sxyz = None
-        return sxyz
+            sxyz = v = None
+        return sxyz, v
 
     def _exclude_markers_from_surface_pick(self, drawing):
         from chimerax.mouse_modes import unpickable
@@ -132,14 +142,14 @@ class TapeMeasureMouseMode(MouseMode):
         vlist = self.session.models.list(type = Volume)
         from chimerax.markers.mouse import first_volume_maxima
         sxyz, v = first_volume_maxima(xyz1, xyz2, vlist)
-        return sxyz
+        return sxyz, v
 
     def _volume_plane_point(self, xyz1, xyz2):
         from chimerax.map import Volume
         vlist = [v for v in self.session.models.list(type = Volume) if v.showing_one_plane]
         from chimerax.markers.mouse import volume_plane_intercept
         sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
-        return sxyz
+        return sxyz, v
         
     def _closest_point(self, event):
         '''Project start point to view line through mouse position.'''
