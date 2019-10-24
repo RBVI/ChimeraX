@@ -339,7 +339,7 @@ class RotamerDialog(ToolInstance):
             sd.ui_area.setLayout(layout)
             if sd_type == "H-Bonds":
                 from chimerax.atomic.hbonds.gui import HBondsGUI
-                sd.hbonds_gui = HBondsGUI(self.session, sd, settings_name="rotamers",
+                sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers",
                     show_inter_intra_model=False, show_intra_mol=False, show_intra_res=False,
                     show_model_restrict=False, show_bond_restrict=False, show_save_file=False)
                 layout.addWidget(sd.hbonds_gui)
