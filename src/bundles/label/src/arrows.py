@@ -425,6 +425,9 @@ class ArrowModel(Model):
     casts_shadows = False
     SESSION_SAVE = False	# ArrowsModel saves all arrows
 
+    STD_HALF_WIDTH = 0.01
+    PIXEL_MARGIN = 5
+
     def __init__(self, session, arrow):
         Model.__init__(self, arrow.name, session)
         self.arrow = arrow
@@ -468,9 +471,93 @@ class ArrowModel(Model):
         self.set_arrow_image(rgba)
         return True
 
+    def arrow_params(self):
+        sx, sy = self.arrow.start
+        ex, ey = self.arrow.end
+        if abs(ex-sx) < 0.01 and abs(ey-sy) < 0.01:
+            return None, None
+
+        half_width = self.STD_HALF_WIDTH + self.arrow.weight
+
+        if self.arrow.mid_point:
+            # curved arrow
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Curved arrows not implemented yet")
+
+        # straight arrow
+        vx, vy = ex - sx, ey - sy
+        arrow_len_sq = vx * vx + vy * vy
+        from math import sqrt
+        arrow_len = sqrt(arrow_len_sq)
+        norm_x, norm_y = vx/arrow_len, vy/arrow_len
+        perp_x, perp_y = norm_y, -norm_x
+        ext1, ext2 = perp_x * half_width, perp_y * half_width
+        # tail end of arrow ("base")
+        base1, base2 = (sx + ext1, sy + ext2), (sx - ext1, sy - ext2)
+
+        # where shaft meets arrowhead ("inside")
+        head_width = 4 * half_width
+        cut_back = arrow_len - 2 * half_width
+        extx, exty = norm_x * cut_back, norm_y * cut_back
+        x1, y1 = base1
+        x2, y2 = base2
+        inside1, inside2 = (x1 + extx, y1 + exty), (x2 + extx, y2 + exty)
+
+        left = min(base1[0], base2[0], inside1[0], inside2[0])
+        right = max(base1[0], base2[0], inside1[0], inside2[0])
+        bottom = min(base1[1], base2[1], inside1[1], inside2[1])
+        top = max(base1[1], base2[1], inside1[1], inside2[1])
+
+        return (left, right, bottom, top), \
+            ((((inside1[0] + inside2[0])/2, inside1[21] + inside2[1])/2), (norm_x, norm_y))
+
+    def head_params(self, head_start):
+        start_pos, norm = head_start
+        perp = norm[1], -norm[0]
+        style = self.arrow.head_style
+        half_width = self.STD_HALF_WIDTH * self.arrow.weight
+        bounding_pts = [self.arrow.end]
+        if style == "pointer":
+            bounding_pts.append((start_pos[0] + half_width * perp[0], start_pos[1] + half_width * perp[1]))
+            bounding_pts.append((start_pos[0] - half_width * perp[0], start_pos[1] - half_width * perp[1]))
+        else:
+            head_width = 4 * half_width
+            head_back = (self.arrow.end[0] - norm[0] * head_width, self.arrow.end[1] - norm[1] * head_width)
+            bounding_pts.append((head_back[0] + head_width * perp[0], head_back[1] + head_width * perp[1]))
+            bounding_pts.append((head_back[0] - head_width * perp[0], head_back[1] - head_width * perp[1]))
+            # even though the "blocky" style has an extra corner, that corner can never be on the
+            # bounding box of the overall arrow, so we can ignore it for this routine
+        xs = [pt[0] for pt in bounding_pts]
+        ys = [pt[1] for pt in bounding_pts]
+        return min(xs), max(xs), min(ys), max(ys)
+
     def arrow_image_rgba(self):
     #TODO: same techniques as chimerax.core.graphics.text_image_rgba, but using QPainter's arc drawing
     # plus: remainder of this file
+
+    #TODO: rework this so that the routine returns rectangles/polygons when possible
+        shaft_bounds, head_start = self.arrow_params()
+        if head_start is None:
+            # too short to draw
+            return None
+        s_left, s_right, s_bottom, s_top = shaft_bounds
+        h_left, h_right, h_bottom, h_top = self.head_params(head_start)
+
+        left = min(s_left, h_left)
+        right = max(s_right, h_right)
+        bottom = min(s_bottom, h_bottom)
+        top = max(s_top, h_top)
+
+        from PyQt5.QtGui import QImage, QPainter, QColor, QBrush, QPen
+        p = QPainter()
+        w, h = self.arrow.session.main_view.window_size
+
+        image = QImage(int(w*(right-left))+2*self.PIXEL_MARGIN, int(h*(top-bottom))+2*self.PIXEL_MARGIN,
+            QImage.Format_ARGB32))
+        #TODO: draw shaft, draw head
+
+        #-----------------
+        ### below is code for drawing labels, for reference
         from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
 
         p = QPainter()
