@@ -20,7 +20,7 @@ from chimerax.ui.options import Option, OptionsPanel, ColorOption, FloatOption, 
     OptionalRGBAOption, make_optional
 
 class HBondsGUI(QWidget):
-    def __init__(self, session, tool_window, *, settings_name="",
+    def __init__(self, session, *, settings_name="",
             # settings_name values:
             #   empty string: remembered across sessions and the same as for the main H-bond GUI
             #   custom string (e.g. "rotamers"):  remembered across sessions and specific to your
@@ -157,7 +157,7 @@ class HBondsGUI(QWidget):
             limit_layout.addWidget(limit_options)
 
             if show_model_restrict:
-                self.__model_restrict_option = OptionalModelRestrictOption(session, tool_window,
+                self.__model_restrict_option = OptionalModelRestrictOption(session,
                     "Choose specific models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
                 limit_options.add_option(self.__model_restrict_option)
 
@@ -172,7 +172,7 @@ class HBondsGUI(QWidget):
                 limit_options.add_option(self.__intra_model_only_option)
 
             if show_bond_restrict:
-                self.__bond_restrict_option = OptionalHBondRestrictOption(tool_window, "Limit by selection",
+                self.__bond_restrict_option = OptionalHBondRestrictOption("Limit by selection",
                     None, None)
                 limit_options.add_option(self.__bond_restrict_option)
 
@@ -432,9 +432,8 @@ def is_default(func, kw, val):
     return param.default == val
 
 class ModelRestrictOption(Option):
-    def __init__(self, session, tool_window, *args, **kw):
+    def __init__(self, session, *args, **kw):
         self.session = session
-        self.tool_window = tool_window
         super().__init__(*args, **kw)
 
     def get_value(self):
@@ -443,7 +442,6 @@ class ModelRestrictOption(Option):
     def set_value(self, value):
         if value is None:
             self._model_chooser.hide()
-            self.tool_window.shrink_to_fit()
         else:
             self._model_chooser.show()
             self.widget.value = value
@@ -453,7 +451,6 @@ class ModelRestrictOption(Option):
     def make_callback(self):
         if self.value is None:
             self._model_chooser.hide()
-            self.tool_window.shrink_to_fit()
         else:
             self._model_chooser.show()
         super().make_callback()
@@ -474,8 +471,7 @@ class HBondRestrictOption(Option):
         "with both ends selected")
     atom_spec_menu_text = "between selection and atom spec..."
 
-    def __init__(self, tool_window, *args, **kw):
-        self.tool_window = tool_window
+    def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
 
     def get_value(self):
@@ -489,7 +485,6 @@ class HBondRestrictOption(Option):
         if value in self.restrict_kw_vals:
             self.__push_button.setText(self.fixed_kw_menu_texts[self.restrict_kw_vals.index(value)])
             self.__line_edit.hide()
-            self.tool_window.shrink_to_fit()
         else:
             self.__push_button.setText(self.atom_spec_menu_text)
             self.__line_edit.setText(value)
