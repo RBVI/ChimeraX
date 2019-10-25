@@ -18,6 +18,10 @@ def cmd_clashes(session, test_atoms, *,
         hbond_allowance=defaults["clash_hbond_allowance"],
         overlap_cutoff=defaults["clash_threshold"],
         **kw):
+    color, radius = handle_clash_kw(kw)
+    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "clashes", color, radius, **kw)
+
+def handle_clash_kw(kw):
     if 'color' in kw:
         color = kw.pop('color')
     else:
@@ -28,13 +32,17 @@ def cmd_clashes(session, test_atoms, *,
         radius = defaults['clash_pb_radius']
     if 'dashes' not in kw:
         kw['dashes'] = 4
-    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "clashes", color, radius, **kw)
+    return color, radius
 
 def cmd_contacts(session, test_atoms, *,
         name="contacts",
         hbond_allowance=defaults["clash_hbond_allowance"],
         overlap_cutoff=defaults["contact_threshold"],
         **kw):
+    color, radius = handle_contact_kw(kw)
+    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "contacts", color, radius, **kw)
+
+def handle_contact_kw(kw):
     if 'color' in kw:
         color = kw.pop('color')
     else:
@@ -43,7 +51,7 @@ def cmd_contacts(session, test_atoms, *,
         radius = kw.pop('radius')
     else:
         radius = defaults['contact_pb_radius']
-    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "contacts", color, radius, **kw)
+    return color, radius
 
 _continuous_attr = "_clashes_continuous_id"
 def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, color, radius, *,
