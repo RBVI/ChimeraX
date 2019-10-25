@@ -341,6 +341,10 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_audit_syntax();
         });
+    register_category("audit_syntax",
+        [this] () {
+            parse_audit_syntax();
+        });
     register_category("entry",
         [this] () {
             parse_entry();
@@ -1079,6 +1083,7 @@ ExtractMolecule::parse_audit_conform()
         guess_fixed_width_categories = true;
     }
 }
+
 void
 ExtractMolecule::parse_audit_syntax()
 {

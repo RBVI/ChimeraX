@@ -173,12 +173,19 @@ if full region shown initially, move plane or slab along its axis to show
 a different section; see also 
 <a href="../commands/volume.html"><b>volume</b></a></td>
 </tr><tr>
-<td align="center"><img src="../tools/mouse-icons/crop.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/crop.png" width="35px"></td>
 <td align="center"><b>crop volume</b></td>
 <td align="center" class="text">
 show <a href="volumeviewer.html">volume data</a> outline box
 and adjust region size by dragging any face;
 see also <a href="../commands/volume.html"><b>volume</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/tape.png" width="35px"></td>
+<td align="center"><b>tape measure</b></td>
+<td align="center" class="text">click
+<a href="volumeviewer.html">volume data</a>
+to anchor distance measurement, drag to desired endpoint; click in empty space
+to &ldquo;erase&rdquo; (<a href="#tapemeasure">details...</a>)</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/pickblobs.png" width="35px"></td>
 <td align="center"><b>pick blobs</b></td>
@@ -237,6 +244,46 @@ while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
 </tr>
 </table>
+
+<a name="tapemeasure"></a>
+<p class="nav">
+[<a href="#top">back to top: Mouse Modes...</a>]
+</p>
+<h3>Tape Measure</h3>
+<p>
+The <b>tape measure</b> mode creates one or more pairs of
+<a href="../markers.html">markers</a> with a distance label on the link
+between them. Clicking (without releasing) the assigned button over
+<a href="volumeviewer.html">volume data</a>
+anchors the measurement, dragging adjusts the measurement dynamically, 
+and releasing the button places the second marker. 
+Clicking the assigned button away from any 
+<a href="volumeviewer.html">volume data</a>
+or clicking and releasing without dragging more than 5 screen pixels
+removes the measurements.
+The <a href="../markers.html">markers and links</a> are created as a model
+named <b>tape measure</b>.
+Except in VR (see below), only <a href="volumeviewer.html">volume data</a>
+can anchor these measurements,
+not atoms or <a href="../commands/surface.html">molecular surfaces</a>,
+although the release point can be anywhere, even empty space.
+The anchor placement method is automatically determined from the
+<a href="volumeviewer.html">volume data</a> display style, marking
+either the isosurface, volume plane, or local maximum along the line of sight.
+The link <a href="../commands/size.html">radius</a>
+is set to half the minimum grid spacing of the volume, 
+and the distance label <a href="../commands/label.html#height">height</a>
+is proportional to the length of the link.
+See also: <a href="distances.html"><b>Distances</b></a>,
+<a href="../measurements.html">measurements</a>
+</p><p>
+Tape-measure differences in <a href="../vr.html">virtual reality</a>:
+</p>
+<ul>
+<li>placement is always at the tip of the hand-controller cone, 
+regardless of the data or its style of display
+<li>clicking and releasing within 0.3 seconds erases the measurements
+</ul>
 
 <a name="openmm"></a>
 <p class="nav">

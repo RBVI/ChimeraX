@@ -831,6 +831,11 @@ Structure::delete_bond(Bond *b)
     if (i == _bonds.end())
         throw std::invalid_argument("delete_bond called for Bond not in Structure");
     auto db = DestructionBatcher(this);
+    // for backbone bonds, create missing-structure pseudobonds
+    if (b->is_backbone()) {
+        auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
+        pbg->new_pseudobond(b->atoms()[0], b->atoms()[1]);
+    }
     for (auto a: b->atoms())
         a->remove_bond(b);
     _bonds.erase(i);
