@@ -285,6 +285,7 @@ class ItemTable(QTableView):
             self._columns.extend(self._pending_columns)
             self._table_model.endInsertColumns()
             self._pending_columns = []
+            self.resizeColumnsToContents()
         return c
 
     def update_column(self, column, **kw):
@@ -387,6 +388,7 @@ class ItemTable(QTableView):
                 col_num, order = sort_info
                 self.sortByColumn(col_num, order)
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
+        self.resizeColumnsToContents()
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
