@@ -11,10 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .settings import defaults
+from PyQt5.QtWidgets import QWidget
+
 from chimerax.atomic import AtomicStructure
 from chimerax.core.colors import BuiltinColors
 from .hbond import rec_dist_slop, rec_angle_slop
-from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt
 from chimerax.ui.options import Option, OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
     OptionalRGBAOption, make_optional
@@ -40,10 +42,13 @@ class AtomProximityGUI(QWidget):
             # keyword/value added to the command returned by get_command, nor will they have their
             # settings value changed/saved.  If needed, you will have to add the keyword/value to
             # the command yourself.
+            atom_color=defaults["atom_color"],
             slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
-            show_hbond_allowance = True, show_name=False, show_overlap_cutoff=True):
+            show_atom_color=True,
+            show_color=True, show_hbond_allowance = True, show_name=False, show_overlap_cutoff=True,
+            show_radius=True):
 
         self.session = session
 
