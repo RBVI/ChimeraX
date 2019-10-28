@@ -22,7 +22,7 @@ class TapeMeasureMouseMode(MouseMode):
         self._marker_set = None
         self._markers = []
         self._color = (255,255,0,255)
-        self._radius = .2
+        self._radius = .1
         self._min_move = 5	# minimum pixels to draw tape
         self._start_time = 0
         self._clear_time = 0.3	# seconds. Fast click/release causes clear.
@@ -107,7 +107,7 @@ class TapeMeasureMouseMode(MouseMode):
         xyz1, xyz2 = self._view_line(event)
         p = d = v = None
         from chimerax.core.geometry import distance
-        for method in [self._surface_point,
+        for method in [self._surface_or_atom_point,
                        self._volume_maximum_point,
                        self._volume_plane_point]:
             pm, vm = method(xyz1, xyz2)
@@ -119,23 +119,28 @@ class TapeMeasureMouseMode(MouseMode):
                     v = vm
         return p, v
                 
-    def _surface_point(self, xyz1, xyz2):
+    def _surface_or_atom_point(self, xyz1, xyz2):
         from chimerax.mouse_modes import picked_object_on_segment
         p = picked_object_on_segment(xyz1, xyz2, self.session.main_view,
-                                     exclude = self._exclude_markers_from_surface_pick)
+                                     exclude = self._exclude_markers_from_pick)
         from chimerax.core.graphics import PickedTriangle
         from chimerax.map.volume import PickedMap
+        from chimerax.atomic import PickedAtom, PickedResidue
+        sxyz = v = None
         if isinstance(p, PickedMap) and hasattr(p, 'triangle_pick'):
             sxyz = p.position
             v = p.map
         elif isinstance(p, PickedTriangle):
             sxyz = p.position
-            v = None
-        else:
-            sxyz = v = None
+        elif isinstance(p, PickedAtom):
+            sxyz = p.atom.scene_coord
+        elif isinstance(p, PickedResidue):
+            a = p.residue.principal_atom
+            if a:
+                sxyz = a.scene_coord
         return sxyz, v
 
-    def _exclude_markers_from_surface_pick(self, drawing):
+    def _exclude_markers_from_pick(self, drawing):
         from chimerax.mouse_modes import unpickable
         return unpickable(drawing) or drawing is self._marker_set
             
