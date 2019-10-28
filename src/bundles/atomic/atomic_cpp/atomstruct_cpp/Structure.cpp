@@ -59,7 +59,6 @@ Structure::Structure(PyObject* logger):
             _position[i][j] = (i == j ? 1.0 : 0.0);
         }
     }
-    make_py_destructor_callback = true;
     change_tracker()->add_created(this, this);
 }
 
@@ -531,7 +530,7 @@ Structure::delete_atom(Atom* a)
         throw std::invalid_argument("delete_atom called for Atom not in AtomicStructure/Structure");
     }
     if (atoms().size() == 1) {
-        delete this;
+        Py_XDECREF(py_call_method("cpp_del_model"));
         return;
     }
     auto r = a->residue();
@@ -1033,7 +1032,8 @@ Structure::new_bond(Atom *a1, Atom *a2)
                         } else {
                             pbg->delete_pseudobond(pb);
                             if (pbg->pseudobonds().size() == 0)
-                                pbg->manager()->delete_group(pbg);
+                                //pbg->manager()->delete_group(pbg);
+                                Py_XDECREF(pbg->py_call_method("cpp_del_model"));
                             break;
                         }
                     }
