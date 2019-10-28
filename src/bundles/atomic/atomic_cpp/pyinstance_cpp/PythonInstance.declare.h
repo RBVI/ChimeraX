@@ -66,8 +66,6 @@ class PYINSTANCE_IMEX PythonInstance {
 private:
     static std::string  _buffer;  // so that the const char* from std::string will hang around
     static PyObject*  _py_class;
-protected:
-    static bool  make_py_destructor_callback;
 public:
     virtual  ~PythonInstance();
     PyObject*  get_py_attr(const char* attr_name, bool create=false) const;

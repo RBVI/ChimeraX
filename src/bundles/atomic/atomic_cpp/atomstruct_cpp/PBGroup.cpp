@@ -31,9 +31,7 @@ namespace atomstruct {
 
 PBGroup::PBGroup(const std::string& cat, BaseManager* manager):
     _category(cat), _destruction_relevant(true), _manager(manager), _proxy(nullptr)
-{
-    make_py_destructor_callback = true;
-}
+{ }
 
 void
 StructurePBGroupBase::_check_structure(Atom* a1, Atom* a2)
