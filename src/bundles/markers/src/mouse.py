@@ -361,7 +361,9 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
             continue
         threshold = v.minimum_surface_level
         if threshold is None:
-            return
+            if len(v.image_levels) == 0:
+                return None, None
+            threshold = min(lev for lev,h in v.image_levels)
         f = first_maximum_along_ray(v, v_xyz_in, v_xyz_out, threshold)
         if f is None:
             continue
