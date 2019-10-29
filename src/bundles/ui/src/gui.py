@@ -450,6 +450,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
+        self._is_quitting = False
 
         self._build_status()
         self._populate_menus(session)
@@ -555,11 +556,15 @@ class MainWindow(QMainWindow, PlainTextLog):
     
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
+        self._is_quitting = True
         event.accept()
         self.session.ui.quit()
 
     def close_request(self, tool_window, close_event):
         # closing a tool window has been requested
+        if self._is_quitting:
+            close_event.accept()
+            return
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
