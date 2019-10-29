@@ -734,6 +734,7 @@ BuiltinColors = SortedDict({
 })
 BuiltinColors['transparent'] = (0, 0, 0, 0)
 
+_color_names = {rgba8:name for name, rgba8 in BuiltinColors.items()}
 
 def random_colors(n, opacity=255):
     from numpy import random, uint8
@@ -752,6 +753,16 @@ def most_common_color(colors):
         return None
     return colors[indices[max_index]]
 
+def color_name(rgba8):
+    '''Return english color name or hex color string.'''
+    c = tuple(rgba8)
+    if c in _color_names:
+        name = _color_names[c]
+    elif c[3] == 255:
+        name = '#%02x%02x%02x' % c[:3]
+    else:
+        name = '#%02x%02x%02x%02x' % c
+    return name
 
 def rgba_to_rgba8(rgba):
     return tuple(int(255 * r) for r in rgba)

@@ -79,20 +79,39 @@ class TapeMeasureMouseMode(MouseMode):
         from chimerax.core.objects import Objects
         from chimerax.atomic import Bonds
         b = Objects(bonds = Bonds([self._link]))
+        text, h = self._label_text_and_height()
+        from chimerax.core.colors import Color
+        label(self.session, objects = b, object_type = 'bonds',
+              text = text, height = h, color = Color(self._color))
+
+    def _label_text_and_height(self):
         from chimerax.core.geometry import distance
         m1, m2 = self._markers
         d = distance(m1.coord, m2.coord)
+        text = '%.4g' % d
         h = max(2*self._radius, 0.1*d)
-        from chimerax.core.colors import Color
-        label(self.session, objects = b, object_type = 'bonds',
-              text = '%.4g' % d, height = h, color = Color(self._color))
+        return text, h
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
         if self._markers:
+            self._log_tape_command()
             self._markers = []
         else:
             self._clear()
+
+    def _log_tape_command(self):
+        m1, m2 = self._markers
+        label,h = self._label_text_and_height()
+        mset = m1.structure
+        p1 = '%.4g,%.4g,%.4g' % tuple(m1.scene_coord)
+        p2 = '%.4g,%.4g,%.4g' % tuple(m2.scene_coord)
+        from chimerax.core.colors import color_name
+        cname = color_name(self._color)
+        cmd = ('marker segment %s %s to %s color %s radius %.4g label %s labelHeight %.4g labelColor %s'
+               % (mset.atomspec, p1, p2, cname, self._radius, label, h, cname))
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(mset.session, cmd)
 
     def _minimum_move(self, event):
         if self._markers:
