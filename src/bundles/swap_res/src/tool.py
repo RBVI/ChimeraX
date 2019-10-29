@@ -220,7 +220,7 @@ class RotamerDialog(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
         from PyQt5.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
-            QPushButton, QRadioButton, QButtonGroup
+            QPushButton, QRadioButton, QButtonGroup, QGridLayout
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -257,15 +257,15 @@ class RotamerDialog(ToolInstance):
         column_group.setLayout(cg_layout)
         cg_layout.addWidget(column_disp_widget)
 
-        add_col_layout = QHBoxLayout()
+        add_col_layout = QGridLayout()
         add_col_layout.setContentsMargins(0,0,0,0)
         add_col_layout.setSpacing(0)
         cg_layout.addLayout(add_col_layout)
         self.add_col_button = QPushButton("Add")
-        add_col_layout.addWidget(self.add_col_button, alignment=Qt.AlignRight)
+        add_col_layout.addWidget(self.add_col_button, 0, 0, alignment=Qt.AlignRight)
         radio_layout = QVBoxLayout()
         radio_layout.setContentsMargins(0,0,0,0)
-        add_col_layout.addLayout(radio_layout)
+        add_col_layout.addLayout(radio_layout, 0, 1, alignment=Qt.AlignLeft)
         self.button_group = QButtonGroup()
         self.add_col_button.clicked.connect(lambda *, bg=self.button_group:
             self._show_subdialog(bg.checkedButton().text()))
@@ -275,9 +275,12 @@ class RotamerDialog(ToolInstance):
             radio_layout.addWidget(rb)
             if not self.button_group.buttons():
                 rb.setChecked(True)
-            if add_type[-1] == ')':
-                rb.setEnabled(False)
+            #if add_type[-1] == ')':
+            #    rb.setEnabled(False)
             self.button_group.addButton(rb)
+        self.ignore_solvent_button = QCheckBox("Ignore solvent")
+        self.ignore_solvent_button.setChecked(True)
+        add_col_layout.addWidget(self.ignore_solvent_button, 1, 0, 1, 2, alignment=Qt.AlignCenter)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
@@ -336,6 +339,8 @@ class RotamerDialog(ToolInstance):
             cmd_name, spec, args = sd.hbonds_gui.get_command()
             res = self.mgr.base_residue
             base_spec = "#!%s & ~%s" % (res.structure.id_string, res.string(style="command"))
+            if self.ignore_solvent_button.isChecked():
+                base_spec += " & ~solvent"
             hbs = run(self.session, "%s %s %s restrict #%s & ~@c,ca,n" %
                     (cmd_name, base_spec, args, self.mgr.group.id_string))
             for rotamer in self.mgr.rotamers:
@@ -374,8 +379,13 @@ class RotamerDialog(ToolInstance):
         self.subdialogs[sd_type].shown = True
 
     def _update_button_text(self):
-        if self.button_group.checkedButton().text() in self.table.column_names:
+        cur_choice = self.button_group.checkedButton().text()
+        if cur_choice in self.table.column_names:
             txt = "Update"
         else:
             txt = "Add"
         self.add_col_button.setText(txt)
+        if cur_choice.startswith("Density"):
+            self.ignore_solvent_button.hide()
+        else:
+            self.ignore_solvent_button.show()
