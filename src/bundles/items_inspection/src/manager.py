@@ -33,15 +33,15 @@ class ItemsInspection(ProviderManager):
         return info[:]
 
     def add_provider(self, bundle_info, name, **kw):
-        """ The provider's run_provider method should return a 2-tuple.  The first member of the tuple
-            should be a list of chimerax.ui.options classes that can be instantiated to inspect various
-            properties of the item type.  The instances should have a "command_format" attribute that is
-            a string with a single '%s', into which the "end user" inspector will interpolate command-
-            line-target text (e.g., 'sel').  The result should be executable as a command when the option's
+        """ The provider's run_provider method should return a list of 2-tuples.  The first member of each
+            tuple should be a chimerax.ui.options class that can be instantiated to inspect a property of
+            the item type.  The resulting instance should have a "command_format" attribute that is a
+            string with a single '%s', into which the "end user" inspector will interpolate command-line-
+            target text (e.g., 'sel').  The result should be executable as a command when the option's
             value is changed to in turn accomplish the change in the data itself.  The second member of
-            the tuple provides information on when the options need updating from external changes.
-            It is a list of (trigger set, trigger name, boolean func) tuples for triggers that fire
-            when relevant changes occur.  The boolean function will be called with the trigger's data
+            the tuple provides information on when the option need updating from external changes.
+            It is a (trigger set, trigger name, boolean func) tuple for a trigger that fires when
+            relevant changes occur.  The boolean function will be called with the trigger's data
             and should return True when items of the relevant type have been modified.
 
             If an option controls a particular attribute of the item then the option's 'attr_name'

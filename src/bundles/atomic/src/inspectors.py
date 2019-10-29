@@ -13,11 +13,12 @@
 
 def item_options(session, name, **kw):
     from .triggers import get_triggers
+    def make_tuple(option, reason_type, triggers=get_triggers()):
+        return (option, (triggers, "changes", lambda changes, *, attr=option.attr_name, rt=reason_type:
+            attr + ' changed' in getattr(changes, rt + "_reasons")()))
     return {
-        'atoms': ([AtomColorOption, AtomBondStyleOption], [(get_triggers(), "changes", lambda changes:
-            'color changed' in changes.atom_reasons() or 'draw_mode changed' in changes.atom_reasons())]),
-        'bonds': ([AtomBondStyleOption], [(get_triggers(), "changes", lambda changes:
-            'draw_mode changed' in changes.bond_reasons())])
+        'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomBondStyleOption]],
+        'bonds': [make_tuple(opt, "bond") for opt in [AtomBondStyleOption]]
     }[name]
 
 from chimerax.ui.options import RGBAOption, SymbolicEnumOption
