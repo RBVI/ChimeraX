@@ -59,7 +59,6 @@ Structure::Structure(PyObject* logger):
             _position[i][j] = (i == j ? 1.0 : 0.0);
         }
     }
-    make_py_destructor_callback = true;
     change_tracker()->add_created(this, this);
 }
 
@@ -531,7 +530,7 @@ Structure::delete_atom(Atom* a)
         throw std::invalid_argument("delete_atom called for Atom not in AtomicStructure/Structure");
     }
     if (atoms().size() == 1) {
-        delete this;
+        Py_XDECREF(py_call_method("cpp_del_model"));
         return;
     }
     auto r = a->residue();
@@ -941,6 +940,25 @@ backbone_increases(Atom* a1, Atom* a2, const std::vector<AtomName>* names)
             std::find(residues.begin(), residues.end(), a2->residue());
 }
 
+Atom*
+follow_backbone(Atom* bb1, Atom* bb2, Atom* goal, std::set<Atom*>& seen)
+{
+    for (auto nb: bb2->neighbors()) {
+        if (!nb->is_backbone(BBE_MIN))
+            continue;
+        if (nb == bb1)
+            continue;
+        if (nb == goal)
+            return nullptr;
+        if (seen.find(nb) != seen.end())
+            // backbone now loops back on itself!
+            return nullptr;
+        seen.insert(bb1);
+        return follow_backbone(bb2, nb, goal, seen);
+    }
+    return bb2;
+}
+
 Bond *
 Structure::new_bond(Atom *a1, Atom *a2)
 {
@@ -1014,7 +1032,8 @@ Structure::new_bond(Atom *a1, Atom *a2)
                         } else {
                             pbg->delete_pseudobond(pb);
                             if (pbg->pseudobonds().size() == 0)
-                                pbg->manager()->delete_group(pbg);
+                                //pbg->manager()->delete_group(pbg);
+                                Py_XDECREF(pbg->py_call_method("cpp_del_model"));
                             break;
                         }
                     }
@@ -1026,10 +1045,19 @@ Structure::new_bond(Atom *a1, Atom *a2)
                     bool a_other_increases = backbone_increases(matched_a, other_a, ordered_names);
                     bool pb_other_increases = backbone_increases(matched_a, other_pb, ordered_names);
                     if (a_other_increases == pb_other_increases) {
-                        // Okay, the new bond points into the structure gap, shorten the pseudobond
-                        auto shortened = pbg->new_pseudobond(other_a, other_pb);
-                        shortened->copy_style(pb);
-                        pbg->delete_pseudobond(pb);
+                        // Okay, the new bond points into the structure gap;
+                        // follow along the new backbone and shorten or eliminate the pseudobond
+                        std::set<Atom*> seen;
+                        auto new_end = follow_backbone(matched_a, other_a, other_pb, seen);
+                        if (new_end == nullptr) {
+                            pbg->delete_pseudobond(pb);
+                            if (pbg->pseudobonds().size() == 0)
+                                pbg->manager()->delete_group(pbg);
+                        } else {
+                            auto shortened = pbg->new_pseudobond(new_end, other_pb);
+                            shortened->copy_style(pb);
+                            pbg->delete_pseudobond(pb);
+                        }
                         break;
                     }
                 }
