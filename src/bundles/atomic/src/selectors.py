@@ -32,6 +32,7 @@ def register_selectors(logger):
     reg("ions", lambda s, m, r: _structure_category_selector("ions", m, r), logger, desc="ions")
     reg("ligand", lambda s, m, r: _structure_category_selector("ligand", m, r), logger, desc="ligands")
     reg("main", lambda s, m, r: _structure_category_selector("main", m, r), logger, desc="main structure")
+    reg("sel-residues", _sel_residues, logger, desc="current selection promoted to full residues")
     reg("solvent", lambda s, m, r: _structure_category_selector("solvent", m, r), logger, desc="solvent")
     reg("strand", _strands_selector, logger, desc="strands")
     reg("helix", _helices_selector, logger, desc="helices")
@@ -69,6 +70,10 @@ def _backbone_selector(session, models, results):
             if pbs:
                 _add_missing_structure(results, pbs, pbg)
         results.add_atoms(backbone, bonds=True)
+
+def _sel_residues(session, models, results):
+    from chimerax.atomic import selected_atoms
+    results.add_atoms(selected_atoms(session).residues.unique().atoms)
 
 def _polymer_selector(models, results, protein):
     from chimerax.atomic import Structure, Residue

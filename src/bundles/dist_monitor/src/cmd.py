@@ -177,10 +177,12 @@ def register_command(logger):
             ('decimal_places', NonNegativeIntArg), ('symbol', BoolArg)],
         synopsis = 'show/report distance')
     register('distance', d_desc, distance, logger=logger)
-    xd_desc = CmdDesc(
+    # command registration doesn't allow resuse of the sam CmdDesc, so...
+    xd_desc = lambda: CmdDesc(
         required = [('pbonds', Or(PseudobondsArg,EmptyArg))],
         synopsis = 'remove distance monitors')
-    register('~distance', xd_desc, xdistance, logger=logger)
+    register('~distance', xd_desc(), xdistance, logger=logger)
+    register('distance delete', xd_desc(), xdistance, logger=logger)
     df_desc = CmdDesc(
         required = [('pbonds', Or(PseudobondsArg,EmptyArg))],
         keyword = [('color', ColorArg), ('dashes', NonNegativeIntArg), ('radius', FloatArg),

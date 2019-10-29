@@ -90,7 +90,9 @@ class View:
             r.lighting = self._lighting
             r.material = self._material
             r.silhouette = self._silhouette
-            self.highlight_thickness = opengl_context.pixel_scale()
+            pscale = opengl_context.pixel_scale()
+            self.silhouette.thickness = pscale
+            self.highlight_thickness = pscale
         elif opengl_context is r.opengl_context:
             # OpenGL context switched between stereo and mono mode
             self._opengl_initialized = False
@@ -231,7 +233,11 @@ class View:
                 draw_opaque(r, opaque_drawings)
             if highlight_drawings:
                 r.outline.set_outline_mask()       # copy depth to outline framebuffer
-            draw_transparent(r, transparent_drawings)
+            if transparent_drawings:
+                if silhouette.enabled:
+                    # Draw opaque object silhouettes behind transparent surfaces
+                    silhouette.draw_silhouette(r)
+                draw_transparent(r, transparent_drawings)
             self._finish_timing()
             if multishadow:
                 r.allow_equal_depth(False)

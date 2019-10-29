@@ -20,7 +20,8 @@ class ModelSaveOptionsGUI(SaveOptionsGUI):
         self._format = format			# FileFormat from chimerax.core.io
         self._model_class = model_class		# e.g. Volume
         self._menu_label = menu_label		# Menu label
-
+        self._map_menu = None
+        
     @property
     def format_name(self):
         return self._format.name
@@ -47,12 +48,14 @@ class ModelSaveOptionsGUI(SaveOptionsGUI):
         
     def save(self, session, filename):
         path = self.add_missing_file_suffix(filename, self._format)
-        from chimerax.core.commands import run, quote_if_necessary
-        cmd = 'save %s model #%s' % (quote_if_necessary(path),
+        from chimerax.core.commands import run, FileNameArg
+        cmd = 'save %s model #%s' % (FileNameArg.unparse(path),
                                      self._map_menu.value.id_string)
         run(session, cmd)
 
     def update(self, session, save_dialog):
+        if self._map_menu is None:
+            return
         m = None
         mlist = session.models.list(type = self._model_class)
         msel = [m for m in mlist if m.selected]

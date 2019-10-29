@@ -15,7 +15,7 @@ or derivations thereof.
 
 <head>
 <link rel="stylesheet" type="text/css" href="../userdocs.css" />
-<title>Command: ui, mousemode</title>
+<title>Command: ui, functionkey, mousemode</title>
 </head><body>
 
 <a name="top"></a>
@@ -23,12 +23,14 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
 class="clRight" title="User Guide Index"/></a>
 
-<h3><a href="../index.html#commands">Command</a>: ui, mousemode</h3>
+<h3><a href="../index.html#commands">Command</a>:
+ui, functionkey, mousemode</h3>
 
 <p>
-The <b>ui</b> command sets generic tool-interface preferences
-and adjusts <a href="#mousemode">mouse-button assignments</a>
-for interactive manipulation.
+The <b>ui</b> command sets generic tool-interface 
+<a href="../preferences.html#other">preferences</a>
+and assigns actions to the <a href="#mousemode">mouse/touchpad</a>
+and <a href="#functionkey">function keys</a>.
 </p>
 
 <a name="autostart"></a>
@@ -70,6 +72,41 @@ Whether the tool should be listed in the <a href="../menu.html#favorites">
 through <a href="../window.html#tool-context">context menus</a>.
 </blockquote>
 
+<a name="functionkey"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>functionkey</b> &nbsp;<i>key</i> [&nbsp;<i>wordlist</i>&nbsp;]
+<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>functionkey</b> [&nbsp;<i>key</i>&nbsp;]
+<blockquote>
+The <b>functionkey</b> command (same as <b>ui functionkey</b>) assigns
+ChimeraX commands to the keyboard function keys. The <i>key</i> can be given
+as <b>F1</b>, <b>F2</b>, <i>etc.</i>, with or without capitalization.
+The <i>wordlist</i> may contain one or more command(s) and their options. 
+If multiple commands are included, they must be separated by semicolons and
+the entire <i>wordlist</i> enclosed in quotation marks.
+If no <i>wordlist</i> is given, the key's current function
+is reported in the <a href="../tools/log.html"><b>Log</b></a>.
+If no key is specified, any/all function-key assignments are reported.
+Function key assignments are saved as 
+<a href="../preferences.html#other">preferences</a>.
+See also: <a href="alias.html"><b>alias</b></a>,
+<a href="buttonpanel.html"><b>buttonpanel</b></a>,
+<a href="#mousemode"><b>mousemode</b></a>
+<p>
+Examples:
+<ul class="none"><b>
+<li>
+fun F1 <a href="#mousemode">mousemode</a> right 'rotate selected models'
+<li>
+fun F2 <a href="#mousemode">mousemode</a> right 'translate selected models'
+<li>
+fun f3 <a href="view.html#initial">view</a> cofr false
+<li>
+fun f4 "<a href="view.html#initial">view</a> orient; <a href="view.html#initial">view</a> initial"
+</b></ul>
+</blockquote>
+
 <a name="mousemode"></a>
 <a href="#top" class="nounder">&bull;</a>
 <b>mousemode</b> 
@@ -101,11 +138,16 @@ two commands rather than one would be needed to assign functions to
 <br>
 <b>mousemode alt wheel contour</b>
 </blockquote>
-</p><p>
+<p>
 Given without arguments, the <b>mousemode</b> command reports the current
-assignments in the <a href="../tools/log.html"><b>Log</b></a>. See also:
+assignments in the <a href="../tools/log.html"><b>Log</b></a>. 
+</p><p>
+The analogous command for <a href="../vr.html">virtual reality</a> 
+hand controllers is <a href="device.html#vr-button"><b>vr button</b></a>.
+See also:
 <a href="cofr.html"><b>cofr</b></a>,
 <a href="device.html"><b>device</b></a>,
+<a href="#functionkey"><b>functionkey</b></a>,
 <!--
 <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
 <a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>,
@@ -225,13 +267,29 @@ atomic-model chain description (if available) in
 </tr><tr>
 <td align="center"><b>translate selected models</b></td>
 <td align="center" class="text">translate models with any part 
-<a href="../selection.html">selected</a></td>
+<a href="../selection.html">selected</a>, or if no selection, all models</td>
 <td align="center"><img src="../tools/mouse-icons/move_h2o.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>translate xy selected models</b></td>
+<td align="center" class="text">translate models with any part 
+<a href="../selection.html">selected</a> in the XY plane of one
+model's coordinate system (no choice of which if &nbsp;&gt;1 selected),
+or if no selection, translate all models in the 
+<a href="view.html#scenecoords">scene</a> XY plane</td>
+<td align="center"></td>
 </tr><tr>
 <td align="center"><b>rotate selected models</b></td>
 <td align="center" class="text">rotate models with any part
- <a href="../selection.html">selected</a></td>
+<a href="../selection.html">selected</a>, or if no selection, all models</td>
 <td align="center"><img src="../tools/mouse-icons/rotate_h2o.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>rotate z selected models</b></td>
+<td align="center" class="text">rotate models with any part
+<a href="../selection.html">selected</a> about the Z axis of one
+model's coordinate system (no choice of which if &nbsp;&gt;1 selected),
+or if no selection, rotate all models around the 
+<a href="view.html#scenecoords">scene</a> Z axis</td>
+<td align="center"></td>
 </tr><tr>
 <td align="center"><b>pivot</b></td>
 <td align="center" class="text">set center of rotation to atom;
@@ -239,11 +297,12 @@ see also <a href="cofr.html"><b>cofr</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/pivot.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>distance</b></td>
-<td align="center" class="text">add distance monitor
-<a href="../pseudobonds.html">pseudobond</a> 
+<td align="center" class="text"><a name="distance"></a>
+add distance monitor <a href="../pseudobonds.html">pseudobond</a> 
 between two successively clicked atoms or remove existing distance monitor; 
-see also <a href="distance.html"><b>distance</b></a> and
-<a href="label.html"><b>label</b></a></td>
+see also <a href="distance.html"><b>distance</b></a>,
+<a href="label.html"><b>label</b></a>,
+and the <a href="#tape"><b>tape measure</b> mode</a></td>
 <td align="center"><img src="../tools/mouse-icons/distance.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>label</b></td>
@@ -313,6 +372,14 @@ and adjust region size by dragging any face;
 see also <a href="volume.html"><b>volume</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/crop.png" width="35px"></td>
 </tr><tr>
+<td align="center"><b>tape measure</b></td>
+<td align="center" class="text"><a name="tape"></a>
+click to anchor distance measurement,
+drag to desired endpoint; click in empty space
+to &ldquo;erase&rdquo; (<a href="../tools/mousemodes.html#tapemeasure">details...</a>);
+see also the <a href="#distance"><b>distance</b> mode</a></td>
+<td align="center"><img src="../tools/mouse-icons/tape.png" width="35px"></td>
+</tr><tr>
 <td align="center"><b>pick blobs</b></td>
 <td align="center" class="text"><a href="../tools/measureblobs.html">pick
 surface blob</a> to measure area, volume, size; see also
@@ -327,7 +394,7 @@ surface blob</a> to measure area, volume, size; see also
 </tr><tr>
 <td align="center"><b>play map series</b></td>
 <td align="center" class="text">play 
-<a href="../trajectories.html#vseries">volume series</a>;
+<a href="../trajectories.html#vseries">volume series</a>, with wrapping;
 see also <a href="vseries.html"><b>vseries</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/vseries.png" width="35px"></td>
 </tr><tr>
@@ -503,5 +570,5 @@ interpreted as right-click, but a two-finger drag still performs scrolling.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-August 2019</address>
+October 2019</address>
 </body></html>

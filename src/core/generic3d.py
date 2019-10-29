@@ -37,3 +37,15 @@ class Generic3DModel(Model):
         from .graphics.gsession import DrawingState
         DrawingState().set_state_from_snapshot(m, session, data['drawing state'])
         return m
+
+    def geometry_bounds(self):
+        '''
+        Unlike Drawing.geometry_bounds, return union of bounds of non-Model children.
+        '''
+        from .geometry import union_bounds, copies_bounding_box
+        from .models import Model
+        bm = [copies_bounding_box(d.geometry_bounds(), d.get_scene_positions())
+              for d in self.child_drawings() if not isinstance(d, Model)]
+        bm.append(super().geometry_bounds())  # get bounds of any geometry in this drawing
+        b = union_bounds(bm)
+        return b

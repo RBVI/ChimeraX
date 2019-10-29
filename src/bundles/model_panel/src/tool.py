@@ -160,6 +160,7 @@ class ModelPanel(ToolInstance):
     def _fill_tree(self, *, always_rebuild=False):
         if not self.displayed():
             # Don't update panel when it is hidden.
+            self._frame_drawn_handler = None
             from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
 
@@ -298,7 +299,8 @@ class ModelPanel(ToolInstance):
         if column == self.SHOWN_COLUMN:
             self.self_initiated = True
             command_name = "show" if item.checkState(self.SHOWN_COLUMN) == Qt.Checked else "hide"
-            run(self.session, "%s #!%s models" % (command_name, model.id_string))
+            run(self.session, "%s #%s%s models" % (command_name,
+                "!" if len(model.all_models()) > 1 else "", model.id_string))
         elif column == self.SELECT_COLUMN:
             self.self_initiated = True
             prefix = "" if item.checkState(self.SELECT_COLUMN) == Qt.Checked else "~"

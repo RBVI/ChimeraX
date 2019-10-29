@@ -39,7 +39,8 @@ H-ras (the protein part of PDB entry
 <a href="http://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
 target="_blank">121p</a>)
 </p><p>
-Currently supported formats:
+<a name="formats"></a>
+Formats:
 </p>
 <ul>
 <li><a href="http://dock.compbio.ucsf.edu/" 
@@ -50,8 +51,12 @@ certain ligand descriptors, those in condensed tabular form in the Mol2 file)
 <li><a 
 href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
 target="_blank">GOLD</a> Mol2
-<li><a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>
-PDBQT
+<li><a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a> PDBQT
+<li>a reader for
+<a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>
+Maestro (.mae) files is available from the 
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" 
+target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>)
 </ul>
 <p>
 After one or more files of
@@ -61,16 +66,28 @@ can be shown by starting <b>ViewDockX</b> from the <b>Tools</b> menu
 or by using the command:
 </p>
 <blockquote>
-<b>viewdockx</b>
+<a href="../commands/viewdockx.html"><b>viewdockx</b></a>
+<!--
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>identifier</i>&nbsp;]
+-->
 <br>&ndash; or &ndash;<br>
-<b>viewdockx 
-&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a></b>
+<a href="../commands/viewdockx.html"><b>viewdockx</b></a>
+&nbsp;<a href="../commands/atomspec.html#hierarchy"><i>docked-compound-models</i></a>
+<!-- [&nbsp;<i>identifier</i>&nbsp;] -->
 </blockquote>
 <p>
-...the latter to limit the table to only a subset of the docked compound
-models currently open.
-The <a href="#table"><b>ViewDockX</b> table</a> and associated 
-<a href="#plots">plots</a> can be manipulated
+...the latter to limit the table to only a subset of the docked compound 
+models currently open. 
+<!--
+An <i>identifier</i> for the <b>ViewDockx</b> instance
+can be supplied to allow addressing it specifically with the
+<a href="../commands/viewdockx.html"><b>viewdockx</b></a> command when multiple
+different instances will be open at the same time. 
+If no <i>identifier</i> is given, one will still be assigned automatically
+and shown in parentheses in the title bar of the
+<a href="#table"><b>ViewDockX</b> table</a>.
+-->
+The table and associated <a href="#plots">plots</a> can be manipulated
 like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
 </p>
 
@@ -104,31 +121,53 @@ A pull-down menu to the right of the search box can be used to adjust
 which of the available columns of information are shown in the table.
 Clicking a column header sorts by the values in that column.
 </p><p>
+When the <b>ViewDockX</b> dialog has the mouse focus and a single
+compound is shown (it may be necessary to click on the row for that compound
+after interacting with other windows),
+pressing the keyboard down (up) arrow key hides the compound and shows
+the next (previous) compound in the list. The commands
+<a href="../commands/viewdockx.html#down"><b>viewdockx down</b></a>
+and <a href="../commands/viewdockx.html#up"><b>viewdockx up</b></a>
+can be used to do the same thing. If multiple compounds are shown,
+the entire set of shown compounds shifts one position in the list
+for each use of the down (up) arrow key or equivalent command.
+</p><p>
+<a name="buttons"></a>
 Buttons above the table:
 </p>
 <ul>
 <li><b>Graph</b>
-- <a href="#plots">plot</a> all compounds along the X-axis
+&ndash; <a href="#plots">plot</a> all compounds along the X-axis
 <i>vs.</i> one or more numerical descriptors (table columns) on the Y-axis
 <li><b>Plot</b>
-- <a href="#plots">plot</a> different numerical descriptors <i>vs.</i> each other
-for all compounds
+&ndash; <a href="#plots">plot</a> different numerical descriptors 
+<i>vs.</i> each other for all compounds
 <li><b>Add HBonds</b> 
-- calculate and add a column for
+&ndash; calculate and add a column for
 the number of H-bonds between each compound and all other atoms
 (excluding the other docked compounds), using the
 <a href="../commands/hbonds.html"><b>hbonds</b></a> command
-<!-- hbonds [dock-models] restrict cross reveal true -->
+<!-- hbonds [dock-models] restrict [other-models] reveal true interSub true -->
 <li><b>Add Clashes</b> 
-- calculate and add a column for
+&ndash; calculate and add a column for
 the number of clashes between each compound and all other atoms
 (excluding the other docked compounds), using the
 <a href="../commands/clashes.html"><b>clashes</b></a> command
 <!-- clashes [dock-models] test others reveal true -->
+<blockquote>
+<table cellpadding="8px" cellspacing="0px" border=1 bgcolor="#f0f0f0"><tr><td>
+Because <b><i>all</i></b> other atoms besides the docked compounds
+are treated as the receptor for identifying H-bonds and clashes,
+any atoms not meant to be considered (generally solvent, 
+co-crystallized ligands, <i>etc.</i>) should be deleted beforehand.
+In addition, any models other than the receptor and its docked compounds
+should be spatially separated from them or closed.
+</td></tr></table>
+</blockquote>
 <li><b>Save...</b> save all compound structures and descriptors 
 (including current star ratings) to a Mol2 file; the file can be
 reopened later for further analysis with <b>ViewDockX</b>
-<li><b>Close</b> - close any structures with star ratings no greater 
+<li><b>Close</b> &ndash; close any structures with star ratings no greater 
 than the specified number of stars, and remove their rows from the table
 </ul>
 <p>
@@ -167,5 +206,5 @@ in the graphics window and hides the others.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+September 2019</address>
 </body></html>

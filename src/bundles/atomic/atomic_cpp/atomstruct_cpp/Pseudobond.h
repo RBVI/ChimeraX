@@ -60,6 +60,7 @@ protected:
         { return "Atom given to other_end() not in pseudobond!"; }
 public:
     ChangeTracker*  change_tracker() const;
+    void  copy_style(const Pseudobond*);
     GraphicsChanges*  graphics_changes() const;
     PBGroup*  group() const { return _group; }
     void  set_shown_when_atoms_hidden(bool s) { _shown_when_atoms_hidden = s; }

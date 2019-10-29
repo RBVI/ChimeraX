@@ -92,11 +92,6 @@ class Structure(Model, StructureData):
             return id
         return '%s %s' % (self.name, id)
 
-    @property
-    def atomspec(self):
-        '''Return the atom specifier string for this structure.'''
-        return '#' + self.id_string
-
     def delete(self):
         '''Delete this structure.'''
         t = self.session.triggers
@@ -496,8 +491,9 @@ class Structure(Model, StructureData):
         #   if thick, use stick radius to separate fills
         ring_count = 0
         all_rings = self.rings(all_size_threshold=6)
-        for ring in all_rings:
-            atoms = ring.ordered_atoms
+        # Ring info will change spontaneously when we ask for radii, so remember what we need now
+        ring_atoms = [ring.ordered_atoms for ring in all_rings]
+        for atoms in ring_atoms:
             residue = atoms[0].residue
             if not residue.ring_display or not all(atoms.visibles):
                 continue

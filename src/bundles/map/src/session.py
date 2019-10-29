@@ -320,7 +320,7 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if hasattr(dt, 'series_index'):
     s['series_index'] = dt.series_index
   if hasattr(dt, 'channel') and dt.channel is not None:
-    s['channel_index'] = dt.channel
+    s['channel'] = dt.channel
   if hasattr(dt, 'time') and dt.time is not None:
     s['time'] = dt.time
 
@@ -342,6 +342,8 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     from gzip import decompress
     from base64 import b64decode
     a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
+    if not a.flags.writeable:
+      a = a.copy()
     array = a.reshape(s['size'][::-1])
     from .data import ArrayGridData
     dlist = [ArrayGridData(array)]

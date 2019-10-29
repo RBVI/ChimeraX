@@ -45,4 +45,11 @@ class _MyAPI(BundleAPI):
                 return c
         return None
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        """Run toolbar provider"""
+        from . import shortcuts
+        shortcuts.run_provider(session, name)
+
+
 bundle_api = _MyAPI()

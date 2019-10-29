@@ -8,14 +8,14 @@ Cython==0.29.13
 distlib==0.2.9.post0
 filelock==3.0.12
 grako==3.16.5
-html2text==2018.1.9
-ihm==0.10
+html2text==2019.8.11
+ihm==0.11
 imagecodecs-lite==2019.4.20
-ipykernel==5.1.1
-ipython==7.7.0
+ipykernel==5.1.2
+ipython==7.8.0
 # see ../lineprofiler
 #line_profiler==2.1.2
-lxml==4.4.0
+lxml==4.4.1
 matplotlib==3.1.1
 msgpack==0.6.1
 networkx==2.3
@@ -26,10 +26,11 @@ psutil==5.6.3
 pycollada==0.6
 pydicom==1.3.0
 python-dateutil==2.8.0
-qtconsole==4.5.2
+qtconsole==4.5.5
 six==1.12.0
 sortedcontainers==2.1.0
 suds-jurko==0.6
+tables==3.5.2
 tifffile==2019.7.26
 tinyarray==1.2.1
 webcolors==1.9.1
@@ -41,5 +42,5 @@ docutils==0.15.2
 Jinja2==2.10.1
 numpydoc==0.9.1
 Pygments==2.4.2
-Sphinx==2.1.2
+Sphinx==2.2.0
 sphinxcontrib-blockdiag==1.5.5

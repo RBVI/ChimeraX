@@ -91,6 +91,7 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <li><a href="tools/filehistory.html"><b>File History</b></a></li>
 <li><a href="tools/fitmap.html"><b>Fit in Map</b></a></li>
 <li><a href="tools/fitsegments.html"><b>Fit to Segments</b></a></li>
+<li><a href="tools/hbonds.html"><b>H-Bonds</b></a></li>
 <li><a href="tools/browser.html"><b>Help Viewer</b>
 (<b>ChimeraX Browser</b>)</a></li>
 <li><a href="tools/log.html"><b>Log</b></a></li>
@@ -107,6 +108,8 @@ src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 &ndash; interface to comparative modeling with
 <a href="http://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
 <li><a href="tools/registration.html"><b>Registration</b></a></li>
+<li><a href="tools/rotamers.html"><b>Rotamers</b></a>
+&ndash; change amino acid type or sidechain conformation</li>
 <li><a href="tools/segment.html"><b>Segment Map</b></a></li>
 <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 &ndash; view sequences and sequence alignments,
@@ -114,7 +117,7 @@ optionally structure-associated</li>
 <li><a href="tools/sideview.html"><b>Side View</b></a>
 &ndash; intuitive zooming and clipping
 <img class="icon" src="tools/toolbar-icons/sideview.png"></li>
-<li><a name="toolbars"><a href="tools/toolbar.html"><b>Toolbar</b></a>
+<li><a href="tools/toolbar.html"><b>Toolbar</b></a>
 &ndash; icons for performing actions with a single click:
 &nbsp;<img class="iconbar" src="home-icons.png">&nbsp;[...]</li>
 <li><a href="tools/viewdockx.html"><b>ViewDockX</b></a>
@@ -176,8 +179,8 @@ for presentation images and movies</li>
 by length, <i>etc.</i></li>
 <li><a href="commands/delete.html"><b>delete</b></a>
 &ndash; delete atoms, bonds, <a href="pseudobonds.html">pseudobonds</a></li>
-<li><a href="commands/device.html"><b>device</b>, <b>vr</b></a>
-&ndash; enable <a href="vr.html">virtual reality</a> or modes for other devices</li>
+<li><a href="commands/device.html"><b>device</b></a> &ndash; enable 
+<a href="vr.html">virtual reality</a> or modes for other devices</li>
 <li><a href="commands/distance.html"><b>distance</b></a>
 &ndash; monitor atom-atom distances</li>
 <li><a href="commands/dssp.html"><b>dssp</b></a>
@@ -186,11 +189,14 @@ by length, <i>etc.</i></li>
 &ndash; exit from ChimeraX</li>
 <li><a href="commands/fitmap.html"><b>fitmap</b></a>
 &ndash; fit atoms or map into map</li>
+<li><a href="commands/ui.html#functionkey"><b>functionkey</b></a>
+&ndash; assign commands to function keys</li>
 <li><a href="commands/getcrd.html"><b>getcrd</b></a>
 &ndash; report atomic coordinates</li>
 <li><a href="commands/graphics.html"><b>graphics</b></a>
-&ndash; set rendering parameters (maximum frame rate, 
-numbers of triangles, <i>etc.</i>)</li>
+&ndash; set rendering parameters (frame rate, 
+silhouette and <a href="selection.html">selection</a> outline appearance, 
+triangulation fineness, <i>etc.</i>)</li>
 <li><a href="commands/hbonds.html"><b>hbonds</b></a>
 &ndash; identify hydrogen bonds</li>
 <li><a href="commands/help.html"><b>help</b></a>
@@ -226,6 +232,8 @@ color surfaces</li>
 &ndash; create a density map from atomic coordinates</li>
 <li><a href="commands/morph.html"><b>morph</b></a>
 &ndash; morph (interpolate) between atomic structures; create a morph trajectory</li>
+<li><a href="commands/ui.html#mousemode"><b>mousemode</b></a>
+&ndash; report or adjust mouse button assignments</li>
 <li><a href="commands/move.html"><b>move</b></a>
 &ndash; translate</li>
 <li><a href="commands/movie.html"><b>movie</b></a>
@@ -271,8 +279,7 @@ or other data to a file</li>
 &ndash; show the sequence of a structure chain, 
 control sequence-structure association</li>
 <li><a href="commands/set.html"><b>set</b></a>
-&ndash; set background color, graphics frame rate,
-silhouette parameters, subdivision level</li>
+&ndash; set background color, subdivision level</li>
 <li><a href="commands/setattr.html"><b>setattr</b></a>
 &ndash; general attribute-setting</li>
 <li><a href="commands/show.html"><b>show</b>, <b>hide</b></a>
@@ -305,9 +312,8 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 &ndash; rotate</li>
 <li><a href="commands/tile.html"><b>tile</b></a>
 &ndash; spread models out into a plane</li>
-<li><a href="commands/ui.html"><b>ui</b>, <b>mousemode</b></a>
-&ndash; set generic tool-interface preferences,
-report or adjust mouse button assignments</li>
+<li><a href="commands/ui.html"><b>ui</b></a>
+&ndash; set generic tool-interface preferences</li>
 <li><a href="commands/undo.html"><b>undo</b>, <b>redo</b></a>
 &ndash; undo and redo a limited set of actions/commands</li>
 <li><a href="commands/usage.html"><b>usage</b></a>
@@ -317,6 +323,9 @@ report or adjust mouse button assignments</li>
 <li><a href="commands/view.html"><b>view</b></a>
 &ndash; focus the view on specified items, save/restore named views, 
 set camera and model positions with matrices</li>
+<li><a href="commands/viewdockx.html"><b>viewdockx</b></a>
+&ndash; specify models as docking results to show in 
+<a href="tools/viewdockx.html"><b>ViewDockX</b></a></li>
 <li><a href="commands/volume.html"><b>volume</b></a>
 &ndash; display or process <a href="tools/volumeviewer.html">volume data</a> 
 (density maps, <i>etc.</i>)</li>

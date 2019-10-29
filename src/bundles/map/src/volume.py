@@ -195,7 +195,7 @@ class Volume(Model):
     Supported API.  Remove a list of VolumeSurface instances from this Volume.
     If surfaces is None then all current surfaces are removed.
     '''
-    surfs = self._surfaces if surfaces is None else surfaces
+    surfs = tuple(self._surfaces if surfaces is None else surfaces)
     if self.id is None:
       self.remove_drawings(surfs)
     else:
@@ -875,12 +875,18 @@ class Volume(Model):
 
     if copy_colors:
       # Copy colors
+
+      color_kw = {}
+      if len(self.surfaces) == len(v.surfaces):
+        color_kw['surface_colors'] = [s.rgba for s in v.surfaces]
+      if len(self.image_colors) == len(v.image_colors):
+        color_kw['image_colors'] = v.image_colors
+
       self.set_parameters(
-        surface_colors = [s.rgba for s in v.surfaces],
-        image_colors = v.image_colors,
         transparency_depth = v.transparency_depth,
         image_brightness_factor = v.image_brightness_factor,
-        default_rgba = v.default_rgba
+        default_rgba = v.default_rgba,
+        **color_kw
         )
 
     if copy_rendering_options:
@@ -952,9 +958,12 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def region_grid(self, r, value_type = None):
+  def region_grid(self, r, value_type = None, new_spacing = None):
 
     shape = self.matrix_size(region = r, clamp = False)
+    if new_spacing is not None:
+      d = self.data
+      shape = [int(sz*(s*st/ns)) for s,ns,sz,st in zip(d.step, new_spacing, d.size, r[2])]
     shape.reverse()
     d = self.data
     if value_type is None:
@@ -962,6 +971,8 @@ class Volume(Model):
     from numpy import zeros
     m = zeros(shape, value_type)
     origin, step = self.region_origin_and_step(r)
+    if new_spacing is not None:
+      step = new_spacing
     from .data import ArrayGridData
     g = ArrayGridData(m, origin, step, d.cell_angles, d.rotation)
     g.rgba = d.rgba           # Copy default data color.
@@ -3593,7 +3604,7 @@ def register_map_format(session, map_format):
     io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
                        open_func=open_map_format, batch=True,
                        allow_directory=map_format.allow_directory,
-                       export_func=save_func)
+                       export_func=save_func, check_path=map_format.check_path)
 
 # -----------------------------------------------------------------------------
 #

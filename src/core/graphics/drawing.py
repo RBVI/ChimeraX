@@ -367,7 +367,7 @@ class Drawing:
 
     @property
     def num_displayed_positions(self):
-        dp = self.display_positions
+        dp = self._displayed_positions
         ndp = len(self.positions) if dp is None else dp.sum()
         return ndp
 
@@ -485,7 +485,7 @@ class Drawing:
             c._scene_positions_changed()
         
     def get_positions(self, displayed_only=False):
-        if displayed_only:
+        if displayed_only and self.num_displayed_positions < len(self._positions):
             return self._positions.masked(self.display_positions)
         return self._positions
 
@@ -695,8 +695,8 @@ class Drawing:
                     passes.append(self.OPAQUE_DRAW_PASS)
                 if any_transp:
                     passes.append(self.TRANSPARENT_DRAW_PASS)
-                if self.highlighted:
-                    passes.append(self.HIGHLIGHT_DRAW_PASS)
+            if self.highlighted:
+                passes.append(self.HIGHLIGHT_DRAW_PASS)
             for p in passes:
                 if p in pass_drawings:
                     pass_drawings[p].append(self)
@@ -1464,6 +1464,9 @@ def draw_overlays(drawings, renderer):
     r.enable_blending(True)
     _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS)
     r.enable_blending(False)
+    highlight_drawings = [d for d in drawings if d.highlighted]
+    if highlight_drawings:
+        draw_highlight_outline(r, highlight_drawings)
     r.enable_depth_test(True)
     r.disable_shader_capabilities(0)
 
@@ -1582,9 +1585,9 @@ class _DrawShape:
         if self.element_buffer:
             self.element_buffer.delete_buffer()
             self.element_buffer = None
-            for b in self.instance_buffers:
-                b.delete_buffer()
-            self.instance_buffers = []
+        for b in self.instance_buffers:
+            b.delete_buffer()
+        self.instance_buffers = []
         self._buffers_need_update = None
 
         if self.bindings:
@@ -1984,11 +1987,15 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     return d
 
 def match_aspect_ratio(texture_drawing, window_size):
-    if hasattr(texture_drawing, '_td_window_size') and texture_drawing._td_window_size == window_size:
+    tsize = texture_drawing.texture.size
+    if (hasattr(texture_drawing, '_td_window_size')
+        and texture_drawing._td_window_size == window_size
+        and texture_drawing._td_texture_size == tsize):
         return
     texture_drawing._td_window_size = window_size
+    texture_drawing._td_texture_size = tsize
     wx, wy = window_size
-    tx, ty = texture_drawing.texture.size
+    tx, ty = tsize
     if wx == 0 or wy == 0 or tx == 0 or ty == 0:
         xtrim, ytrim = 0, 0
     elif wx/wy > tx/ty:
@@ -2067,6 +2074,12 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     else:
         iw, ih = tw+2*xbuf, th+2*ybuf
 
+    # Can't paint to zero size labels, make min size 1.
+    if iw == 0:
+        iw = 1
+    if ih == 0:
+        ih = 1
+        
     ti = QImage(iw, ih, QImage.Format_ARGB32)
     
     # Paint background

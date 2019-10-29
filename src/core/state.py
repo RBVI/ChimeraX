@@ -72,6 +72,40 @@ class State:
 
 class StateManager(State, metaclass=abc.ABCMeta):
 
+    def init_state_manager(self, session, base_tag=None):
+        ''' Should only be called for StateManagers that are not assigned to session attributes
+            since those will be added to the session StateManager list as a side effect of __setattr__.
+            The 'base_tag' is used as the tag when registering the state manager with the session, so
+            for debugging purposes it is useful to provide a string that indicates the state manager's
+            function, though not mandatory.  If multiple managers of the same type will be created (and
+            therefore base_tag may not be unique) an integer will be appended to the text to make it
+            unique.
+        '''
+        if base_tag is None:
+            base_tag = "anonymous"
+        try:
+            session.get_state_manager(base_tag)
+        except KeyError:
+            tag = base_tag
+        else:
+            i = 1
+            while True:
+                tag = "%s %d" % (base_tag, i)
+                try:
+                    session.get_state_manager(tag)
+                except KeyError:
+                    break
+
+        self.__tag = tag
+        self.__session = session
+        session.add_state_manager(tag, self)
+
+    def destroy(self):
+        ''' Like init_state_manager, should only be called on StateManagers that are not also session
+            attributes, when the manager should be disposed of.
+        '''
+        self.__session.remove_state_manager(self.__tag)
+
     @abc.abstractmethod
     def reset_state(self, session):
         """Reset state to data-less state"""

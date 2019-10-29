@@ -32,4 +32,12 @@ class _VRAPI(BundleAPI):
         # 'finish' is called by the toolshed when updated/reloaded
         pass
 
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        if class_name == 'SteamVRCamera':
+            from . import vr
+            return vr.SteamVRCamera
+        return None
+
 bundle_api = _VRAPI()

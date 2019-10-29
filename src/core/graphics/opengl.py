@@ -259,7 +259,7 @@ class OpenGLContext:
         self.current_viewport = None
         self.done_current()
 
-        # Replace current context with stereo context sharing state.
+        # Replace current context with stereo context while sharing opengl state.
         qc = self._contexts.get(mode)
         if not qc:
             # This can raise OpenGLError
@@ -267,6 +267,17 @@ class OpenGLContext:
 
         self._mode = mode
         self.window = window
+
+        import sys
+        if sys.platform == 'linux':
+            # On Linux get GL_BACK_RIGHT error after switching
+            # into stereo a second time.  Bug #2446.  To work around
+            # this delete the stereo context after switching to mono.
+            if not stereo:
+                sqc = self._contexts.get('stereo')
+                if sqc:
+                    del self._contexts['stereo']
+                    sqc.deleteLater()
 
     def set_offscreen_color_bits(self, bits):
         cbits = self._framebuffer_color_bits
@@ -405,6 +416,9 @@ class Render:
 
         self.outline.delete()
         self.outline = None
+
+        self.offscreen.delete()
+        self.offscreen = None
 
         self.blend.delete()
         self.blend = None
@@ -1642,6 +1656,19 @@ class Silhouette:
                                  self.color, self.depth_jump,
                                  self.perspective_near_far_ratio)
 
+    def draw_silhouette(self, render):
+        r = render
+        fb = r.current_framebuffer()
+
+        # Can't have depth texture attached to framebuffer and sampled.
+        fb.attach_depth_texture(None)  # Detach depth texture
+        
+        self._draw_depth_outline(render, fb.depth_texture, self.thickness,
+                                 self.color, self.depth_jump,
+                                 self.perspective_near_far_ratio)
+
+        fb.attach_depth_texture(fb.depth_texture)  # Reattach depth texture
+
     def _silhouette_framebuffer(self, render):
         r = render
         size = r.render_size()
@@ -1961,10 +1988,7 @@ class Framebuffer:
             self._draw_buffer = GL.GL_NONE
 
         if isinstance(depth_buf, Texture):
-            level = 0
-            GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
-                                      GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D,
-                                      depth_buf.id, level)
+            self.attach_depth_texture(depth_buf)
         elif depth_buf is not None:
             GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER,
                                          GL.GL_DEPTH_ATTACHMENT,
@@ -1996,6 +2020,13 @@ class Framebuffer:
         self.width = w
         self.height = h
         self.viewport = (0,0,w,h)
+
+    def attach_depth_texture(self, depth_texture):
+        tid = 0 if depth_texture is None else depth_texture.id
+        level = 0
+        GL.glFramebufferTexture2D(GL.GL_FRAMEBUFFER,
+                                  GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D,
+                                  tid, level)
 
     def __del__(self):
         if not self._deleted and self._fbo != 0:

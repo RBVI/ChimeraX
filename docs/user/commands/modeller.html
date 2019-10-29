@@ -45,6 +45,7 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [&nbsp;<b><a href="#block">block</a></b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b><a href="#licenseKey">licenseKey</a></b>&nbsp;&nbsp;<i>key</i>&nbsp;]
+[&nbsp;<b><a href="#refresh">refresh</a></b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
 The <b>modeller comparative</b> command performs comparative or
@@ -197,7 +198,26 @@ Commercial entities and government research labs, please see
 target="_blank">Modeller licensing</a>.
 </blockquote>
 
+<a name="refresh"></a>
+<p class="nav">
+[<a href="#top">back to top: modeller</a>]
+</p>
+<h3>Evaluation Server Options</h3>
+<blockquote>
+<b>refresh</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+The <b>refresh</b> option applies to <a href="#scores"><b>modeller scores</b></a>
+only and specifies whether to overwrite existing scores (default <b>false</b>,
+do not overwrite existing scores). Refreshing scores may be useful
+after models have been modified (for example, to delete 
+untemplated regions built as extended tails).
+However, since re-evaluation does not use all of the same information
+as does scoring during the original modeling process, it may worsen
+pre-existing <b>GA341</b> and <b>zDOPE</b> scores and should only be used
+after making modifications that are expected to improve the scores.
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+September 2019</address>
 </body></html>

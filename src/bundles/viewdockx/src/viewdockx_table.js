@@ -31,9 +31,11 @@ var vdxtable = function() {
 
     function update_columns(columns) {
         // Clean up previous incarnation and save some state.
+        var preserve_hidden = false;
         if ($("#viewdockx_table").bootgrid("getTotalRowCount") > 0) {
             // Only save column state if there was something there before.
             // Also preserves "hidden" if we were just restored.
+            preserve_hidden = true;
             hidden = {};
             var settings = $("#viewdockx_table").bootgrid("getColumnSettings");
             for (var i = 0; i < settings.length; i++) {
@@ -54,6 +56,22 @@ var vdxtable = function() {
         var numeric = columns["numeric"];
         var text = columns["text"];
         var ids = text["id"];
+
+        // If we are not preserving column visibility (probably
+        // first time through), then look at text columns and
+        // hide those with unacceptably long values
+        if (!preserve_hidden)
+            $.each(text, function(key, v) {
+                if (key != "id" && key != "name") {
+                    var num_bad = 0;
+                    var limit = Math.min(v.length, 10);
+                    for (var i = 0; i < limit; i++)
+                        if (v[i].length > 50)
+                            num_bad++;
+                    if (num_bad > limit / 2)
+                        hidden[key] = true;
+                }
+            });
 
         // Build column lists
         var thead = $("<thead/>").appendTo(table);
@@ -124,16 +142,21 @@ var vdxtable = function() {
              .keydown(function(ev) {
                 switch (ev.which) {
                   case 38:
-                      arrow_key(-1);
+                      process_arrow_key("up");
                       break
                   case 40:
-                      arrow_key(1);
+                      process_arrow_key("down");
                       break
                   default:
                       return;
                 }
                 ev.preventDefault();
              });
+    }
+
+    function process_arrow_key(direction) {
+        var url = custom_scheme + ":arrow?direction=" + direction;
+        window.location = url;
     }
 
     function arrow_key(offset) {

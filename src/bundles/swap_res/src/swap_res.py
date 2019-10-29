@@ -16,10 +16,11 @@ from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoR
     UnsupportedResTypeError
 
 from .cmd import default_criteria
-def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=None, clash_score_method="sum",
-        clash_overlap_cutoff=None, criteria=default_criteria, density=None, hbond_angle_slop=None,
-        hbond_dist_slop=None, hbond_relax=True, ignore_other_models=False, lib="Dunbrack", log=True,
-        preserve=None, retain=False):
+from .settings import defaults
+def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=None,
+        clash_score_method="sum", clash_overlap_cutoff=None, criteria=default_criteria, density=None,
+        hbond_angle_slop=None, hbond_dist_slop=None, hbond_relax=True, ignore_other_models=False,
+        lib=defaults['library'], log=True, preserve=None, retain=False):
     """backend implementation of "swapaa" command."""
     rotamers = {}
     destroy_list = []
@@ -28,19 +29,6 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             r_type = res.name
         else:
             r_type = res_type.upper()
-        if criteria == "manual":
-            raise LimitationError("swapaa 'manual' criteria not implemented yet")
-            #TODO
-            '''
-            for library in libraries:
-                if library.importName == lib:
-                    break
-            else:
-                raise MidasError("No such rotamer library: %s" % lib)
-            from gui import RotamerDialog
-            RotamerDialog(res, r_type, library)
-            '''
-            continue
         CA = res.find_atom("CA")
         if not CA:
             raise LimitationError("Residue %s is missing CA atom" % res)
@@ -67,98 +55,131 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     rots = prune_by_chis(session, rots, res, preserve, log=log)
                 by_alt_loc[alt_loc] = rots
                 destroy_list.extend(rots)
+            if not by_alt_loc:
+                del rotamers[res]
     if not rotamers:
         return
 
-    # this implementation allows tie-breaking criteria to be skipped if
-    # there are no ties
-    if isinstance(criteria, str) and not criteria.isalpha():
-        raise UserError("Nth-most-probable criteria cannot be mixed with other criteria")
-    cmp = lambda p1,p2: 1 if p1 > p2 else (0 if p1 == p2 else -1)
-    for char in str(criteria):
-        if char == "d":
-            # density
-            if density == None:
-                if criteria is default_criteria:
-                    continue
-                raise UserError("Density criteria requested but no volume model specified")
-            for res, by_alt_loc in rotamers.items():
-                process_volume(session, res, by_alt_loc, density)
-            fetch = lambda r: r.volume_score
-            test = cmp
-        elif char == "c":
-            # clash
-            if clash_hbond_allowance is None or clash_overlap_cutoff is None:
-                from chimerax.atomic.clashes.settings import defaults
-                if clash_hbond_allowance is None:
-                    clash_hbond_allowance = defaults['clash_hbond_allowance']
-                if clash_overlap_cutoff is None:
-                    clash_overlap_cutoff = defaults['clash_threshold']
-            for res, by_alt_loc in rotamers.items():
-                process_clashes(session, res, by_alt_loc, clash_overlap_cutoff, clash_hbond_allowance,
-                    clash_score_method, False, None, None, ignore_other_models)
-            fetch = lambda r: r.clash_score
-            test = lambda s1, s2: cmp(s2, s1)  # _lowest_ clash score
-        elif char == 'h':
-            # H bonds
-            if hbond_angle_slop is None or hbond_dist_slop is None:
-                from chimerax.atomic.hbonds import rec_angle_slop, rec_dist_slop
-                if hbond_angle_slop is None:
-                    hbond_angle_slop = rec_angle_slop
-                if hbond_dist_slop is None:
-                    hbond_dist_slop = rec_dist_slop
-            for res, by_alt_loc in rotamers.items():
-                process_hbonds(session, res, by_alt_loc, False, None, None, hbond_relax,
-                hbond_dist_slop, hbond_angle_slop, False, None, ignore_other_models, cache_da=True)
-            from chimerax.atomic.hbonds import flush_cache
-            flush_cache()
-            fetch = lambda r: r.num_hbonds
-            test = cmp
-        elif char == 'p':
-            # most probable
-            fetch = lambda r: r.rotamer_prob
-            test = cmp
-        elif isinstance(criteria, int):
-            # Nth most probable
-            index = criteria - 1
+    if isinstance(criteria, str):
+        # this implementation allows tie-breaking criteria to be skipped if
+        # there are no ties
+        cmp = lambda p1,p2: 1 if p1 > p2 else (0 if p1 == p2 else -1)
+        for char in criteria:
+            if char == "d":
+                # density
+                from chimerax.map import Volume
+                maps = [m for m in session.models if isinstance(m, Volume)]
+                if not maps:
+                    if criteria is default_criteria:
+                        continue
+                    raise UserError("Density criteria requested but no volume models are open")
+                elif len(maps) > 1:
+                    if density is None:
+                        raise UserError("Density criteria with multiple volume models open;\n"
+                            "Need to specify one to use via 'density' keyword.")
+                    map = density
+                else:
+                    map = maps[0]
+                for res, by_alt_loc in rotamers.items():
+                    process_volume(session, res, by_alt_loc, map)
+                fetch = lambda r: r.volume_score
+                test = cmp
+            elif char == "c":
+                # clash
+                if clash_hbond_allowance is None or clash_overlap_cutoff is None:
+                    from chimerax.atomic.clashes.settings import defaults
+                    if clash_hbond_allowance is None:
+                        clash_hbond_allowance = defaults['clash_hbond_allowance']
+                    if clash_overlap_cutoff is None:
+                        clash_overlap_cutoff = defaults['clash_threshold']
+                for res, by_alt_loc in rotamers.items():
+                    process_clashes(session, res, by_alt_loc, clash_overlap_cutoff, clash_hbond_allowance,
+                        clash_score_method, False, None, None, ignore_other_models)
+                fetch = lambda r: r.clash_score
+                test = lambda s1, s2: cmp(s2, s1)  # _lowest_ clash score
+            elif char == 'h':
+                # H bonds
+                if hbond_angle_slop is None or hbond_dist_slop is None:
+                    from chimerax.atomic.hbonds import rec_angle_slop, rec_dist_slop
+                    if hbond_angle_slop is None:
+                        hbond_angle_slop = rec_angle_slop
+                    if hbond_dist_slop is None:
+                        hbond_dist_slop = rec_dist_slop
+                session.logger.status("Processing H-bonds for %s" % res)
+                for res, by_alt_loc in rotamers.items():
+                    process_hbonds(session, res, by_alt_loc, False, None, None, hbond_relax,
+                    hbond_dist_slop, hbond_angle_slop, False, None, ignore_other_models, cache_da=True)
+                session.logger.status("")
+                from chimerax.atomic.hbonds import flush_cache
+                flush_cache()
+                fetch = lambda r: r.num_hbonds
+                test = cmp
+            elif char == 'p':
+                # most probable
+                fetch = lambda r: r.rotamer_prob
+                test = cmp
+            elif isinstance(criteria, int):
+                # Nth most probable
+                index = criteria - 1
+                for res, by_alt_loc in rotamers.items():
+                    for alt_loc, rots in list(by_alt_loc.items()):
+                        if index >= len(rots):
+                            if log:
+                                session.logger.status("Residue %s does not have %d %s"
+                                    " rotamers; skipping" % (res, criteria, r_type),
+                                    log=True, color="red")
+                            return
+                        by_alt_loc[alt_loc] = [rots[index]]
+                fetch = lambda r: 1
+                test = lambda v1, v2: 1
+
+            still_multiple_choices = False
             for res, by_alt_loc in rotamers.items():
                 for alt_loc, rots in list(by_alt_loc.items()):
-                    if index >= len(rots):
-                        if log:
-                            session.logger.status("Residue %s does not have %d %s"
-                                " rotamers; skipping" % (res, criteria, r_type),
-                                log=True, color="red")
-                        return
-                    by_alt_loc[alt_loc] = [rots[index]]
-            fetch = lambda r: 1
-            test = lambda v1, v2: 1
-
-        still_multiple_choices = False
+                    if len(rots) == 1:
+                        continue
+                    best = None
+                    for rot in rots:
+                        val = fetch(rot)
+                        if best == None or test(val, best_val) > 0:
+                            best = [rot]
+                            best_val = val
+                        elif test(val, best_val) == 0:
+                            best.append(rot)
+                    by_alt_loc[alt_loc] = best
+                    if len(best) > 1:
+                        still_multiple_choices = True
+            if not still_multiple_choices:
+                break
         for res, by_alt_loc in rotamers.items():
             for alt_loc, rots in list(by_alt_loc.items()):
-                if len(rots) == 1:
-                    continue
-                best = None
-                for rot in rots:
-                    val = fetch(rot)
-                    if best == None or test(val, best_val) > 0:
-                        best = [rot]
-                        best_val = val
-                    elif test(val, best_val) == 0:
-                        best.append(rot)
-                by_alt_loc[alt_loc] = best
-                if len(best) > 1:
-                    still_multiple_choices = True
-        if not still_multiple_choices:
-            break
-    for res, by_alt_loc in rotamers.items():
-        for alt_loc, rots in list(by_alt_loc.items()):
-            if len(rots) > 1:
-                if log:
-                    session.logger.info("%s has %d equal-value rotamers;"
-                        " choosing one arbitrarily." % (res, len(rots)))
-            by_alt_loc[alt_loc] = rots[0]
-        use_rotamer(session, res, rotamers[res], retain=retain, log=log)
+                if len(rots) > 1:
+                    if log:
+                        session.logger.info("%s has %d equal-value rotamers;"
+                            " choosing one arbitrarily." % (res, len(rots)))
+                by_alt_loc[alt_loc] = rots[0]
+            use_rotamer(session, res, rotamers[res], retain=retain, log=log)
+    else:
+        # Nth-most-probable rotamer(s)
+        for res, by_alt_loc in list(rotamers.items()):
+            if len(by_alt_loc) > 1:
+                if len(critera) > 1:
+                    raise LimitationError("Cannot assign multiple rotamers to multiple alt locs")
+                for alt_loc, rots in list(by_alt_loc.items()):
+                    try:
+                        by_alt_loc[alt_loc] = rots[criteria[0]-1]
+                    except IndexError:
+                        raise UserError("Less that %d rotamers for %s" % (criteria[0], res))
+            else:
+                rots = list(by_alt_loc.values())[0]
+                try:
+                    p_rots = [rots[i-1] for i in criteria]
+                except IndexError:
+                    raise UserError("Only %d rotamers for %s" % (len(rots), res))
+                rotamers[res] = p_rots
+        for res in rotamers:
+            use_rotamer(session, res, rotamers[res], retain=retain, log=log)
+
     for rot in destroy_list:
         rot.delete()
 
@@ -231,7 +252,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     middles = {}
     ends = {}
     for i, rp in enumerate(params):
-        s = AtomicStructure(session, name="rotamer %d of %s" % (i+1, res))
+        s = AtomicStructure(session, name="rotamer %d" % (i+1))
         structs.append(s)
         r = s.new_residue(mapped_res_type, 'A', 1)
         s.rotamer_prob = rp.p
@@ -315,6 +336,17 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
         if tmpl_res.find_atom(bud) is None:
             raise TemplateError("New residue type (%s) not compatible with"
                 " starting residue type (%s)" % (res_type, res.name))
+    color_by_element = False
+    uniform_color = res.find_atom(buds[0]).color
+    het = res.find_atom("N") or res.find_atom("O4'")
+    if het:
+        carbon = res.find_atom("CA") or res.find_atom("C4'")
+        if carbon:
+            color_by_element = het.color != carbon.color
+            if color_by_element:
+                carbon_color = carbon.color
+            else:
+                uniform_color = het.color
 
     # if bfactor not specified, find highest bfactor in residue and use that for swapped-in atoms
     if bfactor is None:
@@ -414,9 +446,16 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             new_atom = form_dihedral(res_bud, real1, tmpl_res, a, b, **kw)
             new_atom.draw_mode = res_bud.draw_mode
             new_atom.bfactor = bfactor
+            if color_by_element:
+                if new_atom.element.name == "C":
+                    new_atom.color = carbon_color
+                else:
+                    from chimerax.atomic.colors import element_color
+                    new_atom.color = element_color(new_atom.element.number)
+            else:
+                new_atom.color = uniform_color
             new_atoms.append(new_atom)
 
-            # TODO: need to iterate over CoordSets
             for bonded in a.neighbors:
                 bond_atom = res.find_atom(bonded.name)
                 if not bond_atom:
@@ -734,13 +773,14 @@ def process_hbonds(session, residue, by_alt_loc, draw_hbonds, bond_color, radius
             else:
                 color = bond_color
             hbonds = { hb: color for hb in find_hbonds(session, target_models, intra_model=False,
-                dist_slop=dist_slop, angle_slop=angle_slop, cache_da=cache_da) }
+                dist_slop=dist_slop, angle_slop=angle_slop, cache_da=cache_da, status=False) }
             if relax and two_colors:
                 hbonds.update({ hb: bond_color for hb in find_hbonds(session, target_models,
                             intra_model=False) })
             # invalid H-bonds:  involving residue side chain or rotamer backbone
             invalid_atoms = set([ra for ra in residue.atoms if ra.is_side_chain])
-            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms if ra.is_backbone()])
+            invalid_atoms.update([ra for rot in rotamers for ra in rot.atoms
+                if ra.name in ra.residue.aa_max_backbone_names])
             rot_atoms = set([ra for rot in rotamers for ra in rot.atoms if ra not in invalid_atoms])
             for rot in rotamers:
                 rot.num_hbonds = 0

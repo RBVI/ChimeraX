@@ -50,8 +50,8 @@ Multiple value arguments are separated by commas
 and the commas may be followed by whitespace.
 Depending on the type of an argument, *e.g.*, a color name,
 whitespace can also appear within an argument value.
-Argument values may be quoted with double quotes.
-And in quoted text, Python's textual escape sequences are recognized,
+String argument values may be quoted with double or single quotes,
+and Python's textual escape sequences are recognized,
 *e.g.*, ``\\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign,
 \N{LATIN CAPITAL LETTER A WITH RING ABOVE}.
 
@@ -206,8 +206,11 @@ from ..errors import UserError
 _debugging = False
 _normal_token = re.compile(r"[^;\s]*")
 _single_quote = re.compile(r"'(.|\')*?'(\s|$)")
+_internal_single_quote = re.compile(r"'\s")
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
+_internal_double_quote = re.compile(r'"\s')
 _whitespace = re.compile(r"\s*")
+_internal_whitespace = re.compile(r"\s+")
 
 
 def commas(text_seq, conjunction='or'):
@@ -401,6 +404,19 @@ class Annotation(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @classmethod
+    def unparse(cls, value, session=None):
+        """Convert value to string that can parsed back into value
+
+        :param value: the value to convert
+        :param session: requried for session-dependent data types
+        :returns: string version of the value
+
+        The return value should be what would be typed if the value
+        were given on the command line.
+        """
+        raise NotImplementedError("Please implement unparse for %s" % cls.__name__)
+
+    @classmethod
     def html_name(cls, name=None):
         """Supported API.  Return HTML verison of name attribute
 
@@ -571,6 +587,10 @@ class Aggregate(Annotation):
                 discard_article(self.name)), len(used))
         return result, used, rest
 
+    def unparse(self, value, session=None):
+        conj = '%s ' % self.separator
+        return conj.join(self.annotation.unparse(v) for v in value)
+
 
 class ListOf(Aggregate):
     """Annotation for lists of a single type
@@ -707,6 +727,9 @@ class Bounded(Annotation):
                     self.max, "or equal to " if self.inclusive else ""), len(text) - len(rest))
         return value, new_text, rest
 
+    def unparse(self, value, session=None):
+        return self.anno.unparse(value, session)
+
 
 class EnumOf(Annotation):
     """Support enumerated types
@@ -745,12 +768,12 @@ class EnumOf(Annotation):
         # values=["abc", "ab"], an input of "ab" will still match
         # "ab", not "abc".
         if ids is not None:
-            assert(all([isinstance(x, str) for x in ids]))
+            assert all([isinstance(x, str) for x in ids])
             pairs = sorted(zip(self.ids, self.values))
             self.ids = [p[0] for p in pairs]
             self.values = [p[1] for p in pairs]
         else:
-            assert(all([isinstance(x, str) for x in values]))
+            assert all([isinstance(x, str) for x in values])
             self.ids = self.values = sorted(values)
         if name is None:
             from html import escape
@@ -766,7 +789,7 @@ class EnumOf(Annotation):
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
-        token, text, rest = next_token(text)
+        token, text, rest = next_token(text, convert=True)
         folded = token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
@@ -783,6 +806,10 @@ class EnumOf(Annotation):
             raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
         raise AnnotationError("Should be %s" % self.name)
 
+    def unparse(self, value, session=None):
+        i = self.values.index(value)
+        return quote_if_necessary(self.ids[i])
+
 
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
@@ -795,6 +822,9 @@ class DynamicEnum(Annotation):
 
     def parse(self, text, session):
         return EnumOf(self.values_func()).parse(text, session)
+
+    def unparse(self, value, session=None):
+        return EnumOf(self.values_func()).unparse(value, session)
 
     @property
     def name(self):
@@ -852,6 +882,14 @@ class Or(Annotation):
                 pass
         raise AnnotationError("Expected %s" % self.name)
 
+    def unparse(self, value, session=None):
+        for a in self.annoations:
+            try:
+                return a.unparse(value, session)
+            except ValueError:
+                pass
+        raise ValueError("value does not match known types")
+
 
 class BoolArg(Annotation):
     """Annotation for boolean literals"""
@@ -869,6 +907,10 @@ class BoolArg(Annotation):
             return True, "true", rest
         raise AnnotationError("Expected true or false (or 1 or 0)")
 
+    @staticmethod
+    def unparse(value, session=None):
+        return str(bool(value)).casefold()
+
 
 class NoArg(Annotation):
     """Annotation for keyword whose presence indicates True"""
@@ -878,6 +920,10 @@ class NoArg(Annotation):
     def parse(text, session):
         return True, "", text
 
+    @staticmethod
+    def unparse(value, session=None):
+        return ""
+
 
 class EmptyArg(Annotation):
     """Annotation for optionally missing 'required' argument"""
@@ -886,6 +932,10 @@ class EmptyArg(Annotation):
     @staticmethod
     def parse(text, session):
         return None, "", text
+
+    @staticmethod
+    def unparse(value, session=None):
+        return ""
 
 
 class NoneArg(Annotation):
@@ -900,6 +950,11 @@ class NoneArg(Annotation):
         if token.lower() == "none":
             return None, text, rest
         raise AnnotationError("Expected %s" % NoneArg.name)
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert value is None
+        return "none"
 
 
 class IntArg(Annotation):
@@ -916,6 +971,11 @@ class IntArg(Annotation):
         except ValueError:
             raise AnnotationError("Expected %s" % IntArg.name)
 
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, int)
+        return str(value)
+
 
 class FloatArg(Annotation):
     """Annotation for floating point literals"""
@@ -931,6 +991,11 @@ class FloatArg(Annotation):
         except ValueError:
             raise AnnotationError("Expected %s" % FloatArg.name)
 
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, (float, int))
+        return str(value)
+
 
 class StringArg(Annotation):
     """Annotation for text (a word or quoted)"""
@@ -940,11 +1005,16 @@ class StringArg(Annotation):
     def parse(text, session):
         if not text:
             raise AnnotationError("Expected %s" % StringArg.name)
-        token, text, rest = next_token(text)
+        token, text, rest = next_token(text, convert=True)
         # use quote_if_necessary(token) since token will have had
         # it's surrounding quotes stripped, and you don't want them
         # quoted a second time
         return token, quote_if_necessary(token), rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, str)
+        return quote_if_necessary(value)
 
 
 class PasswordArg(StringArg):
@@ -955,6 +1025,11 @@ class PasswordArg(StringArg):
     def parse(text, session):
         token, text, rest = StringArg.parse(text, session)
         return token, "\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}", rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, str)
+        return quote_if_necessary(value)
 
 
 class AttrNameArg(StringArg):
@@ -972,7 +1047,12 @@ class AttrNameArg(StringArg):
                                   " characters and underscores")
         if text[0].isdigit():
             raise AnnotationError("Attribute names cannot start with a digit")
-        return token, quote_if_necessary(text), rest
+        return token, text, rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert value and isinstance(value, str)
+        return quote_if_necessary(value)
 
 
 class FileNameArg(Annotation):
@@ -984,17 +1064,26 @@ class FileNameArg(Annotation):
 
     @classmethod
     def parse(cls, text, session):
-        token, text, rest = StringArg.parse(text, session)
+        if not text:
+            raise AnnotationError("Expected %s" % cls.name)
+        token, text, rest = next_token(text)
         import os.path
-        return os.path.expanduser(token), quote_if_necessary(text), rest
+        token = os.path.expanduser(token)
+        return token, text, rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        import os
+        assert isinstance(value, (str, os.PathLike))
+        return quote_path_if_necessary(str(value))
 
 
-_browse_string = "browse"
+_BROWSE_STRING = "browse"
 
 
 def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
-    if path == _browse_string:
+    if path == _BROWSE_STRING:
         if not session.ui.is_gui:
             raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
         from PyQt5.QtWidgets import QFileDialog
@@ -1015,7 +1104,7 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
             raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
     else:
         paths = [path]
-    return (paths if return_list else paths[0]), " ".join([quote_if_necessary(p) for p in paths]), rest
+    return (paths if return_list else paths[0]), " ".join([quote_path_if_necessary(p) for p in paths]), rest
 
 
 class OpenFileNameArg(FileNameArg):
@@ -1050,6 +1139,12 @@ class OpenFileNamesArg(Annotation):
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
                              return_list=True)
+
+    @staticmethod
+    def unparse(value, session=None):
+        import os
+        assert not isinstance(value, (str, os.PathLike))
+        return ' '.join(quote_path_if_necessary(p) for p in value)
 
 
 class SaveFileNameArg(FileNameArg):
@@ -1093,6 +1188,7 @@ class SaveFolderNameArg(FileNameArg):
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
 
+
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
 from .atomspec import AtomSpecArg  # noqa
@@ -1108,6 +1204,11 @@ class ModelsArg(AtomSpecArg):
         models = aspec.evaluate(session).models
         return models, text, rest
 
+    @classmethod
+    def unparse(cls, models, session):
+        from .run import concise_model_spec
+        return concise_model_spec(session, models)
+
 
 class TopModelsArg(AtomSpecArg):
     """Parse command models specifier"""
@@ -1119,6 +1220,11 @@ class TopModelsArg(AtomSpecArg):
         models = aspec.evaluate(session).models
         tmodels = _remove_child_models(models)
         return tmodels, text, rest
+
+    @classmethod
+    def unparse(cls, tmodels, session):
+        from .run import concise_model_spec
+        return concise_model_spec(session, tmodels)
 
 
 class ObjectsArg(AtomSpecArg):
@@ -1144,6 +1250,10 @@ class ModelArg(AtomSpecArg):
         if len(models) != 1:
             raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
         return tuple(models)[0], text, rest
+
+    @classmethod
+    def unparse(cls, model, session):
+        return model.atomspec
 
 
 class SurfacesArg(ModelsArg):
@@ -1345,6 +1455,10 @@ class CoordSysArg(ModelArg):
         m, text, rest = super().parse(text, session)
         return m.position, text, rest
 
+    @classmethod
+    def unparse(cls, value, session):
+        raise NotImplementedError("No longer know model for %s" % cls.__name__)
+
 
 class PlaceArg(Annotation):
     """
@@ -1413,13 +1527,39 @@ def as_parser(annotation):
     return make_converter(annotation)
 
 
+def quote_path_if_necessary(path):
+    """quote a string
+
+    So a :py:class:`FileNameArg` (or subclass) treats it like a singe value.
+    String escape sequences are not recognized in paths, so there no way to
+    quote a path so that both single and double quotes that would need
+    quoting.
+    """
+    if not path:
+        return '""'
+    has_single_quote = path[0] == "'" or _internal_single_quote.search(path) is not None
+    has_double_quote = path[0] == '"' or _internal_double_quote.search(path) is not None
+    if has_single_quote and has_double_quote:
+        raise ValueError("Unable to quote path: %r" % path)
+    if has_single_quote:
+        return '"%s"' % path
+    if has_double_quote:
+        return '"%s"' % path
+    has_whitespace = _internal_whitespace.search(path) is not None
+    if has_whitespace:
+        return '"%s"' % path
+    return path
+
+
 def quote_if_necessary(s, additional_special_map={}):
     """quote a string
 
-    So :py:func`next_token` treats it like a single value"""
+    So :py:class:`StringArg` treats it like a single value"""
+    if not s:
+        return '""'
     import unicodedata
-    has_single_quote = "'" in s
-    has_double_quote = '"' in s
+    has_single_quote = s[0] == "'" or _internal_single_quote.search(s) is not None
+    has_double_quote = s[0] == '"' or _internal_double_quote.search(s) is not None
     has_special = False
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
@@ -1444,12 +1584,14 @@ def quote_if_necessary(s, additional_special_map={}):
         elif ch == '"':
             if use_single_quote:
                 result.append('"')
-            else:
+            elif has_double_quote:
                 result.append('\\"')
+            else:
+                result.append('"')
         elif ch in special_map:
             has_special = True
             result.append(special_map[ch])
-        elif ord(ch) < 32:
+        elif i < 32:
             has_special = True
             result.append('\\x%02x' % i)
         elif ch.strip() == '':
@@ -1515,15 +1657,20 @@ def unescape_with_index_map(text):
             # Assumes that replacement is a single character
             index_map = index_map[:index] + index_map[index + 1:]
             start = index + 1
-        elif escaped == 'o':
+        elif escaped in '01234567':
+            # up to 3 octal digits
+            for count in range(2, 5):
+                if text[index + count] not in '01234567':
+                    break
             try:
-                char = chr(int(text[index + 2: index + 5], 8))
-                text = text[:index] + char + text[index + 5:]
-                index_map = index_map[:index] + index_map[index + 4:]
+                char = chr(int(text[index + 1: index + count], 8))
+                text = text[:index] + char + text[index + count:]
+                index_map = index_map[:index] + index_map[index + count - 1:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == 'x':
+            # 2 hex digits
             try:
                 char = chr(int(text[index + 2: index + 4], 16))
                 text = text[:index] + char + text[index + 4:]
@@ -1532,6 +1679,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'u':
+            # 4 hex digits
             try:
                 char = chr(int(text[index + 2: index + 6], 16))
                 text = text[:index] + char + text[index + 6:]
@@ -1540,6 +1688,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'U':
+            # 8 hex digits
             try:
                 char = chr(int(text[index + 2: index + 10], 16))
                 text = text[:index] + char + text[index + 10:]
@@ -1548,6 +1697,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'N':
+            # named unicode character
             if len(text) < index + 2 or text[index + 2] != '{':
                 start = index + 1
                 continue
@@ -1568,57 +1718,46 @@ def unescape_with_index_map(text):
     return text, index_map
 
 
-def next_token(text, *, no_raise=False):
+def next_token(text, convert=False):
     """
-    Extract next token from given text.
+    Extract next, optionally quoted, token from given text.
 
     :param text: text to parse without leading whitespace
+    :param convert: convert escape sequences to characters
     :returns: a 3-tuple of first argument in text, the actual text used,
               and the rest of the text.
 
-    Tokens may be quoted, in which case the text between
-    the quotes is returned.
+    If the token is quoted, then the text between the quotes is returned.
+    End quotes must be followed by whitespace or the end of the line.
+    If convert is True, then escape sequences in the token are converted
+    to the actual character.  The escape sequences are the same as Python's
+    as documented in :ref:`literals`.
     """
-    assert(text and not text[0].isspace())
-    # m = _whitespace.match(text)
-    # start = m.end()
-    # if start == len(text):
-    #     return '', text, ''
-    start = 0
-    if text[start] == '"':
-        m = _double_quote.match(text, start)
-        if m:
-            end = m.end()
-            if text[end - 1].isspace():
-                end -= 1
-            token = text[start + 1:end - 1]
-        else:
-            end = len(text)
-            token = text[start + 1:end]
-            if no_raise:
-                return '', '', text
+    assert text and not text[0].isspace()
+    if text[0] == '"':
+        m = _double_quote.match(text)
+        if not m:
             raise AnnotationError("incomplete quoted text")
-        token = unescape(token)
-    elif text[start] == "'":
-        m = _single_quote.match(text, start)
-        if m:
-            end = m.end()
-            if text[end - 1].isspace():
-                end -= 1
-            token = text[start + 1:end - 1]
-        else:
-            end = len(text)
-            token = text[start + 1:end]
-            if no_raise:
-                return '', '', text
-            raise AnnotationError("incomplete quoted text")
-        token = unescape(token)
-    elif text[start] == ';':
-        return ';', ';', text[start + 1:]
-    else:
-        m = _normal_token.match(text, start)
         end = m.end()
-        token = text[start:end]
+        if text[end - 1].isspace():
+            end -= 1
+        token = text[1:end - 1]
+    elif text[0] == "'":
+        m = _single_quote.match(text)
+        if not m:
+            raise AnnotationError("incomplete quoted text")
+        end = m.end()
+        if text[end - 1].isspace():
+            end -= 1
+        token = text[1:end - 1]
+    elif text[0] == ';':
+        return ';', ';', text[1:]
+    else:
+        m = _normal_token.match(text)
+        end = m.end()
+        token = text[0:end]
+    if convert:
+        token = unescape(token)
     return token, text[:end], text[end:]
 
 
@@ -1667,6 +1806,11 @@ class RestOfLine(Annotation):
         text, rest = _upto_semicolon(text[start:])
         return text, leading + text, rest
 
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, str)
+        return value
+
 
 class WholeRestOfLine(Annotation):
     """Return the whole rest of the line including semicolons"""
@@ -1675,6 +1819,11 @@ class WholeRestOfLine(Annotation):
     @staticmethod
     def parse(text, session):
         return text, text, ''
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, str)
+        return value
 
 
 Bool2Arg = TupleOf(BoolArg, 2)
@@ -2158,7 +2307,7 @@ def deregister(name, *, is_user_alias=False, registry=None):
         # remove association between cmd_desc and word
         word_info.cmd_desc = None
         _parent_info = word_info.parent
-        assert(len(word_info.subcommands) == 0)
+        assert len(word_info.subcommands) == 0
         del _parent_info.subcommands[word]
 
 
@@ -2490,7 +2639,7 @@ class Command:
         # check if next token matches a keyword
         if not text:
             return True
-        _, tmp, _ = next_token(text, no_raise=True)
+        _, tmp, _ = next_token(text)
         if not tmp:
             return True
         if tmp[0].isalpha():

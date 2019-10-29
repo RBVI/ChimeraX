@@ -81,11 +81,12 @@ class OpenDialogWithMessage(QFileDialog):
 # those situations where you do need to add widgets.
 class OpenDialog(QFileDialog):
     def __init__(self, parent = None, caption = 'Open File', starting_directory = None,
-            widget_alignment = Qt.AlignCenter):
+                 widget_alignment = Qt.AlignCenter, filter = ''):
         if starting_directory is None:
             import os
             starting_directory = os.getcwd()
-        QFileDialog.__init__(self, parent, caption = caption, directory = starting_directory)
+        QFileDialog.__init__(self, parent, caption = caption, directory = starting_directory,
+                             filter = filter)
         self.setFileMode(QFileDialog.AnyFile)
         self.setOption(QFileDialog.DontUseNativeDialog)
 
@@ -104,6 +105,14 @@ class OpenDialog(QFileDialog):
         path = paths[0]
         return path
 
+    def get_paths(self):
+        if not self.exec():
+            return None
+        paths = self.selectedFiles()
+        if not paths:
+            return None
+        return paths
+
 
 def export_file_filter(category=None, format_name=None, all=False):
     """Return file name filter suitable for Export File dialog for Qt"""
@@ -115,7 +124,7 @@ def export_file_filter(category=None, format_name=None, all=False):
             continue
         if category and fmt.category != category:
             continue
-        exts = '*' + ' *'.join(fmt.extensions)
+        exts = '*' + ' *'.join(sorted(fmt.extensions, key=str.casefold))
         result.append("%s files (%s)" % (fmt.name, exts))
     if all:
         result.append("All files (*)")
@@ -136,10 +145,12 @@ def open_file_filter(all=False, format_name=None):
     for fmt in io.formats(export=False):
         exts = combine.setdefault(fmt.category, [])
         exts.extend(fmt.extensions)
+    compression_suffixes = list(io.compression_suffixes())
+    compression_suffixes.sort(key=str.casefold)
     result = []
     for k in combine:
+        combine[k].sort(key=str.casefold)
         exts = '*' + ' *'.join(combine[k])
-        compression_suffixes = io.compression_suffixes()
         if compression_suffixes:
             for ext in combine[k]:
                 exts += ' ' + ' '.join('*%s%s' % (ext, c) for c in compression_suffixes)

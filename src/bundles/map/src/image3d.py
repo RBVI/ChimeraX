@@ -40,6 +40,7 @@ class Image3d(Model):
     self._color_tables = {}			# Maps axis to (ctable, ctable_range)
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
+    self._p_mode = self._auto_projection_mode() # Explicit mode, not "auto"
     self._multiaxis_planes = [None, None, None]	# For x, y, z axis projection
     self._planes_drawing = None			# For ortho and box mode display
     self._view_aligned_planes = None		# ViewAlignedPlanes instance for 3d projection mode
@@ -154,7 +155,7 @@ class Image3d(Model):
   @property
   def _showing_view_aligned(self):
     ro = self._rendering_options
-    return (ro.projection_mode == '3d'
+    return (self._p_mode == '3d'
             and not self._single_plane
             and not ro.any_orthoplanes_shown()
             and not ro.box_faces)
@@ -463,7 +464,7 @@ class Image3d(Model):
       if smin > 0 and aspect_cutoff*smin <= smid:
         pm = ('2d-x','2d-y','2d-z')[list(s).index(smin)]
       else:
-        pm = '2d-xyz'
+        pm = '3d'
     return pm
     
   # ---------------------------------------------------------------------------
@@ -631,7 +632,7 @@ class Image3d(Model):
     from chimerax.core.geometry import cross_product, inner_product
     box_face_normals = [cross_product(by,bz), cross_product(bz,bx), cross_product(bx,by)]
     
-    pmode = ro.projection_mode
+    pmode = self._p_mode
     if pmode == '2d-xyz' or pmode == '3d':
       view_areas = [inner_product(v,bfn) for bfn in box_face_normals]
       from numpy import argmax, abs
@@ -1135,6 +1136,8 @@ class BlendedImage(Image3d):
 
     self.images = images
 
+    self.position = images[0].scene_position	# Make sure it has same position as each image.
+
     ro = self._rendering_options
     ro.colormap_on_gpu = False
 
@@ -1149,8 +1152,14 @@ class BlendedImage(Image3d):
     Image3d.set_options(self, ro)
 
   def draw(self, renderer, draw_pass):
+    self._update_position()
     Image3d.draw(self, renderer, draw_pass)
 
+  def _update_position(self):
+    p = self.images[0].scene_position
+    if p != self.position:
+      self.position = p	      # Make sure it has same position as each image.
+    
   @property
   def master_image(self):
     return self.images[0]

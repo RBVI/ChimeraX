@@ -43,15 +43,14 @@ delete</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>label listfonts</b>
 </h3>
-<h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><a href="#orient"><b>label orient</b></a> [&nbsp;<i>update-angle</i>&nbsp;]
-</h3>
 <p>
 The <b>label</b> command shows labels that move along with the associated
 <b>atoms</b>, <b>residues</b>, <b>bonds</b>, or <b>pseudobonds</b> in 3D,
 with <a href="#text">default contents</a>: atom name, residue name and number,
 and bond or <a href="../pseudobonds.html">pseudobond</a> length.
-See also: <a href="distance.html"><b>distance</b></a>,
+See also: 
+<a href="#settings">label settings</a>,
+<a href="distance.html"><b>distance</b></a>,
 <a href="2dlabels.html"><b>2dlabels</b></a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
@@ -127,7 +126,7 @@ Carriage returns are indicated with <b>\n</b>.
 <br>
 Set label color (default <b>white</b> or <b>black</b>
 depending on the color of the <a href="#bgColor">label background</a>, 
-if any, otherwise the <a href="set.html#bgColor">window background </a>). 
+if any, otherwise the <a href="set.html#bgColor">window background</a>). 
 </blockquote>
 
 <a name="bgColor"></a>
@@ -143,8 +142,10 @@ behind the label text (default <b>none</b>, no background).
 <a name="height"></a>
 <b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;|&nbsp;<b>fixed</b>
 <br>
-Set label height in the distance units of the data, typically &Aring;
-(default <b>0.7</b>) or keep label size <b>fixed</b> relative to the screen.
+Set label height in &Aring; (default <i>h</i> specified in the
+<a href="../preferences.html#labels"><b>Labels</b> preferences</a>
+or with <a href="#defaultHeight"><b>label defaultHeight</b></a>)
+or keep label size <b>fixed</b> relative to the screen.
 The related <a href="#size"><b>size</b></a> option sets label quality,
 or if <b>height</b> is <b>fixed</b>, the label pixel size.
 See also: <a href="#orient"><b>label orient</b></a>
@@ -192,12 +193,25 @@ unless <i>all</i> of the labels displayed for that model have a
 <a href="#bgColor">background</a>.
 </blockquote>
 
-<a name="orient"></a>
+<a name="settings"></a>
 <p class="nav">
 [<a href="#top">back to top: label</a>]
 </p>
-<h3>Label Reorientation</h3>
+<h3>Label Settings</h3>
+
 <blockquote>
+<a name="defaultHeight"></a>
+<a href="usageconventions.html">Usage</a>:
+<b>label defaultHeight</b> &nbsp;<i>h</i>
+</blockquote>
+<p>
+The command <b>label defaultHeight</b>
+sets the <a href="../preferences.html#labels"><b>Labels</b> preference</a>
+for 3D label <a href="#height">height</a> in distance units.
+</p>
+
+<blockquote>
+<a name="orient"></a>
 <a href="usageconventions.html">Usage</a>:
 <b>label orient</b> [&nbsp;<i>update-angle</i>&nbsp;]
 </blockquote>
@@ -210,7 +224,6 @@ however, it is automatically set to 45&deg; to reduce the frequency of
 label updates that could slow rendering. 
 If <i>update-angle</i> is omitted, the current value is
 reported in the <a href="../tools/log.html"><b>Log</b></a>.
-</p><p>
 This setting only applies to labels with <a href="#height">heights</a>
 set in distance units;
 those with <a href="#height">fixed heights</a> always face the viewer.
@@ -218,5 +231,5 @@ those with <a href="#height">fixed heights</a> always face the viewer.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2019</address>
+October 2019</address>
 </body></html> 

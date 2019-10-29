@@ -194,7 +194,7 @@ class Task(State):
             import sys
             preface = "Exception in thread"
             if self.id:
-                preface += ' ' + self.id
+                preface += ' ' + str(self.id)
             self.session.logger.report_exception(preface=preface,
                                                  exc_info=sys.exc_info())
         finally:

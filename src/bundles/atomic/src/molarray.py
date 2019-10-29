@@ -520,6 +520,8 @@ class Atoms(Collection):
         doc=":class:`Atoms` object where each atom is bonded to an atom is in this collection. If any of "
         "the atoms in this collection are bonded to each other, then there will be duplicate atoms "
         "in the result, so call .unique() on that if duplicates are problematic.")
+    num_alt_locs = cvec_property('atom_num_alt_locs', size_t, read_only = True)
+    '''Number of alt locs in each atom.  Zero for atoms without alt locs.  Read only.'''
     num_bonds = cvec_property('atom_num_bonds', size_t, read_only = True)
     '''Number of bonds in each atom. Read only.'''
     occupancies = cvec_property('atom_occupancy', float32)

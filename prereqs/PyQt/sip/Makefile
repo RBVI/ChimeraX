@@ -13,7 +13,7 @@ endif
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) && $(PYTHON_EXE) configure.py && $(MAKE) && $(MAKE) install
+	cd $(SOURCE) && $(PYTHON_EXE) configure.py --sip-module PyQt5.sip && $(MAKE) && $(MAKE) install
 
 app-install:
 	$(RSYNC) $(PYSITEDIR)/sip.$(PYMOD_EXT) $(APP_PYSITEDIR)

@@ -42,6 +42,11 @@ class _MarkersAPI(BundleAPI):
         return cmmfiles.write_cmm(session, path, models)
 
     @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_marker_command(logger)
+
+    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'MarkerSet':

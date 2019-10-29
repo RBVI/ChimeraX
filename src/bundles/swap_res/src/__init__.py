@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .swap_res import swap_aa, get_rotamers
+
 from chimerax.core.toolshed import BundleAPI
 
 class SwapResAPI(BundleAPI):
@@ -19,5 +21,10 @@ class SwapResAPI(BundleAPI):
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import prep_rotamers_dialog
+        return prep_rotamers_dialog(session, tool_name)
 
 bundle_api = SwapResAPI()

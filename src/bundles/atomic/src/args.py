@@ -34,7 +34,10 @@ class ResiduesArg(AtomSpecArg):
     @classmethod
     def parse(cls, text, session):
         aspec, text, rest = super().parse(text, session)
-        residues = aspec.evaluate(session).atoms.residues.unique()
+        evaled = aspec.evaluate(session)
+        from .molarray import concatenate, Atoms
+        atoms = concatenate((evaled.atoms,) + evaled.bonds.atoms, Atoms)
+        residues = atoms.residues.unique()
         residues.spec = str(aspec)
         return residues, text, rest
 

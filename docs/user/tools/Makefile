@@ -35,12 +35,15 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/tug/src/tug.png \
 		$(TOP)/src/bundles/zone/src/zone.png \
 		$(TOP)/src/bundles/pick_blobs/src/pickblobs.png \
-		$(TOP)/src/bundles/map_eraser/src/eraser.png
+		$(TOP)/src/bundles/map_eraser/src/eraser.png \
+		$(TOP)/src/bundles/tape_measure/src/tape.png
 MICONDIR = $(DOCDIR)/mouse-icons
 SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons
 TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png
 TICONDIR = $(DOCDIR)/toolbar-icons
+NUCICONS = $(TOP)/src/bundles/nucleotides/src/icons/*.png
+NICONDIR = $(DOCDIR)/nuc-icons
 BASICICONS = $(TOP)/src/bundles/basic_actions/src/lib/*.svg
 BICONDIR = $(DOCDIR)/basic-icons
 UIICONS = $(TOP)/src/bundles/ui/src/icons/*.png
@@ -55,6 +58,8 @@ install:
 	$(RSYNC) $(SHORTCUTICONS) $(SICONDIR)
 	if [ ! -d "$(TICONDIR)" ]; then mkdir -p $(TICONDIR); fi
 	$(RSYNC) $(TOOLBARICONS) $(TICONDIR)
+	if [ ! -d "$(NICONDIR)" ]; then mkdir -p $(NICONDIR); fi
+	$(RSYNC) $(NUCICONS) $(NICONDIR)
 	if [ ! -d "$(BICONDIR)" ]; then mkdir -p $(BICONDIR); fi
 	$(RSYNC) $(BASICICONS) $(BICONDIR)
 	if [ ! -d "$(UICONDIR)" ]; then mkdir -p $(UICONDIR); fi

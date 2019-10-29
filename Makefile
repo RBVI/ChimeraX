@@ -34,6 +34,10 @@ endif
 	$(MAKE) build-app-dirs
 	$(MAKE) -C src install
 	$(MAKE) -C docs install
+ifndef WIN32
+	# Admin privileges are needed on Windows 10
+	$(MAKE) -C vdocs install
+endif
 	$(APP_PYTHON_EXE) clean_app.py
 	@echo 'Finished install at' `date`
 
@@ -77,6 +81,7 @@ ifeq ($(OS),Darwin)
 endif
 
 distclean: clean
+	-$(MAKE) -C vdocs clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
 	$(MAKE) -C prereqs/PyQt distclean
 	$(MAKE) -C docs clean

@@ -317,8 +317,8 @@ def register_image_save_options_gui(save_dialog):
             ss = self.SUPERSAMPLE_OPTIONS[self._supersample.currentIndex()][1]
 
             # Run image save command
-            from chimerax.core.commands import run, quote_if_necessary
-            cmd = "save image %s width %g height %g" % (quote_if_necessary(filename), w, h)
+            from chimerax.core.commands import run, quote_path_if_necessary
+            cmd = "save image %s width %g height %g" % (quote_path_if_necessary(filename), w, h)
             if ss is not None:
                 cmd += " supersample %g" % ss
             run(session, cmd)

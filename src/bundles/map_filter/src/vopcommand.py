@@ -65,6 +65,7 @@ def register_volume_filtering_subcommands(logger):
         ('bounding_grid', BoolArg),
         ('grid_subregion', MapRegionArg),
         ('grid_step', MapStepArg),
+        ('spacing', Float1or3Arg),
         ('value_type', ValueTypeArg),
     ] + ssm_kw
     add_kw = resample_kw + [
@@ -129,6 +130,7 @@ def register_volume_filtering_subcommands(logger):
 
     gaussian_desc = CmdDesc(required = varg,
                             keyword = [('s_dev', Float1or3Arg),
+                                       ('bfactor', FloatArg),
                                        ('value_type', ValueTypeArg),
                                        ('invert', BoolArg)] + ssm_kw,
                             synopsis = 'Convolve map with a Gaussian for smoothing'
@@ -210,7 +212,6 @@ def register_volume_filtering_subcommands(logger):
     register('volume permuteAxes', permuteaxes_desc, volume_permute_axes, logger=logger)
 
     resample_desc = CmdDesc(required = varg, keyword = resample_kw,
-                            required_arguments = ['on_grid'],
                             synopsis = 'Resample a map on the grid of another map')
     register('volume resample', resample_desc, volume_resample, logger=logger)
 
@@ -298,48 +299,52 @@ def register_volume_filtering_subcommands(logger):
 # -----------------------------------------------------------------------------
 #
 def volume_add(session, volumes, on_grid = None, bounding_grid = None,
-            subregion = 'all', step = 1,
-            grid_subregion = 'all', grid_step = 1, value_type = None,
-            in_place = False, scale_factors = None, model_id = None):
+               subregion = 'all', step = 1,
+               grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
+               in_place = False, scale_factors = None, model_id = None):
     '''Add maps.'''
     combine_op(volumes, 'add', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
+               grid_subregion, grid_step, spacing, value_type,
+               in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def volume_maximum(session, volumes, on_grid = None, bounding_grid = None,
                 subregion = 'all', step = 1,
-                grid_subregion = 'all', grid_step = 1, value_type = None,
+                grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                 in_place = False, scale_factors = None, model_id = None):
     '''Pointwise maximum of maps.'''
     combine_op(volumes, 'maximum', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
+               grid_subregion, grid_step, spacing, value_type,
+               in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def volume_minimum(session, volumes, on_grid = None, bounding_grid = None,
                 subregion = 'all', step = 1,
-                grid_subregion = 'all', grid_step = 1, value_type = None,
+                grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                 in_place = False, scale_factors = None, model_id = None):
     '''Pointwise minimum of maps.'''
     combine_op(volumes, 'minimum', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
+               grid_subregion, grid_step, spacing, value_type,
+               in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def volume_multiply(session, volumes, on_grid = None, bounding_grid = None,
                  subregion = 'all', step = 1,
-                 grid_subregion = 'all', grid_step = 1, value_type = None,
+                 grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                  in_place = False, scale_factors = None, model_id = None):
     '''Pointwise multiply maps.'''
     combine_op(volumes, 'multiply', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, value_type, in_place, scale_factors, model_id, session)
+               grid_subregion, grid_step, spacing, value_type,
+               in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
                subregion = 'all', step = 1,
-               grid_subregion = 'all', grid_step = 1, value_type = None,
+               grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                in_place = False, scale_factors = None, model_id = None, session = None):
 
     if bounding_grid is None and not in_place:
@@ -347,8 +352,8 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
     if on_grid is None:
         on_grid = volumes[:1]
     if in_place:
-        if bounding_grid or grid_step != 1 or grid_subregion != 'all':
-            raise CommandError("Can't use in_place option with bounding_grid or grid_step or grid_subregion options")
+        if bounding_grid or grid_step != 1 or grid_subregion != 'all' or spacing is not None:
+            raise CommandError("Can't use in_place option with bounding_grid or grid_step or grid_subregion or spacing options")
         for gv in on_grid:
             if not gv.data.writable:
                 raise CommandError("Can't modify volume in place: %s" % gv.name)
@@ -358,13 +363,13 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
         raise CommandError('Number of scale factors does not match number of volumes')
     for gv in on_grid:
         combine_operation(volumes, operation, subregion, step,
-                          gv, grid_subregion, grid_step, value_type,
+                          gv, grid_subregion, grid_step, spacing, value_type,
                           bounding_grid, in_place, scale_factors, model_id, session)
 
 # -----------------------------------------------------------------------------
 #
 def combine_operation(volumes, operation, subregion, step,
-                      gv, grid_subregion, grid_step, value_type,
+                      gv, grid_subregion, grid_step, spacing, value_type,
                       bounding_grid, in_place, scale, model_id, session):
 
     if scale is None:
@@ -391,7 +396,7 @@ def combine_operation(volumes, operation, subregion, step,
         v0 = volumes[0] if volumes else None
         if value_type is None:
             value_type = v0.data.value_type if volumes else gv.data.value_type
-        rg = gv.region_grid(r, value_type)
+        rg = gv.region_grid(r, value_type = value_type, new_spacing = spacing)
         if len(volumes) == 1:
             rg.name = v0.name + ' resampled'
         elif operation == 'subtract':
@@ -555,10 +560,17 @@ def volume_fourier(session, volumes, subregion = 'all', step = 1, model_id = Non
 
 # -----------------------------------------------------------------------------
 #
-def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0),
+def volume_gaussian(session, volumes, s_dev = (1.0,1.0,1.0), bfactor = None,
                  subregion = 'all', step = 1, value_type = None, invert = False,
                  model_id = None):
     '''Smooth maps by Gaussian convolution.'''
+    if bfactor is not None:
+        if bfactor < 0:
+            invert = True
+        from math import pi, sqrt
+        sd = sqrt(abs(bfactor)/(8*pi**2))
+        s_dev = (sd,sd,sd)
+        
     from .gaussian import gaussian_convolve
     for v in volumes:
         gaussian_convolve(v, s_dev, step, subregion, value_type, invert, model_id, session = session)
@@ -746,14 +758,18 @@ def volume_permute_axes(session, volumes, axis_order = 'xyz',
 # -----------------------------------------------------------------------------
 #
 def volume_resample(session, volumes, on_grid = None, bounding_grid = False,
-                 subregion = 'all', step = 1,
-                 grid_subregion = 'all', grid_step = 1, value_type = None,
-                 model_id = None):
+                    subregion = 'all', step = 1,
+                    grid_subregion = 'all', grid_step = 1, spacing = None,
+                    value_type = None, model_id = None):
     '''Interoplate a map on a new grid.'''
+    if on_grid is None and spacing is None:
+            raise CommandError('volume resample must specify onGrid option or spacing option')
     for v in volumes:
+        if on_grid is None:
+            on_grid = [v]
         for gv in on_grid:
             combine_operation([v], 'add', subregion, step,
-                              gv, grid_subregion, grid_step, value_type,
+                              gv, grid_subregion, grid_step, spacing, value_type,
                               bounding_grid, False, None, model_id, session)
 
 # -----------------------------------------------------------------------------
@@ -780,10 +796,10 @@ def volume_scale(session, volumes, shift = 0, factor = 1, sd = None, rms = None,
 # -----------------------------------------------------------------------------
 #
 def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
-                 subregion = 'all', step = 1,
-                 grid_subregion = 'all', grid_step = 1, value_type = None,
-                 in_place = False, scale_factors = None, min_rms = False,
-                 model_id = None):
+                    subregion = 'all', step = 1,
+                    grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
+                    in_place = False, scale_factors = None, min_rms = False,
+                    model_id = None):
     '''Subtract two maps.'''
     if len(volumes) != 2:
         raise CommandError('volume subtract operation requires exactly two volumes')
@@ -792,7 +808,8 @@ def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
     mult = (1,'minrms') if min_rms else scale_factors
 
     combine_op(volumes, 'subtract', on_grid, bounding_grid, subregion, step,
-               grid_subregion, grid_step, value_type, in_place, mult, model_id, session)
+               grid_subregion, grid_step, spacing, value_type,
+               in_place, mult, model_id, session)
 
 # -----------------------------------------------------------------------------
 #

@@ -804,7 +804,7 @@ def toggle_shadows(session):
 
 def toggle_silhouettes(session):
     v = session.main_view
-    run(session, 'set silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
+    run(session, 'graphics silhouettes %s' % ('false' if v.silhouette.enabled else 'true'))
 
 def depth_cue(viewer):
     viewer.depth_cue = not viewer.depth_cue
@@ -1096,7 +1096,7 @@ def unused_file_name(directory, basename, suffix):
         if f.startswith(basename) and f.endswith(suffix):
             try:
                 nums.append(int(f[len(basename):len(f)-len(suffix)]))
-            except:
+            except Exception:
                 pass
     n = max(nums, default = 0) + 1
     filename = '%s%d%s' % (basename, n, suffix)
@@ -1139,3 +1139,14 @@ def register_shortcut_command(logger):
     desc = CmdDesc(optional = [('shortcut', StringArg)],
                    synopsis = 'Run keyboard a shortcut')
     register('ks', desc, ks, logger=logger)
+
+def run_provider(session, name):
+    # run shortcut chosen via bundle provider interface
+    from chimerax.core.errors import NotABug
+    try:
+        keyboard_shortcuts(session).try_shortcut(name)
+    except NotABug as err:
+        from html import escape
+        from chimerax.core.logger import error_text_format
+        session.logger.info(error_text_format % escape(str(err)), is_html=True)
+

@@ -153,7 +153,7 @@ ChimeraX_audit_conform = mmcif.CIFTable(
 )
 
 ChimeraX_audit_syntax = mmcif.CIFTable(
-    "chimerax_audit_syntax",
+    "audit_syntax",
     (
         "case_sensitive_flag",
         "fixed_width"
@@ -520,8 +520,8 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
     atom_site_anisotrop_data = []
     atom_site_anisotrop = mmcif.CIFTable("atom_site_anisotrop", [
         'id', 'type_symbol',
-        'U[1][1]', 'U[1][2]', 'U[1][3]',
-        'U[2][2]', 'U[2][3]', 'U[3][3]',
+        'U[1][1]', 'U[2][2]', 'U[3][3]',
+        'U[1][2]', 'U[1][3]', 'U[2][3]',
     ], atom_site_anisotrop_data)
     serial_num = 0
 

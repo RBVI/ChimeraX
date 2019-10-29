@@ -50,7 +50,11 @@ app-install:;
 	$(RSYNC) $(shlibdir)/libOSMesa.*$(SHLIB_EXT)* $(app_shlibdir)
 
 $(SOURCE) source:
+ifeq ($(OS),Linux)
+	tar xf $(DISTRIBUTION) -C $(tmpdir)
+else
 	$(bindir)/7za e -so $(DISTRIBUTION) | tar xf - -C $(tmpdir)
+endif
 ifneq (,$(PATCHES))
 	for p in $(PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \

@@ -18,19 +18,19 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  bundle_builder buttons cage_builder \
 	  cellpack chem_group clashes cmd_line \
 	  color_globe connect_structure crosslinks crystal \
-	  dicom dist_monitor dist_ui dssp exp_cmd file_history \
+	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
 	  gltf hbonds help_viewer ihm interfaces items_inspection label \
-	  list_info log \ map map_data map_eraser map_filter map_fit \
-	  map_series markers mask match_maker md_crds meeting mlp \
-	  model_series mmcif mmtf model_panel modeller mol2 morph \
-	  mouse_modes movie nucleotides pdb pick_blobs preset_mgr \
-	  read_pbonds registration remote_control rest_server \
+	  list_info log map map_data map_eraser map_filter map_fit map_series \
+	  markers mask match_maker md_crds meeting mlp model_series \
+	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
+	  nucleotides pdb pick_blobs preset_mgr read_pbonds \
+	  registration remote_control rest_server \
 	  residue_fit rotamer_lib_mgr rotamer_libs scheme_mgr \
 	  segger segment seq_view sim_matrices \
 	  shell shortcuts show_attr sideview \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
-	  test texture toolbar tug ui uniprot \
+	  tape_measure test texture toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
 
 include $(TOP)/mk/subdir.make
