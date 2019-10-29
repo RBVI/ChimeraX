@@ -294,23 +294,9 @@ class ItemTable(QTableView):
             self.resizeColumnsToContents()
         return c
 
-    def update_column(self, column, **kw):
-        display_change = 'display' in kw and column.display != kw['display']
-        changes = column._update(**kw)
-        if not self._table_model:
-            return
-        if display_change:
-            if column.display:
-                self.showColumn(self._columns.index(column))
-            else:
-                self.hideColumn(self._columns.index(column))
-        if not changes:
-            return
-        top_left = self._table_model.index(0, self._columns.index(column))
-        bottom_right = self._table_model.index(len(self._data)-1, self._columns.index(column))
-        self._table_model.dataChanged.emit(top_left, bottom_right, changes)
-        if self._column_control_info and 'display' in kw:
-            self._checkables[column.title].setChecked(kw['display'])
+    @property
+    def column_names(self):
+        return [c.title for c in self._columns]
 
     @property
     def data(self):
@@ -416,6 +402,24 @@ class ItemTable(QTableView):
         else:
             sort_info = None
         return (version, selected, highlighted, sort_info)
+
+    def update_column(self, column, **kw):
+        display_change = 'display' in kw and column.display != kw['display']
+        changes = column._update(**kw)
+        if not self._table_model:
+            return
+        if display_change:
+            if column.display:
+                self.showColumn(self._columns.index(column))
+            else:
+                self.hideColumn(self._columns.index(column))
+        if not changes:
+            return
+        top_left = self._table_model.index(0, self._columns.index(column))
+        bottom_right = self._table_model.index(len(self._data)-1, self._columns.index(column))
+        self._table_model.dataChanged.emit(top_left, bottom_right, changes)
+        if self._column_control_info and 'display' in kw:
+            self._checkables[column.title].setChecked(kw['display'])
 
     def _add_column_control_entry(self, col):
         action = QAction(col.title)
