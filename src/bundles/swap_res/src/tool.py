@@ -219,12 +219,8 @@ class RotamerDialog(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QAction, QGroupBox, QWidget
-        #self.add_menu = add_menu = QMenu("Add/Update")
-        #for add_type in ["H-Bonds"]:
-        #    action = QAction(add_type + "...", parent)
-        #    action.triggered.connect(lambda arg, dtype=add_type: self._show_subdialog(dtype))
-        #    add_menu.addAction(action)
+        from PyQt5.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
+            QPushButton
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -252,6 +248,7 @@ class RotamerDialog(ToolInstance):
             layout.addWidget(self.retain_side_chain)
         else:
             self.retain_side_chain = None
+
         column_group = QGroupBox("Column display")
         layout.addWidget(column_group)
         cg_layout = QVBoxLayout()
@@ -260,6 +257,17 @@ class RotamerDialog(ToolInstance):
         column_group.setLayout(cg_layout)
         cg_layout.addWidget(column_disp_widget)
 
+        add_col_layout = QHBoxLayout()
+        add_col_layout.setContentsMargins(0,0,0,0)
+        add_col_layout.setSpacing(0)
+        cg_layout.addLayout(add_col_layout)
+        self.add_col_text = QLabel("Add")
+        add_col_layout.addWidget(self.add_col_text, alignment=Qt.AlignRight)
+        for add_type in ["H-Bonds"]:
+            pb = QPushButton(add_type)
+            pb.clicked.connect(lambda *, dtype=add_type: self._show_subdialog(dtype))
+            add_col_layout.addWidget(pb)
+        add_col_layout.addWidget(QLabel("column"), alignment=Qt.AlignLeft)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
@@ -331,6 +339,7 @@ class RotamerDialog(ToolInstance):
                 self.table.update_column(self.opt_columns[sd_type], data=True)
             else:
                 self.opt_columns[sd_type] = self.table.add_column(sd_type, "num_hbonds", format="%d")
+        self.add_col_text.setText("Add/update")
 
     def _show_subdialog(self, sd_type):
         if sd_type not in self.subdialogs:
