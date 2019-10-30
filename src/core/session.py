@@ -190,25 +190,25 @@ class _UniqueName:
         return cls
 
 
-def _obj_chain(parents, obj):
-    # string representation of chain of objects
-    # first element of chain is string with name of state manager
-    chain = []
+def _obj_stack(parents, obj):
+    # string representation of "stack" of objects
+    # first (bottom) element of stack is string with name of state manager
+    stack = []
     for o in parents + (obj,):
         name = None
-        if hasattr(o, 'name'):
-            try:
+        try:
+            if hasattr(o, 'name'):
                 if callable(o.name):
                     name = o.name()
                 else:
                     name = o.name
-            except Exception:
-                pass
+        except Exception:
+            pass
         if name is None:
-            chain.append(repr(o))
+            stack.append(repr(o))
         else:
-            chain.append(repr(o) + " %r" % o.name)
-    return " -> ".join(chain)
+            stack.append(repr(o) + " %r" % o.name)
+    return " -> ".join(stack)
 
 
 class _SaveManager:
@@ -254,7 +254,7 @@ class _SaveManager:
                 try:
                     self.processed[key] = self.process(obj, parents)
                 except ValueError as e:
-                    raise ValueError("error processing: %s: %s" % (_obj_chain(parents, obj), e))
+                    raise ValueError("error processing: %s: %s" % (_obj_stack(parents, obj), e))
                 self.graph[key] = self._found_objs
 
     def _add_obj(self, obj, parents=()):
@@ -275,13 +275,13 @@ class _SaveManager:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
             except Exception as e:
-                msg = 'Error while saving session data for %s: %s' % (_obj_chain(parents, obj), e)
+                msg = 'Error while saving session data for %s: %s' % (_obj_stack(parents, obj), e)
                 raise RuntimeError(msg)
         elif isinstance(obj, type):
             return None
         if data is None:
             session.logger.warning('Unable to save %s".  Session might not restore properly.'
-                                   % _obj_chain(parents, obj))
+                                   % _obj_stack(parents, obj))
 
         def convert(obj, parents=parents + (obj,), add_obj=self._add_obj):
             return add_obj(obj, parents)
@@ -830,8 +830,16 @@ def sdump(session, session_file, output=None):
         stream = _builtin_open(session_file, 'rb')
     if output is not None:
         # output = open_filename(output, 'w')
-        output = _builtin_open(output, 'w')
-    from pprint import pprint
+        if not output.endswith('.txt'):
+            output += '.txt'
+        output = _builtin_open(output, 'wt', encoding='utf-8')
+
+    def pprint(*args, **kw):
+        try:
+            from prettyprinter import pprint
+        except ImportError:
+            from pprint import pprint
+        pprint(*args, **kw, width=100)
     with stream:
         if hasattr(stream, 'peek'):
             use_pickle = stream.peek(1)[0] != ord(b'#')
@@ -860,6 +868,7 @@ def sdump(session, session_file, output=None):
             if name is None:
                 break
             data = fdeserialize(stream)
+            data = dereference_state(data, lambda x: x, _UniqueName)
             print('==== name/uid:', name, file=output)
             pprint(data, stream=output)
 

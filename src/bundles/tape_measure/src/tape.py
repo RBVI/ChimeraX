@@ -47,6 +47,7 @@ class TapeMeasureMouseMode(MouseMode):
     def _clear(self):
         mset = self._marker_set
         if mset:
+            self._log_clear_command()
             self._marker_set = None
             self.session.models.close([mset])
             
@@ -110,6 +111,12 @@ class TapeMeasureMouseMode(MouseMode):
         cname = color_name(self._color)
         cmd = ('marker segment %s %s to %s color %s radius %.4g label %s labelHeight %.4g labelColor %s'
                % (mset.atomspec, p1, p2, cname, self._radius, label, h, cname))
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(mset.session, cmd)
+
+    def _log_clear_command(self):
+        mset = self._marker_set
+        cmd = 'marker delete %s' % mset.atomspec
         from chimerax.core.commands import log_equivalent_command
         log_equivalent_command(mset.session, cmd)
 
