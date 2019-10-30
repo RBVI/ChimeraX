@@ -220,7 +220,7 @@ class RotamerDialog(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
         from PyQt5.QtWidgets import QVBoxLayout, QLabel, QCheckBox, QGroupBox, QWidget, QHBoxLayout, \
-            QPushButton
+            QPushButton, QRadioButton, QButtonGroup, QGridLayout
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -257,17 +257,30 @@ class RotamerDialog(ToolInstance):
         column_group.setLayout(cg_layout)
         cg_layout.addWidget(column_disp_widget)
 
-        add_col_layout = QHBoxLayout()
+        add_col_layout = QGridLayout()
         add_col_layout.setContentsMargins(0,0,0,0)
         add_col_layout.setSpacing(0)
         cg_layout.addLayout(add_col_layout)
-        self.add_col_text = QLabel("Add")
-        add_col_layout.addWidget(self.add_col_text, alignment=Qt.AlignRight)
-        for add_type in ["H-Bonds"]:
-            pb = QPushButton(add_type)
-            pb.clicked.connect(lambda *, dtype=add_type: self._show_subdialog(dtype))
-            add_col_layout.addWidget(pb)
-        add_col_layout.addWidget(QLabel("column"), alignment=Qt.AlignLeft)
+        self.add_col_button = QPushButton("Add")
+        add_col_layout.addWidget(self.add_col_button, 0, 0, alignment=Qt.AlignRight)
+        radio_layout = QVBoxLayout()
+        radio_layout.setContentsMargins(0,0,0,0)
+        add_col_layout.addLayout(radio_layout, 0, 1, alignment=Qt.AlignLeft)
+        self.button_group = QButtonGroup()
+        self.add_col_button.clicked.connect(lambda *, bg=self.button_group:
+            self._show_subdialog(bg.checkedButton().text()))
+        for add_type in ["H-Bonds", "Clashes (coming soon)", "Density (coming soon)"]:
+            rb = QRadioButton(add_type)
+            rb.clicked.connect(self._update_button_text)
+            radio_layout.addWidget(rb)
+            if not self.button_group.buttons():
+                rb.setChecked(True)
+            #if add_type[-1] == ')':
+            #    rb.setEnabled(False)
+            self.button_group.addButton(rb)
+        self.ignore_solvent_button = QCheckBox("Ignore solvent")
+        self.ignore_solvent_button.setChecked(True)
+        add_col_layout.addWidget(self.ignore_solvent_button, 1, 0, 1, 2, alignment=Qt.AlignCenter)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
@@ -326,6 +339,8 @@ class RotamerDialog(ToolInstance):
             cmd_name, spec, args = sd.hbonds_gui.get_command()
             res = self.mgr.base_residue
             base_spec = "#!%s & ~%s" % (res.structure.id_string, res.string(style="command"))
+            if self.ignore_solvent_button.isChecked():
+                base_spec += " & ~solvent"
             hbs = run(self.session, "%s %s %s restrict #%s & ~@c,ca,n" %
                     (cmd_name, base_spec, args, self.mgr.group.id_string))
             for rotamer in self.mgr.rotamers:
@@ -339,7 +354,7 @@ class RotamerDialog(ToolInstance):
                 self.table.update_column(self.opt_columns[sd_type], data=True)
             else:
                 self.opt_columns[sd_type] = self.table.add_column(sd_type, "num_hbonds", format="%d")
-        self.add_col_text.setText("Add/update")
+        self._update_button_text()
 
     def _show_subdialog(self, sd_type):
         if sd_type not in self.subdialogs:
@@ -349,7 +364,7 @@ class RotamerDialog(ToolInstance):
             sd.ui_area.setLayout(layout)
             if sd_type == "H-Bonds":
                 from chimerax.atomic.hbonds.gui import HBondsGUI
-                sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers",
+                sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
                     show_inter_intra_model=False, show_intra_mol=False, show_intra_res=False,
                     show_model_restrict=False, show_bond_restrict=False, show_save_file=False)
                 layout.addWidget(sd.hbonds_gui)
@@ -362,3 +377,15 @@ class RotamerDialog(ToolInstance):
         else:
             self.subdialogs[sd_type].title = "Update %s Column" % sd_type
         self.subdialogs[sd_type].shown = True
+
+    def _update_button_text(self):
+        cur_choice = self.button_group.checkedButton().text()
+        if cur_choice in self.table.column_names:
+            txt = "Update"
+        else:
+            txt = "Add"
+        self.add_col_button.setText(txt)
+        if cur_choice.startswith("Density"):
+            self.ignore_solvent_button.hide()
+        else:
+            self.ignore_solvent_button.show()
