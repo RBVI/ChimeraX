@@ -1816,7 +1816,7 @@ class Histogram_Pane:
       ro = v.rendering_options
       add = self.add_menu_entry
       add(menu, 'Show Outline Box', self.show_outline_box, checked = ro.show_outline_box)
-      add(menu, 'Show Full Region', lambda checked, e=event, self=self: self.show_full_region())
+      add(menu, 'Show Full Region', lambda checked, e=event, self=self: self.show_full_region(log=True))
       add(menu, 'New Threshold', lambda checked, e=event, self=self: self.add_threshold(e.x(), e.y()))
       add(menu, 'Delete Threshold', lambda checked, e=event, self=self: self.delete_threshold(e.x(), e.y()))
 
@@ -1845,8 +1845,17 @@ class Histogram_Pane:
   def show_outline_box(self, show):
       v = self.volume
       if v:
-          v.rendering_options.show_outline_box = show
-          v.show()
+          if show != v.rendering_options.show_outline_box:
+              v.rendering_options.show_outline_box = show
+              v.show()
+              self._log_outline_box(v, show)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def _log_outline_box(self, v, show):
+      cmd = 'volume %s showOutlineBox %s' % (v.atomspec, show)
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
       
   # ---------------------------------------------------------------------------
   # Show slider below histogram to control which plane of data is shown.
@@ -1897,7 +1906,7 @@ class Histogram_Pane:
 
   # ---------------------------------------------------------------------------
   #
-  def show_full_region(self, volume = None, show_volume = True):
+  def show_full_region(self, volume = None, show_volume = True, log = False):
 
       # Show all planes
       v = self.volume if volume is None else volume
@@ -1908,6 +1917,22 @@ class Histogram_Pane:
       if volume is None:
           for vc in v.other_channels():
               vc.new_region(ijk_min, ijk_max)
+      self._log_full_region(v)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_full_region(self, v):
+      cmd = 'volume %s %s' % (_channel_volumes_spec(v), self._region_and_step_options(v.region))
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _region_and_step_options(self, region):
+      r0,r1,r2 = region
+      ropt = 'region %d,%d,%d,%d,%d,%d' % (tuple(r0) + tuple(r1))
+      sopt = ('step %d' % r2[0]) if r2[1] == r2[0] and r2[2] == r2[0] else ('step %d,%d,%d' % tuple(r2))
+      return ropt + ' ' + sopt
 
   # ---------------------------------------------------------------------------
   #
@@ -2422,9 +2447,7 @@ class Histogram_Pane:
       if (a['image_shown'] or v.image_will_show) and not b['image_shown']:
           extra_opts.append('style image')
       if a['region'] != b['region']:
-          r0,r1,r2 = a['region']
-          extra_opts.append('region %d,%d,%d,%d,%d,%d' % (tuple(r0) + tuple(r1)))
-          extra_opts.append(('step %d' % r2[0]) if r2[1] == r2[0] and r2[2] == r2[0] else ('step %d,%d,%d' % tuple(r2)))
+          extra_opts.append(self._region_and_step_options(a['region']))
       if aro.maximum_intensity_projection != bro.maximum_intensity_projection:
           extra_opts.append('maximumIntensityProjection %s' % aro.maximum_intensity_projection)
       if aro.color_mode != bro.color_mode:
