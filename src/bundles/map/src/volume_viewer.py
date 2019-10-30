@@ -93,17 +93,6 @@ class VolumeViewer(ToolInstance):
           self.message_label.update_idletasks()
           self.message_time = time()
 
-    def set_step_cb(self, step):
-        s = step
-        self.volume.new_region(ijk_step = (s,s,s), adjust_step = False)
-        self.step.setText('%d' % s)
-
-    def set_level_cb(self):
-        level = float(self.level.text())
-        v = self.volume
-        v.set_parameters(surface_levels = [level])
-        v.show()
-
     @classmethod
     def get_singleton(self, session, create=True):
         from chimerax.core import tools
@@ -1689,6 +1678,9 @@ class Histogram_Pane:
     self.volume = None
     self.histogram_data = None
     self.histogram_size = None
+    self._surface_levels_changed = False
+    self._image_levels_changed = False
+    self._log_moved_marker = False
     self.update_timer = None
 
     from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QFrame, QLabel, QPushButton, QMenu, QLineEdit, QSizePolicy
@@ -2000,6 +1992,7 @@ class Histogram_Pane:
       if markers:
           markers.add_marker(x, y)
           self.dialog.redisplay_needed_cb()
+          self._log_level_add_or_delete(markers)
 
   # ---------------------------------------------------------------------------
   # x,y in canvas coordinates
@@ -2011,6 +2004,7 @@ class Histogram_Pane:
           if m:
               markers.delete_marker(m)
               self.dialog.redisplay_needed_cb()
+              self._log_level_add_or_delete(markers)
     
   # ---------------------------------------------------------------------------
   #
@@ -2094,17 +2088,24 @@ class Histogram_Pane:
             QGraphicsView.__init__(self, parent)
             self.click_callbacks = []
             self.drag_callbacks = []
+            self.mouse_down = False
         def resizeEvent(self, event):
             # Rescale histogram when window resizes
             self.fitInView(self.sceneRect())
             QGraphicsView.resizeEvent(self, event)
         def mousePressEvent(self, event):
+            self.mouse_down = True
             for cb in self.click_callbacks:
                 cb(event)
         def mouseMoveEvent(self, event):
+            self._drag(event)
+        def _drag(self, event):
             # Only process mouse move once per graphics frame.
             for cb in self.drag_callbacks:
                 cb(event)
+        def mouseReleaseEvent(self, event):
+            self.mouse_down = False
+            self._drag(event)
 
     self.canvas = gv = Canvas(frame)
     gv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -2171,6 +2172,7 @@ class Histogram_Pane:
   #
   def moved_marker_cb(self, marker):
 
+    self._log_moved_marker = True
     self.select_data_cb()	# Causes redisplay using GUI settings
     self.set_threshold_and_color_widgets()
     # Redraw graphics before more mouse drag events occur.
@@ -2196,11 +2198,24 @@ class Histogram_Pane:
     v.new_region(ijk_step = ijk_step, adjust_step = False)
     for vc in v.other_channels():
         vc.new_region(ijk_step = ijk_step, adjust_step = False)
-        
+
+    self._log_step_command(v, ijk_step)
+    
     d = self.dialog
     if v != d.active_volume:
       d.display_volume_info(v)
 #    d.redisplay_needed_cb()
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_step_command(self, v, ijk_step):
+      if ijk_step[1] == ijk_step[0] and ijk_step[2] == ijk_step[0]:
+          step = '%d' % ijk_step[0]
+      else:
+          step = '%d,%d,%d' % tuple(ijk_step)
+      cmd = 'volume %s step %s' % (_channel_volumes_spec(v), step)
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
 
   # ---------------------------------------------------------------------------
   #
@@ -2303,9 +2318,13 @@ class Histogram_Pane:
       
       self.style.setText(style)
 
+      settings_before = self._record_settings(v)
       self.set_map_style(v, style)
+      settings_after = self._record_settings(v)
       for vc in v.other_channels():
           self.set_map_style(vc, style)
+
+      self._log_style_change(v, settings_before, settings_after)
 
   # ---------------------------------------------------------------------------
   #
@@ -2379,7 +2398,53 @@ class Histogram_Pane:
       # Bind crop box mouse mode
       mm = self.dialog.session.ui.mouse_modes
       mm.bind_mouse_mode('right', [], mm.named_mode('crop volume'))
+
+  # ---------------------------------------------------------------------------
+  #
+  def _record_settings(self, v):
+      s = {
+          'surface_shown': v.surface_shown,
+          'has_mesh': v.has_mesh,
+          'image_shown': v.image_shown,
+          'region': v.region,
+          'rendering_options': v.rendering_options.copy()
+          }
+      return s
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_style_change(self, v, settings_before, settings_after):
+      b,a = settings_before, settings_after
+      bro,aro = b['rendering_options'], a['rendering_options']
+      extra_opts = []
+      if a['surface_shown'] and not b['surface_shown'] or a['has_mesh'] != b['has_mesh']:
+          extra_opts.append('style mesh' if v.has_mesh else 'style surface')
+      if (a['image_shown'] or v.image_will_show) and not b['image_shown']:
+          extra_opts.append('style image')
+      if a['region'] != b['region']:
+          r0,r1,r2 = a['region']
+          extra_opts.append('region %d,%d,%d,%d,%d,%d' % (tuple(r0) + tuple(r1)))
+          extra_opts.append(('step %d' % r2[0]) if r2[1] == r2[0] and r2[2] == r2[0] else ('step %d,%d,%d' % tuple(r2)))
+      if aro.maximum_intensity_projection != bro.maximum_intensity_projection:
+          extra_opts.append('maximumIntensityProjection %s' % aro.maximum_intensity_projection)
+      if aro.color_mode != bro.color_mode:
+          extra_opts.append('colorMode %s' % aro.color_mode)
+      if aro.show_outline_box != bro.show_outline_box:
+          extra_opts.append('showOutlineBox %s' % aro.show_outline_box)
+      if aro.orthoplanes_shown != bro.orthoplanes_shown:
+          op = ''.join(a for s,a in zip(aro.orthoplanes_shown, ('x','y','z')) if s)
+          if op == '':
+              op = 'off'
+          extra_opts.append('orthoplanes %s' % op)
+      if aro.orthoplane_positions != bro.orthoplane_positions:
+          extra_opts.append('positionPlanes %d,%d,%d' % tuple(aro.orthoplane_positions))
+      if aro.box_faces != bro.box_faces:
+          extra_opts.append('boxFaces %s' % aro.box_faces)
       
+      cmd = 'volume %s %s' % (_channel_volumes_spec(v), ' '.join(extra_opts))
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
+  
   # ---------------------------------------------------------------------------
   #
   def image_mode(self, image):
@@ -2634,29 +2699,124 @@ class Histogram_Pane:
       return
 
     # Update surface levels and colors
+    surf_levels_changed = surf_colors_changed = False
     markers = self.surface_thresholds.markers
     for m in markers:
         level, color = m.xy[0], m.rgba
         if not hasattr(m, 'volume_surface'):
             m.volume_surface = v.add_surface(level, color)
+            surf_levels_changed = surf_colors_changed = True
         else:
             s = m.volume_surface
-            s.level = level
+            if level != s.level:
+                s.level = level
+                surf_levels_changed = True
             if tuple(s.rgba) != tuple(color):
                 s.rgba = color
                 s.vertex_colors = None
+                surf_colors_changed = True
 
     # Delete surfaces when marker has been deleted.
     msurfs = set(m.volume_surface for m in markers)
     dsurfs = [s for s in v.surfaces if s not in msurfs]
-    v.remove_surfaces(dsurfs)
+    if dsurfs:
+        v.remove_surfaces(dsurfs)
+        surf_levels_changed = surf_colors_changed = True
+
+    self._log_surface_change(v, surf_levels_changed, surf_colors_changed)
     
+    image_levels_changed = image_colors_changed = False
     markers = self.image_thresholds.markers
-    v.image_levels = [m.xy for m in markers]
-    v.image_colors = [m.rgba for m in markers]
+    ilevels = [m.xy for m in markers]
+    if ilevels != v.image_levels:
+        v.image_levels = ilevels
+        image_levels_changed = True
+
+    icolors = [m.rgba for m in markers]
+    if icolors != v.image_colors:
+        v.image_colors = icolors
+        image_colors_changed = True
+
+    self._log_image_change(v, image_levels_changed, image_colors_changed)
+        
     if show and v.shown():
         v.show()
 
+  # ---------------------------------------------------------------------------
+  #
+  def _log_surface_change(self, v, levels_changed, colors_changed):
+      if self._log_moved_marker and self.canvas.mouse_down:
+          # Only log command when mouse drag ends.
+          if levels_changed:
+              self._surface_levels_changed = True
+          return
+
+      self._log_moved_marker = False
+      if self._surface_levels_changed:
+          levels_changed = True
+          self._surface_levels_changed = False
+          
+      if not levels_changed and not colors_changed:
+          return
+
+      extra_opts = []
+      if len(v.surfaces) == 0:
+          extra_opts.append('close surface')
+      else:
+          if not v.surface_shown or v.image_shown:
+              extra_opts.append('change surface')
+          if levels_changed:
+              extra_opts.append(' '.join('level %.4g' % s.level for s in v.surfaces))
+          if colors_changed:
+              from chimerax.core.colors import color_name
+              extra_opts.append(' '.join('color %s' % color_name(s.color) for s in v.surfaces))
+      cmd = 'volume %s %s' % (v.atomspec, ' '.join(extra_opts))
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_image_change(self, v, levels_changed, colors_changed):
+      if self._log_moved_marker and self.canvas.mouse_down:
+          # Only log command when mouse drag ends.
+          if levels_changed:
+              self._image_levels_changed = True
+          return
+
+      self._log_moved_marker = False
+      if self._image_levels_changed:
+          levels_changed = True
+          self._image_levels_changed = False
+          
+      if not levels_changed and not colors_changed:
+          return
+
+      extra_opts = []
+      if len(v.image_levels) == 0:
+          extra_opts.append('close image')
+      else:
+          if not v.image_shown or v.surface_shown:
+              extra_opts.append('change image')
+          if levels_changed:
+              extra_opts.append(' '.join('level %.4g,%.4g' % (l,h) for l,h in v.image_levels))
+          if colors_changed:
+              from chimerax.core.colors import color_name, rgba_to_rgba8
+              extra_opts.append(' '.join('color %s' % color_name(rgba_to_rgba8(c)) for c in v.image_colors))
+      cmd = 'volume %s %s' % (v.atomspec, ' '.join(extra_opts))
+      from chimerax.core.commands import log_equivalent_command
+      log_equivalent_command(v.session, cmd)
+
+  # ---------------------------------------------------------------------------
+  #
+  def _log_level_add_or_delete(self, markers):
+      return
+      v = self.volume
+      if v:
+          if markers is self.surface_thresholds:
+              self._log_surface_change(v, True, True, on_mouse_release = False)
+          elif markers is self.image_thresholds:
+              self._log_image_change(v, True, True, on_mouse_release = False)
+          
   # ---------------------------------------------------------------------------
   # Delete widgets and references to other objects.
   #
@@ -2679,6 +2839,25 @@ class Histogram_Pane:
     self.scene = None
     self.histogram = None
 
+# -----------------------------------------------------------------------------
+#
+def _channel_volumes_spec(v):
+    vo = v.other_channels()
+    if len(vo) == 0:
+        spec = v.atomspec
+    else:
+        spec = _volumes_spec([v] + list(vo))
+    return spec
+
+# -----------------------------------------------------------------------------
+#
+def _volumes_spec(volumes):
+    from chimerax.core.commands import concise_model_spec
+    from chimerax.map import Volume
+    spec = concise_model_spec(volumes[0].session, volumes, relevant_types = Volume,
+                              allow_empty_spec = False)
+    return spec
+    
 # -----------------------------------------------------------------------------
 # User interface for adjusting brightness and transparency.
 #
