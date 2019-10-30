@@ -39,7 +39,7 @@ class MarkerSet(Structure):
         return s
 
     
-def create_link(atom1, atom2, rgba = None, radius = None):
+def create_link(atom1, atom2, rgba = None, radius = None, log = False):
     m = atom1.structure
     b = m.new_bond(atom1,atom2)
     if rgba is None:
@@ -49,7 +49,16 @@ def create_link(atom1, atom2, rgba = None, radius = None):
     b.radius = radius
     b.color = rgba
     b.halfbond = False
+    if log:
+        _log_link_command(atom1, atom2, rgba, radius)
     return b
+
+def _log_link_command(marker1, marker2, rgba, radius):
+    mspec = '%s:%d,%d' % (marker1.structure.atomspec, marker1.residue.number, marker2.residue.number)
+    from chimerax.core.colors import color_name
+    cmd = 'marker link %s color %s radius %.4g' % (mspec, color_name(rgba), radius)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(marker1.structure.session, cmd)
 
 def selected_markers(session):
     from chimerax import atomic

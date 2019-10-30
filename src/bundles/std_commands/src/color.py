@@ -1327,7 +1327,7 @@ def register_command(logger):
                    ],
                    synopsis="color objects")
     register('color', desc, color, logger=logger)
-    create_alias('colour', 'color $*', logger=logger)
+    create_alias('colour', 'color $*', logger=logger, url="help:user/commands/color.html")
 
     # color modify
     adjust_arg = EnumOf(ADJUST_TYPES)
@@ -1364,7 +1364,8 @@ def register_command(logger):
                             ('transparency', FloatArg)],
                    synopsis="color atoms by bfactor")
     register('color byattribute', desc, color_by_attr, logger=logger)
-    create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger)
+    create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger,
+            url="help:user/commands/color.html#byattribute")
 
     # color by nearby atoms
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],
