@@ -29,9 +29,11 @@ def register_volume_command(logger):
         optional = [('volumes', MapsArg)],
         keyword = [
                ('style', EnumOf(('surface', 'mesh', 'image', 'solid'))),
+               ('change', EnumOf(('surface', 'image'))),
                ('show', NoArg),
                ('hide', NoArg),
                ('toggle', NoArg),
+               ('close', EnumOf(('surface', 'image'))),
                ('level', RepeatOf(FloatsArg)),
                ('rms_level', RepeatOf(FloatsArg)),
                ('sd_level', RepeatOf(FloatsArg)),
@@ -115,9 +117,11 @@ def register_volume_command(logger):
 def volume(session,
            volumes = None,
            style = None,
+           change = None,
            show = None,
            hide = None,
            toggle = None,
+           close = None,
            level = None,
            rms_level = None,
            sd_level = None,
@@ -192,9 +196,13 @@ def volume(session,
     ----------
     volumes : list of maps
     style : "surface", "mesh", or "image"
+    change : "surface" or "image"
+      Determines if level, color, brightness, transparency options apply to surface style or image style.
+      If this option is not specified then the currently shown style is used.
     show : bool
     hide : bool
     toggle : bool
+    close: "surface" or "image"
     level : sequence of 1 or 2 floats
       In image style 2 floats are used the first being a density level and second 0-1 brightness value.
     enclose_volume : float
@@ -333,7 +341,8 @@ def volume(session,
                             (' by "%s"' % volumes if volumes else ''))
 
     # Apply volume settings.
-    dopt = ('style', 'show', 'hide', 'toggle', 'level', 'rms_level', 'sd_level',
+    dopt = ('style', 'change', 'show', 'hide', 'toggle', 'close',
+            'level', 'rms_level', 'sd_level',
             'enclose_volume', 'fast_enclose_volume',
             'color', 'brightness', 'transparency', 'appearance',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
@@ -387,6 +396,13 @@ def apply_global_settings(session, gsettings):
 #
 def apply_volume_options(v, doptions, roptions, session):
 
+    if 'close' in doptions:
+        si = doptions['close']
+        if si == 'surface':
+            v.close_surface()
+        elif si == 'image':
+            v.close_image()
+            
     if 'style' in doptions:
         v.set_display_style(doptions['style'])
 
@@ -506,16 +522,24 @@ def level_and_color_settings(v, options):
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching
     # number of levels.
     if len(colors) > 1 and len(colors) != len(levels):
-        from chimerax.core import errors
-        raise errors.UserError('Number of colors (%d) does not match number of levels (%d)'
-                            % (len(colors), len(levels)))
+        from chimerax.core.errors import UserError
+        raise UserError('Number of colors (%d) does not match number of levels (%d)'
+                        % (len(colors), len(levels)))
 
-    if 'style' in options:
+    if 'change' in options:
+        style = options['change']
+    elif 'style' in options:
         style = options['style']
         if style == 'mesh':
             style = 'surface'
     elif v.surface_shown:
         style = 'surface'
+        if v.image_shown:
+            if levels or colors or 'brightness' in options or 'transparency' in options:
+                from chimerax.core.errors import UserError
+                raise UserError('Need to use the option "change surface" or "change image"\n'
+                                'when levels, colors, brightness, or transparency are specified\n'
+                                ' and both surface and image styles are shown.')
     elif v.image_shown:
         style = 'image'
     else:
