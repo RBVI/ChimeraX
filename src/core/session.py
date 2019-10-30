@@ -830,8 +830,15 @@ def sdump(session, session_file, output=None):
         stream = _builtin_open(session_file, 'rb')
     if output is not None:
         # output = open_filename(output, 'w')
-        output = _builtin_open(output, 'w')
-    from pprint import pprint
+        if not output.endswith('.txt'):
+            output += '.txt'
+        output = _builtin_open(output, 'wt', encoding='utf-8')
+    def pprint(*args, **kw):
+        try:
+            from prettyprinter import pprint
+        except ImportError:
+            from pprint import pprint
+        pprint(*args, **kw, width=100)
     with stream:
         if hasattr(stream, 'peek'):
             use_pickle = stream.peek(1)[0] != ord(b'#')
@@ -860,6 +867,7 @@ def sdump(session, session_file, output=None):
             if name is None:
                 break
             data = fdeserialize(stream)
+            data = dereference_state(data, lambda x: x, _UniqueName)
             print('==== name/uid:', name, file=output)
             pprint(data, stream=output)
 
