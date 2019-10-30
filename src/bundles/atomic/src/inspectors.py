@@ -17,8 +17,8 @@ def item_options(session, name, **kw):
         return (option, (triggers, "changes", lambda changes, *, attr=option.attr_name, rt=reason_type:
             attr + ' changed' in getattr(changes, rt + "_reasons")()))
     return {
-        'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomBondStyleOption]],
-        'bonds': [make_tuple(opt, "bond") for opt in [AtomBondStyleOption]]
+        'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomStyleOption]],
+        'bonds': [make_tuple(opt, "bond") for opt in []]
     }[name]
 
 from chimerax.ui.options import RGBAOption, SymbolicEnumOption
@@ -32,7 +32,7 @@ class AtomColorOption(RGBAOption):
     def command_format(self):
         return "color %%s %g,%g,%g,%g atoms" % tuple([100.0 * x for x in self.value])
 
-class AtomBondStyleOption(SymbolicEnumOption):
+class AtomStyleOption(SymbolicEnumOption):
     values = (0, 1, 2)
     labels = ("sphere", "ball", "stick")
     attr_name = "draw_mode"

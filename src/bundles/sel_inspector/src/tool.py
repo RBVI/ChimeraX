@@ -72,6 +72,7 @@ class SelInspector(ToolInstance):
             cur_text = self.chooser.text()
         if self.options_container:
             self.options_layout.removeWidget(self.options_container)
+            self.options_container.hide()
             self.options_container.destroy()
         for handler in self.current_item_handlers:
             handler.remove()
@@ -79,13 +80,13 @@ class SelInspector(ToolInstance):
         from chimerax.ui.options import OptionsPanel
         container = self.options_container = OptionsPanel()
         self.options_layout.addWidget(container)
-        options, trigger_info = self.session.items_inspection.item_info(self.button_mapping[cur_text])
-        for option in options:
-            container.add_option(option(None, None, self._option_cb))
-        for trigger_set, trigger_name, check_func in trigger_info:
-            def cb(trig_name, trig_data, *, refresh=self.refresh, check_func=check_func):
+        for option, trigger_info in self.session.items_inspection.item_info(self.button_mapping[cur_text]):
+            opt = option(None, None, self._option_cb)
+            container.add_option(opt)
+            trigger_set, trigger_name, check_func = trigger_info
+            def cb(trig_name, trig_data, *, refresh=self.refresh, check_func=check_func, opt=opt):
                 if check_func(trig_data):
-                    refresh()
+                    refresh(opt)
             self.current_item_handlers.append(trigger_set.add_handler(trigger_name, cb))
         self.refresh()
 
@@ -126,7 +127,7 @@ class SelInspector(ToolInstance):
         self.text_description.setText(description)
         self.refresh()
 
-    def refresh(self):
+    def refresh(self, opt=None):
         button_text = self.chooser.text()
         cur_item_type = self.button_mapping[button_text] if button_text else None
         sel_items = None
@@ -144,6 +145,9 @@ class SelInspector(ToolInstance):
             items = []
             for si in sel_items:
                 items.extend(si)
-        for option in self.options_container.options():
-            option.display_for_items(items)
+        if opt is None:
+            for option in self.options_container.options():
+                option.display_for_items(items)
+        else:
+            opt.display_for_items(items)
 
