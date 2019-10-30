@@ -202,7 +202,8 @@ def register_vr_command(logger):
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('vr', desc, vr, logger=logger)
-    create_alias('device vr', 'vr $*', logger=logger)
+    create_alias('device vr', 'vr $*', logger=logger,
+            url="help:user/commands/device.html#vr")
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
     desc = CmdDesc(required = [('button', button_name),
@@ -210,7 +211,8 @@ def register_vr_command(logger):
                    keyword = [('hand', EnumOf(('left', 'right')))],
                    synopsis = 'Assign VR hand controller buttons')
     register('vr button', desc, vr_button, logger=logger)
-    create_alias('device vr button', 'vr button $*', logger=logger)
+    create_alias('device vr button', 'vr button $*', logger=logger,
+            url="help:user/commands/device.html#vr-button")
 
     desc = CmdDesc(required = [('enable', BoolArg)],
                    keyword = [('field_of_view', FloatArg),
@@ -218,7 +220,8 @@ def register_vr_command(logger):
                               ('background_color', ColorArg)],
                    synopsis = 'Control VR room camera')
     register('vr roomCamera', desc, vr_room_camera, logger=logger)
-    create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger)
+    create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger,
+            url="help:user/commands/device.html#vr-roomCamera")
 
 # -----------------------------------------------------------------------------
 #
