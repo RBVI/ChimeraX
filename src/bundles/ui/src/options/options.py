@@ -113,14 +113,9 @@ class Option(metaclass=ABCMeta):
            The 'items' can be a chimerax.atomic.Collection or a normal Python sequence. If a Collection,
            the "plural form" of attr_name will be used to check the Collection.
         """
-        if not items:
+        values = self.values_for_items(items)
+        if len(values) == 0:  # 'not values' fails when it's a numpy array
             return
-        from chimerax.atomic import Collection
-        if isinstance(items, Collection):
-            from chimerax.core.commands import plural_of
-            values = getattr(items, plural_of(self.attr_name))
-        else:
-            values = [getattr(i, self.attr_name) for i in items]
         from numpy import array_equal
         value = values[0]
         for val in values[1:]:
@@ -128,6 +123,20 @@ class Option(metaclass=ABCMeta):
                 self.set_multiple()
                 return
         self.value = value
+
+    def values_for_items(self, items):
+        """Supported API.  Convenience function to get values for the 'attr_name' attribute from the
+           given items.  Used by display_for_itmes() and by subclasses overriding display_for_items().
+        """
+        if not items:
+            return []
+        from chimerax.atomic import Collection
+        if isinstance(items, Collection):
+            from chimerax.core.commands import plural_of
+            values = getattr(items, plural_of(self.attr_name))
+        else:
+            values = [getattr(i, self.attr_name) for i in items]
+        return values
 
     @property
     def enabled(self):
@@ -256,6 +265,36 @@ def make_optional(cls, *, allow_subwidget_disable=True):
     return opt_class
 
 
+class NumericOption(Option):
+    """base class for options that display single numbers (e.g. IntOption, FloatOption)"""
+
+    def display_for_items(self, items):
+        """Supported API.  Use the option's 'attr_name' attribute to survey the given items for
+           their value or values for that attribute and display the value or values in the option.
+           The 'items' can be a chimerax.atomic.Collection or a normal Python sequence. If a Collection,
+           the "plural form" of attr_name will be used to check the Collection.  Ranges will be
+           shown appropriately.
+        """
+        values = self.values_for_items(items)
+        if len(values) == 0:  # 'not values' fails when it's a numpy array
+            return
+        from numbers import Real
+        num_vals = [val for val in values if isinstance(val, Real)]
+        if not num_vals:
+            self.show_text("N/A")
+        else:
+            min_val = min(num_vals)
+            max_val = max(num_vals)
+            if max_val == min_val:
+                self.value = max_val
+            else:
+                self.show_text("%g \N{LEFT RIGHT ARROW} %g" % (min_val, max_val))
+
+    @abstractmethod
+    def show_text(self, text):
+        """So that option can show text such as 'N/A' and number ranges"""
+        pass
+
 class BooleanOption(Option):
     """Supported API. Option for true/false values"""
 
@@ -325,7 +364,7 @@ class EnumOption(EnumBase):
         self.widget = EnumBase._make_widget(self, display_value=display_value, **kw)
 OptionalEnumOption = make_optional(EnumOption)
 
-class FloatOption(Option):
+class FloatOption(NumericOption):
     """Supported API. Option for floating-point values.
        Constructor takes option min/max keywords to specify lower/upper bound values.
        Besides being numeric values, those keyords can also be 'positive' or 'negative'
@@ -346,13 +385,20 @@ class FloatOption(Option):
 
     def set_value(self, value):
         self._spin_box.setSpecialValueText("")
+        self._spin_box.blockSignals(True)
         self._spin_box.setValue(value)
+        self._spin_box.blockSignals(False)
 
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        self._spin_box.setSpecialValueText(self.multiple_value)
+        self.show_text(self.multiple_value)
+
+    def show_text(self, text):
+        self._spin_box.blockSignals(True)
         self._spin_box.setValue(self._spin_box.minimum())
+        self._spin_box.blockSignals(False)
+        self._spin_box.setSpecialValueText(text)
 
     def _make_widget(self, min=None, max=None, preceding_text=None, trailing_text=None,
             decimal_places=3, step=None, **kw):
@@ -461,7 +507,7 @@ class InputFolderOption(Option):
 
 OutputFolderOption = InputFolderOption
 
-class IntOption(Option):
+class IntOption(NumericOption):
     """Supported API. Option for integer values.
        Constructor takes option min/max keywords to specify lower/upper bound values.
        
@@ -473,13 +519,20 @@ class IntOption(Option):
 
     def set_value(self, value):
         self._spin_box.setSpecialValueText("")
+        self._spin_box.blockSignals(True)
         self._spin_box.setValue(value)
+        self._spin_box.blockSignals(False)
 
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        self._spin_box.setSpecialValueText(self.multiple_value)
+        self.show_text(self.multiple_value)
+
+    def show_text(self, text):
+        self._spin_box.blockSignals(True)
         self._spin_box.setValue(self._spin_box.minimum())
+        self._spin_box.blockSignals(False)
+        self._spin_box.setSpecialValueText(text)
 
     def _make_widget(self, min=None, max=None, preceding_text=None, trailing_text=None, **kw):
         self._spin_box = _make_int_spinbox(min, max, **kw)

@@ -18,10 +18,10 @@ def item_options(session, name, **kw):
             attr + ' changed' in getattr(changes, rt + "_reasons")()))
     return {
         'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomStyleOption]],
-        'bonds': [make_tuple(opt, "bond") for opt in []]
+        'bonds': [make_tuple(opt, "bond") for opt in [BondRadiusOption]]
     }[name]
 
-from chimerax.ui.options import RGBAOption, SymbolicEnumOption
+from chimerax.ui.options import RGBAOption, SymbolicEnumOption, FloatOption
 
 class AtomColorOption(RGBAOption):
     attr_name = "color"
@@ -43,3 +43,11 @@ class AtomStyleOption(SymbolicEnumOption):
     def command_format(self):
         return "style %%s %s" % self.labels[self.value]
 
+class BondRadiusOption(FloatOption):
+    attr_name = "radius"
+    balloon = "Bond radius"
+    default = 0.2
+    name = "Radius"
+    @property
+    def command_format(self):
+        return "size %%s stickRadius %g" % self.value
