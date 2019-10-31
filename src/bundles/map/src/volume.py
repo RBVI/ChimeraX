@@ -1869,7 +1869,10 @@ class VolumeSurface(Surface):
     self.clip_cap = True			# Cap surface when clipped
 
   def delete(self):
-    self.volume._surfaces.remove(self)
+    try:
+      self.volume._surfaces.remove(self)
+    except ValueError:
+      pass	# This VolumeSurface was already removed from Volume
     Surface.delete(self)
 
   def _get_level(self):
@@ -3562,7 +3565,7 @@ class VolumeUpdateManager:
     if vdisp:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
-        if v.deleted:
+        if v.deleted or v.id is None:
           vset.remove(v)
           vdisp.remove(v)
         elif v.display:
