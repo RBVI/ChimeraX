@@ -48,9 +48,10 @@ class AtomProximityGUI(QWidget):
             intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"], log=defaults["action_log"],
             make_pseudobonds=defaults["action_pseudobonds"], other_atom_color=defaults["other_atom_color"],
             res_separation=None, reveal=False, save_file=None, select=defaults["action_select"],
-            set_attrs=defaults["action_attr"], show_dist=False, summary=True, test="others",
+            set_attrs=defaults["action_attr"], show_dist=False, summary=True, test="others", test_atoms=None,
 
             # what controls to show in the interface
+            # note that is 'test_atoms' is not None, then the "Atoms to Check" section will be omitted
             show_atom_color=True, show_attr_name=True, show_bond_separation=True,
             show_checking_frequency=True, show_color=True, show_color_atoms=True, show_dashes=True,
             show_distance_only=True, show_hbond_allowance=True, show_inter_model=True,
