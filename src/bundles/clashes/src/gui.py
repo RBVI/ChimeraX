@@ -42,13 +42,23 @@ class AtomProximityGUI(QWidget):
             # keyword/value added to the command returned by get_command, nor will they have their
             # settings value changed/saved.  If needed, you will have to add the keyword/value to
             # the command yourself.
-            atom_color=defaults["atom_color"],
-            slop_color=BuiltinColors["dark orange"], two_colors=False,
+            atom_color=defaults["atom_color"], attr_name=defaults["attr_name"],
+            bond_separation=defaults["bond_separation"], color_atoms=defaults["action_color"],
+            continuous=False, dashes=None, distance_only=None, inter_model=True, inter_submodel=False,
+            intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"], log=defaults["action_log"],
+            make_pseudobonds=defaults["action_pseudobonds"], other_atom_color=defaults["other_atom_color"],
+            res_separation=None, reveal=False, save_file=None, select=defaults["action_select"],
+            set_attrs=defaults["action_attr"], show_dist=False, summary=True, test="others",
 
             # what controls to show in the interface
-            show_atom_color=True,
-            show_color=True, show_hbond_allowance = True, show_name=False, show_overlap_cutoff=True,
-            show_radius=True):
+            show_atom_color=True, show_attr_name=True, show_bond_separation=True,
+            show_checking_frequency=True, show_color=True, show_color_atoms=True, show_dashes=True,
+            show_distance_only=True, show_hbond_allowance=True, show_inter_model=True,
+            show_inter_submodel=False, show_intra_mol=True, show_intra_res=True, show_log=True,
+            show_make_pseudobonds=True, show_name=False, show_other_atom_color=True,
+            show_overlap_cutoff=True, show_radius=True show_res_separation=True, show_reveal=True,
+            show_save_file=True, show_select=True, show_set_attrs=True, show_show_dist=True,
+            show_summary=True, show_test=True):
 
         self.session = session
 
@@ -64,12 +74,13 @@ class AtomProximityGUI(QWidget):
         if settings_name is None:
             self.__settings = settings = None
         else:
-            self.__settings = settings = _get_settings(session, settings_name, settings_defaults)
+            self.__settings = settings = _get_settings(session, settings_name, settings_defaults, cmd_name)
         final_val = {}
         for name in settings_defaults.keys():
             final_val[name] = getattr(settings, name) if settings else frame_dict[name]
 
         super().__init__()
+        #TODO
         from PyQt5.QtWidgets import QVBoxLayout, QHBoxLayout, QGroupBox, QLabel, QRadioButton
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -446,11 +457,11 @@ class ContactsGUI(AtomProximityGUI):
         super().__init__(session, name, "contact", "contacts", color, radius,
             hbond_allowance, overlap_cutoff, **kw)
 
-def _get_settings(session, base_name, settings_defaults):
+def _get_settings(session, base_name, settings_defaults, name_mod):
     if base_name:
-        settings_name = base_name + " H-bond GUI"
+        settings_name = base_name + " " + name_mod
     else:
-        settings_name = "H-bond GUI"
+        settings_name = name_mod
     from chimerax.core.settings import Settings
     class HBondGUISettings(Settings):
         EXPLICIT_SAVE = settings_defaults
