@@ -11,10 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def initialize(command_name, logger):
-    from chimerax.core.commands import create_alias
-    create_alias(
-        command_name,
-        "%s $*" % command_name.replace("ribbon", "cartoon"),
-        logger=logger,
-        url="help:user/commands/cartoon.html")
+from chimerax.core.toolshed import BundleAPI
+
+class _TapeMeasureBundleAPI(BundleAPI):
+
+    @staticmethod
+    def initialize(session, bundle_info):
+        """Install tape measure mouse mode"""
+        if session.ui.is_gui:
+            mm = session.ui.mouse_modes
+            from .tape import TapeMeasureMouseMode
+            mm.add_mode(TapeMeasureMouseMode(session))
+
+bundle_api = _TapeMeasureBundleAPI()

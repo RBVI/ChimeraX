@@ -958,9 +958,12 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def region_grid(self, r, value_type = None):
+  def region_grid(self, r, value_type = None, new_spacing = None):
 
     shape = self.matrix_size(region = r, clamp = False)
+    if new_spacing is not None:
+      d = self.data
+      shape = [int(sz*(s*st/ns)) for s,ns,sz,st in zip(d.step, new_spacing, d.size, r[2])]
     shape.reverse()
     d = self.data
     if value_type is None:
@@ -968,6 +971,8 @@ class Volume(Model):
     from numpy import zeros
     m = zeros(shape, value_type)
     origin, step = self.region_origin_and_step(r)
+    if new_spacing is not None:
+      step = new_spacing
     from .data import ArrayGridData
     g = ArrayGridData(m, origin, step, d.cell_angles, d.rotation)
     g.rgba = d.rgba           # Copy default data color.

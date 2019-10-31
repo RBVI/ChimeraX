@@ -153,7 +153,7 @@ ChimeraX_audit_conform = mmcif.CIFTable(
 )
 
 ChimeraX_audit_syntax = mmcif.CIFTable(
-    "chimerax_audit_syntax",
+    "audit_syntax",
     (
         "case_sensitive_flag",
         "fixed_width"

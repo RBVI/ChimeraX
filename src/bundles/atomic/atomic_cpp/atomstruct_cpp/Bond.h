@@ -54,10 +54,9 @@ public:
         DestructionUser(this);
         change_tracker()->add_deleted(structure(), this);
     }
-    virtual bool shown() const;
     const Rings&  all_rings(bool cross_residues = false, int size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
-    Structure*  structure() const;
+    bool  is_backbone() const;
     // length() inherited from UniqueConnection
     const Rings&  minimum_rings(bool cross_residues = false,
             std::set<const Residue*>* ignore = nullptr) const {
@@ -68,8 +67,10 @@ public:
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
         std::set<const Residue*>* ignore = nullptr) const;
     std::vector<Atom*>  side_atoms(const Atom*) const;
+    virtual bool shown() const;
     Atom*  smaller_side() const; // considers missing structure, returns nullptr if in a cycle
     // sqlength() inherited from UniqueConnection
+    Structure*  structure() const;
 
     // session related
     static int  session_num_floats(int version=CURRENT_SESSION_VERSION) {
