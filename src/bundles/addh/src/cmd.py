@@ -938,6 +938,22 @@ naming_exceptions = {
     }
 }
 
+def to_h36(base10, max_digits):
+    decimal_limit = eval('9' * max_digits)
+    if base10 <= decimal_limit:
+        return str(base10)
+    base36_num =  10 * 36 ** (max_digits-1) + (base10 - decimal_limit - 1)
+    base36_str = ""
+    while base36_num > 0:
+        digit = base36_num % 36
+        if digit < 10:
+            d_str = str(digit)
+        else:
+            d_str = chr(ord('A') + digit - 10)
+        base36_str = d_str + base36_str
+        base36_num = int(base36_num / 36)
+    return base36_str
+
 def _h_name(atom, h_num, total_hydrogens, naming_schema):
     res_name = atom.residue.name
     find_atom = atom.residue.find_atom
@@ -945,9 +961,9 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
     res_schema, pdb_version = naming_schema
     if res_schema == "simple":
         i = 1
-        while atom.residue.find_atom("H%d" % i):
+        while atom.residue.find_atom("H%s" % to_h36(i, 3)):
             i += 1
-        return "H%d" % i
+        return "H%s" % to_h36(i, 3)
     if res_name in naming_exceptions and atom.name in naming_exceptions[res_name]:
         except_names = naming_exceptions[res_name][atom.name]
         for name in except_names:
@@ -982,9 +998,10 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
         if atom.residue.principal_atom and total_hydrogens == 2 and len(
                 [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:
             h_num += 1
-        while find_atom("%s%d" % (h_name, h_num)):
+        h_digits = 4 - len(h_name)
+        while find_atom("%s%s" % (h_name, to_h36(h_num, h_digits))):
             h_num += 1
-        h_name = "%s%d" % (h_name, h_num)
+        h_name = "%s%s" % (h_name, to_h36(h_num, h_digits))
     return h_name
 
 def register_command(command_name, logger):
