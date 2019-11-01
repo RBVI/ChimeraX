@@ -265,8 +265,8 @@ class ArrowsArg(ModelsArg):
 def register_arrow_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
-    from chimerax.core.commands import Float2Arg
-    from .arrow3d import DefArg, NoneArg
+    from chimerax.core.commands import Float2Arg, EnumOf
+    from .label3d import DefArg, NoneArg
 
     arrows_arg = [('arrows', Or(NamedArrowsArg, ArrowsArg))]
     start_end_args = [('start', Float2Arg), ('end', Float2Arg)]
@@ -274,10 +274,10 @@ def register_arrow_command(logger):
     common_args = [('color', Or(DefArg, ColorArg)),
              ('weight', FloatArg),
              ('visibility', BoolArg),
-             ('head_style', EnumOf("blocky", "solid", "pointy", "pointer"))]
+             ('head_style', EnumOf(("blocky", "solid", "pointy", "pointer")))]
     create_desc = CmdDesc(
         required=[('name', StringArg)] + start_end_args,
-        keyword=[('mid_point', Float2Arg) + common_args,
+        keyword=[('mid_point', Float2Arg)] + common_args,
         synopsis='Create a 2d arrow')
     register('2dlabels acreate', create_desc, arrow_create, logger=logger)
     change_desc = CmdDesc(
@@ -471,13 +471,15 @@ class ArrowModel(Model):
         self.set_arrow_image(rgba)
         return True
 
-    def arrow_params(self):
-        sx, sy = self.arrow.start
-        ex, ey = self.arrow.end
-        if abs(ex-sx) < 0.01 and abs(ey-sy) < 0.01:
+    def arrow_params(self, width, height):
+        scale_factor = min(width, height)
+        sx, sy = self.arrow.start[0] * width, self.arrow.start[1] * height
+        ex, ey = self.arrow.end[0] * width, self.arrow.end[1] * height
+
+        if abs(ex-sx) < 18 and abs(ey-sy) < 18:
             return None, None
 
-        half_width = self.STD_HALF_WIDTH + self.arrow.weight
+        half_width = scale_factor * self.STD_HALF_WIDTH * self.arrow.weight
 
         if self.arrow.mid_point:
             # curved arrow
@@ -508,8 +510,8 @@ class ArrowModel(Model):
         bottom = min(base1[1], base2[1], inside1[1], inside2[1])
         top = max(base1[1], base2[1], inside1[1], inside2[1])
 
-        return (left, right, bottom, top), \
-            ((((inside1[0] + inside2[0])/2, inside1[21] + inside2[1])/2), (norm_x, norm_y))
+        return ((left, right, bottom, top), (base1, base2, inside2, inside1)), \
+            (((inside1[0] + inside2[0])/2, (inside1[1] + inside2[1])/2), (norm_x, norm_y))
 
     def head_params(self, head_start):
         start_pos, norm = head_start
@@ -535,11 +537,12 @@ class ArrowModel(Model):
     #TODO: same techniques as chimerax.core.graphics.text_image_rgba, but using QPainter's arc drawing
     # plus: remainder of this file
 
-    #TODO: rework this so that the routine returns rectangles/polygons when possible
-        shaft_bounds, head_start = self.arrow_params()
+        w, h = self.arrow.session.main_view.window_size
+        shaft_info, head_start = self.arrow_params(w, h)
         if head_start is None:
             # too short to draw
             return None
+        shaft_bounds, shaft_geom = shaft_info
         s_left, s_right, s_bottom, s_top = shaft_bounds
         h_left, h_right, h_bottom, h_top = self.head_params(head_start)
 
@@ -547,93 +550,46 @@ class ArrowModel(Model):
         right = max(s_right, h_right)
         bottom = min(s_bottom, h_bottom)
         top = max(s_top, h_top)
+        self.xpos = left / w
+        self.ypos = bottom / h
 
         from PyQt5.QtGui import QImage, QPainter, QColor, QBrush, QPen
-        p = QPainter()
-        w, h = self.arrow.session.main_view.window_size
 
-        image = QImage(int(w*(right-left))+2*self.PIXEL_MARGIN, int(h*(top-bottom))+2*self.PIXEL_MARGIN,
-            QImage.Format_ARGB32))
-        #TODO: draw shaft, draw head
-
-        #-----------------
-        ### below is code for drawing labels, for reference
-        from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
+        image = QImage(int((right-left))+2*self.PIXEL_MARGIN, int((top-bottom))+2*self.PIXEL_MARGIN,
+            QImage.Format_ARGB32)
+        image.fill(QColor(0,0,0,0))    # Set background transparent
 
         p = QPainter()
-
-        # Determine image size.
-        weight = QFont.Bold if bold else QFont.Normal
-        xbuf = xpad + outline_width
-        ybuf = ypad + outline_width
-        if pixels:
-            f = QFont(font, weight=weight, italic=bool(italic))
-            f.setPixelSize(size-2*ybuf)
+        p.begin(image)
+        p.setRenderHint(QPainter.Antialiasing)
+        bcolor = QColor(*self.arrow_color)
+        from PyQt5.QtCore import Qt, QPointF
+        pbr = QBrush(bcolor, Qt.SolidPattern)
+        p.setBrush(pbr)
+        ppen = QPen(Qt.NoPen)
+        p.setPen(ppen)
+        def image_xy(float_xy, l=left, t=top):
+            x, y = float_xy
+            # image y axis points down
+            return (self.PIXEL_MARGIN + (x-l), self.PIXEL_MARGIN + (t-y))
+        if len(shaft_geom) == 4:
+            p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in shaft_geom])
         else:
-            f = QFont(font, size, weight=weight, italic=bool(italic))  # Size in points.
-
-        # Use font metrics to determine image width
-        fm = QFontMetrics(f)
-        r = fm.boundingRect(text if text else ' ')
-        # TODO: font metric width is sometimes 1 or 2 pixels too small in Qt 5.9.
-        #       Right bearing of rightmost character was positive, so does not extend right.
-        #       Use pad option to add some pixels to avoid clipped text.
-        tw, th = r.width(), r.height()  # pixels
-        if pixels:
-            iw, ih = tw+2*xbuf, size
-        else:
-            iw, ih = tw+2*xbuf, th+2*ybuf
-
-        # Can't paint to zero size labels, make min size 1.
-        if iw == 0:
-            iw = 1
-        if ih == 0:
-            ih = 1
-            
-        ti = QImage(iw, ih, QImage.Format_ARGB32)
-        
-        # Paint background
-        bg = (0,0,0,0) if background_color is None else tuple(background_color)
-        if outline_width > 0:
-            if outline_color is None:
-                from ..colors import contrast_with
-                outline_color = contrast_with(bg[:3]) + (255,)
-            fill_color = tuple(outline_color)
-        else:
-            fill_color = bg
-        ti.fill(QColor(*fill_color))    # Set background transparent
-
-        # Paint text
-        p.begin(ti)
-        if outline_width > 0:
-            prev_b = p.brush()
-            prev_p = p.pen()
-            bc = QColor(*bg)
-            from PyQt5.QtCore import Qt
-            pbr = QBrush(bc, Qt.SolidPattern)
-            p.setBrush(pbr)
-            ppen = QPen(Qt.NoPen)
-            p.drawRect(outline_width, outline_width, iw-2*outline_width-1, ih-2*outline_width)
-            p.setBrush(prev_b)
-            p.setPen(prev_p)
-        p.setFont(f)
-        c = QColor(*color)
-        p.setPen(c)
-        x, y = xpad+outline_width, (ih-1) - (r.bottom()+ypad+outline_width)
-        p.drawText(x, y, text)
+            #TODO: draw arc
+            pass
+        #TODO: draw head
 
         # Convert to numpy rgba array.
         from chimerax.core.graphics import qimage_to_numpy
-        rgba = qimage_to_numpy(ti)
-        
+        rgba = qimage_to_numpy(image)
+
         p.end()
-        
+
         return rgba
 
     def set_arrow_image(self, rgba):
-        a = self.arrow
-        x,y = (-1 + 2*a.xpos, -1 + 2*a.ypos)    # Convert 0-1 position to -1 to 1.
-        v = a.session.main_view
+        x,y = (-1 + 2*self.xpos, -1 + 2*self.ypos)    # Convert 0-1 position to -1 to 1.
+        v = self.arrow.session.main_view
         self.window_size = w,h = v.window_size
         th, tw = rgba.shape[:2]
         self.texture_size = (tw,th)
@@ -653,12 +609,8 @@ class ArrowModel(Model):
         v = a.session.main_view
         if v.window_size != self.window_size:
             # Window has resized so update texture drawing size
-            self.window_size = w,h = v.window_size
-            tw,th = self.texture_size
-            uw,uh = 2*tw/w, 2*th/h
-            x,y = (-1 + 2*a.xpos, -1 + 2*a.ypos)    # Convert 0-1 position to -1 to 1.
-            from chimerax.core.graphics.drawing import position_rgba_drawing
-            position_rgba_drawing(self, (x,y), (uw,uh))
+            self.needs_update = True
+            self.window_size = v.window_size
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d
