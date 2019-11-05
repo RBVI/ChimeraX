@@ -894,8 +894,10 @@ Atom::has_missing_structure_pseudobond() const
 bool
 Atom::is_backbone(BackboneExtent bbe) const
 {
-    // hydrogens depend on the heavy atom they're attached to
+    // hydrogens depend on the heavy atom they're attached to, but are never in minimal backbone
     if (element().number() == 1) {
+        if (bbe == BBE_MIN)
+            return false;
         if (bonds().size() == 1) {
             auto bonded = *neighbors().begin();
             // need to check neighbor element to prevent possible infinite loop for H2

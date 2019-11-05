@@ -294,7 +294,8 @@ def register_volume_filtering_subcommands(logger):
     register('volume unzone', unzone_desc, volume_unzone, logger=logger)
 
     from chimerax.core.commands import create_alias
-    create_alias('vop', 'volume $*', logger=logger)
+    create_alias('vop', 'volume $*', logger=logger,
+            url="help:user/commands/volume.html#vop")
     
 # -----------------------------------------------------------------------------
 #
