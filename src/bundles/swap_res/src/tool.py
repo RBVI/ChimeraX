@@ -267,7 +267,7 @@ class RotamerDialog(ToolInstance):
         radio_layout.setContentsMargins(0,0,0,0)
         add_col_layout.addLayout(radio_layout, 0, 1, alignment=Qt.AlignLeft)
         self.button_group = QButtonGroup()
-        self.add_col_button.clicked.connect(lambda *, bg=self.button_group:
+        self.add_col_button.clicked[int].connect(lambda *, bg=self.button_group:
             self._show_subdialog(bg.checkedButton().text()))
         for add_type in ["H-Bonds", "Clashes (coming soon)", "Density (coming soon)"]:
             rb = QRadioButton(add_type)

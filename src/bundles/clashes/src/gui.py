@@ -82,11 +82,12 @@ class AtomProximityGUI(QWidget):
 
         super().__init__()
         from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QGroupBox, QLabel, QPushButton, QButtonGroup
-        from PyQt5.QtWidgets import QRadioButton
+        from PyQt5.QtWidgets import QRadioButton, QAbstractButton, QHBoxLayout, QDoubleSpinBox, QMenu
         from PyQt5.QtCore import Qt
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
+        layout.setSizeConstraint(QVBoxLayout.SetFixedSize)
         self.setLayout(layout)
         self.handlers = []
 
@@ -101,17 +102,21 @@ class AtomProximityGUI(QWidget):
             desig1_layout = QGridLayout()
             desig1_layout.setContentsMargins(0,0,0,0)
             desig1_layout.setSpacing(0)
+            desig1_layout.setColumnStretch(0, 1)
+            desig1_layout.setColumnStretch(1, 0)
+            desig1_layout.setColumnStretch(2, 0)
+            desig1_layout.setColumnStretch(3, 1)
             group_layout.addLayout(desig1_layout)
-            self.desig1_button = QPushButton("Designate")
-            self.desig1_button.clicked.connect(self._designate1_cb)
-            desig1_layout.addWidget(self.desig1_button, 0, 0, alignment=Qt.AlignRight)
+            desig1_button = QPushButton("Designate")
+            desig1_button.clicked.connect(self._designate1_cb)
+            desig1_layout.addWidget(desig1_button, 0, 1, alignment=Qt.AlignRight)
             desig1_layout.addWidget(QLabel("currently selected atoms for checking"),
-                0, 1, alignment=Qt.AlignLeft)
+                0, 2, alignment=Qt.AlignLeft)
             self.desig1_status = QLabel()
             from chimerax.ui import shrink_font
             shrink_font(self.desig1_status)
             self._update_desig1_status()
-            desig1_layout.addWidget(self.desig1_status, 1, 0, 1, 2, alignment=Qt.AlignCenter)
+            desig1_layout.addWidget(self.desig1_status, 1, 1, 1, 2, alignment=Qt.AlignCenter|Qt.AlignTop)
 
             if show_test:
                 self.desig2_atoms = None
@@ -133,10 +138,100 @@ class AtomProximityGUI(QWidget):
                 for i, kw in enumerate(['self', 'others', None]):
                     but = QRadioButton(self.test_kw_to_label[kw])
                     test_layout.addWidget(but, i, 1, alignment=Qt.AlignLeft)
-                    if test == kw:
+                    if final_val['test'] == kw:
                         but.setChecked(True)
-                    self.test_button_group.addButton(but)
-                #self.test_button_group.buttonClicked.connect(self._test_change)
+                    self.test_button_group.addButton(but, i)
+                self.test_button_group.buttonClicked[QAbstractButton].connect(self._test_change)
+                desig2_layout = QGridLayout()
+                desig2_layout.setContentsMargins(0,0,0,0)
+                desig2_layout.setSpacing(0)
+                test_layout.addLayout(desig2_layout, 3, 0, 1, 2, alignment=Qt.AlignCenter)
+                self.desig2_button = QPushButton("Designate")
+                self.desig2_button.clicked.connect(self._designate2_cb)
+                desig2_layout.addWidget(self.desig2_button, 0, 0, alignment=Qt.AlignRight)
+                self.desig2_label = QLabel("selection as second set")
+                desig2_layout.addWidget(self.desig2_label, 0, 1, alignment=Qt.AlignLeft)
+
+                self.desig2_status = QLabel()
+                shrink_font(self.desig2_status)
+                self._update_desig2_status()
+                desig2_layout.addWidget(self.desig2_status, 1, 0, 1, 2, alignment=Qt.AlignCenter)
+                self._test_change(self.test_button_group.checkedButton())
+
+        from chimerax.core.commands import plural_of
+        prox_words = plural_of(prox_word)
+        show_boolean_params = show_intra_mol or show_intra_res or show_inter_model or show_inter_submodel
+        if show_overlap_cutoff or show_hbond_allowance or show_bond_separation or show_boolean_params:
+            group = QGroupBox("%s parameters" % prox_word.capitalize())
+            layout.addWidget(group)
+            group_layout = QVBoxLayout()
+            group_layout.setContentsMargins(0,0,0,0)
+            group_layout.setSpacing(5)
+            group.setLayout(group_layout)
+            if show_overlap_cutoff:
+                overlap_layout = QHBoxLayout()
+                overlap_layout.setContentsMargins(0,0,0,0)
+                #overlap_layout.setSpacing(0)
+                group_layout.addLayout(overlap_layout)
+                overlap_layout.addWidget(QLabel("Find atoms with VDW overlap \N{GREATER-THAN OR EQUAL TO}"))
+                self.overlap_spinbox = QDoubleSpinBox()
+                self.overlap_spinbox.setDecimals(2)
+                self.overlap_spinbox.setSingleStep(0.1)
+                self.overlap_spinbox.setValue(final_val['overlap_cutoff'])
+                self.overlap_spinbox.setSuffix('\N{ANGSTROM SIGN}')
+                overlap_layout.addWidget(self.overlap_spinbox, stretch=1, alignment=Qt.AlignLeft)
+            if show_hbond_allowance:
+                hbond_layout = QHBoxLayout()
+                hbond_layout.setContentsMargins(0,0,0,0)
+                hbond_layout.setSpacing(0)
+                group_layout.addLayout(hbond_layout)
+                hbond_layout.addWidget(QLabel("Subtract"))
+                self.hbond_spinbox = QDoubleSpinBox()
+                self.hbond_spinbox.setDecimals(2)
+                self.hbond_spinbox.setSingleStep(0.1)
+                self.hbond_spinbox.setValue(final_val['hbond_allowance'])
+                self.hbond_spinbox.setSuffix('\N{ANGSTROM SIGN}')
+                hbond_layout.addWidget(self.hbond_spinbox)
+                hbond_layout.addWidget(QLabel("from overlap for potentially H-bonding pairs"), stretch=1,
+                    alignment=Qt.AlignLeft)
+            if show_bond_separation:
+                bond_sep_layout = QHBoxLayout()
+                bond_sep_layout.setContentsMargins(0,0,0,0)
+                bond_sep_layout.setSpacing(0)
+                group_layout.addLayout(bond_sep_layout)
+                bond_sep_layout.addWidget(QLabel("Ignore %s of pairs" % prox_words))
+                self.bond_sep_button = QPushButton()
+                bond_sep_layout.addWidget(self.bond_sep_button)
+                bond_sep_menu = QMenu()
+                for bond_sep in range(2, 6):
+                    bond_sep_menu.addAction(str(bond_sep))
+                bond_sep_menu.triggered.connect(lambda action, but=self.bond_sep_button:
+                    but.setText(action.text()))
+                self.bond_sep_button.setMenu(bond_sep_menu)
+                self.bond_sep_button.setText(str(bond_separation))
+                bond_sep_layout.addWidget(QLabel("or fewer bonds apart"), stretch=1,
+                    alignment=Qt.AlignLeft)
+            if show_boolean_params:
+                self.bool_param_options = bool_param_options = OptionsPanel(sorting=False, scrolled=False,
+                    contents_margins=(10,0,10,0))
+                group_layout.addWidget(bool_param_options, alignment=Qt.AlignCenter)
+                if show_inter_model:
+                    self.inter_model_option = BooleanOption("Include inter-model %s" % prox_words,
+                        None if settings else inter_model, None, attr_name="inter_model", settings=settings)
+                    bool_param_options.add_option(self.inter_model_option)
+                if show_inter_submodel:
+                    self.inter_submodel_option = BooleanOption("Include inter-submodel %s" % prox_words,
+                        None if settings else inter_submodel, None,
+                        attr_name="inter_submodel", settings=settings)
+                    bool_param_options.add_option(self.inter_submodel_option)
+                if show_intra_res:
+                    self.intra_res_option = BooleanOption("Include intra-residue %s" % prox_words,
+                        None if settings else intra_res, None, attr_name="intra_res", settings=settings)
+                    bool_param_options.add_option(self.intra_res_option)
+                if show_intra_mol:
+                    self.intra_mol_option = BooleanOption("Include intra-molecule %s" % prox_words,
+                        None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
+                    bool_param_options.add_option(self.intra_mol_option)
         return
         #TODO
         if show_make_pseudobonds:
@@ -476,6 +571,14 @@ class AtomProximityGUI(QWidget):
         self.desig1_atoms = selected_atoms(self.session)
         self._update_desig1_status()
 
+    def _designate2_cb(self):
+        from chimerax.atomic import selected_atoms, get_triggers
+        if self.desig2_atoms is None:
+            self.handlers.append(get_triggers().add_handler('changes', lambda trig_name, changes:
+                changes.num_destroyed_atoms() > 0 and self._update_desig2_status()))
+        self.desig2_atoms = selected_atoms(self.session)
+        self._update_desig2_status()
+
     def _inter_model_cb(self, opt):
         if opt.value:
             self.__intra_model_only_option.value = False
@@ -483,6 +586,20 @@ class AtomProximityGUI(QWidget):
     def _intra_model_cb(self, opt):
         if opt.value:
             self.__inter_model_only_option.value = False
+
+    def _test_change(self, but):
+        if but.text() == self.test_kw_to_label[None]:
+            show = True
+            color = "black" if self.desig1_atoms else "red"
+            desig2_but = but
+        else:
+            show = False
+            color = "black"
+            desig2_but = self.test_button_group.button(2)
+        self.desig2_button.setHidden(not show)
+        self.desig2_label.setHidden(not show)
+        self.desig2_status.setHidden(not show)
+        desig2_but.setStyleSheet("color: %s" % color)
 
     def _update_desig1_status(self):
         if self.desig1_atoms:
@@ -493,6 +610,19 @@ class AtomProximityGUI(QWidget):
             msg = "No atoms designated"
         self.desig1_status.setText(msg)
         self.desig1_status.setStyleSheet("color: %s" % color)
+
+    def _update_desig2_status(self):
+        if self.desig2_atoms:
+            color = "black"
+            msg = "%d atoms designated" % len(self.desig2_atoms)
+        else:
+            color = "red"
+            msg = "No second set"
+        tbg = self.test_button_group
+        if tbg.checkedButton() == tbg.button(2):
+            tbg.checkedButton().setStyleSheet("color: %s" % color)
+        self.desig2_status.setText(msg)
+        self.desig2_status.setStyleSheet("color: %s" % color)
 
 def is_default(func, kw, val):
     from inspect import signature
