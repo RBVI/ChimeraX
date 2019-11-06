@@ -82,12 +82,15 @@ class OptionsPanel(QWidget):
             self._form.itemAt(insert_row,
                 QFormLayout.LabelRole).widget().setToolTip(option.balloon)
 
-    def add_option_group(self, group_label=None, **kw):
+    def add_option_group(self, group_label=None, checked=None, **kw):
         if group_label is None:
             grouping_widget = QWidget()
         else:
             grouping_widget = QGroupBox(group_label)
             grouping_widget.setContentsMargins(1,grouping_widget.contentsMargins().top()//2,1,1)
+            if checked is not None:
+                grouping_widget.setCheckable(True)
+                grouping_widget.setChecked(checked)
         self._layout.addWidget(grouping_widget)
         suboptions = OptionsPanel(scrolled=False, **kw)
         self._option_groups.append(suboptions)

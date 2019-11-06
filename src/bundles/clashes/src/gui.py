@@ -13,11 +13,11 @@
 
 from .settings import defaults
 from PyQt5.QtWidgets import QWidget
+from chimerax.ui.options import OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
+    StringOption, OptionalRGBAOption, make_optional
 
 from chimerax.atomic import AtomicStructure
-from chimerax.core.colors import BuiltinColors
-from chimerax.ui.options import Option, OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
-    OptionalRGBAOption, make_optional
+from chimerax.ui.options import Option
 
 class AtomProximityGUI(QWidget):
     def __init__(self, session, name, prox_word, cmd_name, color, radius, hbond_allowance, overlap_cutoff,
@@ -56,7 +56,7 @@ class AtomProximityGUI(QWidget):
             show_checking_frequency=True, show_color=True, show_color_atoms=True, show_dashes=True,
             show_distance_only=True, show_hbond_allowance=True, show_inter_model=True,
             show_inter_submodel=False, show_intra_mol=True, show_intra_res=True, show_log=True,
-            show_make_pseudobonds=True, show_name=False, show_other_atom_color=True,
+            show_make_pseudobonds=True, show_name=True, show_other_atom_color=True,
             show_overlap_cutoff=True, show_radius=True, show_res_separation=True, show_reveal=True,
             show_save_file=True, show_select=True, show_set_attrs=True, show_show_dist=True,
             show_summary=True, show_test=True):
@@ -77,8 +77,8 @@ class AtomProximityGUI(QWidget):
         else:
             self.__settings = settings = _get_settings(session, settings_name, settings_defaults, cmd_name)
         final_val = {}
-        for name in settings_defaults.keys():
-            final_val[name] = getattr(settings, name) if settings else frame_dict[name]
+        for def_name in settings_defaults.keys():
+            final_val[def_name] = getattr(settings, def_name) if settings else frame_dict[def_name]
 
         super().__init__()
         from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QGroupBox, QLabel, QPushButton, QButtonGroup
@@ -168,32 +168,95 @@ class AtomProximityGUI(QWidget):
             group_layout.setContentsMargins(0,0,0,0)
             group_layout.setSpacing(5)
             group.setLayout(group_layout)
+            overlap_widgets = []
+            distance_only_widgets = []
+            if (show_overlap_cutoff or show_hbond_allowance) and show_distance_only:
+                test_type_layout = QGridLayout()
+                test_type_layout.setContentsMargins(0,0,0,0)
+                test_type_layout.setSpacing(0)
+                test_type_layout.setColumnStretch(1, 1)
+                group_layout.addLayout(test_type_layout)
+                overlap_rows = show_overlap_cutoff + show_hbond_allowance
+                self.overlap_radio = QRadioButton("")
+                test_type_layout.addWidget(self.overlap_radio, 0, 0, overlap_rows, 1)
+                self.distance_radio = QRadioButton("")
+                test_type_layout.addWidget(self.distance_radio, overlap_rows, 0)
+                def enable_widgets(enabled, enabled_widgets, disabled_widgets):
+                    for ew in enabled_widgets:
+                        ew.setEnabled(enabled)
+                    for dw in disabled_widgets:
+                        dw.setEnabled(not enabled)
+                self.overlap_radio.toggled.connect(lambda chk, *, ew=overlap_widgets,
+                    dw=distance_only_widgets, f=enable_widgets: f(chk, ew, dw))
+                self.distance_radio.toggled.connect(lambda chk, *, ew=distance_only_widgets,
+                    dw=overlap_widgets, f=enable_widgets: f(chk, ew, dw))
+                row = 0
+                if show_overlap_cutoff:
+                    cutoff_args = (row, 1)
+                    row += 1
+                if show_hbond_allowance:
+                    allowance_args = (row, 1)
+                    row += 1
+                distance_args = (row, 1)
+            else:
+                test_type_layout = group_layout
+                cutoff_args = allowance_args = distance_args = ()
             if show_overlap_cutoff:
                 overlap_layout = QHBoxLayout()
                 overlap_layout.setContentsMargins(0,0,0,0)
                 #overlap_layout.setSpacing(0)
-                group_layout.addLayout(overlap_layout)
-                overlap_layout.addWidget(QLabel("Find atoms with VDW overlap \N{GREATER-THAN OR EQUAL TO}"))
+                test_type_layout.addLayout(overlap_layout, *cutoff_args)
+                lab = QLabel("Find atoms with VDW overlap \N{GREATER-THAN OR EQUAL TO}")
+                overlap_widgets.append(lab)
+                overlap_layout.addWidget(lab)
                 self.overlap_spinbox = QDoubleSpinBox()
                 self.overlap_spinbox.setDecimals(2)
                 self.overlap_spinbox.setSingleStep(0.1)
                 self.overlap_spinbox.setValue(final_val['overlap_cutoff'])
                 self.overlap_spinbox.setSuffix('\N{ANGSTROM SIGN}')
+                overlap_widgets.append(self.overlap_spinbox)
                 overlap_layout.addWidget(self.overlap_spinbox, stretch=1, alignment=Qt.AlignLeft)
             if show_hbond_allowance:
                 hbond_layout = QHBoxLayout()
                 hbond_layout.setContentsMargins(0,0,0,0)
                 hbond_layout.setSpacing(0)
-                group_layout.addLayout(hbond_layout)
-                hbond_layout.addWidget(QLabel("Subtract"))
+                test_type_layout.addLayout(hbond_layout, *allowance_args)
+                lab = QLabel("Subtract")
+                overlap_widgets.append(lab)
+                hbond_layout.addWidget(lab)
                 self.hbond_spinbox = QDoubleSpinBox()
                 self.hbond_spinbox.setDecimals(2)
                 self.hbond_spinbox.setSingleStep(0.1)
                 self.hbond_spinbox.setValue(final_val['hbond_allowance'])
                 self.hbond_spinbox.setSuffix('\N{ANGSTROM SIGN}')
+                overlap_widgets.append(self.hbond_spinbox)
                 hbond_layout.addWidget(self.hbond_spinbox)
-                hbond_layout.addWidget(QLabel("from overlap for potentially H-bonding pairs"), stretch=1,
-                    alignment=Qt.AlignLeft)
+                lab = QLabel("from overlap for potentially H-bonding pairs")
+                overlap_widgets.append(lab)
+                hbond_layout.addWidget(lab, stretch=1, alignment=Qt.AlignLeft)
+            if show_distance_only:
+                distance_layout = QHBoxLayout()
+                distance_layout.setContentsMargins(0,0,0,0)
+                distance_layout.setSpacing(0)
+                test_type_layout.addLayout(distance_layout, *distance_args)
+                lab = QLabel("Find atoms whose center-center distance is \N{LESS-THAN OR EQUAL TO}")
+                distance_only_widgets.append(lab)
+                distance_layout.addWidget(lab)
+                self.dist_only_spinbox = QDoubleSpinBox()
+                self.dist_only_spinbox.setDecimals(2)
+                self.dist_only_spinbox.setSingleStep(0.1)
+                val = 1.4 if final_val['distance_only'] is None else final_val['distance_only']
+                self.dist_only_spinbox.setValue(val)
+                self.dist_only_spinbox.setSuffix('\N{ANGSTROM SIGN}')
+                distance_only_widgets.append(self.dist_only_spinbox)
+                distance_layout.addWidget(self.dist_only_spinbox, stretch=1, alignment=Qt.AlignLeft)
+            if overlap_widgets and distance_only_widgets:
+                if distance_only is None:
+                    self.overlap_radio.setChecked(True)
+                    enable_widgets(False, distance_only_widgets, overlap_widgets)
+                else:
+                    self.distance_radio.setChecked(True)
+                    enable_widgets(True, distance_only_widgets, overlap_widgets)
             if show_bond_separation:
                 bond_sep_layout = QHBoxLayout()
                 bond_sep_layout.setContentsMargins(0,0,0,0)
@@ -232,6 +295,120 @@ class AtomProximityGUI(QWidget):
                     self.intra_mol_option = BooleanOption("Include intra-molecule %s" % prox_words,
                         None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
                     bool_param_options.add_option(self.intra_mol_option)
+
+        if show_select or show_color_atoms or show_atom_color or show_other_atom_color \
+        or show_make_pseudobonds or show_color or show_dashes or show_radius or show_name or show_reveal \
+        or show_attr_name or show_set_attrs:
+            group = QGroupBox("Treatment of %s atoms" % prox_word)
+            layout.addWidget(group)
+            group_layout = QVBoxLayout()
+            group_layout.setContentsMargins(0,0,0,0)
+            group_layout.setSpacing(5)
+            group.setLayout(group_layout)
+            treatment_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(10,0,10,0))
+            group_layout.addWidget(treatment_options)
+            if show_select:
+                self.select_option = BooleanOption("Select",
+                    None if settings else select, None, attr_name="select", settings=settings)
+                treatment_options.add_option(self.select_option)
+            if show_color_atoms:
+                if show_atom_color or show_other_atom_color:
+                    # checkable group
+                    self.color_atoms_widget, sub_options = treatment_options.add_option_group(
+                        group_label="Color atoms", checked=final_val['color_atoms'],
+                        contents_margins=(10,0,10,0), sorting=False)
+                    subgroup_layout = QVBoxLayout()
+                    subgroup_layout.setContentsMargins(0,0,0,0)
+                    subgroup_layout.setSpacing(5)
+                    self.color_atoms_widget.setLayout(subgroup_layout)
+                    subgroup_layout.addWidget(sub_options)
+                    if show_atom_color:
+                        self.atom_color_option = OptionalRGBAOption("Color",
+                            None if settings else atom_color,
+                            None, attr_name="atom_color", settings=settings)
+                        sub_options.add_option(self.atom_color_option)
+                    if show_other_atom_color:
+                        self.other_atom_color_option = OptionalRGBAOption("Other atoms color",
+                            None if settings else other_atom_color,
+                            None, attr_name="other_atom_color", settings=settings)
+                        sub_options.add_option(self.other_atom_color_option)
+                else:
+                    # boolean
+                    self.color_atoms_widget = BooleanOption("Color atoms",
+                        None if settings else color_atoms, None, attr_name="color_atoms", settings=settings)
+                    treatment_options.add_option(self.color_atoms_widget)
+            else:
+                # booleans
+                if show_atom_color:
+                    self.atom_color_option = OptionalRGBAOption("Color", None if settings else atom_color,
+                        None, attr_name="atom_color", settings=settings)
+                    treatment_options.add_option(self.atom_color_option)
+                if show_other_atom_color:
+                    self.other_atom_color_option = OptionalRGBAOption("Other atoms color",
+                        None if settings else other_atom_color,
+                        None, attr_name="other_atom_color", settings=settings)
+                    treatment_options.add_option(self.other_atom_color_option)
+            if show_make_pseudobonds:
+                if show_color or show_dashes or show_radius or show_name:
+                    # checkable group
+                    self.make_pseudobonds_widget, sub_options = treatment_options.add_option_group(
+                        group_label="Draw pseudobonds", checked=final_val['make_pseudobonds'],
+                        contents_margins=(10,0,10,0), sorting=False)
+                    subgroup_layout = QVBoxLayout()
+                    subgroup_layout.setContentsMargins(0,0,0,0)
+                    subgroup_layout.setSpacing(5)
+                    self.make_pseudobonds_widget.setLayout(subgroup_layout)
+                    subgroup_layout.addWidget(sub_options)
+                    if show_color:
+                        self.color_option = ColorOption("Color", None if settings else color,
+                            None, attr_name="color", settings=settings)
+                        sub_options.add_option(self.color_option)
+                    if show_dashes:
+                        self.dashes_option = IntOption("Dashes", None if settings else dashes,
+                            None, attr_name="dashes", min=0, settings=settings)
+                        sub_options.add_option(self.dashes_option)
+                    if show_radius:
+                        self.radius_option = FloatOption("Radius", None if settings else radius,
+                            None, attr_name="radius", settings=settings)
+                        sub_options.add_option(self.radius_option)
+                    if show_name:
+                        self.name_option = StringOption("Group name", name, None)
+                        sub_options.add_option(self.name_option)
+                else:
+                    # boolean
+                    self.make_pseudobonds_widget = BooleanOption("Draw pseudobonds",
+                        None if settings else make_pseudobonds, None, attr_name="make_pseudobonds",
+                        settings=settings)
+                    treatment_options.add_option(self.make_pseudobonds_widget)
+            else:
+                # booleans
+                if show_color:
+                    self.color_option = ColorOption("Color", None if settings else color,
+                        None, attr_name="color", settings=settings)
+                    treatment_options.add_option(self.color_option)
+                if show_radius:
+                    self.radius_option = FloatOption("Radius",
+                        None if settings else radius,
+                        None, attr_name="radius", settings=settings)
+                    treatment_options.add_option(self.radius_option)
+            if show_reveal:
+                self.reveal_option = BooleanOption("If endpoint atom hidden, show its residue",
+                    None if settings else reveal, None, attr_name="reveal", settings=settings)
+                treatment_options.add_option(self.reveal_option)
+            if show_set_attrs:
+                if show_attr_name:
+                    combo_option = make_optional(StringOption)
+                    self.set_attrs_option = self.attr_name_option = combo_option("Assign attribute named",
+                        final_val['attr_name'], None)
+                    if not final_val['set_attrs']:
+                        # done this way so that attr name is not blank
+                        self.set_attrs_option.value = None
+                else:
+                    self.set_attrs_option = BooleanOption("Assign attribute", final_val['set_attrs'], None)
+                treatment_options.add_option(self.set_attrs_option)
+            elif show_attr_name:
+                self.attr_name_option = StringOption("Attribute name", final_val['attr_name'], None)
+                treatment_options.add_option(self.attr_name_option)
         return
         #TODO
         if show_make_pseudobonds:
@@ -642,18 +819,22 @@ def is_default(func, kw, val):
     return param.default == val
 
 class ClashesGUI(AtomProximityGUI):
-    def __init__(self, session, name="clashes", hbond_allowance=defaults["clash_hbond_allowance"],
+    def __init__(self, session, *, name="clashes", hbond_allowance=defaults["clash_hbond_allowance"],
             overlap_cutoff=defaults["clash_threshold"], **kw):
         from .cmd import handle_clash_kw
         color, radius = handle_clash_kw(kw)
+        if 'show_distance_only' not in kw:
+            kw['show_distance_only'] = False
         super().__init__(session, name, "clash", "clashes", color, radius,
             hbond_allowance, overlap_cutoff, **kw)
 
 class ContactsGUI(AtomProximityGUI):
-    def __init__(self, session, name="contacts", hbond_allowance=defaults["clash_hbond_allowance"],
+    def __init__(self, session, *, name="contacts", hbond_allowance=defaults["clash_hbond_allowance"],
             overlap_cutoff=defaults["contact_threshold"], **kw):
         from .cmd import handle_contact_kw
         color, radius = handle_contact_kw(kw)
+        if 'show_hbond_allowance' not in kw:
+            kw['show_hbond_allowance'] = False
         super().__init__(session, name, "contact", "contacts", color, radius,
             hbond_allowance, overlap_cutoff, **kw)
 
