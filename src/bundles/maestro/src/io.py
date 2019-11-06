@@ -1,8 +1,15 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def open_mae(session, path, file_name, auto_style, atomic):
-    with open(path) as stream:
-        p = MaestroParser(session, stream, file_name, auto_style, atomic)
+    import os.path
+    extension = os.path.splitext(path)[1]
+    if extension == ".mae":
+        with open(path) as stream:
+            p = MaestroParser(session, stream, file_name, auto_style, atomic)
+    elif extension == ".maegz":
+        import gzip
+        with gzip.open(path, "rt") as stream:
+            p = MaestroParser(session, stream, file_name, auto_style, atomic)
     structures = p.structures
     def num_atoms(s):
         try:
@@ -55,14 +62,14 @@ class MaestroParser:
             s = self._make_structure(block)
             if s:
                 try:
-                    is_receptor = block.get_attribute("b_glide_receptor")
+                    is_ligand = block.get_attribute("r_i_docking_score")
                 except (KeyError, ValueError):
-                    is_receptor = False
-                if is_receptor:
-                    receptors.append(s)
-                else:
+                    is_ligand = False
+                if is_ligand:
                     ligands.append(s)
-                self._add_properties(s, block, is_receptor)
+                else:
+                    receptors.append(s)
+                self._add_properties(s, block, is_ligand)
                 s.name = name
         if not receptors:
             self.structures = ligands
@@ -159,7 +166,7 @@ class MaestroParser:
                 b.order = attrs["i_m_order"]
         return s
 
-    def _add_properties(self, s, block, is_receptor):
+    def _add_properties(self, s, block, is_ligand):
         """Add properties to molecule."""
         from .maestro import get_value
         attrs = block.get_attribute_map()
@@ -185,7 +192,7 @@ class MaestroParser:
                 d[name] = converted_value
             raw_text.append("%s: %s" % (name, value))
         s.maestro_text = '\n'.join(raw_text)
-        if not is_receptor:
+        if is_ligand:
             s.viewdockx_data = d
 
     def _split_key(self, key, limit):
