@@ -116,7 +116,8 @@ def register_surface_subcommands(logger):
     register('surface unzone', unzone_desc, surface_unzone, logger=logger)
 
     from chimerax.core.commands import create_alias
-    create_alias('sop', 'surface $*', logger=logger)
+    create_alias('sop', 'surface $*', logger=logger,
+            url="help:user/commands/surface.html#sop")
 
 #NOTE: below is unported code
 # -----------------------------------------------------------------------------
