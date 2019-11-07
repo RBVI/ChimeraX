@@ -211,7 +211,7 @@ def make_optional(cls):
         from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLayout
         self.widget = layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(5)
+        layout.setSpacing(0)
         from PyQt5.QtCore import Qt
         self._check_box = cb = QCheckBox()
         cb.setAttribute(Qt.WA_LayoutUsesWidgetRect)
@@ -221,11 +221,11 @@ def make_optional(cls):
             s.widget, s._orig_widget = s._orig_widget, s.widget
             s.make_callback()
         cb.clicked.connect(lambda state, s=self: enable_and_call(s))
-        layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         if isinstance(self._orig_widget, QLayout):
             layout.addLayout(self._orig_widget, stretch=1)
         else:
-            layout.addWidget(self._orig_widget, stretch=1, alignment=Qt.AlignLeft)
+            layout.addWidget(self._orig_widget, stretch=1, alignment=Qt.AlignLeft | Qt.AlignVCenter)
 
     attr_dict = {
         'value': property(get_value, set_value),
@@ -290,6 +290,7 @@ class EnumBase(Option):
         if display_value is None:
             display_value = self.default
         self.__widget = QPushButton(display_value, **kw)
+        self.__widget.setAutoDefault(False)
         menu = QMenu()
         self.__widget.setMenu(menu)
         self.remake_menu()

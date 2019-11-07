@@ -66,16 +66,16 @@ class AtomProximityGUI(QWidget):
         from inspect import getargvalues, currentframe
         arg_names, var_args, var_kw, frame_dict = getargvalues(currentframe())
         settings_defaults = {}
-        self.__show_values = {}
+        self.show_values = {}
         for arg_name in arg_names:
             if not arg_name.startswith('show_') or 'show_' + arg_name in arg_names:
                 settings_defaults[arg_name] = frame_dict[arg_name]
             else:
-                self.__show_values[arg_name[5:]] = frame_dict[arg_name]
+                self.show_values[arg_name[5:]] = frame_dict[arg_name]
         if settings_name is None:
-            self.__settings = settings = None
+            self.settings = settings = None
         else:
-            self.__settings = settings = _get_settings(session, settings_name, settings_defaults, cmd_name)
+            self.settings = settings = _get_settings(session, settings_name, settings_defaults, cmd_name)
         final_val = {}
         for def_name in settings_defaults.keys():
             final_val[def_name] = getattr(settings, def_name) if settings else frame_dict[def_name]
@@ -316,8 +316,8 @@ class AtomProximityGUI(QWidget):
                     bool_param_options.add_option(self.intra_mol_option)
 
         if show_select or show_color_atoms or show_atom_color or show_other_atom_color \
-        or show_make_pseudobonds or show_color or show_dashes or show_radius or show_name or show_reveal \
-        or show_attr_name or show_set_attrs or show_log or show_save_file:
+        or show_make_pseudobonds or show_color or show_dashes or show_radius or show_show_dist or show_name \
+        or show_reveal or show_attr_name or show_set_attrs or show_log or show_save_file:
             group = QGroupBox("Treatment of %s atoms" % prox_word)
             layout.addWidget(group)
             group_layout = QVBoxLayout()
@@ -368,7 +368,7 @@ class AtomProximityGUI(QWidget):
                         None, attr_name="other_atom_color", settings=settings)
                     treatment_options.add_option(self.other_atom_color_option)
             if show_make_pseudobonds:
-                if show_color or show_dashes or show_radius or show_name:
+                if show_color or show_dashes or show_radius or show_show_dist or show_name:
                     # checkable group
                     self.make_pseudobonds_widget, sub_options = treatment_options.add_option_group(
                         group_label="Draw pseudobonds", checked=final_val['make_pseudobonds'],
@@ -390,7 +390,11 @@ class AtomProximityGUI(QWidget):
                         self.radius_option = FloatOption("Radius", None if settings else radius,
                             None, attr_name="radius", settings=settings)
                         sub_options.add_option(self.radius_option)
-                    if show_name:
+                    if show_show_dist:
+                        self.show_dist_option = BooleanOption("Distance label",
+                            None if settings else show_dist, None, attr_name="show_dist", settings=settings)
+                        sub_options.add_option(self.show_dist_option)
+                    if show_name  :
                         self.name_option = StringOption("Group name", name, None)
                         sub_options.add_option(self.name_option)
                 else:
@@ -476,7 +480,7 @@ class AtomProximityGUI(QWidget):
         super().destroy()
 
     def get_command(self):
-        """Used to generate the 'hbonds' command that can be run to produce the requested H-bonds.
+        """Used to generate the command that can be run to produce the requested action.
            Returns three strings:
               1) The command name
               2) The atom spec to provide just after the command name
@@ -489,7 +493,7 @@ class AtomProximityGUI(QWidget):
         command_values = {}
 
         # never saved in settings
-        if self.__show_values['model_restrict']:
+        if self.show_values['model_restrict']:
             models = self.__model_restrict_option.value
             if models is None:
                 atom_spec = ""
@@ -501,7 +505,7 @@ class AtomProximityGUI(QWidget):
         else:
             atom_spec = ""
 
-        if self.__show_values['bond_restrict']:
+        if self.show_values['bond_restrict']:
             bond_restrict = self.__bond_restrict_option.value
             if bond_restrict is not None:
                 command_values['restrict'] = bond_restrict
@@ -510,7 +514,7 @@ class AtomProximityGUI(QWidget):
                 else:
                     atom_spec = "sel"
 
-        if self.__show_values['save_file']:
+        if self.show_values['save_file']:
             if self.__save_file_option.value:
                 from PyQt5.QtWidgets import QFileDialog
                 fname = QFileDialog.getSaveFileName(self, "Save H-Bonds File")[0]
@@ -525,40 +529,40 @@ class AtomProximityGUI(QWidget):
             command_values['save_file'] = None
 
         # may be saved in settings
-        if self.__show_values['color']:
+        if self.show_values['color']:
             settings['color'] = self.__color_option.value
         else:
             settings['color'] = None
 
-        if self.__show_values['radius']:
+        if self.show_values['radius']:
             settings['radius'] = self.__radius_option.value
         else:
             settings['radius'] = None
 
-        if self.__show_values['dashes']:
+        if self.show_values['dashes']:
             settings['dashes'] = self.__dashes_option.value
         else:
             settings['dashes'] = None
 
-        if self.__show_values['show_dist']:
-            settings['show_dist'] = self.__show_dist_option.value
+        if self.show_values['show_dist']:
+            settings['show_dist'] = self.show_dist_option.value
         else:
             settings['show_dist'] = None
 
-        if self.__show_values['inter_intra_model']:
+        if self.show_values['inter_intra_model']:
             settings['inter_model'] = not self.__intra_model_only_option.value
             settings['intra_model'] = not self.__inter_model_only_option.value
         else:
             settings['inter_model'] = settings['intra_model'] = None
 
-        if self.__show_values['relax']:
+        if self.show_values['relax']:
             settings['relax'] = self.__relax_group.isChecked()
-            if self.__show_values['slop']:
+            if self.show_values['slop']:
                 settings['dist_slop'] = self.__dist_slop_option.value
                 settings['angle_slop'] = self.__angle_slop_option.value
             else:
                 settings['dist_slop'] = settings['angle_slop'] = None
-            if self.__show_values['slop_color']:
+            if self.show_values['slop_color']:
                 slop_color_value = self.__slop_color_option.value
                 if slop_color_value is None:
                     settings['two_colors'] = False
@@ -572,49 +576,49 @@ class AtomProximityGUI(QWidget):
             settings['relax'] = settings['dist_slop'] = settings['angle_slop'] = None
             settings['two_colors'] = settings['slop_color'] = None
 
-        if self.__show_values['salt_only']:
+        if self.show_values['salt_only']:
             settings['salt_only'] = self.__salt_only_option.value
         else:
             settings['salt_only'] = None
 
-        if self.__show_values['intra_mol']:
+        if self.show_values['intra_mol']:
             settings['intra_mol'] = self.__intra_mol_option.value
         else:
             settings['intra_mol'] = None
 
-        if self.__show_values['intra_res']:
+        if self.show_values['intra_res']:
             settings['intra_res'] = self.__intra_res_option.value
         else:
             settings['intra_res'] = None
 
-        if self.__show_values['inter_submodel']:
+        if self.show_values['inter_submodel']:
             settings['inter_submodel'] = self.__inter_submodel_option.value
         else:
             settings['inter_submodel'] = None
 
-        if self.__show_values['reveal']:
+        if self.show_values['reveal']:
             settings['reveal'] = self.__reveal_option.value
         else:
             settings['reveal'] = None
 
-        if self.__show_values['retain_current']:
+        if self.show_values['retain_current']:
             settings['retain_current'] = self.__retain_current_option.value
         else:
             settings['retain_current'] = None
 
-        if self.__show_values['log']:
+        if self.show_values['log']:
             settings['log'] = self.__log_option.value
         else:
             settings['log'] = None
 
-        if self.__settings:
+        if self.settings:
             saveables = []
             for attr_name, value in settings.items():
                 if value is not None:
-                    setattr(self.__settings, attr_name, value)
+                    setattr(self.settings, attr_name, value)
                     saveables.append(attr_name)
             if saveables:
-                self.__settings.save(settings=saveables)
+                self.settings.save(settings=saveables)
 
         def val_to_str(ses, val, kw):
             from chimerax.core.commands import \
@@ -779,4 +783,3 @@ def _get_settings(session, base_name, settings_defaults, name_mod):
 
     return HBondGUISettings(session, settings_name)
 
-#TODO: settings that need explicit save: inter_model, intra_model, two_colors, slop_color

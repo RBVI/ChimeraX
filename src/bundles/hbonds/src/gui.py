@@ -536,4 +536,3 @@ def _get_settings(session, base_name, settings_defaults):
 
     return HBondGUISettings(session, settings_name)
 
-#TODO: settings that need explicit save: inter_model, intra_model, two_colors, slop_color
