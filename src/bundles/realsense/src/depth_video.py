@@ -36,7 +36,6 @@ def device_realsense(session, enable = None,
         session.logger.info(msg)
     else:
         session.models.close(di)
-        print ('closed RealSense camera', len(di))
             
 # -----------------------------------------------------------------------------
 #
@@ -78,8 +77,6 @@ class DepthVideo (Model):
         self._start_video()
 
     def delete(self):
-        raise RuntimeError('Deleted real sense')
-        print ('deleted realsense camera')
         t = self._update_trigger
         if t:
             self.session.triggers.remove_handler(t)
@@ -92,6 +89,12 @@ class DepthVideo (Model):
             self.pipeline = None
             
         Model.delete(self)
+
+        # Do this after Model.delete() so opengl context made current
+        dt = self._depth_texture
+        if dt:
+            dt.delete_texture()
+            self._depth_texture = None
         
     def _start_video(self):
         # Configure depth and color streams
@@ -229,11 +232,6 @@ class DepthVideo (Model):
         rgba_drawing(self, color, (-1, -1), (2, 2))
         from chimerax.core.graphics import Texture
         self._depth_texture = Texture(depth)
-         
-    def delete(self):
-        Model.delete(self)	# Do this first so opengl context made current
-        self._depth_texture.delete_texture()
-        self._depth_texture = None
         
     def draw(self, renderer, draw_pass):
         '''Render a color and depth texture pair.'''
