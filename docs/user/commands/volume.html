@@ -187,6 +187,13 @@ with varying intensity and opacity.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
+  <a name="close"><b>close</b></a> &nbsp;surface | image
+<br>
+Close submodels with display style <b>surface</b>
+(including both surface and mesh) or <b>image</b>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
   <a name="pickable"><b>pickable</b></a> &nbsp;true | false
 <br>
 Whether a volume model should be <a href="../selection.html">selectable</a>
@@ -205,7 +212,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 <a href="#dispsolid">image display options</a>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="level"><b>level</b> &nbsp;<i>threshold-level</i></a>
+  <a name="level"><b>level</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>Place a <b><i>threshold</i></b>
   for mapping data values to the display. Can be given multiple times
   in the same command for multiple contour levels on the same volume data.
@@ -238,10 +245,10 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="rmsLevel"><b>rmsLevel</b> &nbsp;<i>threshold-level</i></a>
+  <a name="rmsLevel"><b>rmsLevel</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="sdLevel"><b>sdLevel</b> &nbsp;<i>threshold-level</i></a>
+  <a name="sdLevel"><b>sdLevel</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>
   Same as <a href="#level"><b>level</b></a>, except with <i>threshold-level</i>
   specified in units of root-mean-square (RMS) deviations from zero
@@ -254,7 +261,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="color"></a>
-  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;
   <br>Assign <a href="#level">threshold</a> color.
 Can be given multiple times in the same command if multiple 
 <a href="#level">threshold levels</a> are also specified.
@@ -272,17 +279,17 @@ if multiple levels and colors are given, there must be an equal number of each.
 Levels and colors are paired in the order given,
 but they do not need to be interleaved; 
 only the ordering of each type of specification (levels or colors)
-is significant.
+is significant. 
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a> 
+  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a>&nbsp;
   <br>Brightness scales the intensity of the <a href="#color">color</a> 
   (default <b>1.0</b>). A value greater than 1.0 may be used, but the RGB color 
   components multiplied by the value are clamped to the range 0.0&ndash;1.0.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>
+  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>&nbsp;
   <br>Transparency values range from 0.0 (fully opaque) 
   to 1.0 (fully transparent).
   <ul class="circle">
@@ -302,6 +309,23 @@ is significant.
   By default, more transparent voxels are made dimmer
   (see <a href="#dimvox"><b>dimTransparentVoxels</b></a>).
   </ul>
+</blockquote>
+<blockquote>
+<a href="#top" class="nounder">&bull;</a>
+<a name="change"></a><b>change</b> &nbsp;surface | image
+<br>
+The <b>change</b> option is only needed to change settings of a
+hidden display style when a volume model has both
+<b>surface</b> (surface and/or mesh) and <b>image</b> submodels.
+It applies to settings specified with <a href="#level"><b>level</b></a>,
+<a href="#rmsLevel"><b>rmsLevel</b></a>,
+<a href="#sdLevel"><b>sdLevel</b></a>,
+<a href="#color"><b>color</b></a>,
+<a href="#brightness"><b>brightness</b></a>,
+and <a href="#transparency"><b>transparency</b></a>.
+If <b>change</b> is not used,
+the setting applies to whichever style is currently shown.
+</p>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -2372,5 +2396,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+November 2019</address>
 </body></html>

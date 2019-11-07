@@ -258,7 +258,8 @@ def _update_tools(toolshed, doc_ul, doc):
         if synopsis:
             synopsis = " \N{En dash} " + synopsis
         if href is None:
-            doc_ul.insert(i, E.LI(E.B(name), synopsis))
+            e = E.LI(E.B(name), synopsis)
         else:
-            doc_ul.insert(
-                i, E.LI(E.A(E.B(name), href=href), synopsis))
+            e = E.LI(E.A(E.B(name), href=href), synopsis)
+        e.tail = '\n'
+        doc_ul.insert(i, e)

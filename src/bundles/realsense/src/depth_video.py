@@ -15,7 +15,7 @@
 #
 def device_realsense(session, enable = None,
                      angstroms_per_meter = 50,
-                     projector = False):
+                     projector = False, align = False):
 
     di = session.models.list(type = DepthVideo)
     if enable:
@@ -26,7 +26,8 @@ def device_realsense(session, enable = None,
 
         di = DepthVideo('RealSense camera', session,
                         depth_scale = angstroms_per_meter,
-                        use_ir_projector = projector)
+                        use_ir_projector = projector,
+                        align_color_and_depth = align)
         session.models.add([di])
     elif enable is None:
         if di:
@@ -36,14 +37,15 @@ def device_realsense(session, enable = None,
         session.logger.info(msg)
     else:
         session.models.close(di)
-        print ('closed RealSense camera', len(di))
             
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg
     desc = CmdDesc(optional = [('enable', BoolArg)],
-                   keyword = [('angstroms_per_meter', FloatArg)],
+                   keyword = [('angstroms_per_meter', FloatArg),
+                              ('projector', BoolArg),
+                              ('align', BoolArg)],
                    synopsis = 'Turn on RealSense camera rendering')
     register('device realsense', desc, device_realsense, logger=logger)
             
@@ -53,8 +55,9 @@ from chimerax.core.models import Model
 class DepthVideo (Model):
     skip_bounds = True
     def __init__(self, name, session,
-                 depth_scale = 50,	# Angstroms per meter.
-                 use_ir_projector = False  # Interferes with Vive VR tracking
+                 depth_scale = 50,	        # Angstroms per meter.
+                 use_ir_projector = False,      # Interferes with Vive VR tracking
+                 align_color_and_depth = False  # This slows frame rate to ~10 frames/sec
     ):
         Model.__init__(self, name, session)
 
@@ -66,6 +69,7 @@ class DepthVideo (Model):
         self._realsense_color_field_of_view = (69.4,42.5) # TODO: Get this from pyrealsense
         self._realsense_depth_field_of_view = (91.2,65.5) # TODO: Get this from pyrealsense
         self._use_ir_projector = use_ir_projector
+        self._align_color_and_depth = align_color_and_depth
         self._pipeline_started = False
         self._frames_per_second = 30	# RealSense frame rate: 30, 15, 6 at depth 1280x720, or 60,90 at 848x480
                                         #  6,15,30 at color 1920x1080, 60 at 1280x720
@@ -78,8 +82,6 @@ class DepthVideo (Model):
         self._start_video()
 
     def delete(self):
-        raise RuntimeError('Deleted real sense')
-        print ('deleted realsense camera')
         t = self._update_trigger
         if t:
             self.session.triggers.remove_handler(t)
@@ -92,6 +94,12 @@ class DepthVideo (Model):
             self.pipeline = None
             
         Model.delete(self)
+
+        # Do this after Model.delete() so opengl context made current
+        dt = self._depth_texture
+        if dt:
+            dt.delete_texture()
+            self._depth_texture = None
         
     def _start_video(self):
         # Configure depth and color streams
@@ -152,8 +160,10 @@ class DepthVideo (Model):
         # Align the depth frame to color frame
         # TODO: Alignment is slow causing stuttering in VR.  Interpolate aligned depth
         #       values on GPU by scaling texture coordinate.
-#        aligned_frames = self.align.process(frames)
-        aligned_frames = frames
+        if self._align_color_and_depth:
+            aligned_frames = self.align.process(frames)
+        else:
+            aligned_frames = frames
 
         depth_frame = aligned_frames.get_depth_frame()
         color_frame = aligned_frames.get_color_frame()
@@ -190,8 +200,33 @@ class DepthVideo (Model):
             print('depth fov', dfov)
             self._realsense_depth_field_of_view = dfov
             print('extrinsics color to depth', color_frame.profile.get_extrinsics_to(depth_frame.profile))
+            '''
+            self._ave_depth_image = depth_image.copy()
+            from numpy import int16
+            self._last_color_image = color_image.copy().astype(int16)
+            '''
         else:
             self.texture.reload_texture(color_image)
+            '''
+            # Average depth over several frames to reduce flicker
+            ave = self._ave_depth_image
+            f = .1
+            from numpy import average, putmask, abs, logical_or
+            putmask(depth_image, (depth_image == 0), ave)  # depth 0 values are unknown, don't change average
+            ave[:] = average((depth_image, ave), axis = 0, weights = (f, 1-f)).astype(ave.dtype)
+
+            # Update depth without averaging if color change a lot.
+            cdiff = abs(color_image - self._last_color_image)
+            cmax = 10
+            cfast = (cdiff[:,:,0] > cmax)
+            logical_or(cdiff[:,:,1] > cmax, cfast, cfast)
+            logical_or(cdiff[:,:,2] > cmax, cfast, cfast)
+            putmask(ave, cfast, depth_image)
+            self._last_color_image[:] = color_image
+            
+            self._depth_texture.reload_texture(ave)
+            '''
+            
             self._depth_texture.reload_texture(depth_image)
 
         self.redraw_needed()
@@ -229,11 +264,6 @@ class DepthVideo (Model):
         rgba_drawing(self, color, (-1, -1), (2, 2))
         from chimerax.core.graphics import Texture
         self._depth_texture = Texture(depth)
-         
-    def delete(self):
-        Model.delete(self)	# Do this first so opengl context made current
-        self._depth_texture.delete_texture()
-        self._depth_texture = None
         
     def draw(self, renderer, draw_pass):
         '''Render a color and depth texture pair.'''

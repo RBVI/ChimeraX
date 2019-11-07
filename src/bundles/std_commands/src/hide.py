@@ -117,4 +117,5 @@ def register_command(logger):
         synopsis='hide specified objects')
     register('hide', desc, hide, logger=logger)
     create_alias('~show', 'hide $*', logger=logger)
-    create_alias('~display', 'hide $*', logger=logger)
+    create_alias('~display', 'hide $*', logger=logger,
+            url="help:user/commands/show.html")
