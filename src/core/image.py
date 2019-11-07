@@ -151,7 +151,12 @@ def save_image(session, path, format_name, width=None, height=None,
     if i is not None:
         i.save(path, fmt.pil_name, **metadata)
     else:
-        session.logger.warning("Unable to save image of size %d by %d." % (width, height))
+        msg = "Unable to save image"
+        if width is not None:
+            msg += ', width %d' % width
+        if height is not None:
+            msg += ', height %d' % height
+        session.logger.warning(msg)
 
 
 def register_image_save(session):
