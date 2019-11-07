@@ -21,7 +21,7 @@ from chimerax.ui.options import Option
 
 class AtomProximityGUI(QWidget):
     def __init__(self, session, name, prox_word, cmd_name, color, radius, hbond_allowance, overlap_cutoff,
-            *, settings_name="",
+            has_apply_button, *, settings_name="",
 
             # settings_name values:
             #   empty string: remembered across sessions and the same as for the main contacts/clashes
@@ -59,7 +59,7 @@ class AtomProximityGUI(QWidget):
             show_make_pseudobonds=True, show_name=True, show_other_atom_color=True,
             show_overlap_cutoff=True, show_radius=True, show_res_separation=True, show_reveal=True,
             show_save_file=True, show_select=True, show_set_attrs=True, show_show_dist=True,
-            show_summary=True, show_test=True):
+            show_summary=False, show_test=True):
 
         self.session = session
 
@@ -83,13 +83,14 @@ class AtomProximityGUI(QWidget):
         super().__init__()
         from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QGroupBox, QLabel, QPushButton, QButtonGroup
         from PyQt5.QtWidgets import QRadioButton, QAbstractButton, QHBoxLayout, QDoubleSpinBox, QMenu
+        from PyQt5.QtWidgets import QSpinBox, QCheckBox
         from PyQt5.QtCore import Qt
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
         layout.setSizeConstraint(QVBoxLayout.SetFixedSize)
         self.setLayout(layout)
-        self.handlers = []
+        self.handlers = {}
 
         if test_atoms is None:
             self.desig1_atoms = None
@@ -122,7 +123,9 @@ class AtomProximityGUI(QWidget):
                 self.desig2_atoms = None
                 test_layout = QGridLayout()
                 test_layout.setContentsMargins(0,0,0,0)
-                #test_layout.setSpacing(0)
+                test_layout.setSpacing(5)
+                test_layout.setColumnStretch(0, 1)
+                test_layout.setColumnStretch(3, 1)
                 group_layout.addLayout(test_layout)
                 self.test_kw_to_label = {
                     'self': "themselves",
@@ -132,12 +135,12 @@ class AtomProximityGUI(QWidget):
                 self.test_label_to_kw = { v:k for k,v in self.test_kw_to_label.items() }
                 test_label = QLabel("Check designated\natoms against:")
                 test_label.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
-                test_layout.addWidget(test_label, 0, 0, len(self.test_kw_to_label), 1,
+                test_layout.addWidget(test_label, 0, 1, len(self.test_kw_to_label), 1,
                     alignment=Qt.AlignRight)
                 self.test_button_group = QButtonGroup()
                 for i, kw in enumerate(['self', 'others', None]):
                     but = QRadioButton(self.test_kw_to_label[kw])
-                    test_layout.addWidget(but, i, 1, alignment=Qt.AlignLeft)
+                    test_layout.addWidget(but, i, 2, alignment=Qt.AlignLeft)
                     if final_val['test'] == kw:
                         but.setChecked(True)
                     self.test_button_group.addButton(but, i)
@@ -145,7 +148,7 @@ class AtomProximityGUI(QWidget):
                 desig2_layout = QGridLayout()
                 desig2_layout.setContentsMargins(0,0,0,0)
                 desig2_layout.setSpacing(0)
-                test_layout.addLayout(desig2_layout, 3, 0, 1, 2, alignment=Qt.AlignCenter)
+                test_layout.addLayout(desig2_layout, 3, 1, 1, 2, alignment=Qt.AlignCenter)
                 self.desig2_button = QPushButton("Designate")
                 self.desig2_button.clicked.connect(self._designate2_cb)
                 desig2_layout.addWidget(self.desig2_button, 0, 0, alignment=Qt.AlignRight)
@@ -274,6 +277,22 @@ class AtomProximityGUI(QWidget):
                 self.bond_sep_button.setText(str(bond_separation))
                 bond_sep_layout.addWidget(QLabel("or fewer bonds apart"), stretch=1,
                     alignment=Qt.AlignLeft)
+            if show_res_separation:
+                res_sep_layout = QHBoxLayout()
+                res_sep_layout.setContentsMargins(0,0,0,0)
+                #res_sep_layout.setSpacing(0)
+                group_layout.addLayout(res_sep_layout)
+                self.res_sep_checkbox = QCheckBox("Only find %s between residues at least" % prox_words)
+                final_rs_val = final_val['res_separation']
+                self.res_sep_checkbox.setChecked(final_rs_val is not None)
+                res_sep_layout.addWidget(self.res_sep_checkbox)
+                val = 5 if final_rs_val is None else final_rs_val
+                self.res_sep_spinbox = rs_box = QSpinBox()
+                rs_box.setMinimum(1)
+                rs_box.setValue(val)
+                res_sep_layout.addWidget(rs_box)
+                res_sep_layout.addWidget(QLabel("apart in sequence"), stretch=1, alignment=Qt.AlignLeft)
+
             if show_boolean_params:
                 self.bool_param_options = bool_param_options = OptionsPanel(sorting=False, scrolled=False,
                     contents_margins=(10,0,10,0))
@@ -298,7 +317,7 @@ class AtomProximityGUI(QWidget):
 
         if show_select or show_color_atoms or show_atom_color or show_other_atom_color \
         or show_make_pseudobonds or show_color or show_dashes or show_radius or show_name or show_reveal \
-        or show_attr_name or show_set_attrs:
+        or show_attr_name or show_set_attrs or show_log or show_save_file:
             group = QGroupBox("Treatment of %s atoms" % prox_word)
             layout.addWidget(group)
             group_layout = QVBoxLayout()
@@ -392,7 +411,7 @@ class AtomProximityGUI(QWidget):
                         None, attr_name="radius", settings=settings)
                     treatment_options.add_option(self.radius_option)
             if show_reveal:
-                self.reveal_option = BooleanOption("If endpoint atom hidden, show its residue",
+                self.reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
                     None if settings else reveal, None, attr_name="reveal", settings=settings)
                 treatment_options.add_option(self.reveal_option)
             if show_set_attrs:
@@ -409,152 +428,51 @@ class AtomProximityGUI(QWidget):
             elif show_attr_name:
                 self.attr_name_option = StringOption("Attribute name", final_val['attr_name'], None)
                 treatment_options.add_option(self.attr_name_option)
-        return
-        #TODO
-        if show_make_pseudobonds:
-            self.__make_pb_group = group = QGroupBox("Display as pseudobonds")
+            if show_log or show_save_file:
+                group = QGroupBox("Write information to:")
+                layout.addWidget(group)
+                info_layout = QVBoxLayout()
+                info_layout.setContentsMargins(0,0,0,0)
+                info_layout.setSpacing(0)
+                group.setLayout(info_layout)
+                info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
+                info_layout.addWidget(info_options)
+
+                if show_log:
+                    self.log_option = BooleanOption("Log", None if settings else log, None, attr_name="log",
+                        settings=settings)
+                    info_options.add_option(self.log_option)
+
+                if show_save_file:
+                    self.save_file_option = BooleanOption("File", False, None)
+                    info_options.add_option(self.save_file_option)
+            if show_summary:
+                self.summary_option = BooleanOption("Log total number of %s" % prox_words,
+                    None if settings else summary, None, attr_name="summary", settings=settings)
+                treatment_options.add_option(self.summary_option)
+
+        if show_checking_frequency:
+            group = QGroupBox("Frequency of checking")
             layout.addWidget(group)
-            group.setCheckable(True)
-            group.setChecked(final_val['make_pseudobonds'])
-            make_pb_layout = QVBoxLayout()
-            make_pb_layout.setContentsMargins(0,0,0,0)
-            make_pb_layout.setSpacing(0)
-            group.setLayout(make_pb_layout)
-            make_pb_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
-            make_pb_layout.addWidget(make_pb_options)
-            if show_color:
-                self.__color_option = ColorOption("Color", None if settings else color, None,
-                    attr_name="color", settings=settings)
-                make_pb_options.add_option(self.__color_option)
-            if show_radius:
-                self.__radius_option = FloatOption("Radius", None if settings else radius, None,
-                    attr_name="radius", min='positive', settings=settings)
-                self.__radius_option.widget.setSuffix("\N{ANGSTROM SIGN}")
-                make_pb_options.add_option(self.__radius_option)
-            if show_dashes:
-                self.__dashes_option = IntOption("Dashes", None if settings else dashes, None,
-                    attr_name="dashes", min=0, settings=settings)
-                make_pb_options.add_option(self.__dashes_option)
-            if show_show_dist:
-                self.__show_dist_option = BooleanOption("Distance label",
-                    None if settings else show_dist, None, attr_name="show_dist", settings=settings)
-                make_pb_options.add_option(self.__show_dist_option)
-            if show_reveal:
-                self.__reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
-                    None if settings else reveal, None, attr_name="reveal", settings=settings)
-                make_pb_options.add_option(self.__reveal_option)
-            if show_retain_current:
-                self.__retain_current_option = BooleanOption("Retain pre-existing H-bonds",
-                    None if settings else retain_current, None, attr_name="retain_current",
-                    settings=settings)
-                make_pb_options.add_option(self.__retain_current_option)
-
-        if show_relax:
-            self.__relax_group = group = QGroupBox("Relax distance and angle criteria")
-            layout.addWidget(group)
-            group.setCheckable(True)
-            group.setChecked(final_val['relax'])
-            relax_layout = QVBoxLayout()
-            relax_layout.setContentsMargins(0,0,0,0)
-            relax_layout.setSpacing(0)
-            group.setLayout(relax_layout)
-            relax_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
-            relax_layout.addWidget(relax_options)
-            if show_slop:
-                self.__dist_slop_option = FloatOption("Distance tolerance", None if settings else dist_slop,
-                    None, attr_name="dist_slop", settings=settings)
-                self.__dist_slop_option.widget.setSuffix("\N{ANGSTROM SIGN}")
-                relax_options.add_option(self.__dist_slop_option)
-                self.__angle_slop_option = FloatOption("Angle tolerance", None if settings else angle_slop,
-                    None, attr_name="angle_slop", settings=settings)
-                self.__angle_slop_option.widget.setSuffix("\N{DEGREE SIGN}")
-                relax_options.add_option(self.__angle_slop_option)
-            if show_slop_color:
-                if final_val['two_colors']:
-                    default_value = final_val['slop_color']
-                    kw = {}
-                else:
-                    default_value = None
-                    kw = { 'initial_color': final_val['slop_color'] }
-                self.__slop_color_option = OptionalRGBAOption("Color H-bonds not meeting precise criteria"
-                    " differently", default_value, None, **kw)
-                relax_options.add_option(self.__slop_color_option)
-
-        if show_model_restrict or show_inter_intra_model or show_bond_restrict or show_salt_only \
-        or show_intra_mol or show_intra_res or show_inter_submodel:
-            group = QGroupBox("Limit results:")
-            layout.addWidget(group)
-            limit_layout = QVBoxLayout()
-            limit_layout.setContentsMargins(0,0,0,0)
-            limit_layout.setSpacing(0)
-            group.setLayout(limit_layout)
-            self.__limit_options = limit_options = OptionsPanel(sorting=False, scrolled=False,
-                contents_margins=(0,0,0,0))
-            limit_layout.addWidget(limit_options)
-
-            if show_model_restrict:
-                self.__model_restrict_option = OptionalModelRestrictOption(session,
-                    "Choose specific models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
-                limit_options.add_option(self.__model_restrict_option)
-
-            if show_inter_intra_model:
-                inter_val = final_val['inter_model'] and not final_val['intra_model']
-                self.__inter_model_only_option = BooleanOption("Intermodel only", inter_val,
-                    self._inter_model_cb)
-                limit_options.add_option(self.__inter_model_only_option)
-                intra_val = final_val['intra_model'] and not final_val['inter_model']
-                self.__intra_model_only_option = BooleanOption("Intramodel only", intra_val,
-                    self._intra_model_cb, attr_name="intra_model", settings=settings)
-                limit_options.add_option(self.__intra_model_only_option)
-
-            if show_bond_restrict:
-                self.__bond_restrict_option = OptionalHBondRestrictOption("Limit by selection",
-                    None, None)
-                limit_options.add_option(self.__bond_restrict_option)
-
-            if show_salt_only:
-                self.__salt_only_option = BooleanOption("Salt bridges only",
-                    None if settings else salt_only, None, attr_name="salt_only", settings=settings)
-                limit_options.add_option(self.__salt_only_option)
-
-            if show_intra_mol:
-                self.__intra_mol_option = BooleanOption("Include intramolecule",
-                    None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
-                limit_options.add_option(self.__intra_mol_option)
-
-            if show_intra_res:
-                self.__intra_res_option = BooleanOption("Include intraresidue",
-                    None if settings else intra_res, None, attr_name="intra_res", settings=settings)
-                limit_options.add_option(self.__intra_res_option)
-
-            if show_inter_submodel:
-                self.__intra_submodel_option = BooleanOption("Include inter-submodel",
-                    None if settings else intra_submodel, None, attr_name="inter_submodel",
-                    settings=settings)
-                limit_options.add_option(self.__intra_submodel_option)
-
-        if show_log or show_save_file:
-            group = QGroupBox("Write information to:")
-            layout.addWidget(group)
-            info_layout = QVBoxLayout()
-            info_layout.setContentsMargins(0,0,0,0)
-            info_layout.setSpacing(0)
-            group.setLayout(info_layout)
-            info_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(0,0,0,0))
-            info_layout.addWidget(info_options)
-
-            if show_log:
-                self.__log_option = BooleanOption("Log", None if settings else log, None, attr_name="log",
-                    settings=settings)
-                info_options.add_option(self.__log_option)
-
-            if show_save_file:
-                self.__save_file_option = BooleanOption("File", False, None)
-                info_options.add_option(self.__save_file_option)
+            group_layout = QGridLayout()
+            group_layout.setContentsMargins(0,0,0,0)
+            group_layout.setSpacing(5)
+            group_layout.setColumnStretch(0, 1)
+            group_layout.setColumnStretch(3, 1)
+            group.setLayout(group_layout)
+            group_layout.addWidget(QLabel("Check..."), 0, 1, 2, 1, alignment=Qt.AlignRight|Qt.AlignVCenter)
+            self.ok_radio = QRadioButton("when OK%s clicked" % ("/Apply" if has_apply_button else ""))
+            self.ok_radio.setChecked(True)
+            group_layout.addWidget(self.ok_radio, 0, 2, alignment=Qt.AlignLeft)
+            self.ok_radio.toggled.connect(self._checking_change)
+            group_layout.addWidget(QRadioButton("continuously (until dialog closed)"), 1, 2,
+                alignment=Qt.AlignLeft)
 
     def destroy(self):
-        for handler in self.handlers:
+        for handler in self.handlers.values():
             handler.remove()
+        self.handlers.clear()
+        #TODO: if continuous checking, issue '~' command
         super().destroy()
 
     def get_command(self):
@@ -740,19 +658,23 @@ class AtomProximityGUI(QWidget):
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
         return "hbonds", atom_spec, kw_values
 
+    def _checking_change(self, ok_now_checked):
+        #TODO: if continuous checking, issue '~' command
+        pass
+
     def _designate1_cb(self):
         from chimerax.atomic import selected_atoms, get_triggers
-        if self.desig1_atoms is None:
-            self.handlers.append(get_triggers().add_handler('changes', lambda trig_name, changes:
-                changes.num_destroyed_atoms() > 0 and self._update_desig1_status()))
+        if 'desig1' not in self.handlers:
+            self.handlers['desig1'] = get_triggers().add_handler('changes', lambda trig_name, changes:
+                changes.num_destroyed_atoms() > 0 and self._update_desig1_status())
         self.desig1_atoms = selected_atoms(self.session)
         self._update_desig1_status()
 
     def _designate2_cb(self):
         from chimerax.atomic import selected_atoms, get_triggers
-        if self.desig2_atoms is None:
-            self.handlers.append(get_triggers().add_handler('changes', lambda trig_name, changes:
-                changes.num_destroyed_atoms() > 0 and self._update_desig2_status()))
+        if 'desig2' not in self.handlers:
+            self.handlers['desig2'] = get_triggers().add_handler('changes', lambda trig_name, changes:
+                changes.num_destroyed_atoms() > 0 and self._update_desig2_status())
         self.desig2_atoms = selected_atoms(self.session)
         self._update_desig2_status()
 
@@ -785,6 +707,9 @@ class AtomProximityGUI(QWidget):
         else:
             color = "red"
             msg = "No atoms designated"
+            if 'desig1' in self.handlers:
+                self.handlers['desig1'].remove()
+                del self.handlers['desig1']
         self.desig1_status.setText(msg)
         self.desig1_status.setStyleSheet("color: %s" % color)
 
@@ -795,6 +720,9 @@ class AtomProximityGUI(QWidget):
         else:
             color = "red"
             msg = "No second set"
+            if 'desig2' in self.handlers:
+                self.handlers['desig2'].remove()
+                del self.handlers['desig2']
         tbg = self.test_button_group
         if tbg.checkedButton() == tbg.button(2):
             tbg.checkedButton().setStyleSheet("color: %s" % color)
@@ -819,24 +747,26 @@ def is_default(func, kw, val):
     return param.default == val
 
 class ClashesGUI(AtomProximityGUI):
-    def __init__(self, session, *, name="clashes", hbond_allowance=defaults["clash_hbond_allowance"],
-            overlap_cutoff=defaults["clash_threshold"], **kw):
+    def __init__(self, session, has_apply_button, *, name="clashes",
+            hbond_allowance=defaults["clash_hbond_allowance"], overlap_cutoff=defaults["clash_threshold"],
+            **kw):
         from .cmd import handle_clash_kw
         color, radius = handle_clash_kw(kw)
         if 'show_distance_only' not in kw:
             kw['show_distance_only'] = False
         super().__init__(session, name, "clash", "clashes", color, radius,
-            hbond_allowance, overlap_cutoff, **kw)
+            hbond_allowance, overlap_cutoff, has_apply_button, **kw)
 
 class ContactsGUI(AtomProximityGUI):
-    def __init__(self, session, *, name="contacts", hbond_allowance=defaults["clash_hbond_allowance"],
-            overlap_cutoff=defaults["contact_threshold"], **kw):
+    def __init__(self, session, has_apply_button, *, name="contacts",
+            hbond_allowance=defaults["clash_hbond_allowance"], overlap_cutoff=defaults["contact_threshold"],
+            **kw):
         from .cmd import handle_contact_kw
         color, radius = handle_contact_kw(kw)
         if 'show_hbond_allowance' not in kw:
             kw['show_hbond_allowance'] = False
         super().__init__(session, name, "contact", "contacts", color, radius,
-            hbond_allowance, overlap_cutoff, **kw)
+            hbond_allowance, overlap_cutoff, has_apply_button, **kw)
 
 def _get_settings(session, base_name, settings_defaults, name_mod):
     if base_name:

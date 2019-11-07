@@ -211,6 +211,7 @@ def make_optional(cls):
         from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLayout
         self.widget = layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(5)
         from PyQt5.QtCore import Qt
         self._check_box = cb = QCheckBox()
         cb.setAttribute(Qt.WA_LayoutUsesWidgetRect)
@@ -222,9 +223,9 @@ def make_optional(cls):
         cb.clicked.connect(lambda state, s=self: enable_and_call(s))
         layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignTop)
         if isinstance(self._orig_widget, QLayout):
-            layout.addLayout(self._orig_widget)
+            layout.addLayout(self._orig_widget, stretch=1)
         else:
-            layout.addWidget(self._orig_widget)
+            layout.addWidget(self._orig_widget, stretch=1, alignment=Qt.AlignLeft)
 
     attr_dict = {
         'value': property(get_value, set_value),

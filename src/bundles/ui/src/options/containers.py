@@ -57,7 +57,9 @@ class OptionsPanel(QWidget):
         self._form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         self._form.setVerticalSpacing(1)
         from PyQt5.QtCore import Qt
-        self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # None of the below seem to have an effect on the Mac...
+        #self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         # if we wanted to force the form contents to upper left...
         #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
         self._layout.addLayout(self._form)
