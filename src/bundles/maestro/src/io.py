@@ -172,7 +172,7 @@ class MaestroParser:
         attrs = block.get_attribute_map()
         raw_text = []
         d = {}
-        keep = set(["i", "m", "sd"])
+        keep = set(["i", "m", "sd", "psp"])
         for key, value in attrs.items():
             is_valid = True
             # parts = key.split('_', 2)
