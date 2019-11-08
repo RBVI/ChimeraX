@@ -51,7 +51,9 @@ extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args)
   float (*varray)[3] = reinterpret_cast<float(*)[3]>(vcontig.values());
 
   int n = vertices.size(0);
-  if (values.dimension() == 0)
+
+  bool alloc_values = (values.dimension() == 0);
+  if (alloc_values)
     parse_writable_float_n_array(python_float_array(n), &values);
 
   std::vector<int> outside;
@@ -64,7 +66,7 @@ extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args)
   int *osp = (outside.size() == 0 ? NULL : &outside.front());
   PyObject *py_outside = c_array_to_python(osp, outside.size());
 
-  PyObject *py_values = array_python_source(values);
+  PyObject *py_values = array_python_source(values, !alloc_values);
   PyObject *result =  python_tuple(py_values, py_outside);
   return result;
 }
@@ -90,7 +92,9 @@ extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args)
   float (*varray)[3] = reinterpret_cast<float(*)[3]>(vcontig.values());
 
   int n = vertices.size(0);
-  if (gradients.dimension() == 0)
+  
+  bool alloc_gradients = (gradients.dimension() == 0);
+  if (alloc_gradients)
     parse_writable_float_n3_array(python_float_array(n,3), &gradients);
   float (*grad)[3] = reinterpret_cast<float (*)[3]>(gradients.values());
 
@@ -105,7 +109,7 @@ extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args)
   int *osp = (outside.size() == 0 ? NULL : &outside.front());
   PyObject *py_outside = c_array_to_python(osp, outside.size());
 
-  PyObject *py_gradients = array_python_source(gradients);
+  PyObject *py_gradients = array_python_source(gradients, !alloc_gradients);
   PyObject *result = python_tuple(py_gradients, py_outside);
   return result;
 }
@@ -155,7 +159,9 @@ extern "C" PyObject *interpolate_colormap(PyObject *, PyObject *args)
   float (*cva)[4] = reinterpret_cast<float(*)[4]>(cvcontig.values());
 
   int n = values.size();
-  if (rgba.dimension() == 0)
+
+  bool alloc_rgba = (rgba.dimension() == 0);
+  if (alloc_rgba)
     parse_writable_float_n4_array(python_float_array(n, 4), &rgba);
   float (*rgbav)[4] = reinterpret_cast<float(*)[4]>(rgba.values());
 
@@ -165,7 +171,7 @@ extern "C" PyObject *interpolate_colormap(PyObject *, PyObject *args)
 				      cva, rgba_above, rgba_below, rgbav);
   Py_END_ALLOW_THREADS
 
-  return array_python_source(rgba);
+  return array_python_source(rgba, !alloc_rgba);
 }
 
 // ----------------------------------------------------------------------------

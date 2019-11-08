@@ -272,7 +272,7 @@ extern "C" PyObject *vertex_areas(PyObject *, PyObject *args, PyObject *keywds)
     }
 
   surface_area(varray, tarray, areas.values());
-  PyObject *py_areas = array_python_source(areas);
+  PyObject *py_areas = array_python_source(areas, !make_areas);
   return py_areas;
 }
 
