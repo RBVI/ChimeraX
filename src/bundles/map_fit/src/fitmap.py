@@ -173,7 +173,7 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
             ijk_step_size = min(ijk_step_size*step_grow_factor,
                                 ijk_step_size_max)
         move_tf = move_tf * seg_tf
-        if request_stop_cb:
+        if step % 100 == 0 and request_stop_cb:
             shift, angle = move_tf.shift_and_angle(rc)
             if request_stop_cb('%d steps, shift %.3g, rotation %.3g degrees'
                                % (step, shift, angle)):
