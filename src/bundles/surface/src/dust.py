@@ -27,14 +27,12 @@ def hide_dust(surface, metric, limit, auto_update = False, use_cached_geometry =
 #
 def hide_surface_dust(surface, metric, limit, auto_update = False, use_cached_geometry = False):
 
-    # Don't hide surface cap on a visible blob.
-#    import SurfaceCap
-#    if SurfaceCap.is_surface_cap(p):
-#        return
-
     s = surface
     if s.vertices is None:
         return
+
+    if getattr(s, 'is_clip_cap', False):
+        return    # Don't hide surface cap on a visible blob.
     
     b = getattr(s, 'blobs', None) if use_cached_geometry else None
     if b is None or len(s.vertices) != b.vertex_count:

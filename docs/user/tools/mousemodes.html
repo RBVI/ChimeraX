@@ -105,13 +105,16 @@ see also <a href="../commands/zoom.html"><b>zoom</b></a>
 <td align="center" class="text">set center of rotation to atom;
 see also <a href="../commands/cofr.html"><b>cofr</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/distance.png" width="35px"></td>
+<td align="center">
+<a name="distance"></a>
+<img src="mouse-icons/distance.png" width="35px"></td>
 <td align="center"><b>distance</b></td>
 <td align="center" class="text">add distance monitor
 <a href="../pseudobonds.html">pseudobond</a>
 between two successively clicked atoms or remove existing distance monitor;
-see also <a href="../commands/distance.html"><b>distance</b></a> and
-<a href="../commands/label.html"><b>label</b></a></td>
+see also <a href="../commands/distance.html"><b>distance</b></a>,
+<a href="../commands/label.html"><b>label</b></a>,
+and the <a href="#tape"><b>tape measure</b> mode</a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/label.png" width="35px"></td>
 <td align="center"><b>label</b></td>
@@ -180,12 +183,14 @@ show <a href="volumeviewer.html">volume data</a> outline box
 and adjust region size by dragging any face;
 see also <a href="../commands/volume.html"><b>volume</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/tape.png" width="35px"></td>
+<td align="center">
+<a name="tape"></a>
+<img src="mouse-icons/tape.png" width="35px"></td>
 <td align="center"><b>tape measure</b></td>
-<td align="center" class="text">click
-<a href="volumeviewer.html">volume data</a>
-to anchor distance measurement, drag to desired endpoint; click in empty space
-to &ldquo;erase&rdquo; (<a href="#tapemeasure">details...</a>)</td>
+<td align="center" class="text">click to anchor distance measurement, 
+drag to desired endpoint; click in empty space
+to &ldquo;erase&rdquo; (<a href="#tapemeasure">details...</a>);
+see also the <a href="#distance"><b>distance</b> mode</a></td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/pickblobs.png" width="35px"></td>
 <td align="center"><b>pick blobs</b></td>
@@ -251,39 +256,63 @@ original coordinates not retained</td>
 </p>
 <h3>Tape Measure</h3>
 <p>
-The <b>tape measure</b> mode creates one or more pairs of
-<a href="../markers.html">markers</a> with a distance label on the link
-between them. Clicking (without releasing) the assigned button over
-<a href="volumeviewer.html">volume data</a>
-anchors the measurement, dragging adjusts the measurement dynamically, 
+The <a href="#tape"><b>tape measure</b></a> mouse mode 
+creates one or more pairs of <a href="../markers.html">markers</a>
+with a distance label on the link between them.
+Clicking (without releasing) the assigned button over
+<a href="volumeviewer.html">volume data</a>, an atom, 
+<a href="../commands/cartoon.html">cartoon</a>, or
+<a href="../commands/surface.html">molecular surface</a>
+anchors the measurement; dragging adjusts the measurement dynamically, 
 and releasing the button places the second marker. 
-Clicking the assigned button away from any 
-<a href="volumeviewer.html">volume data</a>
+The release point can be anywhere, even empty space.
+<a href="#vr-tape">Except in VR</a>, clicking the assigned button in empty space
 or clicking and releasing without dragging more than 5 screen pixels
 removes the measurements.
+</p><p>
+<a href="#vr-tape">Except in VR</a>, 
+the method of marker placement depends on
+what is &ldquo;under&rdquo; the cursor 
+when the assigned button is clicked or released:
+<ul>
+<li>for <a href="volumeviewer.html">volume data</a>, the method
+is automatically determined from the display style, marking
+either the isosurface, volume plane, or local maximum along the line of sight
+<li>for an atom, placement is at the atomic center
+<li>for <a href="../commands/cartoon.html">cartoon</a>, placement is at 
+the corresponding residue's principal atom: amino acid CA or nucleic acid C4'
+<li>for <a href="../commands/surface.html">molecular surface</a>,
+placement is at the corresponding atom
+<li>for release over empty space, dragging is simply in the plane of the
+screen, retaining the same depth as the anchor point
+</ul>
+<p>
 The <a href="../markers.html">markers and links</a> are created as a model
 named <b>tape measure</b>.
-Except in VR (see below), only <a href="volumeviewer.html">volume data</a>
-can anchor these measurements,
-not atoms or <a href="../commands/surface.html">molecular surfaces</a>,
-although the release point can be anywhere, even empty space.
-The anchor placement method is automatically determined from the
-<a href="volumeviewer.html">volume data</a> display style, marking
-either the isosurface, volume plane, or local maximum along the line of sight.
-The link <a href="../commands/size.html">radius</a>
-is set to half the minimum grid spacing of the volume, 
-and the distance label <a href="../commands/label.html#height">height</a>
-is proportional to the length of the link.
-See also: <a href="distances.html"><b>Distances</b></a>,
-<a href="../measurements.html">measurements</a>
+The link radius is set to 25% of the minimum grid spacing if/when a measurement
+is anchored on <a href="volumeviewer.html">volume data</a>, 
+otherwise remaining at 0.1 &Aring;, and the distance label height
+is set to 10% of the distance but no less than the link diameter.
+Label height and color can be changed with the
+<a href="../commands/label.html"><b>label</b></a> command,
+and marker/link radius and color changed with
+<a href="markerplacement.html"><b>Marker Placement</b></a> or the
+<a href="../commands/marker.html#change"><b>marker change</b></a> command.
 </p><p>
+<a name="vr-tape"></a>
 Tape-measure differences in <a href="../vr.html">virtual reality</a>:
 </p>
 <ul>
-<li>placement is always at the tip of the hand-controller cone, 
+<li>marker placement is always at the tip of the hand-controller cone, 
 regardless of the data or its style of display
 <li>clicking and releasing within 0.3 seconds erases the measurements
+<li>link radius is not adjusted for volume grid spacing
 </ul>
+<p>
+See also: 
+<a href="distances.html"><b>Distances</b></a>,
+<a href="../measurements.html">measurements</a>
+</p>
 
 <a name="openmm"></a>
 <p class="nav">
@@ -379,5 +408,5 @@ them only upon a 45&deg; change in viewing angle rather than continuously
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+November 2019</address>
 </body></html>

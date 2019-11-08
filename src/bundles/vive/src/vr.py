@@ -202,7 +202,8 @@ def register_vr_command(logger):
                    ],
                    synopsis = 'Start SteamVR virtual reality rendering')
     register('vr', desc, vr, logger=logger)
-    create_alias('device vr', 'vr $*', logger=logger)
+    create_alias('device vr', 'vr $*', logger=logger,
+            url="help:user/commands/device.html#vr")
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
     desc = CmdDesc(required = [('button', button_name),
@@ -210,7 +211,8 @@ def register_vr_command(logger):
                    keyword = [('hand', EnumOf(('left', 'right')))],
                    synopsis = 'Assign VR hand controller buttons')
     register('vr button', desc, vr_button, logger=logger)
-    create_alias('device vr button', 'vr button $*', logger=logger)
+    create_alias('device vr button', 'vr button $*', logger=logger,
+            url="help:user/commands/device.html#vr-button")
 
     desc = CmdDesc(required = [('enable', BoolArg)],
                    keyword = [('field_of_view', FloatArg),
@@ -218,7 +220,8 @@ def register_vr_command(logger):
                               ('background_color', ColorArg)],
                    synopsis = 'Control VR room camera')
     register('vr roomCamera', desc, vr_room_camera, logger=logger)
-    create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger)
+    create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger,
+            url="help:user/commands/device.html#vr-roomCamera")
 
 # -----------------------------------------------------------------------------
 #
@@ -357,8 +360,6 @@ class SteamVRCamera(Camera, StateManager):
 
         self._hand_controllers = [HandController(self, 'right'),
                                   HandController(self, 'left')]	# List of HandController
-        self._controller_show = True	# Whether to show hand controllers
-        self._controller_next_id = 0	# Used when searching for controllers.
 
         self.user_interface = UserInterface(self, session)
         self._vr_model_group = None	# Grouping model for hand controllers and UI models
@@ -403,7 +404,7 @@ class SteamVRCamera(Camera, StateManager):
         # Map ChimeraX scene coordinates to OpenVR room coordinates
         if self._room_to_scene is None:
             self.fit_scene_to_room()
-        
+
         # Update camera position every frame.
         self._frame_started = False
         poses_t = openvr.TrackedDevicePose_t * openvr.k_unMaxTrackedDeviceCount
@@ -411,6 +412,9 @@ class SteamVRCamera(Camera, StateManager):
         t = self._session.triggers
         self._new_frame_handler = t.add_handler('new frame', self.next_frame)
 
+        # Assign hand controllers
+        self._find_hand_controllers()
+        
         # Exit cleanly
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
 
@@ -494,7 +498,7 @@ class SteamVRCamera(Camera, StateManager):
         b = scene_bounds
         if b is None:
             g = self._vr_model_group
-            if g is None:
+            if g is None or g.deleted:
                 b = self.vr_view.drawing_bounds()
             else:
                 # Need to exclude UI from bounds.
@@ -566,6 +570,7 @@ class SteamVRCamera(Camera, StateManager):
     def _app_quit(self, tname, tdata):
         # On Linux (Ubuntu 18.04) the ChimeraX process does not exit
         # if VR has not been shutdown.
+        self._compositor = None
         import openvr
         openvr.shutdown()
 
@@ -644,8 +649,14 @@ class SteamVRCamera(Camera, StateManager):
         import openvr
         e = openvr.VREvent_t()
         while vrs.pollNextEvent(e):
-            for hc in self.hand_controllers():
-                hc.process_event(e)
+            type = e.eventType
+            if type == openvr.VREvent_TrackedDeviceActivated:
+                self._hand_controller_enabled(e.trackedDeviceIndex)
+            elif type == openvr.VREvent_TrackedDeviceDeactivated:
+                self._hand_controller_disabled(e.trackedDeviceIndex)
+            else:
+                for hc in self.hand_controllers():
+                    hc.process_event(e)
                 
     def process_controller_motion(self):
 
@@ -809,31 +820,44 @@ class SteamVRCamera(Camera, StateManager):
         return self.mirror
 
     def hand_controllers(self):
-        if not self._all_hand_controllers_on:
-            self._find_new_hand_controllers()
         return self._hand_controllers
 
-    @property
-    def _all_hand_controllers_on(self):
-        for hc in self._hand_controllers:
-            hc.check_if_model_closed()
-            if not hc.on:
-                return False
-        return True
+    def _hand_controller_enabled(self, device_id):
+        self._assign_hand_controller(device_id)
 
-    def _find_new_hand_controllers(self):
-        # Check if a controller has been turned on.
-        # Only check one controller id per-call to minimize performance penalty.
+    def _hand_controller_disabled(self, device_id):
+        for hc in self._hand_controllers:
+            if hc.device_index == device_id:
+                hc.device_index = None
+        
+    def _find_hand_controllers(self):
+        # Find hand controllers that are turned on.
         import openvr
-        d = self._controller_next_id
-        self._controller_next_id = (d+1) % openvr.k_unMaxTrackedDeviceCount
+        for device_id in range(openvr.k_unMaxTrackedDeviceCount):
+            self._assign_hand_controller(device_id)
+
+    def _assign_hand_controller(self, device_id):
+        d = device_id
         vrs = self._vr_system
-        if (vrs.getTrackedDeviceClass(d) == openvr.TrackedDeviceClass_Controller
-            and vrs.isTrackedDeviceConnected(d)):
-            left_or_right = self._controller_left_or_right(d)
+        import openvr
+        if vrs.getTrackedDeviceClass(d) != openvr.TrackedDeviceClass_Controller:
+            return
+        if not vrs.isTrackedDeviceConnected(d):
+            return
+        left_or_right = self._controller_left_or_right(d)
+        assigned = False
+        for hc in self._hand_controllers:
+            if hc.left_or_right == left_or_right:
+                if hc.device_index is None:
+                    hc.device_index = d
+                    assigned = True
+        if not assigned:
+            # This happens when a second right or left controller activates.
+            # In this case don't believe its purported right/left.
             for hc in self._hand_controllers:
-                if hc.left_or_right == left_or_right:
-                    hc.set_device_index(d)
+                if hc.device_index is None:
+                    hc.device_index = d
+                    assigned = True
 
     def _controller_left_or_right(self, device_index):
         vrs = self._vr_system
@@ -1414,7 +1438,9 @@ class UserInterface:
             return True
 
         # Highlight ui button under pointer
-        self._highlight_button(hc.room_position.origin(), hc)
+        p = hc.tip_room_position
+        if p is not None:
+            self._highlight_button(p, hc)
 
         return False
             
@@ -1996,16 +2022,29 @@ class HandController:
     @property
     def on(self):
         return self._device_index is not None
-        
-    def set_device_index(self, device_index):
+
+    def _get_device_index(self):
+        return self._device_index
+    def _set_device_index(self, device_index):
         if device_index == self._device_index:
             return
         self._device_index = device_index
-        self._set_controller_type()
-        if self._hand_model is None:
-            self._create_hand_model()
-        self._set_initial_button_assignments()
+        if device_index is not None:
+            self._set_controller_type()
+            if self.hand_model is None:
+                self._create_hand_model()
+            self._set_initial_button_assignments()
+        else:
+            self._close_hand_model()
+    device_index = property(_get_device_index, _set_device_index)
 
+    @property
+    def hand_model(self):
+        hm = self._hand_model
+        if hm and hm.deleted:
+            self._hand_model = hm = None
+        return hm
+    
     @property
     def _vr_system(self):
         return self._camera._vr_system
@@ -2079,12 +2118,8 @@ class HandController:
         # Set icons for buttons
         for button, mode in self._modes.items():
             hm._set_button_icon(button, mode.icon_path)
-    
-    def check_if_model_closed(self):
-        hm = self._hand_model
-        if hm is None or hm.deleted:
-            self._device_index = None
-            self._hand_model = None
+
+        return hm
     
     def _cone_color(self):
         cc = self._controller_colors
@@ -2096,15 +2131,18 @@ class HandController:
 
     @property
     def room_position(self):
-        return self._hand_model.room_position
+        hm = self.hand_model
+        return hm.room_position if hm else None
 
     @property
     def tip_room_position(self):
-        return self._hand_model.room_position.origin()
+        hm = self.hand_model
+        return hm.room_position.origin() if hm else None
 
     @property
     def position(self):
-        return self._hand_model.position
+        hm = self.hand_model
+        return hm.position if hm else None
 
     @property
     def button_modes(self):
@@ -2116,27 +2154,32 @@ class HandController:
     
     def close(self):
         self._device_index = None
+        self._close_hand_model()
+
+    def _close_hand_model(self):
         hm = self._hand_model
         if hm:
             if not hm.deleted:
-                hm.session.models.close([hm])
+                hm.delete()
             self._hand_model = None
-
-    def show_in_scene(self, show):
-        self._hand_model.display = show
         
     def _update_position(self):
         '''Move hand controller model to new position.
         Keep size constant in physical room units.'''
         di = self._device_index
-        hm = self._hand_model
-        if di is None or hm is None:
+        if di is None:
             return
+
+        hm = self.hand_model
+        if hm is None:
+            # Hand model was delete by user, so recreate it.
+            hm = self._create_hand_model()
+
         hm.room_position = self._camera.device_position(di)
         self.update_scene_position()
 
     def update_scene_position(self):
-        hm = self._hand_model
+        hm = self.hand_model
         if hm:
             hm.position = self._camera.room_to_scene * hm.room_position
             
@@ -2158,7 +2201,9 @@ class HandController:
 
         # Check for click on user interface panel.
         b = e.data.controller.button
-        self._hand_model._show_button_down(b, pressed)
+        hm = self.hand_model
+        if hm:
+            hm._show_button_down(b, pressed)
         m = self._modes.get(b)
         if not isinstance(m, ShowUIMode):
             # Check for click on UI panel.
@@ -2186,7 +2231,7 @@ class HandController:
         
     def set_hand_mode(self, button, hand_mode):
         self._modes[button] = hand_mode
-        hm = self._hand_model
+        hm = self.hand_model
         if hm:
             hm._set_button_icon(button, hand_mode.icon_path)
 

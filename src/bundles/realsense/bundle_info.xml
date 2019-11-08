@@ -14,6 +14,11 @@
     <Category name="General"/>
   </Categories>
 
+  <CModule name="_depthvideo">
+    <SourceFile>_depthvideo/denoise.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>

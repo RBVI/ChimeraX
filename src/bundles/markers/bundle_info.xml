@@ -31,6 +31,7 @@
     <ChimeraXClassifier>DataFormat :: Marker model :: markers :: Generic 3D objects :: .cmm :: :: http://rbvi.ucsf.edu/chimerax/docs/user/markers.html#markerfiles :: :: :: Markers and links </ChimeraXClassifier>
     <ChimeraXClassifier>Open :: Marker model :: cmm ::</ChimeraXClassifier>
     <ChimeraXClassifier>Save :: Marker model :: cmm :: true :: models:Models</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: marker :: General :: Place markers</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

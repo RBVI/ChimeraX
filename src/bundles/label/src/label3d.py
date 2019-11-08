@@ -439,6 +439,8 @@ class ObjectLabels(Model):
                 self._update_triangles()
                 
     def _rebuild_label_graphics(self):
+        if len(self._labels) == 0:
+            return
         trgba, tcoord = self._packed_texture()	# Compute images first since vertices depend on image size
         opaque = self._all_labels_opaque()
         va = self._label_vertices()

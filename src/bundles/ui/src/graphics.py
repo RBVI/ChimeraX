@@ -19,13 +19,14 @@ class GraphicsWindow(QWindow):
     """
 
     def __init__(self, parent, ui, stereo = False, opengl_context = None):
+        self.session = ui.session
+        self.view = ui.session.main_view
+
         QWindow.__init__(self)
         from PyQt5.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
         self.setSurfaceType(QSurface.OpenGLSurface)
-        self.session = ui.session
-        self.view = ui.session.main_view
 
         if opengl_context is None:
             from chimerax.core.graphics import OpenGLContext
@@ -72,6 +73,36 @@ class GraphicsWindow(QWindow):
                 msg += '\n\n\t"%s"' % e
                 log.error(msg)
 
+        self._check_for_bad_intel_driver()
+
+    def _check_for_bad_intel_driver(self):
+        import sys
+        if sys.platform != 'win32':
+            return
+        from chimerax.ui.widgets import HtmlView
+        if HtmlView.require_native_window:
+            return  # Already applied this fix.
+        r = self.view.render
+        if r.opengl_vendor() == 'Intel':
+            ver = r.opengl_version()
+            try:
+                build = int(ver.split('.')[-1])
+            except:
+                return
+            if build > 6708:
+                # This is to work around ChimeraX bug #2537 where the entire
+                # GUI becomes blank with some 2019 Intel graphics drivers.
+
+                # TODO: This fix may fail if HtmlView widgets are created
+                #       before the graphisc is checked.  Worked in tests on one machine.
+                HtmlView.require_native_window = True
+                msg = ('Your computer has Intel graphics driver %d with a known bug '
+                       'that causes all Qt user interface panels to be blank. '
+                       'ChimeraX can partially fix this but may make some panel '
+                       'titlebars and edges black.  Hopefully newer '
+                       'Intel graphics drivers will fix this.' % build)
+                self.session.logger.warning(msg)
+                                            
     def handle_drag_and_drop(self, event):
         from PyQt5.QtCore import QEvent
         t = event.type()

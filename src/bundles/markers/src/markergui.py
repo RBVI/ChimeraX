@@ -106,7 +106,9 @@ class MarkerModeSettings(ToolInstance):
     def _marker_color_changed(self, color):
         self._settings['marker color'] = color
         from . import selected_markers
-        selected_markers(self.session).colors = color
+        markers = selected_markers(self.session)
+        markers.colors = color
+        _log_markers_recolor(self.session, markers, color)
 
     def _marker_radius_changed(self):
         try:
@@ -119,12 +121,16 @@ class MarkerModeSettings(ToolInstance):
             return
         self._settings['marker radius'] = r
         from . import selected_markers
-        selected_markers(self.session).radii = r
+        markers = selected_markers(self.session)
+        markers.radii = r
+        _log_markers_resize(self.session, markers, r)
     
     def _link_color_changed(self, color):
         self._settings['link color'] = color
         from . import selected_links
-        selected_links(self.session).colors = color
+        links = selected_links(self.session)
+        links.colors = color
+        _log_links_recolor(self.session, links, color)
 
     def _link_radius_changed(self):
         try:
@@ -137,7 +143,9 @@ class MarkerModeSettings(ToolInstance):
             return
         self._settings['link radius'] = r
         from . import selected_links
-        selected_links(self.session).radii = r
+        links = selected_links(self.session)
+        links.radii = r
+        _log_links_resize(self.session, links, r)
         
     def update_settings(self):
         s = self._settings
@@ -159,7 +167,83 @@ class MarkerModeSettings(ToolInstance):
         s = mouse._mouse_marker_settings(self.session)
         s['link_new_markers'] = link
 
+def _log_markers_recolor(session, markers, color):
+    if len(markers) == 0:
+        return
+    mspec = _markers_spec(markers)
+    lf = 'links false' if len(markers.intra_bonds) > 0 else ''
+    from chimerax.core.colors import color_name
+    cmd = 'marker change %s color %s %s' % (mspec, color_name(color), lf)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(session, cmd)
+
+def _log_markers_resize(session, markers, radius):
+    if len(markers) == 0:
+        return
+    mspec = _markers_spec(markers)
+    lf = 'links false' if len(markers.intra_bonds) > 0 else ''
+    cmd = 'marker change %s radius %.4g %s' % (mspec, radius, lf)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(session, cmd)
+
+def _markers_spec(markers):
+    specs = []
+    for mset,ms in markers.by_structure:
+        if len(ms) == mset.num_atoms:
+            spec = mset.atomspec
+        else:
+            spec = '%s:%s' % (mset.atomspec, _range_spec(m.residue.number for m in ms))
+        specs.append(spec)
+    mspec = ''.join(specs)
+    return mspec
+
+def _range_spec(integers):
+    isort = list(set(integers))
+    if len(isort) == 0:
+        return ''
+    isort.sort()
+    ranges = []
+    istart = iend = None
+    for i in isort:
+        if istart is None:
+            istart = iend = i
+        elif i == iend + 1:
+            iend = i
+        else:
+            ranges.append(('%d-%d' % (istart,iend)) if iend > istart else ('%d' % istart))
+            istart = iend = i
+    ranges.append(('%d-%d' % (istart,iend)) if iend > istart else ('%d' % istart))
+    return ','.join(ranges)
+            
+def _log_links_recolor(session, links, color):
+    if len(links) == 0:
+        return
+    from chimerax.core.commands import log_equivalent_command
+    from chimerax.core.colors import color_name
+    cname = color_name(color)
+    for mspec in _link_specs(links):
+        cmd = 'marker change %s color %s markers false' % (mspec, cname)
+        log_equivalent_command(session, cmd)
         
+def _log_links_resize(session, links, radius):
+    if len(links) == 0:
+        return
+    from chimerax.core.commands import log_equivalent_command
+    for mspec in _link_specs(links):
+        cmd = 'marker change %s radius %.4g markers false' % (mspec, radius)
+        log_equivalent_command(session, cmd)
+
+def _link_specs(links):
+    m1,m2 = links.atoms
+    from chimerax.atomic import concatenate
+    markers = concatenate((m1,m2))
+    mlinks = markers.intra_bonds
+    if len(mlinks) == len(links):
+        lspecs = [_markers_spec(markers)]
+    else:
+        lspecs = [_markers_spec(Atoms(mpair)) for mpair in zip(m1,m2)]
+    return lspecs
+
 def marker_panel(session, tool_name):
   cb = getattr(session, '_markers_gui', None)
   if cb is None:

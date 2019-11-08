@@ -22,7 +22,8 @@ class TapeMeasureMouseMode(MouseMode):
         self._marker_set = None
         self._markers = []
         self._color = (255,255,0,255)
-        self._radius = .2
+        self._radius = .1	# scene units (usually Angstroms)
+        self._vr_radius = .002	# meters, for use in VR
         self._min_move = 5	# minimum pixels to draw tape
         self._start_time = 0
         self._clear_time = 0.3	# seconds. Fast click/release causes clear.
@@ -47,6 +48,7 @@ class TapeMeasureMouseMode(MouseMode):
     def _clear(self):
         mset = self._marker_set
         if mset:
+            self._log_clear_command()
             self._marker_set = None
             self.session.models.close([mset])
             
@@ -79,20 +81,45 @@ class TapeMeasureMouseMode(MouseMode):
         from chimerax.core.objects import Objects
         from chimerax.atomic import Bonds
         b = Objects(bonds = Bonds([self._link]))
+        text, h = self._label_text_and_height()
+        from chimerax.core.colors import Color
+        label(self.session, objects = b, object_type = 'bonds',
+              text = text, height = h, color = Color(self._color))
+
+    def _label_text_and_height(self):
         from chimerax.core.geometry import distance
         m1, m2 = self._markers
         d = distance(m1.coord, m2.coord)
+        text = '%.4g' % d
         h = max(2*self._radius, 0.1*d)
-        from chimerax.core.colors import Color
-        label(self.session, objects = b, object_type = 'bonds',
-              text = '%.4g' % d, height = h, color = Color(self._color))
+        return text, h
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
         if self._markers:
+            self._log_tape_command()
             self._markers = []
         else:
             self._clear()
+
+    def _log_tape_command(self):
+        m1, m2 = self._markers
+        label,h = self._label_text_and_height()
+        mset = m1.structure
+        p1 = '%.4g,%.4g,%.4g' % tuple(m1.scene_coord)
+        p2 = '%.4g,%.4g,%.4g' % tuple(m2.scene_coord)
+        from chimerax.core.colors import color_name
+        cname = color_name(self._color)
+        cmd = ('marker segment %s %s to %s color %s radius %.4g label %s labelHeight %.4g labelColor %s'
+               % (mset.atomspec, p1, p2, cname, self._radius, label, h, cname))
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(mset.session, cmd)
+
+    def _log_clear_command(self):
+        mset = self._marker_set
+        cmd = 'marker delete %s' % mset.atomspec
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(mset.session, cmd)
 
     def _minimum_move(self, event):
         if self._markers:
@@ -107,7 +134,7 @@ class TapeMeasureMouseMode(MouseMode):
         xyz1, xyz2 = self._view_line(event)
         p = d = v = None
         from chimerax.core.geometry import distance
-        for method in [self._surface_point,
+        for method in [self._surface_or_atom_point,
                        self._volume_maximum_point,
                        self._volume_plane_point]:
             pm, vm = method(xyz1, xyz2)
@@ -119,23 +146,28 @@ class TapeMeasureMouseMode(MouseMode):
                     v = vm
         return p, v
                 
-    def _surface_point(self, xyz1, xyz2):
+    def _surface_or_atom_point(self, xyz1, xyz2):
         from chimerax.mouse_modes import picked_object_on_segment
         p = picked_object_on_segment(xyz1, xyz2, self.session.main_view,
-                                     exclude = self._exclude_markers_from_surface_pick)
+                                     exclude = self._exclude_markers_from_pick)
         from chimerax.core.graphics import PickedTriangle
         from chimerax.map.volume import PickedMap
+        from chimerax.atomic import PickedAtom, PickedResidue
+        sxyz = v = None
         if isinstance(p, PickedMap) and hasattr(p, 'triangle_pick'):
             sxyz = p.position
             v = p.map
         elif isinstance(p, PickedTriangle):
             sxyz = p.position
-            v = None
-        else:
-            sxyz = v = None
+        elif isinstance(p, PickedAtom):
+            sxyz = p.atom.scene_coord
+        elif isinstance(p, PickedResidue):
+            a = p.residue.principal_atom
+            if a:
+                sxyz = a.scene_coord
         return sxyz, v
 
-    def _exclude_markers_from_surface_pick(self, drawing):
+    def _exclude_markers_from_pick(self, drawing):
         from chimerax.mouse_modes import unpickable
         return unpickable(drawing) or drawing is self._marker_set
             
@@ -173,6 +205,9 @@ class TapeMeasureMouseMode(MouseMode):
         self._start_point = xyz1
         from time import time
         self._start_time = time()
+        # Set radius to self._vr_radius (meters) based on current vr scene scaling
+        s = self.session.main_view.camera.scene_scale  # scale factor from scene to room (meters)
+        self._radius = self._vr_radius / s
 
     def vr_motion(self, position, move, delta_z):
         self._show_distance(position.origin())

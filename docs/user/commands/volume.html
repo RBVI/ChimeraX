@@ -187,6 +187,13 @@ with varying intensity and opacity.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
+  <a name="close"><b>close</b></a> &nbsp;surface | image
+<br>
+Close submodels with display style <b>surface</b>
+(including both surface and mesh) or <b>image</b>.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
   <a name="pickable"><b>pickable</b></a> &nbsp;true | false
 <br>
 Whether a volume model should be <a href="../selection.html">selectable</a>
@@ -205,7 +212,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 <a href="#dispsolid">image display options</a>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="level"><b>level</b> &nbsp;<i>threshold-level</i></a>
+  <a name="level"><b>level</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>Place a <b><i>threshold</i></b>
   for mapping data values to the display. Can be given multiple times
   in the same command for multiple contour levels on the same volume data.
@@ -238,10 +245,10 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="rmsLevel"><b>rmsLevel</b> &nbsp;<i>threshold-level</i></a>
+  <a name="rmsLevel"><b>rmsLevel</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="sdLevel"><b>sdLevel</b> &nbsp;<i>threshold-level</i></a>
+  <a name="sdLevel"><b>sdLevel</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>
   Same as <a href="#level"><b>level</b></a>, except with <i>threshold-level</i>
   specified in units of root-mean-square (RMS) deviations from zero
@@ -254,7 +261,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="color"></a>
-  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;
   <br>Assign <a href="#level">threshold</a> color.
 Can be given multiple times in the same command if multiple 
 <a href="#level">threshold levels</a> are also specified.
@@ -272,17 +279,17 @@ if multiple levels and colors are given, there must be an equal number of each.
 Levels and colors are paired in the order given,
 but they do not need to be interleaved; 
 only the ordering of each type of specification (levels or colors)
-is significant.
+is significant. 
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a> 
+  <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a>&nbsp;
   <br>Brightness scales the intensity of the <a href="#color">color</a> 
   (default <b>1.0</b>). A value greater than 1.0 may be used, but the RGB color 
   components multiplied by the value are clamped to the range 0.0&ndash;1.0.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>
+  <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>&nbsp;
   <br>Transparency values range from 0.0 (fully opaque) 
   to 1.0 (fully transparent).
   <ul class="circle">
@@ -302,6 +309,23 @@ is significant.
   By default, more transparent voxels are made dimmer
   (see <a href="#dimvox"><b>dimTransparentVoxels</b></a>).
   </ul>
+</blockquote>
+<blockquote>
+<a href="#top" class="nounder">&bull;</a>
+<a name="change"></a><b>change</b> &nbsp;surface | image
+<br>
+The <b>change</b> option is only needed to change settings of a
+hidden display style when a volume model has both
+<b>surface</b> (surface and/or mesh) and <b>image</b> submodels.
+It applies to settings specified with <a href="#level"><b>level</b></a>,
+<a href="#rmsLevel"><b>rmsLevel</b></a>,
+<a href="#sdLevel"><b>sdLevel</b></a>,
+<a href="#color"><b>color</b></a>,
+<a href="#brightness"><b>brightness</b></a>,
+and <a href="#transparency"><b>transparency</b></a>.
+If <b>change</b> is not used,
+the setting applies to whichever style is currently shown.
+</p>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -1221,7 +1245,7 @@ see also <a href="#onesmask"><b>volume onesmask</b></a>
 &ndash; create map with values of 1 bounded by a surface
 <li><a href="#permuteAxes"><b>volume permuteAxes</b></a> &ndash; permute axes
 <li><a href="#resample"><b>volume resample</b></a>
-&ndash; resample on the grid of another map
+&ndash; resample a map on a different grid
 <li><a href="#ridges"><b>volume ridges</b></a>
 &ndash; skeletonize; emphasize ridges or filaments in the density
 <li><a href="#scale"><b>volume scale</b></a>
@@ -1254,6 +1278,7 @@ specified atoms, or limit the display to a zone without making a new map
 <a name="add"><b>volume add</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
@@ -1280,6 +1305,13 @@ Note resampling causes some loss in resolution
 (<a href="#notes">details...</a>).
 <a name="gridmap-related">Further options related to <i>gridmap</i></a>:
   <ul>
+  <li><b>spacing</b> &ndash; use a finer or coarser grid spacing;
+  if a single distance value is supplied, it is
+  used along all three axes; if three values are supplied
+  (separated by commas but not spaces), they
+  are used along the X, Y, and Z axes, respectively. 
+  Using a finer grid reduces the loss of resolution from resampling
+  (<a href="#notes">details...</a>).
   <li><b>boundingGrid</b>
   &ndash; whether to adjust (extend or shrink) the grid of <i>gridmap</i>
   to bound the input maps (default <b>true</b> when adding maps
@@ -1663,6 +1695,7 @@ See also: <a href="#multiply"><b>volume multiply</b></a>,
 <a name="maximum"><b>volume maximum</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
@@ -1697,6 +1730,7 @@ perform (default <b>1</b>).
 <a name="minimum"><b>volume minimum</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
@@ -1767,6 +1801,7 @@ See also:
 <a name="multiply"><b>volume multiply</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
@@ -1906,20 +1941,32 @@ target="_top"><b>Volume Tracer</b></a>
 
 <a href="#vop" class="nounder">&bull;</a>
 <a name="resample"><b>volume resample</b></a> &nbsp;<i>volume-spec</i>&nbsp;
-<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-Resample values on the grid of another map specified with <b>onGrid</b>,
-where <i>gridmap</i> is a model number preceded by #.
-Values on the grid are obtained by trilinear interpolation of the input map.
+Resample values to a different grid using trilinear interpolation.
+Resampling causes some loss in resolution (<a href="#notes">details...</a>).
+One or both of the following options must be supplied:
+<ul>
+<li>use the grid of another map specified with <b>onGrid</b>,
+where <i>gridmap</i> is a model number preceded by #
+<li>use a finer or coarser <b>spacing</b> of points on the grid;
+if a single distance value is supplied, it is
+used along all three axes; if three values are supplied
+(separated by commas but not spaces), they
+are used along the X, Y, and Z axes, respectively. 
+Using a finer grid reduces the loss of resolution from resampling
+(<a href="#notes">details...</a>).
+</ul>
+<p>
 The other arguments are as described
 <a href="#gridmap-related">above</a> for <a href="#add"><b>volume add</b></a>.
-Note resampling causes some loss in resolution
-(<a href="#notes">details...</a>).
+</p>
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
@@ -1979,6 +2026,7 @@ See also: <a href="../tools/segment.html"><b>Segment Map</b></a>
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2</i>&nbsp;]
 [&nbsp;<b>minRms</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
@@ -2239,6 +2287,21 @@ the <b>zone</b> <a href="ui.html#mousemode">mouse mode</a>
 </p>
 <h3>Notes</h3>
 <p>
+<b>Resampling and loss of resolution</b>.
+There is some loss of resolution with resampling a map on a different grid
+with trilinear interpolation. The effect is similar to smoothing.
+The amount of reduction in resolution depends on
+the initial resolution, the initial and final grid spacing,
+the &ldquo;bumpiness&rdquo; of the data, and the shift between the grids.
+For example, starting with a 6-&Aring; resolution map with 2-&Aring;
+spacing from <a href="molmap.html"><b>molmap</b></a> and resampling on
+a grid (with the same spacing) shifted by 1 &Aring; reduced resolution
+to approximately 7.7 &Aring;.  Starting with a 6-&Aring; resolution map with
+1-&Aring; spacing and resampling on a grid shifted by 0.5 &Aring; reduced
+resolution to approximately 6.4 &Aring;.
+Resampling to a finer grid can be specified with the <b>spacing</b> option
+of the command.
+</p><p>
 <a name="transferfunction"><b>Transfer function</b></a>.
 The thresholds and connecting lines on each histogram define a 
 <b><i>transfer function</i></b> 
@@ -2288,19 +2351,6 @@ order.  DSN6 files can be read on big- or little-endian machines.
 All of the other file readers detect file byte order and machine byte order,
 then perform byte-swapping if necessary.
 </p><p>
-<b>Resampling and loss of resolution</b>.
-There is some loss of resolution with resampling a map on a different grid
-with trilinear interpolation. The effect is similar to smoothing.
-The amount of reduction in resolution depends on
-the initial resolution, the initial and final grid spacing,
-the &ldquo;bumpiness&rdquo; of the data, and the shift between the grids.
-For example, starting with a 6-&Aring; resolution map with 2-&Aring;
-spacing from <a href="molmap.html"><b>molmap</b></a> and resampling on
-a grid (with the same spacing) shifted by 1 &Aring; reduced resolution
-to approximately 7.7 &Aring;.  Starting with a 6-&Aring; resolution map with
-1-&Aring; spacing and resampling on a grid shifted by 0.5 &Aring; reduced
-resolution to approximately 6.4 &Aring;.
-</p><p>
 <a name="moreft"><b>Fourier transform</b>.</a>
 Only the magnitudes of the complex Fourier components are included in the
 new data set; the phases are discarded and the constant component is set to
@@ -2346,5 +2396,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+November 2019</address>
 </body></html>
