@@ -824,6 +824,14 @@ extern "C" int parse_2d_array(PyObject *arg, void *array)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" int parse_writable_2d_array(PyObject *arg, void *array)
+{
+  Numeric_Array *na = static_cast<Numeric_Array *>(array);
+  return array_from_python(arg, 2, na, false) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
 extern "C" int parse_3d_array(PyObject *arg, void *array)
 {
   Numeric_Array *na = static_cast<Numeric_Array *>(array);

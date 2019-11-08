@@ -100,6 +100,7 @@ ARRAYS_IMEX int parse_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_writable_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_float_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_float_2d_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_writable_2d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_writable_3d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_writable_4d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_string_array(PyObject *arg, void *carray);
