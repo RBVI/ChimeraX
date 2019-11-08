@@ -785,7 +785,7 @@ start_t = end_t;
                     a->set_bfactor(record.atom.temp_factor);
                     a->set_occupancy(record.atom.occupancy);
                     if (record.atom.seg_id[0] != '\0')
-                        a->register_field(pdb_segment, record.atom.seg_id);
+                        a->residue()->register_field(pdb_segment, record.atom.seg_id);
                     if (record.atom.charge[0] != '\0')
                         a->register_field(pdb_charge, atoi(record.atom.charge));
                 }
