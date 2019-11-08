@@ -15,9 +15,9 @@ from .settings import defaults
 from PyQt5.QtWidgets import QWidget
 from chimerax.ui.options import OptionsPanel, ColorOption, FloatOption, BooleanOption, IntOption, \
     StringOption, OptionalRGBAOption, make_optional
+from chimerax.atomic.options import AtomPairRestrictOption
 
 from chimerax.atomic import AtomicStructure
-from chimerax.ui.options import Option
 
 class AtomProximityGUI(QWidget):
     def __init__(self, session, name, prox_word, cmd_name, color, radius, hbond_allowance, overlap_cutoff,
@@ -47,19 +47,22 @@ class AtomProximityGUI(QWidget):
             continuous=False, dashes=None, distance_only=None, inter_model=True, inter_submodel=False,
             intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"], log=defaults["action_log"],
             make_pseudobonds=defaults["action_pseudobonds"], other_atom_color=defaults["other_atom_color"],
-            res_separation=None, reveal=False, save_file=None, select=defaults["action_select"],
-            set_attrs=defaults["action_attr"], show_dist=False, summary=True, test="others", test_atoms=None,
+            res_separation=None, restrict="any", reveal=False, save_file=None,
+            select=defaults["action_select"], set_attrs=defaults["action_attr"], show_dist=False,
+            summary=True, test_atoms=None,
 
             # what controls to show in the interface
-            # note that if 'test_atoms' is not None, then the "Atoms to Check" section will be omitted
+            #
+            # note that if 'test_atoms' is not None, then the selection-restriction control will be omitted
+            # regardless of the 'show_restrict' value
             show_atom_color=True, show_attr_name=True, show_bond_separation=True,
             show_checking_frequency=True, show_color=True, show_color_atoms=True, show_dashes=True,
             show_distance_only=True, show_hbond_allowance=True, show_inter_model=True,
             show_inter_submodel=False, show_intra_mol=True, show_intra_res=True, show_log=True,
             show_make_pseudobonds=True, show_name=True, show_other_atom_color=True,
-            show_overlap_cutoff=True, show_radius=True, show_res_separation=True, show_reveal=True,
-            show_save_file=True, show_select=True, show_set_attrs=True, show_show_dist=True,
-            show_summary=False, show_test=True):
+            show_overlap_cutoff=True, show_radius=True, show_res_separation=True, show_restrict=True,
+            show_reveal=True, show_save_file=True, show_select=True, show_set_attrs=True,
+            show_show_dist=True, show_summary=False):
 
         self.session = session
 
@@ -90,81 +93,14 @@ class AtomProximityGUI(QWidget):
         layout.setSpacing(0)
         layout.setSizeConstraint(QVBoxLayout.SetFixedSize)
         self.setLayout(layout)
-        self.handlers = {}
-
-        if test_atoms is None:
-            self.desig1_atoms = None
-            group = QGroupBox("Atoms to check")
-            layout.addWidget(group)
-            group_layout = QVBoxLayout()
-            group_layout.setContentsMargins(0,0,0,0)
-            #group_layout.setSpacing(0)
-            group.setLayout(group_layout)
-            desig1_layout = QGridLayout()
-            desig1_layout.setContentsMargins(0,0,0,0)
-            desig1_layout.setSpacing(0)
-            desig1_layout.setColumnStretch(0, 1)
-            desig1_layout.setColumnStretch(1, 0)
-            desig1_layout.setColumnStretch(2, 0)
-            desig1_layout.setColumnStretch(3, 1)
-            group_layout.addLayout(desig1_layout)
-            desig1_button = QPushButton("Designate")
-            desig1_button.clicked.connect(self._designate1_cb)
-            desig1_layout.addWidget(desig1_button, 0, 1, alignment=Qt.AlignRight)
-            desig1_layout.addWidget(QLabel("currently selected atoms for checking"),
-                0, 2, alignment=Qt.AlignLeft)
-            self.desig1_status = QLabel()
-            from chimerax.ui import shrink_font
-            shrink_font(self.desig1_status)
-            self._update_desig1_status()
-            desig1_layout.addWidget(self.desig1_status, 1, 1, 1, 2, alignment=Qt.AlignCenter|Qt.AlignTop)
-
-            if show_test:
-                self.desig2_atoms = None
-                test_layout = QGridLayout()
-                test_layout.setContentsMargins(0,0,0,0)
-                test_layout.setSpacing(5)
-                test_layout.setColumnStretch(0, 1)
-                test_layout.setColumnStretch(3, 1)
-                group_layout.addLayout(test_layout)
-                self.test_kw_to_label = {
-                    'self': "themselves",
-                    'others': "all other atoms",
-                    None: "second set of designated atoms"
-                }
-                self.test_label_to_kw = { v:k for k,v in self.test_kw_to_label.items() }
-                test_label = QLabel("Check designated\natoms against:")
-                test_label.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
-                test_layout.addWidget(test_label, 0, 1, len(self.test_kw_to_label), 1,
-                    alignment=Qt.AlignRight)
-                self.test_button_group = QButtonGroup()
-                for i, kw in enumerate(['self', 'others', None]):
-                    but = QRadioButton(self.test_kw_to_label[kw])
-                    test_layout.addWidget(but, i, 2, alignment=Qt.AlignLeft)
-                    if final_val['test'] == kw:
-                        but.setChecked(True)
-                    self.test_button_group.addButton(but, i)
-                self.test_button_group.buttonClicked[QAbstractButton].connect(self._test_change)
-                desig2_layout = QGridLayout()
-                desig2_layout.setContentsMargins(0,0,0,0)
-                desig2_layout.setSpacing(0)
-                test_layout.addLayout(desig2_layout, 3, 1, 1, 2, alignment=Qt.AlignCenter)
-                self.desig2_button = QPushButton("Designate")
-                self.desig2_button.clicked.connect(self._designate2_cb)
-                desig2_layout.addWidget(self.desig2_button, 0, 0, alignment=Qt.AlignRight)
-                self.desig2_label = QLabel("selection as second set")
-                desig2_layout.addWidget(self.desig2_label, 0, 1, alignment=Qt.AlignLeft)
-
-                self.desig2_status = QLabel()
-                shrink_font(self.desig2_status)
-                self._update_desig2_status()
-                desig2_layout.addWidget(self.desig2_status, 1, 0, 1, 2, alignment=Qt.AlignCenter)
-                self._test_change(self.test_button_group.checkedButton())
 
         from chimerax.core.commands import plural_of
         prox_words = plural_of(prox_word)
-        show_boolean_params = show_intra_mol or show_intra_res or show_inter_model or show_inter_submodel
-        if show_overlap_cutoff or show_hbond_allowance or show_bond_separation or show_boolean_params:
+        if test_atoms is not None:
+            show_restrict = False
+        show_bool_params = show_intra_mol or show_intra_res or show_inter_model or show_inter_submodel
+        if show_overlap_cutoff or show_hbond_allowance or show_restrict or show_bond_separation \
+        or show_bool_params:
             group = QGroupBox("%s parameters" % prox_word.capitalize())
             layout.addWidget(group)
             group_layout = QVBoxLayout()
@@ -260,6 +196,14 @@ class AtomProximityGUI(QWidget):
                 else:
                     self.distance_radio.setChecked(True)
                     enable_widgets(True, distance_only_widgets, overlap_widgets)
+            if show_restrict:
+                restrict_options = OptionsPanel(sorting=False, scrolled=False,
+                    contents_margins=(0,0,0,0))
+                group_layout.addWidget(restrict_options, alignment=Qt.AlignLeft)
+                if show_restrict:
+                    self.sel_restrict_option = make_optional(AtomPairRestrictOption)("Limit by selection",
+                        None, None)
+                    restrict_options.add_option(self.sel_restrict_option)
             if show_bond_separation:
                 bond_sep_layout = QHBoxLayout()
                 bond_sep_layout.setContentsMargins(0,0,0,0)
@@ -293,8 +237,8 @@ class AtomProximityGUI(QWidget):
                 res_sep_layout.addWidget(rs_box)
                 res_sep_layout.addWidget(QLabel("apart in sequence"), stretch=1, alignment=Qt.AlignLeft)
 
-            if show_boolean_params:
-                self.bool_param_options = bool_param_options = OptionsPanel(sorting=False, scrolled=False,
+            if show_bool_params:
+                bool_param_options = OptionsPanel(sorting=False, scrolled=False,
                     contents_margins=(10,0,10,0))
                 group_layout.addWidget(bool_param_options, alignment=Qt.AlignCenter)
                 if show_inter_model:
@@ -473,9 +417,6 @@ class AtomProximityGUI(QWidget):
                 alignment=Qt.AlignLeft)
 
     def destroy(self):
-        for handler in self.handlers.values():
-            handler.remove()
-        self.handlers.clear()
         #TODO: if continuous checking, issue '~' command
         super().destroy()
 
@@ -665,73 +606,6 @@ class AtomProximityGUI(QWidget):
     def _checking_change(self, ok_now_checked):
         #TODO: if continuous checking, issue '~' command
         pass
-
-    def _designate1_cb(self):
-        from chimerax.atomic import selected_atoms, get_triggers
-        if 'desig1' not in self.handlers:
-            self.handlers['desig1'] = get_triggers().add_handler('changes', lambda trig_name, changes:
-                changes.num_destroyed_atoms() > 0 and self._update_desig1_status())
-        self.desig1_atoms = selected_atoms(self.session)
-        self._update_desig1_status()
-
-    def _designate2_cb(self):
-        from chimerax.atomic import selected_atoms, get_triggers
-        if 'desig2' not in self.handlers:
-            self.handlers['desig2'] = get_triggers().add_handler('changes', lambda trig_name, changes:
-                changes.num_destroyed_atoms() > 0 and self._update_desig2_status())
-        self.desig2_atoms = selected_atoms(self.session)
-        self._update_desig2_status()
-
-    def _inter_model_cb(self, opt):
-        if opt.value:
-            self.__intra_model_only_option.value = False
-
-    def _intra_model_cb(self, opt):
-        if opt.value:
-            self.__inter_model_only_option.value = False
-
-    def _test_change(self, but):
-        if but.text() == self.test_kw_to_label[None]:
-            show = True
-            color = "black" if self.desig1_atoms else "red"
-            desig2_but = but
-        else:
-            show = False
-            color = "black"
-            desig2_but = self.test_button_group.button(2)
-        self.desig2_button.setHidden(not show)
-        self.desig2_label.setHidden(not show)
-        self.desig2_status.setHidden(not show)
-        desig2_but.setStyleSheet("color: %s" % color)
-
-    def _update_desig1_status(self):
-        if self.desig1_atoms:
-            color = "black"
-            msg = "%d atoms designated" % len(self.desig1_atoms)
-        else:
-            color = "red"
-            msg = "No atoms designated"
-            if 'desig1' in self.handlers:
-                self.handlers['desig1'].remove()
-                del self.handlers['desig1']
-        self.desig1_status.setText(msg)
-        self.desig1_status.setStyleSheet("color: %s" % color)
-
-    def _update_desig2_status(self):
-        if self.desig2_atoms:
-            color = "black"
-            msg = "%d atoms designated" % len(self.desig2_atoms)
-        else:
-            color = "red"
-            msg = "No second set"
-            if 'desig2' in self.handlers:
-                self.handlers['desig2'].remove()
-                del self.handlers['desig2']
-        tbg = self.test_button_group
-        if tbg.checkedButton() == tbg.button(2):
-            tbg.checkedButton().setStyleSheet("color: %s" % color)
-        self.desig2_status.setText(msg)
-        self.desig2_status.setStyleSheet("color: %s" % color)
 
 def is_default(func, kw, val):
     from inspect import signature
