@@ -17,8 +17,6 @@ from chimerax.ui.options import OptionsPanel, ColorOption, FloatOption, BooleanO
     StringOption, OptionalRGBAOption, make_optional
 from chimerax.atomic.options import AtomPairRestrictOption
 
-from chimerax.atomic import AtomicStructure
-
 class AtomProximityGUI(QWidget):
     def __init__(self, session, name, prox_word, cmd_name, color, radius, hbond_allowance, overlap_cutoff,
             has_apply_button, *, settings_name="",
@@ -95,7 +93,8 @@ class AtomProximityGUI(QWidget):
         self.setLayout(layout)
 
         from chimerax.core.commands import plural_of
-        prox_words = plural_of(prox_word)
+        self.prox_word = prox_word
+        self.prox_words = prox_words = plural_of(prox_word)
         if test_atoms is not None:
             show_restrict = False
         show_bool_params = show_intra_mol or show_intra_res or show_inter_model or show_inter_submodel
@@ -365,14 +364,15 @@ class AtomProximityGUI(QWidget):
             if show_set_attrs:
                 if show_attr_name:
                     combo_option = make_optional(StringOption)
-                    self.set_attrs_option = self.attr_name_option = combo_option("Assign attribute named",
+                    option = self.attr_name_option = combo_option("Assign attribute named",
                         final_val['attr_name'], None)
                     if not final_val['set_attrs']:
                         # done this way so that attr name is not blank
-                        self.set_attrs_option.value = None
+                        option.value = None
                 else:
-                    self.set_attrs_option = BooleanOption("Assign attribute", final_val['set_attrs'], None)
-                treatment_options.add_option(self.set_attrs_option)
+                    option = self.set_attrs_option = BooleanOption("Assign attribute",
+                        final_val['set_attrs'], None)
+                treatment_options.add_option(option)
             elif show_attr_name:
                 self.attr_name_option = StringOption("Attribute name", final_val['attr_name'], None)
                 treatment_options.add_option(self.attr_name_option)
@@ -434,42 +434,75 @@ class AtomProximityGUI(QWidget):
         command_values = {}
 
         # never saved in settings
-        if self.show_values['model_restrict']:
-            models = self.__model_restrict_option.value
-            if models is None:
-                atom_spec = ""
-            else:
-                if not models:
-                    raise UserError("Model restriction enabled but no models chosen")
-                from chimerax.core.commands import concise_model_spec
-                atom_spec = concise_model_spec(self.session, models)
-        else:
-            atom_spec = ""
-
-        if self.show_values['bond_restrict']:
-            bond_restrict = self.__bond_restrict_option.value
-            if bond_restrict is not None:
-                command_values['restrict'] = bond_restrict
-                if atom_spec:
-                    atom_spec += " & sel"
-                else:
-                    atom_spec = "sel"
+        atom_spec = ""
+        if self.show_values['restrict']:
+            restrict = self.sel_restrict_option.value
+            if restrict is not None:
+                command_values['restrict'] = restrict
+                atom_spec = "sel"
 
         if self.show_values['save_file']:
-            if self.__save_file_option.value:
+            if self.save_file_option.value:
                 from PyQt5.QtWidgets import QFileDialog
-                fname = QFileDialog.getSaveFileName(self, "Save H-Bonds File")[0]
+                fname = QFileDialog.getSaveFileName(self, "Save %s File" % self.prox_words.capitalize())[0]
                 if fname:
                     command_values['save_file'] = fname
                 else:
                     from chimerax.core.errors import CancelOperation
-                    raise CancelOperation("H-bonds save file cancelled")
+                    raise CancelOperation("%s save file cancelled" % self.prox_words.capitalize())
             else:
                 command_values['save_file'] = None
         else:
             command_values['save_file'] = None
 
+        if self.show_values['set_attrs']:
+            if self.show_values['attr_name']:
+                combo_val = self.attr_name_option.value
+                command_values['set_attrs'] = combo_val is not None
+                command_values['attr_name'] = combo_val
+            else:
+                command_values['set_attrs'] = self.set_attrs_option.value
+        else:
+            command_values['set_attrs'] = None
+
+        if self.show_values['make_pseuodbonds']:
+            if self.show_values['name']:
+                command_values['name'] = self.name_option.value
+            else:
+                command_values['name'] = None
+        else:
+            command_values['name'] = None
+
         # may be saved in settings
+        if (self.show_values['overlap_cutoff'] or self.show_values['hbond_allowance']) \
+        and self.show_values['distance_only']:
+            overlap_active = self.overlap_radio.isChecked()
+            distance_active = not overlap_activw
+        else:
+            overlap_active = distance_active = True
+
+        if self.show_values['overlap_cutoff'] and overlap_active:
+            settings['overlap_cutoff'] = self.overlap_spinbox.value()
+        else:
+            settings['overlap_cutoff'] = None
+
+        if self.show_values['hbond_allowance'] and overlap_active:
+            settings['hbond_allowance'] = self.hbond_spinbox.value()
+        else:
+            settings['hbond_allowance'] = None
+
+        if self.show_values['distance_only'] and distance_active:
+            settings['distance_only'] = self.dist_only_spinbox.value()
+        else:
+            settings['distance_only'] = None
+
+        if self.show_values['bond_separation']:
+            settings['bond_separation'] = int(self.bond_sep_button.text())
+        else:
+            settings['bond_separation'] = None
+        #TODO
+
+
         if self.show_values['color']:
             settings['color'] = self.__color_option.value
         else:
