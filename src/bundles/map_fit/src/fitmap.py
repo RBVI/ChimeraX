@@ -138,7 +138,10 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     ijk_step_size = ijk_step_size_max
 
     np = len(points)
-    report_interval =  max(segment_steps, 10000000//np) if np > 0 else 1
+
+    from time import time
+    report_interval = 1.0	# seconds
+    next_report_time = time() + report_interval
 
     if metric == 'correlation about mean':
         from numpy import sum, float64
@@ -153,7 +156,7 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
 
     if rotation_center is None:
         from numpy import sum, float64
-        rotation_center = rc = sum(points, axis=0, dtype=float64) / len(points)
+        rotation_center = rc = sum(points, axis=0, dtype=float64) / np
 
     syminv = [s.inverse() for s in symmetries]
 
@@ -182,7 +185,8 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
             ijk_step_size = min(ijk_step_size*step_grow_factor,
                                 ijk_step_size_max)
         move_tf = move_tf * seg_tf
-        if step % report_interval == 0 and request_stop_cb:
+        if request_stop_cb and time() >= next_report_time:
+            next_report_time = time() + report_interval
             shift, angle = move_tf.shift_and_angle(rc)
             if request_stop_cb('%d steps, shift %.3g, rotation %.3g degrees'
                                % (step, shift, angle)):
@@ -194,7 +198,7 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     xyz_to_ijk_tf = xyz_to_ijk_transform * move_tf
     stats = {'shift': shift, 'axis': axis, 'axis point': axis_point,
              'angle': angle, 'axis shift': axis_shift, 'steps': step,
-             'points': len(points), 'transform': move_tf}
+             'points': np, 'transform': move_tf}
 
     amv, npts = average_map_value(points, xyz_to_ijk_tf, data_array,
                                   syminv = syminv, values = values)
