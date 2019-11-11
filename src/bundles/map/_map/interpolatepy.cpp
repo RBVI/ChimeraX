@@ -32,18 +32,23 @@ static int parse_interpolation_method(PyObject *arg, void *m);
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args)
+extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args,
+					     PyObject *keywds)
 {
   FArray vertices, values;
   float vtransform[3][4];
   Numeric_Array data;
   Interpolate::Interpolation_Method method;
-  if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&O&O&|O&"),
-			parse_float_n3_array, &vertices,
-			parse_float_3x4_array, &(vtransform[0][0]),
-			parse_3d_array, &data,
-			parse_interpolation_method, &method,
-			parse_writable_float_n_array, &values) ||
+  const char *kwlist[] = {"points", "transform", "array",
+			  "method", "values", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds,
+				   const_cast<char *>("O&O&O&O&|O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &vertices,
+				   parse_float_3x4_array, &(vtransform[0][0]),
+				   parse_3d_array, &data,
+				   parse_interpolation_method, &method,
+				   parse_writable_float_n_array, &values) ||
       (values.dimension() == 1 && !check_array_size(values, vertices.size(0), true)))
     return NULL;
 
@@ -73,18 +78,23 @@ extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args)
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args)
+extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args,
+						 PyObject *keywds)
 {
   FArray vertices, gradients;
   float vtransform[3][4];
   Numeric_Array data;
   Interpolate::Interpolation_Method method;
-  if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&O&O&|O&"),
-			parse_float_n3_array, &vertices,
-			parse_float_3x4_array, &(vtransform[0][0]),
-			parse_3d_array, &data,
-			parse_interpolation_method, &method,
-			parse_writable_float_n3_array, &gradients) ||
+  const char *kwlist[] = {"points", "transform", "array",
+			  "method", "gradients", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds,
+				   const_cast<char *>("O&O&O&O&|O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &vertices,
+				   parse_float_3x4_array, &(vtransform[0][0]),
+				   parse_3d_array, &data,
+				   parse_interpolation_method, &method,
+				   parse_writable_float_n3_array, &gradients) ||
       (gradients.dimension() == 2 && !check_array_size(gradients, vertices.size(0), 3, true)))
     return NULL;
 
