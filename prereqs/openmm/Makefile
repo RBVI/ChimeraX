@@ -2,9 +2,9 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-# Using nightly OpenMM Mac and Linux builds from https://anaconda.org/omnia/openmm/files
-PYVER = py37_cuda92_rc_1
-VERSION = 7.3.0
+# Using OpenMM builds from https://anaconda.org/omnia/openmm/files
+PYVER = py37_cuda101_rc_1
+VERSION = 7.4.0
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 endif
@@ -12,7 +12,6 @@ ifeq ($(OS),Linux)
 PLATFORM = linux
 endif
 ifeq ($(OS),Windows)
-PYVER = py37_cuda92_rch39e3cac_1
 PLATFORM = windows
 endif
 
