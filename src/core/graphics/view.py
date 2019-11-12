@@ -684,7 +684,9 @@ class View:
         Keep the center of rotation in the middle of the view at a depth
         midway between near and far clip planes.  If only the near plane
         or only the far plane is enabled use center on that plane.  If neither
-        near nor far planes are enabled use depth equal to center of bounding box.
+        near nor far planes are enabled then the depth is such that the
+        previous rotation point and new rotation point are in the same plane
+        perpendicular to the new view direction.
         '''
         p = self.clip_planes
         np, fp = p.find_plane('near'), p.find_plane('far')
