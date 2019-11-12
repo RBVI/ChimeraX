@@ -57,7 +57,8 @@ endif
 ifeq ($(OS),Windows)
 	cd $(SOURCE)/Lib ; \
 	  chmod a+x *dll *.lib plugins/*.dll plugins/*.lib ; \
-	  chmod a+x site-packages/simtk/openmm/_openmm*.pyd
+	  chmod a+x site-packages/simtk/openmm/*.pyd ; \
+	  chmod a+x site-packages/simtk/openmm/app/internal/*.pyd
 endif
 
 clean:
