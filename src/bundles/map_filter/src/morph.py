@@ -64,11 +64,11 @@ class Interpolated_Map:
     if self.adjust_thresholds:
       self.record_threshold_ranks(v)
 
-    f1, f2, v1, v2 = self.coefficients(f)
+    f1, f2, sf1, sf2, v1, v2 = self.coefficients(f)
     if v.data is None or v1.data is None or v2.data is None:
       return False
 
-    linear_combination(f1, v1, f2, v2, v, self.subregion, self.step)
+    linear_combination(sf1, v1, sf2, v2, v, self.subregion, self.step)
     self.f = f
 
     if self.adjust_thresholds:
@@ -94,10 +94,10 @@ class Interpolated_Map:
       f2 = (f-f0)*(n-1)
       f1 = 1-f2
     sf = self.scale_factors
-    f1 *= sf[i0]
-    f2 *= sf[i0+1]
+    sf1 = f1 * sf[i0]
+    sf2 = f2 * sf[i0+1]
 
-    return f1, f2, vlist[i0], vlist[i0+1]
+    return f1, f2, sf1, sf2, vlist[i0], vlist[i0+1]
   
   # ---------------------------------------------------------------------------
   #

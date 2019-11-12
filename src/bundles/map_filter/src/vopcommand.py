@@ -624,6 +624,8 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
              hide_original_maps = True, interpolate_colors = True,
              subregion = 'all', step = 1, model_id = None):
     '''Linearly interpolate pointwise between maps.'''
+    if len(volumes) < 2:
+        raise CommandError('volume morph requires 2 or more volumes, got %d' % len(volumes))
     if play_range is None:
         if add_mode:
             prange = (-1.0,1.0)
