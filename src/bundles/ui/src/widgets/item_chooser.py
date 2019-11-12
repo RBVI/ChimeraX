@@ -316,6 +316,9 @@ class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
                 self.value = (list(self.value_map.keys()) + self._special_items)[0]
             else:
                 self.value = None
+        elif prev_value in self.value_map:
+            # item name (only) may have changed
+            self.setText(self.value_map[prev_value])
         if del_recursion:
             delattr(self, '_recursion')
 
