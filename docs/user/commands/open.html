@@ -140,6 +140,22 @@ target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <td align="center">.mmtf</td>
 <td align="center">atomic coordinates and associated annotations</td>
 </tr><tr>
+<td align="center">Schr&ouml;dinger Maestro
+<br><br>*requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxmaestro"
+target="_blank"><b>Maestro</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>
+</td>
+<td align="center"><b>mae</b></td>
+<td align="center">.mae<br>.maegz</td>
+<td align="center" class="text">atomic coordinates
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from 
+<a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>)
+</td>
+</tr><tr>
 <td align="center">Sybyl Mol2</td>
 <td align="center"><b>mol2</b></td>
 <td align="center">.mol2</td>
@@ -261,6 +277,20 @@ map</td>
 <td align="center"><b>xplor</b></td>
 <td align="center">.cns, .xplor</td>
 <td align="center">unformatted ASCII density map</td>
+</tr><tr>
+<td align="center">Crystallographic reflection file
+<br><br>*requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
+target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>
+and specifying a corresponding atomic model
+(<a href="#clipper">details...</a>)
+</td>
+<td align="center"><b>mtz</b></td>
+<td align="center">.mtz</td>
+<td align="center" class="text">reciprocal space map
+</td>
 </tr><tr>
 <td align="center">DelPhi or GRASP potential</td>
 <td align="center"><b>delphi</b></td>
@@ -836,7 +866,9 @@ but to provide topology information, this option must be used
 to specify an existing model with the same set of atoms
 (for example: <b>open myfile.trr struct #1</b>).
 The coordinates of the existing model will be replaced with the new,
-unless <b>replace false</b> is used to indicate appending the new frames instead.
+unless <b>replace false</b> is used to indicate appending the new frames 
+instead. This option is also needed to open local MTZ files
+(<a href="#clipper">details...</a>).
 </blockquote>
 <blockquote>
 <a name="vseries"></a>
@@ -1167,7 +1199,37 @@ r12c09f01p01-ch1sk01fk1fl1.tiff
 </blockquote>
 See also the <a href="#channel"><b>channel</b></a>
 option of the <a href="#top"><b>open</b></a> command.
+</p>
+
+<a name="clipper"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Open/Save Options from Clipper</h3>
+<p>
+The <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
+target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a> allows
+<a href="#top">opening</a> and <a href="save.html">saving</a>
+crystallographic reflection (MTZ) files.
+</p><p>
+Opening an MTZ file requires also specifying a corresponding atomic structure.
+If the MTZ file is local, an already-open atomic model must be specified
+with the <a href="#structureModel"><b>structureModel</b></a> option.
+An <b>overSampling</b> <i>value</i> can be given to set the
+fineness of the real-space grid relative to the data resolution
+(recommended <i>value</i> 2 or 4).
+An MTZ file can be <a href="#fetch">fetched</a> simultaneously
+with its atomic structure from the
+<a href="http://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>
+by specifying <b>structureFactors true</b>.
+</p><p>
+Only a previously opened MTZ file can be <a href="save.html">saved</a>
+as that format.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2019</address>
+November 2019</address>
 </body></html>
