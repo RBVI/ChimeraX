@@ -324,7 +324,7 @@ class StructureTugger:
             max_force = self._max_force()
             if max_force > self._max_allowable_force:
                 raise Exception('Maximum force exceeded')
-            self._log('Maximum force:')
+            self._log('Maximum force: %.3g' % max_force)
         except:
                 max_force=self._max_force()
                 self._log("FAIL!!!\n")

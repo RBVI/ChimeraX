@@ -118,6 +118,9 @@ class UpdateLoop:
         t.timeout.connect(self._redraw_timer_callback)
         t.start(self.redraw_interval)
 
+        # Stop the redraw timer when the app quits
+        self.session.triggers.add_handler('app quit', self._app_quit)
+
     def _redraw_timer_callback(self):
         import time
         t = time.perf_counter()
@@ -131,6 +134,14 @@ class UpdateLoop:
             self.session.ui.mouse_modes.mouse_pause_tracking()
         self._last_timer_finish_time = time.perf_counter()
 
+    def _app_quit(self, tname, tdata):
+        # Avoid errors caused by attempting to redraw after quiting.
+        t = self._timer
+        if t:
+            t.stop()
+            self._timer = None
+        self.block_redraw()
+            
     def update_graphics_now(self):
         '''
         Redraw graphics now if there are any changes.  This is typically only used by

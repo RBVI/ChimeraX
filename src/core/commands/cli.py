@@ -2256,9 +2256,9 @@ def _get_help_url(words):
     cname = words[0]
     if cname.startswith('~'):
         cname = cname[1:]
-        frag = '%20'.join(words)
+        frag = '-'.join(words)
     else:
-        frag = '%20'.join(words[1:])
+        frag = '-'.join(words[1:])
     from .. import toolshed
     help_directories = toolshed.get_help_directories()
     cmd_subpath = os.path.join('user', 'commands', '%s.html' % cname)
