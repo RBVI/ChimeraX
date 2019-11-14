@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-ViewDockX" version="0.1"
 	    package="chimerax.viewdockx"
-  	    minSessionVersion="1" maxSessionVersion="1">
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
@@ -21,6 +21,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <DataFile>viewdockx_*.html</DataFile>
     <DataFile>viewdockx_*.js</DataFile>
     <DataFile>viewdockx_*.css</DataFile>
+    <DataFile>nextdocking.png</DataFile>
   </DataFiles>
 
   <!--
