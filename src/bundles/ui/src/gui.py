@@ -31,6 +31,7 @@ from chimerax.core.logger import PlainTextLog
 def initialize_qt():
     initialize_qt_plugins_location()
     initialize_qt_high_dpi_display_support()
+    initialize_desktop_opengl()
     initialize_shared_opengl_contexts()
 
 def initialize_qt_plugins_location():
@@ -73,6 +74,11 @@ def initialize_qt_high_dpi_display_support():
     if win:
         from PyQt5.QtCore import QCoreApplication, Qt
         QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+
+def initialize_desktop_opengl():
+    # Need full OpenGL support
+    from PyQt5.QtCore import QCoreApplication, Qt
+    QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
 
 def initialize_shared_opengl_contexts():
     # Mono and stereo opengl contexts need to share vertex buffers

@@ -286,6 +286,9 @@ _Toolbars = {
                 ("mouse:tug", None, "Tug", "Drag atom while applying dynamics"),
                 ("mouse:minimize", None, "Minimize", "Jiggle residue and its neighbors"),
             ],
+            ("Other", False): [
+                ("mouse:next docking", None, "ViewDock", "Show next docked ligand"),
+            ],
         }
     ),
 }
