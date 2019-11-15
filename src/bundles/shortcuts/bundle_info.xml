@@ -135,7 +135,7 @@
     <Provider tab="Map" section="Image Display"
       name="aw" display_name="Airways preset" icon="airways.png" description="Airways preset"/>
     <Provider tab="Map" section="Image Display"
-      name="aw" display_name="Skin preset" icon="ear.png" description="Skin preset"/>
+      name="as" display_name="Skin preset" icon="ear.png" description="Skin preset"/>
     <Provider tab="Map" section="Image Display"
       name="dc" display_name="Default thresholds" icon="initialcurve.png" description="Default volume curve"/>
 
