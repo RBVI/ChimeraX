@@ -214,10 +214,9 @@ class PickBlobs(MouseMode):
         from chimerax.core.commands import run
         run(surface.session, cmd)
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         self._pick_blob(pick)
 
 def hex_color(rgba8):

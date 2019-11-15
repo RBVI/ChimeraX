@@ -120,9 +120,9 @@ class MapEraser(MouseMode):
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         c = self.settings.sphere_center
-        delta_xyz = move*c - c
+        delta_xyz = event.motion*c - c
         self.settings.move_sphere(delta_xyz)
 
 # -----------------------------------------------------------------------------

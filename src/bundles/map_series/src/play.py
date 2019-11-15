@@ -418,16 +418,18 @@ class PlaySeriesMouseMode(MouseMode):
       p.change_time(tn)
     p.session.logger.status('%s time %d' % (s0.name, tn+1))
 
-  def vr_motion(self, position, move, delta_z):
+  def vr_motion(self, event):
     # Virtual reality hand controller motion.
-    tstep = int(round(20*delta_z))
+    tstep = int(round(20*event.room_vertical_motion))
     if tstep == 0:
       return 'accumulate drag'
     self._take_step(tstep)
 
-  def vr_thumbstick(self, xyz1, xyz2, step):
+  def vr_thumbstick(self, event):
     # Virtual reality hand controller thumbstick tilt.
-    self._take_step(step)
+    step = event.thumbstick_step()
+    if step != 0:
+      self._take_step(step)
         
 
 # -----------------------------------------------------------------------------

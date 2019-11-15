@@ -70,16 +70,19 @@ class NextDockingMouseMode(MouseMode):
       return False
     return tool is not None
 
-  def vr_motion(self, position, move, delta_z):
+  def vr_motion(self, event):
     # Virtual reality hand controller motion.
-    step = int(round(20*delta_z))
+    step_size = 0.10	# Meters vertical motion per step
+    step = int(round(event.room_vertical_motion / step_size))
     if step == 0:
       return 'accumulate drag'
     self._show_next(step)
 
-  def vr_thumbstick(self, xyz1, xyz2, step):
+  def vr_thumbstick(self, event):
     # Virtual reality hand controller thumbstick tilt.
-    self._show_next(step)
+    step = event.thumbstick_step()
+    if step != 0:
+      self._show_next(step)
 
   # TODO: Add a vr_trackpad() method for use with Vive hand controllers
   #   so up/down can be done by clicking on different parts of the trackpad.
