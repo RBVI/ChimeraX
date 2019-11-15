@@ -70,8 +70,21 @@ class NextDockingMouseMode(MouseMode):
       return False
     return tool is not None
 
+  def vr_press(self, event):
+    # Use touchpad position to step to next or previous ligand
+    if not event.is_touchpad:
+      return
+    x,y = event.touchpad_position
+    if x is None or y is None:
+      return
+    v = x if abs(x) > abs(y) else y
+    step = 1 if v >= 0 else -1
+    self._show_next(step)
+      
   def vr_motion(self, event):
     # Virtual reality hand controller motion.
+    if event.is_touchpad:
+      return
     step_size = 0.10	# Meters vertical motion per step
     step = int(round(event.room_vertical_motion / step_size))
     if step == 0:

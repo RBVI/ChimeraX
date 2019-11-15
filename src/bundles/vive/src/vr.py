@@ -2204,8 +2204,12 @@ class HandController:
         
         # Call HandMode event callback.
         if m:
-            e = HandButtonEvent(self, b, pressed = pressed, released = released)
-            self._dispatch_event(m, e)
+            event = HandButtonEvent(self, b, pressed = pressed, released = released)
+            if b == openvr.k_EButton_SteamVR_Touchpad:
+                x, y = self._touchpad_position()
+                if x is not None and y is not None:
+                    event.touchpad_position = (x,y)
+            self._dispatch_event(m, event)
 
     def _dispatch_event(self, mode, hand_event):
         if hand_event.pressed:
@@ -2288,16 +2292,26 @@ class HandController:
             self._check_for_missing_button_release()
             pose = self.room_position
             for m in self._active_drag_modes:
-                m.drag(HandMotionEvent(self, previous_pose, pose))
+                m.drag(HandMotionEvent(self, m._button_down, previous_pose, pose))
 
         # Check for Oculus thumbstick position
         ts_mode = self._thumbstick_mode()
         if ts_mode and ts_mode.uses_thumbstick():
-            success, cstate = self._vr_system.getControllerState(self._device_index)
-            if success:
-                # On Oculus Rift S, axis 0=thumbstick, 1=trigger, 2=grip
-                astate = cstate.rAxis[0]
-                ts_mode.thumbstick(HandThumbstickEvent(self, astate.x, astate.y))
+            x,y = self._thumbstick_position()
+            if x is not None and y is not None:
+                ts_mode.thumbstick(HandThumbstickEvent(self, x, y))
+
+    def _thumbstick_position(self):
+        # Position range is -1 to 1 on each axis.
+        success, cstate = self._vr_system.getControllerState(self._device_index)
+        if success:
+            # On Oculus Rift S, axis 0=thumbstick, 1=trigger, 2=grip
+            astate = cstate.rAxis[0]
+            return astate.x, astate.y
+        return None, None
+
+    def _touchpad_position(self):
+        return self._thumbstick_position()
 
     def _check_for_missing_button_release(self):
         '''Cancel drag modes if button has been released even if we didn't get a button up event.'''
@@ -2563,11 +2577,25 @@ class ButtonGeometry:
         tex_rgba[i0:i1,j0:j1,:] = rgba
 
 class HandEvent:
-    def __init__(self, hand_controller):
+    def __init__(self, hand_controller, button):
         self._hand_controller = hand_controller
+        self._button = button
+        self._touchpad_position = (None,None)
     @property
     def hand_controller(self):
         return self._hand_controller
+    @property
+    def button(self):
+        return self._button
+    @property
+    def is_touchpad(self):
+        import openvr
+        return self._button == openvr.k_EButton_SteamVR_Touchpad
+    def _get_touchpad_position(self):
+        return self._touchpad_position
+    def _set_touchpad_position(self, xy):
+        self._touchpad_position = tuple(xy)
+    touchpad_position = property(_get_touchpad_position, _set_touchpad_position)
     @property
     def camera(self):
         return self.hand_controller._camera
@@ -2583,13 +2611,9 @@ class HandEvent:
 
 class HandButtonEvent(HandEvent):
     def __init__(self, hand_controller, button, pressed = False, released = False):
-        HandEvent.__init__(self, hand_controller)
-        self._button = button
+        HandEvent.__init__(self, hand_controller, button)
         self._pressed = pressed
         self._released = released
-    @property
-    def button(self):
-        return self._button
     @property
     def pressed(self):
         return self._pressed
@@ -2602,10 +2626,10 @@ class HandButtonEvent(HandEvent):
         xyz1, xyz2 = self.picking_segment()
         pick = picked_object_on_segment(xyz1, xyz2, view)
         return pick
-
+    
 class HandMotionEvent(HandEvent):
-    def __init__(self, hand_controller, previous_pose, current_pose):
-        HandEvent.__init__(self, hand_controller)
+    def __init__(self, hand_controller, button, previous_pose, current_pose):
+        HandEvent.__init__(self, hand_controller, button)
         self._previous_pose = previous_pose
         self._current_pose = current_pose
         self._last_drag_room_position = None	# May be from earlier than previous HandMotionEvent
@@ -2654,7 +2678,9 @@ class HandMotionEvent(HandEvent):
 
 class HandThumbstickEvent(HandEvent):
     def __init__(self, hand_controller, x, y):
-        HandEvent.__init__(self, hand_controller)
+        import openvr
+        button = openvr.k_EButton_SteamVR_Touchpad
+        HandEvent.__init__(self, hand_controller, button)
         self._x = x
         self._y = y
 
