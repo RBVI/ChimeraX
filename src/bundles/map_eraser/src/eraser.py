@@ -227,7 +227,9 @@ class MapEraserSettings(ToolInstance):
     def delete(self):
         ses = self.session
         ses.triggers.remove_handler(self._model_display_change_handler)
-        ses.models.close([self._sphere_model])
+        sm = self._sphere_model
+        if sm and not sm.deleted:
+            ses.models.close([sm])
         self._sphere_model = None
         ToolInstance.delete(self)
         
