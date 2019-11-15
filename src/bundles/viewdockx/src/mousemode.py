@@ -77,7 +77,7 @@ class NextDockingMouseMode(MouseMode):
     x,y = event.touchpad_position
     if x is None or y is None:
       return
-    v = x if abs(x) > abs(y) else y
+    v = x if abs(x) > abs(y) else -y
     step = 1 if v >= 0 else -1
     self._show_next(step)
 
