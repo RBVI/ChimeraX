@@ -48,7 +48,7 @@ ARRAYS_IMEX bool array_from_python(PyObject *array, int dim,
 // Recover numpy Python array used to create a C++ array.
 // Returns NULL if there is no Python array.
 //
-ARRAYS_IMEX PyObject *array_python_source(const Untyped_Array &a);
+ARRAYS_IMEX PyObject *array_python_source(const Untyped_Array &a, bool incref = true);
 
 //
 // Routines for parsing array arguments with PyArg_ParseTuple().

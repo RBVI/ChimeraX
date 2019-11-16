@@ -539,6 +539,8 @@ class SplitStereoCamera(Camera):
         else:
             tw, th = w, h//2
         if fb is None or (tw, th) != (fb.width, fb.height):
+            if fb:
+                fb.delete()
             from .opengl import Texture, Framebuffer
             t = Texture()
             t.initialize_rgba((tw,th))

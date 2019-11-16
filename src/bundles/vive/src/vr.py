@@ -1381,7 +1381,7 @@ class UserInterface:
                 return True
             elif (hc,b) in self._move_gui:
                 self._move_gui.remove((hc,b))
-                hc._drag_end(self._move_ui_mode)
+                hc._dispatch_event(self._move_ui_mode, HandButtonEvent(hc, b, released = True))
                 return True
             else:
                 # Button was released where we never got button press event.
@@ -1400,7 +1400,7 @@ class UserInterface:
                     self._move_gui.add((hc,b))
                     mum = self._move_ui_mode
                     mum.set_panel(panel)
-                    hc._drag_start(mum, b)
+                    hc._dispatch_event(mum, HandButtonEvent(hc, b, pressed=True))
                 else:
                     hand_mode = panel.clicked_mouse_mode(window_xy)
                     if hand_mode is not None:
@@ -1464,9 +1464,10 @@ class UserInterface:
             del rb[highlight_id]
             panel._update_geometry()
 
-    def redraw_ui(self, delay = True):
+    def redraw_ui(self, delay = True, delay_frames = None):
         if delay:
-            self._update_later = self._update_delay
+            frames = self._update_delay if delay_frames is None else delay_frames
+            self._update_later = frames
         else:
             self._update_later = 0
             self._update_ui_images()
@@ -1501,7 +1502,7 @@ class UserInterface:
             if mouse_mode is None:
                 mouse_mode = self._session.ui.mouse_modes.named_mode(name)
             if mouse_mode:
-                m = MouseMode(mouse_mode, self._mouse_mode_click_range)
+                m = MouseMode(mouse_mode)
             else:
                 m = None
         return m
@@ -2010,15 +2011,6 @@ class HandController:
         self._modes = {}		# Maps button name to HandMode
         self._active_drag_modes = set() # Modes with an active drag (ie. button down and not yet released).
 
-        # Settings for Oculus thumbstick used as single-step control
-        self._thumbstick_released = False
-        self._thumbstick_release_level = 0.2
-        self._thumbstick_click_level = 0.5
-        self._thumbstick_repeating = False
-        self._thumbstick_repeat_delay = 0.3  # seconds
-        self._thumbstick_repeat_interval = 0.1  # seconds
-        self._thumbstick_time = None
-
     @property
     def on(self):
         return self._device_index is not None
@@ -2211,23 +2203,29 @@ class HandController:
             if ui.process_hand_controller_button_event(self, b, pressed, released):
                 return
         
-        # Call HandMode press() or release() callback.
+        # Call HandMode event callback.
         if m:
-            if pressed:
-                self._drag_start(m, b)
-            else:
-                self._drag_end(m)
+            event = HandButtonEvent(self, b, pressed = pressed, released = released)
+            if b == openvr.k_EButton_SteamVR_Touchpad:
+                x, y = self._touchpad_position()
+                if x is not None and y is not None:
+                    event.touchpad_position = (x,y)
+            self._dispatch_event(m, event)
 
-    def _drag_start(self, mode, button):
-        mode.pressed(self._camera, self)
-        mode._button_down = button
-        self._active_drag_modes.add(mode)
+    def _dispatch_event(self, mode, hand_event):
+        if hand_event.pressed:
+            mode.pressed(hand_event)
+            mode._button_down = hand_event.button		# Used for detecting missing button release events
+            self._active_drag_modes.add(mode)
+        elif hand_event.released:
+            mode.released(hand_event)
+            self._active_drag_modes.discard(mode)
+            self._update_ui(mode)
 
-    def _drag_end(self, mode):
-        mode.released(self._camera, self)
-        self._active_drag_modes.discard(mode)
-        if not isinstance(mode, (ShowUIMode, MoveSceneMode, ZoomMode)):
-            self._camera.user_interface.redraw_ui()
+    def _update_ui(self, mode):
+        if mode.update_ui_on_release:
+            f = mode.update_ui_delay_frames
+            self._camera.user_interface.redraw_ui(delay_frames = f)
         
     def set_hand_mode(self, button, hand_mode):
         self._modes[button] = hand_mode
@@ -2261,30 +2259,6 @@ class HandController:
         else:
             mode = None
         return mode
-
-    def thumbstick_step(self, x, y):
-        if not self._thumbstick_released:
-            release = self._thumbstick_release_level
-            if abs(x) < release and abs(y) < release:
-                self._thumbstick_released = True
-                self._thumbstick_repeating = False
-            elif self._thumbstick_time is not None:
-                repeat = self._thumbstick_repeat_interval if self._thumbstick_repeating else self._thumbstick_repeat_delay
-                from time import time
-                if time() - self._thumbstick_time > repeat:
-                    self._thumbstick_released = True
-                    self._thumbstick_repeating = True
-        if not self._thumbstick_released:
-            return 0
-        click = self._thumbstick_click_level
-        if abs(x) < click and abs(y) < click:
-            return
-        self._thumbstick_released = False
-        from time import time
-        self._thumbstick_time = time()
-        v = x if abs(x) > abs(y) else y
-        step = 1 if v > 0 else -1
-        return step
     
     def _process_touch_event(self, e):
         t = e.eventType
@@ -2323,16 +2297,39 @@ class HandController:
             self._check_for_missing_button_release()
             pose = self.room_position
             for m in self._active_drag_modes:
-                m.drag(self._camera, self, previous_pose, pose)
+                m.drag(HandMotionEvent(self, m._button_down, previous_pose, pose))
 
         # Check for Oculus thumbstick position
+        self._send_thumbstick_events()
+
+    def _send_thumbstick_events(self):
         ts_mode = self._thumbstick_mode()
-        if ts_mode and ts_mode.uses_thumbstick():
-            success, cstate = self._vr_system.getControllerState(self._device_index)
-            if success:
-                # On Oculus Rift S, axis 0=thumbstick, 1=trigger, 2=grip
-                astate = cstate.rAxis[0]
-                ts_mode.thumbstick(self._camera, self, astate.x, astate.y)
+        if ts_mode is None or not ts_mode.uses_thumbstick():
+            return
+        x,y = self._thumbstick_position()
+        if x is None or y is None:
+            return
+        min_tilt = .1
+        if abs(x) < min_tilt and abs(y) < min_tilt:
+            return
+
+        event = HandThumbstickEvent(self, x, y)
+        ts_mode.thumbstick(event)
+        
+        if event.took_step:
+            self._update_ui(ts_mode)
+
+    def _thumbstick_position(self):
+        # Position range is -1 to 1 on each axis.
+        success, cstate = self._vr_system.getControllerState(self._device_index)
+        if success:
+            # On Oculus Rift S, axis 0=thumbstick, 1=trigger, 2=grip
+            astate = cstate.rAxis[0]
+            return astate.x, astate.y
+        return None, None
+
+    def _touchpad_position(self):
+        return self._thumbstick_position()
 
     def _check_for_missing_button_release(self):
         '''Cancel drag modes if button has been released even if we didn't get a button up event.'''
@@ -2343,10 +2340,11 @@ class HandController:
         if success:
             pressed_mask = cstate.ulButtonPressed
             for m in tuple(adm):
-                # bm = openvr.ButtonMaskFromId(m._button_down)  # Routine is missing from pyopenvr
-                bm = 1 << m._button_down
+                b = m._button_down
+                # bm = openvr.ButtonMaskFromId(b)  # Routine is missing from pyopenvr
+                bm = 1 << b
                 if not pressed_mask & bm:
-                    self._drag_end(m)
+                    self._dispatch_event(m, HandButtonEvent(self, b, released = True))
 
 from chimerax.core.models import Model
 class HandModel(Model):
@@ -2596,17 +2594,174 @@ class ButtonGeometry:
         j0 = int(self.tex_range[0] * tex_rgba.shape[1]) + inset
         j1 = j0+rgba.shape[1]
         tex_rgba[i0:i1,j0:j1,:] = rgba
+
+class HandEvent:
+    def __init__(self, hand_controller, button):
+        self._hand_controller = hand_controller
+        self._button = button
+        self._touchpad_position = (None,None)
+    @property
+    def hand_controller(self):
+        return self._hand_controller
+    @property
+    def button(self):
+        return self._button
+    @property
+    def is_touchpad(self):
+        import openvr
+        return self._button == openvr.k_EButton_SteamVR_Touchpad
+    def _get_touchpad_position(self):
+        return self._touchpad_position
+    def _set_touchpad_position(self, xy):
+        self._touchpad_position = tuple(xy)
+    touchpad_position = property(_get_touchpad_position, _set_touchpad_position)
+    @property
+    def camera(self):
+        return self.hand_controller._camera
+    @property
+    def position(self):
+        '''Scene coordinates Place.'''
+        rp = self.hand_controller.room_position
+        rts = self.camera.room_to_scene
+        p = rts * rp
+        return p
+    @property
+    def tip_position(self):
+        '''Scene coordinates point.'''
+        return self.position.origin()
+    def picking_segment(self):
+        '''Range is given in scene units.'''
+        p = self.hand_controller.position
+        xyz1 = p * (0,0,0)
+        xyz2 = p * (0,0,-self._picking_range)
+        return xyz1, xyz2
+    @property
+    def _picking_range(self):
+        return self.camera.user_interface._mouse_mode_click_range
+
+class HandButtonEvent(HandEvent):
+    def __init__(self, hand_controller, button, pressed = False, released = False):
+        HandEvent.__init__(self, hand_controller, button)
+        self._pressed = pressed
+        self._released = released
+    @property
+    def pressed(self):
+        return self._pressed
+    @property
+    def released(self):
+        return self._released
+    def picked_object(self, view):
+        '''Return pick for object pointed at, along ray from cone.'''
+        from chimerax.mouse_modes import picked_object_on_segment
+        xyz1, xyz2 = self.picking_segment()
+        pick = picked_object_on_segment(xyz1, xyz2, view)
+        return pick
     
+class HandMotionEvent(HandEvent):
+    def __init__(self, hand_controller, button, previous_pose, current_pose):
+        HandEvent.__init__(self, hand_controller, button)
+        self._previous_pose = previous_pose
+        self._current_pose = current_pose
+        self._last_drag_room_position = None	# May be from earlier than previous HandMotionEvent
+    @property
+    def pose(self):
+        '''Room coordinates Place.'''
+        return self._current_pose
+    @property
+    def previous_pose(self):
+        '''Room coordinates Place.'''
+        return self._previous_pose
+    @property
+    def motion(self):
+        '''Rotation and translation in scene coordinates give as a Place instance.'''
+        rp = self.hand_controller.room_position
+        ldp = self._last_drag_room_position
+        room_move = rp * ldp.inverse()
+        rts = self.camera.room_to_scene
+        move = rts * room_move * rts.inverse()
+        return move
+    def set_last_drag_position(self, last_position):
+        self._last_drag_room_position = last_position
+    @property
+    def room_vertical_motion(self):
+        '''In meters.'''
+        rp = self.hand_controller.room_position
+        ldp = self._last_drag_room_position
+        delta_z = (rp.origin() - ldp.origin())[1] # Room vertical motion
+        return delta_z
+    @property
+    def tip_motion(self):
+        '''Scene coordinates vector.'''
+        p = self.tip_position
+        return self.motion * p - p
+
+class HandThumbstickEvent(HandEvent):
+    def __init__(self, hand_controller, x, y):
+        import openvr
+        button = openvr.k_EButton_SteamVR_Touchpad
+        HandEvent.__init__(self, hand_controller, button)
+        self._x = x
+        self._y = y
+
+        # Settings for Oculus thumbstick used as single-step control
+        self._thumbstick_release_level = 0.2
+        self._thumbstick_click_level = 0.5
+        self._thumbstick_repeat_delay = 0.3  # seconds
+        self._thumbstick_repeat_interval = 0.1  # seconds
+        if not hasattr(hand_controller, '_thumbstick_state'):
+            hand_controller._thumbstick_state = {
+                'released': False, 'repeating': False, 'time': None}
+
+        self.took_step = False
+        
+    @property
+    def x(self):
+        return self._x
+    @property
+    def y(self):
+        return self._y
+
+    def thumbstick_step(self, flip_y = False):
+        '''Return 1,0,-1 when thumbstick tilted.'''
+        x,y = self.x, self.y
+        ts = self.hand_controller._thumbstick_state
+        if not ts['released']:
+            release = self._thumbstick_release_level
+            if abs(x) < release and abs(y) < release:
+                ts['released'] = True
+                ts['repeating'] = False
+            elif ts['time'] is not None:
+                repeat = self._thumbstick_repeat_interval if ts['repeating'] else self._thumbstick_repeat_delay
+                from time import time
+                if time() - ts['time'] > repeat:
+                    ts['released'] = True
+                    ts['repeating'] = True
+        if not ts['released']:
+            return 0
+        click = self._thumbstick_click_level
+        if abs(x) < click and abs(y) < click:
+            return 0
+        ts['released'] = False
+        from time import time
+        ts['time'] = time()
+        v = x if abs(x) > abs(y) else (-y if flip_y else y)
+        step = 1 if v > 0 else -1
+        if step:
+            self.took_step = True
+        return step
+        
 class HandMode:
     name = 'unnamed'
+    update_ui_on_release = True
+    update_ui_delay_frames = None
     @property
     def icon_path(self):
         return None
-    def pressed(self, camera, hand_controller):
+    def pressed(self, hand_button_event):
         pass
-    def released(self, camera, hand_controller):
+    def released(self, hand_button_event):
         pass
-    def drag(self, camera, hand_controller, previous_pose, pose):
+    def drag(self, hand_motion_event):
         pass
     uses_touch_motion = False
     def touch(self):
@@ -2615,7 +2770,7 @@ class HandMode:
         pass
     def uses_thumbstick(self):
         return False
-    def thumbstick(self, x, y):
+    def thumbstick(self, hand_thumbstick_event):
         pass
 
 class NoneMode(HandMode):
@@ -2627,7 +2782,7 @@ class NoneMode(HandMode):
     def icon_location():
         from os.path import join, dirname
         return join(dirname(__file__), 'no_action.png')
-    
+
 class MoveUIMode(HandMode):
     name = 'move ui'
     def __init__(self):
@@ -2636,21 +2791,24 @@ class MoveUIMode(HandMode):
         HandMode.__init__(self)
     def set_panel(self, panel):
         self._panel = panel
-    def pressed(self, camera, hand_controller):
-        self._last_hand_position[hand_controller] = hand_controller.room_position
-    def released(self, camera, hand_controller):
-        self._last_hand_position[hand_controller] = None
+    def pressed(self, hand_event):
+        hc = hand_event.hand_controller
+        self._last_hand_position[hc] = hc.room_position
+    def released(self, hand_event):
+        self._last_hand_position[hand_event.hand_controller] = None
         self._panel = None
-    def drag(self, camera, hand_controller, previous_pose, pose):
-        ui = camera.user_interface
-        oc = camera.other_controller(hand_controller)
+    def drag(self, hand_motion_event):
+        e = hand_motion_event
+        ui = e.camera.user_interface
+        hc = e.hand_controller
+        oc = e.camera.other_controller(hc)
         if oc and self._ui_zoom(oc):
-            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc.tip_room_position)
+            scale, center = _pinch_scale(e.previous_pose.origin(), e.pose.origin(), oc.tip_room_position)
             ui.scale_ui(scale)
             self._last_hand_position.clear()	# Avoid jump when one button released
         else:
-            hrp = hand_controller.room_position
-            lhrp = self._last_hand_position.get(hand_controller)
+            hrp = hc.room_position
+            lhrp = self._last_hand_position.get(hc)
             if lhrp is not None:
                 room_motion = hrp * lhrp.inverse()
                 panel = self._panel
@@ -2658,7 +2816,7 @@ class MoveUIMode(HandMode):
                     ui.move(room_motion)
                 else:
                     panel.move(room_motion)
-                self._last_hand_position[hand_controller] = hrp
+                self._last_hand_position[hc] = hrp
     def _ui_zoom(self, oc):
         for m in oc._active_drag_modes:
             if isinstance(m, MoveUIMode):
@@ -2667,6 +2825,7 @@ class MoveUIMode(HandMode):
 
 class ShowUIMode(MoveUIMode):
     name = 'show ui'
+    update_ui_on_release = False
     def __init__(self):
         self._start_ui_move_time = None
         self._ui_hide_time = 0.3	# seconds. Max application button press/release time to hide ui
@@ -2678,26 +2837,28 @@ class ShowUIMode(MoveUIMode):
     def icon_location():
         from os.path import join, dirname
         return join(dirname(__file__), 'menu_icon.png')
-    def pressed(self, camera, hand_controller):
-        ui = camera.user_interface
+    def pressed(self, hand_event):
+        c = hand_event.camera
+        ui = c.user_interface
         if ui.shown():
             from time import time
             self._start_ui_move_time = time()
         else:
-            ui.display_ui(hand_controller.room_position, camera.room_position)
-        MoveUIMode.pressed(self, camera, hand_controller)
-    def released(self, camera, hand_controller):
+            ui.display_ui(hand_event.hand_controller.room_position, c.room_position)
+        MoveUIMode.pressed(self, hand_event)
+    def released(self, hand_event):
         # End UI move, or hide.
         stime = self._start_ui_move_time
         from time import time
         if stime is not None and time() < stime + self._ui_hide_time:
-            camera.user_interface.hide()
+            hand_event.camera.user_interface.hide()
         self._start_ui_move_time = None
-        MoveUIMode.released(self, camera, hand_controller)
+        MoveUIMode.released(self, hand_event)
 
 class MoveSceneMode(HandMode):
     name = 'move scene'
     names = ('move scene', 'rotate', 'translate')
+    update_ui_on_release = False
     def __init__(self):
         self._zoom_center = None
     @property
@@ -2709,20 +2870,22 @@ class MoveSceneMode(HandMode):
         from chimerax.mouse_modes import TranslateMouseMode
         return TranslateMouseMode.icon_location()
 
-    def drag(self, camera, hand_controller, previous_pose, pose):
-        oc = camera.other_controller(hand_controller)
+    def drag(self, hand_motion_event):
+        e = hand_motion_event
+        cam = e.camera
+        oc = cam.other_controller(e.hand_controller)
         if oc and self._other_controller_move(oc):
             # Both controllers trying to move scene -- zoom
-            scale, center = _pinch_scale(previous_pose.origin(), pose.origin(), oc.tip_room_position)
+            scale, center = _pinch_scale(e.previous_pose.origin(), e.pose.origin(), oc.tip_room_position)
             if self._zoom_center is None:
-                self._zoom_center = _choose_zoom_center(camera, center)
-            _pinch_zoom(camera, scale, self._zoom_center)
+                self._zoom_center = _choose_zoom_center(cam, center)
+            _pinch_zoom(cam, scale, self._zoom_center)
         else:
             self._zoom_center = None
-            move = pose * previous_pose.inverse()
-            camera.move_scene(move)
+            move = e.pose * e.previous_pose.inverse()
+            cam.move_scene(move)
 
-    def released(self, camera, hand_controller):
+    def released(self, hand_event):
         self._zoom_center = None
         
     def _other_controller_move(self, oc):
@@ -2734,7 +2897,9 @@ class MoveSceneMode(HandMode):
     def uses_thumbstick(self):
         return True
 
-    def thumbstick(self, camera, hand_controller, x, y):
+    def thumbstick(self, hand_thumbstick_event):
+        e = hand_thumbstick_event
+        x,y = e.x, e.y
         from math import sqrt
         r = sqrt(x*x + y*y)
         limit = .2
@@ -2743,6 +2908,7 @@ class MoveSceneMode(HandMode):
 
         f = (r-limit)/(1-limit)
         angle = f*f	# degrees
+        camera = e.camera
         center = _choose_zoom_center(camera)
         (vx,vy,vz) = center - camera.room_position.origin()
         from chimerax.core.geometry import normalize_vector, rotation
@@ -2767,6 +2933,7 @@ def _pinch_scale(prev_pos, pos, other_pos):
 
 class ZoomMode(HandMode):
     name = 'zoom'
+    update_ui_on_release = False
     size_doubling_distance = 0.1	# meters, vertical motion
     def __init__(self):
         self._zoom_center = None
@@ -2778,27 +2945,31 @@ class ZoomMode(HandMode):
     def icon_location():
         from chimerax.mouse_modes import ZoomMouseMode
         return ZoomMouseMode.icon_location()
-    def pressed(self, camera, hand_controller):
-        self._zoom_center = _choose_zoom_center(camera, hand_controller.tip_room_position)
-    def drag(self, camera, hand_controller, previous_pose, pose):
+    def pressed(self, hand_event):
+        tip_position = hand_event.hand_controller.tip_room_position
+        self._zoom_center = _choose_zoom_center(hand_event.camera, tip_position)
+    def drag(self, hand_motion_event):
+        e = hand_motion_event
         center = self._zoom_center
         if center is None:
             return
-        y_motion = (pose.origin() - previous_pose.origin())[1]  # meters
+        y_motion = (e.pose.origin() - e.previous_pose.origin())[1]  # meters
         s = 2 ** (y_motion/self.size_doubling_distance)
         scale_factor = max(min(s, 10.0), 0.1)	# Limit scaling
-        _pinch_zoom(camera, scale_factor, center)
-    def released(self, camera, hand_controller):
+        _pinch_zoom(e.camera, scale_factor, center)
+    def released(self, hand_event):
         self._zoom_center = None
     def uses_thumbstick(self):
         return True
-    def thumbstick(self, camera, hand_controller, x, y):
+    def thumbstick(self, hand_thumbstick_event):
+        e = hand_thumbstick_event
+        y  = e.y
         limit = .2
         if abs(y) > limit:
-            center = _choose_zoom_center(camera, hand_controller.tip_room_position)
+            center = _choose_zoom_center(e.camera, e.hand_controller.tip_room_position)
             v = (y-limit if y > 0 else y+limit)/(1-limit)
             scale_factor = 1.0 - 0.02 * v * abs(v)
-            _pinch_zoom(camera, scale_factor, center)
+            _pinch_zoom(e.camera, scale_factor, center)
 
 def _choose_zoom_center(camera, center = None):
     # Zoom in about center of scene if requested center point is outside scene bounding box.
@@ -2817,8 +2988,8 @@ def _pinch_zoom(camera, scale_factor, center):
 
 class RecenterMode(HandMode):
     name = 'recenter'
-    def pressed(self, camera, hand_controller):
-        camera.fit_scene_to_room()
+    def pressed(self, hand_event):
+        hand_event.camera.fit_scene_to_room()
     @property
     def icon_path(self):
         return self.icon_location()
@@ -2829,70 +3000,60 @@ class RecenterMode(HandMode):
         return join(dirname(shortcuts.__file__), 'icons', 'viewall.png')
 
 class MouseMode(HandMode):
-    def __init__(self, mouse_mode, click_range = 5.0):
+    def __init__(self, mouse_mode):
         self._mouse_mode = mouse_mode
         mouse_mode.enable()
         self.name = mouse_mode.name
         self._last_drag_room_position = None # Hand controller position at last vr_motion call
-        self._laser_range = click_range	# Range for mouse mode laser clicks in scene units (Angstroms)as
-        self._thumbstick_repeat_delay = 0.3	# seconds
-        self._thumbstick_repeat_interval = 0.1	# seconds
+        if hasattr(mouse_mode, 'vr_update_delay_frames'):
+            # Some modes need longer to update GUI after a click, like ViewDockX.
+            self.update_ui_delay_frames = mouse_mode.vr_update_delay_frames
 
     @property
     def has_vr_support(self):
         m = self._mouse_mode
-        return hasattr(m, 'vr_press') or hasattr(m, 'vr_motion') or hasattr(m, 'vr_release')
+        return (hasattr(m, 'vr_press') or
+                hasattr(m, 'vr_motion') or
+                hasattr(m, 'vr_release') or
+                hasattr(m, 'vr_thumbstick'))
 
     @property
     def icon_path(self):
         return self._mouse_mode.icon_path
     
-    def pressed(self, camera, hand_controller):
-        self._click(camera, hand_controller, True)
+    def pressed(self, hand_button_event):
+        self._click(hand_button_event)
 
-    def released(self, camera, hand_controller):
-        self._click(camera, hand_controller, False)
+    def released(self, hand_button_event):
+        self._click(hand_button_event)
 
-    def _click(self, camera, hand_controller, pressed):
+    def _click(self, hand_button_event):
+        e = hand_button_event
         m = self._mouse_mode
-        if hasattr(m, 'vr_press') and pressed:
-            xyz1, xyz2 = self._picking_segment(hand_controller)
-            m.vr_press(xyz1, xyz2)
+        if e.pressed and hasattr(m, 'vr_press'):
+            m.vr_press(e)
         if hasattr(m, 'vr_motion'):
-            self._last_drag_room_position = hand_controller.room_position if pressed else None
-        if hasattr(m, 'vr_release') and not pressed:
-            m.vr_release()
+            self._last_drag_room_position = e.hand_controller.room_position if e.pressed else None
+        if e.released and hasattr(m, 'vr_release'):
+            m.vr_release(e)
 
-    def _picking_segment(self, hand_controller):
-        p = hand_controller.position
-        xyz1 = p * (0,0,0)
-        range_scene = self._laser_range
-        xyz2 = p * (0,0,-range_scene)
-        return xyz1, xyz2
-
-    def drag(self, camera, hand_controller, previous_pose, pose):
+    def drag(self, hand_motion_event):
         m = self._mouse_mode
-        if hasattr(m, 'vr_motion'):
-            rp = hand_controller.room_position
-            ldp = self._last_drag_room_position
-            room_move = rp * ldp.inverse()
-            delta_z = (rp.origin() - ldp.origin())[1] # Room vertical motion
-            rts = camera.room_to_scene
-            move = rts * room_move * rts.inverse()
-            p = rts * rp
-            if m.vr_motion(p, move, delta_z) != 'accumulate drag':
-                self._last_drag_room_position = rp
+        if not hasattr(m, 'vr_motion'):
+            return
+        
+        e = hand_motion_event
+        e.set_last_drag_position(self._last_drag_room_position)
+        if m.vr_motion(e) != 'accumulate drag':
+            self._last_drag_room_position = e.hand_controller.room_position
 
     def uses_thumbstick(self):
         return hasattr(self._mouse_mode, 'vr_thumbstick')
     
-    def thumbstick(self, camera, hand_controller, x, y):
+    def thumbstick(self, hand_thumbstick_event):
         '''Generate a mouse mode wheel event when thumbstick pushed.'''
-        step = hand_controller.thumbstick_step(x, y)
-        if step:
-            xyz1, xyz2 = self._picking_segment(hand_controller)
-            m = self._mouse_mode
-            m.vr_thumbstick(xyz1, xyz2, step)
+        if self.uses_thumbstick():
+            self._mouse_mode.vr_thumbstick(hand_thumbstick_event)
 
 vr_hand_modes = (ShowUIMode, MoveSceneMode, ZoomMode, RecenterMode, NoneMode)
 

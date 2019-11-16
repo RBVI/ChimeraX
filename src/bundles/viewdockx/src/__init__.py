@@ -23,6 +23,13 @@ class _MyAPI(BundleAPI):
             raise ValueError("trying to start unknown tool: %s" % ti.name)
 
     @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        if session.ui.is_gui:
+            from .mousemode import register_mousemode
+            register_mousemode(session)
+
+    @staticmethod
     def register_command(bi, ci, logger):
         from . import cmd
         cmd.register_command(ci)
