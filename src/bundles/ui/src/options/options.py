@@ -52,6 +52,8 @@ class Option(metaclass=ABCMeta):
 
         if default is None and attr_name and settings:
             self.default = getattr(settings, attr_name)
+            if self.__class__.__name__ == "ChainPairingOption":
+                print("__init__ sets default to:", self.default)
         if default is not None or not hasattr(self, 'default'):
             self.default = default
 
@@ -259,50 +261,86 @@ class BooleanOption(Option):
 class EnumBase(Option):
     values = ()
     def get_value(self):
-        return self.__widget.text()
+        if self.__as_radio_buttons:
+            return self.values[self.__button_group.checkedId()]
+        button_text = self.widget.text()
+        if isinstance(self, SymbolicEnumOption):
+            return self.values[self.labels.index(button_text)]
+        return button_text
 
     def set_value(self, value):
-        self.__widget.setText(value)
+        if self.__as_radio_buttons:
+            self.__button_group.button(self.values.index(value)).setChecked(True)
+        elif isinstance(self, SymbolicEnumOption):
+            self.widget.setText(self.labels[self.values.index(value)])
+        else:
+            self.widget.setText(value)
 
     value = property(get_value, set_value)
 
     def set_multiple(self):
-        self.__widget.setText(self.multiple_value)
+        if not self.__as_radio_buttons:
+            self.widget.setText(self.multiple_value)
 
-    def remake_menu(self, labels=None):
-        from PyQt5.QtWidgets import QAction
-        if labels is None:
+    def remake_menu(self):
+        from PyQt5.QtWidgets import QAction, QRadioButton
+        from PyQt5.QtCore import Qt
+        if isinstance(self, SymbolicEnumOption):
+            labels = self.labels
+        else:
             labels = self.values
-        menu = self.__widget.menu()
-        menu.clear()
-        for label in labels:
-            menu_label = label.replace('&', '&&')
-            action = QAction(menu_label, self.__widget)
-            action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
-            menu.addAction(action)
-        if self.values and self.value not in self.values and self.value != self.multiple_value:
-            self.value = labels[0]
-            self.make_callback()
+        if self.__as_radio_buttons:
+            for b in self.__button_group.buttons():
+                self.__button_group.removeButton(b)
+                b.hide()
+                b.destroy()
+            layout = self.widget.layout()
+            for i, l in enumerate(labels):
+                b = QRadioButton(l)
+                layout.addWidget(b, alignment=Qt.AlignLeft)
+                self.__button_group.addButton(b, id=i)
+        else:
+            menu = self.widget.menu()
+            menu.clear()
+            for label, value in zip(labels, self.values):
+                menu_label = label.replace('&', '&&')
+                action = QAction(menu_label, self.widget)
+                action.triggered.connect(lambda arg, s=self, val=value: s._menu_cb(val))
+                menu.addAction(action)
+            if self.values and self.value not in self.values and self.value != self.multiple_value:
+                self.value = labels[0]
+                self.make_callback()
+    remake_buttons = remake_menu
 
-    def _make_widget(self, *, display_value=None, **kw):
-        from PyQt5.QtWidgets import QPushButton, QMenu
-        if display_value is None:
-            display_value = self.default
-        self.__widget = QPushButton(display_value, **kw)
-        menu = QMenu()
-        self.__widget.setMenu(menu)
-        self.remake_menu()
-        return self.__widget
+    def _make_widget(self, *, as_radio_buttons=False, **kw):
+        from PyQt5.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
+        self.__as_radio_buttons = as_radio_buttons
+        if as_radio_buttons:
+            self.widget = QWidget()
+            layout = QVBoxLayout()
+            self.widget.setLayout(layout)
+            self.__button_group = QButtonGroup()
+            self.remake_buttons()
+            self.__button_group.button(self.values.index(self.default)).setChecked(True)
+            self.__button_group.buttonClicked[int].connect(lambda arg: self.make_callback())
+        else:
+            if isinstance(self, SymbolicEnumOption):
+                button_label = self.labels[self.values.index(self.default)]
+            else:
+                button_label = self.default
+            self.widget = QPushButton(button_label, **kw)
+            menu = QMenu()
+            self.widget.setMenu(menu)
+            self.remake_menu()
+        return self.widget
 
-    def _menu_cb(self, label):
-        self.value = label
+    def _menu_cb(self, value):
+        self.value = value
         self.make_callback()
 
 class EnumOption(EnumBase):
     """Supported API. Option for enumerated values"""
 
-    def _make_widget(self, *, display_value=None, **kw):
-        self.widget = EnumBase._make_widget(self, display_value=display_value, **kw)
 OptionalEnumOption = make_optional(EnumOption)
 
 class FloatOption(Option):
@@ -715,36 +753,6 @@ class SymbolicEnumOption(EnumOption):
     values = ()
     labels = ()
 
-    def get_value(self):
-        return self._value
-
-    def set_value(self, value):
-        self._value = value
-        self.widget.setText(self.labels[list(self.values).index(value)])
-
-    value = property(get_value, set_value)
-
-    def remake_menu(self):
-        EnumOption.remake_menu(self, labels=self.labels)
-
-    def set_multiple(self):
-        self._value = None
-        EnumOption.set_multiple(self)
-
-    def make_callback(self):
-        label = self.widget.text()
-        i = list(self.labels).index(label)
-        self._value = self.values[i]
-        EnumOption.make_callback(self)
-
-    def _make_widget(self, **kw):
-        self._value = self.default
-        EnumOption._make_widget(self,
-            display_value=self.labels[list(self.values).index(self.default)], **kw)
-
-    def _menu_cb(self, label):
-        self.value = self.values[self.labels.index(label)]
-        self.make_callback()
 OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
 def _make_float_spinbox(min, max, step, decimal_places, **kw):

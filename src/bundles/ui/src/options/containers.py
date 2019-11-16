@@ -110,24 +110,29 @@ class OptionsPanel(QWidget):
 class CategorizedOptionsPanel(QTabWidget):
     """Supported API. CategorizedOptionsPanel is a container for single-use (not savable) Options sorted by category"""
 
-    def __init__(self, parent=None, *, category_sorting=True, option_sorting=True, **kw):
+    def __init__(self, parent=None, *, category_sorting=True, option_sorting=True,
+            category_scrolled={}, **kw):
         """sorting:
             False: categories/options shown in order added
             True: categories/options sorted alphabetically by name
             func: categories/options sorted based on the provided key function
+
+            If category not found in category_scrolled, defaults to True
         """
         self._contents_margins = kw.pop('contents_margins', None)
         QTabWidget.__init__(self, parent, **kw)
         self._category_sorting = category_sorting
         self._option_sorting = option_sorting
         self._category_to_panel = {}
+        self._category_scrolled = category_scrolled
 
     def add_option(self, category, option):
         """Supported API. Add option (instance of chimerax.ui.options.Option) to given category"""
         try:
             panel = self._category_to_panel[category]
         except KeyError:
-            panel = OptionsPanel(sorting=self._option_sorting, contents_margins=self._contents_margins)
+            panel = OptionsPanel(sorting=self._option_sorting, contents_margins=self._contents_margins,
+                scrolled=self._category_scrolled.get(category, True))
             self.add_tab(category, panel)
         panel.add_option(option)
 

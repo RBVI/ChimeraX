@@ -47,11 +47,12 @@ from copy import deepcopy
 class _MatchmakerSettings(Settings):
     EXPLICIT_SAVE = deepcopy(defaults)
 
-# once a GUI is implemented it will need to call this...
-settings = None
-def init(session):
-    global settings
+# for the GUI
+_settings = None
+def get_settings(session):
+    global _settings
     # don't initialize a zillion times, which would also overwrite
     # any changed but not saved settings
-    if settings is None:
-        settings = _MatchmakerSettings(session, "matchmaker")
+    if _settings is None:
+        _settings = _MatchmakerSettings(session, "matchmaker")
+    return _settings

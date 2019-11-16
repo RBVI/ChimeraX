@@ -24,6 +24,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: matchmaker :: Structure Comparison :: Superimpose structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mmaker :: Structure Comparison :: alias of matchmaker</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Match Maker :: General :: superimpose structures/chains</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
