@@ -1600,6 +1600,17 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
         f(self._c_pointer, pbg._c_pointer)
 
+    def renumber_residues(self, renumbered, start):
+        '''Renumber the given residues ('renumbered'), starting from the integer 'start'.
+           Residues must be in the same chain and the resulting numbering must not conflict
+           with other residues in the same chain (unless those residues have non-blank insertion
+           codes).  The renumbering will set insertion codes to blanks.  The renumbering does NOT
+           reorder the residues (which determines sequence order).  Use reorder_residues() for that.
+        '''
+        f = c_function('structure_renumber_residues',
+            args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_int))
+        f(self._c_pointer, [r._c_pointer.value for r in renumbered], start)
+
     def reorder_residues(self, new_order):
         '''Reorder the residues.  Obviously, 'new_order' has to have exactly the same
            residues as the structure currently has.

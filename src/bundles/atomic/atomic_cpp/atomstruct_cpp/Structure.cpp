@@ -1146,6 +1146,34 @@ Structure::nonstd_res_names() const
 }
 
 void
+Structure::renumber_residues(const std::vector<Residue*>& res_list, int start)
+{
+    if (res_list.size() == 0)
+        return;
+    std::set<Residue*> check(res_list.begin(), res_list.end());
+    auto chain_id = res_list[0]->chain_id();
+    for (auto r: res_list)
+        if (r->chain_id() != chain_id)
+            throw std::logic_error("Renumbered residues must all have same chain ID");
+    for (auto r: residues()) {
+        if (r->chain_id() != chain_id)
+            continue;
+        if (check.find(r) != check.end())
+            continue;
+        if (r->insertion_code() != ' ')
+            // renumbered residues will have no insertion code
+            continue;
+        if (r->number() >= start && r->number() < start + static_cast<int>(res_list.size()))
+            throw std::logic_error("Renumbering residies will conflict with other existing residues");
+    }
+    int num = start;
+    for (auto r: res_list) {
+        r->set_insertion_code(' ');
+        r->set_number(num++);
+    }
+}
+
+void
 Structure::reorder_residues(const Structure::Residues& new_order)
 {
     if (new_order.size() != _residues.size())
