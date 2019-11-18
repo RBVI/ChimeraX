@@ -77,10 +77,12 @@ class NextDockingMouseMode(MouseMode):
     x,y = event.touchpad_position
     if x is None or y is None:
       return
-    v = x if abs(x) > abs(y) else y
+    v = x if abs(x) > abs(y) else -y
     step = 1 if v >= 0 else -1
     self._show_next(step)
-      
+
+  vr_update_delay_frames = 45	# Wait long enough to let GUI update
+  
   def vr_motion(self, event):
     # Virtual reality hand controller motion.
     if event.is_touchpad:
@@ -93,7 +95,7 @@ class NextDockingMouseMode(MouseMode):
 
   def vr_thumbstick(self, event):
     # Virtual reality hand controller thumbstick tilt.
-    step = event.thumbstick_step()
+    step = event.thumbstick_step(flip_y = True)
     if step != 0:
       self._show_next(step)
 
