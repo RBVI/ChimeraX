@@ -274,6 +274,7 @@ public:
         }
     const PositionMatrix&  position() const { return _position; }
     void  ready_idatm_types() { if (!_idatm_valid) _compute_idatm_types(); }
+    void  renumber_residues(const std::vector<Residue*>& res_list, int start);
     void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,

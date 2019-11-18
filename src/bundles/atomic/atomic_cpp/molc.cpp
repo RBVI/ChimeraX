@@ -4692,6 +4692,22 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
 }
 
+extern "C" EXPORT void structure_renumber_residues(void *structure, PyObject *py_residues, int start)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    std::vector<Residue*> renumbered;
+    auto size = PyList_GET_SIZE(py_residues);
+    for (int i = 0; i < size; ++i) {
+        renumbered.push_back(
+            static_cast<Residue*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_residues, i))));
+    }
+    try {
+        s->renumber_residues(renumbered, start);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_reorder_residues(void *structure, PyObject *py_new_order)
 {
     Structure *s = static_cast<Structure *>(structure);
