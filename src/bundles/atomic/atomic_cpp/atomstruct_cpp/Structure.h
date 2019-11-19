@@ -217,6 +217,8 @@ public:
         bool consider_missing_structure) const;
     const Bonds&  bonds() const { return _bonds; }
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    void  change_chain_ids(const std::vector<StructureSeq*>, const std::vector<ChainID>,
+        bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear_coord_sets();
     void  combine_sym_atoms();
@@ -274,6 +276,7 @@ public:
         }
     const PositionMatrix&  position() const { return _position; }
     void  ready_idatm_types() { if (!_idatm_valid) _compute_idatm_types(); }
+    void  renumber_residues(const std::vector<Residue*>& res_list, int start);
     void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
