@@ -448,6 +448,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
 
     remaining_unknowns = {}
     type_info_class = type_info['H'].__class__
+    from chimerax.atomic import Residue
     for struct in structures:
         for atom in struct.atoms:
             if atom.element.number == 0:
@@ -501,7 +502,14 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 # if atom is in standard residue but has missing bonds to
                 # heavy atoms, skip it instead of incorrectly protonating
                 # (or possibly throwing an error if e.g. it's planar)
-                if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                # also
+                # UNK/N residues will be missing some or all of their side-chain atoms, so
+                # skip atoms that would otherwise be incorrectly protonated due to their
+                # missing neighbors
+                truncated = atom.is_missing_heavy_template_neighbors(no_template_okay=True) or (
+                    atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE 
+                    and unk_atom_truncated(atom))
+                if truncated:
                     session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
                         " bond partners" % atom)
                     type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
@@ -805,6 +813,19 @@ def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
     # 135.0 is not strict enough (see :1004.a in 1nyr)
     if angle(parent_pos, pos, metal_pos) > 120.0:
         return True
+    return False
+
+def unk_atom_truncated(atom):
+    if atom.is_side_chain:
+        num_heavy_nbs = len([nb for nb in atom.neighbors if nb.element.number > 1])
+        if atom.is_side_connector:
+            # CA or ribose ring
+            if atom.is_backbone(atom.BBE_MIN) or atom.name == "C1'":
+                # atoms that connect the side chain to the backbone
+                return num_heavy_nbs < 3
+            elif atom.name == "O2'":
+                return num_heavy_nbs < 1
+        return num_heavy_nbs < 2
     return False
 
 def vdw_radius(atom):

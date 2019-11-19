@@ -52,7 +52,8 @@ const std::set<AtomName> Residue::na_ribbon_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"};
 const std::set<AtomName> Residue::ribose_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "O2'", "C2'", "O4'", "C1'"};
-const std::set<AtomName> Residue::na_side_connector_names = ribose_names;
+const std::set<AtomName> Residue::na_side_connector_names = {
+    "C3'", "C4'", "O2'", "C2'", "O4'", "C1'"};
 std::set<ResName> Residue::std_water_names = { "HOH", "WAT", "DOD", "H2O", "D2O", "TIP3" };
 std::set<ResName> Residue::std_solvent_names = std_water_names;
 std::map<ResName, std::map<AtomName, char>>  Residue::ideal_chirality;
