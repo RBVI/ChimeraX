@@ -304,6 +304,17 @@ Residue::set_alt_loc(char alt_loc)
 }
 
 void
+Residue::set_chain_id(ChainID chain_id)
+{
+    if (chain_id != _chain_id) {
+        if (_chain != nullptr)
+            throw std::logic_error("Cannot set polymeric chain ID directly from Residue; must use Chain");
+        _chain_id = chain_id;
+        change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_CHAIN_ID);
+    }
+}
+
+void
 Residue::set_templates_dir(const std::string& templates_dir)
 {
     using tmpl::TemplateCache;

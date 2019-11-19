@@ -217,6 +217,8 @@ public:
         bool consider_missing_structure) const;
     const Bonds&  bonds() const { return _bonds; }
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    void  change_chain_ids(const std::vector<StructureSeq*>, const std::vector<ChainID>,
+        bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear_coord_sets();
     void  combine_sym_atoms();

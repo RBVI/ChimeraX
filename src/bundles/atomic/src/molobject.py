@@ -1412,6 +1412,16 @@ class StructureData:
             from .molarray import Atoms
             return (Atoms(ap[0]), Atoms(ap[1]))
 
+    def change_chain_ids(self, chains, chain_ids, *, non_polymeric=True):
+        '''Change the chain IDs of the given chains to the corresponding chain ID.  The final ID
+           must not conflict with other unchanged chains of the structure.  If 'non_polymeric' is
+           True, then non-polymeric residues with the same chain ID as any of the given change
+           will also have their chain ID changed in the same way.
+        '''
+        f = c_function('structure_change_chain_ids',
+            args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object, ctypes.c_bool))
+        f(self._c_pointer, [c._c_pointer.value for c in chains], chain_ids, non_polymeric)
+
     def combine_sym_atoms(self):
         '''Combine "symmetry" atoms, which for this purpose is atoms with the same element type
            on the exact same 3D position'''

@@ -99,12 +99,6 @@ public:
     Atom *  find_atom(const AtomName&) const;
     const ChainID&  mmcif_chain_id() const { return _mmcif_chain_id; }
     char  insertion_code() const { return _insertion_code; }
-    void  set_insertion_code(char insertion_code) {
-        if (insertion_code != _insertion_code) {
-            _insertion_code = insertion_code;
-            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_INSERTION_CODE);
-        }
-    }
     bool  is_helix() const { return ss_type() == SS_HELIX; }
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
@@ -116,12 +110,6 @@ public:
     }
     PolymerType  polymer_type() const;
     int  number() const { return _number; }
-    void  set_number(int number) {
-        if (number != _number) {
-            _number = number;
-            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
-        }
-    }
     Atom*  principal_atom() const;
     void  remove_atom(Atom*);
     int  session_num_floats(int version=CURRENT_SESSION_VERSION) const {
@@ -133,11 +121,24 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
-    void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
+    void  set_chain_id(ChainID chain_id);
+    void  set_insertion_code(char insertion_code) {
+        if (insertion_code != _insertion_code) {
+            _insertion_code = insertion_code;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_INSERTION_CODE);
+        }
+    }
     void  set_is_helix(bool ih);
     void  set_is_strand(bool is);
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
+    void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
+    void  set_number(int number) {
+        if (number != _number) {
+            _number = number;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
+        }
+    }
     static void  set_templates_dir(const std::string&);
     int  ss_id() const;
     SSType  ss_type() const;

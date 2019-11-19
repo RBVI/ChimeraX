@@ -4692,6 +4692,26 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
 }
 
+extern "C" EXPORT void structure_change_chain_ids(void *structure, PyObject *py_chains, PyObject *py_chain_ids, bool non_polymeric)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    std::vector<StructureSeq*> changing;
+    std::vector<ChainID> chain_ids;
+    auto size = PyList_GET_SIZE(py_chains);
+    try {
+        if (PyList_GET_SIZE(py_chain_ids) != size)
+            throw std::logic_error("Chain ID list must be same size as chain list");
+        for (int i = 0; i < size; ++i) {
+            changing.push_back(
+                static_cast<StructureSeq*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_chains, i))));
+            chain_ids.push_back(static_cast<ChainID>(PyUnicode_AsUTF8(PyList_GET_ITEM(py_chain_ids, i))));
+        }
+        s->change_chain_ids(changing, chain_ids, non_polymeric);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_renumber_residues(void *structure, PyObject *py_residues, int start)
 {
     Structure *s = static_cast<Structure *>(structure);

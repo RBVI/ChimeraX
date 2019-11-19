@@ -83,6 +83,7 @@ public:
     static const std::string  REASON_ANISO_U;
     static const std::string  REASON_BALL_SCALE;
     static const std::string  REASON_BFACTOR;
+    static const std::string  REASON_CHAIN_ID;
     static const std::string  REASON_COLOR;
     static const std::string  REASON_COORD;
     static const std::string  REASON_COORDSET;

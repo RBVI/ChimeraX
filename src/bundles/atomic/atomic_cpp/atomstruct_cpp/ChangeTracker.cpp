@@ -27,6 +27,7 @@ const std::string ChangeTracker::REASON_ALT_LOC("alt_loc changed");
 const std::string ChangeTracker::REASON_ANISO_U("aniso_u changed");
 const std::string ChangeTracker::REASON_BALL_SCALE("ball_scale changed");
 const std::string ChangeTracker::REASON_BFACTOR("bfactor changed");
+const std::string ChangeTracker::REASON_CHAIN_ID("chain_id changed");
 const std::string ChangeTracker::REASON_COLOR("color changed");
 const std::string ChangeTracker::REASON_COORD("coord changed");
 const std::string ChangeTracker::REASON_COORDSET("coordset changed");
