@@ -97,7 +97,7 @@ def nucleotides(session, representation, *,
                 thickness=default.THICKNESS, hide_atoms=default.HIDE,
                 shape=default.SHAPE, dimensions=default.DIMENSIONS, radius=None,
                 show_stubs=default.SHOW_STUBS, base_only=default.BASE_ONLY,
-                stubs_only=default.STUBS_ONLY, objects=None):
+                stubs_only=default.STUBS_ONLY, objects=None, create_undo=True):
 
     if objects is None:
         objects = all_objects(session)
@@ -107,22 +107,25 @@ def nucleotides(session, representation, *,
     if len(residues) == 0:
         return
 
-    undo_state = UndoState('nucleotides %s' % representation)
-    nucleic_undo = _NucleicUndo(
-            'nucleotides %s' % representation, session, representation, glycosidic,
-            show_orientation, thickness, hide_atoms, shape, dimensions, radius,
-            show_stubs, base_only, stubs_only, residues)
-    undo = UndoAggregateAction('nucleotides %s' % representation, [undo_state, nucleic_undo])
+    if create_undo:
+        undo_state = UndoState('nucleotides %s' % representation)
+        nucleic_undo = _NucleicUndo(
+                'nucleotides %s' % representation, session, representation, glycosidic,
+                show_orientation, thickness, hide_atoms, shape, dimensions, radius,
+                show_stubs, base_only, stubs_only, residues)
+        undo = UndoAggregateAction('nucleotides %s' % representation, [undo_state, nucleic_undo])
 
     if representation == 'atoms':
         # hide filled rings
-        undo_state.add(residues, "ring_displays", residues.ring_displays, False)
+        if create_undo:
+            undo_state.add(residues, "ring_displays", residues.ring_displays, False)
         residues.ring_displays = False
         # reset nucleotide info
         NA.set_normal(residues)
     elif representation == 'fill':
         # show filled rings
-        undo_state.add(residues, "ring_displays", residues.ring_displays, True)
+        if create_undo:
+            undo_state.add(residues, "ring_displays", residues.ring_displays, True)
         residues.ring_displays = True
         # set nucleotide info
         if show_orientation:
@@ -138,7 +141,8 @@ def nucleotides(session, representation, *,
             else:
                 dimensions = 'long'
         if representation == 'slab':
-            undo_state.add(residues, "ring_displays", residues.ring_displays, True)
+            if create_undo:
+                undo_state.add(residues, "ring_displays", residues.ring_displays, True)
             residues.ring_displays = True
             show_gly = True
         else:
@@ -157,7 +161,8 @@ def nucleotides(session, representation, *,
         NA.set_ladder(residues, rung_radius=radius, stubs_only=stubs_only,
                       show_stubs=show_stubs, skip_nonbase_Hbonds=base_only, hide=hide_atoms)
 
-    session.undo.register(undo)
+    if create_undo:
+        session.undo.register(undo)
 
 
 class _NucleicUndo(UndoAction):
@@ -192,7 +197,8 @@ class _NucleicUndo(UndoAction):
             thickness=self.thickness, hide_atoms=self.hide_atoms,
             shape=self.shape, dimensions=self.dimensions, radius=self.radius,
             show_stubs=self.show_stubs, base_only=self.base_only,
-            stubs_only=self.stubs_only, objects=self.residues)
+            stubs_only=self.stubs_only, objects=self.residues,
+            create_undo=False)
 
 
 def run_provider(session, name, display_name):
