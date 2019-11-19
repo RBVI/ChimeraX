@@ -265,6 +265,48 @@ Structure::bonded_groups(std::vector<std::vector<Atom*>>* groups,
     }
 }
 
+void
+Structure::change_chain_ids(const std::vector<StructureSeq*> changing_chains,
+    const std::vector<ChainID> new_ids, bool non_polymeric)
+{
+    if (changing_chains.size() != new_ids.size())
+        throw std::logic_error("Number of chains to change IDs for must match number of IDs");
+
+    std::set<StructureSeq*> unique_chains(changing_chains.begin(), changing_chains.end());
+    if (unique_chains.size() < changing_chains.size())
+        throw std::logic_error("List of chains to change IDs for must not contain duplicates");
+
+    std::set<ChainID> unique_ids(new_ids.begin(), new_ids.end());
+    if (unique_ids.size() < new_ids.size())
+        throw std::logic_error("List of chain IDs to change to must not contain duplicates");
+
+    // can change StructureSeq chain IDs freely; Chain chain IDs cannot conflict with existing
+    std::set<ChainID> other_ids;
+    for (auto chain: chains())
+        if (unique_chains.find(chain) == unique_chains.end())
+            other_ids.insert(chain->chain_id());
+    std::map<StructureSeq*,ChainID> chain_remapping;
+    std::map<ChainID,ChainID> id_remapping;
+    auto new_ids_i = new_ids.begin();
+    for (auto chain: changing_chains) {
+        if (chain->is_chain() && other_ids.find(*new_ids_i) != other_ids.end()) {
+            std::stringstream err_msg;
+            err_msg << "New chain ID '" << *new_ids_i << "' already assigned to another chain";
+            throw std::logic_error(err_msg.str().c_str());
+        }
+        chain_remapping[chain] = *new_ids_i;
+        id_remapping[chain->chain_id()] = *new_ids_i++;
+    }
+
+    for (auto chain: changing_chains)
+        chain->set_chain_id(chain_remapping[chain]);
+
+    if (non_polymeric)
+        for (auto r: residues())
+            if (r->chain() == nullptr && id_remapping.find(r->chain_id()) != id_remapping.end())
+                r->set_chain_id(id_remapping[r->chain_id()]);
+}
+
 static void
 _copy_pseudobonds(Proxy_PBGroup* pbgc, const Proxy_PBGroup::Pseudobonds& pbs,
     std::map<Atom*, Atom*>& amap, CoordSet* cs = nullptr)
@@ -1143,6 +1185,34 @@ Structure::nonstd_res_names() const
             nonstd.insert(r->name());
     }
     return nonstd;
+}
+
+void
+Structure::renumber_residues(const std::vector<Residue*>& res_list, int start)
+{
+    if (res_list.size() == 0)
+        return;
+    std::set<Residue*> check(res_list.begin(), res_list.end());
+    auto chain_id = res_list[0]->chain_id();
+    for (auto r: res_list)
+        if (r->chain_id() != chain_id)
+            throw std::logic_error("Renumbered residues must all have same chain ID");
+    for (auto r: residues()) {
+        if (r->chain_id() != chain_id)
+            continue;
+        if (check.find(r) != check.end())
+            continue;
+        if (r->insertion_code() != ' ')
+            // renumbered residues will have no insertion code
+            continue;
+        if (r->number() >= start && r->number() < start + static_cast<int>(res_list.size()))
+            throw std::logic_error("Renumbering residies will conflict with other existing residues");
+    }
+    int num = start;
+    for (auto r: res_list) {
+        r->set_insertion_code(' ');
+        r->set_number(num++);
+    }
 }
 
 void

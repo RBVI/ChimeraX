@@ -59,10 +59,9 @@ std::map<ResName, std::map<AtomName, char>>  Residue::ideal_chirality;
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _mmcif_chain_id(chain), _name(name), _polymer_type(PT_NONE),
-    _number(num), _ribbon_adjust(-1.0), _ribbon_display(false),
-    _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
-    _ss_id(-1), _ss_type(SS_COIL), _structure(as),
+    _mmcif_chain_id(chain), _name(name), _number(num), _polymer_type(PT_NONE),
+    _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
+    _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as),
     _ring_display(false), _rings_are_thin(false)
 {
     change_tracker()->add_created(_structure, this);
@@ -301,6 +300,17 @@ Residue::set_alt_loc(char alt_loc)
     _alt_loc = alt_loc;
     for (auto nri = nb_res.begin(); nri != nb_res.end(); ++nri) {
         (*nri)->set_alt_loc(alt_loc);
+    }
+}
+
+void
+Residue::set_chain_id(ChainID chain_id)
+{
+    if (chain_id != _chain_id) {
+        if (_chain != nullptr)
+            throw std::logic_error("Cannot set polymeric chain ID directly from Residue; must use Chain");
+        _chain_id = chain_id;
+        change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_CHAIN_ID);
     }
 }
 

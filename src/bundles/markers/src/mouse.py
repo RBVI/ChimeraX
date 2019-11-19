@@ -245,22 +245,23 @@ class MarkerMouseMode(MouseMode):
             else:
                 _log_link_resize(rml)
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
+        xyz1, xyz2 = event.picking_segment()
         self.mouse_down(LaserEvent(xyz1,xyz2))
         
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
         mm = self._moving_marker
         if mm:
-            mm.scene_coord = move * mm.scene_coord
+            mm.scene_coord = event.motion * mm.scene_coord
         rm = self._resizing_marker_or_link
         if rm:
             from math import exp
-            scale = exp(5*delta_z)
+            scale = exp(5*event.room_vertical_motion)
             self._resize_ml(rm, scale)
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.mouse_up()
 

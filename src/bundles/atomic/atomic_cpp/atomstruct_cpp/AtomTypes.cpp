@@ -565,7 +565,7 @@ clock_t start_t = clock();
             "idatm", "templates", "idatmres"))
                 mapped_queue.push_back(a);
 #endif
-        } catch (tmpl::TA_NoTemplate) {
+        } catch (tmpl::TA_NoTemplate&) {
 #ifdef TRACK_UNTYPED
             for (auto ra: r->atoms()) {
                 untyped_atoms.push_back(ra);

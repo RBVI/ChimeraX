@@ -68,12 +68,7 @@ def show_only_largest_blobs(surface, visible_only = False, blob_count = 1,
     s = surface
     # Handle surfaces with duplicate vertices, such as molecular
     # surfaces with sharp edges between atoms.
-    if hasattr(s, 'clip_cap') and s.clip_cap == 'duplicate vertices':
-        from . import unique_vertex_map
-        vmap = unique_vertex_map(s.vertices)
-        t = vmap[s.triangles]
-    else:
-        t = s.triangles
+    t = surface.joined_triangles if hasattr(surface, 'joined_triangles') else surface.triangles
     tmask = s.triangle_mask if visible_only else None
     b = Blob_Masker(s.vertices, t, tmask)
     tmask = b.triangle_mask(metric = rank_metric, limit = blob_count)

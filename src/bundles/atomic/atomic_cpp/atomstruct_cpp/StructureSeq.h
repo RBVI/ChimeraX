@@ -108,6 +108,7 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set(unsigned i, Residue* r, char character = -1);
+    virtual void  set_chain_id(ChainID chain_id) { _chain_id = chain_id; }
     void  set_from_seqres(bool fs);
     Contents::size_type  size() const { return Sequence::size(); }
     Structure*  structure() const { return _structure; }

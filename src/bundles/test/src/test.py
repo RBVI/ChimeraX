@@ -23,7 +23,7 @@ commands = [
     'hbonds two true intrares false',
     'close',
     'open 1zik',
-    'clash #1/a test #1/b reveal t',
+    'clash #1/a restrict #1/b reveal t',
     '~clash',
     'contact #1 dist 3.5 reveal t',
     'close',

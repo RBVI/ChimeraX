@@ -27,7 +27,9 @@ def element_colors(element_numbers):
 
 def element_color(element_number):
     ect = element_color_table()
-    return ect[element_number]
+    # returning a tuple instead of a numpy array makes comparing colors for
+    # equality less stupid
+    return tuple(ect[element_number])
 
 def element_color_table():
     global element_rgba_256

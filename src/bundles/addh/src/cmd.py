@@ -14,7 +14,7 @@
 from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas
 from chimerax.atomic import Element
 from chimerax.atomic.struct_edit import add_atom
-from chimerax.atomic.colors import element_colors
+from chimerax.atomic.colors import element_color
 from chimerax.atomic.bond_geom import linear
 
 def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.6, template=False,
@@ -898,7 +898,7 @@ def determine_h_color(parent_atom):
     else:
         solvent_set = _solvent_atoms[struct]
     if res.name in res.water_res_names or parent_atom in solvent_set:
-        return element_colors(1)
+        return element_color(1)
     if parent_atom.structure in _h_coloring:
         color_scheme = _h_coloring[parent_atom.structure]
     else:
@@ -908,7 +908,7 @@ def determine_h_color(parent_atom):
                 continue
             if a.element.name == "C":
                 continue
-            if a.color == element_colors(a.element.number):
+            if a.color == element_color(a.element.number):
                 num_match_elements += 1
                 if num_match_elements > 1:
                     color_scheme = "element"
@@ -919,7 +919,7 @@ def determine_h_color(parent_atom):
         else:
             color_scheme = "element"
         _h_coloring[parent_atom.structure] = color_scheme
-    return parent_atom.color if color_scheme == "parent" else element_colors(1)
+    return parent_atom.color if color_scheme == "parent" else element_color(1)
 
 naming_exceptions = {
     'ATP': {

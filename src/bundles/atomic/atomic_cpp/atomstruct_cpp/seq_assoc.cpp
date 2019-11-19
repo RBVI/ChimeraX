@@ -459,7 +459,7 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
             retvals = constrained_match(aseq, mseq, ap, max_errors);
         else
             retvals = gapped_match(aseq, mseq, ap, max_errors);
-    } catch (SA_AssocFailure) {
+    } catch (SA_AssocFailure&) {
         assoc_failure = true;
     }
 
@@ -513,7 +513,7 @@ try_assoc(const Sequence& align_seq, const StructureSeq& mseq,
             no_X_retvals = constrained_match(aseq, no_X, no_X_ap, max_errors);
         else
             no_X_retvals = gapped_match(aseq, no_X, no_X_ap, max_errors);
-    } catch (SA_AssocFailure) {
+    } catch (SA_AssocFailure&) {
         if (assoc_failure)
             throw;
         return retvals;
