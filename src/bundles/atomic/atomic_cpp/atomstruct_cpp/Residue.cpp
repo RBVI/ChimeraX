@@ -52,17 +52,17 @@ const std::set<AtomName> Residue::na_ribbon_backbone_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "P", "OP1", "O1P", "OP2", "O2P", "OP3", "O3P"};
 const std::set<AtomName> Residue::ribose_names = {
     "O3'", "C3'", "C4'", "C5'", "O5'", "O2'", "C2'", "O4'", "C1'"};
-const std::set<AtomName> Residue::na_side_connector_names = ribose_names;
+const std::set<AtomName> Residue::na_side_connector_names = {
+    "C3'", "C4'", "O2'", "C2'", "O4'", "C1'"};
 std::set<ResName> Residue::std_water_names = { "HOH", "WAT", "DOD", "H2O", "D2O", "TIP3" };
 std::set<ResName> Residue::std_solvent_names = std_water_names;
 std::map<ResName, std::map<AtomName, char>>  Residue::ideal_chirality;
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _mmcif_chain_id(chain), _name(name), _polymer_type(PT_NONE),
-    _number(num), _ribbon_adjust(-1.0), _ribbon_display(false),
-    _ribbon_hide_backbone(true), _ribbon_rgba({160,160,0,255}),
-    _ss_id(-1), _ss_type(SS_COIL), _structure(as),
+    _mmcif_chain_id(chain), _name(name), _number(num), _polymer_type(PT_NONE),
+    _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
+    _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as),
     _ring_display(false), _rings_are_thin(false)
 {
     change_tracker()->add_created(_structure, this);
@@ -301,6 +301,17 @@ Residue::set_alt_loc(char alt_loc)
     _alt_loc = alt_loc;
     for (auto nri = nb_res.begin(); nri != nb_res.end(); ++nri) {
         (*nri)->set_alt_loc(alt_loc);
+    }
+}
+
+void
+Residue::set_chain_id(ChainID chain_id)
+{
+    if (chain_id != _chain_id) {
+        if (_chain != nullptr)
+            throw std::logic_error("Cannot set polymeric chain ID directly from Residue; must use Chain");
+        _chain_id = chain_id;
+        change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_CHAIN_ID);
     }
 }
 

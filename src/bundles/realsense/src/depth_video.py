@@ -14,8 +14,8 @@
 # -----------------------------------------------------------------------------
 #
 def device_realsense(session, enable = None,
-                     angstroms_per_meter = 50,
-                     projector = False, align = False):
+                     align = True, denoise = True, projector = False,
+                     angstroms_per_meter = 50, skip_frames = 2):
 
     di = session.models.list(type = DepthVideo)
     if enable:
@@ -27,7 +27,9 @@ def device_realsense(session, enable = None,
         di = DepthVideo('RealSense camera', session,
                         depth_scale = angstroms_per_meter,
                         use_ir_projector = projector,
-                        align_color_and_depth = align)
+                        align_color_and_depth = align,
+                        denoise_depth = denoise,
+                        skip_frames = skip_frames)
         session.models.add([di])
     elif enable is None:
         if di:
@@ -41,11 +43,14 @@ def device_realsense(session, enable = None,
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, IntArg
     desc = CmdDesc(optional = [('enable', BoolArg)],
-                   keyword = [('angstroms_per_meter', FloatArg),
+                   keyword = [('align', BoolArg),
+                              ('denoise', BoolArg),
                               ('projector', BoolArg),
-                              ('align', BoolArg)],
+                              ('angstroms_per_meter', FloatArg),
+                              ('skip_frames', IntArg),
+                   ],
                    synopsis = 'Turn on RealSense camera rendering')
     register('device realsense', desc, device_realsense, logger=logger)
             
@@ -57,7 +62,9 @@ class DepthVideo (Model):
     def __init__(self, name, session,
                  depth_scale = 50,	        # Angstroms per meter.
                  use_ir_projector = False,      # Interferes with Vive VR tracking
-                 align_color_and_depth = False  # This slows frame rate to ~10 frames/sec
+                 align_color_and_depth = True,  # This slows frame rate
+                 denoise_depth = True,
+                 skip_frames = 0
     ):
         Model.__init__(self, name, session)
 
@@ -70,10 +77,11 @@ class DepthVideo (Model):
         self._realsense_depth_field_of_view = (91.2,65.5) # TODO: Get this from pyrealsense
         self._use_ir_projector = use_ir_projector
         self._align_color_and_depth = align_color_and_depth
+        self._denoise_depth = denoise_depth
         self._pipeline_started = False
         self._frames_per_second = 30	# RealSense frame rate: 30, 15, 6 at depth 1280x720, or 60,90 at 848x480
                                         #  6,15,30 at color 1920x1080, 60 at 1280x720
-        self._skip_frames = 2   	# Skip updating realsense on some graphics updates
+        self._skip_frames = skip_frames	# Skip updating realsense on some graphics updates
         self._current_frame = 0
         
         t = session.triggers.add_handler('graphics update', self._update_image)
@@ -139,7 +147,7 @@ class DepthVideo (Model):
         skip = self._skip_frames
         if skip > 0:
             self._current_frame += 1
-            if self._current_frame % skip != 1:
+            if self._current_frame % (skip+1) != 1:
                 return
 
         import pyrealsense2 as rs
@@ -175,8 +183,6 @@ class DepthVideo (Model):
 
         import numpy
         # Convert images to numpy arrays
-#        depth_image = numpy.asanyarray(depth_frame.get_data())[::-1,:]
-#        color_image = numpy.asanyarray(color_frame.get_data())[::-1,:,:]
         depth_image = numpy.asanyarray(depth_frame.get_data())
         color_image = numpy.asanyarray(color_frame.get_data())
         if view.frame_number % 100 == -1:
@@ -200,34 +206,45 @@ class DepthVideo (Model):
             print('depth fov', dfov)
             self._realsense_depth_field_of_view = dfov
             print('extrinsics color to depth', color_frame.profile.get_extrinsics_to(depth_frame.profile))
-            '''
-            self._ave_depth_image = depth_image.copy()
-            from numpy import int16
-            self._last_color_image = color_image.copy().astype(int16)
-            '''
+            if self._denoise_depth:
+                self._ave_depth_image = depth_image.copy()
+                self._max_depth = depth_image.copy()
+                self._max_depth_color = color_image.copy()
+                self._last_color_image = color_image.copy()
+                # from numpy import int16
+                # self._last_color_image = color_image.copy().astype(int16)
         else:
             self.texture.reload_texture(color_image)
-            '''
-            # Average depth over several frames to reduce flicker
-            ave = self._ave_depth_image
-            f = .1
-            from numpy import average, putmask, abs, logical_or
-            putmask(depth_image, (depth_image == 0), ave)  # depth 0 values are unknown, don't change average
-            ave[:] = average((depth_image, ave), axis = 0, weights = (f, 1-f)).astype(ave.dtype)
 
-            # Update depth without averaging if color change a lot.
-            cdiff = abs(color_image - self._last_color_image)
-            cmax = 10
-            cfast = (cdiff[:,:,0] > cmax)
-            logical_or(cdiff[:,:,1] > cmax, cfast, cfast)
-            logical_or(cdiff[:,:,2] > cmax, cfast, cfast)
-            putmask(ave, cfast, depth_image)
-            self._last_color_image[:] = color_image
-            
-            self._depth_texture.reload_texture(ave)
-            '''
-            
-            self._depth_texture.reload_texture(depth_image)
+            if self._denoise_depth:
+                ave_depth = self._ave_depth_image
+                from ._depthvideo import denoise_depth
+                denoise_depth(depth_image, color_image,
+                              ave_depth = ave_depth, ave_weight = .1,
+                              max_depth = self._max_depth, max_depth_color = self._max_depth_color,
+                              last_color = self._last_color_image, max_color_diff = 10)
+                self._depth_texture.reload_texture(ave_depth)
+                '''
+                # Average depth over several frames to reduce flicker
+                ave = self._ave_depth_image
+                f = .1
+                from numpy import average, putmask, abs, logical_or
+                putmask(depth_image, (depth_image == 0), ave)  # depth 0 values are unknown, don't change average
+                ave[:] = average((depth_image, ave), axis = 0, weights = (f, 1-f)).astype(ave.dtype)
+
+                # Update depth without averaging if color change a lot.
+                cdiff = abs(color_image - self._last_color_image)
+                cmax = 10
+                cfast = (cdiff[:,:,0] > cmax)
+                logical_or(cdiff[:,:,1] > cmax, cfast, cfast)
+                logical_or(cdiff[:,:,2] > cmax, cfast, cfast)
+                putmask(ave, cfast, depth_image)
+                self._last_color_image[:] = color_image
+
+                self._depth_texture.reload_texture(ave)
+                '''
+            else:
+                self._depth_texture.reload_texture(depth_image)
 
         self.redraw_needed()
 

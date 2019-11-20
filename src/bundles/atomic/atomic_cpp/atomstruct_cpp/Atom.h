@@ -193,9 +193,6 @@ public:
         return _radius;
     }
     float maximum_bond_radius(float default_radius) const;
-    void  register_field(std::string /*name*/, int /*value*/) {}
-    void  register_field(std::string /*name*/, double /*value*/) {}
-    void  register_field(std::string /*name*/, const std::string &/*value*/) {}
     void  remove_bond(Bond *b);
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,

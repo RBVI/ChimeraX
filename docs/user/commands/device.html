@@ -285,6 +285,9 @@ and <b>play map series</b>
 [&nbsp;<b>fieldOfView</b>&nbsp;&nbsp;<i>angle</i>&nbsp;]
 [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
 [&nbsp;<b>backgroundColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>savePosition</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>tracker</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>saveTrackerMount</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
 The <b>vr roomCamera</b> command sets up a separate camera view fixed 
 in the VR room coordinates, useful for making video tutorials.
@@ -307,7 +310,8 @@ The background color of the room camera can be set separately from the VR
 background; default is a dark gray (<b>10,10,10</b>)
 so that the rectangle is visible against a black scene background.
 </p><p>
-The room camera is a model that can be <a href="../selection.html">selected</a>
+The room camera rectangle
+is a model that can be <a href="../selection.html">selected</a>
 and then moved in VR with the
 <a href="../vr.html#mousemodes">hand-controller mode</a>
 assigned by clicking either icon:
@@ -316,10 +320,30 @@ assigned by clicking either icon:
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" src="../tools/mouse-icons/rotate_h2o.png" border="1"></a>
 (or with the <a href="#vr-button"><b>vr button</b></a> command).
+</p><p>
+Specifying <b>savePosition true</b> saves the current position and orientation
+of the room camera in the <a href="../preferences.html#other">preferences</a>.
+</p><p>
+Two options allow using a 
+<a href="https://www.vive.com/us/vive-tracker/" target="_blank">Vive Tracker</a>
+device to control the room camera position:
+</p>
+<ul>
+<li>Using <b>tracker true</b> synchronizes the room camera to the
+position and orientation of the device, with offsets
+(if any) previously saved with <b>saveTrackerMount true</b>.
+<li>Using <b>saveTrackerMount true</b> saves in the
+<a href="../preferences.html#other">preferences</a>
+the current room camera translation and rotation relative to the device.
+</ul>
+<p>
+Thus, the room camera can be moved by hand as described above,
+and then its offsets from the device (for when <b>tracker true</b> is used) 
+in position and orientation saved with <b>saveTrackerMount true</b>.
 </p>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+November 2019</address>
 </body></html>

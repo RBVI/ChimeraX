@@ -28,6 +28,7 @@ public:
     virtual ~Chain();
 
     bool  is_chain() const { return !is_sequence(); }
+    void  set_chain_id(ChainID chain_id);
 };
 
 }  // namespace atomstruct

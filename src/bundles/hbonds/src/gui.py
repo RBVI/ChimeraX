@@ -103,7 +103,7 @@ class HBondsGUI(QWidget):
                     None if settings else show_dist, None, attr_name="show_dist", settings=settings)
                 make_pb_options.add_option(self.__show_dist_option)
             if show_reveal:
-                self.__reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
+                self.__reveal_option = BooleanOption("Reveal atoms of H-bonding residues",
                     None if settings else reveal, None, attr_name="reveal", settings=settings)
                 make_pb_options.add_option(self.__reveal_option)
             if show_retain_current:

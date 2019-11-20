@@ -72,8 +72,8 @@ private:
     char  _insertion_code;
     ChainID  _mmcif_chain_id;
     ResName  _name;
-    PolymerType  _polymer_type;
     int  _number;
+    PolymerType  _polymer_type;
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
@@ -103,8 +103,10 @@ public:
     bool  is_strand() const { return ss_type() == SS_STRAND; }
     const ResName&  name() const { return _name; }
     void  set_name(const ResName &name) {
-      _name = name;
-      change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NAME);
+        if (name != _name) {
+            _name = name;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NAME);
+        }
     }
     PolymerType  polymer_type() const;
     int  number() const { return _number; }
@@ -119,12 +121,24 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set_alt_loc(char alt_loc);
-    void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
-    void  set_insertion_code(char ic) { _insertion_code = ic; }
+    void  set_chain_id(ChainID chain_id);
+    void  set_insertion_code(char insertion_code) {
+        if (insertion_code != _insertion_code) {
+            _insertion_code = insertion_code;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_INSERTION_CODE);
+        }
+    }
     void  set_is_helix(bool ih);
     void  set_is_strand(bool is);
     void  set_ss_id(int ssid);
     void  set_ss_type(SSType sst);
+    void  set_mmcif_chain_id(const ChainID &cid) { _mmcif_chain_id = cid; }
+    void  set_number(int number) {
+        if (number != _number) {
+            _number = number;
+            change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_NUMBER);
+        }
+    }
     static void  set_templates_dir(const std::string&);
     int  ss_id() const;
     SSType  ss_type() const;

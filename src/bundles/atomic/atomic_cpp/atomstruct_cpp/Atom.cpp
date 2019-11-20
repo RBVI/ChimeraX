@@ -256,36 +256,36 @@ Atom::default_radius() const
         && info->second.substituents <= bonds().size()) {
             switch (element().number()) {
                 case 1: // hydrogen
-                    return 1.00;
+                    return 1.00f;
 
                 case 6: // carbon
-                    return 1.70;
+                    return 1.70f;
 
                 case 7: // nitrogen
-                    return 1.625;
+                    return 1.625f;
 
                 case 8: // oxygen
                     if (info->second.geometry < 4)
-                        return 1.48;
-                    return 1.50;
+                        return 1.48f;
+                    return 1.50f;
 
                 case 9: // fluorine
-                    return 1.56;
+                    return 1.56f;
 
                 case 15: // phosphorus
-                    return 1.871;
+                    return 1.871f;
 
                 case 16: // sulfur
-                    return 1.782;
+                    return 1.782f;
 
                 case 17: // chlorine
-                    return 1.735;
+                    return 1.735f;
 
                 case 35: // bromine
-                    return 1.978;
+                    return 1.978f;
 
                 case 53: // iodine
-                    return 2.094;
+                    return 2.094f;
             }
         }
     }
@@ -294,539 +294,539 @@ Atom::default_radius() const
     int coord;
     switch (element().number()) {
         case 1: // hydrogen
-            return 1.0;
+            return 1.0f;
         
         case 3: // lithium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.59;
+                return 0.59f;
             if (coord >= 8)
-                return 0.92;
-            return 0.76;
+                return 0.92f;
+            return 0.76f;
 
         case 4: // beryllium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.27;
-            return 0.45;
+                return 0.27f;
+            return 0.45f;
 
         case 6: // carbon
             if (idatm_type() != Car && idatm_type() != C2)
-                return 1.88;
+                return 1.88f;
             if (bonds().size() < 3) // implied hydrogen
-                return 1.76;
+                return 1.76f;
             for (auto nb: neighbors()) {
                 if (nb->element().number() == 1)
-                    return 1.76;
+                    return 1.76f;
             }
-            return 1.61;
+            return 1.61f;
         
         case 7: // nitrogen
-            return 1.64;
+            return 1.64f;
         
         case 8: // oxygen
             if (idatm_type() == O3)
-                return 1.46;
-            return 1.42;
+                return 1.46f;
+            return 1.42f;
         
         case 9: // fluorine
             // if it's an ion, use the ionic value
             if (bonds().size() == 0)
-                return 1.33;
+                return 1.33f;
             break;
 
         case 11: // sodium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.99;
+                return 0.99f;
             if (coord >= 12)
-                return 1.39;
+                return 1.39f;
             if (coord >= 9)
-                return 1.24;
+                return 1.24f;
             if (coord >= 8)
-                return 1.18;
-            return 1.02;
+                return 1.18f;
+            return 1.02f;
         
         case 12: // magnesium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.57;
+                return 0.57f;
             if (coord >= 8)
-                return 0.89;
-            return 0.72;
+                return 0.89f;
+            return 0.72f;
         
         case 13: // aluminum
             coord = coordination(6);
             if (coord <= 4)
-                return 0.39;
+                return 0.39f;
             if (coord >= 6)
-                return 0.54;
-            return 0.48;
+                return 0.54f;
+            return 0.48f;
         
         case 15: // phosphorus
             // to be consistent with "explicit hydrogen" case
-            return 2.1;
+            return 2.1f;
         
         case 16: // sulfur
-            return 1.77;
+            return 1.77f;
         
         case 17: // chlorine
             if (bonds().size() == 0)
-                return 1.81;
+                return 1.81f;
             break;
 
         case 19: // potassium
             coord = coordination(6);
             if (coord <= 4)
-                return 1.37;
+                return 1.37f;
             if (coord >= 12)
                 return 1.64;
             if (coord >= 10)
-                return 1.51;
-            return 1.38;
+                return 1.51f;
+            return 1.38f;
         
         case 20: // calcium
             coord = coordination(6);
             if (coord >= 12)
                 return 1.34;
             if (coord >= 10)
-                return 1.23;
+                return 1.23f;
             if (coord >= 8)
-                return 1.12;
-            return 1.00;
+                return 1.12f;
+            return 1.00f;
         
         case 21: // scandium
             coord = coordination(6);
             if (coord >= 8)
-                return 0.87;
-            return 0.75;
+                return 0.87f;
+            return 0.75f;
 
         case 22: // titanium
-            return 0.86;
+            return 0.86f;
 
         case 23: // vanadium
-            return 0.79;
+            return 0.79f;
 
         case 24: // chromium
-            return 0.73;
+            return 0.73f;
 
         case 25: // manganese
             coord = coordination(6);
             if (coord <= 4)
-                return 0.66;
+                return 0.66f;
             if (coord >= 8)
-                return 0.96;
-            return 0.83;
+                return 0.96f;
+            return 0.83f;
 
         case 26: // iron
             coord = coordination(6);
             if (coord <= 4)
-                return 0.63;
+                return 0.63f;
             if (coord >= 8)
-                return 0.92;
-            return 0.61;
+                return 0.92f;
+            return 0.61f;
 
         case 27: // cobalt
             coord = coordination(6);
             if (coord <= 4)
-                return 0.56;
+                return 0.56f;
             if (coord >= 8)
-                return 0.90;
-            return 0.65;
+                return 0.90f;
+            return 0.65f;
             
         case 28: // nickel
             coord = coordination(6);
             if (coord <= 4)
-                return 0.49;
-            return 0.69;
+                return 0.49f;
+            return 0.69f;
 
         case 29: // copper
             coord = coordination(6);
             if (coord <= 4)
-                return 0.57;
-            return 0.73;
+                return 0.57f;
+            return 0.73f;
         
         case 30: // zinc
             coord = coordination(6);
             if (coord <= 4)
-                return 0.60;
+                return 0.60f;
             if (coord >= 8)
-                return 0.90;
-            return 0.74;
+                return 0.90f;
+            return 0.74f;
 
         case 31: // gallium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.47;
-            return 0.62;
+                return 0.47f;
+            return 0.62f;
 
         case 32: // germanium
-            return 0.73;
+            return 0.73f;
 
         case 33: // arsenic
-            return 0.58;
+            return 0.58f;
 
         case 34: // selenium
-            return 0.50;
+            return 0.50f;
 
         case 35: // bromine
             if (bonds().size() == 0)
-                return 1.96;
+                return 1.96f;
             break;
 
         case 37: // rubidium
             coord = coordination(6);
             if (coord >= 12)
-                return 1.72;
+                return 1.72f;
             if (coord >= 10)
-                return 1.66;
+                return 1.66f;
             if (coord >= 8)
-                return 1.61;
-            return 1.52;
+                return 1.61f;
+            return 1.52f;
         
         case 38: // strontium
             coord = coordination(6);
             if (coord >= 12)
-                return 1.44;
+                return 1.44f;
             if (coord >= 10)
-                return 1.36;
+                return 1.36f;
             if (coord >= 8)
-                return 1.26;
-            return 1.18;
+                return 1.26f;
+            return 1.18f;
         
         case 39: // yttrium
             coord = coordination(6);
             if (coord >= 9)
-                return 1.08;
+                return 1.08f;
             if (coord >= 8)
-                return 1.02;
-            return 0.90;
+                return 1.02f;
+            return 0.90f;
 
         case 40: // zirconium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.59;
+                return 0.59f;
             if (coord >= 9)
-                return 0.89;
+                return 0.89f;
             if (coord >= 8)
-                return 0.84;
-            return 0.72;
+                return 0.84f;
+            return 0.72f;
 
         case 41: // niobium
             coord = coordination(6);
             if (coord >= 8)
-                return 0.79;
-            return 0.72;
+                return 0.79f;
+            return 0.72f;
 
         case 42: // molybdenum
-            return 0.69;
+            return 0.69f;
 
         case 43: // technetium
-            return 0.65;
+            return 0.65f;
 
         case 44: // ruthenium
-            return 0.68;
+            return 0.68f;
 
         case 45: // rhodium
-            return 0.67;
+            return 0.67f;
 
         case 46: // palladium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.64;
-            return 0.86;
+                return 0.64f;
+            return 0.86f;
 
         case 47: // silver
             coord = coordination(6);
             if (coord <= 4)
-                return 0.79;
-            return 0.94;
+                return 0.79f;
+            return 0.94f;
 
         case 48: // cadmium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.78;
+                return 0.78f;
             if (coord >= 12)
-                return 1.31;
+                return 1.31f;
             if (coord >= 8)
-                return 1.10;
-            return 0.95;
+                return 1.10f;
+            return 0.95f;
 
         case 49: // indium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.62;
-            return 0.80;
+                return 0.62f;
+            return 0.80f;
 
         case 50: // tin
             coord = coordination(6);
             if (coord <= 4)
-                return 0.55;
+                return 0.55f;
             if (coord >= 8)
-                return 0.81;
-            return 0.69;
+                return 0.81f;
+            return 0.69f;
 
         case 51: // antimony
-            return 0.76;
+            return 0.76f;
 
         case 52: // tellurium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.66;
-            return 0.97;
+                return 0.66f;
+            return 0.97f;
 
         case 53: // iodine
             if (bonds().size() == 0)
-                return 2.20;
+                return 2.20f;
             break;
 
         case 55: // cesium
             coord = coordination(6);
             if (coord >= 12)
-                return 1.88;
+                return 1.88f;
             if (coord >= 10)
-                return 1.81;
+                return 1.81f;
             if (coord >= 8)
-                return 1.74;
-            return 1.67;
+                return 1.74f;
+            return 1.67f;
 
         case 56: // barium
             coord = coordination(6);
             if (coord >= 12)
-                return 1.61;
+                return 1.61f;
             if (coord >= 8)
-                return 1.42;
-            return 1.35;
+                return 1.42f;
+            return 1.35f;
 
         case 57: // lanthanum
             coord = coordination(6);
             if (coord >= 12)
-                return 1.36;
+                return 1.36f;
             if (coord >= 10)
-                return 1.27;
+                return 1.27f;
             if (coord >= 8)
-                return 1.16;
-            return 1.03;
+                return 1.16f;
+            return 1.03f;
 
         case 58: // cerium
             coord = coordination(6);
             if (coord >= 12)
-                return 1.34;
+                return 1.34f;
             if (coord >= 10)
-                return 1.25;
+                return 1.25f;
             if (coord >= 8)
-                return 1.14;
-            return 1.01;
+                return 1.14f;
+            return 1.01f;
 
         case 59: // praseodymium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.13;
-            return 0.99;
+                return 1.13f;
+            return 0.99f;
 
         case 60: // neodymium
             coord = coordination(6);
             if (coord >= 12)
-                return 1.27;
+                return 1.27f;
             if (coord >= 9)
-                return 1.16;
+                return 1.16f;
             if (coord >= 8)
-                return 1.12;
-            return 0.98;
+                return 1.12f;
+            return 0.98f;
 
         case 61: // promethium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.09;
-            return 0.97;
+                return 1.09f;
+            return 0.97f;
 
         case 62: // samarium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.27;
-            return 1.19;
+                return 1.27f;
+            return 1.19f;
             
         case 63: // europium
             coord = coordination(6);
             if (coord >= 10)
-                return 1.35;
+                return 1.35f;
             if (coord >= 8)
-                return 1.25;
-            return 1.17;
+                return 1.25f;
+            return 1.17f;
 
         case 64: // gadolinium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.05;
-            return 0.94;
+                return 1.05f;
+            return 0.94f;
 
         case 65: // terbium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.04;
-            return 0.92;
+                return 1.04f;
+            return 0.92f;
             
         case 66: // dysprosium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.19;
-            return 1.07;
+                return 1.19f;
+            return 1.07f;
             
         case 67: // holmium
-            return 0.901;
+            return 0.901f;
 
         case 68: // erbium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.00;
-            return 0.89;
+                return 1.00f;
+            return 0.89f;
             
         case 69: // thulium
             coord = coordination(6);
             if (coord >= 7)
-                return 1.09;
-            return 1.01;
+                return 1.09f;
+            return 1.01f;
             
         case 70: // ytterbium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.14;
-            return 1.02;
+                return 1.14f;
+            return 1.02f;
             
         case 71: // lutetium
             coord = coordination(6);
             if (coord >= 8)
-                return 0.97;
-            return 0.86;
+                return 0.97f;
+            return 0.86f;
 
         case 72: // hafnium
             coord = coordination(6);
             if (coord <= 4)
-                return 0.58;
+                return 0.58f;
             if (coord >= 8)
-                return 0.83;
-            return 0.71;
+                return 0.83f;
+            return 0.71f;
 
         case 73: // tantalum
-            return 0.72;
+            return 0.72f;
 
         case 74: // tungsten
-            return 0.66;
+            return 0.66f;
 
         case 75: // rhenium
-            return 0.63;
+            return 0.63f;
 
         case 76: // osmium
-            return 0.63;
+            return 0.63f;
 
         case 77: // iridium
-            return 0.68;
+            return 0.68f;
 
         case 78: // platinum
             coord = coordination(6);
             if (coord <= 4)
-                return 0.60;
-            return 0.80;
+                return 0.60f;
+            return 0.80f;
 
         case 79: // gold
-            return 1.37;
+            return 1.37f;
 
         case 80: // mercury
             coord = coordination(6);
             if (coord <= 2)
-                return 0.69;
+                return 0.69f;
             if (coord <= 4)
-                return 0.96;
+                return 0.96f;
             if (coord >= 8)
-                return 1.14;
-            return 1.02;
+                return 1.14f;
+            return 1.02f;
 
         case 81: // thallium
             coord = coordination(6);
             if (coord >= 12)
-                return 1.70;
+                return 1.70f;
             if (coord >= 8)
-                return 1.59;
-            return 1.50;
+                return 1.59f;
+            return 1.50f;
 
         case 82: // lead
             coord = coordination(6);
             if (coord >= 12)
-                return 1.49;
+                return 1.49f;
             if (coord >= 10)
-                return 1.40;
+                return 1.40f;
             if (coord >= 8)
-                return 1.29;
-            return 1.19;
+                return 1.29f;
+            return 1.19f;
 
         case 83: // bismuth
             coord = coordination(6);
             if (coord <= 5)
-                return 0.96;
+                return 0.96f;
             if (coord >= 8)
-                return 1.17;
-            return 1.03;
+                return 1.17f;
+            return 1.03f;
 
         case 84: // polonium
-            return 0.97;
+            return 0.97f;
 
         case 87: // francium
-            return 1.80;
+            return 1.80f;
 
         case 88: // radium
             coord = coordination(6);
             if (coord >= 10)
-                return 1.70;
-            return 1.48;
+                return 1.70f;
+            return 1.48f;
 
         case 89: // actinium
-            return 1.12;
+            return 1.12f;
 
         case 90: // thorium
             coord = coordination(6);
             if (coord >= 12)
-                return 1.21;
+                return 1.21f;
             if (coord >= 10)
-                return 1.13;
+                return 1.13f;
             if (coord >= 8)
-                return 1.05;
-            return 0.94;
+                return 1.05f;
+            return 0.94f;
 
         case 91: // protactinium
-            return 1.04;
+            return 1.04f;
 
         case 92: // uranium
-            return 1.03;
+            return 1.03f;
         
         case 93: // neptunium
-            return 1.01;
+            return 1.01f;
 
         case 94: // plutonium
-            return 1.00;
+            return 1.00f;
 
         case 95: // americium
             coord = coordination(6);
             if (coord >= 8)
-                return 1.09;
-            return 0.98;
+                return 1.09f;
+            return 0.98f;
 
         case 96: // curium
-            return 0.97;
+            return 0.97f;
 
         case 97: // berkelium
-            return 0.96;
+            return 0.96f;
 
         case 98: // californium
-            return 0.95;
+            return 0.95f;
 
         case 99: // einsteinium
-            return 0.835;
+            return 0.835f;
     }
 
     // use double the bond radius
     float rad = 2.0 * Element::bond_radius(element());
     if (rad == 0.0)
-        return 1.8;
+        return 1.8f;
     return rad;
 }
 

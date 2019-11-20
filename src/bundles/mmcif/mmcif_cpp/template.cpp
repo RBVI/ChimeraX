@@ -332,15 +332,15 @@ ExtractTemplate::parse_chem_comp_atom()
             });
         pv.emplace_back(get_column("pdbx_model_Cartn_x_ideal"),
             [&] (const char* start) {
-                x = readcif::str_to_float(start);
+                pdbx_x = readcif::str_to_float(start);
             });
         pv.emplace_back(get_column("pdbx_model_Cartn_y_ideal"),
             [&] (const char* start) {
-                y = readcif::str_to_float(start);
+                pdbx_y = readcif::str_to_float(start);
             });
         pv.emplace_back(get_column("pdbx_model_Cartn_z_ideal"),
             [&] (const char* start) {
-                z = readcif::str_to_float(start);
+                pdbx_z = readcif::str_to_float(start);
             });
     } catch (std::runtime_error& e) {
         std::ostringstream err_msg;
