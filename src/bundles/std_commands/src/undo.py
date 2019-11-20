@@ -22,20 +22,25 @@ def undo(session):
         raise UserError("No undo action is available")
 
 
-def undo_list(session):
+def undo_list(session, nested=False):
     '''List undoable actions
     '''
-    msgs = _list_stack("undo", session.undo.undo_stack)
-    msgs.extend(_list_stack("redo", session.undo.redo_stack))
+    msgs = _list_stack("undo", session.undo.undo_stack, nested)
+    msgs.extend(_list_stack("redo", session.undo.redo_stack, nested))
     session.logger.info(''.join(msgs), is_html=True)
 
 
-def _list_stack(label, stack):
+def _list_stack(label, stack, show_nested):
+    from chimerax.core.undo import UndoAggregateAction
     msgs = ["<p>There are %d %s actions</p>" % (len(stack), label)]
-    msgs.append("<ul>")
-    for inst in stack:
-        msgs.append("<li>%s</li>" % inst.name)
-    msgs.append("</ul>")
+    def show_items(stack):
+        msgs.append("<ul>")
+        for item in stack:
+            msgs.append("<li>%s</li>" % item.name)
+            if show_nested and isinstance(item, UndoAggregateAction):
+                show_items(item.actions)
+        msgs.append("</ul>")
+    show_items(stack)
     return msgs
 
 
@@ -70,10 +75,11 @@ def redo(session):
 
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, NoArg
     desc = CmdDesc(synopsis='undo last action')
     register('undo', desc, undo, logger=logger)
-    desc = CmdDesc(synopsis='list available undo actions')
+    desc = CmdDesc(synopsis='list available undo actions',
+            optional=[('nested', NoArg)], hidden=['nested'])
     register('undo list', desc, undo_list, logger=logger)
     desc = CmdDesc(synopsis='clear all undo and redo actions')
     register('undo clear', desc, undo_clear, logger=logger)
