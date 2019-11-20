@@ -1961,7 +1961,7 @@ compare_chains(Chain* c1, Chain* c2)
 
 void
 Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
-        const std::vector<Residue*>* correspondences, PolymerType pt)
+        const std::vector<Residue*>* correspondences, PolymerType pt, bool one_letter_names)
 {
     _input_seq_info[chain_id] = res_names;
     if (correspondences != nullptr) {
@@ -1969,10 +1969,22 @@ Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName
             throw std::invalid_argument(
                 "Sequence length differs from number of corresponding residues");
         if (pt == PT_NONE) {
-            for (auto rn: res_names) {
-                pt = Sequence::rname_polymer_type(rn);
-                if (pt != PT_NONE)
-                    break;
+            if (one_letter_names) {
+                if (correspondences != nullptr) {
+                    for (auto r: *correspondences) {
+                        if (r == nullptr)
+                            continue;
+                        pt = Sequence::rname_polymer_type(r->name());
+                        if (pt != PT_NONE)
+                            break;
+                    }
+                }
+            } else {
+                for (auto rn: res_names) {
+                    pt = Sequence::rname_polymer_type(rn);
+                    if (pt != PT_NONE)
+                        break;
+                }
             }
             if (pt == PT_NONE)
                 throw std::invalid_argument("Cannot determine polymer type of input sequence");
@@ -1983,7 +1995,10 @@ Structure::set_input_seq_info(const ChainID& chain_id, const std::vector<ResName
         auto res_chars = new Sequence::Contents(res_names.size());
         auto chars_ptr = res_chars->begin();
         for (auto rni = res_names.begin(); rni != res_names.end(); ++rni, ++chars_ptr) {
-            (*chars_ptr) = Sequence::rname3to1(*rni);
+            if (one_letter_names)
+                (*chars_ptr) = (*rni)[0];
+            else
+                (*chars_ptr) = Sequence::rname3to1(*rni);
         }
         chain->bulk_set(*correspondences, res_chars);
         chain->set_from_seqres(true);
