@@ -2319,9 +2319,9 @@ class AtomicStructure(Structure):
                 if nucleic:
                     from .nucleotides.cmd import nucleotides
                     if len(nucleic) < 100:
-                        nucleotides(self.session, 'tube/slab', objects=nucleic)
+                        nucleotides(self.session, 'tube/slab', objects=nucleic, create_undo=False)
                     else:
-                        nucleotides(self.session, 'ladder', objects=nucleic)
+                        nucleotides(self.session, 'ladder', objects=nucleic, create_undo=False)
                     from .colors import nucleotide_colors
                     nucleic.ring_colors = nucleotide_colors(nucleic)[0]
                 if ligand:
