@@ -709,7 +709,8 @@ class Toolshed:
                 print("\t".join(args), file=f)
             return
         try:
-            results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
+            results = self._pip_install(bundle, logger,
+                                        per_user=per_user, reinstall=reinstall)
         except PermissionError:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
@@ -798,7 +799,7 @@ class Toolshed:
         except AttributeError:
             # If "bundle" is not an instance, just leave it alone
             pass
-        results = self._pip_uninstall(bundle)
+        results = self._pip_uninstall(bundle, logger)
         uninstalled = re.findall(r"^\s*Successfully uninstalled.*$", results, re.M)
         if uninstalled:
             logger.info('\n'.join(uninstalled))
@@ -1121,7 +1122,7 @@ class Toolshed:
         import os
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
-    def _pip_install(self, bundle_name, per_user=True, reinstall=False):
+    def _pip_install(self, bundle_name, logger, per_user=True, reinstall=False):
         # Run "pip" with our standard arguments (index location, update
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
@@ -1139,20 +1140,36 @@ class Toolshed:
         # bundle_name can be either a file path or a bundle name in repository
         command.append(bundle_name)
         try:
-            results = self._run_pip(command)
+            results = self._run_pip(command, logger)
         except (RuntimeError, PermissionError) as e:
             from ..errors import UserError
             raise UserError(str(e))
         # self._remove_scripts()
         return results
 
-    def _pip_uninstall(self, bundle_name):
+    def _pip_uninstall(self, bundle_name, logger):
         # Run "pip" and return standard output as string.  If there
         # was an error, raise RuntimeError with stderr as parameter.
         command = ["uninstall", "--yes", bundle_name]
-        return self._run_pip(command)
+        return self._run_pip(command, logger)
 
-    def _run_pip(self, command):
+    _pip_ignore_warnings = [
+        "You are using pip version",
+        "You should consider upgrading",
+    ]
+
+    def _pip_has_warnings(self, content):
+        for line in content.splitlines():
+            if not line:
+                continue
+            for ignore in self._pip_ignore_warnings:
+                if ignore in line:
+                    break
+            else:
+                return True
+        return False
+
+    def _run_pip(self, command, logger):
         import sys
         import subprocess
         _debug("_run_pip command:", command)
@@ -1171,7 +1188,13 @@ class Toolshed:
             else:
                 raise RuntimeError(s)
         result = cp.stdout.decode("utf-8", "backslashreplace")
-        _debug("_run_pip result:", result)
+        err = cp.stderr.decode("utf-8", "backslashreplace")
+        _debug("_run_pip stdout:", result)
+        _debug("_run_pip stderr:", err)
+        if logger and self._pip_has_warnings(err):
+            logger.warning("Errors may have occurred when running pip:")
+            logger.warning("pip standard error:\n---\n%s---" % err)
+            logger.warning("pip standard output:\n---\n%s---" % result)
         return result
 
     def _remove_scripts(self):

@@ -15,4 +15,5 @@
 
 // get the symbols exported on Windows
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "MolResId.h"

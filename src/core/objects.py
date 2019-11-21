@@ -257,7 +257,16 @@ class Objects:
             bm.append(sb)
 
         # Atom bounds
-        bm.append(self.atoms.scene_bounds)
+        atoms = self.atoms
+        if len(atoms) > 0:
+            bm.append(atoms.scene_bounds)
 
+        # Bond bounds (Objects could have bonds but no atoms).
+        bonds = self.bonds
+        if len(bonds) > 0:
+            a1, a2 = bonds.atoms
+            bm.append(a1.scene_bounds)
+            bm.append(a2.scene_bounds)
+        
         b = union_bounds(bm)
         return b

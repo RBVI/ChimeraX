@@ -482,12 +482,24 @@ class NucleotideState(StateManager):
             if info is None:
                 if not hasattr(mol, '_nucleotide_info'):
                     continue
+                residues = Residues(mol._nucleotide_info.keys())
+                residues.atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
                 _remove_nuc_drawing(nuc, mol)
                 continue
+            if not hasattr(mol, '_nucleotide_info'):
+                prev_residues = None
+            else:
+                prev_residues = Residues(mol._nucleotide_info.keys())
             nuc.structures.add(mol)
             nuc.need_rebuild.add(mol)
             _make_nuc_drawing(nuc, mol)
+            if prev_residues is not None:
+                mol._nucleotide_info.clear()
             mol._nucleotide_info.update(info)
+            if prev_residues is not None:
+                new_residues = Residues(info.keys())
+                removed_residues = prev_residues - new_residues
+                removed_residues.atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
             mol._ladder_params.update(params)
         return nuc
 

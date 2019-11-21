@@ -324,6 +324,27 @@ class Model(State, Drawing):
                 if attr in data:
                     setattr(d, attr, data[attr])
 
+    def save_geometry(self, session, flags):
+        '''
+        Return state for saving Model and Drawing geometry that can be restored
+        with restore_geometry().
+        '''
+        from chimerax.core.graphics.gsession import DrawingState
+        data = {'model state': Model.take_snapshot(self, session, flags),
+                'drawing state': DrawingState.take_snapshot(self, session, flags),
+                'version': 1
+                }
+        return data
+
+    def restore_geometry(self, session, data):
+        '''
+        Restore model and drawing state saved with save_geometry().
+        '''
+        from chimerax.core.graphics.gsession import DrawingState            
+        Model.set_state_from_snapshot(self, session, data['model state'])
+        DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
+        return self
+
     def selected_items(self, itype):
         return []
 
