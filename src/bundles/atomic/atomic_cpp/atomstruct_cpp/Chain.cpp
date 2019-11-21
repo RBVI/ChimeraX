@@ -33,15 +33,4 @@ Chain::~Chain()
     if (is_chain())
         _structure->change_tracker()->add_deleted(_structure, this);
 }
-void
-Chain::set_chain_id(ChainID chain_id)
-{
-    if (chain_id != _chain_id) {
-        _chain_id = chain_id;
-        _structure->change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_CHAIN_ID);
-        for (auto r: residues())
-            if (r != nullptr)
-                _structure->change_tracker()->add_modified(_structure, r, ChangeTracker::REASON_CHAIN_ID);
-    }
-}
 }  // namespace atomstruct

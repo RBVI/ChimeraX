@@ -308,7 +308,8 @@ public:
         change_tracker()->add_modified(this, this, ChangeTracker::REASON_DISPLAY);
     }
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
-        const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE);
+        const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE,
+        bool one_letter_names = false);
     void  set_position_matrix(double* pos);
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }
