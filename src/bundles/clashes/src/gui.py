@@ -337,7 +337,7 @@ class AtomProximityGUI(QWidget):
                         self.show_dist_option = BooleanOption("Distance label",
                             None if settings else show_dist, None, attr_name="show_dist", settings=settings)
                         sub_options.add_option(self.show_dist_option)
-                    if show_name  :
+                    if show_name:
                         self.name_option = StringOption("Group name", name, None)
                         sub_options.add_option(self.name_option)
                 else:
@@ -347,16 +347,26 @@ class AtomProximityGUI(QWidget):
                         settings=settings)
                     treatment_options.add_option(self.make_pseudobonds_widget)
             else:
-                # booleans
                 if show_color:
-                    self.color_option = ColorOption("Color", None if settings else color,
+                    self.color_option = ColorOption("Pseudobond color", None if settings else color,
                         None, attr_name="color", settings=settings)
                     treatment_options.add_option(self.color_option)
+                if show_dashes:
+                    self.dashes_option = IntOption("Pseudobond dashes", None if settings else dashes,
+                        None, attr_name="dashes", min=0, settings=settings)
+                    sub_options.add_option(self.dashes_option)
                 if show_radius:
-                    self.radius_option = FloatOption("Radius",
+                    self.radius_option = FloatOption("Pseudobond radius",
                         None if settings else radius,
                         None, attr_name="radius", settings=settings)
                     treatment_options.add_option(self.radius_option)
+                if show_show_dist:
+                    self.show_dist_option = BooleanOption("Pseudobond distance label",
+                        None if settings else show_dist, None, attr_name="show_dist", settings=settings)
+                    sub_options.add_option(self.show_dist_option)
+                if show_name:
+                    self.name_option = StringOption("Pseudobond group name", name, None)
+                    sub_options.add_option(self.name_option)
             if show_reveal:
                 self.reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
                     None if settings else reveal, None, attr_name="reveal", settings=settings)
@@ -465,19 +475,11 @@ class AtomProximityGUI(QWidget):
         else:
             command_values['set_attrs'] = None
 
-        if self.show_values['make_pseuodbonds']:
-            if self.show_values['name']:
-                command_values['name'] = self.name_option.value
-            else:
-                command_values['name'] = None
-        else:
-            command_values['name'] = None
-
         # may be saved in settings
         if (self.show_values['overlap_cutoff'] or self.show_values['hbond_allowance']) \
         and self.show_values['distance_only']:
             overlap_active = self.overlap_radio.isChecked()
-            distance_active = not overlap_activw
+            distance_active = not overlap_active
         else:
             overlap_active = distance_active = True
 
@@ -500,88 +502,95 @@ class AtomProximityGUI(QWidget):
             settings['bond_separation'] = int(self.bond_sep_button.text())
         else:
             settings['bond_separation'] = None
-        #TODO
 
+        if self.show_values['res_separation'] and self.res_sep_checkbox.isChecked():
+            settings['res_separation'] = self.res_sep_spinbox.value()
+        else:
+            settings['res_separation'] = None
+
+        if self.show_values['inter_model']:
+            settings['inter_model'] = self.inter_model_option.value
+        else:
+            settings['inter_model'] = None
+
+        if self.show_values['inter_submodel']:
+            settings['inter_submodel'] = self.inter_submodel_option.value
+        else:
+            settings['inter_submodel'] = None
+
+        if self.show_values['intra_res']:
+            settings['intra_res'] = self.intra_res_option.value
+        else:
+            settings['intra_res'] = None
+
+        if self.show_values['intra_mol']:
+            settings['intra_mol'] = self.intra_mol_option.value
+        else:
+            settings['intra_mol'] = None
+
+        if self.show_values['select']:
+            settings['select'] = self.select_option.value
+        else:
+            settings['select'] = None
+
+        if self.show_values['color_atoms']:
+            if isinstance(self.color_atoms_widget, BooleanOption):
+                settings['color_atoms'] = self.color_atoms_widget.value
+            else:
+                settings['color_atoms'] = self.color_atoms_widget.isChecked()
+        else:
+            settings['color_atoms'] = None
+
+        if self.show_values['atom_color']:
+            settings['atom_color'] = self.atom_color_option.value
+        else:
+            settings['atom_color'] = None
+
+        if self.show_values['other_atom_color']:
+            settings['other_atom_color'] = self.other_atom_color_option.value
+        else:
+            settings['other_atom_color'] = None
+
+        if self.show_values['make_pseudobonds']:
+            if isinstance(self.make_pseudobonds_widget, BooleanOption):
+                settings['make_pseudobonds'] = self.make_pseudobonds_widget.value
+            else:
+                settings['make_pseudobonds'] = self.make_pseudobonds_widget.isChecked()
+        else:
+            settings['make_pseudobonds'] = None
 
         if self.show_values['color']:
-            settings['color'] = self.__color_option.value
+            settings['color'] = self.color_option.value
         else:
             settings['color'] = None
 
-        if self.show_values['radius']:
-            settings['radius'] = self.__radius_option.value
-        else:
-            settings['radius'] = None
-
         if self.show_values['dashes']:
-            settings['dashes'] = self.__dashes_option.value
+            settings['dashes'] = self.dashes_option.value
         else:
             settings['dashes'] = None
+
+        if self.show_values['radius']:
+            settings['radius'] = self.radius_option.value
+        else:
+            settings['radius'] = None
 
         if self.show_values['show_dist']:
             settings['show_dist'] = self.show_dist_option.value
         else:
             settings['show_dist'] = None
 
-        if self.show_values['inter_intra_model']:
-            settings['inter_model'] = not self.__intra_model_only_option.value
-            settings['intra_model'] = not self.__inter_model_only_option.value
+        if self.show_values['name']:
+            settings['name'] = self.name_option.value
         else:
-            settings['inter_model'] = settings['intra_model'] = None
-
-        if self.show_values['relax']:
-            settings['relax'] = self.__relax_group.isChecked()
-            if self.show_values['slop']:
-                settings['dist_slop'] = self.__dist_slop_option.value
-                settings['angle_slop'] = self.__angle_slop_option.value
-            else:
-                settings['dist_slop'] = settings['angle_slop'] = None
-            if self.show_values['slop_color']:
-                slop_color_value = self.__slop_color_option.value
-                if slop_color_value is None:
-                    settings['two_colors'] = False
-                    settings['slop_color'] = None
-                else:
-                    settings['two_colors'] = True
-                    settings['slop_color'] = slop_color_value
-            else:
-                settings['two_colors'] = settings['slop_color'] = None
-        else:
-            settings['relax'] = settings['dist_slop'] = settings['angle_slop'] = None
-            settings['two_colors'] = settings['slop_color'] = None
-
-        if self.show_values['salt_only']:
-            settings['salt_only'] = self.__salt_only_option.value
-        else:
-            settings['salt_only'] = None
-
-        if self.show_values['intra_mol']:
-            settings['intra_mol'] = self.__intra_mol_option.value
-        else:
-            settings['intra_mol'] = None
-
-        if self.show_values['intra_res']:
-            settings['intra_res'] = self.__intra_res_option.value
-        else:
-            settings['intra_res'] = None
-
-        if self.show_values['inter_submodel']:
-            settings['inter_submodel'] = self.__inter_submodel_option.value
-        else:
-            settings['inter_submodel'] = None
+            settings['name'] = None
 
         if self.show_values['reveal']:
-            settings['reveal'] = self.__reveal_option.value
+            settings['reveal'] = self.reveal_option.value
         else:
             settings['reveal'] = None
 
-        if self.show_values['retain_current']:
-            settings['retain_current'] = self.__retain_current_option.value
-        else:
-            settings['retain_current'] = None
-
         if self.show_values['log']:
-            settings['log'] = self.__log_option.value
+            settings['log'] = self.log_option.value
         else:
             settings['log'] = None
 
@@ -611,6 +620,7 @@ class AtomProximityGUI(QWidget):
             return StringArg.unparse(str(val), ses)
 
         command_values.update(settings)
+        #TODO
         from .cmd import cmd_hbonds
         kw_values = ""
         for kw, val in command_values.items():
