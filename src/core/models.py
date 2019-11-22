@@ -246,8 +246,19 @@ class Model(State, Drawing):
         return color_state
     def _restore_colors_from_undo_state(self, color_state):
         self.colors = color_state['colors']
-        self.vertex_colors = color_state['vertex_colors']
-        self.auto_recolor_vertices = color_state['auto_recolor_vertices']
+        vc = color_state['vertex_colors']
+        same_vertex_count = (vc is not None and
+                             self.vertices is not None and
+                             len(vc) == len(self.vertices))
+        if not same_vertex_count:
+            vc = None
+        self.vertex_colors = vc
+        auto_recolor = color_state['auto_recolor_vertices']
+        self.auto_recolor_vertices = auto_recolor
+        if not same_vertex_count and auto_recolor:
+            # Number of vertices changed.  Recompute colors.
+            auto_recolor()
+            
     color_undo_state = property(_color_undo_state, _restore_colors_from_undo_state)
 
     def add(self, models):
