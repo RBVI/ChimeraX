@@ -519,7 +519,7 @@ class SteamVRCamera(Camera, StateManager):
     def _find_tracker(self):
         import openvr
         for device_id in range(openvr.k_unMaxTrackedDeviceCount):
-            if self._device_type(device_id) == 'tracker':
+            if self._device_type(device_id) == 'tracker' and self._device_connected(device_id):
                 self._tracker_device_index = device_id
                 return device_id
         return None
@@ -719,6 +719,10 @@ class SteamVRCamera(Camera, StateManager):
                 openvr.TrackedDeviceClass_GenericTracker: 'tracker',
                 openvr.TrackedDeviceClass_HMD: 'hmd'}
         return tmap.get(c, 'unknown')
+
+    def _device_connected(self, device_index):
+        vrs = self._vr_system
+        return vrs.isTrackedDeviceConnected(device_index)
 
     def process_controller_motion(self):
 
