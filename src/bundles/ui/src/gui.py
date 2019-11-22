@@ -1546,12 +1546,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                     # show it and forget the _prev_shown attrs
                     if hasattr(window, '_prev_shown'):
                         if window._prev_shown:
-                            set_shown(window, True)
+                            window._mw_set_shown(True)
                         delattr(window, '_prev_shown')
                 else:
                     if self.hide_tools and not window.floating:
                         self._hide_tools_shown_states[window] = False
-                    set_shown(window, False)
+                    window._mw_set_shown(False)
 
 def _open_dropped_file(session, path):
     if not path:
