@@ -547,7 +547,9 @@ class SteamVRCamera(Camera, StateManager):
                 # Need to exclude UI from bounds.
                 top_models = self._session.models.scene_root_model.child_models()
                 from chimerax.core.geometry import union_bounds
-                b = union_bounds(m.bounds() for m in top_models if m.id[0] != g.id[0])
+                b = union_bounds(m.bounds() for m in top_models
+                                 if m.display and m.id[0] != g.id[0] and
+                                 not getattr(m, 'skip_bounds', False))
         if b:
             scene_size = b.width()
             scene_center = b.center()
