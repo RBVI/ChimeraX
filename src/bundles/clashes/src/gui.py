@@ -63,6 +63,7 @@ class AtomProximityGUI(QWidget):
             show_show_dist=True, show_summary=False):
 
         self.session = session
+        self.cmd_name = cmd_name
 
         from inspect import getargvalues, currentframe
         arg_names, var_args, var_kw, frame_dict = getargvalues(currentframe())
@@ -150,6 +151,7 @@ class AtomProximityGUI(QWidget):
                 self.overlap_spinbox = QDoubleSpinBox()
                 self.overlap_spinbox.setDecimals(2)
                 self.overlap_spinbox.setSingleStep(0.1)
+                self.overlap_spinbox.setRange(-1000000, 1000000)
                 self.overlap_spinbox.setValue(final_val['overlap_cutoff'])
                 self.overlap_spinbox.setSuffix('\N{ANGSTROM SIGN}')
                 overlap_widgets.append(self.overlap_spinbox)
@@ -165,6 +167,7 @@ class AtomProximityGUI(QWidget):
                 self.hbond_spinbox = QDoubleSpinBox()
                 self.hbond_spinbox.setDecimals(2)
                 self.hbond_spinbox.setSingleStep(0.1)
+                self.hbond_spinbox.setRange(-1000000, 1000000)
                 self.hbond_spinbox.setValue(final_val['hbond_allowance'])
                 self.hbond_spinbox.setSuffix('\N{ANGSTROM SIGN}')
                 overlap_widgets.append(self.hbond_spinbox)
@@ -183,6 +186,7 @@ class AtomProximityGUI(QWidget):
                 self.dist_only_spinbox = QDoubleSpinBox()
                 self.dist_only_spinbox.setDecimals(2)
                 self.dist_only_spinbox.setSingleStep(0.1)
+                self.dist_only_spinbox.setRange(0, 1000000)
                 val = 1.4 if final_val['distance_only'] is None else final_val['distance_only']
                 self.dist_only_spinbox.setValue(val)
                 self.dist_only_spinbox.setSuffix('\N{ANGSTROM SIGN}')
@@ -427,7 +431,10 @@ class AtomProximityGUI(QWidget):
                 alignment=Qt.AlignLeft)
 
     def destroy(self):
-        #TODO: if continuous checking, issue '~' command
+        if self.show_values['checking_frequency'] and not self.ok_radio.isChecked():
+            # continuous monitoring is on, turn it off
+            from chimerax.core.commands import run
+            run(self.session, "~" + self.cmd_name)
         super().destroy()
 
     def get_command(self):
@@ -620,17 +627,22 @@ class AtomProximityGUI(QWidget):
             return StringArg.unparse(str(val), ses)
 
         command_values.update(settings)
-        #TODO
-        from .cmd import cmd_hbonds
+        from .cmd import cmd_clashes, cmd_contacts, _cmd, handle_clash_kw, handle_contact_kw
+        if self.cmd_name == "clashes":
+            specific_func = cmd_clashes
+            special_kw = {}
+            special_kw.update({ k:v for k,v in zip(('color', 'radius'), handle_clash_kw(special_kw)) })
+        else:
+            specific_func = cmd_contacts
+            special_kw = {}
+            special_kw.update({ k:v for k,v in zip(('color', 'radius'), handle_contact_kw(special_kw)) })
         kw_values = ""
         for kw, val in command_values.items():
             if val is None:
                 continue
-            if is_default(cmd_hbonds, kw, val):
+            if is_default(specific_func, kw, val, special_kw):
                 continue
-            # 'dashes' default checking requires special handling
-            if kw == 'dashes' and val == AtomicStructure.default_hbond_dashes \
-            and not command_values['retain_current']:
+            if is_default(_cmd, kw, val, special_kw):
                 continue
             camel = ""
             next_upper = False
@@ -644,28 +656,43 @@ class AtomProximityGUI(QWidget):
                         camel += c
                     next_upper = False
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
-        return "hbonds", atom_spec, kw_values
+        return self.cmd_name, atom_spec, kw_values
 
     def _checking_change(self, ok_now_checked):
-        #TODO: if continuous checking, issue '~' command
-        pass
+        from chimerax.core.commands import run
+        if ok_now_checked:
+            # was continuous, issue '~' command
+            run(self.session, "~" + self.cmd_name)
+        else:
+            # now continuous, issue command
+            run(self.session, " ".join(self.get_command()) + " continuous true")
 
-def is_default(func, kw, val):
+def is_default(func, kw, val, special_kw):
     from inspect import signature
     sig = signature(func)
-    param = sig.parameters[kw]
+    try:
+        param = sig.parameters[kw]
+    except KeyError:
+        return False
+    if kw in special_kw:
+        pval = special_kw[kw]
+    else:
+        pval = param.default
+    if pval == param.empty:
+        if kw in special_kw:
+            pval = special_kw[kw]
+        else:
+            return False
     if kw.endswith('color'):
         from chimerax.core.colors import Color
         if isinstance(val, Color):
             cval = val
         else:
             cval = Color(val)
-        if isinstance(param.default, Color):
-            pval = param.default
-        else:
+        if not isinstance(pval, Color):
             pval = Color(param.default)
         return cval == pval
-    return param.default == val
+    return pval == val
 
 class ClashesGUI(AtomProximityGUI):
     def __init__(self, session, has_apply_button, *, name="clashes",
@@ -695,8 +722,8 @@ def _get_settings(session, base_name, settings_defaults, name_mod):
     else:
         settings_name = name_mod
     from chimerax.core.settings import Settings
-    class HBondGUISettings(Settings):
+    class AtomProximityGUISettings(Settings):
         EXPLICIT_SAVE = settings_defaults
 
-    return HBondGUISettings(session, settings_name)
+    return AtomProximityGUISettings(session, settings_name)
 

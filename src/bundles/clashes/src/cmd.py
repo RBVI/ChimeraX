@@ -51,6 +51,8 @@ def handle_contact_kw(kw):
         radius = kw.pop('radius')
     else:
         radius = defaults['contact_pb_radius']
+    if 'dashes' not in kw:
+        kw['dashes'] = 6
     return color, radius
 
 _continuous_attr = "_clashes_continuous_id"
@@ -79,8 +81,11 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         show_dist=False,
         summary=True):
     from chimerax.core.errors import UserError
+    if test_atoms is None:
+        from chimerax.atomic import AtomicStructure, AtomicStructures
+        test_atoms = AtomicStructures([s for s in session.models if isinstance(s, AtomicStructure)]).atoms
     if not test_atoms:
-        raise UserError("No atoms in given atom specifier")
+        raise UserError("No atoms match given atom specifier")
     from chimerax.core.colors import Color
     if atom_color is not None and not isinstance(atom_color, Color):
         atom_color = Color(rgba=atom_color)
@@ -299,12 +304,12 @@ def _xcmd(session, group_name):
 
 def register_command(command_name, logger):
     from chimerax.core.commands \
-        import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, NoneArg, \
+        import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, NoneArg, EmptyArg, \
             SaveFileNameArg, NonNegativeIntArg, StringArg, AttrNameArg, PositiveIntArg
     from chimerax.atomic import AtomsArg
     del_kw = { 'keyword': [('name', StringArg)] }
     if command_name in ["clashes", "contacts"]:
-        kw = { 'required': [('test_atoms', AtomsArg)],
+        kw = { 'required': [('test_atoms', Or(AtomsArg,EmptyArg))],
             'keyword': [('name', StringArg), ('hbond_allowance', FloatArg),
                 ('overlap_cutoff', FloatArg), ('atom_color', Or(NoneArg,ColorArg)),
                 ('attr_name', AttrNameArg), ('bond_separation', NonNegativeIntArg),
