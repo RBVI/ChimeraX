@@ -42,4 +42,11 @@ class _PickBlobsAPI(BundleAPI):
         from . import pickblobs
         pickblobs.register_measure_blob_command(logger)
 
+    @staticmethod
+    def get_class(class_name):
+        # 'get_class' is called by session code to get class saved in a session
+        from . import pickblobs
+        ct = {'BlobOutlineBox': pickblobs.BlobOutlineBox}
+        return ct.get(class_name)
+
 bundle_api = _PickBlobsAPI()

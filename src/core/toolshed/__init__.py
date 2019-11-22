@@ -683,33 +683,16 @@ class Toolshed:
         if per_user is None:
             per_user = True
         if not install_now:
-            # Show user a dialog (hence error) so they know something happened.
-            # Append to on_restart file so bundle is installed on restart.
-            logger.error("Bundle is currently in use.  "
-                         "It will be installed after restart.")
-            inst_dir, restart_file = install_on_restart_info()
-            try:
-                os.makedirs(inst_dir)
-            except FileExistsError:
-                pass
-            with open(restart_file, "a") as f:
-                args = []
-                if not isinstance(bundle, str):
-                    # Must be a BundleInfo instance
-                    args.append("%s==%s" % (bundle.name, bundle.version))
-                else:
-                    # Must be a file
-                    import shutil
-                    shutil.copy(bundle, inst_dir)
-                    args.append(os.path.split(bundle)[1])
-                if per_user:
-                    args.append("--user")
-                if reinstall:
-                    args.append("--force-reinstall")
-                print("\t".join(args), file=f)
+            args = []
+            if per_user:
+                args.append("--user")
+            if reinstall:
+                args.append("--force-reinstall")
+            self._add_restart_action("install", bundle, args, logger)
             return
         try:
-            results = self._pip_install(bundle, per_user=per_user, reinstall=reinstall)
+            results = self._pip_install(bundle, logger,
+                                        per_user=per_user, reinstall=reinstall)
         except PermissionError:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
@@ -767,6 +750,36 @@ class Toolshed:
         # TODO: Figuring out the latter is hard, so we ignore it for now.
         return True
 
+    def _can_uninstall(self, bi):
+        """Check if bundle can be uninstalled (i.e., not in use)."""
+        # A bundle can be uninstalled if it has no library/shared object/DLL
+        # loaded.  That is hard to tell, so we err on the side of caution.
+        return not bi.imported()
+
+    def _add_restart_action(self, action_type, bundle, extra_args, logger):
+        # Show user a dialog (hence error) so they know something happened.
+        # Append to on_restart file so bundle is installed on restart.
+        logger.error("Bundle is currently in use.  "
+                     "ChimeraX will %s it after restart." % action_type)
+        import os
+        inst_dir, restart_file = restart_action_info()
+        try:
+            os.makedirs(inst_dir)
+        except FileExistsError:
+            pass
+        with open(restart_file, "a") as f:
+            args = [action_type]
+            if not isinstance(bundle, str):
+                # Must be a BundleInfo instance
+                args.append("%s==%s" % (bundle.name, bundle.version))
+            else:
+                # Must be a file
+                import shutil
+                shutil.copy(bundle, inst_dir)
+                args.append(os.path.split(bundle)[1])
+            args.extend(extra_args)
+            print("\t".join(args), file=f)
+
     def uninstall_bundle(self, bundle, logger, *, session=None):
         """Supported API. Uninstall bundle by removing the corresponding Python distribution.
 
@@ -789,16 +802,16 @@ class Toolshed:
         """
         import re
         _debug("uninstall_bundle", bundle)
-        try:
-            if not bundle.installed:
-                raise ToolshedInstalledError("bundle %r not installed" % bundle.name)
-            bundle.deregister(logger)
-            bundle.unload(logger)
-            bundle = bundle.name
-        except AttributeError:
-            # If "bundle" is not an instance, just leave it alone
-            pass
-        results = self._pip_uninstall(bundle)
+        if isinstance(bundle, str):
+            bundle = self.find_bundle(bundle, logger, installed=True)
+        if bundle is None or not bundle.installed:
+            raise ToolshedInstalledError("bundle %r not installed" % bundle.name)
+        if not self._can_uninstall(bundle):
+            self._add_restart_action("uninstall", bundle, [], logger)
+            return
+        bundle.deregister(logger)
+        bundle.unload(logger)
+        results = self._pip_uninstall(bundle.name, logger)
         uninstalled = re.findall(r"^\s*Successfully uninstalled.*$", results, re.M)
         if uninstalled:
             logger.info('\n'.join(uninstalled))
@@ -1118,10 +1131,10 @@ class Toolshed:
         if must_exist:
             import os
             os.makedirs(self._cache_dir, exist_ok=True)
-        import os
+        import os.path
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
-    def _pip_install(self, bundle_name, per_user=True, reinstall=False):
+    def _pip_install(self, bundle_name, logger, per_user=True, reinstall=False):
         # Run "pip" with our standard arguments (index location, update
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
@@ -1139,20 +1152,36 @@ class Toolshed:
         # bundle_name can be either a file path or a bundle name in repository
         command.append(bundle_name)
         try:
-            results = self._run_pip(command)
+            results = self._run_pip(command, logger)
         except (RuntimeError, PermissionError) as e:
             from ..errors import UserError
             raise UserError(str(e))
         # self._remove_scripts()
         return results
 
-    def _pip_uninstall(self, bundle_name):
+    def _pip_uninstall(self, bundle_name, logger):
         # Run "pip" and return standard output as string.  If there
         # was an error, raise RuntimeError with stderr as parameter.
         command = ["uninstall", "--yes", bundle_name]
-        return self._run_pip(command)
+        return self._run_pip(command, logger)
 
-    def _run_pip(self, command):
+    _pip_ignore_warnings = [
+        "You are using pip version",
+        "You should consider upgrading",
+    ]
+
+    def _pip_has_warnings(self, content):
+        for line in content.splitlines():
+            if not line:
+                continue
+            for ignore in self._pip_ignore_warnings:
+                if ignore in line:
+                    break
+            else:
+                return True
+        return False
+
+    def _run_pip(self, command, logger):
         import sys
         import subprocess
         _debug("_run_pip command:", command)
@@ -1171,14 +1200,20 @@ class Toolshed:
             else:
                 raise RuntimeError(s)
         result = cp.stdout.decode("utf-8", "backslashreplace")
-        _debug("_run_pip result:", result)
+        err = cp.stderr.decode("utf-8", "backslashreplace")
+        _debug("_run_pip stdout:", result)
+        _debug("_run_pip stderr:", err)
+        if logger and self._pip_has_warnings(err):
+            logger.warning("Errors may have occurred when running pip:")
+            logger.warning("pip standard error:\n---\n%s---" % err)
+            logger.warning("pip standard output:\n---\n%s---" % result)
         return result
 
     def _remove_scripts(self):
         # remove pip installed scripts since they have hardcoded paths to
         # python and thus don't work when ChimeraX is installed elsewhere
         from chimerax import app_bin_dir
-        import os
+        import os, os.path
         import sys
         if sys.platform.startswith('win'):
             # Windows
@@ -1714,7 +1749,7 @@ def default_toolshed_url():
     return _RemoteURL
 
 
-def install_on_restart_info():
+def restart_action_info():
     import chimerax, os.path
     inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
     restart_file = os.path.join(inst_dir, "on_restart")
