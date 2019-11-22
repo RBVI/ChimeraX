@@ -1269,7 +1269,7 @@ def _value_colors(palette, range, values):
     return colors
         
 def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
-               bond_point_spacing = None, update = True):
+               bond_point_spacing = None, update = True, undo_state = None):
     '''
     Color surfaces to match nearby atom colors.
 
@@ -1292,10 +1292,19 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     bonds = near.intra_bonds if bond_point_spacing is not None else None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
     points, colors = points_and_colors(atoms, bonds, bond_point_spacing)
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState('color zone')
     for s in surfaces:
-        # TODO: save undo data
-        spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
-        color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges, auto_update = update)
+        if undo_state:
+            cprev = s.color_undo_state
+        # Transform points to surface coordinates
+        spoints = s.scene_position.inverse() * points
+        color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges,
+                   auto_update = update)
+        if undo_state:
+            undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
+
+    session.undo.register(undo_state)
 
 
 from chimerax.core.commands import StringArg
