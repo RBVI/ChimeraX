@@ -741,6 +741,10 @@ class View:
         else:
             # Use front center point for zoomed in views
             cr = self._front_center_point()	# Can be None
+            if cr is None:
+                # No objects in center of view, so keep the depth the same
+                # but move center to keep it in the center of view.
+                cr = self._center_point_matching_depth(self._center_of_rotation)
         return cr
 
     def _front_center_point(self):
