@@ -232,6 +232,7 @@ toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           optional=[("user_only", BoolArg),
                                     ("reinstall", BoolArg),
                                     ("version", StringArg)],
+                          hidden=["user_only"],
                           synopsis='Install a bundle')
 
 
