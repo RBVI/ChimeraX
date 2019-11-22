@@ -125,8 +125,7 @@ def color(session, objects, color=None, what=None, target=None,
             from chimerax.core.models import Surface
             surfs = [m for m in objects.models
                      if isinstance(m, Surface) and not isinstance(m, MolecularSurface)]
-            _set_model_colors(session, surfs, color, opacity)
-            # TODO: save undo data
+            _set_model_colors(session, surfs, color, opacity, undo_state)
             ns += len(surfs)
         items.append('%d surfaces' % ns)
 
@@ -346,14 +345,18 @@ def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state
                                      undo_state=undo_state)
     return ns
 
-def _set_model_colors(session, model_list, color, opacity):
+def _set_model_colors(session, model_list, color, opacity, undo_state):
     for m in model_list:
+        if undo_state:
+            cprev = m.color_undo_state
         c = color.uint8x4()
         if not opacity is None:
             c[3] = opacity
         elif not m.single_color is None:
             c[3] = m.single_color[3]
         m.single_color = c
+        if undo_state:
+            undo_state.add(m, 'color_undo_state', cprev, m.color_undo_state)
 
 def _set_label_colors(session, objects, color, opacity, undo_state=None):
     nl = 0

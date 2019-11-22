@@ -237,6 +237,19 @@ class Model(State, Drawing):
     Color values are rgba uint8 arrays.
     '''
 
+    # Handle undo of color changes
+    def _color_undo_state(self):
+        vc = self.vertex_colors
+        color_state = {'colors': self.colors,
+                       'vertex_colors': (vc if vc is None else vc.copy()),
+                       'auto_recolor_vertices': self.auto_recolor_vertices}
+        return color_state
+    def _restore_colors_from_undo_state(self, color_state):
+        self.colors = color_state['colors']
+        self.vertex_colors = color_state['vertex_colors']
+        self.auto_recolor_vertices = color_state['auto_recolor_vertices']
+    color_undo_state = property(_color_undo_state, _restore_colors_from_undo_state)
+
     def add(self, models):
         '''Add child models to this model.'''
         om = self.session.models
