@@ -998,7 +998,8 @@ class RoomCamera:
         self._delete_framebuffer(render)
         cm = self._camera_model
         if cm:
-            cm.delete()
+            if not cm.deleted:
+                cm.delete()
             self._camera_model = None
         
     @property
@@ -1008,7 +1009,7 @@ class RoomCamera:
     @property
     def camera_position(self):
         cm = self._camera_model
-        if cm is None:
+        if cm is None or cm.deleted:
             from chimerax.core.geometry import Place
             p = Place()
         else:
@@ -1175,6 +1176,12 @@ class RoomCameraModel(Model):
         # Avoid camera disappearing when far from models
         self.allow_depth_cue = False
 
+    def delete(self):
+        cam = self.session.main_view.camera
+        Model.delete(self)
+        if isinstance(cam, SteamVRCamera):
+            cam.enable_room_camera(False)
+            
     def _get_room_position(self):
         return (self._last_room_to_scene.inverse() * self.position).remove_scale()
     def _set_room_position(self, room_position):
