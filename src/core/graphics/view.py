@@ -701,19 +701,30 @@ class View:
             # Keep the center of rotation in the middle of the view at a depth
             # such that the new and previous center of rotation are in the same
             # plane perpendicular to the camera view direction.
-            cam_pos = self.camera.position.origin()
-            vd = self.camera.view_direction()
-            old_cofr = self._center_of_rotation
-            hyp = old_cofr - cam_pos
-            from ..geometry import inner_product, norm
-            distance = inner_product(hyp, vd)
-            cr = cam_pos + distance*vd
-            if norm(cr - old_cofr) < 1e-6 * distance:
-                # Avoid jitter if camera has not moved
-                cr = old_cofr
+            cr = self._center_point_matching_depth(self._center_of_rotation)
 
         return cr
-    
+
+    def _center_point_matching_depth(self, point):
+        cam_pos = self.camera.position.origin()
+        vd = self.camera.view_direction()
+        hyp = point - cam_pos
+        from ..geometry import inner_product, norm
+        distance = inner_product(hyp, vd)
+        cr = cam_pos + distance*vd
+        old_cofr = self._center_of_rotation
+        if norm(cr - old_cofr) < 1e-6 * distance:
+                # Avoid jitter if camera has not moved
+                cr = old_cofr
+        return cr
+
+    def set_rotation_depth(self, point):
+        '''
+        Set center of rotation in middle of window at depth matching the
+        depth along camera axis of the specified point.
+        '''
+        self._center_of_rotation = self._center_point_matching_depth(point)
+        
     def _front_center_cofr(self):
         '''
         Compute the center of rotation of displayed drawings.
