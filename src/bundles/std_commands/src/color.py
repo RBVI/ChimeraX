@@ -1295,14 +1295,12 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     from chimerax.core.undo import UndoState
     undo_state = UndoState('color zone')
     for s in surfaces:
-        if undo_state:
-            cprev = s.color_undo_state
+        cprev = s.color_undo_state
         # Transform points to surface coordinates
         spoints = s.scene_position.inverse() * points
         color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges,
                    auto_update = update)
-        if undo_state:
-            undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
+        undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
 
     session.undo.register(undo_state)
 
