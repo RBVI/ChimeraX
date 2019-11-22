@@ -372,7 +372,7 @@ class AtomProximityGUI(QWidget):
                     self.name_option = StringOption("Pseudobond group name", name, None)
                     sub_options.add_option(self.name_option)
             if show_reveal:
-                self.reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
+                self.reveal_option = BooleanOption("Reveal atoms of %sing residues" % prox_word,
                     None if settings else reveal, None, attr_name="reveal", settings=settings)
                 treatment_options.add_option(self.reveal_option)
             if show_set_attrs:
