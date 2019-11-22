@@ -275,8 +275,8 @@ class RotamerDialog(ToolInstance):
             radio_layout.addWidget(rb)
             if not self.button_group.buttons():
                 rb.setChecked(True)
-            #if add_type[-1] == ')':
-            #    rb.setEnabled(False)
+            if add_type[-1] == ')':
+                rb.setEnabled(False)
             self.button_group.addButton(rb)
         self.ignore_solvent_button = QCheckBox("Ignore solvent")
         self.ignore_solvent_button.setChecked(True)
