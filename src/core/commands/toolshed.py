@@ -323,9 +323,11 @@ def toolshed_show(session, tool_name, _show=True):
         tinst = [t for t in all_tools if t.tool_name == tool_name]
     # Next look for tool instances whose bundle_info name
     # matches tool_name
-    if not tinst:
-        tinst = [t for t in all_tools
-                 if t.bundle_info.name.replace("ChimeraX-", "") == tool_name]
+    #   This doesn't work right if a bundle registers multiple tools,
+    #   one of which matches the bundle name
+    #if not tinst:
+    #    tinst = [t for t in all_tools
+    #             if t.bundle_info.name.replace("ChimeraX-", "") == tool_name]
     if tinst:
         for ti in tinst:
             ti.display(_show)

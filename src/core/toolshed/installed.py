@@ -330,6 +330,10 @@ def _make_bundle_info(d, installed, logger):
     from ..commands import unescape
     import pkginfo
     name = d.project_name
+    if not name[0].isalpha():
+        # pip uninstall renames package ChimeraX-XXX to ~himeraX-XXX,
+        # which we somehow translate to -himeraX-XXX.
+        return None
     version = d.version
     metadata_file = "METADATA"
     if not d.has_metadata(metadata_file):
