@@ -21,16 +21,17 @@ def item_options(session, name, **kw):
         'bonds': [make_tuple(opt, "bond") for opt in [BondRadiusOption]]
     }[name]
 
-from chimerax.ui.options import RGBAOption, SymbolicEnumOption, FloatOption
+from chimerax.ui.options import ColorOption, SymbolicEnumOption, FloatOption
+from chimerax.core.colors import color_name
 
-class AtomColorOption(RGBAOption):
+class AtomColorOption(ColorOption):
     attr_name = "color"
     balloon = "Atom color"
     default = "white"
     name = "Color"
     @property
     def command_format(self):
-        return "color %%s %g,%g,%g,%g atoms" % tuple([100.0 * x for x in self.value])
+        return "color %%s %s atoms" % color_name(self.value)
 
 class AtomStyleOption(SymbolicEnumOption):
     values = (0, 1, 2)
