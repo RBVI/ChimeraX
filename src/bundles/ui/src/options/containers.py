@@ -57,7 +57,9 @@ class OptionsPanel(QWidget):
         self._form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         self._form.setVerticalSpacing(1)
         from PyQt5.QtCore import Qt
-        self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # None of the below seem to have an effect on the Mac...
+        #self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         # if we wanted to force the form contents to upper left...
         #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
         self._layout.addLayout(self._form)
@@ -82,12 +84,15 @@ class OptionsPanel(QWidget):
             self._form.itemAt(insert_row,
                 QFormLayout.LabelRole).widget().setToolTip(option.balloon)
 
-    def add_option_group(self, group_label=None, **kw):
+    def add_option_group(self, group_label=None, checked=None, **kw):
         if group_label is None:
             grouping_widget = QWidget()
         else:
             grouping_widget = QGroupBox(group_label)
             grouping_widget.setContentsMargins(1,grouping_widget.contentsMargins().top()//2,1,1)
+            if checked is not None:
+                grouping_widget.setCheckable(True)
+                grouping_widget.setChecked(checked)
         self._layout.addWidget(grouping_widget)
         suboptions = OptionsPanel(scrolled=False, **kw)
         self._option_groups.append(suboptions)

@@ -18,6 +18,10 @@ def cmd_clashes(session, test_atoms, *,
         hbond_allowance=defaults["clash_hbond_allowance"],
         overlap_cutoff=defaults["clash_threshold"],
         **kw):
+    color, radius = handle_clash_kw(kw)
+    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "clashes", color, radius, **kw)
+
+def handle_clash_kw(kw):
     if 'color' in kw:
         color = kw.pop('color')
     else:
@@ -28,13 +32,17 @@ def cmd_clashes(session, test_atoms, *,
         radius = defaults['clash_pb_radius']
     if 'dashes' not in kw:
         kw['dashes'] = 4
-    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "clashes", color, radius, **kw)
+    return color, radius
 
 def cmd_contacts(session, test_atoms, *,
         name="contacts",
         hbond_allowance=defaults["clash_hbond_allowance"],
         overlap_cutoff=defaults["contact_threshold"],
         **kw):
+    color, radius = handle_contact_kw(kw)
+    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "contacts", color, radius, **kw)
+
+def handle_contact_kw(kw):
     if 'color' in kw:
         color = kw.pop('color')
     else:
@@ -43,7 +51,9 @@ def cmd_contacts(session, test_atoms, *,
         radius = kw.pop('radius')
     else:
         radius = defaults['contact_pb_radius']
-    return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "contacts", color, radius, **kw)
+    if 'dashes' not in kw:
+        kw['dashes'] = 6
+    return color, radius
 
 _continuous_attr = "_clashes_continuous_id"
 def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, color, radius, *,
@@ -63,16 +73,19 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         naming_style=None,
         other_atom_color=defaults["other_atom_color"],
         res_separation=None,
+        restrict="any",
         reveal=False,
         save_file=None,
         set_attrs=defaults["action_attr"],
         select=defaults["action_select"],
         show_dist=False,
-        summary=True,
-        test="others"):
+        summary=True):
     from chimerax.core.errors import UserError
+    if test_atoms is None:
+        from chimerax.atomic import AtomicStructure, AtomicStructures
+        test_atoms = AtomicStructures([s for s in session.models if isinstance(s, AtomicStructure)]).atoms
     if not test_atoms:
-        raise UserError("No atoms in given atom specifier")
+        raise UserError("No atoms match given atom specifier")
     from chimerax.core.colors import Color
     if atom_color is not None and not isinstance(atom_color, Color):
         atom_color = Color(rgba=atom_color)
@@ -114,18 +127,19 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         bond_separation=bond_separation, clash_threshold=overlap_cutoff,
         distance_only=distance_only, hbond_allowance=hbond_allowance,
         inter_model=inter_model, inter_submodel=inter_submodel, intra_res=intra_res,
-        intra_mol=intra_mol, res_separation=res_separation, test=test)
+        intra_mol=intra_mol, res_separation=res_separation, restrict=restrict)
     if select:
         session.selection.clear()
         for a in clashes.keys():
             a.selected = True
-    if test == "self":
+    # if relevant, put the test_atoms in the first column
+    if restrict == "both":
         output_grouping = set()
     else:
         output_grouping = test_atoms
     test_type = "distances" if distance_only else test_type
     info = (overlap_cutoff, hbond_allowance, bond_separation, intra_res, intra_mol,
-                        clashes, output_grouping, test_type)
+                        clashes, output_grouping, test_type, res_separation)
     if log:
         import io
         buffer = io.StringIO()
@@ -147,16 +161,16 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         _xcmd(session, name)
         return clashes
     from chimerax.atomic import all_atoms
-    if test == "self":
+    if restrict == "both":
         attr_atoms = test_atoms
-    elif test == "others":
+    elif restrict in ("any", "cross"):
         if inter_model:
             attr_atoms = all_atoms(session)
         else:
             attr_atoms = test_atoms.unique_structures.atoms
     else:
         from chimerax.atomic import concatenate
-        attr_atoms = concatenate([test_atoms, test], remove_duplicates=True)
+        attr_atoms = concatenate([test_atoms, restrict], remove_duplicates=True)
     from chimerax.atomic import Atoms
     clash_atoms = Atoms([a for a in attr_atoms if a in clashes])
     if set_attrs:
@@ -225,7 +239,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
 
 def _file_output(file_name, info, naming_style):
     overlap_cutoff, hbond_allowance, bond_separation, intra_res, intra_mol, \
-                        clashes, output_grouping, test_type = info
+                        clashes, output_grouping, test_type, res_separation = info
     from chimerax.core.io import open_filename
     out_file = open_filename(file_name, 'w')
     if test_type != "distances":
@@ -233,6 +247,9 @@ def _file_output(file_name, info, naming_style):
         print("H-bond overlap reduction: %g" % hbond_allowance, file=out_file)
     print("Ignore %s between atoms separated by %d bonds or less" % (test_type, bond_separation),
         file=out_file)
+    if res_separation:
+        print("Ignore %s between atoms in residues less than %d apart in sequence" % (test_type,
+            res_separation), file=out_file)
     print("Detect intra-residue %s:" % test_type, intra_res, file=out_file)
     print("Detect intra-molecule %s:" % test_type, intra_mol, file=out_file)
     seen = set()
@@ -287,12 +304,12 @@ def _xcmd(session, group_name):
 
 def register_command(command_name, logger):
     from chimerax.core.commands \
-        import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, NoneArg, \
+        import CmdDesc, register, BoolArg, FloatArg, ColorArg, Or, EnumOf, NoneArg, EmptyArg, \
             SaveFileNameArg, NonNegativeIntArg, StringArg, AttrNameArg, PositiveIntArg
     from chimerax.atomic import AtomsArg
     del_kw = { 'keyword': [('name', StringArg)] }
     if command_name in ["clashes", "contacts"]:
-        kw = { 'required': [('test_atoms', AtomsArg)],
+        kw = { 'required': [('test_atoms', Or(AtomsArg,EmptyArg))],
             'keyword': [('name', StringArg), ('hbond_allowance', FloatArg),
                 ('overlap_cutoff', FloatArg), ('atom_color', Or(NoneArg,ColorArg)),
                 ('attr_name', AttrNameArg), ('bond_separation', NonNegativeIntArg),
@@ -301,10 +318,11 @@ def register_command(command_name, logger):
                 ('intra_res', BoolArg), ('log', BoolArg), ('make_pseudobonds', BoolArg),
                 ('naming_style', EnumOf(('simple', 'command', 'serial'))),
                 ('other_atom_color', Or(NoneArg,ColorArg)), ('color', Or(NoneArg,ColorArg)),
-                ('radius', FloatArg), ('res_separation', PositiveIntArg), ('reveal', BoolArg),
+                ('radius', FloatArg), ('res_separation', PositiveIntArg),
+                ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)), ('reveal', BoolArg),
                 ('save_file', SaveFileNameArg), ('set_attrs', BoolArg), ('select', BoolArg),
                 ('show_dist', BoolArg), ('dashes', NonNegativeIntArg),
-                ('summary', BoolArg), ('test', Or(EnumOf(('others', 'self')), AtomsArg))], }
+                ('summary', BoolArg)], }
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
         register('contacts', CmdDesc(**kw, synopsis="Find contacts", url="help:user/commands/clashes.html"),
             cmd_contacts, logger=logger)

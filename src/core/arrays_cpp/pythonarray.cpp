@@ -131,7 +131,7 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
 
 // ----------------------------------------------------------------------------
 //
-PyObject *array_python_source(const Untyped_Array &a)
+PyObject *array_python_source(const Untyped_Array &a, bool incref)
 {
   const Release_Data *r = a.release_method();
   if (r == NULL)
@@ -140,7 +140,8 @@ PyObject *array_python_source(const Untyped_Array &a)
   if (p == NULL)
     return NULL;
   PyObject *na = p->python_object();
-  Py_INCREF(na);
+  if (incref)
+    Py_INCREF(na);
   return na;
 }
 
@@ -820,6 +821,14 @@ extern "C" int parse_2d_array(PyObject *arg, void *array)
 {
   Numeric_Array *na = static_cast<Numeric_Array *>(array);
   return array_from_python(arg, 2, na) ? 1 : 0;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" int parse_writable_2d_array(PyObject *arg, void *array)
+{
+  Numeric_Array *na = static_cast<Numeric_Array *>(array);
+  return array_from_python(arg, 2, na, false) ? 1 : 0;
 }
 
 // ----------------------------------------------------------------------------

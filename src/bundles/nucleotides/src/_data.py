@@ -450,7 +450,8 @@ class NucleotideState(StateManager):
         self.rebuild_handler = session.triggers.add_handler('new frame', self.rebuild)
 
     def take_snapshot(self, session, flags):
-        if not self.structures:
+        save_scene = (flags & self.SCENE) != 0
+        if not self.structures and not save_scene:
             # no structures with nucleotides, so don't save in session
             return None
         infos = {}
@@ -459,6 +460,12 @@ class NucleotideState(StateManager):
             info = {}
             info.update(mol._nucleotide_info)
             infos[mol] = (info, mol._ladder_params)
+        if save_scene:
+            from chimerax.atomic import AtomicStructure
+            for model in session.models:
+                if model in infos or not isinstance(model, AtomicStructure):
+                    continue
+                infos[model] = (None, None)
         data = {
             'version': STATE_VERSION,
             'infos': infos
@@ -472,10 +479,27 @@ class NucleotideState(StateManager):
         nuc = _nucleotides(session)
         infos = data['infos']
         for mol, (info, params) in infos.items():
+            if info is None:
+                if not hasattr(mol, '_nucleotide_info'):
+                    continue
+                residues = Residues(mol._nucleotide_info.keys())
+                residues.atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
+                _remove_nuc_drawing(nuc, mol)
+                continue
+            if not hasattr(mol, '_nucleotide_info'):
+                prev_residues = None
+            else:
+                prev_residues = Residues(mol._nucleotide_info.keys())
             nuc.structures.add(mol)
             nuc.need_rebuild.add(mol)
             _make_nuc_drawing(nuc, mol)
+            if prev_residues is not None:
+                mol._nucleotide_info.clear()
             mol._nucleotide_info.update(info)
+            if prev_residues is not None:
+                new_residues = Residues(info.keys())
+                removed_residues = prev_residues - new_residues
+                removed_residues.atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
             mol._ladder_params.update(params)
         return nuc
 
@@ -586,11 +610,12 @@ def _make_nuc_drawing(nuc, mol, create=True, recreate=False):
         return nd
 
 
-def _remove_nuc_drawing(nuc, mol, nd):
+def _remove_nuc_drawing(nuc, mol):
     nuc.need_rebuild.discard(mol)
     nuc.structures.discard(mol)
-    mol.remove_drawing(nd)
+    nd = mol._nucleotides_drawing
     del mol._nucleotides_drawing
+    mol.remove_drawing(nd)
     del mol._nucleotide_info
     del mol._ladder_params
     h = mol._nucleotide_changes
@@ -639,7 +664,7 @@ def _rebuild_molecule(trigger_name, mol):
         sides[nuc_info[r]['side']].append(r)
     if not nuc_info:
         # no residues to track in structure
-        _remove_nuc_drawing(nuc, mol, nd)
+        _remove_nuc_drawing(nuc, mol)
         return
     all_residues = Residues(nuc_info.keys())
     # create shapes
@@ -921,13 +946,12 @@ def draw_tube(nd, residue, name, params):
     else:
         show_gly = params.show_gly
     if params.anchor == RIBOSE or show_gly:
-        cname = aname = "C1'"
+        aname = "C1'"
     else:
         tag = standard_bases[name]['tag']
         aname = _BaseAnchors[tag]
         if not aname:
             return False
-        cname = "C1'"
     a = residue.find_atom(aname)
     if not a or not a.display:
         return False

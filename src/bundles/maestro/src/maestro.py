@@ -34,11 +34,11 @@ class MaestroString:
         ( TokenValue, REValue  ),
     ]
 
-    def __init__(self, data, parseContents=True):
+    def __init__(self, data, parse_contents=True):
         """Read Maestro format data from string"""
 
         self.data = data
-        self.parseContents = parseContents
+        self.parse_contents = parse_contents
 
     def __iter__(self):
         self.length = len(self.data)
@@ -51,12 +51,12 @@ class MaestroString:
         block = self._read_block()
         if block:
             yield block
-        if not self.parseContents:
+        if not self.parse_contents:
             # Reset index to start of token so
             # _read_unparsed_block starts at the right place
             self.index = self._tokenIndex
         while not self.eof:
-            if self.parseContents:
+            if self.parse_contents:
                 block = self._read_block()
             else:
                 block = self._read_unparsed_block()
@@ -372,6 +372,7 @@ def get_value(name, value):
     else:
         raise ValueError("unknown attribute type: %s" % name)
 
+
 def printable_value(name, value):
     """Convert value into text string based on attribute name"""
     if value is None:
@@ -398,6 +399,7 @@ def printable_value(name, value):
         return "%d" % value
     else:
         raise ValueError("unknown attribute type: %s" % name)
+
 
 if __name__ == "__main__":
     print(MaestroFile("../test-data/kegg_dock5.mae"))

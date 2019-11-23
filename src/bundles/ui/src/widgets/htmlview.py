@@ -65,6 +65,8 @@ class HtmlView(QWebEngineView):
     profile :     the QWebEngineProfile used
     """
 
+    require_native_window = False
+    
     def __init__(self, *args, size_hint=None, schemes=None,
                  interceptor=None, download=None, profile=None,
                  tool_window=None, log_errors=False, **kw):
@@ -93,6 +95,11 @@ class HtmlView(QWebEngineView):
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
+
+        if self.require_native_window:
+            # This is to work around ChimeraX bug #2537 where the entire
+            # GUI becomes blank with some 2019 Intel graphics drivers.
+            self.winId()  # Force it to make a native window
 
     def deleteLater(self):  # noqa
         """Supported API.  Schedule HtmlView instance for deletion at a safe time."""

@@ -205,7 +205,7 @@ class Option(metaclass=ABCMeta):
         # to compose/display the value of the option
         pass
 
-def make_optional(cls, *, allow_subwidget_disable=True):
+def make_optional(cls):
     def get_value(self):
         if self._check_box.isChecked():
             # substitute the original widget back before asking for the value
@@ -218,17 +218,13 @@ def make_optional(cls, *, allow_subwidget_disable=True):
     def set_value(self, value):
         if value is None:
             self._check_box.setChecked(False)
-            if self._allow_subwidget_disable:
-                self.widget, self._orig_widget = self._orig_widget, self.widget
-                self._super_class.enabled.fset(self, False)
-                self.widget, self._orig_widget = self._orig_widget, self.widget
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+            self._super_class.enabled.fset(self, False)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
         else:
             self._check_box.setChecked(True)
-            if self._allow_subwidget_disable:
-                self.widget, self._orig_widget = self._orig_widget, self.widget
-                self._super_class.enabled.fset(self, True)
-                self.widget, self._orig_widget = self._orig_widget, self.widget
             self.widget, self._orig_widget = self._orig_widget, self.widget
+            self._super_class.enabled.fset(self, True)
             self._super_class.value.fset(self, value)
             self.widget, self._orig_widget = self._orig_widget, self.widget
 
@@ -244,22 +240,27 @@ def make_optional(cls, *, allow_subwidget_disable=True):
         from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLayout
         self.widget = layout = QHBoxLayout()
         layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
         from PyQt5.QtCore import Qt
         self._check_box = cb = QCheckBox()
         cb.setAttribute(Qt.WA_LayoutUsesWidgetRect)
-        cb.clicked.connect(lambda state, s=self: s.make_callback())
-        layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignTop)
+        def enable_and_call(s=self):
+            s.widget, s._orig_widget = s._orig_widget, s.widget
+            s._super_class.enabled.fset(s, s._check_box.isChecked())
+            s.widget, s._orig_widget = s._orig_widget, s.widget
+            s.make_callback()
+        cb.clicked.connect(lambda state, s=self: enable_and_call(s))
+        layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         if isinstance(self._orig_widget, QLayout):
-            layout.addLayout(self._orig_widget)
+            layout.addLayout(self._orig_widget, stretch=1)
         else:
-            layout.addWidget(self._orig_widget)
+            layout.addWidget(self._orig_widget, stretch=1, alignment=Qt.AlignLeft | Qt.AlignVCenter)
 
     attr_dict = {
         'value': property(get_value, set_value),
         'set_multiple': set_multiple,
         '_make_widget': _make_widget,
         '_super_class': cls,
-        '_allow_subwidget_disable': allow_subwidget_disable
     }
     opt_class = type('Optional' + cls.__name__, (cls,), attr_dict)
     return opt_class
@@ -348,6 +349,7 @@ class EnumBase(Option):
         if display_value is None:
             display_value = self.default
         self.__widget = QPushButton(display_value, **kw)
+        self.__widget.setAutoDefault(False)
         menu = QMenu()
         self.__widget.setMenu(menu)
         self.remake_menu()
@@ -592,7 +594,7 @@ class ColorOption(RGBA8Option):
 
     value = property(get_value, RGBA8Option.set_value)
 
-OptionalRGBA8Option = make_optional(RGBA8Option, allow_subwidget_disable=False)
+OptionalRGBA8Option = make_optional(RGBA8Option)
 OptionalRGBA8Option.default_initial_color = [0.75, 0.75, 0.75, 1.0]
 
 class OptionalRGBAOption(OptionalRGBA8Option):

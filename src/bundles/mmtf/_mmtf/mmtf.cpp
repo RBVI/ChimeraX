@@ -325,8 +325,6 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
             }
 
             if (is_polymer) {
-                // Sequence code has been extended to accept single-letter
-                // residue names
                 const int end_gap_size = entity.sequence.size() - last_sequence_index - 1;
                 for (int i = 0; i < end_gap_size; ++i)
                     residues.push_back(nullptr);
@@ -334,10 +332,12 @@ extract_data(const mmtf::StructureData& data, PyObject* _logger, bool coordset)
                 seqres.reserve(entity.sequence.size());
                 for (auto c: entity.sequence)
                     seqres.emplace_back(string(1, c).c_str());
+                // the last arg of set_input_seq_info() (i.e. true) tells the function that we
+                // are providing 1-character residue names instead of 3-character names
                 if (has_sequence_index_list)
-                    m->set_input_seq_info(chain_name.c_str(), seqres, &residues);
+                    m->set_input_seq_info(chain_name.c_str(), seqres, &residues, PT_NONE, true);
                 else
-                    m->set_input_seq_info(chain_name.c_str(), seqres);
+                    m->set_input_seq_info(chain_name.c_str(), seqres, nullptr, PT_NONE, true);
                 m->input_seq_source = "MMTF sequence";
             }
         }

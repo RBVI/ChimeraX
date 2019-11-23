@@ -166,5 +166,7 @@ def register_command(logger):
     )
     create_alias('colordef', 'color name $*', logger=logger)
     create_alias('~colordef', 'color delete $*', logger=logger)
-    create_alias('colourdef', 'color name $*', logger=logger)
-    create_alias('~colourdef', 'color delete $*', logger=logger)
+    create_alias('colourdef', 'color name $*', logger=logger,
+            url="help:user/commands/colordef.html")
+    create_alias('~colourdef', 'color delete $*', logger=logger,
+            url="help:user/commands/colordef.html")

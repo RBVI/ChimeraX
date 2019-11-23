@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>clashes</b>&nbsp;|&nbsp;<b>contacts</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
-[&nbsp;<a href="#test"><b>test</b></a>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>others</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+[&nbsp;<a href="#restrict"><b>restrict</b></a>&nbsp;&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;<b>any</b>&nbsp;|&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
 <!--
 [&nbsp;<b>overlapCutoff</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
 [&nbsp;<b>hbondAllowance</b>&nbsp;&nbsp;<i>allowance</i>&nbsp;]
@@ -86,13 +86,14 @@ removes the indicated pseudobonds and halts any
 When multiple pseudobond models have the same name, specific models can be
 removed with the <a href="close.html"><b>close</b></a> command.
 <p>
-A non-blank <a href="atomspec.html"><i>atom-spec1</i></a> is required.
-The <a href="#options"><b>test</b></a> option indicates
-whether to look for interactions among the specified atoms or between
-them and other atoms. Examples:
+The <a href="#restrict"><b>restrict</b></a> option
+allows finding only interactions within the specified set of atoms 
+(all atoms if <a href="atomspec.html"><i>atom-spec1</i></a> is blank)
+or between them and a second set.
+Examples:
 </p>
 <blockquote><b>
-contacts protein test ligand reveal true
+contacts protein restrict ligand reveal true
 <br>contacts delete
 <br>clashes&nbsp;#1&nbsp;reveal&nbsp;t&nbsp;showdist&nbsp;t;&nbsp;<a href="label.html">label</a>&nbsp;height&nbsp;1
 <br>~clashes
@@ -179,17 +180,26 @@ shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
 <h3>Options</h3>
 
 <blockquote>
-<a name="test"></a>
-<b>test</b>&nbsp;&nbsp;self&nbsp;|&nbsp;<b>others</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
-<br>
-Which interactions to find:
-among <a href="atomspec.html"><i>atom-spec1</i></a> (<b>self</b>),
-between <a href="atomspec.html"><i>atom-spec1</i></a> and all other atoms
-(<b>others</b>, default), or between <a href="atomspec.html"><i>atom-spec1</i></a>
-and <a href="atomspec.html"><i>atom-spec2</i></a>.
-If set to <b>others</b> but there are no other atoms
-(because <a href="atomspec.html"><i>atom-spec1</i></a> contains all atoms),
-<b>self</b> is automatically used instead. See also options:
+<a name="restrict"></a>
+<b>restrict</b>
+&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;<b>any</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
+<br>Limit the detection of clashes/contacts to one of the following:
+<ul>
+<li><b>cross</b> &ndash; interactions with exactly one atom
+in <a href="atomspec.html"><i>atom-spec1</i></a>
+(the atoms specified in the <a href="#top">main command</a>)
+<li><b>both</b> &ndash; interactions with both atoms
+in <a href="atomspec.html"><i>atom-spec1</i></a>
+<li><b>any</b> (default) &ndash; interactions with at least one atom
+in <a href="atomspec.html"><i>atom-spec1</i></a>
+<li>interactions between <a href="atomspec.html"><i>atom-spec1</i></a>
+and a second set of atoms, <a href="atomspec.html"><i>atom-spec2</i></a>;
+the two sets may overlap, but will not overrule other restrictions
+(for example, if the two sets are in different models
+but <a href="#interModel"><b>interModel</b></a> is <b>false</b>,
+no interactions will be found)
+</ul>
+&nbsp;&nbsp;&nbsp;See also options:
 <a href="#interSubmodel"><b>interSubmodel</b></a>,
 <a href="#interModel"><b>interModel</b></a>,
 <a href="#intraMol"><b>intraMol</b></a>,
@@ -481,5 +491,5 @@ but only the initial and final summaries are reported in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2019</address>
+November 2019</address>
 </body></html>

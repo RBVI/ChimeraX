@@ -127,14 +127,14 @@ class SelectMouseMode(MouseMode):
             v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
             self._drawn_rectangle = None
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from . import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         select_pick(self.session, pick, self.mode)
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
+        delta_z = event.room_vertical_motion  # meters
         if delta_z > 0.10:
             from chimerax.core.commands import run
             run(self.session, 'select up')
@@ -304,9 +304,9 @@ class RotateMouseMode(MouseMode):
     def models(self):
         return None
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
-        self.view.move(move, self.models())
+        self.view.move(event.motion, self.models())
 
 class RotateAndSelectMouseMode(RotateMouseMode):
     '''
@@ -401,9 +401,9 @@ class TranslateMouseMode(MouseMode):
     def models(self):
         return None
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
-        self.view.move(move, self.models())
+        self.view.move(event.motion, self.models())
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
     '''
@@ -672,8 +672,9 @@ class ClipMouseMode(MouseMode):
         shift = (dx*nx + dy*ny) * self.pixel_size()
         return shift
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
+        move = event.motion
         for p in self._planes(front_shift = 1, back_shift = 0):
             if p:
                 p.normal = move.transform_vector(p.normal)
@@ -751,8 +752,9 @@ class ClipRotateMouseMode(MouseMode):
                     cp.remove_plane('far')
         return rplanes
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
+        move = event.motion
         for p in self._planes():
             p.normal = move.transform_vector(p.normal)
             p.plane_point = move * p.plane_point

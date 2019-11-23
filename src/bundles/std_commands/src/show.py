@@ -140,6 +140,10 @@ def show_surfaces(session, objects, only, undo_state):
     if surfs:
         patoms, all_small = molsurf.remove_solvent_ligands_ions(atoms)
         extra_atoms = patoms - concatenate([s.atoms for s in surfs], Atoms)
+        if extra_atoms:
+            # Handle case where atoms were added to existing surfaces
+            # so those surfaces will be replaced.  Bug #2603.
+            extra_atoms = atoms
     else:
         extra_atoms = atoms
     if extra_atoms:
@@ -226,4 +230,5 @@ def register_command(logger):
                    hidden=['only'],
                    synopsis='show specified objects')
     register('show', desc, show, logger=logger)
-    create_alias('display', 'show $*', logger=logger)
+    create_alias('display', 'show $*', logger=logger,
+            url="help:user/commands/show.html")

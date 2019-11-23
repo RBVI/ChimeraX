@@ -231,7 +231,8 @@ def register_seqalign_command(logger):
         synopsis = 'disassociate chain(s) from alignment'
     )
     register('sequence disassociate', desc, seqalign_disassociate, logger=logger)
-    create_alias('sequence dissociate', 'sequence disassociate $*', logger=logger)
+    create_alias('sequence dissociate', 'sequence disassociate $*', logger=logger,
+            url="help:user/commands/sequence.html#disassociate")
 
     from . import manager
     manager._register_viewer_subcommands(logger)

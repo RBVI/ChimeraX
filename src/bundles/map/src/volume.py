@@ -80,10 +80,6 @@ class Volume(Model):
 
     self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
 
-
-#    from chimera import addModelClosedCallback
-#    addModelClosedCallback(self, self.model_closed_cb)
-
 #    from chimera import triggers
 #    h = triggers.addHandler('SurfacePiece', self.surface_piece_changed_cb, None)
 #    self.surface_piece_change_handler = h
@@ -1701,23 +1697,15 @@ class Volume(Model):
     d = self.data
     if d:
       d.clear_cache()
+      d.remove_change_callback(self.data_changed_cb)
+    self.data = None
+    self._keep_displayed_data = None
+    self.outline_box = None
     self.close_models()
     Model.delete(self)
       
   # ---------------------------------------------------------------------------
   #
-  def model_closed_cb(self, model):
-
-    if self.data:
-      self.data.remove_change_callback(self.data_changed_cb)
-      self.data = None
-      self._keep_displayed_data = None
-      self.outline_box = None   # Remove reference loops
-      from chimera import triggers
-      triggers.deleteHandler('SurfacePiece', self.surface_piece_change_handler)
-      self.surface_piece_change_handler = None
-
-
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
@@ -1730,7 +1718,9 @@ class Volume(Model):
       'version': 1,
     }
     return data
-
+      
+  # ---------------------------------------------------------------------------
+  #
   @staticmethod
   def restore_snapshot(session, data):
     grid_data = data['grid data state'].grid_data
@@ -1869,7 +1859,10 @@ class VolumeSurface(Surface):
     self.clip_cap = True			# Cap surface when clipped
 
   def delete(self):
-    self.volume._surfaces.remove(self)
+    try:
+      self.volume._surfaces.remove(self)
+    except ValueError:
+      pass	# This VolumeSurface was already removed from Volume
     Surface.delete(self)
 
   def _get_level(self):
@@ -3562,7 +3555,7 @@ class VolumeUpdateManager:
     if vdisp:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
-        if v.deleted:
+        if v.deleted or v.id is None:
           vset.remove(v)
           vdisp.remove(v)
         elif v.display:

@@ -22,7 +22,8 @@ class TapeMeasureMouseMode(MouseMode):
         self._marker_set = None
         self._markers = []
         self._color = (255,255,0,255)
-        self._radius = .1
+        self._radius = .1	# scene units (usually Angstroms)
+        self._vr_radius = .002	# meters, for use in VR
         self._min_move = 5	# minimum pixels to draw tape
         self._start_time = 0
         self._clear_time = 0.3	# seconds. Fast click/release causes clear.
@@ -47,6 +48,7 @@ class TapeMeasureMouseMode(MouseMode):
     def _clear(self):
         mset = self._marker_set
         if mset:
+            self._log_clear_command()
             self._marker_set = None
             self.session.models.close([mset])
             
@@ -110,6 +112,12 @@ class TapeMeasureMouseMode(MouseMode):
         cname = color_name(self._color)
         cmd = ('marker segment %s %s to %s color %s radius %.4g label %s labelHeight %.4g labelColor %s'
                % (mset.atomspec, p1, p2, cname, self._radius, label, h, cname))
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(mset.session, cmd)
+
+    def _log_clear_command(self):
+        mset = self._marker_set
+        cmd = 'marker delete %s' % mset.atomspec
         from chimerax.core.commands import log_equivalent_command
         log_equivalent_command(mset.session, cmd)
 
@@ -192,16 +200,20 @@ class TapeMeasureMouseMode(MouseMode):
         xyz1, xyz2 = self.session.main_view.clip_plane_points(x, y)
         return xyz1, xyz2
             
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
+        xyz1, xyz2 = event.picking_segment()
         self._start_point = xyz1
         from time import time
         self._start_time = time()
+        # Set radius to self._vr_radius (meters) based on current vr scene scaling
+        s = self.session.main_view.camera.scene_scale  # scale factor from scene to room (meters)
+        self._radius = self._vr_radius / s
 
-    def vr_motion(self, position, move, delta_z):
-        self._show_distance(position.origin())
+    def vr_motion(self, event):
+        self._show_distance(event.tip_position)
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self._markers = []
         from time import time

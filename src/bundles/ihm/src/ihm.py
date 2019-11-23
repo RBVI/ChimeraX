@@ -141,7 +141,8 @@ class IHMModel(Model):
             # If multiple data blocks in the file, return just the first one.
             # We also don't use starting model coordinates in the mmCIF file,
             # so don't have the reader read them and waste time & memory.
-            return ihm.reader.read(fh, read_starting_model_coord=False)[0]
+            return ihm.reader.read(fh, read_starting_model_coord=False,
+                                   reject_old_file=True)[0]
 
     # -----------------------------------------------------------------------------
     #
@@ -826,6 +827,14 @@ class IHMModel(Model):
     # -----------------------------------------------------------------------------
     #
     def read_3d_electron_microscopy_maps(self):
+        def get_parent_volume(restraint, dfound):
+            for p in restraint.dataset.parents:
+                d = self.data_set(p)
+                if d not in dfound:
+                    dfound.add(d)
+                    v = d.volume_model(self.session)
+                    if v:
+                        return v
         emmodels = []
         dfound = set()
         for r in self.system.restraints:
@@ -838,6 +847,11 @@ class IHMModel(Model):
                     continue
                 dfound.add(d)
                 v = d.volume_model(self.session)
+                # If we can't visualize the dataset, see if we can visualize
+                # one of its parents (e.g. a GMM may be derived from an MRC
+                # file from EMDB)
+                if v is None:
+                    v = get_parent_volume(r, dfound)
                 if v:
                     v.name += ' %dD electron microscopy' % (3 if v.data.size[2] > 1 else 2)
                     v.show()

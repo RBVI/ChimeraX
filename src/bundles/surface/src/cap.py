@@ -186,6 +186,7 @@ def new_cap(session, drawing, cap_name):
         # Make cap a model when capping a model so color can be set by command.
         c = Surface(cap_name, session)
         c.SESSION_SAVE = False
+        c.is_clip_cap = True
         if drawing is None:
             session.models.add([c])
         else:

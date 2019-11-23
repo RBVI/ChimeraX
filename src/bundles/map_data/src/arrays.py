@@ -15,24 +15,24 @@
 # Method can be linear or nearest.
 #
 def interpolate_volume_data(vertices, vertex_transform, array,
-                            method = 'linear'):
+                            method = 'linear', values = None):
 
-#  from _interpolate import interpolate_volume_data
+  kw = {} if values is None else {'values': values}
   from .._map import interpolate_volume_data
   values, outside = interpolate_volume_data(vertices, vertex_transform.matrix,
-                                            array, method)
+                                              array, method, **kw)
   return values, outside
     
 # -----------------------------------------------------------------------------
 # Method can be linear or nearest.
 #
 def interpolate_volume_gradient(vertices, v2m_transform, array,
-                                method = 'linear'):
+                                method = 'linear', gradients = None):
 
-#  from _interpolate import interpolate_volume_gradient
+  kw = {} if gradients is None else {'gradients': gradients}
   from .._map import interpolate_volume_gradient
   gradients, outside = interpolate_volume_gradient(vertices, v2m_transform.matrix,
-                                                   array, method)
+                                                   array, method, **kw)
   return gradients, outside
 
 # -----------------------------------------------------------------------------

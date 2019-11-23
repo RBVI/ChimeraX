@@ -1,0 +1,30 @@
+<BundleInfo name="ChimeraX-SpeechRecognition" version="1.0"
+	    package="chimerax.speech"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Control ChimeraX verbally</Synopsis>
+  <Description>Enable users to run some commands via microphone input.</Description>
+
+  <Categories>
+    <Category name="I/O"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="PyAudio" version=">=0.2.11"/>
+    <Dependency name="SpeechRecognition" version=">=1.3.0"/>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: speech :: General :: Turn speech recognition on or off</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: speech alias :: General :: Show or add alternatives to speech command word</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

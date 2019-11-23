@@ -31,6 +31,7 @@ from chimerax.core.logger import PlainTextLog
 def initialize_qt():
     initialize_qt_plugins_location()
     initialize_qt_high_dpi_display_support()
+    initialize_desktop_opengl()
     initialize_shared_opengl_contexts()
 
 def initialize_qt_plugins_location():
@@ -73,6 +74,11 @@ def initialize_qt_high_dpi_display_support():
     if win:
         from PyQt5.QtCore import QCoreApplication, Qt
         QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+
+def initialize_desktop_opengl():
+    # Need full OpenGL support
+    from PyQt5.QtCore import QCoreApplication, Qt
+    QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
 
 def initialize_shared_opengl_contexts():
     # Mono and stereo opengl contexts need to share vertex buffers
@@ -575,8 +581,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
         if close_destroys:
             close_event.accept()
+            # _destroy will remove window from all_windows indirectly
+            # via tw._destroy -> toolkit.destroy -> mw->_tool_window_destroyed
             tool_window._destroy()
-            all_windows.remove(tool_window)
         else:
             close_event.ignore()
             tool_window.shown = False
@@ -706,7 +713,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def remove_tool(self, tool_instance):
         tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
         if tool_windows:
-            for tw in tool_windows:
+            for tw in tool_windows[:]:
                 tw._mw_set_shown(False)
                 tw._destroy()
             del self.tool_instance_to_windows[tool_instance]
@@ -801,6 +808,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._about_dialog.setHtml(content)
         self._about_dialog.show()
 
+    def _about_to_manage(self, tool_window, as_floating):
+        if self.hide_tools and not as_floating:
+            self.hide_tools = False
+    _float_changed = _about_to_manage
+
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
@@ -874,11 +886,6 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._core_settings_panel.options_widget.add_option(category, option)
 
     def _new_tool_window(self, tw):
-        if self.hide_tools:
-            self._hide_tools_shown_states[tw] = True
-            tw._mw_set_shown(False)
-            tw.tool_instance.session.logger.status("Tool display currently suppressed",
-                color="red", blank_after=7)
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
     def _populate_menus(self, session):
@@ -1524,15 +1531,14 @@ class MainWindow(QMainWindow, PlainTextLog):
 
 
     def _tool_window_request_shown(self, tool_window, shown):
-        if self.hide_tools:
-            def set_shown(win, show):
-                self._hide_tools_shown_states[win] = show
-        else:
-            set_shown = lambda win, show: win._mw_set_shown(show)
+        if shown and not tool_window.floating:
+            self.hide_tools = False
+        if self.hide_tools and not shown and not tool_window.floating:
+            self._hide_tools_shown_states[tool_window] = False
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
-        set_shown(tool_window, shown)
+        tool_window._mw_set_shown(shown)
         if is_main_window:
             for window in all_windows[1:]:
                 if shown:
@@ -1541,10 +1547,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                     # show it and forget the _prev_shown attrs
                     if hasattr(window, '_prev_shown'):
                         if window._prev_shown:
-                            set_shown(window, True)
+                            window._mw_set_shown(True)
                         delattr(window, '_prev_shown')
                 else:
-                    set_shown(window, False)
+                    if self.hide_tools and not window.floating:
+                        self._hide_tools_shown_states[window] = False
+                    window._mw_set_shown(False)
 
 def _open_dropped_file(session, path):
     if not path:
@@ -1666,6 +1674,8 @@ class ToolWindow(StatusLogger):
             if geom_info is not None:
                 from PyQt5.QtCore import QRect
                 geometry = QRect(*geom_info)
+        self.tool_instance.session.ui.main_window._about_to_manage(self,
+            placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
 
     @property
@@ -1831,8 +1841,8 @@ class _Qt:
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+        dw.topLevelChanged.connect(self.float_changed)
         if hide_title_bar:
-            dw.topLevelChanged.connect(self.float_changed)
             self.dock_widget.setTitleBarWidget(QWidget())
 
         container = QWidget()
@@ -1885,8 +1895,10 @@ class _Qt:
             self.dock_widget.setFloating(True)
 
     def float_changed(self, floating):
-        from PyQt5.QtWidgets import QWidget
-        self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+        if self.hide_title_bar:
+            from PyQt5.QtWidgets import QWidget
+            self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+        self.main_window._float_changed(self.tool_window, floating)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side

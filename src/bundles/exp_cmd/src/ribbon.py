@@ -16,4 +16,5 @@ def initialize(command_name, logger):
     create_alias(
         command_name,
         "%s $*" % command_name.replace("ribbon", "cartoon"),
-        logger=logger)
+        logger=logger,
+        url="help:user/commands/cartoon.html")

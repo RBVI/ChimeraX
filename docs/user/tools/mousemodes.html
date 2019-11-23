@@ -270,16 +270,6 @@ The release point can be anywhere, even empty space.
 or clicking and releasing without dragging more than 5 screen pixels
 removes the measurements.
 </p><p>
-The <a href="../markers.html">markers and links</a> are created as a model
-named <b>tape measure</b>.
-The link <a href="../commands/size.html">radius</a>
-is set to half the minimum grid spacing of the volume, 
-and the distance label <a href="../commands/label.html#height">height</a>
-is proportional to the length of the link.
-See also: <a href="distances.html"><b>Distances</b></a>,
-<a href="markerplacement.html"><b>Marker Placement</b></a>,
-<a href="../measurements.html">measurements</a>
-</p><p>
 <a href="#vr-tape">Except in VR</a>, 
 the method of marker placement depends on
 what is &ldquo;under&rdquo; the cursor 
@@ -296,15 +286,33 @@ placement is at the corresponding atom
 <li>for release over empty space, dragging is simply in the plane of the
 screen, retaining the same depth as the anchor point
 </ul>
-<a name="vr-tape"></a>
 <p>
+The <a href="../markers.html">markers and links</a> are created as a model
+named <b>tape measure</b>.
+The link radius is set to 25% of the minimum grid spacing if/when a measurement
+is anchored on <a href="volumeviewer.html">volume data</a>, 
+otherwise remaining at 0.1 &Aring;, and the distance label height
+is set to 10% of the distance but no less than the link diameter.
+Label height and color can be changed with the
+<a href="../commands/label.html"><b>label</b></a> command,
+and marker/link radius and color changed with
+<a href="markerplacement.html"><b>Marker Placement</b></a> or the
+<a href="../commands/marker.html#change"><b>marker change</b></a> command.
+</p><p>
+<a name="vr-tape"></a>
 Tape-measure differences in <a href="../vr.html">virtual reality</a>:
 </p>
 <ul>
-<li>placement is always at the tip of the hand-controller cone, 
+<li>marker placement is always at the tip of the hand-controller cone, 
 regardless of the data or its style of display
 <li>clicking and releasing within 0.3 seconds erases the measurements
+<li>link radius is not adjusted for volume grid spacing
 </ul>
+<p>
+See also: 
+<a href="distances.html"><b>Distances</b></a>,
+<a href="../measurements.html">measurements</a>
+</p>
 
 <a name="openmm"></a>
 <p class="nav">
@@ -400,5 +408,5 @@ them only upon a 45&deg; change in viewing angle rather than continuously
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+November 2019</address>
 </body></html>

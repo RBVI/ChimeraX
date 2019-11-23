@@ -41,6 +41,7 @@ class _MyAPI(BundleAPI):
                      cmd.blastprotein, logger=logger)
         elif command_name == "blastpdb":
             from chimerax.core.commands import create_alias
-            create_alias(command_name, "blastprotein $*", logger=logger)
+            create_alias(command_name, "blastprotein $*", logger=logger,
+                    url="help:user/commands/blastprotein.html")
 
 bundle_api = _MyAPI()

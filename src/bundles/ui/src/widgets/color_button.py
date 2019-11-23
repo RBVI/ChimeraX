@@ -111,6 +111,14 @@ class ColorButton(QPushButton):
         _color_callback = self._color_changed_cb
         cd.show()
 
+    def changeEvent(self, event):
+        if event.type() == event.EnabledChange:
+            if self.isEnabled():
+                color = self._color
+            else:
+                color = [int((c + 218)/2) for c in self._color]
+            self.setStyleSheet('background-color: %s' % hex_color_name(color))
+
     def _color_changed_cb(self, color):
         self.set_color(color)
         self.color_changed.emit(self._color)

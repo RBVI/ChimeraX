@@ -20,7 +20,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: EMDB SFF :: sff :: Volume data :: .sff :: :: https://sfftk.readthedocs.io/en/latest/toolkit.html :: :: :: EMDB SFF</ChimeraXClassifier>
+    <ChimeraXClassifier>ChimeraX :: DataFormat :: EMDB SFF :: sff :: Volume data :: .sff,.hff :: :: https://sfftk.readthedocs.io/en/latest/toolkit.html :: :: :: EMDB SFF</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Open :: EMDB SFF :: sff ::</ChimeraXClassifier>
   </Classifiers>
 

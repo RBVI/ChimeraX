@@ -103,8 +103,8 @@ static struct PyMethodDef map_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* interpolatepy.h */
-  {const_cast<char*>("interpolate_volume_data"), interpolate_volume_data, METH_VARARGS, NULL},
-  {const_cast<char*>("interpolate_volume_gradient"), interpolate_volume_gradient, METH_VARARGS, NULL},
+  {const_cast<char*>("interpolate_volume_data"), interpolate_volume_data, METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("interpolate_volume_gradient"), interpolate_volume_gradient, METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("interpolate_colormap"), interpolate_colormap, METH_VARARGS, NULL},
   {const_cast<char*>("set_outside_volume_colors"), set_outside_volume_colors, METH_VARARGS, NULL},
 
