@@ -269,14 +269,12 @@ class RotamerDialog(ToolInstance):
         self.button_group = QButtonGroup()
         self.add_col_button.clicked.connect(lambda checked, *, bg=self.button_group:
             self._show_subdialog(bg.checkedButton().text()))
-        for add_type in ["H-Bonds", "Clashes", "Density (coming soon)"]:
+        for add_type in ["H-Bonds", "Clashes", "Density"]:
             rb = QRadioButton(add_type)
             rb.clicked.connect(self._update_button_text)
             radio_layout.addWidget(rb)
             if not self.button_group.buttons():
                 rb.setChecked(True)
-            if add_type[-1] == ')':
-                rb.setEnabled(False)
             self.button_group.addButton(rb)
         self.ignore_solvent_button = QCheckBox("Ignore solvent")
         self.ignore_solvent_button.setChecked(True)
@@ -315,6 +313,21 @@ class RotamerDialog(ToolInstance):
             cmd += " retain %s" % str(self.retain_side_chain.isChecked()).lower()
         run(self.session, cmd)
         self.delete()
+
+    def _eval_vol(self, vol):
+        for rot in self.mgr.rotamers:
+            values = vol.interpolated_values(rot.atoms.coords, point_xform=rot.scene_position)
+            total = 0
+            for a, val in zip(rot.atoms, values):
+                # 'is_side_chain' only works for actual polymers
+                if a.name not in a.residue.aa_max_backbone_names:
+                    total += val
+            rot.sum_density = total
+        sd_type = "Density"
+        if sd_type in self.opt_columns:
+            self.table.update_column(self.opt_columns[sd_type], data=True)
+        else:
+            self.opt_columns[sd_type] = self.table.add_column(sd_type, "sum_density", format="%g")
 
     def _fewer_rots_cb(self, trig_name, mgr):
         self.rot_table.set_data(self.mgr.rotamers)
@@ -369,9 +382,22 @@ class RotamerDialog(ToolInstance):
                 self.table.update_column(self.opt_columns[sd_type], data=True)
             else:
                 self.opt_columns[sd_type] = self.table.add_column(sd_type, "num_clashes", format="%d")
+        else: # Density
+            vol = sd.vol_list.value
+            if not vol:
+                return
+            self._eval_vol(vol)
         self._update_button_text()
 
     def _show_subdialog(self, sd_type):
+        if sd_type == "Density":
+            from chimerax.map import Volume
+            volumes = [m for m in self.session.models if isinstance(m, Volume)]
+            if not volumes:
+                raise UserError("Must open a volume/map file first!")
+            if len(volumes) == 1:
+                self._eval_vol(volumes[0])
+                return
         if sd_type not in self.subdialogs:
             self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type)
             from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
@@ -391,6 +417,13 @@ class RotamerDialog(ToolInstance):
                     show_set_attrs=False, show_other_atom_color=False, show_checking_frequency=False,
                     restrict="cross", bond_separation=0, reveal=True)
                 layout.addWidget(sd.clashes_gui)
+            else: # Density
+                from chimerax.ui.widgets import ModelListWidget
+                from PyQt5.QtWidgets import QFormLayout
+                density_layout = QFormLayout()
+                layout.addLayout(density_layout)
+                sd.vol_list = ModelListWidget(self.session, selection_mode='single', class_filter=Volume)
+                density_layout.addRow("Select density:", sd.vol_list)
             bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
             bbox.accepted.connect(lambda sdt=sd_type: self._process_subdialog(sdt))
             bbox.accepted.connect(lambda sd=sd: setattr(sd, 'shown', False))
