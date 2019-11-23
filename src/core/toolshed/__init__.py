@@ -1246,13 +1246,11 @@ class Toolshed:
                 raise ImportError("bundle %r is not installed" % bundle.name)
             from chimerax.ui.ask import ask
             answer = ask(session, "Install bundle %r?" % bundle.name,
-                         buttons=["just me", "all users", "cancel"])
+                         buttons=["install", "cancel"])
             if answer == "cancel":
                 raise ImportError("user canceled installation of bundle %r" % bundle.name)
-            elif answer == "just me":
+            elif answer == "install":
                 per_user = True
-            elif answer == "all users":
-                per_user = False
             else:
                 raise ImportError("installation of bundle %r canceled" % bundle.name)
         # We need to install the bundle.

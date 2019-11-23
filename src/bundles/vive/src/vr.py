@@ -519,7 +519,7 @@ class SteamVRCamera(Camera, StateManager):
     def _find_tracker(self):
         import openvr
         for device_id in range(openvr.k_unMaxTrackedDeviceCount):
-            if self._device_type(device_id) == 'tracker':
+            if self._device_type(device_id) == 'tracker' and self._device_connected(device_id):
                 self._tracker_device_index = device_id
                 return device_id
         return None
@@ -547,7 +547,9 @@ class SteamVRCamera(Camera, StateManager):
                 # Need to exclude UI from bounds.
                 top_models = self._session.models.scene_root_model.child_models()
                 from chimerax.core.geometry import union_bounds
-                b = union_bounds(m.bounds() for m in top_models if m.id[0] != g.id[0])
+                b = union_bounds(m.bounds() for m in top_models
+                                 if m.display and m.id[0] != g.id[0] and
+                                 not getattr(m, 'skip_bounds', False))
         if b:
             scene_size = b.width()
             scene_center = b.center()
@@ -719,6 +721,10 @@ class SteamVRCamera(Camera, StateManager):
                 openvr.TrackedDeviceClass_GenericTracker: 'tracker',
                 openvr.TrackedDeviceClass_HMD: 'hmd'}
         return tmap.get(c, 'unknown')
+
+    def _device_connected(self, device_index):
+        vrs = self._vr_system
+        return vrs.isTrackedDeviceConnected(device_index)
 
     def process_controller_motion(self):
 
@@ -998,7 +1004,8 @@ class RoomCamera:
         self._delete_framebuffer(render)
         cm = self._camera_model
         if cm:
-            cm.delete()
+            if not cm.deleted:
+                cm.delete()
             self._camera_model = None
         
     @property
@@ -1008,7 +1015,7 @@ class RoomCamera:
     @property
     def camera_position(self):
         cm = self._camera_model
-        if cm is None:
+        if cm is None or cm.deleted:
             from chimerax.core.geometry import Place
             p = Place()
         else:
@@ -1175,6 +1182,12 @@ class RoomCameraModel(Model):
         # Avoid camera disappearing when far from models
         self.allow_depth_cue = False
 
+    def delete(self):
+        cam = self.session.main_view.camera
+        Model.delete(self)
+        if isinstance(cam, SteamVRCamera):
+            cam.enable_room_camera(False)
+            
     def _get_room_position(self):
         return (self._last_room_to_scene.inverse() * self.position).remove_scale()
     def _set_room_position(self, room_position):

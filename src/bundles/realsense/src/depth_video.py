@@ -14,6 +14,7 @@
 # -----------------------------------------------------------------------------
 #
 def device_realsense(session, enable = None,
+                     size = (960,540), dsize = (1280,720), frames_per_second = 30,
                      align = True, denoise = True, projector = False,
                      angstroms_per_meter = 50, skip_frames = 2):
 
@@ -25,6 +26,9 @@ def device_realsense(session, enable = None,
                             % di[0].id_string)
 
         di = DepthVideo('RealSense camera', session,
+                        size = size,
+                        dsize = dsize,
+                        frames_per_second = frames_per_second,
                         depth_scale = angstroms_per_meter,
                         use_ir_projector = projector,
                         align_color_and_depth = align,
@@ -43,9 +47,12 @@ def device_realsense(session, enable = None,
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, IntArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, IntArg, Int2Arg
     desc = CmdDesc(optional = [('enable', BoolArg)],
-                   keyword = [('align', BoolArg),
+                   keyword = [('size', Int2Arg),
+                              ('dsize', Int2Arg),
+                              ('frames_per_second', IntArg),
+                              ('align', BoolArg),
                               ('denoise', BoolArg),
                               ('projector', BoolArg),
                               ('angstroms_per_meter', FloatArg),
@@ -60,11 +67,14 @@ from chimerax.core.models import Model
 class DepthVideo (Model):
     skip_bounds = True
     def __init__(self, name, session,
+                 size = (960,540),		# color frame size in pixels
+                 dsize = (1280,720),		# depth frame size in pixels
+                 frames_per_second = 30,
+                 skip_frames = 0,
                  depth_scale = 50,	        # Angstroms per meter.
                  use_ir_projector = False,      # Interferes with Vive VR tracking
                  align_color_and_depth = True,  # This slows frame rate
-                 denoise_depth = True,
-                 skip_frames = 0
+                 denoise_depth = True
     ):
         Model.__init__(self, name, session)
 
@@ -79,10 +89,15 @@ class DepthVideo (Model):
         self._align_color_and_depth = align_color_and_depth
         self._denoise_depth = denoise_depth
         self._pipeline_started = False
-        self._frames_per_second = 30	# RealSense frame rate: 30, 15, 6 at depth 1280x720, or 60,90 at 848x480
-                                        #  6,15,30 at color 1920x1080, 60 at 1280x720
+        self._color_image_size = size
+        self._depth_image_size = dsize
+        # RealSense D435 frame rate:
+        #  30, 15, 6 at depth 1280x720, or 60,90 at 848x480
+        #  6,15,30 at color 1920x1080, 60 at 1280x720
+        self._frames_per_second = frames_per_second
         self._skip_frames = skip_frames	# Skip updating realsense on some graphics updates
         self._current_frame = 0
+        self._depth_texture = None
         
         t = session.triggers.add_handler('graphics update', self._update_image)
         self._update_trigger = t
@@ -115,10 +130,10 @@ class DepthVideo (Model):
         self.pipeline = rs.pipeline()
         self.config = config = rs.config()
         fps = self._frames_per_second
-#        config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-        config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, fps)
-#        config.enable_stream(rs.stream.color, 640, 480, rs.format.rgb8, fps)
-        config.enable_stream(rs.stream.color, 960, 540, rs.format.rgb8, fps)
+        dw, dh = self._depth_image_size
+        config.enable_stream(rs.stream.depth, dw, dh, rs.format.z16, fps)
+        cw, ch = self._color_image_size
+        config.enable_stream(rs.stream.color, cw, ch, rs.format.rgb8, fps)
         pipeline_profile = self.pipeline.start(config)
         device = pipeline_profile.get_device()
         dsensor = device.first_depth_sensor()

@@ -88,6 +88,8 @@ def view_objects(objects, v, clip, cofr, pad):
 
     if cofr:
         v.center_of_rotation_method = 'center of view'
+        if not clip:
+            v.set_rotation_depth(c)
 
 def view_name(session, name):
     """Save current view as given name.
