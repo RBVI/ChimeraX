@@ -58,9 +58,12 @@ The first set of options specify the
 (also specified with <b>~cofr</b>): when the view is zoomed out,
 use the center of the bounding box of all displayed items;
 when the view is zoomed in, keep updating the center of rotation to the
-middle of the graphics window in X and Y 
-(<a href="view.html#screencoords">screen coordinates</a>), with Z (depth)
-left unchanged. Updates only occur upon translations, not rotations alone.
+middle of the graphics window in X and Y
+(<a href="view.html#screencoords">screen coordinates</a>)
+and the depth of the frontmost displayed item at that point,
+or if the middle is empty, keeping the depth the same until another item
+passes through that point.
+The center of rotation is only updated for translations, not rotations alone.
 <br><br>
 <li><b>centerOfView</b> &ndash; keep updating the center of rotation to the
 middle of the graphics window in X and Y 
@@ -72,7 +75,8 @@ center of rotation depth remains constant starting from the center of the
 bounding box of the first model opened, or if the method was switched, 
 from the previous center of rotation.
 <br><br>
-<li><b>fixed</b> &ndash; use a fixed point relative to the model(s);
+<li><b>fixed</b> &ndash; use a fixed point relative to the
+<a href="view.html#scenecoords">scene</a>;
 giving this option changes only the method, retaining the current center
 </ul>
 <p>
