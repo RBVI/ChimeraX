@@ -125,7 +125,7 @@ class RotamerLibrary:
         elif res_name == "PRO":
             if "CPR" in supported_names or "TPR" in supported_names:
                 if exemplar:
-                    omega = res.omega
+                    omega = exemplar.omega
                     if omega is not None and abs(omega) < 90:
                         if "CPR" in supported_names:
                             return "CPR"
