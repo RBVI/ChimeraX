@@ -581,8 +581,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
         if close_destroys:
             close_event.accept()
+            # _destroy will remove window from all_windows indirectly
+            # via tw._destroy -> toolkit.destroy -> mw->_tool_window_destroyed
             tool_window._destroy()
-            all_windows.remove(tool_window)
         else:
             close_event.ignore()
             tool_window.shown = False
@@ -712,7 +713,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def remove_tool(self, tool_instance):
         tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
         if tool_windows:
-            for tw in tool_windows:
+            for tw in tool_windows[:]:
                 tw._mw_set_shown(False)
                 tw._destroy()
             del self.tool_instance_to_windows[tool_instance]
