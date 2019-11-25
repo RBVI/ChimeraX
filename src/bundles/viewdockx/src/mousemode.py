@@ -35,7 +35,7 @@ class NextDockingMouseMode(MouseMode):
 
     lx,ly = self._last_xy
     dx,dy = x - lx, ly - y
-    d = dx if abs(dx) > abs(dy) else dy
+    d = dx if abs(dx) > abs(dy) else -dy
     if d >= self._step_pixels:
         step = 1
     elif d <= -self._step_pixels:
@@ -88,7 +88,7 @@ class NextDockingMouseMode(MouseMode):
     if event.is_touchpad:
       return
     step_size = 0.10	# Meters vertical motion per step
-    step = int(round(event.room_vertical_motion / step_size))
+    step = int(round(-event.room_vertical_motion / step_size))
     if step == 0:
       return 'accumulate drag'
     self._show_next(step)
