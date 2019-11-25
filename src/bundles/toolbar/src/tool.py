@@ -287,7 +287,7 @@ _Toolbars = {
                 ("mouse:minimize", None, "Minimize", "Jiggle residue and its neighbors"),
             ],
             ("Other", False): [
-                ("mouse:next docking", None, "ViewDock", "Show next docked ligand"),
+                ("mouse:next docked", None, "Next docked", "Show next docked ligand"),
             ],
         }
     ),
