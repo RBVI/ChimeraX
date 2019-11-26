@@ -1143,6 +1143,24 @@ class Residues(Collection):
             args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
     @property
+    def phis(self):
+        return [r.phi for r in self]
+
+    @phis.setter
+    def phis(self, phi):
+        for r in self:
+            r.phi = phi
+
+    @property
+    def psis(self):
+        return [r.psi for r in self]
+
+    @psis.setter
+    def psis(self, psi):
+        for r in self:
+            r.psi = psi
+
+    @property
     def unique_structures(self):
         '''The unique structures as a :class:`.StructureDatas` collection'''
         return self.structures.unique()

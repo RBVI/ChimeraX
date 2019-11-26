@@ -1798,6 +1798,16 @@ class Structure(Model, StructureData):
             bonds = self.bonds
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
+        elif itype == 'residues':
+            atoms, bonds = self.atoms, self.bonds
+            sel_atoms = []
+            if atoms.num_selected > 0:
+                sel_atoms.append(atoms.filter(atoms.selected))
+            if bonds.num_selected > 0:
+                 sel_atoms.extend(bonds.filter(bonds.selected).atoms)
+            if sel_atoms:
+                from . import concatenate
+                return [concatenate(sel_atoms, remove_duplicates=True).unique_residues]
         return []
 
     def clear_selection(self):

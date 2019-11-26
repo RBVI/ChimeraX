@@ -18,7 +18,8 @@ def item_options(session, name, **kw):
             attr + ' changed' in getattr(changes, rt + "_reasons")()))
     return {
         'atoms': [make_tuple(opt, "atom") for opt in [AtomColorOption, AtomStyleOption]],
-        'bonds': [make_tuple(opt, "bond") for opt in [BondRadiusOption]]
+        'bonds': [make_tuple(opt, "bond") for opt in [BondRadiusOption]],
+        'residues': [make_tuple(opt, "residue") for opt in [ResiduePhiOption, ResiduePsiOption]],
     }[name]
 
 from chimerax.ui.options import ColorOption, SymbolicEnumOption, FloatOption
@@ -52,3 +53,31 @@ class BondRadiusOption(FloatOption):
     @property
     def command_format(self):
         return "size %%s stickRadius %g" % self.value
+
+class ResiduePhiOption(FloatOption):
+    attr_name = "phi"
+    balloon = "Backbone \N{GREEK SMALL LETTER PHI} angle"
+    default = 0.0
+    name = "\N{GREEK SMALL LETTER PHI} angle"
+    @property
+    def command_format(self):
+        return "setattr %%s r phi %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'step' not in kw:
+            kw['step'] = 1.0
+        super().__init__(*args, **kw)
+
+class ResiduePsiOption(FloatOption):
+    attr_name = "psi"
+    balloon = "Backbone \N{GREEK SMALL LETTER PSI} angle"
+    default = 0.0
+    name = "\N{GREEK SMALL LETTER PSI} angle"
+    @property
+    def command_format(self):
+        return "setattr %%s r psi %g" % self.value
+
+    def __init__(self, *args, **kw):
+        if 'step' not in kw:
+            kw['step'] = 1.0
+        super().__init__(*args, **kw)
