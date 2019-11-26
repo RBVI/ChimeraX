@@ -148,7 +148,8 @@ def save_image(session, path, format_name, width=None, height=None,
     view = session.main_view
     view.render.make_current()
     max_size = view.render.max_framebuffer_size()
-    if max_size and (width > max_size or height > max_size):
+    if max_size and ((width is not None and width > max_size)
+                     or (height is not None and height > max_size)):
         raise UserError('Image size %d x %d too large, exceeds maximum OpenGL render buffer size %d'
                         % (width, height, max_size))
 
