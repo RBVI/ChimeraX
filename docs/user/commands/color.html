@@ -521,7 +521,7 @@ to make the cap match the nearby atoms.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> (&nbsp;<b>sample</b>&nbsp;|&nbsp;<b>electrostatic</b>&nbsp;|&nbsp;<b>gradient</b>&nbsp;)
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
-<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;
+[&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;]
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
@@ -577,6 +577,8 @@ the gradient at a surface vertex is found by trilinear interpolation
 from the eight corners of the enclosing data grid cell.
 The norm of the interpolated gradient (the length of the gradient vector)
 is used for assigning colors.
+The <b>map</b> specification can be omitted when it is the same
+model as the surface being colored.
 </ul>
 <!--
 <h4><a href="#map" class="nounder">&larr;</a> Examples</h4>
@@ -966,5 +968,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+November 2019</address>
 </body></html>
