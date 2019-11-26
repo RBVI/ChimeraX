@@ -523,6 +523,12 @@ class Render:
         x, y, w, h = fb.viewport
         return (w, h)
 
+    def max_framebuffer_size(self):
+        max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
+        max_tex_size = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
+        max_size = min(max_rb_size, max_tex_size)
+        return max_size
+
     def framebuffer_rgba_bits(self):
         return tuple(GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
                                                               GL.GL_BACK_LEFT, attr)

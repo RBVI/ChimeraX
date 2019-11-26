@@ -23,6 +23,7 @@ from .volume import volume_from_grid_data
 # are available.
 #
 from .volume import Volume
+from .volume import VolumeSurface, VolumeImage
 
 # -----------------------------------------------------------------------------
 # Map contouring and distance maps.
