@@ -25,16 +25,21 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Rotamers</h3>
 <p>
-The <b>Rotamers</b> tool allows amino acid sidechain rotamers to be viewed,
-<a href="#evaluation">evaluated</a>, and
-<a href="#incorporation">incorporated</a> into structures.
-A residue can be changed into a different rotamer of the same type
-of amino acid or &ldquo;mutated&rdquo; into a different type.
-<!-- 
-The state of <b>Rotamers</b> is included in saved
-<a href="../commands/save.html#session">sessions</a>.
+The <b>Rotamers</b> tool allows:
+</p>
+<ul>
+<li>interactively viewing sets of amino acid sidechain rotamers
+<li><a href="#evaluation">evaluating</a> them for H-bonds, clashes, and/or
+agreement with a density map
+<li><a href="#incorporation">incorporating</a> chosen rotamers
+into the structure
+</ul>
+<p>
+An amino acid can be changed into a different rotamer of the same 
+residue type or &ldquo;mutated&rdquo; into a different type.
+The related command <a href="../commands/swapaa.html"><b>swapaa</b></a>
+chooses and incorporates a rotamer automatically.
 </p><p>
--->
 Although sidechains at multiple positions can be replaced simultaneously, the
 <b>Rotamers</b> tool is not recommended for predicting the conformations of
 multiple sidechains in an interacting cluster. Programs such as
@@ -46,11 +51,8 @@ are more appropriate for that purpose. See also:
 </p><p>
 Like other tools, the <b>Rotamers</b> tool can be opened
 from the <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
-The related command <a href="../commands/swapaa.html"><b>swapaa</b></a>
-chooses and incorporates a rotamer automatically based on criteria
-that may include clashes, H-bonds, and/or agreement with a density map.
-These criteria can be <a href="#evaluation">evaluated</a> interactively
-with the <b>Rotamers</b> graphical interface.
+The state of <b>Rotamers</b> is included in saved
+<a href="../commands/save.html#session">sessions</a>.
 </p><p>
 One or more amino acid residues should be
 <a href="../selection.html">selected</a>
