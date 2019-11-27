@@ -373,12 +373,17 @@ class ItemTable(QTableView):
         if self._column_control_info and not isinstance(self._column_control_info[0], QMenu):
             self._arrange_col_checkboxes()
         if session_info:
-            version, selected, highlighted, sort_info = session_info
-            self.selectionModel().select([self._table_model.index(i,0) for i in selected])
-            self.highlight([self._data[i] for i in highlighted])
+            version, selected, column_display, highlighted, sort_info = session_info
             if self._allow_user_sorting and sort_info is not None:
                 col_num, order = sort_info
                 self.sortByColumn(col_num, order)
+            sel_model = self.selectionModel()
+            for i in selected:
+                index = self._table_model.index(i,0)
+                sel_model.select(index, sel_model.Rows | sel_model.SelectCurrent)
+            self.highlight([self._data[i] for i in highlighted])
+            for c in self._columns:
+                self.update_column(c, display=column_display.get(c.title, True))
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
         self.resizeColumnsToContents()
 
@@ -396,12 +401,13 @@ class ItemTable(QTableView):
     def session_info(self):
         version = 1
         selected = set([i.row() for i in self.selectedIndexes()])
+        column_display = { c.title: c.display for c in self._columns }
         highlighted = [i for i, d in enumerate(self.data) if d in self._highlighted]
         if self._allow_user_sorting:
-            sort_info = (self.model().sortColumn(), self.model().sortOrder())
+            sort_info = (self.model().sortColumn(), int(self.model().sortOrder()))
         else:
             sort_info = None
-        return (version, selected, highlighted, sort_info)
+        return (version, selected, column_display, highlighted, sort_info)
 
     def update_column(self, column, **kw):
         display_change = 'display' in kw and column.display != kw['display']
@@ -413,13 +419,13 @@ class ItemTable(QTableView):
                 self.showColumn(self._columns.index(column))
             else:
                 self.hideColumn(self._columns.index(column))
+            if self._column_control_info:
+                self._checkables[column.title].setChecked(kw['display'])
         if not changes:
             return
         top_left = self._table_model.index(0, self._columns.index(column))
         bottom_right = self._table_model.index(len(self._data)-1, self._columns.index(column))
         self._table_model.dataChanged.emit(top_left, bottom_right, changes)
-        if self._column_control_info and 'display' in kw:
-            self._checkables[column.title].setChecked(kw['display'])
 
     def _add_column_control_entry(self, col):
         action = QAction(col.title)
@@ -427,19 +433,20 @@ class ItemTable(QTableView):
             action.setToolTip(col.balloon)
         action.setCheckable(True)
         action.setChecked(col.display)
-        self._checkables[col.title] = action
         qt_cb =lambda checked, c=col: self.update_column(c, display=checked)
 
         widget = self._column_control_info[0]
         if isinstance(widget, QMenu):
             action.triggered.connect(qt_cb)
             widget.addAction(action)
+            self._checkables[col.title] = action
         else:
             check_box = QCheckBox(col.title)
             check_box.addAction(action)
             check_box.setChecked(col.display)
             check_box.stateChanged.connect(qt_cb)
             self._col_checkboxes.append(check_box)
+            self._checkables[col.title] = check_box
             if self._table_model:
                 # we've been launch()ed
                 self._arrange_col_checkboxes()

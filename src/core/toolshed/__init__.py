@@ -658,28 +658,28 @@ class Toolshed:
         if cx_dir not in m.__path__:
             m.__path__.append(cx_dir)
         install_now = True
-        try:
+        old_bundle = None
+        if isinstance(bundle, str):
+            # If the name ends with .whl, it must be a path.
+            if bundle.endswith(".whl"):
+                basename = os.path.split(bundle)[1]
+                name = basename.split('-')[0]
+            else:
+                name = bundle
+            old_bundle = self.find_bundle(name, logger, installed=True)
+            bundle_name = bundle
+        else:
+            # If "bundle" is not a string, it must be a Bundle instance.
             if bundle.installed:
                 if not reinstall:
                     raise ToolshedInstalledError("bundle %r already installed" % bundle.name)
-                if bundle in self._installed_bundle_info:
-                    install_now = self._can_install(bundle)
-                    if install_now:
-                        bundle.deregister(logger)
-                        self._installed_bundle_info.remove(bundle)
-            bundle = bundle.name
-        except AttributeError:
-            # If "bundle" is not an instance, it must be a string.
-            # Treat it like a path to a wheel and get a putative
-            # bundle name.  If it is install, deregister and unload it.
-            basename = os.path.split(bundle)[1]
-            name = basename.split('-')[0]
-            bi = self.find_bundle(name, logger, installed=True)
-            if bi in self._installed_bundle_info:
-                install_now = self._can_install(bi)
-                if install_now:
-                    bi.deregister(logger)
-                    self._installed_bundle_info.remove(bi)
+                old_bundle = bundle
+            bundle_name = "%s==%s" % (bundle.name, bundle.version)
+        if old_bundle in self._installed_bundle_info:
+            install_now = self._can_install(old_bundle)
+            if install_now:
+                old_bundle.deregister(logger)
+                self._installed_bundle_info.remove(old_bundle)
         if per_user is None:
             per_user = True
         if not install_now:
@@ -688,15 +688,15 @@ class Toolshed:
                 args.append("--user")
             if reinstall:
                 args.append("--force-reinstall")
-            self._add_restart_action("install", bundle, args, logger)
+            self._add_restart_action("install", bundle_name, args, logger)
             return
         try:
-            results = self._pip_install(bundle, logger,
+            results = self._pip_install(bundle_name, logger,
                                         per_user=per_user, reinstall=reinstall)
         except PermissionError:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
-                         (bundle, who))
+                         (bundle_name, who))
             return
         installed = re.findall(r"^\s*Successfully installed.*$", results, re.M)
         if installed:
@@ -739,7 +739,7 @@ class Toolshed:
                 for name in failed:
                     logger.warning("%s: custom initialization failed" % name)
 
-        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle)
+        self.triggers.activate_trigger(TOOLSHED_BUNDLE_INSTALLED, bundle_name)
 
     def _can_install(self, bi):
         """Check if bundle can be installed (i.e., not in use)."""
@@ -869,24 +869,28 @@ class Toolshed:
                         best_version = v
         return best_bi
 
-    def find_bundle_for_tool(self, name):
+    def find_bundle_for_tool(self, name, prefix_okay=False):
         """Supported API. Find named tool and its bundle
 
         Return the bundle it is in and its true name.
+
+        Parameters
+        ----------
+        name : str
+            Name or prefix of the tool of interest.
+        prefix_okay : boolean
+            Whether name only needs to be a prefix of a tool name
+            or must be an exact match.
         """
-        folded_name = name.casefold()
+        lc_name = name.casefold()
         tools = []
         for bi in self._installed_bundle_info:
             for tool in bi.tools:
                 tname = tool.name.casefold()
-                if tname == folded_name:
-                    return (bi, tool.name)
-                if tname.startswith(folded_name):
-                    tools.append((bi, tool.name))
-        if len(tools) == 0:
-            return None, name
-        # TODO: longest match?
-        return tools[0]
+                if (tname == lc_name or
+                    (prefix_okay and tname.startswith(lc_name))):
+                        tools.append((bi, tool.name))
+        return tools
 
     def find_bundle_for_command(self, cmd):
         """Supported API. Find bundle registering given command

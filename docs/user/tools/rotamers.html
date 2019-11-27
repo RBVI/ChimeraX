@@ -41,16 +41,16 @@ multiple sidechains in an interacting cluster. Programs such as
 <a href="http://dunbrack.fccc.edu/scwrl4/" target="_blank">SCWRL</a>
 are more appropriate for that purpose. See also:
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
-<a href="hbonds.html"><b>HBonds</b></a>
+<a href="hbonds.html"><b>H-Bonds</b></a>,
+<a href="clashes.html"><b>Clashes/Contacts</b></a>
 </p><p>
 Like other tools, the <b>Rotamers</b> tool can be opened
 from the <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
 The related command <a href="../commands/swapaa.html"><b>swapaa</b></a>
 chooses and incorporates a rotamer automatically based on criteria
 that may include clashes, H-bonds, and/or agreement with a density map.
-<a href="#evaluation">H-bond evaluation</a> 
-is integrated into the <b>Rotamers</b> graphical interface, 
-with clashes and density coming soon. 
+These criteria can be <a href="#evaluation">evaluated</a> interactively
+with the <b>Rotamers</b> graphical interface.
 </p><p>
 One or more amino acid residues should be
 <a href="../selection.html">selected</a>
@@ -157,16 +157,19 @@ template with those of the existing residue.
 </p>
 <h3>Rotamer List</h3>
 <p>
-Each rotamer list includes sidechain torsion (<b>Chi <i>N</i></b>) and
-<b>Probability</b> values. Probabilities are simply taken from the
+Each rotamer list includes columns with the sidechain torsion 
+(<b>Chi <i>N</i></b>) and <b>Probability</b> values. 
+The probabilities are simply taken from the
 <a href="#library">rotamer library</a> and are <b><i>not</i></b>
 affected by the structural environment, except by phi and psi angles 
 when the <a href="#library">Dunbrack library</a> is used;
-thus, it is important to consider other factors.
-The <b>Column display</b> section of the dialog controls which columns
-are shown and allows <a href="#evaluation">evaluating</a> the rotamers 
-to add new columns:
-currently H-bonds, with clashes and density overlap coming soon.
+thus, it is important to consider other factors when choosing a rotamer
+to incorporate into the structure.
+</p><p>
+The <b>Column display</b> section below the list 
+contains checkboxes for showing/hiding the existing columns,
+and allows <a href="#evaluation">adding</a> columns
+for H-bonds, clashes, and agreement with a density map.
 </p><p>
 Rotamers are initially listed in order of decreasing probability, but
 the listing can be sorted by the values in any column by clicking
@@ -207,43 +210,33 @@ without modifying the structure.
 </p>
 <h3>Rotamer Evaluation</h3>
 <p>
-The related command <a href="../commands/swapaa.html"><b>swapaa</b></a>
-chooses and incorporates a rotamer automatically based on criteria
-that may include clashes, H-bonds, and/or agreement with a density map.
-Evaluating H-bonds is integrated into the <b>Rotamers</b> graphical interface, 
-with clashes and density coming soon. 
-</p><p>
-In the <b>Column display</b> section of the 
-<a href="#rotamerlist">rotamer list</a>:
+
+Clicking <b>Add</b> (or <b>Update</b>) opens a dialog for the specified
+calculation, which will add or update the corresponding column in
+the <a href="#rotamerlist">rotamer list</a>:
 </p>
 <ul>
-<li> Clicking <b>H-bonds</b> opens a panel with a subset of the options 
-of the main <a href="hbonds.html"><b>H-Bonds</b></a> tool; 
-clicking <b>OK</b> on that panel runs the calculation and adds (or updates)
-a column showing the number of H-bonds for each rotamer
+<li><b>H-bonds</b> &ndash; a subset of the options 
+in the main <a href="hbonds.html"><b>H-Bonds</b></a> tool
+<li><b>Clashes</b> &ndash; a subset of the options 
+in the main <a href="clashes.html"><b>Clashes</b></a> tool
+<li><b>Density</b> &ndash; calculate agreement with a density map 
+already open in ChimeraX; if more than one
+<a href="volumeviewer.html">volume model</a> is open,
+a dialog for specifying which one to use will appear. 
+The value shown in the column is the sum of map values at 
+the rotamer sidechain atom positions.
 </ul>
 <p>
-Evaluation of clashes and density is not yet integrated into the 
-<b>Rotamers</b> graphical interface, but the 
-<a href="../commands/clashes.html"><b>clashes</b></a>
-command can be run separately on the rotamers model.
-For example, if rotamers model #1.1 is shown for residue 17 in chain A,
-the command could be something like:
-<p>
-<blockquote><b>
-<a href="../commands/clashes.html">clashes</a>
-&nbsp;#1.1&~@n,ca&nbsp;&nbsp;test&nbsp;protein&nbsp;&~/A:17:16,18@n,ca,c,o&nbsp;&nbsp;reveal&nbsp;t&nbsp;log&nbsp;t
-<!--
-<a href="../commands/hbonds.html">hbonds</a>&nbsp;#1.1&~@n,ca&nbsp;&nbsp;restrict&nbsp;protein&nbsp;&~/A:17:16,18@n,ca,c,o&nbsp;&nbsp;reveal&nbsp;t&nbsp;log&nbsp;t
--->
-</b></blockquote>
+For <b>H-Bonds</b> and <b>Clashes</b>, another option is shown:
 </p>
-...to calculate interactions between the rotamers and the 
-other residues of the protein (excluding all atoms of the residue 
-at the same position and the backbone atoms of the rotamers and
-the flanking residues).
-</p>
+<ul>
+<li><b>Ignore solvent</b> (initial default <b>on</b>) 
+&ndash; whether to disregard 
+<a href="../commands/atomspec.html#surfcats">solvent</a>
+when counting interactions between the rotamers and the rest of the structure
+</ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+November 2019</address>
 </body></html>

@@ -46,7 +46,7 @@ class SequenceViewer(ToolInstance):
     """
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
-            set_state_from_snapshot will be called later.
+            _finalize_init will be called later.
         """
 
         ToolInstance.__init__(self, session, tool_name)

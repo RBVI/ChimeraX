@@ -26,7 +26,8 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#tools">Tool</a>: Contacts, Clashes</h3>
 <p>
 <b>Clashes</b> and <b>Contacts</b> are two separate tools with nearly
-identical options. The default parameters are different, as meant to detect:
+identical options. Some of the default parameters are different, 
+as meant to detect:
 </p>
 <ul>
 <li><b><i>clashes</i></b>
@@ -41,10 +42,9 @@ The corresponding commands are
 <a href="../commands/clashes.html"><b>clashes</b></a>
 and <a href="../commands/clashes.html"><b>contacts</b></a>.
 See also:
-<a href="hbonds.html"><b>H-Bonds</b></a>,
 <a href="rotamers.html"><b>Rotamers</b></a>,
+<a href="hbonds.html"><b>H-Bonds</b></a>,
 <a href="distances.html"><b>Distances</b></a>,
-<a href="../tools/viewdockx.html"><b>ViewDockX</b></a>,
 <a href="../commands/interfaces.html"><b>interfaces</b></a>,
 <a href="../commands/select.html#new"><b>select</b> by pseudobond length</a>,
 <a href="../measurements.html">measurements</a>
@@ -53,12 +53,11 @@ See also:
 can be opened from the <b>Structure Analysis</b> section of the
 <b>Tools</b> menu and manipulated like other panels
 (<a href="../window.html#panels">more...</a>). 
-</p><p>
 Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
 runs the calculation. Several of the dialog settings are remembered as 
 <a href="../preferences.html#other">preferences</a> when the calculation is run.
 </p><p>
-<b>Clash (Contact) parameters</b>
+<b>Interaction parameters</b>:
 <ul>
 <a name="overlap-def"></a>
 <li><b>Find pairs of atoms with VDW overlap &ge; [ <i>cutoff</i> ] &Aring;</b>
@@ -114,13 +113,14 @@ lone pair.
 </tr>
 </table>
 </blockquote>
-<li><b>Contacts</b> only:
+<li>
+<!-- <b>Contacts</b> only: -->
 <b>Find pairs of atoms with center-center distance 
 &le; [ <i>d</i> ] &Aring;</b> 
 (initial default <i>d</i>=<b>4.0</b>)
 &ndash; 
-use a simple distance cutoff instead of <a href="#overlap-def">VDW overlap</a> 
-to identify interactions
+instead of <a href="#overlap-def">VDW overlap</a>,
+use a simple distance cutoff to identify interactions
 <li><b>Limit by selection</b> (initial default <b>off</b>) 
 &ndash; whether to limit the results by the current
 <a href="../selection.html">selection</a> according to one of the following
@@ -137,15 +137,14 @@ The two sets of atoms may overlap, but will not overrule other restrictions.
 (initial default <i>N</i>=<b>4</b>)
 <li><b>Only find interactions between residues at least [ <i>M</i> ] apart
 in sequence</b> (initial default <b>off</b>, with <i>M</i>=<b>5</b>)
-<li><b>Include inter-model interactions</b> (initial default <b>on</b>)
-<li><b>Include intra-residue interactions</b> (initial default <b>off</b>)
-<li><b>Include intra-molecule interactions</b> (default <b>on</b>)
+<li><b>Include intermodel</b> (initial default <b>on</b>)
+<li><b>Include intramolecule</b> (initial default <b>on</b>)
 &ndash; whether to include intramolecular interactions,
 where a molecule is defined as a covalently bonded set of atoms
+<li><b>Include intraresidue</b> (initial default <b>off</b>)
 </ul>
 <p>
-<a name="treatment"></a>
-<b>Treatment of clash (contact) atoms</b>
+<b>Show results</b>:
 </p>
 <ul>
 <li><b>Select</b> (initial default <b>off</b>)
@@ -164,11 +163,10 @@ unless their simultaneous display has been enabled with
 <b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
 <li><b>Assign attribute named</b> [<i>name</i>] 
 (initial default <b>off</b>)
-&ndash; whether to assign the largest <a href="#overlap-def">overlap</a> per atom
-as an <a href="../attribute.html">attribute</a> with the specified <i>name</i>
-(default <b>overlap</b>);
+&ndash; whether to assign the largest <a href="#overlap-def">overlap</a>
+per atom as an <a href="../attribute.html">attribute</a> with the 
+specified <i>name</i> (default <b>overlap</b>);
 disallowed with <a href="#continuous">continuous monitoring</a>
-  </ul>
 <li><b>Display as pseudobonds</b> (initial default <b>on</b>)
 &ndash; whether to show the interactions as
 <a href="../pseudobonds.html">pseudobonds</a>, with related settings:
@@ -222,26 +220,31 @@ and those with group name <b>contacts</b> removed with
 A <a href="../pseudobonds.html">pseudobond model</a> can also be closed
 with the <a href="modelpanel.html"><b>Model Panel</b></b></a> 
 or the <a href="../commands/close.html"><b>close</b></a> command.
+  </ul>
 </ul>
-<li><b>Write information to:</b> Where to write clash/contact information,
+<p>
+<b>Write information to</b>:
+Where to write clash/contact information,
 including atom pair specifications 
 (see the <a href="../preferences.html#labels"><b>Labels</b> preferences</a>
-for specifier style), overlaps, and center-center distances.
-Disallowed with <a href="#continuous">continuous monitoring</a>.
+for specifier style), overlaps, and center-center distances;
+disallowed with <a href="#continuous">continuous monitoring</a>.
+</p>
   <ul>
   <li><b>Log</b> (initial default <b>off</b>) 
 &ndash; show the information in the <a href="log.html"><b>Log</b></a>
   <li><b>File</b> (initial default <b>off</b>) 
 &ndash; save the information to a text file
   </ul>
-<li><b>Frequency of Checking</b>
+<p>
+<b>Frequency of Checking</b>:
+</p>
 <ul>
 <li><b>when OK/Apply clicked</b> (default)
 <li>
 <a name="continuous"></a>
 <b>continuously (until dialog closed)</b>
-&ndash; during motions; only the selection and display
-<a href="#treatment">treatments</a> are available
+&ndash; during motions 
 </ul>
   </ul>
 </ul>

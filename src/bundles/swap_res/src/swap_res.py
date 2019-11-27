@@ -14,6 +14,7 @@
 from chimerax.core.errors import LimitationError, UserError
 from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError, \
     UnsupportedResTypeError
+from chimerax.atomic import AtomicStructure
 
 from .cmd import default_criteria
 from .settings import defaults
@@ -185,9 +186,10 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
 
 def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib="Dunbrack", log=False):
     """Takes a Residue instance and optionally phi/psi angles (if different from the Residue), residue
-       type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances.
-       The AtomicStructures are each a single residue (a rotamer) and are in descending probability order.
-       Each has an attribute "rotamer_prob" for the probability and "chis" for the chi angles.
+       type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances (sublass of
+       AtomicStructure).  The AtomicStructure are each a single residue (a rotamer) and are in descending
+       probability order.  Each has an attribute "rotamer_prob" for the probability and "chis" for the
+       chi angles.
     """
     res_type = res_type or res.name
     if res_type == "ALA" or res_type == "GLY":
@@ -198,7 +200,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
 
     # check that the residue has the n/c/ca atoms needed to position the rotamer
     # and to ensure that it is an amino acid
-    from chimerax.atomic import Residue, AtomicStructure
+    from chimerax.atomic import Residue
     match_atoms = {}
     for bb_name in Residue.aa_min_backbone_names:
         match_atoms[bb_name] = a = res.find_atom(bb_name)
@@ -255,7 +257,10 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
         s = AtomicStructure(session, name="rotamer %d" % (i+1))
         structs.append(s)
         r = s.new_residue(mapped_res_type, 'A', 1)
+        registerer = "swap_res get_rotamers"
+        AtomicStructure.register_attr(session, "rotamer_prob", registerer, attr_type=float)
         s.rotamer_prob = rp.p
+        AtomicStructure.register_attr(session, "chis", registerer)
         s.chis = rp.chis
         rot_N = add_atom("N", tmpl_N.element, r, n_coord)
         rot_CA = add_atom("CA", tmpl_CA.element, r, ca_coord, bonded_to=rot_N)
