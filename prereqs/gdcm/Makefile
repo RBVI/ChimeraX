@@ -26,10 +26,10 @@ GDCM_SITEDIR = gdcm-$(VERSION)/lib/python3.7/site-packages
 ifeq ($(OS),Windows)
 
 install:
-	$(PIP_INSTALL) install $(WHEEL)
+	$(PIP_INSTALL) $(WHEEL)
 
 app-install:
-	$(APP_PIP_INSTALL) install $(WHEEL)
+	$(APP_PIP_INSTALL) $(WHEEL)
 
 clean:
 
