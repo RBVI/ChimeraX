@@ -13,6 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
+from chimerax.core.atomic import AtomicStructure
 
 _prd = None
 def prep_rotamers_dialog(session, rotamers_tool_name):
@@ -187,24 +188,23 @@ _settings = None
 class RotamerDialog(ToolInstance):
 
     help = "help:user/tools/rotamers.html"
+    SESSION_SAVE = True
+    registerer = "swap_res RotamerDialog"
 
-    #TODO: restoring from session
     def __init__(self, session, tool_name, *args):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # being called directly rather than during session restore
             self.finalize_init(*args)
 
-    def finalize_init(self, mgr, res_type, lib, *, session_data=None):
+    def finalize_init(self, mgr, res_type, lib_display_name, *, table_info=None):
         self.mgr = mgr
         self.res_type = res_type
-        self.lib = lib
-
-        if session_data:
-            table_data = session_data
+        self.lib_display_name = lib_display_name
 
         self.subdialogs = {}
-        self.opt_columns = {}
+        from collections import OrderedDict
+        self.opt_columns = OrderedDict()
         self.handlers = [
             self.mgr.triggers.add_handler('fewer rotamers', self._fewer_rots_cb),
             self.mgr.triggers.add_handler('self destroyed', self._mgr_destroyed_cb),
@@ -224,7 +224,7 @@ class RotamerDialog(ToolInstance):
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
-        layout.addWidget(QLabel("%s %s rotamers" % (lib.display_name, res_type)))
+        layout.addWidget(QLabel("%s %s rotamers" % (lib_display_name, res_type)))
         column_disp_widget = QWidget()
         class RotamerTable(ItemTable):
             def sizeHint(self):
@@ -236,9 +236,18 @@ class RotamerDialog(ToolInstance):
         for i in range(len(self.mgr.rotamers[0].chis)):
             self.table.add_column("Chi %d" % (i+1), lambda r, i=i: r.chis[i], format="%6.1f")
         self.table.add_column("Probability", "rotamer_prob", format="%.6f ")
+
+        if table_info:
+            table_state, additional_col_info = table_info
+            for col_type, title, data_fetch, display_format in additional_col_info:
+                AtomicStructure.register_attr(self.session, data_fetch, self.registerer,
+                    attr_type=(int if data_fetch.startswith("num") else float))
+                self.opt_columns[col_type] = self.table.add_column(title, data_fetch, format=display_format)
+        else:
+            table_state = None
         self.table.data = self.mgr.rotamers
-        self.table.launch(session_info=session_data)
-        if not session_data:
+        self.table.launch(session_info=table_state)
+        if not table_info:
             self.table.sortByColumn(len(self.mgr.rotamers[0].chis), Qt.DescendingOrder)
         self.table.selection_changed.connect(self._selection_change)
         layout.addWidget(self.table)
@@ -298,6 +307,26 @@ class RotamerDialog(ToolInstance):
             self.mgr.destroy()
         super().delete()
 
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = super().restore_snapshot(session, data['ToolInstance'])
+        inst.finalize_init(data['mgr'], data['res_type'], data['lib_display_name'],
+            table_info=data['table info'])
+        return inst
+
+    def take_snapshot(self, session, flags):
+        import sys
+        print("take_snapshot for", self, file=sys.__stderr__)
+        data = {
+            'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'mgr': self.mgr,
+            'res_type': self.res_type,
+            'lib_display_name': self.lib_display_name,
+            'table info': (self.table.session_info(), [(col_type, c.title, c.data_fetch, c.display_format)
+                for col_type, c in self.opt_columns.items()])
+        }
+        return data
+
     def _apply_rotamer(self):
         rots = self.table.selected
         if not rots:
@@ -315,6 +344,7 @@ class RotamerDialog(ToolInstance):
         self.delete()
 
     def _eval_vol(self, vol):
+        AtomicStructure.register_attr(self.session, "sum_density", self.registerer, attr_type=float)
         for rot in self.mgr.rotamers:
             values = vol.interpolated_values(rot.atoms.coords, point_xform=rot.scene_position)
             total = 0
@@ -354,6 +384,7 @@ class RotamerDialog(ToolInstance):
                 base_spec += " & ~solvent"
             hbs = run(self.session, "%s %s %s restrict #%s & ~@c,ca,n" %
                     (cmd_name, base_spec, args, self.mgr.group.id_string))
+            AtomicStructure.register_attr(self.session, "num_hbonds", self.registerer, attr_type=int)
             for rotamer in self.mgr.rotamers:
                 rotamer.num_hbonds = 0
             for d, a in hbs:
@@ -373,6 +404,7 @@ class RotamerDialog(ToolInstance):
                 base_spec += " & ~solvent"
             clashes = run(self.session, "%s %s %s restrict #%s & ~@c,ca,n" %
                     (cmd_name, base_spec, args, self.mgr.group.id_string))
+            AtomicStructure.register_attr(self.session, "num_clashes", self.registerer, attr_type=int)
             for rotamer in self.mgr.rotamers:
                 rotamer.num_clashes = 0
             for a, clashing in clashes.items():

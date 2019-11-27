@@ -18,6 +18,15 @@ from chimerax.core.toolshed import BundleAPI
 class SwapResAPI(BundleAPI):
 
     @staticmethod
+    def get_class(class_name):
+        if class_name == "_RotamerStateManager":
+            from .cmd import _RotamerStateManager
+            return _RotamerStateManager
+        elif class_name == "RotamerDialog":
+            from .tool import RotamerDialog
+            return RotamerDialog
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
