@@ -417,18 +417,14 @@ class ChimeraXHtmlView(HtmlView):
             from chimerax.ui.ask import ask
             how = ask(self.session,
                       "Install %s for:" % filename,
-                      ["just me", "all users", "cancel"],
+                      ["install", "cancel"],
                       title="Toolshed")
             if how == "cancel":
                 self.session.logger.info("Bundle installation canceled")
                 continue
-            elif how == "just me":
-                per_user = True
-            else:
-                per_user = False
             self.session.toolshed.install_bundle(filename,
                                                  self.session.logger,
-                                                 per_user=per_user,
+                                                 per_user=True,
                                                  session=self.session)
 
 

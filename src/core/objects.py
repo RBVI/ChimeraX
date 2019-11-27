@@ -42,6 +42,7 @@ class Objects:
     def __init__(self, atoms = None, bonds = None, pseudobonds = None, models = None):
         from .orderedset import OrderedSet
         self._models = OrderedSet() if models is None else OrderedSet(models)
+        self._models.discard(None)
         self._model_instances = {}	# Maps Model to boolean array of length equal to number of instances
         # Use a list of Atoms collections so many concatenations is fast.
         self._atoms = [] if atoms is None else [atoms]

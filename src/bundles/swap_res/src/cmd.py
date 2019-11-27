@@ -68,6 +68,17 @@ class _RotamerStateManager(StateManager):
         self.triggers.activate_trigger('self destroyed', self)
         self.destroy()
 
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return cls(session, data['base residue'], data['rotamers'])
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'base residue': self.base_residue,
+            'rotamers': self.rotamers
+        }
+        return data
+
     def _changes_cb(self, trigger_name, changes):
         if changes.num_deleted_residues() == 0:
             return
@@ -107,7 +118,7 @@ def rotamers(session, residues, res_type, *, lib=None):
         if session.ui.is_gui:
             from .tool import RotamerDialog
             RotamerDialog(session,
-                "%s Side-Chain Rotamers" % r, mgr, res_type, session.rotamers.library(lib))
+                "%s Side-Chain Rotamers" % r, mgr, res_type, session.rotamers.library(lib).display_name)
         ret_val.append(mgr)
         rot_structs = AtomicStructures(rotamers)
         from chimerax.std_commands.color import color

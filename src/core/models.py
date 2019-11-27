@@ -469,6 +469,8 @@ class Models(StateManager):
         self._scene_root_model = r = Model("root", session)
         r.id = ()
         self._initialize_camera = True
+        from .commands.atomspec import check_selectors
+        t.add_handler(REMOVE_MODELS, check_selectors)
 
     def take_snapshot(self, session, flags):
         models = {}

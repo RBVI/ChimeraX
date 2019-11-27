@@ -524,6 +524,7 @@ class MolecularSurface(Surface):
         for attr in MolecularSurface._save_attrs:
             if attr in d and attr not in geom_attrs:
                 setattr(s, attr, d[attr])
+        return s
 
 def remove_solvent_ligands_ions(atoms, keep = None):
     '''Remove solvent, ligands and ions unless that removes all atoms
