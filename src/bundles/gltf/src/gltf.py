@@ -182,7 +182,7 @@ def meshes_as_models(session, meshes, buf_arrays):
             if 'NORMAL' in pa:
                 na = ba[pa['NORMAL']]
             else:
-                from chimerax.core import surface
+                from chimerax import surface
                 na = surface.calculate_vertex_normals(va, ta)
             if 'COLOR_0' in pa:
                 vc = ba[pa['COLOR_0']]
