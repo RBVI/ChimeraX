@@ -78,39 +78,26 @@ The <a href="#restrict"><b>restrict</b></a> option
 allows finding only interactions within the specified set of atoms 
 (all atoms if <a href="atomspec.html"><i>atom-spec1</i></a> is blank)
 or between them and a second set.
-Examples:
-</p>
-<blockquote><b>
-contacts protein restrict ligand reveal true
-<br>contacts delete
-<br>clashes&nbsp;#1&nbsp;reveal&nbsp;t&nbsp;showdist&nbsp;t;&nbsp;<a href="label.html">label</a>&nbsp;height&nbsp;1
-<br>~clashes
-</b></blockquote>
-<p>
-By <a href="#makePseudobonds">default</a>,
+</p><p>
+By <a href="#makePseudobonds">default</a>, the
 clashes/contacts are shown as <a href="../pseudobonds.html">pseudobonds</a>.
-A pseudobond is only shown when both of its endpoint atoms are shown;
-<a href="#reveal"><b>reveal true</b></a> can be used to display atoms as needed
-so that all of the H-bonds will be shown.
+The <a href="#reveal"><b>reveal true</b></a> option
+can be used to display atoms as needed
+so that all of the clash/contact pseudobonds will be shown.
 The pseudobonds can be <a href="#showDist">labeled by distance</a>,
 and their <a href="#color">color</a>, <a href="#radius">radius</a>,
 and <a href="#dashes">number of dashes</a> can be specified.
+Clashes/contacts can also be shown with 
+<a href="../selection.html">selection</a>,
+and detailed results <a href="#log">written to the log</a> 
+and/or <a href="#saveFile">saved to a file</a>.
+</p><p>
 The command <b>~clashes</b> (same as <b>clashes delete</b>)
 or <b>~contacts</b> (same as <b>contacts delete</b>)
 removes the indicated pseudobonds and halts any
 <a href="#continuous">continuous monitoring</a>.
 When multiple pseudobond models have the same name, specific models can be
 removed with the <a href="close.html"><b>close</b></a> command.
-An interactive histogram of pseudobond lengths can be plotted with 
-<a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>, and a 
-chain network diagram summarizing intra- and interchain pseudobonds can be
-shown with <a href="crosslinks.html#network"><b>crosslinks network</b></a>.
-</p><p>
-During <a href="#continuous">continuous monitoring</a>,
-clashes/contacts can also be shown with <a href="../selection.html">selection</a>.
-Discontinuous monitoring additionally allows 
-<a href="#log">logging</a> the detailed results
-and/or <a href="#saveFile">saving</a> them to a file.
 </p><p>
 The <a name="overlap-def"><b><i>overlap</i></b></a>
 between two atoms is defined as the sum of their
@@ -155,7 +142,15 @@ Normally, a clash or contact is identified based on the <i>overlap</i> cutoff,
 but the <a href="#distanceOnly"><b>distanceOnly</b></a> option allows using
 a center-to-center distance cutoff instead. 
 Both measures are reported in the detailed results.
+</p><p>
+Examples:
 </p>
+<blockquote><b>
+contacts protein restrict ligand reveal true
+<br>contacts delete
+<br>clashes&nbsp;#1&nbsp;reveal&nbsp;t&nbsp;showdist&nbsp;t;&nbsp;<a href="label.html">label</a>&nbsp;height&nbsp;1
+<br>~clashes
+</b></blockquote>
 
 <a name="options"></a>
 <p class="nav">
@@ -376,35 +371,6 @@ or <b>clashes</b> (<b>contacts</b>) is used again without setting this option
 to <b>true</b> (since <b>false</b> is the default).
 Only moving a model relative to another will trigger a new check.
 </blockquote>
-<!-- will be removed
-<blockquote>
-<a name="colorAtoms"></a>
-<b>colorAtoms</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>
-Whether to color the identified clash/contact atoms
-the <a href="#atomColor"><b>atomColor</b></a> and the remaining atoms
-the <a href="#otherAtomColor"><b>otherAtomColor</b></a>.
-</blockquote>
-<blockquote>
-<a name="atomColor"></a>
-<b>atomColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
-<br>
-Color to use for the identified clash/contact atoms
-when <a href="#colorAtoms"><b>colorAtoms</b></a> is <b>true</b>
-(default <b>red</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td></tr></table>).
-</blockquote>
-<blockquote>
-<a name="otherAtomColor"></a>
-<b>otherAtomColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
-<br>
-Color to use for atoms other than the identified clash/contact atoms
-when <a href="#colorAtoms"><b>colorAtoms</b></a> is <b>true</b>
-(default <b>none</b>).
-</blockquote>
--->
 <blockquote>
 <a name="setAttrs"></a>
 <b>setAttrs</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
