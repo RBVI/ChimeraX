@@ -4,7 +4,7 @@ SEGGER_SRC = seggerx_2019_11_25.tar.gz
 app-install install: seggerx
 	cd seggerx/Segger && make install
 
-seggerx:
+seggerx: $(SEGGER_SRC)
 	tar xf $(SEGGER_SRC)
 
 tarball:
