@@ -2171,6 +2171,8 @@ class VolumeSurface(Surface):
       'model state': Surface.take_snapshot(self, session, flags),
       'version': 1
     }
+    if self.vertex_colors is not None and self.auto_recolor_vertices is None:
+      data['vertex_colors'] = self.vertex_colors
     return data
 
   @staticmethod
@@ -2183,6 +2185,12 @@ class VolumeSurface(Surface):
     if v._style_when_shown == 'image':
       s.display = False		# Old sessions had surface shown but not computed when image style used.
     v._surfaces.append(s)
+    if 'vertex_colors' in data:
+      # Compute surface and set vertex colors.
+      s.update_surface(v.rendering_options)
+      vc = data['vertex_colors']
+      if len(s.vertices) == len(vc):
+        s.vertex_colors = vc
     return s
       
 # -----------------------------------------------------------------------------
