@@ -19,4 +19,5 @@ def get_triggers(session=None):
         from chimerax.core.triggerset import TriggerSet
         _triggers = TriggerSet()
         _triggers.add_trigger("changes")
+        _triggers.add_trigger("changes done")
     return _triggers
