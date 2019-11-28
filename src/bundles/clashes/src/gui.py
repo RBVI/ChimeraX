@@ -40,27 +40,23 @@ class AtomProximityGUI(QWidget):
             # the command yourself.
             #
             # Your tool needs to call the GUI's destroy() method when it's deleted
-            atom_color=defaults["atom_color"], attr_name=defaults["attr_name"],
-            bond_separation=defaults["bond_separation"], color_atoms=defaults["action_color"],
+            attr_name=defaults["attr_name"], bond_separation=defaults["bond_separation"],
             continuous=False, dashes=None, distance_only=None, inter_model=True, inter_submodel=False,
             intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"], log=defaults["action_log"],
-            make_pseudobonds=defaults["action_pseudobonds"], other_atom_color=defaults["other_atom_color"],
-            res_separation=None, restrict="any", reveal=False, save_file=None,
-            select=defaults["action_select"], set_attrs=defaults["action_attr"], show_dist=False,
-            summary=True, test_atoms=None,
+            make_pseudobonds=defaults["action_pseudobonds"], res_separation=None, restrict="any",
+            reveal=False, save_file=None, select=defaults["action_select"],
+            set_attrs=defaults["action_attr"], show_dist=False, summary=True, test_atoms=None,
 
             # what controls to show in the interface
             #
             # note that if 'test_atoms' is not None, then the selection-restriction control will be omitted
             # regardless of the 'show_restrict' value
-            show_atom_color=True, show_attr_name=True, show_bond_separation=True,
-            show_checking_frequency=True, show_color=True, show_color_atoms=True, show_dashes=True,
-            show_distance_only=True, show_hbond_allowance=True, show_inter_model=True,
+            show_attr_name=True, show_bond_separation=True, show_checking_frequency=True, show_color=True,
+            show_dashes=True, show_distance_only=True, show_hbond_allowance=True, show_inter_model=True,
             show_inter_submodel=False, show_intra_mol=True, show_intra_res=True, show_log=True,
-            show_make_pseudobonds=True, show_name=True, show_other_atom_color=True,
-            show_overlap_cutoff=True, show_radius=True, show_res_separation=True, show_restrict=True,
-            show_reveal=True, show_save_file=True, show_select=True, show_set_attrs=True,
-            show_show_dist=True, show_summary=False):
+            show_make_pseudobonds=True, show_name=True, show_overlap_cutoff=True, show_radius=True,
+            show_res_separation=True, show_restrict=True, show_reveal=True, show_save_file=True,
+            show_select=True, show_set_attrs=True, show_show_dist=True, show_summary=False):
 
         self.session = session
         self.cmd_name = cmd_name
@@ -262,9 +258,9 @@ class AtomProximityGUI(QWidget):
                         None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
                     bool_param_options.add_option(self.intra_mol_option)
 
-        if show_select or show_color_atoms or show_atom_color or show_other_atom_color \
-        or show_make_pseudobonds or show_color or show_dashes or show_radius or show_show_dist or show_name \
-        or show_reveal or show_attr_name or show_set_attrs or show_log or show_save_file:
+        if show_select or show_make_pseudobonds or show_color or show_dashes or show_radius \
+        or show_show_dist or show_name or show_reveal or show_attr_name or show_set_attrs or show_log \
+        or show_save_file:
             group = QGroupBox("Treatment of %s atoms" % prox_word)
             layout.addWidget(group)
             group_layout = QVBoxLayout()
@@ -277,43 +273,6 @@ class AtomProximityGUI(QWidget):
                 self.select_option = BooleanOption("Select",
                     None if settings else select, None, attr_name="select", settings=settings)
                 treatment_options.add_option(self.select_option)
-            if show_color_atoms:
-                if show_atom_color or show_other_atom_color:
-                    # checkable group
-                    self.color_atoms_widget, sub_options = treatment_options.add_option_group(
-                        group_label="Color atoms", checked=final_val['color_atoms'],
-                        contents_margins=(10,0,10,0), sorting=False)
-                    subgroup_layout = QVBoxLayout()
-                    subgroup_layout.setContentsMargins(0,0,0,0)
-                    subgroup_layout.setSpacing(5)
-                    self.color_atoms_widget.setLayout(subgroup_layout)
-                    subgroup_layout.addWidget(sub_options)
-                    if show_atom_color:
-                        self.atom_color_option = OptionalRGBAOption("Color",
-                            None if settings else atom_color,
-                            None, attr_name="atom_color", settings=settings)
-                        sub_options.add_option(self.atom_color_option)
-                    if show_other_atom_color:
-                        self.other_atom_color_option = OptionalRGBAOption("Other atoms color",
-                            None if settings else other_atom_color,
-                            None, attr_name="other_atom_color", settings=settings)
-                        sub_options.add_option(self.other_atom_color_option)
-                else:
-                    # boolean
-                    self.color_atoms_widget = BooleanOption("Color atoms",
-                        None if settings else color_atoms, None, attr_name="color_atoms", settings=settings)
-                    treatment_options.add_option(self.color_atoms_widget)
-            else:
-                # booleans
-                if show_atom_color:
-                    self.atom_color_option = OptionalRGBAOption("Color", None if settings else atom_color,
-                        None, attr_name="atom_color", settings=settings)
-                    treatment_options.add_option(self.atom_color_option)
-                if show_other_atom_color:
-                    self.other_atom_color_option = OptionalRGBAOption("Other atoms color",
-                        None if settings else other_atom_color,
-                        None, attr_name="other_atom_color", settings=settings)
-                    treatment_options.add_option(self.other_atom_color_option)
             if show_make_pseudobonds:
                 if show_color or show_dashes or show_radius or show_show_dist or show_name:
                     # checkable group
@@ -539,24 +498,6 @@ class AtomProximityGUI(QWidget):
             settings['select'] = self.select_option.value
         else:
             settings['select'] = None
-
-        if self.show_values['color_atoms']:
-            if isinstance(self.color_atoms_widget, BooleanOption):
-                settings['color_atoms'] = self.color_atoms_widget.value
-            else:
-                settings['color_atoms'] = self.color_atoms_widget.isChecked()
-        else:
-            settings['color_atoms'] = None
-
-        if self.show_values['atom_color']:
-            settings['atom_color'] = self.atom_color_option.value
-        else:
-            settings['atom_color'] = None
-
-        if self.show_values['other_atom_color']:
-            settings['other_atom_color'] = self.other_atom_color_option.value
-        else:
-            settings['other_atom_color'] = None
 
         if self.show_values['make_pseudobonds']:
             if isinstance(self.make_pseudobonds_widget, BooleanOption):

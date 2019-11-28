@@ -330,7 +330,11 @@ class RotamerDialog(ToolInstance):
     def _apply_rotamer(self):
         rots = self.table.selected
         if not rots:
-            raise UserError("No rotamers selected")
+            if self.button_group.checkedButton().text() in self.opt_columns:
+                raise UserError("No rotamers selected")
+            else:
+                raise UserError("No rotamers selected.  Click the 'Calculate' button (not 'OK') to"
+                    " add a column to the table.")
         rot_nums = [r.id[-1] for r in rots]
         from chimerax.core.commands import run
         cmd = "swapaa %s %s criteria %s" % (
