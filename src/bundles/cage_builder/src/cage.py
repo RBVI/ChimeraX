@@ -70,7 +70,7 @@ def select_polygons(session, polygons):
 def ordered_link_markers(link):
 
     m0, m1 = link.atoms
-    idiff = int(m0.name) - int(m1.name)
+    idiff = m0.residue.number - m1.residue.number
     if idiff == 1 or idiff < -1:
         m0, m1 = m1, m0
     return m0, m1
@@ -127,7 +127,7 @@ class Polygon:
             for a in range(n):
                 angle = a*2*pi/n
                 p = (r*cos(angle), r*sin(angle), 0)
-                m = place_marker(marker_set, p, color, edge_radius)
+                m = marker_set.create_marker(p, color, edge_radius)
                 mlist.append(m)
             elist = [add_link(m, mlist[(i+1)%n], color, edge_radius)
                      for i,m in enumerate(mlist)]
@@ -518,6 +518,7 @@ def expand(polygons, distance):
 #
 def align_molecule():
 
+    # TODO: Not ported.
     from chimera import selection
     atoms = selection.currentAtoms(ordered = True)
     mols = set([a.molecule for a in atoms])
@@ -608,45 +609,22 @@ def selected_cages():
 # -----------------------------------------------------------------------------
 #
 def new_marker_set(session, name):
-    from chimerax.atomic import Structure
-    m = Structure(session, name = name)
-    m.ball_scale = 1.0
+    from chimerax.markers import MarkerSet
+    m = MarkerSet(session, name = name)
     session.models.add([m])
     return m
 
 # -----------------------------------------------------------------------------
 #
-def place_marker(marker_set, p, color, radius):
-    m = marker_set
-    elem_name = 'C'
-    id = m.num_atoms + 1
-    name = str(id)
-    a = m.new_atom(name, elem_name)
-    a.coord = p
-    a.color = color
-    a.radius = radius
-    a.draw_mode = a.BALL_STYLE	# Sphere style hides bonds between markers, so use ball style.
-    chain_id = 'M'
-    rname = 'mark'
-    r = m.new_residue(rname, chain_id, id)
-    r.add_atom(a)
-    return a
-
-# -----------------------------------------------------------------------------
-#
 def add_link(a1, a2, color, radius):
-    s = a1.structure
-    b = s.new_bond(a1, a2)
-    b.radius = radius
-    b.color = color
-    b.halfbond = False
-    return b
+    from chimerax.markers import create_link
+    return create_link(a1, a2, rgba = color, radius = radius)
 
 # -----------------------------------------------------------------------------
 #
 def cage_marker_sets(session):
-    from chimerax.atomic import Structure
-    return [m for m in session.models.list(type = Structure) if m.name == 'Cage']
+    from chimerax.markers import MarkerSet
+    return [m for m in session.models.list(type = MarkerSet) if m.name == 'Cage']
     
 # -----------------------------------------------------------------------------
 #
