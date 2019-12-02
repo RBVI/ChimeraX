@@ -53,6 +53,9 @@ class CageBuilder(ToolInstance):
         self.edge_length = el = QLineEdit('50')
         el.setMaximumWidth(30)
         layout.addWidget(el)
+        dp = QPushButton('Delete')
+        dp.clicked.connect(self.delete_polygon_cb)
+        layout.addWidget(dp)
         layout.addStretch(1)    # Extra space at end of button row.
         parent.setLayout(layout)
 
@@ -86,6 +89,11 @@ class CageBuilder(ToolInstance):
         from . import cage
         for i in range(self.minimize_steps):
             cage.optimize_shape(self.session)
+    
+    def delete_polygon_cb(self, event):
+        from . import cage
+        polys = cage.selected_polygons(self.session)
+        cage.delete_polygons(polys)
 
 def cage_builder_panel(session, tool_name):
   cb = getattr(session, '_cage_builder', None)

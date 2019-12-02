@@ -281,15 +281,7 @@ def joined_edge(e):
     
 # -----------------------------------------------------------------------------
 #
-def join_edges(l0 = None, l1 = None, vertex_degree = None):
-
-    if l0 is None or l1 is None:
-        links = selected_edges()
-        if len(links) != 2:
-            return False
-        l0, l1 = links
-        if l0.polygon is l1.polygon:
-            return False
+def join_edges(l0, l1, vertex_degree = None):
 
     join(l0, l1)
     join(l1, l0)
@@ -364,27 +356,21 @@ def next_polygon_edge(edge, direction):
 
 # -----------------------------------------------------------------------------
 #
-def unjoin_edges(edges = None):
+def unjoin_edges(edges):
 
-    if edges is None:
-        edges = selected_edges()
     lset = set(edges)
     for link in lset:
         lj = joined_edge(link)
         if lj:
             delattr(lj, 'joined_edge')
-            del lj.extra_attributes['join']
-            lj.set_rgba(darken_color(lj.rgba()))
+            lj.color = darken_color(lj.color)
             delattr(link, 'joined_edge')
-            del link.extra_attributes['join']
-            link.set_rgba(darken_color(link.rgba()))
+            link.color = darken_color(link.color)
 
 # -----------------------------------------------------------------------------
 #
-def delete_polygons(plist = None):
+def delete_polygons(plist):
 
-    if plist is None:
-        plist = selected_polygons()
     for p in plist:
         p.delete()
         
@@ -592,9 +578,10 @@ def selected_vertices(session):
 
 # -----------------------------------------------------------------------------
 #
-def selected_polygons(full_cages = False, none_implies_all = False):
+def selected_polygons(session, full_cages = False, none_implies_all = False):
 
-    plist = set([e.polygon for e in selected_edges() + selected_vertices()])
+    plist = set([e.polygon for e in selected_edges(session)] +
+                [v.polygon for v in selected_vertices(session)])
     if full_cages:
         cages = set([p.marker_set for p in plist])
         plist = sum([cage_polygons(c) for c in cages], [])
