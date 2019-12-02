@@ -61,6 +61,11 @@ class CageBuilder(ToolInstance):
 
         tw.manage(placement="side")
 
+    @classmethod
+    def get_singleton(self, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, CageBuilder, 'Cage Builder', create=create)
+
     def show(self):
         self.tool_window.shown = True
 
@@ -94,9 +99,3 @@ class CageBuilder(ToolInstance):
         from . import cage
         polys = cage.selected_polygons(self.session)
         cage.delete_polygons(polys)
-
-def cage_builder_panel(session, tool_name):
-  cb = getattr(session, '_cage_builder', None)
-  if cb is None:
-    session._cage_builder = cb = CageBuilder(session, tool_name)
-  return cb

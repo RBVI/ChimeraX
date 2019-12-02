@@ -108,53 +108,70 @@ def connected_markers(m):
 class Polygon:
 
     def __init__(self, session, n, radius = 1.0, edge_thickness = 0.2, inset = 0.1,
-                 color = (.7,.7,.7,1), marker_set = None,
-                 mlist = None, elist = None):
-
-        if mlist is None or elist is None:
-            initial_view = False
-            if marker_set is None:
-                msets = cage_marker_sets(session)
-                if msets:
-                    marker_set = msets[0]
-                else:
-                    initial_view = session.models.empty()
-                    marker_set = new_marker_set(session, 'Cage')
-            mlist = []
-            r = radius - inset
-            edge_radius = 0.5*edge_thickness
-            from math import pi, cos, sin
-            for a in range(n):
-                angle = a*2*pi/n
-                p = (r*cos(angle), r*sin(angle), 0)
-                m = marker_set.create_marker(p, color, edge_radius)
-                mlist.append(m)
-            elist = [add_link(m, mlist[(i+1)%n], color, edge_radius)
-                     for i,m in enumerate(mlist)]
-            if initial_view:
-                session.main_view.initial_camera_view()
-            
+                 color = (.7,.7,.7,1), marker_set = None, markers = None, edges = None):
+ 
         self.n = n
         self.radius = radius
         self.thickness = edge_thickness
         self.inset = inset
         self.using_inset = True
+        self.marker_set = marker_set
 
-        self.marker_set = mlist[0].structure
-        self.vertices = mlist
-        self.edges = elist
-        for v in mlist:
-            v.polygon = self
-        for e in elist:
-            e.polygon = self
+        self._create_markers(session, color, markers, edges)
 
-        if mlist:
+        if self.vertices:
             # Add placement method to get positions for placing molecule
             # copies on cage polygons.
             mset = self.marker_set
             if not hasattr(mset, 'placements'):
                 p = lambda n,mset=mset: parse_placements(n, marker_set=mset)
                 mset.placements = p
+
+    # -------------------------------------------------------------------------
+    #
+    def _create_markers(self, session, color, markers = None, edges = None):
+
+        initial_view = False
+        if self.marker_set is None:
+            msets = cage_marker_sets(session)
+            if msets:
+                marker_set = msets[0]
+            else:
+                initial_view = session.models.empty()
+                self.marker_set = Cage(session)
+                session.models.add([self.marker_set])
+
+        if markers is None:
+            mlist = []
+            r = self.radius - self.inset
+            edge_radius = 0.5*self.thickness
+            from math import pi, cos, sin
+            for a in range(self.n):
+                angle = a*2*pi/self.n
+                p = (r*cos(angle), r*sin(angle), 0)
+                m = self.marker_set.create_marker(p, color, edge_radius)
+                mlist.append(m)
+        else:
+            im = {a.residue.number:a for a in self.marker_set.atoms}
+            mlist = [im[i] for i in markers]
+            
+        self.vertices = mlist
+        for v in mlist:
+            v.polygon = self
+
+        if edges is None:
+            elist = [add_link(m, mlist[(i+1)%self.n], color, edge_radius)
+                     for i,m in enumerate(mlist)]
+        else:
+            ie = {tuple(a.residue.number for a in b.atoms):b for b in self.marker_set.bonds}
+            elist = [ie[e] for e in edges]
+            
+        self.edges = elist
+        for e in elist:
+            e.polygon = self
+
+        if initial_view:
+            session.main_view.initial_camera_view()
 
     # -------------------------------------------------------------------------
     #
@@ -265,6 +282,24 @@ class Polygon:
         for v in self.vertices:
             v.delete()
 
+    # -------------------------------------------------------------------------
+    #
+    def polygon_state(self):
+        data = {attr:getattr(self, attr) for attr in ('n', 'radius', 'thickness', 'inset')}
+        data['markers'] = [a.residue.number for a in self.vertices]
+        data['edges'] = [tuple(a.residue.number for a in b.atoms) for b in self.edges]
+        data['version'] = 1
+        return data
+
+    # -------------------------------------------------------------------------
+    #
+    @staticmethod
+    def polygon_from_state(state, marker_set):
+        p = Polygon(marker_set.session, state['n'], radius = state['radius'],
+                    edge_thickness = state['thickness'], inset = state['inset'],
+                    marker_set = marker_set, markers = state['markers'], edges = state['edges'])
+        return p
+
 # -----------------------------------------------------------------------------
 #
 def marker_center(markers):
@@ -304,8 +339,6 @@ def join(l0, l1):
     if l0j:
         unjoin_edges([l0j])
     l0.joined_edge = l1
-    if not hasattr(l0, 'extra_attributes'):
-        l0.extra_attributes = {}
     l0.color = lighten_color(l0.color)
 
 # -----------------------------------------------------------------------------
@@ -608,12 +641,34 @@ def selected_cages():
 
 # -----------------------------------------------------------------------------
 #
-def new_marker_set(session, name):
-    from chimerax.markers import MarkerSet
-    m = MarkerSet(session, name = name)
-    session.models.add([m])
-    return m
-
+from chimerax.markers import MarkerSet
+class Cage(MarkerSet):
+    def __init__(self, session, name = 'Cage'):
+        MarkerSet.__init__(self, session, name = name)
+    def take_snapshot(self, session, flags):
+        ei = {b:tuple(a.residue.number for a in b.atoms) for b in self.bonds}
+        joined_edges = [(ei[b], ei[b.joined_edge]) for b in self.bonds if hasattr(b, 'joined_edge')]
+        polygons = set([a.polygon for a in self.atoms if hasattr(a, 'polygon')] +
+                       [b.polygon for b in self.bonds if hasattr(b, 'polygon')])
+        pstates = [p.polygon_state() for p in polygons]
+        data = {'marker set state': MarkerSet.take_snapshot(self, session, flags),
+                'joined edges': joined_edges,
+                'polygons': pstates,
+                'version': 1}
+        return data
+    @staticmethod
+    def restore_snapshot(session, data):
+        s = MarkerSet.restore_snapshot(session, data['marker set state'])
+        ei = {tuple(a.residue.number for a in b.atoms):b for b in s.bonds}
+        for ei1,ei2 in data['joined edges']:
+            e1,e2 = ei[ei1],ei[ei2]
+            e1.joined_edge = e2
+            e2.joined_edge = e1
+        for pstate in data['polygons']:
+            Polygon.polygon_from_state(pstate, s)
+        return s
+        
+    
 # -----------------------------------------------------------------------------
 #
 def add_link(a1, a2, color, radius):
