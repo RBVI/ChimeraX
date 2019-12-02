@@ -526,7 +526,7 @@ class Models(StateManager):
             parent = self.scene_root_model
 
         # Add models to parent
-        if parent:
+        if parent is not None:
             for m in models:
                 if m.parent is None or m.parent is not parent:
                     parent.add_drawing(m)
@@ -659,7 +659,7 @@ class Models(StateManager):
                 del self._models[model_id]
                 model.id = None
                 parent = model.parent
-                if parent:
+                if parent is not None:
                     parent.remove_drawing(model, delete=False)
                     parent._next_unused_id = None
                 else:
