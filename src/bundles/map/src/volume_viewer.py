@@ -2756,7 +2756,8 @@ class Histogram_Pane:
         image_levels_changed = True
 
     icolors = [m.rgba for m in markers]
-    if icolors != v.image_colors:
+    from numpy import array_equal
+    if not array_equal(icolors, v.image_colors):
         v.image_colors = icolors
         image_colors_changed = True
 
