@@ -99,9 +99,12 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         if set_attrs or save_file != None or log:
             raise UserError("log/setAttrs/saveFile not allowed with continuous detection")
         if getattr(session, _continuous_attr, None) == None:
-            from inspect import getargvalues, currentframe
+            from inspect import getargvalues, currentframe, getfullargspec
             arg_names, fArgs, fKw, frame_dict = getargvalues(currentframe())
-            call_data = [frame_dict[an] for an in arg_names]
+            arg_spec = getfullargspec(_cmd)
+            args = [frame_dict[an] for an in arg_names[:len(arg_spec.args)]]
+            kw = { k:frame_dict[k] for k in arg_names[len(arg_spec.args):] }
+            call_data = (args, kw)
             def changes_cb(trig_name, changes, session=session, call_data=call_data):
                 s_reasons = changes.atomic_structure_reasons()
                 a_reasons = changes.atom_reasons()
@@ -109,12 +112,13 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
                 or 'active_coordset changed' in s_reasons \
                 or 'coord changed' in a_reasons \
                 or 'alt_loc changed' in a_reasons:
-                    if not call_data[1]:
+                    args, kw = call_data
+                    if not args[1]:
                         # all atoms gone
                         delattr(session, _continuous_attr)
                         from chimerax.core.triggerset import DEREGISTER
                         return DEREGISTER
-                    _cmd(*tuple(call_data))
+                    _cmd(*tuple(args), **kw)
             setattr(session, _continuous_attr, get_triggers().add_handler(
                         'changes', changes_cb))
         else:
