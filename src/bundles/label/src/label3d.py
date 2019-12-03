@@ -512,8 +512,13 @@ class ObjectLabels(Model):
         spos = self.scene_position
         cpos = self.session.main_view.camera.position	# Camera position in scene coords
         cposd = spos.inverse() * cpos  # Camera pos in label drawing coords
-        from numpy import concatenate
-        va = concatenate([l._label_rectangle(spos, cposd) for l in self._labels])
+        rects = [l._label_rectangle(spos, cposd) for l in self._labels if not l.object_deleted]
+        if len(rects) == 0:
+            from numpy import empty, float32
+            va = empty((0,3), float32)
+        else:
+            from numpy import concatenate
+            va = concatenate(rects)
         return va
 
     def _update_triangles(self):
@@ -526,8 +531,12 @@ class ObjectLabels(Model):
             if l.visible():
                 c = 4*i
                 tlist.extend(((c,c+1,c+2), (c,c+2,c+3)))
-        from numpy import array, int32
-        ta = array(tlist, int32)
+        if len(tlist) == 0:
+            from numpy import empty, int32
+            ta = empty((0,3), int32)
+        else:
+            from numpy import array, int32
+            ta = array(tlist, int32)
         return ta
 
     def picked_label(self, triangle_number):
@@ -676,7 +685,7 @@ class ObjectLabel:
         # Camera position is in label drawing coordinate system.
         xyz = self.location(scene_position)
         if xyz is None:
-            return	# Label deleted
+            return None	# Label deleted
         pw,ph = self._label_size
         sh = self.height	# Scene height
         if sh is None:
