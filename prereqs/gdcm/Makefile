@@ -45,7 +45,7 @@ app-install: $(SOURCE)
 	ln -sf $(GDCM_SITEDIR)/gdcm.py $(GDCM_SITEDIR)/gdcmswig.py $(GDCM_SITEDIR)/_gdcmswig.so $(APP_PYSITEDIR)
 ifeq ($(OS),Linux)
 # Allow _gdcmswig.so to find gdcm shared libraries.
-	cd $(app_libdir) ; ln -sf python$(PYTHON_VERSION)/site-packages/$(GDCM_LIBDIR)/lib/lib* .
+	cd $(app_libdir) ; ln -sf python$(PYTHON_VERSION)/site-packages/$(GDCM_LIBDIR)/lib* .
 endif
 
 $(SOURCE):

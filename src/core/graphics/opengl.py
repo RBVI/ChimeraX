@@ -2735,7 +2735,8 @@ class Texture:
     is called.  A reference to the array data is held until the OpenGL
     texture is created.
     '''
-    def __init__(self, data=None, dimension=2, cube_map=False, linear_interpolation=True):
+    def __init__(self, data=None, dimension=2, cube_map=False,
+                 linear_interpolation=True, clamp_to_edge=False):
 
         self.data = data
         self.id = None
@@ -2747,6 +2748,7 @@ class Texture:
                           (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
         self.linear_interpolation = linear_interpolation
         self.is_cubemap = cube_map
+        self.clamp_to_edge = clamp_to_edge
 
     def initialize_rgba(self, size):
 
@@ -2808,7 +2810,7 @@ class Texture:
                             0, format, tdtype, data)
 
         GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, border_color)
-        clamp = GL.GL_CLAMP_TO_EDGE if self.is_cubemap else GL.GL_CLAMP_TO_BORDER
+        clamp = GL.GL_CLAMP_TO_EDGE if self.is_cubemap or self.clamp_to_edge else GL.GL_CLAMP_TO_BORDER
         GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S, clamp)
         if dim >= 2:
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T, clamp)

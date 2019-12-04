@@ -533,53 +533,26 @@ def _nucleotides(session):
     return session.nucleotides
 
 
-def hydrogen_bonds(residues, bases_only=False):
-    # Return tuple of hydrogen bonds between the given residues, and
-    # other hydrogen bonds connected to the residues.
-    # residues should be from only one molecule
-
-    # Create list of atoms from residues for donors and acceptors
+def hide_hydrogen_bonds(residues, bases_only=False):
+    # hide hydrogen bonds to non-ribbon backbone atoms of nucleotide residues
     mol = residues[0].structure
-
-    # make a set for quick inclusion test
-    residue_set = set(residues)
-
     pbg = mol.pseudobond_group(mol.PBG_HYDROGEN_BONDS, create_type=None)
     if not pbg:
-        hbonds = ()
-    else:
-        hbonds = pbg.pseudobonds
+        return
 
-    interresidue_hbonds = []
-    other_hbonds = []
-    other_base = []
-    for hb in hbonds:
+    BBE_RIBBON = Atoms.BBE_RIBBON
+    residue_set = set(residues)     # make a set for quick inclusion test
+    hbonds = []
+    for hb in pbg.pseudobonds:
         a0, a1 = hb.atoms
         r0 = a0.residue
+        if r0 in residues and not a0.is_backbone(BBE_RIBBON):
+            hbonds.append(hb)
+            continue
         r1 = a1.residue
-        if r0 not in residue_set:
-            if r1 not in residue_set:
-                continue
-            other_hbonds.append(hb)
-            other_base.append(False)
-            continue
-        if r1 not in residue_set:
-            other_hbonds.append(hb)
-            other_base.append(False)
-            continue
-        non_base = (BackboneRiboseRE.match(a0.name),
-                    BackboneRiboseRE.match(a1.name))
-        if bases_only and any(non_base):
-            other_hbonds.append(hb)
-            other_base.append(False)
-            continue
-        if r0.connects_to(r1):
-            # skip covalently bonded residues
-            other_hbonds.append(hb)
-            other_base.append(True)
-            continue
-        interresidue_hbonds.append(hb)
-    return Pseudobonds(interresidue_hbonds), Pseudobonds(other_hbonds), other_base
+        if r1 in residues and not a1.is_backbone(BBE_RIBBON):
+            hbonds.append(hb)
+    Pseudobonds(hbonds).shown_when_atoms_hiddens = False
 
 
 def _make_nuc_drawing(nuc, mol, create=True, recreate=False):
@@ -699,9 +672,10 @@ def _rebuild_molecule(trigger_name, mol):
     hide_bases = Residues(hide_bases)
 
     if hide_bases:
-        interresidue_hbonds, other_hbonds, _ = hydrogen_bonds(hide_bases)
-        interresidue_hbonds.shown_when_atoms_hiddens = False
-        other_hbonds.shown_when_atoms_hiddens = True
+        # Until we have equivalent of ribbon_coord for atoms
+        # hidden by nucleotide representations, we hide the
+        # hydrogen bonds to atoms hidden by nucleotides.
+        hide_hydrogen_bonds(hide_bases)
 
     # make sure ribose/base atoms are hidden/shown
     hide_all = hide_riboses & hide_bases
@@ -1013,10 +987,6 @@ def set_normal(residues):
     nuc.need_rebuild.update(changed.keys())
     import itertools
     Residues(itertools.chain(*changed.values())).atoms.clear_hide_bits(HIDE_NUCLEOTIDE)
-    for residues in changed.values():
-        interresidue_hbonds, other_hbonds, _ = hydrogen_bonds(residues)
-        interresidue_hbonds.shown_when_atoms_hiddens = True
-        other_hbonds.shown_when_atoms_hiddens = True
 
 
 def set_orient(residues):

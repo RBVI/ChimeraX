@@ -159,7 +159,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                         session.logger.info("%s has %d equal-value rotamers;"
                             " choosing one arbitrarily." % (res, len(rots)))
                 by_alt_loc[alt_loc] = rots[0]
-            use_rotamer(session, res, rotamers[res], retain=retain, log=log)
+            use_rotamer(session, res, rotamers[res], retain=retain, log=log, bfactor=bfactor)
     else:
         # Nth-most-probable rotamer(s)
         for res, by_alt_loc in list(rotamers.items()):
@@ -179,7 +179,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     raise UserError("Only %d rotamers for %s" % (len(rots), res))
                 rotamers[res] = p_rots
         for res in rotamers:
-            use_rotamer(session, res, rotamers[res], retain=retain, log=log)
+            use_rotamer(session, res, rotamers[res], retain=retain, log=log, bfactor=bfactor)
 
     for rot in destroy_list:
         rot.delete()
@@ -353,10 +353,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             else:
                 uniform_color = het.color
 
-    # if bfactor not specified, find highest bfactor in residue and use that for swapped-in atoms
-    if bfactor is None:
-        import numpy
-        bfactor = numpy.max(res.atoms.bfactors)
+    bfactor = bfactor_for_res(res, bfactor)
 
     if preserve:
         if "CA" in fixed and res_type not in ['GLY', 'ALA']:
@@ -602,7 +599,7 @@ def side_chain_locs(residue):
         locs.add(a.alt_loc)
     return locs
 
-def use_rotamer(session, res, rots, retain=False, log=False):
+def use_rotamer(session, res, rots, retain=False, log=False, bfactor=None):
     """Takes a Residue instance and either a list or dictionary of rotamers (as returned by get_rotamers,
        i.e. with backbone already matched) and swaps the Residue's side chain with the given rotamers.
 
@@ -612,7 +609,8 @@ def use_rotamer(session, res, rots, retain=False, log=False):
        rotamers, then the CA must have only one alt loc (namely ' ') and all the rotamers will be attached,
        using different alt loc characters for each.
 
-       If 'retain' is True, existing side chains will be retained.
+       If 'retain' is True, existing side chains will be retained.  If 'bfactor' is None, then the
+       current highest existing bfactor in the residue will be used.
     """
     N = res.find_atom("N")
     CA = res.find_atom("CA")
@@ -654,6 +652,7 @@ def use_rotamer(session, res, rots, retain=False, log=False):
     else:
         uniform_color = N.color
     # prune old side chain
+    bfactor = bfactor_for_res(res, bfactor)
     if not retain:
         res_atoms = res.atoms
         side_atoms = res_atoms.filter(res_atoms.is_side_onlys)
@@ -694,8 +693,10 @@ def use_rotamer(session, res, rots, retain=False, log=False):
                         occupancy = rot.rotamer_prob / tot_prob
                     if not built_nb:
                         serial = serials.get(nb.name, None)
-                        built_nb = add_atom(nb.name, nb.element, res, nb.coord, occupancy=occupancy,
+                        built_nb = add_atom(nb.name, nb.element, res, nb.coord,
                             serial_number=serial, bonded_to=built_sprout, alt_loc=alt_loc)
+                        built_nb.occupancy = occupancy
+                        built_nb.bfactor = bfactor
                         if color_by_element:
                             if built_nb.element.name == "C":
                                 built_nb.color = carbon_color
@@ -708,6 +709,7 @@ def use_rotamer(session, res, rots, retain=False, log=False):
                         built_nb.set_alt_loc(alt_loc, True)
                         built_nb.coord = nb.coord
                         built_nb.occupancy = occupancy
+                        built_nb.bfactor = bfactor
                     if built_nb not in visited:
                         sprouts.append(nb)
                         visited.add(built_nb)
@@ -843,6 +845,13 @@ def process_volume(session, residue, by_alt_loc, volume):
         precision += 1
         abs_max *= 10
     return "%%%d.%df" % (precision+2+add_minus_sign, precision)
+
+def bfactor_for_res(res, bfactor):
+    # if bfactor not specified, find highest bfactor in residue and use that for swapped-in atoms
+    if bfactor is None:
+        import numpy
+        return numpy.max(res.atoms.bfactors)
+    return bfactor
 
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle

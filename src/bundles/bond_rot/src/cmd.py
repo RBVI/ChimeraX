@@ -83,17 +83,15 @@ def cmd_torsion(session, atoms, value=None, *, move="small"):
     else:
         raise UserError("To set torsion, middle two atoms (%s %s) must be bonded;they aren't"
             % (a2, a3.string(relative_to=a2)))
+    move_smaller = move == "small"
     mgr = session.bond_rotations
     from .manager import BondRotationError
     try:
-        rotater = mgr.new_rotation(bond, move_smaller_side=(move == "small"))
+        rotater = mgr.new_rotation(bond, move_smaller_side=move_smaller)
     except BondRotationError as e:
         raise UserError(str(e))
 
-    if bond.smaller_side == a2:
-        rotater.angle += value - cur_torsion
-    else:
-        rotater.angle -= value - cur_torsion
+    rotater.angle += value - cur_torsion
     mgr.delete_rotation(rotater)
 
 
