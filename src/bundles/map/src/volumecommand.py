@@ -74,6 +74,8 @@ def register_volume_command(logger):
                ('color_mode', EnumOf(ro.color_modes)),
                ('colormap_on_gpu', BoolArg),
                ('colormap_size', IntArg),
+               ('colormap_extend_left', BoolArg),
+               ('colormap_extend_right', BoolArg),
                ('blend_on_gpu', BoolArg),
                ('projection_mode', EnumOf(ro.projection_modes)),
                ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
@@ -162,6 +164,8 @@ def volume(session,
            color_mode = None,                # image rendering pixel formats
            colormap_on_gpu = None,           # image colormapping on gpu or cpu
            colormap_size = None,             # image colormapping
+           colormap_extend_left = None,
+           colormap_extend_right = None,
            blend_on_gpu = None,		     # image blending on gpu or cpu
            projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
            plane_spacing = None,	     # min, max, or numeric value
@@ -351,7 +355,8 @@ def volume(session,
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
-        'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu', 'colormap_size',
+        'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu',
+        'colormap_size', 'colormap_extend_left', 'colormap_extend_right',
         'blend_on_gpu', 'projection_mode', 'plane_spacing', 'full_region_on_gpu',
         'bt_correction', 'minimal_texture_memory', 'maximum_intensity_projection',
         'linear_interpolation', 'dim_transparency', 'dim_transparent_voxels',

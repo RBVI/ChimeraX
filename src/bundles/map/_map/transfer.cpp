@@ -38,6 +38,7 @@ extern "C" int parse_transfer_function(PyObject *arg, void *transfer_func);
 static void transfer_function_colors(const Transfer_Function &transfer_func,
 				     float bcf, float bcl,
 				     RGBA_Float_Array &colormap,
+				     int extend_left, int extend_right,
 				     int bins, int bin_step, bool blend);
 static bool check_color_array_size(const Reference_Counted_Array::Untyped_Array &colors,
 			    const Numeric_Array &data, int nc);
@@ -61,20 +62,32 @@ static void resample_colormap(float bcf1, float bcl21,
 //
 inline
 static bool transfer_function_value(const Transfer_Function &transfer_func,
-				    float value,
+				    float value, int extend_left, int extend_right,
 				    float *r, float *g, float *b, float *a)
 {
   float *tf = transfer_func.values();
   int m6 = 6 * transfer_func.size(0);
+  if (m6 == 0)
+    return false;
 
   int j = 0;
   while (j < m6 && value >= tf[j])
     j += 6;
 
   if (j == 0)
-    return false;
-
-  if (j < m6)
+    {
+      if (extend_left)
+	{
+	  float scale = tf[1];
+	  *r = scale * tf[2];
+	  *g = scale * tf[3];
+	  *b = scale * tf[4];
+	  *a = scale * tf[5];
+	}
+      else
+	return false;
+    }
+  else if (j < m6)
     {
       float f0 = (tf[j] - value) / (tf[j] - tf[j-6]);
       float f1 = 1 - f0;
@@ -84,7 +97,7 @@ static bool transfer_function_value(const Transfer_Function &transfer_func,
       *b = scale * (f0*tf[j-2] + f1*tf[j+4]);
       *a = scale * (f0*tf[j-1] + f1*tf[j+5]);
     }
-  else if (value == tf[j-6])
+  else if (value == tf[j-6] || extend_right)
     {
       float scale = tf[j-5];
       *r = scale * tf[j-4];
@@ -104,6 +117,7 @@ static bool transfer_function_value(const Transfer_Function &transfer_func,
 template <class T>
 static void data_to_rgba(const Reference_Counted_Array::Array<T> &data,
 			 const Transfer_Function &transfer_func,
+			 int extend_left, int extend_right,
 			 RGBA_Float_Array &rgba, bool blend)
 {
   Reference_Counted_Array::Array<T> cdata = data.contiguous_array();
@@ -113,7 +127,9 @@ static void data_to_rgba(const Reference_Counted_Array::Array<T> &data,
   float *rgba_values = rgba.values();
   float r = 0, g = 0, b = 0, a = 0;		// Avoid compiler warnings.
   for (int k = 0 ; k < n ; ++k)
-    if (transfer_function_value(transfer_func, (float)d[k], &r, &g, &b, &a))
+    if (transfer_function_value(transfer_func, (float)d[k],
+				extend_left, extend_right,
+				&r, &g, &b, &a))
       {
 	float *rgbak = rgba_values + 4*k;
 	if (blend)
@@ -139,13 +155,16 @@ extern "C" PyObject *data_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
   Numeric_Array data, nrgba;
   Transfer_Function transfer_func;
+  int extend_left, extend_right;
   int iblend;
-  const char *kwlist[] = {"data", "transfer_function", "rgba", "blend", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&OO&i"),
+  const char *kwlist[] = {"data", "transfer_function", "extend_left", "extend_right", "rgba", "blend", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&iiO&i"),
 				   (char **)kwlist,
 				   parse_3d_array, &data,
 				   parse_transfer_function, &transfer_func,
-				   parse_writable_4d_array, &nrgba, &iblend))
+				   &extend_left, &extend_right,
+				   parse_writable_4d_array, &nrgba,
+				   &iblend))
     return NULL;
   bool blend = iblend;
 
@@ -154,7 +173,7 @@ extern "C" PyObject *data_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
     return NULL;
 
   call_template_function(data_to_rgba, data.value_type(),
-			 (data, transfer_func, rgba, blend));
+			 (data, transfer_func, extend_left, extend_right, rgba, blend));
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -294,7 +313,7 @@ static bool check_color_array_size(const Reference_Counted_Array::Untyped_Array 
 template <class T>
 static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
 			   float dmin, float dmax, const Color_Array &colormap,
-			   bool clamp, Color_Array &colors)
+			   bool extend_left, bool extend_right, Color_Array &colors)
 {
   if (dmax - dmin <= 0)
     return;
@@ -306,7 +325,7 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
   T *d = cdata.values();
   int nc = ccolormap.size(0);
   if (nc == 0)
-    clamp = false;
+    extend_left = extend_right = false;
   float scale = nc / (dmax - dmin);
   int ncb = ccolormap.size(1) * ccolormap.element_size();
   bool data_is_index = (dmin == 0 && dmax == nc-1);
@@ -314,8 +333,8 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
     {
       // Optimize common case of 4 byte colors (8-bit rgba).
       unsigned int *cmap = (unsigned int *) ccolormap.values();
-      unsigned int c0 = (clamp ? cmap[0] : 0);
-      unsigned int c1 = (clamp ? cmap[nc-1] : 0);
+      unsigned int c0 = (extend_left ? cmap[0] : 0);
+      unsigned int c1 = (extend_right ? cmap[nc-1] : 0);
       unsigned int *cv = (unsigned int *)colors.values();
       if (data_is_index)
 	{
@@ -339,8 +358,8 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
     {
       // Optimize common case of 2 byte colors (8-bit luminance/alpha).
       unsigned short *cmap = (unsigned short *) ccolormap.values();
-      unsigned short c0 = (clamp ? cmap[0] : 0);
-      unsigned short c1 = (clamp ? cmap[nc-1] : 0);
+      unsigned short c0 = (extend_left ? cmap[0] : 0);
+      unsigned short c1 = (extend_right ? cmap[nc-1] : 0);
       unsigned short *cv = (unsigned short *)colors.values();
       if (data_is_index)
 	{
@@ -364,8 +383,8 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
     {
       // Optimize common case of 1 byte color (8-bit single opaque color)
       unsigned char *cmap = (unsigned char *) ccolormap.values();
-      unsigned char c0 = (clamp ? cmap[0] : 0);
-      unsigned char c1 = (clamp ? cmap[nc-1] : 0);
+      unsigned char c0 = (extend_left ? cmap[0] : 0);
+      unsigned char c1 = (extend_right ? cmap[nc-1] : 0);
       unsigned char *cv = (unsigned char *)colors.values();
       if (data_is_index)
 	{
@@ -388,8 +407,8 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
   else
     {
       char *cmap = (char *) ccolormap.values();
-      char *c0 = (clamp ? cmap : (char *)0);
-      char *c1 = (clamp ? cmap + (nc-1)*ncb : (char *)0);
+      char *c0 = (extend_left ? cmap : (char *)0);
+      char *c1 = (extend_right ? cmap + (nc-1)*ncb : (char *)0);
       char *cv = (char *)colors.values();
       for (int k = 0 ; k < n ; ++k)
 	{
@@ -398,13 +417,12 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
 	  if (i >= 0 && i < nc)
 	    for (int c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = cmap[ic+c];
-	  else if (clamp)
-	    if (i < 0)
-	      for (int c = 0 ; c < ncb ; ++c)
-		cv[kc+c] = c0[c];
-	    else
-	      for (int c = 0 ; c < ncb ; ++c)
-		cv[kc+c] = c1[c];
+	  else if (i < 0 and extend_left)
+	    for (int c = 0 ; c < ncb ; ++c)
+	      cv[kc+c] = c0[c];
+	  else if (i >= nc and extend_right)
+	    for (int c = 0 ; c < ncb ; ++c)
+	      cv[kc+c] = c1[c];
 	  else
 	    for (int c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = (char) 0;
@@ -420,20 +438,19 @@ data_to_colors(PyObject *, PyObject *args, PyObject *keywds)
   Numeric_Array data;
   Color_Array cmap;
   float dmin, dmax;
-  int iclamp;
+  int i_extend_left, i_extend_right;
   PyObject *py_colors;
-  const char *kwlist[] = {"data", "dmin", "dmax", "colormap", "clamp",
+  const char *kwlist[] = {"data", "dmin", "dmax", "colormap", "extend_left", "extend_right",
 			  "colors", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffO&iO"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffO&iiO"),
 				   (char **)kwlist,
 				   parse_array, &data,
 				   &dmin, &dmax,
 				   parse_colormap, &cmap,
-				   &iclamp,
+				   &i_extend_left,
+				   &i_extend_right,
 				   &py_colors))
     return NULL;
-
-  bool clamp = iclamp;
 
   int d = data.dimension();
 
@@ -446,8 +463,10 @@ data_to_colors(PyObject *, PyObject *args, PyObject *keywds)
   if (!check_color_array_size(colors, data, cmap.size(1)))
     return NULL;
 
+  bool extend_left = i_extend_left, extend_right = i_extend_right;
+
   call_template_function(data_to_colors, data.value_type(),
-			 (data, dmin, dmax, cmap, clamp, colors));
+			 (data, dmin, dmax, cmap, extend_left, extend_right, colors));
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -811,14 +830,16 @@ transfer_function_colormap(PyObject *, PyObject *args, PyObject *keywds)
   Transfer_Function transfer_func;
   PyObject *py_colormap;
   float bcf, bcl; 
+  int extend_left = 0, extend_right = 0;
   int bins = 0, bin_step = 1, iblend = 0;
   const char *kwlist[] = {"transfer_function", "bcfirst", "bclast",
-			  "colormap", "bins", "bin_step", "blend", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffO|iii"),
+			  "colormap", "extend_left", "extend_right", "bins", "bin_step", "blend", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffO|iiiii"),
 				   (char **)kwlist,
 				   parse_transfer_function, &transfer_func,
 				   &bcf, &bcl,
 				   &py_colormap,
+				   &extend_left, &extend_right,
 				   &bins, &bin_step, &iblend))
     return NULL;
   bool blend = iblend;
@@ -830,7 +851,7 @@ transfer_function_colormap(PyObject *, PyObject *args, PyObject *keywds)
   if (bins == 0)
     bins = cmap.size(0);
 
-  transfer_function_colors(transfer_func, bcf, bcl, cmap, bins, bin_step, blend);
+  transfer_function_colors(transfer_func, bcf, bcl, cmap, extend_left, extend_right, bins, bin_step, blend);
 
   Py_INCREF(Py_None);
   return Py_None;
@@ -916,6 +937,7 @@ static bool colormap(PyObject *py_colormap, Color_Array *carray,
 static void transfer_function_colors(const Transfer_Function &transfer_func,
 				     float bcf, float bcl,
 				     RGBA_Float_Array &colormap,
+				     int extend_left, int extend_right,
 				     int bins, int bin_step, bool blend)
 {
   int bb_step = colormap.size(0) / (bins * bin_step);
@@ -926,7 +948,7 @@ static void transfer_function_colors(const Transfer_Function &transfer_func,
 		  (bi == bins-1 ? bcl :
 		   bcf + (bcl - bcf) * bi/(bins-1.0)));
       float r = 0, g = 0, b = 0, a = 0;		// Avoid compiler warnings.
-      if (transfer_function_value(transfer_func, bc, &r, &g, &b, &a))
+      if (transfer_function_value(transfer_func, bc, extend_left, extend_right, &r, &g, &b, &a))
 	{
 	  for (int i = 0 ; i < bin_step ; ++i)
 	    for (int j = 0 ; j < bb_step ; ++j)

@@ -2575,6 +2575,7 @@ class Histogram_Pane:
 
     self.plot_surface_levels()
     self.plot_image_levels()
+
     v = self.volume
     if v.surface_shown or v.has_mesh:
         style = 'mesh' if v.has_mesh else 'surface'
@@ -2584,6 +2585,7 @@ class Histogram_Pane:
         style = 'surface'
     self.display_style = style
     self.image_mode(style == 'image')
+
     self.set_threshold_and_color_widgets()
     
   # ---------------------------------------------------------------------------
@@ -2636,7 +2638,10 @@ class Histogram_Pane:
 
     from .histogram import Marker
     image_markers = [Marker(ts, c) for ts, c in zip(v.image_levels, v.image_colors)]
-    self.image_thresholds.set_markers(image_markers)
+    imt = self.image_thresholds
+    ro = v.rendering_options
+    imt.set_markers(image_markers, extend_left = ro.colormap_extend_left,
+                    extend_right = ro.colormap_extend_right)
     
   # ---------------------------------------------------------------------------
   #
