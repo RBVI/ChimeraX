@@ -72,6 +72,8 @@ class Markers:
     self.marker_type = marker_type        # 'line' or 'box'
     self.box_size = 2
     self.new_marker_color = new_marker_color
+    self.extend_left = False
+    self.extend_right = True
 
     self.connect_markers = connect_markers
     self.connect_color = 'yellow'
@@ -193,11 +195,23 @@ class Markers:
   
   # ---------------------------------------------------------------------------
   #
-  def set_markers(self, markers):
+  def set_markers(self, markers, extend_left = None, extend_right = None):
 
-    changed = (len(markers) != len(self.markers) or
-               [m1 for m1, m2 in zip(markers, self.markers)
-                if tuple(m1.xy) != tuple(m2.xy) or tuple(m1.rgba) != tuple(m2.rgba)])
+    changed = False
+    
+    if extend_left is not None and extend_left != self.extend_left:
+      self.extend_left = extend_left
+      changed = True
+
+    if extend_right is not None and extend_right != self.extend_right:
+      self.extend_right = extend_right
+      changed = True
+
+    if (len(markers) != len(self.markers) or
+        [m1 for m1, m2 in zip(markers, self.markers)
+         if tuple(m1.xy) != tuple(m2.xy) or tuple(m1.rgba) != tuple(m2.rgba)]):
+      changed = True
+      
     if changed:
       for m in self.markers:
         m.unplot(self.scene)
@@ -263,20 +277,34 @@ class Markers:
     p = QPen(QColor(self.connect_color))
 
     graphics_items = []
-    for k in range(len(cxy_list) - 1):
+    n = len(cxy_list)
+    if self.extend_left and n > 0:
+      xmin = self.canvas_box[0]
+      x0, y0 = cxy_list[0]
+      x1, y1 = xmin, y0
+      gi = s.addLine(x0, y0, x1, y1, pen = p)
+      gi.setZValue(1.0)	# Show on top of histogram
+      graphics_items.append(gi)
+
+    for k in range(n-1):
       x0, y0 = cxy_list[k]
       x1, y1 = cxy_list[k+1]
       gi = s.addLine(x0, y0, x1, y1, pen = p)
       gi.setZValue(1.0)	# Show on top of histogram
       graphics_items.append(gi)
 
+    if self.extend_right and n > 0:
+      xmax = self.canvas_box[2]
+      x0, y0 = cxy_list[n-1]
+      x1, y1 = xmax, y0
+      gi = s.addLine(x0, y0, x1, y1, pen = p)
+      gi.setZValue(1.0)	# Show on top of histogram
+      graphics_items.append(gi)
+      
     for gi in self.connect_graphics_items:
       s.removeItem(gi)
 
     self.connect_graphics_items = graphics_items
-
-#    for m in self.markers:
-#      c.tag_raise(m.id)
 
   # ---------------------------------------------------------------------------
   #

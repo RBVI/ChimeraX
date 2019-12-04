@@ -237,8 +237,8 @@ def register_vr_command(logger):
     create_alias('device vr button', 'vr button $*', logger=logger,
             url="help:user/commands/device.html#vr-button")
 
-    desc = CmdDesc(keyword = [('enable', BoolArg),
-                              ('field_of_view', FloatArg),
+    desc = CmdDesc(optional = [('enable', BoolArg)],
+                   keyword = [('field_of_view', FloatArg),
                               ('width', FloatArg),
                               ('background_color', ColorArg),
                               ('tracker', BoolArg),

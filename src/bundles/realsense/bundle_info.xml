@@ -20,7 +20,7 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-Core" version=">=0.91"/>
     <Dependency name="pyrealsense2" version=">=2.30.0.1184"/>
   </Dependencies>
 

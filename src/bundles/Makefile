@@ -33,6 +33,10 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  tape_measure test texture toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
 
+ifeq ($(OS),Windows)
+SUBDIRS += realsense
+endif
+
 include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax
