@@ -166,7 +166,7 @@ extern "C" PyObject *data_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_writable_4d_array, &nrgba,
 				   &iblend))
     return NULL;
-  bool blend = iblend;
+  bool blend = (iblend != 0);
 
   RGBA_Float_Array rgba = nrgba;
   if (!check_color_array_size(rgba, data, 4))
@@ -256,7 +256,7 @@ data_to_colormap_colors(PyObject *, PyObject *args, PyObject *keywds)
 				   &iblend) ||
       !check_color_array_size(colors, data, cmap.size(1)))
     return NULL;
-  bool blend = iblend;
+  bool blend = (iblend != 0);
 
   call_template_function(data_to_colormap_colors, data.value_type(),
 			 (data, bcf, bcl, cmap, colors, blend));
@@ -417,10 +417,10 @@ static void data_to_colors(const Reference_Counted_Array::Array<T> &data,
 	  if (i >= 0 && i < nc)
 	    for (int c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = cmap[ic+c];
-	  else if (i < 0 and extend_left)
+	  else if (i < 0 && extend_left)
 	    for (int c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = c0[c];
-	  else if (i >= nc and extend_right)
+	  else if (i >= nc && extend_right)
 	    for (int c = 0 ; c < ncb ; ++c)
 	      cv[kc+c] = c1[c];
 	  else
@@ -463,7 +463,7 @@ data_to_colors(PyObject *, PyObject *args, PyObject *keywds)
   if (!check_color_array_size(colors, data, cmap.size(1)))
     return NULL;
 
-  bool extend_left = i_extend_left, extend_right = i_extend_right;
+  bool extend_left = (i_extend_left != 0), extend_right = (i_extend_right != 0);
 
   call_template_function(data_to_colors, data.value_type(),
 			 (data, dmin, dmax, cmap, extend_left, extend_right, colors));
@@ -618,7 +618,7 @@ indices_to_colors(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_array, &colors,
 				   &imodulate))
     return NULL;
-  bool modulate = imodulate;
+  bool modulate = (imodulate != 0);
 
   if (cmap.value_type() != Color_Array::Unsigned_Char &&
       cmap.value_type() != Color_Array::Unsigned_Short_Int)
@@ -790,7 +790,7 @@ data_to_bin_index(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_writable_3d_array, &index_values,
 				   &iadd))
     return NULL;
-  bool add = iadd;
+  bool add = (iadd != 0);
 
   if (index_values.value_type() != Numeric_Array::Unsigned_Short_Int &&
       index_values.value_type() != Numeric_Array::Unsigned_Char)
@@ -842,7 +842,7 @@ transfer_function_colormap(PyObject *, PyObject *args, PyObject *keywds)
 				   &extend_left, &extend_right,
 				   &bins, &bin_step, &iblend))
     return NULL;
-  bool blend = iblend;
+  bool blend = (iblend != 0);
 
   RGBA_Float_Array cmap;
   if (!float_colormap(py_colormap, &cmap, true, 4, bins * bin_step))
