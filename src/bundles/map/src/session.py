@@ -254,8 +254,13 @@ class ReplacementFilePaths:
         return None
       replacements[path] = p
       if replace_dir:
-        from os.path import dirname
-        self._replace_dirs[dirname(path)] = dirname(p)
+        from os.path import basename, dirname
+        # Remove the right part of path that stays the same.
+        # This find directory replacements that work for data trees, like DICOM files or Tiff stacks.
+        dorig, dnew = path, p
+        while dnew and basename(dnew) == basename(dorig):
+          dorig, dnew = dirname(dorig), dirname(dnew)
+        self._replace_dirs[dorig] = dnew
       return p
     else:
       return path
