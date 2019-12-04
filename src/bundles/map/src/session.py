@@ -159,8 +159,9 @@ def relative_path(path, base_path):
     return tuple([relative_path(p, base_path) for p in path])
 
 
-  from os.path import dirname, join
-  d = join(dirname(base_path), '')       # Make directory end with "/".
+  from os.path import dirname, join, abspath
+  bpath = abspath(base_path)
+  d = join(dirname(bpath), '')       # Make directory end with "/".
   if not path.startswith(d):
     return path
 
