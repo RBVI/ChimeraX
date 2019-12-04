@@ -117,7 +117,9 @@ class Image3d(Model):
     self._rendering_options = rendering_options.copy()
 
     change = False
-    for attr in ('color_mode', 'colormap_on_gpu', 'colormap_size', 'dim_transparent_voxels',
+    for attr in ('color_mode', 'colormap_on_gpu', 'colormap_size',
+                 'colormap_extend_left', 'colormap_extend_right',
+                 'dim_transparent_voxels',
                  'projection_mode', 'plane_spacing', 'full_region_on_gpu',
                  'orthoplanes_shown', 'orthoplane_positions', 'box_faces', 'linear_interpolation'):
         if getattr(rendering_options, attr) != getattr(ro, attr):
@@ -212,9 +214,10 @@ class Image3d(Model):
     dmin, dmax = cmap_range
 
     colors = self._color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
+    cm = self._colormap
     from . import _map
-    _map.data_to_colors(m, dmin, dmax, cmap, self._colormap.clamp, colors)
-
+    _map.data_to_colors(m, dmin, dmax, cmap, cm.extend_left, cm.extend_right, colors)
+    
     if hasattr(self, 'mask_colors'):
       s = [slice(None), slice(None), slice(None)]
       s[2-axis] = plane
@@ -277,7 +280,8 @@ class Image3d(Model):
     tfcmap = zeros((size,4), float32)
     tfa = array(tf, float32)
     from ._map import transfer_function_colormap
-    transfer_function_colormap(tfa, dmin, dmax, tfcmap)
+    transfer_function_colormap(tfa, dmin, dmax, tfcmap,
+                               cmap.extend_left, cmap.extend_right)
 
     # Adjust brightness of RGB components.
     bf = cmap.brightness_factor
@@ -306,13 +310,13 @@ class Image3d(Model):
         alpha[trans] = 1.0 - (1.0-atrans) ** (1.0/planes)
 
     # Use only needed color components (e.g. rgba, la, l).
-    cmap = self._rgba_to_colormap(tfcmap)
+    fcmap = self._rgba_to_colormap(tfcmap)
 
     # Convert from float to uint8 or uint16.
     from numpy import empty
-    icmap = empty(cmap.shape, ctype)
+    icmap = empty(fcmap.shape, ctype)
     from . import _map
-    _map.colors_float_to_uint(cmap, icmap)
+    _map.colors_float_to_uint(fcmap, icmap)
 
     ctables[axis] = icmap, drange
 
@@ -378,7 +382,8 @@ class Image3d(Model):
     ro = self._rendering_options
     size = min(ro.colormap_size, 2 ** 16)
 
-    tf = self._colormap.transfer_function
+    cmap = self._colormap
+    tf = cmap.transfer_function
     n = len(tf)
     if n >= 2:
       drange = tf[0][0], tf[n-1][0]
@@ -387,6 +392,16 @@ class Image3d(Model):
     else:
       drange = 0,0
 
+    if not cmap.extend_left or not cmap.extend_right:
+      dmin, dmax = drange
+      offset = (dmax - dmin) / size
+      # Added 0 color add edges of colormap if colormap is not extended.
+      if not cmap.extend_left:
+        dmin -= offset
+      if not cmap.extend_right:
+        dmax += offset
+      drange = dmin, dmax
+      
     return size, drange, t
 
   # ---------------------------------------------------------------------------
@@ -749,18 +764,21 @@ class Image3d(Model):
 #
 class Colormap:
     def __init__(self, transfer_function,
-                 brightness_factor, transparency_thickness, clamp = False):
+                 brightness_factor, transparency_thickness,
+                 extend_left = False, extend_right = True):
 
       self.transfer_function = transfer_function
       self.brightness_factor = brightness_factor
       self.transparency_thickness = transparency_thickness
-      self.clamp = clamp
+      self.extend_left = extend_left
+      self.extend_right = extend_right
 
     def __eq__(self, cmap):
         return (self.transfer_function == cmap.transfer_function and
                 self.brightness_factor == cmap.brightness_factor and
                 self.transparency_thickness == cmap.transparency_thickness and
-                self.clamp == cmap.clamp)
+                self.extend_left == cmap.extend_left and
+                self.extend_right == cmap.extend_right)
 
   
 # ---------------------------------------------------------------------------
@@ -795,7 +813,7 @@ class PlanesDrawing(Drawing):
     t = self.colormap
     if t is None:
       from chimerax.core.graphics import Texture
-      self.colormap = Texture(cmap, dimension = 1)
+      self.colormap = Texture(cmap, dimension = 1, clamp_to_edge = True)
     else:
       t.reload_texture(cmap)
     self.colormap_range = cmap_range
