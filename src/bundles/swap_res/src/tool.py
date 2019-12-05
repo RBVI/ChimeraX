@@ -442,8 +442,9 @@ class RotamerDialog(ToolInstance):
             if sd_type == "H-Bonds":
                 from chimerax.atomic.hbonds.gui import HBondsGUI
                 sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
-                    show_inter_intra_model=False, show_intra_mol=False, show_intra_res=False,
-                    show_model_restrict=False, show_bond_restrict=False, show_save_file=False)
+                    show_inter_model=False, show_intra_model=False, show_intra_mol=False,
+                    show_intra_res=False, show_model_restrict=False, show_bond_restrict=False,
+                    show_save_file=False)
                 layout.addWidget(sd.hbonds_gui)
             elif sd_type == "Clashes":
                 from chimerax.atomic.clashes.gui import ClashesGUI
