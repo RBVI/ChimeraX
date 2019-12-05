@@ -359,6 +359,9 @@ in position and orientation saved with <b>saveTrackerMount true</b>.
 [&nbsp;<b>framesPerSecond</b>&nbsp;&nbsp;<i>fps</i>&nbsp;]
 [&nbsp;<b>align</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>denoise</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>denoiseWeight</b>&nbsp;&nbsp;<i>weight</i>&nbsp;]
+[&nbsp;<b>denoiseColorTolerance</b>&nbsp;&nbsp;<i>tolerance</i>&nbsp;]
+[&nbsp;<b>denoise</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>projector</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>angstromsPerMeter</b>&nbsp;&nbsp;<i>apm</i>&nbsp;]
 [&nbsp;<b>skipFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -383,8 +386,9 @@ to compensate the offset between the color and depth cameras in the device
 (default <b>true</b>, which slows rendering). 
 The <b>denoise</b> option (default <b>true</b>)
 specifies whether to depth-denoise by averaging depth over time at pixels
-when their colors remain fairly constant. When the color of a pixel changes 
-by more than 10 on a RGBA scale of 255, its depth is always updated immediately.
+when their colors remain fairly constant using parameters
+<b>denoiseWeight</b> (default <b>0.1</b>) and <b>denoiseColorTolerance</b> (default <b>10</b>).
+The denoising algorithm details are given below.
 The <b>projector</b> option enables spraying the room with IR dots
 from a projector on the camera device for better depth detection (default 
 <b>false</b>, as the IR beams interfere with other devices that use IR
@@ -396,8 +400,34 @@ relative scale (default <b>50</b>).
 The <b>skipFrames</b> option indicates how many ChimeraX graphics update frames
 to skip before getting a new camera frame (default <b>2</b>, meaning to get
 a new camera frame at every 3rd ChimeraX graphics frame).
+</p><p>
+<b>Denoising details:</b>
+The depth values from RealSense cameras fluctuate rapidly over time by small amounts
+and the depth value for some pixels is unknown.  This depth noise causes flickering
+in the blended video where depths are fluctuating or unknown, especially at boundaries
+between video objects and computer generated objects.  The <b>denoise true</b> option
+reduces the depth noise by averaging depth over time at pixels when their colors remain
+fairly constant. When the color of a pixel changes by more than 10 on a RGBA scale of 255,
+its depth is always updated immediately to reduce motion blur.  The averaging blends
+current depth values with the previously used depth with weight 0.1, so it roughly
+averages depth from the previous 10 frames.  Pixels with unknown depth occur for two
+reasons.  In some areas of the video frame such as blank white walls the camera is
+unable to judge depth because it relies on matching features in the two stereo IR
+cameras and if there are no discernible features to match the depth is reported as 0.
+This problem can be reduced by using <b>projector true</b> which projects a dense
+array of invisible infrared laser dots in the room to add texture.  But when using
+VR headsets that use infrared light for tracking the projector can break VR tracking.
+The second cause of missing depth values is that only one stereo camera sees a
+part of the room because the other stereo camera is blocked by an object.  This
+happens at boundaries of foreground objects in the room.  To minimize both these
+effects (but especially the second), the denoise option keeps track of the maximum
+depth seen at each pixel and its color, representing the room background.  If a
+depth value is not available for a pixel for a frame it will use the maximum depth
+value provided that the color of the pixel is close to the color of the background.
+This background depth fill does not help for pixels for which the camera has never
+reported a depth value.  The denoise algorithm is based on the assumption that the
+camera is not moving.
 </blockquote>
-
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 December 2019</address>
