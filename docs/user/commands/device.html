@@ -45,6 +45,14 @@ where the <i>device-type</i> can be:
   &ndash; set up a separate camera view fixed in the VR room coordinates,
   useful for making videos
   </ul>
+<li><a href="#realsense"><b>realsense</b></a>
+&ndash; requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
+target="_blank"><b>RealSense</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
+allows blending video from a Intel RealSense depth-sensing camera 
+with ChimeraX graphics to make augmented reality videos
 </ul>
 <p>
 <a name="status"></a>
@@ -343,7 +351,54 @@ in position and orientation saved with <b>saveTrackerMount true</b>.
 </p>
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="realsense"><b>device realsense</b></a> 
+[&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>x,y</i>&nbsp;]
+[&nbsp;<b>dsize</b>&nbsp;&nbsp;<i>dx,dy</i>&nbsp;]
+[&nbsp;<b>framesPerSecond</b>&nbsp;&nbsp;<i>fps</i>&nbsp;]
+[&nbsp;<b>align</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>denoise</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>projector</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>angstromsPerMeter</b>&nbsp;&nbsp;<i>apm</i>&nbsp;]
+[&nbsp;<b>skipFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<blockquote>
+The command <b>device realsense</b> enables blending video from an 
+Intel RealSense depth-sensing camera with ChimeraX graphics to
+make augmented reality videos.
+This command is only available after installation of the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
+target="_blank"><b>RealSense</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>).
+See also:
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mixed-reality-nov2019/mrhowto.html" target="blank">Mixed Reality Video Recording in ChimeraX</a>
+</p><p>
+The <b>size</b> and <b>dsize</b> options set camera image resolution
+for color and depth, respectively. Each takes a pair of comma-separated values
+indicating the pixel dimensions in X and Y (defaults: <b>size 960,540</b> and
+<b>dsize 1280,720</b>). The <b>framesPerSecond</b> option gives the video
+capture rate (default <b>30</b>). The <b>align</b> option indicates whether
+to compensate the offset between the color and depth cameras in the device
+(default <b>true</b>, which slows rendering). 
+The <b>denoise</b> option (default <b>true</b>)
+specifies whether to depth-denoise by averaging depth over time at pixels
+when their colors remain fairly constant. When the color of a pixel changes 
+by more than 10 on a RGBA scale of 255, its depth is always updated immediately.
+The <b>projector</b> option enables spraying the room with IR dots
+from a projector on the camera device for better depth detection (default 
+<b>false</b>, as the IR beams interfere with other devices that use IR
+such as Vive VR tracking). Normally the camera device is used at the
+same time as <a href="#vr">VR</a>, which in turn sets the scale factor
+of the scene relative to the room.  However, if <a href="#vr">VR</a> is not
+in use, the <b>angstromsPerMeter</b> option can be used to specify the
+relative scale (default <b>50</b>).
+The <b>skipFrames</b> option indicates how many ChimeraX graphics update frames
+to skip before getting a new camera frame (default <b>2</b>, meaning to get
+a new camera frame at every 3rd ChimeraX graphics frame).
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+December 2019</address>
 </body></html>
