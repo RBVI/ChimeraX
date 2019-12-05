@@ -146,8 +146,6 @@ def find_clashes(session, test_atoms,
                 continue
             if res_separation is not None:
                 if a.residue.chain is not None and a.residue.chain == nb.residue.chain:
-                    #residues = a.residue.chain.residues
-                    #if abs(residues.index(a.residue) - residues.index(nb.residue)) < res_separation:
                     if abs(chain_pos[a.residue] - chain_pos[nb.residue]) < res_separation:
                         continue
             if not inter_submodel \
