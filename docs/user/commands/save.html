@@ -364,7 +364,12 @@ The default is <b>false</b>, as maps can be very large.
 If the maps are not included, the session file will still include the
 locations of the corresponding map files and open them automatically
 upon session restore, or if they are not found, prompt the user
-for their current locations.
+for their current locations. The session file will include the
+map file location as a relative path if the map file is in the same
+directory as the session file, or in a subdirectory of that directory.
+If the map file is in neither the same directory as the session file nor
+a subdirectory of that directory, its location will be stored 
+as an absolute path.
 </p>
 
 <a name="map"></a>
@@ -775,5 +780,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+December 2019</address>
 </body></html>
