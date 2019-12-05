@@ -270,7 +270,7 @@ class RotamerDialog(ToolInstance):
         add_col_layout.setContentsMargins(0,0,0,0)
         add_col_layout.setSpacing(0)
         cg_layout.addLayout(add_col_layout)
-        self.add_col_button = QPushButton("Add")
+        self.add_col_button = QPushButton("Calculate")
         add_col_layout.addWidget(self.add_col_button, 0, 0, alignment=Qt.AlignRight)
         radio_layout = QVBoxLayout()
         radio_layout.setContentsMargins(0,0,0,0)
@@ -330,7 +330,11 @@ class RotamerDialog(ToolInstance):
     def _apply_rotamer(self):
         rots = self.table.selected
         if not rots:
-            raise UserError("No rotamers selected")
+            if self.button_group.checkedButton().text() in self.opt_columns:
+                raise UserError("No rotamers selected")
+            else:
+                raise UserError("No rotamers selected.  Click the 'Calculate' button (not 'OK') to"
+                    " add a column to the table.")
         rot_nums = [r.id[-1] for r in rots]
         from chimerax.core.commands import run
         cmd = "swapaa %s %s criteria %s" % (
@@ -438,16 +442,17 @@ class RotamerDialog(ToolInstance):
             if sd_type == "H-Bonds":
                 from chimerax.atomic.hbonds.gui import HBondsGUI
                 sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
-                    show_inter_intra_model=False, show_intra_mol=False, show_intra_res=False,
-                    show_model_restrict=False, show_bond_restrict=False, show_save_file=False)
+                    show_inter_model=False, show_intra_model=False, show_intra_mol=False,
+                    show_intra_res=False, show_model_restrict=False, show_bond_restrict=False,
+                    show_save_file=False)
                 layout.addWidget(sd.hbonds_gui)
             elif sd_type == "Clashes":
                 from chimerax.atomic.clashes.gui import ClashesGUI
-                sd.clashes_gui = ClashesGUI(self.session, False, settings_name="rotamers",
+                sd.clashes_gui = ClashesGUI(self.session, False, settings_name="rotamers", radius=0.075,
                     show_restrict=False, show_bond_separation=False, show_res_separation=False,
                     show_inter_model=False, show_intra_res=False, show_intra_mol=False, show_attr_name=False,
-                    show_set_attrs=False, show_other_atom_color=False, show_checking_frequency=False,
-                    restrict="cross", bond_separation=0, reveal=True)
+                    show_set_attrs=False, show_checking_frequency=False, restrict="cross",
+                    bond_separation=0, reveal=True, show_save_file=False)
                 layout.addWidget(sd.clashes_gui)
             else: # Density
                 from chimerax.ui.widgets import ModelListWidget
@@ -468,11 +473,6 @@ class RotamerDialog(ToolInstance):
 
     def _update_button_text(self):
         cur_choice = self.button_group.checkedButton().text()
-        if cur_choice in self.table.column_names:
-            txt = "Update"
-        else:
-            txt = "Add"
-        self.add_col_button.setText(txt)
         if cur_choice.startswith("Density"):
             self.ignore_solvent_button.hide()
         else:

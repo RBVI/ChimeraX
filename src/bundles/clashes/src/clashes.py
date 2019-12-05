@@ -101,6 +101,13 @@ def find_clashes(session, test_atoms,
     else:
         search_atoms = test_atoms
 
+    if res_separation is not None:
+        chain_pos = {}
+        for s in test_atoms.unique_structures:
+            for c in s.chains:
+                for i, r in enumerate(c.residues):
+                    if r:
+                        chain_pos[r] = i
     from chimerax.atomic.search import AtomSearchTree
     tree = AtomSearchTree(search_atoms, scene_coords=inter_model)
     clashes = {}
@@ -139,8 +146,7 @@ def find_clashes(session, test_atoms,
                 continue
             if res_separation is not None:
                 if a.residue.chain is not None and a.residue.chain == nb.residue.chain:
-                    residues = a.residue.chain.residues
-                    if abs(residues.index(a.residue) - residues.index(nb.residue)) < res_separation:
+                    if abs(chain_pos[a.residue] - chain_pos[nb.residue]) < res_separation:
                         continue
             if not inter_submodel \
             and a.structure.id and nb.structure.id \
