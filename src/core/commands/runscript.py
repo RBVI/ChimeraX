@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def runscript(session, script_file, *, args=""):
+def runscript(session, script_file, *, args=None):
     """Execute a Python script with arguments
 
     Parameters
@@ -24,6 +24,8 @@ def runscript(session, script_file, *, args=""):
 
     import shlex
     from ..scripting import open_python_script
-    argv = shlex.split(args)
+    argv = [script_file]
+    if args is not None:
+        argv += shlex.split(args)
     open_python_script(session, open(script_file, 'rb'), script_file, argv=argv)
     return []
