@@ -231,7 +231,7 @@ class AtomProximityGUI(QWidget):
                 res_sep_layout.setContentsMargins(0,0,0,0)
                 #res_sep_layout.setSpacing(0)
                 group_layout.addLayout(res_sep_layout)
-                self.res_sep_checkbox = QCheckBox("Only find interactions between residues at least")
+                self.res_sep_checkbox = QCheckBox("Ignore interactions between residues <")
                 final_rs_val = final_val['res_separation']
                 self.res_sep_checkbox.setChecked(final_rs_val is not None)
                 res_sep_layout.addWidget(self.res_sep_checkbox)
