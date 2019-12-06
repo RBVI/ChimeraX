@@ -106,7 +106,10 @@ def check():
             filepath = os.path.join(dirpath, filename)
             if not os.path.islink(filepath):
                 bad_files.append(os.path.relpath(filepath))
-    bad_files.remove('user/index.html')
+    try:
+        bad_files.remove('user/index.html')
+    except ValueError:
+        pass
     if bad_files:
         if verbose:
             print("%d non-symlink files:" % len(bad_files))
