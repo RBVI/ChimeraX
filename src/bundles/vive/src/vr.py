@@ -749,8 +749,12 @@ class SteamVRCamera(Camera, StateManager):
         else:
             # Stereo eyes view in same direction with position shifted along x.
             es = self._eye_shift_left if view_num == 0 else self._eye_shift_right
-            t = es.scale_translation(1/self.scene_scale)
-            v = camera_position * t
+            ss = self.scene_scale
+            if ss == 0:
+                v = camera_position
+            else:
+                t = es.scale_translation(1/ss)
+                v = camera_position * t
         return v
 
     def number_of_views(self):
