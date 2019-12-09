@@ -692,9 +692,7 @@ class Render:
         else:
             self.current_projection_matrix = pm
         p = self.current_shader_program
-        if (p is not None and 
-            not p.capabilities & self.SHADER_TEXTURE_OUTLINE and
-            not p.capabilities & self.SHADER_DEPTH_OUTLINE):
+        if p is not None and not (p.capabilities & self.SHADER_NO_PROJECTION_MATRIX):
             p.set_matrix('projection_matrix', pm)
 
     def set_view_matrix(self, vm):
@@ -1900,6 +1898,11 @@ shader_options = (
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
+
+Render.SHADER_NO_PROJECTION_MATRIX = (Render.SHADER_TEXTURE_OUTLINE |
+                                      Render.SHADER_DEPTH_OUTLINE |
+                                      Render.SHADER_BLEND_TEXTURE_2D |
+                                      Render.SHADER_BLEND_TEXTURE_3D)
 
 def shader_capability_names(capabilities_bit_mask):
     return [name for i, name in enumerate(shader_options)

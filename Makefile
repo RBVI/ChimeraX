@@ -58,6 +58,10 @@ endif
 docs.install:
 	$(MAKE) -C docs install
 
+vdocs.install:
+	$(MAKE) -C vdocs install
+
+
 build-dirs:
 	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
 		$(webdir) $(wheelhouse)

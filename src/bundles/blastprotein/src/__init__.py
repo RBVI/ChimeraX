@@ -34,14 +34,19 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def register_command(bi, ci, logger):
         command_name = ci.name
-        from . import cmd
-        if command_name == "blastprotein":
-            from chimerax.core.commands import register
-            register(command_name, cmd.blastprotein_desc,
-                     cmd.blastprotein, logger=logger)
-        elif command_name == "blastpdb":
+        if command_name == "blastpdb":
             from chimerax.core.commands import create_alias
             create_alias(command_name, "blastprotein $*", logger=logger,
                     url="help:user/commands/blastprotein.html")
+            return
+        from . import cmd
+        function_name = command_name.replace(' ', '_')
+        func = getattr(cmd, function_name)
+        desc = getattr(cmd, function_name + "_desc")
+        if desc.synopsis is None:
+            desc.synopsis = ci.synopsis
+        from chimerax.core.commands import register
+        register(command_name, desc, func, logger=logger)
+
 
 bundle_api = _MyAPI()

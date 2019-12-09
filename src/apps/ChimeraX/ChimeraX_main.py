@@ -654,9 +654,9 @@ def init(argv, event_loop=True):
             # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
-        from chimerax.core.commands import runscript
+        from chimerax.core.commands import run
         for script in opts.scripts:
-            runscript(sess, script)
+            run(sess, 'runscript %s' % script)
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",

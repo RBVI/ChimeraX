@@ -5,7 +5,7 @@ SCRIPT = _vdoc.py
 VERBOSE = -v
 
 all install build:	check
-	$(PYTHON_EXE) $(SCRIPT) build
+	$(APP_EXE) --nogui --silent --exit --script '$(SCRIPT) build'
 
 check:
 	$(PYTHON_EXE) $(SCRIPT) check $(VERBOSE)

@@ -1178,6 +1178,8 @@ extern "C" EXPORT void atom_structure_category(void *atoms, size_t n, pyobject_t
                 cat_name = "ligand";
             else if (cat == Atom::StructCat::Ions)
                 cat_name = "ions";
+            else if (cat == Atom::StructCat::Unassigned)
+                cat_name = "other";
             else
                 throw std::range_error("Unknown structure category");
             names[i] = unicode_from_string(cat_name);

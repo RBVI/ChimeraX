@@ -15,6 +15,32 @@ from chimerax.ui import HtmlToolInstance
 import sys
 
 
+_default_instance_prefix = "bp"
+_instance_map = {}
+
+
+def find(instance_name):
+    return _instance_map.get(instance_name, None)
+
+
+def find_match(instance_name):
+    if instance_name is None:
+        if len(_instance_map) == 1:
+            for name, inst in _instance_map.items():
+                return inst
+        from chimerax.core.errors import UserError
+        if len(_instance_map) > 1:
+            raise UserError("no name specified with multiple "
+                            "active blastprotein instances")
+        else:
+            raise UserError("no active blastprotein instance")
+    try:
+        return _instance_map[instance_name]
+    except KeyError:
+        from chimerax.core.errors import UserError
+        raise UserError("no blastprotein instance named \"%s\"" % instance_name)
+
+
 class ToolUI(HtmlToolInstance):
 
     SESSION_ENDURING = False
@@ -23,12 +49,20 @@ class ToolUI(HtmlToolInstance):
 
     help = "help:user/tools/blastprotein.html"
 
-    def __init__(self, session, tool_name, blast_results=None, params=None):
+    def __init__(self, session, tool_name, blast_results=None, params=None, *,
+                 instance_name=None):
         # ``session`` - ``chimerax.core.session.Session`` instance
         # ``tool_name`` - ``str`` instance
 
         # Set name displayed on title bar
-        self.display_name = "Blast Protein"
+        if instance_name is None:
+            n = 1
+            while True:
+                instance_name = _default_instance_prefix + str(n)
+                if instance_name not in _instance_map:
+                    break
+        _instance_map[instance_name] = self
+        display_name = "%s [name: %s]" % (tool_name, instance_name)
         from . import pdbinfo
         self._pdbinfo_list = (pdbinfo.entry_info, pdbinfo.chain_info,
                               pdbinfo.ligand_info)
@@ -37,14 +71,16 @@ class ToolUI(HtmlToolInstance):
         # initial tool size in pixels.  For debugging, add
         # "log_errors=True" to get Javascript errors logged
         # to the ChimeraX log window.
-        super().__init__(session, tool_name, size_hint=(575, 400),
+        super().__init__(session, display_name, size_hint=(575, 400),
                          log_errors=True)
         self._initialized = False
+        self._instance_name = instance_name
         self._params = params
         self._chain_map = {}
         self._hits = None
         self._ref_atomspec = None
         self._blast_results = blast_results
+        self._sequences = {}
         self._build_ui()
 
     def _build_ui(self):
@@ -68,6 +104,11 @@ class ToolUI(HtmlToolInstance):
             self.load_pdb(url)
         elif command == "update_models":
             self.update_models()
+        elif command == "show_mav":
+            from urllib.parse import parse_qs
+            query = parse_qs(url.query())
+            id_list = [int(n) for n in query["ids"][0].split(',')]
+            self.show_mav(id_list)
         else:
             from chimerax.core.errors import UserError
             raise UserError("unknown blastprotein command: %s" % command)
@@ -176,6 +217,65 @@ class ToolUI(HtmlToolInstance):
         return max_seqs[0]
 
     #
+    # Code for displaying matches as multiple sequence alignment
+    #
+
+    def show_mav_cmd(self, selected):
+        import json
+        js = "show_mav(%s);" % json.dumps(selected)
+        self.html_view.runJavaScript(js)
+
+    def show_mav(self, ids):
+        # Collect names and sequences of selected matches.
+        # All sequences should have the same length because
+        # they include gaps generated from BLAST alignment.
+        ids.insert(0, 0)
+        names = []
+        seqs = []
+        for sid in ids:
+            name, seq = self._sequences[sid]
+            names.append(name)
+            seqs.append(seq)
+        # Find columns that are gaps in all sequences and remove them.
+        all_gaps = set()
+        for i in range(len(seqs[0])):
+            for seq in seqs:
+                if seq[i].isalpha():
+                    break
+            else:
+                all_gaps.add(i)
+        if all_gaps:
+            for i in range(len(seqs)):
+                seq = seqs[i]
+                new_seq = ''.join([seq[n] for n in range(len(seq))
+                                   if n not in all_gaps])
+                seqs[i] = new_seq
+        # Generate multiple sequence alignment file
+        import tempfile
+        with tempfile.NamedTemporaryFile("wt", prefix=self._instance_name + "-",
+                                         suffix=".fa", delete=False) as tf:
+            # Always put query in alignment
+            for i, name in enumerate(names):
+                self._write_fasta(tf, name, seqs[i])
+        # Ask MAV to display alignment
+        from chimerax.core.commands import run
+        try:
+            run(self.session, "open %s format fasta" % tf.name)
+        finally:
+            import os
+            try:
+                os.remove(tf.name)
+            except OSError:
+                pass
+
+    def _write_fasta(self, f, name, seq):
+        print(name, len(seq))
+        print(">", name, file=f)
+        block_size = 60
+        for i in range(0, len(seq), block_size):
+            print(seq[i:i+block_size], file=f)
+
+    #
     # Callbacks for BlastProteinJob
     #
 
@@ -189,14 +289,22 @@ class ToolUI(HtmlToolInstance):
         # blast_results is either None or a blastp_parser.Parser
         self._ref_atomspec = atomspec
         hits = []
+        self._sequences = {}
         if blast_results is not None:
+            query_match = blast_results.matches[0]
+            if self._ref_atomspec:
+                name = self._ref_atomspec
+            else:
+                name = query_match.name
+            self._sequences[0] = (name, query_match.sequence)
             import re
             NCBI_IDS = ["ref","gi"]
             NCBI_ID_URL = "https://www.ncbi.nlm.nih.gov/protein/%s"
             id_pat = re.compile(r"\b(%s)\|([^|]+)\|" % '|'.join(NCBI_IDS))
             pdb_chains = {}
-            for m in blast_results.matches[1:]:
-                hit = {"evalue":m.evalue, "score":m.score,
+            for n, m in enumerate(blast_results.matches[1:]):
+                sid = n + 1
+                hit = {"id":sid, "evalue":m.evalue, "score":m.score,
                        "description":m.description}
                 if m.pdb:
                     hit["name"] = m.pdb
@@ -215,6 +323,7 @@ class ToolUI(HtmlToolInstance):
                         hit["name"] = m.name
                         hit["url"] = ""
                 hits.append(hit)
+                self._sequences[sid] = (hit["name"], m.sequence)
             self._add_pdbinfo(pdb_chains)
         self._hits = hits
         self._show_hits()
@@ -290,6 +399,7 @@ class ToolUI(HtmlToolInstance):
             "_hits": self._hits,
             "_params": self._params,
             "_ref_atomspec": self._ref_atomspec,
+            "_sequences": self._sequences,
         }
         return data
 
@@ -303,5 +413,6 @@ class ToolUI(HtmlToolInstance):
         inst._params = data["_params"]
         inst._ref_atomspec = data["_ref_atomspec"]
         inst._blast_results = None
+        inst._sequences = data["_sequences"]
         inst._build_ui()
         return inst
