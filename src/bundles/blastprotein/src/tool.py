@@ -19,6 +19,15 @@ _default_instance_prefix = "bp"
 _instance_map = {}
 
 
+def _make_instance_name():
+    n = 1
+    while True:
+        instance_name = _default_instance_prefix + str(n)
+        if instance_name not in _instance_map:
+            return instance_name
+        n += 1
+
+
 def find(instance_name):
     return _instance_map.get(instance_name, None)
 
@@ -56,11 +65,7 @@ class ToolUI(HtmlToolInstance):
 
         # Set name displayed on title bar
         if instance_name is None:
-            n = 1
-            while True:
-                instance_name = _default_instance_prefix + str(n)
-                if instance_name not in _instance_map:
-                    break
+            instance_name = _make_instance_name()
         _instance_map[instance_name] = self
         display_name = "%s [name: %s]" % (tool_name, instance_name)
         from . import pdbinfo
@@ -81,6 +86,7 @@ class ToolUI(HtmlToolInstance):
         self._ref_atomspec = None
         self._blast_results = blast_results
         self._sequences = {}
+        self._viewer_index = 1
         self._build_ui()
 
     def _build_ui(self):
@@ -179,7 +185,7 @@ class ToolUI(HtmlToolInstance):
                     "cutoff", cutoff,
                     "matrix", matrix,
                     "maxSeqs", max_seqs,
-                    "toolId", str(self.id)]
+                    "name", str(self._instance_name)]
         cmd = ' '.join(cmd_text)
         from chimerax.core.commands import run
         run(self.session, cmd)
@@ -251,22 +257,12 @@ class ToolUI(HtmlToolInstance):
                                    if n not in all_gaps])
                 seqs[i] = new_seq
         # Generate multiple sequence alignment file
-        import tempfile
-        with tempfile.NamedTemporaryFile("wt", prefix=self._instance_name + "-",
-                                         suffix=".fa", delete=False) as tf:
-            # Always put query in alignment
-            for i, name in enumerate(names):
-                self._write_fasta(tf, name, seqs[i])
-        # Ask MAV to display alignment
-        from chimerax.core.commands import run
-        try:
-            run(self.session, "open %s format fasta" % tf.name)
-        finally:
-            import os
-            try:
-                os.remove(tf.name)
-            except OSError:
-                pass
+        # Ask sequence viewer to display alignment
+        from chimerax.atomic import Sequence
+        seqs = [Sequence(name=name, characters=seqs[i])
+                for i, name in enumerate(names)]
+        name = "%s [%d]" % (self._instance_name, self._viewer_index)
+        self.session.alignments.new_alignment(seqs, name)
 
     def _write_fasta(self, f, name, seq):
         print(name, len(seq))
@@ -400,6 +396,8 @@ class ToolUI(HtmlToolInstance):
             "_params": self._params,
             "_ref_atomspec": self._ref_atomspec,
             "_sequences": self._sequences,
+            "_instance_name": self._instance_name,
+            "_viewer_index": self._viewer_index,
         }
         return data
 
@@ -414,5 +412,10 @@ class ToolUI(HtmlToolInstance):
         inst._ref_atomspec = data["_ref_atomspec"]
         inst._blast_results = None
         inst._sequences = data["_sequences"]
+        try:
+            inst._instance_name = data["_instance_name"]
+        except KeyError:
+            inst._instance_name = _make_instance_name()
+        inst._viewer_index = data.get("_viewer_index", 1)
         inst._build_ui()
         return inst
