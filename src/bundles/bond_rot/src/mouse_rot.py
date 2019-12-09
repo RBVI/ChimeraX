@@ -84,7 +84,7 @@ class BondRotationMouseMode(MouseMode):
         # Would like to have a command to enable this mode for rotating bonds
         # with small ligands
         move_closer_side = False
-        if move_closer_side:
+        if move_closer_side and self._bond_rot is not None:
             br = self._bond_rot
             atom1 = br.moving_side
             atom2 = br.bond.other_atom(atom1)

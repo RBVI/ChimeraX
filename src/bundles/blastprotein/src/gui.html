@@ -171,7 +171,7 @@
                 var $table = table_create(column_headers, data)
                                 .appendTo($("#table_div"));
                 bootgrid_table = $table.bootgrid(table_opts);
-                $(".actionBar").prepend('<button type="button" id="show_mav" class="btn btn-primary pull-left">Show in MAV</button>');
+                $(".actionBar").prepend('<button type="button" id="show_mav" class="btn btn-primary pull-left">Show in sequence viewer</button>');
                 $("#show_mav").click(function() { show_mav(true); });
             }
             bootgrid_table.bootgrid("append", data);
@@ -197,12 +197,8 @@
         }
         function show_mav(selected) {
             var rows = bootgrid_table.bootgrid("getSelectedRows");
-            if (rows.length == 1) {
-                alert("More than one row must be selected.");
-                return;
-            }
             if (rows.length == 0) {
-                if (!confirm("Show all rows in MAV?"))
+                if (!confirm("Show all matches in sequence viewer?"))
                     return;
                 var r = bootgrid_table.data(".rs.jquery.bootgrid").rows;
                 for (var i = 0; i < r.length; i++)
