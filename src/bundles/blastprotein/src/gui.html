@@ -11,23 +11,28 @@
         .opt-grid { margin: 0px; padding: 0px;
 		    list-style-type: none; width: 100%; }
         .opt-grid li { float: left; width: 33%; }
-	.bootgrid-table { width: 100%; }
-	.bootgrid-table th[data-column-id="description"] { width: 30%; }
-	.bootgrid-table th[data-column-id="title"] { width: 30%; }
-	.bootgrid-table th[data-column-id="citation_authors"] { width: 30%; }
-	.bootgrid-table th { width: 10%; }
 	.bootgrid-table td { white-space: normal; }
     </style>
     <script>
+    // <![CDATA[
         var bootgrid_table = null;
         var table_opts = {
-            "formatters": {
-                "link": function(column, row) {
+            selection: true,
+            multiSelect: true,
+            keepSelection: true,
+            rowSelect: false,
+            formatters: {
+                link: function(column, row) {
                     return '<a href="' + row.url + '">' + row.name + '</a>';
                 }
             }
         }
         var column_headers = [
+            [ "ID",
+                { "data-column-id": "id",
+                  "data-width": "5%",
+                  "data-identifier": "true",
+                  "data-type": "numeric" } ],
             // From BLAST
             [ "Name",
                 { "data-column-id": "name",
@@ -40,6 +45,7 @@
                   "data-type": "numeric" } ],
             [ "Description",
                 { "data-column-id": "description",
+                  "data-width": "30%",
                   "data-visible": false } ],
             // From pdb_entry
             [ "Date",
@@ -48,6 +54,7 @@
                   "title": "PDB structure publication date" } ],
             [ "Title", 
                 { "data-column-id": "title",
+                  "data-width": "30%",
                   "title": "PDB entry title" } ],
             [ "Method", 
                 { "data-column-id": "expMethod",
@@ -60,6 +67,7 @@
                   "title": "PDB resolution in Angstroms" } ],
             [ "Authors",
                 { "data-column-id": "citation_authors",
+                  "data-width": "30%",
                   "data-visible": false,
                   "title": "PDB authors of deposited structure" } ],
             [ "PubMed", 
@@ -163,6 +171,8 @@
                 var $table = table_create(column_headers, data)
                                 .appendTo($("#table_div"));
                 bootgrid_table = $table.bootgrid(table_opts);
+                $(".actionBar").prepend('<button type="button" id="show_mav" class="btn btn-primary pull-left">Show in MAV</button>');
+                $("#show_mav").click(function() { show_mav(true); });
             }
             bootgrid_table.bootgrid("append", data);
         }
@@ -185,15 +195,31 @@
                 fields[fields.index(this) + 1].focus();
             }
         }
+        function show_mav(selected) {
+            var rows = bootgrid_table.bootgrid("getSelectedRows");
+            if (rows.length == 1) {
+                alert("More than one row must be selected.");
+                return;
+            }
+            if (rows.length == 0) {
+                if (!confirm("Show all rows in MAV?"))
+                    return;
+                var r = bootgrid_table.data(".rs.jquery.bootgrid").rows;
+                for (var i = 0; i < r.length; i++)
+                    rows.push(r[i].id);
+            }
+            window.location = "blastprotein:show_mav?ids=" + rows.join(',');
+        }
         function init() {
             // setting window location causes tool to receive URL
             $(document).on("keypress", ":input:not([type=submit])",
                            next_field_on_return);
-            window.location='blastprotein:initialize';
+            window.location = 'blastprotein:initialize';
         }
         function status(msg) {
             $("#status").text(msg);
         }
+    // ]]>
     </script>
 </head>
 <body onload="init();">
