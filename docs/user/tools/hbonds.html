@@ -62,7 +62,7 @@ of the hydrogen will be found.
 </p><p>
 Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
 runs the calculation. Several of the dialog settings are remembered as 
-<a href="../preferences.html#other">preferences</a>.
+<a href="../preferences.html#other">preferences</a> when the calculation is run.
 </p>
 <ul>
 <li><b>Display as pseudobonds</b> (initial default <b>on</b>)
@@ -157,8 +157,6 @@ use the <a href="../commands/hbonds.html"><b>hbonds</b></a> command with
   <li><b>Restrict to models...</b> (initial default <b>off</b>) 
 &ndash; choose specific models from the list shown when the option is on
 -->
-  <li><b>Intermodel only</b> (initial default <b>off</b>)
-  <li><b>Intramodel only </b> (initial default <b>off</b>)
   <li><b>Limit by selection</b> (initial default <b>off</b>) 
 &ndash; whether to limit the results by the current
 <a href="../selection.html">selection</a> according to one of the following
@@ -179,6 +177,8 @@ where possible. In the absence of explicit hydrogens,
 a histidine sidechain is assumed to be formally charged unless one of 
 its nitrogens is coordinating a metal ion or identified unambiguously 
 as an H-bond acceptor. 
+  <li><b>Include intermodel</b> (initial default <b>on</b>)
+  <li><b>Include intramodel</b> (initial default <b>on</b>)
   <li><b>Include intramolecule</b> (initial default <b>on</b>) 
 &ndash; whether to include intramolecular H-bonds, 
 where a molecule is defined as a covalently bonded set of atoms
@@ -199,5 +199,5 @@ hydrogen atom specifications and hydrogen-acceptor distances.
 </ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+December 2019</address>
 </body></html>

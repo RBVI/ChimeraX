@@ -70,7 +70,7 @@ whereas a negative overlap is the distance of separation.
 A larger positive <i>cutoff</i> restricts the results to more severe
 clashes, whereas a negative <i>cutoff</i> can also identify
 pairs of atoms that are farther apart.
-<li><b>Clashes</b> only: <b>Subtract [ <i>allowance</i> ]
+<li>for <b>Clashes</b> only: <b>Subtract [ <i>allowance</i> ]
 from overlap for potentially H-bonding pairs</b>
 &ndash; an <i>allowance</i> &gt; 0
 reflects the observation that atoms sharing a hydrogen bond can come
@@ -114,12 +114,9 @@ lone pair.
 </table>
 </blockquote>
 <li>
-<!-- <b>Contacts</b> only: -->
-<b>Find pairs of atoms with center-center distance 
-&le; [ <i>d</i> ] &Aring;</b> 
-(initial default <i>d</i>=<b>4.0</b>)
-&ndash; 
-instead of <a href="#overlap-def">VDW overlap</a>,
+<b>Find pairs of atoms with center-center distance &le; [ <i>d</i> ] &Aring;</b> 
+(initial default <b>off</b>, with <i>d</i>=<b>4.0</b>)
+&ndash; instead of <a href="#overlap-def">VDW overlap</a>,
 use a simple distance cutoff to identify interactions
 <li><b>Limit by selection</b> (initial default <b>off</b>) 
 &ndash; whether to limit the results by the current
@@ -135,8 +132,8 @@ The two sets of atoms may overlap, but will not overrule other restrictions.
     </ul>
 <li><b>Ignore interactions between atoms [ <i>N</i> ] or fewer bonds apart</b>
 (initial default <i>N</i>=<b>4</b>)
-<li><b>Only find interactions between residues at least [ <i>M</i> ] apart
-in sequence</b> (initial default <b>off</b>, with <i>M</i>=<b>5</b>)
+<li><b>Ignore interactions between residues < [ <i>M</i> ] apart in sequence</b>
+(initial default <b>off</b>, with <i>M</i>=<b>5</b>)
 <li><b>Include intermodel</b> (initial default <b>on</b>)
 <li><b>Include intramolecule</b> (initial default <b>on</b>)
 &ndash; whether to include intramolecular interactions,
@@ -144,10 +141,10 @@ where a molecule is defined as a covalently bonded set of atoms
 <li><b>Include intraresidue</b> (initial default <b>off</b>)
 </ul>
 <p>
-<b>Show results</b>:
+<b>Treatment of results</b>:
 </p>
 <ul>
-<li><b>Select</b> (initial default <b>off</b>)
+<li><b>Select atoms</b> (initial default <b>off</b>)
 &ndash; whether to <a href="../selection.html">select</a> the interacting atoms
 <li><b>Reveal atoms of interacting residues</b> (initial default <b>off</b>)
 &ndash; since a <a href="../pseudobonds.html">pseudobond</a>
@@ -161,7 +158,7 @@ moieties separately displayed by this option.
 Displayed backbone atoms may still be invisible where cartoon is shown,
 unless their simultaneous display has been enabled with
 <b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
-<li><b>Assign attribute named</b> [<i>name</i>] 
+<li><b>Assign atomic attribute named</b> [<i>name</i>] 
 (initial default <b>off</b>)
 &ndash; whether to assign the largest <a href="#overlap-def">overlap</a>
 per atom as an <a href="../attribute.html">attribute</a> with the 
@@ -237,7 +234,7 @@ disallowed with <a href="#continuous">continuous monitoring</a>.
 &ndash; save the information to a text file
   </ul>
 <p>
-<b>Frequency of Checking</b>:
+<b>Frequency of checking</b>:
 </p>
 <ul>
 <li><b>when OK/Apply clicked</b> (default)
@@ -250,5 +247,5 @@ disallowed with <a href="#continuous">continuous monitoring</a>.
 </ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+December 2019</address>
 </body></html>
