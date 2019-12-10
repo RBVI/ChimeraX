@@ -12,6 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
+from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
+from PyQt5.QtWidgets import QGridLayout
+from PyQt5.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
 
@@ -22,11 +25,9 @@ class BuildStructureTool(ToolInstance):
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
-        from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget
-        from PyQt5.QtCore import Qt
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(0)
+        layout.setSpacing(3)
         parent.setLayout(layout)
 
         self.category_button = QPushButton()
@@ -40,7 +41,9 @@ class BuildStructureTool(ToolInstance):
 
         self.category_widgets = {}
         for category in ["Modify Structure"]:
-            self.category_widgets[category] = widget = QWidget()
+            self.category_widgets[category] = widget = QFrame()
+            widget.setLineWidth(2)
+            widget.setFrameStyle(QFrame.Panel | QFrame.Sunken)
             getattr(self, "_layout_" + category.lower().replace(' ', '_'))(widget)
             self.category_areas.addWidget(widget)
         self.category_button.setText(category)
@@ -53,9 +56,25 @@ class BuildStructureTool(ToolInstance):
         run(self.session, " ".join(cmd))
 
     def _cat_menu_cb(self, action):
-        #TODO
-        pass
+        self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
 
     def _layout_modify_structure(self, parent):
-        #TODO
-        pass
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        layout.addWidget(QLabel("Change selected atoms to..."), alignment=Qt.AlignHCenter | Qt.AlignBottom)
+        frame = QFrame()
+        layout.addWidget(frame, alignment=Qt.AlignHCenter | Qt.AlignTop)
+        frame.setLineWidth(1)
+        frame.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        frame_layout = QVBoxLayout()
+        frame_layout.setContentsMargins(0,0,0,0)
+        frame_layout.setSpacing(0)
+        frame.setLayout(frame_layout)
+        params_layout = QGridLayout()
+        params_layout.setSpacing(10)
+        frame_layout.addLayout(params_layout)
+        for col, title in enumerate(["Element", "Bonds", "Geometry"]):
+            params_layout.addWidget(QLabel(title), 0, col)
