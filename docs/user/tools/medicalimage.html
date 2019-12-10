@@ -36,52 +36,53 @@ target="_blank">ChimeraX for Medical Image Analysis</a>
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
-<td align="center"><b>icon</b></td>
-<td align="center"><b>description</b></td>
-<td align="center"><b>command</b></td>
+<th colspan="3" align="center" style="background-color:#eaeaea">File</th>
 </tr><tr>
 <td align="center"><img src="toolbar-icons/open-in-app.png" width="35px">
-<br><font size="-1"><a href="toolbar.html#home"><b>Home</b></a></font></td>
-<td align="center">open DICOM</td>
+<!-- <br><font size="-1"><a href="toolbar.html#home"><b>Home</b></a></font> -->
+</td>
+<td align="center">open <a href="../dicom/dicom.html">DICOM</a></td>
 <td align="center">
-(none; Menu: <b>File... Open DICOM Folder</b>)
+same as Menu: <b>File... Open DICOM Folder</b>
 </td>
 </tr><tr>
 <td align="center"><img src="toolbar-icons/recentfiles.png" width="35px">
 <br><font size="-1"><a href="toolbar.html#home"><b>Home</b></a></font></td>
-<td align="left" class="text">toggle <a href="../window.html">main window</a>
+<td align="center" class="text">toggle <a href="../window.html">main window</a>
 between 3D graphics and recent files (<b>Rapid Access</b>)</td>
 <td align="center" class="text">
-(none; same as clicking bottom right icons
+same as clicking bottom right icons
 <img class="iconbar" src="ui-icons/lightning_night.png">
-<img class="iconbar" src="ui-icons/lightning_day.png">&nbsp;)</td>
+<img class="iconbar" src="ui-icons/lightning_day.png">&nbsp;</td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/camera.png" width="35px">
 <br><font size="-1"><a href="toolbar.html#home"><b>Home</b></a></font></td>
-<td align="center">save image file</td>
+<td align="center">save snapshot of
+<a href="../window.html">main window</a></td>
 <td align="center">
 &nbsp;<b><a href="../commands/save.html">save</a>
 ~/Desktop/image</b><i>N</i><b>.png supersample 3</b>
 <p style="margin-top:2px;margin-bottom:3px">
 (<i>N</i> = 1,2, ...)</td>
 </tr><tr>
+<th colspan="3" align="center" style="background-color:#eaeaea">Display</th>
+</tr><tr>
 <td align="center"><img src="shortcut-icons/plane.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
 <td align="center">single Z-plane at the center</td>
 <td align="center">
 <b><a href="../commands/volume.html#planes">volume</a>
-planes z orthoplanes off style image</b>
+planes z orthoplanes off <a href="../commands/volume.html#general">style</a> image</b>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/orthoplanes.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
 <td align="center">orthoplanes</td>
 <td align="center">
-(exact <b><a href="../commands/volume.html#general">volume</a></b>
-command depends on the data, but sets 
-<a href="../commands/volume.html#planes"><b>orthoplanes</b></a> 
-at the center of the full data, with
-<b><a href="../commands/volume.html#general">style</a>&nbsp;image&nbsp;<a href="../commands/volume.html#dimensions">region</a>&nbsp;all</b>)
+exact command depends on the data; uses
+<b><a href="../commands/volume.html#planes">volume</a></b>
+to set orthoplanes at the center of the full data, with
+<b><a href="../commands/volume.html#general">style</a>&nbsp;image&nbsp;<a href="../commands/volume.html#dimensions">region</a>&nbsp;all</b>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/fullvolume.png" width="35px">
@@ -102,14 +103,17 @@ region all orthoplanes off</b>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/airways.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">Airways II preset</td>
+<td align="center">Airways II 
+<a href="../dicom-quickref.html#presets">preset</a> for image display, 
+typically used for thick sections</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/volume.html#appearance">appearance</a> "Airways II"</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/ear.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">CT_Skin preset</td>
+<td align="center">CT_Skin
+<a href="../dicom-quickref.html#presets">preset</a> for image display</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/volume.html#appearance">appearance</a> CT_Skin</b>
@@ -117,7 +121,9 @@ region all orthoplanes off</b>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/initialcurve.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">initial threshold settings</td>
+<td align="center">initial thresholds
+<a href="../dicom-quickref.html#presets">preset</a> for image display,
+<i>e.g.</i>, for single planes</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/volume.html#appearance">appearance</a> initial</b>
@@ -131,19 +137,19 @@ region all orthoplanes off</b>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/step1.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">step 1<br>(not subsampled, every point)</td>
+<td align="center">step 1, full resolution of data</td>
 <td align="center">
 <b><a href="../commands/volume.html#sampling">volume</a> step 1</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/step2.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">step 2<br>(subsampled at every other point)</td>
+<td align="center">step 2, subsampled at every other point</td>
 <td align="center">
 <b><a href="../commands/volume.html#sampling">volume</a> step 2</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/xyzslice.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">2D-XYZ projection</td>
+<td align="center">2D-XYZ projection for image display</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 projectionMode 2d-xyz</b>
@@ -151,7 +157,7 @@ projectionMode 2d-xyz</b>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/perpslice.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">3D projection</td>
+<td align="center">3D projection for image display</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a> projectionMode 3d</b>
 </td>
@@ -171,9 +177,7 @@ in the <a href="../window.html">ChimeraX graphics window</a>
 </ul>
 <table border cellpadding="4" cellspacing="0">
 <tr>
-<td align="center"><b>icon</b></td>
-<td align="center"><b><a href="../commands/ui.html#mousemode">mousemode</a>&nbsp;<i>function</i></b></td>
-<td align="center"><b>command</b></td>
+<th colspan="3" align="center" style="background-color:#eaeaea">Mouse Mode</th>
 </tr><tr>
 <td align="center"><img src="mouse-icons/crop.png" width="35px">
 <br><font size="-1"><a href="mousemodes.html"><b>Right Mouse</b></a></font></td>
