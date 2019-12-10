@@ -13,12 +13,11 @@
 
 # -----------------------------------------------------------------------------
 #
-def open_dicom(session, stream, name = None, format = 'dicom', **kw):
-  if isinstance(stream, (str, list)):
-    map_path = stream         # Batched paths
+def open_dicom(session, path, name = None, format = 'dicom', **kw):
+  if isinstance(path, (str, list)):
+    map_path = path         # Batched paths
   else:
-    map_path = stream.name
-    stream.close()
+    raise ValueError('open_dicom() requires path argument, got "%s"' % repr(path))
 
   # Locate all series in subdirectories
   from .dicom_format import find_dicom_series
