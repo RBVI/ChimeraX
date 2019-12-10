@@ -646,7 +646,10 @@ class SteamVRCamera(Camera, StateManager):
         self._frame_started = True
 
     def device_position(self, device_index):
-        dp = self._poses[device_index].mDeviceToAbsoluteTracking
+        p = self._poses[device_index]
+        if not p.bPoseIsValid:
+            return None
+        dp = p.mDeviceToAbsoluteTracking
         return hmd34_to_position(dp)
     
     def next_frame(self, *_):
@@ -2282,7 +2285,9 @@ class HandController:
             # Hand model was delete by user, so recreate it.
             hm = self._create_hand_model()
 
-        hm.room_position = self._camera.device_position(di)
+        hpos = self._camera.device_position(di)
+        if hpos is not None:
+            hm.room_position = hpos
         self.update_scene_position()
 
     def update_scene_position(self):

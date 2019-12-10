@@ -137,7 +137,7 @@ def _init_primitives():
                 t = getattr(numpy, n)
                 if issubclass(t, numpy.number):
                     yield t
-            except:
+            except Exception:
                 pass
         yield numpy.bool_
         yield numpy.bool8
@@ -183,20 +183,22 @@ def copy_state(data, convert=None):
             return x
 
     from collections import Mapping  # deque, Sequence, Set
-    from numpy import ndarray
+    import numpy
 
     def _copy(data):
         global _final_primitives, _container_primitives
-        nonlocal convert, Mapping, ndarray
+        nonlocal convert, Mapping, numpy
         if isinstance(data, _final_primitives):
             return data
         if isinstance(data, _container_primitives):
             if isinstance(data, Mapping):
                 items = [(_copy(k), _copy(v)) for k, v in data.items()]
-            elif isinstance(data, ndarray):
+            elif isinstance(data, numpy.ndarray):
                 if data.dtype != object:
                     return data.copy()
-                items = [_copy(o) for o in data]
+                a = numpy.array([_copy(o) for o in data.flat], dtype=object)
+                a.shape = data.shape
+                return a
             else:
                 # must be isinstance(data, (deque, Sequence, Set)):
                 items = [_copy(o) for o in data]
@@ -215,11 +217,11 @@ def dereference_state(data, convert, convert_cls):
         _init_primitives()
 
     from collections import Mapping  # deque, Sequence, Set
-    from numpy import ndarray
+    import numpy
 
     def _copy(data):
         global _final_primitives, _container_primitives
-        nonlocal convert, convert_cls, Mapping, ndarray
+        nonlocal convert, convert_cls, Mapping, numpy
         if isinstance(data, convert_cls):
             return convert(data)
         if isinstance(data, FinalizedState):
@@ -230,10 +232,12 @@ def dereference_state(data, convert, convert_cls):
             raise ValueError("unable to copy %s objects" % data.__class__.__name__)
         if isinstance(data, Mapping):
             items = [(_copy(k), _copy(v)) for k, v in data.items()]
-        elif isinstance(data, ndarray):
+        elif isinstance(data, numpy.ndarray):
             if data.dtype != object:
                 return data.copy()
-            items = [_copy(o) for o in data]
+            a = numpy.array([_copy(o) for o in data.flat], dtype=object)
+            a.shape = data.shape
+            return a
         else:
             # must be isinstance(data, (deque, Sequence, Set)):
             items = [_copy(o) for o in data]
