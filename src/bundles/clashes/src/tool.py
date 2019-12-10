@@ -39,7 +39,7 @@ class AtomProximityTool(ToolInstance):
         bbox.rejected.connect(self.delete)
         if self.help:
             from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
+            bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.help))
         else:
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
@@ -57,9 +57,9 @@ class AtomProximityTool(ToolInstance):
 class ClashesTool(AtomProximityTool):
     def __init__(self, *args, **kw):
         from .gui import ClashesGUI
-        super().__init__(ClashesGUI, None, *args, **kw)
+        super().__init__(ClashesGUI, "help:user/tools/clashes.html", *args, **kw)
 
 class ContactsTool(AtomProximityTool):
     def __init__(self, *args, **kw):
         from .gui import ContactsGUI
-        super().__init__(ContactsGUI, None, *args, **kw)
+        super().__init__(ContactsGUI, "help:user/tools/clashes.html", *args, **kw)

@@ -247,20 +247,20 @@ class AtomProximityGUI(QWidget):
                     contents_margins=(10,0,10,0))
                 group_layout.addWidget(bool_param_options, alignment=Qt.AlignCenter)
                 if show_inter_model:
-                    self.inter_model_option = BooleanOption("Include inter-model",
+                    self.inter_model_option = BooleanOption("Include intermodel",
                         None if settings else inter_model, None, attr_name="inter_model", settings=settings)
                     bool_param_options.add_option(self.inter_model_option)
                 if show_inter_submodel:
-                    self.inter_submodel_option = BooleanOption("Include inter-submodel",
+                    self.inter_submodel_option = BooleanOption("Include intersubmodel",
                         None if settings else inter_submodel, None,
                         attr_name="inter_submodel", settings=settings)
                     bool_param_options.add_option(self.inter_submodel_option)
                 if show_intra_mol:
-                    self.intra_mol_option = BooleanOption("Include intra-molecule",
+                    self.intra_mol_option = BooleanOption("Include intramolecule",
                         None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
                     bool_param_options.add_option(self.intra_mol_option)
                 if show_intra_res:
-                    self.intra_res_option = BooleanOption("Include intra-residue",
+                    self.intra_res_option = BooleanOption("Include intraresidue",
                         None if settings else intra_res, None, attr_name="intra_res", settings=settings)
                     bool_param_options.add_option(self.intra_res_option)
 
