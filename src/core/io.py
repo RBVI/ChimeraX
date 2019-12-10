@@ -91,10 +91,6 @@ class FileFormat:
 
         Whether format can be read from a directory.
 
-    ..attribute:: require_path
-
-        Whether format can only read from a file, not a stream.
-
     ..attribute:: nicknames
 
         Alternative names for format, usually includes a short abbreviation.
@@ -137,7 +133,7 @@ class FileFormat:
     """
 
     def __init__(self, format_name, category, extensions, nicknames, mime, reference,
-                 dangerous, icon, encoding, synopsis, require_path=False):
+                 dangerous, icon, encoding, synopsis):
         self.name = format_name
         self.category = category
         self.extensions = extensions
@@ -148,7 +144,6 @@ class FileFormat:
         self.icon = icon
         self.encoding = encoding
         self.synopsis = synopsis
-        self.require_path = require_path	# If true then reader cannot handle a stream.
 
         if reference:
             # sanitize URL
@@ -187,6 +182,15 @@ class FileFormat:
 
     open_func = property(_get_open_func, _set_open_func)
 
+    @property
+    def open_requires_path(self):
+        f = self._open_func
+        if f is None:
+            return False
+        import inspect
+        params = inspect.signature(f).parameters
+        return 'path' in params
+        
     def has_export_func(self):
         """Test for export function without bootstrapping"""
         return (self._boot_export_func is not None or
@@ -234,7 +238,7 @@ _file_formats = {}
 def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
                     encoding=None, synopsis=None, allow_directory=None,
-                    check_path=None, require_path=False, **kw):
+                    check_path=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -273,7 +277,7 @@ def register_format(format_name, category, extensions, nicknames=None,
         synopsis = format_name
     ff = _file_formats[format_name] = FileFormat(
         format_name, category, exts, nicknames, mime, reference, dangerous,
-        icon, encoding, synopsis, require_path=require_path)
+        icon, encoding, synopsis)
     if allow_directory is not None:
         ff.allow_directory = allow_directory
     if check_path is not None:
@@ -402,7 +406,7 @@ def open_data(session, filespec, format=None, name=None, **kw):
     open_func = fmt.open_func
     if open_func is None:
         raise UserError("unable to open %s files" % fmt.name)
-    if compression is not None and fmt.require_path:
+    if compression is not None and fmt.open_requires_path:
         raise UserError("Cannot read compressed %s files" % fmt.name)
     import inspect
     params = inspect.signature(open_func).parameters
@@ -483,7 +487,7 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
                 batch[fmt] = [filespec]
         else:
             unbatched.append(filespec)
-        if fmt is not None and fmt.require_path and compression is not None:
+        if fmt is not None and fmt.open_requires_path and compression is not None:
             from .errors import UserError
             raise UserError("Cannot read compressed %s files" % fmt.name)
 
