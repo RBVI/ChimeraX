@@ -260,12 +260,12 @@ class Parser:
             if callable(attr):
                 continue
             if isinstance(attr, basestring):
-                print >> f, "  %s: %s" % (a, attr)
+                print("  %s: %s" % (a, attr), file=f)
             elif isinstance(attr, list):
                 for o in attr:
                     o.dump(f)
             elif attr is None:
-                print >> f, "  %s: _uninitialized_" % a
+                print("  %s: _uninitialized_" % a, file=f)
 
 def restore_parser(data):
     try:
@@ -340,7 +340,7 @@ class Match:
         self.sequence = ''.join(seq)
 
     def dump(self, f):
-        print >> f, self
+        print(self, file=f)
         self.print_sequence(f, '')
 
 
@@ -351,3 +351,6 @@ if __name__ == "__main__":
         output = f.read()
     p = Parser(query_name, query_seq, output)
     print(p.matches)
+    import sys
+    for m in p.matches:
+        m.dump(sys.stdout)

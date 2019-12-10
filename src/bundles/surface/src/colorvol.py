@@ -33,50 +33,76 @@ def color_sample(session, surfaces, map, palette = None, range = None,
     '''
 
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency, auto_update = update)
+                        offset = offset, transparency = transparency, auto_update = update,
+                        undo_name = 'color sample')
 
 # -----------------------------------------------------------------------------
 #
 def color_electrostatic(session, surfaces, map, palette = None, range = None,
                         offset = 1.4, transparency = None, update = True):
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency, auto_update = update)
+                        offset = offset, transparency = transparency, auto_update = update,
+                        undo_name = 'color electrostatic')
     
 
 # -----------------------------------------------------------------------------
 #
-def color_gradient(session, surfaces, map, palette = None, range = None,
+def color_gradient(session, surfaces, map = None, palette = None, range = None,
                    offset = 0, transparency = None, update = True):
+    if map is None:
+        from chimerax.map import VolumeSurface
+        if len(surfaces) != 1 or not isinstance(surfaces[0], VolumeSurface):
+            from chimerax.core.errors import UserError
+            raise UserError('volume gradient command must specify "map" option')
+        map = surfaces[0].volume
+            
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
-                        offset = offset, transparency = transparency, gradient = True, auto_update = update)
+                        offset = offset, transparency = transparency, gradient = True,
+                        auto_update = update, undo_name = 'color gradient')
 
 # -----------------------------------------------------------------------------
 #
 def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
-                                palette = None, range = None, offset = 0):
+                                palette = None, range = None, offset = 0,
+                                undo_state = None):
     from chimerax import atomic
     surfs = atomic.surfaces_with_atoms(atoms)
+    if len(surfs) == 0:
+        return 0
+    
     for s in surfs:
         v, all_atoms = s.vertices_for_atoms(atoms)
         if v is not None:
+            if undo_state:
+                cprev = s.color_undo_state
             cs = VolumeColor(s, map, palette, range, offset = offset)
             vcolors = s.get_vertex_colors(create = True, copy = True)
             vcolors[v] = cs.vertex_colors()[v]
             s.set_vertex_colors_and_opacities(v, vcolors, opacity)
+            if undo_state:
+                undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
+
     return len(surfs)
 
 # -----------------------------------------------------------------------------
 #
 def _color_by_map_value(session, surfaces, map, palette = None, range = None,
                         offset = 0, transparency = None, gradient = False, caps_only = False,
-                        auto_update = True):
+                        auto_update = True, undo_name = 'color map by value'):
+
     surfs = [s for s in surfaces if s.vertices is not None]
     cs_class = GradientColor if gradient else VolumeColor
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState(undo_name)
     for surf in surfs:
+        cprev = surf.color_undo_state
         cs = cs_class(surf, map, palette, range, transparency = transparency,
                       offset = offset, auto_recolor = auto_update)
         cs.set_vertex_colors()
+        undo_state.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
 
+    session.undo.register(undo_state)
+        
 # -----------------------------------------------------------------------------
 #
 def _use_full_range(range, palette):

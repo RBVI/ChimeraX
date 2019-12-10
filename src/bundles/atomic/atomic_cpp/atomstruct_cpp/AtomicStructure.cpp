@@ -448,7 +448,7 @@ AtomicStructure::make_chains() const
             AssocRetvals retvals;
             try {
                 retvals = try_assoc(sr_seq, *chain, ap, max_errs);
-            } catch (SA_AssocFailure) {
+            } catch (SA_AssocFailure&) {
                 chain->set_from_seqres(false);
                 continue;
             }

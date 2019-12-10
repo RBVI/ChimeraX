@@ -81,6 +81,8 @@ class VolumeDefaultSettings:
         'color_mode': 'auto8',
         'colormap_on_gpu': False,
         'colormap_size': 256,
+        'colormap_extend_left': False,
+        'colormap_extend_right': True,
         'blend_on_gpu': False,
         'projection_mode': 'auto',
         'plane_spacing': 'min',

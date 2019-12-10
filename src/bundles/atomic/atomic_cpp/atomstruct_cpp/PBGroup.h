@@ -63,7 +63,7 @@ protected:
     BaseManager*  _manager;
     friend class Proxy_PBGroup;
     Proxy_PBGroup* _proxy; // the proxy for this group
-    float  _radius = 0.1;
+    float  _radius = 0.1f;
     Structure*  _structure = nullptr;
 
     // the manager will need to be declared as a friend...

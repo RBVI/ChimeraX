@@ -36,7 +36,8 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/zone/src/zone.png \
 		$(TOP)/src/bundles/pick_blobs/src/pickblobs.png \
 		$(TOP)/src/bundles/map_eraser/src/eraser.png \
-		$(TOP)/src/bundles/tape_measure/src/tape.png
+		$(TOP)/src/bundles/tape_measure/src/tape.png \
+		$(TOP)/src/bundles/viewdockx/src/nextdocking.png
 MICONDIR = $(DOCDIR)/mouse-icons
 SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons
@@ -49,9 +50,11 @@ BICONDIR = $(DOCDIR)/basic-icons
 UIICONS = $(TOP)/src/bundles/ui/src/icons/*.png
 UICONDIR = $(DOCDIR)/ui-icons
 
-install:
+install: install-icons
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
+
+install-icons:
 	if [ ! -d "$(MICONDIR)" ]; then mkdir -p $(MICONDIR); fi
 	$(RSYNC) $(MOUSEICONS) $(MICONDIR)
 	if [ ! -d "$(SICONDIR)" ]; then mkdir -p $(SICONDIR); fi

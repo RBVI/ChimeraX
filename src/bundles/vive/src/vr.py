@@ -155,7 +155,9 @@ def vr_button(session, button, mode, hand = None):
 
 # -----------------------------------------------------------------------------
 #
-def vr_room_camera(session, enable, field_of_view = None, width = None, background_color = None):
+def vr_room_camera(session, enable = True, field_of_view = None, width = None,
+                   background_color = None, tracker = None,
+                   save_position = None, save_tracker_mount = None):
     '''
     Mirror using fixed camera in room separate from VR headset view.
 
@@ -164,27 +166,48 @@ def vr_room_camera(session, enable, field_of_view = None, width = None, backgrou
 
     Parameters
     ----------
-    enable : Whether to use a separate room camera for VR mirroring.
+    enable : bool
+      Whether to use a separate room camera for VR mirroring.
     field_of_view : float
       Horizontal field of view of room camera.  Degrees.  Default 90.
     width : float
       Width of room camera screen shown in VR in meters.  Default 1.
     background_color : Color
       Color of background in room camera rendering.  Default is dark gray.
+    tracker : bool
+      Whether to set the camera position from a Vive tracker device.  Default False.
+    save_position : bool
+      If true save the current camera room position for future sessions.
+    save_tracker_mount : bool
+      If true save the current relative camera position in tracker coordinates
+      for future sessions.
     '''
 
     c = vr_camera(session)
     rc = c.enable_room_camera(enable)
 
-    if enable:
-        if field_of_view is not None:
-            rc._field_of_view = field_of_view
-        if width is not None:
-            rc._camera_model.set_size(width)
-        if background_color is not None:
-            rc._background_color = background_color.rgba
-
-
+    if not enable:
+        loc = locals()
+        for option in ('field_of_view', 'width', 'background_color',
+                       'tracker', 'save_position', 'save_tracker_mount'):
+            if loc.get(option) is not None:
+                from chimerax.core.errors import UserError
+                raise UserError('Cannot use room camera option "%s" with camera off' % option)
+        return
+    
+    if field_of_view is not None:
+        rc._field_of_view = field_of_view
+    if width is not None:
+        rc._camera_model.set_size(width)
+    if background_color is not None:
+        rc._background_color = background_color.rgba
+    if tracker is not None:
+        rc.use_tracker(tracker)
+    if save_position:
+        rc.save_settings(camera_position = True)
+    if save_tracker_mount:
+        rc.save_settings(tracker_transform = True)
+        
 # -----------------------------------------------------------------------------
 # Register the oculus command for ChimeraX.
 #
@@ -214,10 +237,13 @@ def register_vr_command(logger):
     create_alias('device vr button', 'vr button $*', logger=logger,
             url="help:user/commands/device.html#vr-button")
 
-    desc = CmdDesc(required = [('enable', BoolArg)],
+    desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('field_of_view', FloatArg),
                               ('width', FloatArg),
-                              ('background_color', ColorArg)],
+                              ('background_color', ColorArg),
+                              ('tracker', BoolArg),
+                              ('save_position', BoolArg),
+                              ('save_tracker_mount', BoolArg)],
                    synopsis = 'Control VR room camera')
     register('vr roomCamera', desc, vr_room_camera, logger=logger)
     create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger,
@@ -360,7 +386,8 @@ class SteamVRCamera(Camera, StateManager):
 
         self._hand_controllers = [HandController(self, 'right'),
                                   HandController(self, 'left')]	# List of HandController
-
+        self._tracker_device_index = None	# Vive tracker
+        
         self.user_interface = UserInterface(self, session)
         self._vr_model_group = None	# Grouping model for hand controllers and UI models
         self._vr_model_group_id = 100	# Keep VR model group at bottom of model panel
@@ -480,7 +507,23 @@ class SteamVRCamera(Camera, StateManager):
             rc.close(self.render)
             self._room_camera = None
         return rc
-    
+
+    def tracker_room_position(self):
+        i = self._tracker_device_index
+        if i is None:
+            i = self._find_tracker()
+            if i is None:
+                return None
+        return self.device_position(i)
+
+    def _find_tracker(self):
+        import openvr
+        for device_id in range(openvr.k_unMaxTrackedDeviceCount):
+            if self._device_type(device_id) == 'tracker' and self._device_connected(device_id):
+                self._tracker_device_index = device_id
+                return device_id
+        return None
+        
     def fit_scene_to_room(self,
                           scene_bounds = None,
                           room_scene_size = 2, 		# Initial virtual model size in meters
@@ -504,7 +547,9 @@ class SteamVRCamera(Camera, StateManager):
                 # Need to exclude UI from bounds.
                 top_models = self._session.models.scene_root_model.child_models()
                 from chimerax.core.geometry import union_bounds
-                b = union_bounds(m.bounds() for m in top_models if m.id[0] != g.id[0])
+                b = union_bounds(m.bounds() for m in top_models
+                                 if m.display and m.id[0] != g.id[0] and
+                                 not getattr(m, 'skip_bounds', False))
         if b:
             scene_size = b.width()
             scene_center = b.center()
@@ -601,7 +646,10 @@ class SteamVRCamera(Camera, StateManager):
         self._frame_started = True
 
     def device_position(self, device_index):
-        dp = self._poses[device_index].mDeviceToAbsoluteTracking
+        p = self._poses[device_index]
+        if not p.bPoseIsValid:
+            return None
+        dp = p.mDeviceToAbsoluteTracking
         return hmd34_to_position(dp)
     
     def next_frame(self, *_):
@@ -651,13 +699,36 @@ class SteamVRCamera(Camera, StateManager):
         while vrs.pollNextEvent(e):
             type = e.eventType
             if type == openvr.VREvent_TrackedDeviceActivated:
-                self._hand_controller_enabled(e.trackedDeviceIndex)
+                i = e.trackedDeviceIndex
+                dtype = self._device_type(i)
+                if dtype == 'controller':
+                    self._hand_controller_enabled(i)
+                elif dtype == 'tracker':
+                    self._tracker_device_index = i
             elif type == openvr.VREvent_TrackedDeviceDeactivated:
-                self._hand_controller_disabled(e.trackedDeviceIndex)
+                i = e.trackedDeviceIndex
+                dtype = self._device_type(i)
+                if dtype == 'controller':
+                    self._hand_controller_disabled(e.trackedDeviceIndex)
+                elif dtype == 'tracker':
+                    self._tracker_device_index = None
             else:
                 for hc in self.hand_controllers():
                     hc.process_event(e)
-                
+
+    def _device_type(self, device_index):
+        vrs = self._vr_system
+        c = vrs.getTrackedDeviceClass(device_index)
+        import openvr
+        tmap = {openvr.TrackedDeviceClass_Controller: 'controller',
+                openvr.TrackedDeviceClass_GenericTracker: 'tracker',
+                openvr.TrackedDeviceClass_HMD: 'hmd'}
+        return tmap.get(c, 'unknown')
+
+    def _device_connected(self, device_index):
+        vrs = self._vr_system
+        return vrs.isTrackedDeviceConnected(device_index)
+
     def process_controller_motion(self):
 
         for hc in self.hand_controllers():
@@ -681,8 +752,12 @@ class SteamVRCamera(Camera, StateManager):
         else:
             # Stereo eyes view in same direction with position shifted along x.
             es = self._eye_shift_left if view_num == 0 else self._eye_shift_right
-            t = es.scale_translation(1/self.scene_scale)
-            v = camera_position * t
+            ss = self.scene_scale
+            if ss == 0:
+                v = camera_position
+            else:
+                t = es.scale_translation(1/ss)
+                v = camera_position * t
         return v
 
     def number_of_views(self):
@@ -838,10 +913,9 @@ class SteamVRCamera(Camera, StateManager):
 
     def _assign_hand_controller(self, device_id):
         d = device_id
-        vrs = self._vr_system
-        import openvr
-        if vrs.getTrackedDeviceClass(d) != openvr.TrackedDeviceClass_Controller:
+        if self._device_type(d) != 'controller':
             return
+        vrs = self._vr_system
         if not vrs.isTrackedDeviceConnected(d):
             return
         left_or_right = self._controller_left_or_right(d)
@@ -918,6 +992,7 @@ class SteamVRCamera(Camera, StateManager):
 class RoomCamera:
     '''Camera fixed in room for mirroring to desktop.'''
     def __init__(self, parent, room_to_scene, render):
+        self._session = parent.session
         self._framebuffer = None	# Framebuffer for rendering room camera view.
         self._camera_model = None
         self._field_of_view = 90	# Degrees.  Horizontal.
@@ -934,10 +1009,10 @@ class RoomCamera:
 
     def close(self, render):
         self._delete_framebuffer(render)
-        self._save_camera_position()
         cm = self._camera_model
         if cm:
-            cm.delete()
+            if not cm.deleted:
+                cm.delete()
             self._camera_model = None
         
     @property
@@ -947,7 +1022,7 @@ class RoomCamera:
     @property
     def camera_position(self):
         cm = self._camera_model
-        if cm is None:
+        if cm is None or cm.deleted:
             from chimerax.core.geometry import Place
             p = Place()
         else:
@@ -971,11 +1046,40 @@ class RoomCamera:
     
     def _create_camera_model(self, parent, room_to_scene, texture):
         cm = RoomCameraModel('Room camera', parent.session, texture, room_to_scene)
-        cm.room_position = self._initial_room_position(parent.session)
+        cm.room_position = self._initial_room_position()
         parent.add([cm])
         return cm
+    
+    def _initial_room_position(self):
+        s = self._saved_settings()
+        from chimerax.core.geometry import Place
+        p = Place(s.independent_camera_position)
+        return p
 
-    def _initial_room_position(self, session):
+    def use_tracker(self, use):
+        ses = self._session
+        cm = self._camera_model
+        if cm is None:
+            ses.logger.warning('Room camera does not exist.  Cannot enable tracker.')
+            return
+        cam = ses.main_view.camera
+        if not hasattr(cam, 'tracker_room_position'):
+            ses.logger.warning('Cannot use room camera tracker before VR camera enabled')
+            return
+        p = cam.tracker_room_position()
+        if p is None:
+            ses.logger.warning('No Vive tracker found.')
+            return
+        tt = self._tracker_transform()
+        cm.room_position = p*tt
+
+    def _tracker_transform(self):
+        s = self._saved_settings()
+        from chimerax.core.geometry import Place
+        p = Place(s.tracker_transform)
+        return p
+
+    def _saved_settings(self):
         if self._settings is None:
             from chimerax.core.geometry import translation
             # Centered 1.5 meters off floor, 2 meters from center
@@ -985,19 +1089,27 @@ class RoomCamera:
             class _VRRoomCameraSettings(Settings):
                 EXPLICIT_SAVE = {
                     'independent_camera_position': m,
+                    'tracker_transform': ((1,0,0,0),(0,1,0,0),(0,0,1,0)),
                 }
-            self._settings = _VRRoomCameraSettings(session, "vr_room_camera")
-        from chimerax.core.geometry import Place
-        p = Place(self._settings.independent_camera_position)
-        return p
+            self._settings = _VRRoomCameraSettings(self._session, "vr_room_camera")
+        return self._settings
 
-    def _save_camera_position(self):
-        settings = self._settings
+    def save_settings(self, camera_position = False, tracker_transform = False):
         cm = self._camera_model
-        if settings is None or cm is None:
+        if cm is None:
             return
-        m = tuple(tuple(row) for row in cm.room_position.matrix)
-        settings.independent_camera_position = m
+        settings = self._saved_settings()
+        if camera_position:
+            m = tuple(tuple(row) for row in cm.room_position.matrix)
+            settings.independent_camera_position = m
+        if tracker_transform:
+            cam = self._session.main_view.camera
+            if hasattr(cam, 'tracker_room_position'):
+                trp = cam.tracker_room_position()
+                if trp:
+                    tt = trp.inverse() * cm.room_position
+                    tm = tuple(tuple(row) for row in tt.matrix)
+                    settings.tracker_transform = tm
         settings.save()
         
     def start_rendering(self, render):
@@ -1077,6 +1189,12 @@ class RoomCameraModel(Model):
         # Avoid camera disappearing when far from models
         self.allow_depth_cue = False
 
+    def delete(self):
+        cam = self.session.main_view.camera
+        Model.delete(self)
+        if isinstance(cam, SteamVRCamera):
+            cam.enable_room_camera(False)
+            
     def _get_room_position(self):
         return (self._last_room_to_scene.inverse() * self.position).remove_scale()
     def _set_room_position(self, room_position):
@@ -2167,7 +2285,9 @@ class HandController:
             # Hand model was delete by user, so recreate it.
             hm = self._create_hand_model()
 
-        hm.room_position = self._camera.device_position(di)
+        hpos = self._camera.device_position(di)
+        if hpos is not None:
+            hm.room_position = hpos
         self.update_scene_position()
 
     def update_scene_position(self):

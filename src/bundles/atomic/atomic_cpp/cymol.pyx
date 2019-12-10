@@ -35,6 +35,8 @@ cdef const char * _translate_struct_cat(cydecl.StructCat cat):
         return "ligand"
     if cat == cydecl.StructCat.Ions:
         return "ions"
+    if cat == cydecl.StructCat.Unassigned:
+        return "other"
     raise ValueError("Unknown structure category")
 
 cdef class CyAtom:

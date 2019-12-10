@@ -446,6 +446,23 @@ class MolecularSurface(Surface):
             vcolors[vmask,3] = opacity
         self.vertex_colors = vcolors
 
+    # Handle undo of color changes
+    _color_attributes = ('color', 'vertex_colors',
+                         '_atom_patch_colors', '_atom_patch_color_mask')
+    def _color_undo_state(self):
+        color_state = {}
+        from numpy import ndarray
+        for attr in self._color_attributes:
+            value = getattr(self, attr)
+            if isinstance(value, ndarray):
+                value = value.copy()
+            color_state[attr] = value
+        return color_state
+    def _restore_colors_from_undo_state(self, color_state):
+        for attr in self._color_attributes:
+            setattr(self, attr, color_state[attr])
+    color_undo_state = property(_color_undo_state, _restore_colors_from_undo_state)
+    
     def first_intercept(self, mxyz1, mxyz2, exclude = None):
         # Pick atom associated with surface patch
         from chimerax.core.graphics import Drawing, PickedTriangle
@@ -507,6 +524,7 @@ class MolecularSurface(Surface):
         for attr in MolecularSurface._save_attrs:
             if attr in d and attr not in geom_attrs:
                 setattr(s, attr, d[attr])
+        return s
 
 def remove_solvent_ligands_ions(atoms, keep = None):
     '''Remove solvent, ligands and ions unless that removes all atoms

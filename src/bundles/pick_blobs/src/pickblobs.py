@@ -70,9 +70,17 @@ def principle_axes_box(varray, tarray):
 #
 from chimerax.core.models import Surface
 class BlobOutlineBox(Surface):
-    def __init__(self, session, axes, bounds, rgba = (0,255,0,255)):
+    def __init__(self, session):
         Surface.__init__(self, 'blob outline box', session)
 
+    @classmethod
+    def create_box(cls, session, axes, bounds, rgba = (0,255,0,255)):
+        '''Create a new outline box model.'''
+        bob = cls(session)
+        bob._create_outline(axes, bounds, rgba)
+        return bob
+        
+    def _create_outline(self, axes, bounds, rgba = (0,255,0,255)):        
         # Compute corners
         vlist = []
         b = (bounds.xyz_min, bounds.xyz_max)
@@ -96,6 +104,13 @@ class BlobOutlineBox(Surface):
         s.edge_mask = hide_diagonals
         s.color = rgba
 
+    def take_snapshot(self, session, flags):
+        return Surface.save_geometry(self, session, flags)
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return BlobOutlineBox(session).restore_geometry(session, data)
+    
 # -------------------------------------------------------------------------
 #
 def boundary_lengths(varray, tarray):
@@ -145,7 +160,7 @@ def measure_blob(session, surface, triangle_number, color = None,
     if outline:
         from chimerax.core.colors import Color
         rgba = outline_color.uint8x4() if isinstance(outline_color, Color) else outline_color
-        bob = BlobOutlineBox(session, axes, bounds, rgba = rgba)
+        bob = BlobOutlineBox.create_box(session, axes, bounds, rgba = rgba)
         surface.parent.add([bob])
 
 # -------------------------------------------------------------------------

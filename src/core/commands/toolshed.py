@@ -232,6 +232,7 @@ toolshed_install_desc = CmdDesc(required=[("bundle_name", StringArg)],
                           optional=[("user_only", BoolArg),
                                     ("reinstall", BoolArg),
                                     ("version", StringArg)],
+                          hidden=["user_only"],
                           synopsis='Install a bundle')
 
 
@@ -312,36 +313,68 @@ def toolshed_show(session, tool_name, _show=True):
     if not session.ui.is_gui:
         from chimerax.core.errors import UserError
         raise UserError("Need a GUI to show or hide tools")
+    lc_tool_name = tool_name.casefold()
     ts = session.toolshed
-    all_tools = session.tools.list()
-    # First look for tool instance whose display name
-    # matches tool_name
-    tinst = [t for t in all_tools if t.display_name == tool_name]
-    # Next look for tool instances whose tool_info name
-    # matches tool_name
+    running_tools = session.tools.list()
+
+    # First look for running tools whose display name
+    # exactly matches tool_name, then look for ones
+    # whose tool_info name exactly matches tool_name.
+    tinst = [t for t in running_tools
+             if t.display_name.casefold() == lc_tool_name]
     if not tinst:
-        tinst = [t for t in all_tools if t.tool_name == tool_name]
-    # Next look for tool instances whose bundle_info name
-    # matches tool_name
-    if not tinst:
-        tinst = [t for t in all_tools
-                 if t.bundle_info.name.replace("ChimeraX-", "") == tool_name]
+        tinst = [t for t in running_tools
+                 if t.tool_name.casefold() == lc_tool_name]
     if tinst:
         for ti in tinst:
             ti.display(_show)
-    elif _show:
-        bi, tool_name = ts.find_bundle_for_tool(tool_name)
-        if bi is None:
+        return
+
+    # If showing the tool (as opposed to hiding it), look for
+    # an installed tool whose name exactly matches tool_name.
+    if _show:
+        tools = ts.find_bundle_for_tool(tool_name, prefix_okay=False)
+        if len(tools) == 1:
+            bi, name = tools[0]
+            bi.start_tool(session, name)
+            return
+        elif len(tools) > 1:
             from chimerax.core.errors import UserError
-            raise UserError('No installed tool named "%s"' % tool_name)
-        bi.start_tool(session, tool_name)
-    else:
-        from chimerax.core.errors import UserError
-        # DEBUG:
-        # for t in all_tools:
-        #     print(t, repr(t.display_name), repr(t.tool_name),
-        #             repr(t.bundle_info.name))
-        raise UserError('No running tool named "%s"' % tool_name)
+            raise UserError('Multiple installed tools named "%s"' % tool_name)
+        # Did not find an exact match, fall through and keep looking
+
+    # Look for running tools whose display name starts
+    # with tool_name, then look for ones whose tool_name
+    # starts with tool_name.
+    tinst = [t for t in running_tools
+             if t.display_name.casefold().startswith(lc_tool_name)]
+    if not tinst:
+        tinst = [t for t in running_tools
+                 if t.tool_name.casefold().startswith(lc_tool_name)]
+    if tinst:
+        for ti in tinst:
+            ti.display(_show)
+        return
+
+    # Look for an installed tool whose tool name starts
+    # with tool_name.
+    if _show:
+        tools = ts.find_bundle_for_tool(tool_name, prefix_okay=True)
+        if len(tools) == 1:
+            bi, name = tools[0]
+            bi.start_tool(session, name)
+            return
+        elif len(tools) > 1:
+            from chimerax.core.errors import UserError
+            raise UserError('Multiple installed tools named "%s"' % tool_name)
+        return
+
+    from chimerax.core.errors import UserError
+    # DEBUG:
+    # for t in running_tools:
+    #     print(t, repr(t.display_name), repr(t.tool_name),
+    #           repr(t.bundle_info.name))
+    raise UserError('No running or installed tool named "%s"' % tool_name)
 toolshed_show_desc = CmdDesc(required=[('tool_name', StringArg)],
                        synopsis="Show tool.  Start if necessary")
 

@@ -57,7 +57,7 @@ protected:
     bool  _display = true;
     int  _hide = 0;
     bool  _halfbond = true;
-    float  _radius = 0.2;
+    float  _radius = 0.2f;
     Rgba  _rgba;
     bool  _selected = false;
 public:

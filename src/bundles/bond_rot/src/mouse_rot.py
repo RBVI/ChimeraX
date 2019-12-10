@@ -80,6 +80,19 @@ class BondRotationMouseMode(MouseMode):
         pick = event.picked_object(self.view)
         self._bond_rot = self._bond_rotation(pick)
 
+        # Move the side of the bond the VR click is closest to.
+        # Would like to have a command to enable this mode for rotating bonds
+        # with small ligands
+        move_closer_side = False
+        if move_closer_side and self._bond_rot is not None:
+            br = self._bond_rot
+            atom1 = br.moving_side
+            atom2 = br.bond.other_atom(atom1)
+            p = event.tip_position
+            from chimerax.core.geometry import distance
+            if distance(p, atom2.scene_coord) < distance(p, atom1.scene_coord):
+                br.moving_side = atom2
+        
     def vr_motion(self, event):
         # Virtual reality hand controller motion.
         br = self._bond_rot

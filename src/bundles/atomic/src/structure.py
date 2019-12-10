@@ -385,7 +385,6 @@ class Structure(Model, StructureData):
             changes = self._ALL_CHANGE
             self._bonds_drawing = p = BondsDrawing('bonds', PickedBond, PickedBonds)
             self.add_drawing(p)
-            p.skip_bounds = True
             # Update level of detail of cylinders
             self._level_of_detail.set_bond_cylinder_geometry(p)
 
@@ -2105,6 +2104,8 @@ class BondsDrawing(Drawing):
     # Used for both bonds and pseudoonds
     # can't have any child drawings
 
+    skip_bounds = True
+
     def __init__(self, name, pick_class, picks_class):
         self.visible_bonds = None
         self._pick_class = pick_class
@@ -2116,7 +2117,7 @@ class BondsDrawing(Drawing):
         if cpb is not None:
             return cpb
         bonds = self.visible_bonds
-        if bonds is None:
+        if bonds is None or len(bonds) == 0:
             return None
         ba1, ba2 = bonds.atoms
         c1, c2, r = ba1.coords, ba2.coords, bonds.radii
@@ -2318,9 +2319,9 @@ class AtomicStructure(Structure):
                 if nucleic:
                     from .nucleotides.cmd import nucleotides
                     if len(nucleic) < 100:
-                        nucleotides(self.session, 'tube/slab', objects=nucleic)
+                        nucleotides(self.session, 'tube/slab', objects=nucleic, create_undo=False)
                     else:
-                        nucleotides(self.session, 'ladder', objects=nucleic)
+                        nucleotides(self.session, 'ladder', objects=nucleic, create_undo=False)
                     from .colors import nucleotide_colors
                     nucleic.ring_colors = nucleotide_colors(nucleic)[0]
                 if ligand:

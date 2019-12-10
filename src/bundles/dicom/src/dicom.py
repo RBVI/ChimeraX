@@ -59,6 +59,9 @@ def open_dicom(session, stream, name = None, format = 'dicom', **kw):
 # -----------------------------------------------------------------------------
 #
 def omit_16bit_lossless_jpeg(series, log):
+  if gdcm_library_available():
+    return series    # PyDicom will use gdcm to read 16-bit lossless jpeg
+
   # Python Image Library cannot read 16-bit lossless jpeg.
   keep = []
   for s in series:
@@ -68,6 +71,15 @@ def omit_16bit_lossless_jpeg(series, log):
     else:
       keep.append(s)
   return keep
+
+# -----------------------------------------------------------------------------
+#
+def gdcm_library_available():
+  try:
+    import gdcm
+  except:
+    return False
+  return True
 
 # -----------------------------------------------------------------------------
 # Group into a four level hierarchy: directory, patient id, date, series.

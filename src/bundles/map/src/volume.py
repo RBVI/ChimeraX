@@ -1742,10 +1742,12 @@ class VolumeImage(Image3d):
   def __init__(self, volume):
 
     self._volume = v = volume
-    
+
+    ro = v.rendering_options
     from .image3d import blend_manager, Colormap
     cmap = Colormap(self._transfer_function(), v.image_brightness_factor,
-                    self._transparency_thickness())
+                    self._transparency_thickness(),
+                    extend_left = ro.colormap_extend_left, extend_right = ro.colormap_extend_right)
 
     Image3d.__init__(self, 'image', v.data, v.region, cmap, v.rendering_options,
                      v.session, blend_manager(v.session))
@@ -1772,9 +1774,11 @@ class VolumeImage(Image3d):
   # ---------------------------------------------------------------------------
   #
   def _update_colormap(self):
+    v = self._volume
+    ro = v.rendering_options
     from .image3d import Colormap
-    cmap = Colormap(self._transfer_function(), self._volume.image_brightness_factor,
-                    self._transparency_thickness())
+    cmap = Colormap(self._transfer_function(), v.image_brightness_factor, self._transparency_thickness(),
+                    extend_left = ro.colormap_extend_left, extend_right = ro.colormap_extend_right)
     self.set_colormap(cmap)
 
   # ---------------------------------------------------------------------------
@@ -2171,6 +2175,8 @@ class VolumeSurface(Surface):
       'model state': Surface.take_snapshot(self, session, flags),
       'version': 1
     }
+    if self.vertex_colors is not None and self.auto_recolor_vertices is None:
+      data['vertex_colors'] = self.vertex_colors
     return data
 
   @staticmethod
@@ -2183,6 +2189,12 @@ class VolumeSurface(Surface):
     if v._style_when_shown == 'image':
       s.display = False		# Old sessions had surface shown but not computed when image style used.
     v._surfaces.append(s)
+    if 'vertex_colors' in data:
+      # Compute surface and set vertex colors.
+      s.update_surface(v.rendering_options)
+      vc = data['vertex_colors']
+      if len(s.vertices) == len(vc):
+        s.vertex_colors = vc
     return s
       
 # -----------------------------------------------------------------------------
@@ -2523,6 +2535,8 @@ class Rendering_Options:
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
     self.colormap_on_gpu = False      # image rendering with colors computed on gpu
     self.colormap_size = 256	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.colormap_extend_left = False
+    self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d

@@ -159,8 +159,9 @@ def relative_path(path, base_path):
     return tuple([relative_path(p, base_path) for p in path])
 
 
-  from os.path import dirname, join
-  d = join(dirname(base_path), '')       # Make directory end with "/".
+  from os.path import dirname, join, abspath
+  bpath = abspath(base_path)
+  d = join(dirname(bpath), '')       # Make directory end with "/".
   if not path.startswith(d):
     return path
 
@@ -253,8 +254,13 @@ class ReplacementFilePaths:
         return None
       replacements[path] = p
       if replace_dir:
-        from os.path import dirname
-        self._replace_dirs[dirname(path)] = dirname(p)
+        from os.path import basename, dirname
+        # Remove the right part of path that stays the same.
+        # This find directory replacements that work for data trees, like DICOM files or Tiff stacks.
+        dorig, dnew = path, p
+        while dnew and basename(dnew) == basename(dorig):
+          dorig, dnew = dirname(dorig), dirname(dnew)
+        self._replace_dirs[dorig] = dnew
       return p
     else:
       return path
@@ -636,6 +642,8 @@ rendering_options_attributes = (
   'color_mode',
   'colormap_on_gpu',
   'colormap_size',
+  'colormap_extend_left',
+  'colormap_extend_right',
   'blend_on_gpu',
   'projection_mode',
   'plane_spacing',

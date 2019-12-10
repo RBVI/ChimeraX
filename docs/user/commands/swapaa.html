@@ -37,6 +37,7 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>swapaa interactive</b> 
 &nbsp;<a href="atomspec.html"><i>residue-spec</i></a>&nbsp; <i>new-type</i>
 [&nbsp;<a href="#lib"><b>lib</b></a>&nbsp;&nbsp;<i>rotamer-library</i>&nbsp;]
+[&nbsp;<a href="#log"><b>log</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <a name="mousemode"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -91,7 +92,7 @@ standard residue name if incorporated into a structure.
 The main <b>swapaa</b> command uses
 several <a href="#criteria">criteria</a> to choose the best rotamer
 for a given type and position:
-lowest clash score, most H-bonds, best fit to an electron density map,
+lowest clash score, most H-bonds, best agreement with a density map,
 and/or highest probability according to the library.
 Bond lengths and angles are taken from the
 <a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
@@ -106,7 +107,8 @@ parameter files <b>all*94.lib</b>, and hydrogens are not included.
 <p>
 The following options apply to the main <b>swapaa</b> command.
 The <b>swapaa interactive</b> command to show rotamers
-without swapping only uses the <a href="#lib"><b>lib</b></a> option,
+without swapping only uses the <a href="#lib"><b>lib</b></a>
+and <a href="#log"><b>log</b></a> options,
 and <b>swapaa mousemode</b> does not have any options.
 </p>
 <blockquote>
@@ -181,24 +183,16 @@ target="_blank">Richardson backbone-independent rotamer library</a>
 </blockquote>
 <blockquote>
 <a name="criteria"></a>
-<!-- <b>criteria</b> &nbsp;<i>method</i>&nbsp;|&nbsp;manual -->
 <b>criteria</b> &nbsp;<i>method</i>&nbsp;|&nbsp;<i>N</i>
 <br>How to choose the rotamer. 
-<!-- 
-If <b>manual</b>, all rotamers will be
-displayed in the graphics window and listed in a
-<a href="../../ContributedSoftware/rotamers/rotamers.html#rotamerlist">
-dialog</a> so that the user can choose interactively;
-otherwise (default), a single rotamer will be chosen automatically
-according to the <i>method</i>.
--->
 The <a href="#preserve"><b>preserve</b></a> option can be used to filter
 the set of rotamers by chi angle similarity to the current sidechain
 before the <i>method</i> is applied.
 The <i>method</i> can be any combination,
 without spaces, of one or more of the following letters (default <b>dchp</b>):
 <ul>
-<li><b>d</b> &ndash; by best fit into a density map:
+<li><b>d</b> &ndash; by best agreement with a density map 
+(largest sum of map values at the rotamer sidechain atom positions):
   <ul>
   <li>if no maps are open but <b>d</b> was just being used by default,
   this criterion will be skipped; if <b>d</b> was entered explicitly 
@@ -246,7 +240,6 @@ with the lowest probability.
 <b>preserve</b> &nbsp;<i>angle</i>
 <br>Whether to discard rotamers (regardless of the
 <a href="#criteria">criteria</a>) 
-<!-- except ignored if <b>manual</b>) -->
 with any chi angle &gt; <i>angle</i>&deg; different from that in
 the current sidechain. If the current sidechain has symmetrical branching
 (as in Asp, Glu, Phe, Tyr), the chi angle for comparison
@@ -281,9 +274,12 @@ and various torsion angle values in the
 <a href="../tools/log.html"><b>Log</b></a>.
 Torsion angle values are given for the backbone 
 (phi, psi, and whether the peptide bond is cis or trans)
-and the chosen sidechain rotamer (chi angles)
-for each swapped residue. Pre-swap chi angles are also reported when
+and the chosen sidechain rotamer (chi angles) for each swapped residue.
+Pre-swap chi angles are also reported when
 the <a href="#preserve"><b>preserve</b></a> option is used.
+In the case of <a href="#interactive"><b>swapaa interactive</b></a>,
+only the backbone angles are reported, since no swap has yet occurred when the 
+<a href="../tools/rotamers.html#rotamerlist">rotamer list</a> dialog is shown.
 </blockquote>
 <blockquote>
 <a name="ignore"></a>
@@ -355,5 +351,5 @@ The <i>tolerance</i> is how much to relax the angle criteria if
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2019</address>
+December 2019</address>
 </body></html>

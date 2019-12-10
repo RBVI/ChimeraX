@@ -25,6 +25,7 @@
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-Atom_Search" version=">=1.0"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
@@ -35,6 +36,8 @@
     <ChimeraXClassifier>Command :: contacts :: Structure Analysis :: Finds atoms in contact with one another</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~clashes :: Structure Analysis :: Clear clash pseudobond</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~contacts :: Structure Analysis :: Clear contact pseudobond</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Clashes :: Structure Analysis :: Find atom-atom clashes</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Contacts :: Structure Analysis :: Find atom-atom contacts</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

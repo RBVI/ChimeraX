@@ -68,6 +68,17 @@ class _RotamerStateManager(StateManager):
         self.triggers.activate_trigger('self destroyed', self)
         self.destroy()
 
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return cls(session, data['base residue'], data['rotamers'])
+
+    def take_snapshot(self, session, flags):
+        data = {
+            'base residue': self.base_residue,
+            'rotamers': self.rotamers
+        }
+        return data
+
     def _changes_cb(self, trigger_name, changes):
         if changes.num_deleted_residues() == 0:
             return
@@ -85,7 +96,7 @@ class _RotamerStateManager(StateManager):
                 self.triggers.activate_trigger('self destroyed', self)
                 self.destroy()
 
-def rotamers(session, residues, res_type, *, lib=None):
+def rotamers(session, residues, res_type, *, lib=None, log=True):
     ''' Command to display possible side-chain rotamers '''
 
     residues = _check_residues(residues)
@@ -102,12 +113,12 @@ def rotamers(session, residues, res_type, *, lib=None):
             r_type = r.name
         else:
             r_type = res_type.upper()
-        rotamers = swap_res.get_rotamers(session, r, res_type=r_type, lib=lib)
+        rotamers = swap_res.get_rotamers(session, r, res_type=r_type, lib=lib, log=log)
         mgr = _RotamerStateManager(session, r, rotamers)
         if session.ui.is_gui:
             from .tool import RotamerDialog
             RotamerDialog(session,
-                "%s Side-Chain Rotamers" % r, mgr, res_type, session.rotamers.library(lib))
+                "%s Side-Chain Rotamers" % r, mgr, res_type, session.rotamers.library(lib).display_name)
         ret_val.append(mgr)
         rot_structs = AtomicStructures(rotamers)
         from chimerax.std_commands.color import color
@@ -164,6 +175,7 @@ def register_command(command_name, logger):
         required = [('residues', ResiduesArg), ('res_type', StringArg)],
         keyword = [
             ('lib', DynamicEnum(logger.session.rotamers.library_names)),
+            ('log', BoolArg),
         ],
         synopsis = 'Show possible side-chain rotamers'
     )

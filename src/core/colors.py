@@ -753,8 +753,12 @@ def most_common_color(colors):
         return None
     return colors[indices[max_index]]
 
-def color_name(rgba8):
+def color_name(color_or_rgba8):
     '''Return english color name or hex color string.'''
+    if isinstance(color_or_rgba8, Color):
+        rgba8 = color_or_rgba8.uint8x4()
+    else:
+        rgba8 = color_or_rgba8
     c = tuple(rgba8)
     if c in _color_names:
         name = _color_names[c]

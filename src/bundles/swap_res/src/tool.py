@@ -13,6 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
+from chimerax.core.atomic import AtomicStructure
 
 _prd = None
 def prep_rotamers_dialog(session, rotamers_tool_name):
@@ -187,24 +188,23 @@ _settings = None
 class RotamerDialog(ToolInstance):
 
     help = "help:user/tools/rotamers.html"
+    SESSION_SAVE = True
+    registerer = "swap_res RotamerDialog"
 
-    #TODO: restoring from session
     def __init__(self, session, tool_name, *args):
         ToolInstance.__init__(self, session, tool_name)
         if args:
             # being called directly rather than during session restore
             self.finalize_init(*args)
 
-    def finalize_init(self, mgr, res_type, lib, *, session_data=None):
+    def finalize_init(self, mgr, res_type, lib_display_name, *, table_info=None):
         self.mgr = mgr
         self.res_type = res_type
-        self.lib = lib
-
-        if session_data:
-            table_data = session_data
+        self.lib_display_name = lib_display_name
 
         self.subdialogs = {}
-        self.opt_columns = {}
+        from collections import OrderedDict
+        self.opt_columns = OrderedDict()
         self.handlers = [
             self.mgr.triggers.add_handler('fewer rotamers', self._fewer_rots_cb),
             self.mgr.triggers.add_handler('self destroyed', self._mgr_destroyed_cb),
@@ -224,7 +224,7 @@ class RotamerDialog(ToolInstance):
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
-        layout.addWidget(QLabel("%s %s rotamers" % (lib.display_name, res_type)))
+        layout.addWidget(QLabel("%s %s rotamers" % (lib_display_name, res_type)))
         column_disp_widget = QWidget()
         class RotamerTable(ItemTable):
             def sizeHint(self):
@@ -236,9 +236,18 @@ class RotamerDialog(ToolInstance):
         for i in range(len(self.mgr.rotamers[0].chis)):
             self.table.add_column("Chi %d" % (i+1), lambda r, i=i: r.chis[i], format="%6.1f")
         self.table.add_column("Probability", "rotamer_prob", format="%.6f ")
+
+        if table_info:
+            table_state, additional_col_info = table_info
+            for col_type, title, data_fetch, display_format in additional_col_info:
+                AtomicStructure.register_attr(self.session, data_fetch, self.registerer,
+                    attr_type=(int if data_fetch.startswith("num") else float))
+                self.opt_columns[col_type] = self.table.add_column(title, data_fetch, format=display_format)
+        else:
+            table_state = None
         self.table.data = self.mgr.rotamers
-        self.table.launch(session_info=session_data)
-        if not session_data:
+        self.table.launch(session_info=table_state)
+        if not table_info:
             self.table.sortByColumn(len(self.mgr.rotamers[0].chis), Qt.DescendingOrder)
         self.table.selection_changed.connect(self._selection_change)
         layout.addWidget(self.table)
@@ -261,22 +270,20 @@ class RotamerDialog(ToolInstance):
         add_col_layout.setContentsMargins(0,0,0,0)
         add_col_layout.setSpacing(0)
         cg_layout.addLayout(add_col_layout)
-        self.add_col_button = QPushButton("Add")
+        self.add_col_button = QPushButton("Calculate")
         add_col_layout.addWidget(self.add_col_button, 0, 0, alignment=Qt.AlignRight)
         radio_layout = QVBoxLayout()
         radio_layout.setContentsMargins(0,0,0,0)
         add_col_layout.addLayout(radio_layout, 0, 1, alignment=Qt.AlignLeft)
         self.button_group = QButtonGroup()
-        self.add_col_button.clicked.connect(lambda *, bg=self.button_group:
+        self.add_col_button.clicked.connect(lambda checked, *, bg=self.button_group:
             self._show_subdialog(bg.checkedButton().text()))
-        for add_type in ["H-Bonds", "Clashes (coming soon)", "Density (coming soon)"]:
+        for add_type in ["H-Bonds", "Clashes", "Density"]:
             rb = QRadioButton(add_type)
             rb.clicked.connect(self._update_button_text)
             radio_layout.addWidget(rb)
             if not self.button_group.buttons():
                 rb.setChecked(True)
-            #if add_type[-1] == ')':
-            #    rb.setEnabled(False)
             self.button_group.addButton(rb)
         self.ignore_solvent_button = QCheckBox("Ignore solvent")
         self.ignore_solvent_button.setChecked(True)
@@ -285,7 +292,7 @@ class RotamerDialog(ToolInstance):
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
         bbox.accepted.connect(self._apply_rotamer)
-        bbox.rejected.connect(self.delete)
+        bbox.rejected.connect(self.tool_window.destroy)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
@@ -294,18 +301,40 @@ class RotamerDialog(ToolInstance):
     def delete(self, from_mgr=False):
         for handler in self.handlers:
             handler.remove()
-        for sd in self.subdialogs.values():
-            sd.destroy()
         self.subdialogs.clear()
         self.opt_columns.clear()
         if not from_mgr:
             self.mgr.destroy()
         super().delete()
 
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = super().restore_snapshot(session, data['ToolInstance'])
+        inst.finalize_init(data['mgr'], data['res_type'], data['lib_display_name'],
+            table_info=data['table info'])
+        return inst
+
+    def take_snapshot(self, session, flags):
+        import sys
+        print("take_snapshot for", self, file=sys.__stderr__)
+        data = {
+            'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'mgr': self.mgr,
+            'res_type': self.res_type,
+            'lib_display_name': self.lib_display_name,
+            'table info': (self.table.session_info(), [(col_type, c.title, c.data_fetch, c.display_format)
+                for col_type, c in self.opt_columns.items()])
+        }
+        return data
+
     def _apply_rotamer(self):
         rots = self.table.selected
         if not rots:
-            raise UserError("No rotamers selected")
+            if self.button_group.checkedButton().text() in self.opt_columns:
+                raise UserError("No rotamers selected")
+            else:
+                raise UserError("No rotamers selected.  Click the 'Calculate' button (not 'OK') to"
+                    " add a column to the table.")
         rot_nums = [r.id[-1] for r in rots]
         from chimerax.core.commands import run
         cmd = "swapaa %s %s criteria %s" % (
@@ -317,6 +346,22 @@ class RotamerDialog(ToolInstance):
             cmd += " retain %s" % str(self.retain_side_chain.isChecked()).lower()
         run(self.session, cmd)
         self.delete()
+
+    def _eval_vol(self, vol):
+        AtomicStructure.register_attr(self.session, "sum_density", self.registerer, attr_type=float)
+        for rot in self.mgr.rotamers:
+            values = vol.interpolated_values(rot.atoms.coords, point_xform=rot.scene_position)
+            total = 0
+            for a, val in zip(rot.atoms, values):
+                # 'is_side_chain' only works for actual polymers
+                if a.name not in a.residue.aa_max_backbone_names:
+                    total += val
+            rot.sum_density = total
+        sd_type = "Density"
+        if sd_type in self.opt_columns:
+            self.table.update_column(self.opt_columns[sd_type], data=True)
+        else:
+            self.opt_columns[sd_type] = self.table.add_column(sd_type, "sum_density", format="%g")
 
     def _fewer_rots_cb(self, trig_name, mgr):
         self.rot_table.set_data(self.mgr.rotamers)
@@ -343,6 +388,7 @@ class RotamerDialog(ToolInstance):
                 base_spec += " & ~solvent"
             hbs = run(self.session, "%s %s %s restrict #%s & ~@c,ca,n" %
                     (cmd_name, base_spec, args, self.mgr.group.id_string))
+            AtomicStructure.register_attr(self.session, "num_hbonds", self.registerer, attr_type=int)
             for rotamer in self.mgr.rotamers:
                 rotamer.num_hbonds = 0
             for d, a in hbs:
@@ -354,9 +400,40 @@ class RotamerDialog(ToolInstance):
                 self.table.update_column(self.opt_columns[sd_type], data=True)
             else:
                 self.opt_columns[sd_type] = self.table.add_column(sd_type, "num_hbonds", format="%d")
+        elif sd_type == "Clashes":
+            cmd_name, spec, args = sd.clashes_gui.get_command()
+            res = self.mgr.base_residue
+            base_spec = "#!%s & ~%s" % (res.structure.id_string, res.string(style="command"))
+            if self.ignore_solvent_button.isChecked():
+                base_spec += " & ~solvent"
+            clashes = run(self.session, "%s %s %s restrict #%s & ~@c,ca,n" %
+                    (cmd_name, base_spec, args, self.mgr.group.id_string))
+            AtomicStructure.register_attr(self.session, "num_clashes", self.registerer, attr_type=int)
+            for rotamer in self.mgr.rotamers:
+                rotamer.num_clashes = 0
+            for a, clashing in clashes.items():
+                if a.structure != res.structure:
+                    a.structure.num_clashes += len(clashing)
+            if sd_type in self.opt_columns:
+                self.table.update_column(self.opt_columns[sd_type], data=True)
+            else:
+                self.opt_columns[sd_type] = self.table.add_column(sd_type, "num_clashes", format="%d")
+        else: # Density
+            vol = sd.vol_list.value
+            if not vol:
+                return
+            self._eval_vol(vol)
         self._update_button_text()
 
     def _show_subdialog(self, sd_type):
+        if sd_type == "Density":
+            from chimerax.map import Volume
+            volumes = [m for m in self.session.models if isinstance(m, Volume)]
+            if not volumes:
+                raise UserError("Must open a volume/map file first!")
+            if len(volumes) == 1:
+                self._eval_vol(volumes[0])
+                return
         if sd_type not in self.subdialogs:
             self.subdialogs[sd_type] = sd = self.tool_window.create_child_window("Add %s Column" % sd_type)
             from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox
@@ -365,9 +442,25 @@ class RotamerDialog(ToolInstance):
             if sd_type == "H-Bonds":
                 from chimerax.atomic.hbonds.gui import HBondsGUI
                 sd.hbonds_gui = HBondsGUI(self.session, settings_name="rotamers", reveal=True,
-                    show_inter_intra_model=False, show_intra_mol=False, show_intra_res=False,
-                    show_model_restrict=False, show_bond_restrict=False, show_save_file=False)
+                    show_inter_model=False, show_intra_model=False, show_intra_mol=False,
+                    show_intra_res=False, show_model_restrict=False, show_bond_restrict=False,
+                    show_save_file=False)
                 layout.addWidget(sd.hbonds_gui)
+            elif sd_type == "Clashes":
+                from chimerax.atomic.clashes.gui import ClashesGUI
+                sd.clashes_gui = ClashesGUI(self.session, False, settings_name="rotamers", radius=0.075,
+                    show_restrict=False, show_bond_separation=False, show_res_separation=False,
+                    show_inter_model=False, show_intra_res=False, show_intra_mol=False, show_attr_name=False,
+                    show_set_attrs=False, show_checking_frequency=False, restrict="cross",
+                    bond_separation=0, reveal=True, show_save_file=False)
+                layout.addWidget(sd.clashes_gui)
+            else: # Density
+                from chimerax.ui.widgets import ModelListWidget
+                from PyQt5.QtWidgets import QFormLayout
+                density_layout = QFormLayout()
+                layout.addLayout(density_layout)
+                sd.vol_list = ModelListWidget(self.session, selection_mode='single', class_filter=Volume)
+                density_layout.addRow("Select density:", sd.vol_list)
             bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
             bbox.accepted.connect(lambda sdt=sd_type: self._process_subdialog(sdt))
             bbox.accepted.connect(lambda sd=sd: setattr(sd, 'shown', False))
@@ -380,11 +473,6 @@ class RotamerDialog(ToolInstance):
 
     def _update_button_text(self):
         cur_choice = self.button_group.checkedButton().text()
-        if cur_choice in self.table.column_names:
-            txt = "Update"
-        else:
-            txt = "Add"
-        self.add_col_button.setText(txt)
         if cur_choice.startswith("Density"):
             self.ignore_solvent_button.hide()
         else:

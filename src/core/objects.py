@@ -42,6 +42,7 @@ class Objects:
     def __init__(self, atoms = None, bonds = None, pseudobonds = None, models = None):
         from .orderedset import OrderedSet
         self._models = OrderedSet() if models is None else OrderedSet(models)
+        self._models.discard(None)
         self._model_instances = {}	# Maps Model to boolean array of length equal to number of instances
         # Use a list of Atoms collections so many concatenations is fast.
         self._atoms = [] if atoms is None else [atoms]
@@ -257,7 +258,16 @@ class Objects:
             bm.append(sb)
 
         # Atom bounds
-        bm.append(self.atoms.scene_bounds)
+        atoms = self.atoms
+        if len(atoms) > 0:
+            bm.append(atoms.scene_bounds)
 
+        # Bond bounds (Objects could have bonds but no atoms).
+        bonds = self.bonds
+        if len(bonds) > 0:
+            a1, a2 = bonds.atoms
+            bm.append(a1.scene_bounds)
+            bm.append(a2.scene_bounds)
+        
         b = union_bounds(bm)
         return b

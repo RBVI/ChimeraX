@@ -44,7 +44,6 @@ def register_color_subcommand(command_name, logger):
         # color by map gradient norm
         desc = CmdDesc(required=[('surfaces', SurfacesArg)],
                        keyword=map_args,
-                       required_arguments = ['map'],
                        synopsis="color surfaces by map gradient norm")
         register('color gradient', desc, color_gradient, logger=logger)
 

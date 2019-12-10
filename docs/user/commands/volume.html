@@ -1015,6 +1015,30 @@ The <a href="#appearance"><b>appearance</b></a> option also adjusts this setting
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
+  <a name="colormapExtendRight"></a>
+  <b>colormapExtendRight</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <br>
+The thresholds and connecting lines on each histogram define a 
+<a href="#transferfunction">transfer function</a>
+that maps data values to colors and intensities.
+This option specifies whether the function should be extended horizontally
+from the rightmost threshold to the maximum data value
+at the far right of the histogram (default <b>true</b>).
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="colormapExtendLeft"></a>
+  <b>colormapExtendLeft</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+  <br>
+The thresholds and connecting lines on each histogram define a 
+<a href="#transferfunction">transfer function</a>
+that maps data values to colors and intensities.
+This option specifies whether the function should be extended horizontally
+from the leftmost threshold to the minimum data value
+at the far left of the histogram (default <b>false</b>).
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
   <a name="colormapOnGpu"></a>
   <b>colormapOnGpu</b> &nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -2303,19 +2327,22 @@ Resampling to a finer grid can be specified with the <b>spacing</b> option
 of the command.
 </p><p>
 <a name="transferfunction"><b>Transfer function</b></a>.
-The thresholds and connecting lines on each histogram define a 
-<b><i>transfer function</i></b> 
+For <a href="#dispsolid"><b>image</b></a> displays, the thresholds 
+and connecting lines on the histogram define a <b><i>transfer function</i></b>
 that maps data values to colors and intensities.
 For each voxel, the data value is compared to the thresholds on the histogram.
 The colors and intensities of the closest threshold at a lower data value 
 (to the left) and the closest threshold at a higher data value (to the right)
-are linearly interpolated. Voxels with data values greater than the rightmost
-threshold or less than the leftmost threshold are colorless and completely
-transparent. Color is defined by red, green, blue and opacity components.
+are linearly interpolated. 
+Color is defined by red, green, blue and opacity components.
 The intensity at a threshold is further scaled by its vertical position,
-where 0 is the bottom of the histogram and 1 is the top. Rendering time
-does not depend on the positions of the thresholds, but increases with
-greater numbers of thresholds.
+where 0 is the bottom of the histogram and 1 is the top. 
+Unless the function is <a href="#colormapExtendRight">extended</a>
+horizontally to the maximum and/or minimum value,
+voxels with data values greater than the rightmost threshold or 
+less than the leftmost threshold are colorless and completely transparent.
+Rendering time does not depend on the positions of the thresholds, 
+but increases with greater numbers of thresholds.
 </p><p>
 <a name="soliddetails"><b>Image transparency details</b></a>.
 For <a href="#dispsolid"><b>image</b></a> displays,
@@ -2396,5 +2423,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+December 2019</address>
 </body></html>

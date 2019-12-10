@@ -563,17 +563,23 @@ def init(argv, event_loop=True):
     # Install any bundles before toolshed is initialized so
     # the new ones get picked up in this session
     from chimerax.core import toolshed
-    inst_dir, restart_file = toolshed.install_on_restart_info()
-    restart_install_msgs = []
+    inst_dir, restart_file = toolshed.restart_action_info()
+    restart_action_msgs = []
     if os.path.exists(restart_file):
         # Move file out of the way so next restart of ChimeraX
         # (when we try to install the bundle) will not go into
         # an infinite loop reopening the restart file
         tmp_file = restart_file + ".tmp"
+        try:
+            # Remove in case old file lying around.
+            # Windows does not allow renaming to an existing file.
+            os.remove(tmp_file)
+        except:
+            pass
         os.rename(restart_file, tmp_file)
         with open(tmp_file) as f:
             for line in f:
-                restart_install(line, inst_dir, restart_install_msgs)
+                restart_action(line, inst_dir, restart_action_msgs)
         os.remove(tmp_file)
 
     toolshed.init(sess.logger, debug=sess.debug,
@@ -648,9 +654,9 @@ def init(argv, event_loop=True):
             # sess.ui.splash_info(msg, next(splash_step), num_splash_steps)
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
-        from chimerax.core.commands import runscript
+        from chimerax.core.commands import run
         for script in opts.scripts:
-            runscript(sess, script)
+            run(sess, 'runscript %s' % script)
 
     if not opts.silent:
         sess.ui.splash_info("Finished initialization",
@@ -671,8 +677,8 @@ def init(argv, event_loop=True):
                          is_html=True)
 
     # Show any messages from installing bundles on restart
-    if restart_install_msgs:
-        for where, msg in restart_install_msgs:
+    if restart_action_msgs:
+        for where, msg in restart_action_msgs:
             if where == "stdout":
                 sess.logger.info(msg)
             else:
@@ -835,18 +841,26 @@ def remove_python_scripts(bin_dir):
             os.remove(path)
 
 
-def restart_install(line, inst_dir, msgs):
+def restart_action(line, inst_dir, msgs):
     # Each line is expected to start with the bundle name/filename
     # followed by additional pip flags (e.g., --user)
     from chimerax.core import toolshed
     import sys, subprocess, os.path, os
     parts = line.rstrip().split('\t')
-    bundle = parts[0]
-    pip_args = parts[1:]
+    action = parts[0]
+    bundle = parts[1]
+    pip_args = parts[2:]
     # Options should match those in toolshed
-    command = ["install", "--upgrade",
-               "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
-               "--upgrade-strategy", "only-if-needed"]
+    # Do not want to import toolshed yet, so we duplicate the code
+    if action == "install":
+        command = ["install", "--upgrade",
+                   "--extra-index-url", toolshed.default_toolshed_url() + "/pypi/",
+                   "--upgrade-strategy", "only-if-needed"]
+    elif action == "uninstall":
+        command = ["uninstall", "--yes"]
+    else:
+        msgs.append(("stderr", "unexpected restart action: %s" % line))
+        return
     command.extend(pip_args)
     if bundle.endswith(".whl"):
         command.append(os.path.join(inst_dir, bundle))
