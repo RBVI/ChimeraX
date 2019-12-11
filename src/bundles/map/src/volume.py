@@ -925,7 +925,7 @@ class Volume(Model):
   # If volume data is not writable then make a writable copy.
   #
   def writable_copy(self, require_copy = False,
-                    unshow_original = True, model_id = None,
+                    unshow_original = True, model_id = None, open_model = True,
                     subregion = None, step = (1,1,1), name = None,
                     copy_colors = True, value_type = None):
 
@@ -944,7 +944,7 @@ class Volume(Model):
       g.name = self.name + ' copy'
 
     v = volume_from_grid_data(g, self.session, style = None, model_id = model_id,
-                              show_dialog = False)
+                              show_dialog = False, open_model = open_model)
     v.copy_settings_from(self, copy_region = False, copy_colors = copy_colors)
 
     if unshow_original:
