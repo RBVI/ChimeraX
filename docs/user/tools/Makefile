@@ -50,9 +50,11 @@ BICONDIR = $(DOCDIR)/basic-icons
 UIICONS = $(TOP)/src/bundles/ui/src/icons/*.png
 UICONDIR = $(DOCDIR)/ui-icons
 
-install:
+install: install-icons
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
+
+install-icons:
 	if [ ! -d "$(MICONDIR)" ]; then mkdir -p $(MICONDIR); fi
 	$(RSYNC) $(MOUSEICONS) $(MICONDIR)
 	if [ ! -d "$(SICONDIR)" ]; then mkdir -p $(SICONDIR); fi
