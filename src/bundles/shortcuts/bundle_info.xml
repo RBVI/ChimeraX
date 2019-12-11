@@ -132,9 +132,11 @@
       name="zs" display_name="XYZ slices" icon="xyzslice.png" description="Volume XYZ slices"/>
     <Provider tab="Map" section="Image Display"
       name="ps" display_name="Perpendicular slices" icon="perpslice.png" description="Volume perpendicular slices"/>
-    <Provider tab="Map" section="Image Display"
+    <Provider tab="Map" section="Image Display" hidden="true"
       name="aw" display_name="Airways preset" icon="airways.png" description="Airways preset"/>
-    <Provider tab="Map" section="Image Display"
+    <Provider tab="Map" section="Image Display" hidden="true"
+      name="ch" display_name="Chest preset" icon="chest.png" description="Chest preset"/>
+    <Provider tab="Map" section="Image Display" hidden="true"
       name="as" display_name="Skin preset" icon="ear.png" description="Skin preset"/>
     <Provider tab="Map" section="Image Display"
       name="dc" display_name="Default thresholds" icon="initialcurve.png" description="Default volume curve"/>

@@ -675,6 +675,7 @@ def volume_settings(session, volumes = None):
 # -----------------------------------------------------------------------------
 #
 def volume_settings_text(v):
+    from chimerax.core.colors import hex_color, rgba_to_rgba8
     lines = ['Settings for map %s' % v.name,
              'grid size = %d %d %d' % tuple(v.data.size),
              'region = %d %d %d' % tuple(v.region[0]) + ' to %d %d %d' % tuple(v.region[1]),
@@ -682,8 +683,10 @@ def volume_settings_text(v):
              'voxel size = %.4g %.4g %.4g' % tuple(v.data.step),
              'origin = %.4g %.4g %.4g' % tuple(v.data.origin),
              'origin index = %.4g %.4g %.4g' % tuple(v.data.xyz_to_ijk((0,0,0))),
-             'surface levels = ' + ','.join('%.5g' % s.level for s in v.surfaces),
+             'surface levels = ' + ', '.join('%.5g' % s.level for s in v.surfaces),
+             'surface colors = ' + ', '.join(hex_color(s.color) for s in v.surfaces),
              'image levels = ' + ' '.join('%.5g,%.5g' % tuple(sl) for sl in v.image_levels),
+             'image colors = ' + ', '.join(hex_color(rgba_to_rgba8(c)) for c in v.image_colors),
              'image brightness factor = %.5g' % v.image_brightness_factor,
              'image transparency depth = %.5g' % v.transparency_depth,
              ]
