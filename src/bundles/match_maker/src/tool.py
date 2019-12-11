@@ -52,19 +52,28 @@ class MatchMakerTool(ToolInstance):
         self.match_stacking = QStackedWidget()
         matching_layout.addWidget(self.match_stacking, 1, 1)
         from chimerax.atomic.widgets import AtomicStructureListWidget, ChainListWidget
-        self.ref_structure_list = AtomicStructureListWidget(session)
+        self.ref_structure_list = AtomicStructureListWidget(session, selection_mode='single')
         self.ref_stacking.addWidget(self.ref_structure_list)
-        self.match_structure_list = AtomicStructureListWidget(session)
-        self.match_stacking.addWidget(self.match_structure_list)
+        self.match_structure_structure_list = AtomicStructureListWidget(session,
+            filter_func=lambda s, ref_list=self.ref_structure_list: s != ref_list.value)
+        self.ref_structure_list.value_changed.connect(self.match_structure_structure_list.refresh)
+        self.match_stacking.addWidget(self.match_structure_structure_list)
         self.ref_chain_list = ChainListWidget(session, selection_mode='single')
         self.ref_stacking.addWidget(self.ref_chain_list)
+        self.match_chain_structure_list = AtomicStructureListWidget(session, filter_func=lambda s,
+            ref_list=self.ref_chain_list: s != getattr(ref_list.value, 'structure', None))
+        self.ref_chain_list.value_changed.connect(self.match_chain_structure_list.refresh)
+        self.match_stacking.addWidget(self.match_chain_structure_list)
         self.ref_chains_list = ChainListWidget(session, autoselect='single')
         self.ref_stacking.addWidget(self.ref_chains_list)
+        self.match_chain_lists = ChainListsWidget(session)
+        self.ref_chains_list.value_changed.connect(
+            lambda ref=self.ref_chains_list:self.match_chain_lists.update(ref.value))
+        self.match_stacking.addWidget(self.match_chain_lists)
         self.matching_widgets = {
-            CP_BEST_BEST: (self.ref_structure_list,  self.match_structure_list),
-            CP_SPECIFIC_BEST: (self.ref_chain_list, self.match_structure_list),
-            #TODO
-            CP_SPECIFIC_SPECIFIC: (self.ref_chains_list, None),
+            CP_BEST_BEST: (self.ref_structure_list,  self.match_structure_structure_list),
+            CP_SPECIFIC_BEST: (self.ref_chain_list, self.match_chain_structure_list),
+            CP_SPECIFIC_SPECIFIC: (self.ref_chains_list, self.match_chain_lists),
         }
 
         from chimerax.ui.options import CategorizedSettingsPanel
@@ -112,3 +121,60 @@ class ChainPairingOption(SymbolicEnumOption):
         "Specific chain(s) in reference structure with specific chain(s) in match structure"
     )
     values = (CP_BEST_BEST, CP_SPECIFIC_BEST, CP_SPECIFIC_SPECIFIC)
+
+from PyQt5.QtWidgets import QWidget
+class ChainListsWidget(QWidget):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.__session = session
+        from PyQt5.QtWidgets import QVBoxLayout, QLabel
+        self.__work_layout = QVBoxLayout()
+        self.__work_layout.setSpacing(0)
+        self.__container_layout = QVBoxLayout() # so that I can replace the working layout
+        self.__container_layout.addLayout(self.__work_layout)
+        self.setLayout(self.__container_layout)
+        self.__chain_list_mapping = {}
+        self.__empty_label = QLabel("Choose one or more reference chains in the list on the left.  To"
+            " specify multiple pairs, choose multiple reference chains at once; a menu for choosing the"
+            " corresponding match chain will be provided for each reference chain.")
+        self.__empty_label.setWordWrap(True)
+        self.__work_layout.addWidget(self.__empty_label)
+
+    def update(self, ref_chains):
+        if not self.__chain_list_mapping:
+            self.__empty_label.hide()
+        if not ref_chains:
+            for widgets in self.__chain_list_mapping.values():
+                for widget in widgets:
+                    self.__work_layout.removeWidget(widget)
+                    widget.deleteLater()
+            self.__empty_label.show()
+            return
+        # rearranging widgets in an existing layout is nigh impossible so...
+        from PyQt5.QtWidgets import QVBoxLayout, QLabel
+        next_layout = QVBoxLayout()
+        next_layout.setSpacing(0)
+        self.__work_layout.removeWidget(self.__empty_label)
+        next_layout.addWidget(self.__empty_label)
+        next_mapping = {}
+        for chain in ref_chains:
+            if chain in self.__chain_list_mapping:
+                label, chain_list = self.__chain_list_mapping.pop(chain)
+            else:
+                label = QLabel("ref: %s" % chain)
+                from chimerax.atomic.widgets import ChainMenuButton
+                chain_list = ChainMenuButton(self.__session,
+                    filter_func=lambda c, ref=chain: c.structure != ref.structure)
+            from PyQt5.QtCore import Qt
+            if next_mapping:
+                next_layout.addSpacing(10)
+            next_layout.addWidget(label, alignment=Qt.AlignBottom)
+            next_layout.addWidget(chain_list, alignment=Qt.AlignTop)
+            next_mapping[chain] = (label, chain_list)
+        for widgets in self.__chain_list_mapping.values():
+            for widget in widgets:
+                widget.deleteLater()
+        self.__chain_list_mapping = next_mapping
+        self.__container_layout.takeAt(0)
+        self.__container_layout.addLayout(next_layout)
+        self.__work_layout = next_layout
