@@ -15,15 +15,29 @@
 # Handle Horos medical imaging 3d preset .plist files and color lookup table
 # .plist files for setting 3d image rendering colors, brightness and transparency.
 #
-    
+
+_appearances = {
+    'chest': {'image_levels':((-683, 0.0), (-634, 0.985), (-426, 0.0), (86, 0.985), (34, 0.0), (97, 0.015),
+                              (-479, 1.0), (38, 1.0), (321, 0.0), (343, 1.0), (3012, 1.0)),
+              'image_colors':((0.0, 0.605, 0.705, 1), (0.0, 0.605, 0.705, 1), (0.0, 0.605, 0.705, 1),
+                              (1.0, 0.764, 0.964, 1.0), (0.713, 0.529, 0.662, 1.0), (1.0, 0.764, 0.9642, 1.0),
+                              (0.0, 0.605, 0.7058, 1), (1.0, 0.764, 0.9642, 1.0), (1.0, 0.964, 0.615, 1.0),
+                              (0.909, 1.0, 0.647, 1.0), (0.909, 1.0, 0.647, 1.0)),
+              'dim_transparent_voxels': True,
+       },
+ }
+
 # -----------------------------------------------------------------------------
 #
 def appearance_names():
+    nset = set(_appearances.keys())
     from os import listdir
-    names = [filename[:-6] for filename in listdir(preset_directory()) if filename.endswith('.plist')]
-    names.extend([filename[:-5] for filename in listdir(clut_directory()) if filename.endswith('.clut')])
-    names.append('initial')
-    return names
+    nset.update([filename[:-6] for filename in listdir(preset_directory()) if filename.endswith('.plist')])
+    nset.update([filename[:-5] for filename in listdir(clut_directory()) if filename.endswith('.clut')])
+    nset.add('initial')
+    names = list(nset)
+    names.sort()
+    return tuple(names)
      
 # -----------------------------------------------------------------------------
 #
@@ -44,6 +58,8 @@ def clut_directory():
 def appearance_settings(name, v):
     if name == 'initial':
         return initial_settings(v)
+    if name in _appearances:
+        return _appearances[name]
     from os.path import join
     hpath = join(preset_directory(), name + '.plist')
     from os.path import isfile

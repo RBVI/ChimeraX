@@ -129,6 +129,7 @@ def standard_shortcuts(session):
 
         ('aw', if_sel_maps('volume sel appearance "Airways II"'), 'Airways preset', mapcat, sesarg, mmenu),
         ('as', if_sel_maps('volume sel appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
+        ('ch', if_sel_maps('volume sel appearance chest'), 'Chest preset', mapcat, sesarg, mmenu),
         ('dc', if_sel_maps('volume sel appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
         ('zs', if_sel_maps('volume sel projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
         ('ps', if_sel_maps('volume sel projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
