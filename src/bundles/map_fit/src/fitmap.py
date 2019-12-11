@@ -137,6 +137,12 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     
     ijk_step_size = ijk_step_size_max
 
+    np = len(points)
+
+    from time import time
+    report_interval = 1.0	# seconds
+    next_report_time = time() + report_interval
+
     if metric == 'correlation about mean':
         from numpy import sum, float64
         wm = sum(point_weights, dtype = float64) / len(point_weights)
@@ -150,10 +156,15 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
 
     if rotation_center is None:
         from numpy import sum, float64
-        rotation_center = rc = sum(points, axis=0, dtype=float64) / len(points)
+        rotation_center = rc = sum(points, axis=0, dtype=float64) / np
 
     syminv = [s.inverse() for s in symmetries]
 
+    # Use temporary value and gradient arrays instead of reallocating each step.
+    from numpy import empty, float32
+    values = empty((np,), float32)
+    gradients = empty(points.shape, float32)
+    
     step = 0
     while step < max_steps and ijk_step_size > ijk_step_size_min:
         xyz_to_ijk_tf = xyz_to_ijk_transform * move_tf
@@ -163,7 +174,8 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
                                  data_array, xyz_to_ijk_tf,
                                  segment_steps, ijk_step_size,
                                  optimize_translation, optimize_rotation,
-                                 rc, metric, syminv)
+                                 rc, metric, syminv=syminv,
+                                 values=values, gradients=gradients)
         step += segment_steps
         mm = maximum_ijk_motion(points, xyz_to_ijk_tf, seg_tf)
         mmcut = cut_step_size_threshold * segment_steps * ijk_step_size
@@ -173,7 +185,8 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
             ijk_step_size = min(ijk_step_size*step_grow_factor,
                                 ijk_step_size_max)
         move_tf = move_tf * seg_tf
-        if request_stop_cb:
+        if request_stop_cb and time() >= next_report_time:
+            next_report_time = time() + report_interval
             shift, angle = move_tf.shift_and_angle(rc)
             if request_stop_cb('%d steps, shift %.3g, rotation %.3g degrees'
                                % (step, shift, angle)):
@@ -185,14 +198,16 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
     xyz_to_ijk_tf = xyz_to_ijk_transform * move_tf
     stats = {'shift': shift, 'axis': axis, 'axis point': axis_point,
              'angle': angle, 'axis shift': axis_shift, 'steps': step,
-             'points': len(points), 'transform': move_tf}
+             'points': np, 'transform': move_tf}
 
-    amv, npts = average_map_value(points, xyz_to_ijk_tf, data_array, syminv)
+    amv, npts = average_map_value(points, xyz_to_ijk_tf, data_array,
+                                  syminv = syminv, values = values)
     stats['average map value'] = amv
     stats['points in map'] = npts      # Excludes out-of-bounds points
     stats['symmetries'] = len(symmetries)
     if not point_weights is None:
-        map_values = volume_values(points, xyz_to_ijk_tf, data_array, syminv)
+        map_values = volume_values(points, xyz_to_ijk_tf, data_array,
+                                   syminv=syminv, values=values)
         olap, cor, corm = overlap_and_correlation(point_weights, map_values)
         stats['overlap'] = olap
         stats['correlation'] = cor
@@ -205,7 +220,8 @@ def locate_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
 def step_to_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
                     steps, ijk_step_size,
                     optimize_translation, optimize_rotation,
-                    rotation_center, metric, syminv = []):
+                    rotation_center, metric, syminv = [],
+                    values = None, gradients = None):
 
     step_types = []
     if optimize_translation:
@@ -223,7 +239,8 @@ def step_to_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
             step_tf = calculate_step(points, point_weights,
                                      rotation_center, data_array,
                                      xyz_to_ijk_tf, ijk_step_size, metric,
-                                     syminv)
+                                     syminv = syminv,
+                                     values = values, gradients = gradients)
             move_tf = move_tf * step_tf
 
     return move_tf
@@ -232,10 +249,11 @@ def step_to_maximum(points, point_weights, data_array, xyz_to_ijk_transform,
 #
 def translation_step(points, point_weights, center, data_array,
                      xyz_to_ijk_transform, ijk_step_size, metric,
-                     syminv = []):
+                     syminv = [], values = None, gradients = None):
 
     g = gradient_direction(points, point_weights, data_array,
-                           xyz_to_ijk_transform, metric, syminv)
+                           xyz_to_ijk_transform, metric,
+                           syminv = syminv, values = values, gradients = gradients)
     from numpy import array, float, dot as matrix_multiply
     gijk = matrix_multiply(xyz_to_ijk_transform.matrix[:,:3], g)
     from chimerax.core.geometry import norm, place
@@ -253,7 +271,7 @@ def translation_step(points, point_weights, center, data_array,
 #
 def gradient_direction(points, point_weights, data_array,
                        xyz_to_ijk_transform, metric = 'sum product',
-                       syminv = []):
+                       syminv = [], values = None, gradients = None):
 
     if metric == 'sum product':
         f = sum_product_gradient_direction
@@ -261,20 +279,24 @@ def gradient_direction(points, point_weights, data_array,
     elif metric == 'correlation':
         f = correlation_gradient_direction
         kw = {'about_mean':False,
-              'syminv': syminv}
+              'syminv': syminv,
+              'values':values}
     elif metric == 'correlation about mean':
         f = correlation_gradient_direction
         kw = {'about_mean':True,
-              'syminv': syminv}
+              'syminv': syminv,
+              'values':values}
+    kw['gradients'] = gradients
     a = f(points, point_weights, data_array, xyz_to_ijk_transform, **kw)
     return a
 
 # -----------------------------------------------------------------------------
 #
 def sum_product_gradient_direction(points, point_weights, data_array,
-                                   xyz_to_ijk_transform):
+                                   xyz_to_ijk_transform, gradients = None):
 
-    gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
+    gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
+                                 gradients = gradients)
     if point_weights is None:
         from numpy import float64
         g = gradients.sum(axis=0, dtype = float64)
@@ -290,12 +312,13 @@ def sum_product_gradient_direction(points, point_weights, data_array,
 #
 def correlation_gradient_direction(points, point_weights, data_array,
                                    xyz_to_ijk_transform, about_mean = False,
-                                   syminv = []):
+                                   syminv = [], values = None, gradients = None):
 
     # TODO: Exclude points outside data.  Currently treated as zero values.
-    values = volume_values(points, xyz_to_ijk_transform, data_array, syminv)
+    values = volume_values(points, xyz_to_ijk_transform, data_array,
+                           syminv = syminv, values = values)
     gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
-                                 syminv)
+                                 syminv = syminv, gradients = gradients)
     from .. import _map
     g = _map.correlation_gradient(point_weights, values, gradients, about_mean)
     return g
@@ -303,7 +326,8 @@ def correlation_gradient_direction(points, point_weights, data_array,
 # -----------------------------------------------------------------------------
 #
 def torque_axis(points, point_weights, center, data_array,
-                xyz_to_ijk_transform, metric = 'sum product', syminv = []):
+                xyz_to_ijk_transform, metric = 'sum product',
+                syminv = [], values = None, gradients = None):
 
     if metric == 'sum product':
         f = sum_product_torque_axis
@@ -311,20 +335,24 @@ def torque_axis(points, point_weights, center, data_array,
     elif metric == 'correlation':
         f = correlation_torque_axis
         kw = {'about_mean':False,
-              'syminv': syminv}
+              'syminv': syminv,
+              'values': values}
     elif metric == 'correlation about mean':
         f = correlation_torque_axis
         kw = {'about_mean':True,
-              'syminv': syminv}
+              'syminv': syminv,
+              'values': values}
+    kw['gradients'] = gradients
     a = f(points, point_weights, center, data_array, xyz_to_ijk_transform, **kw)
     return a
     
 # -----------------------------------------------------------------------------
 #
 def sum_product_torque_axis(points, point_weights, center, data_array,
-                            xyz_to_ijk_transform):
+                            xyz_to_ijk_transform, gradients = None):
 
-    gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
+    gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
+                                 gradients = gradients)
     from .. import _map
     tor = _map.torque(points, point_weights, gradients, center)
     return tor
@@ -341,41 +369,47 @@ def sum_product_torque_axis(points, point_weights, center, data_array,
 #
 def correlation_torque_axis(points, point_weights, center, data_array,
                             xyz_to_ijk_transform, about_mean = False,
-                            syminv = []):
+                            syminv = [], values = None, gradients = None):
 
     # TODO: Exclude points outside data.  Currently treated as zero values.
-    values = volume_values(points, xyz_to_ijk_transform, data_array, syminv)
+    values = volume_values(points, xyz_to_ijk_transform, data_array,
+                           syminv = syminv, values = values)
     from .. import _map
     if len(syminv) == 0:
-        gradients = volume_gradients(points, xyz_to_ijk_transform, data_array)
+        gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
+                                     gradients = gradients)
         tor = _map.correlation_torque(points, point_weights, values, gradients,
                                           center, about_mean)
     else:
         pxg = volume_torques(points, center, xyz_to_ijk_transform, data_array,
-                             syminv)
+                             syminv = syminv, gradients = gradients)
         tor = _map.correlation_torque2(point_weights, values, pxg, about_mean)
 
     return tor
 
 # -----------------------------------------------------------------------------
 #
-def volume_values(points, xyz_to_ijk_transform, data_array, syminv = [],
-                  return_outside = False):
+def volume_values(points, xyz_to_ijk_transform, data_array,
+                  syminv = [], values = None, return_outside = False):
 
     from .. import data as VD
     if len(syminv) == 0:
         values, outside = VD.interpolate_volume_data(points,
                                                      xyz_to_ijk_transform,
-                                                     data_array)
+                                                     data_array, values = values)
     else:
         from numpy import zeros, float32, add
-        values = zeros((len(points),), float32)
+        value_sum = zeros((len(points),), float32)
         for sinv in syminv:
             tf = xyz_to_ijk_transform * sinv
-            # TODO: Make interpolation reuse the same array.
-            v, outside = VD.interpolate_volume_data(points, tf, data_array)
-            add(values, v, values)
+            v, outside = VD.interpolate_volume_data(points, tf, data_array,
+                                                    values = values)
+            add(value_sum, v, value_sum)
         outside = []
+        if values is None:
+            values = value_sum
+        else:
+            values[:] = value_sum
 
     if return_outside:
         return values, outside
@@ -384,35 +418,41 @@ def volume_values(points, xyz_to_ijk_transform, data_array, syminv = [],
 
 # -----------------------------------------------------------------------------
 #
-def volume_gradients(points, xyz_to_ijk_transform, data_array, syminv = []):
+def volume_gradients(points, xyz_to_ijk_transform, data_array,
+                     syminv = [], gradients = None):
 
     from .. import data as VD
     if len(syminv) == 0:
         gradients, outside = VD.interpolate_volume_gradient(
-            points, xyz_to_ijk_transform, data_array)
+            points, xyz_to_ijk_transform, data_array, gradients = gradients)
     else:
         from numpy import zeros, float32, add
-        gradients = zeros(points.shape, float32)
+        grad_sum = zeros(points.shape, float32)
         p = points.copy()
         for sinv in syminv:
             # TODO: Make interpolation use original point array.
             p[:] = points
             sinv.transform_points(p, in_place = True)
-            g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform, data_array)
-            add(gradients, g, gradients)
+            g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform, data_array,
+                                                        gradients = gradients)
+            add(grad_sum, g, grad_sum)
+        if gradients is None:
+            gradients = gsum
+        else:
+            gradients[:] = grad_sum
 
     return gradients
 
 # -----------------------------------------------------------------------------
 #
 def volume_torques(points, center, xyz_to_ijk_transform, data_array,
-                   syminv = []):
+                   syminv = [], gradients = None):
 
     from .. import _map
     from .. import data as VD
     if len(syminv) == 0:
-        gradients, outside = VD.interpolate_volume_gradient(
-            points, xyz_to_ijk_transform, data_array)
+        gradients = volume_gradients(points, xyz_to_ijk_transform, data_array,
+                                     gradients = gradients)
         torques = gradients
         _map.torques(points, center, gradients, torques)
     else:
@@ -423,8 +463,8 @@ def volume_torques(points, center, xyz_to_ijk_transform, data_array,
             # TODO: Make interpolation use original point array.
             p[:] = points
             sinv.transform_points(p, in_place = True)
-            g, outside = VD.interpolate_volume_gradient(p, xyz_to_ijk_transform,
-                                                        data_array)
+            g = volume_gradients(p, xyz_to_ijk_transform, data_array,
+                                 gradients = gradients)
             _map.torques(p, center, g, g)
             add(torques, g, torques)
 
@@ -434,10 +474,11 @@ def volume_torques(points, center, xyz_to_ijk_transform, data_array,
 #
 def rotation_step(points, point_weights, center, data_array,
                   xyz_to_ijk_transform, ijk_step_size, metric,
-                  syminv = []):
+                  syminv = [], values = None, gradients = None):
 
     axis = torque_axis(points, point_weights, center, data_array,
-                       xyz_to_ijk_transform, metric, syminv)
+                       xyz_to_ijk_transform, metric,
+                       syminv = syminv, values = values, gradients = gradients)
 
     from chimerax.core.geometry import norm, place
     na = norm(axis)
@@ -513,10 +554,12 @@ def average_map_value_at_atom_positions(atoms, volume = None):
 
 # -----------------------------------------------------------------------------
 #
-def average_map_value(points, xyz_to_ijk_transform, data_array, syminv = []):
+def average_map_value(points, xyz_to_ijk_transform, data_array,
+                      syminv = [], values = None):
 
     values, outside = volume_values(points, xyz_to_ijk_transform,
-                                    data_array, syminv, return_outside = True)
+                                    data_array, syminv = syminv,
+                                    values = values, return_outside = True)
     from numpy import float64
     s = values.sum(dtype = float64)
     n = len(points) - len(outside)
@@ -550,14 +593,13 @@ def map_points_and_weights(v, above_threshold, point_to_world_xform = Place(),
         points = points_int.astype(floatc)
         weights = m[points_int[:,2],points_int[:,1],points_int[:,0]]
     else:
-        from numpy import single as floatc, ravel, nonzero, take
+        from numpy import single as floatc, ravel, count_nonzero, nonzero, take
         from ..data import grid_indices
         points = grid_indices(m.shape[::-1], floatc)        # i,j,k indices
         weights = ravel(m).astype(floatc)
         if not include_zeros:
-            # TODO: use numpy.count_nonzero() after updating to numpy 1.6
-            nz = nonzero(weights)[0]
-            if len(nz) < len(weights):
+            if count_nonzero(weights) < len(weights):
+                nz = nonzero(weights)[0]
                 points = take(points, nz, axis=0)
                 weights = take(weights, nz, axis=0)
 

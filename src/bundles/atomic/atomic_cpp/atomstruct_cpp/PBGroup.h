@@ -63,12 +63,11 @@ protected:
     BaseManager*  _manager;
     friend class Proxy_PBGroup;
     Proxy_PBGroup* _proxy; // the proxy for this group
-    float  _radius = 0.1;
+    float  _radius = 0.1f;
     Structure*  _structure = nullptr;
 
     // the manager will need to be declared as a friend...
-    PBGroup(const std::string& cat, BaseManager* manager):
-        _category(cat), _destruction_relevant(true), _manager(manager), _proxy(nullptr) { }
+    PBGroup(const std::string& cat, BaseManager* manager);
     virtual  ~PBGroup() { }
     // can't call pure virtuals from base class destructors, so
     // make the code easily available to derived classes...

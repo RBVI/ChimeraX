@@ -21,7 +21,6 @@ class _AtomicSettings(Settings):
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.widgets import hex_color_name
     from chimerax.ui.options import SymbolicEnumOption
     class AtomSpecOption(SymbolicEnumOption):
         values = ("command", "serial", "simple")
@@ -29,7 +28,7 @@ def register_settings_options(session):
 
     settings_info = {
         'atomspec_contents': (
-            "Atomspec display style",
+            "Balloon-help specifier style",
             AtomSpecOption,
             """How to format display of atomic data<br>
             <table>

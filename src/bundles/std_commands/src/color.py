@@ -77,7 +77,8 @@ def color(session, objects, color=None, what=None, target=None,
     if color == "byhetero":
         atoms = atoms.filter(atoms.element_numbers != 6)
 
-    target, is_default_target = get_targets(target, what)
+    default_targets = 'l' if _only_2d_labels(objects) else DEFAULT_TARGETS 
+    target, is_default_target = get_targets(target, what, default_targets = default_targets)
 
     from chimerax.core.undo import UndoState
     undo_state = UndoState(undo_name)
@@ -111,7 +112,6 @@ def color(session, objects, color=None, what=None, target=None,
             items.append('%d atoms' % len(atoms))
 
     if 's' in target and color is not None:
-        # TODO: save undo data
         from chimerax.atomic import MolecularSurface, concatenate, Structure, PseudobondGroup
         msatoms = [m.atoms for m in objects.models
                    if isinstance(m, MolecularSurface) and not m.atoms.intersects(atoms)]
@@ -125,7 +125,7 @@ def color(session, objects, color=None, what=None, target=None,
             from chimerax.core.models import Surface
             surfs = [m for m in objects.models
                      if isinstance(m, Surface) and not isinstance(m, MolecularSurface)]
-            _set_model_colors(session, surfs, color, opacity)
+            _set_model_colors(session, surfs, color, opacity, undo_state)
             ns += len(surfs)
         items.append('%d surfaces' % ns)
 
@@ -209,6 +209,17 @@ def _computed_atom_colors(atoms, color, opacity, bgcolor):
         c = None
     return c
 
+def _only_2d_labels(objects):
+    if (objects.num_atoms > 0 or
+        objects.num_bonds > 0 or
+        objects.num_pseudobonds > 0 or
+        len(objects.models) == 0):
+        return False
+    from chimerax.label.label2d import Labels, LabelModel
+    for m in objects.models:
+        if not isinstance(m, (Labels, LabelModel)):
+            return False
+    return True
 
 def _element_colors(atoms, opacity=None):
     from chimerax.atomic.colors import element_colors
@@ -321,27 +332,31 @@ def _set_ring_colors(residues, color, opacity, bgcolor, undo_state):
 
 
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state=None):
-    # TODO: save undo data
     if color in _SpecialColors:
         if color == 'fromatoms':
-            ns = color_surfaces_at_atoms(atoms, opacity=opacity)
+            ns = color_surfaces_at_atoms(atoms, opacity=opacity, undo_state=undo_state)
         else:
             # Surface colored different from atoms
             c = _computed_atom_colors(atoms, color, opacity, bgcolor)
-            ns = color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors=c)
-            
+            ns = color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors=c,
+                                         undo_state=undo_state)
     else:
-        ns = color_surfaces_at_atoms(atoms, color, opacity=opacity)
+        ns = color_surfaces_at_atoms(atoms, color, opacity=opacity,
+                                     undo_state=undo_state)
     return ns
 
-def _set_model_colors(session, model_list, color, opacity):
+def _set_model_colors(session, model_list, color, opacity, undo_state):
     for m in model_list:
+        if undo_state:
+            cprev = m.color_undo_state
         c = color.uint8x4()
         if not opacity is None:
             c[3] = opacity
         elif not m.single_color is None:
             c[3] = m.single_color[3]
         m.single_color = c
+        if undo_state:
+            undo_state.add(m, 'color_undo_state', cprev, m.color_undo_state)
 
 def _set_label_colors(session, objects, color, opacity, undo_state=None):
     nl = 0
@@ -483,8 +498,8 @@ def _set_sequential_residue(session, selected, cmap, opacity, target, undo_state
                     undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                     r.ribbon_color = rgba
             if 's' in target:
-                # TODO: save surface undo data
-                color_surfaces_at_residues(residues, colors, opacity)
+                color_surfaces_at_residues(residues, colors, opacity,
+                                           undo_state = undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -513,8 +528,7 @@ def _set_sequential_structures(session, selected, cmap, opacity, target, undo_st
         if 'f' in target:
             _set_ring_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
-            # TODO: save surface undo data
-            color_surfaces_at_atoms(m.atoms, c)
+            color_surfaces_at_atoms(m.atoms, c, undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -1206,7 +1220,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
         # TODO: msg.append('%d residues' % len(residues))
 
     if 's' in target:
-        ns = color_surfaces_at_atoms(atoms, opacity = opacity, per_atom_colors = acolors)
+        ns = color_surfaces_at_atoms(atoms, opacity = opacity, per_atom_colors = acolors,
+                                     undo_state=undo_state)
         if ns > 0:
             msg.append('%d surfaces' % ns)
 
@@ -1218,18 +1233,25 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
 
 # -----------------------------------------------------------------------------
 #
-def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom_colors = None):
+def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom_colors = None,
+                            undo_state = None):
     from chimerax import atomic
     surfs = atomic.surfaces_with_atoms(atoms)
     for s in surfs:
-        s.color_atom_patches(atoms, color, opacity, per_atom_colors)
+        if undo_state and hasattr(s, 'color_undo_state'):
+            colors_before = s.color_undo_state
+            s.color_atom_patches(atoms, color, opacity, per_atom_colors)
+            undo_state.add(s, 'color_undo_state', colors_before, s.color_undo_state)
+        else:
+            s.color_atom_patches(atoms, color, opacity, per_atom_colors)
     return len(surfs)
 
 # -----------------------------------------------------------------------------
 #
-def color_surfaces_at_residues(residues, colors, opacity = None):
+def color_surfaces_at_residues(residues, colors, opacity = None, undo_state = None):
     atoms, acolors = _residue_atoms_and_colors(residues, colors)
-    color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors = acolors)
+    color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors = acolors,
+                            undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -1247,7 +1269,7 @@ def _value_colors(palette, range, values):
     return colors
         
 def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
-               bond_point_spacing = None, update = True):
+               bond_point_spacing = None, update = True, undo_state = None):
     '''
     Color surfaces to match nearby atom colors.
 
@@ -1270,10 +1292,17 @@ def color_zone(session, surfaces, near, distance=2, sharp_edges = False,
     bonds = near.intra_bonds if bond_point_spacing is not None else None
     from chimerax.surface.colorzone import points_and_colors, color_zone, color_zone_sharp_edges
     points, colors = points_and_colors(atoms, bonds, bond_point_spacing)
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState('color zone')
     for s in surfaces:
-        # TODO: save undo data
-        spoints = s.scene_position.inverse() * points	# Transform points to surface coordinates
-        color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges, auto_update = update)
+        cprev = s.color_undo_state
+        # Transform points to surface coordinates
+        spoints = s.scene_position.inverse() * points
+        color_zone(s, spoints, colors, distance, sharp_edges = sharp_edges,
+                   auto_update = update)
+        undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
+
+    session.undo.register(undo_state)
 
 
 from chimerax.core.commands import StringArg
@@ -1315,7 +1344,7 @@ def register_command(logger):
                    ],
                    synopsis="color objects")
     register('color', desc, color, logger=logger)
-    create_alias('colour', 'color $*', logger=logger)
+    create_alias('colour', 'color $*', logger=logger, url="help:user/commands/color.html")
 
     # color modify
     adjust_arg = EnumOf(ADJUST_TYPES)
@@ -1352,7 +1381,8 @@ def register_command(logger):
                             ('transparency', FloatArg)],
                    synopsis="color atoms by bfactor")
     register('color byattribute', desc, color_by_attr, logger=logger)
-    create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger)
+    create_alias('color bfactor', 'color byattribute bfactor $*', logger=logger,
+            url="help:user/commands/color.html#byattribute")
 
     # color by nearby atoms
     desc = CmdDesc(required=[('surfaces', SurfacesArg)],

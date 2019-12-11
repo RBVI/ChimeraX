@@ -63,7 +63,6 @@ class _MouseClipSettings(Settings):
     }
 
 def register_clip_settings(session):
-    from chimerax.ui.widgets import hex_color_name
     from chimerax.ui.options import SymbolicEnumOption
     class ClipPlaneTypeOption(SymbolicEnumOption):
         values = ('scene planes', 'screen planes')

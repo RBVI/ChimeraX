@@ -64,7 +64,7 @@ public:
 template <class C>
 class PYINSTANCE_IMEX PythonInstance {
 private:
-    static std::string _buffer;  // so that the const char* from std::string will hang around
+    static std::string  _buffer;  // so that the const char* from std::string will hang around
     static PyObject*  _py_class;
 public:
     virtual  ~PythonInstance();
@@ -86,6 +86,10 @@ public:
 
     // limited to 0 or 1 arg methods; if you don't care about the return value, call Py_XDECREF on it
     PyObject* py_call_method(const std::string& method_name, const char* fmt=nullptr, const void* arg= nullptr) const;
+
+    void  register_attribute(std::string /*name*/, int /*value*/) {}
+    void  register_attribute(std::string /*name*/, double /*value*/) {}
+    void  register_attribute(std::string /*name*/, const std::string &/*value*/) {}
 };
 
 }  // namespace pyinstance

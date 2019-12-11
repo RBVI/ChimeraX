@@ -37,11 +37,13 @@ def run(session, text, *, log=True, downgrade_errors=False):
         results = []
     return results[0] if len(results) == 1 else results
 
-def concise_model_spec(session, models, relevant_types=None):
+def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=True):
     """For commands where the spec will be automatically narrowed down to specific types of models
        (e.g. command uses AtomicStructureArg rather than ModelsArgs), providing the 'relevant_types'
        arg (e.g. relevant_types=AtomicStructure) may allow a more concise spec to be generated.
-       The 'models' arg will be pruned down to only those types.
+       The 'models' arg will be pruned down to only those types.  If allow_empty_spec is True
+       and all open models are to be specified then the empty string is returned.  If allow_empty_spec
+       is False then a non-empty spec will always be returned.
     """
     universe = set(session.models if relevant_types is None else [x for x in session.models
         if isinstance(x, relevant_types)])
@@ -53,7 +55,7 @@ def concise_model_spec(session, models, relevant_types=None):
     u_id_tree = _make_id_tree(universe)
     m_id_tree = _make_id_tree(models)
 
-    if u_id_tree == m_id_tree:
+    if allow_empty_spec and u_id_tree == m_id_tree:
         # for some reason '#' doesn't select all models, so...
         return ""
 
@@ -95,11 +97,20 @@ def concise_model_spec(session, models, relevant_types=None):
         full_spec += spec
     return full_spec if full_spec else '#'
 
-def sel_or_all(session, sel_types, sel="sel"):
+def sel_or_all(session, sel_types, sel="sel", restriction=None):
     for sel_type in sel_types:
         if session.selection.items(sel_type):
+            if restriction:
+                return '(%s & %s)' % (sel, restriction)
             return sel
-    return "##display"
+    for m in session.models:
+        if not m.display:
+            if restriction:
+                return "(##display & %s)" % restriction
+            return "##display"
+    if restriction:
+        return restriction
+    return ""
 
 def _make_id_tree(models):
     tree = {}

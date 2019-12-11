@@ -1,0 +1,90 @@
+<BundleInfo name="ChimeraX-MedicalToolbar" version="1.0"
+	    package="chimerax.medical_toolbar"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Toolbar for medical image analysis</Synopsis>
+  <Description>Provide a toolbar tab including buttons useful for medical image visualization.</Description>
+
+  <DataFiles>
+    <DataFile>icons/*.png</DataFile>
+  </DataFiles>
+
+  <Categories>
+    <Category name="Toolbar"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+  </Dependencies>
+
+  <Providers manager="toolbar">
+    <!-- Most buttons are just links to buttons on other toolbar tabs -->
+    <!-- File section -->
+    <Provider tab="Medical Image" section="File"
+	      name="open dicom" display_name="Open DICOM" icon="opendicom.png"
+	      description="Open DICOM directories"/>
+    <Provider tab="Medical Image" section="File"
+	      name="recent" link="ChimeraX-Toolbar:Recent"/>
+    <Provider tab="Medical Image" section="File"
+	      name="snapshot" link="ChimeraX-Shortcuts:sx"/>
+
+    <!-- Style section -->
+    <Provider tab="Medical Image" section="Style"
+	      name="plane style" link="ChimeraX-Shortcuts:pl"/>
+    <Provider tab="Medical Image" section="Style"
+	      name="orthoplanes style" link="ChimeraX-Shortcuts:o3"/>
+    <Provider tab="Medical Image" section="Style"
+	      name="full style" link="ChimeraX-Shortcuts:pa"/>
+    <Provider tab="Medical Image" section="Style"
+	      name="outline box" link="ChimeraX-Shortcuts:ob"/>
+
+    <!-- Color section -->
+    <Provider tab="Medical Image" section="Color"
+	      name="airways" link="ChimeraX-Shortcuts:aw"/>
+    <Provider tab="Medical Image" section="Color"
+	      name="chest" link="ChimeraX-Shortcuts:ch"/>
+    <Provider tab="Medical Image" section="Color"
+	      name="skin" link="ChimeraX-Shortcuts:as"/>
+    <Provider tab="Medical Image" section="Color"
+	      name="default thresholds" link="ChimeraX-Shortcuts:dc"/>
+
+    <!-- Graphics section -->
+    <Provider tab="Medical Image" section="Graphics"
+	      name="orient" link="ChimeraX-Shortcuts:dv"/>
+    <Provider tab="Medical Image" section="Graphics"
+	      name="step 1" link="ChimeraX-Shortcuts:s1"/>
+    <Provider tab="Medical Image" section="Graphics"
+	      name="step 2" link="ChimeraX-Shortcuts:s2"/>
+    <Provider tab="Medical Image" section="Graphics"
+	      name="xyz slices" link="ChimeraX-Shortcuts:zs"/>
+    <Provider tab="Medical Image" section="Graphics"
+	      name="perpendicular slices" link="ChimeraX-Shortcuts:ps"/>
+
+    <!-- Mouse Mode section -->
+    <!-- These cannot currently be linked because they are hardcoded in the toolbar bundle tool.py -->
+    <Provider tab="Medical Image" section="Mouse Mode"
+	      name="mouse:crop volume" display_name="Crop" icon="crop.png"
+	      description="Crop volume data dragging any face of box outline"/>
+    <Provider tab="Medical Image" section="Mouse Mode"
+	      name="mouse:move planes" display_name="Move planes" icon="moveplanes.png"
+	      description="Move plane or slab along its axis to show a different section"/>
+    <Provider tab="Medical Image" section="Mouse Mode"
+	      name="mouse:tape measure" display_name="Measure" icon="tape.png"
+	      description="Measure distance between two points"/>
+    <Provider tab="Medical Image" section="Mouse Mode"
+	      name="mouse:windowing" display_name="Windowing" icon="windowing.png"
+	      description="Adjust volume data thresholds collectively"/>
+
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

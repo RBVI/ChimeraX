@@ -57,7 +57,7 @@ class MarkerMouseMode(MouseMode):
             self.place_on_plane(event)
         elif mode == 'mark point':
             self.place_on_point(event)
-            
+
     def place_on_surface(self, event):
         xyz1, xyz2 = self._view_line(event)
         s = self.session
@@ -130,7 +130,7 @@ class MarkerMouseMode(MouseMode):
 
         ms = _mouse_marker_settings(self.session)
         from .markers import create_link
-        b = create_link(a1, a2, radius = ms['link radius'], rgba = ms['link color'])
+        b = create_link(a1, a2, radius = ms['link radius'], rgba = ms['link color'], log = True)
         s.logger.status('Made connection, distance %.3g' % b.length)
         return True
 
@@ -210,6 +210,8 @@ class MarkerMouseMode(MouseMode):
             s['marker radius'] = r
         else:
             s['link radius'] = r
+
+    def _update_marker_panel(self):
         from .markergui import marker_panel
         p = marker_panel(self.session, 'Markers')
         p.update_settings()
@@ -221,30 +223,45 @@ class MarkerMouseMode(MouseMode):
                 # TODO: Leaving an empty structure causes errors
                 self.session.models.close([m.structure])
             else:
+                _log_marker_delete(m)
                 m.delete()
         elif l:
+            _log_link_delete(l)
             l.delete()
 
     def mouse_up(self, event = None):
-        self._moving_marker = None
-        self._resizing_marker_or_link = None
+        mm = self._moving_marker
+        if mm:
+            _log_marker_move(mm)
+            self._moving_marker = None
 
-    def vr_press(self, xyz1, xyz2):
+        rml = self._resizing_marker_or_link
+        if rml:
+            self._update_marker_panel()
+            self._resizing_marker_or_link = None
+            from chimerax.atomic import Atom
+            if isinstance(rml, Atom):
+                _log_marker_resize(rml)
+            else:
+                _log_link_resize(rml)
+
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
+        xyz1, xyz2 = event.picking_segment()
         self.mouse_down(LaserEvent(xyz1,xyz2))
         
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
         mm = self._moving_marker
         if mm:
-            mm.scene_coord = move * mm.scene_coord
+            mm.scene_coord = event.motion * mm.scene_coord
         rm = self._resizing_marker_or_link
         if rm:
             from math import exp
-            scale = exp(5*delta_z)
+            scale = exp(5*event.room_vertical_motion)
             self._resize_ml(rm, scale)
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.mouse_up()
 
@@ -302,10 +319,7 @@ class LaserEvent:
     def __init__(self, xyz1, xyz2):
         self.xyz1 = xyz1
         self.xyz2 = xyz2
-        
-# -----------------------------------------------------------------------------
-#
-        
+
 # -----------------------------------------------------------------------------
 #
 def connected_center(triangle_pick):
@@ -348,7 +362,9 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
             continue
         threshold = v.minimum_surface_level
         if threshold is None:
-            return
+            if len(v.image_levels) == 0:
+                return None, None
+            threshold = min(lev for lev,h in v.image_levels)
         f = first_maximum_along_ray(v, v_xyz_in, v_xyz_out, threshold)
         if f is None:
             continue
@@ -457,10 +473,12 @@ def _mouse_markerset(session):
         ms['molecule'] = m
     return m
     
-def _mouse_place_marker(session, center, link_to_selected = False, select = True):
+def _mouse_place_marker(session, center, link_to_selected = False, select = True, log = True):
     m = _mouse_markerset(session)
     ms = _mouse_marker_settings(session)
     a = m.create_marker(center, ms['marker color'], ms['marker radius'], ms['next_marker_num'])
+    if log:
+        _log_place_marker(m, center, ms['marker color'], ms['marker radius'])
     ms['next_marker_num'] += 1
     session.logger.status('Placed marker')
     if link_to_selected:
@@ -470,11 +488,52 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
             al = atoms[0]
             if a.structure == al.structure and a is not al:
                 from .markers import create_link
-                create_link(al, a, radius = ms['link radius'], rgba = ms['link color'])
+                create_link(al, a, radius = ms['link radius'], rgba = ms['link color'], log=log)
     if select:
         session.selection.clear()
         a.selected = True
 
+def _log_place_marker(mset, center, color, radius):
+    c = '%.4g,%.4g,%.4g' % tuple(center)
+    from chimerax.core.colors import color_name
+    cmd = 'marker %s %s color %s radius %.4g' % (mset.atomspec, c, color_name(color), radius)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(mset.session, cmd)
+
+def _log_marker_delete(m):
+    mset = m.structure
+    cmd = 'marker delete %s:%d' % (mset.atomspec, m.residue.number)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(mset.session, cmd)
+
+def _log_link_delete(l):
+    mset = l.structure
+    m1, m2 = l.atoms
+    cmd = 'marker delete %s:%d,%d linksOnly true' % (mset.atomspec, m1.residue.number, m2.residue.number)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(mset.session, cmd)
+
+def _log_marker_move(m):
+    mset = m.structure
+    pos = '%.4g,%.4g,%.4g' % tuple(m.scene_coord)
+    cmd = 'marker change %s:%d position %s' % (mset.atomspec, m.residue.number, pos)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(mset.session, cmd)
+    
+def _log_marker_resize(m):
+    mset = m.structure
+    cmd = 'marker change %s:%d radius %.4g' % (mset.atomspec, m.residue.number, m.radius)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(mset.session, cmd)
+
+def _log_link_resize(l):
+    mset = l.structure
+    m1, m2 = l.atoms
+    cmd = ('marker change %s:%d,%d radius %.4g markers false'
+           % (mset.atomspec, m1.residue.number, m2.residue.number, l.radius))
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(mset.session, cmd)
+    
 # -----------------------------------------------------------------------------
 #
 def register_mousemode(session):

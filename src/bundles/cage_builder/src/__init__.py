@@ -17,9 +17,8 @@ class _CageBuilderAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
-        from .tool import cage_builder_panel
-        p = cage_builder_panel(session, tool_name)
-        return p
+        from .tool import CageBuilder
+        return CageBuilder.get_singleton(session)
 
     @staticmethod
     def register_command(command_name, logger):
@@ -33,6 +32,9 @@ class _CageBuilderAPI(BundleAPI):
         if class_name == 'CageBuilder':
             from . import tool
             return tool.CageBuilder
+        elif class_name == 'Cage':
+            from . import cage
+            return cage.Cage
         return None
 
 bundle_api = _CageBuilderAPI()

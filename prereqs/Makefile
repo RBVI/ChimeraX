@@ -62,8 +62,8 @@ endif
 ifdef NEED_FFMPEG
 SUBDIRS += ffmpeg
 ifeq ($(OS),Darwin)
-NEED_PKGCONFIG=1
 NEED_LIBTOOL=1
+NEED_PKGCONFIG=1
 endif
 else
 ffmpeg.install:
@@ -143,7 +143,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= imex lineprofiler numpy openmm \
+SUBDIRS	+= gdcm imex lineprofiler numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
 	   scipy
@@ -214,10 +214,13 @@ endif
 # target of the other packages.
 
 ffmpeg.install: p7zip.install pkgconfig.install libtool.install
+gdcm.app-install: Python.app-install
+gdcm.install: Python.install
 hdf5.app-install: zlib.app-install chrpath.app-install
 hdf5.install: zlib.install chrpath.install
 leapmotion.app-install: Python.app-install
 leapmotion.install: Python.install
+libtool.install: PyQt.install  # when building from source Qt needs the system libtool
 lineprofiler.install: pips.install
 lineprofiler.app-install: pips.app-install
 llvm.install: p7zip.install

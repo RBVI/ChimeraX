@@ -134,8 +134,13 @@ def _expand_path(path):
     paths = glob(path)
     paths.sort()	# python glob does not sort. Keep series in order.
     if len(paths) == 0:
-        from chimerax.core.errors import UserError
-        raise UserError('File not found: %s' % path)
+        from chimerax.core.io import deduce_format
+        fmt, fname, compress = deduce_format(path)
+        if fmt.check_path:
+            from chimerax.core.errors import UserError
+            raise UserError('File not found: %s' % path)
+        else:
+            paths = [path]
     return paths
 
 def _fetch_from_database(session, filename, from_database, format, name, ignore_cache, **kw):

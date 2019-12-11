@@ -20,4 +20,5 @@ def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, create_alias
     desc = CmdDesc(synopsis='exit application')
     register('exit', desc, exit, logger=logger)
-    create_alias("quit", "exit $*", logger=logger)
+    create_alias("quit", "exit $*", logger=logger,
+            url="help:user/commands/exit.html")

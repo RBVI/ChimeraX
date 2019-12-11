@@ -9,9 +9,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def ome_image_grids(path, found_paths = None):
+def ome_image_grids(path, found_paths = None, log=None):
 
-    images = parse_ome_tiff_header(path, found_paths)
+    images = parse_ome_tiff_header(path, found_paths, log=log)
     grids = []
     gid = 1
     for i in images:
@@ -29,7 +29,7 @@ def ome_image_grids(path, found_paths = None):
 
 # -----------------------------------------------------------------------------
 #
-from .. import GridData
+from .. import GridData, FileFormatError
 class OMEImageGrid(GridData):
 
   def __init__(self, ome_pixels, channel, time, grid_id):
@@ -80,7 +80,7 @@ class OMEImageGrid(GridData):
   def files(self):
       return self.ome_pixels.files()
   
-def parse_ome_tiff_header(path, found_paths = None):
+def parse_ome_tiff_header(path, found_paths = None, log = None):
 
     from tifffile import TiffFile
     with TiffFile(path) as tif:
@@ -89,19 +89,32 @@ def parse_ome_tiff_header(path, found_paths = None):
 
     if desc is None:
         from os.path import basename
-        raise TypeError('OME TIFF image %s does not have an image description tag'
+        raise FileFormatError('OME TIFF image %s does not have an image description tag'
                         % basename(path))
     elif not desc.startswith('<?xml'):
         from os.path import basename
-        raise TypeError('OME TIFF image %s does not have an image description tag'
+        raise FileFormatError('OME TIFF image %s does not have an image description tag'
                         ' starting with "<?xml" as required by the OME TIFF specification,'
                         ' got description tags "%s"' % (basename(path), desc))
 
+    try:
+        images = ome_pixels_from_xml(path, desc, found_paths = found_paths, log = log)
+    except FileFormatError:
+        if log:
+            log.warning('OME file "%s" xml header\n%s' % (path, desc))
+        raise
+
+    return images
+
+def ome_pixels_from_xml(path, xml_header, found_paths = None, log = None):
+    
     from xml.etree import ElementTree as ET
-    r = ET.fromstring(desc)
+    r = ET.fromstring(xml_header)
+
     # OME
     #  Image (Name)
-    #   Pixels (DimensionOrder, PhysicalSizeX, PhysicalSizeY, PhysicalSizeZ, SizeC, SizeT, SizeX, SizeY, SizeZ, Type)
+    #   Pixels (DimensionOrder, PhysicalSizeX, PhysicalSizeY, PhysicalSizeZ,
+    #           SizeC, SizeT, SizeX, SizeY, SizeZ, Type)
     #    Channel (Color, Name)
     #    TiffData (FirstC, FirstT, FirstZ, IFD, PlaneCount)
     #     UUID (FileName)
@@ -117,29 +130,22 @@ def parse_ome_tiff_header(path, found_paths = None):
             dorder = pa['DimensionOrder']
             sx, sy, sz = [(float(pa[sa]) if sa in pa else 1.0)
                           for sa in ('PhysicalSizeX', 'PhysicalSizeY', 'PhysicalSizeZ')]
-            nc, nt, nx, ny, nz = [int(i) for i in (pa['SizeC'], pa['SizeT'], pa['SizeX'], pa['SizeY'], pa['SizeZ'])]
+            nc, nt, nx, ny, nz = [int(pa[i]) for i in ('SizeC', 'SizeT', 'SizeX', 'SizeY', 'SizeZ')]
             value_type = pa.get('Type')
             if value_type is None:
                 # This is non-standard, but OME TIFF from Cell Image Library entry 10523 has this.
                 value_type = pa.get('PixelType')
             import numpy
             if not hasattr(numpy, value_type):
-                raise TypeError('OME TIFF value type not a numpy type, got %s' % value_type)
+                raise FileFormatError('OME TIFF value type not a numpy type, got %s' % value_type)
             value_type = getattr(numpy, value_type)
             channels = [ch for ch in p if tag_name(ch) == 'Channel']
             cnames = channel_names(channels)
             ccolor = channel_colors(channels)
             tdata = [td for td in p if tag_name(td) == 'TiffData']
-            ptable = plane_table(dorder, nz, nt, nc, path, found_paths, tdata)
-            if len(ptable) > nc*nt*nz:
-                maxc = maxt = maxz = 0
-                for c,t,z in ptable.keys():
-                    maxc = max(maxc,c)
-                    maxt = max(maxt,t)
-                    maxz = max(maxz,z)
-                nc, nt, nz = maxc + 1, maxt + 1, maxz + 1
-                if len(ptable) != nc*nt*nz:
-                    raise TypeError('OME TIFF file has max channel %d, time %d, z %d, but not all planes are listed: %s' % (nc, nt, nz, ' '.join('%d,%d,%d' % ctz for ctz in ptable.keys())))
+            ptable = plane_table(dorder, nz, nt, nc, path, found_paths, tdata, log=log)
+            if not is_plane_table_complete(ptable, nc, nt, nz, log=log):
+                ptable, nc, nt, nz = fixed_plane_table(path, ptable, nc, nt, nz, dorder, log=log)
                 
             pi = OME_Pixels(path, name, dorder, (sx,sy,sz), (nx,ny,nz), nt, nc, value_type, ptable, cnames, ccolor)
             images.append(pi)
@@ -215,7 +221,11 @@ class OME_Pixels:
         dir = dirname(self.path)
         for fname, fp in fplanes:
             with TiffFile(join(dir,fname)) as tif:
-                a = tif.asarray(key = fp)
+                try:
+                    a = tif.asarray(key = fp)
+                except IndexError:
+                    print('Error reading TIFF file', fname, 'planes', fp)
+                    raise
                 if a.ndim == 2:
                     a = a.reshape((1,) + tuple(a.shape))	# Make single-plane 3d
                 arrays.append(a)
@@ -280,58 +290,150 @@ class OME_Pixels:
         return d
 
 # TIFF file plane number corresoponding to each channel, time and z.
-def plane_table(dimension_order, nz, nt, nc, path, found_paths, tdata):
+def plane_table(dimension_order, nz, nt, nc, path, found_paths, tdata, log=None):
     if dimension_order[:2] != 'XY':
-        raise TypeError('OME TIFF dimension order does not start with XY, got %s'
+        raise FileFormatError('OME TIFF dimension order does not start with XY, got %s'
                         % dimension_order)
-    sizes = {'Z':nz, 'T':nt, 'C':nc}
-    axes = {'Z':0, 'T':1, 'C':2}
-    axes_strides = [None, None, None]
-    s = 1
-    for a in dimension_order[2:]:
-        if not a in axes:
-            raise TypeError('OME TIFF dimension order requires Z, C, T as last 3 characters, got %s'
-                            % dimension_order)
-        axes_strides[axes[a]] = s
-        s *= sizes[a]
-    zstride, tstride, cstride = axes_strides
 
     from os.path import basename, dirname, join, isfile
     bpath = basename(path)
+    dir = dirname(path)
+    
     ptable = {}
-    for c in range(nc):
-        for t in range(nt):
-            for z in range(nz):
-                ptable[(c,t,z)] = (bpath, cstride*c + tstride*t + zstride*z)
 
-    # Revise plane table using TiffData tags
+    # Build plane table using TiffData tags
     file_found = {}
     for td in tdata:
-        # TODO: Handle images split across multiple files.
+        # Handle images split across multiple files.
         fname = tuple(uuid.attrib['FileName'] for uuid in td if tag_name(uuid) == 'UUID')
         if len(fname) == 0:
             fname = bpath
         elif len(fname) == 1:
             fname = fname[0]
             if fname not in file_found:
-                fpath = join(dirname(path), fname)
-                file_found[fname] = found = isfile(fpath)
-                if not found and len(file_found) > 1:
-                    # Multiple files specified in header and this one is missing.
-                    raise TypeError('OME TIFF has UUID tag with FileName "%s" and file %s does not exist'
-                                    % (fname, fpath))
-                if found_paths is not None:
-                    found_paths.add(fpath)
+                file_found[fname] = isfile(join(dir, fname))
             if not file_found[fname]:
-                # File specified in OME header does not exist.
-                # Maybe this file was renamed but header not updated.
-                fname = bpath
+                continue
         else:
-            raise TypeError('OME TIFF more than one UUID tag inside a TiffData tag, got %d' % len(fname))
+            msg = 'OME TIFF %s has more than one UUID tag inside a TiffData tag, got %d' % (path, len(fname))
+            raise FileFormatError(msg)
+
         a = td.attrib
-        fc, ft, fz, ifd, pc = [int(a.get(attr,default_value))
-                               for attr, default_value in (('FirstC',0), ('FirstT',0), ('FirstZ',0), ('IFD',0), ('PlaneCount',1))]
-        if pc != 1:
-            raise TypeError('OME TIFF PlaneCount != 1 not supported, got %d' % pc)
+        attrs = (('FirstC',0), ('FirstT',0), ('FirstZ',0), ('IFD',0), ('PlaneCount',1))
+        fc, ft, fz, ifd, pc = [int(a.get(attr,default_value)) for attr, default_value in attrs]
+        set_plane_table_entries(fc, ft, fz, fname, ifd, pc, nc, nt, nz, dimension_order, ptable)
+
+    # Report missing files.
+    missing = [fname for fname, found in file_found.items() if not found]
+    if missing:
+        fnames = ', '.join(fname for fname in missing[:3])
+        if len(missing) > 3:
+            fnames += ' ...'
+        msg = 'OME TIFF references %d files that were not found: %s' % (len(missing), fnames)
+        if log:
+            log.warning(msg)
+        else:
+            raise FileFormatError(msg)
+
+    # Report files that were found.
+    if ptable is not None and found_paths is not None:
+        for fname, found in file_found.items():
+            if found:
+                found_paths.add(join(dir,fname))
+
+    return ptable
+
+def set_plane_table_entries(fc, ft, fz, fname, ifd, plane_count, nc, nt, nz, dimension_order, ptable):
+    if plane_count == 1:
         ptable[(fc,ft,fz)] = (fname, ifd)
+        return
+
+    # Fill in IFD indices for multiple C,T,Z planes.
+    sizes = {'Z':nz, 'T':nt, 'C':nc}
+    ctz = {'C':fc, 'T':ft, 'Z':fz}
+    for p in range(plane_count):
+        pctz = (ctz['C'],ctz['T'],ctz['Z'])
+        ptable[pctz] = (fname, ifd + p)
+        # Increment c,t,z index to next plane
+        for a in dimension_order[2:]:
+            ctz[a] += 1
+            if ctz[a] >= sizes[a]:
+                ctz[a] = 0
+            else:
+                break
+
+def is_plane_table_complete(ptable, nc, nt, nz, log=None):
+    missing = missing_planes(ptable, nc, nt, nz)
+    if len(missing) == 0:
+        return True
+
+    msg = 'Error in OME TIFF file header. It specifies the location of some 2d images but not all (%d of %d), missing CTZ=%s...' % (len(ptable), nc*nt*nz, ' '.join('(%d,%d,%d)' % ctz for ctz in missing[:5]))
+    if log:
+        log.warning(msg)
+    else:
+        raise FileFormatError(msg)
+
+    return False
+
+def missing_planes(ptable, nc, nt, nz):
+    missing = []
+    for c in range(nc):
+        for t in range(nt):
+            for z in range(nz):
+                if (c,t,z) not in ptable:
+                    missing.append((c,t,z))
+    missing.sort()
+    return missing
+
+def fixed_plane_table(path, ptable, nc, nt, nz, dorder, log=None):
+    if len(ptable) == 0:
+        # TODO: Need to check that path contains nc*nt*nz planes.
+        #  More likely it has just nz planes, and other files
+        #  containing other times and channels are missing.
+        #  Then we would like to still open this file.
+        ptable = default_plane_table(path, nc, nt, nz, dorder)
+        if log:
+            log.warning('OME TIFF file did not include z-plane lookup table, using default')
+
+    if len(ptable) != nc*nt*nz:
+        maxc = maxt = maxz = 0
+        for c,t,z in ptable.keys():
+            maxc = max(maxc,c)
+            maxt = max(maxt,t)
+            maxz = max(maxz,z)
+        if log and (nc, nt, nz) != (maxc+1, maxt+1, maxz+1):
+            msg = ('OME TIFF header says there are %d channels, %d times, %d z-planes, but only found %d channesl, %d times, %d z-planes' % (nc, nt, nz, maxc+1, maxt+1, maxz+1))
+            log.warning(msg)
+        nc, nt, nz = maxc + 1, maxt + 1, maxz + 1
+        
+    if len(ptable) != nc*nt*nz:
+        missing = missing_planes(ptable, nc, nt, nz)
+        mp = ' '.join('(%d,%d,%d)' % ctz for ctz in missing[:3])
+        if len(missing) > 3:
+            mp += ' ...'
+        raise FileFormatError('OME TIFF file cannot locate all z-planes.\n'
+                              'Header reports %d channels, %d times, %d z-planes, got %d of %d planes, missing (c,t,z) = %s'
+                              % (nc, nt, nz, len(ptable), nc*nt*nz, mp))
+    return ptable, nc, nt, nz
+
+def default_plane_table(path, nc, nt, nz, dimension_order):
+    from os.path import basename
+    fname = basename(path)
+    sizes = {'Z':nz, 'T':nt, 'C':nc}
+    axes = {'Z':0, 'T':1, 'C':2}
+    axes_strides = [None, None, None]
+    s = 1
+    for a in dimension_order[2:]:
+        if not a in axes:
+            raise FileFormatError('OME TIFF dimension order requires Z, C, T as last 3 characters, got %s'
+                            % dimension_order)
+        axes_strides[axes[a]] = s
+        s *= sizes[a]
+    zstride, tstride, cstride = axes_strides
+
+    ptable = {}
+    for c in range(nc):
+        for t in range(nt):
+            for z in range(nz):
+                ptable[(c,t,z)] = (fname, cstride*c + tstride*t + zstride*z)
     return ptable

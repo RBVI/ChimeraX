@@ -22,4 +22,9 @@ class HBondsAPI(BundleAPI):
         from . import cmd
         cmd.register_command(command_name, logger)
 
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import HBondsTool
+        return HBondsTool(session, tool_name)
+
 bundle_api = HBondsAPI()

@@ -259,7 +259,7 @@ class OpenGLContext:
         self.current_viewport = None
         self.done_current()
 
-        # Replace current context with stereo context sharing state.
+        # Replace current context with stereo context while sharing opengl state.
         qc = self._contexts.get(mode)
         if not qc:
             # This can raise OpenGLError
@@ -267,6 +267,17 @@ class OpenGLContext:
 
         self._mode = mode
         self.window = window
+
+        import sys
+        if sys.platform == 'linux':
+            # On Linux get GL_BACK_RIGHT error after switching
+            # into stereo a second time.  Bug #2446.  To work around
+            # this delete the stereo context after switching to mono.
+            if not stereo:
+                sqc = self._contexts.get('stereo')
+                if sqc:
+                    del self._contexts['stereo']
+                    sqc.deleteLater()
 
     def set_offscreen_color_bits(self, bits):
         cbits = self._framebuffer_color_bits
@@ -406,6 +417,9 @@ class Render:
         self.outline.delete()
         self.outline = None
 
+        self.offscreen.delete()
+        self.offscreen = None
+
         self.blend.delete()
         self.blend = None
         
@@ -508,6 +522,12 @@ class Render:
         fb = self.current_framebuffer()
         x, y, w, h = fb.viewport
         return (w, h)
+
+    def max_framebuffer_size(self):
+        max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
+        max_tex_size = GL.glGetInteger(GL.GL_MAX_TEXTURE_SIZE)
+        max_size = min(max_rb_size, max_tex_size)
+        return max_size
 
     def framebuffer_rgba_bits(self):
         return tuple(GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
@@ -672,9 +692,7 @@ class Render:
         else:
             self.current_projection_matrix = pm
         p = self.current_shader_program
-        if (p is not None and 
-            not p.capabilities & self.SHADER_TEXTURE_OUTLINE and
-            not p.capabilities & self.SHADER_DEPTH_OUTLINE):
+        if p is not None and not (p.capabilities & self.SHADER_NO_PROJECTION_MATRIX):
             p.set_matrix('projection_matrix', pm)
 
     def set_view_matrix(self, vm):
@@ -1881,6 +1899,11 @@ shader_options = (
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
 
+Render.SHADER_NO_PROJECTION_MATRIX = (Render.SHADER_TEXTURE_OUTLINE |
+                                      Render.SHADER_DEPTH_OUTLINE |
+                                      Render.SHADER_BLEND_TEXTURE_2D |
+                                      Render.SHADER_BLEND_TEXTURE_3D)
+
 def shader_capability_names(capabilities_bit_mask):
     return [name for i, name in enumerate(shader_options)
             if capabilities_bit_mask & (1 << i)]
@@ -2715,7 +2738,8 @@ class Texture:
     is called.  A reference to the array data is held until the OpenGL
     texture is created.
     '''
-    def __init__(self, data=None, dimension=2, cube_map=False, linear_interpolation=True):
+    def __init__(self, data=None, dimension=2, cube_map=False,
+                 linear_interpolation=True, clamp_to_edge=False):
 
         self.data = data
         self.id = None
@@ -2727,6 +2751,7 @@ class Texture:
                           (GL.GL_TEXTURE_1D, GL.GL_TEXTURE_2D, GL.GL_TEXTURE_3D)[dimension - 1])
         self.linear_interpolation = linear_interpolation
         self.is_cubemap = cube_map
+        self.clamp_to_edge = clamp_to_edge
 
     def initialize_rgba(self, size):
 
@@ -2788,7 +2813,7 @@ class Texture:
                             0, format, tdtype, data)
 
         GL.glTexParameterfv(gl_target, GL.GL_TEXTURE_BORDER_COLOR, border_color)
-        clamp = GL.GL_CLAMP_TO_EDGE if self.is_cubemap else GL.GL_CLAMP_TO_BORDER
+        clamp = GL.GL_CLAMP_TO_EDGE if self.is_cubemap or self.clamp_to_edge else GL.GL_CLAMP_TO_BORDER
         GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_S, clamp)
         if dim >= 2:
             GL.glTexParameteri(gl_target, GL.GL_TEXTURE_WRAP_T, clamp)

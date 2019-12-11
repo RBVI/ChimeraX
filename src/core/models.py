@@ -27,6 +27,7 @@ MODEL_ID_CHANGED = 'model id changed'
 MODEL_NAME_CHANGED = 'model name changed'
 MODEL_POSITION_CHANGED = 'model position changed'
 RESTORED_MODELS = 'restored models'
+RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
 
 
@@ -50,10 +51,15 @@ class Model(State, Drawing):
         If True, then model survives across sessions.
     SESSION_SAVE : bool, class-level optional
         If True, then model is saved in sessions.
+    SESSION_WARN : bool, class-level optional
+        If True and SESSION_SAVE is False then a warning is issued when
+        a session is saved explaining that session save is not supported
+        for this type of model.
     """
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
+    SESSION_WARN = False
 
     def __init__(self, name, session):
         self._name = name
@@ -67,6 +73,10 @@ class Model(State, Drawing):
         self.triggers  = TriggerSet()
         self.triggers.add_trigger("deleted")
         # TODO: track.created(Model, [self])
+
+    def cpp_del_model(self):
+        '''Called by the C++ layer to request that the model be deleted'''
+        self.delete()
 
     def delete(self):
         '''Delete this model.'''
@@ -132,6 +142,11 @@ class Model(State, Drawing):
             return ''
         return '.'.join(str(i) for i in self.id)
 
+    @property
+    def atomspec(self):
+        '''Return the atom specifier string for this structure.'''
+        return '#' + self.id_string
+
     def __str__(self):
         if self.id is None:
             return self.name
@@ -180,9 +195,12 @@ class Model(State, Drawing):
     def set_selected(self, sel, *, fire_trigger=True):
         Drawing.set_highlighted(self, sel)
         if fire_trigger:
-            from chimerax.core.selection import SELECTION_CHANGED
-            self.session.ui.thread_safe(self.session.triggers.activate_trigger,
-                SELECTION_CHANGED, None)
+            self._selection_changed()
+
+    def _selection_changed(self):
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.session.ui.thread_safe(self.session.triggers.activate_trigger,
+                                    SELECTION_CHANGED, None)
 
     # Provide a direct way to set only the model selection status
     # without subclass interference
@@ -224,6 +242,30 @@ class Model(State, Drawing):
     Color values are rgba uint8 arrays.
     '''
 
+    # Handle undo of color changes
+    def _color_undo_state(self):
+        vc = self.vertex_colors
+        color_state = {'colors': self.colors,
+                       'vertex_colors': (vc if vc is None else vc.copy()),
+                       'auto_recolor_vertices': self.auto_recolor_vertices}
+        return color_state
+    def _restore_colors_from_undo_state(self, color_state):
+        self.colors = color_state['colors']
+        vc = color_state['vertex_colors']
+        same_vertex_count = (vc is not None and
+                             self.vertices is not None and
+                             len(vc) == len(self.vertices))
+        if not same_vertex_count:
+            vc = None
+        self.vertex_colors = vc
+        auto_recolor = color_state['auto_recolor_vertices']
+        self.auto_recolor_vertices = auto_recolor
+        if not same_vertex_count and auto_recolor:
+            # Number of vertices changed.  Recompute colors.
+            auto_recolor()
+            
+    color_undo_state = property(_color_undo_state, _restore_colors_from_undo_state)
+
     def add(self, models):
         '''Add child models to this model.'''
         om = self.session.models
@@ -264,6 +306,14 @@ class Model(State, Drawing):
         self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)
     display = Drawing.display.setter(_set_display)
 
+    @property
+    def _save_in_session(self):
+        '''Test if all parents are saved in session.'''
+        m = self
+        while m is not None and m.SESSION_SAVE:
+            m = m.parent
+        return m is None
+        
     def take_snapshot(self, session, flags):
         p = self.parent
         if p is session.models.scene_root_model:
@@ -311,12 +361,34 @@ class Model(State, Drawing):
                 if attr in data:
                     setattr(d, attr, data[attr])
 
+    def save_geometry(self, session, flags):
+        '''
+        Return state for saving Model and Drawing geometry that can be restored
+        with restore_geometry().
+        '''
+        from chimerax.core.graphics.gsession import DrawingState
+        data = {'model state': Model.take_snapshot(self, session, flags),
+                'drawing state': DrawingState.take_snapshot(self, session, flags),
+                'version': 1
+                }
+        return data
+
+    def restore_geometry(self, session, data):
+        '''
+        Restore model and drawing state saved with save_geometry().
+        '''
+        from chimerax.core.graphics.gsession import DrawingState            
+        Model.set_state_from_snapshot(self, session, data['model state'])
+        DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
+        return self
+
     def selected_items(self, itype):
         return []
 
     def clear_selection(self):
         self.clear_highlight()
-
+        self._selection_changed()
+        
     def added_to_session(self, session):
         html_title = self.get_html_title(session)
         if not html_title:
@@ -405,25 +477,39 @@ class Models(StateManager):
         t.add_trigger(MODEL_NAME_CHANGED)
         t.add_trigger(MODEL_POSITION_CHANGED)
         t.add_trigger(RESTORED_MODELS)
+        t.add_trigger(RESTORED_MODEL_TABLE)
         self._models = {}				# Map id to Model
         self._scene_root_model = r = Model("root", session)
         r.id = ()
         self._initialize_camera = True
+        from .commands.atomspec import check_selectors
+        t.add_handler(REMOVE_MODELS, check_selectors)
 
     def take_snapshot(self, session, flags):
         models = {}
+        not_saved = []
         for id, model in self._models.items():
             assert(isinstance(model, Model))
-            if not model.SESSION_SAVE:
+            if not model._save_in_session:
+                not_saved.append(model)
                 continue
             models[id] = model
         data = {'models': models,
                 'version': CORE_STATE_VERSION}
+        if not_saved:
+            mwarn = [m for m in not_saved
+                     if m.SESSION_WARN and (m.parent is None or m.parent.SESSION_SAVE)]
+            if mwarn:
+                log = self._session().logger
+                log.bug('The session file will not include the following models'
+                        ' because these model types have not implemented saving: %s'
+                        % ', '.join('%s #%s' % (m.name, m.id_string) for m in mwarn))
         return data
 
     @staticmethod
     def restore_snapshot(session, data):
         mdict = data['models']
+        session.triggers.activate_trigger(RESTORED_MODEL_TABLE, mdict)
         m = session.models
         for id, model in mdict.items():
             if model:        # model can be None if it could not be restored, eg Volume w/o map file
@@ -463,7 +549,7 @@ class Models(StateManager):
             parent = self.scene_root_model
 
         # Add models to parent
-        if parent:
+        if parent is not None:
             for m in models:
                 if m.parent is None or m.parent is not parent:
                     parent.add_drawing(m)
@@ -566,19 +652,19 @@ class Models(StateManager):
         id = parent.id + (nid,)
         return id
 
-    def add_group(self, models, name=None, id=None):
+    def add_group(self, models, name=None, id=None, parent=None):
         if name is None:
             names = set([m.name for m in models])
             if len(names) == 1:
                 name = names.pop() + " group"
             else:
                 name = "group"
-        parent = Model(name, self._session())
+        group = Model(name, self._session())
         if id is not None:
-            parent.id = id
-        parent.add(models)
-        self.add([parent])
-        return parent
+            group.id = id
+        group.add(models)
+        self.add([group], parent=parent)
+        return group
 
     def remove(self, models):
         # Also remove all child models, and remove deepest children first.
@@ -596,7 +682,7 @@ class Models(StateManager):
                 del self._models[model_id]
                 model.id = None
                 parent = model.parent
-                if parent:
+                if parent is not None:
                     parent.remove_drawing(model, delete=False)
                     parent._next_unused_id = None
                 else:

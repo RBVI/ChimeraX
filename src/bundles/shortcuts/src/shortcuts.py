@@ -67,8 +67,8 @@ def standard_shortcuts(session):
         ('Qt', 'quit', 'Quit', ocat, noarg, fmenu),
 
         # Scene
-        ('va', 'view cofr false', 'View all', gcat, noarg, smenu),
-        ('dv', 'view orient cofr false', 'Default orientation', gcat, noarg, smenu),
+        ('va', 'view', 'View all', gcat, noarg, smenu),
+        ('dv', 'view orient', 'Default orientation', gcat, noarg, smenu),
         ('vs', view_selected, 'View selected', gcat, sesarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
@@ -129,6 +129,7 @@ def standard_shortcuts(session):
 
         ('aw', if_sel_maps('volume sel appearance "Airways II"'), 'Airways preset', mapcat, sesarg, mmenu),
         ('as', if_sel_maps('volume sel appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
+        ('ch', if_sel_maps('volume sel appearance chest'), 'Chest preset', mapcat, sesarg, mmenu),
         ('dc', if_sel_maps('volume sel appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
         ('zs', if_sel_maps('volume sel projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
         ('ps', if_sel_maps('volume sel projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
@@ -1096,7 +1097,7 @@ def unused_file_name(directory, basename, suffix):
         if f.startswith(basename) and f.endswith(suffix):
             try:
                 nums.append(int(f[len(basename):len(f)-len(suffix)]))
-            except:
+            except Exception:
                 pass
     n = max(nums, default = 0) + 1
     filename = '%s%d%s' % (basename, n, suffix)
@@ -1139,3 +1140,14 @@ def register_shortcut_command(logger):
     desc = CmdDesc(optional = [('shortcut', StringArg)],
                    synopsis = 'Run keyboard a shortcut')
     register('ks', desc, ks, logger=logger)
+
+def run_provider(session, name):
+    # run shortcut chosen via bundle provider interface
+    from chimerax.core.errors import NotABug
+    try:
+        keyboard_shortcuts(session).try_shortcut(name)
+    except NotABug as err:
+        from html import escape
+        from chimerax.core.logger import error_text_format
+        session.logger.info(error_text_format % escape(str(err)), is_html=True)
+

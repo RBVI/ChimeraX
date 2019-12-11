@@ -635,7 +635,7 @@ class SeqCanvas:
             for seq in self.lines:
                 if getattr(seq, 'numbering_start', None) == None:
                     continue
-                offset = len([c for c in seq[:extent] if c.isalpha()])
+                offset = len([c for c in seq[:extent] if c.isalpha() or c == '?'])
                 lwidth = max(lwidth, self.font_metrics.width(
                     "%d " % (seq.numbering_start + offset)))
             lwidth += 3
@@ -1896,12 +1896,12 @@ class SeqBlock:
     def _compute_numbering(self, line, end):
         if end == 0:
             count = len([c for c in line[:self.seq_offset]
-                        if c.isalpha()])
+                        if c.isalpha() or c == '?'])
             if count == len(line.ungapped()):
                 count -= 1
         else:
             count = len([c for c in line[:self.seq_offset
-                + self.line_width] if c.isalpha()]) - 1
+                + self.line_width] if c.isalpha()] or c == '?') - 1
         return line.numbering_start + count
 
     """TODO

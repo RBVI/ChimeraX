@@ -138,9 +138,9 @@ class BundleBuilder:
             self._platform_names = self._linux_platforms
         # Read data from XML file
         self._used_elements = set()
-        from xml.dom.minidom import parse
+        from lxml.etree import parse
         doc = parse(bundle_info)
-        bi = doc.documentElement
+        bi = doc.getroot()
         self._get_identifiers(bi)
         self._get_categories(bi)
         self._get_descriptions(bi)
@@ -158,28 +158,31 @@ class BundleBuilder:
         self._check_unused_elements(bi)
 
     def _get_identifiers(self, bi):
-        self.name = bi.getAttribute("name")
+        self.name = bi.get("name", '')
         if '_' in self.name:
             self.name = self.name.replace('_', '-')
             self.logger.warning("Bundle renamed to %r after replacing "
                                 "underscores with hyphens." % self.name)
-        self.version = bi.getAttribute("version")
-        self.package = bi.getAttribute("package")
-        self.min_session = bi.getAttribute("minSessionVersion")
-        self.max_session = bi.getAttribute("maxSessionVersion")
-        self.supercedes = bi.getAttribute("supercedes")
-        self.custom_init = bi.getAttribute("customInit")
-        self.pure_python = bi.getAttribute("purePython")
-        self.installed_data_dir = bi.getAttribute("installedDataDir")
-        self.installed_include_dir = bi.getAttribute("installedIncludeDir")
-        self.installed_library_dir = bi.getAttribute("installedLibraryDir")
-        self.installed_executable_dir = bi.getAttribute("installedExecutableDir")
+        self.version = bi.get("version", '')
+        self.package = bi.get("package", '')
+        self.min_session = bi.get("minSessionVersion", '')
+        self.max_session = bi.get("maxSessionVersion", '')
+        self.supercedes = bi.get("supercedes", '')
+        self.custom_init = bi.get("customInit", '')
+        self.pure_python = bi.get("purePython", '')
+        self.installed_data_dir = bi.get("installedDataDir", '')
+        self.installed_include_dir = bi.get("installedIncludeDir", '')
+        self.installed_library_dir = bi.get("installedLibraryDir", '')
+        self.installed_executable_dir = bi.get("installedExecutableDir", '')
 
     def _get_categories(self, bi):
         self.categories = []
         deps = self._get_singleton(bi, "Categories")
         for e in self._get_elements(deps, "Category"):
-            self.categories.append(e.getAttribute("name"))
+            name = e.get("name")
+            if name is None:
+                raise ValueError("Missing Category's name at line %d" % e.sourceline)
+            self.categories.append(name)
 
     def _get_descriptions(self, bi):
         self.author = self._get_singleton_text(bi, "Author")
@@ -195,7 +198,7 @@ class BundleBuilder:
     def _get_datafiles(self, bi):
         self.datafiles = {}
         for dfs in self._get_elements(bi, "DataFiles"):
-            pkg_name = dfs.getAttribute("package")
+            pkg_name = dfs.get("package")
             files = []
             for e in self._get_elements(dfs, "DataFile"):
                 filename = self._get_element_text(e)
@@ -211,15 +214,19 @@ class BundleBuilder:
     def _get_extrafiles(self, bi):
         self.extrafiles = {}
         for dfs in self._get_elements(bi, "ExtraFiles"):
-            pkg_name = dfs.getAttribute("package")
+            pkg_name = dfs.get("package")
             files = []
             for e in self._get_elements(dfs, "ExtraFile"):
-                source = e.getAttribute("source")
+                source = e.get("source")
+                if source is None:
+                    raise ValueError("Missing ExtraFiles's source at line %d" % e.sourceline)
                 filename = self._get_element_text(e)
                 files.append(("file", source, filename))
             for e in self._get_elements(dfs, "ExtraFileGroup"):
                 import os.path, glob
-                source = e.getAttribute("source")
+                source = e.get("source")
+                if source is None:
+                    raise ValueError("Missing ExtraFileGroup's source at line %d" % e.sourceline)
                 source_base_dir = os.path.dirname(source)
                 while '*' in source_base_dir or '?' in source_base_dir:
                     source_base_dir = os.path.split(source_base_dir)[0]
@@ -230,7 +237,9 @@ class BundleBuilder:
                 for sf in sourcefiles:
                     files.append(("file", sf, os.path.join(dirname, os.path.relpath(sf, source_base_dir))))
             for e in self._get_elements(dfs, "ExtraDir"):
-                source = e.getAttribute("source")
+                source = e.get("source")
+                if source is None:
+                    raise ValueError("Missing ExtraDir's source at line %d" % e.sourceline)
                 dirname = self._get_element_text(e)
                 files.append(("dir", source, dirname))
             if files:
@@ -248,29 +257,29 @@ class BundleBuilder:
         for mgrs in self._get_elements(bi, "Managers"):
             for e in self._get_elements(mgrs, "Manager"):
                 keywords = {}
-                if e.attributes:
-                    keywords.update(e.attributes.items())
+                if e.attrib:
+                    keywords.update(e.attrib.items())
                 name = keywords.pop("name", None)
                 if name is None:
-                    raise ValueError("Missing Manager's name")
+                    raise ValueError("Missing Manager's name at line %d" % e.sourceline)
                 self.managers[name] = keywords
 
     def _get_providers(self, bi):
         self.providers = {}
         for prvs in self._get_elements(bi, "Providers"):
-            default_manager = prvs.getAttribute('manager')
+            default_manager = prvs.get('manager', '')
             for e in self._get_elements(prvs, "Provider"):
                 keywords = {}
-                if e.attributes:
-                    keywords.update(e.attributes.items())
+                if e.attrib:
+                    keywords.update(e.attrib.items())
                 manager = keywords.pop("manager", '')
                 if len(manager) == 0:
                     manager = default_manager
                 if len(manager) == 0:
-                    raise ValueError("Missing Provider's manager")
+                    raise ValueError("Missing Provider's manager at line %d" % e.sourceline)
                 name = keywords.pop("name", None)
                 if name is None:
-                    raise ValueError("Missing Provider's name")
+                    raise ValueError("Missing Provider's name at line %d" % e.sourceline)
                 self.providers[name] = (manager, keywords)
 
     def _get_dependencies(self, bi):
@@ -283,8 +292,8 @@ class BundleBuilder:
             return
         from packaging.requirements import Requirement
         for e in self._get_elements(deps, "Dependency"):
-            pkg = e.getAttribute("name")
-            ver = e.getAttribute("version")
+            pkg = e.get("name", '')
+            ver = e.get("version", '')
             req = "%s %s" % (pkg, ver)
             try:
                 Requirement(req)
@@ -296,8 +305,12 @@ class BundleBuilder:
         self.initializations = {}
         for inits in self._get_elements(bi, "Initializations"):
             for e in self._get_elements(inits, "InitAfter"):
-                i_type = e.getAttribute("type")
-                bundle = e.getAttribute("bundle")
+                i_type = e.get("type")
+                if i_type is None:
+                    raise ValueError("Missing InitAfter's type at line %d" % e.sourceline)
+                bundle = e.get("bundle")
+                if bundle is None:
+                    raise ValueError("Missing InitAfter's bundle at line %d" % e.sourceline)
                 try:
                     self.initializations[i_type].append(bundle)
                 except KeyError:
@@ -306,16 +319,18 @@ class BundleBuilder:
     def _get_c_modules(self, bi):
         self.c_modules = []
         for cm in self._get_elements(bi, "CModule"):
-            mod_name = cm.getAttribute("name")
+            mod_name = cm.get("name")
+            if mod_name is None:
+                raise ValueError("Missing CModule's name at line %d" % e.sourceline)
             try:
-                major = int(cm.getAttribute("major_version"))
+                major = int(cm.get("major_version", ''))
             except ValueError:
                 major = 0
             try:
-                minor = int(cm.getAttribute("minor_version"))
+                minor = int(cm.get("minor_version", ''))
             except ValueError:
                 minor = 1
-            uses_numpy = cm.getAttribute("usesNumpy") == "true"
+            uses_numpy = cm.get("usesNumpy") == "true"
             c = _CModule(mod_name, uses_numpy, major, minor,
                          self.installed_library_dir)
             self._add_c_options(c, cm)
@@ -324,9 +339,9 @@ class BundleBuilder:
     def _get_c_libraries(self, bi):
         self.c_libraries = []
         for lib in self._get_elements(bi, "CLibrary"):
-            c = _CLibrary(lib.getAttribute("name"),
-                          lib.getAttribute("usesNumpy") == "true",
-                          lib.getAttribute("static") == "true",
+            c = _CLibrary(lib.get("name", ''),
+                          lib.get("usesNumpy") == "true",
+                          lib.get("static") == "true",
                           self.installed_library_dir)
             self._add_c_options(c, lib)
             self.c_libraries.append(c)
@@ -334,7 +349,7 @@ class BundleBuilder:
     def _get_c_executables(self, bi):
         self.c_executables = []
         for lib in self._get_elements(bi, "CExecutable"):
-            c = _CExecutable(lib.getAttribute("name"),
+            c = _CExecutable(lib.get("name", ''),
                              self.installed_executable_dir)
             self._add_c_options(c, lib)
             self.c_executables.append(c)
@@ -377,8 +392,12 @@ class BundleBuilder:
             # AdditionalPackages is optional
             return
         for pkg in self._get_elements(pkgs, "Package"):
-            pkg_name = pkg.getAttribute("name")
-            pkg_folder = pkg.getAttribute("folder")
+            pkg_name = pkg.get("name")
+            if pkg_name is None:
+                raise ValueError("Missing Package's name at line %d" % e.sourceline)
+            pkg_folder = pkg.get("folder")
+            if pkg_folder is None:
+                raise ValueError("Missing Package's folder at line %d" % e.sourceline)
             self.packages.append((pkg_name, pkg_folder))
 
     def _get_classifiers(self, bi):
@@ -597,25 +616,21 @@ class BundleBuilder:
     # Utility functions dealing with XML tree
     #
     def _get_elements(self, e, tag):
-        tagged_elements = e.getElementsByTagName(tag)
+        tagged_elements = list(e.iter(tag))
         # Mark element as used even for non-applicable platform
         self._used_elements.update(tagged_elements)
         elements = []
         for se in tagged_elements:
-            platform = se.getAttribute("platform")
+            platform = se.get("platform")
             if not platform or platform in self._platform_names:
                 elements.append(se)
         return elements
 
     def _get_element_text(self, e):
-        text = ""
-        for node in e.childNodes:
-            if node.nodeType == node.TEXT_NODE:
-                text += node.data
-        return text.strip()
+        return ''.join(e.itertext()).strip()
 
     def _get_singleton(self, bi, tag):
-        elements = bi.getElementsByTagName(tag)
+        elements = list(bi.iter(tag))
         self._used_elements.update(elements)
         if len(elements) > 1:
             raise ValueError("too many %s elements" % repr(tag))
@@ -627,11 +642,12 @@ class BundleBuilder:
         return self._get_element_text(self._get_singleton(bi, tag))
 
     def _check_unused_elements(self, bi):
-        for node in bi.childNodes:
-            if node.nodeType != node.ELEMENT_NODE:
-                continue
+        for node in bi:
             if node not in self._used_elements:
-                print("WARNING: unsupported element:", node.nodeName)
+                if not isinstance(node.tag, str):
+                    # skip comments
+                    continue
+                print("WARNING: unsupported element:", node.tag())
 
 
 class _CompiledCode:
@@ -729,12 +745,17 @@ class _CompiledCode:
                 return None
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
+        from pkg_resources import DistributionNotFound
         for dep in dependencies:
-            d_inc, d_lib = self._get_bundle_dirs(logger, dep)
-            if d_inc:
-                inc_dirs.append(d_inc)
-            if d_lib:
-                lib_dirs.append(d_lib)
+            try:
+                d_inc, d_lib = self._get_bundle_dirs(logger, dep)
+            except (RuntimeError, DistributionNotFound):
+                pass
+            else:
+                if d_inc:
+                    inc_dirs.append(d_inc)
+                if d_lib:
+                    lib_dirs.append(d_lib)
         extra_link_args.extend(self.link_arguments)
         return (inc_dirs, lib_dirs, self.macros,
                 extra_link_args, libraries, cpp_flags)

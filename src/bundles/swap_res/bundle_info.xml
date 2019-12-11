@@ -20,6 +20,7 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>
@@ -27,6 +28,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: swapaa :: Structure Editing :: swap residue side chain </ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Rotamers :: General :: swap residue side chain</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

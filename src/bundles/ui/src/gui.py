@@ -31,6 +31,7 @@ from chimerax.core.logger import PlainTextLog
 def initialize_qt():
     initialize_qt_plugins_location()
     initialize_qt_high_dpi_display_support()
+    initialize_desktop_opengl()
     initialize_shared_opengl_contexts()
 
 def initialize_qt_plugins_location():
@@ -73,6 +74,11 @@ def initialize_qt_high_dpi_display_support():
     if win:
         from PyQt5.QtCore import QCoreApplication, Qt
         QCoreApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+
+def initialize_desktop_opengl():
+    # Need full OpenGL support
+    from PyQt5.QtCore import QCoreApplication, Qt
+    QCoreApplication.setAttribute(Qt.AA_UseDesktopOpenGL)
 
 def initialize_shared_opengl_contexts():
     # Mono and stereo opengl contexts need to share vertex buffers
@@ -119,11 +125,14 @@ class UI(QApplication):
         self.redirect_qt_messages()
 
         self._keystroke_sinks = []
+        self._key_callbacks = {}	# Maps Qt key number to callback func(session, key_num).
         self._files_to_open = []
 
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('ready')
+        self.triggers.add_trigger('tool window show or hide')
+
 
     @property
     def mouse_modes(self):
@@ -178,7 +187,6 @@ class UI(QApplication):
         (e.g. Log, or file history) which come out blank.  Hidden windows also
         may render an image at the wrong size with a new layout (e.g. Model Panel).
         '''
-        screen = self.primaryScreen()
         w = self.main_window
         pixmap = w.grab()
         im = pixmap.toImage()
@@ -268,15 +276,28 @@ class UI(QApplication):
            promote/demote the graphics window selection
         """
         from PyQt5.QtCore import Qt
-        if event.key() == Qt.Key_Up:
+        k = event.key()
+        if self.key_intercepted(k):
+            return
+        elif k == Qt.Key_Up:
             from chimerax.core.commands import run
             run(self.session, 'select up')
-        elif event.key() == Qt.Key_Down:
+        elif k == Qt.Key_Down:
             from chimerax.core.commands import run
             run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
 
+    def intercept_key(self, qt_key_number, callback):
+        self._key_callbacks[qt_key_number] = callback
+
+    def key_intercepted(self, key_num):
+        if key_num in self._key_callbacks:
+            f = self._key_callbacks[key_num]
+            f(self.session, key_num)
+            return True
+        return False
+        
     def register_for_keystrokes(self, sink):
         """'sink' is interested in receiving keystrokes from the main
            graphics window.  That object's 'forwarded_keystroke'
@@ -419,6 +440,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
 
+        self.use_native_open_dialog = True
+        
         from .open_folder import OpenFolderDialog
         self._open_folder = OpenFolderDialog(self, session)
 
@@ -433,6 +456,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
+        self._is_quitting = False
 
         self._build_status()
         self._populate_menus(session)
@@ -483,7 +507,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._stack.setCurrentWidget(g.widget)
 
         return True
-    
+
+    def keyPressEvent(self, event):
+        self.session.ui.forward_keystroke(event)
+        
     def dragEnterEvent(self, event):
         md = event.mimeData()
         if md.hasUrls():
@@ -535,11 +562,15 @@ class MainWindow(QMainWindow, PlainTextLog):
     
     def closeEvent(self, event):
         # the MainWindow close button has been clicked
+        self._is_quitting = True
         event.accept()
         self.session.ui.quit()
 
     def close_request(self, tool_window, close_event):
         # closing a tool window has been requested
+        if self._is_quitting:
+            close_event.accept()
+            return
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
@@ -550,8 +581,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             return
         if close_destroys:
             close_event.accept()
+            # _destroy will remove window from all_windows indirectly
+            # via tw._destroy -> toolkit.destroy -> mw->_tool_window_destroyed
             tool_window._destroy()
-            all_windows.remove(tool_window)
         else:
             close_event.ignore()
             tool_window.shown = False
@@ -577,15 +609,23 @@ class MainWindow(QMainWindow, PlainTextLog):
         from PyQt5.QtWidgets import QFileDialog
         from .open_save import open_file_filter
         filters = open_file_filter(all=True, format_name=format_name)
-        paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
-                                                       directory=initial_directory)
-        paths, types = paths_and_types
+        if self.use_native_open_dialog:
+            from PyQt5.QtWidgets import QFileDialog
+            paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
+                                                           directory=initial_directory)
+            paths, types = paths_and_types
+        else:
+            from .open_save import OpenDialog
+            d = OpenDialog(parent = self, starting_directory = initial_directory,
+                           filter = filters)
+            paths = d.get_paths()
+
         if not paths:
             return
 
         def _qt_safe(session=session, paths=paths):
-            from chimerax.core.commands import run, quote_path_if_necessary
-            run(session, "open " + " ".join([quote_path_if_necessary(p) for p in paths]))
+            from chimerax.core.commands import run, FileNameArg
+            run(session, "open " + " ".join([FileNameArg.unparse(p) for p in paths]))
         # Opening the model directly adversely affects Qt interfaces that show
         # as a result.  In particular, Multalign Viewer no longer gets hover
         # events correctly, nor tool tips.
@@ -660,7 +700,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             icon = self._expand_icon
             for tw, state in self._hide_tools_shown_states.items():
                 if state:
-                    tw.shown = True
+                    tw._mw_set_shown(True)
             self._hide_tools_shown_states.clear()
             if self._pref_dialog_state:
                 self.settings_ui_widget.show()
@@ -673,7 +713,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def remove_tool(self, tool_instance):
         tool_windows = self.tool_instance_to_windows.get(tool_instance, None)
         if tool_windows:
-            for tw in tool_windows:
+            for tw in tool_windows[:]:
                 tw._mw_set_shown(False)
                 tw._destroy()
             del self.tool_instance_to_windows[tool_instance]
@@ -768,6 +808,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         self._about_dialog.setHtml(content)
         self._about_dialog.show()
 
+    def _about_to_manage(self, tool_window, as_floating):
+        if self.hide_tools and not as_floating:
+            self.hide_tools = False
+    _float_changed = _about_to_manage
+
     def _build_status(self):
         from .statusbar import _StatusBar
         self._status_bar = sbar = _StatusBar(self.session)
@@ -841,11 +886,6 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._core_settings_panel.options_widget.add_option(category, option)
 
     def _new_tool_window(self, tw):
-        if self.hide_tools:
-            self._hide_tools_shown_states[tw] = True
-            tw._mw_set_shown(False)
-            tw.tool_instance.session.logger.status("Tool display currently suppressed",
-                color="red", blank_after=7)
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
     def _populate_menus(self, session):
@@ -992,7 +1032,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _add_preset_entries(self, session, menu, preset_names, category=None):
         from PyQt5.QtWidgets import QAction
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         # the menu names may be instances of CustomSortString, so sort them
         # before applying menu_capitalize(); also 'preset_names' may be a keys view
         menu_names = list(preset_names)
@@ -1001,11 +1041,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         if category is None:
             cat_string = ""
         else:
-            cat_string = quote_if_necessary(category.lower()) + " "
+            cat_string = StringArg.unparse(category.lower()) + " "
         for name in menu_names:
             action = QAction(name, menu)
             action.triggered.connect(lambda checked, ses=session, name=name, cat=cat_string:
-                run(ses, "preset %s%s" % (cat, quote_if_necessary(name.lower()))))
+                run(ses, "preset %s%s" % (cat, StringArg.unparse(name.lower()))))
             menu.addAction(action)
 
     def _populate_actions_menu(self, actions_menu):
@@ -1022,28 +1062,64 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("Show Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide #* target ab; show %s target ab": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+            cmd="hide #* target %s; show %s target ab":
+            run(ses, cmd % (precise_target(ses), sel_or_all(ses, ['atoms', 'bonds']))))
         action = QAction("Hide", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s target ab": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+            cmd="hide %s target %s":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), precise_target(ses))))
+        # Cartoon submenu...
+        cartoon_menu = atoms_bonds_menu.addMenu("Cartoon")
+        action = QAction("Ribbons (Smooth Edges)", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon %s; cartoon style %s xsection oval modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Ribbons (Sharp Edges)", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon %s; cartoon style %s xsection rectangle modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Ribbons (Lipped Edges)", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon %s; cartoon style %s xsection oval;"
+            " cartoon style %s xsection barbell modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']),
+            sel_or_all(ses, ['atoms', 'bonds'], restriction="coil"), sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Helix Tubes", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon %s; cartoon style %s modeHelix tube sides 20":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("None", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Cartoon submenu
         action = QAction("Backbone Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s & (protein|nucleic) target ab; show %s & backbone target ab":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
-            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"))))
+            cmd="hide %s target %s; cartoon hide %s; show %s target ab":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
+            restriction="(protein|nucleic)"), precise_target(ses),
+            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
+            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues", restriction="backbone"))))
         action = QAction("Chain Trace Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="hide %s & (protein|nucleic) target ab; show %s & ((protein&@ca)|(nucleic&@p)) target ab":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
-            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"))))
+            cmd="hide %s target %s; cartoon hide %s; show %s target ab":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
+                restriction="(protein|nucleic)"),
+            precise_target(ses), sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
+            sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
+                restriction="((protein&@ca)|(nucleic&@p))"))))
         action = QAction("Show Side Chain/Base", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="show %s & sidechain target ab":
-            run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues")))
+            cmd="show %s target ab":
+            run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues", restriction="sidechain")))
 
         atoms_bonds_menu.addSeparator()
 
@@ -1080,33 +1156,17 @@ class MainWindow(QMainWindow, PlainTextLog):
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
 
         #
-        # Cartoon...
+        # Surface...
         #
-        cartoon_menu = actions_menu.addMenu("Cartoon")
-        action = QAction("Ribbons (Smooth Edges)", self)
-        cartoon_menu.addAction(action)
+        surface_menu = actions_menu.addMenu("Surface")
+        action = QAction("Show", self)
+        surface_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection oval modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Ribbons (Sharp Edges)", self)
-        cartoon_menu.addAction(action)
+            cmd="surface %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action = QAction("Hide", self)
+        surface_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection rectangle modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Ribbons (Lipped Edges)", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection barbell modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Helix Tubes", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s modeHelix tube sides 20":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("None", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+            cmd="surface hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
@@ -1191,7 +1251,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def update_favorites_menu(self, session):
         from PyQt5.QtWidgets import QAction
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         # Due to Settings possibly being displayed in another menu (but the actions
         # still being in this menu), be tricky about clearing out menu
         prev_actions = self.favorites_menu.actions()
@@ -1202,7 +1262,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         for fave in session.ui.settings.favorites:
             fave_action = QAction(fave, self)
             fave_action.triggered.connect(lambda arg, ses=session, run=run, fave=fave:
-                run(ses, "toolshed show %s" % (quote_if_necessary(fave))))
+                run(ses, "toolshed show %s" % (StringArg.unparse(fave))))
             if prev_actions:
                 self.favorites_menu.insertAction(separator, fave_action)
             else:
@@ -1217,7 +1277,7 @@ class MainWindow(QMainWindow, PlainTextLog):
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
         from PyQt5.QtWidgets import QMenu, QAction
-        tools_menu = QMenu("&Tools")
+        tools_menu = QMenu("&Tools", self.menuBar())
         tools_menu.setToolTipsVisible(True)
         categories = {}
         self._tools_cache = set()
@@ -1228,7 +1288,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                     categories.setdefault(cat, {})[tool.name] = (bi, tool)
         cat_keys = sorted(categories.keys())
         one_menu = len(cat_keys) == 1
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         active_tool_names = set([tool.display_name for tool in session.tools.list()])
         for cat in cat_keys:
             if one_menu:
@@ -1247,12 +1307,12 @@ class MainWindow(QMainWindow, PlainTextLog):
                     tool_action.triggered.connect(
                         lambda arg, ses=session, run=run, tool_name=tool_name:
                         run(ses, "toolshed %s %s" % (("show" if arg else "hide"),
-                        quote_if_necessary(tool_name))))
+                        StringArg.unparse(tool_name))))
                     self._checkbutton_tools[tool_name] = tool_action
                 else:
                     tool_action.triggered.connect(
                         lambda arg, ses=session, run=run, tool_name=tool_name:
-                        run(ses, "toolshed show %s" % quote_if_necessary(tool_name)))
+                        run(ses, "toolshed show %s" % StringArg.unparse(tool_name)))
                 cat_menu.addAction(tool_action)
         def _show_toolshed(arg):
             from chimerax.help_viewer import show_url
@@ -1453,6 +1513,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         return parent_menu
 
     def _tool_window_destroy(self, tool_window):
+        # via request from non-UI code to destroy window
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
@@ -1460,18 +1521,24 @@ class MainWindow(QMainWindow, PlainTextLog):
             tool_instance.delete()
             return
         tool_window._destroy()
+
+    def _tool_window_destroyed(self, tool_window):
+        # tool window (is about to be) destroyed, both via UI and non-UI code
+        all_windows = self.tool_instance_to_windows[tool_window.tool_instance]
         all_windows.remove(tool_window)
+        if tool_window in getattr(self, '_hide_tools_shown_states', {}):
+            del self._hide_tools_shown_states[tool_window]
+
 
     def _tool_window_request_shown(self, tool_window, shown):
-        if self.hide_tools:
-            def set_shown(win, show):
-                self._hide_tools_shown_states[win] = show
-        else:
-            set_shown = lambda win, show: win._mw_set_shown(show)
+        if shown and not tool_window.floating:
+            self.hide_tools = False
+        if self.hide_tools and not shown and not tool_window.floating:
+            self._hide_tools_shown_states[tool_window] = False
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
-        set_shown(tool_window, shown)
+        tool_window._mw_set_shown(shown)
         if is_main_window:
             for window in all_windows[1:]:
                 if shown:
@@ -1480,16 +1547,18 @@ class MainWindow(QMainWindow, PlainTextLog):
                     # show it and forget the _prev_shown attrs
                     if hasattr(window, '_prev_shown'):
                         if window._prev_shown:
-                            set_shown(window, True)
+                            window._mw_set_shown(True)
                         delattr(window, '_prev_shown')
                 else:
-                    set_shown(window, False)
+                    if self.hide_tools and not window.floating:
+                        self._hide_tools_shown_states[window] = False
+                    window._mw_set_shown(False)
 
 def _open_dropped_file(session, path):
     if not path:
         return
-    from chimerax.core.commands import run, quote_path_if_necessary
-    run(session, 'open %s' % quote_path_if_necessary(path))
+    from chimerax.core.commands import run, FileNameArg
+    run(session, 'open %s' % FileNameArg.unparse(path))
 
 from chimerax.core.logger import StatusLogger
 class ToolWindow(StatusLogger):
@@ -1605,6 +1674,8 @@ class ToolWindow(StatusLogger):
             if geom_info is not None:
                 from PyQt5.QtCore import QRect
                 geometry = QRect(*geom_info)
+        self.tool_instance.session.ui.main_window._about_to_manage(self,
+            placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
 
     @property
@@ -1614,7 +1685,9 @@ class ToolWindow(StatusLogger):
 
     @shown.setter
     def shown(self, shown):
-        self.session.ui.main_window._tool_window_request_shown(self, shown)
+        ui = self.session.ui
+        ui.main_window._tool_window_request_shown(self, shown)
+        ui.triggers.activate_trigger('tool window show or hide', self)
 
     def shown_changed(self, shown):
         """Supported API. Perform actions when window hidden/shown
@@ -1768,8 +1841,8 @@ class _Qt:
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+        dw.topLevelChanged.connect(self.float_changed)
         if hide_title_bar:
-            dw.topLevelChanged.connect(self.float_changed)
             self.dock_widget.setTitleBarWidget(QWidget())
 
         container = QWidget()
@@ -1794,6 +1867,7 @@ class _Qt:
             # already destroyed
             return
         is_floating = self.dock_widget.isFloating()
+        self.main_window._tool_window_destroyed(self.tool_window)
         self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None
@@ -1821,8 +1895,10 @@ class _Qt:
             self.dock_widget.setFloating(True)
 
     def float_changed(self, floating):
-        from PyQt5.QtWidgets import QWidget
-        self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+        if self.hide_title_bar:
+            from PyQt5.QtWidgets import QWidget
+            self.dock_widget.setTitleBarWidget(None if floating else QWidget())
+        self.main_window._float_changed(self.tool_window, floating)
 
     def manage(self, placement, allowed_areas, fixed_size, geometry):
         # map 'side' to the user's preferred side
@@ -1945,7 +2021,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
     menu.addAction(hide_tool_action)
     help_url = getattr(tool_window, "help", None) or ti.help
     session = ti.session
-    from chimerax.core.commands import run, quote_if_necessary
+    from chimerax.core.commands import run, StringArg
     if help_url is not None:
         help_action = QAction("Help")
         help_action.setStatusTip("Show tool help")
@@ -1964,27 +2040,27 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         auto_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui autostart %s %s" % (("true" if arg else "false"),
-            quote_if_necessary(ti.tool_name))))
+            StringArg.unparse(ti.tool_name))))
         menu.addAction(auto_action)
         favorite = ti.tool_name in session.ui.settings.favorites
         fav_action = QAction("In Favorites Menu")
         fav_action.setCheckable(True)
         fav_action.setChecked(favorite)
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         fav_action.triggered.connect(
             lambda arg, ses=session, run=run, tool_name=ti.tool_name:
             run(ses, "ui favorite %s %s" % (("true" if arg else "false"),
-            quote_if_necessary(ti.tool_name))))
+            StringArg.unparse(ti.tool_name))))
         menu.addAction(fav_action)
     undockable = ti.tool_name in session.ui.settings.undockable
     dock_action = QAction("Dockable Tool")
     dock_action.setCheckable(True)
     dock_action.setChecked(not undockable)
-    from chimerax.core.commands import run, quote_if_necessary
+    from chimerax.core.commands import run, StringArg
     dock_action.triggered.connect(
         lambda arg, ses=session, run=run, tool_name=ti.tool_name:
         run(ses, "ui dockable %s %s" % (("true" if arg else "false"),
-        quote_if_necessary(ti.tool_name))))
+        StringArg.unparse(ti.tool_name))))
     menu.addAction(dock_action)
     if memorable:
         position_action = QAction("Save Tool Position")
@@ -2081,14 +2157,14 @@ class DefineSelectorDialog(QDialog):
         self._update_button_states()
 
     def def_selector(self, *args):
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, StringArg
         if self.push_button.text() == self.cur_sel_text:
             command = "name frozen"
             spec = "sel"
         else:
             command = "name"
-            spec = quote_if_necessary(self.atom_spec_edit.text())
-        run(self.session, "%s %s %s" % (command, quote_if_necessary(self.name_edit.text()), spec))
+            spec = self.atom_spec_edit.text()
+        run(self.session, "%s %s %s" % (command, StringArg.unparse(self.name_edit.text()), spec))
 
     def _update_button_states(self, *args):
         enable = bool(self.name_edit.text().strip())
@@ -2124,8 +2200,8 @@ class SelSeqDialog(QDialog):
         self.setLayout(layout)
 
     def search(self, *args):
-        from chimerax.core.commands import run, quote_if_necessary
-        run(self.session, "sel seq %s" % quote_if_necessary(self.edit.text().strip()))
+        from chimerax.core.commands import run, StringArg
+        run(self.session, "sel seq %s" % StringArg.unparse(self.edit.text().strip()))
 
     def _update_button_states(self, text):
         enable = bool(text.strip())
@@ -2400,3 +2476,16 @@ class InitWindowSizeOption(Option):
         self.current_proportional_size_label.setText("Current: %d%% wide, %d%% high" % (
                 int(100.0 * window_width / screen_width),
                 int(100.0 * window_height / screen_height)))
+
+def precise_target(session):
+    sel_bonds = session.selection.items('bonds')
+    if not sel_bonds:
+        return 'a'
+    sel_atoms = session.selection.items('atoms')
+    if not sel_atoms:
+        return 'b'
+    a_bonds = sel_atoms[0].bonds
+    if sel_bonds[0] - a_bonds:
+        # some selected bonds have neither endpoint atom selected
+        return 'ab'
+    return 'a'

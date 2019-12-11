@@ -206,6 +206,9 @@ var vdxtable = function() {
             table.bootgrid("deselect", deselect_ids);
         table.on("selected.rs.jquery.bootgrid", update_shown)
              .on("deselected.rs.jquery.bootgrid", update_shown);
+        var top_row = $("tr.active").first();
+        if (!is_element_in_view(top_row, false))
+            scroll_to_visible(top_row);
     }
 
     function update_ratings(new_ratings) {
@@ -217,6 +220,32 @@ var vdxtable = function() {
                 r.rating("update", rating);
         }
         $("#viewdockx_table").trigger("update");
+    }
+
+    function is_element_in_view(element, fully_in_view) {
+        // From https://stackoverflow.com/questions/487073/how-to-check-if-element-is-visible-after-scrolling
+        var pageTop = $(window).scrollTop();
+        var pageBottom = pageTop + $(window).height();
+        var elementTop = $(element).offset().top;
+        var elementBottom = elementTop + $(element).height();
+        if (fully_in_view)
+            return pageTop < elementTop && pageBottom > elementBottom;
+        else
+            return pageTop <= elementTop && pageBottom >= elementBottom;
+    }
+
+    function scroll_to_visible(element) {
+        var page_height = $(window).height();
+        var page_top = $(window).scrollTop();
+        var page_bottom = page_top + page_height;
+        var element_height = $(element).height();
+        var element_top = $(element).offset().top;
+        var element_bottom = element_top + element_height;
+        var top;
+        if (element_bottom > page_bottom)
+            $("html, body").animate({scrollTop: element_bottom - page_height});
+        else if (element_top < page_top)
+            $("html, body").animate({scrollTop: element_top});
     }
 
     function init() {

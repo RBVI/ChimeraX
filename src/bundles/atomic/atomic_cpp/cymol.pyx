@@ -35,6 +35,8 @@ cdef const char * _translate_struct_cat(cydecl.StructCat cat):
         return "ligand"
     if cat == cydecl.StructCat.Ions:
         return "ions"
+    if cat == cydecl.StructCat.Unassigned:
+        return "other"
     raise ValueError("Unknown structure category")
 
 cdef class CyAtom:
@@ -200,7 +202,9 @@ cdef class CyAtom:
         "Supported API. Color RGBA length 4 sequence/array. Values in range 0-255"
         if self._deleted: raise RuntimeError("Atom already deleted")
         color = self.cpp_atom.color()
-        return array([color.r, color.g, color.b, color.a])
+        # colors frequently get sliced to lop off the alpha, and tinyarray
+        # doesn't support slicing, so return a tuple
+        return (color.r, color.g, color.b, color.a)
 
     @color.setter
     @cython.boundscheck(False)  # turn off bounds checking

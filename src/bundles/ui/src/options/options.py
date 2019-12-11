@@ -171,8 +171,71 @@ class Option(metaclass=ABCMeta):
 
     @abstractmethod
     def _make_widget(self):
-        # create (as self.widget) the widget to display the option value
+        # Create (as self.widget) the widget to display the option value.
+        # The "widget" can actually be a layout, if several widgets are needed
+        # to compose/display the value of the option
         pass
+
+def make_optional(cls):
+    def get_value(self):
+        if self._check_box.isChecked():
+            # substitute the original widget back before asking for the value
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+            val = self._super_class.value.fget(self)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+            return val
+        return None
+
+    def set_value(self, value):
+        if value is None:
+            self._check_box.setChecked(False)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+            self._super_class.enabled.fset(self, False)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+        else:
+            self._check_box.setChecked(True)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+            self._super_class.enabled.fset(self, True)
+            self._super_class.value.fset(self, value)
+            self.widget, self._orig_widget = self._orig_widget, self.widget
+
+    def set_multiple(self):
+        self._check_box.setChecked(True)
+        self.widget, self._orig_widget = self._orig_widget, self.widget
+        self._super_class.set_multiple(self)
+        self.widget, self._orig_widget = self._orig_widget, self.widget
+
+    def _make_widget(self, **kw):
+        self._super_class._make_widget(self, **kw)
+        self._orig_widget = self.widget
+        from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLayout
+        self.widget = layout = QHBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        from PyQt5.QtCore import Qt
+        self._check_box = cb = QCheckBox()
+        cb.setAttribute(Qt.WA_LayoutUsesWidgetRect)
+        def enable_and_call(s=self):
+            s.widget, s._orig_widget = s._orig_widget, s.widget
+            s._super_class.enabled.fset(s, s._check_box.isChecked())
+            s.widget, s._orig_widget = s._orig_widget, s.widget
+            s.make_callback()
+        cb.clicked.connect(lambda state, s=self: enable_and_call(s))
+        layout.addWidget(cb, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        if isinstance(self._orig_widget, QLayout):
+            layout.addLayout(self._orig_widget, stretch=1)
+        else:
+            layout.addWidget(self._orig_widget, stretch=1, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+
+    attr_dict = {
+        'value': property(get_value, set_value),
+        'set_multiple': set_multiple,
+        '_make_widget': _make_widget,
+        '_super_class': cls,
+    }
+    opt_class = type('Optional' + cls.__name__, (cls,), attr_dict)
+    return opt_class
+
 
 class BooleanOption(Option):
     """Supported API. Option for true/false values"""
@@ -194,8 +257,19 @@ class BooleanOption(Option):
         self.widget = QCheckBox(**kw)
         self.widget.clicked.connect(lambda state, s=self: s.make_callback())
 
-class EnumBase:
+class EnumBase(Option):
     values = ()
+    def get_value(self):
+        return self.__widget.text()
+
+    def set_value(self, value):
+        self.__widget.setText(value)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        self.__widget.setText(self.multiple_value)
+
     def remake_menu(self, labels=None):
         from PyQt5.QtWidgets import QAction
         if labels is None:
@@ -207,12 +281,16 @@ class EnumBase:
             action = QAction(menu_label, self.__widget)
             action.triggered.connect(lambda arg, s=self, lab=label: s._menu_cb(lab))
             menu.addAction(action)
+        if self.values and self.value not in self.values and self.value != self.multiple_value:
+            self.value = labels[0]
+            self.make_callback()
 
     def _make_widget(self, *, display_value=None, **kw):
         from PyQt5.QtWidgets import QPushButton, QMenu
         if display_value is None:
             display_value = self.default
         self.__widget = QPushButton(display_value, **kw)
+        self.__widget.setAutoDefault(False)
         menu = QMenu()
         self.__widget.setMenu(menu)
         self.remake_menu()
@@ -222,22 +300,12 @@ class EnumBase:
         self.value = label
         self.make_callback()
 
-class EnumOption(Option, EnumBase):
+class EnumOption(EnumBase):
     """Supported API. Option for enumerated values"""
-
-    def get_value(self):
-        return self.widget.text()
-
-    def set_value(self, value):
-        self.widget.setText(value)
-
-    value = property(get_value, set_value)
-
-    def set_multiple(self):
-        self.widget.setText(self.multiple_value)
 
     def _make_widget(self, *, display_value=None, **kw):
         self.widget = EnumBase._make_widget(self, display_value=display_value, **kw)
+OptionalEnumOption = make_optional(EnumOption)
 
 class FloatOption(Option):
     """Supported API. Option for floating-point values.
@@ -270,7 +338,7 @@ class FloatOption(Option):
 
     def _make_widget(self, min=None, max=None, preceding_text=None, trailing_text=None,
             decimal_places=3, step=None, **kw):
-        self._spin_box = _make_float_spinbox(min, max, step, decimal_places)
+        self._spin_box = _make_float_spinbox(min, max, step, decimal_places, **kw)
         self._spin_box.valueChanged.connect(lambda val, s=self: s.make_callback())
         if not preceding_text and not trailing_text:
             self.widget = self._spin_box
@@ -289,7 +357,7 @@ class FloatOption(Option):
             r = 0
         self.widget.setLayout(layout)
 
-class FloatEnumOption(Option, EnumBase):
+class FloatEnumOption(EnumBase):
     """Supported API. Option for a floating-point number and an enum (as a 2-tuple), for something
        such as size and units"""
 
@@ -431,6 +499,9 @@ class RGBA8Option(Option):
     def _make_widget(self, **kw):
         from ..widgets import MultiColorButton
         self.widget = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
+        initial_color = kw.get('initial_color', getattr(self, 'default_initial_color', None))
+        if initial_color is not None:
+            self.widget.color = initial_color
         self.widget.color_changed.connect(lambda c, s=self: s.make_callback())
 
 class RGBAOption(RGBA8Option):
@@ -450,49 +521,8 @@ class ColorOption(RGBA8Option):
 
     value = property(get_value, RGBA8Option.set_value)
 
-class OptionalRGBA8Option(Option):
-    """Option for 8-bit (0-255) rgba colors, with possibility of None.
-
-    Supports 'initial_color' constructor arg for initializing the color button even when
-    the starting value of the option is None (checkbox will be unchecked)
-    """
-
-    # default for class
-    default_initial_color = [0.75, 0.75, 0.75, 1.0]
-
-    def get_value(self):
-        if self._check_box.isChecked():
-            return self._color_button.color
-        return None
-
-    def set_value(self, value):
-        """Accepts a wide variety of values, not just rgba"""
-        if value is None:
-            self._check_box.setChecked(False)
-        else:
-            self._check_box.setChecked(True)
-            self._color_button.color = value
-
-    value = property(get_value, set_value)
-
-    def set_multiple(self):
-        self._check_box.setChecked(True)
-        self._color_button.color = None
-
-    def _make_widget(self, **kw):
-        from ..widgets import MultiColorButton
-        from PyQt5.QtWidgets import QWidget, QCheckBox, QHBoxLayout
-        self.widget = QWidget()
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
-        self._check_box = cb = QCheckBox()
-        cb.clicked.connect(lambda state, s=self: s.make_callback())
-        layout.addWidget(cb)
-        self._color_button = mcb = MultiColorButton(max_size=(16,16), has_alpha_channel=True)
-        mcb.color = kw.get('initial_color', self.default_initial_color)
-        mcb.color_changed.connect(lambda c, s=self: s.make_callback())
-        layout.addWidget(mcb)
-        self.widget.setLayout(layout)
+OptionalRGBA8Option = make_optional(RGBA8Option)
+OptionalRGBA8Option.default_initial_color = [0.75, 0.75, 0.75, 1.0]
 
 class OptionalRGBAOption(OptionalRGBA8Option):
     """Option for floating-point (0-1) rgba colors, with possibility of None.
@@ -507,7 +537,7 @@ class OptionalRGBAOption(OptionalRGBA8Option):
             return None
         return [x/255.0 for x in rgba8]
 
-    value = property(get_value, OptionalRGBA8Option.set_value)
+    value = property(get_value, OptionalRGBA8Option.value.fset)
 
 class OptionalRGBA8PairOption(Option):
     """Like OptionalRGBA8Option, but two checkboxes/colors
@@ -717,6 +747,7 @@ class SymbolicEnumOption(EnumOption):
     def _menu_cb(self, label):
         self.value = self.values[self.labels.index(label)]
         self.make_callback()
+OptionalSymbolicEnumOption = make_optional(SymbolicEnumOption)
 
 def _make_float_spinbox(min, max, step, decimal_places, **kw):
     def compute_bound(bound, default_bound):

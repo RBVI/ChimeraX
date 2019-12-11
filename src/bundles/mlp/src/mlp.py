@@ -60,12 +60,16 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         # Compute surfaces if not already created
         from chimerax.surface import surface
         surfs = surface(session, patoms)
+        from chimerax.core.undo import UndoState
+        undo_state = UndoState('mlp')
         for s in surfs:
             satoms = s.atoms
             name = 'mlp ' + s.name.split(maxsplit=1)[0]
             v = mlp_map(session, satoms, method, spacing, max_distance, nexp, name, open_map = map)
             from chimerax.surface import color_surfaces_by_map_value
-            color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range)
+            color_surfaces_by_map_value(satoms, map = v, palette = cmap, range = range,
+                                        undo_state = undo_state)
+        session.undo.register(undo_state)
     else:
         name = 'mlp map'
         v = mlp_map(session, patoms, method, spacing, max_distance, nexp, name, open_map = map)

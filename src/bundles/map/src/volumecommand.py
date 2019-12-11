@@ -29,9 +29,11 @@ def register_volume_command(logger):
         optional = [('volumes', MapsArg)],
         keyword = [
                ('style', EnumOf(('surface', 'mesh', 'image', 'solid'))),
+               ('change', EnumOf(('surface', 'image'))),
                ('show', NoArg),
                ('hide', NoArg),
                ('toggle', NoArg),
+               ('close', EnumOf(('surface', 'image'))),
                ('level', RepeatOf(FloatsArg)),
                ('rms_level', RepeatOf(FloatsArg)),
                ('sd_level', RepeatOf(FloatsArg)),
@@ -72,6 +74,8 @@ def register_volume_command(logger):
                ('color_mode', EnumOf(ro.color_modes)),
                ('colormap_on_gpu', BoolArg),
                ('colormap_size', IntArg),
+               ('colormap_extend_left', BoolArg),
+               ('colormap_extend_right', BoolArg),
                ('blend_on_gpu', BoolArg),
                ('projection_mode', EnumOf(ro.projection_modes)),
                ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
@@ -115,9 +119,11 @@ def register_volume_command(logger):
 def volume(session,
            volumes = None,
            style = None,
+           change = None,
            show = None,
            hide = None,
            toggle = None,
+           close = None,
            level = None,
            rms_level = None,
            sd_level = None,
@@ -158,6 +164,8 @@ def volume(session,
            color_mode = None,                # image rendering pixel formats
            colormap_on_gpu = None,           # image colormapping on gpu or cpu
            colormap_size = None,             # image colormapping
+           colormap_extend_left = None,
+           colormap_extend_right = None,
            blend_on_gpu = None,		     # image blending on gpu or cpu
            projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
            plane_spacing = None,	     # min, max, or numeric value
@@ -192,9 +200,13 @@ def volume(session,
     ----------
     volumes : list of maps
     style : "surface", "mesh", or "image"
+    change : "surface" or "image"
+      Determines if level, color, brightness, transparency options apply to surface style or image style.
+      If this option is not specified then the currently shown style is used.
     show : bool
     hide : bool
     toggle : bool
+    close: "surface" or "image"
     level : sequence of 1 or 2 floats
       In image style 2 floats are used the first being a density level and second 0-1 brightness value.
     enclose_volume : float
@@ -333,7 +345,8 @@ def volume(session,
                             (' by "%s"' % volumes if volumes else ''))
 
     # Apply volume settings.
-    dopt = ('style', 'show', 'hide', 'toggle', 'level', 'rms_level', 'sd_level',
+    dopt = ('style', 'change', 'show', 'hide', 'toggle', 'close',
+            'level', 'rms_level', 'sd_level',
             'enclose_volume', 'fast_enclose_volume',
             'color', 'brightness', 'transparency', 'appearance',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
@@ -342,7 +355,8 @@ def volume(session,
     dsettings = dict((n,loc[n]) for n in dopt if not loc[n] is None)
     ropt = (
         'show_outline_box', 'outline_box_rgb', 'outline_box_linewidth',
-        'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu', 'colormap_size',
+        'limit_voxel_count', 'voxel_limit', 'color_mode', 'colormap_on_gpu',
+        'colormap_size', 'colormap_extend_left', 'colormap_extend_right',
         'blend_on_gpu', 'projection_mode', 'plane_spacing', 'full_region_on_gpu',
         'bt_correction', 'minimal_texture_memory', 'maximum_intensity_projection',
         'linear_interpolation', 'dim_transparency', 'dim_transparent_voxels',
@@ -387,6 +401,13 @@ def apply_global_settings(session, gsettings):
 #
 def apply_volume_options(v, doptions, roptions, session):
 
+    if 'close' in doptions:
+        si = doptions['close']
+        if si == 'surface':
+            v.close_surface()
+        elif si == 'image':
+            v.close_image()
+            
     if 'style' in doptions:
         v.set_display_style(doptions['style'])
 
@@ -506,16 +527,24 @@ def level_and_color_settings(v, options):
     # Allow 0 or 1 colors and 0 or more levels, or number colors matching
     # number of levels.
     if len(colors) > 1 and len(colors) != len(levels):
-        from chimerax.core import errors
-        raise errors.UserError('Number of colors (%d) does not match number of levels (%d)'
-                            % (len(colors), len(levels)))
+        from chimerax.core.errors import UserError
+        raise UserError('Number of colors (%d) does not match number of levels (%d)'
+                        % (len(colors), len(levels)))
 
-    if 'style' in options:
+    if 'change' in options:
+        style = options['change']
+    elif 'style' in options:
         style = options['style']
         if style == 'mesh':
             style = 'surface'
     elif v.surface_shown:
         style = 'surface'
+        if v.image_shown:
+            if levels or colors or 'brightness' in options or 'transparency' in options:
+                from chimerax.core.errors import UserError
+                raise UserError('Need to use the option "change surface" or "change image"\n'
+                                'when levels, colors, brightness, or transparency are specified\n'
+                                ' and both surface and image styles are shown.')
     elif v.image_shown:
         style = 'image'
     else:
@@ -646,13 +675,18 @@ def volume_settings(session, volumes = None):
 # -----------------------------------------------------------------------------
 #
 def volume_settings_text(v):
+    from chimerax.core.colors import hex_color, rgba_to_rgba8
     lines = ['Settings for map %s' % v.name,
              'grid size = %d %d %d' % tuple(v.data.size),
              'region = %d %d %d' % tuple(v.region[0]) + ' to %d %d %d' % tuple(v.region[1]),
              'step = %d %d %d' % tuple(v.region[2]),
-             'voxel size = %.3g %.3g %.3g' % tuple(v.data.step),
-             'surface levels = ' + ','.join('%.5g' % s.level for s in v.surfaces),
+             'voxel size = %.4g %.4g %.4g' % tuple(v.data.step),
+             'origin = %.4g %.4g %.4g' % tuple(v.data.origin),
+             'origin index = %.4g %.4g %.4g' % tuple(v.data.xyz_to_ijk((0,0,0))),
+             'surface levels = ' + ', '.join('%.5g' % s.level for s in v.surfaces),
+             'surface colors = ' + ', '.join(hex_color(s.color) for s in v.surfaces),
              'image levels = ' + ' '.join('%.5g,%.5g' % tuple(sl) for sl in v.image_levels),
+             'image colors = ' + ', '.join(hex_color(rgba_to_rgba8(c)) for c in v.image_colors),
              'image brightness factor = %.5g' % v.image_brightness_factor,
              'image transparency depth = %.5g' % v.transparency_depth,
              ]

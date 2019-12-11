@@ -1178,6 +1178,8 @@ extern "C" EXPORT void atom_structure_category(void *atoms, size_t n, pyobject_t
                 cat_name = "ligand";
             else if (cat == Atom::StructCat::Ions)
                 cat_name = "ions";
+            else if (cat == Atom::StructCat::Unassigned)
+                cat_name = "other";
             else
                 throw std::range_error("Unknown structure category");
             names[i] = unicode_from_string(cat_name);
@@ -4690,6 +4692,42 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
 {
     Structure **s = static_cast<Structure **>(structures);
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
+}
+
+extern "C" EXPORT void structure_change_chain_ids(void *structure, PyObject *py_chains, PyObject *py_chain_ids, bool non_polymeric)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    std::vector<StructureSeq*> changing;
+    std::vector<ChainID> chain_ids;
+    auto size = PyList_GET_SIZE(py_chains);
+    try {
+        if (PyList_GET_SIZE(py_chain_ids) != size)
+            throw std::logic_error("Chain ID list must be same size as chain list");
+        for (int i = 0; i < size; ++i) {
+            changing.push_back(
+                static_cast<StructureSeq*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_chains, i))));
+            chain_ids.push_back(static_cast<ChainID>(PyUnicode_AsUTF8(PyList_GET_ITEM(py_chain_ids, i))));
+        }
+        s->change_chain_ids(changing, chain_ids, non_polymeric);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_renumber_residues(void *structure, PyObject *py_residues, int start)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    std::vector<Residue*> renumbered;
+    auto size = PyList_GET_SIZE(py_residues);
+    for (int i = 0; i < size; ++i) {
+        renumbered.push_back(
+            static_cast<Residue*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_residues, i))));
+    }
+    try {
+        s->renumber_residues(renumbered, start);
+    } catch (...) {
+        molc_error();
+    }
 }
 
 extern "C" EXPORT void structure_reorder_residues(void *structure, PyObject *py_new_order)

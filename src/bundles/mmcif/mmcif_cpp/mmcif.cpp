@@ -341,6 +341,10 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
         [this] () {
             parse_audit_syntax();
         });
+    register_category("audit_syntax",
+        [this] () {
+            parse_audit_syntax();
+        });
     register_category("entry",
         [this] () {
             parse_entry();
@@ -842,7 +846,7 @@ ExtractMolecule::parse_entry()
                 entry_id = string(start, end - start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping entry category: ", e.what());
+        logger::warning(_logger, "Skipping entry category: ", e.what());
         return;
     }
     parse_row(pv);
@@ -873,7 +877,7 @@ ExtractMolecule::parse_pdbx_database_PDB_obs_spr()
                 replace_pdb_id = string(start, end - start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping pdbx_database_PDB_obs_spr category: ", e.what());
+        logger::warning(_logger, "Skipping pdbx_database_PDB_obs_spr category: ", e.what());
         return;
     }
 
@@ -881,7 +885,7 @@ ExtractMolecule::parse_pdbx_database_PDB_obs_spr()
         if (id != "OBSLTE")
             continue;
         if (replace_pdb_id == entry_id)
-            logger::warning(_logger, replace_pdb_id, " has been replaced by ",
+            logger::warning(_logger, "PDB entry ", replace_pdb_id, " has been replaced by ",
                          pdb_id);
     }
 }
@@ -943,7 +947,7 @@ ExtractMolecule::parse_chem_comp()
                 ambiguous = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping chem_comp category: ", e.what());
+        logger::warning(_logger, "Skipping chem_comp category: ", e.what());
         return;
     }
 
@@ -1010,7 +1014,7 @@ ExtractMolecule::parse_chem_comp_bond()
                 aname2 = AtomName(start, end - start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping chem_comp_bond category: ", e.what());
+        logger::warning(_logger, "Skipping chem_comp_bond category: ", e.what());
         return;
     }
     // pretend all atoms are the same element, only need connectivity
@@ -1070,7 +1074,7 @@ ExtractMolecule::parse_audit_conform()
                 dict_version = strtof(start, NULL);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping audit_conform category: ", e.what());
+        logger::warning(_logger, "Skipping audit_conform category: ", e.what());
         return;
     }
     parse_row(pv);
@@ -1079,6 +1083,7 @@ ExtractMolecule::parse_audit_conform()
         guess_fixed_width_categories = true;
     }
 }
+
 void
 ExtractMolecule::parse_audit_syntax()
 {
@@ -1108,7 +1113,7 @@ ExtractMolecule::parse_audit_syntax()
                 }
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping audit_syntax category: ", e.what());
+        logger::warning(_logger, "Skipping audit_syntax category: ", e.what());
         return;
     }
     parse_row(pv);
@@ -1272,7 +1277,7 @@ ExtractMolecule::parse_atom_site()
                 model_num = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping atom_site category: ", e.what());
+        logger::warning(_logger, "Skipping atom_site category: ", e.what());
         return;
     }
 
@@ -1513,7 +1518,7 @@ ExtractMolecule::parse_atom_site_anisotrop()
                 u33 = readcif::str_to_float(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping atom_site_anistrop category: ", e.what());
+        logger::warning(_logger, "Skipping atom_site_anistrop category: ", e.what());
         return;
     }
 
@@ -1554,14 +1559,19 @@ ExtractMolecule::parse_struct_conn()
     //char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptnr[12]_label_alt_id
     AtomName atom_name1, atom_name2;        // ptnr[12]_label_atom_id
     ResName residue_name1, residue_name2;   // ptnr[12]_label_comp_id
+    string conn_id("(missing id)");         // id
     string conn_type;                       // conn_type_id
     string symmetry1, symmetry2;            // ptnr[12]_symmetry
     float distance = std::numeric_limits<float>::quiet_NaN();  // pdbx_dist_value
-    std::set<std::pair<Atom*, Atom*>>   metal_bonds;
+    std::set<std::pair<Atom*, Atom*>>   metal_bonds, hydrogen_bonds;
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
     try {
+        pv.emplace_back(get_column("id"),
+            [&] (const char* start, const char* end) {
+                conn_id = string(start, end - start);
+            });
         pv.emplace_back(get_column("conn_type_id", Required),
             [&] (const char* start, const char* end) {
                 conn_type = string(start, end - start);
@@ -1654,7 +1664,7 @@ ExtractMolecule::parse_struct_conn()
                 distance = readcif::str_to_float(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_conn category: ", e.what());
+        logger::warning(_logger, "Skipping struct_conn category: ", e.what());
         return;
     }
 
@@ -1704,24 +1714,36 @@ ExtractMolecule::parse_struct_conn()
                 continue;
             auto& crm = ari->second;
             Residue* r1 = find_residue(crm, chain_id1, rk1);
-            if (!r1)
+            if (!r1) {
+                logger::warning(_logger, "Missing first residue in struct_conn \"",
+                                conn_id, "\"");
                 continue;
+            }
             Atom* a1 = r1->find_atom(atom_name1);
-            if (!a1)
+            if (!a1) {
+                logger::warning(_logger, "Missing first atom in struct_conn \"",
+                                conn_id, "\"");
                 continue;
+            }
             Residue* r2 = find_residue(crm, chain_id2, rk2);
-            if (!r2)
+            if (!r2) {
+                logger::warning(_logger, "Missing second residue in struct_conn \"",
+                                conn_id, "\"");
                 continue;
+            }
             Atom* a2 = r2->find_atom(atom_name2);
-            if (!a2)
+            if (!a2) {
+                logger::warning(_logger, "Missing second atom in struct_conn \"",
+                                conn_id, "\"");
                 continue;
+            }
             if (metal) {
                 // make sure only once metal coordination bond is created between atoms
                 if (a2 < a1)
                     std::swap(a1, a2);
                 auto key = std::make_pair(a1, a2);
                 if (metal_bonds.find(key) != metal_bonds.end())
-                    continue;
+                    continue;  // might be connected to alternate position
                 auto metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
                         atomstruct::AS_PBManager::GRP_PER_CS);
                 for (auto& cs: mol->coord_sets()) {
@@ -1731,11 +1753,18 @@ ExtractMolecule::parse_struct_conn()
                 continue;
             }
             if (hydro) {
+                // make sure only once hydrogen bond is created between atoms
+                if (a2 < a1)
+                    std::swap(a1, a2);
+                auto key = std::make_pair(a1, a2);
+                if (hydrogen_bonds.find(key) != hydrogen_bonds.end())
+                    continue;  // might be connected to alternate position
                 auto hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
                         atomstruct::AS_PBManager::GRP_PER_CS);
                 for (auto& cs: mol->coord_sets()) {
                     hydro_pbg->new_pseudobond(a1, a2, cs);
                 }
+                hydrogen_bonds.insert(key);
                 continue;
             }
             if (!reasonable_bond_length(a1, a2, distance)) {
@@ -1748,7 +1777,7 @@ ExtractMolecule::parse_struct_conn()
             try {
                 mol->new_bond(a1, a2);
             } catch (std::invalid_argument&) {
-                // already bonded
+                // already bonded, might be connected to alternate position
             }
         }
     }
@@ -1820,7 +1849,7 @@ ExtractMolecule::parse_struct_conf()
                 position2 = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_conf category: ", e.what());
+        logger::warning(_logger, "Skipping struct_conf category: ", e.what());
         return;
     }
 
@@ -1839,8 +1868,7 @@ ExtractMolecule::parse_struct_conf()
         if (conf_type.empty())
             continue;
         if (chain_id1 != chain_id2) {
-            logger::warning(_logger, "Start and end residues of secondary"
-                          " structure \"", id,
+            logger::warning(_logger, "Start and end residues of struct_conf \"", id,
                           "\" are in different chains near line ", line_number());
             continue;
         }
@@ -1866,24 +1894,24 @@ ExtractMolecule::parse_struct_conf()
 
         auto ari = all_residues[first_model_num].find(chain_id1);
         if (ari == all_residues[first_model_num].end()) {
-            logger::warning(_logger, "Invalid residue range for secondary"
-                            " structure \"", id, "\": invalid chain \"",
-                            chain_id1, "\", near line ", line_number());
+            logger::warning(_logger, "Invalid residue range for struct_conf \"",
+                            id, "\": invalid chain \"", chain_id1,
+                            "\", near line ", line_number());
             continue;
         }
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end()) {
-            logger::warning(_logger, "Invalid residue range for secondary",
-                            " structure \"", id, "\": invalid chain \"",
-                            chain_id1, "\", near line ", line_number());
+            logger::warning(_logger, "Invalid residue range for struct_conf \"",
+                            id, "\": invalid chain \"", chain_id1,
+                            "\", near line ", line_number());
             continue;
         }
         string entity_id = cemi->second;
         auto psi = poly.find(entity_id);
         if (psi == poly.end()) {
-            logger::warning(_logger, "Invalid residue range for secondary",
-                            " structure \"", id, "\": invalid entity \"",
-                            entity_id, "\", near line ", line_number());
+            logger::warning(_logger, "Invalid residue range for struct_conf \"",
+                            id, "\": invalid entity \"", entity_id,
+                            "\", near line ", line_number());
             continue;
         }
         auto& entity_poly_seq = psi->second.seq;
@@ -1891,8 +1919,8 @@ ExtractMolecule::parse_struct_conf()
         auto init_ps_key = PolySeq(position1, residue_name1, false);
         auto end_ps_key = PolySeq(position2, residue_name2, false);
         if (end_ps_key < init_ps_key) {
-            logger::warning(_logger, "Invalid sheet range for secondary",
-                            " structure \"", id, "\": ends before it starts"
+            logger::warning(_logger, "Invalid sheet range for struct_conf \"",
+                            id, "\": ends before it starts"
                             ", near line ", line_number());
             continue;
         }
@@ -1901,7 +1929,7 @@ ExtractMolecule::parse_struct_conf()
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end()) {}
             logger::warning(_logger,
-                            "Bad residue range for secondary structure \"", id,
+                            "Bad residue range for struct_conf \"", id,
                             "\" near line ", line_number());
             continue;
         }
@@ -1993,7 +2021,7 @@ ExtractMolecule::parse_struct_sheet_range()
                 position2 = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_sheet_range category: ", e.what());
+        logger::warning(_logger, "Skipping struct_sheet_range category: ", e.what());
         return;
     }
 
@@ -2007,7 +2035,7 @@ ExtractMolecule::parse_struct_sheet_range()
     map<ChainID, int> strand_ids;
     while (parse_row(pv)) {
         if (chain_id1 != chain_id2) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": different chains"
                             ", near line ", line_number());
             continue;
@@ -2015,14 +2043,14 @@ ExtractMolecule::parse_struct_sheet_range()
 
         auto ari = all_residues[first_model_num].find(chain_id1);
         if (ari == all_residues[first_model_num].end()) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid chain \"",
                             chain_id1, "\", near line ", line_number());
             continue;
         }
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end()) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid chain \"",
                             chain_id1, "\", near line ", line_number());
             continue;
@@ -2030,7 +2058,7 @@ ExtractMolecule::parse_struct_sheet_range()
         string entity_id = cemi->second;
         auto psi = poly.find(entity_id);
         if (psi == poly.end()) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid entity \"",
                             entity_id, "\", near line ", line_number());
             continue;
@@ -2040,7 +2068,7 @@ ExtractMolecule::parse_struct_sheet_range()
         auto init_ps_key = PolySeq(position1, residue_name1, false);
         auto end_ps_key = PolySeq(position2, residue_name2, false);
         if (end_ps_key < init_ps_key) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": ends before it starts"
                             ", near line ", line_number());
             continue;
@@ -2049,7 +2077,7 @@ ExtractMolecule::parse_struct_sheet_range()
         auto end_ps = entity_poly_seq.upper_bound(end_ps_key);
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end())
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\" near line ", line_number());
             continue;
         }
@@ -2127,7 +2155,7 @@ ExtractMolecule::parse_struct_sheet_order()
                 }
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_sheet_range category: ", e.what());
+        logger::warning(_logger, "Skipping struct_sheet_range category: ", e.what());
         return;
     }
 
@@ -2206,7 +2234,7 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
                 position2 = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping pdbx_struct_sheet_hbond category: ", e.what());
+        logger::warning(_logger, "Skipping pdbx_struct_sheet_hbond category: ", e.what());
         return;
     }
     #undef RANGE1
@@ -2365,7 +2393,7 @@ ExtractMolecule::parse_entity_poly()
                 nstd_monomer = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping entity_poly category: ", e.what());
+        logger::warning(_logger, "Skipping entity_poly category: ", e.what());
         return;
     }
 
@@ -2421,7 +2449,7 @@ ExtractMolecule::parse_entity_poly_seq()
                 hetero = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping entity_poly_seq category: ", e.what());
+        logger::warning(_logger, "Skipping entity_poly_seq category: ", e.what());
         return;
     }
 

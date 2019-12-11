@@ -16,7 +16,7 @@
 #
 def label(session, objects = None, object_type = None, text = None,
           offset = None, color = None, bg_color = None,
-          size = None, height = None, font = None, on_top = None):
+          size = None, height = None, default_height = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
@@ -36,9 +36,11 @@ def label(session, objects = None, object_type = None, text = None,
     bg_color : Color or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
     size : int or "default"
-      Font size in points (1/72 inch). Default 24.
+      Font size in points (1/72 inch). Default 48.
     height : float or "fixed"
       Text height in scene units.  Or if "fixed" use fixed pixel height on screen.  Initial value 0.7.
+    default_height : float
+      Default height value if not specified.  Initial value 0.7.
     font : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
@@ -75,18 +77,24 @@ def label(session, objects = None, object_type = None, text = None,
     elif bg_color == 'none':
         settings['background'] = None
     if size == 'default':
-        settings['size'] = 24
+        settings['size'] = 48
     elif size is not None:
         settings['size'] = size
     if height == 'fixed':
         settings['height'] = None
+    if default_height is not None:
+        from .settings import settings as prefs
+        prefs.label_height = default_height
     elif height is not None:
         settings['height'] = height
     if font == 'default':
         settings['font'] = 'Arial'
     elif font is not None:
         settings['font'] = font
-        
+
+    if objects is None and len(settings) == 0:
+        return	# Get this when setting default height.
+    
     view = session.main_view
     lcount = 0
     for otype in otypes:
@@ -99,7 +107,7 @@ def label(session, objects = None, object_type = None, text = None,
             lm = labels_model(m, create = True)
             lm.add_labels(mobjects, object_class, view, settings, on_top)
             lcount += len(mobjects)
-    if objects is None and lcount == 0:
+    if objects is None and lcount == 0 and default_height is None:
         from chimerax.core.errors import UserError
         raise UserError('Label command requires an atom specifier to create labels.')
 
@@ -244,6 +252,7 @@ def register_label_command(logger):
                               ('bg_color', Or(NoneArg, ColorArg)),
                               ('size', Or(DefArg, IntArg)),
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
+                              ('default_height', FloatArg),
                               ('font', StringArg),
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
@@ -430,6 +439,8 @@ class ObjectLabels(Model):
                 self._update_triangles()
                 
     def _rebuild_label_graphics(self):
+        if len(self._labels) == 0:
+            return
         trgba, tcoord = self._packed_texture()	# Compute images first since vertices depend on image size
         opaque = self._all_labels_opaque()
         va = self._label_vertices()
@@ -501,8 +512,13 @@ class ObjectLabels(Model):
         spos = self.scene_position
         cpos = self.session.main_view.camera.position	# Camera position in scene coords
         cposd = spos.inverse() * cpos  # Camera pos in label drawing coords
-        from numpy import concatenate
-        va = concatenate([l._label_rectangle(spos, cposd) for l in self._labels])
+        rects = [l._label_rectangle(spos, cposd) for l in self._labels if not l.object_deleted]
+        if len(rects) == 0:
+            from numpy import empty, float32
+            va = empty((0,3), float32)
+        else:
+            from numpy import concatenate
+            va = concatenate(rects)
         return va
 
     def _update_triangles(self):
@@ -515,8 +531,12 @@ class ObjectLabels(Model):
             if l.visible():
                 c = 4*i
                 tlist.extend(((c,c+1,c+2), (c,c+2,c+3)))
-        from numpy import array, int32
-        ta = array(tlist, int32)
+        if len(tlist) == 0:
+            from numpy import empty, int32
+            ta = empty((0,3), int32)
+        else:
+            from numpy import array, int32
+            ta = array(tlist, int32)
         return ta
 
     def picked_label(self, triangle_number):
@@ -583,7 +603,7 @@ class ObjectLabel:
 
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 48, height = 0.7, font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial'):
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
@@ -592,6 +612,9 @@ class ObjectLabel:
         self._color = color
         self.background = background
         self.size = size	# Points (1/72 inch) so high and normal DPI displays look the same.
+        if height == 'default':
+            from .settings import settings
+            height = settings.label_height
         self.height = height	# None or height in world coords.  If None used fixed screen size.
         self._pixel_size = (100,10)	# Size of label in pixels, derived from size attribute
 
@@ -662,7 +685,7 @@ class ObjectLabel:
         # Camera position is in label drawing coordinate system.
         xyz = self.location(scene_position)
         if xyz is None:
-            return	# Label deleted
+            return None	# Label deleted
         pw,ph = self._label_size
         sh = self.height	# Scene height
         if sh is None:
@@ -684,7 +707,7 @@ class ObjectLabel:
 class AtomLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 48, height = 0.7, font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial'):
         self.atom = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,
@@ -706,7 +729,7 @@ class AtomLabel(ObjectLabel):
 class ResidueLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 48, height = 0.7, font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial'):
         self.residue = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,
@@ -726,7 +749,7 @@ class ResidueLabel(ObjectLabel):
 class EdgeLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 48, height = 0.7, font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial'):
         self.pseudobond = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,

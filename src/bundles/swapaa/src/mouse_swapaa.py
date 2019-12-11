@@ -127,22 +127,21 @@ class SwapAAMouseMode(MouseMode):
             from chimerax.label.label3d import label_delete
             label_delete(self.session, objects, otype)
         
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         r = self._residue_from_pick(pick)
         if r and self._has_alignment_atoms(r):
             self._residue = r
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         r = self._residue
         if r:
-            rstep = delta_z / self._step_meters
+            rstep = event.room_vertical_motion / self._step_meters
             if not self._swap_residue_step(r, rstep):
                 return 'accumulate drag'
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self._unlabel()
         _log_swapaa_command(self._residue)

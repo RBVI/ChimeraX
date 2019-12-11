@@ -60,7 +60,7 @@ def what_objects(target, what, objects):
         # don't implicitly add bonds; they will hide/show as 
         # their endpoint atoms hide/show, and then other code
         # only has to deal with hiding/showing atoms and not bonds
-        if objects.pseudobonds:
+        elif objects.pseudobonds:
             what_to_show.add('pseudobonds')
         if len(what_to_show) == 0:
             what_to_show.add('models')
@@ -140,6 +140,10 @@ def show_surfaces(session, objects, only, undo_state):
     if surfs:
         patoms, all_small = molsurf.remove_solvent_ligands_ions(atoms)
         extra_atoms = patoms - concatenate([s.atoms for s in surfs], Atoms)
+        if extra_atoms:
+            # Handle case where atoms were added to existing surfaces
+            # so those surfaces will be replaced.  Bug #2603.
+            extra_atoms = atoms
     else:
         extra_atoms = atoms
     if extra_atoms:
@@ -226,4 +230,5 @@ def register_command(logger):
                    hidden=['only'],
                    synopsis='show specified objects')
     register('show', desc, show, logger=logger)
-    create_alias('display', 'show $*', logger=logger)
+    create_alias('display', 'show $*', logger=logger,
+            url="help:user/commands/show.html")

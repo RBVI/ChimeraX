@@ -88,8 +88,10 @@ See also:
 </p>
 <h3>Startup and Input</h3>
 <p>
-Like other tools, the <b>Modeller Comparative</b> tool can be opened 
-from the <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
+The <b>Modeller Comparative</b> tool
+can be opened from the <b>Sequence</b> section of the
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
 It is also implemented as the 
 <a href="../commands/modeller.html#comparative"><b>modeller comparative</b></a>
 command.
@@ -235,8 +237,17 @@ comparative modeling is also required by the evaluation server,
 but it does not need to be specified again.
 Fetching additional scores is also implemented as the command
 <a href="../commands/modeller.html#scores"><b>modeller scores</b></a>.
+</p><p>
+After additional scores have been fetched, the
+<a href="../window.html#context-menu">context menu</a> option
+changes to <b>Refresh Scores</b> to allow re-evaluation after models have been 
+modified (for example, to delete untemplated regions built as extended tails).
+However, since re-evaluation does not use all of the same information
+as does scoring during the original modeling process, it may worsen
+pre-existing <b>GA341</b> and <b>zDOPE</b> scores and should only be used 
+after making modifications that are expected to improve the scores.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+December 2019</address>
 </body></html>

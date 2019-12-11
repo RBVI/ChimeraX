@@ -74,6 +74,10 @@ class CommandLine(ToolInstance):
                 self._processing_key = True
                 from PyQt5.QtCore import Qt
                 from PyQt5.QtGui import QKeySequence
+
+                if session.ui.key_intercepted(event.key()):
+                    return
+                
                 want_focus = forwarded and event.key() not in [Qt.Key_Control,
                                                                Qt.Key_Shift,
                                                                Qt.Key_Meta,
@@ -258,7 +262,7 @@ class CommandLine(ToolInstance):
                 except errors.UserError as err:
                     logger.status(str(err), color="crimson")
                     from chimerax.core.logger import error_text_format
-                    logger.info(error_text_format % err, is_html=True)
+                    logger.info(error_text_format % escape(str(err)), is_html=True)
                 except:
                     raise
         self.set_focus()

@@ -23,6 +23,7 @@
 #include "Sequence.h"
 #include "Structure.h"
 
+#include <cstdlib>  // integer abs()
 #include <pyinstance/PythonInstance.instantiate.h>
 #include <stdexcept>
 
@@ -38,6 +39,31 @@ Bond::Bond(Structure* as, Atom* a1, Atom* a2): UniqueConnection(a1, a2)
     as->_form_chain_check(a1, a2, this);
     a1->structure()->_structure_cats_dirty = true;
     change_tracker()->add_created(a1->structure(), this);
+}
+
+bool
+Bond::is_backbone() const
+{
+    const Atoms& as = atoms();
+    Atom *a1 = as[0];
+    Atom *a2 = as[1];
+
+    if (a1->residue() != a2->residue())
+        return polymeric_start_atom() != nullptr;
+
+    auto backbone_names = a1->residue()->ordered_min_backbone_atom_names();
+    if (backbone_names == nullptr)
+        return false;
+    auto i1 = std::find(backbone_names->begin(), backbone_names->end(), a1->name());
+    if (i1 == backbone_names->end())
+        return false;
+    auto i2 = std::find(backbone_names->begin(), backbone_names->end(), a2->name());
+    if (i2 == backbone_names->end())
+        return false;
+    auto diff = i2 - i1;
+    if (std::abs(diff) == 1)
+        return true;
+    return false;
 }
 
 enum XResType { NonPolymer, Capping, Polymer };

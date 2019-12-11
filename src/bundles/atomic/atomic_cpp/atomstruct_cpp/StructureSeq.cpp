@@ -112,6 +112,27 @@ StructureSeq::destructors_done(const std::set<void*>& destroyed)
         remove_residues(destroyed_residues);
 }
 
+void
+StructureSeq::insert(Residue* follower, Residue* r)
+{
+    auto ri = std::find(_residues.begin(), _residues.end(), follower);
+    if (ri == _residues.end())
+        throw std::logic_error("insert-before residue not found in _residues");
+
+    if (r->chain() != nullptr)
+        r->chain()->remove_residue(r);
+    Sequence::insert(Sequence::begin() + (ri - _residues.begin()), 1, Sequence::rname3to1(r->name()));
+    _res_map[r] = _res_map[follower];
+    for (auto ri2 = ri; ri2 != _residues.end(); ++ri2)
+        _res_map[*ri2]++;
+    _residues.insert(ri, r);
+    if (is_chain()) {
+        r->set_chain(dynamic_cast<Chain*>(this));
+        _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
+            ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
+    }
+}
+
 StructureSeq&
 StructureSeq::operator+=(StructureSeq& addition)
 {
@@ -362,6 +383,22 @@ StructureSeq::set(unsigned i, Residue *r, char character)
     if (ischain)
         structure->change_tracker()->add_modified(structure, dynamic_cast<Chain*>(this),
             ChangeTracker::REASON_SEQUENCE, ChangeTracker::REASON_RESIDUES);
+}
+
+void
+StructureSeq::set_chain_id(ChainID chain_id)
+{
+    if (chain_id != _chain_id) {
+        _chain_id = chain_id;
+        if (is_chain()) {
+            _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
+                ChangeTracker::REASON_CHAIN_ID);
+            for (auto r: residues())
+                if (r != nullptr)
+                    _structure->change_tracker()->add_modified(_structure, r,
+                        ChangeTracker::REASON_CHAIN_ID);
+        }
+    }
 }
 
 void

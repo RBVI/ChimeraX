@@ -72,30 +72,39 @@ class State:
 
 class StateManager(State, metaclass=abc.ABCMeta):
 
-    def init_state_manager(self, session, name=None):
+    def init_state_manager(self, session, base_tag=None):
         ''' Should only be called for StateManagers that are not assigned to session attributes
             since those will be added to the session StateManager list as a side effect of __setattr__.
-            The 'name' parameter need only be supplied if you need to use session.get_state_manager(name)
-            for some reason.  Otherwise a unique anonymous name will be used.
+            The 'base_tag' is used as the tag when registering the state manager with the session, so
+            for debugging purposes it is useful to provide a string that indicates the state manager's
+            function, though not mandatory.  If multiple managers of the same type will be created (and
+            therefore base_tag may not be unique) an integer will be appended to the text to make it
+            unique.
         '''
-        if name is None:
+        if base_tag is None:
+            base_tag = "anonymous"
+        try:
+            session.get_state_manager(base_tag)
+        except KeyError:
+            tag = base_tag
+        else:
             i = 1
             while True:
-                name = "anonymous %d" % i
+                tag = "%s %d" % (base_tag, i)
                 try:
-                    session.get_state_manager(name)
+                    session.get_state_manager(tag)
                 except KeyError:
                     break
-        self.__name = name
+
+        self.__tag = tag
         self.__session = session
-        session.add_state_manager(name, self)
+        session.add_state_manager(tag, self)
 
     def destroy(self):
         ''' Like init_state_manager, should only be called on StateManagers that are not also session
-            attributes, when that manager should be disposed of.
+            attributes, when the manager should be disposed of.
         '''
-        self.__session.remove_state_manager(self.__name)
-        super().destroy()
+        self.__session.remove_state_manager(self.__tag)
 
     @abc.abstractmethod
     def reset_state(self, session):
@@ -128,7 +137,7 @@ def _init_primitives():
                 t = getattr(numpy, n)
                 if issubclass(t, numpy.number):
                     yield t
-            except:
+            except Exception:
                 pass
         yield numpy.bool_
         yield numpy.bool8
@@ -174,20 +183,22 @@ def copy_state(data, convert=None):
             return x
 
     from collections import Mapping  # deque, Sequence, Set
-    from numpy import ndarray
+    import numpy
 
     def _copy(data):
         global _final_primitives, _container_primitives
-        nonlocal convert, Mapping, ndarray
+        nonlocal convert, Mapping, numpy
         if isinstance(data, _final_primitives):
             return data
         if isinstance(data, _container_primitives):
             if isinstance(data, Mapping):
                 items = [(_copy(k), _copy(v)) for k, v in data.items()]
-            elif isinstance(data, ndarray):
+            elif isinstance(data, numpy.ndarray):
                 if data.dtype != object:
                     return data.copy()
-                items = [_copy(o) for o in data]
+                a = numpy.array([_copy(o) for o in data.flat], dtype=object)
+                a.shape = data.shape
+                return a
             else:
                 # must be isinstance(data, (deque, Sequence, Set)):
                 items = [_copy(o) for o in data]
@@ -206,11 +217,11 @@ def dereference_state(data, convert, convert_cls):
         _init_primitives()
 
     from collections import Mapping  # deque, Sequence, Set
-    from numpy import ndarray
+    import numpy
 
     def _copy(data):
         global _final_primitives, _container_primitives
-        nonlocal convert, convert_cls, Mapping, ndarray
+        nonlocal convert, convert_cls, Mapping, numpy
         if isinstance(data, convert_cls):
             return convert(data)
         if isinstance(data, FinalizedState):
@@ -221,10 +232,12 @@ def dereference_state(data, convert, convert_cls):
             raise ValueError("unable to copy %s objects" % data.__class__.__name__)
         if isinstance(data, Mapping):
             items = [(_copy(k), _copy(v)) for k, v in data.items()]
-        elif isinstance(data, ndarray):
+        elif isinstance(data, numpy.ndarray):
             if data.dtype != object:
                 return data.copy()
-            items = [_copy(o) for o in data]
+            a = numpy.array([_copy(o) for o in data.flat], dtype=object)
+            a.shape = data.shape
+            return a
         else:
             # must be isinstance(data, (deque, Sequence, Set)):
             items = [_copy(o) for o in data]

@@ -27,7 +27,9 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 Icons in the <b>Map</b> tab of the <a href="toolbar.html"><b>Toolbar</b></a>
 act on <a href="volumeviewer.html">volume models</a> such as density maps.
-See also: <a href="../images.html">making images</a>
+See also: 
+<a href="medicalimage.html"><b>Medical Image</b></a> icons,
+<a href="../images.html">making images</a>
 </p><p>
 Clicking an icon shows the executed command in the
 <a href="log.html"><b>Log</b></a>. 
@@ -40,7 +42,7 @@ There may be alternative commands for performing the same action.
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
-<td align="center"><b>Density Maps icon</b></td>
+<td align="center"><b>icon</b></td>
 <td align="center"><b>description</b></td>
 <td align="center"><b>command</b></td>
 </tr><tr>
@@ -84,12 +86,12 @@ There may be alternative commands for performing the same action.
 <a href="../commands/volume.html#outline"><b>showOutlineBox</b></a> option
 </tr><tr>
 <td align="center"><img src="shortcut-icons/step1.png" width="35px"></td>
-<td align="center">step 1<br>(not subsampled, every point)</td>
+<td align="center">step 1, full resolution of data</td>
 <td align="center">
 <b><a href="../commands/volume.html#sampling">volume</a> step 1</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/step2.png" width="35px"></td>
-<td align="center">step 2<br>(subsampled at every other point)</td>
+<td align="center">step 2, subsampled at every other point</td>
 <td align="center">
 <b><a href="../commands/volume.html#sampling">volume</a> step 2</b></td>
 </tr><tr>
@@ -104,11 +106,10 @@ planes z orthoplanes off style image</b>
 <td align="center"><img src="shortcut-icons/orthoplanes.png" width="35px"></td>
 <td align="center">orthoplanes</td>
 <td align="center">
-(exact <b><a href="../commands/volume.html#general">volume</a></b>
-command depends on the data, but sets 
-<a href="../commands/volume.html#planes"><b>orthoplanes</b></a> 
-at the center of the full data, with
-<b><a href="../commands/volume.html#general">style</a>&nbsp;image&nbsp;<a href="../commands/volume.html#dimensions">region</a>&nbsp;all</b>)
+exact command depends on the data; uses
+<b><a href="../commands/volume.html#planes">volume</a></b>
+to set orthoplanes at the center of the full data, with
+<b><a href="../commands/volume.html#general">style</a>&nbsp;image&nbsp;<a href="../commands/volume.html#dimensions">region</a>&nbsp;all</b>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/fullvolume.png" width="35px"></td>
@@ -144,42 +145,23 @@ region all orthoplanes off</b>
 <a href="../selection.html">selected</a> map)</td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/xyzslice.png" width="35px"></td>
-<td align="center">2D-XYZ projection
-<br>(affects image display only)</td>
+<td align="center">2D-XYZ projection for image display</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 projectionMode 2d-xyz</b>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/perpslice.png" width="35px"></td>
-<td align="center">3D projection
-<br>(affects image display only)</td>
+<td align="center">3D projection for image display</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 projectionMode 3d</b>
 </td>
 </tr><tr>
-<td align="center"><img src="shortcut-icons/airways.png" width="35px"></td>
-<td align="center">Airways II preset
-<br>(affects image display only)</td>
-<td align="center">
-<b><a href="../commands/volume.html#dispsolid">volume</a>
-<a href="../commands/volume.html#appearance">appearance</a> 
-"Airways II"</b>
-</td>
-</tr><tr>
-<td align="center"><img src="shortcut-icons/ear.png" width="35px"></td>
-<td align="center">CT_Skin preset
-<br>(affects image display only)</td>
-<td align="center">
-<b><a href="../commands/volume.html#dispsolid">volume</a>
-<a href="../commands/volume.html#appearance">appearance</a> 
-CT_Skin</b>
-</td>
-</tr><tr>
 <td align="center"><img src="shortcut-icons/initialcurve.png" width="35px"></td>
-<td align="center">initial threshold settings
-<br>(affects image display only)</td>
+<td align="center">initial thresholds
+<a href="../dicom-quickref.html#presets">preset</a> for image display,
+<i>e.g.</i>, for single planes</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/volume.html#appearance">appearance</a> initial</b>
@@ -188,5 +170,5 @@ CT_Skin</b>
 </table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2019</address>
+December 2019</address>
 </body></html>

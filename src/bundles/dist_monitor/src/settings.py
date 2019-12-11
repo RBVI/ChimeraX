@@ -27,14 +27,14 @@ class _DistanceSettings(Settings):
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
-    from chimerax.ui.widgets import hex_color_name
+    from chimerax.core.colors import color_name
     from chimerax.ui.options import ColorOption, BooleanOption, IntOption, FloatOption
     settings_info = {
         'color': (
             "Color",
             ColorOption,
             "distance style color %s",
-            hex_color_name,
+            color_name,
             "Color of atomic distance monitors"),
         'dashes': (
             "Number of dashes",

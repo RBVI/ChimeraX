@@ -56,7 +56,7 @@ class _AlignmentsBundleAPI(BundleAPI):
     @staticmethod
     def save_file(session, path, format_name="fasta", alignment=None):
         if not alignment:
-            alignments = list(session.alignments.alignments.values())
+            alignments = session.alignments.alignments
             from chimerax.core.errors import UserError
             if not alignments:
                 raise UserError("No alignments open!")

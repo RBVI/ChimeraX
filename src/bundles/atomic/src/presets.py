@@ -31,7 +31,7 @@ def _execute(session, name):
     if name in name_mapping:
         kw['style'] = name_mapping[name]
     from .nucleotides.cmd import nucleotides
-    nucleotides(session, 'atoms')
+    nucleotides(session, 'atoms', create_undo=False)
     surfaces = [cm for s in structures
                    for cm in s.child_models()
                    if isinstance(cm, MolecularSurface)]

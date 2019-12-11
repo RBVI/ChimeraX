@@ -158,6 +158,13 @@ class FileFormat:
         self.export_notes = None
         self.batch = False
 
+        # If check_path is true then open file will check that file exists before
+        # passing path to the file reader.  If false, then the open routine can be
+        # passed paths that don't exist.  This is needed for custom expanding paths
+        # of microscopy data where {t}, {z}, {c} path sequences get expanded by the
+        # file reader.
+        self.check_path = True
+
     def has_open_func(self):
         """Test for open function without bootstrapping"""
         return (self._boot_open_func is not None or
@@ -175,6 +182,15 @@ class FileFormat:
 
     open_func = property(_get_open_func, _set_open_func)
 
+    @property
+    def open_requires_path(self):
+        f = self._open_func
+        if f is None:
+            return False
+        import inspect
+        params = inspect.signature(f).parameters
+        return 'path' in params
+        
     def has_export_func(self):
         """Test for export function without bootstrapping"""
         return (self._boot_export_func is not None or
@@ -221,7 +237,8 @@ _file_formats = {}
 
 def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
-                    encoding=None, synopsis=None, allow_directory=None, **kw):
+                    encoding=None, synopsis=None, allow_directory=None,
+                    check_path=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -263,6 +280,8 @@ def register_format(format_name, category, extensions, nicknames=None,
         icon, encoding, synopsis)
     if allow_directory is not None:
         ff.allow_directory = allow_directory
+    if check_path is not None:
+        ff.check_path = check_path
     other_kws = set(['open_func', 'export_func', 'export_notes', 'batch'])
     for attr in kw:
         if attr in other_kws:
@@ -387,6 +406,8 @@ def open_data(session, filespec, format=None, name=None, **kw):
     open_func = fmt.open_func
     if open_func is None:
         raise UserError("unable to open %s files" % fmt.name)
+    if compression is not None and fmt.open_requires_path:
+        raise UserError("Cannot read compressed %s files" % fmt.name)
     import inspect
     params = inspect.signature(open_func).parameters
     if len(params) < 2:
@@ -466,6 +487,9 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
                 batch[fmt] = [filespec]
         else:
             unbatched.append(filespec)
+        if fmt is not None and fmt.open_requires_path and compression is not None:
+            from .errors import UserError
+            raise UserError("Cannot read compressed %s files" % fmt.name)
 
     mlist = []
     status_lines = []

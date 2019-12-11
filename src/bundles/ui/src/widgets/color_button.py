@@ -111,6 +111,14 @@ class ColorButton(QPushButton):
         _color_callback = self._color_changed_cb
         cd.show()
 
+    def changeEvent(self, event):
+        if event.type() == event.EnabledChange:
+            if self.isEnabled():
+                color = self._color
+            else:
+                color = [int((c + 218)/2) for c in self._color]
+            self.setStyleSheet('background-color: %s' % hex_color_name(color))
+
     def _color_changed_cb(self, color):
         self.set_color(color)
         self.color_changed.emit(self._color)
@@ -157,8 +165,11 @@ class MultiColorButton(ColorButton):
                 import os
                 if os.path.exists(test_icon):
                     icon_file = test_icon
-            from urllib.request import pathname2url
-            path = pathname2url(icon_file)
+            # convert Windows 'C:' et al to something that doesn't look like the 'scheme'
+            # part of an URL (pathname2url) and yet don't have spaces and such represented
+            # as '%20' and such (unquote)
+            from urllib.request import pathname2url, unquote
+            path = unquote(pathname2url(icon_file))
             self.setStyleSheet("background-image: url(%s);" % path)
         else:
             ColorButton.set_color(self, color)

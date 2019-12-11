@@ -32,11 +32,12 @@ def markerset_as_xml(mset):
 
   markers = list(mset.atoms)
   markers.sort(key = lambda a: a.residue.number)
+  from chimerax.core.colors import rgba8_to_rgba
   for m in markers:
     id_text = 'id="%d"' % m.residue.number
     xyz_text = 'x="%.5g" y="%.5g" z="%.5g"' % tuple(m.scene_coord)
 
-    rgb = tuple(r/255 for r in m.color[:3])
+    rgb = rgba8_to_rgba(m.color)[:3]
     if rgb == (1,1,1):
       rgb_text = ''
     else:
@@ -46,7 +47,7 @@ def markerset_as_xml(mset):
 
     if hasattr(m, 'marker_note'):
       note_text = ' note="%s"' % xml_escape(m.marker_note)
-      note_rgb = tuple(m.marker_note_rgba[:3]) if hasattr(m, 'marker_note_rgba') else None
+      note_rgb = tuple(m.marker_note_rgba)[:3] if hasattr(m, 'marker_note_rgba') else None
       if note_rgb is None:
         note_rgb_text = ''
       else:
@@ -65,7 +66,7 @@ def markerset_as_xml(mset):
   for e in links:
     m1, m2 = e.atoms
     id_text = 'id1="%d" id2="%d"' % (m1.residue.number, m2.residue.number)
-    rgb_text = 'r="%.5g" g="%.5g" b="%.5g"' % tuple(r/255 for r in e.color[:3])
+    rgb_text = 'r="%.5g" g="%.5g" b="%.5g"' % rgba8_to_rgba(e.color)[:3]
     radius_text = 'radius="%.5g"' % e.radius
     ea = getattr(e, 'link_extra_attributes', {})
     lines.append('<link %s %s %s%s/>' % (id_text, rgb_text, radius_text,

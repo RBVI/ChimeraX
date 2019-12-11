@@ -84,6 +84,7 @@ public:
     bool  from_seqres() const { return _from_seqres; }
     Contents::const_reference  front() const { return Sequence::front(); }
     Residue*  get(unsigned i) const { return _residues[i]; }
+    void  insert(Residue* follower, Residue* insertion);
     virtual bool  is_chain() const { return false; }
     bool  is_sequence() const { return _structure == nullptr; }
     const std::string&  name() const { return Sequence::name(); }
@@ -107,6 +108,7 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set(unsigned i, Residue* r, char character = -1);
+    void  set_chain_id(ChainID chain_id);
     void  set_from_seqres(bool fs);
     Contents::size_type  size() const { return Sequence::size(); }
     Structure*  structure() const { return _structure; }

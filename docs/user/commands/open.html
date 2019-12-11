@@ -120,7 +120,8 @@ File types can be categorized as:
 <td align="center"><a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" 
 target="_blank">PDB (Protein Data Bank)</a></td>
 <td align="center"><b>pdb</b></td>
-<td align="center">.pdb, .pdb1<br>.ent, .pqr</td>
+<td align="center">.pdb, .pdb1<br>.ent, .pqr
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations;
 if PQR, sets atomic <a href="../radii.html">radius</a></td>
 </tr><tr>
@@ -137,8 +138,25 @@ target="_blank">ChimeraX Fast mmCIF Guidelines</a>)</td>
 <td align="center" class="text"><a href="http://mmtf.rcsb.org/"
 target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <td align="center"><b>mmtf</b></td>
-<td align="center">.mmtf</td>
+<td align="center">.mmtf
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center">Schr&ouml;dinger Maestro
+<br><br>*requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxmaestro"
+target="_blank"><b>Maestro</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>
+</td>
+<td align="center"><b>mae</b></td>
+<td align="center">.mae<br>.maegz</td>
+<td align="center" class="text">atomic coordinates
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from 
+<a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>)
+</td>
 </tr><tr>
 <td align="center">Sybyl Mol2</td>
 <td align="center"><b>mol2</b></td>
@@ -167,7 +185,8 @@ for analysis of docking results from
 <td align="center"><a href="../pseudobonds.html#pbfiles">Pseudobond
 file</a></td>
 <td align="center" class="text"><b>pseudobonds</b></td>
-<td align="center">.pb</td>
+<td align="center">.pb
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">
 list of atom pairs
 to connect with <a href="../pseudobonds.html">pseudobonds</a>
@@ -285,7 +304,8 @@ see the <a href="#verbose"><b>verbose</b></a> option</td>
 </tr><tr>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
-<td align="center">.dres</td>
+<td align="center">.dres
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">directional resolution to show on a colored globe
 <br>(plain text file with four whitespace-separated columns of numbers,
 an XYZ vector and a resolution or other value
@@ -336,10 +356,12 @@ target="_blank">OME</a> TIFF</td>
 <td align="center">Image stack</td>
 <td align="center"><b>images</b></td>
 <td align="center">.tif, .tiff<br>.png<br>.pgm</td>
-<td align="center">image stack
+<td align="center"><a name="image-stacks">image stack</a>
 <br>(grayscale image series in multiple files or a single multipage file,
 in formats supported by
-<a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>)</td>
+<a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>);
+see <a href="#image-wildcards">image stack wildcards</a>
+</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.bitplane.com/imaris" target="_blank">Imaris</a> map</td>
@@ -371,6 +393,22 @@ target="_blank">MRC</a> map</td>
 <td align="center"><b>mrc</b></td>
 <td align="center">.mrc</td>
 <td align="center">electron density map</td>
+</tr><tr>
+<td align="center">
+<a href="http://www.ccp4.ac.uk/html/mtzformat.html" 
+target="_blank">MTZ</a> crystallographic reflection file
+<br><br>*requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
+target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>
+and specifying a corresponding atomic model
+(<a href="#clipper">details...</a>)
+</td>
+<td align="center"><b>mtz</b></td>
+<td align="center">.mtz</td>
+<td align="center" class="text">reciprocal space map
+</td>
 </tr><tr>
 <td align="center">Priism data</td>
 <td align="center"><b>priism</b></td>
@@ -408,7 +446,8 @@ target="_blank">SPIDER</a> map</td>
 target="_blank">STORM (STochastic Optical Reconstruction Microscopy)</a>
 </td>
 <td align="center"><b>storm</b></td>
-<td align="center">.storm</td>
+<td align="center">.storm
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">super-resolution microscopy data</td>
 </tr><tr>
 <td align="center"><a href="https://www.biochem.mpg.de/tom"
@@ -432,7 +471,8 @@ University of Houston Brownian Dynamics</td>
 <a href="../formats/bild.html">Chimera/ChimeraX BILD</a>
 </td>
 <td align="center"><b>bild</b></td>
-<td align="center">.bild, .bld</td>
+<td align="center">.bild, .bld
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects</td>
 </tr><tr>
 <td align="center">
@@ -446,20 +486,23 @@ University of Houston Brownian Dynamics</td>
 <td align="center"><a href="http://www.khronos.org/collada/"
 target="_blank">COLLADA</a></td>
 <td align="center"><b>collada</b></td>
-<td align="center">.dae</td>
+<td align="center">.dae
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects
 <br>(TriangleSets only)</td>
 </tr><tr>
 <td align="center"><a href="https://www.khronos.org/gltf"
 target="_blank">GL Transmission Format</a></td>
 <td align="center"><b>gltf</b></td>
-<td align="center">.glb</td>
+<td align="center">.glb
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects</td>
 </tr><tr>
 <td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
 target="_blank">STereoLithography</a> (binary)</td>
 <td align="center"><b>stl</b></td>
-<td align="center">.stl</td>
+<td align="center">.stl
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">triangle-based format
 native to stereolithography CAD software</td>
 </tr><tr>
@@ -467,7 +510,8 @@ native to stereolithography CAD software</td>
 <a href="http://vtk.org/" target="_blank">VTK (Visualization ToolKit)</a>
 PolyData</td>
 <td align="center"><b>vtk</b></td>
-<td align="center">.vtk</td>
+<td align="center">.vtk
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">lines, polygons
 [documentation
 <a href="http://vtk.org/VTK/img/file-formats.pdf" target="_blank">PDF</a>]</td>
@@ -476,7 +520,8 @@ PolyData</td>
 <a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
 target="_blank">Wavefront OBJ</a></td>
 <td align="center"><b>obj</b></td>
-<td align="center">.obj</td>
+<td align="center">.obj
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects
 <br>(triangles only: vertices, vertex normals, faces; no colors)</td>
 </tr><tr>
@@ -488,29 +533,34 @@ target="_blank">Wavefront OBJ</a></td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
-<td align="center" class="text">.aln, .clustal<br>.clustalw,&nbsp;.clustalx</td>
+<td align="center" class="text">.aln, .clustal<br>.clustalw,&nbsp;.clustalx
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
-<td align="center">.fasta, .fa<br>.afasta, .afa</td>
+<td align="center">.fasta, .fa<br>.afasta, .afa</a>
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 </tr><tr>
 <td align="center">GCG MSF (Multiple Sequence Format)</td>
 <td align="center"><b>msf</b></td>
-<td align="center">.msf</td>
+<td align="center">.msf
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">GCG RSF (Rich Sequence Format)</td>
 <td align="center"><b>rsf</b></td>
-<td align="center">.rsf</td>
+<td align="center">.rsf
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">
 <a href="http://nar.oxfordjournals.org/content/25/1/226.full"
 target="_blank">HSSP</a></td>
 <td align="center"><b>hssp</b></td>
-<td align="center">.hssp</td>
+<td align="center">.hssp
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment
 <br>(other information not read; see
 <a href="http://swift.cmbi.ru.nl/gv/hssp/" target="_blank">HSSP database</a>)
@@ -518,19 +568,22 @@ target="_blank">HSSP</a></td>
 </tr><tr>
 <td align="center" class="text">PIR (NBRF), aligned PIR</td>
 <td align="center"><b>pir</b></td>
-<td align="center">.pir, .ali</td>
+<td align="center">.pir, .ali
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 </tr><tr>
 <td align="center">Selex (Pfam)</td>
 <td align="center"><b>pfam</b></td>
-<td align="center">.selex, .slx<br>.pfam</td>
+<td align="center">.selex, .slx<br>.pfam
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">
 <a href="http://en.wikipedia.org/wiki/Stockholm_format"
 target="_blank">Stockholm</a></td>
 <td align="center"><b>stockholm</b></td>
-<td align="center">.sth, .sto</td>
+<td align="center">.sth, .sto
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
@@ -569,7 +622,8 @@ command file</a></td>
 </tr><tr>
 <td align="center">Python</td>
 <td align="center"><b>py</b></td>
-<td align="center">.py, .pyc, .pyo</td>
+<td align="center">.py, .pyc, .pyo
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">Python code
 <br>(see also <a href="runscript.html"><b>runscript</b></a>)</td>
 </tr><tr>
@@ -578,7 +632,7 @@ command file</a></td>
 <td align="center">.html, .htm<br>.xhtml,&nbsp;.xht,&nbsp;.xml</td>
 <td align="center">
 hypertext to render in the 
-<a href="../tools/browser.html">ChimeraX browser</a></td>
+<a href="../tools/helpviewer.html">ChimeraX browser</a></td>
 </tr></table>
 
 <a name="local"></a>
@@ -615,21 +669,26 @@ either absolute or relative to the current working directory as
 reported by <a href="pwd.html"><b>pwd</b></a>.
 The working directory can be changed with <a href="cd.html"><b>cd</b></a>.
 A pathname may start with &ldquo;<b>~</b>&rdquo; to indicate the user's 
-home directory. 
+home directory.
 One or more files can be specified with a single filename
 by including <b>*</b> (wild card), <b>?</b> (single-character wild card), 
 and/or square-bracketed character ranges
 (Unix-style pathname expansion or <b><i>globbing</i></b>).
+For <a href="#image-stacks">image stacks</a> only, 
+<a href="#image-wildcards">additional wild cards</a> may be used.
+</p><p>
+Multiple filenames separated by spaces can also be given,
+which is equivalent to using the <b>open</b> command 
+multiple times with the same options for each filename.
+</p><p>
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for the filename brings up a file browser window for choosing the
-name and location interactively.
-Specifying multiple filenames is equivalent to using the <b>open</b> command 
-multiple times with the same options for each filename.
+name and location interactively. 
 </p><p>
 The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
-Files that are gzipped, as indicated by their additional .gz suffix, 
-can also be read.
+Certain formats can be read when compressed (.gz, .bz2, or .xz, see
+<a href="#compressed">details</a>).
 </p><p>
 Giving <a href="usageconventions.html#browse"><b>browse</b></a> as the 
 <i>filename</i> brings up a dialog for browsing the filesystem interactively.
@@ -720,9 +779,10 @@ See also: <a href="../markers.html">markers and links</a>
 <b>channel</b>&nbsp;&nbsp;<i>N</i>
 <br>
 Assign channel number <i>N</i> to map; typically used for light microscopy data.
-When multiple maps are opened in a single command (multiple files specified with 
-wild cards or globbing), channel numbers are automatically discerned from the
-filenames, if possible: for example, a file will be identified as channel 0
+When multiple maps are opened in a single command
+(multiple files specified with wild cards or globbing), 
+channel numbers are automatically discerned from the filenames, 
+if possible: for example, a file will be identified as channel 0
 if its name contains either of the following:
 <ul class="none">
 <li>_ch0_
@@ -738,7 +798,8 @@ in <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
 changes it for all of the channels in the group.
 The <b>channel</b> option allows manually assigning a channel to data
 so that it can be saved along with other datasets in a single (multichannel)
-<a href="save.html#chimap">Chimera map</a> file.
+<a href="save.html#chimap">Chimera map</a> file. See also:
+<a href="#image-wildcards">image stack wildcards</a>
 </blockquote>
 <blockquote>
 <b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -803,7 +864,7 @@ number. Model name and number can be changed with the
 <b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
 Whether to open an HTML file in a new tab of the
-<a href="../tools/browser.html">ChimeraX browser</a>
+<a href="../tools/helpviewer.html">ChimeraX browser</a>
 (default <b>false</b>, replace any current page).
 </blockquote>
 <blockquote>
@@ -827,7 +888,9 @@ but to provide topology information, this option must be used
 to specify an existing model with the same set of atoms
 (for example: <b>open myfile.trr struct #1</b>).
 The coordinates of the existing model will be replaced with the new,
-unless <b>replace false</b> is used to indicate appending the new frames instead.
+unless <b>replace false</b> is used to indicate appending the new frames 
+instead. This option is also needed to open local MTZ files
+(<a href="#clipper">details...</a>).
 </blockquote>
 <blockquote>
 <a name="vseries"></a>
@@ -903,7 +966,7 @@ File types and command options are the same as described
 The file type can be indicated by suffix, MIME type, or the <b>format</b> option.
 </p><p>
 Web-fetched data other than those handled by the
-<a href="../tools/browser.html">ChimeraX browser</a>
+<a href="../tools/helpviewer.html">ChimeraX browser</a>
 are stored locally as described <a href="#ignoreCache">below</a>.
 </p>
 
@@ -1116,7 +1179,120 @@ the single best-matching sequence is associated.
 </blockquote>
 -->
 
+<a name="image-wildcards"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Image Stack Wildcards</h3>
+<p>
+For <a href="#image-stacks">image stacks</a> only, special wildcards
+{t}, {c}, {z} can be used in the <a href="#top"><b>open</b></a>
+command file pathname to specify the stack collectively.
+These wildcards indicate the parts of the filename with
+time, channel, and Z-indices, respectively. For example,
+to open a stack where each file is a 3D volume
+(each file contains all Z planes for one channel at one timepoint):
+<blockquote>
+open "/Volumes/data/micro/cell8_3 stars/cell8_{c}ch_{t}stack_*msec.tif"
+</blockquote>
+...and the file names look like:
+<blockquote>
+cell8_0ch_0000stack_000000msec.tif
+<br>cell8_0ch_0001stack_001383msec.tif
+<br>cell8_0ch_0002stack_002766msec.tif
+<br>cell8_0ch_0003stack_004149msec.tif
+<br>cell8_1ch_0000stack_000000msec.tif
+<br>cell8_1ch_0001stack_001383msec.tif
+<br>cell8_1ch_0002stack_002766msec.tif
+<br>cell8_1ch_0003stack_004149msec.tif
+<br>[...]
+</blockquote>
+The following example is for files each containing a single Z plane:
+<blockquote>
+open ~/Desktop/latest/r12c09f01p{z}-ch{c}sk{t}fk1fl1.tiff
+</blockquote>
+...where the file names look like:
+<blockquote>
+r12c09f01p01-ch1sk01fk1fl1.tiff
+<br>r12c09f01p01-ch1sk02fk1fl1.tiff
+<br>r12c09f01p01-ch1sk03fk1fl1.tiff
+<br>r12c09f01p01-ch1sk04fk1fl1.tiff
+<br>[...]
+</blockquote>
+See also the <a href="#channel"><b>channel</b></a>
+option of the <a href="#top"><b>open</b></a> command.
+</p>
+
+<a name="compressed"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Compressed Files</h3>
+<p>
+Certain <a href="#formats">file types</a> 
+can be read when compressed, as indicated with
+a suffix for the type of compression (.gz, .bz2, or .xz following the 
+usual suffix for the type of file). 
+For example, myfile.pdb.gz is a gzipped PDB file.
+</p><p>
+The file types that can be read by ChimeraX in compressed form
+(as well as uncompressed) are
+ALN, BILD, Collada, compiled Python code, directional FSC,
+FASTA, glTF, HSSP, MMTF, MSF, PDB, Pfam, PIR, pseudobonds, Python code,
+RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
+</p>
+
+<a name="clipper"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Open/Save Options from Clipper</h3>
+<p>
+The <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
+target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a> allows
+<a href="#top">opening</a> and <a href="save.html">saving</a>
+crystallographic reflection files in 
+<a href="http://www.ccp4.ac.uk/html/mtzformat.html" 
+target="_blank">MTZ format</a>.
+</p><p>
+<a href="#top">Opening</a>
+an MTZ file requires specifying an already-open atomic structure
+with the <a href="#structureModel"><b>structureModel</b></a> option.
+Structure factors can also be <a href="#fetch">fetched</a> along
+with the corresponding atomic structure from the
+<a href="http://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>
+by specifying <b>structureFactors true</b>, for example:
+<blockquote>
+<b>open 6cmn structureFactors t</b>
+</blockquote>
+Not all PDB entries have structure factors available.
+In either case (opening an MTZ file or fetching structure factors),
+an <b>overSampling</b> <i>value</i> can be given to set the
+fineness of the real-space grid relative to the data resolution;
+values in the 1.5-4.0 range are generally recommended, with higher
+values giving a finer grid.
+</p><p>
+<a href="save.html">Saving</a>:
+Only previously fetched structure factors or those from
+a previously opened MTZ file can be saved as MTZ,
+with additional <a href="save.html"><b>save</b></a> command options:
+</p>
+<blockquote>
+<b>preserveInput</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to pass through the original, unmodified structure factors 
+as well as those actually used by Clipper (which may have been modified).
+</blockquote>
+<blockquote>
+<b>saveMapCoeffs</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to save the current amplitudes and phases for all maps 
+generated by Clipper. If <b>false</b>, just save the experimental data.
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+December 2019</address>
 </body></html>
