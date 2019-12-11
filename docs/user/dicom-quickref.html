@@ -91,8 +91,7 @@ Toolbar Icons</h3>
 Many icons in the <a href="tools/toolbar.html"><b>Toolbar</b></a>
 across the top of the ChimeraX window are useful for working with DICOM data.
 The <a href="tools/medicalimage.html"><b>Medical&nbsp;Image</b></a> tab
-contains an application-specific collection of icons from the other tabs
-(<a href="tools/densitymaps.html"><b>Map</b></a>, <i>etc.</i>):
+contains an application-specific collection of icons:
 </p>
 <ul class="none">
 <li><img class="icon" border=1 src="tools/toolbar-icons/open-in-app.png">
@@ -112,14 +111,12 @@ contains an application-specific collection of icons from the other tabs
 <li><img class="icon" border=1 src="tools/shortcut-icons/airways.png">
 &nbsp;Airways II <a href="#presets">preset</a>
 for image display, typically used for thick sections
-(<a href="commands/volume.html#appearance">details...</a>)
+<li><img class="icon" border=1 src="tools/shortcut-icons/chest.png">
+&nbsp;chest <a href="#presets">preset</a> for image display
 <li><img class="icon" border=1 src="tools/shortcut-icons/ear.png">
-&nbsp;CT_Skin <a href="#presets">preset</a>
-for image display
-(<a href="commands/volume.html#appearance">details...</a>)
+&nbsp;CT_Skin <a href="#presets">preset</a> for image display
 <li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
 &nbsp;initial thresholds for image display, <i>e.g.</i>, for single planes
-(<a href="commands/volume.html#appearance">details...</a>)
 <li><img class="icon" border=1 src="tools/shortcut-icons/orient.png">
 &nbsp;view all, standard orientation
 <li><img class="icon" border=1 src="tools/shortcut-icons/step1.png">
@@ -190,7 +187,7 @@ trackpad + <img src="icon-clover.png" width="12px"> on Mac)
   <li>to switch axes:
      <ul>
 <li>show the full region of the data and its outline box
-by clicking the <a href="#icons">map icons</a>
+by clicking the <a href="#icons">toolbar icons</a>
 <img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
 <img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
 or using the <a href="tools/volumeviewer.html#context">context menu</a>
@@ -204,12 +201,12 @@ in the <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> window
 <li>Planes along X, Y, <b><i>and</i></b> Z at the same time can be shown
 by choosing the <b>orthoplanes</b> display style in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
-or clicking the <a href="#icons">map icon</a>
+or clicking the <a href="#icons">toolbar icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
 <li>To return to Z-planes from orthoplanes or 3D rendering,
 choose the <b>plane</b> display style in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
-or click the <a href="#icons">map icon</a>
+or click the <a href="#icons">toolbar icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/plane.png">
 </ul>
 <p>
@@ -220,7 +217,7 @@ The <a href="#windowing">thresholds</a> may need to be adjusted
 to improve the appearance after switching display styles.
 </p><p>
 For full resolution, set the <b>step</b> value to <b>1</b>
-or click the <a href="#icons">map icon</a>
+or click the <a href="#icons">toolbar icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/step1.png">.
 Subsampling (<b>step</b> &gt; 1) decreases computational demands and
 may be needed for responsive rendering of large datasets, particularly in
@@ -384,19 +381,25 @@ for example:
 The implementations are only approximate, as there may not be a direct
 correspondence between settings in different programs,
 and parts of the definition files may have been ignored.
-Besides a preset name, <b>appearance initial</b> 
-can be used to (re)set to the colors and intensities
+The <a href="#icons">toolbar icons</a>
+<img class="icon" border=1 src="tools/shortcut-icons/airways.png"> and
+<img class="icon" border=1 src="tools/shortcut-icons/ear.png"> apply the 
+Horos <b>Airways II</b> and MRIcroGL <b>CT_Skin</b> settings, respectively.
+</p><p>
+Two other presets, also available as <a href="#icons">toolbar icons</a>,
+are defined in ChimeraX only:
+</p>
+<ul class="none">
+<li><img class="icon" border=1 src="tools/shortcut-icons/chest.png">
+<b>appearance chest</b> 
+gives yellow bones, blue airways, and some other tissues in pink
+<li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
+<b>appearance initial</b> 
+(re)sets to the colors and intensities
 chosen automatically when a dataset is first shown in the image style.
 The <b>initial</b> settings may be useful for single-plane display
-after using a 3D preset.
-</p><p>
-The <a href="#icons">map icons</a>
-<img class="icon" border=1 src="tools/shortcut-icons/airways.png">,
-<img class="icon" border=1 src="tools/shortcut-icons/ear.png">, and
-<img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
-apply the <b>Airways II</b>, <b>CT_Skin</b>, and <b>initial</b>
-settings, respectively.
-</p>
+after a 3D preset has been applied.
+</ul>
 <table>
 <tr><th align="center" class="shaded">
 <font size="-1">[this dataset provided <a href="#data">below</a>]</font>
@@ -459,7 +462,7 @@ that may be useful:
 &ndash; to avoid jumps in brightness during the rotation of image displays,
 render using planes perpendicular to the line of sight
 (default for DICOM, see <a href="commands/volume.html#pmode">details...</a>);
-see also <a href="#icons">map icons</a>
+see also <a href="#icons">toolbar icons</a>
 <img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
 <img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
 <li><b>planeSpacing</b> &ndash; plane spacing for 3D projection mode
