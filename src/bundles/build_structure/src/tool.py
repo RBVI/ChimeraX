@@ -13,7 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
-from PyQt5.QtWidgets import QGridLayout
+from PyQt5.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit
 from PyQt5.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
@@ -29,6 +29,9 @@ class BuildStructureTool(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(3)
         parent.setLayout(layout)
+
+        session.logger.status("Build Structure is a work in progress, many more functions coming soon...",
+            color="red")
 
         self.category_button = QPushButton()
         layout.addWidget(self.category_button, alignment=Qt.AlignCenter)
@@ -74,7 +77,66 @@ class BuildStructureTool(ToolInstance):
         frame_layout.setSpacing(0)
         frame.setLayout(frame_layout)
         params_layout = QGridLayout()
-        params_layout.setSpacing(10)
+        params_layout.setHorizontalSpacing(10)
+        params_layout.setVerticalSpacing(0)
         frame_layout.addLayout(params_layout)
         for col, title in enumerate(["Element", "Bonds", "Geometry"]):
-            params_layout.addWidget(QLabel(title), 0, col)
+            params_layout.addWidget(QLabel(title), 0, col, alignment=Qt.AlignHCenter | Qt.AlignBottom)
+        self.ms_elements_button = ebut = QPushButton()
+        from chimerax.atomic.widgets import make_elements_menu
+        elements_menu = make_elements_menu()
+        elements_menu.triggered.connect(lambda act, but=ebut: but.setText(act.text()))
+        ebut.setMenu(elements_menu)
+        ebut.setText("C")
+        params_layout.addWidget(ebut, 1, 0)
+
+        self.ms_bonds_button = bbut = QPushButton()
+        bonds_menu = QMenu()
+        for nb in range(5):
+            bonds_menu.addAction(str(nb))
+        bonds_menu.triggered.connect(lambda act, but=bbut: but.setText(act.text()))
+        bbut.setMenu(bonds_menu)
+        bbut.setText("4")
+        params_layout.addWidget(bbut, 1, 1)
+
+        self.ms_geom_button = gbut = QPushButton()
+        geom_menu = QMenu()
+        geom_menu.triggered.connect(lambda act, but=gbut: but.setText(act.text()))
+        bonds_menu.triggered.connect(lambda act: self._ms_geom_menu_update())
+        gbut.setMenu(geom_menu)
+        gbut.setText("4")
+        params_layout.addWidget(gbut, 1, 2)
+        self._ms_geom_menu_update()
+
+        atom_name_area = QWidget()
+        frame_layout.addWidget(atom_name_area, alignment=Qt.AlignCenter)
+        atom_name_layout = QGridLayout()
+        atom_name_layout.setContentsMargins(0,0,0,0)
+        atom_name_layout.setSpacing(0)
+        atom_name_area.setLayout(atom_name_layout)
+        self.ms_retain_atom_name = rbut = QRadioButton("Retain current atom name")
+        rbut.setChecked(True)
+        atom_name_layout.setColumnStretch(1, 1)
+        atom_name_layout.addWidget(rbut, 0, 0, 1, 2, alignment=Qt.AlignLeft)
+        atom_name_layout.addWidget(QRadioButton("Set atom names to:"), 1, 0)
+        self.ms_atom_name = name_edit = QLineEdit()
+        name_edit.setFixedWidth(50)
+        name_edit.setText(ebut.text())
+        elements_menu.triggered.connect(lambda act, edit=name_edit: name_edit.setText(act.text()))
+        atom_name_layout.addWidget(name_edit, 1, 1, alignment=Qt.AlignLeft)
+
+    def _ms_geom_menu_update(self):
+        num_bonds = int(self.ms_bonds_button.text())
+        but = self.ms_geom_button
+        if num_bonds < 2:
+            but.setEnabled(False)
+            but.setText("N/A")
+            return
+        but.setEnabled(True)
+        menu = but.menu()
+        menu.clear()
+        from chimerax.atomic.bond_geom import geometry_name
+        for gname in geometry_name[num_bonds:]:
+            menu.addAction(gname)
+        but.setText(gname)
+

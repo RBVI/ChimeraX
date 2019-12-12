@@ -84,7 +84,7 @@ def make_elements_menu(*, _session=None, _parent_menus=None):
         if _session and _parent_menus:
             submenu = add_submenu(_parent_menus + ["Other"], range_string)
         else:
-            submenu = other.addMenu(range_string)
+            submenu = other_menu.addMenu(range_string)
         for en in known_elements[start_index:end_index+1]:
             submenu.addAction(en)
         start_index = end_index + 1
