@@ -78,72 +78,10 @@ class ToolbarTool(ToolInstance):
         self.settings.show_section_labels = show_section_labels
         self.ttb.set_show_section_titles(show_section_labels)
 
-    def handle_scheme(self, cmd):
-        # First check that the path is a real command
-        if callable(cmd):
-            cmd(self.session)
-            return
-        kind, value = cmd.split(':', maxsplit=1)
-        if kind == "shortcut":
-            from chimerax.shortcuts import shortcuts
-            shortcuts.keyboard_shortcuts(self.session).run_shortcut(value)
-        elif kind == "mouse":
-            button_to_bind = 'right'
-            from chimerax.core.commands import run
-            if ' ' in value:
-                value = '"%s"' % value
-            run(self.session, f'ui mousemode {button_to_bind} {value}')
-        elif kind == "cmd":
-            from chimerax.core.commands import run
-            run(self.session, f'{value}')
-        else:
-            from chimerax.core.errors import UserError
-            raise UserError("unknown toolbar command: %s" % cmd)
-
-    def _add_mouse_modes(self):
-        # legacy support
-        import os
-        import chimerax.shortcuts
-        from PyQt5.QtGui import QPixmap, QIcon
-        shortcut_icon_dir = os.path.join(chimerax.shortcuts.__path__[0], 'icons')
-        dir_path = os.path.join(os.path.dirname(__file__), 'icons')
-        for tab in _Toolbars:
-            help_url, info = _Toolbars[tab]
-            for (section, compact), shortcuts in info.items():
-                if compact:
-                    self.ttb.set_section_compact(tab, section, True)
-                for item in shortcuts:
-                    if len(item) == 4:
-                        (what, icon_file, descrip, tooltip) = item
-                        kw = {}
-                    else:
-                        (what, icon_file, descrip, tooltip, kw) = item
-                    kind, value = what.split(':', 1) if isinstance(what, str) else (None, None)
-                    if kind == "mouse":
-                        m = self.session.ui.mouse_modes.named_mode(value)
-                        if m is None:
-                            continue
-                        icon_path = m.icon_path
-                    else:
-                        icon_path = os.path.join(shortcut_icon_dir, icon_file)
-                        if not os.path.exists(icon_path):
-                            icon_path = os.path.join(dir_path, icon_file)
-                    pm = QPixmap(icon_path)
-                    icon = QIcon(pm)
-                    if not tooltip:
-                        tooltip = descrip
-                    if kind == "mouse":
-                        kw["vr_mode"] = what[6:]   # Allows VR to recognize mouse mode tool buttons
-                    if descrip and not descrip[0].isupper():
-                        descrip = descrip.capitalize()
-                    self.ttb.add_button(
-                        tab, section, descrip,
-                        lambda e, what=what, self=self: self.handle_scheme(what),
-                        icon, tooltip, **kw)
-
     def _build_buttons(self):
         # add buttons from toolbar manager
-        from PyQt5.QtGui import QPixmap, QIcon
+        from PyQt5.QtGui import QIcon
+        from .manager import fake_mouse_mode_bundle_info
         toolbar = self.session.toolbar._toolbar
         for tab in _layout(toolbar, "tabs"):
             if tab.startswith("__") or tab not in toolbar:
@@ -164,8 +102,16 @@ class ToolbarTool(ToolInstance):
                     has_buttons = True
                     if description and not description[0].isupper():
                         description = description.capitalize()
-                    pm = QPixmap(icon_path)
-                    icon = QIcon(pm)
+                    if bundle_info == fake_mouse_mode_bundle_info:
+                        kw["vr_mode"] = name  # Allows VR to recognize mouse mode buttons
+                        if icon_path is None:
+                            m = self.session.ui.mouse_modes.named_mode(name)
+                            if m is not None:
+                                icon_path = m.icon_path
+                    if icon_path is None:
+                        icon = None
+                    else:
+                        icon = QIcon(icon_path)
 
                     def callback(event, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
                         bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
@@ -177,7 +123,6 @@ class ToolbarTool(ToolInstance):
                     compact = "__compact__" in section_info
                     if compact:
                         self.ttb.set_section_compact(tab, section, True)
-        self._add_mouse_modes()
         self.ttb.show_tab('Home')
 
 
@@ -228,72 +173,6 @@ def _file_save(session):
     session.ui.main_window.file_save_cb(session)
 
 
-# TODO: old style toolbars until mouse mode support is added
-_Toolbars = {
-    "Markers": (
-        "help:user/tools/markerplacement.html",
-        {
-            ("Place markers", False): [
-                ("mouse:mark maximum", None, "Maximum", "Mark maximum"),
-                ("mouse:mark plane", None, "Plane", "Mark volume plane"),
-                ("mouse:mark surface", None, "Surface", "Mark surface"),
-                ("mouse:mark center", None, "Center", "Mark center of connected surface"),
-                ("mouse:mark point", None, "Point", "Mark 3d point"),
-            ],
-            ("Adjust markers", False): [
-                ("mouse:link markers", None, "Link", "Link consecutively clicked markers"),
-                ("mouse:move markers", None, "Move", "Move markers"),
-                ("mouse:resize markers", None, "Resize", "Resize markers or links"),
-                ("mouse:delete markers", None, "Delete", "Delete markers or links"),
-            ],
-        }
-    ),
-    "Right Mouse": (
-        "help:user/tools/mousemodes.html",
-        {
-            ("Movement", False): [
-                ("mouse:select", None, "Select", "Select models"),
-                ("mouse:rotate", None, "Rotate", "Rotate models"),
-                ("mouse:translate", None, "Translate", "Translate models"),
-                ("mouse:zoom", None, "Zoom", "Zoom view"),
-                ("mouse:translate selected models", None, "Translate Selected", "Translate selected models"),
-                ("mouse:rotate selected models", None, "Rotate Selected", "Rotate selected models"),
-                ("mouse:pivot", None, "Pivot", "Set center of rotation at atom"),
-            ],
-            ("Annotation", False): [
-                ("mouse:distance", None, "distance", "Toggle distance monitor between two atoms"),
-                ("mouse:label", None, "Label", "Toggle atom or cartoon label"),
-                ("mouse:move label", None, "Move label", "Reposition 2D label"),
-            ],
-            ("Clipping", False): [
-                ("mouse:clip", None, "Clip", "Activate clipping"),
-                ("mouse:clip rotate", None, "Clip rotate", "Rotate clipping planes"),
-                ("mouse:zone", None, "Zone", "Limit display to zone around clicked residues"),
-            ],
-            ("Map", False): [
-                ("mouse:contour level", None, "Contour level", "Adjust volume data threshold level"),
-                ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
-                ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
-                ("mouse:tape measure", None, "Tape", "Measure distance between two map points"),
-                ("mouse:pick blobs", None, "Blob", "Measure and color connected parts of surface"),
-                ("mouse:map eraser", None, "Erase", "Erase parts of a density map setting values in a sphere to zero"),
-                ("mouse:play map series", None, "Play series", "Play map series"),
-                ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
-            ],
-            ("Structure Modification", False): [
-                ("mouse:bond rotation", None, "Bond rotation", "Adjust torsion angle"),
-                ("mouse:swapaa", None, "Swapaa", "Mutate and label residue"),
-                ("mouse:tug", None, "Tug", "Drag atom while applying dynamics"),
-                ("mouse:minimize", None, "Minimize", "Jiggle residue and its neighbors"),
-            ],
-            ("Other", False): [
-                ("mouse:next docked", None, "Next docked", "Show next docked ligand"),
-            ],
-        }
-    ),
-}
-
-
 _providers = {
     "Open": _file_open,
     "Recent": _file_recent,
@@ -305,6 +184,7 @@ _providers = {
     "Side view": "tool show 'Side View'"
 }
 
+
 def run_provider(session, name):
     what = _providers[name]
     if not isinstance(what, str):
@@ -312,4 +192,3 @@ def run_provider(session, name):
     else:
         from chimerax.core.commands import run
         run(session, what)
-
