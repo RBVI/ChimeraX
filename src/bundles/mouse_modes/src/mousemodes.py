@@ -256,6 +256,7 @@ class MouseModes:
         self._mouse_pause_interval = 0.5         # seconds
         self._mouse_pause_position = None
 
+        session.triggers.add_trigger("set right mouse")
         self.bind_standard_mouse_modes()
         self._last_mode = None			# Remember mode at mouse down and stay with it until mouse up
 
@@ -275,6 +276,8 @@ class MouseModes:
                 b = MouseBinding(button, modifiers, mode)
                 self._bindings.append(b)
                 mode.enable()
+        if button == "right" and not modifiers:
+            self.session.triggers.activate_trigger("set right mouse", mode)
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         '''
@@ -303,10 +306,13 @@ class MouseModes:
         '''List of MouseBinding instances.'''
         return self._bindings
 
-    def mode(self, button = 'left', modifiers = []):
+    def mode(self, button = 'left', modifiers = [], exact = False):
         '''Return the MouseMode associated with a specified button and modifiers,
         or None if no mode is bound.'''
-        mb = [b for b in self._bindings if b.matches(button, modifiers)]
+        if exact:
+            mb = [b for b in self._bindings if b.exact_match(button, modifiers)]
+        else:
+            mb = [b for b in self._bindings if b.matches(button, modifiers)]
         if len(mb) == 1:
             m = mb[0].mode
         elif len(mb) > 1:

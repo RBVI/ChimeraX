@@ -38,6 +38,7 @@ class ToolbarTool(ToolInstance):
         self.tool_window = MainToolWindow(self, close_destroys=False, hide_title_bar=True)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
+        session.triggers.add_handler('set right mouse', self._set_right_mouse_button)
 
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -82,6 +83,8 @@ class ToolbarTool(ToolInstance):
         # add buttons from toolbar manager
         from PyQt5.QtGui import QIcon
         from .manager import fake_mouse_mode_bundle_info
+        self.right_mouse_buttons = {}
+        self.current_right_mouse_button = None
         toolbar = self.session.toolbar._toolbar
         for tab in _layout(toolbar, "tabs"):
             if tab.startswith("__") or tab not in toolbar:
@@ -104,10 +107,12 @@ class ToolbarTool(ToolInstance):
                         description = description.capitalize()
                     if bundle_info == fake_mouse_mode_bundle_info:
                         kw["vr_mode"] = name  # Allows VR to recognize mouse mode buttons
+                        rmbs = self.right_mouse_buttons.setdefault(name, [])
                         if icon_path is None:
                             m = self.session.ui.mouse_modes.named_mode(name)
                             if m is not None:
                                 icon_path = m.icon_path
+                        rmbs.append((tab, section, display_name, icon_path))
                     if icon_path is None:
                         icon = None
                     else:
@@ -124,6 +129,52 @@ class ToolbarTool(ToolInstance):
                     if compact:
                         self.ttb.set_section_compact(tab, section, True)
         self.ttb.show_tab('Home')
+        self._set_right_mouse_button('init', self.session.ui.mouse_modes.mode("right", exact=True))
+
+    def _set_right_mouse_button(self, trigger_name, mode):
+        # TODO: highlight current right mouse button
+        return
+
+        name = mode.name if mode is not None else None
+        if name == self.current_right_mouse_button:
+            return
+
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QIcon, QPixmap, QColor
+        has_button = name in self.right_mouse_buttons
+        if self.current_right_mouse_button is not None:
+            # remove highlighting
+            icon = None
+            for info in self.right_mouse_buttons[self.current_right_mouse_button]:
+                tab_title, section_title, button_title, icon_path = info
+                a = self.ttb.get_qt_button_action(tab_title, section_title, button_title)
+                if a is None:
+                    continue
+                if icon is None and icon_path is not None:
+                    # all icon_paths should be the same
+                    icon = QIcon(icon_path)
+                if icon is not None:
+                    a.setIcon(icon)
+        if not has_button:
+            self.current_right_mouse_button = None
+            return
+        self.current_right_mouse_button = name
+        # highlight button(s)
+        icon = None
+        for info in self.right_mouse_buttons[name]:
+            tab_title, section_title, button_title, icon_path = info
+            a = self.ttb.get_qt_button_action(tab_title, section_title, button_title)
+            if a is None:
+                continue
+            if icon is None and icon_path is not None:
+                # all icon_paths should be the same
+                pixmap = QPixmap(icon_path)
+                mask = pixmap.createMaskFromColor(QColor('transparent'), Qt.MaskOutColor)
+                pixmap.fill(QColor('light green'))
+                pixmap.setMask(mask)
+                icon = QIcon(pixmap)
+            if icon is not None:
+                a.setIcon(icon)
 
 
 def _layout(d, what):
