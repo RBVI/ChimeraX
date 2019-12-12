@@ -105,7 +105,16 @@ class FileHistory:
             self.save_history()
 
     def load_history(self):
-        fc = self._file_cache.load()
+        try:
+            fc = self._file_cache.load()
+        except Exception as e:
+            backup_path = self._file_cache.backup()
+            msg = ('The history of data files opened in ChimeraX was unreadable.\n'
+                   'The unreadable file has been copied to %s.\n' % backup_path +
+                   'Please report this as a bug using menu Help / Report a Bug.\n\n' +
+                   'The error was "%s".' % str(e))
+            self.session.logger.bug(msg)
+            fc = None
         fmap = {}
         if fc is not None:
             for f in fc['files']:
