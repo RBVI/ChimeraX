@@ -101,7 +101,6 @@ class _Section(QWidgetAction):
                 b.vr_mode = vr_mode
             b.setAutoRaise(True)
             if icon is None:
-                icon = QIcon()
                 style = Qt.ToolButtonTextOnly
             else:
                 if not self.show_button_titles:
@@ -111,7 +110,10 @@ class _Section(QWidgetAction):
                 else:
                     style = Qt.ToolButtonTextUnderIcon
             b.setToolButtonStyle(style)
-        action = QAction(icon, title)
+        if icon is None:
+            action = QAction(title)
+        else:
+            action = QAction(icon, title)
         if description:
             action.setToolTip(description)
         if callback is not None:
@@ -142,7 +144,10 @@ class _Section(QWidgetAction):
                 column = index // self.compact_height
                 parent._layout.addWidget(b, row, column, Qt.AlignCenter)
             else:
-                align = Qt.AlignTop if self.show_button_titles else Qt.AlignCenter
+                if not self.show_button_titles or icon is None:
+                    align = Qt.AlignCenter
+                else:
+                    align = Qt.AlignTop
                 b.setIconSize(2 * b.iconSize())
                 parent._layout.addWidget(b, 0, index, align)
         global _debug
