@@ -85,6 +85,7 @@ class _Section(QWidgetAction):
             self._adjust_title(parent)
 
         # split title into two lines if long
+        orig_title = title
         if '\n' not in title and len(title) > 6:
             title = split_title(title)
 
@@ -117,7 +118,7 @@ class _Section(QWidgetAction):
             action.setToolTip(description)
         if callback is not None:
             action.triggered.connect(callback)
-        self._actions[title] = action
+        self._actions[orig_title] = action
         if group_follow:
             button = self._groups[parent][group]
             button.addAction(action)
