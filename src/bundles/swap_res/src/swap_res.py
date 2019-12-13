@@ -242,7 +242,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     from chimerax.core.geometry import align_points
     from numpy import array
     xform, rmsd = align_points(array([fa.coord for fa in tmpl_match_atoms]),
-        array([ta.scene_coord for ta in res_match_atoms]))
+        array([ta.coord for ta in res_match_atoms]))
     n_coord = xform * tmpl_N.coord
     ca_coord = xform * tmpl_CA.coord
     cb_coord = xform * tmpl_CB.coord
@@ -410,7 +410,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
         except KeyError:
             raise AssertionError("Can't determine atom type information for atom %s of residue %s" % (bud, res))
 
-        # use .coord rather than .scene_coord:  we want to set # the new atom's coord,
+        # use .coord rather than .scene_coord:  we want to set the new atom's coord,
         # to which the proper xform will then be applied
         for a, b in zip(tmpl_bud.neighbors, tmpl_bud.bonds):
             if a.element.number == 1:
