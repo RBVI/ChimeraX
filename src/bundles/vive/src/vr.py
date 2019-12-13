@@ -1752,6 +1752,8 @@ class Panel:
             
     def _panel_click_position(self, room_point):
         ui = self._panel_drawing
+        if ui is None:
+            return None, None
         scene_point = self._ui._camera.room_to_scene * room_point
         x,y,z = ui.scene_position.inverse() * scene_point
         w,h = self.size
