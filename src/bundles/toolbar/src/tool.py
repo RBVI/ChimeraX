@@ -140,7 +140,7 @@ class ToolbarTool(ToolInstance):
             return
 
         from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QIcon, QPixmap, QColor
+        from PyQt5.QtGui import QIcon, QPixmap, QColor, QImage, QPainter
         has_button = name in self.right_mouse_buttons
         if self.current_right_mouse_button is not None:
             # remove highlighting
@@ -155,8 +155,8 @@ class ToolbarTool(ToolInstance):
                     icon = QIcon(icon_path)
                 if icon is not None:
                     a.setIcon(icon)
-        if not has_button:
             self.current_right_mouse_button = None
+        if not has_button:
             return
         self.current_right_mouse_button = name
         # highlight button(s)
@@ -168,11 +168,18 @@ class ToolbarTool(ToolInstance):
                 continue
             if icon is None and icon_path is not None:
                 # all icon_paths should be the same
-                pixmap = QPixmap(icon_path)
-                mask = pixmap.createMaskFromColor(QColor('transparent'), Qt.MaskOutColor)
-                pixmap.fill(QColor('light green'))
-                pixmap.setMask(mask)
-                icon = QIcon(pixmap)
+                #image = QImage(icon_path)
+                tmp = QImage(icon_path)
+                image = QImage(tmp.size(), QImage.Format_RGB32)
+                image.fill(QColor('light green'))
+                p = QPainter(image)
+                #p.setCompositionMode(QPainter.CompositionMode_DestinationIn)
+                p.setCompositionMode(QPainter.CompositionMode_SourceAtop)
+                p.drawImage(0, 0, tmp)
+                pm = QPixmap.fromImage(image)
+                p.end()
+                icon = QIcon(pm)
+                icon._pm = pm
             if icon is not None:
                 a.setIcon(icon)
 
