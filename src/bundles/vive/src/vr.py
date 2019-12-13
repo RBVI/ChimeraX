@@ -952,7 +952,7 @@ class SteamVRCamera(Camera, StateManager):
         
     def other_controller(self, controller):
         for hc in self.hand_controllers():
-            if hc != controller:
+            if hc != controller and hc.on:
                 return hc
         return None
 
