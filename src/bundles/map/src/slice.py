@@ -204,6 +204,15 @@ def face_intercept(v, line):
         hit = (ijk_in, axis, side)
         zmin = z
   return hit
+
+# -----------------------------------------------------------------------------
+#
+def face_intercept_point(v, line):
+  ijk, axis, side = face_intercept(v, line)
+  if ijk is None:
+    return None
+  p = v.data.ijk_to_xyz(ijk)
+  return p
   
 # -----------------------------------------------------------------------------
 #
