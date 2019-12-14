@@ -47,6 +47,8 @@ class ToolbarManager(ProviderManager):
         #   name="Redo" icon="redo-variant.png" description="Redo last action"/>
         # <Provider tab="Home" section="Undo"
         #   name="Redo" link="BundleName:provider-name"/>
+        # <Provider tab="Markers" section="Place markers" name="pm1"
+        #   mouse_mode="mark maximum" display_name="Maximum" description="Mark maximum"/>
         tab = kw.pop('tab', None)
         if tab is None:
             self.session.logger.warning('Missing tab %s' % where())
@@ -64,24 +66,18 @@ class ToolbarManager(ProviderManager):
             return
         tab_dict = self._toolbar.setdefault(tab, {})
         section_dict = tab_dict.setdefault(section, {})
-        if 'link' not in kw:
-            display_name = kw.pop('display_name', None)
-            icon = kw.pop('icon', None)
-            description = kw.pop('description', None)
-            if display_name is None and icon is None and description is None:
-                self._add_layout(tab_dict, section, before, after)
-                compact = kw.pop('compact', False)
-                if compact:
-                    section_dict['__compact__'] = True
+        if 'mouse_mode' in kw:
+            if 'link' in kw:
+                self.session.logger.warning('Mouse mode button can not be links %s' % where())
                 return
-            if display_name is None:
-                display_name = name
+            name = kw.pop("mouse_mode")
+            display_name = kw.pop('display_name', name)
+            description = kw.pop('description', None)
+            icon = kw.pop('icon', None)
             if icon is not None:
                 icon = bundle_info.get_path('icons/%s' % icon)
-                if icon is None:
-                    self.session.logger.warning('Unable to find icon %s' % where())
-                # TODO: use default icon
-        else:
+            bundle_info = fake_mouse_mode_bundle_info
+        elif 'link' in kw:
             link = kw.pop("link")
             try:
                 bundle_name, provider = link.split(':', maxsplit=1)
@@ -100,6 +96,9 @@ class ToolbarManager(ProviderManager):
             if pi_manager != 'toolbar':  # double check that is a toolbar entry
                 self.session.logger.warning('Linked button is not managed by "toolbar" %s' % where())
                 return
+            if 'mouse_mode' in pi_kw:
+                self.session.logger.warning('Can not link to mouse mode buttons %s' % where())
+                return
             display_name = kw.pop('display_name', None)
             if display_name is None:
                 display_name = pi_kw.get("display_name", None)
@@ -117,6 +116,23 @@ class ToolbarManager(ProviderManager):
                     self.session.logger.warning('Unable to find icon %s' % where())
             name = provider
             bundle_info = bi
+        else:
+            display_name = kw.pop('display_name', None)
+            icon = kw.pop('icon', None)
+            description = kw.pop('description', None)
+            if display_name is None and icon is None and description is None:
+                self._add_layout(tab_dict, section, before, after)
+                compact = kw.pop('compact', False)
+                if compact:
+                    section_dict['__compact__'] = True
+                return
+            if display_name is None:
+                display_name = name
+            if icon is not None:
+                icon = bundle_info.get_path('icons/%s' % icon)
+                if icon is None:
+                    self.session.logger.warning('Unable to find icon %s' % where())
+                # TODO: use default icon
         if name in section_dict:
             self.session.logger.warning('Overriding existing toolbar provider %s' % where())
         section_dict[display_name] = (name, bundle_info, icon, description, kw)
@@ -137,3 +153,18 @@ class ToolbarManager(ProviderManager):
     def end_providers(self):
         # self.triggers.activate_trigger("toolbar changed", self)
         pass
+
+
+class FakeMouseModeBundleInfo:
+    # dummy to support mouse modes
+
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        button_to_bind = 'right'
+        from chimerax.core.commands import run
+        if ' ' in name:
+            name = '"%s"' % name
+        run(session, f'ui mousemode {button_to_bind} {name}')
+
+
+fake_mouse_mode_bundle_info = FakeMouseModeBundleInfo()

@@ -20,7 +20,6 @@ TODO: documnentation!
 """
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QWidget, QTabWidget, QToolBar, QWidgetAction,
     QGridLayout, QLabel, QToolButton, QAction
@@ -60,7 +59,7 @@ class _Section(QWidgetAction):
         super().__init__(parent)
         self._buttons = []
         self._groups = {}   # { toolbar-widget: { group-name: qtoolbutton } }
-        self._actions = []  # need to keep references to actions in menus
+        self._actions = {}  # need to keep references to actions in menus
         self.section_title = section_title
         self.compact = False
         self.show_section_titles = show_section_titles
@@ -86,6 +85,7 @@ class _Section(QWidgetAction):
             self._adjust_title(parent)
 
         # split title into two lines if long
+        orig_title = title
         if '\n' not in title and len(title) > 6:
             title = split_title(title)
 
@@ -101,7 +101,6 @@ class _Section(QWidgetAction):
                 b.vr_mode = vr_mode
             b.setAutoRaise(True)
             if icon is None:
-                icon = QIcon()
                 style = Qt.ToolButtonTextOnly
             else:
                 if not self.show_button_titles:
@@ -111,15 +110,18 @@ class _Section(QWidgetAction):
                 else:
                     style = Qt.ToolButtonTextUnderIcon
             b.setToolButtonStyle(style)
-        action = QAction(icon, title)
+        if icon is None:
+            action = QAction(title)
+        else:
+            action = QAction(icon, title)
         if description:
             action.setToolTip(description)
         if callback is not None:
             action.triggered.connect(callback)
+        self._actions[orig_title] = action
         if group_follow:
             button = self._groups[parent][group]
             button.addAction(action)
-            self._actions.append(action)
         else:
             if not group_first:
                 b.setDefaultAction(action)
@@ -128,7 +130,6 @@ class _Section(QWidgetAction):
                 b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
                 self._groups[parent][group] = b
                 b.addAction(action)
-                self._actions.append(action)
                 self._update_button_action(b, action)
 
         # print('Font height:', b.fontMetrics().height())  # DEBUG
@@ -142,7 +143,10 @@ class _Section(QWidgetAction):
                 column = index // self.compact_height
                 parent._layout.addWidget(b, row, column, Qt.AlignCenter)
             else:
-                align = Qt.AlignTop if self.show_button_titles else Qt.AlignCenter
+                if not self.show_button_titles or icon is None:
+                    align = Qt.AlignCenter
+                else:
+                    align = Qt.AlignTop
                 b.setIconSize(2 * b.iconSize())
                 parent._layout.addWidget(b, 0, index, align)
         global _debug
@@ -237,6 +241,9 @@ class _Section(QWidgetAction):
             self.compact_height = 2
         self._redo_layout()
 
+    def get_qt_button_action(self, title):
+        return self._actions.get(title, None)
+
 
 class TabbedToolbar(QTabWidget):
     # A Microsoft Office ribbon-style interface
@@ -327,6 +334,12 @@ class TabbedToolbar(QTabWidget):
                 section.set_show_button_titles(on_off)
         if not on_off:
             self._recompute_tab_sizes()
+
+    def get_qt_button_action(self, tab_title, section_title, button_title):
+        section = self._get_section(tab_title, section_title, create=False)
+        if section is None:
+            return None
+        return section.get_qt_button_action(button_title)
 
 
 if __name__ == "__main__":

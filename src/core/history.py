@@ -108,6 +108,18 @@ class ObjectHistory:
         with SaveTextFile(self._filename) as f:
             json.dump(obj, f, ensure_ascii=False)
 
+    def backup(self):
+        import os.path
+        if os.path.exists(self._filename):
+            from time import strftime
+            suffix = '.backup.%s' % strftime("%Y%m%d-%H%M%S")
+            backup_path = self._filename + suffix
+            from shutil import copyfile
+            copyfile(self._filename, backup_path)
+        else:
+            backup_path = ''
+        return backup_path
+
 
 class FIFOHistory:
     """A fixed capacity FIFO queue with backing store.
