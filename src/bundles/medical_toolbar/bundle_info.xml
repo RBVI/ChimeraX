@@ -24,6 +24,8 @@
 
   <Providers manager="toolbar">
     <!-- Most buttons are just links to buttons on other toolbar tabs -->
+  <Provider tab="Medical Image"
+	  name="layout1" after="Map" before="Markers:Right Mouse"/>
     <!-- File section -->
     <Provider tab="Medical Image" section="File"
 	      name="open dicom" display_name="Open DICOM" icon="opendicom.png"

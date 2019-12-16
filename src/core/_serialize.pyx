@@ -137,7 +137,7 @@ cdef dict _encode_ndarray(object o):
         kind = b''
         dtype = o.dtype.str
     if 'O' in dtype:
-        raise TypeError("Can not serialize numpy arrays of objects")
+        raise TypeError("Serializing numpy arrays of objects is not supported")
     return {
         b'kind': kind,
         b'dtype': dtype,

@@ -407,13 +407,8 @@ class Labels(Model):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('name', 'text', 'color', 'background', 'size', 'font',
-                  'bold', 'italic', 'xpos', 'ypos', 'visibility')
-        lstate = tuple({attr:getattr(l, attr) for attr in lattrs}
-                       for l in self.all_labels)
-        data = {'labels state': lstate,
-                'model state': Model.take_snapshot(self, session, flags),
-                'version': 3}
+        data = {'model state': Model.take_snapshot(self, session, flags),
+                'version': 4}
         return data
 
     @staticmethod
@@ -422,7 +417,9 @@ class Labels(Model):
             s = Labels(session)
             Model.set_state_from_snapshot(s, session, data['model state'])
             session.models.add([s], root_model = True)
-            s.set_state_from_snapshot(session, data)
+            if 'labels state' in data:
+                # Older sessions restored the labels here.
+                s.set_state_from_snapshot(session, data)
         else:
             # Restoring old session before 2d labels were Models.
             # Need to create labels model after all models created
@@ -437,7 +434,6 @@ class Labels(Model):
 
     def set_state_from_snapshot(self, session, data):
         self._labels = [Label(session, **ls) for ls in data['labels state']]
-        self._named_labels = {l.name:l for l in self._labels if l.name}
 
 
 # -----------------------------------------------------------------------------
@@ -514,13 +510,11 @@ class Label:
 
 # -----------------------------------------------------------------------------
 #
-#from chimerax.core.graphics.drawing import Drawing
 from chimerax.core.models import Model
 class LabelModel(Model):
 
     pickable = False
     casts_shadows = False
-    SESSION_SAVE = False	# LabelsModel saves all labels
     
     def __init__(self, session, label):
         name = label.name if label.name else label.text
@@ -616,3 +610,17 @@ class LabelModel(Model):
     def custom_x3d(self, stream, x3d_scene, indent, place):
         # TODO
         pass
+
+    def take_snapshot(self, session, flags):
+        lattrs = ('name', 'text', 'color', 'background', 'size', 'font',
+                  'bold', 'italic', 'xpos', 'ypos', 'visibility')
+        l = self.label
+        lstate = {attr:getattr(l, attr) for attr in lattrs}
+        data = {'label state': lstate,
+                'version': 1}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        label = Label(session, **data['label state'])
+        return label.drawing
