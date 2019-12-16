@@ -278,14 +278,18 @@ class ReplacementFilePaths:
 # ---------------------------------------------------------------------------
 #
 def existing_directory(path):
-  if not path:
-    import os
-    return os.getcwd()
   from os.path import dirname, isdir
-  d = dirname(path)
-  if isdir(d):
-    return d
-  return existing_directory(d)
+  d = path
+  while d:
+    if isdir(d):
+      return d
+    parent = dirname(d)
+    if parent == d:
+      break
+    d = parent
+
+  from os import getcwd
+  return getcwd()
 
 # ---------------------------------------------------------------------------
 #
