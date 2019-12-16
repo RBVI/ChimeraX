@@ -1912,27 +1912,43 @@ Erase values outside the positive octant. Options are as described for
 
 <a href="#vop" class="nounder">&bull;</a>
 <a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>surface-spec</i>&nbsp;
-[&nbsp;<b>border</b> &nbsp;<i>B</i>&nbsp;]
-[&nbsp;<b>spacing</b> &nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
-[&nbsp;<b>pad</b> &nbsp;<i>distance</i>&nbsp;]
-[&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
-[&nbsp;<b>invertMask</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>axis</b> &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
-[&nbsp;<b>sandwich</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
-[&nbsp;<b>fillOverlap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>border</b>&nbsp;&nbsp;<i>B</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>distance</i>&nbsp;]
+[&nbsp;<b>extend</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>slab</b>&nbsp;&nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
+[&nbsp;<b>invertMask</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>sandwich</b>&nbsp; &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
+[&nbsp;<b>fillOverlap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <blockquote>
 Create a map with values of 1 bounded by a surface 
-(<a href="#masking">details...</a>). The <b>border</b> option indicates
-how far out from the bounding surface in all six directions
-(&plusmn;X, &plusmn;Y, &plusmn;Z) to place the edge of the output map.
-The <b>spacing</b> option gives the grid spacing for the output map
+(<a href="#masking">details...</a>).
+The <b>onGrid</b> option allows creating the new map on the grid
+of another map, <i>gridmap</i>, specified by model number.
+Alternatively (if <b>onGrid</b> is not used): 
+<ul>
+<li>the <b>border</b> option indicates how far out from the bounding surface 
+in all six directions
+(&plusmn;X, &plusmn;Y, &plusmn;Z) to place the edge of the output map
+<li>the <b>spacing</b> option gives the grid spacing for the output map
 in physical units of length, typically &Aring;
 (default is 1% of the maximum of the X, Y, and Z dimensions
 of the bounding surfaces). If a single number is supplied, it is used 
 in all three directions; if three numbers are supplied (separated by commas 
 but not spaces), they are used in the X, Y, and Z directions, respectively.
+</ul>
+<p>
+The <i>value-type</i> defaults to the current type
+of the <b>onGrid</b> map (if any), otherwise <b>int8</b>; 
+the choices are 8-, 16-, or 32-bit signed integer
+(<b>int8</b>, <b>int16</b>, or <b>int32</b>),
+8-, 16-, or 32-bit unsigned integer
+(<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
 The remaining options are the same as described for 
 <a href="#mask"><b>volume mask</b></a>. See also:
 <a href="#new"><b>volume new</b></a>
