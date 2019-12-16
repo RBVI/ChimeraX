@@ -390,12 +390,18 @@ class MouseModes:
 
         if action == 'mouse_down':
             m = self.mode(button, modifiers)
+            lm = self._last_mode
+            if lm is not None and hasattr(lm, 'mouse_up'):
+                # Another button was pressed so release current mouse mode.
+                lm.mouse_up(MouseEvent(event, modifiers=modifiers))
             self._last_mode = m
         else:
             m = self._last_mode	     # Stay with same mode until button up even if modifier keys change.
         if m and hasattr(m, action):
             f = getattr(m, action)
             f(MouseEvent(event, modifiers=modifiers))
+        if action == 'mouse_up':
+            self._last_mode = None
 
     def _event_type(self, event):
         modifiers = self._key_modifiers(event)
