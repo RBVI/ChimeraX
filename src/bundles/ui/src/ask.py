@@ -58,7 +58,8 @@ def _ask_gui(session, question, buttons, default, info, title):
     msg.setText(question)
     for b in reversed(buttons):
         gb = msg.addButton(b.capitalize(), QMessageBox.AcceptRole)
-    msg.setDefaultButton(gb)
+        if b == default:
+            msg.setDefaultButton(gb)
     answer_index = msg.exec_()
     return buttons[-1 - answer_index]
 

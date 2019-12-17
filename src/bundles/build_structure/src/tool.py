@@ -12,8 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
+from chimerax.core.errors import UserError
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
-from PyQt5.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit
+from PyQt5.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
 from PyQt5.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
@@ -104,7 +105,6 @@ class BuildStructureTool(ToolInstance):
         geom_menu.triggered.connect(lambda act, but=gbut: but.setText(act.text()))
         bonds_menu.triggered.connect(lambda act: self._ms_geom_menu_update())
         gbut.setMenu(geom_menu)
-        gbut.setText("4")
         params_layout.addWidget(gbut, 1, 2)
         self._ms_geom_menu_update()
 
@@ -124,6 +124,68 @@ class BuildStructureTool(ToolInstance):
         name_edit.setText(ebut.text())
         elements_menu.triggered.connect(lambda act, edit=name_edit: name_edit.setText(act.text()))
         atom_name_layout.addWidget(name_edit, 1, 1, alignment=Qt.AlignLeft)
+
+        apply_but = QPushButton("Apply")
+        apply_but.clicked.connect(lambda checked: self._ms_apply_cb())
+        frame_layout.addWidget(apply_but, alignment=Qt.AlignCenter)
+
+        checkbox_area = QWidget()
+        layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        checkbox_layout = QVBoxLayout()
+        checkbox_area.setLayout(checkbox_layout)
+        self.ms_connect_back = connect = QCheckBox("Connect to pre-existing atoms if appropriate")
+        connect.setChecked(True)
+        checkbox_layout.addWidget(connect, alignment=Qt.AlignLeft)
+        self.ms_focus = focus = QCheckBox("Focus view on modified residue")
+        focus.setChecked(False)
+        checkbox_layout.addWidget(focus, alignment=Qt.AlignLeft)
+        self.ms_element_color = color = QCheckBox("Color new atoms by element")
+        color.setChecked(True)
+        checkbox_layout.addWidget(color, alignment=Qt.AlignLeft)
+
+        res_group = QGroupBox("Residue Name")
+        layout.addWidget(res_group, alignment=Qt.AlignCenter)
+        group_layout = QGridLayout()
+        group_layout.setContentsMargins(0,0,0,0)
+        group_layout.setSpacing(0)
+        res_group.setLayout(group_layout)
+        self.ms_res_unchanged = QRadioButton("Leave unchanged")
+        group_layout.addWidget(self.ms_res_unchanged, 0, 0, 1, 3, alignment=Qt.AlignLeft)
+        self.ms_res_mod = QRadioButton("Change modified residue's name to")
+        group_layout.addWidget(self.ms_res_mod, 1, 0, 1, 1, alignment=Qt.AlignLeft)
+        self.ms_mod_edit = QLineEdit()
+        self.ms_mod_edit.setFixedWidth(50)
+        self.ms_mod_edit.setText("UNL")
+        group_layout.addWidget(self.ms_mod_edit, 1, 1, 1, 2, alignment=Qt.AlignLeft)
+        self.ms_res_new = QRadioButton("Put just changed atoms in new residue named")
+        group_layout.addWidget(self.ms_res_new, 2, 0, 1, 2, alignment=Qt.AlignLeft)
+        self.ms_res_new_name = QLineEdit()
+        self.ms_res_new_name.setFixedWidth(50)
+        self.ms_res_new_name.setText("UNL")
+        group_layout.addWidget(self.ms_res_new_name, 2, 2, 1, 1)
+
+        self.ms_res_mod.setChecked(True)
+
+    def _ms_apply_cb(self):
+        from chimerax.atomic import selected_atoms
+        sel_atoms = selected_atoms(self.session)
+        num_selected = len(sel_atoms)
+        if num_selected != 1:
+            raise UserError("You must select exactly one atom to modify.")
+        a = sel_atoms[0]
+
+        element_name = self.ms_elements_button.text()
+        num_bonds = self.ms_bonds_button.text()
+
+        cmd = "structure modify %s %s %s" % (a.string(style="command"), element_name, num_bonds)
+
+        geometry = self.ms_geom_button.text()
+        if geometry != "N/A":
+            cmd += " geometry " + geometry
+
+        if self.ms_retain_atom_name.isChecked():
+            if not (sel_atoms.elements.names == element_name).all():
+                cmd += " aname " + element_name
 
     def _ms_geom_menu_update(self):
         num_bonds = int(self.ms_bonds_button.text())
