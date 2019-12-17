@@ -685,10 +685,9 @@ class SeqCanvas:
         """
         
     def layout_alignment(self):
-        single_sequence = len(self.alignment.seqs) == 1
         aln_mgr = self.alignment.session.alignments
         self.headers = [hdr_class(self.alignment, self.refresh_header)
-            for hdr_class in aln_mgr.headers(single_seq_relevant=single_sequence)]
+            for hdr_class in aln_mgr.headers()]
         self.headers.sort(key=lambda hdr: hdr.name)
         """
         from chimerax.seqalign.headers import registered_headers, DynamicStructureHeaderSequence
@@ -700,14 +699,8 @@ class SeqCanvas:
         if use_disp_default:
             self.sv.prefs[STARTUP_HEADERS] = startup_headers
         """
-        self.display_header = {}
         for header in self.headers:
-            show = self.display_header[header] = header.settings.initially_shown \
-                and not (single_sequence and not header.single_sequence_relevant)
-                #and not (single_sequence and not header.single_sequence_relevant) \
-                #and not isinstance(header, DynamicStructureHeaderSequence)
-            if show:
-                header.show()
+            header.shown = header.settings.initially_shown and header.relevant
         """
         self.labelBindings = {}
         for seq in self.alignment.seqs:
@@ -757,11 +750,11 @@ class SeqCanvas:
                     " default ClustalX coloring instead\n"
                     % (prefResColor, exc_info()[1]))
         """
-        initial_headers = [hd for hd in self.headers if self.display_header[hd]]
+        initial_headers = [hd for hd in self.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
 
-        self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and not single_sequence
+        self.show_ruler = self.sv.settings.alignment_show_ruler_at_startup and len(self.alignment.seqs) > 1
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         """TODO
@@ -818,7 +811,7 @@ class SeqCanvas:
 
     @property
     def lines(self):
-        return [hdr for hdr in self.headers if self.display_header[hdr]] + self.alignment.seqs
+        return [hdr for hdr in self.headers if hdr.shown] + self.alignment.seqs
 
     """TODO
     def _molChange(self, trigger, myData, changes):
@@ -1008,7 +1001,7 @@ class SeqCanvas:
             activeNode = self.activeNode()
         """
         self.lead_block.destroy()
-        initial_headers = [hd for hd in self.headers if self.display_header[hd]]
+        initial_headers = [hd for hd in self.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
         self.line_width = self.line_width_from_settings()
@@ -1041,15 +1034,23 @@ class SeqCanvas:
         """
         self.sv.status("Alignment reformatted")
 
-    def refresh_header(self, hdr, bounds):
-        if bounds is None:
-            bounds = (0, len(hdr)-1)
-        if hasattr(self, 'lead_block'):
-            self.lead_block.refresh(hdr, *bounds)
-            self.main_scene.update()
+    def refresh_header(self, reason, hdr, *args):
+        if reason == hdr.CALLBACK_VALUES:
+            bounds, = args
+            if bounds is None:
+                bounds = (0, len(hdr)-1)
+            if hasattr(self, 'lead_block'):
+                self.lead_block.refresh(hdr, *bounds)
+                self.main_scene.update()
+        elif reason == hdr.CALLBACK_NAME:
+            #TODO
+            pass
+        elif reason == hdr.CALLBACK_RELEVANCE:
+            relevant, = args
+            #TODO
 
     def refresh(self, seq, left=0, right=None, update_attrs=True):
-        if seq in self.display_header and not self.display_header[seq]:
+        if seq in self.headers and not seq.shown:
             return
         if right is None:
             right = len(self.alignment.seqs[0])-1

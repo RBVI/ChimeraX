@@ -19,11 +19,14 @@ class RESTServer(Task):
     """Listen for HTTP/REST requests, execute them and return output."""
 
     def __init__(self, *args, **kw):
+        import threading
         self.httpd = None
+        self.run_count = 0
+        self.run_lock = threading.Lock()
         super().__init__(*args, **kw)
 
     SESSION_SAVE = False
-    
+
     def take_snapshot(self, session, flags):
         # For now, do not save anything in session.
         # Should save port and auto-restart on session restore.
@@ -48,7 +51,7 @@ class RESTServer(Task):
             # Defaults to cleartext
             use_ssl = False
         self.httpd = HTTPServer(("localhost", port), RESTHandler)
-        self.httpd.chimerax_session = self.session
+        self.httpd.chimerax_restserver = self
         if use_ssl:
             try:
                 import os.path, ssl
@@ -58,17 +61,32 @@ class RESTServer(Task):
             cert = os.path.join(os.path.dirname(__file__), "server.pem")
             self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
                                                 certfile=cert)
+        self.run_increment()    # To match decrement in terminate()
         msg = ("REST server started on host %s port %d" %
                self.httpd.server_address)
         self.session.ui.thread_safe(self.session.logger.info, msg)
         self.session.ui.thread_safe(print, msg, file=sys.__stdout__, flush=True)
         self.httpd.serve_forever()
 
+    def run_increment(self):
+        with self.run_lock:
+            if self.httpd is None:
+                return False
+            else:
+                self.run_count += 1
+                return True
+
+    def run_decrement(self):
+        with self.run_lock:
+            self.run_count -= 1
+            if self.run_count == 0:
+                if self.httpd is not None:
+                    self.httpd.shutdown()
+                    self.httpd = None
+                super().terminate()
+
     def terminate(self):
-        if self.httpd is not None:
-            self.httpd.shutdown()
-            self.httpd = None
-        super().terminate()
+        self.run_decrement()
 
 
 class RESTHandler(BaseHTTPRequestHandler):
@@ -81,37 +99,42 @@ class RESTHandler(BaseHTTPRequestHandler):
     ]
 
     def do_GET(self):
-        from urllib.parse import urlparse, parse_qs
-        r = urlparse(self.path)
-        if r.path == "/run":
-            # Execute a command
-            args = parse_qs(r.query)
-            if self.command == "POST":
-                for k, vl in self._parse_post().items():
-                    try:
-                        al = args[k]
-                    except KeyError:
-                        args[k] = vl
+        if not self.server.chimerax_restserver.run_increment():
+            return
+        try:
+            from urllib.parse import urlparse, parse_qs
+            r = urlparse(self.path)
+            if r.path == "/run":
+                # Execute a command
+                args = parse_qs(r.query)
+                if self.command == "POST":
+                    for k, vl in self._parse_post().items():
+                        try:
+                            al = args[k]
+                        except KeyError:
+                            args[k] = vl
+                        else:
+                            al.extend(vl)
+                self._run(args)
+            else:
+                # Serve up some static files for testing
+                import os.path
+                fn = os.path.join(os.path.dirname(__file__),
+                                  "static", r.path[1:])
+                try:
+                    with open(fn, "rb") as f:
+                        data = f.read()
+                    for suffix, ctype in self.ContentTypes:
+                        if r.path.endswith(suffix):
+                            break
                     else:
-                        al.extend(vl)
-            self._run(args)
-        else:
-            # Serve up some static files for testing
-            import os.path
-            fn = os.path.join(os.path.dirname(__file__),
-                              "static", r.path[1:])
-            try:
-                with open(fn, "rb") as f:
-                    data = f.read()
-                for suffix, ctype in self.ContentTypes:
-                    if r.path.endswith(suffix):
-                        break
-                else:
-                    ctype = "text/plain"
-                self._header(200, ctype, len(data))
-                self.wfile.write(data)
-            except IOError:
-                self.send_error(404)
+                        ctype = "text/plain"
+                    self._header(200, ctype, len(data))
+                    self.wfile.write(data)
+                except IOError:
+                    self.send_error(404)
+        finally:
+            self.server.chimerax_restserver.run_decrement()
 
     do_POST = do_GET
 
@@ -147,7 +170,7 @@ class RESTHandler(BaseHTTPRequestHandler):
         from queue import Queue
         from chimerax.core.errors import NotABug
         from chimerax.core.logger import StringPlainTextLog
-        session = self.server.chimerax_session
+        session = self.server.chimerax_restserver.session
         q = Queue()
         def f(args=args, session=session, q=q):
             logger = session.logger
