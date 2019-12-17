@@ -635,7 +635,13 @@ def init(argv, event_loop=True):
             if sess.ui.is_gui and opts.debug:
                 print(msg, flush=True)
         # canonicalize tool names
-        start_tools = [sess.toolshed.find_bundle_for_tool(t)[1] for t in opts.start_tools]
+        start_tools = []
+        for t in opts.start_tools:
+            tools = sess.toolshed.find_bundle_for_tool(t)
+            if not tools:
+                sess.logger.warning("Unable to find tool %s" % repr(t))
+                continue
+            start_tools.append(tools[0][1])
         sess.tools.start_tools(start_tools)
 
     if opts.commands:
