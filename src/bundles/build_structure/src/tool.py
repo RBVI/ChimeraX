@@ -13,6 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
+from chimerax.core.commands import run
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
 from PyQt5.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
 from PyQt5.QtCore import Qt
@@ -43,6 +44,7 @@ class BuildStructureTool(ToolInstance):
         self.category_areas = QStackedWidget()
         layout.addWidget(self.category_areas)
 
+        self.handlers = []
         self.category_widgets = {}
         for category in ["Modify Structure"]:
             self.category_widgets[category] = widget = QFrame()
@@ -54,6 +56,11 @@ class BuildStructureTool(ToolInstance):
         self.category_areas.setCurrentWidget(widget)
 
         tw.manage(placement="side")
+
+    def delete(self):
+        for handler in handlers:
+            handler.remove()
+        super().delete()
 
     def run_cmd(self, cmd):
         from chimerax.core.commands import run
@@ -68,7 +75,7 @@ class BuildStructureTool(ToolInstance):
         layout.setSpacing(0)
         parent.setLayout(layout)
 
-        layout.addWidget(QLabel("Change selected atoms to..."), alignment=Qt.AlignHCenter | Qt.AlignBottom)
+        layout.addWidget(QLabel("Change selected atom to..."), alignment=Qt.AlignHCenter | Qt.AlignBottom)
         frame = QFrame()
         layout.addWidget(frame, alignment=Qt.AlignHCenter | Qt.AlignTop)
         frame.setLineWidth(1)
@@ -118,7 +125,7 @@ class BuildStructureTool(ToolInstance):
         rbut.setChecked(True)
         atom_name_layout.setColumnStretch(1, 1)
         atom_name_layout.addWidget(rbut, 0, 0, 1, 2, alignment=Qt.AlignLeft)
-        atom_name_layout.addWidget(QRadioButton("Set atom names to:"), 1, 0)
+        atom_name_layout.addWidget(QRadioButton("Set atom name to:"), 1, 0)
         self.ms_atom_name = name_edit = QLineEdit()
         name_edit.setFixedWidth(50)
         name_edit.setText(ebut.text())
@@ -166,6 +173,10 @@ class BuildStructureTool(ToolInstance):
 
         self.ms_res_mod.setChecked(True)
 
+        from chimerax.core.selection import SELECTION_CHANGED
+        self.handlers.append(self.session.triggers.add_handler(SELECTION_CHANGED, self._ms_sel_changed))
+        self._ms_sel_changed()
+
     def _ms_apply_cb(self):
         from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
@@ -177,15 +188,41 @@ class BuildStructureTool(ToolInstance):
         element_name = self.ms_elements_button.text()
         num_bonds = self.ms_bonds_button.text()
 
-        cmd = "structure modify %s %s %s" % (a.string(style="command"), element_name, num_bonds)
+        cmd = "structure modify %s %s %s" % (a.atomspec, element_name, num_bonds)
 
         geometry = self.ms_geom_button.text()
         if geometry != "N/A":
             cmd += " geometry " + geometry
 
-        if self.ms_retain_atom_name.isChecked():
-            if not (sel_atoms.elements.names == element_name).all():
-                cmd += " aname " + element_name
+        if not self.ms_retain_atom_name.isChecked():
+            new_name = self.ms_atom_name.text().strip()
+            if not new_name:
+                raise UserError("Must provide a name for the modified atom")
+            if new_name != a.name:
+                cmd += " name " + new_name
+
+        if not self.ms_connect_back.isChecked():
+            cmd += " connectBack false"
+
+        if not self.ms_element_color.isChecked():
+            cmd += " colorByElement false"
+
+        if self.ms_res_mod.isChecked():
+            res_name = self.ms_mod_edit.text().strip()
+            if not res_name:
+                raise UserError("Must provided modified residue name")
+            if res_name != a.residue.name:
+                cmd += " resName " + res_name
+        elif self.ms_res_new.isChecked():
+            res_name = self.ms_res_new_name.text().strip()
+            if not res_name:
+                raise UserError("Must provided new residue name")
+            cmd += " resNewOnly true resName " + res_name
+
+        run(self.session, cmd)
+
+        if self.ms_focus.isChecked():
+            run(self.session, "view " + a.residue.atomspec)
 
     def _ms_geom_menu_update(self):
         num_bonds = int(self.ms_bonds_button.text())
@@ -202,3 +239,30 @@ class BuildStructureTool(ToolInstance):
             menu.addAction(gname)
         but.setText(gname)
 
+    def _ms_sel_changed(self, *args):
+        from chimerax.atomic import selected_atoms, Residue
+        sel_atoms = selected_atoms(self.session)
+        if len(sel_atoms) != 1:
+            return
+        a = sel_atoms[0]
+        new_element = self.ms_elements_button.text()
+        if a.element.name == new_element:
+            self.ms_atom_name.setText(a.name)
+        else:
+            counter = 1
+            while True:
+                test_name = "%s%d" % (new_element, counter)
+                if len(test_name) > 4:
+                    test_name = "X"
+                    break
+                if not a.residue.find_atom(test_name):
+                    break
+                counter += 1
+            self.ms_atom_name.setText(test_name)
+        res_name = {
+            Residue.PT_NONE: "UNL",
+            Residue.PT_AMINO: "UNK",
+            Residue.PT_NUCLEIC: "N"
+        }[a.residue.polymer_type]
+        self.ms_mod_edit.setText(res_name)
+        self.ms_res_new_name.setText(res_name)
