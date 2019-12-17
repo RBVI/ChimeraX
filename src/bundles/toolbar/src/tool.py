@@ -120,7 +120,6 @@ class ToolbarTool(ToolInstance):
 
                     def callback(event, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
                         bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
-                    # TODO: vr_mode
                     self.ttb.add_button(
                             tab, section, display_name, callback,
                             icon, description, **kw)
@@ -132,56 +131,31 @@ class ToolbarTool(ToolInstance):
         self._set_right_mouse_button('init', self.session.ui.mouse_modes.mode("right", exact=True))
 
     def _set_right_mouse_button(self, trigger_name, mode):
-        # TODO: highlight current right mouse button
-        return
-
+        # highlight current right mouse button
         name = mode.name if mode is not None else None
         if name == self.current_right_mouse_button:
             return
 
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QIcon, QPixmap, QColor, QImage, QPainter
+        set_sections = set()
         has_button = name in self.right_mouse_buttons
+        if has_button:
+            for info in self.right_mouse_buttons[name]:
+                tab_title, section_title, _, _ = info
+                set_sections.add((tab_title, section_title))
+
         if self.current_right_mouse_button is not None:
             # remove highlighting
-            icon = None
             for info in self.right_mouse_buttons[self.current_right_mouse_button]:
                 tab_title, section_title, button_title, icon_path = info
-                a = self.ttb.get_qt_button_action(tab_title, section_title, button_title)
-                if a is None:
-                    continue
-                if icon is None and icon_path is not None:
-                    # all icon_paths should be the same
-                    icon = QIcon(icon_path)
-                if icon is not None:
-                    a.setIcon(icon)
-            self.current_right_mouse_button = None
+                redo = (tab_title, section_title) not in set_sections
+                self.ttb.remove_button_highlight(tab_title, section_title, button_title, redo=redo)
         if not has_button:
             return
-        self.current_right_mouse_button = name
         # highlight button(s)
-        icon = None
+        self.current_right_mouse_button = name
         for info in self.right_mouse_buttons[name]:
             tab_title, section_title, button_title, icon_path = info
-            a = self.ttb.get_qt_button_action(tab_title, section_title, button_title)
-            if a is None:
-                continue
-            if icon is None and icon_path is not None:
-                # all icon_paths should be the same
-                #image = QImage(icon_path)
-                tmp = QImage(icon_path)
-                image = QImage(tmp.size(), QImage.Format_RGB32)
-                image.fill(QColor('light green'))
-                p = QPainter(image)
-                #p.setCompositionMode(QPainter.CompositionMode_DestinationIn)
-                p.setCompositionMode(QPainter.CompositionMode_SourceAtop)
-                p.drawImage(0, 0, tmp)
-                pm = QPixmap.fromImage(image)
-                p.end()
-                icon = QIcon(pm)
-                icon._pm = pm
-            if icon is not None:
-                a.setIcon(icon)
+            self.ttb.add_button_highlight(tab_title, section_title, button_title)
 
 
 def _layout(d, what):
