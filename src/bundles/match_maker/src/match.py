@@ -245,7 +245,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         raise ValueError("Unknown sequence alignment algorithm: %s" % alg)
     pairings = {}
     small_mol_err_msg = "Reference and/or match model contains no nucleic or"\
-        " amino acid chains.\nUse the command-line 'match' command" \
+        " amino acid chains.\nUse the command-line 'align' command" \
         " to superimpose small molecules/ligands."
     rd_res, md_res = domain_residues
     from chimerax.seqalign.sim_matrices import matrix_compatible
