@@ -35,22 +35,17 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>toolId</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </h3>
 <p>
-The <b>blastprotein</b> command searches for similar protein sequences
+The <b>blastprotein</b> command runs a protein sequence similarity search
 using a <a href="../tools/blastprotein.html#notes">BLAST</a> web service 
 hosted by the
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
 It is the command implementation of the
 <a href="../tools/blastprotein.html"><b>Blast Protein</b></a> tool.
-Any protein structure chain in ChimeraX can be used as the query, and hits
-from the <a href="http://www.rcsb.org" 
-target="_blank">Protein Data Bank (PDB)</a>
-can be <a href="../commands/open.html#fetch">fetched</a> 
-and automatically superimposed onto the query.
-See also: <a href="modeller.html"><b>modeller</b></a>,
-<a href="sequence.html"><b>sequence</b></a>
+One use is to search with a target sequence of unknown structure
+to find templates for <a href="modeller.html">comparative modeling</a>.
 </p><p>
-The query sequence can be taken from a protein structure or sequence 
+The query sequence can be taken from a protein structure or a sequence 
 alignment open in ChimeraX: 
 <ul>
 <li>&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
@@ -58,8 +53,23 @@ alignment open in ChimeraX:
 <li>&nbsp;<a href="seqspec.html"><i>sequence-spec</i></a>
 </ul>
 <p>
-The protein sequence <b>database</b> to search can be
-either <b>pdb</b> (default) or <b>nr</b>.
+The protein sequence <b>database</b> to search can be:
+</p>
+<ul>
+<li><b>pdb</b> (default) 
+&ndash; experimentally determined structures in the
+<a href="http://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>
+<li><b>nr</b>
+&ndash; NCBI &ldquo;non-redundant&rdquo; database containing
+<a href="https://www.ncbi.nlm.nih.gov/genbank/" target="_blank">GenBank</a>
+CDS translations + <a href="http://www.rcsb.org" target="_blank">PDB</a>
++ <a href="https://www.uniprot.org/" target="_blank">SwissProt</a> +
+<a href="https://proteininformationresource.org/"  target="_blank">PIR</a>
++ <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
+excluding environmental samples from whole-genome sequencing; this database
+is much larger than <b>pdb</b> alone and takes much longer to search
+</ul>
+<p>
 The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i> 
 to use for alignment scoring:
 </p>
@@ -85,12 +95,15 @@ When results are returned, the hits are listed in a
 <a href="../tools/blastprotein.html"><b>Blast Protein</b></a> window.
 The names of hits from the <b>pdb</b> database (a subset of <b>nr</b>),
 are links that can be clicked to 
-<a href="../commands/open.html#fetch">fetch</a> the structure
-and superimpose the hit chain onto the query chain with
+<a href="../commands/open.html#fetch">fetch</a> the structure,
+and if a structure chain was used as the query,
+to automatically superimpose the hit and query structures with
 <a href="../commands/matchmaker.html"><b>matchmaker</b></a>.
 The names of other hits are GI numbers that can be clicked to show the
 corresponding web pages in the <a href="https://www.ncbi.nlm.nih.gov/protein"
 target="_blank">NCBI Protein</a> database.
+Checkboxes allow designating one ore more hit sequences to show as a
+<a href="../tools/blastprotein.html#notes">multiple alignment</a> with the query.
 Many other types of information can be shown and used to sort the hits:
 alignment scores, structure resolution, ligand residue names, <i>etc.</i>
 (<a href="../tools/blastprotein.html#results">details...</a>)
@@ -107,5 +120,5 @@ If only one set of results is shown at a time, this option is not needed.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+December 2019</address>
 </body></html>
