@@ -4284,6 +4284,18 @@ extern "C" EXPORT void set_structure_alt_loc_change_notify(void *structures, siz
     error_wrap_array_set(s, n, &Structure::set_alt_loc_change_notify, alcn);
 }
 
+extern "C" EXPORT void structure_idatm_valid(void *structures, size_t n, npy_bool *valid)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::idatm_valid, valid);
+}
+
+extern "C" EXPORT void set_structure_idatm_valid(void *structures, size_t n, npy_bool *valid)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_idatm_valid, valid);
+}
+
 extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
 {
     Structure **m = static_cast<Structure **>(mols);

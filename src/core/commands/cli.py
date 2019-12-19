@@ -769,7 +769,7 @@ class EnumOf(Annotation):
         # "ab", not "abc".
         if ids is not None:
             assert all([isinstance(x, str) for x in ids])
-            pairs = sorted(zip(self.ids, self.values))
+            pairs = sorted(zip(ids, values))
             self.ids = [p[0] for p in pairs]
             self.values = [p[1] for p in pairs]
         else:

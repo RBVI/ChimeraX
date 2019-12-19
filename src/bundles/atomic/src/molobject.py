@@ -176,10 +176,10 @@ class Bond(State):
     def has_custom_attrs(self):
         return has_custom_attrs(Bond, self)
 
-    def rings(self, cross_residues=False, all_size_threshold=0):
+    def rings(self, cross_residue=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Bond is involved in.
 
-        If 'cross_residues' is False, then rings that cross residue boundaries are not
+        If 'cross_residue' is False, then rings that cross residue boundaries are not
         included.  If 'all_size_threshold' is zero, then return only minimal rings, of
         any size.  If it is greater than zero, then return all rings not larger than the
         given value.
@@ -190,7 +190,7 @@ class Bond(State):
         '''
         f = c_function('bond_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
                 ret = ctypes.py_object)
-        return convert.rings(f(self._c_pointer, cross_residues, all_size_threshold))
+        return convert.rings(f(self._c_pointer, cross_residue, all_size_threshold))
 
     @property
     def session(self):
@@ -1315,6 +1315,8 @@ class StructureData:
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
+    idatm_valid = c_property('structure_idatm_valid', npy_bool,
+        doc = "Supported API. Whether atoms have vaid IDATM types set. Boolean")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
         doc = "Supported API. Structure has lower case chain ids. Boolean")
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True,
@@ -1641,10 +1643,10 @@ class StructureData:
         f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
         return f(self._c_pointer, residues._c_pointers, len(residues))
 
-    def rings(self, cross_residues=False, all_size_threshold=0):
+    def rings(self, cross_residue=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings found in this Structure.
 
-        If 'cross_residues' is False, then rings that cross residue boundaries are not
+        If 'cross_residue' is False, then rings that cross residue boundaries are not
         included.  If 'all_size_threshold' is zero, then return only minimal rings, of
         any size.  If it is greater than zero, then return all rings not larger than the
         given value.
@@ -1655,7 +1657,7 @@ class StructureData:
         '''
         f = c_function('structure_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
                 ret = ctypes.py_object)
-        return convert.rings(f(self._c_pointer, cross_residues, all_size_threshold))
+        return convert.rings(f(self._c_pointer, cross_residue, all_size_threshold))
 
     def set_state_from_snapshot(self, session, data):
         '''Restore from session info'''

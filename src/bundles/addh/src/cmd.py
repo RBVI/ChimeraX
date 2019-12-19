@@ -11,7 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas
+from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas, \
+    bond_with_H_length
 from chimerax.atomic import Element
 from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_color
@@ -830,28 +831,6 @@ def unk_atom_truncated(atom):
 def vdw_radius(atom):
     # to avoid repeated IDATM computation in the middle of hydrogen addition
     return _radii.get(atom, h_rad)
-
-N_H = 1.01
-def bond_with_H_length(heavy, geom):
-    element = heavy.element.name
-    if element == "C":
-        if geom == 4:
-            return 1.09
-        if geom == 3:
-            return 1.08
-        if geom == 2:
-            return 1.056
-    elif element == "N":
-        return N_H
-    elif element == "O":
-        # can't rely on water being in chain "water" anymore...
-        if heavy.num_bonds == 0 or heavy.num_bonds == 2 \
-        and len([nb for nb in heavy.neighbors if nb.element.number > 1]) == 0:
-            return 0.9572
-        return 0.96
-    elif element == "S":
-        return 1.336
-    return Element.bond_length(heavy.element, Element.get_element(1))
 
 def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogens, naming_schema):
     added_hs = []

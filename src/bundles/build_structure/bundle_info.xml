@@ -22,6 +22,7 @@
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
     <Dependency name="ChimeraX-Std_Commands" version=">=1.0"/>
+    <Dependency name="ChimeraX-AddH" version=">=1.0"/>
   </Dependencies>
 
   <Classifiers>

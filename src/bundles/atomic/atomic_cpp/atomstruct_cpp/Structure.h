@@ -239,6 +239,7 @@ public:
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert) const;
     Residue*  find_residue(const ChainID& chain_id, int pos, char insert,
         ResName& name) const;
+    bool  idatm_valid() const { return _idatm_valid; }
     const InputSeqInfo&  input_seq_info() const { return _input_seq_info; }
     std::string  input_seq_source;
     bool  is_traj;
@@ -307,6 +308,7 @@ public:
         set_gc_shape(); _display = d;
         change_tracker()->add_modified(this, this, ChangeTracker::REASON_DISPLAY);
     }
+    void  set_idatm_valid(bool valid) { _idatm_valid = valid; }
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
         const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE,
         bool one_letter_names = false);
