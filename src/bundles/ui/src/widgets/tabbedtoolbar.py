@@ -284,7 +284,19 @@ class _Section(QWidgetAction):
             pm = icon.pixmap(icon.actualSize(sizes[-1]))
             with QPainter(pm) as p:
                 p.setCompositionMode(QPainter.CompositionMode_DestinationOver)
-                p.fillRect(pm.rect(), self.highlight_color)
+                if 1:
+                    # draw filled
+                    p.fillRect(pm.rect(), self.highlight_color)
+                else:
+                    # draw outline
+                    r = pm.rect()
+                    pen_width = max(r.width(), r.height()) / 16
+                    p.setPen(self.highlight_color)
+                    pen = p.pen()
+                    pen.setWidth(pen_width)
+                    p.setPen(pen)
+                    adj = pen_width / 2
+                    p.drawRect(r.adjusted(adj, adj, -adj, -adj))
         button_info.highlight_icon = QIcon(pm)
         if redo:
             self._redo_layout()
