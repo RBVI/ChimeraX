@@ -38,11 +38,11 @@ else
 SRCS	+= main_console.c
 endif
 RCSRCS	= icon.rc
-OBJS	+= $(RCSRCS:.rc=.$(OBJ_EXT))
+OBJS	= $(SRCS:.c=.$(OBJ_EXT)) $(RCSRCS:.rc=.$(OBJ_EXT))
 else
 SRCS	+= main_console.c
-endif
 OBJS	= $(SRCS:.c=.$(OBJ_EXT))
+endif
 INCS	+= $(PYTHON_INCLUDE_DIRS)
 LIBS	+= $(PYTHON_LIB)
 
