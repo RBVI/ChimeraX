@@ -220,9 +220,7 @@ public:
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);
-    void  set_element(const Element& e) {
-        _element = &e; _uncache_radius(); _structure->_idatm_valid = false;
-    }
+    void  set_element(const Element& e);
     void  set_idatm_type(const std::string& it) { set_idatm_type(it.c_str()); }
     void  set_name(const AtomName& name);
     void  set_occupancy(float);
@@ -289,6 +287,14 @@ Atom::set_computed_idatm_type(const char* it) {
         change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_IDATM_TYPE);
     }
     _computed_idatm_type =  it;
+}
+
+inline void
+Atom::set_element(const Element& e) {
+    change_tracker()->add_modified(structure(), const_cast<Atom*>(this), ChangeTracker::REASON_ELEMENT);
+    _element = &e;
+    _uncache_radius();
+    _structure->_idatm_valid = false;
 }
 
 inline void

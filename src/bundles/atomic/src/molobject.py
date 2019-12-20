@@ -1501,6 +1501,12 @@ class StructureData:
         f = c_function('structure_delete_residue', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, res._c_pointer)
     """
+    def find_residue(self, chain_id, pos, insert=' '):
+        """Supported API.  Find a residue in the structure.  Returns None if none match."""
+        f = c_function('structure_find_residue',
+               args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
+               ret = ctypes.py_object)
+        return f(self._c_pointer, chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
 
     @property
     def molecules(self):

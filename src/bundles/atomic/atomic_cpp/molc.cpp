@@ -5319,6 +5319,21 @@ extern "C" EXPORT PyObject *structure_new_residue(void *mol, const char *residue
     }
 }
 
+extern "C" EXPORT PyObject *structure_find_residue(void *mol, const char *chain_id, int pos, char insert)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        Residue *r = m->find_residue(chain_id, pos, insert);
+        if (r == nullptr) {
+            Py_RETURN_NONE;
+        }
+        return r->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
 extern "C" EXPORT void metadata(void *mols, size_t n, pyobject_t *headers)
 {
     Structure **m = static_cast<Structure **>(mols);

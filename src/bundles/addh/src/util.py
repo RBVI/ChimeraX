@@ -31,6 +31,7 @@ def bond_with_H_length(heavy, geom):
         return 0.96
     elif element == "S":
         return 1.336
+    from chimerax.atomic import Element
     return Element.bond_length(heavy.element, Element.get_element(1))
 
 def complete_terminal_carboxylate(session, cter):

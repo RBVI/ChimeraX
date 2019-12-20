@@ -125,7 +125,8 @@ class BuildStructureTool(ToolInstance):
         rbut.setChecked(True)
         atom_name_layout.setColumnStretch(1, 1)
         atom_name_layout.addWidget(rbut, 0, 0, 1, 2, alignment=Qt.AlignLeft)
-        atom_name_layout.addWidget(QRadioButton("Set atom name to:"), 1, 0)
+        self.ms_change_atom_name = QRadioButton("Set atom name to:")
+        atom_name_layout.addWidget(self.ms_change_atom_name, 1, 0)
         self.ms_atom_name = name_edit = QLineEdit()
         name_edit.setFixedWidth(50)
         name_edit.setText(ebut.text())
@@ -248,6 +249,7 @@ class BuildStructureTool(ToolInstance):
         new_element = self.ms_elements_button.text()
         if a.element.name == new_element:
             self.ms_atom_name.setText(a.name)
+            self.ms_retain_atom_name.setChecked(True)
         else:
             counter = 1
             while True:
@@ -259,6 +261,7 @@ class BuildStructureTool(ToolInstance):
                     break
                 counter += 1
             self.ms_atom_name.setText(test_name)
+            self.ms_change_atom_name.setChecked(True)
         res_name = {
             Residue.PT_NONE: "UNL",
             Residue.PT_AMINO: "UNK",
