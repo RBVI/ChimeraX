@@ -53,6 +53,8 @@ class AtomProximityTool(ToolInstance):
     def run_command(self):
         from chimerax.core.commands import run
         run(self.session, " ".join(self.gui.get_command()))
+        self.session.logger.status("%s can be hidden/closed from Model Panel"
+            % self.gui.prox_words.capitalize(), secondary=True, color="blue", blank_after=15)
 
 class ClashesTool(AtomProximityTool):
     def __init__(self, *args, **kw):
