@@ -47,5 +47,5 @@ class HBondsTool(ToolInstance):
     def run_hbonds(self):
         from chimerax.core.commands import run
         run(self.session, " ".join(self.gui.get_command()))
-        self.session.logger.status("H-bonds can be hidden/closed from Model Panel", secondary=True,
+        self.session.logger.status("You can hide/close H-bonds with the Model Panel", secondary=True,
             color="blue", blank_after=15)
