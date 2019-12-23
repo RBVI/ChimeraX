@@ -23,6 +23,7 @@ from .volume import volume_from_grid_data
 # are available.
 #
 from .volume import Volume
+from .volume import VolumeSurface, VolumeImage
 
 # -----------------------------------------------------------------------------
 # Map contouring and distance maps.
@@ -35,6 +36,7 @@ from ._map import local_correlation
 from ._map import linear_combination
 from ._map import covariance_sum
 from ._map import offset_range, box_cuts
+from ._map import high_indices
 
 # -----------------------------------------------------------------------------
 # Control whether maps are pickable with mouse.
@@ -56,7 +58,7 @@ from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
 from .molmap import register_molmap_command
-from .mapargs import MapArg, MapsArg, Float1or3Arg
+from .mapargs import MapArg, MapsArg, Float1or3Arg, ValueTypeArg
 
 # -----------------------------------------------------------------------------
 #
@@ -67,15 +69,12 @@ class _MapBundle(BundleAPI):
     @staticmethod
     def start_tool(session, tool_name):
         # 'start_tool' is called to start an instance of the tool
-        from . import volume_viewer
-        return volume_viewer.show_volume_dialog(session)
-
-    @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        return None
-
+        if tool_name == 'Volume Viewer':
+            from . import volume_viewer
+            return volume_viewer.show_volume_dialog(session)
+        elif tool_name == 'Map Coordinates':
+            from .coords_gui import show_coords_panel
+            show_coords_panel(session)
 
     @staticmethod
     def register_command(command_name, logger):

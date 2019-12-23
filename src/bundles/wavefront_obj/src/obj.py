@@ -91,6 +91,9 @@ def read_obj(session, filename, name):
                 oname = object_name if object_name else name
                 m = new_object(session, oname, vertices, normals, texcoords, triangles, voffset)
                 models.append(m)
+                print ('obj obj, vertices', len(vertices), 'tri', len(triangles),
+                       'range', m.triangles.min()-voffset, m.triangles.max()-voffset, 'voffset', voffset, 'tri', triangles[:5])
+
                 voffset += len(vertices)
                 vertices, normals, texcoords, triangles = [], [], [], []
             object_name = line[2:].strip()
@@ -211,8 +214,8 @@ def write_obj(session, filename, models, obj_to_unity = True, single_object = Fa
 
     voffset = 0
     for name, va, na, tca, ta, pos in geom:
-        write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity)
-        voffset += len(va)
+        vcount = write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity)
+        voffset += vcount
 
     file.close()
 
@@ -264,6 +267,8 @@ def write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity):
         tlines = [('f %d/%d/%d %d/%d/%d %d/%d/%d' % (v0+vo,v0+vo,v0+vo,v1+vo,v1+vo,v1+vo,v2+vo,v2+vo,v2+vo)) for v0,v1,v2 in ta]
     file.write('\n'.join(tlines))
     file.write('\n')
+
+    return len(va)
 
 # -----------------------------------------------------------------------------
 #

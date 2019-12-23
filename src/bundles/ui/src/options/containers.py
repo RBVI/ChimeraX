@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import QWidget, QFormLayout, QTabWidget, QVBoxLayout, QGrid
 class OptionsPanel(QWidget):
     """Supported API. OptionsPanel is a container for single-use (not savable) Options"""
 
-    def __init__(self, parent=None, *, sorting=True, scrolled=True):
+    def __init__(self, parent=None, *, sorting=True, scrolled=True, contents_margins=None):
         """sorting:
             False; options shown in order added
             True: options sorted alphabetically by name
@@ -34,14 +34,18 @@ class OptionsPanel(QWidget):
         """
         QWidget.__init__(self, parent)
         self._layout = QVBoxLayout()
+        if contents_margins is not None:
+            self._layout.setContentsMargins(*contents_margins)
         if scrolled:
             sublayout = QVBoxLayout()
             self.setLayout(sublayout)
             scroller = QScrollArea()
+            scroller.setWidgetResizable(True)
+            from PyQt5.QtCore import Qt
             sublayout.addWidget(scroller)
-            scrolled = QWidget()
-            scroller.setWidget(scrolled)
-            scrolled.setLayout(self._layout)
+            scrolled_area = QWidget()
+            scroller.setWidget(scrolled_area)
+            scrolled_area.setLayout(self._layout)
         else:
             self.setLayout(self._layout)
         self._sorting = sorting
@@ -50,14 +54,19 @@ class OptionsPanel(QWidget):
         self._layout.setSizeConstraint(self._layout.SetMinAndMaxSize)
         self._form = QFormLayout()
         self._form.setSizeConstraint(self._form.SetMinAndMaxSize)
+        self._form.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
         self._form.setVerticalSpacing(1)
         from PyQt5.QtCore import Qt
-        self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        # None of the below seem to have an effect on the Mac...
+        #self._form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        # if we wanted to force the form contents to upper left...
+        #self._form.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
         self._layout.addLayout(self._form)
 
     def add_option(self, option):
         """Supported API. Add an option (instance of chimerax.ui.options.Option)."""
-        if self._sorting is None:
+        if self._sorting is False:
             insert_row = len(self._options)
         else:
             if self._sorting is True:
@@ -75,16 +84,22 @@ class OptionsPanel(QWidget):
             self._form.itemAt(insert_row,
                 QFormLayout.LabelRole).widget().setToolTip(option.balloon)
 
-    def add_option_group(self, group_label=None, **kw):
+    def add_option_group(self, group_label=None, checked=None, **kw):
         if group_label is None:
             grouping_widget = QWidget()
         else:
             grouping_widget = QGroupBox(group_label)
             grouping_widget.setContentsMargins(1,grouping_widget.contentsMargins().top()//2,1,1)
+            if checked is not None:
+                grouping_widget.setCheckable(True)
+                grouping_widget.setChecked(checked)
         self._layout.addWidget(grouping_widget)
         suboptions = OptionsPanel(scrolled=False, **kw)
         self._option_groups.append(suboptions)
         return grouping_widget, suboptions
+
+    def change_label_for_option(self, option, new_label):
+        self._form.labelForField(option.widget).setText(new_label)
 
     def options(self):
         all_options = self._options[:]
@@ -106,6 +121,7 @@ class CategorizedOptionsPanel(QTabWidget):
             True: categories/options sorted alphabetically by name
             func: categories/options sorted based on the provided key function
         """
+        self._contents_margins = kw.pop('contents_margins', None)
         QTabWidget.__init__(self, parent, **kw)
         self._category_sorting = category_sorting
         self._option_sorting = option_sorting
@@ -116,7 +132,7 @@ class CategorizedOptionsPanel(QTabWidget):
         try:
             panel = self._category_to_panel[category]
         except KeyError:
-            panel = OptionsPanel(sorting=self._option_sorting)
+            panel = OptionsPanel(sorting=self._option_sorting, contents_margins=self._contents_margins)
             self.add_tab(category, panel)
         panel.add_option(option)
 
@@ -124,7 +140,7 @@ class CategorizedOptionsPanel(QTabWidget):
         try:
             panel = self._category_to_panel[category]
         except KeyError:
-            panel = OptionsPanel(sorting=self._option_sorting)
+            panel = OptionsPanel(sorting=self._option_sorting, contents_margins=self._contents_margins)
             self.add_tab(category, panel)
         return panel.add_option_group(**kw)
 
@@ -155,13 +171,13 @@ class CategorizedOptionsPanel(QTabWidget):
 class SettingsPanelBase(QWidget):
     def __init__(self, parent, option_sorting, multicategory,
             *, category_sorting=None, buttons=True, help_cb=None, **kw):
-        QWidget.__init__(self, parent, **kw)
+        QWidget.__init__(self, parent)
         self.multicategory = multicategory
         if multicategory:
             self.options_panel = CategorizedOptionsPanel(option_sorting=option_sorting,
-                    category_sorting=category_sorting)
+                    category_sorting=category_sorting, **kw)
         else:
-            self.options_panel = OptionsPanel(sorting=option_sorting)
+            self.options_panel = OptionsPanel(sorting=option_sorting, **kw)
 
         layout = QVBoxLayout()
         layout.setSpacing(5)

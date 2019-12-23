@@ -159,8 +159,9 @@ def relative_path(path, base_path):
     return tuple([relative_path(p, base_path) for p in path])
 
 
-  from os.path import dirname, join
-  d = join(dirname(base_path), '')       # Make directory end with "/".
+  from os.path import dirname, join, abspath
+  bpath = abspath(base_path)
+  d = join(dirname(bpath), '')       # Make directory end with "/".
   if not path.startswith(d):
     return path
 
@@ -253,8 +254,13 @@ class ReplacementFilePaths:
         return None
       replacements[path] = p
       if replace_dir:
-        from os.path import dirname
-        self._replace_dirs[dirname(path)] = dirname(p)
+        from os.path import basename, dirname
+        # Remove the right part of path that stays the same.
+        # This find directory replacements that work for data trees, like DICOM files or Tiff stacks.
+        dorig, dnew = path, p
+        while dnew and basename(dnew) == basename(dorig):
+          dorig, dnew = dirname(dorig), dirname(dnew)
+        self._replace_dirs[dorig] = dnew
       return p
     else:
       return path
@@ -272,14 +278,18 @@ class ReplacementFilePaths:
 # ---------------------------------------------------------------------------
 #
 def existing_directory(path):
-  if not path:
-    import os
-    return os.getcwd()
   from os.path import dirname, isdir
-  d = dirname(path)
-  if isdir(d):
-    return d
-  return existing_directory(d)
+  d = path
+  while d:
+    if isdir(d):
+      return d
+    parent = dirname(d)
+    if parent == d:
+      break
+    d = parent
+
+  from os import getcwd
+  return getcwd()
 
 # ---------------------------------------------------------------------------
 #
@@ -320,7 +330,7 @@ def state_from_grid_data(data, session_path = None, include_maps = False):
   if hasattr(dt, 'series_index'):
     s['series_index'] = dt.series_index
   if hasattr(dt, 'channel') and dt.channel is not None:
-    s['channel_index'] = dt.channel
+    s['channel'] = dt.channel
   if hasattr(dt, 'time') and dt.time is not None:
     s['time'] = dt.time
 
@@ -342,6 +352,8 @@ def grid_data_from_state(s, gdcache, session, file_paths):
     from gzip import decompress
     from base64 import b64decode
     a = frombuffer(decompress(b64decode(s['array'])), dtype = dtype(s['value_type']))
+    if not a.flags.writeable:
+      a = a.copy()
     array = a.reshape(s['size'][::-1])
     from .data import ArrayGridData
     dlist = [ArrayGridData(array)]
@@ -634,6 +646,8 @@ rendering_options_attributes = (
   'color_mode',
   'colormap_on_gpu',
   'colormap_size',
+  'colormap_extend_left',
+  'colormap_extend_right',
   'blend_on_gpu',
   'projection_mode',
   'plane_spacing',

@@ -138,8 +138,7 @@ class AtomSpecArg(Annotation):
             offset = index_map[ast.parseinfo.endpos] + 1
             raise AnnotationError("mangled atom specifier", offset=offset)
         # Success!
-        from .cli import quote_if_necessary
-        return ast, quote_if_necessary(consumed), rest
+        return ast, consumed, rest
 
     @classmethod
     def _parse_unquoted(cls, text, session):
@@ -309,9 +308,6 @@ class _AtomSpecSemantics:
                 r.add_part(a)
         return r
 
-    def atom(self, ast):
-        return _Atom(ast.parts, ast.attrs)
-
     def part_list(self, ast):
         if ast.part is None:
             return _PartList(ast.range)
@@ -320,6 +316,18 @@ class _AtomSpecSemantics:
 
     def part_range_list(self, ast):
         return _Part(ast.start, ast.end)
+
+    def atom(self, ast):
+        return _Atom(ast.parts, ast.attrs)
+
+    def atom_list(self, ast):
+        if ast.part is None:
+            return _PartList(ast.name)
+        else:
+            return ast.part.add_parts(ast.name)
+
+    def atom_name(self, ast):
+        return _Part(ast.name, None)
 
     def attribute_list(self, ast):
         attr_test, attr_list = ast
@@ -361,9 +369,9 @@ class _AtomSpecSemantics:
                 quoted = True
             if ast.name.lower().endswith("color"):
                 # if ast.name ends with color, convert to color
-                from . import ColorArg, as_parser
+                from . import ColorArg, make_converter
                 try:
-                    c = as_parser(ColorArg)(self._session, av)
+                    c = make_converter(ColorArg)(self._session, av)
                 except ValueError as e:
                     from ..errors import UserError
                     raise UserError("bad color: %s: %s" % (av, e))
@@ -1127,7 +1135,7 @@ def register_selector(name, value, logger, *,
         ts.triggers.activate_trigger("selector registered", name)
 
 
-def deregister_selector(name, logger):
+def deregister_selector(name, logger=None):
     """Deregister a name as an atom specifier selector.
 
     Parameters
@@ -1145,12 +1153,29 @@ def deregister_selector(name, logger):
     try:
         del _selectors[name]
     except KeyError:
-        logger.warning("deregistering unregistered selector \"%s\"" % name)
+        if logger:
+            logger.warning("deregistering unregistered selector \"%s\"" % name)
     else:
         from ..toolshed import get_toolshed
         ts = get_toolshed()
         if ts:
             ts.triggers.activate_trigger("selector deregistered", name)
+
+
+def check_selectors(trigger_name, model):
+    # Called when models are closed so that selectors whose values
+    # are Object instances can be cleared if they contain no models
+    from ..objects import Objects
+    empty = []
+    for name, sel in _selectors.items():
+        if isinstance(sel.value, Objects):
+            for m in sel.value.models:
+                if not m.deleted and m.id is not None:
+                     break
+            else:
+                empty.append(name)
+    for name in empty:
+        deregister_selector(name)
 
 
 def list_selectors():

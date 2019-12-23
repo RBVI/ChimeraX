@@ -84,10 +84,11 @@ def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
         tf = base_model.position * mtf
         if not tf.same(m.position, angle_tolerance, shift_tolerance):
             changed = True
-        m.set_place(tf)
+        m.position = tf
 
-    atoms, xyz = apos
-    if not numpy.array_equal(atoms.coords, xyz):
+    atoms, xyz = atom_positions
+    from numpy import array_equal
+    if not array_equal(atoms.coords, xyz):
         changed = True
         atoms.coords = xyz
     return changed
@@ -96,8 +97,11 @@ def restore_position(pstate, angle_tolerance = 1e-5, shift_tolerance = 1e-5):
 #
 def move_models_and_atoms(tf, models, atoms, move_whole_molecules, base_model):
 
-    if move_whole_molecules:
+    if move_whole_molecules and atoms is not None and len(atoms) > 0:
         models = list(models) + list(atoms.unique_structures)
+        from chimerax.atomic import Atoms
+        atoms = Atoms()
+    if atoms is None:
         from chimerax.atomic import Atoms
         atoms = Atoms()
     global position_history

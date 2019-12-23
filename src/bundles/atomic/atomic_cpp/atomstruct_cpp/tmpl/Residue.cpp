@@ -14,9 +14,13 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "restmpl.h"
 
 #include "TemplateCache.h"
+
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<tmpl::Residue>;
 
 namespace tmpl {
 
@@ -118,11 +122,22 @@ Residue::template_assign(void (Atom::*assign)(const AtomType&),
     return assigned;
 }
 
-void
-Residue::add_atom(Atom *element)
+std::vector<Atom*>
+Residue::atoms() const
 {
-    element->_residue = this;
-    _atoms[element->name()] = element;
+    std::vector<Atom*> atoms;
+    for (auto name_atom: atoms_map()) {
+        atoms.push_back(name_atom.second);
+    }
+    return atoms;
+}
+
+void
+Residue::add_atom(Atom *atom)
+{
+    atom->_residue = this;
+    _atoms[atom->name()] = atom;
+    _has_metal = _has_metal || atom->element().is_metal();
 }
 
 Atom *
@@ -142,7 +157,7 @@ Residue::add_link_atom(Atom *element)
     _link_atoms.push_back(element);
 }
 
-Residue::Residue(Molecule *, const char *n): pdbx_ambiguous(false), _name(n), _chief(0), _link(0)
+Residue::Residue(Molecule *, const char *n): pdbx_ambiguous(false), _name(n), _chief(0), _link(0), _has_metal(false)
 {
 }
 

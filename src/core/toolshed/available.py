@@ -22,6 +22,7 @@ class AvailableBundleCache(list):
 
     def __init__(self, cache_dir):
         self.cache_dir = cache_dir
+        self.uninstallable = []
 
     def load(self, logger, toolshed_url):
         #
@@ -38,9 +39,10 @@ class AvailableBundleCache(list):
             import json
             data = json.loads(f.read())
         import os
-        with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
-            import json
-            json.dump(data, f, indent=0)
+        if self.cache_dir is not None:
+            with open(os.path.join(self.cache_dir, _CACHE_FILE), 'w') as f:
+                import json
+                json.dump(data, f, indent=0)
         try:
             from chimerax.registration import nag
         except ImportError:
@@ -48,22 +50,49 @@ class AvailableBundleCache(list):
         else:
             _debug("extend registration")
             nag.extend_registration(logger)
-        for d in data:
-            b = _build_bundle(d)
-            if b:
-                self.append(b)
+        self._build_bundles(data)
 
     def load_from_cache(self):
         if self.cache_dir is None:
-            return FileNotFoundError("no cache")
+            raise FileNotFoundError("no bundle cache")
         import os
         with open(os.path.join(self.cache_dir, _CACHE_FILE)) as f:
             import json
             data = json.load(f)
+        self._build_bundles(data)
+
+    def _build_bundles(self, data):
+        from distutils.version import LooseVersion as Version
+        import chimerax.core
+        my_version = Version(chimerax.core.version)
         for d in data:
             b = _build_bundle(d)
-            if b:
+            if not b:
+                continue
+            if self._installable(b, my_version):
                 self.append(b)
+            else:
+                self.uninstallable.append(b)
+
+    def _installable(self, b, my_version):
+        from distutils.version import LooseVersion as Version
+        installable = False
+        for pkg, op, v in b.requires:
+            if pkg != "ChimeraX-Core":
+                continue
+            req_version = Version(v)
+            if op == ">=":
+                installable = my_version >= req_version
+            elif op == "==":
+                installable = my_version == req_version
+            elif op == "<=":
+                installable = my_version <= req_version
+            elif op == ">":
+                installable = my_version > req_version
+            elif op == "<":
+                installable = my_version < req_version
+            break
+        return installable
 
     def uuid(self):
         # Return a mostly unrecognizable string representing
@@ -77,6 +106,8 @@ class AvailableBundleCache(list):
 
 
 def has_cache_file(cache_dir):
+    if cache_dir is None:
+        return False
     import os
     return os.path.exists(os.path.join(cache_dir, _CACHE_FILE))
 
@@ -197,7 +228,7 @@ def _build_bundle(d):
         for fmt_name, fd in fmt_d.items():
             # _debug("processing data format: %s" % fmt_name)
             nicknames = fd.get("nicknames", [])
-            categories = fd.get("categories", [])
+            category = fd.get("category", "")
             suffixes = fd.get("suffixes", [])
             mime_types = fd.get("mime_types", [])
             url = fd.get("url", "")
@@ -206,7 +237,7 @@ def _build_bundle(d):
             synopsis = fd.get("synopsis", "")
             encoding = fd.get("encoding", "")
             fi = FormatInfo(name=fmt_name, nicknames=nicknames,
-                            category=categories, suffixes=suffixes,
+                            category=category, suffixes=suffixes,
                             mime_types=mime_types, url=url, icon=icon,
                             dangerous=dangerous, synopsis=synopsis,
                             encoding=encoding)
@@ -273,8 +304,8 @@ def _build_bundle(d):
             keywords = fd.get("keywords", None)
             if keywords:
                 keywords = _extract_extra_keywords(keywords)
-            fi.has_open = True
-            fi.open_kwds = keywords
+            fi.has_save = True
+            fi.save_kwds = keywords
 
     #
     # Finished.  Return BundleInfo instance.
@@ -307,12 +338,12 @@ def _parse_session_versions(sv):
     return range(lo, hi + 1)
 
 
-_REReq = re.compile(r"""(?P<bundle>\S+)\s*\(>=(?P<version>\S+)\)""")
+_REReq = re.compile(r"""(?P<bundle>\S+)\s*\((?P<op>[<>=]+)(?P<version>\S+)\)""")
 
 
 def _parse_requires(r):
-    # Only handle requirements of form "bundle (>=version)" for now
+    # Only handle requirements of form "bundle (op version)" for now
     m = _REReq.match(r)
     if m is None:
         return None
-    return (m.group("bundle"), m.group("version"))
+    return (m.group("bundle"), m.group("op"), m.group("version"))

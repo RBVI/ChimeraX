@@ -26,6 +26,7 @@ class _StatusBarOpenGL:
     def __init__(self, session):
         self.session = session
         self._opengl_context = None
+        self._initialization_failed = False
         self._renderer = None
         self._window = None
         self._drawing = None
@@ -36,6 +37,8 @@ class _StatusBarOpenGL:
         self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()
+        self._last_message = ''
+        self._last_color = 'black'
 
     def destroy(self):
         self.widget.destroy()
@@ -53,10 +56,11 @@ class _StatusBarOpenGL:
         sb.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         from PyQt5.QtGui import QWindow, QSurface
         self._window = pw = QWindow()
+        pw.exposeEvent = self._expose_event
+        pw.resizeEvent = self._resize_event
+        pw.keyPressEvent = self.session.ui.forward_keystroke
         pwidget = QWidget.createWindowContainer(pw, sb)
         pw.setSurfaceType(QSurface.OpenGLSurface)
-        pw.resizeEvent = self._resize_event
-        pw.exposeEvent = self._expose_event
         sb.addWidget(pwidget, stretch = 1)
         return sb
 
@@ -65,21 +69,22 @@ class _StatusBarOpenGL:
         if r:
             s = event.size()
             w,h = s.width(), s.height()
-            r.make_current()
             r.set_default_framebuffer_size(w, h)
-            # Clear status line.
-            self.status('', 'black', False)
 
     def _expose_event(self, event):
         r = self._renderer
-        if r:
-            # Clear status line.
-            self.status('', 'black', False)
-        
+        if r is None:
+            self._create_opengl_context()
+        self.status(self._last_message, self._last_color)
+
     def _create_opengl_context(self):
+
+        if self._initialization_failed:
+            return False
+        
         # Create opengl context
         w = self._window
-        from chimerax.core.graphics import OpenGLContext, OpenGLVersionError
+        from chimerax.core.graphics import OpenGLContext, OpenGLVersionError, OpenGLError
         self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
         
         # Create texture drawing to render status messages
@@ -90,9 +95,11 @@ class _StatusBarOpenGL:
         try:
             if not r.make_current():
                 raise RuntimeError('Failed to make status line opengl context current')
-        except OpenGLVersionError:
+        except (OpenGLError, OpenGLVersionError):
             self._opengl_context = None
             self._renderer = None
+            self._initialization_failed = True
+            self.session.logger.warning('No statusbar messages will be shown due to inadequate OpenGL')
             return False
         lw, lh = w.width(), w.height()
         r.initialize_opengl(lw, lh)
@@ -103,6 +110,10 @@ class _StatusBarOpenGL:
     #  Should probably handle status bar as one QWindow created by this class.
     #  Can put primary and secondary areas in same window.
     def status(self, msg, color = 'black', secondary = False):
+        if not secondary:
+            self._last_message = msg
+            self._last_color = color
+            
         if not self._window.isExposed():
             return # TODO: Need to show the status message when window is mapped.
 
@@ -122,7 +133,8 @@ class _StatusBarOpenGL:
 
         if len(msg) > 256:
             msg = msg[:253] + '...'
-            
+
+        r.update_viewport()	# Need this when window resized.
         r.draw_background()
         self._draw_text(msg, color, secondary)
         r.swap_buffers()

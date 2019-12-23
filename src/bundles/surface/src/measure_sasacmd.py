@@ -59,7 +59,12 @@ def set_area_attributes(atoms, areas):
         r.area = 0
     for a, area in zip(atoms, areas):
         a.residue.area += area
-
+    if len(atoms) > 0:
+        session = atoms[0].structure.session
+        from chimerax.atomic import Atom, Residue
+        Atom.register_attr(session, "area", "Measure SASA", attr_type=float)
+        Residue.register_attr(session, "area", "Measure SASA", attr_type=float)
+    
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg
     from chimerax.atomic import AtomsArg

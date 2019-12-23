@@ -61,6 +61,10 @@ def surface(session, atoms = None, enclose = None, include = None,
       Whether to replace an existing surface for the same atoms or make a copy.
     '''
 
+    if resolution is not None and probe_radius is not None:
+        session.logger.warning('surface: Can only use probeRadius or resolution,'
+                               ' not both, ignoring probeRadius')
+        
     from chimerax.atomic.molsurf import MolecularSurface, remove_solvent_ligands_ions
     from chimerax.atomic.molsurf import surface_rgba, update_color, surfaces_overlapping_atoms
 
@@ -144,16 +148,18 @@ def surface(session, atoms = None, enclose = None, include = None,
     args = [(s,) for s in surfs]
     args.sort(key = lambda s: s[0].atom_count, reverse = True)      # Largest first for load balancing
     from chimerax.core import threadq
-    threadq.apply_to_list(lambda s: s.calculate_surface_geometry(), args, nthread)
+    threadq.apply_to_list(_calculate_surface, args, nthread)
 #    for s in surfs:
 #        s.calculate_surface_geometry()
     # TODO: Any Python error in the threaded call causes a crash when it tries
     #       to write an error message to the log, not in the main thread.
 
     if not resolution is None and resolution > 0 and level is None:
-        log = session.logger
-        log.info('\n'.join('%s contour level %.3f' % (s.name, s.gaussian_level)
-                           for s in surfs))
+        msg = '\n'.join('%s contour level %.3f' % (s.name, s.gaussian_level)
+                        for s in surfs if hasattr(s, 'gaussian_level'))
+        if msg:
+            log = session.logger
+            log.info(msg)
             
     # Add new surfaces to open models list.
     for s, parent in new_surfs:
@@ -164,6 +170,15 @@ def surface(session, atoms = None, enclose = None, include = None,
         s.display = True
 
     return surfs
+
+# -------------------------------------------------------------------------------------
+#
+def _calculate_surface(surf):
+    try:
+        surf.calculate_surface_geometry()
+    except MemoryError as e:
+        from chimerax.core.errors import UserError
+        raise UserError(str(e))
 
 # -------------------------------------------------------------------------------------
 #
@@ -196,12 +211,19 @@ def surface_hide(session, objects = None):
     objects : Objects
       Hide atom patches for specified molecular surfaces or for specified atoms.
     '''
-    from chimerax.atomic import molsurf
-    sma = molsurf.hide_surface_atom_patches(objects.atoms) if objects else []
+    from chimerax.atomic import all_atoms, molsurf
+    atoms = objects.atoms if objects else all_atoms(session)
+    sma = molsurf.hide_surface_atom_patches(atoms)
+
+    # Hide surfaces not associated with atoms.
+    atom_surfs = set(sma)
     sm = _molecular_surfaces(session, objects)
     for s in sm:
-        s.display = False
+        if s not in atom_surfs:
+            s.display = False
+            
 #    molsurf.hide_surface_patches(sm)
+
     return sma + sm
 
 # -------------------------------------------------------------------------------------
@@ -224,11 +246,12 @@ def surface_close(session, objects = None):
 # -------------------------------------------------------------------------------------
 #
 def _molecular_surfaces(session, objects):
-    from chimerax.atomic.molsurf import MolecularSurface
+    from chimerax.atomic import MolecularSurface, surfaces_with_atoms
     if objects is None:
         surfs = session.models.list(type = MolecularSurface)
     else:
-        surfs = [s for s in objects.models if isinstance(s, MolecularSurface)]
+        surfs = ([s for s in objects.models if isinstance(s, MolecularSurface)]
+                 + list(surfaces_with_atoms(objects.atoms)))
     return surfs
 
 # -------------------------------------------------------------------------------------
@@ -260,7 +283,7 @@ def surface_style(session, surfaces, style):
 
 # -------------------------------------------------------------------------------------
 #
-def surface_cap(session, enable = None, offset = None):
+def surface_cap(session, enable = None, offset = None, subdivision = None):
     '''
     Control whether clipping shows surface caps covering the hole produced by the clip plane.
 
@@ -271,13 +294,21 @@ def surface_cap(session, enable = None, offset = None):
     offset : float
       Offset of clipping cap from plane in physical units.  Some positive offset is needed or
       the clip plane hides the cap.  Default 0.01.
+    subdivision : float
+      How small to make the triangles that compose the cap.  Smaller triangles give finer
+      appearance with per-vertex coloring.  Default 1.0.  Value of 0 means no subdivision
+      and the triangles are long and skinny with one triangle spanning from edge to edge
+      of the cap.  Higher values give smaller triangles, for example a value of 2 gives
+      triangles twice as small a value of 1.  A value of 1 makes triangles with edges that
+      are about the length of the edge lengths on the perimeter of the cap which are usually
+      comparable to the size of the triangles of the surface that is being clipped.
     '''
+    update = False
     from .settings import settings
     if enable is not None and enable != settings.clipping_surface_caps:
         settings.clipping_surface_caps = enable
         if enable:
-            clip_planes = session.main_view.clip_planes
-            clip_planes.changed = True
+            update = True
         else:
             from . import remove_clip_caps
             drawings = session.main_view.drawing.all_drawings()
@@ -285,6 +316,13 @@ def surface_cap(session, enable = None, offset = None):
 
     if offset is not None:
         settings.clipping_cap_offset = offset
+        update = True
+        
+    if subdivision is not None:
+        settings.clipping_cap_subdivision = subdivision
+        update = True
+
+    if update:
         clip_planes = session.main_view.clip_planes
         clip_planes.changed = True
 
@@ -341,7 +379,8 @@ def register_command(logger):
 
     cap_desc = CmdDesc(
         optional = [('enable', BoolArg),],
-        keyword = [('offset', FloatArg),],
+        keyword = [('offset', FloatArg),
+                   ('subdivision', FloatArg),],
         synopsis = 'Enable or disable clipping surface caps')
     register('surface cap', cap_desc, surface_cap, logger=logger)
 

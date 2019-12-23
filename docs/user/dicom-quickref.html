@@ -29,13 +29,14 @@ Overview of ChimeraX features for working with
 <a href="dicom/dicom.html">DICOM medical imaging data</a>:
 <blockquote><b>
 <a href="#opening">Opening Data</a>
+<br><a href="#icons">Toolbar Icons</a>
+&nbsp;&nbsp;<img class="iconbar" src="medical-icons.png">
 <br><a href="#initial">Initial Display</a>
 <br><a href="#manipulation">Manipulation</a>
 <br><a href="#presets">Appearance Presets</a>
 <br><a href="#windowing">Thresholds and Windowing</a>
 <br><a href="#rendering">Volume Rendering Options</a>
 <br><a href="#clipping">Cropping and Clipping</a>
-<br><a href="#icons">Map Icons</a>
 <br><a href="#vr">Virtual Reality</a>
 <br><a href="#data">Sample Data</a>
 </b></blockquote>
@@ -57,7 +58,15 @@ in a directory and its subdirectories
 can be opened in a single operation if the format is specified explicitly:
 </p>
 <blockquote>
-Menu: <b>File... Open DICOM Folder</b> (dialog shows Format: DICOM image),
+Menu: <b>File... Open DICOM Folder</b> 
+&ndash; in the resulting dialog,
+browse to location, choose directory, click <b>Choose</b>
+<br>&ndash; or &ndash;
+<br>
+click <img class="icon" border=1 src="tools/toolbar-icons/opendicom.png">
+in the <a href="tools/medicalimage.html"><b>Medical&nbsp;Image</b></a>
+tab of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+&ndash; in the resulting dialog,
 browse to location, choose directory, click <b>Choose</b>
 <br>&ndash; or &ndash;
 <br>
@@ -73,19 +82,76 @@ for example:
 </blockquote>
 <p>
 Each series that is found will be opened as a separate model.
-</p><p>
-Many icons in the <a href="tools/toolbar.html"><b>Toolbar</b></a>
-across the top of the ChimeraX window are useful for working with DICOM data:
 </p>
-<ul>
-<li><a href="tools/densitymaps.html"><b>Map</b></a> icons act on
-volume models (medical image stacks, density maps, <i>etc.</i>):
-<br><img class="iconbar" src="density-icons.png">
-<br><br>
-<li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>
-icons assign functions or &ldquo;modes&rdquo; to the mouse/trackpad:
-<br><img class="iconbar" src="mouse-icons.png">
+
+<a name="icons"></a>
+<h3><a href="#top" class="nounder">&larr;</a>
+Toolbar Icons</h3>
+<p>
+Many icons in the <a href="tools/toolbar.html"><b>Toolbar</b></a>
+across the top of the ChimeraX window are useful for working with DICOM data.
+The <a href="tools/medicalimage.html"><b>Medical&nbsp;Image</b></a> tab
+contains an application-specific collection of icons:
+</p>
+<ul class="none">
+<li><img class="icon" border=1 src="tools/toolbar-icons/opendicom.png">
+&nbsp;open DICOM, as <a href="#opening">above</a>
+<li><img class="icon" border=1 src="tools/toolbar-icons/recentfiles.png">
+&nbsp;show/hide recent files list
+<li><img class="icon" border=1 src="tools/shortcut-icons/camera.png">
+&nbsp;save snapshot
+<li><img class="icon" border=1 src="tools/shortcut-icons/plane.png">
+&nbsp;single plane
+<li><img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
+&nbsp;orthoplanes
+<li><img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
+&nbsp;full region
+<li><img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
+&nbsp;toggle outline box
+<li><img class="icon" border=1 src="tools/shortcut-icons/airways.png">
+&nbsp;Airways II <a href="#presets">preset</a>
+for image display, typically used for thick sections
+<li><img class="icon" border=1 src="tools/shortcut-icons/chest.png">
+&nbsp;chest <a href="#presets">preset</a> for image display
+<li><img class="icon" border=1 src="tools/shortcut-icons/ear.png">
+&nbsp;CT_Skin <a href="#presets">preset</a> for image display
+<li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
+&nbsp;initial thresholds for image display, <i>e.g.</i>, for single planes
+<li><img class="icon" border=1 src="tools/shortcut-icons/orient.png">
+&nbsp;view all, standard orientation
+<li><img class="icon" border=1 src="tools/shortcut-icons/step1.png">
+&nbsp;step 1, full resolution of data
+<li><img class="icon" border=1 src="tools/shortcut-icons/step2.png">
+&nbsp;step 2 subsample
+<li><img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
+&nbsp;2D xyz projection mode
+(<a href="commands/volume.html#pmode">details...</a>)
+<li><img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
+&nbsp;3D projection mode
+(<a href="commands/volume.html#pmode">details...</a>)
 </ul>
+<a name="medmouse"></a>
+Those on the far right assign a 
+&ldquo;<a href="commands/ui.html#mousemode">mouse mode</a>&rdquo;
+function to the right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="icon-clover.png" width="12px"> on Mac)
+or <a href="vr.html#mousemodes">VR hand-controller button</a>:
+<ul class="none">
+<li><img class="icon" border=1 src="tools/mouse-icons/crop.png">
+&nbsp;crop volume box
+<li><img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">
+&nbsp;view different planes of data
+<li><img class="icon" border=1 src="tools/mouse-icons/tape.png">
+&nbsp;tape-measure distance measurement
+(<a href="tools/mousemodes.html#tapemeasure">details...</a>)
+<li><img class="icon" border=1 src="tools/mouse-icons/windowing.png">
+&nbsp;adjust image display thresholds collectively
+(<a href="#windowing">details...</a>)
+</ul>
+<p>
+Mouse modes are described further in the section on 
+<a href="#manipulation">manipulation</a>.
+</p>
 
 <a name="initial"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
@@ -121,7 +187,7 @@ trackpad + <img src="icon-clover.png" width="12px"> on Mac)
   <li>to switch axes:
      <ul>
 <li>show the full region of the data and its outline box
-by clicking the <a href="#icons">map icons</a>
+by clicking the <a href="#icons">toolbar icons</a>
 <img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
 <img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
 or using the <a href="tools/volumeviewer.html#context">context menu</a>
@@ -135,12 +201,12 @@ in the <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> window
 <li>Planes along X, Y, <b><i>and</i></b> Z at the same time can be shown
 by choosing the <b>orthoplanes</b> display style in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
-or clicking the <a href="#icons">map icon</a>
+or clicking the <a href="#icons">toolbar icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
 <li>To return to Z-planes from orthoplanes or 3D rendering,
 choose the <b>plane</b> display style in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
-or click the <a href="#icons">map icon</a>
+or click the <a href="#icons">toolbar icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/plane.png">
 </ul>
 <p>
@@ -151,7 +217,7 @@ The <a href="#windowing">thresholds</a> may need to be adjusted
 to improve the appearance after switching display styles.
 </p><p>
 For full resolution, set the <b>step</b> value to <b>1</b>
-or click the <a href="#icons">map icon</a>
+or click the <a href="#icons">toolbar icon</a>
 <img class="icon" border=1 src="tools/shortcut-icons/step1.png">.
 Subsampling (<b>step</b> &gt; 1) decreases computational demands and
 may be needed for responsive rendering of large datasets, particularly in
@@ -160,9 +226,11 @@ upon initial display or when the amount of data shown is changed.
 </p><p>
 When multiple datasets or other models are open at the same time,
 they can be hidden or shown individually, such as with the
-&ldquo;eye&rdquo; icons above their histograms in
+<img class="iconbar" src="tools/ui-icons/shown.png" 
+title="eye icon" alt="eye icon"> icons above their histograms in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>, the 
-<img class="iconbar" src="tools/eye.png" title="eye icon" alt="eye icon">
+<img class="iconbar" src="tools/ui-icons/shown.png" 
+title="eye icon" alt="eye icon">
 checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>,
 or the <a href="commands/volume.html"><b>volume</b></a> command.
 Many settings can be adjusted with either the
@@ -273,10 +341,19 @@ Initially, the right mouse button (= trackpad + <b>Alt</b> on Windows,
 trackpad + <img src="icon-clover.png" width="12px"> on Mac)
 is also assigned to <b>translate</b> 
 &nbsp;<img class="icon" border=1 src="tools/mouse-icons/translate.png">,
-but clicking any other <a href="tools/mousemodes.html"><b>Right Mouse</b></a>
-icon reassigns it:
-<br><img class="iconbar" src="mouse-icons.png">
-</p><p>
+but can be reassigned by clicking any icon in the following tabs of the
+<a href="tools/toolbar.html"><b>Toolbar</b></a>:
+</p>
+<ul>
+<li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>:&nbsp;
+&nbsp;<img class="iconbar" src="mouse-icons.png">
+<li><a href="tools/markers.html"><b>Markers</b></a>:&nbsp;
+<img class="iconbar" src="marker-icons.png">
+</ul>
+<p>
+...or the last few icons in the in the 
+<a href="tools/medicalimage.html"><b>Medical&nbsp;Image</b></a> tab,
+as detailed <a href="#medmouse">above</a>.
 Buttons can also be reassigned with the 
 <a href="commands/ui.html#mousemode"><b>mousemode</b></a> command.
 </p>
@@ -304,19 +381,25 @@ for example:
 The implementations are only approximate, as there may not be a direct
 correspondence between settings in different programs,
 and parts of the definition files may have been ignored.
-Besides a preset name, <b>appearance initial</b> 
-can be used to (re)set to the colors and intensities
+The <a href="#icons">toolbar icons</a>
+<img class="icon" border=1 src="tools/shortcut-icons/airways.png"> and
+<img class="icon" border=1 src="tools/shortcut-icons/ear.png"> apply the 
+Horos <b>Airways II</b> and MRIcroGL <b>CT_Skin</b> settings, respectively.
+</p><p>
+Two other presets, also available as <a href="#icons">toolbar icons</a>,
+are defined in ChimeraX only:
+</p>
+<ul class="none">
+<li><img class="icon" border=1 src="tools/shortcut-icons/chest.png">
+<b>appearance chest</b> 
+gives yellow bones, blue airways, and some other tissues in pink
+<li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
+<b>appearance initial</b> 
+(re)sets to the colors and intensities
 chosen automatically when a dataset is first shown in the image style.
 The <b>initial</b> settings may be useful for single-plane display
-after using a 3D preset.
-</p><p>
-The <a href="#icons">map icons</a>
-<img class="icon" border=1 src="tools/shortcut-icons/airways.png">,
-<img class="icon" border=1 src="tools/shortcut-icons/ear.png">, and
-<img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
-apply the <b>Airways II</b>, <b>CT_Skin</b>, and <b>initial</b>
-settings, respectively.
-</p>
+after a 3D preset has been applied.
+</ul>
 <table>
 <tr><th align="center" class="shaded">
 <font size="-1">[this dataset provided <a href="#data">below</a>]</font>
@@ -379,7 +462,7 @@ that may be useful:
 &ndash; to avoid jumps in brightness during the rotation of image displays,
 render using planes perpendicular to the line of sight
 (default for DICOM, see <a href="commands/volume.html#pmode">details...</a>);
-see also <a href="#icons">map icons</a>
+see also <a href="#icons">toolbar icons</a>
 <img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
 <img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
 <li><b>planeSpacing</b> &ndash; plane spacing for 3D projection mode
@@ -476,56 +559,6 @@ To turn off all clipping: <a href="commands/clip.html"><b>clip off</b></a>
 or <a href="commands/clip.html"><b>~clip</b></a>
 </p>
 
-<a name="icons"></a>
-<h3><a href="#top" class="nounder">&larr;</a>
-Map Icons</h3>
-<p>
-Icons in the <a href="tools/densitymaps.html"><b>Map</b></a>
-tab of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
-can be clicked to perform some action on volume models, including:
-</p>
-<ul class="none">
-<li><img class="icon" border=1 src="tools/shortcut-icons/showmap.png">
-&nbsp;show
-<li><img class="icon" border=1 src="tools/shortcut-icons/hidemap.png">
-&nbsp;hide
-<li><img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
-&nbsp;toggle outline box
-<li><img class="icon" border=1 src="tools/shortcut-icons/step1.png">
-&nbsp;step 1
-<li><img class="icon" border=1 src="tools/shortcut-icons/step2.png">
-&nbsp;step 2
-<li><img class="icon" border=1 src="tools/shortcut-icons/plane.png">
-&nbsp;single plane
-<li><img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
-&nbsp;orthoplanes
-<li><img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
-&nbsp;full region
-<li><img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
-&nbsp;2D xyz projection mode
-(<a href="commands/volume.html#pmode">details...</a>)
-<li><img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
-&nbsp;3D projection mode
-(<a href="commands/volume.html#pmode">details...</a>)
-<li><img class="icon" border=1 src="tools/shortcut-icons/airways.png">
-&nbsp;Airways II <a href="#presets">preset</a>
-for image display, typically used for thick sections
-(<a href="commands/volume.html#appearance">details...</a>)
-<li><img class="icon" border=1 src="tools/shortcut-icons/ear.png">
-&nbsp;CT_Skin <a href="#presets">preset</a>
-for image display
-(<a href="commands/volume.html#appearance">details...</a>)
-<li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
-&nbsp;initial thresholds for image display, <i>e.g.</i>, for single planes
-(<a href="commands/volume.html#appearance">details...</a>)
-</ul>
-<p>
-These icons act on all displayed volume models unless
-only specific ones are <a href="selection.html">selected</a>, such as with the
-<img class="iconbar" src="tools/hand.png" title="hand icon" alt="hand icon">
-checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>.
-</p>
-
 <a name="vr"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
 Virtual Reality</h3>
@@ -609,5 +642,5 @@ a significant feature of the scan is a tumor in the right lung.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-June 2019</address>
+December 2019</address>
 </body></html>

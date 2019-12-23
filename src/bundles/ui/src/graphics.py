@@ -19,13 +19,14 @@ class GraphicsWindow(QWindow):
     """
 
     def __init__(self, parent, ui, stereo = False, opengl_context = None):
+        self.session = ui.session
+        self.view = ui.session.main_view
+
         QWindow.__init__(self)
         from PyQt5.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
         self.setSurfaceType(QSurface.OpenGLSurface)
-        self.session = ui.session
-        self.view = ui.session.main_view
 
         if opengl_context is None:
             from chimerax.core.graphics import OpenGLContext
@@ -52,8 +53,56 @@ class GraphicsWindow(QWindow):
         from PyQt5.QtCore import QEvent
         if event.type() == QEvent.Show:
             self.session.ui.mouse_modes.set_graphics_window(self)
+            self._check_opengl()
         return QWindow.event(self, event)
 
+    def _check_opengl(self):
+        r = self.view.render
+        log = self.session.logger
+        from chimerax.core.graphics import OpenGLVersionError, OpenGLError
+        try:
+            mc = r.make_current()
+        except (OpenGLVersionError, OpenGLError) as e:
+            mc = False
+            log.error(str(e))
+            self.session.update_loop.block_redraw()	# Avoid further opengl errors
+        if mc:
+            e = r.check_for_opengl_errors()
+            if e:
+                msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
+                msg += '\n\n\t"%s"' % e
+                log.error(msg)
+
+        self._check_for_bad_intel_driver()
+
+    def _check_for_bad_intel_driver(self):
+        import sys
+        if sys.platform != 'win32':
+            return
+        from chimerax.ui.widgets import HtmlView
+        if HtmlView.require_native_window:
+            return  # Already applied this fix.
+        r = self.view.render
+        if r.opengl_vendor() == 'Intel':
+            ver = r.opengl_version()
+            try:
+                build = int(ver.split('.')[-1])
+            except:
+                return
+            if build > 6708:
+                # This is to work around ChimeraX bug #2537 where the entire
+                # GUI becomes blank with some 2019 Intel graphics drivers.
+
+                # TODO: This fix may fail if HtmlView widgets are created
+                #       before the graphisc is checked.  Worked in tests on one machine.
+                HtmlView.require_native_window = True
+                msg = ('Your computer has Intel graphics driver %d with a known bug '
+                       'that causes all Qt user interface panels to be blank. '
+                       'ChimeraX can partially fix this but may make some panel '
+                       'titlebars and edges black.  Hopefully newer '
+                       'Intel graphics drivers will fix this.' % build)
+                self.session.logger.warning(msg)
+                                            
     def handle_drag_and_drop(self, event):
         from PyQt5.QtCore import QEvent
         t = event.type()
@@ -104,7 +153,18 @@ class Popup(QLabel):
     def __init__(self, graphics_window):
         from PyQt5.QtCore import Qt
         QLabel.__init__(self)
-        self.setWindowFlags(self.windowFlags() | Qt.ToolTip)
+        import sys
+        if sys.platform == 'darwin':
+            # Don't use a Qt.ToolTip which can do undesired auto-hiding on Mac. Bug #2140
+            # But on Linux these flags cause huge non-updating balloons, and on Windows
+            # the balloon takes the focus (Qt 5.12.4).
+            # These flags also cause problems on Mac if ChimeraX is fullscreen, the
+            # balloon replaces the entire gui, ChimeraX bug #2210.
+#            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
+            win_flags = Qt.ToolTip
+        else:
+            win_flags = Qt.ToolTip
+        self.setWindowFlags(self.windowFlags() | win_flags)
         self.graphics_window = graphics_window
 
     def show_text(self, text, position):

@@ -68,7 +68,7 @@ public:
     static const unsigned int  HIDE_NUCLEOTIDE = 0x4;
 
     typedef std::vector<Bond*> Bonds;
-    enum class DrawMode: unsigned char { Sphere, Ball, EndCap };
+    enum DrawMode: unsigned char { Sphere, Ball, EndCap };
     enum IdatmGeometry { Ion=0, Single=1, Linear=2, Planar=3, Tetrahedral=4 };
     struct IdatmInfo {
         IdatmGeometry  geometry;
@@ -193,9 +193,6 @@ public:
         return _radius;
     }
     float maximum_bond_radius(float default_radius) const;
-    void  register_field(std::string /*name*/, int /*value*/) {}
-    void  register_field(std::string /*name*/, double /*value*/) {}
-    void  register_field(std::string /*name*/, const std::string &/*value*/) {}
     void  remove_bond(Bond *b);
     Residue *  residue() const { return _residue; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
@@ -219,6 +216,7 @@ public:
         set_coord(coord, nullptr, track_change);
     }
     void  set_coord(const Point& coord, CoordSet* cs, bool track_change);
+    void  set_coord_index(unsigned int);
     void  set_computed_idatm_type(const char* it);
     void  set_draw_mode(DrawMode dm);
     void  set_idatm_type(const char* it);

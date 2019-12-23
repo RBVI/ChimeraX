@@ -255,7 +255,7 @@ inline bool normalize(float *v)
             return true;
         }
         return false;
-    } catch (std::domain_error) {
+    } catch (std::domain_error &) {
         return false;
     }
 }
@@ -370,6 +370,20 @@ extern "C" EXPORT void atom_bonds(void *atoms, size_t n, pyobject_t *bonds)
             const Atom::Bonds &b = a[i]->bonds();
             for (size_t j = 0; j != b.size(); ++j)
                 *bonds++ = b[j];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void atom_neighbors(void *atoms, size_t n, pyobject_t *neighbors)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Atom::Neighbors &nb = a[i]->neighbors();
+            for (size_t j = 0; j != nb.size(); ++j)
+                *neighbors++ = nb[j];
         }
     } catch (...) {
         molc_error();
@@ -960,6 +974,17 @@ extern "C" EXPORT void set_atom_name(void *atoms, size_t n, pyobject_t *names)
     }
 }
 
+extern "C" EXPORT void atom_num_alt_locs(void *atoms, size_t n, size_t *nlocs)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            nlocs[i] = a[i]->alt_locs().size();
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void atom_num_bonds(void *atoms, size_t n, size_t *nbonds)
 {
     Atom **a = static_cast<Atom **>(atoms);
@@ -1153,6 +1178,8 @@ extern "C" EXPORT void atom_structure_category(void *atoms, size_t n, pyobject_t
                 cat_name = "ligand";
             else if (cat == Atom::StructCat::Ions)
                 cat_name = "ions";
+            else if (cat == Atom::StructCat::Unassigned)
+                cat_name = "other";
             else
                 throw std::range_error("Unknown structure category");
             names[i] = unicode_from_string(cat_name);
@@ -1189,13 +1216,13 @@ extern "C" EXPORT void atom_has_selected_bond(void *atoms, size_t n, npy_bool *s
     try {
         for (size_t i = 0; i != n; ++i) {
             const Atom::Bonds &b = a[i]->bonds();
-	    sel[i] = false;
+        sel[i] = false;
             for (size_t j = 0; j != b.size(); ++j)
-	      if (b[j]->selected())
-		{
-		  sel[i] = true;
-		  break;
-		}
+          if (b[j]->selected())
+        {
+          sel[i] = true;
+          break;
+        }
         }
     } catch (...) {
         molc_error();
@@ -1529,7 +1556,7 @@ extern "C" EXPORT void bond_ends_selected(void *bonds, size_t n, npy_bool *sel)
     try {
         for (size_t i = 0; i != n; ++i) {
             const Bond::Atoms &a = b[i]->atoms();
-	    sel[i] = (a[0]->selected() && a[1]->selected());
+        sel[i] = (a[0]->selected() && a[1]->selected());
         }
     } catch (...) {
         molc_error();
@@ -1661,53 +1688,53 @@ extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, 
     try {
       float32_t *m44b = m44 + 16*n;
       for (size_t i = 0; i != n; ++i) {
-	Bond *bd = b[i];
-	Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
-	const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
-	float r = bd->radius();
+    Bond *bd = b[i];
+    Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
+    const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
+    float r = bd->radius();
 
-	float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
-	float vx = x1-x0, vy = y1-y0, vz = z1-z0;
-	float d = sqrtf(vx*vx + vy*vy + vz*vz);
-	if (d == 0)
-	  { vx = vy = 0 ; vz = 1; }
-	else
-	  { vx /= d; vy /= d; vz /= d; }
+    float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
+    float vx = x1-x0, vy = y1-y0, vz = z1-z0;
+    float d = sqrtf(vx*vx + vy*vy + vz*vz);
+    if (d == 0)
+      { vx = vy = 0 ; vz = 1; }
+    else
+      { vx /= d; vy /= d; vz /= d; }
 
-	float c = vz, c1;
-	if (c <= -1)
-	  c1 = 0;       // Degenerate -z axis case.
-	else
-	  c1 = 1.0/(1+c);
+    float c = vz, c1;
+    if (c <= -1)
+      c1 = 0;       // Degenerate -z axis case.
+    else
+      c1 = 1.0/(1+c);
 
-	float wx = -vy, wy = vx;
-	float cx = c1*wx, cy = c1*wy;
-	float h = d;
+    float wx = -vy, wy = vx;
+    float cx = c1*wx, cy = c1*wy;
+    float h = d;
 
-	*m44++ = *m44b++ = r*(cx*wx + c);
-	*m44++ = *m44b++ = r*cy*wx;
-	*m44++ = *m44b++ = -r*wy;
-	*m44++ = *m44b++ = 0;
+    *m44++ = *m44b++ = r*(cx*wx + c);
+    *m44++ = *m44b++ = r*cy*wx;
+    *m44++ = *m44b++ = -r*wy;
+    *m44++ = *m44b++ = 0;
 
-	*m44++ = *m44b++ = r*cx*wy;
-	*m44++ = *m44b++ = r*(cy*wy + c);
-	*m44++ = *m44b++ = r*wx;
-	*m44++ = *m44b++ = 0;
+    *m44++ = *m44b++ = r*cx*wy;
+    *m44++ = *m44b++ = r*(cy*wy + c);
+    *m44++ = *m44b++ = r*wx;
+    *m44++ = *m44b++ = 0;
 
-	*m44++ = *m44b++ = h*wy;
-	*m44++ = *m44b++ = -h*wx;
-	*m44++ = *m44b++ = h*c;
-	*m44++ = *m44b++ = 0;
+    *m44++ = *m44b++ = h*wy;
+    *m44++ = *m44b++ = -h*wx;
+    *m44++ = *m44b++ = h*c;
+    *m44++ = *m44b++ = 0;
 
-	*m44++ = .75*x0 + .25*x1;
-	*m44++ = .75*y0 + .25*y1;
-	*m44++ = .75*z0 + .25*z1;
-	*m44++ = 1;
+    *m44++ = .75*x0 + .25*x1;
+    *m44++ = .75*y0 + .25*y1;
+    *m44++ = .75*z0 + .25*z1;
+    *m44++ = 1;
 
-	*m44b++ = .25*x0 + .75*x1;
-	*m44b++ = .25*y0 + .75*y1;
-	*m44b++ = .25*z0 + .75*z1;
-	*m44b++ = 1;
+    *m44b++ = .25*x0 + .75*x1;
+    *m44b++ = .25*y0 + .75*y1;
+    *m44b++ = .25*z0 + .75*z1;
+    *m44b++ = 1;
       }
     } catch (...) {
         molc_error();
@@ -2075,7 +2102,7 @@ extern "C" EXPORT PyObject *pseudobond_group_new_pseudobonds(void *pbgroup, void
       Pseudobond **pbp;
       PyObject *pb = python_voidp_array(pbonds.size(), (void***)&pbp);
       for (size_t i = 0 ; i < pbonds.size() ; ++i)
-	pbp[i] = pbonds[i];
+    pbp[i] = pbonds[i];
       return pb;
     } catch (...) {
         molc_error();
@@ -2352,6 +2379,92 @@ extern "C" EXPORT void pseudobond_global_manager_session_save_teardown(void *man
 // -------------------------------------------------------------------------
 // residue functions
 //
+PyObject*
+_atom_name_frozen_set(const std::set<AtomName>& atom_names)
+{
+    PyObject* fset = PyFrozenSet_New(nullptr);
+    if (fset == nullptr) {
+        PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for atom-name frozen set");
+        return nullptr;
+    }
+    for (auto& atom_name: atom_names) {
+        const char* n = atom_name.c_str();
+        PyObject* py_n = PyUnicode_FromString(n);
+        if (py_n == nullptr) {
+            PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for atom-name string");
+            Py_DECREF(fset);
+            return nullptr;
+        }
+        if (PySet_Add(fset, py_n) < 0) {
+            Py_DECREF(fset);
+            return nullptr;
+        }
+    }
+    return fset;
+}
+
+PyObject*
+_atom_name_tuple(const std::vector<AtomName>& atom_names)
+{
+    PyObject* tuple = PyTuple_New(atom_names.size());
+    if (tuple == nullptr) {
+        PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for atom-name tuple");
+        return nullptr;
+    }
+    size_t i = 0;
+    for (auto& atom_name: atom_names) {
+        const char* n = atom_name.c_str();
+        PyObject* py_n = PyUnicode_FromString(n);
+        if (py_n == nullptr) {
+            PyErr_SetString(PyExc_MemoryError, "Could not allocate memory for atom-name string");
+            Py_DECREF(tuple);
+            return nullptr;
+        }
+        PyTuple_SET_ITEM(tuple, i++, py_n);
+    }
+    return tuple;
+}
+
+extern "C" EXPORT PyObject *residue_aa_min_backbone_names()
+{
+    return _atom_name_frozen_set(Residue::aa_min_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_aa_max_backbone_names()
+{
+    return _atom_name_frozen_set(Residue::aa_max_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_aa_side_connector_names()
+{
+    return _atom_name_frozen_set(Residue::aa_side_connector_names);
+}
+
+extern "C" EXPORT PyObject *residue_na_min_backbone_names()
+{
+    return _atom_name_frozen_set(Residue::na_min_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_na_max_backbone_names()
+{
+    return _atom_name_frozen_set(Residue::na_max_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_na_side_connector_names()
+{
+    return _atom_name_frozen_set(Residue::na_side_connector_names);
+}
+
+extern "C" EXPORT PyObject *residue_aa_min_ordered_backbone_names()
+{
+    return _atom_name_tuple(Residue::aa_min_ordered_backbone_names);
+}
+
+extern "C" EXPORT PyObject *residue_na_min_ordered_backbone_names()
+{
+    return _atom_name_tuple(Residue::na_min_ordered_backbone_names);
+}
+
 extern "C" EXPORT void residue_atoms(void *residues, size_t n, pyobject_t *atoms)
 {
     Residue **r = static_cast<Residue **>(residues);
@@ -2697,7 +2810,7 @@ extern "C" EXPORT void set_residue_name(void *residues, size_t n, pyobject_t *na
     Residue **r = static_cast<Residue **>(residues);
     try {
         for (size_t i = 0; i != n; ++i)
-	    r[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
+        r[i]->set_name(PyUnicode_AsUTF8(static_cast<PyObject *>(names[i])));
     } catch (...) {
         molc_error();
     }
@@ -2827,7 +2940,8 @@ extern "C" EXPORT PyObject *residue_unique_sequences(void *residues, size_t n, i
                     auto seqi = smap.find(seq);
                     if (seqi == smap.end())
                       {
-                        si = cmap[c] = smap[seq] = smap.size()+1;
+                        int next_id = smap.size()+1;
+                        si = cmap[c] = smap[seq] = next_id;
                         PyList_Append(seqs, unicode_from_string(seq));
                       }
                     else
@@ -3863,6 +3977,26 @@ extern "C" EXPORT void coordset_structure(void *coordsets, size_t n, pyobject_t 
     }
 }
 
+extern "C" EXPORT PyObject* coordset_xyzs(void *coordset)
+{
+    CoordSet *cs = static_cast<CoordSet*>(coordset);
+
+    PyObject* ret_val;
+    try {
+        double *v;
+        ret_val = python_double_array(cs->coords().size(), 3, &v);
+        for (auto xyz: cs->coords()) {
+            *v++ = xyz[0];
+            *v++ = xyz[1];
+            *v++ = xyz[2];
+        }
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+    return ret_val;
+}
+
 // -------------------------------------------------------------------------
 // sequence functions
 //
@@ -4560,6 +4694,42 @@ extern "C" EXPORT void set_structure_ss_assigned(void *structures, size_t n, npy
     error_wrap_array_set(s, n, &Structure::set_ss_assigned, ss_assigned);
 }
 
+extern "C" EXPORT void structure_change_chain_ids(void *structure, PyObject *py_chains, PyObject *py_chain_ids, bool non_polymeric)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    std::vector<StructureSeq*> changing;
+    std::vector<ChainID> chain_ids;
+    auto size = PyList_GET_SIZE(py_chains);
+    try {
+        if (PyList_GET_SIZE(py_chain_ids) != size)
+            throw std::logic_error("Chain ID list must be same size as chain list");
+        for (int i = 0; i < size; ++i) {
+            changing.push_back(
+                static_cast<StructureSeq*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_chains, i))));
+            chain_ids.push_back(static_cast<ChainID>(PyUnicode_AsUTF8(PyList_GET_ITEM(py_chain_ids, i))));
+        }
+        s->change_chain_ids(changing, chain_ids, non_polymeric);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void structure_renumber_residues(void *structure, PyObject *py_residues, int start)
+{
+    Structure *s = static_cast<Structure *>(structure);
+    std::vector<Residue*> renumbered;
+    auto size = PyList_GET_SIZE(py_residues);
+    for (int i = 0; i < size; ++i) {
+        renumbered.push_back(
+            static_cast<Residue*>(PyLong_AsVoidPtr(PyList_GET_ITEM(py_residues, i))));
+    }
+    try {
+        s->renumber_residues(renumbered, start);
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void structure_reorder_residues(void *structure, PyObject *py_new_order)
 {
     Structure *s = static_cast<Structure *>(structure);
@@ -4923,10 +5093,12 @@ extern "C" EXPORT PyObject *structure_polymers(void *mol, int missing_structure_
 }
 
 inline static bool chain_trace_connection(const Residue *r0, const Residue *r1, PolymerType ptype,
-					  const AtomName &trace_atom, const AtomName &connect_atom_0,
-					  const AtomName &connect_atom_1, Atom **atom0, Atom **atom1)
+                      const AtomName &trace_atom, const AtomName &connect_atom_0,
+                      const AtomName &connect_atom_1, Atom **atom0, Atom **atom1)
 {
   if (r0->polymer_type() != ptype || r1->polymer_type() != ptype || !r0->connects_to(r1))
+    return false;
+  if (r0->ribbon_display() && r1->ribbon_display())
     return false;
   Atom *ta0 = r0->find_atom(trace_atom);
   if (ta0 == NULL || !ta0->display() || ta0->hide())
@@ -4956,25 +5128,25 @@ extern "C" EXPORT PyObject *structure_chain_trace_atoms(void *mol)
       std::vector<Atom *> cta0, cta1;
       Atom *ta0, *ta1;
       for (size_t i = 0 ; i < nr-1 ; ++i) {
-	Residue *r0 = res[i], *r1 = res[i+1];
-	if (chain_trace_connection(r0, r1, PT_AMINO, "CA", "C", "N", &ta0, &ta1) ||
-	    chain_trace_connection(r0, r1, PT_NUCLEIC, "P", "O5'", "O3'", &ta0, &ta1)) {
-	  cta0.push_back(ta0);
-	  cta1.push_back(ta1);
-	}
+        Residue *r0 = res[i], *r1 = res[i+1];
+        if (chain_trace_connection(r0, r1, PT_AMINO, "CA", "C", "N", &ta0, &ta1) ||
+            chain_trace_connection(r0, r1, PT_NUCLEIC, "P", "O5'", "O3'", &ta0, &ta1)) {
+          cta0.push_back(ta0);
+          cta1.push_back(ta1);
+        }
       }
       int na = cta0.size();
       if (na == 0)
-	atom_pairs = python_none();
+        atom_pairs = python_none();
       else {
-	void **ap0, **ap1;
-	PyObject *a0 = python_voidp_array(cta0.size(), &ap0);
-	PyObject *a1 = python_voidp_array(cta1.size(), &ap1);
-	for (int i = 0 ; i < na ; ++i) {
-	  ap0[i] = static_cast<void *>(cta0[i]);
-	  ap1[i] = static_cast<void *>(cta1[i]);
-	}
-	atom_pairs = python_tuple(a0, a1);
+        void **ap0, **ap1;
+        PyObject *a0 = python_voidp_array(cta0.size(), &ap0);
+        PyObject *a1 = python_voidp_array(cta1.size(), &ap1);
+        for (int i = 0 ; i < na ; ++i) {
+          ap0[i] = static_cast<void *>(cta0[i]);
+          ap1[i] = static_cast<void *>(cta1[i]);
+        }
+        atom_pairs = python_tuple(a0, a1);
       }
     } catch (...) {
         molc_error();
@@ -5122,11 +5294,12 @@ extern "C" EXPORT void structure_new_coordset_index_size(void *mol, int32_t inde
     }
 }
 
-extern "C" EXPORT PyObject *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert)
+extern "C" EXPORT PyObject *structure_new_residue(void *mol, const char *residue_name, const char *chain_id, int pos, char insert, void* precedes)
 {
     Structure *m = static_cast<Structure *>(mol);
+    Residue *nb = static_cast<Residue *>(precedes);
     try {
-        Residue *r = m->new_residue(residue_name, chain_id, pos, insert);
+        Residue *r = m->new_residue(residue_name, chain_id, pos, insert, nb, false);
         return r->py_instance(true);
     } catch (...) {
         molc_error();

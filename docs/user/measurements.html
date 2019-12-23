@@ -28,18 +28,25 @@ class="clRight" title="User Guide Index"/></a>
 Since essentially all calculations can be said to involve measurement,
 this list is not exhaustive. 
 <p>
-Distances between atoms (or <a href="markers.html">markers</a>):
+Distances between atoms or <a href="markers.html">markers</a>:
 </p>
 <ul>
-<li><a href="commands/distance.html"><b>distance</b></a> command,
-<a href="tools/distances.html"><b>Distances</b></a> tool 
-&ndash; between a specified or <a href="selection.html">selected</a> pair of atoms
 <li><a href="selection.html#context">selection context menu</a>
 when two atoms are <a href="selection.html">selected</a>
-<li><a href="commands/clashes.html"><b>clashes/contacts</b></a>
+<li><a href="tools/distances.html"><b>Distances</b></a> tool,
+<a href="commands/distance.html"><b>distance</b></a> command,
+<b>distance</b> <a href="commands/ui.html#mousemode">mouse mode</a>
+<a href="tools/mousemodes.html#distance" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/distance.png"></a>
+&ndash; create a distance monitor (which updates automatically as needed)
+between a specified or <a href="selection.html">selected</a> pair of atoms
+<li>
+<a href="tools/clashes.html"><b>Clashes/Contacts</b></a> tools,
+<a href="commands/clashes.html"><b>clashes/contacts</b></a> commands
 &ndash; all-by-all distances within a cutoff for two sets of atoms,
 optionally shown as labels
-<li><a href="commands/hbonds.html"><b>hbonds</b></a>
+<li><a href="tools/hbonds.html"><b>H-Bonds</b></a> tool,
+<a href="commands/hbonds.html"><b>hbonds</b></a> command
 &ndash; H-bond distances, optionally shown as labels
 <li><a href="commands/label.html"><b>label</b></a>
 &ndash; label bonds or <a href="pseudobonds.html">pseudobonds</a> by length
@@ -47,6 +54,14 @@ optionally shown as labels
 &ndash; sum the lengths of all bonds between specified atoms
 <li><a href="commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>
 &ndash; plot <a href="pseudobonds.html">pseudobond</a> length distribution
+<li><b>tape measure</b> <a href="commands/ui.html#mousemode">mouse mode</a>
+<a href="tools/mousemodes.html#tape" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/tape.png"></a>
+&ndash; drag to measure distance;
+also works with <a href="tools/volumeviewer.html">volume data</a>,
+<a href="commands/cartoon.html">cartoon</a>, 
+and <a href="commands/surface.html">molecular surface</a> displays
+(<a href="tools/mousemodes.html#tapemeasure">details...</a>)
 </ul>
 <p>
 Angles:
@@ -98,12 +113,22 @@ Fit measures:
 Other map (<a href="tools/volumeviewer.html">volume data</a>) measurements:
 </p>
 <ul>
-<li><a href="commands/measure.html#mapstats"><b>measure mapstats</b></a>
-&ndash; min, max, standard deviation, root-mean-square deviation from zero
-<li><a href="commands/measure.html#volume"><b>measure volume</b></a>
-&ndash; isosurface-enclosed volume
 <li><a href="commands/measure.html#area"><b>measure area</b></a>
 &ndash; isosurface area (sum of triangle areas)
+<li><a href="commands/measure.html#volume"><b>measure volume</b></a>
+&ndash; isosurface-enclosed volume
+<li><a href="tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
+<a href="tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="tools/mouse-icons/pickblobs.png"></a>,
+command <a href="commands/measure.html#blob"><b>measure blob</b></a>
+&ndash; surface area, enclosed volume, and dimensions of individual blobs 
+(disconnected surface parts)
+<li><a href="tools/mapcoords.html"><b>Map Coordinates</b></a>
+&ndash; grid position and scaling in x,y,z coordinates (voxel size, <i>etc.</i>)
+<li><a href="commands/measure.html#mapstats"><b>measure mapstats</b></a>
+&ndash; min, max, standard deviation, root-mean-square deviation from zero
+<li><a href="commands/measure.html#symmetry"><b>measure symmetry</b></a>
+&ndash; check for certain symmetries in standard orientations
 <li><a href="commands/bumps.html"><b>bumps</b></a>
 &ndash; isosurface protrusions
 <li><a href="commands/vseries.html#measure"><b>vseries measure</b></a>
@@ -136,5 +161,5 @@ and a map isosurface (to compare time steps in a
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+November 2019</address>
 </body></html>

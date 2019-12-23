@@ -1,0 +1,84 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Map Eraser</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Map Eraser</h3>
+<p>
+<b>Map Eraser</b> allows interactively erasing (zeroing) parts of
+<a href="volumeviewer.html">volume data</a> such as density maps.
+It is implemented as the command 
+<a href="../commands/volume.html#erase"><b>volume erase</b></a>.
+See also: <a href="../tools/segment.html"><b>Segment Map</b></a>,
+<a href="../commands/volume.html#vop"><b>volume</b> operations</a>
+</p><p>
+<b>Map Eraser</b> can be started
+from the <b>Volume Data</b> section of the <b>Tools</b> menu
+or by clicking the <b>map eraser</b>
+<a href="mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="mouse-icons/eraser.png"></a> icon
+in the <a href="mousemodes.html"><b>Right Mouse</b></a> toolbar.
+Like other tools, it can also be started with the command
+<b>toolshed show</b>
+and <a href="../window.html#panels">moved, resized, <i>etc.</i></a>
+</p><p>
+Only one <a href="volumeviewer.html">volume data</a> set can be displayed
+for erasing to occur. If the data set was opened from a file,
+a copy of the <a href="volumeviewer.html#region">display region</a> 
+will be opened automatically as a new model and the original hidden
+so that erasures apply only to the copy.
+</p>
+<ul>
+<li><b>Show map eraser sphere</b></a> 
+&ndash; whether to display the eraser sphere (default semitransparent
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#ffff9999cccc" width="10px" title="#ffff9999cccc"></td>
+</tr></table>).
+The sphere can be moved with the button assigned to the 
+<b>map eraser</b> <a href="../commands/ui.html#mousemode">mouse mode</a>.
+Combining the assigned button with <b>Shift</b> moves the sphere in Z: 
+dragging down moves it toward the viewer, up away from the viewer.
+<li><b>Radius</b> &ndash; sphere radius;
+can be adjusted by entering a value or moving the slider.
+</ul>
+<p>
+<b>Erase inside sphere</b> zeroes the sphere-enclosed portion of the data, 
+whereas <b>Erase outside sphere</b> zeroes all but the sphere-enclosed
+portion. Erasures cannot be undone.
+</p><p>
+Data can be erased even when hidden by 
+<a href="../commands/clip.html">clipping</a> or zoning
+(with <a href="../commands/surface.html#zone"><b>surface zone</b></a>
+or <a href="../commands/volume.html#zone"><b>volume zone</b></a>).
+</p><p>
+The modified map can be <a href="../commands/save.html#map">saved to a file</a>.
+</p><p>
+The eraser sphere is not saved in 
+<a href="../commands/save.html#session">sessions</a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2019</address>
+</body></html>

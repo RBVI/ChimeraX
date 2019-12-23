@@ -15,8 +15,8 @@
 # -----------------------------------------------------------------------------
 #
 def label(session, objects = None, object_type = None, text = None,
-          offset = None, orient = None, color = None, background = None,
-          size = None, height = None, font = None, on_top = None):
+          offset = None, color = None, bg_color = None,
+          size = None, height = None, default_height = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
     Parameters
@@ -30,20 +30,17 @@ def label(session, objects = None, object_type = None, text = None,
       Displayed text of the label.
     offset : float 3-tuple or "default"
       Offset of label from atom center in screen coordinates in physical units (Angstroms)
-    orient : float
-      Reorient the labels to face the view direction only when the view direction changes
-      by the specified number of degrees.  Default 0 makes the labels always face
-      the view direction.  This option is primarily of interest with virtual reality viewing.
-      This is a per-structure setting.
     color : Color or "default"
       Color of the label text.  If no color is specified black is used on light backgrounds
       and white is used on dark backgrounds.
-    background : Color or "none"
+    bg_color : Color or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
     size : int or "default"
-      Font size in points (1/72 inch). Default 24.
+      Font size in points (1/72 inch). Default 48.
     height : float or "fixed"
-      Text height in scene units.  Or if "fixed" use fixed pixel height on screen.
+      Text height in scene units.  Or if "fixed" use fixed pixel height on screen.  Initial value 0.7.
+    default_height : float
+      Default height value if not specified.  Initial value 0.7.
     font : string or "default"
       Font name.  This must be a true type font installed on Mac in /Library/Fonts
       and is the name of the font file without the ".ttf" suffix.  Default "Arial".
@@ -75,23 +72,29 @@ def label(session, objects = None, object_type = None, text = None,
         settings['color'] = color.uint8x4()
     elif color == 'default':
         settings['color'] = None
-    if isinstance(background, Color):
-        settings['background'] = background.uint8x4()
-    elif background == 'none':
+    if isinstance(bg_color, Color):
+        settings['background'] = bg_color.uint8x4()
+    elif bg_color == 'none':
         settings['background'] = None
     if size == 'default':
-        settings['size'] = 24
+        settings['size'] = 48
     elif size is not None:
         settings['size'] = size
     if height == 'fixed':
         settings['height'] = None
+    if default_height is not None:
+        from .settings import settings as prefs
+        prefs.label_height = default_height
     elif height is not None:
         settings['height'] = height
     if font == 'default':
         settings['font'] = 'Arial'
     elif font is not None:
         settings['font'] = font
-        
+
+    if objects is None and len(settings) == 0:
+        return	# Get this when setting default height.
+    
     view = session.main_view
     lcount = 0
     for otype in otypes:
@@ -104,12 +107,33 @@ def label(session, objects = None, object_type = None, text = None,
             lm = labels_model(m, create = True)
             lm.add_labels(mobjects, object_class, view, settings, on_top)
             lcount += len(mobjects)
-            if orient is not None:
-                lm._reorient_angle = orient
-    if objects is None and lcount == 0:
+    if objects is None and lcount == 0 and default_height is None:
         from chimerax.core.errors import UserError
         raise UserError('Label command requires an atom specifier to create labels.')
 
+# -----------------------------------------------------------------------------
+#
+def label_orient(session, orient = None):
+    '''Set how often labels reorient to face the viewer.
+
+    Parameters
+    ----------
+    orient : float
+      Reorient the labels to face the view direction only when the view direction changes
+      by the specified number of degrees.  Default 0 makes the labels always face
+      the view direction.  This option is primarily of interest with virtual reality viewing.
+      This is a global setting.
+    '''
+    if orient is None:
+        session.logger.status('Labels reorient at %.0f degrees' % _reorient_angle(session), log = True)
+    else:
+        session._label_orient = orient
+
+# -----------------------------------------------------------------------------
+#
+def _reorient_angle(session):
+    return getattr(session, '_label_orient', 0)
+    
 # -----------------------------------------------------------------------------
 #
 def label_delete(session, objects = None, object_type = None):
@@ -178,6 +202,21 @@ def labeled_objects_by_model(session, otype):
     oclass = label_object_class(otype)
     return [(lm.parent, lm.labeled_objects(oclass))
             for lm in session.models.list(type = ObjectLabels)]
+
+# -----------------------------------------------------------------------------
+#
+def label_objects(objects, object_types = ['atoms', 'residues', 'pseudobonds', 'bonds']):
+    lobjects = []
+    lmodels = set()
+    for otype in object_types:
+        for m, lbl_objects in objects_by_model(objects, otype):
+            lm = labels_model(m)
+            if lm is not None:
+                lo = lm.labels(lbl_objects)
+                if lo:
+                    lobjects.extend(lo)
+                    lmodels.add(lm)
+    return lmodels, lobjects
         
 # -----------------------------------------------------------------------------
 #
@@ -194,27 +233,33 @@ def labels_model(parent, create = False):
 
 # -----------------------------------------------------------------------------
 #
+
+# DefArg/NoneArg also use by 2D labels
+from chimerax.core.commands import EnumOf
+DefArg = EnumOf(['default'])
+NoneArg = EnumOf(['none'])
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, create_alias, ObjectsArg, StringArg, FloatArg
     from chimerax.core.commands import Float3Arg, ColorArg, IntArg, BoolArg, EnumOf, Or, EmptyArg
 
     otype = EnumOf(('atoms','residues','pseudobonds','bonds'))
-    DefArg = EnumOf(['default'])
-    NoneArg = EnumOf(['none'])
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    keyword = [('text', Or(DefArg, StringArg)),
                               ('offset', Or(DefArg, Float3Arg)),
-                              ('orient', FloatArg),
                               ('color', Or(DefArg, ColorArg)),
-                              ('background', Or(NoneArg, ColorArg)),
+                              ('bg_color', Or(NoneArg, ColorArg)),
                               ('size', Or(DefArg, IntArg)),
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
+                              ('default_height', FloatArg),
                               ('font', StringArg),
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
+    desc = CmdDesc(optional = [('orient', FloatArg)],
+                   synopsis = 'Set label orientation updating')
+    register('label orient', desc, label_orient, logger=logger)
     desc = CmdDesc(required = [('objects', Or(ObjectsArg, EmptyArg))],
                    optional = [('object_type', otype)],
                    synopsis = 'Delete atom labels')
@@ -231,6 +276,7 @@ class ObjectLabels(Model):
     '''Model holding labels appearing next to atoms, residues, pseudobonds or bonds.'''
 
     pickable = False		# Don't allow mouse selection of labels
+    casts_shadows = False
     
     def __init__(self, session):
         Model.__init__(self, 'labels', session)
@@ -240,6 +286,7 @@ class ObjectLabels(Model):
 
         self._labels = []		# list of ObjectLabel
         self._object_label = {}		# Map object (Atom, Residue, Pseudobond, Bond) to ObjectLabel
+        self._num_pixel_labels = 0	# Number of labels sized in pixels.
 
         t = session.triggers
         self._update_graphics_handler = t.add_handler('graphics update', self._update_graphics_if_needed)
@@ -248,13 +295,9 @@ class ObjectLabels(Model):
             'setting changed', self._background_changed_cb)
 
         from chimerax.atomic import get_triggers
-        ta = get_triggers(session)
+        ta = get_triggers()
         self._structure_change_handler = ta.add_handler('changes', self._structure_changed)
         
-        # Optimize label repositioning when minimum camera move specified.
-        self._reorient_angle = 0
-        self._last_camera_position = None
-
         self.use_lighting = False
         Model.set_color(self, (255,255,255,255))	# Do not modulate texture colors
 
@@ -289,9 +332,14 @@ class ObjectLabels(Model):
     def _set_single_color(self, color):
         for ld in self._labels:
             ld.color = color
-        self._texture_needs_update = True
-        self.redraw_needed()
+        self.update_labels()
     single_color = property(_get_single_color, _set_single_color)
+
+    def labels(self, objects = None):
+        if objects is None:
+            self._labels
+        ol = self._object_label
+        return [ol[o] for o in objects if o in ol]
     
     def add_labels(self, objects, label_class, view, settings = {}, on_top = None):
         if on_top is not None:
@@ -305,10 +353,17 @@ class ObjectLabels(Model):
                 lo = ol[o]
                 for k,v in settings.items():
                     setattr(lo, k, v)
+        self._count_pixel_sized_labels()
         if objects:
-            self._texture_needs_update = True
-            self.redraw_needed()
+            self.update_labels()
 
+    def update_labels(self):
+        self._texture_needs_update = True
+        self.redraw_needed()
+            
+    def _count_pixel_sized_labels(self):
+        self._num_pixel_labels = len([l for l in self._labels if l.height is None])
+        
     def delete_labels(self, objects):
         ol = self._object_label
         count = 0
@@ -319,6 +374,8 @@ class ObjectLabels(Model):
         if count > 0:
             self._labels = [l for l in self._labels if l.object in ol]
             self._texture_needs_update = True
+            self._count_pixel_sized_labels()
+
         if len(ol) == 0:
             self.session.models.close([self])
         return count
@@ -332,8 +389,8 @@ class ObjectLabels(Model):
 
     def _structure_changed(self, tname, changes):
         # If atoms undisplayed, or radii change, or names change, can effect label display.
-        # TODO: Update textures if label text changes
-        # self._texture_needs_update = True
+        if 'name changed' in changes.atom_reasons() or 'name changed' in changes.residue_reasons():
+            self._texture_needs_update = True
         self._visibility_needs_update = True
         self._positions_need_update = True
         if changes.num_deleted_atoms() > 0 or changes.num_deleted_bonds() > 0 or changes.num_deleted_pseudobonds() > 0:
@@ -349,7 +406,8 @@ class ObjectLabels(Model):
         if not self.visible:
             return
 
-        v = self.session.main_view
+        ses = self.session
+        v = ses.main_view
         resize = (v.window_size != self._window_size)
         if resize:
             self._window_size = v.window_size
@@ -357,20 +415,20 @@ class ObjectLabels(Model):
             
         camera_move = v.camera.redraw_needed
         if camera_move:
-            ra = self._reorient_angle
-            if ra == 0:
+            ra = _reorient_angle(ses)
+            if ra == 0 or self._num_pixel_labels > 0:
                 self._positions_need_update = True
             elif ra > 0:
                 # Don't update label positions if minimum camera motion has not occured.
                 # This optimization is to maintain high frame rate with virtual reality.
-                cpos = self.session.main_view.camera.position
-                lcpos = self._last_camera_position
+                cpos = v.camera.position
+                lcpos = getattr(ses, '_last_label_view', None)
                 from math import degrees
                 if lcpos is None:
-                    self._last_camera_position = cpos
+                    ses._last_label_view = cpos
                 elif degrees((cpos.inverse() * lcpos).rotation_angle()) >= ra:
                     self._positions_need_update = True
-                    self._last_camera_position = cpos
+                    ses._last_label_view = cpos
 
         if self._texture_needs_update:
             self._rebuild_label_graphics()
@@ -381,6 +439,8 @@ class ObjectLabels(Model):
                 self._update_triangles()
                 
     def _rebuild_label_graphics(self):
+        if len(self._labels) == 0:
+            return
         trgba, tcoord = self._packed_texture()	# Compute images first since vertices depend on image size
         opaque = self._all_labels_opaque()
         va = self._label_vertices()
@@ -452,8 +512,13 @@ class ObjectLabels(Model):
         spos = self.scene_position
         cpos = self.session.main_view.camera.position	# Camera position in scene coords
         cposd = spos.inverse() * cpos  # Camera pos in label drawing coords
-        from numpy import concatenate
-        va = concatenate([l._label_rectangle(spos, cposd) for l in self._labels])
+        rects = [l._label_rectangle(spos, cposd) for l in self._labels if not l.object_deleted]
+        if len(rects) == 0:
+            from numpy import empty, float32
+            va = empty((0,3), float32)
+        else:
+            from numpy import concatenate
+            va = concatenate(rects)
         return va
 
     def _update_triangles(self):
@@ -466,9 +531,21 @@ class ObjectLabels(Model):
             if l.visible():
                 c = 4*i
                 tlist.extend(((c,c+1,c+2), (c,c+2,c+3)))
-        from numpy import array, int32
-        ta = array(tlist, int32)
+        if len(tlist) == 0:
+            from numpy import empty, int32
+            ta = empty((0,3), int32)
+        else:
+            from numpy import array, int32
+            ta = array(tlist, int32)
         return ta
+
+    def picked_label(self, triangle_number):
+        lnum = triangle_number//2
+        vlabels = [l for l in self._labels if l.visible()]
+        if lnum < len(vlabels):
+            return vlabels[lnum]
+        return None
+        
         
     SESSION_SAVE = True
     
@@ -478,7 +555,7 @@ class ObjectLabels(Model):
                        for l in self._labels)
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'labels state': lstate,
-                'orient': self._reorient_angle,
+                'orient': _reorient_angle(session),
                 'on_top': self.on_top,
                 'version': 1}
         return data
@@ -492,7 +569,8 @@ class ObjectLabels(Model):
     def set_state_from_snapshot(self, session, data):
         Model.set_state_from_snapshot(self, session, data['model state'])
         self.on_top = data['on_top']
-        self._reorient_angle = data.get('orient', 0)
+        if 'orient' in data:
+            label_orient(session, data['orient'])
         self._labels = []
         self._object_label = ol = {}
         v = self.session.main_view
@@ -503,6 +581,7 @@ class ObjectLabels(Model):
             cls = label_class(o)
             ol[o] = l = cls(o, v, **kw)
             self._labels.append(l)
+        self._count_pixel_sized_labels()
 
 # -----------------------------------------------------------------------------
 #
@@ -522,12 +601,9 @@ def label_class(object):
 #
 class ObjectLabel:
 
-    pickable = False		# Don't allow mouse selection of labels
-    casts_shadows = False
-    
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 24, height = None, font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial'):
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
@@ -536,6 +612,9 @@ class ObjectLabel:
         self._color = color
         self.background = background
         self.size = size	# Points (1/72 inch) so high and normal DPI displays look the same.
+        if height == 'default':
+            from .settings import settings
+            height = settings.label_height
         self.height = height	# None or height in world coords.  If None used fixed screen size.
         self._pixel_size = (100,10)	# Size of label in pixels, derived from size attribute
 
@@ -574,8 +653,8 @@ class ObjectLabel:
         if c is None:
             bg = self.background
             if bg is None:
-                bg = self.view.background_color
-            light_bg = (sum(bg[:3]) > 1.5)
+                bg = [255*r for r in self.view.background_color]
+            light_bg = (sum(bg[:3]) > 1.5*255)
             rgba8 = (0,0,0,255) if light_bg else (255,255,255,255)
         else:
             rgba8 = c
@@ -606,7 +685,7 @@ class ObjectLabel:
         # Camera position is in label drawing coordinate system.
         xyz = self.location(scene_position)
         if xyz is None:
-            return	# Label deleted
+            return None	# Label deleted
         pw,ph = self._label_size
         sh = self.height	# Scene height
         if sh is None:
@@ -628,7 +707,7 @@ class ObjectLabel:
 class AtomLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 24, height = None, font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial'):
         self.atom = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,
@@ -650,7 +729,7 @@ class AtomLabel(ObjectLabel):
 class ResidueLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 24, height = None, font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial'):
         self.residue = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,
@@ -670,7 +749,7 @@ class ResidueLabel(ObjectLabel):
 class EdgeLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None,
-                 size = 24, height = None, font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial'):
         self.pseudobond = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
                              color=color, background=background,
@@ -701,3 +780,28 @@ class BondLabel(EdgeLabel):
 #
 class PseudobondLabel(EdgeLabel):
     pass
+
+# -----------------------------------------------------------------------------
+#
+def picked_3d_label(session, win_x, win_y):
+    xyz1, xyz2 = session.main_view.clip_plane_points(win_x, win_y)
+    if xyz1 is None or xyz2 is None:
+        return None
+    pick = None
+    from chimerax.core.graphics import PickedTriangle
+    for m in session.models.list(type = ObjectLabels):
+        mtf = m.parent.scene_position.inverse()
+        mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2
+        p = m.first_intercept(mxyz1, mxyz2)
+        if isinstance(p, PickedTriangle) and (pick is None or p.distance < pick.distance):
+            pick = p
+
+    if pick:
+        # Return ObjectLabel instance
+        lmodel = pick.drawing()
+        lobject = lmodel.picked_label(pick.triangle_number)
+        if lobject:
+            lobject._label_model = lmodel
+            return lobject
+
+    return None

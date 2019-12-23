@@ -20,6 +20,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <pyinstance/PythonInstance.declare.h>
 
 #include "../imex.h"
 #include "TAexcept.h"
@@ -33,7 +34,7 @@ namespace tmpl {
 
 using atomstruct::ResName;
 
-class ATOMSTRUCT_IMEX Molecule {
+class ATOMSTRUCT_IMEX Molecule: public pyinstance::PythonInstance<Molecule> {
 public:
         ~Molecule();
     Atom    *new_atom(const AtomName& n, const element::Element& e);

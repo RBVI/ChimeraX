@@ -18,7 +18,7 @@ from chimerax.ui.widgets.slider import Slider
 class ResidueFit(Slider):
 
     def __init__(self, session, tool_name, residues, map, residue_range = (-2,1),
-                 pause_frames = 50, motion_frames = 50, movie_framerate = 25):
+                 pause_frames = 50, motion_frames = 50, movie_framerate = 2):
 
         self.residues = {r.number:r for r in residues}
         self.map = map
@@ -139,6 +139,8 @@ def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_
         tc = Place(((-0.46696,0.38225,-0.79739,-3.9125),
                     (0.81905,-0.15294,-0.55296,-4.3407),
                     (-0.33332,-0.91132,-0.24166,-1.4889)))
+        if c.name == 'orthographic':
+            c.field_width = 12		# Set orthographic field of view, Angstroms
     else:
         # Maintain same relative camera position to backbone.
         tc = last_pos.inverse() * cp

@@ -68,7 +68,7 @@ def report_chains(logger, chains, attr):
         try:
             value = attr_string(c, attr)
         except AttributeError:
-            pass
+            continue
         logger.info("chain id %s %s %s" % (spec(c), attr, value))
 
 def report_polymers(logger, polymers):

@@ -36,8 +36,12 @@ def residues_specifier(objects):
                    for s, cid, cres in res.by_chain)
     return spec
 
+def camel_case(text):
+    words = text.split('_')
+    return words[0] + "".join([x.capitalize() for x in words[1:]])
+
 def options_text(options):
-    ostring = ' '.join('%s %s' % (name, _option_value(value))
+    ostring = ' '.join('%s %s' % (camel_case(name), _option_value(value))
                        for name, value in options if value is not None)
     return ostring
 

@@ -19,7 +19,7 @@ from .pbgroup import PseudobondGroup, all_pseudobond_groups, interatom_pseudobon
 from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, \
     PseudobondGroups, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail
-from .structure import selected_atoms, selected_bonds
+from .structure import selected_atoms, selected_bonds, selected_residues
 from .structure import all_atoms, all_atomic_structures, all_structures
 from .structure import structure_atoms, structure_residues, structure_graphics_updater, level_of_detail
 from .structure import PickedAtom, PickedBond, PickedResidue, PickedPseudobond
@@ -31,6 +31,7 @@ from .shapedrawing import AtomicShapeDrawing
 from .args import SymmetryArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
 from .args import StructureArg, StructuresArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
+from .cytmpl import TmplResidue
 
 
 from chimerax.core.toolshed import BundleAPI
@@ -83,9 +84,9 @@ class _AtomicBundleAPI(BundleAPI):
                 settings.register_settings_options(ses))
 
     @staticmethod
-    def run_provider(session, bundle_info, name, mgr, **kw):
+    def run_provider(session, name, mgr, **kw):
         from .presets import run_preset
-        run_preset(session, bundle_info, name, mgr, **kw)
+        run_preset(session, name, mgr, **kw)
 
     @staticmethod
     def finish(session, bundle_info):

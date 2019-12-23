@@ -115,7 +115,7 @@ subdivide_triangles(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_int_n3_array, &tarray,
 				   parse_float_n3_array, &narray))
     return NULL;
-  if (narray.size() > 0 && narray.size(0) != varray.size(0))
+  if (narray.dimension() == 2 && narray.size(0) != varray.size(0))
     {
       PyErr_SetString(PyExc_TypeError,
 		      "subdivide_triangles(): normal array size is not the same as vertex array size");
@@ -140,7 +140,7 @@ subdivide_triangles(PyObject *, PyObject *args, PyObject *keywds)
 
   // Make new normals array including mid-points.
   PyObject *narray2 = NULL;
-  if (narray.size() > 0)
+  if (narray.dimension() == 2)
     {
       float *na2;
       narray2 = python_float_array(nv, 3, &na2);
@@ -270,7 +270,7 @@ subdivide_mesh(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_float_n3_array, &narray,
 				   &elength))
     return NULL;
-  if (narray.size() > 0 && narray.size(0) != varray.size(0))
+  if (narray.dimension() == 2 && narray.size(0) != varray.size(0))
     {
       PyErr_SetString(PyExc_TypeError,
 		      "subdivide_triangle(): normal array size is not the same as vertex array size");

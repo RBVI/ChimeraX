@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .clashes import find_clashes
+
 from chimerax.core.toolshed import BundleAPI
 
 class ClashesAPI(BundleAPI):
@@ -19,5 +21,15 @@ class ClashesAPI(BundleAPI):
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        if tool_name == "Clashes":
+            from .tool import ClashesTool
+            return ClashesTool(session, tool_name)
+        if tool_name == "Contacts":
+            from .tool import ContactsTool
+            return ContactsTool(session, tool_name)
+        raise ValueError("Don't know how to start tool named '%s'" % tool_name)
 
 bundle_api = ClashesAPI()

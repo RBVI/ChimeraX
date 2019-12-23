@@ -27,6 +27,7 @@
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: debug test :: General :: Run through test sequence of commands to check for errors</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: debug exectest :: General :: Test running executable from bundle</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: debug expectfail :: General :: Expect command to fail</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

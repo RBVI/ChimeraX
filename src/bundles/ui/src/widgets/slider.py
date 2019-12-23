@@ -60,7 +60,7 @@ class Slider(ToolInstance):
         layout.addWidget(sl)
         self.play_button = pb = QPushButton()
         pb.setCheckable(True)
-        pb.clicked.connect(self.play_cb)
+        pb.pressed.connect(self.play_cb)
         layout.addWidget(pb)
         self.record_button = rb = QPushButton()
         rb.setCheckable(True)
@@ -100,7 +100,7 @@ class Slider(ToolInstance):
         '''Override this in derived class to do the action the slider controls.'''
         pass
     
-    def play_cb(self, event):
+    def play_cb(self, checked = None):
         if self.recording:
             return
         if self._play_handler:

@@ -345,6 +345,20 @@ class Colormap(State):
                         self.color_no_value)
         return cmap
 
+    def reversed(self):
+        """Return a reversed color ramp.
+
+        Return Value
+        ------------
+        instance of Colormap
+        """
+        cmap = Colormap(self.data_values, self.colors[::-1],
+                        self.color_below_value_range,
+                        self.color_above_value_range,
+                        self.color_no_value)
+        cmap.values_specified = self.values_specified
+        return cmap
+
     # -------------------------------------------------------------------------
     #
     def take_snapshot(self, session, flags):
@@ -720,6 +734,7 @@ BuiltinColors = SortedDict({
 })
 BuiltinColors['transparent'] = (0, 0, 0, 0)
 
+_color_names = {rgba8:name for name, rgba8 in BuiltinColors.items()}
 
 def random_colors(n, opacity=255):
     from numpy import random, uint8
@@ -738,6 +753,21 @@ def most_common_color(colors):
         return None
     return colors[indices[max_index]]
 
+def color_name(color_or_rgba8):
+    '''Return english color name or hex color string.'''
+    if isinstance(color_or_rgba8, Color):
+        rgba8 = color_or_rgba8.uint8x4()
+    else:
+        rgba8 = color_or_rgba8
+    c = tuple(rgba8)
+    if c in _color_names:
+        name = _color_names[c]
+    else:
+        name = hex_color(c)
+    return name
+
+def hex_color(rgba8):
+    return ('#%02x%02x%02x' % rgba8[:3]) if rgba8[3] == 255 else ('#%02x%02x%02x%02x' % rgba8)
 
 def rgba_to_rgba8(rgba):
     return tuple(int(255 * r) for r in rgba)

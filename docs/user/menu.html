@@ -40,9 +40,11 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
 <li><a href="#file"><b>File</b></a>
 <li><a href="#edit"><b>Edit</b></a>
 <li><a href="#select"><b>Select</b></a>
+<li><a href="#actions"><b>Actions</b></a>
 <li><a href="#tools"><b>Tools</b></a>
 <li><a href="#favorites"><b>Favorites</b></a>
 <li><a href="#presets"><b>Presets</b></a>
+<li><a href="#volume"><b>Volume</b></a>
 <li><a href="#help"><b>Help</b></a>
 </ul>
 
@@ -154,10 +156,109 @@ level in the <a href="selection.html#cascade">selection cascade</a>
 <a href="commands/atomspec.html">target specification</a> string
   </ul>
 
+<a name="actions"></a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Actions</b>
+<p>
+The <b>Actions</b> menu works on the current
+<a href="selection.html">selection</a>, 
+or if nothing is selected, all applicable items.
+</p>
+<ul>
+<li><b>Atoms/Bonds</b></a>
+&ndash; <a href="commands/show.html"><b>show</b></a>
+and <a href="commands/show.html"><b>hide</b></a> atom and bond representations
+  <ul>
+  <li><b>Show</b>
+  <li><b>Show Only</b>
+  <li><b>Hide</b>
+  </ul>
+<p>
+The following set of entries applies
+only to residues in bonded chains of amino acids or nucleic acids:
+</p>
+  <ul>
+  <li><b>Cartoon</b></a>
+&ndash; <a href="commands/show.html"><b>show</b></a>
+and <a href="commands/show.html"><b>hide</b></a> cartoon representations
+(see also commands <a href="commands/cartoon.html"><b>cartoon</b></a>
+and <a href="commands/cartoon.html#style"><b>cartoon style</b></a>).
+By <a href="commands/cartoon.html#suppress">default</a>,
+showing cartoons hides the corresponding backbone atoms.
+</a>
+    <ul>
+    <li><b>Ribbons (Smooth Edges)</b>
+&ndash; cartoon with oval cross-section
+    <li><b>Ribbons (Sharp Edges)</b>
+&ndash; cartoon with rectangular cross-section
+    <li><b>Ribbons (Lipped Edges)</b>
+&ndash; cartoon
+with barbell cross-section
+    <li><b>Helix Tubes</b>
+&ndash; cartoon with curved-tube helices
+    <li><b>None</b> 
+    </ul>
+  <li><b>Backbone Only</b>
+&ndash; hide cartoon and show atoms in
+peptide backbone, nucleic acid phosphoribosyl backbone
+  <li><b>Chain Trace Only</b>
+&ndash; hide cartoon and show trace atoms: amino acid CA, nucleic acid P
+  <li><b>Show Side Chain/Base</b>
+&ndash; show amino acid sidechain + CA (for connectivity to cartoons),
+nucleic acid base + ribose
+  </ul>
+<p>
+The <a href="commands/style.html"><b>style</b></a> settings do not
+show/hide atoms, only change their styles:
+</p>
+  <ul>
+  <li><b>Stick</b>
+  <li><b>Ball & Stick</b>
+  <li><b>Sphere</b>
+  <li><b>Rings</b>
+    <ul>
+    <li><b>Fill Thick</b>
+    <li><b>Fill Thin</b>
+    <li><b>No Fill</b>
+    </ul>
+  <li><b>Nucleotide Depiction</b>
+  &ndash; <a href="commands/nucleotides.html"><b>nucleotides</b></a>
+  style settings
+    <ul>
+    <li><b>Filled Rings</b>
+    <li><b>Ladder</b>
+    <li><b>Slab</b>
+    <li><b>Broken Rungs</b>
+    <li><b>Tube/Slab</b>
+    <li><b>None</b> 
+&ndash; show atoms instead of sugar/base abstractions, 
+remove any nucleotide ring fill
+    </ul>
+<br>
+  <li><b>Delete</b> &ndash; remove atoms/bonds (<b>caution: irreversible</b>)
+  like the command <a href="commands/delete.html"><b>delete</b></a>
+  </ul>
+<br>
+<li><b>Surface</b>
+&ndash; <a href="commands/show.html"><b>show</b></a>
+and <a href="commands/show.html"><b>hide</b></a> atomic patches (if any)
+of <a href="commands/surface.html">molecular surface</a>
+  <ul>
+  <li><b>Show</b>
+  <li><b>Hide</b>
+  </ul>
+</ul>
+
 <a name="tools"></a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
 <b>Tools</b>
-&ndash; <a href="index.html#tools">tools</a> grouped by category
+&ndash; <a href="index.html#tools">tools</a> grouped by category.
+The <b>Volume Data</b> category can be shown as a separate top-level
+<a href="#volume"><b>Volume</b> menu</a>.
+Active tools are listed in the bottom section and can be chosen
+to toggle their display: checked = shown, unchecked = hidden.
+See also: 
+<a href="window.html#context-menu">context menus</a>
 <br><br>
 
 <a name="favorites"></a>
@@ -171,9 +272,10 @@ or <a href="window.html#tool-context">tool context menus</a>
 <a name="presets"></a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
 <b>Presets</b>
-&ndash; predefined combinations of display settings, grouped into categories.
+&ndash; predefined combinations of display settings, grouped into categories,
+as well as any <a href="preferences.html#startup">user-defined presets</a>.
 Choosing a preset from the menu applies its settings.
-The current presets act only on atomic models, 
+The built-in presets act only on atomic models, 
 and those in the <b>Cartoons/Nucleotides</b> and
 <b>Initial Styles</b> categories hide any
 <a href="commands/surface.html">molecular surfaces</a>.
@@ -200,13 +302,15 @@ protein &alpha;-helix cylinders +
 without 2&deg;-structure detail +
 <a href="commands/nucleotides.html">nucleotide</a> bases as ellipsoids
   </ul>
+<li><b>Custom</b> 
+&ndash; <a href="preferences.html#startup">user-defined presets</a>
 <li><b>Initial Styles</b>
 &ndash; based on <a href="autostyle.html">automatic styling</a>
   <ul>
-  <li><b>Original Look</b> - initial appearance from
+  <li><b>Original Look</b> &ndash; initial appearance from
 <a href="autostyle.html">automatic styling</a>,
 which depends on the number of chains in an atomic structure (however,
-settings such as <a href="commands/set.html#silhouettes">silhouettes</a>
+settings such as <a href="commands/graphics.html#silhouettes">silhouettes</a>
 and <a href="commands/cartoon.html#style">cartoon style</a> may be different
 if they were changed since the structure was opened)
   <li><b>Sticks</b>
@@ -244,14 +348,25 @@ with different coloring options:
 <li><b>Overall Look</b>
   <ul>
   <li><b>Interactive</b> &ndash; 
-<a href="commands/set.html#silhouettes">silhouettes</a> off,
+<a href="commands/graphics.html#silhouettes">silhouettes</a> off,
 <a href="commands/set.html#bgColor">background color</a> default
 (user <a href="preferences.html#background">preference</a>)
   <li><b>Publication</b> &ndash;
-<a href="commands/set.html#silhouettes">silhouettes</a> on,
+<a href="commands/graphics.html#silhouettes">silhouettes</a> on,
 <a href="commands/set.html#bgColor">background color</a> white
   </ul>
 </ul>
+
+<a name="volume"></a>
+<a href="#top" class="nounder"><b>&larr;</b></a>
+<b>Volume</b>
+<p>
+A top-level <b>Volume</b> menu containing the tools in the
+<b>Volume Data</b> category can be shown from the 
+<a href="#tools"><b>Tools</b> menu</a>
+(<b>Tools... Volume Data... Show Volume Menu</b>)
+and subsequently hidden with its own entry: <b>Hide Volume Menu</b>
+</p>
 
 <a name="help"></a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
@@ -267,5 +382,5 @@ with different coloring options:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+September 2019</address>
 </body></html> 

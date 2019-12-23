@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .run import run, concise_model_spec
+from .run import run, concise_model_spec, sel_or_all
 from .runscript import runscript
 from .logging import log_equivalent_command, residues_specifier, options_text
 
@@ -17,14 +17,15 @@ from .cli import CmdDesc, register, Command, create_alias, command_function
 from .cli import commas, plural_form, plural_of, discard_article
 from .cli import ListOf, SetOf, TupleOf, Or, RepeatOf
 
-from .cli import Annotation, AnnotationError, next_token, quote_if_necessary, as_parser
+from .cli import Annotation, AnnotationError, next_token
+from .cli import quote_if_necessary, quote_path_if_necessary, unescape, make_converter, as_parser
 from .cli import NoArg, NoneArg, BoolArg, StringArg, EmptyArg, EnumOf, DynamicEnum
 from .cli import IntArg, Int2Arg, Int3Arg, NonNegativeIntArg, PositiveIntArg
-from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg
+from .cli import FloatArg, Float2Arg, Float3Arg, FloatsArg, NonNegativeFloatArg, PositiveFloatArg
 from .cli import AxisArg, Axis, CenterArg, Center, CoordSysArg, PlaceArg, Bounded
 from .cli import SurfacesArg, SurfaceArg
-from .cli import ModelIdArg, ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine
-from .cli import OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, OpenFileNamesArg
+from .cli import ModelIdArg, ModelArg, ModelsArg, TopModelsArg, ObjectsArg, RestOfLine, WholeRestOfLine
+from .cli import FileNameArg, OpenFileNameArg, SaveFileNameArg, OpenFolderNameArg, SaveFolderNameArg, OpenFileNamesArg
 from .cli import AttrNameArg, PasswordArg
 
 from .colorarg import ColorArg, Color8Arg, ColormapArg, ColormapRangeArg

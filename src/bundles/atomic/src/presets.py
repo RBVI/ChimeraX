@@ -20,7 +20,7 @@ name_mapping = {
 }
 
 
-def run_preset(session, bundle_info, name, mgr, **kw):
+def run_preset(session, name, mgr, **kw):
     mgr.execute(lambda session=session, name=name: _execute(session, name))
 
 
@@ -31,7 +31,7 @@ def _execute(session, name):
     if name in name_mapping:
         kw['style'] = name_mapping[name]
     from .nucleotides.cmd import nucleotides
-    nucleotides(session, 'atoms')
+    nucleotides(session, 'atoms', create_undo=False)
     surfaces = [cm for s in structures
                    for cm in s.child_models()
                    if isinstance(cm, MolecularSurface)]
@@ -44,22 +44,4 @@ def _execute(session, name):
         residues = s.residues
         residues.ribbon_displays = False
         residues.ring_displays = False
-        for cat, pbg in s.pbg_map.items():
-            if cat == s.PBG_METAL_COORDINATION:
-                color = s.default_metal_coordination_color
-                radius = s.default_metal_coordination_radius
-                dashes = s.default_metal_coordination_dashes
-            elif cat == s.PBG_MISSING_STRUCTURE:
-                color = s.default_missing_structure_color
-                radius = s.default_missing_structure_radius
-                dashes = s.default_missing_structure_dashes
-            elif cat == s.PBG_HYDROGEN_BONDS:
-                color = s.default_hbond_color
-                radius = s.default_hbond_radius
-                dashes = s.default_hbond_dashes
-            else:
-                continue
-            pbg.color = color.uint8x4()
-            pbg.radius = radius
-            pbg.dashes = dashes
         s.apply_auto_styling(**kw)

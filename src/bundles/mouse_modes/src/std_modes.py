@@ -50,12 +50,13 @@ class SelectMouseMode(MouseMode):
         if event.shift_down() and mode == 'replace':
             mode = 'toggle'
 
-        if self._is_drag(event):
-            # Select objects in rectangle
-            mouse_drag_select(self.mouse_down_position, event, mode, self.session, self.view)
-        elif not self.double_click:
-            # Select object under pointer
-            mouse_select(event, mode, self.session, self.view)
+        if not self.double_click:
+            if self._is_drag(event):
+                # Select objects in rectangle
+                mouse_drag_select(self.mouse_down_position, event, mode, self.session, self.view)
+            else:
+                # Select object under pointer
+                mouse_select(event, mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
 
     def mouse_double_click(self, event):
@@ -126,14 +127,14 @@ class SelectMouseMode(MouseMode):
             v.draw_xor_rectangle(dx, h-dy, x, h-y, self.drag_color)
             self._drawn_rectangle = None
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from . import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         select_pick(self.session, pick, self.mode)
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
+        delta_z = event.room_vertical_motion  # meters
         if delta_z > 0.10:
             from chimerax.core.commands import run
             run(self.session, 'select up')
@@ -233,6 +234,9 @@ class RotateMouseMode(MouseMode):
         MouseMode.__init__(self, session)
         self.mouse_perimeter = False
 
+        # Restrict rotation to this axis using coordinate system of first model.
+        self._restrict_to_axis = None
+        
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
         x,y = event.position()
@@ -269,7 +273,11 @@ class RotateMouseMode(MouseMode):
         dx, dy = self.mouse_motion(event)
         import math
         angle = 0.5*math.sqrt(dx*dx+dy*dy)
-        if self.mouse_perimeter:
+        if self._restrict_to_axis is not None:
+            axis = self._restricted_axis()
+            if dy*axis[0]+dx*axis[1] < 0:
+                angle = -angle
+        elif self.mouse_perimeter:
             # z-rotation
             axis = (0,0,1)
             w, h = self.view.window_size
@@ -279,14 +287,26 @@ class RotateMouseMode(MouseMode):
                 angle = -angle
         else:
             axis = (dy,dx,0)
+            
         return axis, angle
+
+    def _restricted_axis(self):
+        '''Return restricted axis of rotation.'''
+        raxis = self._restrict_to_axis
+        models = self.models()
+        if models is None:
+            scene_axis = raxis
+        else:
+            scene_axis = models[0].position.transform_vector(raxis)
+        axis = self.camera_position.inverse().transform_vector(scene_axis)	# Camera coords
+        return axis
 
     def models(self):
         return None
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
-        self.view.move(move, self.models())
+        self.view.move(event.motion, self.models())
 
 class RotateAndSelectMouseMode(RotateMouseMode):
     '''
@@ -313,6 +333,15 @@ class RotateSelectedMouseMode(RotateMouseMode):
     def models(self):
         return top_selected(self.session)
 
+class RotateZSelectedMouseMode(RotateSelectedMouseMode):
+    '''
+    Rotate selected models about first model z axis.
+    '''
+    name = 'rotate z selected models'
+    def __init__(self, session):
+        RotateSelectedMouseMode.__init__(self, session)
+        self._restrict_to_axis = (0,0,1)
+
 def top_selected(session):
     # Don't include parents of selected models.
     mlist = [m for m in session.selection.models()
@@ -332,17 +361,38 @@ class TranslateMouseMode(MouseMode):
     name = 'translate'
     icon_file = 'icons/translate.png'
 
-    def mouse_drag(self, event):
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
 
+        # Restrict translation to be perpendicular to this axis.
+        self._restrict_to_plane = None	# Axis vector perpendicular to plane
+
+    def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
-        self.translate((dx, -dy, 0))
+        shift = (dx, -dy, 0)
+        if self._restrict_to_plane is not None:
+            shift = self._restricted_shift(shift)
+        self.translate(shift)
+
+    def _restricted_shift(self, shift):
+        '''Return shift resticted to be in a plane.'''
+        raxis = self._restrict_to_plane
+        models = self.models()
+        if models is None:
+            scene_axis = raxis
+        else:
+            scene_axis = models[0].position.transform_vector(raxis)
+        axis = self.camera_position.inverse().transform_vector(scene_axis)	# Camera coords
+        from chimerax.core.geometry import normalize_vector, inner_product
+        axis = normalize_vector(axis)
+        rshift = -inner_product(axis, shift) * axis + shift
+        return rshift
 
     def wheel(self, event):
         d = event.wheel_value()
         self.translate((0,0,100*d))
 
     def translate(self, shift):
-
         psize = self.pixel_size()
         s = tuple(dx*psize for dx in shift)     # Scene units
         step = self.camera_position.transform_vector(s)    # Scene coord system
@@ -351,9 +401,9 @@ class TranslateMouseMode(MouseMode):
     def models(self):
         return None
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
-        self.view.move(move, self.models())
+        self.view.move(event.motion, self.models())
 
 class TranslateSelectedMouseMode(TranslateMouseMode):
     '''
@@ -368,6 +418,15 @@ class TranslateSelectedMouseMode(TranslateMouseMode):
     def models(self):
         return top_selected(self.session)
 
+class TranslateXYSelectedMouseMode(TranslateSelectedMouseMode):
+    '''
+    Translate selected models only in x and y of the first selected models coordinate system.
+    '''
+    name = 'translate xy selected models'
+    def __init__(self, session):
+        TranslateSelectedMouseMode.__init__(self, session)
+        self._restrict_to_plane = (0,0,1)
+        
 class ZoomMouseMode(MouseMode):
     '''
     Mouse mode to move objects in z, actually the camera is moved
@@ -496,11 +555,27 @@ class ClipMouseMode(MouseMode):
     name = 'clip'
     icon_file = 'icons/clip.png'
 
-    def mouse_drag(self, event):
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
 
+        # Create new clip planes if needed
+        cp = self.view.clip_planes
+        nplanes = len(cp.planes())
+        front_shift, back_shift = self.which_planes(event)
+        self._planes(front_shift, back_shift)
+        self._created_planes = (len(cp.planes()) > nplanes)
+
+    def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         front_shift, back_shift = self.which_planes(event)
         self.clip_move((dx,-dy), front_shift, back_shift)
+
+    def mouse_up(self, event):
+        moved = (event.position() != self.mouse_down_position)
+        MouseMode.mouse_up(self, event)	# This clears mouse down position.
+        if not moved and not self._created_planes:
+            # Click without drag -> turn off clipping.
+            self.view.clip_planes.clear()
 
     def which_planes(self, event):
         shift, alt = event.shift_down(), event.alt_down()
@@ -512,20 +587,21 @@ class ClipMouseMode(MouseMode):
         d = event.wheel_value()
         psize = self.pixel_size()
         front_shift, back_shift = self.which_planes(event)
-        self.clip_move(None, front_shift, back_shift, delta = 100*psize*d)
+        self.clip_move(None, front_shift, back_shift, delta = 10*psize*d)
 
     def clip_move(self, delta_xy, front_shift, back_shift, delta = None):
         pf, pb = self._planes(front_shift, back_shift)
         if pf is None and pb is None:
             return
 
+        from chimerax.core.graphics import SceneClipPlane, CameraClipPlane
         p = pf or pb
         if delta is not None:
             d = delta
-        elif p and p.camera_normal is None:
+        elif isinstance(p, SceneClipPlane):
             # Move scene clip plane
             d = self._tilt_shift(delta_xy, self.view.camera, p.normal)
-        else:
+        elif isinstance(p, CameraClipPlane):
             # near/far clip
             d = delta_xy[1]*self.pixel_size()
 
@@ -546,8 +622,14 @@ class ClipMouseMode(MouseMode):
     def _planes(self, front_shift, back_shift):
         v = self.view
         p = v.clip_planes
-        pfname, pbname = (('front','back') if p.find_plane('front') or p.find_plane('back') or not p.planes() 
-                          else ('near','far'))
+
+        if not p.planes():
+            from .settings import clip_settings
+            use_scene_planes = (clip_settings.mouse_clip_plane_type == 'scene planes')
+        else:
+            use_scene_planes = (p.find_plane('front') or p.find_plane('back'))
+                
+        pfname, pbname = ('front','back') if use_scene_planes else ('near','far')
         
         pf, pb = p.find_plane(pfname), p.find_plane(pbname)
         from chimerax.std_commands.clip import adjust_plane
@@ -590,8 +672,9 @@ class ClipMouseMode(MouseMode):
         shift = (dx*nx + dy*ny) * self.pixel_size()
         return shift
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
+        move = event.motion
         for p in self._planes(front_shift = 1, back_shift = 0):
             if p:
                 p.normal = move.transform_vector(p.normal)
@@ -604,11 +687,26 @@ class ClipRotateMouseMode(MouseMode):
     name = 'clip rotate'
     icon_file = 'icons/cliprot.png'
 
-    def mouse_drag(self, event):
+    def mouse_down(self, event):
+        MouseMode.mouse_down(self, event)
 
+        # Create new clip planes if needed
+        cp = self.view.clip_planes
+        nplanes = len(cp.planes())
+        self._planes()
+        self._created_planes = (len(cp.planes()) > nplanes)
+
+    def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
         axis, angle = self._drag_axis_angle(dx, dy)
         self.clip_rotate(axis, angle)
+
+    def mouse_up(self, event):
+        moved = (event.position() != self.mouse_down_position)
+        MouseMode.mouse_up(self, event)	# This clears mouse down position.
+        if not moved and not self._created_planes:
+            # Click without drag -> turn off clipping.
+            self.view.clip_planes.clear()
 
     def _drag_axis_angle(self, dx, dy):
         '''Axis in camera coords, angle in degrees.'''
@@ -634,7 +732,8 @@ class ClipRotateMouseMode(MouseMode):
     def _planes(self):
         v = self.view
         cp = v.clip_planes
-        rplanes = [p for p in cp.planes() if p.camera_normal is None]
+        from chimerax.core.graphics import SceneClipPlane
+        rplanes = [p for p in cp.planes() if isinstance(p, SceneClipPlane)]
         if len(rplanes) == 0:
             from chimerax.std_commands.clip import adjust_plane
             pn, pf = cp.find_plane('near'), cp.find_plane('far')
@@ -653,8 +752,9 @@ class ClipRotateMouseMode(MouseMode):
                     cp.remove_plane('far')
         return rplanes
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
+        move = event.motion
         for p in self._planes():
             p.normal = move.transform_vector(p.normal)
             p.plane_point = move * p.plane_point
@@ -671,7 +771,9 @@ def standard_mouse_mode_classes():
         ZoomMouseMode,
         RotateAndSelectMouseMode,
         TranslateSelectedMouseMode,
+        TranslateXYSelectedMouseMode,
         RotateSelectedMouseMode,
+        RotateZSelectedMouseMode,
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,

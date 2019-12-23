@@ -394,6 +394,19 @@ class StereoCamera(Camera):
         if window_size is not None:
             self.set_focus_depth(bounds.center(), window_size[0])
 
+    def ray(self, window_x, window_y, window_size):
+        '''
+        Return origin and direction in scene coordinates of sight line
+        for the specified window pixel position.  Uses the right eye.
+        '''
+        view_num = 1	# Right eye
+        xs,ys = self.view_pixel_shift(view_num)
+        wx,wy = window_x - xs, window_y - ys
+        d = perspective_direction(wx, wy, window_size, self.field_of_view)
+        p = self.get_position(view_num)
+        ds = p.transform_vector(d)  # Convert camera to scene coordinates
+        return (p.origin(), ds)
+
     def set_focus_depth(self, point_on_screen, window_width):
         from ..geometry import inner_product
         z = inner_product(self.view_direction(), point_on_screen - self.position.origin())
@@ -472,6 +485,33 @@ class SplitStereoCamera(Camera):
         '''
         self.position = perspective_view_all(bounds, self.position, self.field_of_view, window_size, pad)
 
+    def ray(self, window_x, window_y, window_size):
+        '''
+        Return origin and direction in scene coordinates of sight line
+        for the specified window pixel position.  Uses the right eye.
+        '''
+        w,h = window_size
+        if self.layout == 'side-by-side':
+            wsize = (w/2, h)
+            if window_x > w/2:
+                view_num = 1
+                wx,wy = window_x - w/2, window_y
+            else:
+                view_num = 0
+                wx,wy = window_x, window_y
+        else:
+            wsize = (w, h/2)
+            if window_y > h/2:
+                view_num = 1
+                wx,wy = window_x, window_y - h/2
+            else:
+                view_num = 0
+                wx,wy = window_x, window_y
+        d = perspective_direction(wx, wy, wsize, self.field_of_view)
+        p = self.get_position(view_num = 1)
+        ds = p.transform_vector(d)  # Convert camera to scene coordinates
+        return (p.origin(), ds)
+
     def view_width(self, point):
         return perspective_view_width(point, self.position.origin(), self.field_of_view)
 
@@ -499,6 +539,8 @@ class SplitStereoCamera(Camera):
         else:
             tw, th = w, h//2
         if fb is None or (tw, th) != (fb.width, fb.height):
+            if fb:
+                fb.delete()
             from .opengl import Texture, Framebuffer
             t = Texture()
             t.initialize_rgba((tw,th))

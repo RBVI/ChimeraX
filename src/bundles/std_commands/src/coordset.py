@@ -67,6 +67,21 @@ def coordset(session, structures, index_range, hold_steady = None,
 
 # -----------------------------------------------------------------------------
 #
+def coordset_stop(session, structures = None):
+  '''Stop playing coordinate sets.'''
+
+  if hasattr(session, '_coord_set_players'):
+    for csp in tuple(session._coord_set_players):
+      if structures is None or csp.structure in structures:
+        csp.stop()
+
+  if hasattr(session, '_coord_set_sliders'):
+    for css in tuple(session._coord_set_sliders):
+      if structures is None or css.structure in structures:
+        css.stop()
+
+# -----------------------------------------------------------------------------
+#
 def coordset_slider(session, structures, hold_steady = None,
                     pause_frames = 1, loop = 1, compute_ss = False):
   '''Show a slider that controls which coordinate set is shown.
@@ -111,6 +126,11 @@ def register_command(logger):
                    ('compute_ss', BoolArg)],
         synopsis = 'show coordinate sets')
     register('coordset', desc, coordset, logger=logger)
+
+    desc = CmdDesc(
+        optional = [('structures', StructuresArg)],
+        synopsis = 'stop playback of coordinate sets')
+    register('coordset stop', desc, coordset_stop, logger=logger)
 
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
@@ -191,7 +211,7 @@ class CoordinateSetPlayer:
     self.structure = structure
     # structure deletes its 'session' attr when the structure is deleted,
     # and we need it after deletion, so remember it separately
-    self.session = structure.session
+    self.session = session = structure.session
     self.istart = istart
     self.iend = iend
     self.istep = istep
@@ -210,18 +230,22 @@ class CoordinateSetPlayer:
   def start(self):
 
     self.inext = self.istart
-    t = self.structure.session.triggers
+    session = self.structure.session
+    t = session.triggers
     self._handler = t.add_handler('new frame', self.frame_cb)
+    if not hasattr(session, '_coord_set_players'):
+      session._coord_set_players = set()
+    session._coord_set_players.add(self)
 
   def stop(self):
 
     if self._handler is None:
       return
+    self.session._coord_set_players.remove(self)
     t = self.session.triggers
     t.remove_handler(self._handler)
     self._handler = None
     self.inext = None
-    delattr(self, 'session')
 
   def frame_cb(self, tname, tdata):
 

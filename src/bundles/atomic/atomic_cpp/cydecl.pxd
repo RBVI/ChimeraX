@@ -17,40 +17,8 @@ from libcpp.map cimport map
 from libcpp.set cimport set
 from libcpp.vector cimport vector
 from libcpp cimport bool
-
-cdef extern from "<element/Element.h>" namespace "element::Element":
-    ctypedef enum AS:
-        NUM_SUPPORTED_ELEMENTS
-
-cdef extern from "<element/Element.h>" namespace "element":
-    cdef cppclass Element:
-        bool is_alkali_metal()
-        bool is_halogen()
-        bool is_metal()
-        bool is_noble_gas()
-        float mass()
-        const char* name()
-        int number()
-        object py_instance(bool)
-        int valence()
-
-        @staticmethod
-        float bond_length(Element&, Element&)
-
-        @staticmethod
-        float bond_radius(Element&)
-
-        @staticmethod
-        const Element& get_element(int)
-
-        @staticmethod
-        const Element& get_named_element "get_element"(const char*)
-
-        @staticmethod
-        const set[string]& names()
-
-        @staticmethod
-        void set_py_class(object)
+cimport cyelem
+cimport cycoord
 
 cdef extern from "<atomstruct/Structure.h>" namespace "atomstruct":
     cdef cppclass CoordSet
@@ -70,12 +38,6 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
     ctypedef string AtomType
     cdef cppclass Bond
     cdef cppclass Ring
-
-    cdef cppclass Coord:
-        double operator[](int)
-
-    cdef cppclass Point:
-        Point(double x, double y, double z)
 
     cdef cppclass Rgba:
         ctypedef unsigned char Channel
@@ -170,14 +132,14 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void clear_hide_bits(int)
         const Rgba& color()
         bool connects_to(Atom*)
-        Coord coord() except +
-        Coord coord(char)
-        Coord coord(CoordSet*) except +
+        cycoord.Coord coord() except +
+        cycoord.Coord coord(char)
+        cycoord.Coord coord(CoordSet*) except +
         int coord_index()
         float default_radius()
         bool display()
         DrawMode draw_mode()
-        const Element& element()
+        const cyelem.Element& element()
         bool has_alt_loc(char)
         int hide()
         const char* idatm_type()
@@ -196,9 +158,9 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         float radius()
         Residue* residue()
         const Rings& rings(bool, int)
-        Coord scene_coord()
-        Coord scene_coord(char)
-        Coord scene_coord(CoordSet*)
+        cycoord.Coord scene_coord()
+        cycoord.Coord scene_coord(char)
+        cycoord.Coord scene_coord(CoordSet*)
         bool selected()
         int serial_number()
         void set_alt_loc(char) except +
@@ -206,8 +168,9 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_aniso_u(float, float, float, float, float, float)
         void set_bfactor(float)
         void set_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
-        void set_coord(const Point&)
-        void set_coord(const Point&, CoordSet*)
+        void set_coord(const cycoord.Point&)
+        void set_coord(const cycoord.Point&, CoordSet*)
+        void set_coord_index(unsigned int) except +
         void set_display(bool)
         void set_draw_mode(DrawMode)
         void set_hide(int)

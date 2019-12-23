@@ -21,6 +21,12 @@ from chimerax.core.toolshed import BundleAPI
 class _MapFitBundle(BundleAPI):
 
     @staticmethod
+    def start_tool(session, tool_name):
+        from .fitgui import show_fit_map_dialog
+        d = show_fit_map_dialog(session)
+        return d
+
+    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from chimerax.map import fit

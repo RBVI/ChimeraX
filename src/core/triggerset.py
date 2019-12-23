@@ -128,8 +128,8 @@ class _TriggerHandler:
     def invoke(self, data, remove_if_error):
         try:
             return self._func(self._name, data)
-        except Exception as e:
-            _report('%s "%s": %s' % (TRIGGER_ERROR, self._name, str(e)))
+        except Exception:
+            _report('%s "%s"' % (TRIGGER_ERROR, self._name))	# Report function will add exception info.
             if remove_if_error:
                 return DEREGISTER
 
@@ -185,14 +185,14 @@ class _Trigger:
             if handler in self._pending_del:
                 continue
             if self._default_one_time:
-                self._pending_del.append(handler)
+                self._pending_del.add(handler)
             try:
                 ret = handler.invoke(data, self._remove_bad_handlers)
             except:
                 self._locked = locked
                 raise
             if ret == DEREGISTER and handler not in self._pending_del:
-                    self._pending_del.add(handler)
+                self._pending_del.add(handler)
         self._locked = locked
         if not self._locked:
             self._handlers -= self._pending_del

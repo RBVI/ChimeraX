@@ -374,17 +374,24 @@ See also: <a href="volume.html#vop"><b>volume</b> operations</a>
 <a href="#top" class="nounder">&bull;</a>
 <b>surface cap</b> &nbsp;true&nbsp;|&nbsp;false&nbsp;
   [&nbsp;<b>offset</b>&nbsp;<i>d</i>&nbsp;]
+  [&nbsp;<b>subdivision</b>&nbsp;<i>s</i>&nbsp;]
 <blockquote>
 Adjust capping, in which planar caps are drawn to hide the interior of a
 surface sliced by a <a href="clip.html">clipping plane</a>.
-Capping can be toggled on or off, and the initial default can be set in the
-<a href="../preferences.html">preferences</a>.
+Capping can be on (<b>true</b>, initial default) or off (false).
 The <b>offset</b> distance <i>d</i> is how far to displace caps from
-the clipping plane (default <b>0.01</b> &Aring;). Some displacement is needed,
+the clipping plane (initial default <b>0.01</b> &Aring;).
+Some displacement is needed,
 or the cap itself can be clipped (invisible) depending on floating-point
 rounding errors and the specific graphics hardware being used.
-If <b><i>d</i></b> is large, however, the mismatch between the cap and the
+If <i>d</i> is large, however, the mismatch between the cap and the
 cut edge of the surface will be evident.
+The <b>subdivision</b> value <i>s</i> indicates the fineness of
+triangulation, which affects the appearance of caps when they are 
+multicolored, such as <a href="color.html#map">by map value</a> or
+<a href="color.html#zone">by zone</a>. Higher values of <i>s</i>
+give finer triangulations (minimum 0.0, initial default <b>1.0</b>).
+See also: <a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>
 </blockquote>
 
 <a name="dust"></a>
@@ -495,5 +502,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+August 2019</address>
 </body></html>

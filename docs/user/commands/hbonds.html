@@ -27,57 +27,63 @@ class="clRight" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>hbonds</b> 
 &nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;
-[&nbsp;<b>saltOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>restrict</b>&nbsp;&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;<b>any</b>&nbsp;|&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
-[&nbsp;<b>reveal</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>dashes</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
+[&nbsp;<a href="#saltOnly"><b>saltOnly</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#restrict"><b>restrict</b></a>&nbsp;&nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;<b>any</b>&nbsp;|&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>&nbsp;]
+[&nbsp;<a href="#reveal"><b>reveal</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#showDist"><b>showDist</b></a>&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<a href="#color"><b>color</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<a href="#radius"><b>radius</b></a>&nbsp;&nbsp;<i>r</i>&nbsp;]
+[&nbsp;<a href="#dashes"><b>dashes</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
+<a name="delete"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>hbonds delete</b> 
+[&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<br>&ndash; or &ndash;
 <br><b>~hbonds</b> 
-[&nbsp;<b>name</b> &nbsp;<i>name</i>&nbsp;]
+[&nbsp;<a href="#name"><b>name</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 </h3>
 <p>
 The <b>hbonds</b> command uses <a href="../atomtypes.html">atom types</a> and
 <a href="#criteria">geometric criteria</a> to identify hydrogen bonds (H-bonds)
-involving the specified atoms.
-The <b>saltOnly</b> option allows finding just the 
-<a href="#saltOnly">salt bridges</a>,
-and the <b>restrict</b> option allows finding only H-bonds within the specified 
-set of atoms or between them and a second set (<a href="#restrict">details...</a>).
-The total number of H-bonds found is reported in the
-<a href="../tools/log.html"><b>Log</b></a>. The total includes all H-bonds
-consistent with the criteria, even if they could not coexist simultaneously.
-Distances and other details can be <a href="#log">logged</a>
-and/or <a href="#saveFile">saved</a> to a file.
-See also: <a href="addh.html"><b>addh</b></a>,
-<a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
-<a href="distance.html"><b>distance</b></a>,
-<a href="interfaces.html"><b>interfaces</b></a>,
-<a href="select.html#new"><b>select</b> by pseudobond length</a>,
-<a href="../tools/viewdockx.html"><b>ViewDockX</b></a>,
+involving the specified atoms. It is the command-line implementation of the 
+<a href="../tools/hbonds.html"><b>H-Bonds</b></a> tool.
+See also: 
 <a href="#related">H-bond-related features</a>,
-<a href="../measurements.html">measurements</a>,
+<a href="distance.html"><b>distance</b></a>,
+<a href="addh.html"><b>addh</b></a>,
+<a href="clashes.html"><b>clashes</b>/<b>contacts</b></a>,
+<a href="interfaces.html"><b>interfaces</b></a>,
+<a href="../tools/rotamers.html"><b>Rotamers</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/hbondsflat.png"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/hbondsflathide.png"></a>
 </p><p>
+The <a href="#saltOnly"><b>saltOnly</b></a> option allows finding just 
+the salt bridges, and the <a href="#restrict"><b>restrict</b></a>
+option allows finding only H-bonds within the specified 
+set of atoms or between them and a second set.
+The total number of H-bonds found is reported in the
+<a href="../tools/log.html"><b>Log</b></a>. The total includes all H-bonds
+consistent with the criteria, even if they could not coexist simultaneously.
+Distances and other details can be <a href="#log">logged</a>
+and/or <a href="#saveFile">saved</a> to a file.
+</p><p>
 By <a href="#makePseudobonds">default</a>, 
-the H-bonds are shown as dashed <a href="../pseudobonds.html">pseudobonds</a>.
-A pseudobond is only shown when both of its endpoint atoms are shown;
-<b>reveal true</b> can be used to display atoms as needed
-so that all of the H-bonds will be shown (<a href="#reveal">details...</a>).
-The pseudobonds can be <a href="#showDist">labeled by distance</a>, 
+the H-bonds are shown as <a href="../pseudobonds.html">pseudobonds</a>.
+The <a href="#reveal"><b>reveal true</b></a> option can be used to display
+atoms as needed so that all of the H-bond pseudobonds will be shown.
+The pseudobonds can be <a href="#showDist">labeled by distance</a>,
 and their <a href="#color">color</a>, <a href="#radius">radius</a>,
 and <a href="#dashes">number of dashes</a> can be specified.
-The pseudobonds can be removed with the <b>~hbonds</b> command.
+</p><p>
+The pseudobonds can be removed with the <b>hbonds delete</b> or
+<b>~hbonds</b> command.
 The default <a href="#name">name</a> of the pseudobond model(s) for creation
-(and for removal with the <b>~hbonds</b> command) is <b>hydrogen bonds</b>.
+and removal is <b>hydrogen bonds</b>.
 When multiple pseudobond models have the same name, specific models can be 
 removed with the <a href="close.html"><b>close</b></a> command.
 </p><p>
@@ -88,10 +94,7 @@ removed with the <a href="close.html"><b>close</b></a> command.
 &ndash; hide all atoms, then identify H-bonds between 
 <a href="atomspec.html#builtin"><b>ligand</b></a> and
 <a href="atomspec.html#builtin"><b>protein</b></a>,
-showing atoms as needed to show all H-bonds; note that
-<a href="atomspec.html#builtin"><b>ligand</b></a> may not always specify exactly
-(or only) the atoms of interest, and in that case, residue names, numbers, and/or
-chain IDs may be used instead, as in the following example:
+showing atoms as needed to show all H-bonds
 <blockquote>
 <b>hb /a:nad restrict cross log true reveal true</b>
 </blockquote>
@@ -101,7 +104,8 @@ write results to the <a href="../tools/log.html"><b>Log</b></a>
 <b><a href="show.html">hide</a>; <a href="cartoon.html">cartoon</a> suppress f
 <br>hb (/a & protein) restrict (/b & protein) reveal t show t</b>
 </blockquote>
-&ndash; hide all atoms and show cartoon (enabling coincident backbone-atom display),
+&ndash; hide all atoms and show cartoon
+(enabling coincident backbone-atom display),
 then identify H-bonds between chain A protein and chain B protein,
 displaying atoms as needed to show all H-bonds, labeled by distance;
 the parentheses are not required, just included for clarity
@@ -160,12 +164,16 @@ can be shown as ladder rungs with
 <a href="nucleotides.html#ladder"><b>nucleotides ladder</b></a>
 </ul>
 <p>
-By default, <a href="addh.html"><b>addh</b></a> places hydrogens to form
-H-bonds, where possible.
-The <a href="dssp.html"><b>dssp</b></a> command also identifies H-bonds
-as part of its algorithm to assign protein secondary structure,
-but does not show them.
+Some other commands evaluate H-bonds but do not show them:
 </p>
+<ul>
+<li><a href="addh.html"><b>addh</b></a> can place hydrogens to form
+H-bonds, where possible
+<li><a href="dssp.html"><b>dssp</b></a> identifies H-bonds
+as part of its algorithm to assign protein secondary structure
+<li><a href="swapaa.html"><b>swapaa</b></a> may use
+H-bonds as a criterion for choosing a rotamer
+</ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -187,21 +195,28 @@ coordinating a metal ion or identified unambiguously as an H-bond acceptor.
 <a name="restrict"></a>
 <b>restrict</b>
 &nbsp;cross&nbsp;|&nbsp;both&nbsp;|&nbsp;<b>any</b>&nbsp;|&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
-<br>Whether to limit H-bond detection to one of the following:
+<br>Limit H-bond detection to one of the following:
 <ul>
-<li><b>cross</b> - H-bonds with exactly one atom
+<li><b>cross</b> &ndash; H-bonds with exactly one atom
 in <a href="atomspec.html"><i>atom-spec1</i></a>
-<li><b>both</b> - H-bonds with both atoms
+(the atoms specified in the <a href="#top">main command</a>)
+<li><b>both</b> &ndash; H-bonds with both atoms
 in <a href="atomspec.html"><i>atom-spec1</i></a>
-<li><b>any</b> (default) - H-bonds with at least one atom
+<li><b>any</b> (default) &ndash; H-bonds with at least one atom
 in <a href="atomspec.html"><i>atom-spec1</i></a>
 <li>H-bonds between <a href="atomspec.html"><i>atom-spec1</i></a>
 and a second set of atoms, <a href="atomspec.html"><i>atom-spec2</i></a>;
 the two sets may overlap, but will not overrule other restrictions
 (for example, if the two sets are in different models
-but <a href="#intermodel"><b>intermodel</b></a> is <b>false</b>,
+but <a href="#interModel"><b>interModel</b></a> is <b>false</b>,
 no H-bonds will be found)
 </ul>
+&nbsp;&nbsp;&nbsp;See also options: 
+<a href="#interSubmodel"><b>interSubmodel</b></a>,
+<a href="#interModel"><b>interModel</b></a>,
+<a href="#intraModel"><b>intraModel</b></a>,
+<a href="#intraMol"><b>intraMol</b></a>,
+<a href="#intraRes"><b>intraRes</b></a>
 </blockquote>
 <blockquote>
 <a name="makePseudobonds"></a>
@@ -227,25 +242,27 @@ interactions could form at a time.
 <br>Whether to display all H-bonding atoms to ensure displaying the H-bond
 <a href="../pseudobonds.html">pseudobonds</a> between them.
 (Hiding an atom also hides its bonds and pseudobonds.)
-To avoid showing disconnected atoms, the entire residue will be shown,
+To avoid showing disconnected atoms, the entire residues will be shown,
 except that amino acid and nucleic acid residues are split into 
 <a href="atomspec.html#builtin">sidechain</a> and
 <a href="atomspec.html#builtin">backbone</a>
 moieties separately displayed by this option.
-Note that displayed backbone atoms may still be invisible when
-cartoon is also shown.
-Floating pseudobonds in the presence of cartoon can be hidden with the command
-<b><a href="cartoon.html">cartoon suppress false</a></b>,
-with the side effect of showing any backbone atoms that are
-displayed but suppressed by the cartoon.
+Displayed backbone atoms may still be invisible where cartoon is shown,
+unless their simultaneous display has been enabled with
+<b><a href="cartoon.html">cartoon suppress false</a></b>.
 </blockquote>
 <blockquote>
 <a name="showDist"></a>
 <b>showDist</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>Whether to label the <a href="../pseudobonds.html">pseudobonds</a>
-with the corresponding distances. Label color, size, and font can be
+with the corresponding distances. Label color, height, and font can be
 adjusted with the <a href="label.html"><b>label</b></a> command,
 which can also be used to add the labels later or to delete them.
+Label height can also be set beforehand in the
+<a href="../preferences.html#labels"><b>Labels</b> preferences</a>.
+The number of decimal places and whether to show the &Aring; symbol can be
+changed with <a href="distance.html#style"><b>distance style</b></a> or set beforehand
+in the <a href="../preferences.html#distances"><b>Distances</b> preferences</a>.
 The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
 </blockquote>
@@ -284,37 +301,45 @@ can be changed later with <a href="style.html"><b>style</b></a>.
 <b>name</b> &nbsp;<i>name</i>
 <br>Name for the <a href="../pseudobonds.html">pseudobond model</a>
 created to show interactions
-(default <b>hydrogen bonds</b>, also the default name for deletion
-with <b>~hbonds</b>). Using a new name creates a separate
+(default <b>hydrogen bonds</b>, also the default name for 
+<a href="#delete">deletion</a>). Using a new name creates a separate
 model that can be hidden/shown/closed independently.
 Names containing spaces must be enclosed in quotation marks.
 </blockquote>
 <blockquote>
+<a name="interSubmodel"></a>
   <b>interSubmodel</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
-<br>Whether to look for H-bonds between
-<a href="atomspec.html#hierarchy">submodels</a> of the same model.
+<br>
+Whether to look for H-bonds between direct sibling
+<a href="atomspec.html#hierarchy">submodels</a> of the same model
+(those with identical model numbers at all levels except the last,
+finest level). For example, this setting would affect finding H-bonds
+between #1.2.1 and #1.2.2 but not between #1.2.1 and #1.3.1.
 </blockquote>
 <blockquote>
-<a name="intermodel"></a>
+<a name="interModel"></a>
 <b>interModel</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>Whether to look for H-bonds between models.
 </blockquote>
 <blockquote>
+<a name="intraModel"></a>
 <b>intraModel</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>Whether to look for H-bonds within models.
 </blockquote>
 <blockquote>
+<a name="intraMol"></a>
 <b>intraMol</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>Whether to include intramolecular H-bonds,
 where a molecule is defined as a covalently bonded set of atoms.
 </blockquote>
 <blockquote>
+<a name="intraRes"></a>
 <b>intraRes</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>Whether to include intraresidue H-bonds.
 </blockquote>
 <blockquote>
-<a name="cacheDA"></a>
-<b>cacheDA</b> &nbsp;true&nbsp;|&nbsp;false
+<a name="cacheDa"></a>
+<b>cacheDa</b> &nbsp;true&nbsp;|&nbsp;false
 <br>Whether to cache and reuse donor and acceptor information
 rather than regenerating it each time the command is used;
 useful for calculations on different conformations of the same structure.
@@ -394,19 +419,21 @@ to specify it interactively in a file browser window.
 <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
 <blockquote>
-  <a name="namingStyle"><b>namingStyle</b> &nbsp;<b>simple</b>&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
+  <a name="namingStyle"><b>namingStyle</b> &nbsp;simple&nbsp;|&nbsp;command&nbsp;|&nbsp;serial</a>
 <br>How to describe atoms in H-bond information
 written to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
-<li><b>simple</b> (default) - chain ID (preceded by slash), 
+<li><b>simple</b> &ndash; chain ID (preceded by slash), 
 residue name, residue number, atom name (for example, /B ASN 21 OD1)
 <li><b>command</b>
-- <a href="atomspec.html#hierarchy">command-line specifier</a>
+&ndash; <a href="atomspec.html#hierarchy">command-line specifier</a>
 (for example, /B:21@OD1)
-<li><b>serial</b> - atom serial number
+<li><b>serial</b> &ndash; atom serial number
 (for example, 126)
 </ul>
 Model number will be included when multiple models are present.
+The <a href="../preferences.html#labels"><b>Labels</b> preference</a>
+<b>Balloon-help specifier style</b> sets which is the default.
 </blockquote>
 <blockquote>
   <b>batch</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
@@ -444,7 +471,8 @@ User-specified <a href="#tolerances">tolerances</a>
 are added to each criterion's upper bound and/or subtracted from
 its lower bound (depending on the particular criterion).
 </p><p>
-Chimera uses atom and residue names, or if these are not &ldquo;standard,&rdquo;
+ChimeraX uses atom and residue names,
+or if these are not &ldquo;standard,&rdquo;
 the coordinates of atoms, to determine connectivity and
 <a href="../atomtypes.html">atom types</a>,
 which in turn determine which geometric criteria are appropriate for
@@ -472,5 +500,5 @@ all of its possible positions.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2019</address>
+November 2019</address>
 </body></html>

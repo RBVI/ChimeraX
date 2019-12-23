@@ -19,3 +19,5 @@ from .color_button import ColorButton, MultiColorButton, hex_color_name
 from .citation import Citation
 from .histogram import MarkedHistogram
 from .item_chooser import ModelListWidget, ModelMenuButton, ItemListWidget, ItemMenuButton
+from .item_table import ItemTable
+from .composite import EntriesRow, radio_buttons, CollapsiblePanel, button_row

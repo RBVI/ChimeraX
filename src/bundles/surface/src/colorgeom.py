@@ -51,16 +51,23 @@ def _color_geometry(session, surfaces, geometry = 'radial',
     cclass = {'radial': RadialColor,
               'cylindrical': CylinderColor,
               'height': HeightColor}[geometry]
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState('color %s' % geometry)
     for surf in surfs:
+        cprev = surf.color_undo_state
         # Set origin and axis for coloring
         c = surf.scene_position.origin() if c0 is None else c0
         if axis:
-            a = axis.scene_coordinates(coordinate_system, session.main_view.camera)	# Scene coords
+            # Scene coords
+            a = axis.scene_coordinates(coordinate_system, session.main_view.camera)
         else:
             a = surf.scene_position.z_axis()
         cs = cclass(surf, palette, range, origin = c, axis = a, auto_recolor = auto_update)
         cs.set_vertex_colors()
-    
+        undo_state.add(surf, 'color_undo_state', cprev, surf.color_undo_state)
+
+    session.undo.register(undo_state)
+
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.state import State

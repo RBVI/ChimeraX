@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .mousemodes import MouseMode, MouseModes, mod_key_info
-from .mousemodes import picked_object, picked_object_on_segment
+from .mousemodes import picked_object, picked_object_on_segment, unpickable
 from .std_modes import SelectMouseMode, select_pick, SelectContextMenuAction, \
                 RotateMouseMode, TranslateMouseMode, RotateSelectedMouseMode, \
                 TranslateSelectedMouseMode, ZoomMouseMode
@@ -25,6 +25,7 @@ class _MouseModesAPI(BundleAPI):
     def initialize(session, bundle_info):
         from . import settings
         settings.settings = settings._MouseModesSettings(session, "mouse modes")
+        settings.clip_settings = settings._MouseClipSettings(session, 'mouse clip')
 
         if session.ui.is_gui:
             session.ui.triggers.add_handler('ready',

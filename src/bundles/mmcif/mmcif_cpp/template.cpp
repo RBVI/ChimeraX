@@ -55,6 +55,9 @@ namespace mmcif {
 using atomstruct::AtomName;
 using atomstruct::ResName;
 
+// Symbolic names for readcif arguments
+static const bool Required = true;  // column is required
+
 tmpl::Molecule* templates;
 LocateFunc  locate_func;
 
@@ -196,7 +199,7 @@ ExtractTemplate::parse_chem_comp()
     CIFFile::ParseValues pv;
     pv.reserve(6);
     try {
-        pv.emplace_back(get_column("id", true),
+        pv.emplace_back(get_column("id", Required),
             [&] (const char* start, const char* end) {
                 name = ResName(start, end - start);
             });
@@ -204,13 +207,13 @@ ExtractTemplate::parse_chem_comp()
             [&] (const char* start, const char* end) {
                 type = string(start, end - start);
             });
-        pv.emplace_back(get_column("three_letter_code", false),
+        pv.emplace_back(get_column("three_letter_code"),
             [&] (const char* start, const char* end) {
                 modres = ResName(start, end - start);
                 if (modres == "?" || modres == ".")
                     modres = "";
             });
-        pv.emplace_back(get_column("one_letter_code", false),
+        pv.emplace_back(get_column("one_letter_code"),
             [&] (const char* start) {
                 code = *start;
                 if (code == '.' || code == '?')
@@ -276,6 +279,9 @@ ExtractTemplate::parse_chem_comp_atom()
     AtomName  name;
     char    symbol[3];
     float   x, y, z;
+    float   pdbx_x = std::numeric_limits<float>::quiet_NaN(),
+            pdbx_y = std::numeric_limits<float>::quiet_NaN(),
+            pdbx_z = std::numeric_limits<float>::quiet_NaN();
 #ifdef LEAVING_ATOMS
     bool    leaving = false;
 #endif
@@ -285,7 +291,7 @@ ExtractTemplate::parse_chem_comp_atom()
     CIFFile::ParseValues pv;
     pv.reserve(8);
     try {
-        pv.emplace_back(get_column("atom_id", true),
+        pv.emplace_back(get_column("atom_id", Required),
             [&] (const char* start, const char* end) {
                 name = AtomName(start, end - start);
             });
@@ -293,7 +299,7 @@ ExtractTemplate::parse_chem_comp_atom()
         //    [&] (const char* start, const char* end) {
         //        alt_name = string(start, end - start);
         //    });
-        pv.emplace_back(get_column("type_symbol", true),
+        pv.emplace_back(get_column("type_symbol", Required),
             [&] (const char* start) {
                 symbol[0] = *start;
                 symbol[1] = *(start + 1);
@@ -303,26 +309,38 @@ ExtractTemplate::parse_chem_comp_atom()
                     symbol[2] = '\0';
             });
 #ifdef LEAVING_ATOMS
-        pv.emplace_back(get_column("pdbx_leaving_atom_flag", false),
+        pv.emplace_back(get_column("pdbx_leaving_atom_flag"),
             [&] (const char* start) {
                 leaving = *start == 'Y' || *start == 'y';
             });
 #endif
-        pv.emplace_back(get_column("pdbx_stereo_config", true),
+        pv.emplace_back(get_column("pdbx_stereo_config", Required),
             [&] (const char* start) {
                 chirality = *start;
             });
-        pv.emplace_back(get_column("model_Cartn_x", true),
+        pv.emplace_back(get_column("model_Cartn_x", Required),
             [&] (const char* start) {
                 x = readcif::str_to_float(start);
             });
-        pv.emplace_back(get_column("model_Cartn_y", true),
+        pv.emplace_back(get_column("model_Cartn_y", Required),
             [&] (const char* start) {
                 y = readcif::str_to_float(start);
             });
-        pv.emplace_back(get_column("model_Cartn_z", true),
+        pv.emplace_back(get_column("model_Cartn_z", Required),
             [&] (const char* start) {
                 z = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("pdbx_model_Cartn_x_ideal"),
+            [&] (const char* start) {
+                pdbx_x = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("pdbx_model_Cartn_y_ideal"),
+            [&] (const char* start) {
+                pdbx_y = readcif::str_to_float(start);
+            });
+        pv.emplace_back(get_column("pdbx_model_Cartn_z_ideal"),
+            [&] (const char* start) {
+                pdbx_z = readcif::str_to_float(start);
             });
     } catch (std::runtime_error& e) {
         std::ostringstream err_msg;
@@ -332,8 +350,13 @@ ExtractTemplate::parse_chem_comp_atom()
     while (parse_row(pv)) {
         const Element& elem = Element::get_element(symbol);
         tmpl::Atom* a = templates->new_atom(name, elem);
-        tmpl::Coord c(x, y, z);
-        a->set_coord(c);
+        if (std::isnan(pdbx_x)) {
+            tmpl::Coord c(x, y, z);
+            a->set_coord(c);
+        } else {
+            tmpl::Coord c(pdbx_x, pdbx_y, pdbx_z);
+            a->set_coord(c);
+        }
         residue->add_atom(a);
 #ifdef LEAVING_ATOMS
         if (leaving)
@@ -353,11 +376,11 @@ ExtractTemplate::parse_chem_comp_bond()
     CIFFile::ParseValues pv;
     pv.reserve(2);
     try {
-        pv.emplace_back(get_column("atom_id_1", true),
+        pv.emplace_back(get_column("atom_id_1", Required),
             [&] (const char* start, const char* end) {
                 name1 = AtomName(start, end - start);
             });
-        pv.emplace_back(get_column("atom_id_2", true),
+        pv.emplace_back(get_column("atom_id_2", Required),
             [&] (const char* start, const char* end) {
                 name2 = AtomName(start, end - start);
             });

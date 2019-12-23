@@ -78,7 +78,7 @@ def open_pdb(session, stream, file_name, *, auto_style=True, coordsets=False, at
     return models, info
 
 
-def save_pdb(session, path, *, models=None, selected_only=False, displayed_only=False,
+def save_pdb(session, output, *, models=None, selected_only=False, displayed_only=False,
         all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36",
         polymeric_res_names = None):
     from chimerax.core.errors import UserError
@@ -106,18 +106,17 @@ def save_pdb(session, path, *, models=None, selected_only=False, displayed_only=
     from . import _pdbio
     if polymeric_res_names is None:
         polymeric_res_names = _pdbio.standard_polymeric_res_names
-    file_per_model = "[NAME]" in path or "[ID]" in path
+    file_per_model = "[NAME]" in output or "[ID]" in output
     if file_per_model:
         for m, xform in zip(models, xforms):
-            file_name = path.replace("[ID]", m.id_string).replace("[NAME]", m.name)
+            file_name = output.replace("[ID]", m.id_string).replace("[NAME]", m.name)
             _pdbio.write_pdb_file([m.cpp_pointer], file_name, selected_only,
                 displayed_only, [xform], all_coordsets,
                 pqr, (serial_numbering == "h36"), polymeric_res_names)
     else:
-        _pdbio.write_pdb_file([m.cpp_pointer for m in models], path, selected_only,
+        _pdbio.write_pdb_file([m.cpp_pointer for m in models], output, selected_only,
             displayed_only, xforms, all_coordsets, pqr,
             (serial_numbering == "h36"), polymeric_res_names)
-
 
 _pdb_sources = {
 #    "rcsb": "http://www.pdb.org/pdb/files/%s.pdb",
@@ -129,7 +128,6 @@ _pdb_sources = {
 def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False,
         structure_factors=False, over_sampling=1.5, # for ChimeraX-Clipper plugin
         **kw):
-
     if len(pdb_id) != 4:
         from chimerax.core.errors import UserError
         raise UserError('PDB identifiers are 4 characters long, got "%s"' % pdb_id)
@@ -173,15 +171,11 @@ def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False,
 
     return models, status
 
-
-
 def fetch_pdb_pdbe(session, pdb_id, **kw):
     return fetch_pdb(session, pdb_id, fetch_source="pdbe", **kw)
 
-
 def fetch_pdb_pdbj(session, pdb_id, **kw):
     return fetch_pdb(session, pdb_id, fetch_source="pdbj", **kw)
-
 
 def register_pdb_format():
     from chimerax.core import io
@@ -198,7 +192,6 @@ def register_pdb_format():
     add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
         'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg,
         'rel_model':ModelArg, 'serial_numbering': EnumOf(("amber", "h36"))})
-
 
 def register_pdb_fetch():
     from chimerax.core import fetch
@@ -265,7 +258,8 @@ def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
         nonstd_info = { rn:(rn, "(%s)" % rn, None) for rn in nonstd_res_names }
         update_nonstd_res_info(model, nonstd_info)
         def fmt_component(abbr, name, syns):
-            text = '<a title="select residue" href="cxcmd:sel :%s">%s</a> &mdash; ' % (abbr, abbr)
+            text = '<a title="select residue" href="cxcmd:sel ::name=&quot;%s&quot;">%s</a> &mdash; ' % (
+                abbr, abbr)
             if name:
                 text += '<a title="show residue info" href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
                     process_chem_name(name))

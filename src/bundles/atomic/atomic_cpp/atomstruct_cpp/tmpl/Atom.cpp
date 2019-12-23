@@ -14,10 +14,25 @@
  */
 
 #define ATOMSTRUCT_EXPORT
+#define PYINSTANCE_EXPORT
 #include "restmpl.h"
 #include "Molecule.h"
 
+#include <pyinstance/PythonInstance.instantiate.h>
+template class pyinstance::PythonInstance<tmpl::Atom>;
+
 namespace tmpl {
+
+const Coord&
+Atom::coord() const
+{
+    if (_index == COORD_UNASSIGNED)
+        throw std::logic_error("template coordinate not set yet");
+    auto cs = molecule()->active_coord_set();
+    if (cs == nullptr)
+        throw std::logic_error("no active template coordinate set");
+    return *cs->find_coord(_index);
+}
 
 int
 Atom::new_coord(const Coord &c) const

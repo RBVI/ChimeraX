@@ -169,7 +169,6 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
         ksdsspCache = set([m0, m1])
         parts = []
         atomMap = {}
-        matched = 0
         matrices = [
                 defaults['matrix'],
                 "Nucleic",
@@ -209,7 +208,6 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                                 continue
                         rList0.append(r0)
                         rList1.append(r1)
-                        matched += 1
                 if rList0:
                         parts.append((rList0, rList1))
 
@@ -265,7 +263,6 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                                 if shareAtoms(r0, r1, atomMap):
                                         s0, s1 = segments[sIndex]
                                         segments[sIndex] = (s0 + (r0,), s1 + (r1,))
-                                        matched += 1
 
         #
         # Finally, finished

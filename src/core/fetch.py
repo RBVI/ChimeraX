@@ -295,7 +295,7 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, **kw):
     path = parse.unquote(o.path)
     basename = os.path.basename(path)
     nominal_format, basename, compression_ext = io.deduce_format(basename, no_raise=True)
-    if nominal_format is not None and nominal_format.name == 'HTML':
+    if nominal_format is None or (nominal_format is not None and nominal_format.name == 'HTML'):
         # Let the help viewer fetch it's own files
         try:
             import chimerax.help_viewer as browser
@@ -303,7 +303,7 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, **kw):
             from .errors import UserError
             raise UserError('Help viewer is not installed')
         browser.show_url(session, url, new_tab=new_tab)
-        return [], "Opened %s" % url
+        return [], "Opened %r in browser" % url
     base, ext = os.path.splitext(basename)
     filename = os.path.join(cache_dir, '%s%s' % (base, ext))
     count = 0

@@ -122,4 +122,4 @@ def recenter_symmetries(tflist, center):
       return tflist
     from . import translation
     ctf = translation([-x for x in center])
-    return tflist.coordinate_transform(ctf)
+    return tflist.transform_coordinates(ctf)

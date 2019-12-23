@@ -119,7 +119,7 @@ residue_str(Residue* r, Residue* other = nullptr)
     if (other && other->chain_id() == r->chain_id())
         return ret;
     auto chain_id = r->chain_id();
-    if (chain_id != " ") {
+    if (!chain_id.empty() && chain_id != " ") {
         ret += ' ';
         ret += "in chain ";
         ret += chain_id;
@@ -219,7 +219,7 @@ struct ExtractMolecule: public readcif::CIFFile
     virtual void reset_parse();
     virtual void finished_parse();
     void connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool nstd_okay);
-    void connect_residue_by_template(Residue* r, const tmpl::Residue* tr);
+    void connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num);
     const tmpl::Residue* find_template_residue(const ResName& name);
     void parse_audit_conform();
     void parse_audit_syntax();
@@ -244,67 +244,9 @@ struct ExtractMolecule: public readcif::CIFFile
     std::map<string, StringVector> generic_tables;
     vector<Structure*> all_molecules;
     map<int, Structure*> molecules;
-    struct AtomKey {
-        long position;
-        long auth_position;   // needed in PDB mmCIF files for uniqueness
-        AtomName atom_name;
-        ResName residue_name;
-        ChainID chain_id;
-        char ins_code;
-        char alt_id;
-        AtomKey(const ChainID& c, long p, long ap, char i, char a,
-                    const AtomName& n, const ResName& r):
-            position(p), auth_position(ap), atom_name(n), residue_name(r),
-            chain_id(c), ins_code(i), alt_id(a) {}
-        bool operator==(const AtomKey& k) const {
-            return position == k.position && auth_position == k.auth_position
-                && atom_name == k.atom_name && residue_name == k.residue_name
-                && chain_id == k.chain_id && ins_code == k.ins_code
-                && alt_id == k.alt_id;
-        }
-        bool operator<(const AtomKey& k) const {
-            if (position < k.position)
-                return true;
-            if (position != k.position)
-                return false;
-            if (auth_position < k.auth_position)
-                return true;
-            if (auth_position != k.auth_position)
-                return false;
-            if (atom_name < k.atom_name)
-                return true;
-            if (atom_name != k.atom_name)
-                return false;
-            if (residue_name < k.residue_name)
-                return true;
-            if (residue_name != k.residue_name)
-                return false;
-            if (chain_id < k.chain_id)
-                return true;
-            if (chain_id != k.chain_id)
-                return false;
-            if (alt_id < k.alt_id)
-                return true;
-            if (alt_id != k.alt_id)
-                return false;
-            return ins_code < k.ins_code;
-        }
-    };
-    struct hash_AtomKey {
-        size_t operator()(const AtomKey& k) const {
-            return hash<ChainID>()(k.chain_id)
-                ^ hash<long>()(k.position)
-                ^ hash<long>()(k.auth_position)
-                ^ hash<char>()(k.ins_code)
-                ^ hash<char>()(k.alt_id)
-                ^ hash<AtomName>()(k.atom_name)
-                ^ hash<ResName>()(k.residue_name);
-        }
-    };
-    unordered_map<AtomKey, Atom*, hash_AtomKey> atom_map;
     // serial_num -> atom, alt_id for atom_site_anisotrop
     std::map <long, std::pair<Atom*, char>> atom_lookup;
-    map<ChainID, string> chain_entity_map;
+    map<ChainID, string> chain_entity_map;  // [label_asym_id] -> entity_id
     struct ResidueKey {
         string entity_id;
         long seq_id;
@@ -335,7 +277,8 @@ struct ExtractMolecule: public readcif::CIFFile
         }
     };
     typedef unordered_map<ResidueKey, Residue*, hash_ResidueKey> ResidueMap;
-    unordered_map<ChainID, ResidueMap> all_residues;
+    typedef unordered_map<ChainID, ResidueMap> ChainResidueMap;
+    unordered_map<int, ChainResidueMap> all_residues;
     struct PolySeq {
         long seq_id;
         ResName mon_id;
@@ -369,8 +312,9 @@ struct ExtractMolecule: public readcif::CIFFile
     SheetOrder sheet_order;
     typedef map<std::pair<string, string>, vector<Residue*>> StrandInfo;
     StrandInfo strand_info;
-    Residue* find_residue(const ChainID& chain_id, long position, const ResName& name);
 #endif
+    Residue* find_residue(int model_num, const ChainID& chain_id, long position, const ResName& name);
+    Residue* find_residue(const ChainResidueMap& crm, const ChainID& chain_id, ResidueKey& rk);
 };
 
 const char* ExtractMolecule::builtin_categories[] = {
@@ -381,13 +325,6 @@ const char* ExtractMolecule::builtin_categories[] = {
 #endif
 };
 #define MIXED_CASE_BUILTIN_CATEGORIES 0
-
-std::ostream& operator<<(std::ostream& out, const ExtractMolecule::AtomKey& k) {
-    out << k.chain_id << ':' << k.residue_name << '.' << k.position
-        << '(' << k.auth_position << ')'
-        << int(k.ins_code) << '@' << k.atom_name << '.' << int(k.alt_id);
-    return out;
-}
 
 ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_categories, bool coordsets, bool atomic):
     _logger(logger), first_model_num(INT_MAX), my_templates(nullptr),
@@ -401,6 +338,10 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
             parse_audit_conform();
         });
     register_category("chimerax_audit_syntax",
+        [this] () {
+            parse_audit_syntax();
+        });
+    register_category("audit_syntax",
         [this] () {
             parse_audit_syntax();
         });
@@ -499,7 +440,6 @@ void
 ExtractMolecule::reset_parse()
 {
     molecules.clear();
-    atom_map.clear();
     atom_lookup.clear();
     chain_entity_map.clear();
     all_residues.clear();
@@ -509,6 +449,7 @@ ExtractMolecule::reset_parse()
 #endif
     entry_id.clear();
     generic_tables.clear();
+    poly.clear();
     if (my_templates) {
         delete my_templates;
         my_templates = nullptr;
@@ -516,6 +457,42 @@ ExtractMolecule::reset_parse()
     found_missing_poly_seq = false;
     has_poly_seq.clear();
     guess_fixed_width_categories = false;
+}
+
+inline Residue*
+ExtractMolecule::find_residue(int model_num, const ChainID& chain_id, long position, const ResName& name) {
+    // Document all of the steps to find a Residue given its
+    // pdbx_PDB_model_num, label_asym_id, label_seq_id, label_comp_id values.
+    // Typically, all_residues and the entity_id are predetermined
+    // and don't need to be recomputed each time.
+    const auto cemi = chain_entity_map.find(chain_id);
+    if (cemi == chain_entity_map.end())
+        return nullptr;
+    const auto ari = all_residues.find(model_num);
+    if (ari == all_residues.end())
+        return nullptr;
+    const auto ci = ari->second.find(chain_id);
+    if (ci == ari->second.end())
+        return nullptr;
+    const ResidueMap& residue_map = ci->second;
+    const string& entity_id = cemi->second;
+    auto rmi = residue_map.find(ResidueKey(entity_id, position, name));
+    if (rmi == residue_map.end())
+        return nullptr;
+    return rmi->second;
+}
+
+inline Residue*
+ExtractMolecule::find_residue(const ChainResidueMap& crm, const ChainID& chain_id, ResidueKey& rk)
+{
+    const auto ci = crm.find(chain_id);
+    if (ci == crm.end())
+        return nullptr;
+    const ResidueMap& residue_map = ci->second;
+    const auto rmi = residue_map.find(rk);
+    if (rmi == residue_map.end())
+        return nullptr;
+    return rmi->second;
 }
 
 const tmpl::Residue*
@@ -638,7 +615,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
 //    Connect bonds in residue according to the given template.  Takes into
 //    account alternate atom locations.
 void
-ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr)
+ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num)
 {
     auto& atoms = r->atoms();
 
@@ -647,7 +624,8 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
         tmpl::Atom *ta = tr->find_atom(a->name());
         if (!ta) {
             if (tr->atoms_map().size() == 0) {
-                if (empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
+                if (model_num == first_model_num
+                && empty_residue_templates.find(r->name()) == empty_residue_templates.end()) {
                     empty_residue_templates.insert(r->name());
                     logger::warning(_logger, "Empty ", r->name(),
                                     " residue template");
@@ -664,9 +642,10 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
             }
             // TODO: worth checking if there is a metal coordination bond?
             if (!connected) {
-                logger::warning(_logger, "Atom ", a->name(),
-                                " is not in the residue template for ",
-                                residue_str(r));
+                if (model_num == first_model_num)
+                    logger::warning(_logger, "Atom ", a->name(),
+                                    " is not in the residue template for ",
+                                    residue_str(r));
                 pdb_connect::connect_residue_by_distance(r);
                 return;
             }
@@ -689,197 +668,137 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
 }
 
 void
-copy_nmr_info(Structure* from, Structure* to, PyObject* _logger)
-{
-    if (from->num_atoms() != to->num_atoms())
-        logger::warning(_logger, "Mismatched number of atoms (",
-            from->num_atoms(), " vs. ", to->num_atoms(), ")");
-    // copy bonds, pseudobonds, secondary structure
-    // -- Assumes atoms were added in the exact same order
-
-    to->metadata = from->metadata;
-
-    // Bonds:
-    auto& bonds = from->bonds();
-    auto& to_atoms = to->atoms();
-    size_t to_size = to_atoms.size();
-    for (auto&& b: bonds) {
-        auto bond_atoms = b->atoms();
-        auto a0_index = bond_atoms[0]->coord_index();
-        auto a1_index = bond_atoms[1]->coord_index();
-        if (a0_index >= to_size || a1_index >= to_size)
-            continue;
-        to->new_bond(to_atoms[a0_index], to_atoms[a1_index]);
-    }
-
-    // Pseudobonds:
-    auto metal_pbg = from->pb_mgr().get_group(from->PBG_METAL_COORDINATION);
-    if (metal_pbg != nullptr) {
-        auto to_pbg = to->pb_mgr().get_group(to->PBG_METAL_COORDINATION,
-            atomstruct::AS_PBManager::GRP_PER_CS);
-        for (auto&& b: metal_pbg->pseudobonds()) {
-            auto bond_atoms = b->atoms();
-            auto a0_index = bond_atoms[0]->coord_index();
-            auto a1_index = bond_atoms[1]->coord_index();
-            if (a0_index >= to_size || a1_index >= to_size)
-                continue;
-            to_pbg->new_pseudobond(to_atoms[a0_index], to_atoms[a1_index]);
-        }
-    }
-    auto hydro_pbg = from->pb_mgr().get_group(from->PBG_HYDROGEN_BONDS);
-    if (hydro_pbg != nullptr) {
-        auto to_pbg = to->pb_mgr().get_group(to->PBG_HYDROGEN_BONDS,
-            atomstruct::AS_PBManager::GRP_PER_CS);
-        for (auto&& b: hydro_pbg->pseudobonds()) {
-            auto bond_atoms = b->atoms();
-            auto a0_index = bond_atoms[0]->coord_index();
-            auto a1_index = bond_atoms[1]->coord_index();
-            if (a0_index >= to_size || a1_index >= to_size)
-                continue;
-            to_pbg->new_pseudobond(to_atoms[a0_index], to_atoms[a1_index]);
-        }
-    }
-
-    // "seqres":
-    auto& info = from->input_seq_info();
-    for (auto& i: info)
-        to->set_input_seq_info(i.first, i.second);
-    to->input_seq_source = from->input_seq_source;
-
-    // Secondary Structure:
-    auto& residues = from->residues();
-    auto& to_residues = to->residues();
-    size_t num_residues = std::min(residues.size(), to_residues.size());
-    for (size_t i = 0; i < num_residues; ++i) {
-        to_residues[i]->set_is_strand(residues[i]->is_strand());
-        to_residues[i]->set_is_helix(residues[i]->is_helix());
-        to_residues[i]->set_ss_id(residues[i]->ss_id());
-    }
-}
-
-void
 ExtractMolecule::finished_parse()
 {
     if (molecules.empty())
         return;
 
-    auto mol = all_residues.begin()->second.begin()->second->structure();
+    for (auto& mi: molecules) {
+        auto model_num = mi.first;
+        auto mol = mi.second;
 
-    // fill in coord set for Monte-Carlo trajectories if necessary
-    if (coordsets && mol->coord_sets().size() > 1) {
-        CoordSet *acs = mol->active_coord_set();
-        const CoordSet *prev_cs = mol->find_coord_set(acs->id() - 1);
-        if (prev_cs != nullptr && acs->coords().size() < prev_cs->coords().size())
-            acs->fill(prev_cs);
-    }
-
-    // connect residues in molecule with all_residues information
-    bool has_ambiguous = false;
-    for (auto&& r : mol->residues()) {
-        auto tr = find_template_residue(r->name());
-        if (tr == nullptr) {
-            logger::warning(_logger, "Missing or invalid residue template for ", residue_str(r));
-            has_ambiguous = true;   // safe to treat as ambiguous
-            pdb_connect::connect_residue_by_distance(r);
-        } else {
-            has_ambiguous = has_ambiguous || tr->pdbx_ambiguous;
-            connect_residue_by_template(r, tr);
+        // fill in coord set for Monte-Carlo trajectories if necessary
+        if (coordsets && mol->coord_sets().size() > 1) {
+            CoordSet *acs = mol->active_coord_set();
+            const CoordSet *prev_cs = mol->find_coord_set(acs->id() - 1);
+            if (prev_cs != nullptr && acs->coords().size() < prev_cs->coords().size())
+                acs->fill(prev_cs);
         }
-    }
 
-    // Connect residues in entity_poly_seq.
-    // Because some positions are heterogeneous, delay connecting
-    // until next group of residues is found.
-    bool no_polymer = true;
-    for (auto& chain: all_residues) {
-        ResidueMap& residue_map = chain.second;
-        auto ri = residue_map.begin();
-        const string& entity_id = ri->first.entity_id;
-        if (poly.find(entity_id) == poly.end())
-            continue;
-        const PolySeq* lastp = nullptr;
-        bool gap = false;
-        vector<Residue*> previous, current;
-        ChainID auth_chain_id;
-        auto& entity_poly = poly.at(entity_id);
-        bool nstd = entity_poly.nstd;
-        vector<ResName> seqres;
-        vector<Residue *> residues;
-        seqres.reserve(entity_poly.seq.size());
-        residues.reserve(entity_poly.seq.size());
-        no_polymer = no_polymer && entity_poly.seq.empty();
-        for (auto& p: entity_poly.seq) {
-            auto ri = residue_map.find(ResidueKey(entity_id, p.seq_id, p.mon_id));
-            if (ri == residue_map.end()) {
-                if (!lastp || lastp->seq_id != p.seq_id) {
-                    // ignore duplicates and microheterogeneity
-                    seqres.push_back(p.mon_id);
-                    residues.push_back(nullptr);
+        // connect residues in molecule with all_residues information
+        bool has_metal = false;
+        for (auto&& r : mol->residues()) {
+            auto tr = find_template_residue(r->name());
+            if (tr == nullptr) {
+                if (model_num == first_model_num) {
+                    logger::warning(_logger, "Missing or invalid residue template for ", residue_str(r));
+                    has_metal = true;   // it's okay to do extra work
                 }
-                if (current.empty())
-                    continue;
-                if (!previous.empty())
-                    connect_polymer_pair(previous[0], current[0], gap, nstd);
-                previous = std::move(current);
-                current.clear();
-                if (!lastp || lastp->seq_id != p.seq_id) {
-                    // microheterogenetity doesn't introduce gaps
-                    gap = true;
-                }
-                lastp = &p;
-                continue;
-            }
-            Residue* r = ri->second;
-            if (auth_chain_id.empty())
-                auth_chain_id = r->chain_id();
-            if (lastp && lastp->seq_id == p.seq_id) {
-                string c_id;
-                if (auth_chain_id == " ")
-                    c_id = "' '";
-                else
-                    c_id = auth_chain_id;
-                if (lastp->hetero)
-                    logger::warning(_logger, "Ignoring microheterogeneity for label_seq_id ",
-                                    p.seq_id, " in chain ", c_id);
-                else
-                    logger::warning(_logger, "Skipping residue with duplicate label_seq_id ",
-                                    p.seq_id, " in chain ", c_id);
-                residue_map.erase(ri);
-                mol->delete_residue(r);
+                pdb_connect::connect_residue_by_distance(r);
             } else {
-                seqres.push_back(p.mon_id);
-                residues.push_back(r);
-                if (!previous.empty() && !current.empty()) {
-                    connect_polymer_pair(previous[0], current[0], gap, nstd);
-                    gap = false;
-                }
-                if (!current.empty()) {
+                has_metal = has_metal || tr->has_metal();
+                connect_residue_by_template(r, tr, model_num);
+            }
+        }
+
+        // Connect residues in entity_poly_seq.
+        // Because some positions are heterogeneous, delay connecting
+        // until next group of residues is found.
+        bool no_polymer = true;
+        for (auto& chain: all_residues[model_num]) {
+            ResidueMap& residue_map = chain.second;
+            auto ri = residue_map.begin();
+            const string& entity_id = ri->first.entity_id;
+            if (poly.find(entity_id) == poly.end())
+                continue;
+            const PolySeq* lastp = nullptr;
+            bool gap = false;
+            vector<Residue*> previous, current;
+            ChainID auth_chain_id;
+            auto& entity_poly = poly.at(entity_id);
+            bool nstd = entity_poly.nstd;
+            vector<ResName> seqres;
+            vector<Residue *> residues;
+            seqres.reserve(entity_poly.seq.size());
+            residues.reserve(entity_poly.seq.size());
+            no_polymer = no_polymer && entity_poly.seq.empty();
+            for (auto& p: entity_poly.seq) {
+                auto ri = residue_map.find(ResidueKey(entity_id, p.seq_id, p.mon_id));
+                if (ri == residue_map.end()) {
+                    if (!lastp || lastp->seq_id != p.seq_id) {
+                        // ignore duplicates and microheterogeneity
+                        seqres.push_back(p.mon_id);
+                        residues.push_back(nullptr);
+                    }
+                    if (current.empty())
+                        continue;
+                    if (!previous.empty())
+                        connect_polymer_pair(previous[0], current[0], gap, nstd);
                     previous = std::move(current);
                     current.clear();
+                    if (!lastp || lastp->seq_id != p.seq_id) {
+                        // microheterogenetity doesn't introduce gaps
+                        gap = true;
+                    }
+                    lastp = &p;
+                    continue;
                 }
-                current.push_back(r);
+                Residue* r = ri->second;
+                if (auth_chain_id.empty())
+                    auth_chain_id = r->chain_id();
+                if (lastp && lastp->seq_id == p.seq_id) {
+                    string c_id;
+                    if (auth_chain_id == " ")
+                        c_id = "' '";
+                    else
+                        c_id = auth_chain_id;
+                    if (model_num == first_model_num) {
+                        if (model_num != first_model_num)
+                            ;  // only warn for first model
+                        else if (lastp->hetero)
+                            logger::warning(_logger, "Ignoring microheterogeneity for label_seq_id ",
+                                            p.seq_id, " in chain ", c_id);
+                        else
+                            logger::warning(_logger, "Skipping residue with duplicate label_seq_id ",
+                                            p.seq_id, " in chain ", c_id);
+                    }
+                    residue_map.erase(ri);
+                    mol->delete_residue(r);
+                } else {
+                    seqres.push_back(p.mon_id);
+                    residues.push_back(r);
+                    if (!previous.empty() && !current.empty()) {
+                        connect_polymer_pair(previous[0], current[0], gap, nstd);
+                        gap = false;
+                    }
+                    if (!current.empty()) {
+                        previous = std::move(current);
+                        current.clear();
+                    }
+                    current.push_back(r);
+                }
+                lastp = &p;
             }
-            lastp = &p;
+            if (!previous.empty() && !current.empty())
+                connect_polymer_pair(previous[0], current[0], gap, nstd);
+            if (has_poly_seq.find(entity_id) == has_poly_seq.end())
+                found_missing_poly_seq = true;
+            else {
+                if (entity_poly.ptype == PolymerType::PT_NONE)
+                    mol->set_input_seq_info(auth_chain_id, seqres);
+                else
+                    mol->set_input_seq_info(auth_chain_id, seqres, &residues, entity_poly.ptype);
+                if (mol->input_seq_source.empty())
+                    mol->input_seq_source = "mmCIF entity_poly_seq table";
+            }
         }
-        if (!previous.empty() && !current.empty())
-            connect_polymer_pair(previous[0], current[0], gap, nstd);
-        if (has_poly_seq.find(entity_id) == has_poly_seq.end())
-            found_missing_poly_seq = true;
-        else {
-            if (entity_poly.ptype == PolymerType::PT_NONE)
-                mol->set_input_seq_info(auth_chain_id, seqres);
-            else
-                mol->set_input_seq_info(auth_chain_id, seqres, &residues, entity_poly.ptype);
-            if (mol->input_seq_source.empty())
-                mol->input_seq_source = "mmCIF entity_poly_seq table";
-        }
+        if (found_missing_poly_seq && !no_polymer && model_num == first_model_num)
+            logger::warning(_logger, "Missing or incomplete entity_poly_seq table.  Inferred polymer connectivity.");
+        if (has_metal)
+            pdb_connect::find_and_add_metal_coordination_bonds(mol);
+        if (found_missing_poly_seq)
+            pdb_connect::find_missing_structure_bonds(mol);
     }
-    if (found_missing_poly_seq && !no_polymer)
-        logger::warning(_logger, "Missing or incomplete entity_poly_seq table.  Inferred polymer connectivity.");
-    if (has_ambiguous)
-        pdb_connect::find_and_add_metal_coordination_bonds(mol);
-    if (found_missing_poly_seq)
-        pdb_connect::find_missing_structure_bonds(mol);
 
     // export mapping of label chain ids to entity ids.
     StringVector chain_mapping;
@@ -897,15 +816,12 @@ ExtractMolecule::finished_parse()
         auto m = im.second;
         all_molecules.push_back(m);
         m->metadata = generic_tables;
-        if (m != mol) {
-            copy_nmr_info(mol, m, _logger);
-        }
         m->use_best_alt_locs();
-        if (m == mol) {
-            // Explicitly creating chains if they don't already exist, so
-            // the right information is copied to subsequent NMR models
-            (void) m->chains();
-        }
+#if 0
+        // Explicitly creating chains if they don't already exist, so
+        // the right information is copied to subsequent NMR models
+        (void) m->chains();
+#endif
     }
     reset_parse();
 }
@@ -930,7 +846,7 @@ ExtractMolecule::parse_entry()
                 entry_id = string(start, end - start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping entry category: ", e.what());
+        logger::warning(_logger, "Skipping entry category: ", e.what());
         return;
     }
     parse_row(pv);
@@ -961,7 +877,7 @@ ExtractMolecule::parse_pdbx_database_PDB_obs_spr()
                 replace_pdb_id = string(start, end - start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping pdbx_database_PDB_obs_spr category: ", e.what());
+        logger::warning(_logger, "Skipping pdbx_database_PDB_obs_spr category: ", e.what());
         return;
     }
 
@@ -969,7 +885,7 @@ ExtractMolecule::parse_pdbx_database_PDB_obs_spr()
         if (id != "OBSLTE")
             continue;
         if (replace_pdb_id == entry_id)
-            logger::warning(_logger, replace_pdb_id, " has been replaced by ",
+            logger::warning(_logger, "PDB entry ", replace_pdb_id, " has been replaced by ",
                          pdb_id);
     }
 }
@@ -1031,7 +947,7 @@ ExtractMolecule::parse_chem_comp()
                 ambiguous = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping chem_comp category: ", e.what());
+        logger::warning(_logger, "Skipping chem_comp category: ", e.what());
         return;
     }
 
@@ -1098,7 +1014,7 @@ ExtractMolecule::parse_chem_comp_bond()
                 aname2 = AtomName(start, end - start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping chem_comp_bond category: ", e.what());
+        logger::warning(_logger, "Skipping chem_comp_bond category: ", e.what());
         return;
     }
     // pretend all atoms are the same element, only need connectivity
@@ -1158,7 +1074,7 @@ ExtractMolecule::parse_audit_conform()
                 dict_version = strtof(start, NULL);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping audit_conform category: ", e.what());
+        logger::warning(_logger, "Skipping audit_conform category: ", e.what());
         return;
     }
     parse_row(pv);
@@ -1167,6 +1083,7 @@ ExtractMolecule::parse_audit_conform()
         guess_fixed_width_categories = true;
     }
 }
+
 void
 ExtractMolecule::parse_audit_syntax()
 {
@@ -1196,7 +1113,7 @@ ExtractMolecule::parse_audit_syntax()
                 }
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping audit_syntax category: ", e.what());
+        logger::warning(_logger, "Skipping audit_syntax category: ", e.what());
         return;
     }
     parse_row(pv);
@@ -1246,6 +1163,8 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("label_entity_id"),
             [&] (const char* start, const char* end) {
                 entity_id = string(start, end - start);
+                if (entity_id.size() == 1 && (*start == '.' || *start == '?'))
+                    entity_id.clear();
             });
 
         pv.emplace_back(get_column("label_asym_id", Required),
@@ -1255,7 +1174,7 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("auth_asym_id"),
             [&] (const char* start, const char* end) {
                 auth_chain_id = ChainID(start, end - start);
-                if (auth_chain_id == "." || auth_chain_id == "?")
+                if (auth_chain_id.size() == 1 && (*start == '.' || *start == '?'))
                     auth_chain_id.clear();
             });
         pv.emplace_back(get_column("pdbx_PDB_ins_code"),
@@ -1312,7 +1231,7 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("auth_atom_id"),
             [&] (const char* start, const char* end) {
                 auth_atom_name = AtomName(start, end - start);
-                if (auth_atom_name == "." || auth_atom_name == "?")
+                if (auth_atoms_name.size() == 1 && (*start == '.' || *start == '?'))
                     auth_atom_name.clear();
             });
 #endif
@@ -1323,7 +1242,7 @@ ExtractMolecule::parse_atom_site()
         pv.emplace_back(get_column("auth_comp_id"),
             [&] (const char* start, const char* end) {
                 auth_residue_name = ResName(start, end - start);
-                if (auth_residue_name == "." || auth_residue_name == "?")
+                if (auth_residue_name.size() == 1 && (*start == '.' || *start == '?'))
                     auth_residue_name.clear();
             });
         // x, y, z are not required by mmCIF, but are by us
@@ -1358,7 +1277,7 @@ ExtractMolecule::parse_atom_site()
                 model_num = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping atom_site category: ", e.what());
+        logger::warning(_logger, "Skipping atom_site category: ", e.what());
         return;
     }
 
@@ -1373,8 +1292,8 @@ ExtractMolecule::parse_atom_site()
     ChainID cur_chain_id;
     ResName cur_comp_id;
     bool missing_seq_id_warning = false;
+    bool missing_entity_id_warning = false;
     for (;;) {
-        entity_id.clear();
         if (!parse_row(pv))
             break;
         if (model_num != cur_model_num) {
@@ -1415,6 +1334,15 @@ ExtractMolecule::parse_atom_site()
             }
         }
 
+        bool missing_entity_id = entity_id.empty();
+        if (missing_entity_id)
+            entity_id = chain_id;  // no entity_id, use chain id
+        bool missing_position = position == 0;
+        if (missing_position)
+            position = auth_position;
+        if (auth_position == INT_MAX)
+            auth_position = position;
+
         if (cur_residue == nullptr
         || cur_entity_id != entity_id
         || cur_seq_id != position
@@ -1423,7 +1351,6 @@ ExtractMolecule::parse_atom_site()
         || cur_comp_id != residue_name) {
             ResName rname;
             ChainID cid;
-            long pos;
             if (!auth_residue_name.empty())
                 rname = auth_residue_name;
             else
@@ -1440,13 +1367,9 @@ ExtractMolecule::parse_atom_site()
                     }
                 }
             }
-            if (auth_position != INT_MAX)
-                pos = auth_position;
-            else
-                pos = position;
             bool make_new_residue = true;
             if (coordsets) {
-                auto& res_map = all_residues[chain_id];
+                auto& res_map = all_residues[model_num][chain_id];
                 if (!res_map.empty()) {
                     auto ri = res_map.find(ResidueKey(entity_id, position, residue_name));
                     if (ri != res_map.end()) {
@@ -1456,7 +1379,7 @@ ExtractMolecule::parse_atom_site()
                 }
             }
             if (make_new_residue) {
-                cur_residue = mol->new_residue(rname, cid, pos, ins_code);
+                cur_residue = mol->new_residue(rname, cid, auth_position, ins_code);
                 cur_residue->set_mmcif_chain_id(chain_id);
             }
             cur_entity_id = entity_id;
@@ -1464,13 +1387,11 @@ ExtractMolecule::parse_atom_site()
             cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
-            if (entity_id.empty())
-                entity_id = cid.c_str();  // no entity_id, use chain id
             if (has_poly_seq.find(entity_id) == has_poly_seq.end()) {
                 auto tr = find_template_residue(residue_name);
                 if (tr && !tr->description().empty()) {
                     // only save polymer residues
-                    if (position == 0) {
+                    if (missing_position) {
                         if (!missing_seq_id_warning) {
                             logger::warning(_logger, "Unable to infer polymer connectivity due to "
                                             "unspecified label_seq_id for residue \"",
@@ -1479,8 +1400,16 @@ ExtractMolecule::parse_atom_site()
                         }
                     } else {
                         if (poly.find(entity_id) == poly.end()) {
-                            logger::warning(_logger, "Unknown polymer entity '", entity_id,
-                                            "' near line ", line_number());
+                            if (missing_entity_id) {
+                                if (!missing_entity_id_warning) {
+                                    logger::warning(_logger, "Missing entity information.  "
+                                                    "Treating each chain as a separate entity.");
+                                    missing_entity_id_warning = true;
+                                }
+                            } else {
+                                logger::warning(_logger, "Unknown polymer entity '", entity_id,
+                                                "' near line ", line_number());
+                            }
                             // fake polymer entity to cut down on secondary warnings
                             poly.emplace(entity_id, false);
                         }
@@ -1501,10 +1430,8 @@ ExtractMolecule::parse_atom_site()
                 }
             }
             chain_entity_map[chain_id] = entity_id;
-            if (model_num == first_model_num) {
-                all_residues[chain_id]
-                    [ResidueKey(entity_id, position, residue_name)] = cur_residue;
-            }
+            all_residues[model_num][chain_id]
+                [ResidueKey(entity_id, position, residue_name)] = cur_residue;
         }
 
         if (std::isnan(x) || std::isnan(y) || std::isnan(z)) {
@@ -1532,11 +1459,6 @@ ExtractMolecule::parse_atom_site()
             cur_residue->add_atom(a);
             if (alt_id)
                 a->set_alt_loc(alt_id, true);
-            if (model_num == first_model_num) {
-                AtomKey k(chain_id, position, auth_position, ins_code, alt_id,
-                        atom_name, residue_name);
-                atom_map[k] = a;
-            }
             if (serial_num)
                 atom_serial = serial_num;
             else
@@ -1596,7 +1518,7 @@ ExtractMolecule::parse_atom_site_anisotrop()
                 u33 = readcif::str_to_float(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping atom_site_anistrop category: ", e.what());
+        logger::warning(_logger, "Skipping atom_site_anistrop category: ", e.what());
         return;
     }
 
@@ -1627,25 +1549,29 @@ ExtractMolecule::parse_struct_conn()
     #define AUTH_SEQ_ID "_auth_seq_id"
     #define ATOM_ID "_label_atom_id"
     #define ALT_ID "_label_alt_id" // pdbx
-    #define INS_CODE "_PDB_ins_code" // pdbx
     #define SYMMETRY "_symmetry"
 
     // bonds from struct_conn records
     ChainID chain_id1, chain_id2;           // ptnr[12]_label_asym_id
     long position1, position2;              // ptnr[12]_label_seq_id
-    long auth_position1 = INT_MAX,
-         auth_position2 = INT_MAX;          // ptnr[12]_auth_seq_id
-    char ins_code1 = ' ', ins_code2 = ' ';  // pdbx_ptnr[12]_PDB_ins_code
-    char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptnr[12]_label_alt_id
+    long auth_position1 = INT_MAX,          // ptnr1_auth_seq_id
+         auth_position2 = INT_MAX;          // ptnr2_auth_seq_id
+    //char alt_id1 = '\0', alt_id2 = '\0';    // pdbx_ptnr[12]_label_alt_id
     AtomName atom_name1, atom_name2;        // ptnr[12]_label_atom_id
     ResName residue_name1, residue_name2;   // ptnr[12]_label_comp_id
+    string conn_id("(missing id)");         // id
     string conn_type;                       // conn_type_id
     string symmetry1, symmetry2;            // ptnr[12]_symmetry
     float distance = std::numeric_limits<float>::quiet_NaN();  // pdbx_dist_value
+    std::set<std::pair<Atom*, Atom*>>   metal_bonds, hydrogen_bonds;
 
     CIFFile::ParseValues pv;
     pv.reserve(32);
     try {
+        pv.emplace_back(get_column("id"),
+            [&] (const char* start, const char* end) {
+                conn_id = string(start, end - start);
+            });
         pv.emplace_back(get_column("conn_type_id", Required),
             [&] (const char* start, const char* end) {
                 conn_type = string(start, end - start);
@@ -1654,19 +1580,9 @@ ExtractMolecule::parse_struct_conn()
                         c = tolower(c);
                 }
             });
-
         pv.emplace_back(get_column(P1 ASYM_ID, Required),
             [&] (const char* start, const char* end) {
                 chain_id1 = ChainID(start, end - start);
-            });
-        pv.emplace_back(get_column("pdbx_" P1 INS_CODE),
-            [&] (const char* start, const char* end) {
-                if (end == start + 1 && (*start == '.' || *start == '?'))
-                    ins_code1 = ' ';
-                else {
-                    // TODO: check if more than one character
-                    ins_code1 = *start;
-                }
             });
         pv.emplace_back(get_column(P1 SEQ_ID, Required),
             [&] (const char* start) {
@@ -1679,6 +1595,7 @@ ExtractMolecule::parse_struct_conn()
                 else
                     auth_position1 = readcif::str_to_int(start);
             });
+#if 0
         pv.emplace_back(get_column("pdbx_" P1 ALT_ID),
             [&] (const char* start, const char* end) {
                 if (end == start + 1
@@ -1689,6 +1606,7 @@ ExtractMolecule::parse_struct_conn()
                     alt_id1 = *start;
                 }
             });
+#endif
         pv.emplace_back(get_column(P1 ATOM_ID, Required),
             [&] (const char* start, const char* end) {
                 atom_name1 = AtomName(start, end - start);
@@ -1706,15 +1624,6 @@ ExtractMolecule::parse_struct_conn()
             [&] (const char* start, const char* end) {
                 chain_id2 = ChainID(start, end - start);
             });
-        pv.emplace_back(get_column("pdbx_" P2 INS_CODE),
-            [&] (const char* start, const char* end) {
-                if (end == start + 1 && (*start == '.' || *start == '?'))
-                    ins_code2 = ' ';
-                else {
-                    // TODO: check if more than one character
-                    ins_code2 = *start;
-                }
-            });
         pv.emplace_back(get_column(P2 SEQ_ID, Required),
             [&] (const char* start) {
                 position2 = readcif::str_to_int(start);
@@ -1726,6 +1635,7 @@ ExtractMolecule::parse_struct_conn()
                 else
                     auth_position2 = readcif::str_to_int(start);
             });
+#if 0
         pv.emplace_back(get_column("pdbx_" P2 ALT_ID),
             [&] (const char* start, const char* end) {
                 if (end == start + 1
@@ -1736,6 +1646,7 @@ ExtractMolecule::parse_struct_conn()
                     alt_id2 = *start;
                 }
             });
+#endif
         pv.emplace_back(get_column(P2 ATOM_ID, Required),
             [&] (const char* start, const char* end) {
                 atom_name2 = AtomName(start, end - start);
@@ -1753,15 +1664,17 @@ ExtractMolecule::parse_struct_conn()
                 distance = readcif::str_to_float(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_conn category: ", e.what());
+        logger::warning(_logger, "Skipping struct_conn category: ", e.what());
         return;
     }
 
+#if 0
+    // now need one per model_num
     atomstruct::Proxy_PBGroup* metal_pbg = nullptr;
     atomstruct::Proxy_PBGroup* hydro_pbg = nullptr;
     atomstruct::Proxy_PBGroup* missing_pbg = nullptr;
+#endif
     // connect residues in molecule with all_residues information
-    auto mol = all_residues.begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
         if (symmetry1 != symmetry2)
             continue;
@@ -1779,48 +1692,93 @@ ExtractMolecule::parse_struct_conn()
             metal = true;
         if (!normal && !metal && !hydro)
             continue;   // skip modres and unknown connection types
-        AtomKey k1(chain_id1, position1, auth_position1, ins_code1, alt_id1,
-                atom_name1, residue_name1);
-        auto ai1 = atom_map.find(k1);
-        if (ai1 == atom_map.end())
+        auto cemi = chain_entity_map.find(chain_id1);
+        if (cemi == chain_entity_map.end())
             continue;
-        AtomKey k2(chain_id2, position2, auth_position2, ins_code2, alt_id2,
-                atom_name2, residue_name2);
-        auto ai2 = atom_map.find(k2);
-        if (ai2 == atom_map.end())
+        if (position1 == 0)
+            position1 = auth_position1;
+        if (position2 == 0)
+            position2 = auth_position2;
+        auto entity1 = cemi->second;
+        ResidueKey rk1(entity1, position1, residue_name1);
+        cemi = chain_entity_map.find(chain_id2);
+        if (cemi == chain_entity_map.end())
             continue;
-        Atom* a1 = ai1->second;
-        Atom* a2 = ai2->second;
-        if (metal) {
-            if (metal_pbg == nullptr)
-                metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
-                    atomstruct::AS_PBManager::GRP_PER_CS);
-            for (auto& cs: mol->coord_sets()) {
-                metal_pbg->new_pseudobond(a1, a2, cs);
+        auto entity2 = cemi->second;
+        ResidueKey rk2(entity2, position2, residue_name2);
+        for (auto& mi: molecules) {
+            auto model_num = mi.first;
+            auto mol = mi.second;
+            auto ari = all_residues.find(model_num);
+            if (ari == all_residues.end())
+                continue;
+            auto& crm = ari->second;
+            Residue* r1 = find_residue(crm, chain_id1, rk1);
+            if (!r1) {
+                logger::warning(_logger, "Missing first residue in struct_conn \"",
+                                conn_id, "\"");
+                continue;
             }
-            continue;
-        }
-        if (hydro) {
-            if (hydro_pbg == nullptr)
-                hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
-                    atomstruct::AS_PBManager::GRP_PER_CS);
-            for (auto& cs: mol->coord_sets()) {
-                hydro_pbg->new_pseudobond(a1, a2, cs);
+            Atom* a1 = r1->find_atom(atom_name1);
+            if (!a1) {
+                logger::warning(_logger, "Missing first atom in struct_conn \"",
+                                conn_id, "\"");
+                continue;
             }
-            continue;
-        }
-        if (!reasonable_bond_length(a1, a2, distance)) {
-            if (missing_pbg == nullptr)
-                missing_pbg = mol->pb_mgr().get_group(
-                    mol->PBG_MISSING_STRUCTURE,
-                    atomstruct::AS_PBManager::GRP_NORMAL);
-            missing_pbg->new_pseudobond(a1, a2);
-            continue;
-        }
-        try {
-            mol->new_bond(a1, a2);
-        } catch (std::invalid_argument&) {
-            // already bonded
+            Residue* r2 = find_residue(crm, chain_id2, rk2);
+            if (!r2) {
+                logger::warning(_logger, "Missing second residue in struct_conn \"",
+                                conn_id, "\"");
+                continue;
+            }
+            Atom* a2 = r2->find_atom(atom_name2);
+            if (!a2) {
+                logger::warning(_logger, "Missing second atom in struct_conn \"",
+                                conn_id, "\"");
+                continue;
+            }
+            if (metal) {
+                // make sure only once metal coordination bond is created between atoms
+                if (a2 < a1)
+                    std::swap(a1, a2);
+                auto key = std::make_pair(a1, a2);
+                if (metal_bonds.find(key) != metal_bonds.end())
+                    continue;  // might be connected to alternate position
+                auto metal_pbg = mol->pb_mgr().get_group(mol->PBG_METAL_COORDINATION,
+                        atomstruct::AS_PBManager::GRP_PER_CS);
+                for (auto& cs: mol->coord_sets()) {
+                    metal_pbg->new_pseudobond(a1, a2, cs);
+                }
+                metal_bonds.insert(key);
+                continue;
+            }
+            if (hydro) {
+                // make sure only once hydrogen bond is created between atoms
+                if (a2 < a1)
+                    std::swap(a1, a2);
+                auto key = std::make_pair(a1, a2);
+                if (hydrogen_bonds.find(key) != hydrogen_bonds.end())
+                    continue;  // might be connected to alternate position
+                auto hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
+                        atomstruct::AS_PBManager::GRP_PER_CS);
+                for (auto& cs: mol->coord_sets()) {
+                    hydro_pbg->new_pseudobond(a1, a2, cs);
+                }
+                hydrogen_bonds.insert(key);
+                continue;
+            }
+            if (!reasonable_bond_length(a1, a2, distance)) {
+                auto missing_pbg = mol->pb_mgr().get_group(
+                        mol->PBG_MISSING_STRUCTURE,
+                        atomstruct::AS_PBManager::GRP_NORMAL);
+                missing_pbg->new_pseudobond(a1, a2);
+                continue;
+            }
+            try {
+                mol->new_bond(a1, a2);
+            } catch (std::invalid_argument&) {
+                // already bonded, might be connected to alternate position
+            }
         }
     }
     #undef P1
@@ -1891,7 +1849,7 @@ ExtractMolecule::parse_struct_conf()
                 position2 = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_conf category: ", e.what());
+        logger::warning(_logger, "Skipping struct_conf category: ", e.what());
         return;
     }
 
@@ -1910,8 +1868,7 @@ ExtractMolecule::parse_struct_conf()
         if (conf_type.empty())
             continue;
         if (chain_id1 != chain_id2) {
-            logger::warning(_logger, "Start and end residues of secondary"
-                          " structure \"", id,
+            logger::warning(_logger, "Start and end residues of struct_conf \"", id,
                           "\" are in different chains near line ", line_number());
             continue;
         }
@@ -1935,27 +1892,26 @@ ExtractMolecule::parse_struct_conf()
             }
         }
 
-        auto ari = all_residues.find(chain_id1);
-        if (ari == all_residues.end()) {
-            logger::warning(_logger, "Invalid residue range for secondary"
-                            " structure \"", id, "\": invalid chain \"",
-                            chain_id1, "\", near line ", line_number());
+        auto ari = all_residues[first_model_num].find(chain_id1);
+        if (ari == all_residues[first_model_num].end()) {
+            logger::warning(_logger, "Invalid residue range for struct_conf \"",
+                            id, "\": invalid chain \"", chain_id1,
+                            "\", near line ", line_number());
             continue;
         }
-        const ResidueMap& residue_map = ari->second;
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end()) {
-            logger::warning(_logger, "Invalid residue range for secondary",
-                            " structure \"", id, "\": invalid chain \"",
-                            chain_id1, "\", near line ", line_number());
+            logger::warning(_logger, "Invalid residue range for struct_conf \"",
+                            id, "\": invalid chain \"", chain_id1,
+                            "\", near line ", line_number());
             continue;
         }
         string entity_id = cemi->second;
         auto psi = poly.find(entity_id);
         if (psi == poly.end()) {
-            logger::warning(_logger, "Invalid residue range for secondary",
-                            " structure \"", id, "\": invalid entity \"",
-                            entity_id, "\", near line ", line_number());
+            logger::warning(_logger, "Invalid residue range for struct_conf \"",
+                            id, "\": invalid entity \"", entity_id,
+                            "\", near line ", line_number());
             continue;
         }
         auto& entity_poly_seq = psi->second.seq;
@@ -1963,8 +1919,8 @@ ExtractMolecule::parse_struct_conf()
         auto init_ps_key = PolySeq(position1, residue_name1, false);
         auto end_ps_key = PolySeq(position2, residue_name2, false);
         if (end_ps_key < init_ps_key) {
-            logger::warning(_logger, "Invalid sheet range for secondary",
-                            " structure \"", id, "\": ends before it starts"
+            logger::warning(_logger, "Invalid sheet range for struct_conf \"",
+                            id, "\": ends before it starts"
                             ", near line ", line_number());
             continue;
         }
@@ -1973,26 +1929,37 @@ ExtractMolecule::parse_struct_conf()
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end()) {}
             logger::warning(_logger,
-                            "Bad residue range for secondary structure \"", id,
+                            "Bad residue range for struct_conf \"", id,
                             "\" near line ", line_number());
             continue;
         }
-        for (auto pi = init_ps; pi != end_ps; ++pi) {
-            auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
-                                                  pi->mon_id));
-            if (ri == residue_map.end())
+        for (auto& mi: molecules) {
+            auto model_num = mi.first;
+            auto ari = all_residues.find(model_num);
+            if (ari == all_residues.end())
                 continue;
-            Residue *r = ri->second;
-            if (is_helix) {
-                r->set_is_helix(true);
-                r->set_ss_id(helix_id);
-            } else {
-                if (chain_id1 != last_chain_id) {
-                    strand_id = 1;
-                    last_chain_id = chain_id1;
+            auto& crm = ari->second;
+            const auto& crmi = crm.find(chain_id1);
+            if (crmi == crm.end())
+                continue;
+            const ResidueMap& residue_map = crmi->second;
+            for (auto pi = init_ps; pi != end_ps; ++pi) {
+                auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
+                                                      pi->mon_id));
+                if (ri == residue_map.end())
+                    continue;
+                Residue *r = ri->second;
+                if (is_helix) {
+                    r->set_is_helix(true);
+                    r->set_ss_id(helix_id);
+                } else {
+                    if (chain_id1 != last_chain_id) {
+                        strand_id = 1;
+                        last_chain_id = chain_id1;
+                    }
+                    r->set_is_strand(true);
+                    r->set_ss_id(strand_id);
                 }
-                r->set_is_strand(true);
-                r->set_ss_id(strand_id);
             }
         }
     }
@@ -2012,9 +1979,9 @@ ExtractMolecule::parse_struct_sheet_range()
     #define SEQ_ID "_label_seq_id"
     string sheet_id;                        // sheet_id
     string id;                              // id
-    ChainID chain_id1, chain_id2;            // (beg|end)_label_asym_id
+    ChainID chain_id1, chain_id2;           // (beg|end)_label_asym_id
     long position1, position2;              // (beg|end)_label_seq_id
-    ResName residue_name1, residue_name2;    // (beg|end)_label_comp_id
+    ResName residue_name1, residue_name2;   // (beg|end)_label_comp_id
 
     CIFFile::ParseValues pv;
     pv.reserve(14);
@@ -2054,7 +2021,7 @@ ExtractMolecule::parse_struct_sheet_range()
                 position2 = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_sheet_range category: ", e.what());
+        logger::warning(_logger, "Skipping struct_sheet_range category: ", e.what());
         return;
     }
 
@@ -2068,23 +2035,22 @@ ExtractMolecule::parse_struct_sheet_range()
     map<ChainID, int> strand_ids;
     while (parse_row(pv)) {
         if (chain_id1 != chain_id2) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": different chains"
                             ", near line ", line_number());
             continue;
         }
 
-        auto ari = all_residues.find(chain_id1);
-        if (ari == all_residues.end()) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+        auto ari = all_residues[first_model_num].find(chain_id1);
+        if (ari == all_residues[first_model_num].end()) {
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid chain \"",
                             chain_id1, "\", near line ", line_number());
             continue;
         }
-        const ResidueMap& residue_map = ari->second;
         auto cemi = chain_entity_map.find(chain_id1);
         if (cemi == chain_entity_map.end()) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid chain \"",
                             chain_id1, "\", near line ", line_number());
             continue;
@@ -2092,7 +2058,7 @@ ExtractMolecule::parse_struct_sheet_range()
         string entity_id = cemi->second;
         auto psi = poly.find(entity_id);
         if (psi == poly.end()) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": invalid entity \"",
                             entity_id, "\", near line ", line_number());
             continue;
@@ -2102,7 +2068,7 @@ ExtractMolecule::parse_struct_sheet_range()
         auto init_ps_key = PolySeq(position1, residue_name1, false);
         auto end_ps_key = PolySeq(position2, residue_name2, false);
         if (end_ps_key < init_ps_key) {
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\": ends before it starts"
                             ", near line ", line_number());
             continue;
@@ -2111,7 +2077,7 @@ ExtractMolecule::parse_struct_sheet_range()
         auto end_ps = entity_poly_seq.upper_bound(end_ps_key);
         if (init_ps == entity_poly_seq.end()) {
         // TODO: || end_ps == entity_poly_seq.end())
-            logger::warning(_logger, "Invalid sheet range for strand \"",
+            logger::warning(_logger, "Invalid sheet range for struct_sheet_range \"",
                             sheet_id, ' ', id, "\" near line ", line_number());
             continue;
         }
@@ -2127,46 +2093,37 @@ ExtractMolecule::parse_struct_sheet_range()
         } else {
             strand_id = ++(si->second);
         }
-        for (auto pi = init_ps; pi != end_ps; ++pi) {
-            auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
-                                                  pi->mon_id));
-            if (ri == residue_map.end()) {
-#ifdef SHEET_HBONDS
-                sheet_residues.push_back(nullptr);
-#endif
+        for (auto& mi: molecules) {
+            auto model_num = mi.first;
+            auto ari = all_residues.find(model_num);
+            if (ari == all_residues.end())
                 continue;
-            }
-            Residue *r = ri->second;
-            r->set_is_strand(true);
-            r->set_ss_id(strand_id);
+            auto& crm = ari->second;
+            const auto& crmi = crm.find(chain_id1);
+            if (crmi == crm.end())
+                continue;
+            const ResidueMap& residue_map = crmi->second;
+            for (auto pi = init_ps; pi != end_ps; ++pi) {
+                auto ri = residue_map.find(ResidueKey(entity_id, pi->seq_id,
+                                                      pi->mon_id));
+                if (ri == residue_map.end()) {
 #ifdef SHEET_HBONDS
-            sheet_residues.push_back(r);
+                    sheet_residues.push_back(nullptr);
 #endif
+                    continue;
+                }
+                Residue *r = ri->second;
+                r->set_is_strand(true);
+                r->set_ss_id(strand_id);
+#ifdef SHEET_HBONDS
+                sheet_residues.push_back(r);
+#endif
+            }
         }
     }
 }
 
 #ifdef SHEET_HBONDS
-Residue*
-ExtractMolecule::find_residue(const ChainID& chain_id, long position, const ResName& name) {
-    // Document all of the steps to find a Residue given its
-    // asym_id, seq_id, comp_id values.
-    // Typically, all_residues and the entity_id are predetermined
-    // and don't need to be recomputed each time.
-    auto ari = all_residues.find(chain_id);
-    if (ari == all_residues.end())
-        return nullptr;
-    const ResidueMap& residue_map = ari->second;
-    auto cemi = chain_entity_map.find(chain_id);
-    if (cemi == chain_entity_map.end())
-        return nullptr;
-    const string& entity_id = cemi->second;
-    auto ri = residue_map.find(ResidueKey(entity_id, position, name));
-    if (ri == residue_map.end())
-        return nullptr;
-    return ri->second;
-}
-
 void
 ExtractMolecule::parse_struct_sheet_order()
 {
@@ -2198,7 +2155,7 @@ ExtractMolecule::parse_struct_sheet_order()
                 }
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping struct_sheet_range category: ", e.what());
+        logger::warning(_logger, "Skipping struct_sheet_range category: ", e.what());
         return;
     }
 
@@ -2277,7 +2234,7 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
                 position2 = readcif::str_to_int(start);
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping pdbx_struct_sheet_hbond category: ", e.what());
+        logger::warning(_logger, "Skipping pdbx_struct_sheet_hbond category: ", e.what());
         return;
     }
     #undef RANGE1
@@ -2290,7 +2247,8 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
     static AtomName xray_atom_names[2] = { "O", "N" };
     static AtomName nmr_atom_names[2] = { "O", "H" };
     atomstruct::Proxy_PBGroup* hydro_pbg = nullptr;
-    auto mol = all_residues.begin()->second.begin()->second->structure();
+    // TODO: all models
+    auto mol = all_residues[first_model_num].begin()->second.begin()->second->structure();
     while (parse_row(pv)) {
         if (hydro_pbg == nullptr)
             hydro_pbg = mol->pb_mgr().get_group(mol->PBG_HYDROGEN_BONDS,
@@ -2368,7 +2326,7 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
             auto i1 = std::find(strand1.rbegin(), strand1.rend(), r1);
             auto i2 = std::find(strand2.begin(), strand2.end(), r2);
             logger::info(_logger, "pdbx_stuct_sheet_hbond: lengths ", std::distance(i1, strand1.rend()),
-                         ' ',  std::distance(i2, strand2.end()));
+                         ' ', std::distance(i2, strand2.end()));
             while (i1 != strand1.rend() && i2 != strand2.end()) {
                 Residue* r1 = *i1;
                 Residue* r2 = *i2;
@@ -2435,7 +2393,7 @@ ExtractMolecule::parse_entity_poly()
                 nstd_monomer = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping entity_poly category: ", e.what());
+        logger::warning(_logger, "Skipping entity_poly category: ", e.what());
         return;
     }
 
@@ -2491,7 +2449,7 @@ ExtractMolecule::parse_entity_poly_seq()
                 hetero = *start == 'Y' || *start == 'y';
             });
     } catch (std::runtime_error& e) {
-        logger::warning(_logger, "skipping entity_poly_seq category: ", e.what());
+        logger::warning(_logger, "Skipping entity_poly_seq category: ", e.what());
         return;
     }
 

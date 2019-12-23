@@ -11,6 +11,7 @@ var vdxplot = function() {
     var plot = null;
 
     function update_columns(new_columns) {
+        // console.log("update_columns");
         columns = new_columns;
         text = columns["text"];
         numeric = columns["numeric"];
@@ -23,16 +24,9 @@ var vdxplot = function() {
 
         // Clear out the table and fill in with text
         // then numeric column names
-        $("#column_table").empty()
-            .append($("<col/>"), $("<col/>"))
-            .append($("<tr/>").append(
-                $("<th>/>").text("Column"),
-                $("<th>/>").text("Value")));
+        var rows = [];
         $.each(text, function(r, v) {
-            $("#column_table").append($("<tr/>").append(
-                                        $("<td/>").text(r),
-                                        $("<td/>").addClass("value")
-                                                  .prop("title", r)))
+            rows.push({"column_name": r, "type": "text"});
         });
         for (var i = 1; i < 3; i++) {
             $("#xaxis" + i).children().remove();
@@ -40,10 +34,7 @@ var vdxplot = function() {
         }
         var labels = [];
         $.each(numeric, function(r, v) {
-            $("#column_table").append($("<tr/>").append(
-                                        $("<td/>").text(r),
-                                        $("<td/>").addClass("value")
-                                                  .prop("title", r)));
+            rows.push({"column_name": r, "type": "numeric"})
             labels.push(r);
             for (var i = 1; i < 3; i++) {
                 $("#xaxis" + i).append($("<option/>").prop("value", r)
@@ -56,11 +47,12 @@ var vdxplot = function() {
         $("#yaxis1").val(labels[Math.min(1, labels.length - 1)]);
         $("#xaxis2").val(labels[0]);
         $("#yaxis2").val(labels[Math.min(2, labels.length - 1)]);
-
-        update_plot();
+        $("#column_table").bootgrid("clear")
+                          .bootgrid("append", rows);
     }
 
     function update_plot() {
+        // console.log("update_plot");
         // Get order of compounds based on sort column
         var series = [];
         for (var i = 1; i < 3; i++)
@@ -100,6 +92,7 @@ var vdxplot = function() {
     }
 
     function plot_click(event, pos, item) {
+        // console.log("plot_click");
         if (sweep_select || item == null)
             return;
         var raw_index = item.dataIndex;
@@ -142,19 +135,19 @@ var vdxplot = function() {
             tooltip_shown = true;
 
             // Show data values in control table
-            $(".value").each(function() {
-                var column_name = this.title;
-                var value = "";
-                if (column_name in numeric)
-                    value = numeric[column_name][raw_index];
-                else if (column_name in text)
-                    value = text[column_name][raw_index];
-                this.textContent = value;
+            $(".column_value").each(function(index) {
+                var column_name = $(this).attr("name");
+                var container = numeric[column_name];
+                if (container == null)
+                    container = text[column_name];
+                var value = container[raw_index];
+                $(this).text(value).prop("title", value);
             });
         }
     }
 
     function plot_selected(e, ranges) {
+        // console.log("plot_selected");
         sweep_select = true;
         var series = plot.getData();
         var selected = {}
@@ -192,15 +185,20 @@ var vdxplot = function() {
     }
 
     function update_display(new_display) {
+        // console.log("update_display");
         // Update internal display state
-        $.each(new_display, function () {
-            display[id2index[this[0]]] = this[1];
-        });
+        for (var i = 0; i < new_display.length; i++) {
+            var index = new_display[i][0];
+            var shown = new_display[i][1];
+            display[id2index[index]] = shown;
+            // console.log("update_display: " + index + " " + shown);
+        }
         if (plot)
             redraw_highlights(plot);
     }
 
     function redraw_highlights(plot) {
+        // console.log("redraw_highlights");
         // Highlight displayed models
         var series = plot.getData();
         var num_series = series.length;
@@ -212,6 +210,21 @@ var vdxplot = function() {
             }
         });
     }
+
+    var bootgrid_options = {
+        navigation: 0,
+        selection: false,
+        rowSelect: false,
+        multiSelect: false,
+        caseSenstive: false,
+        rowCount: -1,
+        formatters: {
+            "value": function(column, row) {
+                return '<span class="column_value"' +
+                       ' name="' + row.column_name + '"></span>';
+            },
+        },
+    };
 
     function init() {
         var opts = {
@@ -252,6 +265,10 @@ var vdxplot = function() {
         $(".series").click(update_plot);
         $(".xaxis").change(update_plot);
         $(".yaxis").click(update_plot);
+        $("#column_table").on("loaded.rs.jquery.bootgrid", function(ev) {
+                                update_plot();
+                           })
+                          .bootgrid(bootgrid_options);
     }
 
     function get_state() {

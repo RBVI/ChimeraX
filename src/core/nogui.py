@@ -213,8 +213,7 @@ class _Input(Task):
         try:
             self._cmd.run(text)
         except errors.NotABug as err:
-            # NotABug and subclasses are already logged
-            pass
+            logger.error(str(err))
         except Exception:
             logger.error("\nUnexpected exception, save your work and exit:\n")
             import traceback

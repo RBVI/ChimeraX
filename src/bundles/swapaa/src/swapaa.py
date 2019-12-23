@@ -164,4 +164,4 @@ def register_swapaa_command(logger):
                     ('restype', AminoAcidArg),],
         synopsis = 'Replace residue with specified amino acid'
     )
-    register('swapaa', desc, swapaa, logger=logger)
+    register('swapaa mousemode', desc, swapaa, logger=logger)

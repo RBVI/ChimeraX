@@ -292,20 +292,31 @@ def _report_difference(logger, before, after):
             bundles[bi.name] = [None, bi.version]
         else:
             versions[1] = bi.version
+    changes = {}
+    def add_change(kind, name, version):
+        try:
+            d = changes[kind]
+        except KeyError:
+            d = changes[kind] = {}
+        d[name] = version
     messages = []
     for name in sorted(bundles.keys()):
         versions = bundles[name]
         if versions[0] is None:
             messages.append("Installed %s (%s)" % (name, versions[1]))
+            add_change("installed", name, versions[1])
         elif versions[1] is None:
             messages.append("Removed %s (%s)" % (name, versions[0]))
+            add_change("removed", name, versions[0])
         elif versions[0] != versions[1]:
             messages.append("Updated %s (from %s to %s)"
                             % (name, versions[0], versions[1]))
+            add_change("updated", name, versions[1])
     if messages:
         logger.info('\n'.join(messages))
     else:
         logger.info("No change in list of installed bundles")
+    return changes
 
 
 #
@@ -316,8 +327,13 @@ def _report_difference(logger, before, after):
 def _make_bundle_info(d, installed, logger):
     """Convert distribution into a list of :py:class:`BundleInfo` instances."""
     from .info import BundleInfo, ToolInfo, CommandInfo, SelectorInfo, FormatInfo
+    from ..commands import unescape
     import pkginfo
     name = d.project_name
+    if not name[0].isalpha():
+        # pip uninstall renames package ChimeraX-XXX to ~himeraX-XXX,
+        # which we somehow translate to -himeraX-XXX.
+        return None
     version = d.version
     metadata_file = "METADATA"
     if not d.has_metadata(metadata_file):
@@ -340,7 +356,7 @@ def _make_bundle_info(d, installed, logger):
         return None
     kw['packages'] = _get_installed_packages(d, logger)
     for classifier in md.classifiers:
-        parts = [v.strip() for v in classifier.split("::")]
+        parts = [v.strip() for v in classifier.split(" ::")]
         if parts[0] != 'ChimeraX':
             continue
         if parts[1] == 'Bundle':
@@ -465,7 +481,7 @@ def _make_bundle_info(d, installed, logger):
                 logger.warning('ChimeraX :: Bundle entry must be first')
                 return None
             if len(parts) != 7:
-                logger.warning("Malformed ChimeraX :: DataFormat line in %s skipped." % name)
+                logger.warning("Malformed ChimeraX :: Fetch line in %s skipped." % name)
                 logger.warning("Expected 7 fields and got %d." % len(parts))
                 continue
             database_name, format_name, prefixes, example_id, is_default = parts[2:]
@@ -538,6 +554,10 @@ def _make_bundle_info(d, installed, logger):
             kw = {}
             for p in parts[3:]:
                 k, v = p.split(':', 1)
+                if v[0] in '\'"':
+                    v = unescape(v[1:-1])
+                else:
+                    v = unescape(v)
                 kw[k] = v
             bi.managers[name] = kw
         elif parts[1] == 'Provider':
@@ -553,6 +573,10 @@ def _make_bundle_info(d, installed, logger):
             kw = {}
             for p in parts[4:]:
                 k, v = p.split(':', 1)
+                if v[0] in '\'"':
+                    v = unescape(v[1:-1])
+                else:
+                    v = unescape(v)
                 kw[k] = v
             bi.providers[name] = (mgr, kw)
         elif parts[1] == 'InitAfter':

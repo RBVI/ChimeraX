@@ -83,6 +83,13 @@ class MouseMode:
         self.last_mouse_position = pos
         self.double_click = False
 
+    def mouse_drag(self, event):
+        '''
+        Supported API.
+        Override this method to handle mouse drag events.
+        '''
+        pass
+
     def mouse_up(self, event):
         '''
         Supported API.
@@ -128,6 +135,11 @@ class MouseMode:
         '''
         pass
 
+    @property
+    def uses_wheel(self):
+        '''Return True if derived class implements the wheel() method.'''
+        return getattr(self, 'wheel') != MouseMode.wheel
+    
     def pause(self, position):
         '''
         Supported API.
@@ -244,6 +256,7 @@ class MouseModes:
         self._mouse_pause_interval = 0.5         # seconds
         self._mouse_pause_position = None
 
+        session.triggers.add_trigger("set right mouse")
         self.bind_standard_mouse_modes()
         self._last_mode = None			# Remember mode at mouse down and stay with it until mouse up
 
@@ -263,6 +276,8 @@ class MouseModes:
                 b = MouseBinding(button, modifiers, mode)
                 self._bindings.append(b)
                 mode.enable()
+        if button == "right" and not modifiers:
+            self.session.triggers.activate_trigger("set right mouse", mode)
 
     def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
         '''
@@ -291,10 +306,13 @@ class MouseModes:
         '''List of MouseBinding instances.'''
         return self._bindings
 
-    def mode(self, button = 'left', modifiers = []):
+    def mode(self, button = 'left', modifiers = [], exact = False):
         '''Return the MouseMode associated with a specified button and modifiers,
         or None if no mode is bound.'''
-        mb = [b for b in self._bindings if b.matches(button, modifiers)]
+        if exact:
+            mb = [b for b in self._bindings if b.exact_match(button, modifiers)]
+        else:
+            mb = [b for b in self._bindings if b.matches(button, modifiers)]
         if len(mb) == 1:
             m = mb[0].mode
         elif len(mb) > 1:
@@ -325,6 +343,8 @@ class MouseModes:
         x,y = cp
         if x < 0 or y < 0 or x >= w or y >= h:
             return      # Cursor outside of graphics window
+        if self._mouse_buttons_down():
+            return
         from time import time
         t = time()
         moved = (cp != self._mouse_pause_position)
@@ -359,6 +379,10 @@ class MouseModes:
         p = self.graphics_window.mapFromGlobal(QCursor.pos())
         return p.x(), p.y()
 
+    def _mouse_buttons_down(self):
+        from PyQt5.QtCore import Qt
+        return self.session.ui.mouseButtons() != Qt.NoButton
+        
     def _dispatch_mouse_event(self, event, action):
         button, modifiers = self._event_type(event)
         if button is None:
@@ -366,12 +390,18 @@ class MouseModes:
 
         if action == 'mouse_down':
             m = self.mode(button, modifiers)
+            lm = self._last_mode
+            if lm is not None and hasattr(lm, 'mouse_up'):
+                # Another button was pressed so release current mouse mode.
+                lm.mouse_up(MouseEvent(event, modifiers=modifiers))
             self._last_mode = m
         else:
             m = self._last_mode	     # Stay with same mode until button up even if modifier keys change.
         if m and hasattr(m, action):
             f = getattr(m, action)
             f(MouseEvent(event, modifiers=modifiers))
+        if action == 'mouse_up':
+            self._last_mode = None
 
     def _event_type(self, event):
         modifiers = self._key_modifiers(event)
@@ -461,11 +491,14 @@ class MouseEvent:
     Provides an interface to mouse event coordinates and modifier keys
     so that mouse modes do not directly depend on details of the window toolkit.
     '''
-    def __init__(self, event, modifiers = None):
+    def __init__(self, event = None, modifiers = None, position = None, wheel_value = None):
         self._event = event		# Window toolkit event object
         self._modifiers = modifiers	# List of 'shift', 'alt', 'control', 'command'
                                         # May differ from event modifiers when modifier used
                                         # for mouse button emulation.
+        self._position = position	# x,y in pixels, can be None
+        self._wheel_value = wheel_value # wheel clicks (usually 1 click equals 15 degrees rotation).
+        
     def shift_down(self):
         '''
         Supported API.
@@ -473,8 +506,10 @@ class MouseEvent:
         '''
         if self._modifiers is not None:
             return 'shift' in self._modifiers
-        from PyQt5.QtCore import Qt
-        return bool(self._event.modifiers() & Qt.ShiftModifier)
+        if self._event is not None:
+            from PyQt5.QtCore import Qt
+            return bool(self._event.modifiers() & Qt.ShiftModifier)
+        return False
 
     def alt_down(self):
         '''
@@ -483,8 +518,10 @@ class MouseEvent:
         '''
         if self._modifiers is not None:
             return 'alt' in self._modifiers
-        from PyQt5.QtCore import Qt
-        return bool(self._event.modifiers() & Qt.AltModifier)
+        if self._event is not None:
+            from PyQt5.QtCore import Qt
+            return bool(self._event.modifiers() & Qt.AltModifier)
+        return False
 
     def position(self):
         '''
@@ -492,8 +529,17 @@ class MouseEvent:
         Pair of floating point x,y pixel coordinates relative to upper-left corner of graphics window.
         These values can be fractional if pointer device gives subpixel resolution.
         '''
-        p = self._event.localPos()
-        return p.x(), p.y()
+        if self._position is not None:
+            return self._position
+        e = self._event
+        if e is not None:
+            if hasattr(e, 'localPos'):	# QMouseEvent
+                p = e.localPos()
+                return p.x(), p.y()
+            elif hasattr(e, 'posF'):	# QWheelEvent
+                p = e.posF()
+                return p.x(), p.y()
+        return 0,0
 
     def wheel_value(self):
         '''
@@ -501,12 +547,16 @@ class MouseEvent:
         Number of clicks the mouse wheel was turned, signed float.
         One click is typically 15 degrees of wheel rotation.
         '''
-        deltas = self._event.angleDelta()
-        delta = max(deltas.x(), deltas.y())
-        if delta == 0:
-            delta = min(deltas.x(), deltas.y())
-        return delta/120.0   # Usually one wheel click is delta of 120
-
+        if self._wheel_value is not None:
+            return self._wheel_value
+        if self._event is not None:
+            deltas = self._event.angleDelta()
+            delta = max(deltas.x(), deltas.y())
+            if delta == 0:
+                delta = min(deltas.x(), deltas.y())
+            return delta/120.0   # Usually one wheel click is delta of 120
+        return 0
+        
 def mod_key_info(key_function):
     """Qt swaps control/meta on Mac, so centralize that knowledge here.
     The possible "key_functions" are: alt, control, command, and shift
@@ -534,22 +584,41 @@ def mod_key_info(key_function):
             return Qt.ControlModifier, "control"
         return Qt.MetaModifier, command_name
 
-def picked_object(window_x, window_y, view, max_transparent_layers = 3):
-    xyz1, xyz2 = view.clip_plane_points(window_x, window_y)
-    if xyz1 is None or xyz2 is None:
-        return None
-    p = picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = max_transparent_layers)
-    return p
-
-def picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = 3):    
-    p2 = p = view.first_intercept_on_segment(xyz1, xyz2, exclude=unpickable)
-    for i in range(max_transparent_layers):
-        if p2 and getattr(p2, 'pick_through', False) and p2.distance is not None:
-            p2 = view.first_intercept_on_segment(xyz1, xyz2, exclude=unpickable, beyond=p2.distance)
-        else:
-            break
-    return p2 if p2 else p
+def keyboard_modifier_names(qt_keyboard_modifiers):
+    from PyQt5.QtCore import Qt
+    import sys
+    if sys.platform == 'darwin':
+        modifiers = [(Qt.ShiftModifier, 'shift'),
+                     (Qt.ControlModifier, 'command'),
+                     (Qt.AltModifier, 'option'),
+                     (Qt.AltModifier, 'alt'),
+                     (Qt.MetaModifier, 'control')]
+    else:
+        modifiers = [(Qt.ShiftModifier, 'shift'),
+                     (Qt.ControlModifier, 'control'),
+                     (Qt.AltModifier, 'alt'),
+                     (Qt.MetaModifier, 'windows')]
+    mnames = [mname for mflag, mname in modifiers if mflag & qt_keyboard_modifiers]
+    return mnames
 
 def unpickable(drawing):
     return not getattr(drawing, 'pickable', True)
+    
+def picked_object(window_x, window_y, view, max_transparent_layers = 3, exclude = unpickable):
+    xyz1, xyz2 = view.clip_plane_points(window_x, window_y)
+    if xyz1 is None or xyz2 is None:
+        return None
+    p = picked_object_on_segment(xyz1, xyz2, view,
+                                 max_transparent_layers = max_transparent_layers,
+                                 exclude = exclude)
+    return p
+
+def picked_object_on_segment(xyz1, xyz2, view, max_transparent_layers = 3, exclude = unpickable):
+    p2 = p = view.first_intercept_on_segment(xyz1, xyz2, exclude=exclude)
+    for i in range(max_transparent_layers):
+        if p2 and getattr(p2, 'pick_through', False) and p2.distance is not None:
+            p2 = view.first_intercept_on_segment(xyz1, xyz2, exclude=exclude, beyond=p2.distance)
+        else:
+            break
+    return p2 if p2 else p
 

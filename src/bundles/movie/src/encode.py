@@ -133,7 +133,7 @@ class ffmpeg_encoder:
 
         import os.path
         pat = os.path.join(self.image_directory, self.image_file_pattern)
-        n = self.image_count + 1
+        n = self.image_count
         self.loop = (pat, n)
         import os
         if hasattr(os, 'link'):

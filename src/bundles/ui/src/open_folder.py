@@ -57,6 +57,6 @@ class OpenFolderDialog(OpenDialog):
             return
         dirs = self.selectedFiles()
         dir = dirs[0] if len(dirs) > 0 else self.directory().path()
-        from chimerax.core.commands import run, quote_if_necessary
-        cmd = 'open %s format %s' % (quote_if_necessary(dir), self.format_nickname)
+        from chimerax.core.commands import run, FileNameArg
+        cmd = 'open %s format %s' % (FileNameArg.unparse(dir), self.format_nickname)
         run(session, cmd)

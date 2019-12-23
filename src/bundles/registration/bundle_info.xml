@@ -21,6 +21,10 @@ summary statistics to NIH.</Description>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
+  <Providers>
+    <Provider name="cxreg" manager="url_schemes"/>
+  </Providers>
+
   <DataFiles>
     <DataFile>*.html</DataFile>
   </DataFiles>

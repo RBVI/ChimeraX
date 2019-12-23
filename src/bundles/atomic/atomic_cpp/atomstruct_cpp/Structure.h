@@ -95,8 +95,9 @@ public:
 class ATOMSTRUCT_IMEX Structure: public GraphicsChanges,
         public pyinstance::PythonInstance<Structure> {
     friend class Atom; // for IDATM stuff and structure categories
-    friend class Bond; // for checking if make_chains() has been run yet, struct categories
+    friend class Bond; // for _form_chain_check, struct categories
     friend class Residue; // for _polymers_computed
+    friend class StructurePBGroup; // for _form_chain_check
     friend class StructureSeq; // for remove_chain()
 public:
     typedef std::vector<Atom*>  Atoms;
@@ -174,6 +175,7 @@ protected:
     bool  _fast_ring_calc_available(bool cross_residue,
             unsigned int all_size_threshold,
             std::set<const Residue *>* ignore) const;
+    void  _form_chain_check(Atom* a1, Atom* a2, Bond* b=nullptr);
     void  _get_interres_connectivity(std::map<Residue*, int>& res_lookup,
             std::map<int, Residue*>& index_lookup,
             std::map<Residue*, bool>& res_connects_to_next,
@@ -215,6 +217,8 @@ public:
         bool consider_missing_structure) const;
     const Bonds&  bonds() const { return _bonds; }
     const Chains&  chains() const { if (_chains == nullptr) make_chains(); return *_chains; }
+    void  change_chain_ids(const std::vector<StructureSeq*>, const std::vector<ChainID>,
+        bool /*non-polymeric*/=true);
     ChangeTracker*  change_tracker() { return _change_tracker; }
     void  clear_coord_sets();
     void  combine_sym_atoms();
@@ -272,6 +276,7 @@ public:
         }
     const PositionMatrix&  position() const { return _position; }
     void  ready_idatm_types() { if (!_idatm_valid) _compute_idatm_types(); }
+    void  renumber_residues(const std::vector<Residue*>& res_list, int start);
     void  reorder_residues(const Residues&); 
     const Residues&  residues() const { return _residues; }
     const Rings&  rings(bool cross_residues = false,
@@ -303,7 +308,8 @@ public:
         change_tracker()->add_modified(this, this, ChangeTracker::REASON_DISPLAY);
     }
     void  set_input_seq_info(const ChainID& chain_id, const std::vector<ResName>& res_names,
-        const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE);
+        const std::vector<Residue*>* correspondences = nullptr, PolymerType pt = PT_NONE,
+        bool one_letter_names = false);
     void  set_position_matrix(double* pos);
     void  set_ss_assigned(bool sa) { _ss_assigned = sa; }
     bool  ss_assigned() const { return _ss_assigned; }

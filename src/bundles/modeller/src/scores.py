@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def fetch_scores(session, structures, *, block=True, license_key=None):
+def fetch_scores(session, structures, *, block=True, license_key=None, refresh=False):
     """
     Fetch scores for models from Modeller web site.
 
@@ -25,6 +25,10 @@ def fetch_scores(session, structures, *, block=True, license_key=None):
         If True, wait for all scoring jobs to finish before returning.  Otherwise return immediately.
     license_key
         Modeller license key.  If not provided, try to use settings to find one.
+    refresh
+        Normally existing scores of a particular type are more accurate than those fetched from the
+        web, and are therefore retained (refresh == False).  If 'refresh' is True, existing scores
+        will be overwitten by fetched scores.
     """
 
     from .common import get_license_key
@@ -43,7 +47,7 @@ def fetch_scores(session, structures, *, block=True, license_key=None):
     results_lock = Lock()
     for s in structures:
         slot = httpq.new_slot(modeller_host)
-        slot.request(ModellerScoringJob, session, modeller_host, license_key, s)
+        slot.request(ModellerScoringJob, session, modeller_host, license_key, refresh, s)
 
     if block:
         # The jobs update score in their "on_finish" method, which runs in the main thread,
@@ -57,33 +61,26 @@ def fetch_scores(session, structures, *, block=True, license_key=None):
 from chimerax.core.tasks import Job
 class ModellerScoringJob(Job):
 
-    def __init__(self, session, modeller_host, license_key, structure):
+    def __init__(self, session, modeller_host, license_key, refresh, structure):
         super().__init__(session)
-        self.start(session, modeller_host, license_key, structure, blocking=True)
+        self.start(session, modeller_host, license_key, structure, refresh, blocking=True)
 
-    def launch(self, session, modeller_host, license_key, structure, **kw):
+    def launch(self, session, modeller_host, license_key, structure, refresh, **kw):
         self.structure = structure
-        self.results = {}
+        self.results = {'chimerax refresh': refresh}
 
         thread_safe = session.ui.thread_safe
-        #from io import StringIO
+        from io import StringIO
         from chimerax.atomic.pdb import save_pdb
-        #pdb_buffer = StringIO()
-        #save_pdb(session, pdb_buffer, models=[structure])
-        from tempfile import NamedTemporaryFile
-        temp_file = NamedTemporaryFile(mode='w', encoding='utf-8', suffix=".pdb", delete=False)
-        save_pdb(session, temp_file.name, models=[structure])
-        temp_file.close()
-        tf = open(temp_file.name, 'r')
+        pdb_buffer = StringIO()
+        save_pdb(session, pdb_buffer, models=[structure])
         fields = [
             ("name", None, "chimerax-Modeller_Comparitive"),
             ("modkey", None, license_key),
             # Sequence identity info will be taken from PDB header for Modeller models,
             # and since we don't know the info otherwise -- skip it
-            #("model_file", structure.name.replace(' ', '_') + '.pdb', pdb_buffer.getvalue())
-            ("model_file", structure.name.replace(' ', '_') + '.pdb', tf.read())
+            ("model_file", structure.name.replace(' ', '_') + '.pdb', pdb_buffer.getvalue())
         ]
-        temp_file.close()
         from chimerax.webservices.post_form import post_multipart
         submission = post_multipart(modeller_host, "/modeval/job", fields)
         from xml.dom.minidom import parseString
@@ -122,19 +119,23 @@ class ModellerScoringJob(Job):
             if "evaluation.xml" in results_url:
                 eval_out = urlopen(results_url)
                 eval_dom = parseString(eval_out.read())
+                from chimerax.core.utils import string_to_attr
                 for name in ["zDOPE", "predicted_RMSD", "predicted_NO35"]:
+                    structure.__class__.register_attr(session, string_to_attr(name, prefix="modeller_"),
+                        "Modeller", attr_type=float)
                     val = float(eval_dom.getElementsByTagName(name.lower())[0].firstChild.nodeValue.strip())
                     self.results[name] = val
 
     def running(self):
-        return not self.results
+        return len(self.results) < 2
 
     def on_finish(self):
-        if self.results:
+        if len(self.results) > 1:
             if not self.structure.deleted:
+                refresh = self.results.pop('chimerax refresh')
                 for attr_suffix, val in self.results.items():
                     attr_name = "modeller_" + attr_suffix
-                    if not hasattr(self.structure, attr_name):
+                    if refresh or not hasattr(self.structure, attr_name):
                         setattr(self.structure, attr_name, val)
                         self.session.change_tracker.add_modified(self.structure, attr_name + " changed")
                 self.session.logger.status("Modeller scores for %s fetched" % self.structure)

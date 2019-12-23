@@ -34,9 +34,12 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>decimalPlaces</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>symbol</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
+<a name="delete"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>~distance</b>
+<br><b>distance delete</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<br>&ndash; or &ndash;
+<br><b>~distance</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
 <a name="style"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -65,16 +68,25 @@ the <a href="../tools/distances.html"><b>Distances</b></a> tool
 will update automatically.
 For click-to-measure, see 
 <a href="../selection.html#context">selection context menus</a>
-and <a href="ui.html#mousemode"><b>mousemode</b></a>.
+and the <b>distance</b> <a href="ui.html#mousemode">mouse mode</b></a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/distance.png"></a>.
+The <b>tape measure</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="../tools/mouse-icons/tape.png"></a> 
+adds a different type of distance measurement 
+with <a href="../markers.html">markers and links</a>
+(<a href="../tools/mousemodes.html#tapemeasure">details...</a>).
 See also: 
+<a href="getcrd.html"><b>getcrd</b></a>,
 <a href="color.html"><b>color</b></a>,
 <a href="style.html"><b>style</b></a>,
 <a href="size.html"><b>size</b></a>,
+<a href="label.html"><b>label</b></a>,
 <a href="clashes.html"><b>clashes/contacts</b></a>,
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="crosslinks.html#histogram"><b>crosslinks histogram</b></a>,
 <a href="select.html#new"><b>select</b> by pseudobond length</a>,
-<a href="label.html"><b>label</b></a>,
 <a href="../measurements.html">measurements</a>
 </p><p>
 Distance-monitor <a href="../pseudobonds.html">pseudobonds</a>
@@ -124,7 +136,8 @@ affects all distance monitors and is instantly saved as the default.
 Distances are assumed to be in &Aring;.
 </blockquote>
 <p>
-The <b>~distance</b> command removes any distance monitors between
+The <b>distance delete</b>
+or <b>~distance</b> command removes any distance monitors between
 specified atoms, or if nothing is specified, all distance monitors.
 </p><p>
 The <b>distance style</b> command changes the style of
@@ -143,5 +156,5 @@ for specifying the name and location interactively.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2019</address>
+October 2019</address>
 </body></html>

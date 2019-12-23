@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def resfit(session, atoms, map = None, residue_range = (-2,1),
-           motion_frames = 50, pause_frames = 50, movie_framerate = 25):
+           motion_frames = 50, pause_frames = 50, movie_framerate = 2):
     '''Display fit of each residue in a density map.
 
     Parameters

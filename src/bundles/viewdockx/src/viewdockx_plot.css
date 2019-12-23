@@ -18,13 +18,10 @@ html, body, #full {
   overflow: auto;
 }
 #data {
+  flex: none;
+  min-height: 50%;
+  height: 50%;
+}
+#column_table {
   flex: auto;
-  min-height: 10px;
-  overflow: auto;
-}
-col:nth-child(odd) {
-  background: #EEE;
-}
-col:nth-child(even) {
-  background: #DDD;
 }

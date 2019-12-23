@@ -398,11 +398,12 @@ of ``mac``.
     - Other attributes listed in the **Manager** tag are passed
       as keyword arguments to ``init_manager``.
     - ``init_manager`` should create and return an instance of a
-      subclass of :py:class:`chimerax.core.state.StateManager`.
+      subclass of :py:class:`chimerax.core.toolshed.ProviderManager`.
       The subclass must implement at least one method:
         ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager
-      name matches this manager.  A second method:
+      name matches this manager (whether the bundle with the provider
+      is installed or not).  A second method:
         ``end_providers()``
       is optional.  ``end_providers`` is called after all calls
       to ``add_provider`` have been made and is useful for finishing
@@ -418,6 +419,10 @@ of ``mac``.
 - **Providers**
 
   - List of providers that bundle provides
+  - Attribute:
+
+    - **manager**: optional default manager for nested **Provider** elements
+
   - Child elements:
 
     - **Provider** (one or more)
@@ -427,18 +432,13 @@ of ``mac``.
   - Attribute:
 
     - **manager**: name of the manager with which this provider
-      will be registered.
-    - **name**: name of provider.  The bundle must implement the
-      ``init_provider`` method.  The three positional arguments to
-      ``init_provider`` are the session instance, the provider name,
-      and the manager name (which can be used to fetch the manager
-      instance from the session).
+      will be registered.  Optional if **manager** is given in
+      parent **Providers** element.
+    - **name**: name of provider.
     - Other attributes listed in the **Provider** tag are passed
-      as keyword arguments to ``init_provider``.
-      If ``init_provider`` needs additional information, it should
-      query the manager instance fetched from the session.
+      as keyword arguments to the manager's ``add_provider`` method.
     - Bundles that supply providers should implement the method:
-        ``run_provider(session, bundle_info, provider_name, manager, **kw)``
+        ``run_provider(session, provider_name, manager, **kw)``
       which may be used by the manager to invoke provider functionality.
 
 - **PythonClassifier**

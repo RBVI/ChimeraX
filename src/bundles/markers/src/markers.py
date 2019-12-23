@@ -19,7 +19,7 @@ class MarkerSet(Structure):
         self.ball_scale = 1.0
 
     def create_marker(self, xyz, rgba, radius, id = None):
-        a = self.new_atom('', 'H')
+        a = self.new_atom('M', 'H')
         a.coord = xyz
         a.color = rgba	# 0-255 values
         a.radius = radius
@@ -39,7 +39,7 @@ class MarkerSet(Structure):
         return s
 
     
-def create_link(atom1, atom2, rgba = None, radius = None):
+def create_link(atom1, atom2, rgba = None, radius = None, log = False):
     m = atom1.structure
     b = m.new_bond(atom1,atom2)
     if rgba is None:
@@ -49,4 +49,25 @@ def create_link(atom1, atom2, rgba = None, radius = None):
     b.radius = radius
     b.color = rgba
     b.halfbond = False
+    if log:
+        _log_link_command(atom1, atom2, rgba, radius)
     return b
+
+def _log_link_command(marker1, marker2, rgba, radius):
+    mspec = '%s:%d,%d' % (marker1.structure.atomspec, marker1.residue.number, marker2.residue.number)
+    from chimerax.core.colors import color_name
+    cmd = 'marker link %s color %s radius %.4g' % (mspec, color_name(rgba), radius)
+    from chimerax.core.commands import log_equivalent_command
+    log_equivalent_command(marker1.structure.session, cmd)
+
+def selected_markers(session):
+    from chimerax import atomic
+    atoms = atomic.selected_atoms(session)
+    mask = [isinstance(a.structure, MarkerSet) for a in atoms]
+    return atoms.filter(mask)
+
+def selected_links(session):
+    from chimerax import atomic
+    bonds = atomic.selected_bonds(session)
+    mask = [isinstance(b.structure, MarkerSet) for b in bonds]
+    return bonds.filter(mask)

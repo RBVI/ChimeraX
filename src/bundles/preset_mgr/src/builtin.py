@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 nospheres = (["style (protein|nucleic|solvent) & @@draw_mode=0 stick"])
-cardef    = (["surf hide"] +
+cardef    = (["show nucleic", "hide protein|solvent|H", "surf hide"] +
              nospheres +
              ["cartoon",
               "cartoon style modeh def arrows t arrowshelix f "
@@ -40,8 +40,8 @@ def run_preset(session, name, mgr):
     elif name == "chain ID coloring (opaque)":
         cmd = nospheres + ["surface; color bychain targ s trans 0"]
     elif name == "publication":
-        cmd = ["set bg white; set silhouettes t"]
+        cmd = ["set bg white; graphics silhouettes t"]
     elif name == "interactive":
-        cmd = ["~set bg; set silhouettes f"]
+        cmd = ["~set bg; graphics silhouettes f"]
     cmd = "; ".join(cmd)
     mgr.execute(cmd)

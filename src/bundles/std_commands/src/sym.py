@@ -203,11 +203,9 @@ def pdb_assemblies(m):
 def mmcif_assemblies(model):
     table_names = ('pdbx_struct_assembly',
                    'pdbx_struct_assembly_gen',
-                   'pdbx_struct_oper_list',
-                   'pdbx_poly_seq_scheme',
-                   'pdbx_nonpoly_scheme')
+                   'pdbx_struct_oper_list')
     from chimerax.atomic import mmcif
-    assem, assem_gen, oper, cremap1, cremap2 = mmcif.get_mmcif_tables(model.filename, table_names)
+    assem, assem_gen, oper = mmcif.get_mmcif_tables_from_metadata(model, table_names)
     if not assem or not assem_gen or not oper:
         return []
 
@@ -229,9 +227,8 @@ def mmcif_assemblies(model):
     for id, m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34 in mat:
         ops[id] = Place(matrix = ((m11,m12,m13,m14),(m21,m22,m23,m24),(m31,m32,m33,m34)))
 
-    cmap = chain_id_changes(cremap1, cremap2)
 
-    alist = [Assembly(id, name[id], chain_ops[id], ops, cmap) for id in ids]
+    alist = [Assembly(id, name[id], chain_ops[id], ops, True) for id in ids]
     return alist
 
 #
@@ -257,7 +254,7 @@ def chain_id_changes(poly_seq_scheme, nonpoly_scheme):
     return cmap
 
 class Assembly:
-    def __init__(self, id, description, chain_ops, operator_table, chain_map):
+    def __init__(self, id, description, chain_ops, operator_table, from_mmcif):
         self.id = id
         self.description = description
 
@@ -270,7 +267,7 @@ class Assembly:
 
         self.operator_table = operator_table
         # Chain map maps ChimeraX (chain id, res number) to mmcif chain id used in chain_ids
-        self.chain_map = chain_map
+        self.from_mmcif = from_mmcif
 
     def show(self, mol, new_model, session):
         mols = self._molecule_copies(mol, new_model, session)
@@ -309,7 +306,7 @@ class Assembly:
             from chimerax.core.objects import Objects
             surface_hide(session, Objects(atoms = excluded_atoms))
         for s in surfs:
-            mmcif_cid = mmcif_chain_ids(s.atoms[:1], self.chain_map)[0]
+            mmcif_cid = mmcif_chain_ids(s.atoms[:1], self.from_mmcif)[0]
             s.positions = self._chain_operators(mmcif_cid)
 
     def show_copies(self, mol, surface_only, resolution, grid_spacing, session):
@@ -336,7 +333,7 @@ class Assembly:
         mol.display = False
 
     def _partition_atoms(self, atoms, chain_ids):
-        mmcif_cids = mmcif_chain_ids(atoms, self.chain_map)
+        mmcif_cids = mmcif_chain_ids(atoms, self.from_mmcif)
         from numpy import in1d, logical_not
         mask = in1d(mmcif_cids, chain_ids)
         included_atoms = atoms.filter(mask)
@@ -444,13 +441,11 @@ def next_chain_id(cid):
         return None
     return cid[:-1] + chr(ord(c)+1)
 
-def mmcif_chain_ids(atoms, chain_map):
-    if len(chain_map) == 0:
-        cids = atoms.residues.chain_ids
+def mmcif_chain_ids(atoms, from_mmcif):
+    if from_mmcif:
+        cids = atoms.residues.mmcif_chain_ids
     else:
-        r = atoms.residues
-        from numpy import array
-        cids = array([chain_map.get((cid,n), cid) for cid,n in zip(r.chain_ids, r.numbers)])
+        cids = atoms.residues.chain_ids
     return cids
 
 def operator_products(products, oper_table):

@@ -50,8 +50,8 @@ Multiple value arguments are separated by commas
 and the commas may be followed by whitespace.
 Depending on the type of an argument, *e.g.*, a color name,
 whitespace can also appear within an argument value.
-Argument values may be quoted with double quotes.
-And in quoted text, Python's textual escape sequences are recognized,
+String argument values may be quoted with double or single quotes,
+and Python's textual escape sequences are recognized,
 *e.g.*, ``\\N{LATIN CAPITAL LETTER A WITH RING ABOVE}`` for the ångström sign,
 \N{LATIN CAPITAL LETTER A WITH RING ABOVE}.
 
@@ -200,13 +200,17 @@ from keyword import iskeyword as is_python_keyword
 import re
 import sys
 from collections import OrderedDict
+from contextlib import contextmanager
 from ..errors import UserError
 
 _debugging = False
 _normal_token = re.compile(r"[^;\s]*")
 _single_quote = re.compile(r"'(.|\')*?'(\s|$)")
+_internal_single_quote = re.compile(r"'\s")
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
-_whitespace = re.compile("\s*")
+_internal_double_quote = re.compile(r'"\s')
+_whitespace = re.compile(r"\s*")
+_internal_whitespace = re.compile(r"\s+")
 
 
 def commas(text_seq, conjunction='or'):
@@ -332,7 +336,7 @@ def _user_kw_cnt(kw_name):
 
 
 class AnnotationError(UserError, ValueError):
-    """Error, with optional offset, in annotation"""
+    """Error, with optional offset, in an annotation"""
 
     def __init__(self, message, offset=None):
         super().__init__(message)
@@ -340,7 +344,12 @@ class AnnotationError(UserError, ValueError):
 
 
 class Annotation(metaclass=abc.ABCMeta):
-    """Base class for all annotations
+    """Supported API.  Base class for all annotations
+
+    Annotations encapsulate how to parse text into a particular
+    type.  Both subclasses and instances of subclasses can be
+    used as annotations.  An instance is used when an annotation
+    is parameterized, e.g., with the length of a sequence.
 
     Each annotation should have the following attributes:
 
@@ -348,9 +357,17 @@ class Annotation(metaclass=abc.ABCMeta):
 
         Set to textual description of the annotation, including
         the leading article, *e.g.*, `"an integer"`.
+
+    .. py:attribute:: url
+
+       URL for help information.
+
+    .. py:method:: html_name
+
+        A class or instance method that returns the HTML version of the name.
     """
-    name = None  #: article name, *e.g.*, "an integer"
-    url = None  #: URL for help information
+    name = "an unspecified type"
+    url = None
     _html_name = None
 
     def __init__(self, name=None, url=None, html_name=None):
@@ -363,31 +380,48 @@ class Annotation(metaclass=abc.ABCMeta):
         elif name is not None:
             from html import escape
             self._html_name = escape(name)
-        # If __init__ is callled, then an Annotation instance is being
+        # If __init__ is called, then an Annotation instance is being
         # created, and we should use the instance's HTML name
         self.html_name = self.inst_html_name
 
     @staticmethod
     def parse(text, session):
-        """Convert text to appropriate type.
+        """Supported API.  Convert text to appropriate type.
 
         :param text: command line text to parse
         :param session: for session-dependent data types
         :returns: 3-tuple with the converted value, consumed text
             (possibly altered with expanded abbreviations), and the
             remaining unconsumed text
-        :raises ValueError: if unable to convert text
+        :raises AnnotationError: if unable to convert text
 
         The leading space in text must already be removed.
         It is up to the particular annotation to support abbreviations.
 
         Empty text should raise a ValueError or AnnotationError exception
-        (the exceptions being NoArg and EmptyArg).
+        (the exceptions being :py:class:`NoArg` and :py:class:`EmptyArg`).
         """
-        raise NotImplemented
+        raise NotImplementedError
+
+    @classmethod
+    def unparse(cls, value, session=None):
+        """Convert value to string that can parsed back into value
+
+        :param value: the value to convert
+        :param session: requried for session-dependent data types
+        :returns: string version of the value
+
+        The return value should be what would be typed if the value
+        were given on the command line.
+        """
+        raise NotImplementedError("Please implement unparse for %s" % cls.__name__)
 
     @classmethod
     def html_name(cls, name=None):
+        """Supported API.  Return HTML verison of name attribute
+
+        If the :py:attr:`url` attribute is set, then a HTML href using that
+        URL is returned."""
         if cls._html_name is not None:
             return cls._html_name
         from html import escape
@@ -398,8 +432,7 @@ class Annotation(metaclass=abc.ABCMeta):
         return '<a href="%s">%s</a>' % (escape(cls.url), escape(name))
 
     def inst_html_name(self, name=None):
-        """Subclasses that are to be used as instances, should set their
-        html_name method to be Annotation.inst_html_name"""
+        # used to override html_name class method with an instance method
         if self._html_name is not None:
             return self._html_name
         from html import escape
@@ -440,7 +473,7 @@ class Aggregate(Annotation):
     def __init__(self, annotation, min_size=None,
                  max_size=None, name=None, url=None, prefix=None):
         if (not isinstance(annotation, Annotation) and (
-            not isinstance(annotation, type) or not issubclass(annotation, Annotation))):
+                not isinstance(annotation, type) or not issubclass(annotation, Annotation))):
             raise ValueError("need an annotation, not %s" % annotation)
         Annotation.__init__(self, name, url)
         self.annotation = annotation
@@ -466,7 +499,7 @@ class Aggregate(Annotation):
         :returns: None for mutable containers, or a new
             container if immutable.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def parse(self, text, session):
         result = self.constructor()
@@ -554,6 +587,10 @@ class Aggregate(Annotation):
                 discard_article(self.name)), len(used))
         return result, used, rest
 
+    def unparse(self, value, session=None):
+        conj = '%s ' % self.separator
+        return conj.join(self.annotation.unparse(v) for v in value)
+
 
 class ListOf(Aggregate):
     """Annotation for lists of a single type
@@ -638,48 +675,60 @@ class RepeatOf(Annotation):
 class Bounded(Annotation):
     """Support bounded numerical values
 
-    Bounded(annotation, min=None, max=None, name=None, url=None) -> an Annotation
+    Bounded(annotation, min=None, max=None, inclusive=True, name=None, url=None) -> an Annotation
 
     :param annotation: numerical annotation
     :param min: optional lower bound
     :param max: optional upper bound
+    :param inclusive: is the bound itself in the range
     :param name: optional explicit name for annotation
     :param url: optionally give documentation URL.
     """
 
-    def __init__(self, annotation, min=None, max=None, name=None, url=None, html_name=None):
+    def __init__(self, annotation, min=None, max=None, *, inclusive=True, name=None, url=None, html_name=None):
         Annotation.__init__(self, name, url)
         self.anno = annotation
         self.min = min
         self.max = max
+        self.inclusive = inclusive
         if name is None:
+            op = "=" if inclusive else ""
             if min is not None and max is not None:
-                self.name = "%s >= %s and <= %s" % (annotation.name, min, max)
+                self.name = "%s >%s %s and <%s %s" % (annotation.name, op, min, op, max)
             elif min is not None:
-                self.name = "%s >= %s" % (annotation.name, min)
+                self.name = "%s >%s %s" % (annotation.name, op, min)
             elif max is not None:
-                self.name = "%s <= %s" % (annotation.name, max)
+                self.name = "%s <%s %s" % (annotation.name, op, max)
             else:
                 self.name = annotation.name
         if html_name is None:
+            if inclusive:
+                l, g = "le", "ge"
+            else:
+                l, g = "lt", "gt"
             if min is not None and max is not None:
-                self._html_name = "%s &ge; %s and &le; %s" % (annotation.html_name(), min, max)
+                self._html_name = "%s &%s; %s and &%s; %s" % (annotation.html_name(), g, min, l, max)
             elif min is not None:
-                self._html_name = "%s &ge; %s" % (annotation.html_name(), min)
+                self._html_name = "%s &%s; %s" % (annotation.html_name(), g, min)
             elif max is not None:
-                self._html_name = "%s &le; %s" % (annotation.html_name(), max)
+                self._html_name = "%s &%s; %s" % (annotation.html_name(), l, max)
             else:
                 self._html_name = annotation.html_name()
 
     def parse(self, text, session):
         value, new_text, rest = self.anno.parse(text, session)
-        if self.min is not None and value < self.min:
-            raise AnnotationError("Must be greater than or equal to %s"
-                                  % self.min, len(text) - len(rest))
-        if self.max is not None and value > self.max:
-            raise AnnotationError("Must be less than or equal to %s"
-                                  % self.max, len(text) - len(rest))
+        if self.min is not None and ((value < self.min) if self.inclusive else (value <= self.min)):
+            raise AnnotationError(
+                "Must be greater than %s%s" % (
+                    self.min, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+        if self.max is not None and ((value > self.max) if self.inclusive else (value >= self.max)):
+            raise AnnotationError(
+                "Must be less than %s%s" % (
+                    self.max, "or equal to " if self.inclusive else ""), len(text) - len(rest))
         return value, new_text, rest
+
+    def unparse(self, value, session=None):
+        return self.anno.unparse(value, session)
 
 
 class EnumOf(Annotation):
@@ -719,12 +768,12 @@ class EnumOf(Annotation):
         # values=["abc", "ab"], an input of "ab" will still match
         # "ab", not "abc".
         if ids is not None:
-            assert(all([isinstance(x, str) for x in ids]))
+            assert all([isinstance(x, str) for x in ids])
             pairs = sorted(zip(self.ids, self.values))
             self.ids = [p[0] for p in pairs]
             self.values = [p[1] for p in pairs]
         else:
-            assert(all([isinstance(x, str) for x in values]))
+            assert all([isinstance(x, str) for x in values])
             self.ids = self.values = sorted(values)
         if name is None:
             from html import escape
@@ -740,7 +789,7 @@ class EnumOf(Annotation):
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
-        token, text, rest = next_token(text)
+        token, text, rest = next_token(text, convert=True)
         folded = token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
@@ -753,9 +802,13 @@ class EnumOf(Annotation):
             i, ident = matches[0]
             return self.values[i], quote_if_necessary(ident), rest
         elif len(matches) > 1:
-            ms = ', '.join(self.values[i] for i,ident in matches)
+            ms = ', '.join(self.values[i] for i, ident in matches)
             raise AnnotationError("'%s' is ambiguous, could be %s" % (token, ms))
         raise AnnotationError("Should be %s" % self.name)
+
+    def unparse(self, value, session=None):
+        i = self.values.index(value)
+        return quote_if_necessary(self.ids[i])
 
 
 class DynamicEnum(Annotation):
@@ -770,12 +823,15 @@ class DynamicEnum(Annotation):
     def parse(self, text, session):
         return EnumOf(self.values_func()).parse(text, session)
 
+    def unparse(self, value, session=None):
+        return EnumOf(self.values_func()).unparse(value, session)
+
     @property
     def name(self):
         if self.__name is not None:
             return self.__name
         return 'one of ' + commas(["'%s'" % str(v)
-                                     for v in sorted(self.values_func())])
+                                  for v in sorted(self.values_func())])
 
     @property
     def _html_name(self):
@@ -786,7 +842,7 @@ class DynamicEnum(Annotation):
             name = self.__name
         else:
             name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
-                                         for v in sorted(self.values_func())])
+                                      for v in sorted(self.values_func())])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -826,6 +882,14 @@ class Or(Annotation):
                 pass
         raise AnnotationError("Expected %s" % self.name)
 
+    def unparse(self, value, session=None):
+        for a in self.annoations:
+            try:
+                return a.unparse(value, session)
+            except ValueError:
+                pass
+        raise ValueError("value does not match known types")
+
 
 class BoolArg(Annotation):
     """Annotation for boolean literals"""
@@ -843,6 +907,10 @@ class BoolArg(Annotation):
             return True, "true", rest
         raise AnnotationError("Expected true or false (or 1 or 0)")
 
+    @staticmethod
+    def unparse(value, session=None):
+        return str(bool(value)).casefold()
+
 
 class NoArg(Annotation):
     """Annotation for keyword whose presence indicates True"""
@@ -852,6 +920,10 @@ class NoArg(Annotation):
     def parse(text, session):
         return True, "", text
 
+    @staticmethod
+    def unparse(value, session=None):
+        return ""
+
 
 class EmptyArg(Annotation):
     """Annotation for optionally missing 'required' argument"""
@@ -860,6 +932,10 @@ class EmptyArg(Annotation):
     @staticmethod
     def parse(text, session):
         return None, "", text
+
+    @staticmethod
+    def unparse(value, session=None):
+        return ""
 
 
 class NoneArg(Annotation):
@@ -874,6 +950,11 @@ class NoneArg(Annotation):
         if token.lower() == "none":
             return None, text, rest
         raise AnnotationError("Expected %s" % NoneArg.name)
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert value is None
+        return "none"
 
 
 class IntArg(Annotation):
@@ -890,6 +971,11 @@ class IntArg(Annotation):
         except ValueError:
             raise AnnotationError("Expected %s" % IntArg.name)
 
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, int)
+        return str(value)
+
 
 class FloatArg(Annotation):
     """Annotation for floating point literals"""
@@ -905,6 +991,11 @@ class FloatArg(Annotation):
         except ValueError:
             raise AnnotationError("Expected %s" % FloatArg.name)
 
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, (float, int))
+        return str(value)
+
 
 class StringArg(Annotation):
     """Annotation for text (a word or quoted)"""
@@ -914,11 +1005,16 @@ class StringArg(Annotation):
     def parse(text, session):
         if not text:
             raise AnnotationError("Expected %s" % StringArg.name)
-        token, text, rest = next_token(text)
+        token, text, rest = next_token(text, convert=True)
         # use quote_if_necessary(token) since token will have had
         # it's surrounding quotes stripped, and you don't want them
         # quoted a second time
         return token, quote_if_necessary(token), rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, str)
+        return quote_if_necessary(value)
 
 
 class PasswordArg(StringArg):
@@ -929,6 +1025,11 @@ class PasswordArg(StringArg):
     def parse(text, session):
         token, text, rest = StringArg.parse(text, session)
         return token, "\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}\N{BULLET}", rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, str)
+        return quote_if_necessary(value)
 
 
 class AttrNameArg(StringArg):
@@ -946,7 +1047,12 @@ class AttrNameArg(StringArg):
                                   " characters and underscores")
         if text[0].isdigit():
             raise AnnotationError("Attribute names cannot start with a digit")
-        return token, quote_if_necessary(text), rest
+        return token, text, rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert value and isinstance(value, str)
+        return quote_if_necessary(value)
 
 
 class FileNameArg(Annotation):
@@ -958,17 +1064,26 @@ class FileNameArg(Annotation):
 
     @classmethod
     def parse(cls, text, session):
-        token, text, rest = StringArg.parse(text, session)
+        if not text:
+            raise AnnotationError("Expected %s" % cls.name)
+        token, text, rest = next_token(text)
         import os.path
-        return os.path.expanduser(token), quote_if_necessary(text), rest
+        token = os.path.expanduser(token)
+        return token, text, rest
+
+    @staticmethod
+    def unparse(value, session=None):
+        import os
+        assert isinstance(value, (str, os.PathLike))
+        return quote_path_if_necessary(str(value))
 
 
-_browse_string = "browse"
+_BROWSE_STRING = "browse"
 
 
 def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mode, *, return_list=False):
     path, text, rest = FileNameArg.parse(text, session)
-    if path == _browse_string:
+    if path == _BROWSE_STRING:
         if not session.ui.is_gui:
             raise AnnotationError("Cannot browse for %s name in nogui mode" % item_kind)
         from PyQt5.QtWidgets import QFileDialog
@@ -989,7 +1104,7 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
             raise CancelOperation("%s browsing cancelled" % item_kind.capitalize())
     else:
         paths = [path]
-    return (paths if return_list else paths[0]), " ".join([quote_if_necessary(p) for p in paths]), rest
+    return (paths if return_list else paths[0]), " ".join([quote_path_if_necessary(p) for p in paths]), rest
 
 
 class OpenFileNameArg(FileNameArg):
@@ -1004,6 +1119,7 @@ class OpenFileNameArg(FileNameArg):
         else:
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode)
+
 
 class OpenFileNamesArg(Annotation):
     """Annotation for opening one or more files"""
@@ -1021,8 +1137,15 @@ class OpenFileNamesArg(Annotation):
             accept_mode, dialog_mode = QFileDialog.AcceptOpen, QFileDialog.ExistingFiles
         else:
             accept_mode = dialog_mode = None
-        return  _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
-            return_list=True)
+        return _browse_parse(text, session, "file", cls.name_filter, accept_mode, dialog_mode,
+                             return_list=True)
+
+    @staticmethod
+    def unparse(value, session=None):
+        import os
+        assert not isinstance(value, (str, os.PathLike))
+        return ' '.join(quote_path_if_necessary(p) for p in value)
+
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
@@ -1065,6 +1188,7 @@ class SaveFolderNameArg(FileNameArg):
             accept_mode = dialog_mode = None
         return _browse_parse(text, session, "folder", cls.name_filter, accept_mode, dialog_mode)
 
+
 # Atom Specifiers are used in lots of places
 # avoid circular import by importing here
 from .atomspec import AtomSpecArg  # noqa
@@ -1080,6 +1204,11 @@ class ModelsArg(AtomSpecArg):
         models = aspec.evaluate(session).models
         return models, text, rest
 
+    @classmethod
+    def unparse(cls, models, session):
+        from .run import concise_model_spec
+        return concise_model_spec(session, models)
+
 
 class TopModelsArg(AtomSpecArg):
     """Parse command models specifier"""
@@ -1091,6 +1220,11 @@ class TopModelsArg(AtomSpecArg):
         models = aspec.evaluate(session).models
         tmodels = _remove_child_models(models)
         return tmodels, text, rest
+
+    @classmethod
+    def unparse(cls, tmodels, session):
+        from .run import concise_model_spec
+        return concise_model_spec(session, tmodels)
 
 
 class ObjectsArg(AtomSpecArg):
@@ -1105,7 +1239,6 @@ class ObjectsArg(AtomSpecArg):
         return objects, text, rest
 
 
-
 class ModelArg(AtomSpecArg):
     """Parse command model specifier"""
     name = "a model specifier"
@@ -1118,6 +1251,10 @@ class ModelArg(AtomSpecArg):
             raise AnnotationError('Must specify 1 model, got %d' % len(models), len(text))
         return tuple(models)[0], text, rest
 
+    @classmethod
+    def unparse(cls, model, session):
+        return model.atomspec
+
 
 class SurfacesArg(ModelsArg):
     """Parse command surfaces specifier"""
@@ -1129,6 +1266,7 @@ class SurfacesArg(ModelsArg):
         from ..models import Surface
         surfs = [m for m in models if isinstance(m, Surface)]
         return surfs, text, rest
+
 
 class SurfaceArg(SurfacesArg):
     """Parse command surfaces specifier"""
@@ -1173,7 +1311,7 @@ class AxisArg(Annotation):
         if axis is None:
             try:
                 coords, atext, rest = Float3Arg.parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 axis = Axis(coords)
@@ -1183,7 +1321,7 @@ class AxisArg(Annotation):
             try:
                 from chimerax.atomic import AtomsArg
                 atoms, atext, rest = AtomsArg.parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 if len(atoms) == 2:
@@ -1242,7 +1380,7 @@ class CenterArg(Annotation):
         if c is None:
             try:
                 coords, atext, rest = Float3Arg.parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 c = Center(coords)
@@ -1251,16 +1389,25 @@ class CenterArg(Annotation):
         if c is None:
             try:
                 cam, atext, rest = EnumOf(['camera']).parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 c = Center(coords=session.main_view.camera.position.origin())
+
+        # Center at center of rotation
+        if c is None:
+            try:
+                cam, atext, rest = EnumOf(['cofr']).parse(text, session)
+            except Exception:
+                pass
+            else:
+                c = Center(coords=session.main_view.center_of_rotation)
 
         # Objects
         if c is None:
             try:
                 obj, atext, rest = ObjectsArg.parse(text, session)
-            except:
+            except Exception:
                 pass
             else:
                 if obj.empty():
@@ -1308,6 +1455,10 @@ class CoordSysArg(ModelArg):
         m, text, rest = super().parse(text, session)
         return m.position, text, rest
 
+    @classmethod
+    def unparse(cls, value, session):
+        raise NotImplementedError("No longer know model for %s" % cls.__name__)
+
 
 class PlaceArg(Annotation):
     """
@@ -1347,31 +1498,68 @@ def _remove_child_models(models):
     return tuple(m for m in models if m in s)
 
 
-def as_parser(annotation):
-    """Use any annotation as simple parser
+def make_converter(annotation):
+    """Supported API.  Use any annotation to convert text to annotation's type
 
     :param annotation: the annotation to use
+    :raises AnnotationError: if unable to convert text
 
     For example:
-    
-        color = as_parser(ColorArg)(session, "red")
+
+        from chimerax.core.commands import make_converter, ColorArg
+        convert_to_color = make_converter(ColorArg)
+        color = convert_to_color(session, "red")
     """
     def use_annotation(session, text):
         value, _, rest = annotation.parse(text, session)
         if rest:
+            offset = len(text) - len(rest)
             raise AnnotationError("extra text at end of %s" % discard_article(
-                annotation.name))
+                annotation.name), offset)
         return value
+    use_annotation.__doc__ = "Convert text to %s" % annotation.name
     return use_annotation
+
+
+# TODO: @deprecated(version='0.91', reason='Use make_converter() instead')
+def as_parser(annotation):
+    """Deprecated API.  Use make_converter() instead"""
+    return make_converter(annotation)
+
+
+def quote_path_if_necessary(path):
+    """quote a string
+
+    So a :py:class:`FileNameArg` (or subclass) treats it like a singe value.
+    String escape sequences are not recognized in paths, so there no way to
+    quote a path so that both single and double quotes that would need
+    quoting.
+    """
+    if not path:
+        return '""'
+    has_single_quote = path[0] == "'" or _internal_single_quote.search(path) is not None
+    has_double_quote = path[0] == '"' or _internal_double_quote.search(path) is not None
+    if has_single_quote and has_double_quote:
+        raise ValueError("Unable to quote path: %r" % path)
+    if has_single_quote:
+        return '"%s"' % path
+    if has_double_quote:
+        return '"%s"' % path
+    has_whitespace = _internal_whitespace.search(path) is not None
+    if has_whitespace:
+        return '"%s"' % path
+    return path
 
 
 def quote_if_necessary(s, additional_special_map={}):
     """quote a string
 
-    So :py:func`next_token` treats it like a single value"""
+    So :py:class:`StringArg` treats it like a single value"""
+    if not s:
+        return '""'
     import unicodedata
-    has_single_quote = "'" in s
-    has_double_quote = '"' in s
+    has_single_quote = s[0] == "'" or _internal_single_quote.search(s) is not None
+    has_double_quote = s[0] == '"' or _internal_double_quote.search(s) is not None
     has_special = False
     use_single_quote = not has_single_quote and has_double_quote
     special_map = {
@@ -1396,12 +1584,14 @@ def quote_if_necessary(s, additional_special_map={}):
         elif ch == '"':
             if use_single_quote:
                 result.append('"')
-            else:
+            elif has_double_quote:
                 result.append('\\"')
+            else:
+                result.append('"')
         elif ch in special_map:
             has_special = True
             result.append(special_map[ch])
-        elif ord(ch) < 32:
+        elif i < 32:
             has_special = True
             result.append('\\x%02x' % i)
         elif ch.strip() == '':
@@ -1467,15 +1657,20 @@ def unescape_with_index_map(text):
             # Assumes that replacement is a single character
             index_map = index_map[:index] + index_map[index + 1:]
             start = index + 1
-        elif escaped == 'o':
+        elif escaped in '01234567':
+            # up to 3 octal digits
+            for count in range(2, 5):
+                if text[index + count] not in '01234567':
+                    break
             try:
-                char = chr(int(text[index + 2: index + 5], 8))
-                text = text[:index] + char + text[index + 5:]
-                index_map = index_map[:index] + index_map[index + 4:]
+                char = chr(int(text[index + 1: index + count], 8))
+                text = text[:index] + char + text[index + count:]
+                index_map = index_map[:index] + index_map[index + count - 1:]
             except ValueError:
                 pass
             start = index + 1
         elif escaped == 'x':
+            # 2 hex digits
             try:
                 char = chr(int(text[index + 2: index + 4], 16))
                 text = text[:index] + char + text[index + 4:]
@@ -1484,6 +1679,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'u':
+            # 4 hex digits
             try:
                 char = chr(int(text[index + 2: index + 6], 16))
                 text = text[:index] + char + text[index + 6:]
@@ -1492,6 +1688,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'U':
+            # 8 hex digits
             try:
                 char = chr(int(text[index + 2: index + 10], 16))
                 text = text[:index] + char + text[index + 10:]
@@ -1500,6 +1697,7 @@ def unescape_with_index_map(text):
                 pass
             start = index + 1
         elif escaped == 'N':
+            # named unicode character
             if len(text) < index + 2 or text[index + 2] != '{':
                 start = index + 1
                 continue
@@ -1520,57 +1718,46 @@ def unescape_with_index_map(text):
     return text, index_map
 
 
-def next_token(text, *, no_raise=False):
+def next_token(text, convert=False):
     """
-    Extract next token from given text.
+    Extract next, optionally quoted, token from given text.
 
     :param text: text to parse without leading whitespace
+    :param convert: convert escape sequences to characters
     :returns: a 3-tuple of first argument in text, the actual text used,
               and the rest of the text.
 
-    Tokens may be quoted, in which case the text between
-    the quotes is returned.
+    If the token is quoted, then the text between the quotes is returned.
+    End quotes must be followed by whitespace or the end of the line.
+    If convert is True, then escape sequences in the token are converted
+    to the actual character.  The escape sequences are the same as Python's
+    as documented in :ref:`literals`.
     """
-    assert(text and not text[0].isspace())
-    # m = _whitespace.match(text)
-    # start = m.end()
-    # if start == len(text):
-    #     return '', text, ''
-    start = 0
-    if text[start] == '"':
-        m = _double_quote.match(text, start)
-        if m:
-            end = m.end()
-            if text[end - 1].isspace():
-                end -= 1
-            token = text[start + 1:end - 1]
-        else:
-            end = len(text)
-            token = text[start + 1:end]
-            if no_raise:
-                return '', '', text
+    assert text and not text[0].isspace()
+    if text[0] == '"':
+        m = _double_quote.match(text)
+        if not m:
             raise AnnotationError("incomplete quoted text")
-        token = unescape(token)
-    elif text[start] == "'":
-        m = _single_quote.match(text, start)
-        if m:
-            end = m.end()
-            if text[end - 1].isspace():
-                end -= 1
-            token = text[start + 1:end - 1]
-        else:
-            end = len(text)
-            token = text[start + 1:end]
-            if no_raise:
-                return '', '', text
-            raise AnnotationError("incomplete quoted text")
-        token = unescape(token)
-    elif text[start] == ';':
-        return ';', ';', text[start + 1:]
-    else:
-        m = _normal_token.match(text, start)
         end = m.end()
-        token = text[start:end]
+        if text[end - 1].isspace():
+            end -= 1
+        token = text[1:end - 1]
+    elif text[0] == "'":
+        m = _single_quote.match(text)
+        if not m:
+            raise AnnotationError("incomplete quoted text")
+        end = m.end()
+        if text[end - 1].isspace():
+            end -= 1
+        token = text[1:end - 1]
+    elif text[0] == ';':
+        return ';', ';', text[1:]
+    else:
+        m = _normal_token.match(text)
+        end = m.end()
+        token = text[0:end]
+    if convert:
+        token = unescape(token)
     return token, text[:end], text[end:]
 
 
@@ -1619,6 +1806,11 @@ class RestOfLine(Annotation):
         text, rest = _upto_semicolon(text[start:])
         return text, leading + text, rest
 
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, str)
+        return value
+
 
 class WholeRestOfLine(Annotation):
     """Return the whole rest of the line including semicolons"""
@@ -1627,6 +1819,11 @@ class WholeRestOfLine(Annotation):
     @staticmethod
     def parse(text, session):
         return text, text, ''
+
+    @staticmethod
+    def unparse(value, session=None):
+        assert isinstance(value, str)
+        return value
 
 
 Bool2Arg = TupleOf(BoolArg, 2)
@@ -1639,6 +1836,8 @@ Float2Arg = TupleOf(FloatArg, 2)
 Float3Arg = TupleOf(FloatArg, 3)
 NonNegativeIntArg = Bounded(IntArg, min=0, name="an integer >= 0")
 PositiveIntArg = Bounded(IntArg, min=1, name="an integer >= 1")
+NonNegativeFloatArg = Bounded(FloatArg, min=0, name="a number >= 0")
+PositiveFloatArg = Bounded(FloatArg, min=0, inclusive=False, name="a number > 0")
 ModelIdArg = DottedTupleOf(PositiveIntArg, name="a model id", prefix='#')
 
 
@@ -1652,14 +1851,14 @@ class Postcondition(metaclass=abc.ABCMeta):
             to command callback function.
         :returns: True if arguments are consistent
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def error_message(self):
         """Appropriate error message if check fails.
 
         :returns: error message
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class Limited(Postcondition):
@@ -1931,7 +2130,6 @@ class _WordInfo:
         if isinstance(self.cmd_desc, _Defer):
             self.cmd_desc = None  # prevent reuse
 
-
     def add_subcommand(self, word, name, cmd_desc=None, *, logger=None):
         try:
             _check_autocomplete(word, self.subcommands, name)
@@ -1976,11 +2174,14 @@ class _WordInfo:
 
 
 class RegisteredCommandInfo:
+
     def __init__(self):
         # keep track of commands
         self.commands = _WordInfo(self)
         # keep track of commands that have been overridden by an alias
         self.aliased_commands = {}  # { name: _WordInfo instance }
+
+
 _command_info = RegisteredCommandInfo()
 # keep track of available commands
 _available_commands = None
@@ -2052,13 +2253,12 @@ def _get_help_url(words):
     # return help: URLs so links work in log as well as help viewer
     import os
     from urllib.parse import urlunparse
-    from urllib.request import pathname2url
     cname = words[0]
     if cname.startswith('~'):
         cname = cname[1:]
-        frag = '%20'.join(words)
+        frag = '-'.join(words)
     else:
-        frag = '%20'.join(words[1:])
+        frag = '-'.join(words[1:])
     from .. import toolshed
     help_directories = toolshed.get_help_directories()
     cmd_subpath = os.path.join('user', 'commands', '%s.html' % cname)
@@ -2107,7 +2307,7 @@ def deregister(name, *, is_user_alias=False, registry=None):
         # remove association between cmd_desc and word
         word_info.cmd_desc = None
         _parent_info = word_info.parent
-        assert(len(word_info.subcommands) == 0)
+        assert len(word_info.subcommands) == 0
         del _parent_info.subcommands[word]
 
 
@@ -2118,6 +2318,16 @@ def register_available(*args, **kw):
 def clear_available():
     global _available_commands
     _available_commands = None
+
+
+def _compute_available_commands(session):
+    global _available_commands
+    if _available_commands is not None:
+        return
+    from .. import toolshed
+    _available_commands = RegisteredCommandInfo()
+    ts = toolshed.get_toolshed()
+    ts.register_available_commands(session.logger)
 
 
 def add_keyword_arguments(name, kw_info, *, registry=None):
@@ -2153,8 +2363,8 @@ def add_keyword_arguments(name, kw_info, *, registry=None):
         else:
             reg_class = reg_type.__class__
             arg_class = arg_type.__class__
-        if ( reg_class.__module__ != arg_class.__module__
-        or reg_class.__name__ != arg_class.__name__):
+        if (reg_class.__module__ != arg_class.__module__
+                or reg_class.__name__ != arg_class.__name__):
             raise ValueError(
                 "%s-command keyword '%s' being registered with different type (%s)"
                 " than previous registration (%s)" % (
@@ -2386,7 +2596,7 @@ class Command:
                             return last_anno, None
                         try:
                             value, text = self._parse_arg(anno, text, session, False)
-                        except:
+                        except Exception:
                             break
                         if expand and isinstance(value, list):
                             values.extend(value)
@@ -2429,7 +2639,7 @@ class Command:
         # check if next token matches a keyword
         if not text:
             return True
-        _, tmp, _ = next_token(text, no_raise=True)
+        _, tmp, _ = next_token(text)
         if not tmp:
             return True
         if tmp[0].isalpha():
@@ -2571,12 +2781,7 @@ class Command:
                     # See if this command is available in the toolshed
                     save_error = self._error
                     self._error = ""
-                    global _available_commands
-                    if _available_commands is None:
-                        from .. import toolshed
-                        _available_commands = RegisteredCommandInfo()
-                        ts = toolshed.get_toolshed()
-                        ts.register_available_commands(session.logger)
+                    _compute_available_commands(session)
                     self._find_command_name(final, used_aliases=_used_aliases,
                                             parent_info=_available_commands.commands)
                 if self._error or not self._ci:
@@ -2723,7 +2928,6 @@ class Command:
             session.logger.info(msg, is_html=True, add_newline=False)
 
 
-from contextlib import contextmanager
 @contextmanager
 def command_trigger(session, log, cmd_text):
     if session is not None and log:
@@ -2766,8 +2970,23 @@ def command_url(name, no_aliases=False, *, registry=None):
         return _get_help_url(name.split())
 
 
-def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-          show_hidden=False, *, registry=None):
+def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False):
+    try:
+        text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden)
+    except ValueError as e:
+        _compute_available_commands(session)
+        if _available_commands is None:
+            raise e
+        try:
+            text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
+                          registry=_available_commands)
+        except ValueError:
+            raise e
+    return text
+
+
+def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
+           show_hidden=False, *, registry=None, _shown_cmds=None):
     """Return usage string for given command name
 
     :param name: the name of the command
@@ -2776,12 +2995,16 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     :param show_hidden: True if hidden keywords should be shown.
     :returns: a usage string for the command
     """
+    if _shown_cmds is None:
+        _shown_cmds = set()
     name = name.strip()
     cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
+    if cmd.command_name in _shown_cmds:
+        return ''
 
     syntax = ''
     ci = cmd._ci
@@ -2790,6 +3013,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
         syntax = cmd.command_name
         for arg_name in ci._required:
             arg = ci._required[arg_name]
+            arg_name = _user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -2801,6 +3025,7 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and arg_name in ci._hidden:
                 continue
             arg = ci._optional[arg_name]
+            arg_name = _user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -2821,12 +3046,17 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 syntax += ' %s _%s_' % (uarg_name, arg_type.name)
             else:
                 syntax += ' [%s _%s_]' % (uarg_name, arg_type.name)
-        if ci.synopsis:
-            syntax += ' -- %s' % ci.synopsis
+        if registry is not None and registry is _available_commands:
+            uninstalled = ' (uninstalled)'
         else:
-            syntax += ' -- no synopsis available'
+            uninstalled = ''
+        if ci.synopsis:
+            syntax += ' --%s %s' % (uninstalled, ci.synopsis)
+        else:
+            syntax += ' --%s no synopsis available' % uninstalled
         if arg_syntax:
             syntax += '\n%s' % '\n'.join(arg_syntax)
+        _shown_cmds.add(cmd.command_name)
         if expand_alias and ci.is_alias():
             alias = ci.function
             arg_text = cmd.current_text[cmd.amount_parsed:]
@@ -2838,7 +3068,9 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 optional = ''
             try:
                 name = alias.expand(*args, optional=optional, partial_ok=True)
-                syntax += '\n' + usage(name)
+                if name not in _shown_cmds:
+                    syntax += '\n' + _usage(name, registry=registry, _shown_cmds=_shown_cmds)
+                    _shown_cmds.add(name)
             except Exception as e:
                 print(e)
                 pass
@@ -2849,7 +3081,11 @@ def usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
         name = cmd.current_text[:cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
-                syntax += '\n\n' + usage('%s %s' % (name, w), show_subcommands=0)
+                subcmd = '%s %s' % (name, w)
+                if subcmd in _shown_cmds:
+                    continue
+                syntax += '\n\n' + _usage(subcmd, show_subcommands=0, registry=registry, _shown_cmds=_shown_cmds)
+                _shown_cmds.add(subcmd)
         else:
             if syntax:
                 syntax += '\n'
@@ -2863,8 +3099,24 @@ def can_be_empty_arg(arg):
     return isinstance(arg, Or) and EmptyArg in arg.annotations
 
 
-def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
-               show_hidden=False, *, registry=None):
+def html_usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True,
+               show_hidden=False):
+    try:
+        text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden)
+    except ValueError as e:
+        _compute_available_commands(session)
+        if _available_commands is None:
+            raise e
+        try:
+            text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
+                               registry=_available_commands)
+        except ValueError:
+            raise e
+    return text
+
+
+def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
+                show_hidden=False, *, registry=None, _shown_cmds=None):
     """Return usage string in HTML for given command name
 
     :param name: the name of the command
@@ -2873,11 +3125,15 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
     :param show_hidden: True if hidden keywords should be shown.
     :returns: a HTML usage string for the command
     """
+    if _shown_cmds is None:
+        _shown_cmds = set()
     cmd = Command(None, registry=registry)
     cmd.current_text = name
     cmd._find_command_name(no_aliases=no_aliases)
     if cmd.amount_parsed == 0:
         raise ValueError('"%s" is not a command name' % name)
+    if cmd.command_name in _shown_cmds:
+        return ''
     from html import escape
 
     syntax = ''
@@ -2938,12 +3194,15 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             else:
                 syntax += ' <nobr>[<b>%s</b>%s]</nobr>' % (uarg_name, type_info)
         syntax += "<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&mdash; "  # synopsis prefix
+        if registry is not None and registry is _available_commands:
+            syntax += '(uninstalled) '
         if ci.synopsis:
             syntax += "<i>%s</i>\n" % escape(ci.synopsis)
         else:
             syntax += "<i>[no synopsis available]</i>\n"
         if arg_syntax:
             syntax += '<br>\n&nbsp;&nbsp;%s' % '<br>\n&nbsp;&nbsp;'.join(arg_syntax)
+        _shown_cmds.add(cmd.command_name)
         if expand_alias and ci.is_alias():
             alias = ci.function
             arg_text = cmd.current_text[cmd.amount_parsed:]
@@ -2955,8 +3214,10 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 optional = ''
             try:
                 name = alias.expand(*args, optional=optional, partial_ok=True)
-                syntax += '<br>' + html_usage(name)
-            except:
+                if name not in _shown_cmds:
+                    syntax += '<br>' + _html_usage(name, registry=registry, _shown_cmds=_shown_cmds)
+                    _shown_cmds.add(name)
+            except Exception:
                 pass
 
     if (show_subcommands and cmd.word_info is not None and
@@ -2965,7 +3226,11 @@ def html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
         name = cmd.current_text[:cmd.amount_parsed]
         if len(sub_cmds) <= show_subcommands:
             for w in sub_cmds:
-                syntax += '<p>\n' + html_usage('%s %s' % (name, w), show_subcommands=0)
+                subcmd = '%s %s' % (name, w)
+                if subcmd in _shown_cmds:
+                    continue
+                syntax += '<p>\n' + _html_usage(subcmd, show_subcommands=0, registry=registry, _shown_cmds=_shown_cmds)
+                _shown_cmds.add(subcmd)
         else:
             if syntax:
                 syntax += '<br>\n'
@@ -3138,7 +3403,7 @@ class Alias:
 def list_aliases(all=False, logger=None):
     """List all aliases
 
-    :param all: if True, then only list all aliases, not just user ones
+    :param all: if True, then list all aliases, not just user ones
 
     Return in depth-first order.
     """
@@ -3194,7 +3459,7 @@ def create_alias(name, text, *, user=False, logger=None, url=None, registry=None
     try:
         register(name, alias.cmd_desc(synopsis='alias of "%s"' % text, url=url),
                  alias, logger=logger, registry=registry)
-    except:
+    except Exception:
         raise
 
 

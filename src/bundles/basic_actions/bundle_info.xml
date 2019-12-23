@@ -36,6 +36,10 @@ atoms, cartoons and surfaces.
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
+  <Providers>
+    <Provider name="basicactions" manager="url_schemes"/>
+  </Providers>
+
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

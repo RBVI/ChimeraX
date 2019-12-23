@@ -34,28 +34,62 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
        Change the coordinates of these atoms.  Camera is not moved.
     '''
     if frames is not None:
-        def move_step(session, frame):
-            move(session, axis=axis, distance=distance, frames=None,
-                 coordinate_system=coordinate_system, models=models)
-        from chimerax.core.commands import motion
-        motion.CallForNFrames(move_step, frames, session)
+        def move_step(session, frame, undo=None):
+            with session.undo.block():
+                d = distance if undo is None else -distance
+                move(session, axis=axis, distance=d, frames=None,
+                     coordinate_system=coordinate_system, models=models)
+        multiframe_motion("move", move_step, frames, session)
         return
 
-    c = session.main_view.camera
-    normalize = (distance is not None)
-    saxis = axis.scene_coordinates(coordinate_system, c, normalize)	# Scene coords
-    if distance is None:
-        distance = 1
-    d = -distance if models is None else distance
-    from chimerax.core.geometry import translation
-    t = translation(saxis * d)
-    if models is not None:
-        for m in models:
-            m.positions = t * m.positions
-    if atoms is not None:
-        atoms.scene_coords = t.inverse() * atoms.scene_coords
-    if models is None and atoms is None:
-        c.position = t * c.position
+    from .view import UndoView
+    undo = UndoView("move", session, models, frames=frames)
+    with session.undo.block():
+        c = session.main_view.camera
+        normalize = (distance is not None)
+        saxis = axis.scene_coordinates(coordinate_system, c, normalize)	# Scene coords
+        if distance is None:
+            distance = 1
+        d = -distance if models is None else distance
+        from chimerax.core.geometry import translation
+        t = translation(saxis * d)
+        if models is not None:
+            for m in models:
+                m.positions = t * m.positions
+        if atoms is not None:
+            atoms.scene_coords = t.inverse() * atoms.scene_coords
+        if models is None and atoms is None:
+            c.position = t * c.position
+    undo.finish(session, models)
+    session.undo.register(undo)
+
+
+def multiframe_motion(name, func, frames, session):
+    from chimerax.core.commands.motion import CallForNFrames
+    if frames != CallForNFrames.Infinite:
+        session.undo.register(UndoMotion(name, func, frames, session))
+    CallForNFrames(func, frames, session)
+
+
+from chimerax.core.undo import UndoAction
+class UndoMotion(UndoAction):
+
+    def __init__(self, name, func, frames, session):
+        super().__init__(name, can_redo=True)
+        self._func = func
+        self._frames = frames
+        self._session = session
+
+    def undo(self):
+        from chimerax.core.commands.motion import CallForNFrames
+        def undo_func(*args, **kw):
+            self._func(*args, undo=True, **kw)
+        CallForNFrames(undo_func, self._frames, self._session)
+
+    def redo(self):
+        from chimerax.core.commands.motion import CallForNFrames
+        CallForNFrames(self._func, self._frames, self._session)
+
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, AxisArg, FloatArg, PositiveIntArg

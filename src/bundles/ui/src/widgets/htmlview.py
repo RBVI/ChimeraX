@@ -65,6 +65,8 @@ class HtmlView(QWebEngineView):
     profile :     the QWebEngineProfile used
     """
 
+    require_native_window = False
+    
     def __init__(self, *args, size_hint=None, schemes=None,
                  interceptor=None, download=None, profile=None,
                  tool_window=None, log_errors=False, **kw):
@@ -78,14 +80,14 @@ class HtmlView(QWebEngineView):
             p = self._profile = QWebEngineProfile(self.parent())
             self._private_profile = True
             set_user_agent(p)
-            if interceptor is not None:
-                self._intercept = _RequestInterceptor(callback=interceptor)
-                p.setRequestInterceptor(self._intercept)
-                if schemes:
-                    self._schemes = [s.encode("utf-8") for s in schemes]
-                    self._scheme_handler = _SchemeHandler()
-                    for scheme in self._schemes:
-                        p.installUrlSchemeHandler(scheme, self._scheme_handler)
+            self._intercept = _RequestInterceptor(callback=self.intercept)
+            self._intercept_cb = interceptor
+            p.setRequestInterceptor(self._intercept)
+            if schemes:
+                self._schemes = [s.encode("utf-8") for s in schemes]
+                self._scheme_handler = _SchemeHandler()
+                for scheme in self._schemes:
+                    p.installUrlSchemeHandler(scheme, self._scheme_handler)
             if download:
                 p.downloadRequested.connect(download)
         page = _LoggingPage(self._profile, self, log_errors=log_errors)
@@ -93,6 +95,11 @@ class HtmlView(QWebEngineView):
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
+
+        if self.require_native_window:
+            # This is to work around ChimeraX bug #2537 where the entire
+            # GUI becomes blank with some 2019 Intel graphics drivers.
+            self.winId()  # Force it to make a native window
 
     def deleteLater(self):  # noqa
         """Supported API.  Schedule HtmlView instance for deletion at a safe time."""
@@ -106,6 +113,41 @@ class HtmlView(QWebEngineView):
     @property
     def profile(self):
         return self._profile
+
+    def intercept(self, request_info, *args):
+        import os
+        qurl = request_info.requestUrl()
+        scheme = qurl.scheme()
+        if scheme == 'file':
+            # If path exists or references html files included
+            # in chimerax.ui, intercept and return
+            import sys
+            if sys.platform == "win32":
+                full_path = qurl.path()
+                # If URL path is absolute, remove the leading /.
+                # If URL path include a drive, extract the non-drive
+                # part for matching against /chimerax/ui/html/
+                if full_path[0] == '/':
+                    full_path = full_path[1:]
+                drive, path = os.path.splitdrive(full_path)
+                if not drive:
+                    path = full_path = qurl.path()
+            else:
+                path = full_path = qurl.path()
+            if os.path.exists(os.path.normpath(full_path)):
+                return
+            if path.startswith("/chimerax/ui/html/"):
+                from chimerax import ui
+                ui_dir = os.path.dirname(ui.__file__).replace(os.path.sep, '/')
+                full_path = ui_dir + path[len("/chimerax/ui"):]
+                if sys.platform == "win32":
+                    # change C:/ to /C:/
+                    full_path = '/' + full_path
+                qurl.setPath(full_path)
+                request_info.redirect(qurl)
+                return
+        if self._intercept_cb:
+            return self._intercept_cb(request_info, *args)
 
     def sizeHint(self):  # noqa
         """Supported API.  Returns size hint as a :py:class:PyQt5.QtCore.QSize instance."""
@@ -131,7 +173,11 @@ class HtmlView(QWebEngineView):
         url :    a string containing URL corresponding to content.
         """
         from PyQt5.QtCore import QUrl
+        # Disable and reenable to avoid QWebEngineView taking focus, QTBUG-52999 in Qt 5.7
         self.setEnabled(False)
+        # HACK ALERT: to get around a QWebEngineView bug where HTML
+        # source is converted into a "data:" link and runs into the
+        # URL length limit.
         if len(html) < 1000000:
             if url is None:
                 url = QUrl()
@@ -247,16 +293,15 @@ class ChimeraXHtmlView(HtmlView):
         qurl = request_info.requestUrl()
         scheme = qurl.scheme()
         if scheme == 'file':
+            # Paths to existing and chimerax.ui have already been intercepted.
             # Treat all directories with help documentation as equivalent
             # to integrate bundle help with the main help.  That is, so
             # relative hrefs will find files in other help directories.
             import sys
+            from chimerax.core import toolshed
             path = os.path.normpath(qurl.path())
             if sys.platform == "win32" and path[0] == os.path.sep:
-                path = path[1:]   # change \C:\ to C:\
-            if os.path.exists(path):
-                return
-            from chimerax.core import toolshed
+                path = path[1:]
             help_directories = toolshed.get_help_directories()
             for hd in help_directories:
                 if path.startswith(hd):
@@ -363,39 +408,37 @@ class ChimeraXHtmlView(HtmlView):
             else:
                 finished.append(item)
         self._pending_downloads = pending
+        import pkginfo
+        from chimerax.ui.ask import ask
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
-            if not _installable(filename, self.session.logger):
+            try:
+                w = pkginfo.Wheel(filename)
+            except Exception as e:
+                logger.info("Error parsing %s: %s" % (filename, str(e)))
+                self.session.logger.info("File saved as %s" % filename)
+                continue
+            if not _installable(w, self.session.logger):
                 self.session.logger.info("Bundle saved as %s" % filename)
                 continue
-            from chimerax.ui.ask import ask
             how = ask(self.session,
-                      "Install %s for:" % filename,
-                      ["just me", "all users", "cancel"],
+                      "Install %s %s (file %s)?" % (w.name, w.version, filename),
+                      ["install", "cancel"],
                       title="Toolshed")
             if how == "cancel":
                 self.session.logger.info("Bundle installation canceled")
                 continue
-            elif how == "just me":
-                per_user = True
-            else:
-                per_user = False
             self.session.toolshed.install_bundle(filename,
                                                  self.session.logger,
-                                                 per_user=per_user,
+                                                 per_user=True,
                                                  session=self.session)
 
 
-def _installable(filename, logger):
-    import pkginfo, re
+def _installable(w, logger):
+    import re
     from distutils.version import LooseVersion as Version
     import chimerax.core
-    try:
-        w = pkginfo.Wheel(filename)
-    except Exception as e:
-        logger.info("Error parsing %s: %s" % (filename, str(e)))
-        return False
     pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
     for req in w.requires_dist:
         m = pat.match(req)

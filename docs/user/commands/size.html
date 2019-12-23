@@ -37,7 +37,7 @@ The <b>size</b> command sets the following:
 <ul>
 <li>
 <b>atomRadius</b>&nbsp;<i>r<sub><font size=-1>a</font></sub></i>
-- atomic <a href="../radii.html">VDW radius</a> as shown in
+&ndash; atomic <a href="../radii.html">VDW radius</a> as shown in
 <a href="style.html">sphere style</a>.
 The <a href="../radii.html">default VDW radii</a>
 assigned by <a href="../atomtypes.html">atom type</a> can be restored
@@ -50,14 +50,14 @@ it may be appropriate to restore the <b>default</b> values
 before such calculations.
 <li>
 <b>ballScale</b> <i>factor</i> (initial default <b>0.3</b>)
-- scale factor to multiply by <a href="../radii.html">VDW radius</a>
+&ndash; scale factor to multiply by <a href="../radii.html">VDW radius</a>
 for <a href="style.html">ball style</a>.
 The <b>ballScale</b> parameter applies to an entire atomic model even
 if only part of the model is specified.
 <li>
 <b>stickRadius</b>&nbsp;<i>r<sub><font size=-1>b</font></sub></i>
 (initial default <b>0.2</b> &Aring;)
-- bond stick radius and display radius of singleton (zero-bond) atoms in
+&ndash; bond stick radius and display radius of singleton (zero-bond) atoms in
 <a href="style.html">stick style</a>. 
 Within a single atomic model,
 different bonds can have different stick radii, but a single 
@@ -65,7 +65,7 @@ different bonds can have different stick radii, but a single
 if any singleton in that model is specified.
 <li>
 <b>pseudobondRadius</b>&nbsp;<i>r<sub><font size=-1>pb</font></sub></i>
-- <a href="../pseudobonds.html">pseudobond</a> stick radius
+&ndash; <a href="../pseudobonds.html">pseudobond</a> stick radius
 </ul>
 <p>
 Style is controlled with the <a href="style.html"><b>style</b></a> command
@@ -79,8 +79,12 @@ and using the word <a href="atomspec.html#builtin"><b>sel</b></a>.
 by pseudobond model number or <a href="atomspec.html#builtin">built-in
 classifications</a>: <b>pbonds</b>, <b>hbonds</b>.
 </p><p>
-The sizes of <a href="../markers.html">markers and links</a> can also be
-adjusted <a href="../tools/markerplacement.html">with the mouse</a>.
+<a href="../markers.html">Marker and link</a> radii can also be adjusted
+in the <a href="../tools/markerplacement.html"><b>Marker
+Placement</b></a> tool, <a href="ui.html#mousemode">with the mouse</a>
+<a href="../tools/markers.html" title="Markers Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/resize.png"></a>,
+or with <a href="marker.html#change"><b>marker change</b></a>.
 See also: 
 <a href="cartoon.html#style"><b>cartoon style</b></a>,
 <a href="set.html#subdivision"><b>set subdivision</b></a>,
@@ -91,5 +95,5 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2018</address>
+November 2019</address>
 </body></html>

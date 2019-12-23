@@ -46,6 +46,9 @@ def camera(session, type=None, field_of_view=None,
             for t in tuple(session.tools.list()):
                 if t.tool_name == 'Side View':
                     t.delete()
+                    session.logger.info('Restarting side view because stereo mode switched')
+                    from chimerax.core.commands import run
+                    run(session, 'toolshed show "Side View"')
         camera = None
         if type == 'mono':
             from chimerax.core.graphics import MonoCamera
@@ -92,6 +95,9 @@ def camera(session, type=None, field_of_view=None,
         cam.eye_separation_scene = eye_separation
         cam.redraw_needed = True
     if pixel_eye_separation is not None:
+        if camera.name != 'stereo':
+            from chimerax.core.errors import UserError
+            raise UserError('camera pixelEyeSeparation option only applies to stereo camera mode.')
         has_arg = True
         cam.eye_separation_pixels = pixel_eye_separation
         cam.redraw_needed = True

@@ -80,14 +80,12 @@ class Volume(Model):
 
     self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
 
-
-#    from chimera import addModelClosedCallback
-#    addModelClosedCallback(self, self.model_closed_cb)
-
 #    from chimera import triggers
 #    h = triggers.addHandler('SurfacePiece', self.surface_piece_changed_cb, None)
 #    self.surface_piece_change_handler = h
     self.surface_piece_change_handler = None
+
+    self.model_panel_show_expanded = False	# Don't show submodels initially in model panel
 
   # ---------------------------------------------------------------------------
   #
@@ -193,7 +191,7 @@ class Volume(Model):
     Supported API.  Remove a list of VolumeSurface instances from this Volume.
     If surfaces is None then all current surfaces are removed.
     '''
-    surfs = self._surfaces if surfaces is None else surfaces
+    surfs = tuple(self._surfaces if surfaces is None else surfaces)
     if self.id is None:
       self.remove_drawings(surfs)
     else:
@@ -292,7 +290,7 @@ class Volume(Model):
                              % (len(values), len(self.surfaces)))
         elif param == 'transparency':
           for s in self.surfaces:
-            s.set_transparency(kw['transparency'])
+            s.set_transparency((1-kw['transparency'])*255)
         elif param == 'brightness':
           for s in self.surfaces:
             s.set_brightness(kw['brightness'])
@@ -373,21 +371,13 @@ class Volume(Model):
   #
   def set_transparency(self, alpha):
     '''Alpha values in range 0-255. Only changes current style (surface/mesh or image).'''
-    a1 = alpha/255
     if self.surface_shown:
       for s in self.surfaces:
-        r,g,b,a = s.rgba
-        s.rgba = (r,g,b,a1)
-    elif self.image_shown:
+        s.set_transparency(alpha)
+    if self.image_shown:
+      a1 = alpha/255
       self.set_parameters(image_colors = [(r,g,b,a1) for r,g,b,a in self.image_colors])
     self._drawings_need_update()
-    
-    # Update transparency on per-vertex coloring
-    for s in self.surfaces:
-      vc = s.vertex_colors
-      if vc is not None:
-        vc[:,3] = alpha
-        s.vertex_colors = vc
 
   # ---------------------------------------------------------------------------
   #
@@ -507,9 +497,9 @@ class Volume(Model):
     if mstats is None:
       mstats = self.matrix_value_statistics()
     if mfrac is None:
-      v = mstats.rank_data_value(1-vfrac[0])
+      v = mstats.rank_data_value(1-vfrac[0], estimate = 'high')
     else:
-      v = mstats.mass_rank_data_value(1-mfrac[0])
+      v = mstats.mass_rank_data_value(1-mfrac[0], estimate = 'high')
     rgba = self.default_rgba
     binary = getattr(self.data, 'binary', False)
     polar = getattr(self.data, 'polar_values', False)
@@ -571,6 +561,8 @@ class Volume(Model):
     '''
     Set display style to "surface", "mesh", or "image".
     '''
+    self._style_when_shown = None
+
     if style == 'image' and self.image_shown and not self.surface_shown:
       return
     if (style in ('surface', 'mesh') and self.surface_shown
@@ -589,8 +581,6 @@ class Volume(Model):
       ijk_min, ijk_max = self.region[:2]
       self.new_region(ijk_min, ijk_max)
 
-    self._style_when_shown = None
-    
     # Show or hide surfaces
     surfshow = (style in ('surface', 'mesh'))
     mesh = (style == 'mesh')
@@ -653,7 +643,7 @@ class Volume(Model):
   def _set_display(self, display):
     if display == self.display:
       return
-    Model._set_display(self, display)
+    Model.display.fset(self, display)
     if display:
       self._drawings_need_update()	# Create model geometry if needed.
     self.call_change_callbacks('displayed')
@@ -881,12 +871,18 @@ class Volume(Model):
 
     if copy_colors:
       # Copy colors
+
+      color_kw = {}
+      if len(self.surfaces) == len(v.surfaces):
+        color_kw['surface_colors'] = [s.rgba for s in v.surfaces]
+      if len(self.image_colors) == len(v.image_colors):
+        color_kw['image_colors'] = v.image_colors
+
       self.set_parameters(
-        surface_colors = [s.rgba for s in v.surfaces],
-        image_colors = v.image_colors,
         transparency_depth = v.transparency_depth,
         image_brightness_factor = v.image_brightness_factor,
-        default_rgba = v.default_rgba
+        default_rgba = v.default_rgba,
+        **color_kw
         )
 
     if copy_rendering_options:
@@ -929,7 +925,7 @@ class Volume(Model):
   # If volume data is not writable then make a writable copy.
   #
   def writable_copy(self, require_copy = False,
-                    unshow_original = True, model_id = None,
+                    unshow_original = True, model_id = None, open_model = True,
                     subregion = None, step = (1,1,1), name = None,
                     copy_colors = True, value_type = None):
 
@@ -948,7 +944,7 @@ class Volume(Model):
       g.name = self.name + ' copy'
 
     v = volume_from_grid_data(g, self.session, style = None, model_id = model_id,
-                              show_dialog = False)
+                              show_dialog = False, open_model = open_model)
     v.copy_settings_from(self, copy_region = False, copy_colors = copy_colors)
 
     if unshow_original:
@@ -958,9 +954,12 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def region_grid(self, r, value_type = None):
+  def region_grid(self, r, value_type = None, new_spacing = None):
 
     shape = self.matrix_size(region = r, clamp = False)
+    if new_spacing is not None:
+      d = self.data
+      shape = [int(sz*(s*st/ns)) for s,ns,sz,st in zip(d.step, new_spacing, d.size, r[2])]
     shape.reverse()
     d = self.data
     if value_type is None:
@@ -968,6 +967,8 @@ class Volume(Model):
     from numpy import zeros
     m = zeros(shape, value_type)
     origin, step = self.region_origin_and_step(r)
+    if new_spacing is not None:
+      step = new_spacing
     from .data import ArrayGridData
     g = ArrayGridData(m, origin, step, d.cell_angles, d.rotation)
     g.rgba = d.rgba           # Copy default data color.
@@ -1632,11 +1633,11 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def write_file(self, path, format = None, options = {}, temporary = False):
+  def write_file(self, path, format = None, options = {}):
 
     from .data import save_grid_data
     d = self.grid_data()
-    format = save_grid_data(d, path, self.session, format, options, temporary)
+    format = save_grid_data(d, path, self.session, format, options)
 
   # ---------------------------------------------------------------------------
   #
@@ -1696,23 +1697,15 @@ class Volume(Model):
     d = self.data
     if d:
       d.clear_cache()
+      d.remove_change_callback(self.data_changed_cb)
+    self.data = None
+    self._keep_displayed_data = None
+    self.outline_box = None
     self.close_models()
     Model.delete(self)
       
   # ---------------------------------------------------------------------------
   #
-  def model_closed_cb(self, model):
-
-    if self.data:
-      self.data.remove_change_callback(self.data_changed_cb)
-      self.data = None
-      self._keep_displayed_data = None
-      self.outline_box = None   # Remove reference loops
-      from chimera import triggers
-      triggers.deleteHandler('SurfacePiece', self.surface_piece_change_handler)
-      self.surface_piece_change_handler = None
-
-
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
@@ -1725,7 +1718,9 @@ class Volume(Model):
       'version': 1,
     }
     return data
-
+      
+  # ---------------------------------------------------------------------------
+  #
   @staticmethod
   def restore_snapshot(session, data):
     grid_data = data['grid data state'].grid_data
@@ -1747,10 +1742,12 @@ class VolumeImage(Image3d):
   def __init__(self, volume):
 
     self._volume = v = volume
-    
+
+    ro = v.rendering_options
     from .image3d import blend_manager, Colormap
     cmap = Colormap(self._transfer_function(), v.image_brightness_factor,
-                    self._transparency_thickness())
+                    self._transparency_thickness(),
+                    extend_left = ro.colormap_extend_left, extend_right = ro.colormap_extend_right)
 
     Image3d.__init__(self, 'image', v.data, v.region, cmap, v.rendering_options,
                      v.session, blend_manager(v.session))
@@ -1777,9 +1774,11 @@ class VolumeImage(Image3d):
   # ---------------------------------------------------------------------------
   #
   def _update_colormap(self):
+    v = self._volume
+    ro = v.rendering_options
     from .image3d import Colormap
-    cmap = Colormap(self._transfer_function(), self._volume.image_brightness_factor,
-                    self._transparency_thickness())
+    cmap = Colormap(self._transfer_function(), v.image_brightness_factor, self._transparency_thickness(),
+                    extend_left = ro.colormap_extend_left, extend_right = ro.colormap_extend_right)
     self.set_colormap(cmap)
 
   # ---------------------------------------------------------------------------
@@ -1855,14 +1854,19 @@ class VolumeSurface(Surface):
     self.volume = volume
     self._level = level
     self._mesh = mesh
-    self.rgba = rgba
+    color = [int(min(255,max(0,255*r))) for r in rgba]
+    Surface.set_color(self, color)	# Don't set self.rgba since that calls color changed volume callback
     self._contour_settings = {}	         	# Settings for current surface geometry
     self._min_status_message_voxels = 2**24	# Show status messages only on big surface calculations
     self._use_thread = False			# Whether to compute next surface in thread
     self._surf_calc_thread = None
-    
+    self.clip_cap = True			# Cap surface when clipped
+
   def delete(self):
-    self.volume._surfaces.remove(self)
+    try:
+      self.volume._surfaces.remove(self)
+    except ValueError:
+      pass	# This VolumeSurface was already removed from Volume
     Surface.delete(self)
 
   def _get_level(self):
@@ -1870,6 +1874,7 @@ class VolumeSurface(Surface):
   def set_level(self, level, use_thread = False):
     self._level = level
     self._use_thread = use_thread
+    self.volume.redraw_needed(shape_changed = True)
   level = property(_get_level, set_level)
 
   def _get_rgba(self):
@@ -1879,9 +1884,13 @@ class VolumeSurface(Surface):
   rgba = property(_get_rgba, _set_rgba)
   '''Float red,green,blue,alpha values in range 0-1'''
 
-  def set_transparency(self, transparency):
-    '''Set surface transparency, 0-1 range.'''
-    self.rgba = tuple(self.rgba[:3]) + (1-transparency,)
+  def set_transparency(self, alpha):
+    '''Set surface transparency, 0-255 range.'''
+    if self.vertex_colors is None:
+      self.rgba = tuple(self.rgba[:3]) + (alpha/255,)
+    else:
+      # Change per-vertex transparency leaving colors the same.
+      Surface.set_transparency(self, alpha)
 
   def set_brightness(self, brightness):
     '''
@@ -1895,7 +1904,7 @@ class VolumeSurface(Surface):
     else:
       f = b255/cb
       self.color = (int(f*r), int(f*g), int(f*b), a)
-    
+
   def get_color(self):
     return Surface.get_color(self)
   def set_color(self, color):
@@ -1917,7 +1926,6 @@ class VolumeSurface(Surface):
     if show_mesh != self._mesh:
       self._mesh = show_mesh
       self.volume._drawings_need_update()
-
   show_mesh = property(_get_show_mesh, _set_show_mesh)
 
   @property
@@ -1931,7 +1939,7 @@ class VolumeSurface(Surface):
     self._use_thread_result()
     
     if not self._geometry_changed(rendering_options):
-      self._set_appearance(rendering_options)
+      self._set_appearance(rendering_options, clear_vertex_colors = False)
       return
     
     v = self.volume
@@ -2101,15 +2109,14 @@ class VolumeSurface(Surface):
 
     # TODO: Clip cap offset for different contour levels is not related to voxel size.
     v = self.volume
-    self.clip_cap = True
     self.clip_offset = .002* len([s for s in v.surfaces if self.level < s.level])
 
   # ---------------------------------------------------------------------------
   #
-  def _set_appearance(self, rendering_options):
+  def _set_appearance(self, rendering_options, clear_vertex_colors = True):
 
     # Update color
-    if self.auto_recolor_vertices is None:
+    if self.auto_recolor_vertices is None and clear_vertex_colors:
       self.vertex_colors = None
 
     # Update display style
@@ -2164,9 +2171,12 @@ class VolumeSurface(Surface):
       'volume': self.volume,
       'level': self.level,
       'rgba': self.rgba,
+      'show_mesh': self.show_mesh,
       'model state': Surface.take_snapshot(self, session, flags),
       'version': 1
     }
+    if self.vertex_colors is not None and self.auto_recolor_vertices is None:
+      data['vertex_colors'] = self.vertex_colors
     return data
 
   @staticmethod
@@ -2174,11 +2184,17 @@ class VolumeSurface(Surface):
     v = data['volume']
     if v is None:
       return None	# Volume was not restored, e.g. file missing.
-    s = VolumeSurface(v, data['level'], data['rgba'])
+    s = VolumeSurface(v, data['level'], data['rgba'], data.get('show_mesh', False))
     Model.set_state_from_snapshot(s, session, data['model state'])
     if v._style_when_shown == 'image':
       s.display = False		# Old sessions had surface shown but not computed when image style used.
     v._surfaces.append(s)
+    if 'vertex_colors' in data:
+      # Compute surface and set vertex colors.
+      s.update_surface(v.rendering_options)
+      vc = data['vertex_colors']
+      if len(s.vertices) == len(vc):
+        s.vertex_colors = vc
     return s
       
 # -----------------------------------------------------------------------------
@@ -2519,6 +2535,8 @@ class Rendering_Options:
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
     self.colormap_on_gpu = False      # image rendering with colors computed on gpu
     self.colormap_size = 256	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.colormap_extend_left = False
+    self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
@@ -3083,6 +3101,11 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
     set_initial_volume_color(v, session)
 
   if not model_id is None:
+    if session.models.have_id(model_id):
+      from chimerax.core.errors import UserError
+      raise UserError('Tried to create model #%s which already exists'
+                      % '.'.join('%d'%i for i in model_id))
+    
     v.id = model_id
 
   if open_model:
@@ -3447,10 +3470,10 @@ class MultiChannelSeries(Model):
 
     # Parent models are always restored before child models.
     # Restore child map list after child maps are restored.
-    def restore_maps(trigger_name, session, mcs = mcs, map_ids = data['map ids']):
+    def restore_maps(trigger_name, session, mcs = mcs, map_ids = data['map series ids']):
       idm = {m.id : m for m in mcs.child_models()}
       map_series = [idm[id] for id in map_ids if id in idm]
-      channels.set_map_series(map_series)
+      mcs.set_map_series(map_series)
       from chimerax.core.triggerset import DEREGISTER
       return DEREGISTER
     session.triggers.add_handler('end restore session', restore_maps)
@@ -3546,7 +3569,10 @@ class VolumeUpdateManager:
     if vdisp:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
-        if v.display:
+        if v.deleted or v.id is None:
+          vset.remove(v)
+          vdisp.remove(v)
+        elif v.display:
           # Remove volume from update list before update since update may re-add it
           # if surface calculation done in thread.
           vset.remove(v)
@@ -3585,7 +3611,7 @@ def register_map_format(session, map_format):
     io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
                        open_func=open_map_format, batch=True,
                        allow_directory=map_format.allow_directory,
-                       export_func=save_func)
+                       export_func=save_func, check_path=map_format.check_path)
 
 # -----------------------------------------------------------------------------
 #
@@ -3625,3 +3651,6 @@ def register_map_file_formats(session):
         synopsis='save map'
     )
     register('save map', desc, save, logger=session.logger)
+
+    from . import savemap
+    savemap.register_map_save_options(session)

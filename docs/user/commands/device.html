@@ -35,9 +35,24 @@ where the <i>device-type</i> can be:
 </p>
 <ul>
 <li><a href="#snav"><b>snav</b></a> 
-- SpaceNavigator<sup>&reg;</sup> 3D mouse
+&ndash; SpaceNavigator<sup>&reg;</sup> 3D mouse
 <li><a href="#vr"><b>vr</b></a>
-- HTC Vive, Oculus Rift, Samsung Odyssey virtual reality systems
+&ndash; HTC Vive, Oculus Rift, Samsung Odyssey virtual reality systems
+  <ul>
+  <li><a href="#vr-button"><b>vr button</b></a> 
+  &ndash; assign functions to hand-controller buttons
+  <li><a href="#vr-roomCamera"><b>vr roomCamera</b></a>
+  &ndash; set up a separate camera view fixed in the VR room coordinates,
+  useful for making videos
+  </ul>
+<li><a href="#realsense"><b>realsense</b></a>
+&ndash; requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
+target="_blank"><b>RealSense</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
+allows blending video from a Intel RealSense depth-sensing camera 
+with ChimeraX graphics to make augmented reality videos
 </ul>
 <p>
 <a name="status"></a>
@@ -73,11 +88,10 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="vr"><b>vr</b></a> [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
-[&nbsp;<b>display</b>&nbsp;&nbsp;<b>mirror</b>&nbsp;|&nbsp;independent&nbsp;|&nbsp;blank&nbsp;]
-[&nbsp;<b>showControllers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>mirror</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>clickRange</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
-[&nbsp;<b>gui</b>&nbsp;&nbsp;<i>tool-list</i>&nbsp;]
-[&nbsp;<b>toolbarPanels</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>gui</b>&nbsp;&nbsp;<i>tool1</i>[<i>,tool2</i>&nbsp;...&nbsp;]]
 [&nbsp;<b>simplifyGraphics</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>multishadowAllowed</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>roomPosition</b>&nbsp;&nbsp;<i>matrix</i>&nbsp;|&nbsp;<b>report</b>&nbsp;]
@@ -92,34 +106,37 @@ and started before the mode is enabled.
 In addition, Oculus Rift users should start the Oculus runtime 
 before starting SteamVR. For details and related issues, 
 see <a href="../vr.html">ChimeraX virtual reality</a>.
-See also: <a href="camera.html"><b>camera</b></a>,
-<a href="view.html"><b>view</b></a>,
+See also: 
+<a href="#vr-button"><b>vr button</b></a>,
+<a href="#vr-roomCamera"><b>vr roomCamera</b></a>,
 <a href="meeting.html"><b>meeting</b></a>,
+<a href="camera.html"><b>camera</b></a>,
+<a href="view.html"><b>view</b></a>,
 <a href="../movies.html">making movies</a>
 <p>
-The <b>display</b> option indicates what to show in the ChimeraX graphics
-window on the desktop:
-<ul>
-<li><b>mirror</b> (default) - the right-eye view seen in the VR headset,
+VR status, model positions in the room, and hand-controller
+<a href="#vr-button">button assignments</a> are saved in
+<a href="save.html#session">ChimeraX session files</a>.
+The VR model positions and button assignments
+are also retained through uses of <b>vr on</b> and <b>vr off</b>,
+but not after exiting ChimeraX.
+</p><p>
+The <b>mirror</b> option indicates whether to show the ChimeraX scene
+in the desktop graphics window. If true (default), 
+the VR headset right-eye view is shown,
 with <a href="graphics.html#waitForVsync"><b>graphics waitForVsync</b></a>
 automatically set to false so that VR rendering will not slow down
-to the desktop rendering rate
-<li><b>independent</b> - a separate camera view
-fixed in the VR room coordinates, set to match the viewpoint of
-the VR headset when the command is issued
-<li><b>blank</b> - no graphics, allowing all graphics computing
-resources to be dedicated to VR headset rendering
-</ul>
+to the desktop rendering rate.
+If false, no graphics are shown in the desktop display, allowing 
+all graphics computing resources to be dedicated to VR headset rendering.
 Updating the graphics window can cause flicker in the VR headset
 because refreshing the computer display (nominally 60 times per second)
 slows rendering to headset. ChimeraX turns off syncing to
 vertical refresh if possible. Another way to mirror is to use
 SteamVR's menu entry to display mirror window.
 </p><p>
-The <b>showControllers</b> option (default <b>true</b>)
-shows representations of the hand controllers in the scene.
-Not showing the representations may be useful to avoid time-consuming
-calculations of the shadows they cast. 
+The <b>center</b> option (default <b>true</b>)
+centers and scales models in the room.
 <p><p>
 The <b>clickRange</b> option sets the depth range for
 picking objects with the hand-controller cones, where <i>r</i>
@@ -127,33 +144,20 @@ picking objects with the hand-controller cones, where <i>r</i>
 to the object in scene distance units, typically &Aring;.
 Limiting the range prevents accidentally picking far-away objects.
 </p><p>
-The <b>gui</b> option specifies what tools are shown as a control panel in VR
-when the Vive hand-controller
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">menu button</a> (similar for other systems) is pressed.
-By default, the icon <a href="../tools/toolbar.html"><b>Toolbar</b></a>
-and all of the righthand tools in the ChimeraX desktop window are shown.
-However, any other combination of the current <i>tools</i> can be specified as:
-</p>
-<ul>
-<li><b>main window</b> &ndash; the entire ChimeraX desktop window
-<li><b>right panels</b> 
-&ndash; all tools in the right side of the ChimeraX desktop window
-<li><i>tool1[,tool2 ...]</i> &ndash; a comma-separated list of one or more
-tool names (as listed in the <b>Tools</b> menu and shown for most tools in 
-their title bars), possibly including <b>right panels</b> as described above. 
-Tools may also be custom panels created with the
+The <b>gui</b> option specifies which ChimeraX tool panels to show in VR
+when the hand-controller button assigned to that function 
+(by <a href="../vr.html#default-controller">default</a>,
+Vive <b><i>menu</i></b> or Oculus B/Y) is pressed.
+Any combination of tools can be specified as
+a comma-separated list of one or more tool names,
+as listed in the <b>Tools</b> menu and shown for most tools in 
+their title bars. Tools may also be custom panels created with the
 <a href="buttonpanel.html"><b>buttonpanel</b></a> command.
-</ul>
-<p>
-The default corresponds to:
-<b>gui&nbsp;"<a href="../tools/toolbar.html">Toolbar</a>,&nbsp;right&nbsp;panels"</b>
-</p><p>
-The <b>toolbarPanels</b> option (default <b>true</b>)
-applies only to the old toolbars that were handled as separate tools; 
-it specifies whether to convert them into righthand panels for use in VR. 
-The new <a href="../tools/toolbar.html"><b>Toolbar</b></a>
-is shown by default, as described above.
+If the <b>gui</b> option is not given,
+the same tools as currently shown in the desktop display
+(including the <a href="../tools/toolbar.html"><b>Toolbar</b></a>,
+and on Windows only, the ChimeraX <a href="../menu.html">main menu</a>)
+will be shown. 
 </p><p>
 The <b>simplifyGraphics</b> option (default <b>true</b>)
 reduces the maximum level of detail in VR by limiting the 
@@ -187,10 +191,244 @@ the fourth, eighth, and twelfth numbers. Example:
 <blockquote>
 <b>vr &nbsp;room &nbsp;20,0,0,0,0,20,0,0,0,0,20,0</b>
 </blockquote>
+<p>
+The frequency of <a href="label.html#orient">label reoriention</a>
+is automatically decreased when VR is enabled and 
+restored when VR is turned off.
 </p>
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="vr-button"><b>vr button</b></a> 
+&nbsp;<i>button-name</i>
+&nbsp;<i>function</i>
+[&nbsp;<b>hand</b>&nbsp;&nbsp;left&nbsp;|&nbsp;right&nbsp;]
+<blockquote>
+<table class="clRight" cellspacing="0">
+<tr><td>
+<a href="../tutorials/dicom-vr3.png">
+<img class="outline" src="../tutorials/dicom-vr3.png" title="click to enlarge..."
+alt="Vive hand controllers" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1">
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
+target="_blank">Vive</a> hand controllers
+</font></td></tr>
+<tr><td>
+<a href="../tutorials/oculus-touch.png">
+<img class="outline" src="../tutorials/oculus-touch.png"
+title="click to enlarge..."
+alt="Oculus hand controllers" width="300px"></a>
+</td></tr>
+<tr><td align="center"><font size="-1"><a href="https://www.oculus.com/"
+target="_blank">Oculus</a> &ldquo;Touch&rdquo; hand controllers
+</font></td></tr>
+</table>
+<p>
+The <b>vr button</b> command assigns modes (functions) to 
+the hand-controller buttons in <a href="../vr.html">virtual reality</a>,
+as a scriptable alternative to
+<a href="../vr.html#mousemodes">clicking icons
+to assign modes interactively</a>.
+The available <a href="ui.html#functions"><i>function</i></a> names
+are the same as for <a href="ui.html#mousemode"><b>mousemode</b></a>,
+including <b>none</b>
+(command <a href="usage.html"><b>usage</b></a> <b>mousemode</b>
+lists them in the <a href="../tools/log.html"><b>Log</b></a>),
+and should be enclosed in quotation marks if they contain spaces.
+The function can also be given as the word <b>default</b> to reset to
+<a href="../vr.html#default-controller">default functions</a>.
+The <b>hand</b> option can be given to assign a function 
+to the specified button of only one hand controller; 
+otherwise, those on both controllers will be assigned.
+The <i>button-name</i> can be:
+</p>
+<ul>
+<li><b>trigger</b>
+<li><b>grip</b>
+<li><b>touchpad</b> (synonym <b>thumbstick</b>)
+&ndash; Vive trackpad or Oculus thumbstick
+<li><b>menu</b> 
+&ndash; Vive menu button
+<li><b>A</b> 
+&ndash; a button on the Oculus right hand controller
+(<b>hand</b> option ignored)
+<li><b>B</b>
+&ndash; a button on the Oculus right hand controller
+(<b>hand</b> option ignored; same as <b>menu</b> with <b>hand right</b>)
+<li><b>X</b>
+&ndash; a button on the Oculus left hand controller
+(<b>hand</b> option ignored)
+<li><b>Y</b>
+&ndash; a button on the Oculus left hand controller
+(<b>hand</b> option ignored; same as <b>menu</b> with <b>hand left</b>)
+<li><b>all</b>
+&ndash; all hand-controller buttons, primarily for use in the command:
+<b>vr button all default</b>
+</ul>
+<p>
+Initial defaults are to <b>translate</b> and <b>rotate</b> with triggers,
+<b>zoom</b> with Vive touchpad or Oculus A/X button,
+and show/hide ChimeraX tool panels with the Vive menu or Oculus B/Y button
+(<a href="../vr.html#default-controller">more...</a>).
+</p><p>
+The only <a href="ui.html#functions"><i>function</i></a> settings that work
+by tilting the Oculus <b><i>thumbstick</i></b> are <b>rotate</b>
+<a href="ui.html#functions">
+<img class="icon" border=1 src="../tools/mouse-icons/rotate.png"></a>,
+<b>zoom</b> <a href="ui.html#functions">
+<img class="icon" border=1 src="../tools/mouse-icons/zoom.png"></a>,
+<b>contour level</b>
+<a href="ui.html#functions">
+<img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>,
+and <b>play map series</b>
+<a href="ui.html#functions">
+<img class="icon" border=1 src="../tools/mouse-icons/vseries.png"></a>.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="vr-roomCamera"><b>vr roomCamera</b></a> 
+[&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+[&nbsp;<b>fieldOfView</b>&nbsp;&nbsp;<i>angle</i>&nbsp;]
+[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
+[&nbsp;<b>backgroundColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>savePosition</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>tracker</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>saveTrackerMount</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+The <b>vr roomCamera</b> command sets up a separate camera view fixed 
+in the VR room coordinates, useful for making video tutorials.
+The camera view is shown in the desktop graphics window 
+and as &ldquo;picture in picture&rdquo; in the VR headset. 
+See also: <a href="camera.html"><b>camera</b></a>,
+<a href="../movies.html">making movies</a>
+<p>
+The <b>vr roomCamera</b> command can only be used in 
+<a href="../vr.html">virtual reality</a>
+(after using <a href="#vr"><b>vr on</b></a>).
+In VR, the room camera is shown as a rectangle at the camera position 
+(initially with its center 1.5 meters above the floor and offset 2 meters 
+horizontally from the room center), facing the user and showing 
+what the camera sees.
+The <b>width</b> of the rectangle is given in meters (default <b>1.0</b>),
+and the height is chosen to match the aspect ratio of the desktop graphics
+window. The default <b>fieldOfView</b> for the room camera is <b>90</b>&deg;.
+The background color of the room camera can be set separately from the VR
+background; default is a dark gray (<b>10,10,10</b>)
+so that the rectangle is visible against a black scene background.
+</p><p>
+The room camera rectangle
+is a model that can be <a href="../selection.html">selected</a>
+and then moved in VR with the
+<a href="../vr.html#mousemodes">hand-controller mode</a>
+assigned by clicking either icon:
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" src="../tools/mouse-icons/move_h2o.png" border="1"></a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" src="../tools/mouse-icons/rotate_h2o.png" border="1"></a>
+(or with the <a href="#vr-button"><b>vr button</b></a> command).
+</p><p>
+Specifying <b>savePosition true</b> saves the current position and orientation
+of the room camera in the <a href="../preferences.html#other">preferences</a>.
+</p><p>
+Two options allow using a 
+<a href="https://www.vive.com/us/vive-tracker/" target="_blank">Vive Tracker</a>
+device to control the room camera position:
+</p>
+<ul>
+<li>Using <b>tracker true</b> synchronizes the room camera to the
+position and orientation of the device, with offsets
+(if any) previously saved with <b>saveTrackerMount true</b>.
+<li>Using <b>saveTrackerMount true</b> saves in the
+<a href="../preferences.html#other">preferences</a>
+the current room camera translation and rotation relative to the device.
+</ul>
+<p>
+Thus, the room camera can be moved by hand as described above,
+and then its offsets from the device (for when <b>tracker true</b> is used) 
+in position and orientation saved with <b>saveTrackerMount true</b>.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="realsense"><b>device realsense</b></a> 
+[&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>x,y</i>&nbsp;]
+[&nbsp;<b>dsize</b>&nbsp;&nbsp;<i>dx,dy</i>&nbsp;]
+[&nbsp;<b>framesPerSecond</b>&nbsp;&nbsp;<i>fps</i>&nbsp;]
+[&nbsp;<b>align</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>denoise</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>denoiseWeight</b>&nbsp;&nbsp;<i>weight</i>&nbsp;]
+[&nbsp;<b>denoiseColorTolerance</b>&nbsp;&nbsp;<i>tolerance</i>&nbsp;]
+[&nbsp;<b>denoise</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>projector</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>angstromsPerMeter</b>&nbsp;&nbsp;<i>apm</i>&nbsp;]
+[&nbsp;<b>skipFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+<blockquote>
+The command <b>device realsense</b> enables blending video from an 
+Intel RealSense depth-sensing camera with ChimeraX graphics to
+make augmented reality videos.
+This command is only available after installation of the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
+target="_blank"><b>RealSense</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>).
+See also:
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mixed-reality-nov2019/mrhowto.html" target="blank">Mixed Reality Video Recording in ChimeraX</a>
+</p><p>
+The <b>size</b> and <b>dsize</b> options set camera image resolution
+for color and depth, respectively. Each takes a pair of comma-separated values
+indicating the pixel dimensions in X and Y (defaults: <b>size 960,540</b> and
+<b>dsize 1280,720</b>). The <b>framesPerSecond</b> option gives the video
+capture rate (default <b>30</b>). The <b>align</b> option indicates whether
+to compensate the offset between the color and depth cameras in the device
+(default <b>true</b>, which slows rendering). 
+The <b>denoise</b> option (default <b>true</b>)
+specifies whether to depth-denoise by averaging depth over time at pixels
+when their colors remain fairly constant using parameters
+<b>denoiseWeight</b> (default <b>0.1</b>) and <b>denoiseColorTolerance</b> (default <b>10</b>).
+The denoising algorithm details are given below.
+The <b>projector</b> option enables spraying the room with IR dots
+from a projector on the camera device for better depth detection (default 
+<b>false</b>, as the IR beams interfere with other devices that use IR
+such as Vive VR tracking). Normally the camera device is used at the
+same time as <a href="#vr">VR</a>, which in turn sets the scale factor
+of the scene relative to the room.  However, if <a href="#vr">VR</a> is not
+in use, the <b>angstromsPerMeter</b> option can be used to specify the
+relative scale (default <b>50</b>).
+The <b>skipFrames</b> option indicates how many ChimeraX graphics update frames
+to skip before getting a new camera frame (default <b>2</b>, meaning to get
+a new camera frame at every 3rd ChimeraX graphics frame).
+</p><p>
+<b>Denoising details:</b>
+The depth values from RealSense cameras fluctuate rapidly over time by small amounts
+and the depth value for some pixels is unknown.  This depth noise causes flickering
+in the blended video where depths are fluctuating or unknown, especially at boundaries
+between video objects and computer generated objects.  The <b>denoise true</b> option
+reduces the depth noise by averaging depth over time at pixels when their colors remain
+fairly constant. When the color of a pixel changes by more than 10 on a RGBA scale of 255,
+its depth is always updated immediately to reduce motion blur.  The averaging blends
+current depth values with the previously used depth with weight 0.1, so it roughly
+averages depth from the previous 10 frames.  Pixels with unknown depth occur for two
+reasons.  In some areas of the video frame such as blank white walls the camera is
+unable to judge depth because it relies on matching features in the two stereo IR
+cameras and if there are no discernible features to match the depth is reported as 0.
+This problem can be reduced by using <b>projector true</b> which projects a dense
+array of invisible infrared laser dots in the room to add texture.  But when using
+VR headsets that use infrared light for tracking the projector can break VR tracking.
+The second cause of missing depth values is that only one stereo camera sees a
+part of the room because the other stereo camera is blocked by an object.  This
+happens at boundaries of foreground objects in the room.  To minimize both these
+effects (but especially the second), the denoise option keeps track of the maximum
+depth seen at each pixel and its color, representing the room background.  If a
+depth value is not available for a pixel for a frame it will use the maximum depth
+value provided that the color of the pixel is close to the color of the background.
+This background depth fill does not help for pixels for which the camera has never
+reported a depth value.  The denoise algorithm is based on the assumption that the
+camera is not moving.
+</blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+December 2019</address>
 </body></html>

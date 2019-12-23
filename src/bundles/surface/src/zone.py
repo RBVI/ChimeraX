@@ -54,6 +54,8 @@ class ZoneMask(State):
 
     def set_surface_mask(self):
         surface = self.surface
+        surface.auto_remask_triangles = self
+        
         v, t = surface.vertices, surface.triangles
         if t is None:
             return
@@ -68,12 +70,11 @@ class ZoneMask(State):
         tmask = logical_and(mask[t[:,0]], mask[t[:,1]])
         logical_and(tmask, mask[t[:,2]], tmask)
         surface.triangle_mask = tmask
+        surface.auto_remask_triangles = self	# setting triangle_mask clears remasking
 
         if not self.max_components is None:
             from . import dust
             dust.show_only_largest_blobs(surface, True, self.max_components)
-
-        surface.auto_remask_triangles = self
 
     # -------------------------------------------------------------------------
     #

@@ -7,7 +7,7 @@ class BasicActionsTool(HtmlToolInstance):
     SESSION_ENDURING = False
     SESSION_SAVE = True
 
-    CUSTOM_SCHEME = "tgttable"
+    CUSTOM_SCHEME = "basicactions"
 
     name = "Basic Actions"
     help = "help:user/tools/basicactions.html"
@@ -164,7 +164,11 @@ class BasicActionsTool(HtmlToolInstance):
         # print("cb_show_hide", query)
         action = query["action"][0]
         target = query["target"][0]
-        selector = query["selector"][0]
+        try:
+            selector = query["selector"][0]
+        except KeyError:
+            # Happens when chain id is blank
+            selector = ""
         cmd = "%s %s target %s" % (action, selector, target)
         from chimerax.core.commands import run
         run(self.session, cmd)
@@ -174,7 +178,11 @@ class BasicActionsTool(HtmlToolInstance):
         # print("cb_color", query)
         color = query["color"][0]
         target = query["target"][0]
-        selector = query["selector"][0]
+        try:
+            selector = query["selector"][0]
+        except KeyError:
+            # Happens when chain id is blank
+            selector = ""
         cmd = "color %s %s target %s" % (selector, color, target)
         from chimerax.core.commands import run
         run(self.session, cmd)
@@ -182,7 +190,11 @@ class BasicActionsTool(HtmlToolInstance):
     def _cb_select(self, query):
         """Select names"""
         # print("cb_select", query)
-        selector = query["selector"][0]
+        try:
+            selector = query["selector"][0]
+        except KeyError:
+            # Happens when chain id is blank
+            selector = ""
         cmd = "select %s" % selector
         from chimerax.core.commands import run
         run(self.session, cmd)

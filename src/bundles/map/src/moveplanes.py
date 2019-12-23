@@ -31,6 +31,8 @@ class RegionMouseMode(MouseMode):
         self.xy_last = (x,y) = event.position()
         v = self.session.main_view
         line = v.clip_plane_points(x,y)    # scene coordinates
+        if line[0] is None or line[1] is None:
+            return  # Camera does not support ray casting, for example VR or stereo cameras.
         self._choose_box_face(line)
 
     def _choose_box_face(self, line):
@@ -108,21 +110,22 @@ class RegionMouseMode(MouseMode):
         self.frac_istep = 0
         return
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
+        xyz1, xyz2 = event.picking_segment()
         line = (xyz1, xyz2)
         self._choose_box_face(line)
         
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         v = self.map
         if v:
-            trans = move * position.origin() - position.origin()
+            trans = event.tip_motion
             dxyz = v.position.inverse() * trans
             dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)
             istep = dijk[self.axis]
             self._move_plane(istep)
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.mouse_up()
 

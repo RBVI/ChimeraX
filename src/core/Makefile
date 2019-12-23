@@ -26,7 +26,7 @@ endif
 include $(TOP)/mk/subdir.make
 
 BUNDLE_NAME = ChimeraX-Core
-BUNDLE_VERSION = 0.9
+BUNDLE_VERSION = 0.91
 PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)

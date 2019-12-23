@@ -88,6 +88,11 @@ class Mol2Parser:
         import sys
         if self._is_section_tag():
             section_name = self._line[len(self.TriposPrefix):]
+            if section_name.lower() == "molecule":
+                if self._molecule is not None:
+                    # Do not call if there is prelude data because
+                    # the previous molecule, if any, has already been made
+                    self._make_structure()
             self._get_line()    # Consume section line
             try:
                 method = getattr(self, "_section_%s" % section_name.lower())
@@ -366,7 +371,6 @@ class Mol2Parser:
         if self._molecule is None:
             self._eat_section()
             return
-        self._get_line()
         while self._line is not None:
             if self._is_section_tag():
                 break

@@ -115,11 +115,15 @@ def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
     # Transform points to surface coordinates
     surface.scene_position.inverse().transform_points(points, in_place = True)
 
-    varray = surface.vertices
+    varray, narray, tarray = surface.vertices, surface.normals, surface.triangles
+    if hasattr(surface, '_unsharp_geometry'):
+        va_us, na_us, ta_us, va_sh, na_sh, ta_sh = surface._unsharp_geometry
+        if varray is va_sh and narray is na_sh and tarray is ta_sh:
+            varray, narray, tarray = va_us, na_us, ta_us
+        
     from chimerax.core.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
-    tarray = surface.triangles
     ec = _edge_cuts(varray, tarray, i1, n1, points, colors, distance)
     
     from numpy import empty, uint8
@@ -128,9 +132,10 @@ def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
     for vi,ai in zip(i1, n1):
         carray[vi,:] = colors[ai]
 
-    va, na, ta, ca = _cut_triangles(ec, varray, surface.normals, tarray, carray)
+    va, na, ta, ca = _cut_triangles(ec, varray, narray, tarray, carray)
 
     if replace:
+        surface._unsharp_geometry = (varray, narray, tarray, va, na, ta)
         surface.set_geometry(va, na, ta)
         surface.vertex_colors = ca
         

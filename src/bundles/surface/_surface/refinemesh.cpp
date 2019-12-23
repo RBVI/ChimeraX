@@ -1053,7 +1053,7 @@ extern "C" PyObject *refine_mesh(PyObject *, PyObject *args)
   FArray varray;
   IArray tarray;
   float subdivision_factor;
-  if (!PyArg_ParseTuple(args, const_cast<char *>("O&Of"),
+  if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&f"),
 			&parse_float_n3_array, &varray,
 			&parse_int_n3_array, &tarray,
 			&subdivision_factor))

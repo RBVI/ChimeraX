@@ -159,6 +159,15 @@ class Drawing:
         """Whether to use lighting when rendering.  If false then a flat
         unshaded color will be shown."""
 
+        self.allow_depth_cue = True
+        '''False means not show depth cue on this Drawing even if global depth cueing is on.'''
+
+        self.accept_shadow = True
+        '''False means not to show shadow on this Drawing even if global shadow is on.'''
+
+        self.accept_multishadow = True
+        '''False means not to show multishadow on this Drawing even if global multishadow is on.'''
+        
         self.on_top = False
         '''
         Whether to draw on top of everything else.  Used for text labels.
@@ -271,9 +280,17 @@ class Drawing:
             # Reparent drawing.
             d.parent.remove_drawing(d, delete=False)
         d.parent = self
+        d._inherit_lighting_settings(self)
         if self.display:
             self.redraw_needed(shape_changed=True)
 
+    def _inherit_lighting_settings(self, drawing):
+        for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
+            value = getattr(drawing, attr)
+            if value == False:
+                # Only propagate disabling settings.
+                setattr(self, attr, value)
+            
     def remove_drawing(self, d, delete=True):
         '''Remove a specified child drawing.'''
         self._child_drawings.remove(d)
@@ -350,7 +367,7 @@ class Drawing:
 
     @property
     def num_displayed_positions(self):
-        dp = self.display_positions
+        dp = self._displayed_positions
         ndp = len(self.positions) if dp is None else dp.sum()
         return ndp
 
@@ -468,7 +485,7 @@ class Drawing:
             c._scene_positions_changed()
         
     def get_positions(self, displayed_only=False):
-        if displayed_only:
+        if displayed_only and self.num_displayed_positions < len(self._positions):
             return self._positions.masked(self.display_positions)
         return self._positions
 
@@ -624,6 +641,7 @@ class Drawing:
         self._vertex_colors = None
         self._edge_mask = None
         self._triangle_mask = None
+        self._highlighted_triangles_mask = None
         self.redraw_needed(shape_changed=True)
 
         arv = self.auto_recolor_vertices
@@ -677,8 +695,8 @@ class Drawing:
                     passes.append(self.OPAQUE_DRAW_PASS)
                 if any_transp:
                     passes.append(self.TRANSPARENT_DRAW_PASS)
-                if self.highlighted:
-                    passes.append(self.HIGHLIGHT_DRAW_PASS)
+            if self.highlighted:
+                passes.append(self.HIGHLIGHT_DRAW_PASS)
             for p in passes:
                 if p in pass_drawings:
                     pass_drawings[p].append(self)
@@ -802,6 +820,12 @@ class Drawing:
                 sopt |= Render.SHADER_SHIFT_AND_SCALE
             elif len(self.positions) > 1:
                 sopt |= Render.SHADER_INSTANCING
+            if not self.accept_shadow:
+                sopt |= Render.SHADER_NO_SHADOW
+            if not self.accept_multishadow:
+                sopt |= Render.SHADER_NO_MULTISHADOW
+            if not self.allow_depth_cue:
+                sopt |= Render.SHADER_NO_DEPTH_CUE
             self._shader_opt = sopt
         if transparent_only:
             from .opengl import Render
@@ -813,7 +837,8 @@ class Drawing:
 
     _effects_shader = set(
         ('use_lighting', '_vertex_colors', '_colors', 'texture',
-         'ambient_texture', '_positions'))
+         'ambient_texture', '_positions',
+         'allow_depth_cue', 'accept_shadow', 'accept_multishadow'))
 
     # Update the contents of vertex, element and instance buffers if associated
     #  arrays have changed.
@@ -1116,6 +1141,7 @@ class Drawing:
         self._normals = None
         self._edge_mask = None
         self._triangle_mask = None
+        self._highlighted_triangles_mask = None
         if self.texture:
             self.texture.delete_texture()
             self.texture = None
@@ -1408,7 +1434,7 @@ def draw_depth(renderer, drawings, opaque_only = True):
     '''Render only the depth buffer (not colors).'''
     r = renderer
     dc = r.disable_capabilities
-    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOWS | r.SHADER_MULTISHADOW |
+    r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOW | r.SHADER_MULTISHADOW |
                                   r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D)
     draw_opaque(r, drawings)
     if not opaque_only:
@@ -1422,7 +1448,7 @@ def draw_overlays(drawings, renderer):
     r = renderer
     r.disable_shader_capabilities(r.SHADER_STEREO_360 |	# Avoid geometry shift
                                   r.SHADER_DEPTH_CUE |
-                                  r.SHADER_SHADOWS |
+                                  r.SHADER_SHADOW |
                                   r.SHADER_MULTISHADOW |
                                   r.SHADER_CLIP_PLANES)
     r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
@@ -1438,6 +1464,9 @@ def draw_overlays(drawings, renderer):
     r.enable_blending(True)
     _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS)
     r.enable_blending(False)
+    highlight_drawings = [d for d in drawings if d.highlighted]
+    if highlight_drawings:
+        draw_highlight_outline(r, highlight_drawings)
     r.enable_depth_test(True)
     r.disable_shader_capabilities(0)
 
@@ -1556,9 +1585,10 @@ class _DrawShape:
         if self.element_buffer:
             self.element_buffer.delete_buffer()
             self.element_buffer = None
-            for b in self.instance_buffers:
-                b.delete_buffer()
-            self.instance_buffers = []
+        for b in self.instance_buffers:
+            b.delete_buffer()
+        self.instance_buffers = []
+        self._buffers_need_update = None
 
         if self.bindings:
             self.bindings.delete_bindings()
@@ -1609,11 +1639,8 @@ class _DrawShape:
         self.elements = e = self.masked_elements(triangles, style, triangle_mask, edge_mask)
 
         eb = self.element_buffer
-        if len(e) > 0 and eb is None:
+        if eb is None and len(e) > 0:
             self.element_buffer = eb = self.create_element_buffer()
-        elif len(e) == 0 and eb:
-            eb.delete_buffer()
-            self.element_buffer = eb = None
 
         if eb:
             self.buffer_needs_update(eb)
@@ -1960,11 +1987,15 @@ def _texture_drawing(texture, pos=(-1, -1), size=(2, 2), drawing=None):
     return d
 
 def match_aspect_ratio(texture_drawing, window_size):
-    if hasattr(texture_drawing, '_td_window_size') and texture_drawing._td_window_size == window_size:
+    tsize = texture_drawing.texture.size
+    if (hasattr(texture_drawing, '_td_window_size')
+        and texture_drawing._td_window_size == window_size
+        and texture_drawing._td_texture_size == tsize):
         return
     texture_drawing._td_window_size = window_size
+    texture_drawing._td_texture_size = tsize
     wx, wy = window_size
-    tx, ty = texture_drawing.texture.size
+    tx, ty = tsize
     if wx == 0 or wy == 0 or tx == 0 or ty == 0:
         xtrim, ytrim = 0, 0
     elif wx/wy > tx/ty:
@@ -2008,8 +2039,8 @@ def qimage_to_numpy(qi):
 
 # -----------------------------------------------------------------------------
 #
-def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, ypad = 0,
-                    pixels = False, italic = False, bold = False):
+def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, ypad = 0,
+            pixels = False, italic = False, bold = False, outline_width = 0, outline_color = None):
     '''
     Size argument is in points (1/72 inch) if pixels is False and the returned
     image has size to fit the specified text plus padding on each edge, xpad and
@@ -2017,42 +2048,68 @@ def text_image_rgba(text, color, size, font, background_color=None, xpad = 0, yp
     and the font is chosen to fit within this image height minus ypad pixels at top
     and bottom.
     '''
-    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor
+    from PyQt5.QtGui import QImage, QPainter, QFont, QFontMetrics, QColor, QBrush, QPen
 
     p = QPainter()
 
     # Determine image size.
     weight = QFont.Bold if bold else QFont.Normal
+    xbuf = xpad + outline_width
+    ybuf = ypad + outline_width
     if pixels:
         f = QFont(font, weight=weight, italic=bool(italic))
-        f.setPixelSize(size-2*ypad)
+        f.setPixelSize(size-2*ybuf)
     else:
         f = QFont(font, size, weight=weight, italic=bool(italic))  # Size in points.
 
     # Use font metrics to determine image width
     fm = QFontMetrics(f)
-    r = fm.boundingRect(text)
+    r = fm.boundingRect(text if text else ' ')
     # TODO: font metric width is sometimes 1 or 2 pixels too small in Qt 5.9.
     #       Right bearing of rightmost character was positive, so does not extend right.
     #       Use pad option to add some pixels to avoid clipped text.
     tw, th = r.width(), r.height()  # pixels
     if pixels:
-        iw, ih = tw+2*xpad, size
+        iw, ih = tw+2*xbuf, size
     else:
-        iw, ih = tw+2*xpad, th+2*ypad
+        iw, ih = tw+2*xbuf, th+2*ybuf
 
+    # Can't paint to zero size labels, make min size 1.
+    if iw == 0:
+        iw = 1
+    if ih == 0:
+        ih = 1
+        
     ti = QImage(iw, ih, QImage.Format_ARGB32)
     
     # Paint background
     bg = (0,0,0,0) if background_color is None else tuple(background_color)
-    ti.fill(QColor(*bg))    # Set background transparent
+    if outline_width > 0:
+        if outline_color is None:
+            from ..colors import contrast_with
+            outline_color = contrast_with(bg[:3]) + (255,)
+        fill_color = tuple(outline_color)
+    else:
+        fill_color = bg
+    ti.fill(QColor(*fill_color))    # Set background transparent
 
     # Paint text
     p.begin(ti)
+    if outline_width > 0:
+        prev_b = p.brush()
+        prev_p = p.pen()
+        bc = QColor(*bg)
+        from PyQt5.QtCore import Qt
+        pbr = QBrush(bc, Qt.SolidPattern)
+        p.setBrush(pbr)
+        ppen = QPen(Qt.NoPen)
+        p.drawRect(outline_width, outline_width, iw-2*outline_width-1, ih-2*outline_width)
+        p.setBrush(prev_b)
+        p.setPen(prev_p)
     p.setFont(f)
     c = QColor(*color)
     p.setPen(c)
-    x, y = xpad, (ih-1) - (r.bottom()+ypad)
+    x, y = xpad+outline_width, (ih-1) - (r.bottom()+ypad+outline_width)
     p.drawText(x, y, text)
 
     # Convert to numpy rgba array.

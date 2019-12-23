@@ -42,11 +42,16 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>loop</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>bounce</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>coordset stop</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+</h3>
 <p>
 The <b>coordset</b> command displays the <a href="#framesdef">frames</a> 
 (coordinate sets) of a <a href="../trajectories.html">trajectory</a>,
 and the <a href="#slider"><b>coordset slider</b></a> subcommand
 shows a graphical interface for interactive playback.
+Trajectory playback in progress can be halted with <b>coordset stop</b>.
 The number of coordinate sets in a trajectory
 can be reported with the command <a href="info.html"><b>info</b></a>.
 See also: 
@@ -97,7 +102,7 @@ indicates playing from the first frame to the last.
 The default <i>step</i> is <b>1</b> if <i>start</i> &lt; <i>end</i>,
 <b>&ndash;1</b> if <i>start</i> &gt; <i>end</i>, determined after
 any negative frame numbers are converted to the corresponding
-actual frame numbers.  Examples:
+actual frame numbers. Examples:
 </p>
 <blockquote>
 <b>coordset #1 1,21 holdSteady @ca</b><br>
@@ -194,5 +199,5 @@ For example, to reassign secondary structure at every fifth frame:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2017</address>
+July 2019</address>
 </body></html>

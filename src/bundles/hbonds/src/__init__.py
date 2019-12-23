@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .hbond import find_hbonds, rec_dist_slop, rec_angle_slop, find_coordset_hbonds
+from .hbond import find_hbonds, rec_dist_slop, rec_angle_slop, find_coordset_hbonds, flush_cache
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -21,5 +21,10 @@ class HBondsAPI(BundleAPI):
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
+
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import HBondsTool
+        return HBondsTool(session, tool_name)
 
 bundle_api = HBondsAPI()

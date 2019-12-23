@@ -19,9 +19,9 @@
 #include "../imex.h"
 
 #include <vector>
-#include "Bond.h"
 #include "CoordSet.h"
 #include <element/Element.h>
+#include <pyinstance/PythonInstance.declare.h>
 #include "../string_types.h"
 
 namespace tmpl {
@@ -32,8 +32,9 @@ using element::Element;
 
 class Molecule;
 class Residue;
+class Bond;
 
-class ATOMSTRUCT_IMEX Atom {
+class ATOMSTRUCT_IMEX Atom: public pyinstance::PythonInstance<Atom> {
 public:
     typedef std::vector<Bond*> Bonds;
     typedef std::vector<Atom*> Neighbors;
@@ -54,11 +55,9 @@ private:
 private:
     int    new_coord(const Coord &c) const;
 public:
-    void          add_bond(Bond *b) {
-        _bonds.push_back(b);
-        _neighbors.push_back(b->other_atom(this));
-    }
+    void          add_bond(Bond *b);
     const Bonds&  bonds() const { return _bonds; }
+    const Coord&  coord() const;
     const Element&       element() const { return *_element; }
     Molecule*     molecule() const { return _molecule; }
     Residue*      residue() const { return _residue; }
@@ -76,5 +75,17 @@ private:
 };
 
 }  // namespace tmpl
+
+#include "Bond.h"
+
+namespace tmpl {
+    
+inline void
+Atom::add_bond(Bond *b) {
+    _bonds.push_back(b);
+    _neighbors.push_back(b->other_atom(this));
+}
+
+}
 
 #endif  // templates_Atom

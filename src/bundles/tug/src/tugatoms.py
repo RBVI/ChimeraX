@@ -149,19 +149,18 @@ class TugAtomsMode(MouseMode):
         a.position = p[0]
         a.display = True
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
         view = self.session.main_view
-        pick = picked_object_on_segment(xyz1, xyz2, view)
+        pick = event.picked_object(view)
         self._pick_atom(pick)
         
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
-        self._puller = Puller3D(position.origin())
+        self._puller = Puller3D(event.tip_position)
         self._continue_tugging()
         
-    def vr_release(self):
+    def vr_release(self, release):
         # Virtual reality hand controller button release.
         self.mouse_up()
 
@@ -324,7 +323,7 @@ class StructureTugger:
             max_force = self._max_force()
             if max_force > self._max_allowable_force:
                 raise Exception('Maximum force exceeded')
-            self._log('Maximum force:')
+            self._log('Maximum force: %.3g' % max_force)
         except:
                 max_force=self._max_force()
                 self._log("FAIL!!!\n")

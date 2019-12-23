@@ -23,17 +23,16 @@ class _MyAPI(BundleAPI):
             raise ValueError("trying to start unknown tool: %s" % ti.name)
 
     @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        if session.ui.is_gui:
+            from .mousemode import register_mousemode
+            register_mousemode(session)
+
+    @staticmethod
     def register_command(bi, ci, logger):
-        if ci.name == "viewdockx":
-            from . import cmd
-            func = cmd.viewdock
-            desc = cmd.viewdock_desc
-        else:
-            raise ValueError("trying to register unknown command: %s" % ci.name)
-        if desc.synopsis is None:
-            desc.synopsis = ci.synopsis
-        from chimerax.core.commands import register
-        register(ci.name, desc, func)
+        from . import cmd
+        cmd.register_command(ci)
 
     @staticmethod
     def open_file(session, path, file_name, format_name,

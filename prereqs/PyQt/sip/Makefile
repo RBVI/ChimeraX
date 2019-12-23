@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../../..
 include $(TOP)/mk/config.make
 
-SIP_VERSION = 4.19.3
+SIP_VERSION = 4.19.17
 DISTRIBUTION = sip-$(SIP_VERSION).tar.gz
 SOURCE = $(tmpdir)/sip-$(SIP_VERSION)
 
@@ -13,7 +13,7 @@ endif
 all:
 
 install: $(SOURCE)
-	cd $(SOURCE) && $(PYTHON_EXE) configure.py && $(MAKE) && $(MAKE) install
+	cd $(SOURCE) && $(PYTHON_EXE) configure.py --sip-module PyQt5.sip && $(MAKE) && $(MAKE) install
 
 app-install:
 	$(RSYNC) $(PYSITEDIR)/sip.$(PYMOD_EXT) $(APP_PYSITEDIR)

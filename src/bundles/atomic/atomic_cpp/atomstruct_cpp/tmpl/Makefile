@@ -42,3 +42,9 @@ clean:
 ifdef WIN32
 	rm -f vc*.pdb
 endif
+
+Atom.o: Atom.h Bond.h CoordSet.h Residue.h Molecule.h
+Bond.o: Atom.h Bond.h CoordSet.h Residue.h Molecule.h
+CoordSet.o: Atom.h Bond.h CoordSet.h Residue.h Molecule.h
+Residue.o: Atom.h Bond.h CoordSet.h Residue.h Molecule.h
+Molecule.o: Atom.h Bond.h CoordSet.h Residue.h Molecule.h

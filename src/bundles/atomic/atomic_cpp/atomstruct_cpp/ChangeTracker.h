@@ -83,6 +83,7 @@ public:
     static const std::string  REASON_ANISO_U;
     static const std::string  REASON_BALL_SCALE;
     static const std::string  REASON_BFACTOR;
+    static const std::string  REASON_CHAIN_ID;
     static const std::string  REASON_COLOR;
     static const std::string  REASON_COORD;
     static const std::string  REASON_COORDSET;
@@ -91,11 +92,12 @@ public:
     static const std::string  REASON_HALFBOND;
     static const std::string  REASON_HIDE;
     static const std::string  REASON_IDATM_TYPE;
+    static const std::string  REASON_INSERTION_CODE;
     static const std::string  REASON_IS_BACKBONE;
     static const std::string  REASON_NAME;
+    static const std::string  REASON_NUMBER;
     static const std::string  REASON_OCCUPANCY;
     static const std::string  REASON_RADIUS;
-    static const std::string  REASON_RESIDUE_NAME;
     static const std::string  REASON_RESIDUES;
     static const std::string  REASON_RIBBON_ADJUST;
     static const std::string  REASON_RIBBON_COLOR;
@@ -107,6 +109,7 @@ public:
     static const std::string  REASON_RING_COLOR;
     static const std::string  REASON_RING_DISPLAY;
     static const std::string  REASON_RING_MODE;
+    static const std::string  REASON_SCENE_COORD;
     static const std::string  REASON_SELECTED;
     static const std::string  REASON_SEQUENCE;
     static const std::string  REASON_SERIAL_NUMBER;

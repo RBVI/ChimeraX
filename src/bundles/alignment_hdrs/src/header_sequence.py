@@ -26,6 +26,10 @@ class HeaderSequence(list):
     fast_update = True # can header be updated quickly if only a few columns are changed?
     single_column_updateable = True # can a single column be updated, or only the entire header?
 
+    CALLBACK_VALUES = "values changed"
+    CALLBACK_NAME = "header name changed"
+    CALLBACK_RELEVANCE = "header's relevance to alignment changed"
+
     def __init__(self, alignment, refresh_callback, name=None, eval_while_hidden=False):
         if name is None:
             if not hasattr(self, 'name'):
@@ -36,7 +40,7 @@ class HeaderSequence(list):
         self.alignment = proxy(alignment)
         self.alignment.add_observer(self)
         self.refresh_callback = refresh_callback
-        self.visible = False
+        self._shown = False
         self.eval_while_hidden = eval_while_hidden
         self._update_needed = True
         self._edit_bounds = None
@@ -82,17 +86,13 @@ class HeaderSequence(list):
     def get_state(self):
         state = {
             'name': self.name,
-            'visible': self.visible,
+            'shown': self._shown,
             'eval_while_hidden': self.eval_while_hidden
         }
         return state
 
     def __hash__(self):
         return id(self)
-
-    def hide(self):
-        """Called when sequence hidden"""
-        self.visible = False
 
     def hist_infinity(self, position):
         """Convenience function to map arbitrary number to 0-1 range
@@ -145,7 +145,7 @@ class HeaderSequence(list):
 
     def reevaluate(self, pos1=0, pos2=None, *, evaluation_func=None):
         """sequences changed, possibly including length"""
-        if not self.visible and not self.eval_while_hidden:
+        if not self._shown and not self.eval_while_hidden:
             self._update_needed = True
             return
         prev_vals = self[:]
@@ -159,7 +159,7 @@ class HeaderSequence(list):
             evaluation_func(pos1, pos2)
         self._update_needed = False
         self._edit_bounds = None
-        if self.visible and self.refresh_callback:
+        if self._shown and self.refresh_callback:
             cur_vals = self[:]
             if len(prev_vals) != len(cur_vals):
                 bounds = None
@@ -175,7 +175,11 @@ class HeaderSequence(list):
                         if first_mismatch is None:
                             first_mismatch = i
                 bounds = (first_mismatch, last_mismatch)
-            self.refresh_callback(self, bounds)
+            self.refresh_callback(HeaderSequence.CALLBACK_VALUES, self, bounds)
+
+    @property
+    def relevant(self):
+        return True
 
     @staticmethod
     def session_restore(session, alignment, refresh_callback, state):
@@ -185,7 +189,7 @@ class HeaderSequence(list):
 
     def set_state(self, state):
         self.name = state['name']
-        self.visible = state['visible']
+        self._shown = state.get('shown', state.get('visible', None))
         self.eval_while_hidden = state['eval_while_hidden']
 
     def settings_info(self):
@@ -197,15 +201,22 @@ class HeaderSequence(list):
            called and the returned dictionary updated with the derived class's settings"""
         # the code relies on the fact that the returned settings dict is a different object every
         # time (it gets update()d), so don't make it a class variable!
-        return "base header sequence", { 'initially shown': False }
+        return "base header sequence", { 'initially_shown': False }
 
-    def show(self):
-        """Called when sequence shown"""
-        self.visible = True
-        if self._edit_bounds:
-            self.reevaluate(*self._edit_bounds)
-        elif self._update_needed:
-            self.reevaluate()
+    @property
+    def shown(self):
+        return self._shown
+
+    @shown.setter
+    def shown(self, show):
+        if show == self._shown:
+            return
+        self._shown = show
+        if show:
+            if self._edit_bounds:
+                self.reevaluate(*self._edit_bounds)
+            elif self._update_needed:
+                self.reevaluate()
 
     def _add_options(self, options_container, category, verbose_labels, option_data):
         for base_label, attr_name, opt_class, opt_kw, balloon in option_data:
@@ -221,9 +232,8 @@ class HeaderSequence(list):
             return "%s: %s" % (self.name, base_label)
         return base_label[0].upper() + base_label[1:]
 
+
 class FixedHeaderSequence(HeaderSequence):
-    # header relevant if alignment is a single sequence?
-    single_sequence_relevant = True
 
     def __init__(self, alignment, name=None, vals=[]):
         self.vals = vals
@@ -263,18 +273,37 @@ class FixedHeaderSequence(HeaderSequence):
         self.vals = state['vals']
         self.reevaluate()
 
+
 class DynamicHeaderSequence(HeaderSequence):
-    # header relevant if alignment is a single sequence?
+    # if subclass is in fact relevant to single-sequence alignments, override this
     single_sequence_relevant = False
 
-class DynamicStructureHeaderSequence(DynamicHeaderSequence):
-    single_sequence_relevant = True
-    # class is refreshed on association changes by sequence viewer
+    def alignment_notification(self, note_name, note_data):
+        if not self.single_sequence_relevant:
+            if note_name == "add sequences" and len(self.alignment.seqs) - len(note_data) == 1:
+                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, True)
+            elif note_name == "remove sequences" and len(self.alignment.seqs) == 1:
+                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, False)
+
+    @property
+    def relevant(self):
+        return self.single_sequence_relevant or len(self.alignment.seqs) > 1
+
+class DynamicStructureHeaderSequence(HeaderSequence):
 
     def alignment_notification(self, note_name, note_data):
         super().alignment_notification(note_name, note_data)
-        if note_name == "association modified":
+        if note_name == "modify association":
             self.reevaluate()
+        elif note_name == "add association":
+            if len(self.alignment.associations) == len(note_data):
+                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, True)
+        elif note_name == "remove association":
+            if len(self.alignment.associations) == 0:
+                self.refresh_callback(HeaderSequence.CALLBACK_RELEVANCE, self, False)
+
+    def relevant(self):
+        return bool(self.alignment.associations)
 
 registered_headers = []
 def register_header(header_class, default_on=True):

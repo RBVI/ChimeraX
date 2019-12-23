@@ -19,9 +19,10 @@ def align(session, atoms, to_atoms = None, move = None, each = None,
           match_chain_ids = False, match_numbering = False, match_atom_names = False,
           sequence = None, cutoff_distance = None, report_matrix = False):
     """Move atoms to minimize RMSD with to_atoms.
-    Returns matched atoms and matched to_atoms, matched atom rmsd, paired atom rmsd, and transform.
-    The matched atoms can be fewer than the paired atoms if cutoff distance is specified.
-    If "each" is not None then nothing is returned.
+    Returns matched atoms and matched to_atoms, matched atom rmsd, paired atom rmsd, and a
+    chimerax.core.geometry.Place instance (i.e. the transform to place the match atoms onto
+    the "to" atoms).  The matched atoms can be fewer than the paired atoms if cutoff distance
+    is specified.  If "each" is not None then nothing is returned.
 
     If 'move' is 'structures', superimpose the models by changing the model positions.
     If it is 'atoms', 'residues', 'chains' or 'structure atoms', then atoms promoted extended

@@ -30,7 +30,9 @@ def fit_search(models, points, point_weights, volume, n,
 
     bounds = volume.surface_bounds()
     if bounds is None:
-        bounds = volume.xyz_bounds(step = 1)
+        xyz_min, xyz_max = volume.xyz_bounds(step = 1)
+        from chimerax.core.geometry import Bounds
+        bounds = Bounds(xyz_min, xyz_max)
 
     asym_center_f = (.75,.55,.55)
     asym_center = tuple(x0 + (x1-x0)*f
@@ -223,8 +225,8 @@ class Fit:
         matrix, xyz_to_ijk_tf = m.matrix_and_transform(None, subregion = None,
                                                        step = None)
         threshold = m.minimum_surface_level
-        import _volume
-        points_int = _volume.high_indices(matrix, threshold)
+        from chimerax.map import high_indices
+        points_int = high_indices(matrix, threshold)
         from numpy import float32
         points = points_int.astype(float32)
         (tf * xyz_to_ijk_tf.inverse()).transform_points(points, in_place = True)

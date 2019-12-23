@@ -46,19 +46,15 @@ class SequenceViewer(ToolInstance):
     """
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
-            set_state_from_snapshot will be called later.
-
-            if 'autoAssociate' is None then it is the same as False except
-            that any StructureSequences in the alignment will be associated
-            with their structures
+            _finalize_init will be called later.
         """
 
         ToolInstance.__init__(self, session, tool_name)
         if alignment is None:
             return
-        self._finalize_init(session, alignment)
+        self._finalize_init(alignment)
 
-    def _finalize_init(self, session, alignment):
+    def _finalize_init(self, alignment):
         """TODO
         from chimera import triggerSet
         self.triggers = triggerSet.TriggerSet()
@@ -85,10 +81,10 @@ class SequenceViewer(ToolInstance):
         self.seqs = seqs
         """
         self.alignment = alignment
-        from . import subcommand_name
-        alignment.attach_viewer(self, subcommand_name=subcommand_name)
+        # subcommand_name also in bundle_info.xml
+        alignment.attach_viewer(self, subcommand_name="viewer")
         from . import settings
-        self.settings = settings.init(session)
+        self.settings = settings.init(self.session)
         """
         from SeqCanvas import shouldWrap
         if numberingDisplay:
@@ -269,7 +265,6 @@ class SequenceViewer(ToolInstance):
         self.structureMenu.add_command(label="Load Structures",
                         command=self._loadStructures)
         """
-        self.child_tools = []
         """
         self.alignDialog = self.assessDialog = self.findDialog = None
         self.prositeDialog = self.regexDialog = None
@@ -323,8 +318,7 @@ class SequenceViewer(ToolInstance):
             s.showSS(show=None, ssType="predicted"), None)
         """
         from chimerax.atomic import get_triggers
-        self._atomic_changes_handler = get_triggers(self.session).add_handler(
-            "changes", self._atomic_changes_cb)
+        self._atomic_changes_handler = get_triggers().add_handler("changes", self._atomic_changes_cb)
 
         """TODO
         self.structureMenu.add_command(state='disabled',
@@ -494,27 +488,24 @@ class SequenceViewer(ToolInstance):
     def delete(self):
         self.region_browser.destroy()
         self.seq_canvas.destroy()
-        for ct in self.child_tools:
-            if hasattr(ct, 'destroy'):
-                ct.destroy()
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
         from chimerax.atomic import get_triggers
-        get_triggers(self.session).remove_handler(self._atomic_changes_handler)
+        get_triggers().remove_handler(self._atomic_changes_handler)
         ToolInstance.delete(self)
 
     def fill_context_menu(self, menu, x, y):
         from PyQt5.QtWidgets import QAction
         save_as_menu = menu.addMenu("Save As")
         from chimerax.core import io
-        from chimerax.core.commands import run, quote_if_necessary
+        from chimerax.core.commands import run, quote_path_if_necessary
         for fmt in io.formats(open=False):
             if fmt.category == "Sequence alignment":
                 action = QAction(fmt.name, save_as_menu)
                 action.triggered.connect(lambda arg, fmt=fmt:
                     run(self.session, "save browse format %s alignment %s"
-                    % (fmt.name, quote_if_necessary(self.alignment.ident))))
+                    % (fmt.name, quote_path_if_necessary(self.alignment.ident))))
                 save_as_menu.addAction(action)
 
         settings_action = QAction("Settings...", menu)
@@ -575,7 +566,6 @@ class SequenceViewer(ToolInstance):
             from .associations_tool import AssociationsTool
             self.associations_tool = AssociationsTool(self,
                 self.tool_window.create_child_window("Chain-Sequence Associations", close_destroys=False))
-            self.child_tools.append(self.associations_tool)
             self.associations_tool.tool_window.manage(None)
         self.associations_tool.tool_window.shown = True
 
@@ -584,7 +574,6 @@ class SequenceViewer(ToolInstance):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
                 self.tool_window.create_child_window("Sequence Viewer Settings", close_destroys=False))
-            self.child_tools.append(self.settings_tool)
             self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True
 
@@ -603,7 +592,7 @@ class SequenceViewer(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(session, data['alignment'])
+        inst._finalize_init(data['alignment'])
         inst.region_browser.restore_state(data['region browser'])
         if 'seq canvas' in data:
             inst.seq_canvas.restore_state(session, data['seq canvas'])

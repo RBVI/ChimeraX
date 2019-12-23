@@ -31,6 +31,8 @@ The <b>view</b> command can:
 <li><a href="#initial">focus the view</a> on specified items 
 or &ldquo;all&rdquo;
 <a href="../tools/graphics.html" title="Graphics Toolbar">
+<img class="icon" border=1 src="../tools/shortcut-icons/viewsel.png"></a>
+<a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/viewall.png"></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border=1 src="../tools/shortcut-icons/orient.png"></a>
@@ -46,7 +48,7 @@ See also:
 <a href="camera.html"><b>camera</b></a>,
 <a href="clip.html"><b>clip</b></a>,
 <a href="windowsize.html"><b>windowsize</b></a>,
-<a href="save.html#image"><b>save image</b></a>,
+<a href="save.html"><b>save</b></a>,
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="align.html"><b>align</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
@@ -81,22 +83,33 @@ command translates the scene, zooms in or out,
 and (unless <b>clip</b> is <b>false</b>)
 places the <a href="clip.html">near/far clipping planes</a>
 to bracket the displayed parts of the specified items.
-Setting <b>clip false</b> will also deactivate any pre-existing near/far clipping.
-If nothing is specified
-(<a href="atomspec.html"><i>spec</i></a> is blank or omitted),
-all displayed items will be included in the view and near/far clipping deactivated.
+Setting <b>clip false</b> will deactivate any pre-existing 
+near/far clipping and set the center of rotation depth to match
+that of the center of the bounding box of the specified items.
+If nothing is specified (<a href="atomspec.html"><i>spec</i></a> is blank),
+all displayed items will be included in the view and 
+near/far clipping deactivated regardless of the <b>clip</b> setting.
+</p><p>
 The zoom level is adjusted to make the bounding box of the relevant items
 abut the edges of the graphics window minus a <b>pad</b> <i>fraction</i> 
-(allowed values &lt; 1.0, default <b>0.05</b> of the window width and height)
+(allowed values &lt; 1.0, default <b>0.05</b> of the window width and height).
 The desired <i>fraction</i> will usually be positive,
 but negative values can be used to zoom in further.
-If <b>cofr</b> is <b>true</b> (default),
-the center of rotation will be set to <a href="cofr.html#method">fixed</a>
-at the center of the bounding box of the relevant items,
-or if nothing is specified, allowed to vary according to the
-<a href="cofr.html#method">front center method</a>.
-If <b>cofr</b> is <b>false</b>, the center of rotation method
-will not be changed. The current center of rotation and method 
+</p><p>
+With <b>cofr true</b> (default):
+</p>
+  <ul>
+  <li>if <a href="atomspec.html"><i>spec</i></a> is not blank,
+the center of rotation will be set to track the
+<a href="cofr.html#method">center of view</a>
+  <li>if <a href="atomspec.html"><i>spec</i></a> is blank, 
+the center of rotation method will be set to
+<a href="cofr.html#method">front center</a>
+  </ul>
+<p>
+With <b>cofr false</b>, the pre-existing center of rotation method
+will not be changed.
+The current center of rotation and the method used to determine it
 can be reported with the <a href="cofr.html"><b>cofr</b></a> command.
 </p><p>
 The <b>orient</b> option
@@ -250,5 +263,5 @@ The following commands are equivalent:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+November 2019</address>
 </body></html>

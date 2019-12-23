@@ -36,6 +36,28 @@ from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QPushButton
 from numpy import array, uint8, ndarray
 
+# some hackery to attempt to make it one color-chooser dialog for the
+# entire app, rather than one per color button
+
+_color_dialog = None
+_color_callback = None
+_color_setter_id = None
+def _make_color_callback(*args):
+    if _color_callback is not None:
+        _color_callback(*args)
+
+def _color_dialog_destroyed(*args):
+    global _color_dialog
+    _color_dialog = None
+
+def _check_color_chooser(dead_button_id):
+    global _color_setter_id, _color_callback
+    if _color_setter_id == dead_button_id:
+        _color_callback = _color_setter_id = None
+        if _color_dialog:
+            _color_dialog.hide()
+
+
 class ColorButton(QPushButton):
 
     color_changed = pyqtSignal(ndarray)
@@ -48,6 +70,7 @@ class ColorButton(QPushButton):
         self.setAttribute(Qt.WA_LayoutUsesWidgetRect)
         self._has_alpha_channel = has_alpha_channel
         self.clicked.connect(self.show_color_chooser)
+        self.destroyed.connect(lambda *args, ident=id(self): _check_color_chooser(ident))
         self._color = None
 
     def get_color(self):
@@ -63,14 +86,38 @@ class ColorButton(QPushButton):
     color = property(get_color, set_color)
 
     def show_color_chooser(self):
-        from PyQt5.QtWidgets import QColorDialog
-        cd = QColorDialog(self)
+        global _color_dialog, _color_callback, _color_dialog_destroyed, _color_setter_id
+        _color_setter_id = id(self)
+        _color_callback = None
+        if _color_dialog is None:
+            from PyQt5.QtWidgets import QColorDialog
+            _color_dialog = cd = QColorDialog(self.window())
+            cd.setOption(cd.NoButtons, True)
+            cd.currentColorChanged.connect(_make_color_callback)
+            cd.destroyed.connect(_color_dialog_destroyed)
+        else:
+            cd = _color_dialog
+            # On Mac, Qt doesn't realize it when the color dialog has been hidden
+            # with the red 'X' button, so "hide" it now so that Qt doesn't believe
+            # that the later show() is a no op.  Whereas on Windows doing a hide
+            # followed by a show causes the chooser to jump back to it's original
+            # position, so do the hide _only_ on Mac
+            import sys
+            if sys.platform == 'darwin':
+                cd.hide()
         cd.setOption(cd.ShowAlphaChannel, self._has_alpha_channel)
-        cd.setOption(cd.NoButtons, True)
         if self._color is not None:
             cd.setCurrentColor(QColor(*tuple(self._color)))
-        cd.currentColorChanged.connect(self._color_changed_cb)
+        _color_callback = self._color_changed_cb
         cd.show()
+
+    def changeEvent(self, event):
+        if event.type() == event.EnabledChange:
+            if self.isEnabled():
+                color = self._color
+            else:
+                color = [int((c + 218)/2) for c in self._color]
+            self.setStyleSheet('background-color: %s' % hex_color_name(color))
 
     def _color_changed_cb(self, color):
         self.set_color(color)
@@ -118,8 +165,12 @@ class MultiColorButton(ColorButton):
                 import os
                 if os.path.exists(test_icon):
                     icon_file = test_icon
-            from chimerax.core.commands import quote_if_necessary
-            self.setStyleSheet("background-image: url(%s);" % quote_if_necessary(icon_file))
+            # convert Windows 'C:' et al to something that doesn't look like the 'scheme'
+            # part of an URL (pathname2url) and yet don't have spaces and such represented
+            # as '%20' and such (unquote)
+            from urllib.request import pathname2url, unquote
+            path = unquote(pathname2url(icon_file))
+            self.setStyleSheet("background-image: url(%s);" % path)
         else:
             ColorButton.set_color(self, color)
 

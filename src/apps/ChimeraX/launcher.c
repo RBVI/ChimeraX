@@ -35,7 +35,9 @@ static wchar_t* debug_extra[] = {
 	L"-X",
 	L"dev",
 	L"-X",
+/* Too much output from import timing for debugging.
 	L"importtime",
+ */
 };
 static const int debug_ec = sizeof(debug_extra) / sizeof (debug_extra[0]);
 
@@ -47,7 +49,7 @@ static const int debug_ec = sizeof(debug_extra) / sizeof (debug_extra[0]);
 _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 #endif
 
-static int
+int
 app_main(int argc, wchar_t** wargv)
 {
 	int debug = 0;
@@ -79,34 +81,3 @@ app_main(int argc, wchar_t** wargv)
 	int result = Py_Main(new_argc, new_argv);
 	return result;
 }
-
-#ifdef _WIN32
-int WINAPI
-wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine,
-	int nCmdShow)
-{
-	return app_main(__argc, __wargv);
-}
-
-#else
-int
-main(int argc, char** argv)
-{
-	size_t len;
-	wchar_t** wargv = (wchar_t**) malloc(argc * sizeof (wchar_t*));
-	if (wargv == NULL) {
-		fprintf(stderr, "out of memory\n");
-		return 120;
-	}
-
-	setlocale(LC_ALL, "");
-	for (int i = 0; i < argc; ++i) {
-		wargv[i] = Py_DecodeLocale(argv[i], &len);
-		if (wargv[i] == NULL) {
-			fprintf(stderr, "out of memory\n");
-			return 121;
-		}
-	}
-	return app_main(argc, wargv);
-}
-#endif

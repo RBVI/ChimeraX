@@ -31,8 +31,8 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>far</b>&nbsp;&nbsp;<i>offset<sub><font size="-1">far</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
 [&nbsp;<b>front</b>&nbsp;&nbsp;<i>offset<sub><font size="-1">front</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
 [&nbsp;<b>back</b>&nbsp;&nbsp;<i>offset<sub><font size="-1">back</font></sub></i>&nbsp;|&nbsp;off&nbsp;]
-[&nbsp;<b>position</b>&nbsp;&nbsp;<i>refpoint</i>&nbsp;]
-[&nbsp;<b>axis</b>&nbsp;&nbsp;<i>normal</i>&nbsp;]
+[&nbsp;<b>position</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 </h3>
@@ -62,10 +62,15 @@ turns off all clipping planes, whereas
 <b>clip list</b> reports the locations of any active clipping planes.
 </p><p>
 Capping of clipped surfaces can be controlled
-with a <a href="../preferences.html">preference</a> setting and/or the
+with a <a href="../preferences.html#clipping">preference</a> setting and/or the
 <a href="surface.html#cap"><b>surface cap</b></a> command.
 See also: <a href="view.html"><b>view</b></a>,
+<a href="cofr.html"><b>cofr</b></a>,
 <a href="ui.html#mousemode"><b>mousemode</b></a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/clip.png"></a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>
 </p><p>
 Each plane can be activated or turned <b>off</b> individually; 
 specifying an <i>offset</i> activates a plane if it was not already active.
@@ -77,33 +82,23 @@ of the planes, or (if a plane is newly activated)
 the center of the bounding box of displayed models.
 The position of a plane is forgotten when it is turned off.
 </p><p>
-The <b>position</b> <i>refpoint</i> can be given as:
-</p>
-<ul>
-<li><i>x,y,z</i> (three values separated by commas only) - an arbitrary point
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> 
-- the center of the bounding box of the specified items
-</ul>
-<p>
-The <b>axis</b> option sets front/back plane orientation,
-where the <i>normal</i> (the axis perpendicular to the plane) can be given as:
-</p>
-<ul>
-<li><b>x</b> - unit vector along the X-axis (1,0,0)
-<li><b>y</b> - unit vector along the Y-axis (0,1,0)
-<li><b>z</b> - unit vector along the Z-axis (0,0,1)
-<li><i>x,y,z</i> (three values separated by commas only) - an arbitrary vector 
-</ul>
-<p>
-The <b>coordinateSystem</b> for interpreting <b>position</b> and <b>axis</b>
-coordinates can be specified by reference model number.
-Otherwise, the <a href="view.html#screencoords">screen coordinate system</a>
-(X horizontal, Y vertical, Z in/out of screen) will be used.
-The default initial orientation of front/back planes is normal
-to the screen Z-axis or line of sight.
+The <b>position</b> reference point can be given as
+<i>x,y,z</i> (three values separated by commas only),
+an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
+standard <a href="pointspec.html#vector">point specifications</a>.
+</p><p>
+The <b>axis</b> option sets initial front/back plane orientation
+as perpendicular to <b>x</b>, <b>y</b>, <b>z</b>, or any of the other
+standard <a href="pointspec.html#vector">vector specifications</a>.
+The default orientation is perpendicular to the line of sight (screen Z).
+</p><p>
+The <a href="view.html#screencoords">screen coordinate system</a>
+(X horizontal, Y vertical, Z in/out of screen) will be used
+to interpret <b>position</b> and <b>axis</b> coordinates 
+unless a reference model is specified with the <b>coordinateSystem</b> option.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2019</address>
+June 2019</address>
 </body></html>

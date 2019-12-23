@@ -67,8 +67,12 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
         target = "surfaces"
     else:
         raise UserError("Unknown attribute target: '%s'" % target)
+    from chimerax.core.commands import plural_form
+    match_msg = "Assigning %s attribute to %d %s" % (attr_name, len(items), plural_form(items, "item"))
     if not items:
-        raise UserError("No items of type '%s' found" % target)
+        session.logger.info('<font color="OrangeRed">' +  match_msg + "</font>", is_html=True)
+        return
+    session.logger.info(match_msg)
 
     if attr_name.lower().endswith("color"):
         if not isinstance(attr_value, str):

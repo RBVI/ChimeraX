@@ -1,3 +1,4 @@
+<!-- vi:set shiftwidth=2: -->
 <BundleInfo name="ChimeraX-Toolbar"
 	    version="0.1" package="chimerax.toolbar"
   	    minSessionVersion="1" maxSessionVersion="1">
@@ -32,6 +33,231 @@ Provides a Windows ribbon-style toolbar interface
     <Dependency name="ChimeraX-Tug" version=">=1.0"/>
     <Dependency name="ChimeraX-Zone" version=">=1.0"/>
   </Dependencies>
+
+  <Managers>
+    <Manager name="toolbar" guiOnly="true"/>
+  </Managers>
+
+  <Providers manager="toolbar">
+    <!-- hidden File tab -->
+    <Provider tab="File" section="File" hidden="true"
+      name="Open" icon="open-in-app.png" description="Open data file"/>
+    <Provider tab="File" section="File" hidden="true"
+      name="Recent" icon="recentfiles.png" description="Open recent files" after="Open"/>
+    <Provider tab="File" section="File" hidden="true"
+      name="Save" icon="content-save.png" description="Save session file" after="Recent"/>
+    <Provider tab="File" section="File" hidden="true"
+      name="Close" icon="close-box.png" description="Close current session" after="Save"/>
+    <Provider tab="File" section="File" hidden="true"
+      name="Exit" icon="exit.png" description="Exit application" after="Close"/>
+
+    <!-- Molecule Display tab -->
+    <Provider tab="Molecule Display"
+      name="tab-md" help="help:user/tools/moldisplay.html"/>
+    <Provider tab="Molecule Display" section="Atoms"
+      name="layout-atoms" compact="true"/>
+    <Provider tab="Molecule Display" section="Cartoons"
+      name="layout-cartoons" compact="true" after="Atoms"/>
+    <Provider tab="Molecule Display" section="Surfaces"
+      name="layout-surfaces" compact="true" after="Cartoons"/>
+    <Provider tab="Molecule Display" section="Styles"
+      name="layout-styles" after="Surfaces"/>
+    <Provider tab="Molecule Display" section="Coloring"
+      name="layout-coloring" after="Styles"/>
+    <Provider tab="Molecule Display" section="Analysis"
+      name="layout-analysis" after="Coloring"/>
+
+    <!-- Graphics tab -->
+    <Provider tab="Graphics" after="Molecule Display"
+      name="tab-g" help="help:user/tools/graphics.html"/>
+    <Provider tab="Graphics" section="Background"
+      name="layout-bg" compact="true"/>
+    <Provider tab="Graphics" section="Lighting &amp; Effects"
+      name="layout-lighting" after="Background"/>
+    <Provider tab="Graphics" section="Camera"
+      name="layout-cam" after="Lighting &amp; Effects"/>
+    <Provider tab="Graphics" section="Camera"
+      name="Side view" icon="sideview.png" description="Show side view tool"/>
+
+    <!-- Map tab -->
+    <Provider tab="Map" after="Graphics"
+      name="tab-map" help="help:user/tools/densitymaps.html"/>
+    <!--<Provider tab="Map" section="Map"
+      name="layout-map"/>-->
+    <Provider tab="Map" section="Style"
+      name="layout-map-style" after="Map"/>
+    <Provider tab="Map" section="Steps"
+      name="layout-map-steps" after="Style"/>
+    <Provider tab="Map" section="Subregions"
+      name="layout-map-subregions" after="Steps"/>
+    <Provider tab="Map" section="Calculations"
+      name="layout-map-calculations" after="Subregions"/>
+    <Provider tab="Map" section="Image Display"
+      name="layout-map-calculations" after="Calculations"/>
+
+
+    <!-- Markers tab -->
+    <Provider tab="Markers" after="Map"
+      name="tab-markers" help="help:user/tools/markerplacement.html"/>
+
+    <Provider tab="Markers" section="Place markers"
+      name="layout-markers-place"/>
+    <Provider tab="Markers" section="Place markers" name="pm1"
+      mouse_mode="mark maximum" display_name="Maximum" description="Mark maximum"/>
+    <Provider tab="Markers" section="Place markers" name="pm2"
+      mouse_mode="mark plane" display_name="Plane" description="Mark volume plane"/>
+    <Provider tab="Markers" section="Place markers" name="pm3"
+      mouse_mode="mark surface" display_name="Surface" description="Mark surface"/>
+    <Provider tab="Markers" section="Place markers" name="pm4"
+      mouse_mode="mark center" display_name="Center" description="Mark center of connected surface"/>
+    <Provider tab="Markers" section="Place markers" name="pm5"
+      mouse_mode="mark point" display_name="Point" description="Mark 3d point"/>
+
+    <Provider tab="Markers" section="Adjust markers"
+      name="layout-markers-adjust" after="Place markers"/>
+    <Provider tab="Markers" section="Adjust markers" name="am1"
+      mouse_mode="link markers" display_name="Link" description="Link consecutively clicked markers"/>
+    <Provider tab="Markers" section="Adjust markers" name="am2"
+      mouse_mode="move markers" display_name="Move" description="Move markers"/>
+    <Provider tab="Markers" section="Adjust markers" name="am3"
+      mouse_mode="resize markers" display_name="Resize" description="Resize markers or links"/>
+    <Provider tab="Markers" section="Adjust markers" name="am4"
+      mouse_mode="delete markers" display_name="Delete" description="Delete markers or links"/>
+
+    <!-- Right Mouse tab -->
+    <Provider tab="Right Mouse" after="Markers"
+      name="tab-right-mouse" help="help:user/tools/mousemodes.html"/>
+
+    <Provider tab="Right Mouse" section="Movement"
+      name="layout-mouse-movement"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm1"
+      mouse_mode="select" display_name="Select" description="Select models"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm2"
+      mouse_mode="rotate" display_name="Rotate" description="Rotate models"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm3"
+      mouse_mode="translate" display_name="Translate" description="Translate models"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm4"
+      mouse_mode="zoom" display_name="Zoom" description="Zoom view"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm5"
+      mouse_mode="translate selected models" display_name="Translate Selected" description="Translate selected models"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm6"
+      mouse_mode="rotate selected models" display_name="Rotate Selected" description="Rotate selected models"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm7"
+      mouse_mode="pivot" display_name="Pivot" description="Set center of rotation at atom"/>
+
+    <Provider tab="Right Mouse" section="Annotation"
+      name="layout-mouse-annotation" after="Movement"/>
+	  ("Annotation", False): [
+    <Provider tab="Right Mouse" section="Annotation" name="ma1"
+      mouse_mode="distance" display_name="Distance" description="Toggle distance monitor between two atoms"/>
+    <Provider tab="Right Mouse" section="Annotation" name="ma2"
+      mouse_mode="label" display_name="Label" description="Toggle atom or cartoon label"/>
+    <Provider tab="Right Mouse" section="Annotation" name="ma3"
+      mouse_mode="move label" display_name="Move label" description="Reposition 2D label"/>
+
+    <Provider tab="Right Mouse" section="Clipping"
+      name="layout-mouse-clipping" after="Annotation"/>
+    <Provider tab="Right Mouse" section="Clipping" name="mc1"
+      mouse_mode="clip" display_name="Clip" description="Activate clipping"/>
+    <Provider tab="Right Mouse" section="Clipping" name="mc2"
+      mouse_mode="clip rotate" display_name="Clip rotate" description="Rotate clipping planes"/>
+    <Provider tab="Right Mouse" section="Clipping" name="mc3"
+      mouse_mode="zone" display_name="Zone" description="Limit display to zone around clicked residues"/>
+
+    <Provider tab="Right Mouse" section="Map"
+      name="layout-mouse-map" after="Clipping"/>
+    <Provider tab="Right Mouse" section="Map" name="mM1"
+      mouse_mode="contour level" display_name="Contour level" description="Adjust volume data threshold level"/>
+    <Provider tab="Right Mouse" section="Map" name="mM2"
+      mouse_mode="move planes" display_name="Move planes" description="Move plane or slab along its axis to show a different section"/>
+    <Provider tab="Right Mouse" section="Map" name="mM3"
+      mouse_mode="crop volume" display_name="Crop" description="Crop volume data dragging any face of box outline"/>
+    <Provider tab="Right Mouse" section="Map" name="mM4"
+      mouse_mode="tape measure" display_name="Tape" description="Measure distance between two map points"/>
+    <Provider tab="Right Mouse" section="Map" name="mM5"
+      mouse_mode="pick blobs" display_name="Blob" description="Measure and color connected parts of surface"/>
+    <Provider tab="Right Mouse" section="Map" name="mM6"
+      mouse_mode="map eraser" display_name="Erase" description="Erase parts of a density map setting values in a sphere to zero"/>
+    <Provider tab="Right Mouse" section="Map" name="mM7"
+      mouse_mode="play map series" display_name="Play series" description="Play map series"/>
+    <Provider tab="Right Mouse" section="Map" name="mM8"
+      mouse_mode="windowing" display_name="Windowing" description="Adjust volume data thresholds collectively"/>
+
+    <Provider tab="Right Mouse" section="Structure Modification"
+      name="layout-mouse-structure" after="Map"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms1"
+      mouse_mode="bond rotation" display_name="Bond rotation" description="Adjust torsion angle"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms2"
+      mouse_mode="swapaa" display_name="Swapaa" description="Mutate and label residue"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms3"
+      mouse_mode="tug" display_name="Tug" description="Drag atom while applying dynamics"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms4"
+      mouse_mode="minimize" display_name="Minimize" description="Jiggle residue and its neighbors"/>
+
+    <Provider tab="Right Mouse" section="Other"
+      name="layout-mouse-other" after="Structure Modification"/>
+    <Provider tab="Right Mouse" section="Other" name="mO1"
+      mouse_mode="next docked" display_name="Next docked" description="Show next docked ligand"/>
+
+    <!-- Home tab -->
+    <Provider tab="Home" section="File"
+      name="Open-1" link="ChimeraX-Toolbar:Open"/>
+    <Provider tab="Home" section="File"
+      name="Recent-1" link="ChimeraX-Toolbar:Recent" after="Open"/>
+    <Provider tab="Home" section="File"
+      name="Save-1" link="ChimeraX-Toolbar:Save" after="Recent"/>
+
+    <Provider tab="Home" section="Images"
+      name="layout-Images" after="File"/>
+
+    <Provider tab="Home" section="Atoms"
+      name="layout-Atoms" after="Images"/>
+    <Provider tab="Home" section="Atoms"
+      name="atomshow-1" link="ChimeraX-Shortcuts:da"/>
+    <Provider tab="Home" section="Atoms"
+      name="atomhide-1" link="ChimeraX-Shortcuts:ha"/>
+
+    <Provider tab="Home" section="Cartoons"
+      name="layout-Cartoons" after="Atoms"/>
+    <Provider tab="Home" section="Cartoons"
+      name="ribshow-1" link="ChimeraX-Shortcuts:rb"/>
+    <Provider tab="Home" section="Cartoons"
+      name="ribhide-1" link="ChimeraX-Shortcuts:hr"/>
+
+    <Provider tab="Home" section="Styles"
+      name="layout-Styles" after="Cartoons"/>
+    <Provider tab="Home" section="Styles"
+      name="stick-1" link="ChimeraX-Shortcuts:st"/>
+    <Provider tab="Home" section="Styles"
+      name="sphere-1" link="ChimeraX-Shortcuts:sp"/>
+    <Provider tab="Home" section="Styles"
+      name="ball-1" link="ChimeraX-Shortcuts:bs"/>
+
+    <Provider tab="Home" section="Background"
+      name="layout-Background" after="Styles"/>
+    <Provider tab="Home" section="Background"
+      name="White-1" link="ChimeraX-Shortcuts:wb"/>
+    <Provider tab="Home" section="Background"
+      name="Black-1" link="ChimeraX-Shortcuts:bk"/>
+
+    <Provider tab="Home" section="Lighting"
+      name="layout-Lighting" after="Background"/>
+    <Provider tab="Home" section="Lighting"
+      name="Simple-1" link="ChimeraX-Shortcuts:ls"/>
+    <Provider tab="Home" section="Lighting"
+      name="Soft-1" link="ChimeraX-Shortcuts:la"/>
+    <Provider tab="Home" section="Lighting"
+      name="Full-1" link="ChimeraX-Shortcuts:lf"/>
+  <!--
+    <Provider tab="Home" section="Undo"
+      name="layout-Undo" after="Lighting"/>
+    <Provider tab="Home" section="Undo"
+      name="Undo" icon="undo-variant.png" description="Undo last action"/>
+    <Provider tab="Home" section="Undo"
+      name="Redo" icon="redo-variant.png" description="Redo last action"/>
+  -->
+
+  </Providers>
 
   <DataFiles>
     <DataDir>icons</DataDir>

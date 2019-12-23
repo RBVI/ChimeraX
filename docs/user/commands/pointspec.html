@@ -1,0 +1,84 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command-Line Specification: Points, Vectors</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>Command-Line Specification: Points, Vectors</h3>
+
+<p>
+Many <a href="../index.html#commands">commands</a> require or optionally use
+specifications of points or vectors in 3D coordinate space.
+</p>
+<a name="point"></a>
+<p>
+In general, a <b><i>point-spec</i></b> can be:
+</p>
+<ul>
+<li><i>x,y,z</i> (three values separated by commas only) 
+&ndash; an arbitrary point,
+interpreted in <a href="view.html#scenecoords">scene coordinates</a>
+unless a different <b>coordinateSystem</b> is given
+<li>an <a href="atomspec.html"><i>atom-spec</i></a> 
+&ndash; the center of the bounding box of the specified items
+<li><b>cofr</b>
+&ndash; the current <a href="cofr.html">center of rotation</a>
+<li><b>camera</b>
+&ndash; the viewer position
+</ul>
+<a name="vector"></a>
+<p>
+In general, a <b><i>vector-spec</i></b> can be:
+</p>
+<ul>
+<li><b>x</b> &ndash; unit vector along the X-axis (1,0,0)
+<li><b>y</b> &ndash; unit vector along the Y-axis (0,1,0)
+<li><b>z</b> &ndash; unit vector along the Z-axis (0,0,1)
+<li><i>x,y,z</i> (three values separated by commas only) 
+&ndash; an arbitrary vector
+<li>an <a href="atomspec.html"><i>atom-spec</i></a> of exactly two atoms,
+not necessarily bonded or in the same model
+<p>
+For rotations, the order of the two atoms defines a handedness,
+and right-handed rotations are positive. If a center point is not 
+specified separately, it will lie on the atom-atom axis.
+If a center is specified, only the direction of the axis will be used.
+The first model in the axis <a href="atomspec.html"><i>atom-spec</i></a>
+will be used for reference frame pinning unless
+a center point <a href="atomspec.html"><i>atom-spec</i></a>
+or a <b>coordinateSystem</b> is also given.
+</p>
+</ul>
+<p>
+The default <b>coordinateSystem</b> for interpreting vector specifications
+varies by command, and could be that of a specific data model or just
+<a href="view.html#screencoords">screen coordinates</a>
+(X horizontal, Y vertical, Z in/out of screen).
+</p><p>
+See also:
+<a href="usageconventions.html">command usage conventions</a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+June 2019</address>
+</body></html>

@@ -1,3 +1,16 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
+# === UCSF ChimeraX Copyright ===
+# Copyright 2016 Regents of the University of California.
+# All rights reserved.  This software provided pursuant to a
+# license agreement containing restrictions on its disclosure,
+# duplication and use.  For details see:
+# http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+# This notice must be embedded in or attached to all copies,
+# including partial copies, of the software or any revisions
+# or derivations thereof.
+# === UCSF ChimeraX Copyright ===
+
 # -----------------------------------------------------------------------------
 #
 def measure_inertia(session, objects, show_ellipsoid = True, color = None, per_chain = False,
@@ -116,7 +129,7 @@ def map_points_and_weights(v, level = None, step = None, subregion = None):
   # Get 3-d array of map values.
   m = v.matrix(step = step, subregion = subregion)
 
-  from chimerax.map._map import high_indices
+  from chimerax.map import high_indices
   points_int = high_indices(m, level)
   from numpy import float32
   points = points_int.astype(float32)

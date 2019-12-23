@@ -35,12 +35,10 @@ class ToolbarTool(ToolInstance):
         self.display_name = "Toolbar"
         self.settings = ToolbarSettings(session, tool_name)
         from chimerax.ui import MainToolWindow
-        self.tool_window = MainToolWindow(self, close_destroys=False)
+        self.tool_window = MainToolWindow(self, close_destroys=False, hide_title_bar=True)
         self._build_ui()
         self.tool_window.fill_context_menu = self.fill_context_menu
-        # kludge to hide title bar
-        from PyQt5.QtWidgets import QWidget
-        self.tool_window._kludge.dock_widget.setTitleBarWidget(QWidget())
+        session.triggers.add_handler('set right mouse', self._set_right_mouse_button)
 
     def _build_ui(self):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar
@@ -81,258 +79,148 @@ class ToolbarTool(ToolInstance):
         self.settings.show_section_labels = show_section_labels
         self.ttb.set_show_section_titles(show_section_labels)
 
-    def handle_scheme(self, cmd):
-        # First check that the path is a real command
-        kind, value = cmd.split(':', maxsplit=1)
-        if kind == "shortcut":
-            from chimerax.shortcuts import shortcuts
-            shortcuts.keyboard_shortcuts(self.session).run_shortcut(value)
-        elif kind == "mouse":
-            button_to_bind = 'right'
-            from chimerax.core.commands import run
-            run(self.session, f'ui mousemode {button_to_bind} "{value}"')
-        elif kind == "cmd":
-            from chimerax.core.commands import run
-            run(self.session, f'{value}')
-        else:
-            from chimerax.core.errors import UserError
-            raise UserError("unknown toolbar command: %s" % cmd)
-
     def _build_buttons(self):
-        import os
-        import chimerax.shortcuts
-        from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QPixmap, QIcon
-        shortcut_icon_dir = os.path.join(chimerax.shortcuts.__path__[0], 'icons')
-        dir_path = os.path.join(os.path.dirname(__file__), 'icons')
-        for tab in _Toolbars:
-            help_url, info = _Toolbars[tab]
-            for (section, compact), shortcuts in info.items():
-                if compact:
-                    self.ttb.set_section_compact(tab, section, True)
-                for item in shortcuts:
-                    if len(item) == 4:
-                        (what, icon_file, descrip, tooltip) = item
-                        kw = {}
+        # add buttons from toolbar manager
+        from PyQt5.QtGui import QIcon
+        from .manager import fake_mouse_mode_bundle_info
+        self.right_mouse_buttons = {}
+        self.current_right_mouse_button = None
+        toolbar = self.session.toolbar._toolbar
+        for tab in _layout(toolbar, "tabs"):
+            if tab.startswith("__") or tab not in toolbar:
+                continue
+            tab_info = toolbar[tab]
+            for section in _layout(tab_info, "%s sections" % tab):
+                if section.startswith("__") or section not in tab_info:
+                    continue
+                section_info = tab_info[section]
+                has_buttons = False
+                for display_name in _layout(section_info, "%s %s buttons" % (tab, section)):
+                    if display_name.startswith("__") or display_name not in section_info:
+                        continue
+                    args = section_info[display_name]
+                    (name, bundle_info, icon_path, description, kw) = args
+                    if "hidden" in kw:
+                        continue
+                    has_buttons = True
+                    if description and not description[0].isupper():
+                        description = description.capitalize()
+                    if bundle_info == fake_mouse_mode_bundle_info:
+                        kw["vr_mode"] = name  # Allows VR to recognize mouse mode buttons
+                        rmbs = self.right_mouse_buttons.setdefault(name, [])
+                        if icon_path is None:
+                            m = self.session.ui.mouse_modes.named_mode(name)
+                            if m is not None:
+                                icon_path = m.icon_path
+                        rmbs.append((tab, section, display_name, icon_path))
+                    if icon_path is None:
+                        icon = None
                     else:
-                        (what, icon_file, descrip, tooltip, kw) = item
-                    kind, value = what.split(':', 1)
-                    if kind == "mouse":
-                        m = self.session.ui.mouse_modes.named_mode(value)
-                        if m is None:
-                            continue
-                        icon_path = m.icon_path
-                    else:
-                        icon_path = os.path.join(shortcut_icon_dir, icon_file)
-                        if not os.path.exists(icon_path):
-                            icon_path = os.path.join(dir_path, icon_file)
-                    pm = QPixmap(icon_path)
-                    # Toolbutton will scale down, but not up, so give large icons
-#                    icon = QIcon(pm.scaledToHeight(128, Qt.SmoothTransformation))
-                    icon = QIcon(pm)
-                    if not tooltip:
-                        tooltip = descrip
-                    if what.startswith("mouse:"):
-                        kw["vr_mode"] = what[6:]   # Allows VR to recognize mouse mode tool buttons
-                    if descrip and not descrip[0].isupper():
-                        descrip = descrip.capitalize()
+                        icon = QIcon(icon_path)
+
+                    def callback(event, session=self.session, name=name, bundle_info=bundle_info, display_name=display_name):
+                        bundle_info.run_provider(session, name, session.toolbar, display_name=display_name)
                     self.ttb.add_button(
-                        tab, section, descrip,
-                        lambda e, what=what, self=self: self.handle_scheme(what),
-                        icon, tooltip, **kw)
+                            tab, section, display_name, callback,
+                            icon, description, **kw)
+                if has_buttons:
+                    compact = "__compact__" in section_info
+                    if compact:
+                        self.ttb.set_section_compact(tab, section, True)
         self.ttb.show_tab('Home')
+        self._set_right_mouse_button('init', self.session.ui.mouse_modes.mode("right", exact=True))
+
+    def _set_right_mouse_button(self, trigger_name, mode):
+        # highlight current right mouse button
+        name = mode.name if mode is not None else None
+        if name == self.current_right_mouse_button:
+            return
+
+        set_sections = set()
+        has_button = name in self.right_mouse_buttons
+        if has_button:
+            for info in self.right_mouse_buttons[name]:
+                tab_title, section_title, _, _ = info
+                set_sections.add((tab_title, section_title))
+
+        if self.current_right_mouse_button is not None:
+            # remove highlighting
+            for info in self.right_mouse_buttons[self.current_right_mouse_button]:
+                tab_title, section_title, button_title, icon_path = info
+                redo = (tab_title, section_title) not in set_sections
+                self.ttb.remove_button_highlight(tab_title, section_title, button_title, redo=redo)
+        if not has_button:
+            return
+        # highlight button(s)
+        self.current_right_mouse_button = name
+        for info in self.right_mouse_buttons[name]:
+            tab_title, section_title, button_title, icon_path = info
+            self.ttb.add_button_highlight(tab_title, section_title, button_title)
 
 
-_Toolbars = {
-    "Home": (
-        None,
-        {
-            ("File", False): [
-                ("cmd:open browse", "open-in-app.png", "Open", "Open data file"),
-                ("cmd:save browse", "content-save.png", "Save", "Save session file"),
-                #("cmd:close session", "close-box.png", "Close", "Close current session"),
-                #("cmd:exit", "exit.png", "Exit", "Exit application"),
-            ],
-            ("Images", False): [
-                ("shortcut:sx", "camera.png", "Snapshot", "Save snapshot to desktop"),
-                ("shortcut:vd", "video.png", "Spin movie", "Record spin movie"),
-            ],
-            ("Atoms", True): [
-                ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
-                ("shortcut:ha", "atomhide.png", "Hide", "Hide atoms"),
-            ],
-            ("Cartoons", True): [
-                ("shortcut:rb", "ribshow.png", "Show", "Show cartoons"),
-                ("shortcut:hr", "ribhide.png", "Hide", "Hide cartoons"),
-            ],
-            ("Styles", False): [
-                ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
-                ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
-            ],
-            ("Background", False): [
-                ("shortcut:wb", "whitebg.png", "White", "White background"),
-                ("shortcut:bk", "blackbg.png", "Black", "Black background"),
-            ],
-            ("Lighting", False): [
-                ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
-                ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
-                ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
-            ],
-#            ("Undo", True): [
-#                ("cmd:undo", "undo-variant.png", "Undo", "Undo last action"),
-#                ("cmd:redo", "redo-variant.png", "Redo", "Redo last action"),
-#            ],
-        },
-    ),
-    "Molecule Display": (
-        "help:user/tools/moldisplay.html",
-        {
-            ("Atoms", True): [
-                ("shortcut:da", "atomshow.png", "Show", "Show atoms"),
-                ("shortcut:ha", "atomhide.png", "Hide", "Hide atoms"),
-            ],
-            ("Cartoons", True): [
-                ("shortcut:rb", "ribshow.png", "Show", "Show cartoons"),
-                ("shortcut:hr", "ribhide.png", "Hide", "Hide cartoons"),
-            ],
-            ("Surfaces", True): [
-                ("shortcut:ms", "surfshow.png", "Show", "Show surfaces"),
-                ("shortcut:hs", "surfhide.png", "Hide", "Hide surfaces"),
-            ],
-            ("Styles", False): [
-                ("shortcut:st", "stick.png", "Stick", "Display atoms in stick style"),
-                ("shortcut:sp", "sphere.png", "Sphere", "Display atoms in sphere style"),
-                ("shortcut:bs", "ball.png", "Ball && stick", "Display atoms in ball and stick style"),
-            ],
-            ("Coloring", False): [
-                ("shortcut:ce", "colorbyelement.png", "heteroatom", "Color non-carbon atoms by element"),
-                ("shortcut:cc", "colorbychain.png", "chain", "Color by chain"),
-                ("shortcut:rB", "rainbow.png", "rainbow", 'Rainbow color N to C-terminus'),
-                ("shortcut:bf", "bfactor.png", "b-factor", 'Color by b-factor'),
-                ("shortcut:hp", "hydrophobicity.png", "hydrophobic", 'Color surface by hydrophobicity'),
-            ],
-            ("Analysis", False): [
-                ("shortcut:hb", "hbondsflat.png", "H-bonds", "Show hydrogen bonds"),
-                ("shortcut:HB", "hbondsflathide.png", "Hide H-bonds", "Hide hydrogen bonds"),
-                ("shortcut:sq", "sequence.png", "Sequence", "Show polymer sequence"),
-                ("shortcut:if", "interfaces.png", "Interfaces", "Show chain contacts diagram"),
-            ],
-        },
-    ),
-    "Nucleotides": (
-        None,
-        {
-            ("Styles", False): [
-                ("cmd:nucleotides selAtoms atoms", "nuc-atoms.png", "Plain", "Remove nucleotides styling"),
-                ("cmd:nucleotides selAtoms fill", "nuc-fill.png", "Filled", "Show nucleotides with filled rings"),
-                ("cmd:nucleotides selAtoms slab", "nuc-slab.png", "Slab", "Show nucleotide bases as slabs and fill sugars"),
-                ("cmd:nucleotides selAtoms tube/slab shape box", "nuc-box.png", "Tube/\nSlab", "Show nucleotide bases as boxes and sugars as tubes"),
-                ("cmd:nucleotides selAtoms tube/slab shape ellipsoid", "nuc-elli.png", "Tube/\nEllipsoid", "Show nucleotide bases as ellipsoids and sugars as tubes"),
-                ("cmd:nucleotides selAtoms tube/slab shape muffler", "nuc-muff.png", "Tube/\nMuffler", "Show nucleotide bases as mufflers and sugars as tubes"),
-                ("cmd:nucleotides selAtoms ladder", "nuc-ladder.png", "Ladder", "Show nucleotides as H-bond ladders"),
-                ("cmd:nucleotides selAtoms stubs", "nuc-stubs.png", "Stubs", "Show nucleotides as stubs"),
-            ],
-            ("Coloring", False): [
-                ("cmd:color selAtoms bynuc", "nuc-color.png", "nucleotide", "Color by nucleotide"),
-            ],
-        },
-    ),
-    "Graphics": (
-        "help:user/tools/graphics.html",
-        {
-            ("Background", True): [
-                ("shortcut:wb", "whitebg.png", "White", "White background"),
-                ("shortcut:gb", "graybg.png", "Gray", "Gray background"),
-                ("shortcut:bk", "blackbg.png", "Black", "Black background"),
-            ],
-            ("Lighting & Effects", False): [
-                ("shortcut:ls", "simplelight.png", "Simple", "Simple lighting"),
-                ("shortcut:la", "softlight.png", "Soft", "Ambient lighting"),
-                ("shortcut:lf", "fulllight.png", "Full", "Full lighting"),
-                ("shortcut:lF", "flat.png", "Flat", "Flat lighting"),
-                ("shortcut:sh", "shadow.png", "Shadow", "Toggle shadows"),
-                ("shortcut:se", "silhouette.png", "Silhouettes", "Toggle silhouettes"),
-            ],
-            ("Camera", False): [
-                ("shortcut:va", "viewall.png", "View all", "View all"),
-                ("shortcut:dv", "orient.png", "Orient", "Default orientation"),
-            ],
-        }
-    ),
-    "Map": (
-        "help:user/tools/densitymaps.html",
-        {
-            ("Map", False): [
-                ("shortcut:sM", "showmap.png", "Show", "Show map"),
-                ("shortcut:hM", "hidemap.png", "Hide", "Hide map"),
-            ],
-            ("Style", False): [
-                ("shortcut:fl", "mapsurf.png", "surface", "Show map or surface in filled style"),
-                ("shortcut:me", "mesh.png", "mesh", "Show map or surface as mesh"),
-                ("shortcut:gs", "mapimage.png", "image", "Show map as grayscale"),
-                ("shortcut:tt", "icecube.png", "Transparent surface", "Toggle surface transparency"),
-                ("shortcut:ob", "outlinebox.png", "Outline box", "Toggle outline box"),
-            ],
-            ("Steps", False): [
-                ("shortcut:s1", "step1.png", "Step 1", "Show map at step 1"),
-                ("shortcut:s2", "step2.png", "Step 2", "Show map at step 2"),
-            ],
-            ("Subregions", False): [
-                ("shortcut:pl", "plane.png", "Z-plane", "Show one plane"),
-                ("shortcut:o3", "orthoplanes.png", "Orthoplanes", "Show 3 orthogonal planes"),
-                ("shortcut:pa", "fullvolume.png", "Full", "Show all planes"),
-            ],
-            ("Calculations", False): [
-                ("shortcut:fT", "fitmap.png", "Fit", "Fit map in map"),
-                ("shortcut:sb", "diffmap.png", "Subtract", "Subtract map from map"),
-                ("shortcut:gf", "smooth.png", "Smooth", "Smooth map"),
-            ],
-            ("Image Display", False): [
-                ("shortcut:zs", "xyzslice.png", "XYZ slices", "Volume XYZ slices"),
-                ("shortcut:ps", "perpslice.png", "Perpendicular slices", "Volume perpendicular slices"),
-                ("shortcut:aw", "airways.png", "Airways preset", "Airways preset"),
-                ("shortcut:as", "ear.png", "skin preset", "skin preset"),
-                ("shortcut:dc", "initialcurve.png", "Default thresholds", "Default volume curve"),
-            ],
-        }
-    ),
-    "Right Mouse": (
-        "help:user/tools/mousemodes.html",
-        {
-            ("Movement", False): [
-                ("mouse:select", None, "Select", "Select models"),
-                ("mouse:rotate", None, "Rotate", "Rotate models"),
-                ("mouse:translate", None, "Translate", "Translate models"),
-                ("mouse:zoom", None, "Zoom", "Zoom view"),
-                ("mouse:translate selected models", None, "Translate Selected", "Translate selected models"),
-                ("mouse:rotate selected models", None, "Rotate Selected", "Rotate selected models"),
-                ("mouse:pivot", None, "Pivot", "Set center of rotation at atom"),
-            ],
-            ("Annotation", False): [
-                ("mouse:distance", None, "distance", "Toggle distance monitor between two atoms"),
-                ("mouse:label", None, "Label", "Toggle atom or cartoon label"),
-                ("mouse:move label", None, "Move label", "Reposition 2D label"),
-            ],
-            ("Clipping", False): [
-                ("mouse:clip", None, "Clip", "Activate clipping"),
-                ("mouse:clip rotate", None, "Clip rotate", "Rotate clipping planes"),
-                ("mouse:zone", None, "Zone", "Limit display to zone around clicked residues"),
-            ],
-            ("Map", False): [
-                ("mouse:contour level", None, "Contour level", "Adjust volume data threshold level"),
-                ("mouse:move planes", None, "Move planes", "Move plane or slab along its axis to show a different section"),
-                ("mouse:crop volume", None, "Crop", "Crop volume data dragging any face of box outline"),
-                ("mouse:place marker", None, "Place marker", None),
-                ("mouse:play map series", None, "Play series", "Play map series"),
-                ("mouse:windowing", None, "Windowing", "Adjust volume data thresholds collectively"),
-            ],
-            ("Structure Modification", False): [
-                ("mouse:bond rotation", None, "Bond rotation", "Adjust torsion angle"),
-                ("mouse:swapaa", None, "Swapaa", "Mutate and label residue"),
-                ("mouse:tug", None, "Tug", "Drag atom while applying dynamics"),
-                ("mouse:minimize", None, "Minimize", "Jiggle residue and its neighbors"),
-            ],
-        }
-    ),
+def _layout(d, what):
+    # Home is always first
+    if "__layout__" not in d:
+        keys = [k for k in d if not k.startswith("__")]
+        try:
+            home = keys.index("Home")
+        except ValueError:
+            keys.insert(0, "Home")
+        else:
+            if home != 0:
+                keys = ["Home"] + keys[0:home] + keys[home + 1:]
+        return keys
+    import copy
+    layout = copy.deepcopy(d["__layout__"])
+    for k in d:
+        if k == "Home" or k.startswith("__"):
+            continue
+        if k not in layout:
+            layout[k] = ["Home"]
+        else:
+            layout[k].add("Home")
+    if "Home" in layout and layout["Home"]:
+        raise RuntimeError("%s: 'Home' must be first" % what)
+    layout["Home"] = []
+    from chimerax.core import order_dag
+    ordered = []
+    try:
+        for n in order_dag.order_dag(layout):
+            ordered.append(n)
+    except order_dag.OrderDAGError as e:
+        raise RuntimeError("%s: %s" % (what, e))
+    return ordered
+
+
+def _file_open(session):
+    session.ui.main_window.file_open_cb(session)
+
+
+def _file_recent(session):
+    mw = session.ui.main_window
+    mw.rapid_access_shown = not mw.rapid_access_shown
+
+
+def _file_save(session):
+    session.ui.main_window.file_save_cb(session)
+
+
+_providers = {
+    "Open": _file_open,
+    "Recent": _file_recent,
+    "Save": _file_save,
+    "Close": "close session",
+    "Exit": "exit",
+    "Undo": "undo",
+    "Redo": "redo",
+    "Side view": "tool show 'Side View'"
 }
+
+
+def run_provider(session, name):
+    what = _providers[name]
+    if not isinstance(what, str):
+        what(session)
+    else:
+        from chimerax.core.commands import run
+        run(session, what)

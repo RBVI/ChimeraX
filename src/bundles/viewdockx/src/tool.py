@@ -11,10 +11,11 @@ class _BaseTool(HtmlToolInstance):
     help = "help:user/tools/viewdockx.html"
 
     def __init__(self, session, tool_name):
-        super().__init__(session, tool_name, size_hint=(575,400))
+        super().__init__(session, tool_name, size_hint=(575,400), log_errors=True)
         self.structures = []
         self._html_state = None
         self._loaded_page = False
+        self._block_updates = False
 
     def setup(self, structures=None, html_state=None):
         self._html_state = html_state
@@ -112,7 +113,6 @@ class _BaseTool(HtmlToolInstance):
         columns = json.dumps(self._make_columns())
         js = "%s.update_columns(%s);" % (self.CUSTOM_SCHEME, columns)
         self.html_view.runJavaScript(js)
-        self._update_display()
 
     def _make_columns(self):
         # Construct separate dictionaries for numeric and text data
@@ -159,16 +159,22 @@ class _BaseTool(HtmlToolInstance):
         return { "numeric": numeric_data, "text": text_data }
 
     def _update_display(self, trigger=None, trigger_data=None):
-        import json
-        onoff = json.dumps(self._make_display(trigger_data))
-        js = "%s.update_display(%s);" % (self.CUSTOM_SCHEME, onoff)
-        self.html_view.runJavaScript(js)
+        if self._block_updates:
+            return
+        data = self._make_display(trigger_data)
+        if data:
+            import json
+            onoff = json.dumps(data)
+            js = "%s.update_display(%s);" % (self.CUSTOM_SCHEME, onoff)
+            self.html_view.runJavaScript(js)
 
     def _make_display(self, s=None):
-        if s:
+        if s is None:
+            structures = self.structures
+        elif s in self.structures:
             structures = [s]
         else:
-            structures = self.structures
+            return None
         return [(s.atomspec[1:], True if s.display else False)
                 for s in structures]
 
@@ -202,23 +208,56 @@ class _BaseTool(HtmlToolInstance):
             return self.structures
 
     def show_only(self, model_id):
+        on = []
+        off = []
         structures = self.get_structures(model_id)
         for s in self.structures:
             onoff = s in structures
             if s.display != onoff:
-                s.display = onoff
+                if onoff:
+                    on.append(s)
+                else:
+                    off.append(s)
+        self._show_hide(on, off)
 
     def show_toggle(self, model_id):
+        on = []
+        off = []
         structures = self.get_structures(model_id)
         for s in structures:
             if s in self.structures:
-                s.display = not s.display
+                if s.display:
+                    off.append(s)
+                else:
+                    on.append(s)
+        self._show_hide(on, off)
 
     def show_set(self, model_id, onoff):
         structures = self.get_structures(model_id)
+        on = []
+        off = []
         for s in structures:
             if s.display != onoff and s in self.structures:
-                s.display = onoff
+                if onoff:
+                    on.append(s)
+                else:
+                    off.append(s)
+        self._show_hide(on, off)
+
+    def _show_hide(self, on, off):
+        if on or off:
+            from chimerax.core.commands import concise_model_spec, run
+            self._block_updates = True
+            cmd = []
+            if off:
+                models = concise_model_spec(self.session, off)
+                cmd.append("hide %s models" % models)
+            if on:
+                models = concise_model_spec(self.session, on)
+                cmd.append("show %s models" % models)
+            run(self.session, " ; ".join(cmd))
+            self._block_updates = False
+            self._update_display()
 
     # Session stuff
 
@@ -286,11 +325,41 @@ class _BaseTool(HtmlToolInstance):
 class TableTool(_BaseTool):
 
     CUSTOM_SCHEME = "vdxtable"
+    _name_map = {}
 
-    def __init__(self, session, tool_name, structures=None, html_state=None):
-        self.display_name = "ViewDockX Table"
-        super().__init__(session, tool_name)
+    def __init__(self, session, tool_name, name=None,
+                 structures=None, html_state=None):
+        if name is None:
+            start = 1
+            while str(start) in self._name_map:
+                start += 1
+            name = str(start)
+        elif name in self._name_map:
+            raise KeyError("ViewDock name %r already in use" % name)
+        self.name = name
+        self._name_map[name] = self
+        super().__init__(session,"ViewDockX Table (name: %s)" % name)
         self.setup_page("viewdockx_table.html")
+
+    def delete(self):
+        del self._name_map[self.name]
+        super().delete()
+
+    @classmethod
+    def find(cls, name):
+        if name is None:
+            keys = cls._name_map.keys()
+            if len(cls._name_map) > 1:
+                raise KeyError("ViewDockX name must be specified when "
+                               "there are multiple instances.")
+            elif len(cls._name_map) == 0:
+                raise KeyError("No active ViewDockX instance.")
+            return list(cls._name_map.values())[0]
+        else:
+            try:
+                return cls._name_map[name]
+            except KeyError:
+                raise KeyError("No ViewDockX instance named %s" % name)
 
     def _update_ratings(self, trigger=None, trigger_data=None):
         if trigger_data is None:
@@ -309,6 +378,16 @@ class TableTool(_BaseTool):
         method = getattr(self, "_cb_" + url.path())
         query = parse_qs(url.query())
         method(query)
+
+    def arrow_down(self):
+        self._arrow_key(1)
+
+    def arrow_up(self):
+        self._arrow_key(-1)
+
+    def _arrow_key(self, offset):
+        js = "%s.arrow_key(%d);" % (self.CUSTOM_SCHEME, offset)
+        self.html_view.runJavaScript(js)
 
     def _cb_show_all(self, query):
         """shows or hides all structures"""
@@ -350,13 +429,20 @@ class TableTool(_BaseTool):
         tool.setup(self.structures)
 
     def _cb_hb(self, query):
+        self._count_pbonds(query, "hbonds", "hydrogen bonds", "HBonds")
+
+    def _count_pbonds(self, query, finder, cat_name, column_name):
         # Create hydrogen bonds between receptor(s) and ligands
         from chimerax.core.commands import concise_model_spec, run
-        cmd = "hbonds %s restrict cross reveal true" % concise_model_spec(
-                                                            self.session,
-                                                            self.structures)
+        from chimerax.atomic import AtomicStructure
+        mine = concise_model_spec(self.session, self.structures)
+        all = self.session.models.list(type=AtomicStructure)
+        others = concise_model_spec(self.session,
+                                    set(all) - set(self.structures))
+        cmd = ("%s %s restrict %s "
+               "reveal true intersubmodel true" % (finder, mine, others))
         run(self.session, cmd)
-        self._count_pb("hydrogen bonds", "HBonds")
+        self._count_pb(cat_name, column_name)
 
     def _count_pb(self, group_name, key):
         # Count up the hydrogen bonds for each structure
@@ -374,13 +460,7 @@ class TableTool(_BaseTool):
         self._update_models()
 
     def _cb_clash(self, query):
-        # Compute clashes between receptor(s) and ligands
-        from chimerax.core.commands import concise_model_spec, run
-        cmd = "clashes %s test others reveal true" % concise_model_spec(
-                                                            self.session,
-                                                            self.structures)
-        run(self.session, cmd)
-        self._count_pb("clashes", "Clashes")
+        self._count_pbonds(query, "clashes", "clashes", "Clashes")
 
     def _cb_export(self, query):
         from chimerax.ui.open_save import SaveDialog
@@ -411,6 +491,16 @@ class TableTool(_BaseTool):
             return
         self.session.models.close(structures)
 
+    def _cb_columns_updated(self, query):
+        self._update_display()
+        self._update_ratings()
+
+    def _cb_arrow(self, query):
+        from chimerax.core.commands import run
+        direction = query["direction"][0]
+        cmd = "viewdock %s name %s" % (direction, self.name)
+        run(self.session, cmd, log=False)
+
 
 class OutputCache(StringIO):
 
@@ -427,8 +517,7 @@ class ChartTool(_BaseTool):
     help = "help:user/tools/viewdockx.html#plots"
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
-        self.display_name = "ViewDockX Chart"
-        super().__init__(session, tool_name)
+        super().__init__(session, "ViewDockX Chart")
         self.setup_page("viewdockx_chart.html")
 
     def handle_scheme(self, url):
@@ -455,8 +544,7 @@ class PlotTool(_BaseTool):
     help = "help:user/tools/viewdockx.html#plots"
 
     def __init__(self, session, tool_name, structures=None, html_state=None):
-        self.display_name = "ViewDockX Plot"
-        super().__init__(session, tool_name)
+        super().__init__(session, "ViewDockX Plot")
         self.setup_page("viewdockx_plot.html")
 
     def handle_scheme(self, url):

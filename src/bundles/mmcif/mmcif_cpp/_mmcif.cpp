@@ -3,6 +3,7 @@
 #include <stdlib.h>	/* for getenv() and atoi() */
 #include <string.h>
 #include <typeinfo>
+#include <atomstruct/tmpl/restmpl.h>
 
 #ifndef PY_STUPID
 // workaround for Python API missing const's.
@@ -280,6 +281,30 @@ _mmcif_set_Python_locate_function(PyObject*, PyObject* _ptArg)
 
 static const char _mmcifset_Python_locate_function_doc[] = "set_Python_locate_function(function: object)";
 
+static PyObject*
+_mmcif_find_template_residue(PyObject*, PyObject* _ptArg)
+{
+	try {
+		if (!PyUnicode_Check(_ptArg))
+			throw std::invalid_argument("argument 1 should be a str");
+		Py_ssize_t size;
+		const char *name = PyUnicode_AsUTF8AndSize(_ptArg, &size);
+		std::string cppArg(name, size);
+		const tmpl::Residue* r = find_template_residue(cppArg);
+		if (!r) {
+			PyErr_Format(PyExc_ValueError, "No template for residue type %s", name);
+			return NULL;
+		}
+		PyObject* _result = r->py_instance(true);
+		return _result;
+	} catch (...) {
+		_mmcifError();
+	}
+	return NULL;
+}
+
+static const char _mmciffind_template_residue_doc[] = "find_template_residue(name: str)";
+
 PyMethodDef _mmcifMethods[] = {
 	{
 		"extract_CIF_tables", (PyCFunction) _mmcif_extract_CIF_tables,
@@ -300,6 +325,10 @@ PyMethodDef _mmcifMethods[] = {
 	{
 		"set_Python_locate_function", (PyCFunction) _mmcif_set_Python_locate_function,
 		METH_O, _mmcifset_Python_locate_function_doc
+	},
+	{
+		"find_template_residue", (PyCFunction) _mmcif_find_template_residue,
+		METH_O, _mmciffind_template_residue_doc
 	},
 	{ NULL, NULL, 0, NULL }
 };

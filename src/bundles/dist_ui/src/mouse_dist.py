@@ -70,8 +70,7 @@ class DistMouseMode(MouseMode):
         else:
             warning("no atom/distance picked by mouse click")
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         self._picked_object(pick)

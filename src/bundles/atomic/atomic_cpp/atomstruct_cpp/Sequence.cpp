@@ -175,11 +175,6 @@ Sequence::rname3to1(const ResName& rn)
     if (_rname3to1.empty())
         _init_rname_map();
 
-    // MMTF only knows the one-letter code for residues in SEQRES;
-    // as a kludge to allow that, simply return an already-one-letter 
-    // res name
-    if (rn.size() == 1)
-        return rn.c_str()[0];
     _1Letter_Map::const_iterator l1i = _rname3to1.find(rn);
     if (l1i == _rname3to1.end()) {
         return 'X';
@@ -263,16 +258,7 @@ Sequence::set_name(std::string& name)
 {
     auto old_name = _name;
     _name = name;
-    auto inst = py_instance(false);
-    if (inst != Py_None) {
-        auto gil = pyinstance::AcquireGIL();
-        auto ret = PyObject_CallMethod(inst, "_cpp_rename", "s", old_name.c_str());
-        if (ret == nullptr) {
-            throw std::runtime_error("Calling Sequence _cpp_rename method failed.");
-        }
-        Py_DECREF(ret);
-    }
-    Py_DECREF(inst);
+    Py_XDECREF(py_call_method("_cpp_rename", "s", old_name.c_str()));
 }
 
 const Sequence::Contents&

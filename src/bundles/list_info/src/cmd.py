@@ -168,7 +168,7 @@ def info_selection(session, level=None, attribute=None):
         atoms = session.selection.items("atoms")
         if atoms:
             from chimerax.atomic import concatenate
-            chains = concatenate([a.unique_chains for a in atoms])
+            chains = concatenate([a.residues.unique_chains for a in atoms])
             report_chains(session.logger, chains, attribute)
     elif level == "structure":
         if attribute is None:

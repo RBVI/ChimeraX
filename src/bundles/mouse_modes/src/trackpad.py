@@ -30,6 +30,7 @@ class MultitouchTrackpad:
         self._full_width_translation_distance = 6 * cm_tpu      # trackpad units
         self._zoom_scaling = 3		# zoom (z translation) faster than xy translation.
         self._twist_scaling = 6		# twist faster than finger rotation
+        self._wheel_click_pixels = 5	# number of pixels drag that equals one scroll wheel click
         self._touch_handler = None
         self._received_touch_event = False
 
@@ -89,7 +90,10 @@ class MultitouchTrackpad:
             # So event processing can get tens of seconds behind.  To reduce this problem
             # we only handle the most recent touch update per redraw.
             self._recent_touches = [Touch(t) for t in event.touchPoints()]
-        elif t == QEvent.TouchEnd or t == QEvent.TouchCancel:
+        elif t == QEvent.TouchEnd or t == QEvent.TouchCancel or t == QEvent.TouchBegin:
+            # Sometimes we don't get a TouchEnd macOS gesture like 3-finger swipe up
+            # for mission control took over half-way through a gesture.  So also
+            # remove old touches when we get a begin.
             self._recent_touches = []
             self._last_touch_locations.clear()
 
@@ -141,11 +145,16 @@ class MultitouchTrackpad:
             s = speed * ww / self._full_width_translation_distance
             self._translate((s*dx, -s*dy, 0))
         elif n == 4:
-            dy = sum(y for x,y in moves)/n
-            zf = 1 + speed * self._zoom_scaling * abs(dy) / self._full_width_translation_distance
-            if dy < 0:
-                zf = 1/zf
-            self._zoom(zf)
+            # Use scrollwheel mouse mode
+            ses = self._session
+            from .mousemodes import keyboard_modifier_names, MouseEvent
+            modifiers = keyboard_modifier_names(ses.ui.queryKeyboardModifiers())
+            scrollwheel_mode = ses.ui.mouse_modes.mode(button = 'wheel', modifiers = modifiers)
+            if scrollwheel_mode:
+                xy = (sum(t.x for t in touches)/n, sum(t.y for t in touches)/n)
+                dy = sum(y for x,y in moves)/n			# pixels
+                delta = speed * dy / self._wheel_click_pixels	# wheel clicks
+                scrollwheel_mode.wheel(MouseEvent(position = xy, wheel_value = delta, modifiers = modifiers))
 
     def _rotate(self, screen_axis, angle):
         if angle == 0:

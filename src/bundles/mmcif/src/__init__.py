@@ -16,13 +16,14 @@ import chimerax.atomic.pdb
 from .mmcif import (
     get_cif_tables, get_mmcif_tables, get_mmcif_tables_from_metadata,
     open_mmcif, fetch_mmcif, citations,
-    TableMissingFieldsError, CIFTable
+    TableMissingFieldsError, CIFTable,
+    find_template_residue, load_mmCIF_templates
 )
 
 from chimerax.core.toolshed import BundleAPI
 
 
-class _PDBioAPI(BundleAPI):
+class _mmCIFioAPI(BundleAPI):
 
     @staticmethod
     def fetch_from_database(session, identifier, ignore_cache=False, database_name=None,
@@ -55,10 +56,10 @@ class _PDBioAPI(BundleAPI):
                                 log_info=log_info, combine_sym_atoms=combine_sym_atoms)
 
     @staticmethod
-    def save_file(session, path, *, models=None):
+    def save_file(session, path, *, models=None, rel_model=None, selected_only=None, displayed_only=None):
         # 'save_file' is called by session code to save a file
         from . import mmcif_write
-        return mmcif_write.write_mmcif(session, path, models=models)
+        return mmcif_write.write_mmcif(session, path, models=models, rel_model=rel_model, selected_only=selected_only, displayed_only=displayed_only)
 
 
-bundle_api = _PDBioAPI()
+bundle_api = _mmCIFioAPI()

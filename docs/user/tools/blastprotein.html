@@ -25,24 +25,19 @@ class="clRight" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Blast Protein</h3>
 <p>
-<b>Blast Protein</b> searches for similar protein sequences 
+<b>Blast Protein</b> runs a protein sequence similarity search
 using a <a href="#notes">BLAST</a> web service hosted by the
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 Resource for Biocomputing, Visualization, and Informatics (RBVI)</a>.
-Any protein structure chain in ChimeraX can be used as the query.
-The <a href="../commands/blastprotein.html"><b>blastprotein</b></a>
-command implementation additionally allows using a sequence
-open in ChimeraX as the query.
-</p><p>
-For hits corresponding to structures in the
-<a href="http://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>, the
-structures can be retrieved and automatically superimposed onto the query chain.
-</p><p>
-Like other tools, this interface can be opened from the <b>Tools</b> menu
-(<a href="../window.html#panels">more...</a>). 
 See also: 
-<!-- <a href="modeller.html"><b>Modeller Comparative</b></a>, -->
 <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
+</p><p>
+The <b>Blast Protein</b> tool
+can be opened from the <b>Sequence</b> section of the
+<b>Tools</b> menu and manipulated like other panels
+(<a href="../window.html#panels">more...</a>).
+It is also implemented as the 
+<a href="../commands/blastprotein.html"><b>blastprotein</b></a> command.
 </p>
 
 <a name="parameters"></a>
@@ -52,8 +47,13 @@ See also:
 <h3>Search Parameters</h3>
 
 <ul class="none">
-<li><b>Chain</b> &ndash; chain (of a structure open in ChimeraX)
-to use as the query sequence
+<li><b>Chain</b> 
+&ndash; protein chain of a structure open in ChimeraX to use as the query
+<br>
+*Note: the <a href="../commands/blastprotein.html"><b>blastprotein</b></a>
+command additionally allows using a sequence 
+(for which no structure may be available) as the query,
+such as to find templates for <a href="modeller.html">comparative modeling</a>
 <li><b>Database</b> &ndash; protein sequence database to search:
    <ul>
    <li><b>PDB</b> (default) &ndash; experimentally determined structures in the
@@ -93,25 +93,34 @@ Clicking the <b>Blast</b> button initiates the search.
 <p class="nav">
 [<a href="#top">back to top: Blast Protein</a>]
 </p>
-<h3>BLAST Results</h3>
+<h3>BLAST Protein Results</h3>
 <p>
 When results are returned, the hits are listed in a table below the
 <a href="#parameters">search parameters</a> in the <b>Blast Protein</b> window.
+The <b>Blast Protein</b> tool including search results 
+(but not window size or location) is saved in
+<a href="../commands/save.html#session">ChimeraX sessions</a>.
 </p><p>
 A text-search box allows finding hits that contain terms of interest.
 Pull-down menus to the right of the search box allow adjusting the number 
-of hits shown at a time and which columns of information are included
+of hits shown at a time and which columns of information are shown
 in the table. Clicking a column header sorts by the values in that column.
 </p><p>
 Some columns are available for NR sequences
 regardless of whether they are in the PDB subset:
 </p>
 <ul>
+<li>checkboxes for designating one or more hit sequences to show
+in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a> 
+as a <a href="#notes">multiple alignment</a> with the query 
+when <b>Show in sequence viewer</b> is clicked
+<li><b>ID</b> &ndash; an index number, simply N for the Nth hit listed
 <li><b>Name</b> 
   <ul>
   <li>for PDB sequences, the corresponding PDB identifier, including the chain;
 clicking it <a href="../commands/open.html#fetch">fetches</a> the 
-structure and superimposes the hit chain onto the query chain
+structure, and if a structure chain was used as the query,
+automatically superimposes the hit chain onto the query chain
 using <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
   <li>otherwise, sequence GI number; clicking it opens the web page for
 that sequence in the <a href="https://www.ncbi.nlm.nih.gov/protein"
@@ -157,11 +166,6 @@ target="_blank"><b>SMILES</b></a> strings of ligand chemical components
 <li><b>Ligand weights</b> 
 &ndash; molecular weights of ligand chemical components
 </ul>
-<p>
-The <b>Blast Protein</b> tool, including search results 
-(but not window size or location) is saved in
-<a href="../commands/save.html#session">ChimeraX sessions</a>.
-</p>
 
 <a name="notes"></a>
 <p class="nav">
@@ -169,6 +173,13 @@ The <b>Blast Protein</b> tool, including search results
 </p>
 <h3>Notes</h3>
 <p>
+<b>Pseudo-multiple alignment</b>.
+The pseudo-multiple alignment from BLAST is not a true multiple alignment,
+but a consolidation of the pairwise alignments of individual hits to the query.
+This output corresponds to the BLAST formatting option
+(<a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=BlastHelp#alignment_view" target="_blank">alignment view</a>)
+&ldquo;flat query-anchored with letters for identities.&rdquo;
+</p><p>
 <b>Basic Local Alignment Search Tool (BLAST)</b>.
 The <a href="http://blast.ncbi.nlm.nih.gov/" target="_blank">BLAST</a>
 software is provided by the 
@@ -186,26 +197,8 @@ Basic local alignment search tool.</a>
 Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
 <i>J Mol Biol.</i> 1990 Oct 5;215(3):403-10.
 </blockquote>
-<!--
-<p>
-<b>Pseudo-multiple alignment</b>.
-The pseudo-multiple alignment from BLAST is not a true multiple alignment,
-but a consolidation of the pairwise alignments of individual hits to the
-query.  This output corresponds to the BLAST formatting option
-(<a href="http://www.ncbi.nlm.nih.gov/BLAST/blastcgihelp.shtml#alignment_view"
-target="_blank">alignment view</a>)
---- 
-better descriptions 
-<a href="http://www.ebi.ac.uk/Tools/sss/ncbiblast/help/index-vectors.html#align"
-target="_blank">here</a>
----
-"flat query-anchored without identities,"
-in which identities and conservative changes relative to the query
-are shown in upper case, nonconservative changes in lower case.
-</p>
--->
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+December 2019</address>
 </body></html>

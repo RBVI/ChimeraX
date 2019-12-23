@@ -16,14 +16,16 @@
 #ifndef templates_Bond
 #define    templates_Bond
 
+#include <pyinstance/PythonInstance.declare.h>
 #include "../imex.h"
+#include "../Real.h"
 
 namespace tmpl {
 
 class Atom;
 class Molecule;
 
-class ATOMSTRUCT_IMEX Bond {
+class ATOMSTRUCT_IMEX Bond: public pyinstance::PythonInstance<Bond> {
     friend class Atom;
     friend class Molecule;
     void    operator=(const Bond &);    // disable
@@ -34,12 +36,24 @@ public:
 private:
     Atoms    _atoms;
 public:
-    const Atoms    &atoms() const { return _atoms; }
-    Atom        *other_atom(const Atom *a) const;
+    const Atoms&  atoms() const { return _atoms; }
+    atomstruct::Real  length() const;
+    Atom*  other_atom(const Atom *a) const;
 private:
     Bond(Molecule *, Atom *a0, Atom *a1);
 };
 
 }  // namespace tmpl
+
+#include "Atom.h"
+
+namespace tmpl {
+    
+inline atomstruct::Real
+Bond::length() const {
+    return _atoms[0]->coord().distance(_atoms[1]->coord());
+}
+
+}
 
 #endif  // templates_Bond

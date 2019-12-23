@@ -42,6 +42,8 @@ class FileHistory:
 
     def remember_file(self, path, format, models, database = None, file_saved = False,
                       open_options = {}):
+        if not _supported_option_value_types(open_options):
+            return
         f = self._files
         from os.path import abspath
         apath = abspath(path) if database is None else path
@@ -103,7 +105,16 @@ class FileHistory:
             self.save_history()
 
     def load_history(self):
-        fc = self._file_cache.load()
+        try:
+            fc = self._file_cache.load()
+        except Exception as e:
+            backup_path = self._file_cache.backup()
+            msg = ('The history of data files opened in ChimeraX was unreadable.\n'
+                   'The unreadable file has been copied to %s.\n' % backup_path +
+                   'Please report this as a bug using menu Help / Report a Bug.\n\n' +
+                   'The error was "%s".' % str(e))
+            self.session.logger.bug(msg)
+            fc = None
         fmap = {}
         if fc is not None:
             for f in fc['files']:
@@ -119,6 +130,14 @@ class FileHistory:
         self._file_cache.save(data)
         self._save_files = False
 
+_savable_option_value_types = (bool, int, float, str)
+def _supported_option_value_types(open_options):
+    for k,v in open_options.items():
+        if not isinstance(v, _savable_option_value_types):
+            return False
+    return True
+        
+
 class FileSpec:
     def __init__(self, path, format, database = None, open_options = {}):
         self.path = path
@@ -132,7 +151,7 @@ class FileSpec:
 
     def set_open_options(self, open_options):
         opt = {k:str(v) for k,v in open_options.items()
-               if isinstance(v, (bool, int, float, str))}
+               if isinstance(v, _savable_option_value_types)}
         change = (opt != self.open_options)
         self.open_options = opt
         return change
@@ -152,10 +171,8 @@ class FileSpec:
         self.image = models_image(session, models, size)
 
     def open_command(self):
-        p = self.path
-        if ' ' in p:
-            p = '"%s"' % p 	# Quote path
-        cmd = 'open %s' % p
+        from chimerax.core.commands import quote_path_if_necessary
+        cmd = 'open %s' % quote_path_if_necessary(self.path)
         f = self.format
         if f:
             if ' ' in f:

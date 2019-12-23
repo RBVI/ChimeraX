@@ -41,9 +41,9 @@ def measure_buriedarea(session, atoms1, with_atoms2 = None, probe_radius = 1.4,
     atoms2 = with_atoms2
     ni = len(atoms1.intersect(atoms2))
     if ni > 0:
-        from chimerax.core.commands import AnnotationError
-        raise AnnotationError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
-                              % (ni, atoms1.spec, atoms2.spec))
+        from chimerax.core.errors import UserError
+        raise UserError('Two sets of atoms must be disjoint, got %d atoms in %s and %s'
+                        % (ni, atoms1.spec, atoms2.spec))
 
     from chimerax.atomic import buried_area
     ba, a1a, a2a, a12a = buried_area(atoms1, atoms2, probe_radius)

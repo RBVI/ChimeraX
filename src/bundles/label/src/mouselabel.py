@@ -13,7 +13,7 @@ class LabelMouseMode(MouseMode):
         self._label_pick(pick)
 
     def _label_pick(self, pick, color = None, background = None,
-                    size = None, height = None, orient = None):
+                    size = None, height = None):
         if pick is None:
             from .label3d import label_delete
             label_delete(self.session, object_type = 'residues')
@@ -40,28 +40,25 @@ class LabelMouseMode(MouseMode):
         ses = self.session
         from .label3d import label, label_delete
         if label_delete(ses, objects, object_type) == 0:
-            label(ses, objects, object_type, color=color, background=background,
-                  size=size, height=height, orient=orient)
+            label(ses, objects, object_type, color=color, bg_color=background,
+                  size=size, height=height)
             from chimerax.core.commands import log_equivalent_command, residues_specifier, options_text
             rspec = residues_specifier(objects)
-            opts = options_text((('color',color), ('background',background), 
-                                 ('size',size), ('height',height), ('orient',orient)))
+            opts = options_text((('color',color), ('bg_color',background), 
+                                 ('size',size), ('height',height)))
             log_equivalent_command(ses, 'label %s %s' % (rspec, opts))
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         from chimerax.core.colors import BuiltinColors
         self._label_pick(pick,
                          color = BuiltinColors['yellow'],
                          background = BuiltinColors['dimgray'],
                          size = 64,		# pixels
-                         height = 0.7,	# Angstroms
-                         orient = 45)	# degrees
+                         height = 0.7)	# Angstroms
         # Use opaque background to speed up rendering and improve appearance in VR.
         # Use fixed height in scene units since that is more natural in VR.
-        # Reorient only on 45 degree view changes, less distracting in VR.
           
 def register_mousemode(session):
     mm = session.ui.mouse_modes

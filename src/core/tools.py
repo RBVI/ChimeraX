@@ -294,16 +294,8 @@ class Tools(StateManager):
             Data saved by state manager during `take_snapshot`.
 
         """
-        t = session.tools
-        # Session save can put a None tool instance into file if tool instance
-        # has no take_snapshot method and has SESSION_SAVE true.
-        # Filter these None tool instances out.
-        tools = {id: ti for id, ti in data['tools'].items()
-                 if ti is not None and not ti.SESSION_ENDURING}
-        t._tool_instances.update(tools)
-        import itertools
-        t._id_counter = itertools.count(data['next id'])
-        return t
+        # Tools already add themselves to Tools in ToolInstance.__init__()
+        return session.tools
 
     def reset_state(self, session):
         """Reset state manager to default state.
@@ -393,6 +385,18 @@ class Tools(StateManager):
         """
         return [ti for ti in self._tool_instances.values() if isinstance(ti, cls)]
 
+    def __getitem__(self, i):
+        '''index into tools using square brackets (e.g. session.tools[i])'''
+        return list(self._tool_instances.values())[i]
+
+    def __iter__(self):
+        '''iterator over tools'''
+        return iter(self._tool_instances.values())
+
+    def __len__(self):
+        '''number of tools'''
+        return len(self._tool_instances)
+
     def autostart(self):
         """Start tools that should start when applications starts up."""
         from .core_settings import settings
@@ -423,7 +427,4 @@ class Tools(StateManager):
             # except ToolshedError as e:
             except Exception as e:
                 msg = "Tool \"%s\" failed to start" % tool_name
-                # session.logger.info(msg)
-                import traceback, sys
-                traceback.print_exc(file=sys.stdout)
-                print(msg, flush=True)
+                session.logger.report_exception(preface=msg)

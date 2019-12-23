@@ -7,8 +7,7 @@ include Makefile.pip
 # Force LANG to UTF-8 so that grako will install successfully
 LANG	= en_US.UTF-8
 
-#PATCHES = pillow_ome_tiff.patch pillow_i16s_tiff.patch
-PATCHES = pillow_ome_tiff.patch pillow_tiff_seek.patch openvr_mac.patch
+#PATCHES = pillow_ome_tiff.patch pillow_i16s_tiff.patch pillow_ome_tiff.patch
 
 all:
 
@@ -56,12 +55,18 @@ clean:
 
 outdated:
 	$(PIP) list --outdated --format=columns
+	@echo ""
+	@echo "Known issues:"
+	@echo "  grako (3.16.5 is the last version that works)"
+	@echo "  jedi (pulled in by line-profiler)"
+	@echo "  MarkupSafe (pulled in by Jinja2)"
+	@echo "  parso (pulled in by line-profiler via jedi)"
+	@echo "  pyzmq (pulled in by ipykernel via jupyter-client)"
+	@echo "  snowballstemmer (pulled in by Sphinx)"
+	@echo "  tornado (pulled in by ipykernel)"
 
 app-outdated:
 	$(APP_PIP) list --outdated --format=columns
-	@echo "Known issues:"
-	@echo "  grako (3.16.5 is the last version that works)"
-	@echo "  Cython (0.29.2 generates uncompilable code on Windows)"
 
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src

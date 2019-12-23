@@ -47,9 +47,9 @@ def mask(session, volumes, surfaces, axis = None, full_map = False,
 
 # -----------------------------------------------------------------------------
 #
-def ones_mask(session, surfaces, spacing = None, border = 0, axis = None,
+def ones_mask(session, surfaces, on_grid = None, spacing = None, border = 0, axis = None,
               extend = 0, pad = 0, slab = None, sandwich = True, invert_mask = False,
-              fill_overlap = False, model_id = None):
+              fill_overlap = False, value_type = None, model_id = None):
 
     if len(surfaces) == 0:
         from chimerax.core.errors import UserError
@@ -62,7 +62,16 @@ def ones_mask(session, surfaces, spacing = None, border = 0, axis = None,
     else:
         vpad = pad
 
-    volumes = [ones_volume(surfaces, vpad, spacing, border)]
+    from numpy import int8
+    vtype = int8 if value_type is None else value_type
+    
+    if on_grid is None:
+        v = ones_volume(surfaces, vpad, spacing, border, value_type = vtype)
+    else:
+        v = on_grid.writable_copy(require_copy = True, open_model = False, value_type = vtype)
+        v.name = on_grid.name
+        v.full_matrix()[:] = 1
+    volumes = [v]
 
     full_map = False if border == 0 else True
 
@@ -70,11 +79,15 @@ def ones_mask(session, surfaces, spacing = None, border = 0, axis = None,
                   extend = extend, pad = pad, slab = slab, sandwich = sandwich,
                   invert_mask = invert_mask, fill_overlap = fill_overlap,
                   model_id = model_id)
+    mv = mvlist[0]
+    mv.set_parameters(surface_levels = [0.5])
+    
     return mvlist
 
 # -----------------------------------------------------------------------------
 #
-def ones_volume(surfaces, pad, spacing, border, default_size = 100):
+def ones_volume(surfaces, pad, spacing, border, default_size = 100,
+                value_type = None):
 
     # Figure out array size
     bounds = scene_bounds(surfaces)
@@ -87,8 +100,9 @@ def ones_volume(surfaces, pad, spacing, border, default_size = 100):
     origin = [x - (pad+border) for x in bounds.xyz_min]
 
     # Create ones array
-    from numpy import ones, float32
-    varray = ones(size[::-1], float32)
+    from numpy import ones, int8
+    vtype = int8 if value_type is None else value_type
+    varray = ones(size[::-1], vtype)
     from chimerax.map.data import ArrayGridData
     g = ArrayGridData(varray, origin, spacing, name = 'mask')
 
@@ -111,7 +125,7 @@ def scene_bounds(models, displayed_only = True):
 def register_mask_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg
     from chimerax.core.commands import AxisArg, Float2Arg, Or, ModelIdArg, SurfacesArg
-    from chimerax.map import MapsArg, Float1or3Arg
+    from chimerax.map import MapsArg, Float1or3Arg, MapArg, ValueTypeArg
     mask_kw = [('pad', FloatArg),
                ('extend', IntArg),
                ('slab', Or(FloatArg, Float2Arg)),
@@ -130,8 +144,10 @@ def register_mask_command(logger):
 
     desc = CmdDesc(
         required = [('surfaces', SurfacesArg)],
-        keyword = [('spacing', Float1or3Arg),
-                   ('border', FloatArg)] + mask_kw,
+        keyword = [('on_grid', MapArg),
+                   ('spacing', Float1or3Arg),
+                   ('border', FloatArg),
+                   ('value_type', ValueTypeArg)] + mask_kw,
         synopsis = 'Make a mask of 1 values for a surface'
     )
     register('volume onesmask', desc, ones_mask, logger=logger)

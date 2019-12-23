@@ -17,10 +17,12 @@
 #define atomstruct_structureseq
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "imex.h"
+#include "destruct.h"
 #include "polymer.h"
 #include "Sequence.h"
 #include "session.h"
@@ -31,7 +33,7 @@ namespace atomstruct {
 class Structure;
 class Residue;
 
-class ATOMSTRUCT_IMEX StructureSeq: private Sequence {
+class ATOMSTRUCT_IMEX StructureSeq: private Sequence, public DestructionObserver {
 public:
     typedef std::vector<unsigned char>::size_type  SeqPos;
     typedef std::vector<Residue *>  Residues;
@@ -39,7 +41,8 @@ public:
 
 protected:
     friend class Residue;
-    void  remove_residue(Residue* r);
+    void  remove_residues(std::set<Residue*>& residues);
+    void  remove_residue(Residue* residue);
 
     friend class Structure;
     void  clear_residues();
@@ -76,10 +79,12 @@ public:
     StructureSeq*  copy() const;
     const ChainID&  chain_id() const { return _chain_id; }
     Contents::const_iterator  end() const { return Sequence::end(); }
+    virtual void  destructors_done(const std::set<void*>& destroyed);
     // is character sequence derived from SEQRES records (or equivalent)?
     bool  from_seqres() const { return _from_seqres; }
     Contents::const_reference  front() const { return Sequence::front(); }
     Residue*  get(unsigned i) const { return _residues[i]; }
+    void  insert(Residue* follower, Residue* insertion);
     virtual bool  is_chain() const { return false; }
     bool  is_sequence() const { return _structure == nullptr; }
     const std::string&  name() const { return Sequence::name(); }
@@ -103,6 +108,7 @@ public:
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
     void  set(unsigned i, Residue* r, char character = -1);
+    void  set_chain_id(ChainID chain_id);
     void  set_from_seqres(bool fs);
     Contents::size_type  size() const { return Sequence::size(); }
     Structure*  structure() const { return _structure; }

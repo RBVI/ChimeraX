@@ -209,9 +209,41 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     v.update_lighting = True
     v.redraw_needed = True
 
+def lighting_model(session, models, depth_cue = None, shadows = None, multi_shadow = None):
+    '''
+    Allow disabling depth cue or shadows for specific models even when global depth cue
+    or shadows are enabled.
+
+    Parameters
+    ----------
+    models : list of Models
+    depth_cue : bool
+      Whether models will show depth cue when global depth cue enabled.
+    shadows : bool
+      Whether models will show shadows when global shadows is enabled.
+    multi_shadow : bool
+      Whether models will show multishadows when global multishadows is enabled.
+    '''
+    if depth_cue is None and shadows is None and multi_shadow is None:
+        lines = ['Model #%s: depth_cue: %s, shadows: %s, multi_shadow: %s'
+                 % (m.id_string, m.allow_depth_cue, m.accept_shadow, m.accept_multishadow)
+                 for m in models]
+        session.logger.info('\n'.join(lines))
+    else:
+        drawings = set()
+        for m in models:
+            drawings.update(m.all_drawings())
+        for d in drawings:
+            if depth_cue is not None:
+                d.allow_depth_cue = depth_cue
+            if shadows is not None:
+                d.accept_shadow = shadows
+            if multi_shadow is not None:
+                d.accept_multishadow = multi_shadow
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, IntArg, FloatArg, Float3Arg, \
-        StringArg, EnumOf, ColorArg
+        StringArg, EnumOf, ColorArg, ModelsArg
     _lighting_desc = CmdDesc(
         optional = [('preset', EnumOf(('default', 'full', 'soft', 'gentle', 'simple', 'flat')))],
         keyword = [
@@ -238,3 +270,14 @@ def register_command(logger):
         synopsis="report or alter lighting parameters")
 
     register('lighting', _lighting_desc, lighting, logger=logger)
+
+    _lighting_model_desc = CmdDesc(
+        required = [('models', ModelsArg)],
+        keyword = [
+            ('depth_cue', BoolArg),
+            ('shadows', BoolArg),
+            ('multi_shadow', BoolArg),
+        ],
+        synopsis="Turn off depth cue or shadows for individual models even when globally they are enabled.")
+
+    register('lighting model', _lighting_model_desc, lighting_model, logger=logger)
