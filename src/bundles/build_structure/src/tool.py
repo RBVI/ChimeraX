@@ -178,6 +178,19 @@ class BuildStructureTool(ToolInstance):
         self.handlers.append(self.session.triggers.add_handler(SELECTION_CHANGED, self._ms_sel_changed))
         self._ms_sel_changed()
 
+        sep = QFrame()
+        sep.setFrameStyle(QFrame.HLine)
+        layout.addWidget(sep, stretch=1)
+
+        delete_area = QWidget()
+        layout.addWidget(delete_area, alignment=Qt.AlignCenter)
+        delete_layout = QHBoxLayout()
+        delete_area.setLayout(delete_layout)
+        del_but = QPushButton("Delete")
+        del_but.clicked.connect(self._ms_del_cb)
+        delete_layout.addWidget(del_but, alignment=Qt.AlignRight)
+        delete_layout.addWidget(QLabel("selected atoms/bonds"), alignment=Qt.AlignLeft)
+
     def _ms_apply_cb(self):
         from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
@@ -224,6 +237,12 @@ class BuildStructureTool(ToolInstance):
 
         if self.ms_focus.isChecked():
             run(self.session, "view " + a.residue.atomspec)
+
+    def _ms_del_cb(self, *args):
+        from chimerax.atomic import selected_atoms, selected_bonds
+        if not selected_atoms(self.session) and not selected_bonds(self.session):
+            raise UserError("No atoms or bonds selected")
+        run(self.session, "del atoms sel; del bonds sel")
 
     def _ms_geom_menu_update(self):
         num_bonds = int(self.ms_bonds_button.text())
