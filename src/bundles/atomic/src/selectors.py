@@ -340,7 +340,7 @@ def _update_select_residues_menu(session):
         res_names = list(members)
         res_names.sort()
         for rn in res_names:
-            spec = ':' + rn
+            spec = '::name="%s"' % rn
             collective_spec += spec
             action = mw.add_menu_selector(select_residues_menu, rn, spec)
             if first_entry is None:
