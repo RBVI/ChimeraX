@@ -408,15 +408,22 @@ class ChimeraXHtmlView(HtmlView):
             else:
                 finished.append(item)
         self._pending_downloads = pending
+        import pkginfo
+        from chimerax.ui.ask import ask
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
-            if not _installable(filename, self.session.logger):
+            try:
+                w = pkginfo.Wheel(filename)
+            except Exception as e:
+                logger.info("Error parsing %s: %s" % (filename, str(e)))
+                self.session.logger.info("File saved as %s" % filename)
+                continue
+            if not _installable(w, self.session.logger):
                 self.session.logger.info("Bundle saved as %s" % filename)
                 continue
-            from chimerax.ui.ask import ask
             how = ask(self.session,
-                      "Install %s for:" % filename,
+                      "Install %s %s (file %s)?" % (w.name, w.version, filename),
                       ["install", "cancel"],
                       title="Toolshed")
             if how == "cancel":
@@ -428,15 +435,10 @@ class ChimeraXHtmlView(HtmlView):
                                                  session=self.session)
 
 
-def _installable(filename, logger):
-    import pkginfo, re
+def _installable(w, logger):
+    import re
     from distutils.version import LooseVersion as Version
     import chimerax.core
-    try:
-        w = pkginfo.Wheel(filename)
-    except Exception as e:
-        logger.info("Error parsing %s: %s" % (filename, str(e)))
-        return False
     pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
     for req in w.requires_dist:
         m = pat.match(req)

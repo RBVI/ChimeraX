@@ -11,15 +11,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .util import complete_terminal_carboxylate, determine_termini, bond_with_H_length
-
 from chimerax.core.toolshed import BundleAPI
 
-class AddH_API(BundleAPI):
+class BuildStructureAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
 
-bundle_api = AddH_API()
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import BuildStructureTool
+        return BuildStructureTool(session, tool_name)
+
+bundle_api = BuildStructureAPI()
