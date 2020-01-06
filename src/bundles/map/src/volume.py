@@ -3522,7 +3522,8 @@ class MultiChannelSeries(Model):
 # -----------------------------------------------------------------------------
 #
 def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),
-             mask_zone = True, chunk_shapes = None, append = None, compress = None,
+             mask_zone = True, subsamples = None, chunk_shapes = None, append = None,
+             compress = None, compress_method = None, compress_level = None, compress_shuffle = None,
              base_index = 1, **kw):
     '''
     Save a density map file having any of the known density map formats.
@@ -3557,11 +3558,22 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         raise UserError(msg)
         
     options = {}
+    if subsamples is not None:
+        options['subsamples'] = subsamples
     if chunk_shapes is not None:
         options['chunk_shapes'] = chunk_shapes
     if append:
         options['append'] = True
     if compress:
+        options['compress'] = True
+    if compress_method:
+        options['compress_method'] = compress_method
+        options['compress'] = True
+    if compress_level:
+        options['compress_level'] = compress_level
+        options['compress'] = True
+    if compress_shuffle is not None:
+        options['compress_shuffle'] = compress_shuffle
         options['compress'] = True
     if path in ('browse', 'browser'):
         from .data import select_save_path
@@ -3661,7 +3673,7 @@ def register_map_file_formats(session):
         register_map_format(session, ff)
 
     # Add keywords to open command for maps
-    from chimerax.core.commands import BoolArg, IntArg
+    from chimerax.core.commands import BoolArg, IntArg, RepeatOf
     from chimerax.core.commands.cli import add_keyword_arguments
     add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg, 'verbose':BoolArg})
 
@@ -3672,9 +3684,12 @@ def register_map_file_formats(session):
       ('region', MapRegionArg),
       ('step', Int1or3Arg),
       ('mask_zone', BoolArg),
+      ('subsamples', RepeatOf(Int1or3Arg)),
       ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
       ('append', BoolArg),
       ('compress', BoolArg),
+      ('compress_method', EnumOf(('zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'))),
+      ('compress_shuffle', BoolArg),
       ('base_index', IntArg),
     ]
     add_keyword_arguments('save', dict(save_map_args))
