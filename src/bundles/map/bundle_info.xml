@@ -40,6 +40,7 @@
     <SourceFile>_map/fitting.cpp</SourceFile>
     <SourceFile>_map/interpolate.cpp</SourceFile>
     <SourceFile>_map/moments.cpp</SourceFile>
+    <SourceFile>_map/segsurf.cpp</SourceFile>
     <Library>arrays</Library>
   </CModule>
 
