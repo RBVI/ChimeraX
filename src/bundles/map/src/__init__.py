@@ -58,6 +58,7 @@ from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
 from .molmap import register_molmap_command
+from .segment import register_segmentation_command
 from .mapargs import MapArg, MapsArg, Float1or3Arg, ValueTypeArg
 
 # -----------------------------------------------------------------------------
@@ -87,6 +88,8 @@ class _MapBundle(BundleAPI):
         elif command_name == 'measure mapstats':
             from . import measure
             measure.register_measure_mapstats_command(logger)
+        elif command_name == 'segmentation':
+            map.register_segmentation_command(logger)
 
     @staticmethod
     def initialize(session, bundle_info):
