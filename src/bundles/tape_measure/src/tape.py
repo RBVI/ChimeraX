@@ -181,7 +181,7 @@ class TapeMeasureMouseMode(MouseMode):
     def _volume_plane_point(self, xyz1, xyz2):
         from chimerax.map import Volume
         vlist = [v for v in self.session.models.list(type = Volume)
-                 if v.showing_one_plane or v.showing_orthoplanes() or v.showing_box_faces()]
+                 if v.showing_one_plane or v.showing_image('orthoplanes') or v.showing_image('box faces')]
         from chimerax.markers.mouse import volume_plane_intercept
         sxyz, v = volume_plane_intercept(xyz1, xyz2, vlist)
         return sxyz, v

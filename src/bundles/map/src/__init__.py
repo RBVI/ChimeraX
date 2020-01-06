@@ -96,10 +96,11 @@ class _MapBundle(BundleAPI):
         map.register_eds_fetch()
         map.register_emdb_fetch()
         if session.ui.is_gui:
-            from . import mouselevel, moveplanes, windowing
+            from . import mouselevel, moveplanes, windowing, tiltedslab
             mouselevel.register_mousemode(session)
             moveplanes.register_mousemode(session)
             windowing.register_mousemode(session)
+            tiltedslab.register_mousemode(session)
 
 
     @staticmethod

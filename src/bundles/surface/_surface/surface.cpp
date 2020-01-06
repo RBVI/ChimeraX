@@ -127,6 +127,13 @@ static struct PyMethodDef surface_cpp_methods[] =
    "Returns tuple of arrays of vertex indices, one array for each loop.\n"
    "Implemented in C++.\n"
   },
+  {const_cast<char*>("boundary_edge_mask"), (PyCFunction)boundary_edge_mask,
+   METH_VARARGS|METH_KEYWORDS,
+   "boundary_edge_mask(triangles) -> unsigned char array of same length as triangle array\n"
+   "\n"
+   "Returns mask values bits 0,1,2 are set if triangle edges 01, 12, 20 are on boundary.\n"
+   "Implemented in C++.\n"
+  },
 
   /* normals.h */
   {const_cast<char*>("calculate_vertex_normals"), (PyCFunction)calculate_vertex_normals,
