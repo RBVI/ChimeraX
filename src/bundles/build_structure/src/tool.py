@@ -58,7 +58,7 @@ class BuildStructureTool(ToolInstance):
         tw.manage(placement="side")
 
     def delete(self):
-        for handler in handlers:
+        for handler in self.handlers:
             handler.remove()
         super().delete()
 
