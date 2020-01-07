@@ -58,8 +58,7 @@ from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
 from .molmap import register_molmap_command
-from .segment import register_segmentation_command
-from .mapargs import MapArg, MapsArg, Float1or3Arg, ValueTypeArg
+from .mapargs import MapArg, MapsArg, Float1or3Arg, ValueTypeArg, MapRegionArg, MapStepArg
 
 # -----------------------------------------------------------------------------
 #

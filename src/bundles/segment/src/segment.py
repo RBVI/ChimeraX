@@ -24,7 +24,7 @@ def segmentation_colors(session, segmentations, map = None, group = None, max_se
         raise UserError('No segmentations specified')
 
     for seg in segmentations:
-        if hasattr(seg, 'segment_colors') and map is not None:
+        if hasattr(seg, 'segment_colors') and map is not None and group is None:
             continue
         
         if group is not None:
@@ -57,7 +57,7 @@ def segmentation_colors(session, segmentations, map = None, group = None, max_se
             indices = mask.reshape(color_plane.shape[:-1])	# Squeeze out single plane dimension
             nc = color_plane.shape[-1] # Number of color components, 4 for rgba, 3 for rgb
             seg_colors = seg.segment_rgb if nc == 3 else seg.segment_colors
-            from ._map import indices_to_colors
+            from ._segment import indices_to_colors
             indices_to_colors(indices, seg_colors, color_plane, modulate = True)
 
         map.mask_colors = seg_color
@@ -94,7 +94,7 @@ def segmentation_surfaces(session, segmentations, region = None, step = None,
 
     surfaces = []
     tcount = 0
-    from ._map import segment_surface, segment_surfaces, segment_group_surfaces
+    from ._segment import segment_surface, segment_surfaces, segment_group_surfaces
     from chimerax.core.colors import random_colors
     for seg in segmentations:
         matrix = seg.matrix(step = step, subregion = region)
@@ -168,8 +168,7 @@ def _group_attribute(seg, group):
 #
 def register_segmentation_command(logger):
     from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg, StringArg
-    from chimerax.map import MapsArg, MapArg
-    from .mapargs import MapRegionArg, MapStepArg
+    from chimerax.map import MapsArg, MapArg, MapRegionArg, MapStepArg
 
     desc = CmdDesc(
         required = [('segmentations', MapsArg)],

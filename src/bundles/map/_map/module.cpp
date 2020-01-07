@@ -29,7 +29,6 @@
 #include "localcorr.h"			// use local_correlation
 #include "moments.h"			// use moments_py, affine_scale_py
 #include "occupancy.h"			// use fill_occupancy_map
-#include "segsurf.h"			// use segment_surface
 #include "squaremesh.h"			// use principle_plane_edges
 #include "transfer.h"			// use data_to_rgba,...
 
@@ -118,14 +117,6 @@ static struct PyMethodDef map_cpp_methods[] =
 
   /* occupancy.h */
   {const_cast<char*>("fill_occupancy_map"), (PyCFunction)fill_occupancy_map,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-
-  /* segsurf.h */
-  {const_cast<char*>("segment_surface"), (PyCFunction)segment_surface,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("segment_surfaces"), (PyCFunction)segment_surfaces,
-   METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("segment_group_surfaces"), (PyCFunction)segment_group_surfaces,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* squaremesh.h */

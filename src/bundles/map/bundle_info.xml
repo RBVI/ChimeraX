@@ -40,7 +40,6 @@
     <SourceFile>_map/fitting.cpp</SourceFile>
     <SourceFile>_map/interpolate.cpp</SourceFile>
     <SourceFile>_map/moments.cpp</SourceFile>
-    <SourceFile>_map/segsurf.cpp</SourceFile>
     <Library>arrays</Library>
   </CModule>
 
@@ -59,7 +58,6 @@
     <ChimeraXClassifier>Command :: vop :: Volume data :: filter volume data</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: molmap :: Volume data :: create density map for molecule</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure mapstats :: Volume data :: report map statistics</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: segmentation :: Volume data :: color and surface segmentations</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Volume Viewer :: Volume Data :: Show density maps info</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Map Coordinates :: Volume Data :: Adjust density map coordinates</ChimeraXClassifier>
   </Classifiers>
