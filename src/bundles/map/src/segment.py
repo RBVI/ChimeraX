@@ -17,7 +17,7 @@
 
 # -----------------------------------------------------------------------------
 #
-def segmentation_colors(session, segmentations, max_index = None, map = None):
+def segmentation_colors(session, segmentations, map = None, group = None, max_segment_id = None):
 
     if len(segmentations) == 0:
         from chimerax.core.errors import UserError
@@ -26,8 +26,15 @@ def segmentation_colors(session, segmentations, max_index = None, map = None):
     for seg in segmentations:
         if hasattr(seg, 'segment_colors') and map is not None:
             continue
-        mi = seg.full_matrix().max() if max_index is None else max_index
-        seg.segment_colors = c = _random_colors(mi)
+        
+        if group is not None:
+            g = _group_attribute(seg, group)
+            mi = len(g)-1
+        else:
+            mi = seg.full_matrix().max() if max_segment_id is None else max_segment_id
+            g = None
+
+        seg.segment_colors = c = _random_colors(mi, group = g)
         seg.segment_rgb = c[:,:3].copy()	# RGB as contiguous array.
         i = seg._image 
         if i:
@@ -63,9 +70,15 @@ def segmentation_colors(session, segmentations, max_index = None, map = None):
 
 # -----------------------------------------------------------------------------
 #
-def _random_colors(count, opaque = True):
+def _random_colors(count, group = None, opaque = True):
     from numpy import random, uint8
-    c = random.randint(128, high = 255, size = (count, 4), dtype = uint8)
+    if group is None:
+        c = random.randint(128, high = 255, size = (count, 4), dtype = uint8)
+    else:
+        nc = group.max() + 1
+        gc = random.randint(128, high = 255, size = (nc, 4), dtype = uint8)
+        gc[0,:] = 0	# Group 0 is transparent black
+        c = gc[group].copy()
     if opaque:
         c[:,3] = 255
     return c
@@ -160,8 +173,9 @@ def register_segmentation_command(logger):
 
     desc = CmdDesc(
         required = [('segmentations', MapsArg)],
-        keyword = [('max_index', IntArg),
-                   ('map', MapArg)],
+        keyword = [('map', MapArg),
+                   ('group', StringArg),
+                   ('max_index', IntArg)],
         synopsis = 'Set segmentation to use random colors, or apply segmentation coloring to a volume'
     )
     register('segmentation colors', desc, segmentation_colors, logger=logger)
