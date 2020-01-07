@@ -40,7 +40,7 @@ void region_sizes(Index *mask, const int *mask_size, Index rmax, Index *rsize)
 void region_bounds(Index *mask, const int *mask_size, Index rmax, int *bounds)
 {
   int s0 = mask_size[0], s1 = mask_size[1], s2 = mask_size[2];
-  int st0 = s1*s2, st1 = s2;
+  long st0 = s1*s2, st1 = s2;
 
   int *b = bounds;
   for (Index r = 0 ; r <= rmax ; ++r, b += 7)
@@ -119,7 +119,7 @@ long region_points(Index *mask, const int *mask_size,
 void region_grid_indices(Index *mask, const int *mask_size, int **grid_points)
 {
   int s0 = mask_size[0], s1 = mask_size[1], s2 = mask_size[2];
-  int st0 = s1*s2, st1 = s2;
+  long st0 = s1*s2, st1 = s2;
   int **gp = grid_points;
 
   for (int i0 = 0 ; i0 < s0 ; ++i0)
@@ -237,7 +237,7 @@ void region_maxima(Index *mask, const int *mask_size, const T *data,
 		   Index nmax, int *max_points, float *max_values)
 {
   int s0 = mask_size[0], s1 = mask_size[1], s2 = mask_size[2];
-  int st0 = s1*s2, st1 = s2;
+  long st0 = s1*s2, st1 = s2;
 
   for (Index p = 0 ; p < nmax ; ++p)
     max_values[p] = -1e37;
@@ -254,7 +254,7 @@ void region_maxima(Index *mask, const int *mask_size, const T *data,
 	      if (d > max_values[r1-1])
 		{
 		  max_values[r1-1] = d;
-		  int *p = &max_points[3*(r1-1)];
+		  int *p = &max_points[3*(long)(r1-1)];
 		  p[0] = i2; p[1] = i1; p[2] = i0;
 		}
 	    }
