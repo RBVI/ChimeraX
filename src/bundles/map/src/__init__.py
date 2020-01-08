@@ -37,6 +37,7 @@ from ._map import linear_combination
 from ._map import covariance_sum
 from ._map import offset_range, box_cuts
 from ._map import high_indices
+from ._map import indices_to_colors
 
 # -----------------------------------------------------------------------------
 # Control whether maps are pickable with mouse.

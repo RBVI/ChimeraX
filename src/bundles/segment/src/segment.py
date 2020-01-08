@@ -23,23 +23,13 @@ def segmentation_colors(session, segmentations, map = None, group = None, max_se
         from chimerax.core.errors import UserError
         raise UserError('No segmentations specified')
 
-    for seg in segmentations:
-        if hasattr(seg, 'segment_colors') and map is not None and group is None:
-            continue
-        
-        if group is not None:
-            g = _group_attribute(seg, group)
-            mi = len(g)-1
-        else:
-            mi = seg.full_matrix().max() if max_segment_id is None else max_segment_id
-            g = None
-
-        seg.segment_colors = c = _random_colors(mi, group = g)
-        seg.segment_rgb = c[:,:3].copy()	# RGB as contiguous array.
-        i = seg._image 
-        if i:
-            i.segment_colors = c
-            i._need_color_update()
+    if max_segment_id is not None:
+        for seg in segmentations:
+            seg._max_segment_id = max_segment_id
+            
+    if map is None:
+        for seg in segmentations:
+            _color_segmentation(seg, group)
 
     if map is not None:
         if len(segmentations) != 1:
@@ -51,34 +41,84 @@ def segmentation_colors(session, segmentations, map = None, group = None, max_se
             from chimerax.core.errors import UserError
             raise UserError('segmentation colors: Volume size %s' % tuple(map.data.size) +
                             ' does not match segmentation size %s' % tuple(seg.data.size))
-            
-        def seg_color(color_plane, region, seg=seg):
-            mask = seg.region_matrix(region)
-            indices = mask.reshape(color_plane.shape[:-1])	# Squeeze out single plane dimension
-            nc = color_plane.shape[-1] # Number of color components, 4 for rgba, 3 for rgb
-            seg_colors = seg.segment_rgb if nc == 3 else seg.segment_colors
-            from ._segment import indices_to_colors
-            indices_to_colors(indices, seg_colors, color_plane, modulate = True)
 
-        map.mask_colors = seg_color
-
-        i = map._image 
-        if i:
-            i.mask_colors = map.mask_colors
-            i._need_color_update()
+        _color_map(map, seg, group)
         
+# -----------------------------------------------------------------------------
+#
+def _color_segmentation(segmentation, group):
+    seg = segmentation
+    c = _group_colors(seg, group)
+    seg.segment_colors = c.rgba
+    i = seg._image 
+    if i:
+        i.segment_colors = c.rgba
+        i._need_color_update()
+        
+# -----------------------------------------------------------------------------
+#
+def _color_map(map, segmentation, group):
+    def seg_color(color_plane, region, seg=segmentation, group=group):
+        mask = seg.region_matrix(region)
+        indices = mask.reshape(color_plane.shape[:-1])	# Squeeze out single plane dimension
+        nc = color_plane.shape[-1] # Number of color components, 4 for rgba, 3 for rgb
+        c = _group_colors(seg, group)
+        seg_colors = c.rgba if nc == 2 or nc == 4 else c.rgb
+        from chimerax.map import indices_to_colors
+        indices_to_colors(indices, seg_colors, color_plane, modulate = True)
+
+    map.mask_colors = seg_color
+
+    i = map._image 
+    if i:
+        i.mask_colors = map.mask_colors
+        i._need_color_update()
+        
+# -----------------------------------------------------------------------------
+#
+def _group_colors(seg, group):
+    if not hasattr(seg, '_segment_group_colors'):
+        seg._segment_group_colors = {}	# Map group name to SegmentationColors
+    if group in seg._segment_group_colors:
+        c = seg._segment_group_colors[group]
+    else:
+        c = SegmentationColors(seg, group)
+        seg._segment_group_colors[group] = c
+    return c
 
 # -----------------------------------------------------------------------------
 #
-def _random_colors(count, group = None, opaque = True):
+class SegmentationColors:
+    def __init__(self, segmentation, group = None):
+        self._group = group
+
+        seg = segmentation
+        if group is None:
+            mi = seg._max_segment_id if hasattr(seg, '_max_segment_id') else seg.full_matrix().max()
+            g = None
+        else:
+            g = _group_attribute(seg, group)
+            mi = len(g)-1
+        if not hasattr(seg, '_max_segment_id'):
+            seg._max_segment_id = mi
+
+        if g is not None:
+            nc = g.max() + 1
+            gc = _random_colors(nc)
+            gc[0,:] = 0	# Group 0 is transparent black
+            c = gc[g].copy()
+        else:
+            c = gc = _random_colors(mi)
+
+        self.rgba = c
+        self.rgb = c[:,:3].copy()
+        self.group_rgba = gc
+        
+# -----------------------------------------------------------------------------
+#
+def _random_colors(count, opaque = True):
     from numpy import random, uint8
-    if group is None:
-        c = random.randint(128, high = 255, size = (count, 4), dtype = uint8)
-    else:
-        nc = group.max() + 1
-        gc = random.randint(128, high = 255, size = (nc, 4), dtype = uint8)
-        gc[0,:] = 0	# Group 0 is transparent black
-        c = gc[group].copy()
+    c = random.randint(128, high = 255, size = (count, 4), dtype = uint8)
     if opaque:
         c[:,3] = 255
     return c
@@ -95,7 +135,6 @@ def segmentation_surfaces(session, segmentations, region = None, step = None,
     surfaces = []
     tcount = 0
     from ._segment import segment_surface, segment_surfaces, segment_group_surfaces
-    from chimerax.core.colors import random_colors
     for seg in segmentations:
         matrix = seg.matrix(step = step, subregion = region)
         if group is not None:
@@ -113,15 +152,16 @@ def segmentation_surfaces(session, segmentations, region = None, step = None,
         tcount += sum([len(ta) for value, va, ta in surfs])
         segsurfs = []
         tf = seg.matrix_indices_to_xyz_transform(step = step, subregion = region)
+        colors = _group_colors(seg, group).group_rgba
         for surf in surfs:
-            v, va, ta = surf
+            region_id, va, ta = surf
             tf.transform_points(va, in_place = True)
             from chimerax.surface import calculate_vertex_normals
             na = calculate_vertex_normals(va, ta)
             from chimerax.core.models import Surface
-            s = Surface('%s %d' % (seg.name, v), session)
+            s = Surface('%s %d' % (seg.name, region_id), session)
             s.clip_cap = True  # Cap surface when clipped
-            s.color = random_colors(1)[0]
+            s.color = colors[region_id]
             s.set_geometry(va, na, ta)
             segsurfs.append(s)
         surfaces.extend(segsurfs)
