@@ -181,10 +181,15 @@ def segmentation_surfaces(session, segmentations, region = None, step = None,
 #
 def _attribute_values(seg, attribute_name):
     from chimerax.core.errors import UserError
-    if not hasattr(seg, attribute_name):
-        raise UserError('Segmentation %s (#%s) has no attribute %s'
-                        % (seg.name, seg.id_string, attribute_name))
-    g = getattr(seg, attribute_name)
+    if hasattr(seg, attribute_name):
+        g = getattr(seg, attribute_name)
+    else:
+        try:
+            g = seg.data.find_attribute(attribute_name)
+        except:
+            raise UserError('Segmentation %s (#%s) has no attribute %s'
+                            % (seg.name, seg.id_string, attribute_name))
+
     if isinstance(g, (tuple, list)):
         for i,e in enumerate(g):
             if not isinstance(e, int):
@@ -199,9 +204,13 @@ def _attribute_values(seg, attribute_name):
                             % (seg.name, seg.id_string, attribute_name, type(g)))
             
         if g.dtype != int32:
-            raise UserError('Segmentation %s (#%s) attribute array %s'
-                            ' has type %s, require int32'
-                            % (seg.name, seg.id_string, attribute_name, g.dtype))
+            from numpy import uint8, int8, uint16, int16, uint32
+            if g.dtype in (uint8, int8, uint16, int16, uint32):
+                g = g.astype(int32)
+            else:
+                raise UserError('Segmentation %s (#%s) attribute array %s'
+                                ' has type %s, require int32'
+                                % (seg.name, seg.id_string, attribute_name, g.dtype))
             
         if len(g.shape) != 1:
             raise UserError('Segmentation %s (#%s) attribute array %s'
