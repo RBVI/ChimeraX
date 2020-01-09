@@ -19,6 +19,7 @@ from chimerax.core.tools import ToolInstance
 # ------------------------------------------------------------------------------
 #
 class CageBuilder(ToolInstance):
+    help = "help:user/tools/cagebuilder.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
