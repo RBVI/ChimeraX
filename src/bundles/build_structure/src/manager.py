@@ -27,6 +27,7 @@ class StartStructureManager(ProviderManager):
         self._new_providers.append(name)
 
     def apply(self, name, param_widget, structure):
+        # if 'structure' is a string, create a new AtomicStructure with that name
         self.providers[name].run_provider(self.session, name, self, widget=param_widget, structure=structure)
 
     def end_providers(self):

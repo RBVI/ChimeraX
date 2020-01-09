@@ -247,6 +247,11 @@ class BuildStructureTool(ToolInstance):
         self.ss_color_by_element = QCheckBox("Color new atoms by element")
         self.ss_color_by_element.setChecked(True)
         layout.addWidget(self.ss_color_by_element, alignment=Qt.AlignCenter)
+
+        apply_but = QPushButton("Apply")
+        apply_but.clicked.connect(lambda checked: self._ss_apply_cb())
+        layout.addWidget(apply_but, alignment=Qt.AlignCenter)
+
         layout.addStretch(1)
 
     def _ms_apply_cb(self):
@@ -349,6 +354,12 @@ class BuildStructureTool(ToolInstance):
 
     def _new_start_providers(self, new_providers):
         pass
+
+    def _ss_apply_cb(self):
+        ss_type = self.ss_button_group.checkedButton().text()
+
+        from .manager import manager
+        manager.apply(ss_type, self.ss_widgets[ss_type], structure)
 
     def _ss_struct_changed(self):
         show = self.ss_struct_menu.value == "new model"

@@ -34,9 +34,9 @@ class BuildStructureAPI(BundleAPI):
             from .providers import fill_widget
             fill_widget(name, widget)
         else:
-            # add atoms to structure (and return the added atoms)
+            # add atoms to structure (preferably by issuing a subcommand of "structure start")
             from .providers import process_widget
-            return process_widget(session, name, widget, structure)
+            process_widget(session, name, widget, structure)
 
     @staticmethod
     def start_tool(session, tool_name):
