@@ -181,6 +181,7 @@ def set_initial_tilted_slab(volume, matching_maps = []):
     plane_count = max(1, min(v.matrix_size()) // 5)
     for m in [v] + list(matching_maps):
         m.set_parameters(tilted_slab = True,
+                         tilted_slab_axis = axis,
                          tilted_slab_offset = offset,
                          tilted_slab_spacing = spacing,
                          tilted_slab_plane_count = plane_count)
