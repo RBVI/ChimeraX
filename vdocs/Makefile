@@ -16,3 +16,7 @@ clean:	check
 
 distclean:
 	$(PYTHON_EXE) $(SCRIPT) clean
+
+from-daily:
+	bin=$(shell dirname $$(readlink $$(which chimerax-daily))); \
+	$(MAKE) APP_EXE=chimerax-daily PYTHON_EXE="$$bin/python$(PYTHON_VERSION)" install
