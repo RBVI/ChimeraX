@@ -16,6 +16,7 @@ from chimerax.core.errors import UserError
 from chimerax.core.commands import run
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
 from PyQt5.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
+from PyQt5.QtWidgets import QButtonGroup, QAbstractButton
 from PyQt5.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
@@ -46,14 +47,16 @@ class BuildStructureTool(ToolInstance):
 
         self.handlers = []
         self.category_widgets = {}
-        for category in ["Modify Structure"]:
+        for category in ["Start Structure", "Modify Structure"]:
             self.category_widgets[category] = widget = QFrame()
             widget.setLineWidth(2)
             widget.setFrameStyle(QFrame.Panel | QFrame.Sunken)
             getattr(self, "_layout_" + category.lower().replace(' ', '_'))(widget)
             self.category_areas.addWidget(widget)
-        self.category_button.setText(category)
-        self.category_areas.setCurrentWidget(widget)
+            cat_menu.addAction(category)
+        initial_category = "Start Structure"
+        self.category_button.setText(initial_category)
+        self.category_areas.setCurrentWidget(self.category_widgets[initial_category])
 
         tw.manage(placement="side")
 
@@ -68,6 +71,7 @@ class BuildStructureTool(ToolInstance):
 
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
+        self.category_button.setText(action.text())
 
     def _layout_modify_structure(self, parent):
         layout = QVBoxLayout()
@@ -191,6 +195,60 @@ class BuildStructureTool(ToolInstance):
         delete_layout.addWidget(del_but, alignment=Qt.AlignRight)
         delete_layout.addWidget(QLabel("selected atoms/bonds"), alignment=Qt.AlignLeft)
 
+    def _layout_start_structure(self, parent):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        from .manager import manager
+        # until "lazy" managers are supported, 'manager' cannot be None at this point
+        provider_names = manager.provider_names
+        provider_names.sort(key=lambda x: x.lower())
+        provider_layout = QGridLayout()
+        layout.addLayout(provider_layout)
+        provider_layout.addWidget(QLabel("Add "), 0, 0, len(provider_names), 1)
+
+        self.parameter_widgets = QStackedWidget()
+        provider_layout.addWidget(self.parameter_widgets, 0, 2, len(provider_names), 1)
+        self.ss_widgets = {}
+        self.ss_button_group = QButtonGroup()
+        self.ss_button_group.buttonClicked[QAbstractButton].connect(
+            lambda but: self.parameter_widgets.setCurrentWidget(self.ss_widgets[but.text()]))
+        for row, name in enumerate(provider_names):
+            but = QRadioButton(name)
+            self.ss_button_group.addButton(but)
+            provider_layout.addWidget(but, row, 1, alignment=Qt.AlignLeft)
+            params_title = " ".join([x.capitalize()
+                if x.islower() else x for x in name.split()]) + " Parameters"
+            self.ss_widgets[name] = widget = QGroupBox(params_title)
+            manager.fill_parameters_widget(name, widget)
+            self.parameter_widgets.addWidget(widget)
+            if row == 0:
+                but.setChecked(True)
+                self.parameter_widgets.setCurrentWidget(widget)
+
+        model_area = QWidget()
+        layout.addWidget(model_area, alignment=Qt.AlignCenter)
+        model_layout = QHBoxLayout()
+        model_layout.setSpacing(2)
+        model_area.setLayout(model_layout)
+        model_layout.addWidget(QLabel("Put atoms in"))
+        from chimerax.atomic.widgets import StructureMenuButton
+        self.ss_struct_menu = StructureMenuButton(self.session, special_items=["new model"])
+        self.ss_struct_menu.value = "new model"
+        self.ss_struct_menu.value_changed.connect(self._ss_struct_changed)
+        model_layout.addWidget(self.ss_struct_menu)
+        self.ss_model_name_label = QLabel("named:")
+        model_layout.addWidget(self.ss_model_name_label)
+        self.ss_model_name_edit = edit = QLineEdit()
+        edit.setText("custom built")
+        model_layout.addWidget(edit)
+        self.ss_color_by_element = QCheckBox("Color new atoms by element")
+        self.ss_color_by_element.setChecked(True)
+        layout.addWidget(self.ss_color_by_element, alignment=Qt.AlignCenter)
+        layout.addStretch(1)
+
     def _ms_apply_cb(self):
         from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
@@ -288,3 +346,11 @@ class BuildStructureTool(ToolInstance):
         }[a.residue.polymer_type]
         self.ms_mod_edit.setText(res_name)
         self.ms_res_new_name.setText(res_name)
+
+    def _new_start_providers(self, new_providers):
+        pass
+
+    def _ss_struct_changed(self):
+        show = self.ss_struct_menu.value == "new model"
+        self.ss_model_name_label.setHidden(not show)
+        self.ss_model_name_edit.setHidden(not show)

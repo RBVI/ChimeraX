@@ -16,9 +16,27 @@ from chimerax.core.toolshed import BundleAPI
 class BuildStructureAPI(BundleAPI):
 
     @staticmethod
+    def init_manager(session, bundle_info, name, **kw):
+        from .import manager
+        if manager.manager is None:
+            manager.manager = manager.StartStructureManager(session)
+        return manager.manager
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(command_name, logger)
+
+    @staticmethod
+    def run_provider(session, name, mgr, *, widget=None, structure=None, **kw):
+        if structure is None:
+            # fill parameters widget
+            from .providers import fill_widget
+            fill_widget(name, widget)
+        else:
+            # add atoms to structure (and return the added atoms)
+            from .providers import process_widget
+            return process_widget(session, name, widget, structure)
 
     @staticmethod
     def start_tool(session, tool_name):
