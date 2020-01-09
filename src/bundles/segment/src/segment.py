@@ -35,8 +35,8 @@ def segmentation_colors(session, segmentations, map = None,
     if map is not None:
         if len(segmentations) != 1:
             from chimerax.core.errors import UserError
-            raise UserError('segmentation colors: Can only specify one segmentation when coloring a map, got %d'
-                            % len(segmentations))
+            raise UserError('segmentation colors: Can only specify one segmentation'
+                            ' when coloring a map, got %d' % len(segmentations))
         seg = segmentations[0]
         if tuple(map.data.size) != tuple(seg.data.size):
             from chimerax.core.errors import UserError
@@ -188,20 +188,24 @@ def _attribute_values(seg, attribute_name):
     if isinstance(g, (tuple, list)):
         for i,e in enumerate(g):
             if not isinstance(e, int):
-                raise UserError('Segmentation %s (#%s) attribute array %s has non-integer value %s at index %d'
+                raise UserError('Segmentation %s (#%s) attribute array %s'
+                                ' has non-integer value %s at index %d'
                                 % (seg.name, seg.id_string, attribute_name, type(g), i))
     else:
         from numpy import ndarray, int32
         if not isinstance(g, ndarray):
-            raise UserError('Segmentation %s (#%s) attribute array %s must be a 1-D array (numpy, tuple, or list), got %d'
+            raise UserError('Segmentation %s (#%s) attribute array %s'
+                            ' must be a 1-D array (numpy, tuple, or list), got %d'
                             % (seg.name, seg.id_string, attribute_name, type(g)))
             
         if g.dtype != int32:
-            raise UserError('Segmentation %s (#%s) attribute array %s has type %s, require int32'
+            raise UserError('Segmentation %s (#%s) attribute array %s'
+                            ' has type %s, require int32'
                             % (seg.name, seg.id_string, attribute_name, g.dtype))
             
         if len(g.shape) != 1:
-            raise UserError('Segmentation %s (#%s) attribute array %s is %d dimensional, require 1 dimensional'
+            raise UserError('Segmentation %s (#%s) attribute array %s'
+                            ' is %d dimensional, require 1 dimensional'
                             % (seg.name, seg.id_string, attribute_name, len(g.shape)))
     return g
 
