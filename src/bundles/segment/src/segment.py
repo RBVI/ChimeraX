@@ -19,7 +19,7 @@
 #
 def segmentation_colors(session, segmentations, color = None, map = None, surface = None,
                         by_attribute = None, outside_color = None,
-                        step = (1,1,1),  # Step is just used for surface coloring.
+                        step = None,  # Step is just used for surface coloring interpolation.
                         max_segment_id = None):
 
     if len(segmentations) == 0:
@@ -100,8 +100,9 @@ def _color_map(map, segmentation, attribute_name, color = None, outside_color = 
 # -----------------------------------------------------------------------------
 #
 def _color_surface(surface, segmentation, attribute_name,
-                   color = None, outside_color = None, step = (1,1,1)):
-    vs = _surface_vertex_segments(surface, segmentation, step=step)
+                   color = None, outside_color = None, step = None):
+    sstep = _voxel_limit_step(segmentation, subregion = 'all') if step is None else step
+    vs = _surface_vertex_segments(surface, segmentation, step=sstep)
     c = _attribute_colors(segmentation, attribute_name)
     if outside_color is None:
         # Preserve current vertex colors outside where attribute value is 0.
@@ -217,7 +218,8 @@ def segmentation_surfaces(session, segmentations, region = 'all', step = None,
     tcount = 0
     from ._segment import segment_surface, segment_surfaces, segment_group_surfaces
     for seg in segmentations:
-        matrix = seg.matrix(step = step, subregion = region)
+        sstep = _voxel_limit_step(seg, region) if step is None else step
+        matrix = seg.matrix(step = sstep, subregion = region)
         if by_attribute is not None:
             g = _attribute_values(seg, by_attribute)
             if value is not None:
@@ -232,7 +234,7 @@ def segmentation_surfaces(session, segmentations, region = 'all', step = None,
             models_name = ('%s %d surfaces' % (seg.name, len(surfs)))
         tcount += sum([len(ta) for value, va, ta in surfs])
         segsurfs = []
-        tf = seg.matrix_indices_to_xyz_transform(step = step, subregion = region)
+        tf = seg.matrix_indices_to_xyz_transform(step = sstep, subregion = region)
         if color is None:
             colors = _attribute_colors(seg, by_attribute).attribute_rgba
         for surf in surfs:
@@ -254,10 +256,28 @@ def segmentation_surfaces(session, segmentations, region = 'all', step = None,
         elif nsurf == 1:
             session.models.add(segsurfs)
 
-        session.logger.info('Created %d segmentation surfaces, %d triangles'
-                            % (nsurf, tcount))
+        session.logger.info('Created %d segmentation surfaces, %d triangles, subsampled %s'
+                            % (nsurf, tcount, _step_string(sstep)))
     return surfaces
 
+# -----------------------------------------------------------------------------
+#
+def _voxel_limit_step(seg, subregion, increase_limit = 10):
+    ijk_min, ijk_max = seg.subregion(subregion = subregion)[:2]
+    si,sj,sk = [(i1-i0+1) for i0,i1 in zip(ijk_min, ijk_max)]
+    vcount = si*sj*sk
+    vlimit = seg.rendering_options.voxel_limit * 2**20 * increase_limit
+    step = (1,1,1)
+    while vcount / (step[0] * step[1] * step[2]) > vlimit:
+        step = tuple(2*s for s in step)
+    return step
+
+# -----------------------------------------------------------------------------
+#
+def _step_string(step):
+    si,sj,sk = step
+    return '%d' % si if si == sj and si == sk else '%d,%d,%d' % (si,sj,sk)
+    
 # -----------------------------------------------------------------------------
 #
 def _attribute_values(seg, attribute_name):
