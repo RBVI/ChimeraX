@@ -162,7 +162,7 @@ class AttributeColors:
         self._max_segment_id = mi
         self._segment_attribute_values = av
         self._zero_color = zero_color
-        self.attribute_rgba = _random_colors(nc)
+        self.attribute_rgba = _random_colors(nc, seed = (attribute_name or 'all'))
 
     def segment_colors(self, color = None, outside_color = None):
         zc = self._zero_color if outside_color is None else outside_color
@@ -194,9 +194,11 @@ class AttributeColors:
         
 # -----------------------------------------------------------------------------
 #
-def _random_colors(count, opaque = True):
+def _random_colors(count, cmin=50, cmax=255, opaque = True, seed = None):
     from numpy import random, uint8
-    c = random.randint(128, high = 255, size = (count, 4), dtype = uint8)
+    if seed is not None:
+        random.seed(hash(seed)%2**32)
+    c = random.randint(cmin, high = cmax, size = (count, 4), dtype = uint8)
     if opaque:
         c[:,3] = 255
     return c
