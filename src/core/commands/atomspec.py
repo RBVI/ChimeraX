@@ -882,7 +882,12 @@ class _SelectorName:
             if isinstance(f, Objects):
                 results.combine(f)
             else:
-                f(session, models, results)
+                try:
+                    f(session, models, results)
+                except Exception:
+                    session.logger.report_exception(preface="Error executing selector '%s'" % self.name)
+                    from grako.exceptions import FailedSemantics
+                    raise FailedSemantics("error evaluating selector %s" % self.name)
 
 
 class _ZoneSelector:
