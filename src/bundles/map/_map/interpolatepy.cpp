@@ -32,18 +32,23 @@ static int parse_interpolation_method(PyObject *arg, void *m);
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args)
+extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args,
+					     PyObject *keywds)
 {
   FArray vertices, values;
   float vtransform[3][4];
   Numeric_Array data;
   Interpolate::Interpolation_Method method;
-  if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&O&O&|O&"),
-			parse_float_n3_array, &vertices,
-			parse_float_3x4_array, &(vtransform[0][0]),
-			parse_3d_array, &data,
-			parse_interpolation_method, &method,
-			parse_writable_float_n_array, &values) ||
+  const char *kwlist[] = {"points", "transform", "array",
+			  "method", "values", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds,
+				   const_cast<char *>("O&O&O&O&|O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &vertices,
+				   parse_float_3x4_array, &(vtransform[0][0]),
+				   parse_3d_array, &data,
+				   parse_interpolation_method, &method,
+				   parse_writable_float_n_array, &values) ||
       (values.dimension() == 1 && !check_array_size(values, vertices.size(0), true)))
     return NULL;
 
@@ -51,7 +56,9 @@ extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args)
   float (*varray)[3] = reinterpret_cast<float(*)[3]>(vcontig.values());
 
   int n = vertices.size(0);
-  if (values.dimension() == 0)
+
+  bool alloc_values = (values.dimension() == 0);
+  if (alloc_values)
     parse_writable_float_n_array(python_float_array(n), &values);
 
   std::vector<int> outside;
@@ -64,25 +71,30 @@ extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args)
   int *osp = (outside.size() == 0 ? NULL : &outside.front());
   PyObject *py_outside = c_array_to_python(osp, outside.size());
 
-  PyObject *py_values = array_python_source(values);
+  PyObject *py_values = array_python_source(values, !alloc_values);
   PyObject *result =  python_tuple(py_values, py_outside);
   return result;
 }
 
 // ----------------------------------------------------------------------------
 //
-extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args)
+extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args,
+						 PyObject *keywds)
 {
   FArray vertices, gradients;
   float vtransform[3][4];
   Numeric_Array data;
   Interpolate::Interpolation_Method method;
-  if (!PyArg_ParseTuple(args, const_cast<char *>("O&O&O&O&|O&"),
-			parse_float_n3_array, &vertices,
-			parse_float_3x4_array, &(vtransform[0][0]),
-			parse_3d_array, &data,
-			parse_interpolation_method, &method,
-			parse_writable_float_n3_array, &gradients) ||
+  const char *kwlist[] = {"points", "transform", "array",
+			  "method", "gradients", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds,
+				   const_cast<char *>("O&O&O&O&|O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &vertices,
+				   parse_float_3x4_array, &(vtransform[0][0]),
+				   parse_3d_array, &data,
+				   parse_interpolation_method, &method,
+				   parse_writable_float_n3_array, &gradients) ||
       (gradients.dimension() == 2 && !check_array_size(gradients, vertices.size(0), 3, true)))
     return NULL;
 
@@ -90,7 +102,9 @@ extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args)
   float (*varray)[3] = reinterpret_cast<float(*)[3]>(vcontig.values());
 
   int n = vertices.size(0);
-  if (gradients.dimension() == 0)
+  
+  bool alloc_gradients = (gradients.dimension() == 0);
+  if (alloc_gradients)
     parse_writable_float_n3_array(python_float_array(n,3), &gradients);
   float (*grad)[3] = reinterpret_cast<float (*)[3]>(gradients.values());
 
@@ -105,7 +119,7 @@ extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args)
   int *osp = (outside.size() == 0 ? NULL : &outside.front());
   PyObject *py_outside = c_array_to_python(osp, outside.size());
 
-  PyObject *py_gradients = array_python_source(gradients);
+  PyObject *py_gradients = array_python_source(gradients, !alloc_gradients);
   PyObject *result = python_tuple(py_gradients, py_outside);
   return result;
 }
@@ -155,7 +169,9 @@ extern "C" PyObject *interpolate_colormap(PyObject *, PyObject *args)
   float (*cva)[4] = reinterpret_cast<float(*)[4]>(cvcontig.values());
 
   int n = values.size();
-  if (rgba.dimension() == 0)
+
+  bool alloc_rgba = (rgba.dimension() == 0);
+  if (alloc_rgba)
     parse_writable_float_n4_array(python_float_array(n, 4), &rgba);
   float (*rgbav)[4] = reinterpret_cast<float(*)[4]>(rgba.values());
 
@@ -165,7 +181,7 @@ extern "C" PyObject *interpolate_colormap(PyObject *, PyObject *args)
 				      cva, rgba_above, rgba_below, rgbav);
   Py_END_ALLOW_THREADS
 
-  return array_python_source(rgba);
+  return array_python_source(rgba, !alloc_rgba);
 }
 
 // ----------------------------------------------------------------------------

@@ -120,9 +120,9 @@ class MapEraser(MouseMode):
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         c = self.settings.sphere_center
-        delta_xyz = move*c - c
+        delta_xyz = event.motion*c - c
         self.settings.move_sphere(delta_xyz)
 
 # -----------------------------------------------------------------------------
@@ -227,7 +227,9 @@ class MapEraserSettings(ToolInstance):
     def delete(self):
         ses = self.session
         ses.triggers.remove_handler(self._model_display_change_handler)
-        ses.models.close([self._sphere_model])
+        sm = self._sphere_model
+        if sm and not sm.deleted:
+            ses.models.close([sm])
         self._sphere_model = None
         ToolInstance.delete(self)
         

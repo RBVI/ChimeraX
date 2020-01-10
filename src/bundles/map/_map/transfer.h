@@ -36,6 +36,7 @@ extern "C" {
 //
 // void transfer_function_colormap(PyObject *transfer_func,
 //				float bcfirst, float bclast, PyObject *colormap,
+//				int extend_left = 0, int extend_right = 0,             
 //				int bins = 0, int bin_step = 1,
 //				bool blend = false);
 //
@@ -51,11 +52,12 @@ PyObject *colors_float_to_uint(PyObject *s, PyObject *args, PyObject *keywds);
 
 // ----------------------------------------------------------------------------
 // Map data values to colors using a colormap.  Out of range data values
-// map to the end colormap values if clamp is true, otherwise they have
-// color components set to zero.
+// map to the end colormap values if extend_left or extend_right is true,
+// otherwise they have color components set to zero.
 //
 // void data_to_colors(PyObject *data, float dmin, float dmax,
-//		    PyObject *colormap, bool clamp, PyObject *colors);
+//		    PyObject *colormap, bool extend_left, bool extend_right,
+//                  PyObject *colors);
 //
 PyObject *data_to_colors(PyObject *s, PyObject *args, PyObject *keywds);
 
@@ -114,8 +116,9 @@ PyObject *resample_colormap(PyObject *s, PyObject *args, PyObject *keywds);
 // the rgb values are added, and alpha is set so that 1-alpha gets
 // scaled by 1-(transfer alpha).
 //
-// void data_to_rgba(PyObject *data, PyObject *transfer_func, PyObject *rgba,
-//		  bool blend);
+// void data_to_rgba(PyObject *data, PyObject *transfer_func,
+//		     bool extend_left, bool extend_right,
+//		     PyObject *rgba, bool blend);
 //
 PyObject *data_to_rgba(PyObject *s, PyObject *args, PyObject *keywds);
 

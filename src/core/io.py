@@ -182,6 +182,15 @@ class FileFormat:
 
     open_func = property(_get_open_func, _set_open_func)
 
+    @property
+    def open_requires_path(self):
+        f = self._open_func
+        if f is None:
+            return False
+        import inspect
+        params = inspect.signature(f).parameters
+        return 'path' in params
+        
     def has_export_func(self):
         """Test for export function without bootstrapping"""
         return (self._boot_export_func is not None or
@@ -397,6 +406,8 @@ def open_data(session, filespec, format=None, name=None, **kw):
     open_func = fmt.open_func
     if open_func is None:
         raise UserError("unable to open %s files" % fmt.name)
+    if compression is not None and fmt.open_requires_path:
+        raise UserError("Cannot read compressed %s files" % fmt.name)
     import inspect
     params = inspect.signature(open_func).parameters
     if len(params) < 2:
@@ -476,6 +487,9 @@ def open_multiple_data(session, filespecs, format=None, name=None, **kw):
                 batch[fmt] = [filespec]
         else:
             unbatched.append(filespec)
+        if fmt is not None and fmt.open_requires_path and compression is not None:
+            from .errors import UserError
+            raise UserError("Cannot read compressed %s files" % fmt.name)
 
     mlist = []
     status_lines = []

@@ -1,0 +1,232 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Toolbar: Medical Image</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="toolbar.html">Toolbar</a>: Medical Image</h3>
+<p>
+For convenience in working with medical image data,
+the <b>Medical Image</b> tab of the <a href="toolbar.html"><b>Toolbar</b></a>
+brings together several related icons, many of which also appear in other tabs.
+See also:
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
+<a href="../tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
+<a href="http://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
+target="_blank">ChimeraX for Medical Image Analysis</a>
+</p>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<th colspan="3" align="center" style="background-color:#eaeaea">File</th>
+</tr><tr>
+<td align="center"><img src="toolbar-icons/opendicom.png" width="35px"></td>
+<td align="center">open <a href="../dicom/dicom.html">DICOM</a></td>
+<td align="center">
+same as Menu: <b>File... Open DICOM Folder</b>
+</td>
+</tr><tr>
+<td align="center"><img src="toolbar-icons/recentfiles.png" width="35px">
+<br><font size="-1"><a href="toolbar.html#home"><b>Home</b></a></font></td>
+<td align="center" class="text">toggle <a href="../window.html">main window</a>
+between 3D graphics and recent files (<b>Rapid Access</b>)</td>
+<td align="center" class="text">
+same as clicking bottom right icons
+<img class="iconbar" src="ui-icons/lightning_night.png">
+<img class="iconbar" src="ui-icons/lightning_day.png">&nbsp;</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/camera.png" width="35px">
+<br><font size="-1"><a href="toolbar.html#home"><b>Home</b></a></font></td>
+<td align="center">save snapshot of
+<a href="../window.html">main window</a></td>
+<td align="center">
+&nbsp;<b><a href="../commands/save.html">save</a>
+~/Desktop/image</b><i>N</i><b>.png supersample 3</b>
+<p style="margin-top:2px;margin-bottom:3px">
+(<i>N</i> = 1,2, ...)</td>
+</tr><tr>
+<th colspan="3" align="center" style="background-color:#eaeaea">Display</th>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/plane.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">single Z-plane at the center</td>
+<td align="center">
+<b><a href="../commands/volume.html#planes">volume</a>
+planes z orthoplanes off <a href="../commands/volume.html#general">style</a> image</b>
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/orthoplanes.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">orthoplanes</td>
+<td align="center">
+exact command depends on the data; uses
+<b><a href="../commands/volume.html#planes">volume</a></b>
+to set orthoplanes at the center of the full data, with
+<b><a href="../commands/volume.html#general">style</a>&nbsp;image&nbsp;<a href="../commands/volume.html#dimensions">region</a>&nbsp;all</b>
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/fullvolume.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">full region</td>
+<td align="center">
+<b><a href="../commands/volume.html#dimensions">volume</a>
+region all orthoplanes off</b>
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/outlinebox.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">toggle outline box</td>
+<td align="center">
+<a href="../commands/volume.html"><b>volume</b></a> with the
+<a href="../commands/volume.html#outline"><b>showOutlineBox</b></a> option
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/airways.png" width="35px"></td>
+<td align="center">Airways II 
+<a href="../dicom-quickref.html#presets">preset</a> for image display, 
+typically used for thick sections</td>
+<td align="center">
+<b><a href="../commands/volume.html#dispsolid">volume</a>
+<a href="../commands/volume.html#appearance">appearance</a> "Airways II"</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/chest.png" width="35px"></td>
+<td align="center">chest
+<a href="../dicom-quickref.html#presets">preset</a> for image display</td>
+<td align="center">
+<b><a href="../commands/volume.html#dispsolid">volume</a>
+<a href="../commands/volume.html#appearance">appearance</a> chest</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/ear.png" width="35px"></td>
+<td align="center">CT_Skin
+<a href="../dicom-quickref.html#presets">preset</a> for image display</td>
+<td align="center">
+<b><a href="../commands/volume.html#dispsolid">volume</a>
+<a href="../commands/volume.html#appearance">appearance</a> CT_Skin</b>
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/initialcurve.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">initial thresholds
+<a href="../dicom-quickref.html#presets">preset</a> for image display,
+<i>e.g.</i>, for single planes</td>
+<td align="center">
+<b><a href="../commands/volume.html#dispsolid">volume</a>
+<a href="../commands/volume.html#appearance">appearance</a> initial</b>
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/orient.png" width="35px">
+<br><font size="-1"><a href="graphics.html"><b>Graphics</b></a></td>
+<td align="center">view all, standard orientation</td>
+<td align="center">
+<b><a href="../commands/view.html">view</a> orient</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/step1.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">step 1, full resolution of data</td>
+<td align="center">
+<b><a href="../commands/volume.html#sampling">volume</a> step 1</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/step2.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">step 2, subsampled at every other point</td>
+<td align="center">
+<b><a href="../commands/volume.html#sampling">volume</a> step 2</b></td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/xyzslice.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">2D-XYZ projection for image display</td>
+<td align="center">
+<b><a href="../commands/volume.html#dispsolid">volume</a>
+projectionMode 2d-xyz</b>
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/perpslice.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center">3D projection for image display</td>
+<td align="center">
+<b><a href="../commands/volume.html#dispsolid">volume</a> projectionMode 3d</b>
+</td>
+</tr>
+</table>
+<p>
+The last (rightmost) icons assign the function or 
+&ldquo;<a href="../commands/ui.html#mousemode">mouse mode</a>&rdquo; of:
+</p>
+<ul>
+<li>hand-controller buttons in
+<a href="../vr.html">ChimeraX virtual reality</a>
+(<a href="../vr.html#mousemodes">details...</a>)
+<li>the right mouse button (= trackpad + <b>Alt</b> on Windows,
+trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+in the <a href="../window.html">ChimeraX graphics window</a>
+</ul>
+<table border cellpadding="4" cellspacing="0">
+<tr>
+<th colspan="3" align="center" style="background-color:#eaeaea">Mouse Mode</th>
+</tr><tr>
+<td align="center"><img src="mouse-icons/crop.png" width="35px">
+<br><font size="-1"><a href="mousemodes.html"><b>Right Mouse</b></a></font></td>
+<td align="center"><b>crop volume</b></td>
+<td align="center" class="text">
+show <a href="volumeviewer.html">volume data</a> outline box
+and adjust region size by dragging any face;
+see also <a href="../commands/volume.html"><b>volume</b></a></td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/moveplanes.png" width="35px">
+<br><font size="-1"><a href="mousemodes.html"><b>Right Mouse</b></a></font></td>
+<td align="center"><b>move planes</b></td>
+<td align="center" class="text">
+show <a href="../commands/volume.html#planes">single plane</a> of clicked
+<a href="volumeviewer.html">volume data</a>
+if full region shown initially, move plane or slab along its axis to show
+a different section; see also
+<a href="../commands/volume.html"><b>volume</b></a></td>
+</tr><tr>
+<td align="center">
+<img src="mouse-icons/tape.png" width="35px">
+<br><font size="-1"><a href="mousemodes.html"><b>Right Mouse</b></a></font></td>
+<td align="center" class="text"><b>tape measure</b></td>
+<td align="center" class="text">click to anchor distance measurement,
+drag to desired endpoint; click in empty space
+to &ldquo;erase&rdquo; (<a href="mousemodes.html#tapemeasure">details...</a>)</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/windowing.png" width="35px">
+<br><font size="-1"><a href="mousemodes.html"><b>Right Mouse</b></a></font></td>
+<td align="center"><b>windowing</b></td>
+<td align="center" class="text">adjust
+<a href="volumeviewer.html">volume data</a> image display
+thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
+(moves all thresholds in parallel to higher or lower values),
+horizontal motion adjusts <b><i>window width</i></b>
+(moves thresholds symmetrically farther apart or closer together);
+the dominant type of motion wins out, <i>i.e.</i>, a diagonal motion
+will not change both level and width</td>
+</tr>
+</table>
+<font size="-1"><p>
+We gratefully acknowledge support from
+the <a href="https://www.niaid.nih.gov/" target="_blank">NIAID</a>
+for ChimeraX development related to medical image analysis.
+</p></font>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2019</address>
+</body></html>

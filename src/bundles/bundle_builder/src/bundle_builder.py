@@ -745,12 +745,17 @@ class _CompiledCode:
                 return None
         inc_dirs.extend(self.include_dirs)
         lib_dirs.extend(self.library_dirs)
+        from pkg_resources import DistributionNotFound
         for dep in dependencies:
-            d_inc, d_lib = self._get_bundle_dirs(logger, dep)
-            if d_inc:
-                inc_dirs.append(d_inc)
-            if d_lib:
-                lib_dirs.append(d_lib)
+            try:
+                d_inc, d_lib = self._get_bundle_dirs(logger, dep)
+            except (RuntimeError, DistributionNotFound):
+                pass
+            else:
+                if d_inc:
+                    inc_dirs.append(d_inc)
+                if d_lib:
+                    lib_dirs.append(d_lib)
         extra_link_args.extend(self.link_arguments)
         return (inc_dirs, lib_dirs, self.macros,
                 extra_link_args, libraries, cpp_flags)

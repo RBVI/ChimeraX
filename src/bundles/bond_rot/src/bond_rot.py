@@ -75,12 +75,12 @@ class BondRotater(State):
     def set_angle(self, angle):
         if angle == self._angle:
             return
-        delta = self._angle - angle
+        delta = angle - self._angle
         self._angle = angle
         moving, fixed = self.moving_side.coord, self.bond.other_atom(self.moving_side).coord
         from chimerax.core.geometry import z_align, rotation
         za = z_align(moving, fixed)
-        update = za.inverse() * rotation((0,0,1), delta) * za
+        update = za.inverse() * rotation((0,0,-1), delta) * za
         side_atoms = self.bond.side_atoms(self.moving_side)
         coords = side_atoms.coords
         # avoid a copy...

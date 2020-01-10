@@ -148,7 +148,7 @@ def surface(session, atoms = None, enclose = None, include = None,
     args = [(s,) for s in surfs]
     args.sort(key = lambda s: s[0].atom_count, reverse = True)      # Largest first for load balancing
     from chimerax.core import threadq
-    threadq.apply_to_list(lambda s: s.calculate_surface_geometry(), args, nthread)
+    threadq.apply_to_list(_calculate_surface, args, nthread)
 #    for s in surfs:
 #        s.calculate_surface_geometry()
     # TODO: Any Python error in the threaded call causes a crash when it tries
@@ -170,6 +170,15 @@ def surface(session, atoms = None, enclose = None, include = None,
         s.display = True
 
     return surfs
+
+# -------------------------------------------------------------------------------------
+#
+def _calculate_surface(surf):
+    try:
+        surf.calculate_surface_geometry()
+    except MemoryError as e:
+        from chimerax.core.errors import UserError
+        raise UserError(str(e))
 
 # -------------------------------------------------------------------------------------
 #

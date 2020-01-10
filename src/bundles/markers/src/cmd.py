@@ -130,7 +130,7 @@ class MarkerSetArg(AtomSpecArg):
     
 def register_marker_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, ColorArg, BoolArg, StringArg
-    from chimerax.core.commands import CenterArg, CoordSysArg, ModelIdArg, Or
+    from chimerax.core.commands import CenterArg, CoordSysArg, ModelIdArg, Or, EnumOf
     desc = CmdDesc(
         required = [('marker_set', Or(MarkerSetArg, ModelIdArg)),
                     ('position', CenterArg)],
@@ -177,7 +177,7 @@ def register_marker_command(logger):
                    ('coordinate_system', CoordSysArg),
                    ('label', StringArg),
                    ('label_height', FloatArg),
-                   ('label_color', ColorArg)],
+                   ('label_color', Or(EnumOf(['default']),ColorArg))],
         required_arguments = ['to_position'],
         synopsis = 'Create two markers and a link between them'
     )

@@ -1,6 +1,6 @@
 <BundleInfo name="ChimeraX-ViewDockX" version="0.1"
 	    package="chimerax.viewdockx"
-  	    minSessionVersion="1" maxSessionVersion="1">
+  	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
   <Author>UCSF RBVI</Author>
@@ -9,7 +9,7 @@
 
   <!-- Synopsis is a one-line description
        Description is a full multi-line description -->
-  <Synopsis>View docking results</Synopsis>
+  <Synopsis>Analyze ligand-receptor docking results</Synopsis>
   <Description>Display docking results as structures and table.
 
 UCSF DOCK output in PDB and mol2 formats are supported.
@@ -21,6 +21,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <DataFile>viewdockx_*.html</DataFile>
     <DataFile>viewdockx_*.js</DataFile>
     <DataFile>viewdockx_*.css</DataFile>
+    <DataFile>nextdocking.png</DataFile>
   </DataFiles>
 
   <!--
@@ -55,7 +56,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Tool :: ViewDockX :: General :: display docking results</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: viewdockx :: General :: Display docking results</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: viewdockx :: General :: specify models as docking results </ChimeraXClassifier>
     <ChimeraXClassifier>Command :: viewdockx down :: General :: Simulate down-arrow key in ViewDockX</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: viewdockx up :: General :: Simulate up-arrow key in ViewDockX</ChimeraXClassifier>
     <ChimeraXClassifier>DataFormat :: mol2 :: :: Molecular structure :: .mol2 :: :: :: :: :: mol2 format :: utf-8</ChimeraXClassifier>

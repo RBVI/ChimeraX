@@ -651,6 +651,8 @@ class Session:
                             self.logger.warning('Unable to restore "%s" object' % cls.__name__)
                         else:
                             obj = sm.restore_snapshot(self, data)
+                            if obj is None:
+                                self.logger.warning('restore_snapshot for "%s" returned None' % cls.__name__)
                     mgr.add_reference(name, obj)
         except Exception:
             import traceback

@@ -15,7 +15,7 @@ include $(TOP)/mk/config.make
 PKG_DIR		= $(PYSITEDIR)/chimerax/segment
 
 PYMOD_NAME	= _segment
-SRCS		= bin.cpp pysegment.cpp
+SRCS		= bin.cpp pysegment.cpp segment.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
 INCS 		+= $(PYTHON_INCLUDE_DIRS)

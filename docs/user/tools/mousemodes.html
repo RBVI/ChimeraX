@@ -42,6 +42,10 @@ in the <a href="../window.html">ChimeraX graphics window</a>
 (On Windows or Linux, right-click elsewhere in the ChimeraX interface raises
 a <a href="../window.html#context-menu">context menu</a>.)
 </p><p>
+The icon for the current right-mouse assignment is highlighted
+in the <a href="toolbar.html"><b>Toolbar</b></a>.
+A specific mouse button can only be assigned one function at a time.
+</p><p>
 With the related
 <a href="../commands/ui.html#mousemode"><b>mousemode</b></a> command,
 functions can be assigned to all mouse buttons (not just the right) 
@@ -213,7 +217,7 @@ see also <a href="../commands/vseries.html"><b>vseries</b></a></td>
 <td align="center"><img src="mouse-icons/windowing.png" width="35px"></td>
 <td align="center"><b>windowing</b></td>
 <td align="center" class="text">adjust
-<a href="volumeviewer.html">volume data</a> solid display
+<a href="volumeviewer.html">volume data</a> image display
 thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
 (moves all thresholds in parallel to higher or lower values),
 horizontal motion adjusts <b><i>window width</i></b>
@@ -247,6 +251,13 @@ original coordinates not retained</td>
 jiggle residue and its neighbors with OpenMM dynamics
 while button is held down (<a href="#openmm">details...</a>);
 original coordinates not retained</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/nextdocking.png"
+width="35px"></td>
+<td align="center"><b>next docked</b></td>
+<td align="center" class="text">
+click-drag to show the next/previous docked ligand when docking results
+are open in <a href="viewdockx.html"><b>ViewDockX</b></a></td>
 </tr>
 </table>
 
@@ -289,12 +300,15 @@ screen, retaining the same depth as the anchor point
 <p>
 The <a href="../markers.html">markers and links</a> are created as a model
 named <b>tape measure</b>.
-The link <a href="../commands/size.html">stick radius</a>
-is set to 25% of the minimum grid spacing if/when a measurement
+The link radius is set to 25% of the minimum grid spacing if/when a measurement
 is anchored on <a href="volumeviewer.html">volume data</a>, 
-otherwise remaining at 0.1 &Aring;,
-and the distance label <a href="../commands/label.html#height">height</a>
+otherwise remaining at 0.1 &Aring;, and the distance label height
 is set to 10% of the distance but no less than the link diameter.
+Label height and color can be changed with the
+<a href="../commands/label.html"><b>label</b></a> command,
+and marker/link radius and color changed with
+<a href="markerplacement.html"><b>Marker Placement</b></a> or the
+<a href="../commands/marker.html#change"><b>marker change</b></a> command.
 </p><p>
 <a name="vr-tape"></a>
 Tape-measure differences in <a href="../vr.html">virtual reality</a>:
@@ -303,12 +317,11 @@ Tape-measure differences in <a href="../vr.html">virtual reality</a>:
 <li>marker placement is always at the tip of the hand-controller cone, 
 regardless of the data or its style of display
 <li>clicking and releasing within 0.3 seconds erases the measurements
-<li>link <a href="../commands/size.html">stick radius</a> is not adjusted
-for volume grid spacing
+<li>link radius is not adjusted for volume grid spacing
 </ul>
 <p>
-See also: <a href="distances.html"><b>Distances</b></a>,
-<a href="markerplacement.html"><b>Marker Placement</b></a>,
+See also: 
+<a href="distances.html"><b>Distances</b></a>,
 <a href="../measurements.html">measurements</a>
 </p>
 
@@ -406,5 +419,5 @@ them only upon a 45&deg; change in viewing angle rather than continuously
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+December 2019</address>
 </body></html>

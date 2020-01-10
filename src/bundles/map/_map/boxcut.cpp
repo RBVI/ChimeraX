@@ -370,8 +370,11 @@ static void box_cuts(const float *corners, const float *axis,
       float depth = offset + i*spacing;
       int n = box_cut(corners, cdepths, depth, nvert,
                       vertices + 3*nvert, triangles+3*ntri);
-      nvert += n+1;
-      ntri += n;
+      if (n > 0)
+	{
+	  nvert += (n+1);
+	  ntri += n;
+	}
     }
   *nt = ntri;
   *nv = nvert;

@@ -882,7 +882,12 @@ class _SelectorName:
             if isinstance(f, Objects):
                 results.combine(f)
             else:
-                f(session, models, results)
+                try:
+                    f(session, models, results)
+                except Exception:
+                    session.logger.report_exception(preface="Error executing selector '%s'" % self.name)
+                    from grako.exceptions import FailedSemantics
+                    raise FailedSemantics("error evaluating selector %s" % self.name)
 
 
 class _ZoneSelector:
@@ -1135,7 +1140,7 @@ def register_selector(name, value, logger, *,
         ts.triggers.activate_trigger("selector registered", name)
 
 
-def deregister_selector(name, logger):
+def deregister_selector(name, logger=None):
     """Deregister a name as an atom specifier selector.
 
     Parameters
@@ -1153,12 +1158,29 @@ def deregister_selector(name, logger):
     try:
         del _selectors[name]
     except KeyError:
-        logger.warning("deregistering unregistered selector \"%s\"" % name)
+        if logger:
+            logger.warning("deregistering unregistered selector \"%s\"" % name)
     else:
         from ..toolshed import get_toolshed
         ts = get_toolshed()
         if ts:
             ts.triggers.activate_trigger("selector deregistered", name)
+
+
+def check_selectors(trigger_name, model):
+    # Called when models are closed so that selectors whose values
+    # are Object instances can be cleared if they contain no models
+    from ..objects import Objects
+    empty = []
+    for name, sel in _selectors.items():
+        if isinstance(sel.value, Objects):
+            for m in sel.value.models:
+                if not m.deleted and m.id is not None:
+                     break
+            else:
+                empty.append(name)
+    for name in empty:
+        deregister_selector(name)
 
 
 def list_selectors():

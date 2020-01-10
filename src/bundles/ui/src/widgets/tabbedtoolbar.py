@@ -20,11 +20,11 @@ TODO: documnentation!
 """
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
     QWidget, QTabWidget, QToolBar, QWidgetAction,
     QGridLayout, QLabel, QToolButton, QAction
 )
+from PyQt5.QtGui import QPainter, QIcon, QColor, QImage, QPixmap
 
 _debug = False   # DEBUG
 
@@ -48,6 +48,22 @@ def split_title(title):
     return new_title
 
 
+class _ButtonInfo:
+
+    __slots__ = (
+        "title", "callback", "icon", "description", "group", "vr_mode", "highlight_icon"
+    )
+
+    def __init__(self, title, callback, icon, description, group, vr_mode):
+        self.title = title
+        self.callback = callback
+        self.icon = icon
+        self.description = description
+        self.group = group
+        self.vr_mode = vr_mode
+        self.highlight_icon = None
+
+
 class _Section(QWidgetAction):
     # A Section is a collection of buttons that are adjacent to each other
 
@@ -56,15 +72,16 @@ class _Section(QWidgetAction):
     # 0 to n - 1 being the buttons and row n being the section title.
     # If not compact, then row 0 is the button and row 1 is the section title.
 
-    def __init__(self, parent, section_title, show_section_titles, show_button_titles):
+    def __init__(self, parent, section_title, show_section_titles, show_button_titles, highlight_color):
         super().__init__(parent)
         self._buttons = []
         self._groups = {}   # { toolbar-widget: { group-name: qtoolbutton } }
-        self._actions = []  # need to keep references to actions in menus
+        self._actions = {}  # keep references to actions in menus { button-title: [action] }
         self.section_title = section_title
-        self.compact = False
         self.show_section_titles = show_section_titles
         self.show_button_titles = show_button_titles
+        self.highlight_color = highlight_color
+        self.compact = False
         if show_button_titles:
             self.compact_height = 3
         else:
@@ -74,34 +91,39 @@ class _Section(QWidgetAction):
         if group and self.compact:
             raise ValueError("Can not use grouped buttons in a compact section")
         index = len(self._buttons)
-        button_info = (title, callback, icon, description, group, vr_mode)
+        button_info = _ButtonInfo(title, callback, icon, description, group, vr_mode)
         self._buttons.append(button_info)
         existing_widgets = self.createdWidgets()
         for w in existing_widgets:
             self._add_button(w, index, button_info)
 
     def _add_button(self, parent, index, button_info):
-        (title, callback, icon, description, group, vr_mode) = button_info
         if hasattr(parent, '_title'):
             self._adjust_title(parent)
 
         # split title into two lines if long
+        orig_title = button_info.title
+        title = orig_title
         if '\n' not in title and len(title) > 6:
             title = split_title(title)
 
-        if not group:
+        if button_info.highlight_icon is None:
+            icon = button_info.icon
+        else:
+            icon = button_info.highlight_icon
+
+        if not button_info.group:
             group_first = group_follow = False
         else:
             buttons = self._groups.setdefault(parent, {})
-            group_first = group not in buttons  # first button in drop down
-            group_follow = not group_first      # subsequent buttons
+            group_first = button_info.group not in buttons  # first button in drop down
+            group_follow = not group_first                  # subsequent buttons
         if not group_follow:
             b = QToolButton(parent)
-            if vr_mode is not None:
-                b.vr_mode = vr_mode
+            if button_info.vr_mode is not None:
+                b.vr_mode = button_info.vr_mode
             b.setAutoRaise(True)
             if icon is None:
-                icon = QIcon()
                 style = Qt.ToolButtonTextOnly
             else:
                 if not self.show_button_titles:
@@ -111,24 +133,27 @@ class _Section(QWidgetAction):
                 else:
                     style = Qt.ToolButtonTextUnderIcon
             b.setToolButtonStyle(style)
-        action = QAction(icon, title)
-        if description:
-            action.setToolTip(description)
-        if callback is not None:
-            action.triggered.connect(callback)
+        if icon is None:
+            action = QAction(title)
+        else:
+            action = QAction(icon, title)
+        if button_info.description:
+            action.setToolTip(button_info.description)
+        if button_info.callback is not None:
+            action.triggered.connect(button_info.callback)
+        actions = self._actions.setdefault(orig_title, [])
+        actions.append(action)
         if group_follow:
-            button = self._groups[parent][group]
+            button = self._groups[parent][button_info.group]
             button.addAction(action)
-            self._actions.append(action)
         else:
             if not group_first:
                 b.setDefaultAction(action)
             else:
                 b.setPopupMode(b.MenuButtonPopup)
                 b.triggered.connect(lambda action, b=b: self._update_button_action(b, action))
-                self._groups[parent][group] = b
+                self._groups[parent][button_info.group] = b
                 b.addAction(action)
-                self._actions.append(action)
                 self._update_button_action(b, action)
 
         # print('Font height:', b.fontMetrics().height())  # DEBUG
@@ -142,7 +167,10 @@ class _Section(QWidgetAction):
                 column = index // self.compact_height
                 parent._layout.addWidget(b, row, column, Qt.AlignCenter)
             else:
-                align = Qt.AlignTop if self.show_button_titles else Qt.AlignCenter
+                if not self.show_button_titles or button_info.icon is None:
+                    align = Qt.AlignCenter
+                else:
+                    align = Qt.AlignTop
                 b.setIconSize(2 * b.iconSize())
                 parent._layout.addWidget(b, 0, index, align)
         global _debug
@@ -154,7 +182,7 @@ class _Section(QWidgetAction):
             print('horizontal stretch:', policy.horizontalStretch())
             print('vertical policy:', policy.verticalPolicy())
             print('vertical stretch:', policy.verticalStretch())
-    
+
     def _update_button_action(self, button, action):
         button.setDefaultAction(action)
         lines = button.text().split('\n')
@@ -215,8 +243,7 @@ class _Section(QWidgetAction):
         if self.compact == on_off:
             return
         for button_info in self._buttons:
-            (_, _, _, _, group, _) = button_info
-            if group:
+            if button_info.group:
                 raise ValueError("Can not make a section compact that has grouped buttons")
         self.compact = on_off
         self._redo_layout()
@@ -237,6 +264,62 @@ class _Section(QWidgetAction):
             self.compact_height = 2
         self._redo_layout()
 
+    def get_qt_button_action(self, title):
+        return self._actions.get(title, None)
+
+    def add_button_highlight(self, title, redo=True):
+        for button_info in self._buttons:
+            if button_info.title == title:
+                break
+        else:
+            return
+        icon = button_info.icon
+        if icon is None or icon.isNull():
+            # Make a single color icon
+            pm = QPixmap(256, 256)
+            pm.fill(self.highlight_color)
+        else:
+            sizes = icon.availableSizes()
+            sizes.sort(key=lambda s: s.width())
+            pm = icon.pixmap(icon.actualSize(sizes[-1]))
+            with QPainter(pm) as p:
+                p.setCompositionMode(QPainter.CompositionMode_DestinationOver)
+                if 1:
+                    # draw filled
+                    p.fillRect(pm.rect(), self.highlight_color)
+                else:
+                    # draw outline
+                    r = pm.rect()
+                    pen_width = max(r.width(), r.height()) / 16
+                    p.setPen(self.highlight_color)
+                    pen = p.pen()
+                    pen.setWidth(pen_width)
+                    p.setPen(pen)
+                    adj = pen_width / 2
+                    p.drawRect(r.adjusted(adj, adj, -adj, -adj))
+        button_info.highlight_icon = QIcon(pm)
+        if redo:
+            self._redo_layout()
+
+    def remove_button_highlight(self, title, redo=True):
+        for button_info in self._buttons:
+            if button_info.title == title:
+                break
+        else:
+            return
+        button_info.highlight_icon = None
+        if redo:
+            self._redo_layout()
+
+    def set_highlight_color(self, color):
+        self.highlight_color = color
+        for button_info in self._buttons:
+            if button_info.highlight_icon is None:
+                continue
+            print("REDO:", button_info.title)
+            self.add_button_highlight(button_info.title, redo=False)
+        self._redo_layout()
+
 
 class TabbedToolbar(QTabWidget):
     # A Microsoft Office ribbon-style interface
@@ -247,10 +330,11 @@ class TabbedToolbar(QTabWidget):
         self._buttons = {}  # { tab_title: { section_title: _Section() } }
         self.show_section_titles = show_section_titles
         self.show_button_titles = show_button_titles
-        #self.setStyleSheet("* { padding: 0; margin: 0; border: 1px inset red; } *::separator { background-color: green; width: 1px; }")
-        #self.setStyleSheet("* { padding: 0; margin: 0; } *::separator { width: 1px; }")
+        # self.setStyleSheet("* { padding: 0; margin: 0; border: 1px inset red; } *::separator { background-color: green; width: 1px; }")
+        # self.setStyleSheet("* { padding: 0; margin: 0; } *::separator { width: 1px; }")
         self.setStyleSheet("* { padding: 0; margin: 0; }")
-        #self.setStyleSheet("*::separator { width: 1px; }")
+        # self.setStyleSheet("*::separator { width: 1px; }")
+        self._highlight_color = QColor("light green")
 
     # TODO: disable/enable button/section, remove button
 
@@ -267,7 +351,8 @@ class TabbedToolbar(QTabWidget):
             if not create:
                 return None
             section = tab_info[section_title] = _Section(
-                section, section_title, self.show_section_titles, self.show_button_titles)
+                section, section_title, self.show_section_titles, self.show_button_titles,
+                self._highlight_color)
             tab.addAction(section)
             tab.addSeparator()
         return section
@@ -327,6 +412,28 @@ class TabbedToolbar(QTabWidget):
                 section.set_show_button_titles(on_off)
         if not on_off:
             self._recompute_tab_sizes()
+
+    def add_button_highlight(self, tab_title, section_title, button_title, *, redo=True):
+        section = self._get_section(tab_title, section_title, create=False)
+        if section is None:
+            return
+        section.add_button_highlight(button_title, redo=redo)
+
+    def remove_button_highlight(self, tab_title, section_title, button_title, *, redo=True):
+        section = self._get_section(tab_title, section_title, create=False)
+        if section is None:
+            return
+        section.remove_button_highlight(button_title, redo=redo)
+
+    def set_highlight_color(self, qcolor):
+        if qcolor == self._highlight_color:
+            return
+        self._highlight_color = qcolor
+        for tab_title, tab_info in self._buttons.items():
+            for section_title, section in tab_info.items():
+                if section_title == "__toolbar__":
+                    continue
+                section.set_highlight_color(qcolor)
 
 
 if __name__ == "__main__":

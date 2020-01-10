@@ -47,7 +47,7 @@ class Volume(Model):
     self.region = clamp_region(region, data.size)
 
     if rendering_options is None:
-      rendering_options = Rendering_Options()
+      rendering_options = RenderingOptions()
     self.rendering_options = rendering_options
 
     self.message_cb = session.logger.status
@@ -69,7 +69,7 @@ class Volume(Model):
     # Surface display submodels
     self._surfaces = []				# VolumeSurface instances
 
-    self.outline_box = Outline_Box(self)
+    self.outline_box = OutlineBox(self)
 
     # Image display submodel and parameters
     self._image = None
@@ -79,10 +79,6 @@ class Volume(Model):
     self.image_brightness_factor = 1
 
     self.default_rgba = data.rgba if data.rgba else (.7,.7,.7,1)
-
-
-#    from chimera import addModelClosedCallback
-#    addModelClosedCallback(self, self.model_closed_cb)
 
 #    from chimera import triggers
 #    h = triggers.addHandler('SurfacePiece', self.surface_piece_changed_cb, None)
@@ -303,21 +299,13 @@ class Volume(Model):
 
     # Update rendering options.
     option_changed = False
-    if ('orthoplanes_shown' in kw and not 'box_faces' in kw and
-        true_count(kw['orthoplanes_shown']) > 0):
-      # Turn off box faces if orthoplanes enabled.
-      kw['box_faces'] = False
     ro = self.rendering_options
-    box_faces_toggled = ('box_faces' in kw and kw['box_faces'] != ro.box_faces)
-    orthoplanes_toggled = ('orthoplanes_shown' in kw and
-                           kw['orthoplanes_shown'] != ro.orthoplanes_shown and
-                           (true_count(kw['orthoplanes_shown']) == 0 or
-                            true_count(ro.orthoplanes_shown) == 0))
-    adjust_step = (self.image_shown and
-                   (box_faces_toggled or orthoplanes_toggled))
+    image_mode_changed = ('image_mode' in kw and kw['image_mode'] != ro.image_mode)
+    adjust_step = (self.image_shown and image_mode_changed)
     for k,v in kw.items():
-      if k in ro.__dict__:
-        setattr(self.rendering_options, k, v)
+      # TODO: Only allow setting allowed RenderOptions attributes
+      if k in ro.__dict__ or hasattr(ro, k):
+        setattr(ro, k, v)
         option_changed = True
     if adjust_step:
       r = self.region
@@ -415,7 +403,7 @@ class Volume(Model):
 
     # Adjust ijk_step to meet voxel limit.
     ro = self.rendering_options
-    fpa = faces_per_axis(self.image_shown, ro.box_faces, ro.any_orthoplanes_shown())
+    fpa = faces_per_axis(self.image_shown, ro.image_mode)
     adjusted_ijk_step = ijk_step_for_voxel_limit(ijk_min, ijk_max, ijk_step,
                                                  fpa, ro.limit_voxel_count,
                                                  ro.voxel_limit)
@@ -578,7 +566,7 @@ class Volume(Model):
     self.redraw_needed()  # Switch to image does not change surface until draw
     if style == 'image' or self.image_shown:
       ro = self.rendering_options
-      adjust_step = (ro.box_faces or ro.any_orthoplanes_shown())
+      adjust_step = (ro.image_mode in ('box faces', 'orthoplanes'))
     else:
       adjust_step = False
     if adjust_step:
@@ -767,21 +755,7 @@ class Volume(Model):
     '''
     Show an outline box enclosing the displayed subregion of the volume.
     '''
-    if show and rgb is not None:
-      from .data import box_corners
-      ijk_corners = box_corners(*self.ijk_bounds())
-      corners = self.data.ijk_to_xyz_transform * ijk_corners
-      if self.showing_orthoplanes():
-        ro = self.rendering_options
-        planes = ro.orthoplanes_shown
-        center = self.data.ijk_to_xyz(ro.orthoplane_positions)
-        crosshair_width = self.data.step
-      else:
-        planes, center, crosshair_width = None, None, None
-      self.outline_box.show(corners, rgb, linewidth, center, planes,
-                            crosshair_width)
-    else:
-      self.outline_box.erase_box()
+    self.outline_box.show(show, rgb, linewidth)
 
   # ---------------------------------------------------------------------------
   #
@@ -805,12 +779,6 @@ class Volume(Model):
     surf_disp = len([s for s in self.surfaces if s.display]) > 0
     image_disp = (self._image and self._image.display)
     return self.display and (surf_disp or image_disp or self._style_when_shown is not None)
-    
-  # ---------------------------------------------------------------------------
-  #
-  def showing_orthoplanes(self):
-
-    return (self.image_shown or self._style_when_shown == 'image') and self.rendering_options.any_orthoplanes_shown()
 
   # ---------------------------------------------------------------------------
   #
@@ -824,9 +792,10 @@ class Volume(Model):
     
   # ---------------------------------------------------------------------------
   #
-  def showing_box_faces(self):
+  def showing_image(self, image_mode = None):
 
-    return (self.image_shown or self._style_when_shown == 'image') and self.rendering_options.box_faces
+    same_mode = (image_mode is None or self.rendering_options.image_mode == image_mode)
+    return (self.image_shown or self._style_when_shown == 'image') and same_mode
     
   # ---------------------------------------------------------------------------
   #
@@ -929,7 +898,7 @@ class Volume(Model):
   # If volume data is not writable then make a writable copy.
   #
   def writable_copy(self, require_copy = False,
-                    unshow_original = True, model_id = None,
+                    unshow_original = True, model_id = None, open_model = True,
                     subregion = None, step = (1,1,1), name = None,
                     copy_colors = True, value_type = None):
 
@@ -948,7 +917,7 @@ class Volume(Model):
       g.name = self.name + ' copy'
 
     v = volume_from_grid_data(g, self.session, style = None, model_id = model_id,
-                              show_dialog = False)
+                              show_dialog = False, open_model = open_model)
     v.copy_settings_from(self, copy_region = False, copy_colors = copy_colors)
 
     if unshow_original:
@@ -999,7 +968,24 @@ class Volume(Model):
     xyz_min, xyz_max = bounding_box([data.ijk_to_xyz(c) for c in ijk_corners])
     
     return (xyz_min, xyz_max)
+      
+  # ---------------------------------------------------------------------------
+  #
+  def center(self, step = None, subregion = None):
 
+    ijk_min, ijk_max = self.ijk_bounds(step, subregion)
+    ijk_mid = [0.5*(i0+i1) for i0,i1 in zip(ijk_min, ijk_max)]
+    c = self.data.ijk_to_xyz(ijk_mid)
+    return c
+
+  # ---------------------------------------------------------------------------
+  #
+  def corners(self, step = None, subregion = None):
+    from .data import box_corners
+    ijk_corners = box_corners(*self.ijk_bounds())
+    corners = self.data.ijk_to_xyz_transform * ijk_corners
+    return corners
+  
   # ---------------------------------------------------------------------------
   #
   def first_intercept(self, mxyz1, mxyz2, exclude = None):
@@ -1009,7 +995,7 @@ class Volume(Model):
       
     if self.image_shown:
       ro = self.rendering_options
-      if not ro.box_faces and ro.orthoplanes_shown == (False,False,False):
+      if ro.image_mode == 'full region':
         vxyz1, vxyz2 = self.position.inverse() * (mxyz1, mxyz2)
         from . import slice
         xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
@@ -1618,12 +1604,12 @@ class Volume(Model):
     matrices = []
     if self.image_shown:
       ro = self.rendering_options
-      if ro.box_faces:
+      if ro.image_mode == 'box faces':
         msize = self.matrix_size()
         for axis in (0,1,2):
           matrices.append(self.matrix_plane(axis, 0, read_matrix))
           matrices.append(self.matrix_plane(axis, msize[axis]-1, read_matrix))
-      elif ro.any_orthoplanes_shown():
+      elif ro.image_mode == 'orthoplanes':
         omijk = self.matrix_index(ro.orthoplane_positions)
         for axis in (0,1,2):
           if ro.orthoplanes_shown[axis]:
@@ -1701,23 +1687,15 @@ class Volume(Model):
     d = self.data
     if d:
       d.clear_cache()
+      d.remove_change_callback(self.data_changed_cb)
+    self.data = None
+    self._keep_displayed_data = None
+    self.outline_box = None
     self.close_models()
     Model.delete(self)
       
   # ---------------------------------------------------------------------------
   #
-  def model_closed_cb(self, model):
-
-    if self.data:
-      self.data.remove_change_callback(self.data_changed_cb)
-      self.data = None
-      self._keep_displayed_data = None
-      self.outline_box = None   # Remove reference loops
-      from chimera import triggers
-      triggers.deleteHandler('SurfacePiece', self.surface_piece_change_handler)
-      self.surface_piece_change_handler = None
-
-
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
@@ -1730,7 +1708,9 @@ class Volume(Model):
       'version': 1,
     }
     return data
-
+      
+  # ---------------------------------------------------------------------------
+  #
   @staticmethod
   def restore_snapshot(session, data):
     grid_data = data['grid data state'].grid_data
@@ -1752,10 +1732,12 @@ class VolumeImage(Image3d):
   def __init__(self, volume):
 
     self._volume = v = volume
-    
+
+    ro = v.rendering_options
     from .image3d import blend_manager, Colormap
     cmap = Colormap(self._transfer_function(), v.image_brightness_factor,
-                    self._transparency_thickness())
+                    self._transparency_thickness(),
+                    extend_left = ro.colormap_extend_left, extend_right = ro.colormap_extend_right)
 
     Image3d.__init__(self, 'image', v.data, v.region, cmap, v.rendering_options,
                      v.session, blend_manager(v.session))
@@ -1763,13 +1745,15 @@ class VolumeImage(Image3d):
 
     if hasattr(v, 'mask_colors'):
       s.mask_colors = v.mask_colors
+    if hasattr(v, 'segment_colors'):
+      s.segment_colors = v.segment_colors
 
   # ---------------------------------------------------------------------------
   #
   def delete(self):
     self._volume._image = None
     Image3d.delete(self)
-
+      
   # ---------------------------------------------------------------------------
   #
   def update_settings(self):
@@ -1782,9 +1766,11 @@ class VolumeImage(Image3d):
   # ---------------------------------------------------------------------------
   #
   def _update_colormap(self):
+    v = self._volume
+    ro = v.rendering_options
     from .image3d import Colormap
-    cmap = Colormap(self._transfer_function(), self._volume.image_brightness_factor,
-                    self._transparency_thickness())
+    cmap = Colormap(self._transfer_function(), v.image_brightness_factor, self._transparency_thickness(),
+                    extend_left = ro.colormap_extend_left, extend_right = ro.colormap_extend_right)
     self.set_colormap(cmap)
 
   # ---------------------------------------------------------------------------
@@ -1812,9 +1798,13 @@ class VolumeImage(Image3d):
   #
   def _transparency_thickness(self):
     v = self._volume
-    box_size = [x1-x0 for x0,x1 in zip(*v.xyz_bounds())]
-    thickness = v.transparency_depth * min(box_size)
-    return thickness
+    ro = v.rendering_options
+    if ro.image_mode == 'tilted slab':
+      thickness = ro.tilted_slab_spacing * ro.tilted_slab_plane_count
+    else:
+      box_size = [x1-x0 for x0,x1 in zip(*v.xyz_bounds())]
+      thickness = min(box_size)
+    return v.transparency_depth * thickness
   
   # ---------------------------------------------------------------------------
   # Without brightness and transparency adjustment.
@@ -1869,7 +1859,10 @@ class VolumeSurface(Surface):
     self.clip_cap = True			# Cap surface when clipped
 
   def delete(self):
-    self.volume._surfaces.remove(self)
+    try:
+      self.volume._surfaces.remove(self)
+    except ValueError:
+      pass	# This VolumeSurface was already removed from Volume
     Surface.delete(self)
 
   def _get_level(self):
@@ -2178,6 +2171,8 @@ class VolumeSurface(Surface):
       'model state': Surface.take_snapshot(self, session, flags),
       'version': 1
     }
+    if self.vertex_colors is not None and self.auto_recolor_vertices is None:
+      data['vertex_colors'] = self.vertex_colors
     return data
 
   @staticmethod
@@ -2190,6 +2185,12 @@ class VolumeSurface(Surface):
     if v._style_when_shown == 'image':
       s.display = False		# Old sessions had surface shown but not computed when image style used.
     v._surfaces.append(s)
+    if 'vertex_colors' in data:
+      # Compute surface and set vertex colors.
+      s.update_surface(v.rendering_options)
+      vc = data['vertex_colors']
+      if len(s.vertices) == len(vc):
+        s.vertex_colors = vc
     return s
       
 # -----------------------------------------------------------------------------
@@ -2225,81 +2226,128 @@ class PickedMap(Pick):
     
 # -----------------------------------------------------------------------------
 #
-class Outline_Box:
+class OutlineBox:
 
-  def __init__(self, surface_model):
+  def __init__(self, volume):
 
-    self.model = surface_model
-    self.piece = None
-    self.corners = None
-    self.rgb = None
-    self.linewidth = None
-    self.center = None
-    self.planes = None
-    self.crosshair_width = None
+    self._volume = volume
+    self._drawing = None		# Child of volume
+    self._settings = {}			# Settings from last draw.
     
   # ---------------------------------------------------------------------------
   # The center and planes option are for orthoplane outlines.
   #
-  def show(self, corners, rgb, linewidth,
-           center = None, planes = None, crosshair_width = None):
+  def show(self, show, rgb, linewidth):
+    if not show or rgb is None:
+      self.erase_box()
+      return
 
-    if not corners is None and not rgb is None:
-      from numpy import array_equal
-      changed = (self.corners is None or
-                 not array_equal(corners, self.corners) or
-                 rgb != self.rgb or
-                 linewidth != self.linewidth or
-                 not array_equal(center, self.center) or
-                 planes != self.planes or
-                 crosshair_width != self.crosshair_width)
-      if changed:
-        self.erase_box()
-        self.make_box(corners, rgb, linewidth, center, planes, crosshair_width)
+    v = self._volume
+    corners = v.corners()
+    settings = {'rgb': rgb, 'linewidth': linewidth, 'corners': corners.tolist()}
+    ortho = v.showing_image('orthoplanes')
+    slab = v.showing_image('tilted slab')
+    ro = v.rendering_options
+    if ortho:
+      settings['planes'] = ro.orthoplanes_shown
+      settings['center'] = tuple(v.data.ijk_to_xyz(ro.orthoplane_positions))
+      settings['crosshair_width'] = tuple(v.data.step)
+    elif slab:
+      settings['axis'] = tuple(ro.tilted_slab_axis)
+      settings['offset'] = ro.tilted_slab_offset
+      settings['spacing'] = ro.tilted_slab_spacing
+      settings['plane_count'] = ro.tilted_slab_plane_count
       
+    if settings == self._settings:
+      return
+    self._settings = settings
+    
+    if ortho:
+      vertices, triangles, edge_mask = self._orthoplanes_outline()
+    elif slab:
+      vertices, triangles, edge_mask = self._tilted_slab_outline()
+    else:
+      vertices, triangles, edge_mask = self._box_outline()
+      
+    self._make_box(rgb, linewidth, vertices, triangles, edge_mask)
+
   # ---------------------------------------------------------------------------
   #
-  def make_box(self, corners, rgb, linewidth, center, planes, crosshair_width):
-
-    if center is None or planes is None or not True in planes:
-      vlist = corners
-      tlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
-               (0,1,3), (3,2,0), (7,3,1), (1,5,7),
-               (7,6,2), (2,3,7), (7,5,4), (4,6,7))
-    else:
-      vlist = []
-      tlist = []
-      self.plane_outlines(corners, center, planes, vlist, tlist)
-      self.crosshairs(corners, center, planes, crosshair_width, vlist, tlist)
-          
+  def _box_outline(self):
+    
+    vlist = self._settings['corners']
+    tlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
+             (0,1,3), (3,2,0), (7,3,1), (1,5,7),
+             (7,6,2), (2,3,7), (7,5,4), (4,6,7))
     b = 8 + 2 + 1    # Bit mask, 8 = show triangle, edges are bits 4,2,1
-    hide_diagonals = [b]*len(tlist)
+    edge_mask = [b]*len(tlist)		# hide box face diagonals
+    return vlist, tlist, edge_mask
 
-    rgba = tuple(rgb) + (1,)
-    p = self.model.new_drawing('outline box')
-    p.display_style = p.Mesh
-    p.lineThickness = linewidth
-    p.use_lighting = False
-    p.pickable = False
-    p.no_cofr = True
-    # Set geometry after setting outline_box attribute to avoid undesired
-    # coloring and capping of outline boxes.
-    from numpy import array
-    p.set_geometry(array(vlist), None, array(tlist))
-    p.edge_mask = hide_diagonals
-    p.color = tuple(int(255*r) for r in rgba)
+  # ---------------------------------------------------------------------------
+  #
+  def _orthoplanes_outline(self):
 
-    self.piece = p
-    self.corners = corners
-    self.rgb = rgb
-    self.linewidth = linewidth
-    self.center = center
-    self.planes = planes
-    self.crosshair_width = crosshair_width
+    s = self._settings
+    corners, center, planes, crosshair_width = s['corners'], s['center'], s['planes'], s['crosshair_width']
+    vlist, tlist = [], []
+    self._plane_outlines(corners, center, planes, vlist, tlist)
+    self._crosshairs(corners, center, planes, crosshair_width, vlist, tlist)
+    b = 8 + 2 + 1    # Bit mask, 8 = show triangle, edges are bits 4,2,1
+    edge_mask = [b]*len(tlist)		# hide box face diagonals
+    return vlist, tlist, edge_mask
+
+  # ---------------------------------------------------------------------------
+  #
+  def _tilted_slab_outline(self):
+
+    # Slab box
+    s = self._settings
+    offset, spacing, plane_count = s['offset'], s['spacing'], s['plane_count']
+    start = offset - 0.5*spacing
+    thickness = spacing * plane_count
+    from . import box_cuts
+    sva, sta = box_cuts(s['corners'], s['axis'], start, thickness, num_cuts = 2)
+    from chimerax.surface import boundary_edge_mask
+    se = boundary_edge_mask(sta)
+
+    # Show region box
+    bva, bta, be = self._box_outline()
+
+    # Combine box and slab arrays.
+    from numpy import empty, float32, int32, uint8, concatenate, array
+    va = empty((len(bva)+len(sva),3), float32)
+    concatenate((bva,sva), out = va)
+    ta = empty((len(bta)+len(sta),3), int32)
+    concatenate((bta,sta), out = ta)
+    ta[len(bta):,] += len(bva)
+    edge_mask = empty((len(be)+len(se),), uint8)
+    concatenate((array(be,uint8),se), out = edge_mask)
+    
+    return va, ta, edge_mask
     
   # ---------------------------------------------------------------------------
   #
-  def plane_outlines(self, corners, center, planes, vlist, tlist):
+  def _make_box(self, rgb, linewidth, vertices, triangles, edge_mask):
+
+    self.erase_box()
+
+    self._drawing = d = self._volume.new_drawing('outline box')
+    d.display_style = d.Mesh
+#    d.linewidth = linewidth
+    d.use_lighting = False
+    d.pickable = False
+    d.no_cofr = True
+    # Set geometry after setting outline_box attribute to avoid undesired
+    # coloring and capping of outline boxes.
+    from numpy import array
+    d.set_geometry(array(vertices), None, array(triangles))
+    d.edge_mask = edge_mask
+    rgba = tuple(rgb) + (1,)
+    d.color = tuple(int(255*r) for r in rgba)
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _plane_outlines(self, corners, center, planes, vlist, tlist):
 
     for a,p in enumerate(planes):
       if p:
@@ -2316,7 +2364,7 @@ class Outline_Box:
 
   # ---------------------------------------------------------------------------
   #
-  def crosshairs(self, corners, center, planes, width, vlist, tlist):
+  def _crosshairs(self, corners, center, planes, width, vlist, tlist):
 
     hw0,hw1,hw2 = [0.5*w for w in width]
     btlist = ((0,4,5), (5,1,0), (0,2,6), (6,4,0),
@@ -2346,16 +2394,15 @@ class Outline_Box:
   #
   def erase_box(self):
 
-    p = self.piece
-    if not p is None:
-      if not p.was_deleted:
-        self.model.remove_drawing(p)
-      self.piece = None
-      self.corners = None
-      self.rgb = None
-      self.center = None
-      self.planes = None
-      self.crosshair_width = None
+    d = self._drawing
+    if d is None:
+      return
+    
+    if not d.was_deleted:
+      self._volume.remove_drawing(d)
+
+    self._drawing = None
+    self._settings = {}
       
 # -----------------------------------------------------------------------------
 # Compute scale factor f minimizing norm of (f*v + u) over domain v >= level.
@@ -2510,7 +2557,7 @@ class Region_List:
 
 # -----------------------------------------------------------------------------
 #
-class Rendering_Options:
+class RenderingOptions:
 
   def __init__(self):
 
@@ -2530,6 +2577,8 @@ class Rendering_Options:
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
     self.colormap_on_gpu = False      # image rendering with colors computed on gpu
     self.colormap_size = 256	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.colormap_extend_left = False
+    self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
     self.projection_modes = ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
     self.projection_mode = 'auto'           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
@@ -2553,15 +2602,13 @@ class Rendering_Options:
     self.smoothing_factor = .3
     self.square_mesh = False
     self.cap_faces = True
-    self.box_faces = False              # image rendering
     self.orthoplanes_shown = (False, False, False)
     self.orthoplane_positions = (0,0,0) # image rendering
-
-  # ---------------------------------------------------------------------------
-  #
-  def any_orthoplanes_shown(self):
-
-    return true_count(self.orthoplanes_shown) > 0
+    self.tilted_slab_axis = (0,0,1)
+    self.tilted_slab_offset = 0
+    self.tilted_slab_spacing = 1
+    self.tilted_slab_plane_count = 1
+    self.image_mode = 'full region'	# 'full region', 'orthoplanes', 'box faces', or 'tilted slab'
 
   # ---------------------------------------------------------------------------
   #
@@ -2578,7 +2625,7 @@ class Rendering_Options:
   #
   def copy(self):
 
-    ro = Rendering_Options()
+    ro = RenderingOptions()
     for key, value in self.__dict__.items():
       if not key.startswith('_'):
         setattr(ro, key, value)
@@ -2627,13 +2674,13 @@ def ijk_step_for_voxel_limit(ijk_min, ijk_max, ijk_step, faces_per_axis,
 # display 1 plane per axis is shown.  Returns 0 for normal (all planes)
 # display style.
 #
-def faces_per_axis(image_style, box_faces, any_orthoplanes_shown):
+def faces_per_axis(image_style, image_mode):
 
   fpa = 0
   if image_style:
-    if box_faces:
+    if image_mode == 'box faces':
       fpa = 2
-    elif any_orthoplanes_shown:
+    elif image_mode == 'orthoplanes':
       fpa = 1
   return fpa
 
@@ -2677,7 +2724,7 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = []):
 
   p = int(plane)
   ro = v.rendering_options
-  orthoplanes = v.showing_orthoplanes()
+  orthoplanes = v.showing_image('orthoplanes')
   if orthoplanes:
     if depth == 1:
       ro.show_orthoplane(axis, p)
@@ -2686,7 +2733,7 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = []):
         return
     else:
       orthoplanes = False
-      v.set_parameters(orthoplanes_shown = (False, False, False))
+      v.set_parameters(orthoplanes = False)
 
   # Make sure requested plane number is in range.
   dsize = v.data.size
@@ -2706,8 +2753,7 @@ def show_planes(v, axis, plane, depth = 1, extend_axes = []):
       ijk_min[axis] = max(0, min(p, planes - depth*astep))
       ijk_max[axis] = max(0, min(planes-1, p+depth*astep-1))
 
-  fpa = faces_per_axis(v.image_shown, ro.box_faces,
-                       ro.any_orthoplanes_shown())
+  fpa = faces_per_axis(v.image_shown, ro.image_mode)
   def voxel_count(step, fpa=fpa):
     set_plane_range(step)
     return subarray_size(ijk_min, ijk_max, step, fpa)
@@ -3360,7 +3406,7 @@ def set_initial_region_and_style(v):
   if one_plane:
     region[0][2] = region[1][2] = data.size[2]//2
     
-  fpa = faces_per_axis(v.image_shown, ro.box_faces, ro.any_orthoplanes_shown())
+  fpa = faces_per_axis(v.image_shown, ro.image_mode)
   ijk_step = ijk_step_for_voxel_limit(region[0], region[1], (1,1,1), fpa,
                                       ro.limit_voxel_count, ro.voxel_limit)
   region = tuple(region) + (ijk_step,)
@@ -3476,7 +3522,8 @@ class MultiChannelSeries(Model):
 # -----------------------------------------------------------------------------
 #
 def save_map(session, path, format_name, models = None, region = None, step = (1,1,1),
-             mask_zone = True, chunk_shapes = None, append = None, compress = None,
+             mask_zone = True, subsamples = None, chunk_shapes = None, append = None,
+             compress = None, compress_method = None, compress_level = None, compress_shuffle = None,
              base_index = 1, **kw):
     '''
     Save a density map file having any of the known density map formats.
@@ -3511,11 +3558,22 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         raise UserError(msg)
         
     options = {}
+    if subsamples is not None:
+        options['subsamples'] = subsamples
     if chunk_shapes is not None:
         options['chunk_shapes'] = chunk_shapes
     if append:
         options['append'] = True
     if compress:
+        options['compress'] = True
+    if compress_method:
+        options['compress_method'] = compress_method
+        options['compress'] = True
+    if compress_level:
+        options['compress_level'] = compress_level
+        options['compress'] = True
+    if compress_shuffle is not None:
+        options['compress_shuffle'] = compress_shuffle
         options['compress'] = True
     if path in ('browse', 'browser'):
         from .data import select_save_path
@@ -3562,7 +3620,7 @@ class VolumeUpdateManager:
     if vdisp:
       vset = self._volumes_to_update
       for v in tuple(vdisp):
-        if v.deleted:
+        if v.deleted or v.id is None:
           vset.remove(v)
           vdisp.remove(v)
         elif v.display:
@@ -3615,7 +3673,7 @@ def register_map_file_formats(session):
         register_map_format(session, ff)
 
     # Add keywords to open command for maps
-    from chimerax.core.commands import BoolArg, IntArg
+    from chimerax.core.commands import BoolArg, IntArg, RepeatOf
     from chimerax.core.commands.cli import add_keyword_arguments
     add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg, 'verbose':BoolArg})
 
@@ -3626,9 +3684,12 @@ def register_map_file_formats(session):
       ('region', MapRegionArg),
       ('step', Int1or3Arg),
       ('mask_zone', BoolArg),
+      ('subsamples', RepeatOf(Int1or3Arg)),
       ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
       ('append', BoolArg),
       ('compress', BoolArg),
+      ('compress_method', EnumOf(('zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'))),
+      ('compress_shuffle', BoolArg),
       ('base_index', IntArg),
     ]
     add_keyword_arguments('save', dict(save_map_args))

@@ -45,6 +45,9 @@ class _LabelBundle(BundleAPI):
         elif class_name == 'Labels':
             from .label2d import Labels
             return Labels
+        elif class_name == 'LabelModel':
+            from .label2d import LabelModel
+            return LabelModel
         return None
 
 bundle_api = _LabelBundle()

@@ -173,9 +173,9 @@ def _update_list(toolshed, node, what, callback, logger):
                 if w != what:
                     errors.append("didn't expect href to be to %s on line %d" % (
                         href, ab.sourceline))
-                #if d == undoc_ul:
-                #    errors.append("bad <a> on line", ab.sourceline)  # DEBUG
-                #    valid = False
+                # if d == undoc_ul:
+                #     errors.append("bad <a> on line", ab.sourceline)  # DEBUG
+                #     valid = False
                 ab = ab[0]
             if ab.tag == 'b':
                 name = ab.text.strip()
@@ -241,12 +241,18 @@ def _update_tools(toolshed, doc_ul, doc):
             name = t.name
             if name in doc:
                 continue
-            pname = name.replace(' ', '_')
-            href = bi.get_path(os.path.join("docs", "user", "tools", "%s.html" % pname))
-            if href:
-                missing[name] = ("tools/%s.html" % pname, t.synopsis)
-            else:
-                missing[name] = (None, t.synopsis)
+            href = None
+            tools_dir = bi.get_path(os.path.join("docs", "user", "tools"))
+            if tools_dir is not None:
+                n1 = name.replace(' ', '_')
+                n2 = name.replace(' ', '')
+                names = [n1, n2, n1.casefold(), n2.casefold()]
+                for n in names:
+                    html = "%s.html" % n
+                    if os.path.exists(os.path.join(tools_dir, html)):
+                        href = "tools/%s" % html
+                        break
+            missing[name] = (href, t.synopsis)
     names = list(doc)
     missing_names = list(missing)
     missing_names.sort(key=str.casefold)
@@ -258,7 +264,8 @@ def _update_tools(toolshed, doc_ul, doc):
         if synopsis:
             synopsis = " \N{En dash} " + synopsis
         if href is None:
-            doc_ul.insert(i, E.LI(E.B(name), synopsis))
+            e = E.LI(E.B(name), synopsis)
         else:
-            doc_ul.insert(
-                i, E.LI(E.A(E.B(name), href=href), synopsis))
+            e = E.LI(E.A(E.B(name), href=href), synopsis)
+        e.tail = '\n'
+        doc_ul.insert(i, e)

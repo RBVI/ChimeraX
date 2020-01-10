@@ -87,7 +87,6 @@ def read_stl(session, filename, name):
 
     # First read 80 byte comment line
     comment = input.read(80)
-    del comment
 
     # Next read uint32 triangle count.
     from numpy import fromstring, uint32, float32, array, uint8
@@ -97,6 +96,11 @@ def read_stl(session, filename, name):
     
     if input != filename:
         input.close()
+
+    if len(geom) < tc*50:
+        from chimerax.core.errors import UserError
+        raise UserError('STL file is truncated.  Header says it contains %d triangles, but only %d were in file.'
+                        % (tc, len(geom) // 50))
 
     from ._stl import stl_unpack
     va, na, ta = stl_unpack(geom)    # vertices, normals, triangles

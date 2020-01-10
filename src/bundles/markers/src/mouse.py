@@ -245,22 +245,23 @@ class MarkerMouseMode(MouseMode):
             else:
                 _log_link_resize(rml)
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
+        xyz1, xyz2 = event.picking_segment()
         self.mouse_down(LaserEvent(xyz1,xyz2))
         
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
         mm = self._moving_marker
         if mm:
-            mm.scene_coord = move * mm.scene_coord
+            mm.scene_coord = event.motion * mm.scene_coord
         rm = self._resizing_marker_or_link
         if rm:
             from math import exp
-            scale = exp(5*delta_z)
+            scale = exp(5*event.room_vertical_motion)
             self._resize_ml(rm, scale)
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.mouse_up()
 
@@ -389,8 +390,9 @@ def volume_plane_intercept(xyz_in, xyz_out, vlist):
         if not v.shown():
             continue
         plane = (v.single_plane() or
-                 v.showing_orthoplanes() or
-                 v.showing_box_faces())
+                 v.showing_image('orthoplanes') or
+                 v.showing_image('box faces') or
+                 v.showing_image('tilted slab'))
         if not plane:
             continue
         v_xyz_in, v_xyz_out = data_slice(v, line)
@@ -414,11 +416,13 @@ def data_slice(v, line):
   if not v.shown():
     return None, None
 
-  from chimerax.map import slice
-  if v.showing_orthoplanes() or v.showing_box_faces():
+  from chimerax.map import slice, tiltedslab
+  if v.showing_image('orthoplanes') or v.showing_image('box faces'):
     xyz_in = xyz_out = slice.face_intercept_point(v, line)
   else:
     xyz_in, xyz_out = slice.volume_segment(v, line)
+    if v.showing_image('tilted slab') and xyz_in is not None:
+        xyz_in, xyz_out = tiltedslab.slab_segment(v, (xyz_in, xyz_out))
 
   return xyz_in, xyz_out
 

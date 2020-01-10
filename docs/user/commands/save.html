@@ -34,7 +34,7 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<i>other-options</i>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> <b>formats</b>
+<br><a href="#formats"><b>save formats</b></a>
 </h3>
 <p>
 The <b>save</b> command saves an image, <a href="#session">ChimeraX session</a>,
@@ -65,21 +65,22 @@ Some file types have no preceding keyword and must be specified with the
 If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
 </p><p>
-Sessions and images include all contents, but for other file types,
-the <b>models</b> option can be used to specify which model(s) to save.
-There may be several additional options, depending on the file type:
+Sessions, images, and scenes include all contents, but map and atomic coordinate
+saving can be limited to specific models with the <b>models</b> option.
+There may be additional options, depending on the file type:
 </p>
 <ul class="none">
-<li><a href="#formats"><b>Output Formats</b></a>
-<li><a href="#image"><b>Save Image</b></a>
+<li><a href="#image"><b>Image</b></a>
 <a href="../tools/toolbar.html#home" title="Toolbar Home">
 <img class="icon" border=1 src="../tools/shortcut-icons/camera.png"></a>
-<li><a href="#session"><b>Save Session</b></a>
-<li><a href="#map"><b>Save Map</b></a>
-<li><a href="#pdb"><b>Save PDB</b></a>
-<li><a href="#mmcif"><b>Save mmCIF</b></a>
-<li><a href="#mol2"><b>Save Mol2</b></a>
-<li><a href="#sequence"><b>Save Sequence Data</b></a>
+<li><a href="#session"><b>Session</b></a>
+<li><a href="#map"><b>Map</b></a>
+<li>Atomic Coordinates: &nbsp;<a href="#pdb"><b>PDB</b></a>&nbsp;
+&nbsp;<a href="#mmcif"><b>mmCIF</b></a>&nbsp;
+&nbsp;<a href="#mol2"><b>Mol2</b></a>&nbsp;
+<li><a href="#sequence"><b>Sequence Data</b></a>
+<li><a href="#gltf"><b>GLTF</b></a>
+<li><a href="open.html#clipper"><b>MTZ (Options from Clipper)</b></a>
 </ul>
 
 <a name="formats"></a>
@@ -141,7 +142,7 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.mrc</td>
 <td align="center">MRC density map</td>
 </tr><tr>
-<td align="center" rowspan="13">(none)</td>
+<td align="center" valign="top" rowspan="14">&nbsp;<br>(none)</td>
 <td align="center"><b>pdb</b></td>
 <td align="center">.pdb</td>
 <td align="center">
@@ -216,6 +217,20 @@ target="_blank">X3D</a></td>
 <td align="center">.pir, .ali</td>
 <td align="center">biopolymer sequence or sequence alignment,
 <br>PIR (NBRF)</td>
+</tr><tr>
+<td align="center"><b>mtz</b></td>
+<td align="center">.mtz</td>
+<td align="center" class="text">
+<a href="http://www.ccp4.ac.uk/html/mtzformat.html"
+target="_blank">MTZ</a> crystallographic reflection file
+(reciprocal space map)
+<br><br>*requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
+target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>; 
+see <a href="open.html#clipper">details...</a>
+</td>
 </tr></table>
 
 <a name="image"></a>
@@ -349,7 +364,12 @@ The default is <b>false</b>, as maps can be very large.
 If the maps are not included, the session file will still include the
 locations of the corresponding map files and open them automatically
 upon session restore, or if they are not found, prompt the user
-for their current locations.
+for their current locations. The session file will include the
+map file location as a relative path if the map file is in the same
+directory as the session file, or in a subdirectory of that directory.
+If the map file is in neither the same directory as the session file nor
+a subdirectory of that directory, its location will be stored 
+as an absolute path.
 </p>
 
 <a name="map"></a>
@@ -760,5 +780,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+December 2019</address>
 </body></html>

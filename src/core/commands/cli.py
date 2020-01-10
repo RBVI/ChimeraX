@@ -769,7 +769,7 @@ class EnumOf(Annotation):
         # "ab", not "abc".
         if ids is not None:
             assert all([isinstance(x, str) for x in ids])
-            pairs = sorted(zip(self.ids, self.values))
+            pairs = sorted(zip(ids, values))
             self.ids = [p[0] for p in pairs]
             self.values = [p[1] for p in pairs]
         else:
@@ -2256,9 +2256,9 @@ def _get_help_url(words):
     cname = words[0]
     if cname.startswith('~'):
         cname = cname[1:]
-        frag = '%20'.join(words)
+        frag = '-'.join(words)
     else:
-        frag = '%20'.join(words[1:])
+        frag = '-'.join(words[1:])
     from .. import toolshed
     help_directories = toolshed.get_help_directories()
     cmd_subpath = os.path.join('user', 'commands', '%s.html' % cname)

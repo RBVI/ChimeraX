@@ -4,7 +4,7 @@
 //
 #include "watershed.h"
 
-namespace Segmentation_Calculation
+namespace Segment_Map
 {
 
 // ----------------------------------------------------------------------------
@@ -13,12 +13,12 @@ namespace Segmentation_Calculation
 //
 template <class T>
 Index watershed_regions(const T *data, const int *sizes,
-			float threshold, Index *mask)
+			float threshold, Index *region_map)
 {
   int s0 = sizes[0], s1 = sizes[1], s2 = sizes[2];
   Index st0 = s1*s2, st1 = s2, s = s0*s1*s2;
 
-  // Set mask to index of highest of 26 neighbors.
+  // Set region_map to index of highest of 26 neighbors.
   for (int i0 = 0 ; i0 < s0 ; ++i0)
     {
       int j0min = (i0 > 0 ? -1 : 0), j0max = (i0+1 < s0 ? 1 : 0);
@@ -45,7 +45,7 @@ Index watershed_regions(const T *data, const int *sizes,
 			    { ni = j; vmax = data[j]; }
 			}
 		}
-	      mask[i] = ni;
+	      region_map[i] = ni;
 	    }
 	}
     }
@@ -53,13 +53,13 @@ Index watershed_regions(const T *data, const int *sizes,
 
   // Collapse index chains.
   for (Index i = 0 ; i < s ; ++i)
-    if (mask[i] > 0)
+    if (region_map[i] > 0)
       {
 	Index ni = i;
-	while (mask[ni] != ni)
-	  ni = mask[ni];
-	for (Index ci = i, cni ; (cni = mask[ci]) != ni ; ci = cni)
-	  mask[ci] = ni;
+	while (region_map[ni] != ni)
+	  ni = region_map[ni];
+	for (Index ci = i, cni ; (cni = region_map[ci]) != ni ; ci = cni)
+	  region_map[ci] = ni;
       }
 
   // Renumber regions starting from 1.
@@ -68,18 +68,18 @@ Index watershed_regions(const T *data, const int *sizes,
   for (Index i = 0 ; i < s ; ++i)
     if (!(data[i] < threshold))
       {
-	Index mi = mask[i];
-	Index mmi = mask[mi];
+	Index mi = region_map[i];
+	Index mmi = region_map[mi];
 	if (mi < i)
-	  mask[i] = mmi;	// Already renumbered region maximum.
+	  region_map[i] = mmi;	// Already renumbered region maximum.
 	else if (mmi == mi)
 	  {
-	    mask[i] = ++c;	// Renumber region.
+	    region_map[i] = ++c;	// Renumber region.
 	    if (mi > i)
-	      mask[mi] = i;	// Point region max to i.
+	      region_map[mi] = i;	// Point region max to i.
 	  }
 	else
-	  mask[i] = mask[mmi];
+	  region_map[i] = region_map[mmi];
       }
 
   return c;		  // Return number of regions found.
@@ -138,4 +138,4 @@ void find_local_maxima(const T *data, const int *data_size,
     }
 }
 
-} // end of namespace Segmentation_Calculation
+} // end of namespace Segment_Map

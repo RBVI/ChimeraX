@@ -25,10 +25,8 @@ def read_vtk(session, filename, name):
     if hasattr(filename, 'read'):
         # it's really a file-like object
         fname = filename.name
-        filename.close()
-        f = open(fname, 'rb')
+        f = filename
     else:
-        # TODO: will need binary mode for handling binary files.
         f = open(filename, 'rb')
         fname = filename
 

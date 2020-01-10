@@ -46,6 +46,8 @@ def read_ihm(session, filename, name, *args, load_ensembles = False, load_linked
 #
 from chimerax.core.models import Model
 class IHMModel(Model):
+    SESSION_SAVE = False
+    SESSION_WARN = True
     def __init__(self, session, filename,
                  load_ensembles = False,
                  load_linked_files = True,
@@ -141,7 +143,8 @@ class IHMModel(Model):
             # If multiple data blocks in the file, return just the first one.
             # We also don't use starting model coordinates in the mmCIF file,
             # so don't have the reader read them and waste time & memory.
-            return ihm.reader.read(fh, read_starting_model_coord=False)[0]
+            return ihm.reader.read(fh, read_starting_model_coord=False,
+                                   reject_old_file=True)[0]
 
     # -----------------------------------------------------------------------------
     #

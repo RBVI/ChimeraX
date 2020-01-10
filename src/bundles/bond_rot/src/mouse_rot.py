@@ -75,17 +75,29 @@ class BondRotationMouseMode(MouseMode):
             self.session.bond_rotations.delete_rotation(br)
             self._bond_rot = None
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
-        from chimerax.mouse_modes import picked_object_on_segment
-        pick = picked_object_on_segment(xyz1, xyz2, self.view)
+        pick = event.picked_object(self.view)
         self._bond_rot = self._bond_rotation(pick)
 
-    def vr_motion(self, position, move, delta_z):
+        # Move the side of the bond the VR click is closest to.
+        # Would like to have a command to enable this mode for rotating bonds
+        # with small ligands
+        move_closer_side = False
+        if move_closer_side and self._bond_rot is not None:
+            br = self._bond_rot
+            atom1 = br.moving_side
+            atom2 = br.bond.other_atom(atom1)
+            p = event.tip_position
+            from chimerax.core.geometry import distance
+            if distance(p, atom2.scene_coord) < distance(p, atom1.scene_coord):
+                br.moving_side = atom2
+        
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
         br = self._bond_rot
         if br:
-            axis, angle = move.rotation_axis_and_angle()
+            axis, angle = event.motion.rotation_axis_and_angle()
             from chimerax.core.geometry import inner_product
             if inner_product(axis, br.axis) < 0:
                 angle = -angle
@@ -94,7 +106,7 @@ class BondRotationMouseMode(MouseMode):
                 return "accumulate drag"
             br.angle += angle_change
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self._log_command()
         self._delete_bond_rotation()

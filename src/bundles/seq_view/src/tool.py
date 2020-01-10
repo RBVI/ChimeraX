@@ -46,7 +46,7 @@ class SequenceViewer(ToolInstance):
     """
     def __init__(self, session, tool_name, alignment=None):
         """ if 'alignment' is None, then we are being restored from a session and
-            set_state_from_snapshot will be called later.
+            _finalize_init will be called later.
         """
 
         ToolInstance.__init__(self, session, tool_name)
@@ -265,7 +265,6 @@ class SequenceViewer(ToolInstance):
         self.structureMenu.add_command(label="Load Structures",
                         command=self._loadStructures)
         """
-        self.child_tools = []
         """
         self.alignDialog = self.assessDialog = self.findDialog = None
         self.prositeDialog = self.regexDialog = None
@@ -489,9 +488,6 @@ class SequenceViewer(ToolInstance):
     def delete(self):
         self.region_browser.destroy()
         self.seq_canvas.destroy()
-        for ct in self.child_tools:
-            if hasattr(ct, 'destroy'):
-                ct.destroy()
         self.alignment.detach_viewer(self)
         for seq in self.alignment.seqs:
             seq.triggers.remove_handler(self._seq_rename_handlers[seq])
@@ -570,7 +566,6 @@ class SequenceViewer(ToolInstance):
             from .associations_tool import AssociationsTool
             self.associations_tool = AssociationsTool(self,
                 self.tool_window.create_child_window("Chain-Sequence Associations", close_destroys=False))
-            self.child_tools.append(self.associations_tool)
             self.associations_tool.tool_window.manage(None)
         self.associations_tool.tool_window.shown = True
 
@@ -579,7 +574,6 @@ class SequenceViewer(ToolInstance):
             from .settings_tool import SettingsTool
             self.settings_tool = SettingsTool(self,
                 self.tool_window.create_child_window("Sequence Viewer Settings", close_destroys=False))
-            self.child_tools.append(self.settings_tool)
             self.settings_tool.tool_window.manage(None)
         self.settings_tool.tool_window.shown = True
 

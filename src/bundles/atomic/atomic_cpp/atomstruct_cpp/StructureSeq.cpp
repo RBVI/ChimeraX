@@ -386,6 +386,22 @@ StructureSeq::set(unsigned i, Residue *r, char character)
 }
 
 void
+StructureSeq::set_chain_id(ChainID chain_id)
+{
+    if (chain_id != _chain_id) {
+        _chain_id = chain_id;
+        if (is_chain()) {
+            _structure->change_tracker()->add_modified(_structure, dynamic_cast<Chain*>(this),
+                ChangeTracker::REASON_CHAIN_ID);
+            for (auto r: residues())
+                if (r != nullptr)
+                    _structure->change_tracker()->add_modified(_structure, r,
+                        ChangeTracker::REASON_CHAIN_ID);
+        }
+    }
+}
+
+void
 StructureSeq::set_from_seqres(bool fs)
 {
     if (fs == _from_seqres)

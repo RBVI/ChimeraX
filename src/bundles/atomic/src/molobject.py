@@ -176,10 +176,10 @@ class Bond(State):
     def has_custom_attrs(self):
         return has_custom_attrs(Bond, self)
 
-    def rings(self, cross_residues=False, all_size_threshold=0):
+    def rings(self, cross_residue=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings this Bond is involved in.
 
-        If 'cross_residues' is False, then rings that cross residue boundaries are not
+        If 'cross_residue' is False, then rings that cross residue boundaries are not
         included.  If 'all_size_threshold' is zero, then return only minimal rings, of
         any size.  If it is greater than zero, then return all rings not larger than the
         given value.
@@ -190,7 +190,7 @@ class Bond(State):
         '''
         f = c_function('bond_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
                 ret = ctypes.py_object)
-        return convert.rings(f(self._c_pointer, cross_residues, all_size_threshold))
+        return convert.rings(f(self._c_pointer, cross_residue, all_size_threshold))
 
     @property
     def session(self):
@@ -1315,6 +1315,8 @@ class StructureData:
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
         doc = "Supported API. Return the size of the active coordinate set array.")
+    idatm_valid = c_property('structure_idatm_valid', npy_bool,
+        doc = "Supported API. Whether atoms have vaid IDATM types set. Boolean")
     lower_case_chains = c_property('structure_lower_case_chains', npy_bool,
         doc = "Supported API. Structure has lower case chain ids. Boolean")
     num_atoms = c_property('structure_num_atoms', size_t, read_only = True,
@@ -1412,6 +1414,16 @@ class StructureData:
             from .molarray import Atoms
             return (Atoms(ap[0]), Atoms(ap[1]))
 
+    def change_chain_ids(self, chains, chain_ids, *, non_polymeric=True):
+        '''Change the chain IDs of the given chains to the corresponding chain ID.  The final ID
+           must not conflict with other unchanged chains of the structure.  If 'non_polymeric' is
+           True, then non-polymeric residues with the same chain ID as any of the given change
+           will also have their chain ID changed in the same way.
+        '''
+        f = c_function('structure_change_chain_ids',
+            args = (ctypes.c_void_p, ctypes.py_object, ctypes.py_object, ctypes.c_bool))
+        f(self._c_pointer, [c._c_pointer.value for c in chains], chain_ids, non_polymeric)
+
     def combine_sym_atoms(self):
         '''Combine "symmetry" atoms, which for this purpose is atoms with the same element type
            on the exact same 3D position'''
@@ -1489,6 +1501,12 @@ class StructureData:
         f = c_function('structure_delete_residue', args = (ctypes.c_void_p, ctypes.c_void_p))
         f(self._c_pointer, res._c_pointer)
     """
+    def find_residue(self, chain_id, pos, insert=' '):
+        """Supported API.  Find a residue in the structure.  Returns None if none match."""
+        f = c_function('structure_find_residue',
+               args = (ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_char),
+               ret = ctypes.py_object)
+        return f(self._c_pointer, chain_id.encode('utf-8'), pos, insert.encode('utf-8'))
 
     @property
     def molecules(self):
@@ -1600,6 +1618,17 @@ class StructureData:
                        args = (ctypes.c_void_p, ctypes.c_void_p), ret = None)
         f(self._c_pointer, pbg._c_pointer)
 
+    def renumber_residues(self, renumbered, start):
+        '''Renumber the given residues ('renumbered'), starting from the integer 'start'.
+           Residues must be in the same chain and the resulting numbering must not conflict
+           with other residues in the same chain (unless those residues have non-blank insertion
+           codes).  The renumbering will set insertion codes to blanks.  The renumbering does NOT
+           reorder the residues (which determines sequence order).  Use reorder_residues() for that.
+        '''
+        f = c_function('structure_renumber_residues',
+            args = (ctypes.c_void_p, ctypes.py_object, ctypes.c_int))
+        f(self._c_pointer, [r._c_pointer.value for r in renumbered], start)
+
     def reorder_residues(self, new_order):
         '''Reorder the residues.  Obviously, 'new_order' has to have exactly the same
            residues as the structure currently has.
@@ -1620,10 +1649,10 @@ class StructureData:
         f = c_function('structure_ribbon_orient', args = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t), ret = ctypes.py_object)
         return f(self._c_pointer, residues._c_pointers, len(residues))
 
-    def rings(self, cross_residues=False, all_size_threshold=0):
+    def rings(self, cross_residue=False, all_size_threshold=0):
         '''Return :class:`.Rings` collection of rings found in this Structure.
 
-        If 'cross_residues' is False, then rings that cross residue boundaries are not
+        If 'cross_residue' is False, then rings that cross residue boundaries are not
         included.  If 'all_size_threshold' is zero, then return only minimal rings, of
         any size.  If it is greater than zero, then return all rings not larger than the
         given value.
@@ -1634,7 +1663,7 @@ class StructureData:
         '''
         f = c_function('structure_rings', args = (ctypes.c_void_p, ctypes.c_bool, ctypes.c_int),
                 ret = ctypes.py_object)
-        return convert.rings(f(self._c_pointer, cross_residues, all_size_threshold))
+        return convert.rings(f(self._c_pointer, cross_residue, all_size_threshold))
 
     def set_state_from_snapshot(self, session, data):
         '''Restore from session info'''

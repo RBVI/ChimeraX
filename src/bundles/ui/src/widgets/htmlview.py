@@ -65,6 +65,8 @@ class HtmlView(QWebEngineView):
     profile :     the QWebEngineProfile used
     """
 
+    require_native_window = False
+    
     def __init__(self, *args, size_hint=None, schemes=None,
                  interceptor=None, download=None, profile=None,
                  tool_window=None, log_errors=False, **kw):
@@ -93,6 +95,11 @@ class HtmlView(QWebEngineView):
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
+
+        if self.require_native_window:
+            # This is to work around ChimeraX bug #2537 where the entire
+            # GUI becomes blank with some 2019 Intel graphics drivers.
+            self.winId()  # Force it to make a native window
 
     def deleteLater(self):  # noqa
         """Supported API.  Schedule HtmlView instance for deletion at a safe time."""
@@ -401,39 +408,37 @@ class ChimeraXHtmlView(HtmlView):
             else:
                 finished.append(item)
         self._pending_downloads = pending
+        import pkginfo
+        from chimerax.ui.ask import ask
         for item in finished:
             item.finished.disconnect()
             filename = item.path()
-            if not _installable(filename, self.session.logger):
+            try:
+                w = pkginfo.Wheel(filename)
+            except Exception as e:
+                logger.info("Error parsing %s: %s" % (filename, str(e)))
+                self.session.logger.info("File saved as %s" % filename)
+                continue
+            if not _installable(w, self.session.logger):
                 self.session.logger.info("Bundle saved as %s" % filename)
                 continue
-            from chimerax.ui.ask import ask
             how = ask(self.session,
-                      "Install %s for:" % filename,
-                      ["just me", "all users", "cancel"],
+                      "Install %s %s (file %s)?" % (w.name, w.version, filename),
+                      ["install", "cancel"],
                       title="Toolshed")
             if how == "cancel":
                 self.session.logger.info("Bundle installation canceled")
                 continue
-            elif how == "just me":
-                per_user = True
-            else:
-                per_user = False
             self.session.toolshed.install_bundle(filename,
                                                  self.session.logger,
-                                                 per_user=per_user,
+                                                 per_user=True,
                                                  session=self.session)
 
 
-def _installable(filename, logger):
-    import pkginfo, re
+def _installable(w, logger):
+    import re
     from distutils.version import LooseVersion as Version
     import chimerax.core
-    try:
-        w = pkginfo.Wheel(filename)
-    except Exception as e:
-        logger.info("Error parsing %s: %s" % (filename, str(e)))
-        return False
     pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
     for req in w.requires_dist:
         m = pat.match(req)

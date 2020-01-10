@@ -118,7 +118,7 @@ public:
 
 template <class Str>
 PyObject* cchar_to_pystring(Str& cchar, const char* item_description) {
-    auto pyobj = PyUnicode_FromString(cchar.c_str());
+    auto pyobj = PyUnicode_DecodeUTF8(cchar.c_str(), cchar.size(), "replace");
     if (pyobj == nullptr)
         throw ErrStringCreate(item_description);
     return pyobj;
@@ -246,7 +246,7 @@ inline long pyint_to_clong(PyObject* pyint, const char* item_description) {
     return PyLong_AsLong(pyint);
 }
 
-inline long pyfloat_to_cdouble(PyObject* pyfloat, const char* item_description) {
+inline double pyfloat_to_cdouble(PyObject* pyfloat, const char* item_description) {
     if (!PyFloat_Check(pyfloat))
         throw ErrListItemNotFloat(item_description);
     return PyFloat_AS_DOUBLE(pyfloat);

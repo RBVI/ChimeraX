@@ -76,8 +76,6 @@ def view_objects(objects, v, clip, cofr, pad):
         raise UserError('No displayed objects specified.')
     v.view_all(b, pad = pad)
     c, r = b.center(), b.radius()
-    if cofr:
-        v.center_of_rotation = c
 
     cp = v.clip_planes
     if clip:
@@ -88,6 +86,10 @@ def view_objects(objects, v, clip, cofr, pad):
         cp.remove_plane('near')
         cp.remove_plane('far')
 
+    if cofr:
+        v.center_of_rotation_method = 'center of view'
+        if not clip:
+            v.set_rotation_depth(c)
 
 def view_name(session, name):
     """Save current view as given name.

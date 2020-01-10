@@ -11,10 +11,11 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas
+from .util import complete_terminal_carboxylate, determine_termini, determine_naming_schemas, \
+    bond_with_H_length
 from chimerax.atomic import Element
 from chimerax.atomic.struct_edit import add_atom
-from chimerax.atomic.colors import element_colors
+from chimerax.atomic.colors import element_color
 from chimerax.atomic.bond_geom import linear
 
 def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.6, template=False,
@@ -448,6 +449,7 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
 
     remaining_unknowns = {}
     type_info_class = type_info['H'].__class__
+    from chimerax.atomic import Residue
     for struct in structures:
         for atom in struct.atoms:
             if atom.element.number == 0:
@@ -468,7 +470,6 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                     tmpl = find_template_residue(session, res.name)
                     if not tmpl:
                         continue
-                    print("Using template for", res.name)
                     from chimerax.atomic import AtomicStructure
                     s = AtomicStructure(session)
                     r = exemplar = template_lookup[res.name] = s.new_residue(res.name, 'A', 1)
@@ -501,7 +502,14 @@ def _prep_add(session, structures, unknowns_info, template, need_all=False, **pr
                 # if atom is in standard residue but has missing bonds to
                 # heavy atoms, skip it instead of incorrectly protonating
                 # (or possibly throwing an error if e.g. it's planar)
-                if atom.is_missing_heavy_template_neighbors(no_template_okay=True):
+                # also
+                # UNK/N residues will be missing some or all of their side-chain atoms, so
+                # skip atoms that would otherwise be incorrectly protonated due to their
+                # missing neighbors
+                truncated = atom.is_missing_heavy_template_neighbors(no_template_okay=True) or (
+                    atom.residue.name in ["UNK", "N"] and atom.residue.polymer_type != Residue.PT_NONE 
+                    and unk_atom_truncated(atom))
+                if truncated:
                     session.logger.warning("Not adding hydrogens to %s because it is missing heavy-atom"
                         " bond partners" % atom)
                     type_info_for_atom[atom] = type_info_class(4, atom.num_bonds, atom.name)
@@ -807,31 +815,22 @@ def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
         return True
     return False
 
+def unk_atom_truncated(atom):
+    if atom.is_side_chain:
+        num_heavy_nbs = len([nb for nb in atom.neighbors if nb.element.number > 1])
+        if atom.is_side_connector:
+            # CA or ribose ring
+            if atom.is_backbone(atom.BBE_MIN) or atom.name == "C1'":
+                # atoms that connect the side chain to the backbone
+                return num_heavy_nbs < 3
+            elif atom.name == "O2'":
+                return num_heavy_nbs < 1
+        return num_heavy_nbs < 2
+    return False
+
 def vdw_radius(atom):
     # to avoid repeated IDATM computation in the middle of hydrogen addition
     return _radii.get(atom, h_rad)
-
-N_H = 1.01
-def bond_with_H_length(heavy, geom):
-    element = heavy.element.name
-    if element == "C":
-        if geom == 4:
-            return 1.09
-        if geom == 3:
-            return 1.08
-        if geom == 2:
-            return 1.056
-    elif element == "N":
-        return N_H
-    elif element == "O":
-        # can't rely on water being in chain "water" anymore...
-        if heavy.num_bonds == 0 or heavy.num_bonds == 2 \
-        and len([nb for nb in heavy.neighbors if nb.element.number > 1]) == 0:
-            return 0.9572
-        return 0.96
-    elif element == "S":
-        return 1.336
-    return Element.bond_length(heavy.element, Element.get_element(1))
 
 def add_altloc_hyds(atom, altloc_hpos_info, invert, bonding_info, total_hydrogens, naming_schema):
     added_hs = []
@@ -898,7 +897,7 @@ def determine_h_color(parent_atom):
     else:
         solvent_set = _solvent_atoms[struct]
     if res.name in res.water_res_names or parent_atom in solvent_set:
-        return element_colors(1)
+        return element_color(1)
     if parent_atom.structure in _h_coloring:
         color_scheme = _h_coloring[parent_atom.structure]
     else:
@@ -908,7 +907,7 @@ def determine_h_color(parent_atom):
                 continue
             if a.element.name == "C":
                 continue
-            if a.color == element_colors(a.element.number):
+            if a.color == element_color(a.element.number):
                 num_match_elements += 1
                 if num_match_elements > 1:
                     color_scheme = "element"
@@ -919,7 +918,7 @@ def determine_h_color(parent_atom):
         else:
             color_scheme = "element"
         _h_coloring[parent_atom.structure] = color_scheme
-    return parent_atom.color if color_scheme == "parent" else element_colors(1)
+    return parent_atom.color if color_scheme == "parent" else element_color(1)
 
 naming_exceptions = {
     'ATP': {

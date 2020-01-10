@@ -44,10 +44,10 @@ class HBondsGUI(QWidget):
             slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
-            show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_intra_model=True,
-            show_intra_mol=True, show_intra_res=True, show_inter_submodel=False, show_log=True,
-            show_make_pseudobonds=True, show_model_restrict=True, show_radius=True, show_relax=True,
-            show_restrict=True, show_retain_current=True, show_reveal=True, show_salt_only=True,
+            show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_model=True,
+            show_intra_model=True, show_intra_mol=True, show_intra_res=True, show_inter_submodel=False,
+            show_log=True, show_make_pseudobonds=True, show_model_restrict=True, show_radius=True,
+            show_relax=True, show_retain_current=True, show_reveal=True, show_salt_only=True,
             show_save_file=True, show_show_dist=True, show_slop=True, show_slop_color=True,
             show_two_colors=True):
 
@@ -104,7 +104,7 @@ class HBondsGUI(QWidget):
                     None if settings else show_dist, None, attr_name="show_dist", settings=settings)
                 make_pb_options.add_option(self.__show_dist_option)
             if show_reveal:
-                self.__reveal_option = BooleanOption("If endpoint atom hidden, show endpoint residue",
+                self.__reveal_option = BooleanOption("Reveal atoms of H-bonding residues",
                     None if settings else reveal, None, attr_name="reveal", settings=settings)
                 make_pb_options.add_option(self.__reveal_option)
             if show_retain_current:
@@ -144,8 +144,8 @@ class HBondsGUI(QWidget):
                     " differently", default_value, None, **kw)
                 relax_options.add_option(self.__slop_color_option)
 
-        if show_model_restrict or show_inter_intra_model or show_bond_restrict or show_salt_only \
-        or show_intra_mol or show_intra_res or show_inter_submodel:
+        if show_model_restrict or show_inter_model or show_intra_model or show_bond_restrict \
+        or show_salt_only or show_intra_mol or show_intra_res or show_inter_submodel:
             group = QGroupBox("Limit results:")
             layout.addWidget(group)
             limit_layout = QVBoxLayout()
@@ -161,25 +161,25 @@ class HBondsGUI(QWidget):
                     "Choose specific models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
                 limit_options.add_option(self.__model_restrict_option)
 
-            if show_inter_intra_model:
-                inter_val = final_val['inter_model'] and not final_val['intra_model']
-                self.__inter_model_only_option = BooleanOption("Intermodel only", inter_val,
-                    self._inter_model_cb)
-                limit_options.add_option(self.__inter_model_only_option)
-                intra_val = final_val['intra_model'] and not final_val['inter_model']
-                self.__intra_model_only_option = BooleanOption("Intramodel only", intra_val,
-                    self._intra_model_cb, attr_name="intra_model", settings=settings)
-                limit_options.add_option(self.__intra_model_only_option)
-
             if show_bond_restrict:
                 self.__bond_restrict_option = OptionalHBondRestrictOption("Limit by selection",
-                    None, None)
+                    None, None, atom_word="end")
                 limit_options.add_option(self.__bond_restrict_option)
 
             if show_salt_only:
                 self.__salt_only_option = BooleanOption("Salt bridges only",
                     None if settings else salt_only, None, attr_name="salt_only", settings=settings)
                 limit_options.add_option(self.__salt_only_option)
+
+            if show_inter_model:
+                self.__inter_model_option = BooleanOption("Include intermodel",
+                    None if settings else inter_model, None, attr_name="inter_model", settings=settings)
+                limit_options.add_option(self.__inter_model_option)
+
+            if show_intra_model:
+                self.__intra_model_option = BooleanOption("Include intramodel",
+                    None if settings else intra_model, None, attr_name="intra_model", settings=settings)
+                limit_options.add_option(self.__intra_model_option)
 
             if show_intra_mol:
                 self.__intra_mol_option = BooleanOption("Include intramolecule",
@@ -286,11 +286,15 @@ class HBondsGUI(QWidget):
         else:
             settings['show_dist'] = None
 
-        if self.__show_values['inter_intra_model']:
-            settings['inter_model'] = not self.__intra_model_only_option.value
-            settings['intra_model'] = not self.__inter_model_only_option.value
+        if self.__show_values['inter_model']:
+            settings['inter_model'] = self.__inter_model_option.value
         else:
-            settings['inter_model'] = settings['intra_model'] = None
+            settings['inter_model'] = None
+
+        if self.__show_values['intra_model']:
+            settings['intra_model'] = self.__intra_model_option.value
+        else:
+            settings['intra_model'] = None
 
         if self.__show_values['relax']:
             settings['relax'] = self.__relax_group.isChecked()
@@ -399,14 +403,6 @@ class HBondsGUI(QWidget):
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
         return "hbonds", atom_spec, kw_values
 
-    def _inter_model_cb(self, opt):
-        if opt.value:
-            self.__intra_model_only_option.value = False
-
-    def _intra_model_cb(self, opt):
-        if opt.value:
-            self.__inter_model_only_option.value = False
-
     def _model_restrict_cb(self, opt):
         if opt.value is None:
             new_label = "Restrict to models..."
@@ -465,65 +461,8 @@ class ModelRestrictOption(Option):
 
 OptionalModelRestrictOption = make_optional(ModelRestrictOption)
 
-class HBondRestrictOption(Option):
-    restrict_kw_vals = ("any", "cross", "both")
-    fixed_kw_menu_texts = ("with at least one end selected", "with exactly one end selected",
-        "with both ends selected")
-    atom_spec_menu_text = "between selection and atom spec..."
-
-    def __init__(self, *args, **kw):
-        super().__init__(*args, **kw)
-
-    def get_value(self):
-        text = self.__push_button.text()
-        for val, val_text in zip(self.restrict_kw_vals, self.fixed_kw_menu_texts):
-            if text == val_text:
-                return val
-        return self.__line_edit.text()
-
-    def set_value(self, value):
-        if value in self.restrict_kw_vals:
-            self.__push_button.setText(self.fixed_kw_menu_texts[self.restrict_kw_vals.index(value)])
-            self.__line_edit.hide()
-        else:
-            self.__push_button.setText(self.atom_spec_menu_text)
-            self.__line_edit.setText(value)
-            self.__line_edit.show()
-
-    value = property(get_value, set_value)
-
-    def set_multiple(self):
-        self.__push_button.setText(self.multiple_value)
-
-    def _make_widget(self, *, display_value=None, **kw):
-        if display_value is None:
-            display_value = self.fixed_kw_menu_texts[0]
-        from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QMenu, QAction, QLineEdit
-        self.widget = layout = QHBoxLayout()
-        layout.setContentsMargins(0,0,0,0)
-        layout.setSpacing(2)
-        self.__push_button = QPushButton(display_value, **kw)
-        self.__push_button.setAttribute(Qt.WA_LayoutUsesWidgetRect)
-        menu = QMenu()
-        self.__push_button.setMenu(menu)
-        for label in self.fixed_kw_menu_texts + (self.atom_spec_menu_text,):
-            action = QAction(label, self.__push_button)
-            action.triggered.connect(lambda arg, s=self, lab=label: self._menu_cb(lab))
-            menu.addAction(action)
-        layout.addWidget(self.__push_button, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        self.__line_edit = QLineEdit()
-        self.__line_edit.setMinimumWidth(72)
-        if display_value in self.fixed_kw_menu_texts:
-            self.__line_edit.hide()
-        layout.addWidget(self.__line_edit, alignment=Qt.AlignCenter)
-
-    def _menu_cb(self, label):
-        if label in self.fixed_kw_menu_texts:
-            self.value = self.restrict_kw_vals[self.fixed_kw_menu_texts.index(label)]
-        else:
-            self.value = self.__line_edit.text()
-        self.make_callback()
-OptionalHBondRestrictOption = make_optional(HBondRestrictOption)
+from chimerax.atomic.options import AtomPairRestrictOption
+OptionalHBondRestrictOption = make_optional(AtomPairRestrictOption)
 
 def _get_settings(session, base_name, settings_defaults):
     if base_name:
@@ -536,4 +475,3 @@ def _get_settings(session, base_name, settings_defaults):
 
     return HBondGUISettings(session, settings_name)
 
-#TODO: settings that need explicit save: inter_model, intra_model, two_colors, slop_color

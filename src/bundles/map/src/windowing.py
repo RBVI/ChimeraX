@@ -16,7 +16,7 @@
 from chimerax.mouse_modes import MouseMode
 class WindowingMouseMode(MouseMode):
     name = 'windowing'
-    icon_file = 'windowing.png'
+    icon_file = 'icons/windowing.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
@@ -56,24 +56,23 @@ class WindowingMouseMode(MouseMode):
         self._maps = []
         MouseMode.mouse_up(self, event)
         
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
         self._maps = self._visible_maps()
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
         c = self.session.main_view.camera
         # Get hand controller motion in room in meters
-        p = position.origin()
-        motion = move*p - p
-        hand_motion = position.inverse().transform_vector(motion)
+        motion = event.tip_motion
+        hand_motion = event.position.inverse().transform_vector(motion)  # Hand coordinate system
         horz_shift, vert_shift = hand_motion[0], hand_motion[1]
         if abs(horz_shift) > abs(vert_shift):
             scale_levels(self._maps, horz_shift)
         else:
             translate_levels(self._maps, vert_shift)
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.log_volume_command()
         self._maps = []

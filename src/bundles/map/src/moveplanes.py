@@ -19,16 +19,18 @@ class RegionMouseMode(MouseMode):
 
         self.bound_button = None
         
-        self.map = None
-        self.matching_maps = []	# Adjust region for these maps too.
-        self.ijk = None         # Clicked grid point.
-        self.axis = None        # Clicked face normal axis
-        self.side = None        # 0 or 1 for min/max box face along axis
-        self.xy_last = None
-        self.frac_istep = 0
+        self._map = None
+        self._matching_maps = []	# Adjust region for these maps too.
+        self._axis = None	        # Clicked face normal axis = 0, 1 or 2
+        self._side = None        	# 0 or 1 for min/max box face along axis
+        self._xy_last = None
+        self._frac_istep = 0
+        self._pixel_size = 1    	# Screen pixel size in scene units at click point
+        self._slab_side = 0		# 0 for first slice of tilted slab, 1 for last slice
+        self._slab_dir = (0,1)
         
     def mouse_down(self, event):
-        self.xy_last = (x,y) = event.position()
+        self._xy_last = (x,y) = event.position()
         v = self.session.main_view
         line = v.clip_plane_points(x,y)    # scene coordinates
         if line[0] is None or line[1] is None:
@@ -39,14 +41,27 @@ class RegionMouseMode(MouseMode):
         from .volume import Volume
         maps = [m for m in self.session.models.list() if isinstance(m, Volume) and m.shown()]
         from .slice import nearest_volume_face
-        v, self.axis, self.side, self.ijk = nearest_volume_face(line, maps)
-        self.map = v
-        if v:
-            v.set_parameters(show_outline_box = True)
-            self.matching_maps = matching_maps(v, maps)
-            if (not self.move_faces and v.is_full_region(any_step = True)
-                and not v.showing_orthoplanes() and not v.showing_box_faces()):
-                self._show_single_plane(v, self.axis)
+        v, self._axis, self._side, ijk = nearest_volume_face(line, maps)
+        self._map = v
+        if v is None:
+            return
+
+        ro = v.rendering_options
+        if ro.image_mode == 'tilted slab':
+            cpos = v.session.main_view.camera.position
+            sx,sy,sz = cpos.inverse().transform_vector(ro.tilted_slab_axis)  # Slab axis in camera coords
+            self._slab_side = 0 if sz <= 0 else 1
+            self._pixel_size = ps = self.session.main_view.pixel_size(v.scene_position * v.center())
+            from math import sqrt
+            sn = sqrt(sx*sx + sy*sy)
+            self._slab_dir = (ps*sx/sn, ps*sy/sn) if sn > 0 else (0,1)
+        else:
+            self._pixel_size = self.session.main_view.pixel_size(v.ijk_to_global_xyz(ijk))
+
+#        v.set_parameters(show_outline_box = True)
+        self._matching_maps = matching_maps(v, maps)
+        if not self.move_faces and v.is_full_region(any_step = True) and v.showing_image('full region'):
+            self._show_single_plane(v, self._axis)
 
     def _show_single_plane(self, v, axis):
         ijk_min, ijk_max, ijk_step = [list(b) for b in v.region]
@@ -57,90 +72,117 @@ class RegionMouseMode(MouseMode):
         v.set_display_style('image')
 
     def mouse_drag(self, event):
-        v = self.map
-        if v is None or self.xy_last is None:
+        v = self._map
+        if v is None or self._xy_last is None:
             self.mouse_down(event)
             return
 
-        xl, yl = self.xy_last
+        xl, yl = self._xy_last
         x,y = event.position()
         dx, dy = (x - xl, yl - y)
         if dx == 0 and dy == 0:
             return
         speed = 0.1 if event.shift_down() else 1
-        view = self.session.main_view
-        step = speed * drag_distance(v, self.ijk, self.axis, dx, dy, view)
-        sa = v.data.step[self.axis]
-        istep = step / sa      # grid units
-        self.xy_last = (x,y)
+        ro = v.rendering_options
+        if ro.image_mode == 'tilted slab':
+            sx,sy = self._slab_dir
+            istep = speed * (dx*sx + dy*sy) / ro.tilted_slab_spacing
+        else:
+            view = self.session.main_view
+            step = speed * drag_distance(v, self._pixel_size, self._axis, dx, dy, view)
+            sa = v.data.step[self._axis]
+            istep = step / sa      # grid units
+        self._xy_last = (x,y)
         self._move_plane(istep)
 
     def _move_plane(self, istep):
         # Remember fractional grid step for next move.
-        istep += self.frac_istep
+        istep += self._frac_istep
         rstep = int(round(istep))
         if rstep == 0:
-            self.frac_istep = istep
+            self._frac_istep = istep
             return
-        self.frac_istep = istep - rstep
-        v = self.map
-        if self.move_faces:
-            move_face(v, self.axis, self.side, rstep)
+        self._frac_istep = istep - rstep
+        v = self._map
+        if v is None:
+            return
+        slab = (v.rendering_options.image_mode == 'tilted slab')
+        if slab:
+            if self.move_faces:
+                from .tiltedslab import move_tilted_slab_face
+                move_tilted_slab_face(v, self._slab_side, rstep)
+            else:
+                from .tiltedslab import move_tilted_slab
+                move_tilted_slab(v, rstep)
+            ro = v.rendering_options
+            for m in self._matching_maps:
+                m.set_parameters(tilted_slab_offset = ro.tilted_slab_offset,
+                                 tilted_slab_plane_count = ro.tilted_slab_plane_count)
         else:
-            move_slab(v, self.axis, self.side, rstep)
-        for m in self.matching_maps:
-            m.new_region(*tuple(v.region), adjust_step = False, adjust_voxel_limit = False)
-            if v.showing_orthoplanes() and m.showing_orthoplanes():
-                m.set_parameters(orthoplane_positions = v.rendering_options.orthoplane_positions)
+            if self.move_faces:
+                move_face(v, self._axis, self._side, rstep)
+            else:
+                move_slab(v, self._axis, self._side, rstep)
+
+            for m in self._matching_maps:
+                m.new_region(*tuple(v.region), adjust_step = False, adjust_voxel_limit = False)
+                if v.showing_image('orthoplanes') and m.showing_image('orthoplanes'):
+                    m.set_parameters(orthoplane_positions = v.rendering_options.orthoplane_positions)
+                
         # Make sure new plane is shown before another mouse event shows another plane.
         self.session.update_loop.update_graphics_now()
 
     def wheel(self, event):
         self.mouse_down(event)
-        v = self.map
+        v = self._map
         if v:
             d = event.wheel_value()
             self._move_plane(d)
 
     def mouse_up(self, event = None):
         self.log_volume_command()
-        self.map = None
-        self.ijk = None
-        self.xy_last = None
-        self.frac_istep = 0
-        return
+        self._map = None
+        self._xy_last = None
+        self._frac_istep = 0
 
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
+        xyz1, xyz2 = event.picking_segment()
         line = (xyz1, xyz2)
         self._choose_box_face(line)
         
-    def vr_motion(self, position, move, delta_z):
-        v = self.map
-        if v:
-            trans = move * position.origin() - position.origin()
-            dxyz = v.position.inverse() * trans
+    def vr_motion(self, event):
+        v = self._map
+        if v is None:
+            return
+        trans = event.tip_motion
+        dxyz = v.scene_position.inverse() * trans
+        if v.showing_image('tilted slab'):
+            ro = v.rendering_options
+            from chimerax.core.geometry import inner_product
+            istep = inner_product(dxyz, ro.tilted_slab_axis) / ro.tilted_slab_spacing
+        else:
             dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)
-            istep = dijk[self.axis]
-            self._move_plane(istep)
+            istep = dijk[self._axis]
+        self._move_plane(istep)
 
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.mouse_up()
 
     def log_volume_command(self):
-        v = self.map
+        v = self._map
         if v:
             log_volume_region_command(v)
 
 class PlanesMouseMode(RegionMouseMode):
     name = 'move planes'
-    icon_file = 'moveplanes.png'
+    icon_file = 'icons/moveplanes.png'
     move_faces = False
 
 class CropMouseMode(RegionMouseMode):
     name = 'crop volume'
-    icon_file = 'crop.png'
+    icon_file = 'icons/crop.png'
     move_faces = True
     
 def matching_maps(v, maps):
@@ -161,8 +203,8 @@ def matching_maps(v, maps):
     return mm
 
 def same_orthoplanes(v1, v2):
-    s1 = v1.showing_orthoplanes()
-    s2 = v2.showing_orthoplanes()
+    s1 = v1.showing_image('orthoplanes')
+    s2 = v2.showing_image('orthoplanes')
     if s1 == s2:
         if v1.rendering_options.orthoplane_positions == v2.rendering_options.orthoplane_positions:
             return True
@@ -193,10 +235,10 @@ def move_face(v, axis, side, istep):
     
 def move_slab(v, axis, side, istep):
 
-    if v.showing_orthoplanes():
+    if v.showing_image('orthoplanes'):
         move_orthoplane(v, axis, istep)
         return
-
+        
     ijk_min, ijk_max, ijk_step = [list(u) for u in v.region]
     amax = v.data.size[axis]-1
     istep = max(istep, -ijk_min[axis])              # clamp step
@@ -217,7 +259,7 @@ def move_orthoplane(v, axis, istep):
         ijk[axis] = ijk_max[axis]
     v.set_parameters(orthoplane_positions = tuple(ijk))
 
-def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
+def drag_distance(v, pixel_size, axis, dx, dy, viewer, clamp_speed = 3):
     from math import sqrt
     d = sqrt(dx*dx + dy*dy)
     face_normal = v.axis_vector(axis)    # global coords
@@ -230,23 +272,25 @@ def drag_distance(v, ijk, axis, dx, dy, viewer, clamp_speed = 3):
         # they are in opposite directions when projected onto the plane normal.
         # This avoids the jitter.
         return 0
-    psize = viewer.pixel_size(v.ijk_to_global_xyz(ijk))
     nxy = sqrt(nx*nx + ny*ny)
     cosa = (dx*nx + dy*ny) / (d*nxy) if d*nxy > 0 else sign(dy)
-    nstep = psize * d * cosa / max(nxy, 1.0/clamp_speed)  # physical units
+    nstep = pixel_size * d * cosa / max(nxy, 1.0/clamp_speed)  # physical units
     return nstep
 
 def sign(x):
     return 1 if x >= 0 else -1
 
 def log_volume_region_command(v):
-    ijk_min, ijk_max = v.region[:2]
-    if v.showing_orthoplanes():
-        ro = v.rendering_options
+    ro = v.rendering_options
+    if v.showing_image('orthoplanes'):
         planes = ''.join([n for n,s in zip(('x','y','z'),ro.orthoplanes_shown) if s])
         region = ('orthoplanes %s' % planes
                   + ' positionPlanes %d,%d,%d' % ro.orthoplane_positions)
+    elif v.showing_image('tilted slab'):
+        region = ('tiltedSlabOffset %.4g' % ro.tilted_slab_offset
+                  + ' tiltedSlabPlaneCount %d' % ro.tilted_slab_plane_count)
     else:
+        ijk_min, ijk_max = v.region[:2]
         region = 'region %d,%d,%d,%d,%d,%d' % (tuple(ijk_min)+tuple(ijk_max))
 
     command = 'volume #%s %s' % (v.id_string, region)

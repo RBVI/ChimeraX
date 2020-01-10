@@ -5,7 +5,8 @@ SCRIPT = _vdoc.py
 VERBOSE = -v
 
 all install build:	check
-	$(PYTHON_EXE) $(SCRIPT) build
+	$(APP_EXE) --nogui --silent --exit --script '$(SCRIPT) build'
+	$(MAKE) -C $(TOP)/docs/user/tools DOCDIR=$$(pwd)/user/tools RSYNC="ln -s" install-icons
 
 check:
 	$(PYTHON_EXE) $(SCRIPT) check $(VERBOSE)
@@ -15,3 +16,7 @@ clean:	check
 
 distclean:
 	$(PYTHON_EXE) $(SCRIPT) clean
+
+from-daily:
+	bin=$(shell dirname $$(readlink $$(which chimerax-daily))); \
+	$(MAKE) APP_EXE=chimerax-daily PYTHON_EXE="$$bin/python$(PYTHON_VERSION)" install

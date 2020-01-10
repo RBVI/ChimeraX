@@ -12,7 +12,7 @@
 from chimerax.mouse_modes import MouseMode
 class ContourLevelMouseMode(MouseMode):
     name = 'contour level'
-    icon_file = 'contour.png'
+    icon_file = 'icons/contour.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
@@ -71,23 +71,27 @@ class ContourLevelMouseMode(MouseMode):
         self._maps = []
         MouseMode.mouse_up(self, event)
         
-    def vr_press(self, xyz1, xyz2):
+    def vr_press(self, event):
         # Virtual reality hand controller button press.
+        xyz1, xyz2 = event.picking_segment()
         self._maps = self._picked_maps_on_segment(xyz1, xyz2)
 
-    def vr_motion(self, position, move, delta_z):
+    def vr_motion(self, event):
         # Virtual reality hand controller motion.
-        adjust_threshold_levels(self._maps, delta_z)
+        adjust_threshold_levels(self._maps, event.room_vertical_motion)
         
-    def vr_release(self):
+    def vr_release(self, event):
         # Virtual reality hand controller button release.
         self.log_volume_command()
         self._maps = []
 
-    def vr_thumbstick(self, xyz1, xyz2, step):
+    def vr_thumbstick(self, event):
         # Virtual reality hand controller button press.
-        maps = self._picked_maps_on_segment(xyz1, xyz2)
-        adjust_threshold_levels(maps, 0.001*step)
+        step = e.thumbstick_step()
+        if step != 0:
+            xyz1, xyz2 = event.picking_segment()
+            maps = self._picked_maps_on_segment(xyz1, xyz2)
+            adjust_threshold_levels(maps, 0.001*step)
 
     def log_volume_command(self):
         for v in self._maps:

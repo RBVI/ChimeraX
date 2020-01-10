@@ -67,8 +67,8 @@ def standard_shortcuts(session):
         ('Qt', 'quit', 'Quit', ocat, noarg, fmenu),
 
         # Scene
-        ('va', 'view cofr false', 'View all', gcat, noarg, smenu),
-        ('dv', 'view orient cofr false', 'Default orientation', gcat, noarg, smenu),
+        ('va', 'view', 'View all', gcat, noarg, smenu),
+        ('dv', 'view orient', 'Default orientation', gcat, noarg, smenu),
         ('vs', view_selected, 'View selected', gcat, sesarg, smenu),
 #        ('Sp', save_position, 'Save position, restore it with pp', gcat, sesarg, smenu),
 #        ('pp', restore_position, 'Restore previous position saved with Sp', gcat, sesarg, smenu, sep),
@@ -129,6 +129,7 @@ def standard_shortcuts(session):
 
         ('aw', if_sel_maps('volume sel appearance "Airways II"'), 'Airways preset', mapcat, sesarg, mmenu),
         ('as', if_sel_maps('volume sel appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
+        ('ch', if_sel_maps('volume sel appearance chest'), 'Chest preset', mapcat, sesarg, mmenu),
         ('dc', if_sel_maps('volume sel appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
         ('zs', if_sel_maps('volume sel projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
         ('ps', if_sel_maps('volume sel projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
@@ -540,8 +541,7 @@ def show_one_plane(m):
   ijk_step = (1,1,1)
   ijk_min, ijk_max = [list(b) for b in m.region[:2]]
   ijk_min[2] = ijk_max[2] = (ijk_min[2] + ijk_max[2])//2
-  m.set_parameters(orthoplanes_shown = (False, False, False),
-                   box_faces = False)
+  m.set_parameters(image_mode == 'full region')
   m.new_region(ijk_min, ijk_max, ijk_step, adjust_step = False)
   m.set_display_style('image')
         
@@ -557,10 +557,9 @@ def show_orthoplanes(m):
   run(m.session, cmd)
 
 def toggle_box_faces(m):
-  s = not m.rendering_options.box_faces
-  m.set_parameters(box_faces = s,
-                   color_mode = 'l8' if s else 'auto8',
-                   orthoplanes_shown = (False, False, False))
+  mode = 'full region' if m.rendering_options.image_mode == 'box faces' else 'box faces'
+  m.set_parameters(image_mode = mode,
+                   color_mode = 'opaque8' if mode == 'box faces' else 'auto8')
   m.set_display_style('image')
 
 def mark_map_surface_center(m):
