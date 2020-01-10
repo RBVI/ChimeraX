@@ -18,7 +18,9 @@
 # -----------------------------------------------------------------------------
 #
 def segmentation_colors(session, segmentations, color = None, map = None, surface = None,
-                        by_attribute = None, step = (1,1,1), max_segment_id = None):
+                        by_attribute = None, outside_color = None,
+                        step = (1,1,1),  # Step is just used for surface coloring.
+                        max_segment_id = None):
 
     if len(segmentations) == 0:
         from chimerax.core.errors import UserError
@@ -30,10 +32,12 @@ def segmentation_colors(session, segmentations, color = None, map = None, surfac
 
     if color is not None:
         color = color.uint8x4()
+    if outside_color is not None:
+        outside_color = outside_color.uint8x4()
         
     if map is None and surface is None:
         for seg in segmentations:
-            _color_segmentation(seg, by_attribute, color)
+            _color_segmentation(seg, by_attribute, color, outside_color)
 
     if map is not None:
         if len(segmentations) != 1:
@@ -46,7 +50,7 @@ def segmentation_colors(session, segmentations, color = None, map = None, surfac
             raise UserError('segmentation colors: Volume size %s' % tuple(map.data.size) +
                             ' does not match segmentation size %s' % tuple(seg.data.size))
 
-        _color_map(map, seg, by_attribute, color)
+        _color_map(map, seg, by_attribute, color, outside_color)
 
     if surface is not None:
         if len(segmentations) != 1:
@@ -54,14 +58,16 @@ def segmentation_colors(session, segmentations, color = None, map = None, surfac
             raise UserError('segmentation colors: Can only specify one segmentation'
                             ' when coloring a surface, got %d' % len(segmentations))
         seg = segmentations[0]
-        _color_surface(surface, seg, by_attribute, color=color, step=step)
+        _color_surface(surface, seg, by_attribute,
+                       color=color, outside_color=outside_color, step=step)
         
 # -----------------------------------------------------------------------------
 #
-def _color_segmentation(segmentation, attribute_name, color = None):
+def _color_segmentation(segmentation, attribute_name, color = None, outside_color = None):
     seg = segmentation
     c = _attribute_colors(seg, attribute_name)
-    seg_colors = c.segment_rgba(color)
+    zc = (0,0,0,0) if outside_color is None else outside_color
+    seg_colors = c.segment_colors(color, zc)
     seg.segment_colors = seg_colors
     i = seg._image 
     if i:
@@ -70,9 +76,10 @@ def _color_segmentation(segmentation, attribute_name, color = None):
         
 # -----------------------------------------------------------------------------
 #
-def _color_map(map, segmentation, attribute_name, color = None):
+def _color_map(map, segmentation, attribute_name, color = None, outside_color = None):
     ac = _attribute_colors(segmentation, attribute_name)
-    seg_rgba = ac.segment_rgba(color)
+    zc = (255,255,255,255) if outside_color is None else outside_color
+    seg_rgba = ac.segment_colors(color, zc)
     seg_rgb = seg_rgba[:3].copy()	# Make contiguous
     def seg_color(color_plane, region, seg=segmentation,
                   segment_rgba = seg_rgba, segment_rgb = seg_rgb):
@@ -92,21 +99,17 @@ def _color_map(map, segmentation, attribute_name, color = None):
         
 # -----------------------------------------------------------------------------
 #
-def _color_surface(surface, segmentation, attribute_name, color = None, step = (1,1,1)):
+def _color_surface(surface, segmentation, attribute_name,
+                   color = None, outside_color = None, step = (1,1,1)):
     vs = _surface_vertex_segments(surface, segmentation, step=step)
-    if attribute_name is None:
-        va = vs
-    else:
-        a = _attribute_values(segmentation, attribute_name)
-        va = a[vs]
     c = _attribute_colors(segmentation, attribute_name)
-    nz = va.nonzero()
-    vc = surface.get_vertex_colors(create = True)
-    if color is None:
-        ac = c.attribute_rgba
-        vc[nz] = ac[va[nz]]
+    if outside_color is None:
+        # Preserve current vertex colors outside where attribute value is 0.
+        vc = surface.get_vertex_colors(create = True)
+        c.modify_segment_colors(color, vs, vc)
     else:
-        vc[nz] = color
+        sc = c.segment_colors(color, outside_color)
+        vc = sc[vs]
     surface.vertex_colors = vc
 
 # -----------------------------------------------------------------------------
@@ -128,57 +131,65 @@ def _surface_vertex_segments(surface, segmentation, step = (1,1,1)):
 #
 def _attribute_colors(seg, attribute_name):
     if not hasattr(seg, '_segment_attribute_colors'):
-        seg._segment_attribute_colors = {}	# Map attribute name to SegmentationColors
+        seg._segment_attribute_colors = {}	# Map attribute name to AttributeColors
     if attribute_name in seg._segment_attribute_colors:
         c = seg._segment_attribute_colors[attribute_name]
     else:
-        c = SegmentationColors(seg, attribute_name)
+        c = AttributeColors(seg, attribute_name)
         seg._segment_attribute_colors[attribute_name] = c
     return c
 
 # -----------------------------------------------------------------------------
 #
-class SegmentationColors:
+class AttributeColors:
     def __init__(self, segmentation, attribute_name = None, zero_color = (150,150,150,255)):
         self._attribute_name = attribute_name
 
         seg = segmentation
         if attribute_name is None:
-            mi = seg._max_segment_id if hasattr(seg, '_max_segment_id') else seg.full_matrix().max()
             av = None
+            mi = seg._max_segment_id if hasattr(seg, '_max_segment_id') else seg.full_matrix().max()
+            nc = mi + 1
         else:
             av = _attribute_values(seg, attribute_name)
             mi = len(av)-1
+            nc = av.max()+1
+
         if not hasattr(seg, '_max_segment_id'):
             seg._max_segment_id = mi
 
-        if av is not None:
-            nc = av.max() + 1
-            ac = _random_colors(nc)
-            ac[0,:] = zero_color
-            c = ac[av].copy()
-        else:
-            c = ac = _random_colors(mi)
-
-        self._attribute_values = av
+        self._max_segment_id = mi
+        self._segment_attribute_values = av
         self._zero_color = zero_color
-        self._rgba = c
-        self.attribute_rgba = ac
+        self.attribute_rgba = _random_colors(nc)
 
-    def segment_rgba(self, color = None):
+    def segment_colors(self, color = None, outside_color = None):
+        zc = self._zero_color if outside_color is None else outside_color
+        av = self._segment_attribute_values
         if color is None:
-            c = self._rgba
+            ac = self.attribute_rgba.copy()
+            ac[0,:] = zc
+            c = ac if av is None else ac[av]
         else:
             from numpy import empty, uint8
-            c = empty(self._rgba.shape, uint8)
-            av = self._attribute_values
+            c = empty((self._max_segment_id + 1, 4), uint8)
             if av is None:
                 c[:] = color
-                c[0,:] = self._zero_color
+                c[0,:] = zc
             else:
-                c[:] = self._zero_color
+                c[:] = zc
                 c[av.nonzero()] = color
         return c
+
+    def modify_segment_colors(self, color, segment_ids, colors):
+        '''
+        Change colors array for segments with nonzero attribute value.
+        The segment_ids array gives the segment id for each element of the colors array.
+        '''
+        av = self._segment_attribute_values
+        ea = segment_ids if av is None else av[segment_ids]
+        nz = ea.nonzero()
+        colors[nz] = self.attribute_rgba[ea][nz] if color is None else color
         
 # -----------------------------------------------------------------------------
 #
@@ -300,6 +311,7 @@ def register_segmentation_command(logger):
         keyword = [('map', MapArg),
                    ('surface', SurfaceArg),
                    ('by_attribute', StringArg),
+                   ('outside_color', ColorArg),
                    ('max_segment_id', IntArg),
                    ('step', MapStepArg),],
         synopsis = 'Set segmentation to use random colors, or apply segmentation coloring to a volume'
