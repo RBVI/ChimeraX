@@ -513,18 +513,20 @@ class ArrowModel(Model):
         return ((left, right, bottom, top), (base1, base2, inside2, inside1)), \
             (((inside1[0] + inside2[0])/2, (inside1[1] + inside2[1])/2), (norm_x, norm_y))
 
-    def head_params(self, head_start):
+    def head_params(self, head_start, width, height):
         start_pos, norm = head_start
         perp = norm[1], -norm[0]
         style = self.arrow.head_style
-        half_width = self.STD_HALF_WIDTH * self.arrow.weight
-        bounding_pts = [self.arrow.end]
+        scale_factor = min(width, height)
+        half_width = self.STD_HALF_WIDTH * self.arrow.weight * scale_factor
+        ex, ey = width * self.arrow.end[0], height * self.arrow.end[1]
+        bounding_pts = [(ex, ey)]
         if style == "pointer":
             bounding_pts.append((start_pos[0] + half_width * perp[0], start_pos[1] + half_width * perp[1]))
             bounding_pts.append((start_pos[0] - half_width * perp[0], start_pos[1] - half_width * perp[1]))
         else:
             head_width = 4 * half_width
-            head_back = (self.arrow.end[0] - norm[0] * head_width, self.arrow.end[1] - norm[1] * head_width)
+            head_back = (ex - norm[0] * head_width, ey - norm[1] * head_width)
             bounding_pts.append((head_back[0] + head_width * perp[0], head_back[1] + head_width * perp[1]))
             bounding_pts.append((head_back[0] - head_width * perp[0], head_back[1] - head_width * perp[1]))
             # even though the "blocky" style has an extra corner, that corner can never be on the
@@ -544,7 +546,7 @@ class ArrowModel(Model):
             return None
         shaft_bounds, shaft_geom = shaft_info
         s_left, s_right, s_bottom, s_top = shaft_bounds
-        h_left, h_right, h_bottom, h_top = self.head_params(head_start)
+        h_left, h_right, h_bottom, h_top = self.head_params(head_start, w, h)
 
         left = min(s_left, h_left)
         right = max(s_right, h_right)
@@ -559,31 +561,39 @@ class ArrowModel(Model):
             QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
-        p = QPainter()
-        p.begin(image)
-        p.setRenderHint(QPainter.Antialiasing)
-        bcolor = QColor(*self.arrow_color)
-        from PyQt5.QtCore import Qt, QPointF
-        pbr = QBrush(bcolor, Qt.SolidPattern)
-        p.setBrush(pbr)
-        ppen = QPen(Qt.NoPen)
-        p.setPen(ppen)
-        def image_xy(float_xy, l=left, t=top):
-            x, y = float_xy
-            # image y axis points down
-            return (self.PIXEL_MARGIN + (x-l), self.PIXEL_MARGIN + (t-y))
-        if len(shaft_geom) == 4:
-            p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in shaft_geom])
-        else:
-            #TODO: draw arc
-            pass
-        #TODO: draw head
+        with QPainter(image) as p:
+            p.setRenderHint(QPainter.Antialiasing)
+            bcolor = QColor(*self.arrow_color)
+            from PyQt5.QtCore import Qt, QPointF
+            pbr = QBrush(bcolor, Qt.SolidPattern)
+            p.setBrush(pbr)
+            ppen = QPen(Qt.NoPen)
+            p.setPen(ppen)
+            def image_xy(float_xy, l=left, t=top):
+                x, y = float_xy
+                # image y axis points down
+                return (self.PIXEL_MARGIN + (x-l), self.PIXEL_MARGIN + (t-y))
+            if len(shaft_geom) == 4:
+                p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in shaft_geom])
+            else:
+                #TODO: draw arc
+                pass
+            start_pos, norm = head_start
+            scale_factor = min(w,h)
+            half_width = scale_factor * self.STD_HALF_WIDTH * self.arrow.weight
+            if self.arrow.head_style == "solid":
+                head_width = 4 * half_width
+                ex, ey = self.arrow.end[0] * w, self.arrow.end[1] * h
+                head_back = (ex - norm[0] * head_width, ey - norm[1] * head_width)
+                perp = norm[1], -norm[0]
+                edge1 = (head_back[0] + head_width * perp[0], head_back[1] + head_width * perp[1])
+                edge2 = (head_back[0] - head_width * perp[0], head_back[1] - head_width * perp[1])
+                p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in [edge1, edge2, (ex, ey)]])
+            #TODO: other head styles
 
-        # Convert to numpy rgba array.
-        from chimerax.core.graphics import qimage_to_numpy
-        rgba = qimage_to_numpy(image)
-
-        p.end()
+            # Convert to numpy rgba array.
+            from chimerax.core.graphics import qimage_to_numpy
+            rgba = qimage_to_numpy(image)
 
         return rgba
 
