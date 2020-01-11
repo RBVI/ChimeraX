@@ -149,7 +149,7 @@ class AttributeColors:
         seg = segmentation
         if attribute_name is None:
             av = None
-            mi = seg._max_segment_id if hasattr(seg, '_max_segment_id') else seg.full_matrix().max()
+            mi = _maximum_segment_id(seg)
             nc = mi + 1
         else:
             av = _attribute_values(seg, attribute_name)
@@ -279,7 +279,22 @@ def _voxel_limit_step(seg, subregion, increase_limit = 10):
 def _step_string(step):
     si,sj,sk = step
     return '%d' % si if si == sj and si == sk else '%d,%d,%d' % (si,sj,sk)
-    
+
+# -----------------------------------------------------------------------------
+#
+def _maximum_segment_id(segmentation):
+    seg = segmentation
+    if hasattr(seg, '_max_segment_id'):
+        max_seg_id = seg._max_segment_id
+    else:
+        try:
+            max_seg_id = seg.data.find_attribute('maximum_segment_id')
+        except:
+            max_seg_id = seg.full_matrix().max()
+        seg._max_segment_id = max_seg_id
+
+    return max_seg_id
+
 # -----------------------------------------------------------------------------
 #
 def _attribute_values(seg, attribute_name):
