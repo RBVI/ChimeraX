@@ -114,6 +114,11 @@ def _color_surface(surface, segmentation, attribute_name,
         vc = sc[vs]
     surface.vertex_colors = vc
 
+    vcount = c.unique_values_count(vs)
+    what = 'segments' if attribute_name is None else ('%s values' % attribute_name)
+    msg = 'Colored surface %s (#%s) with %d %s' % (surface.name, surface.id_string, vcount, what)
+    surface.session.logger.info(msg)
+    
 # -----------------------------------------------------------------------------
 #
 def _surface_vertex_segments(surface, segmentation, step = (1,1,1)):
@@ -192,13 +197,26 @@ class AttributeColors:
         ea = segment_ids if av is None else av[segment_ids]
         nz = ea.nonzero()
         colors[nz] = self.attribute_rgba[ea][nz] if color is None else color
-        
+
+    def unique_values_count(self, segment_ids):
+        av = self._segment_attribute_values
+        if av is None:
+            v = set(segment_ids)
+        else:
+            v = set(av[segment_ids])
+        v.discard(0)
+        vl = list(v)
+        vl.sort()
+        print('values', vl[:20])
+        return len(v)
+    
 # -----------------------------------------------------------------------------
 #
 def _random_colors(count, cmin=50, cmax=255, opaque = True, seed = None):
     from numpy import random, uint8
     if seed is not None:
-        random.seed(hash(seed)%2**32)
+        from zlib import adler32
+        random.seed(adler32(seed.encode('utf-8')))	# Ensure reproducible colors.
     c = random.randint(cmin, high = cmax, size = (count, 4), dtype = uint8)
     if opaque:
         c[:,3] = 255
@@ -221,7 +239,7 @@ def _which_segments(segmentation, where, each):
             # All segments with attribute with specified value ("where neuron_id=1")
             attribute_name, val = where.split('=', maxsplit = 1)
             value = int(val)
-            group = (_attribute_values(segmentation, attribute_name) == value)
+            group = (_attribute_values(segmentation, attribute_name) == value) * value
         else:
             try:
                 # One specific segment ("where 5")
