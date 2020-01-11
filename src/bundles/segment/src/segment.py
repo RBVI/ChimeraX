@@ -17,7 +17,8 @@
 
 # -----------------------------------------------------------------------------
 #
-def segmentation_colors(session, segmentations, color = None, map = None, surface = None,
+def segmentation_colors(session, segmentations, color = None,
+                        map = None, surface = None,
                         by_attribute = None, outside_color = None,
                         step = None,  # Step is just used for surface coloring interpolation.
                         max_segment_id = None):
@@ -205,9 +206,49 @@ def _random_colors(count, cmin=50, cmax=255, opaque = True, seed = None):
 
 # -----------------------------------------------------------------------------
 #
-def segmentation_surfaces(session, segmentations, region = 'all', step = None,
-                          value = None, zero = False, by_attribute = None,
-                          color = None):
+def _which_segments(segmentation, where, each):
+    if each is not None:
+        if each == 'segment':
+            # One group for each segment ("each segment")
+            attribute_name = 'segment'
+            group = 'each'
+        else:
+            # One group for each attribute value ("each neuron_id")
+            attribute_name = each
+            group = _attribute_values(segmentation, attribute_name)
+    elif where is not None:
+        if '=' in where:
+            # All segments with attribute with specified value ("where neuron_id=1")
+            attribute_name, val = where.split('=', maxsplit = 1)
+            value = int(val)
+            group = (_attribute_values(segmentation, attribute_name) == value)
+        else:
+            try:
+                # One specific segment ("where 5")
+                attribute_name = 'segment'
+                group = int(where)
+            except:
+                # All segments with non-zero attribute value ("where neuron_id").
+                attribute_name = where
+                group = (_attribute_values(segmentation, attribute_name) != 0)
+    else:
+        # One group for each segment
+        max_seg_id = _maximum_segment_id(segmentation)
+        if max_seg_id > 100:
+            from chimerax.core.errors import UserError
+            raise UserError('Segmentation %s (#%s) has %d segments (> 100).'
+                            ' To create surface for each segment use "each segment" option.'
+                            % (segmentation.name, segmentation.id_string, max_seg_id))
+        attribute_name = 'segment'
+        group = 'each'
+
+    return group, attribute_name
+
+# -----------------------------------------------------------------------------
+#
+def segmentation_surfaces(session, segmentations,
+                          where = None, each = None, region = 'all', step = None,
+                          color = None, zero = False):
 
     if len(segmentations) == 0:
         from chimerax.core.errors import UserError
@@ -222,23 +263,33 @@ def segmentation_surfaces(session, segmentations, region = 'all', step = None,
     for seg in segmentations:
         sstep = _voxel_limit_step(seg, region) if step is None else step
         matrix = seg.matrix(step = sstep, subregion = region)
-        if by_attribute is not None:
-            g = _attribute_values(seg, by_attribute)
-            if value is not None:
-                g = (g == value)
-            surfs = segment_group_surfaces(matrix, g, zero=zero)
-            models_name = ('%s %d %s surfaces' % (seg.name, len(surfs), by_attribute))
-        elif value is not None:
-            va, ta = segment_surface(matrix, value)
-            surfs = [(value, va, ta)]
+        group, attribute_name = _which_segments(seg, where, each)
+        if attribute_name == 'segment':
+            if isinstance(group, int):
+                # Surface for one specific segment id.
+                value = group
+                va, ta = segment_surface(matrix, value)
+                surfs = [(value, va, ta)]
+                models_name = ('%s segment %d' % (seg.name, group))
+            elif group == 'each':
+                # Each segment id as a separate surface
+                surfs = segment_surfaces(matrix, zero=zero)
+                models_name = ('%s %d surfaces' % (seg.name, len(surfs)))
+            else:
+                # Surfaces for several segment groups
+                surfs = segment_group_surfaces(matrix, group, zero=zero)
+                models_name = ('%s %d surfaces' % (seg.name, len(surfs)))
         else:
-            surfs = segment_surfaces(matrix, zero=zero)
-            models_name = ('%s %d surfaces' % (seg.name, len(surfs)))
+            # By attribute value
+            surfs = segment_group_surfaces(matrix, group, zero=zero)
+            models_name = ('%s %d %s surfaces' % (seg.name, len(surfs), attribute_name))
+
         tcount += sum([len(ta) for value, va, ta in surfs])
         segsurfs = []
         tf = seg.matrix_indices_to_xyz_transform(step = sstep, subregion = region)
         if color is None:
-            colors = _attribute_colors(seg, by_attribute).attribute_rgba
+            attr = None if attribute_name == 'segment' else attribute_name
+            colors = _attribute_colors(seg, attr).attribute_rgba
         for surf in surfs:
             region_id, va, ta = surf
             tf.transform_points(va, in_place = True)
@@ -359,12 +410,12 @@ def register_segmentation_command(logger):
 
     desc = CmdDesc(
         required = [('segmentations', MapsArg)],
-        keyword = [('value', IntArg),
-                   ('zero', BoolArg),
-                   ('by_attribute', StringArg),
-                   ('color', ColorArg),
+        keyword = [('where', StringArg),
+                   ('each', StringArg),
                    ('region', MapRegionArg),
-                   ('step', MapStepArg),],
+                   ('step', MapStepArg),
+                   ('color', ColorArg),
+                   ('zero', BoolArg),],
         synopsis = 'Create surfaces for a segmentation regions.'
     )
     register('segmentation surfaces', desc, segmentation_surfaces, logger=logger)
