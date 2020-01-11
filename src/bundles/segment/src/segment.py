@@ -214,7 +214,6 @@ class AttributeColors:
         v.discard(0)
         vl = list(v)
         vl.sort()
-        print('values', vl[:20])
         return len(v)
     
 # -----------------------------------------------------------------------------
@@ -291,28 +290,36 @@ def segmentation_surfaces(session, segmentations,
                                 ' To create surface for each segment use "each segment" option.'
                                 % (seg.name, seg.id_string, max_seg_id))
         group, attribute_name = _which_segments(seg, conditions)
-        single = (each is None)
         sstep = _voxel_limit_step(seg, region) if step is None else step
         matrix = seg.matrix(step = sstep, subregion = region)
-        surfs = _calculate_surfaces(matrix, group, single, zero)
+        from ._segment import segment_group_surfaces
+        surfs = segment_group_surfaces(matrix, group, zero=zero)
+        attr = None if attribute_name == 'segment' else attribute_name
+        colors = _attribute_colors(seg, attr).attribute_rgba
+        if each is None and len(surfs) > 1:
+            # Combine to single surface
+            scount = len(surfs)
+            va, ta, vertex_colors = _combine_geometry(surfs, colors)
+            surfs = [(None, va, ta)]
         segsurfs = []
         tf = seg.matrix_indices_to_xyz_transform(step = sstep, subregion = region)
-        if color is None and each:
-            attr = None if attribute_name == 'segment' else attribute_name
-            colors = _attribute_colors(seg, attr).attribute_rgba
         for surf in surfs:
             region_id, va, ta = surf
             tf.transform_points(va, in_place = True)
             from chimerax.surface import calculate_vertex_normals
             na = calculate_vertex_normals(va, ta)
             from chimerax.core.models import Surface
-            s = Surface('%s %d' % (seg.name, region_id), session)
+            if region_id is None:
+                name = '%s %d %ss' % (seg.name, scount, attribute_name)
+            else:
+                name = '%s %s %d' % (seg.name, attribute_name, region_id)
+            s = Surface(name, session)
             s.set_geometry(va, na, ta)
             s.clip_cap = True  # Cap surface when clipped
-            if each:
-                s.color = colors[region_id] if color is None else color
+            if color is None and region_id is None:
+                s.vertex_colors = vertex_colors
             else:
-                _color_surface(s, seg, attribute_name, step = sstep)
+                s.color = colors[region_id] if color is None else color
             segsurfs.append(s)
         surfaces.extend(segsurfs)
 
@@ -330,38 +337,22 @@ def segmentation_surfaces(session, segmentations,
 
 # -----------------------------------------------------------------------------
 #
-def _calculate_surfaces(matrix, group, single_surface, zero):
-    from ._segment import segment_surface, segment_surfaces, segment_group_surfaces
-    if single_surface:
-        seg_id = _single_segment(group)
-        if seg_id is not None:
-            # Surface for one specific segment id.
-            va, ta = segment_surface(matrix, seg_id)
-            surfs = [(seg_id, va, ta)]
-        else:
-            surfs = segment_group_surfaces(matrix, (group != 0), zero=False)
-    else:
-        if _all_segments(group):
-            # Each segment id as a separate surface
-            surfs = segment_surfaces(matrix, zero=zero)
-        else:
-            # Surfaces for several segment groups
-            surfs = segment_group_surfaces(matrix, group, zero=zero)
-    return surfs
-
-# -----------------------------------------------------------------------------
-#
-def _single_segment(group):
-    from numpy import count_nonzero, nonzero
-    if count_nonzero(group) == 1:
-        return nonzero(group)[0]
-    return None
-
-# -----------------------------------------------------------------------------
-#
-def _all_segments(group):
-    from numpy import arange
-    return (group == arange(group.shape[0], dtype = group.dtype)).all()
+def _combine_geometry(surfs, colors):
+    nv = sum(len(va) for region_id, va, ta in surfs)
+    from numpy import empty, float32, uint8, concatenate
+    cva = empty((nv,3), float32)
+    cvc = empty((nv,4), uint8)
+    voffset = 0
+    tlist = []
+    for region_id, va, ta in surfs:
+        snv = len(va)
+        cva[voffset:voffset+snv,:] = va
+        cvc[voffset:voffset+snv,:] = colors[region_id]
+        ta += voffset
+        tlist.append(ta)
+        voffset += snv
+    cta = concatenate(tlist)
+    return cva, cta, cvc
 
 # -----------------------------------------------------------------------------
 #
