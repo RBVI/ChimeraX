@@ -305,6 +305,8 @@ def _attribute_values(seg, attribute_name):
         try:
             g = seg.data.find_attribute(attribute_name)
         except:
+            g = None
+        if g is None:
             raise UserError('Segmentation %s (#%s) has no attribute %s'
                             % (seg.name, seg.id_string, attribute_name))
 
@@ -318,7 +320,7 @@ def _attribute_values(seg, attribute_name):
         from numpy import ndarray, int32
         if not isinstance(g, ndarray):
             raise UserError('Segmentation %s (#%s) attribute array %s'
-                            ' must be a 1-D array (numpy, tuple, or list), got %d'
+                            ' must be a 1-D array (numpy, tuple, or list), got %s'
                             % (seg.name, seg.id_string, attribute_name, type(g)))
             
         if g.dtype != int32:
