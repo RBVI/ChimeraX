@@ -460,7 +460,7 @@ class Image3d(Model):
       cmap = self._colormap
       from numpy import array
       tf = array(cmap.transfer_function)
-      if len(tf) == 0 or hasattr(self, 'mask_colors'):
+      if len(tf) == 0 or hasattr(self, 'mask_colors') or hasattr(self, 'segment_colors'):
         m = 'rgb' if opaque else 'rgba'
       else:
         single_color = _colinear(tf[:,2:5], 0.99)

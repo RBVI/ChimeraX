@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-BILD"
-	    version="0.1" package="chimerax.bild"
+	    version="0.2" package="chimerax.bild"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

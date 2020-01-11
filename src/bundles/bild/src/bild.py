@@ -619,7 +619,7 @@ def get_cone(radius, p0, p1, bottom=False, xform=None, pure=False):
     from chimerax.core.geometry import z_align
     xf = z_align(p0, p1)
     inverse = xf.inverse()
-    vertices = inverse * vertices
+    vertices = inverse * (vertices + [0, 0, h / 2])
     inverse.transform_normals(normals, in_place=True, is_rotation=True)
     if xform is not None:
         xform.transform_points(vertices, in_place=True)
