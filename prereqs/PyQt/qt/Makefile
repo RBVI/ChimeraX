@@ -8,8 +8,8 @@ include $(TOP)/mk/config.make
 
 export PATH:=$(bindir):$(PATH)
 
-VERSION = 5.12
-MINOR_VERSION = 5
+VERSION = 5.13
+MINOR_VERSION = 2
 FULL_VERSION = $(VERSION).$(MINOR_VERSION)
 DISTRIBUTION = qt-everywhere-src-$(FULL_VERSION).tar.xz
 SOURCE = $(tmpdir)/qt-everywhere-src-$(FULL_VERSION)
