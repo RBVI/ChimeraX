@@ -41,9 +41,9 @@ class Image3d(Model):
     self._c_mode = self._auto_color_mode()	# Explicit mode, cannot be "auto".
     self._mod_rgba = self._luminance_color()	# For luminance color modes.
     self._p_mode = self._auto_projection_mode() # Explicit mode, not "auto"
-    self._multiaxis_planes = [None, None, None]	# For x, y, z axis projection
-    self._planes_drawing = None			# For ortho and box mode display
-    self._view_aligned_planes = None		# ViewAlignedPlanes instance for 3d projection mode
+    self._planes_2d_multiaxis = [None, None, None]	# For x, y, z axis projection mode
+    self._planes_2d = None			# For ortho and box mode display
+    self._planes_3d = None			# Texture3dPlanes instance for 3d projection mode
     
   # ---------------------------------------------------------------------------
   #
@@ -121,20 +121,27 @@ class Image3d(Model):
                  'colormap_extend_left', 'colormap_extend_right',
                  'dim_transparent_voxels',
                  'projection_mode', 'plane_spacing', 'full_region_on_gpu',
-                 'orthoplanes_shown', 'orthoplane_positions', 'box_faces', 'linear_interpolation'):
+                 'image_mode', 'linear_interpolation'):
         if getattr(rendering_options, attr) != getattr(ro, attr):
             change = True
             break
     if change:
         self._remove_planes()
         self._need_color_update()
-# TODO: Should not delete all textures when one orthoplane is moved.
-# TODO: Don't have opengl context current, needed when blending on gpu when orthoplane changes.
-#    elif rendering_options.orthoplane_positions != ro.orthoplane_positions:
-#      self._update_planes_for_new_region()
+
+    if (rendering_options.image_mode == 'orthoplanes' and ro.image_mode == 'orthoplanes' and
+        (rendering_options.orthoplane_positions != ro.orthoplane_positions or
+         rendering_options.orthoplanes_shown != ro.orthoplanes_shown)):
+      self._update_planes_for_new_region()
 
     if rendering_options.maximum_intensity_projection != ro.maximum_intensity_projection:
       self.redraw_needed()	# MIP blending is entirely handled in draw routine.
+
+    if (tuple(rendering_options.tilted_slab_axis) != tuple(ro.tilted_slab_axis) or
+        rendering_options.tilted_slab_offset != ro.tilted_slab_offset or
+        rendering_options.tilted_slab_spacing != ro.tilted_slab_spacing or
+        rendering_options.tilted_slab_plane_count != ro.tilted_slab_plane_count):
+      self.redraw_needed()	# Update tilted slab 
       
 # TODO: _p_mode not used.  Why?
     self._p_mode = self._auto_projection_mode()
@@ -155,12 +162,12 @@ class Image3d(Model):
       return False
 
   @property
-  def _showing_view_aligned(self):
+  def _use_3d_texture(self):
     ro = self._rendering_options
-    return (self._p_mode == '3d'
-            and not self._single_plane
-            and not ro.any_orthoplanes_shown()
-            and not ro.box_faces)
+    return (ro.image_mode == 'tilted slab' or
+            (self._p_mode == '3d'
+             and not self._single_plane
+             and ro.image_mode not in ('orthoplanes', 'box faces')))
   
   @property
   def _modulation_color(self):
@@ -192,6 +199,13 @@ class Image3d(Model):
     from numpy import squeeze
     p = squeeze(m, 2-axis)	# Reduce from 3d array to 2d.
     return p
+    
+  # ---------------------------------------------------------------------------
+  #
+  def _plane_region(self, k, axis):
+    ijk_min, ijk_max, ijk_step = [list(ijk) for ijk in self._texture_region]
+    ijk_min[axis] = ijk_max[axis] = k
+    return ijk_min, ijk_max, ijk_step
       
   # ---------------------------------------------------------------------------
   #
@@ -204,24 +218,29 @@ class Image3d(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _color_plane(self, plane, axis, view_aligned=False, require_color=False):
+  def _color_plane(self, plane, axis, color_3d=False, require_color=False):
 
     m = self._matrix_plane(plane, axis)
     if self._rendering_options.colormap_on_gpu and not require_color:
       return m
 
-    cmap, cmap_range = self._color_table() if view_aligned else self._color_table(axis)
-    dmin, dmax = cmap_range
+    if hasattr(self, 'segment_colors'):
+      cmap = self.segment_colors
+      colors = self._color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
+      from ._map import indices_to_colors
+      indices_to_colors(m, cmap, colors)
+    else:
+      cmap, cmap_range = self._color_table() if color_3d else self._color_table(axis)
+      dmin, dmax = cmap_range
 
-    colors = self._color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
-    cm = self._colormap
-    from . import _map
-    _map.data_to_colors(m, dmin, dmax, cmap, cm.extend_left, cm.extend_right, colors)
+      colors = self._color_array(cmap.dtype, tuple(m.shape) + (cmap.shape[1],))
+      cm = self._colormap
+      from . import _map
+      _map.data_to_colors(m, dmin, dmax, cmap, cm.extend_left, cm.extend_right, colors)
     
     if hasattr(self, 'mask_colors'):
-      s = [slice(None), slice(None), slice(None)]
-      s[2-axis] = plane
-      self.mask_colors(colors, slice = s)
+      region = self._plane_region(plane, axis)
+      self.mask_colors(colors, region)
 
     return colors
 
@@ -441,7 +460,7 @@ class Image3d(Model):
       cmap = self._colormap
       from numpy import array
       tf = array(cmap.transfer_function)
-      if len(tf) == 0 or hasattr(self, 'mask_colors'):
+      if len(tf) == 0 or hasattr(self, 'mask_colors') or hasattr(self, 'segment_colors'):
         m = 'rgb' if opaque else 'rgba'
       else:
         single_color = _colinear(tf[:,2:5], 0.99)
@@ -495,26 +514,26 @@ class Image3d(Model):
   def _update_planes(self, renderer):
     # Create or update the planes.
     view_dir = self._view_direction(renderer)
-    if self._showing_view_aligned:
-      self._remove_axis_planes()
-      pd = self._update_view_aligned_planes(view_dir)
+    if self._use_3d_texture:
+      self._remove_2d_texture_planes()
+      pd = self._update_3d_texture_planes(view_dir)
     else:
-      self._remove_view_planes()
-      pd = self._update_axis_aligned_planes(view_dir)
+      self._remove_3d_texture_planes()
+      pd = self._update_2d_texture_planes(view_dir)
     return pd
 
   # ---------------------------------------------------------------------------
   #
-  def _update_axis_aligned_planes(self, view_direction):
+  def _update_2d_texture_planes(self, view_direction):
     # Render grid aligned planes
     axis, rev = self._projection_axis(view_direction)
-    pd = self._axis_planes(axis)
+    pd = self._texture_2d_planes(axis)
 
     if axis is not None:
       # Reverse drawing order if needed to draw back to front
       pd.multitexture_reverse_order = rev
       sc = self.shape_changed
-      for d in self._multiaxis_planes:
+      for d in self._planes_2d_multiaxis:
         disp = (d is pd)
         if d and d.display != disp:
           # TODO: Make drawing not cause redraw if display value does not change.
@@ -528,8 +547,8 @@ class Image3d(Model):
 
   # ---------------------------------------------------------------------------
   #
-  def _axis_planes(self, axis):
-    pd = self._planes_drawing if axis is None else self._multiaxis_planes[axis]
+  def _texture_2d_planes(self, axis):
+    pd = self._planes_2d if axis is None else self._planes_2d_multiaxis[axis]
     if pd:
       return pd
     
@@ -537,30 +556,30 @@ class Image3d(Model):
     pd = self._make_planes(axis)
     pd._update_colors = self._use_gpu_colormap
     if axis is None:
-      self._planes_drawing = pd
+      self._planes_2d = pd
     else:
-      if tuple(self._multiaxis_planes) != (None, None, None):
+      if tuple(self._planes_2d_multiaxis) != (None, None, None):
         # Reset shape change flag since this is the same shape.
         self.shape_changed = sc
-      self._multiaxis_planes[axis] = pd
+      self._planes_2d_multiaxis[axis] = pd
 
     return pd
   
   # ---------------------------------------------------------------------------
   #
-  def _update_view_aligned_planes(self, view_direction):
-    pd = self._view_planes()
-    pd.update_geometry(view_direction, self.scene_position)
+  def _update_3d_texture_planes(self, view_direction):
+    pd = self._texture_3d_planes()
+    pd.update_view_direction(view_direction, self.scene_position)
     return pd
 
   # ---------------------------------------------------------------------------
   #
-  def _view_planes(self):
-    pd = self._view_aligned_planes
+  def _texture_3d_planes(self):
+    pd = self._planes_3d
     if pd is None:
       ro = self._rendering_options
-      pd = ViewAlignedPlanes(self)
-      self._view_aligned_planes = pd
+      pd = Texture3dPlanes(self)
+      self._planes_3d = pd
       self.add_drawing(pd)
     return pd
 
@@ -581,36 +600,36 @@ class Image3d(Model):
   #
   @property
   def _planes_drawings(self):
-    drawings = self._multiaxis_planes + [self._view_aligned_planes, self._planes_drawing]
+    drawings = self._planes_2d_multiaxis + [self._planes_3d, self._planes_2d]
     return [d for d in drawings if d]
     
   # ---------------------------------------------------------------------------
   #
   def _remove_planes(self):
-    self._remove_axis_planes()
-    self._remove_view_planes()
+    self._remove_2d_texture_planes()
+    self._remove_3d_texture_planes()
     self.redraw_needed()
 
   # ---------------------------------------------------------------------------
   #
-  def _remove_axis_planes(self):
-    pd = self._planes_drawing
+  def _remove_2d_texture_planes(self):
+    pd = self._planes_2d
     if pd:
       pd.close()
-      self._planes_drawing = None
+      self._planes_2d = None
 
-    for pd in self._multiaxis_planes:
+    for pd in self._planes_2d_multiaxis:
       if pd:
         pd.close()
-    self._multiaxis_planes = [None,None,None]
+    self._planes_2d_multiaxis = [None,None,None]
 
   # ---------------------------------------------------------------------------
   #
-  def _remove_view_planes(self):
-    pd = self._view_aligned_planes
+  def _remove_3d_texture_planes(self):
+    pd = self._planes_3d
     if pd:
       pd.close()
-      self._view_aligned_planes = None
+      self._planes_3d = None
 
   # ---------------------------------------------------------------------------
   #
@@ -623,7 +642,7 @@ class Image3d(Model):
     # View matrix maps scene to camera coordinates.
     v = view_direction
     ro = self._rendering_options
-    if ro.box_faces or ro.any_orthoplanes_shown() or self._showing_view_aligned:
+    if ro.image_mode in ('box faces', 'orthoplanes', 'tilted slab') or self._use_3d_texture:
       return None, False
 
     # Determine which axis has box planes with largest projected area.
@@ -662,7 +681,7 @@ class Image3d(Model):
   # ---------------------------------------------------------------------------
   #
   def _make_planes(self, axis):
-    d = AxisAlignedPlanes(self, axis)
+    d = Texture2dPlanes(self, axis)
     self.add_drawing(d)
     return d
 
@@ -678,7 +697,7 @@ class Image3d(Model):
   # ---------------------------------------------------------------------------
   #
   def bounds(self):
-    # Override bounds because GrayScaleDrawing does not set geometry until draw() is called
+    # Override bounds because Image3d does not set geometry until draw() is called
     # but setting initial camera view uses bounds before draw() is called.
 
     if not self.display:
@@ -826,10 +845,10 @@ class PlanesDrawing(Drawing):
   
 # ---------------------------------------------------------------------------
 #
-class AxisAlignedPlanes(PlanesDrawing):
+class Texture2dPlanes(PlanesDrawing):
   # axis is None for box faces or orthoplanes.
   def __init__(self, image_render, axis):
-    name = 'grayscale axis aligned planes'
+    name = 'Image3D 2d texture planes'
     PlanesDrawing.__init__(self, name, image_render, axis)
 
     self.color = image_render._modulation_color
@@ -849,9 +868,9 @@ class AxisAlignedPlanes(PlanesDrawing):
     ro = self._image_render._rendering_options
     if axis is not None:
       planes = self._set_axis_planes(axis)
-    elif ro.box_faces:
+    elif ro.image_mode == 'box faces':
       planes = self._set_box_faces()
-    elif ro.any_orthoplanes_shown():
+    elif ro.image_mode == 'orthoplanes':
       planes = self._set_ortho_planes()
     return planes
     
@@ -946,9 +965,9 @@ class AxisAlignedPlanes(PlanesDrawing):
     # First make sure all source image textures are up to date.
     ir = self._image_render
     ro = ir._rendering_options
-    iaxis = None if ro.box_faces or ro.any_orthoplanes_shown() else axis
+    iaxis = None if ro.image_mode in ('box faces', 'orthoplanes') else axis
     for si in ir.images:
-      ap = si._axis_planes(iaxis)
+      ap = si._texture_2d_planes(iaxis)
       ap._update_coloring()	# TODO: Should do this once for all planes.
       ap._plane_texture(plane, axis)
 
@@ -956,7 +975,7 @@ class AxisAlignedPlanes(PlanesDrawing):
     b = ir._session.main_view.render.blend
     b.start_blending(texture)
     for si in ir.images:
-      ap = si._axis_planes(iaxis)
+      ap = si._texture_2d_planes(iaxis)
       src_tex = ap._plane_texture(plane, axis)
       modulation_color = [c/255 for c in si._modulation_color]
       if si._use_gpu_colormap:
@@ -985,11 +1004,11 @@ class AxisAlignedPlanes(PlanesDrawing):
 
 # ---------------------------------------------------------------------------
 #
-class ViewAlignedPlanes(PlanesDrawing):
+class Texture3dPlanes(PlanesDrawing):
   
   def __init__(self, image_render):
 
-    name = 'Image3D view aligned planes'
+    name = 'Image3D 3d texture planes'
     PlanesDrawing.__init__(self, name, image_render)
 
     ir = image_render
@@ -1000,6 +1019,7 @@ class ViewAlignedPlanes(PlanesDrawing):
     self._corners = _box_corners(ir._region, ir._ijk_to_xyz)	# in volume coords
     self._vertex_to_texcoord = _xyz_to_texcoord(ir._texture_region, ir._ijk_to_xyz)
     self._last_view_direction = None
+    self._last_tilted_slab = (None, None, None, None)	# Axis, offset, spacing, plane count
 
     self._fill_textures()
 
@@ -1008,18 +1028,42 @@ class ViewAlignedPlanes(PlanesDrawing):
     self._corners = _box_corners(ir._region, ir._ijk_to_xyz)
     self._last_view_direction = None
     
-  def update_geometry(self, view_direction, scene_position):
+  def update_view_direction(self, view_direction, scene_position):
+    if self._planes_changed(view_direction):
+      axis, start, spacing, count = self._planes_parameters(view_direction, scene_position)
+      self._update_geometry(axis, start, spacing, count, scene_position)
+
+  def _planes_changed(self, view_direction):
     tvd = tuple(view_direction)
-    if tvd == self._last_view_direction:
-      return
-    self._last_view_direction = tvd
+    if tvd != self._last_view_direction:
+      self._last_view_direction = tvd
+      return True
+    ro = self._image_render._rendering_options
+    if ro.image_mode == 'tilted slab':
+      sparams = (tuple(ro.tilted_slab_axis), ro.tilted_slab_offset,
+                 ro.tilted_slab_spacing, ro.tilted_slab_plane_count)
+      if sparams != self._last_tilted_slab:
+        self._last_tilted_slab = sparams
+        return True
+    return False
     
-    va, tc, ta = self._perp_planes_geometry(view_direction, scene_position)
+  def _update_geometry(self, axis, start, spacing, count, scene_position):
+    '''Axis is in volume coordinates.'''
+    va, tc, ta = self._perp_planes_geometry(axis, start, spacing, count, scene_position)
     self.set_geometry(va, None, ta)
     self.texture_coordinates = tc
 
-  def _perp_planes_geometry(self, view_direction, scene_position):
+  def _planes_parameters(self, view_direction, scene_position):
+    ir = self._image_render
+    ro = ir._rendering_options
+    if ro.image_mode == 'tilted slab':
+      axis, offset, spacing, n = (ro.tilted_slab_axis, ro.tilted_slab_offset,
+                                  ro.tilted_slab_spacing, ro.tilted_slab_plane_count)
+      return self._tilted_slab_plane_parameters(view_direction, scene_position, axis, offset, spacing, n)
 
+    return self._view_aligned_plane_parameters(view_direction, scene_position)
+
+  def _view_aligned_plane_parameters(self, view_direction, scene_position):
     if scene_position.is_identity():
       axis = -view_direction
     else:
@@ -1037,9 +1081,29 @@ class ViewAlignedPlanes(PlanesDrawing):
     omid = 0.5*(omin + omax)
     offset = omin + fmod(omid - omin, spacing)
 
+    return axis, offset, spacing, n
+
+  def _tilted_slab_plane_parameters(self, view_direction, scene_position,
+                                     axis, offset, spacing, plane_count):
+    from chimerax.core.geometry import inner_product
+    if scene_position.is_identity():
+      flip = (inner_product(view_direction, axis) > 0)
+    else:
+      flip = (inner_product(view_direction, scene_position.transform_vector(axis)) > 0)
+
+    if flip:
+      # Render planes back to front.
+      axis = tuple(-x for x in axis)
+      offset = -(offset + (plane_count-1)*spacing)
+
+    return axis, offset, spacing, plane_count
+
+  def _perp_planes_geometry(self, axis, start, spacing, count, scene_position):
+    '''Axis is in volume coordinates.'''
+
     # Triangulate planes intersecting with volume box
     from . import box_cuts
-    va, ta = box_cuts(corners, axis, offset, spacing, n)
+    va, ta = box_cuts(self._corners, axis, start, spacing, count)
     tc = self._vertex_to_texcoord * va
     
     return va, tc, ta
@@ -1071,7 +1135,7 @@ class ViewAlignedPlanes(PlanesDrawing):
     ijk_min, ijk_max, ijk_step = ir._texture_region
     k0,k1,kstep = ijk_min[z_axis], ijk_max[z_axis], ijk_step[z_axis]
     k0,k1 = kstep*(k0//kstep), kstep*(k1//kstep)
-    p = ir._color_plane(k0, z_axis, view_aligned=True)
+    p = ir._color_plane(k0, z_axis, color_3d=True)
     sz = (k1 - k0 + kstep)//kstep
     if sz == 1:
       td = p	# Single z plane
@@ -1080,7 +1144,7 @@ class ViewAlignedPlanes(PlanesDrawing):
       td = empty((sz,) + tuple(p.shape), p.dtype)
       td[0,:] = p
       for i in range(1,sz):
-        td[i,:] = ir._color_plane(k0+i*kstep, z_axis, view_aligned=True)
+        td[i,:] = ir._color_plane(k0+i*kstep, z_axis, color_3d=True)
     return td
 
   def _fill_texture_blend(self, texture):
@@ -1089,13 +1153,13 @@ class ViewAlignedPlanes(PlanesDrawing):
     # First make sure all source image textures are up to date.
     ir = self._image_render
     for si in ir.images:
-      si._view_planes()._update_coloring()
+      si._texture_3d_planes()._update_coloring()
 
     # Blend in each source texture to produce blended texture.
     b = ir._session.main_view.render.blend
     b.start_blending(self.texture)
     for si in ir.images:
-      vap = si._view_aligned_planes
+      vap = si._planes_3d
       modulation_color = [c/255 for c in si._modulation_color]
       if si._use_gpu_colormap:
         b.blend3d(vap.texture, modulation_color, self.texture, vap.colormap, vap.colormap_range)
@@ -1115,21 +1179,27 @@ class ViewAlignedPlanes(PlanesDrawing):
       self.texture = None
     self.parent.remove_drawing(self)
 
+# ---------------------------------------------------------------------------
+#
 def _box_corners(ijk_region, ijk_to_xyz = None):
-    (i0,j0,k0), (i1,j1,k1) = ijk_region[:2]
-    # Corner order matters for 3d texture rendering.
-    from numpy import array, float32
-    corners = array(((i0,j0,k0), (i1,j0,k0), (i0,j1,k0), (i1,j1,k0),
-                     (i0,j0,k1), (i1,j0,k1), (i0,j1,k1), (i1,j1,k1)), float32)
-    if ijk_to_xyz is None:
-        return corners
-    xyz_corners = ijk_to_xyz * corners
-    return xyz_corners
+  (i0,j0,k0), (i1,j1,k1) = ijk_region[:2]
+  # Corner order matters for 3d texture rendering.
+  from numpy import array, float32
+  corners = array(((i0,j0,k0), (i1,j0,k0), (i0,j1,k0), (i1,j1,k0),
+                   (i0,j0,k1), (i1,j0,k1), (i0,j1,k1), (i1,j1,k1)), float32)
+  if ijk_to_xyz is None:
+      return corners
+  xyz_corners = ijk_to_xyz * corners
+  return xyz_corners
 
+# ---------------------------------------------------------------------------
+#
 def _plane_spacings(ijk_region, ijk_to_xyz):
   ijk_step = ijk_region[2]
   return [sp*st for sp,st in zip(ijk_to_xyz.axes_lengths(), ijk_step)]
 
+# ---------------------------------------------------------------------------
+#
 def _xyz_to_texcoord(ijk_region, ijk_to_xyz):
   # Use texture coord range [1/2n,1-1/2n], not [0,1].
   ijk_min, ijk_max, ijk_step = ijk_region
@@ -1182,10 +1252,10 @@ class BlendedImage(Image3d):
   def master_image(self):
     return self.images[0]
       
-  def _color_plane(self, k, axis, view_aligned=False):
+  def _color_plane(self, k, axis, color_3d=False):
     p = None
     for ir in self.images:
-      dp = ir._color_plane(k, axis, view_aligned=view_aligned, require_color=True)
+      dp = ir._color_plane(k, axis, color_3d=color_3d, require_color=True)
       cmode = ir._c_mode
       if p is None:
         h,w = dp.shape[:2]
@@ -1307,13 +1377,14 @@ class ImageBlendManager:
     for ir in images:
       ro = ir._rendering_options
       if ir.display and ir.parents_displayed and not ro.maximum_intensity_projection:
-        sortho = ro.orthoplanes_shown
-        orthoplanes = (sortho, tuple(ro.orthoplane_positions)) if sortho else sortho
+        orthoplanes = (ro.orthoplanes_shown, tuple(ro.orthoplane_positions)) if ro.image_mode == 'orthoplanes' else None
+        rotslab = (tuple(ro.tilted_slab_axis), ro.tilted_slab_offset,
+                   ro.tilted_slab_spacing, ro.tilted_slab_plane_count) if ro.image_mode == 'tilted slab' else None
         # Need to have matching grid size, scene position, grid spacing, box face mode, orthoplane mode
         k = (tuple(tuple(ijk) for ijk in ir._region),
              tuple(ir.scene_position.matrix.flat),
              tuple(ir._ijk_to_xyz.matrix.flat),
-             ro.box_faces, orthoplanes)
+             ro.image_mode, orthoplanes, rotslab)
         if k in aligned:
           aligned[k].append(ir)
         else:

@@ -121,3 +121,4 @@ Volume Data
 
     bundles/map/src/map.rst
 
+    bundles/segment/src/segment.rst

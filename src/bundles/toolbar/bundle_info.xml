@@ -171,16 +171,18 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Map" name="mM2"
       mouse_mode="move planes" display_name="Move planes" description="Move plane or slab along its axis to show a different section"/>
     <Provider tab="Right Mouse" section="Map" name="mM3"
-      mouse_mode="crop volume" display_name="Crop" description="Crop volume data dragging any face of box outline"/>
+      mouse_mode="rotate slab" display_name="Rotate slab" description="Tilt volume planes"/>
     <Provider tab="Right Mouse" section="Map" name="mM4"
-      mouse_mode="tape measure" display_name="Tape" description="Measure distance between two map points"/>
+      mouse_mode="crop volume" display_name="Crop" description="Crop volume data dragging any face of box outline"/>
     <Provider tab="Right Mouse" section="Map" name="mM5"
-      mouse_mode="pick blobs" display_name="Blob" description="Measure and color connected parts of surface"/>
+      mouse_mode="tape measure" display_name="Tape" description="Measure distance between two map points"/>
     <Provider tab="Right Mouse" section="Map" name="mM6"
-      mouse_mode="map eraser" display_name="Erase" description="Erase parts of a density map setting values in a sphere to zero"/>
+      mouse_mode="pick blobs" display_name="Blob" description="Measure and color connected parts of surface"/>
     <Provider tab="Right Mouse" section="Map" name="mM7"
-      mouse_mode="play map series" display_name="Play series" description="Play map series"/>
+      mouse_mode="map eraser" display_name="Erase" description="Erase parts of a density map setting values in a sphere to zero"/>
     <Provider tab="Right Mouse" section="Map" name="mM8"
+      mouse_mode="play map series" display_name="Play series" description="Play map series"/>
+    <Provider tab="Right Mouse" section="Map" name="mM9"
       mouse_mode="windowing" display_name="Windowing" description="Adjust volume data thresholds collectively"/>
 
     <Provider tab="Right Mouse" section="Structure Modification"
