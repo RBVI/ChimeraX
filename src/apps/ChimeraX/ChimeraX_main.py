@@ -63,7 +63,7 @@ if sys.platform.startswith('win'):
     os.EX_NOPERM = 77           # permission denied
     os.EX_CONFIG = 78           # configuration error
 
-    if 'LANG' in os.environ:
+    if 'LANG' in os.environ and sys.stdout is not None:
         # Double check that stdout matches what LANG asks for.
         # This is a problem when running in nogui mode from inside a cygwin
         # shell -- the console is supposed to use UTF-8 encoding in Python
