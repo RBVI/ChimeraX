@@ -5,7 +5,7 @@ from chimerax.core.commands import CmdDesc, StringArg, AtomSpecArg, ObjectsArg
 from chimerax.core.commands import RestOfLine, BoolArg, AnnotationError
 
 
-def name(session, name, text=None):
+def name(session, name, text=None, skip_check=False):
     if name == "all":
         raise UserError("\"all\" is reserved and cannot be shown or defined")
     if text is None:
@@ -20,12 +20,13 @@ def name(session, name, text=None):
     else:
         if _is_reserved(name):
             raise UserError("\"%s\" is reserved and cannot be redefined" % name)
-        try:
-            ast, used, unused = AtomSpecArg.parse(text, session)
-            if unused:
-                raise AnnotationError("contains extra trailing text")
-        except AnnotationError as e:
-            raise UserError("\"%s\": %s" % (text, str(e)))
+        if not skip_check:
+            try:
+                ast, used, unused = AtomSpecArg.parse(text, session)
+                if unused:
+                    raise AnnotationError("contains extra trailing text")
+            except AnnotationError as e:
+                raise UserError("\"%s\": %s" % (text, str(e)))
         def selector(session, models, results, spec=text):
             objects, used, unused = ObjectsArg.parse(spec, session)
             results.combine(objects)
