@@ -630,7 +630,8 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
                     logger::warning(_logger, "Empty ", r->name(),
                                     " residue template");
                 }
-                // No connectivity, so don't connect
+                // Fill in missing connectivity
+                pdb_connect::connect_residue_by_distance(r);
                 return;
             }
             bool connected = false;
