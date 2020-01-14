@@ -26,7 +26,7 @@ index 7cb921220..ed86b2018 100644
  all:
  
 diff --git a/prereqs/PyQt/Makefile.wheel b/prereqs/PyQt/Makefile.wheel
-index decb6fc2e..28eecc476 100644
+index decb6fc2e..6330245ca 100644
 --- a/prereqs/PyQt/Makefile.wheel
 +++ b/prereqs/PyQt/Makefile.wheel
 @@ -3,16 +3,18 @@ TOP	= ../..
@@ -121,9 +121,16 @@ index decb6fc2e..28eecc476 100644
  
  prefetch: $(QT_WHEEL) $(WB_WHEEL)
  
-@@ -91,22 +91,26 @@ ifeq ($(PYQT_LICENSE),commercial)
+@@ -90,23 +90,36 @@ ifeq ($(PYQT_LICENSE),commercial)
+ 	rsync -av $(REMOTE_DIR)/$(PYQT_VERSION)/$(WB_WHEEL) .
  endif
  
++REMOTE_SOURCE =  \
++		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQt5_commercial-\*-$(WHEEL_PLATFORM).whl-unlicensed \
++		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQtWebEngine_commercial-\*-$(WHEEL_PLATFORM).whl \
++		$(REMOTE_DIR)/$(PYQT_VERSION)/$(PYQTLICENSE) \
++		$(REMOTE_DIR)/pyqt-commercial.sip
++
  pyqt-commercial.sip:
 -	# separate rsyncs due to bug in rsync 2.6.9 on Mac OS X
 -	rsync -a $(REMOTE_DIR)/$(PYQT_VERSION)/PyQt5_commercial*-$(PYQT_VERSION)-*$(WHEEL_PLATFORM).whl-unlicensed .
@@ -136,17 +143,19 @@ index decb6fc2e..28eecc476 100644
 -	# Only need to fix rpath in icu libraries in Qt 5.11.1,
 -	# but make sure all are correct.
 -	cd $(QTDIR)/lib; chrpath -r '$$ORIGIN' *.so
--endif
++ifeq ($(OS),Darwin)
++	# Due to bug in macOS's rsync 2.6.9, fetch files individually
++	for file in $(REMOTE_SOURCE); do \
++		rsync -av --copy-links $$file . ;\
++	done
++else
++	rsync -av --copy-links $(REMOTE_SOURCE) .
+ endif
 -	./$(PYQTLICENSE) $(LICENSE_ARGS) PyQt5_commercial*.whl-unlicensed
 -	./$(PYQTLICENSE) $(LICENSE_ARGS) PyQtWebEngine_commercial*.whl-unlicensed
 -
 -upload: wheel
-+	rsync -av --copy-links \
-+		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQt5_commercial-\*-$(WHEEL_PLATFORM).whl-unlicensed \
-+		$(REMOTE_DIR)/$(PYQT_VERSION)/PyQtWebEngine_commercial-\*-$(WHEEL_PLATFORM).whl \
-+		$(REMOTE_DIR)/$(PYQT_VERSION)/$(PYQTLICENSE) \
-+		$(REMOTE_DIR)/pyqt-commercial.sip \
-+		.
++	# remove finished wheels
 +	rm -f *-$(PYQT_VERSION)-$(QT_VERSION)-* *-$(PYQTWE_VERSION)-$(QT_VERSION)-*
 +
 +wheels: pyqt-commercial.sip
