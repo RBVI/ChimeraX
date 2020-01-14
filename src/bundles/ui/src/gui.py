@@ -968,17 +968,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         help_menu = mb.addMenu("&Help")
         help_menu.setObjectName("Help")
         help_menu.setToolTipsVisible(True)
-        for entry, topic, tooltip in (
+        for entry, location, tooltip in (
                 ('User Guide', 'user', 'Tutorials and user documentation'),
                 ('Quick Start Guide', 'quickstart', 'Interactive ChimeraX basics'),
+                ('Tutorials', 'https://www.rbvi.ucsf.edu/chimerax/tutorials.html', 'Tutorials'),
                 ('Programming Manual', 'devel', 'How to develop ChimeraX tools'),
                 ('Documentation Index', 'index.html', 'Access all documentarion'),
                 ('Contact Us', 'contact.html', 'Report problems/issues; ask questions')):
             help_action = QAction(entry, self)
             help_action.setToolTip(tooltip)
-            def cb(arg, ses=session, t=topic):
+            cmd = ('open %s' % location) if location.startswith('http') else ('help help:%s' % location)
+            def cb(arg, ses=session, cmd=cmd):
                 from chimerax.core.commands import run
-                run(ses, 'help help:%s' % t)
+                run(ses, cmd)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
         from chimerax import app_dirs as ad
