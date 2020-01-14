@@ -64,6 +64,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         distance_only=None,
         inter_model=True,
         inter_submodel=False,
+        intra_model=True,
         intra_mol=defaults["intra_mol"],
         intra_res=defaults["intra_res"],
         log=defaults["action_log"],
@@ -122,8 +123,8 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
     from .clashes import find_clashes
     clashes = find_clashes(session, test_atoms, attr_name=attr_name,
         bond_separation=bond_separation, clash_threshold=overlap_cutoff,
-        distance_only=distance_only, hbond_allowance=hbond_allowance,
-        inter_model=inter_model, inter_submodel=inter_submodel, intra_res=intra_res,
+        distance_only=distance_only, hbond_allowance=hbond_allowance, inter_model=inter_model,
+        inter_submodel=inter_submodel, intra_model=intra_model, intra_res=intra_res,
         intra_mol=intra_mol, res_separation=res_separation, restrict=restrict)
     if select:
         session.selection.clear()
@@ -301,7 +302,7 @@ def register_command(command_name, logger):
             'keyword': [('name', StringArg), ('hbond_allowance', FloatArg), ('overlap_cutoff', FloatArg),
                 ('attr_name', AttrNameArg), ('bond_separation', NonNegativeIntArg), ('continuous', BoolArg),
                 ('distance_only', FloatArg), ('inter_model', BoolArg), ('inter_submodel', BoolArg),
-                ('intra_mol', BoolArg), ('intra_res', BoolArg), ('log', BoolArg),
+                ('intra_model', BoolArg), ('intra_mol', BoolArg), ('intra_res', BoolArg), ('log', BoolArg),
                 ('make_pseudobonds', BoolArg), ('naming_style', EnumOf(('simple', 'command', 'serial'))),
                 ('color', Or(NoneArg,ColorArg)), ('radius', FloatArg), ('res_separation', PositiveIntArg),
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)), ('reveal', BoolArg),

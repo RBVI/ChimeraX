@@ -22,6 +22,7 @@ def find_clashes(session, test_atoms,
         hbond_allowance=defaults["clash_hbond_allowance"],
         inter_model=True,
         inter_submodel=False,
+        intra_model=True,
         intra_res=False,
         intra_mol=True,
         res_separation=None,
@@ -48,6 +49,7 @@ def find_clashes(session, test_atoms,
        or equal to 'bond_separation' bonds apart.
 
        Intra-residue clashes are ignored unless intra_res is True.
+       Intra-model clashes are ignored unless intra_model is True.
        Intra-molecule (covalently connected fragment) clashes are ignored
        unless intra_mol is True.
        Inter-(sibling)submodel clashes are ignored unless inter_submodel is True.
@@ -152,6 +154,8 @@ def find_clashes(session, test_atoms,
             if not intra_mol and nb in intra_mol_map[a]:
                 continue
             if not inter_model and a.structure != nb.structure:
+                continue
+            if not intra_model and a.structure == nb.structure:
                 continue
             if a in clashes and nb in clashes[a]:
                 continue

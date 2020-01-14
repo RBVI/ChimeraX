@@ -167,6 +167,11 @@ class _InterpolateLabel:
         self.xpos1, self.xpos2 = label.xpos, xpos
         self.ypos1, self.ypos2 = label.ypos, ypos
         self.visibility1, self.visibility2 = label.visibility, visibility
+        if visibility is not None and self.visibility1 != self.visibility2:
+            if self.label.color is None:
+                # need to interpolate alpha, so set it to a real color;
+                # the last frame will set it to the right final value
+                self.label.color = array(self.label.drawing.label_color, dtype=uint8)
         self.margin1, self.margin2 = label.margin, margin
         self.outline_width1, self.outline_width2 = label.outline_width, outline_width
         self.frames = frames

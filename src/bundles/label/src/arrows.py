@@ -120,6 +120,11 @@ class _InterpolateArrow:
         self.start1, self.start2 = arrow.start, start
         self.end1, self.end2 = arrow.end, end
         self.visibility1, self.visibility2 = arrow.visibility, visibility
+        if visibility is not None and self.visibility1 != self.visibility2:
+            if self.arrow.color is None:
+                # need to interpolate alpha, so set it to a real color;
+                # the last frame will set it to the right final value
+                self.arrow.color = array(self.arrow.drawing.arrow_color, dtype=uint8)
         if mid_point == 'none':
             if arrow.mid_point is None:
                 self.interp_midpoint = False
@@ -172,10 +177,10 @@ class _InterpolateArrow:
                 # fake gradual change in visibility via alpha channel
                 if self.visibility2:
                     # becoming shown
-                    self.arrow.color[-1] = self.arrow.color.dtype.type(self.color1[-1] * fraction)
+                    self.arrow.color[-1] = self.color1[-1] * fraction
                 else:
                     # becoming hidden
-                    self.arrow.color[-1] = self.arrow.color.dtype.type(self.color1[-1] * (1 - fraction))
+                    self.arrow.color[-1] = self.color1[-1] * (1 - fraction)
                 self.arrow.visibility = True
         if self.interp_midpoint:
             if frame == self.frames-1:
@@ -310,7 +315,6 @@ class Arrows(Model):
         if n:
             nl = self._named_arrows.get(n)
             if nl:
-                self._arrows.remove(nl)
                 nl.delete()
             self._named_arrows[n] = arrow
         self.add([arrow.drawing])
@@ -578,6 +582,7 @@ class ArrowModel(Model):
             else:
                 #TODO: draw arc
                 pass
+            
             start_pos, norm = head_start
             scale_factor = min(w,h)
             half_width = scale_factor * self.STD_HALF_WIDTH * self.arrow.weight
@@ -589,6 +594,8 @@ class ArrowModel(Model):
                 edge1 = (head_back[0] + head_width * perp[0], head_back[1] + head_width * perp[1])
                 edge2 = (head_back[0] - head_width * perp[0], head_back[1] - head_width * perp[1])
                 p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in [edge1, edge2, (ex, ey)]])
+            elif self.arrow.head_style == "blocky":
+                pass
             #TODO: other head styles
 
             # Convert to numpy rgba array.
