@@ -180,6 +180,7 @@ def set_initial_tilted_slab(volume, matching_maps = []):
     spacing = min(v.data.step)
     v.expand_single_plane()
     plane_count = max(1, min(v.matrix_size()) // 5)
+    offset -= 0.5*plane_count*spacing	# Center slab at volume center.
     for m in [v] + list(matching_maps):
         m.expand_single_plane()
         m.set_parameters(image_mode = 'tilted slab',
