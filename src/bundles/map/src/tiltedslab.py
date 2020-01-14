@@ -178,13 +178,16 @@ def set_initial_tilted_slab(volume, matching_maps = []):
     from chimerax.core.geometry import inner_product
     offset = inner_product(axis, v.center())
     spacing = min(v.data.step)
+    v.expand_single_plane()
     plane_count = max(1, min(v.matrix_size()) // 5)
     for m in [v] + list(matching_maps):
-        m.set_parameters(tilted_slab = True,
+        m.expand_single_plane()
+        m.set_parameters(image_mode = 'tilted slab',
                          tilted_slab_axis = axis,
                          tilted_slab_offset = offset,
                          tilted_slab_spacing = spacing,
-                         tilted_slab_plane_count = plane_count)
+                         tilted_slab_plane_count = plane_count,
+                         show_outline_box = True)
 
 def move_tilted_slab_face(v, side, istep):
     ro = v.rendering_options
