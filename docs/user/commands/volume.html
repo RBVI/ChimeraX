@@ -941,7 +941,59 @@ both depict isosurfaces.
 <p>
   The <b>image</b> <a href="#style">display style</a>
   shows data as a semitransparent solid.
+  The following options apply to this style.
 </p>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>imageMode</b> &nbsp;<i>mode</i> 
+<br>
+The <i>mode</i> can be any of the following:
+<ul>
+<li><b>full region</b> &ndash; <a href="#dimensions">full region</a>
+<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a>
+<li><b>orthoplanes</b> &ndash; <a href="#orthoplanes">orthoplanes</a>
+<li><a name="tiltedslab"><b>tilted slab</b></a>
+&ndash; a single- or multi-plane slab at any angle relative to the data axes,
+with additional options:
+  <ul>
+  <li><b>tiltedSlabAxis</b> 
+  <a href="pointspec.html#vector"><i>vector-spec</i></a> &ndash;
+  slab orientation expressed as a vector perpendicular to the slab
+  <li><b>tiltedSlabOffset</b> <i>d</i> &ndash; position along the axis,
+where <i>d</i> is the inner product of the vector <i>p</i> (a point on the slab)
+and the axis vector: <i>d</i> = (<i>p</i>,<i>axis</i>) 
+  <li><b>tiltedSlabPlaneCount</b> <i>N</i> &ndash; 
+  slab thickness in number of planes
+  <li><b>tiltedSlabSpacing</b> <i>s</i> &ndash; plane spacing in &Aring;
+  </ul>
+</ul>
+Typically, the graphical interface would be used rather than commands:
+the <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> 
+display-style menu would be used to switch the image mode, and in
+the <b>tilted slab</b> mode, slab orientation would be adjusted with the
+<b>rotate slab</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/medicalimage.html#mousemodes" 
+title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>,
+slab offset with the 
+<b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>,
+and slab thickness with the 
+<b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>.
+In <a href="../vr.html">virtual reality</a>, the <b>rotate slab</b> mode
+<a href="../tools/medicalimage.html#mousemodes" 
+title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>
+can both rotate the tilted slab and translate it along its axis.
+The initial tilted slab is perpendicular to the line of sight, 
+with center at the center of the <a href="#dimensions">current region</a>,
+thickness set to 1/5 of the total number of data planes along X, Y, or Z,
+whichever is the least, and spacing equal to the smallest of the X, Y, or Z
+spacing of the data grid.
+</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="cmode"></a>
@@ -2452,5 +2504,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2019</address>
+January 2020</address>
 </body></html>
