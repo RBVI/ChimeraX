@@ -106,7 +106,7 @@ def register_volume_command(logger):
                ('tilted_slab_offset', FloatArg),
                ('tilted_slab_spacing', FloatArg),
                ('tilted_slab_plane_count', IntArg),
-               ('image_mode', StringArg),
+               ('image_mode', EnumOf(('full region', 'orthoplanes', 'box faces', 'tilted slab'))),
                ('calculate_surfaces', BoolArg),
         ],
         synopsis = 'set volume model parameters, display style and colors')
