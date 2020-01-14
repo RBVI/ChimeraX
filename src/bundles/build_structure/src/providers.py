@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLin
 from PyQt5.QtWidgets import QCheckBox, QSizePolicy
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import Qt
+from chimerax.core.errors import UserError
 
 def fill_widget(name, widget):
     if name == "atom":
@@ -59,3 +60,28 @@ def fill_widget(name, widget):
         check_box.setObjectName("select atom")
         layout.addWidget(check_box, alignment=Qt.AlignCenter)
         layout.addStretch(1)
+
+def process_widget(name, widget):
+    from chimerax.core.commands import StringArg
+    args = []
+    if name == "atom":
+        button = widget.findChild(QRadioButton, "atom centered")
+        if not button.isChecked():
+            coords = []
+            for axis in "xyz":
+                coord_entry = widget.findChild(QLineEdit, axis + " coord")
+                if not coord_entry.hasAcceptableInput():
+                    raise UserError("%s coordinate must be a number" % axis)
+                coords.append(coord_entry.text().strip())
+            args.append("xyz " + ','.join(coords))
+        res_name_entry = widget.findChild(QLineEdit, "res name")
+        res_name = res_name_entry.text().strip()
+        if not res_name:
+            raise UserError("Residue name must not be empty/blank")
+        if res_name != "UNL":
+            args.append("res %s" % StringArg.unparse(res_name))
+        check_box = widget.findChild(QCheckBox, "select atom")
+        if not check_box.isChecked():
+            args.append("select false")
+    return " ".join(args)
+

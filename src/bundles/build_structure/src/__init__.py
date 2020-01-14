@@ -28,15 +28,24 @@ class BuildStructureAPI(BundleAPI):
         cmd.register_command(command_name, logger)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, widget=None, structure=None, **kw):
-        if structure is None:
-            # fill parameters widget
-            from .providers import fill_widget
-            fill_widget(name, widget)
+    def run_provider(session, name, mgr, *, widget_info=None, command_info=None, **kw):
+        if widget_info:
+            widget, fill = widget_info
+            if fill:
+                # fill parameters widget
+                from .providers import fill_widget
+                fill_widget(name, widget)
+            else:
+                # process prarameters widget to generate provider command (sub)string;
+                # can return None if widget doesn't actually directly add atoms
+                # (e.g. it links to another tool/interface)
+                from .providers import process_widget
+                return process_widget(name, widget)
         else:
-            # add atoms to structure (preferably by issuing a subcommand of "structure start")
-            from .providers import process_widget
-            process_widget(session, name, widget, structure)
+            # add atoms to structure (process provider command string)
+            structure, substring = command_info
+            from .providers import process_command
+            process_command(session, name, structure, substring)
 
     @staticmethod
     def start_tool(session, tool_name):

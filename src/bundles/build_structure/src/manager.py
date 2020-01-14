@@ -20,15 +20,24 @@ class StartStructureManager(ProviderManager):
         super().__init__()
         self.session = session
         self.providers = {}
+        self._ui_names = {}
+        self._indirect = {}
         self._new_providers = []
 
-    def add_provider(self, bundle_info, name):
+    def add_provider(self, bundle_info, name, *, ui_name=None, indirect=False):
+        # 'name' is the name used as an arg in the command
+        # 'ui_name' is the name used in the tool interface
+        # if 'indirect' is True, then the bundle does not directly add atoms but
+        #    instead provides information or links to other tools (the Apply button will be disabled)
         self.providers[name] = bundle_info
+        self._ui_names[name] = name if ui_name is None else ui_name
+        self._indirect[name] = indirect
         self._new_providers.append(name)
 
-    def apply(self, name, param_widget, structure):
-        # if 'structure' is a string, create a new AtomicStructure with that name
-        self.providers[name].run_provider(self.session, name, self, widget=param_widget, structure=structure)
+    def get_command_substring(self, name, param_widget):
+        # given the settings in the parameter widget, get the corresponding command args
+        # (can return None if the widget doesn't directly add atoms [e.g. links to another tool])
+        return self.providers[name].run_provider(self.session, name, self, widget_info=(param_widget, False))
 
     def end_providers(self):
         # Below code needs to be uncommented once this manager is 'lazy'; doesn't work at startup
@@ -38,10 +47,16 @@ class StartStructureManager(ProviderManager):
         self._new_providers = []
 
     def fill_parameters_widget(self, name, widget):
-        self.providers[name].run_provider(self.session, name, self, widget=widget)
+        self.providers[name].run_provider(self.session, name, self, widget_info=(widget, True))
+
+    def is_indirect(self, name):
+        return self._indirect[name]
 
     @property
     def provider_names(self):
         return list(self.providers.keys())
+
+    def ui_name(self, provider_name):
+        return self._ui_names[provider_name]
 
 manager = None

@@ -65,10 +65,6 @@ class BuildStructureTool(ToolInstance):
             handler.remove()
         super().delete()
 
-    def run_cmd(self, cmd):
-        from chimerax.core.commands import run
-        run(self.session, " ".join(cmd))
-
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
         self.category_button.setText(action.text())
@@ -203,26 +199,26 @@ class BuildStructureTool(ToolInstance):
 
         from .manager import manager
         # until "lazy" managers are supported, 'manager' cannot be None at this point
-        provider_names = manager.provider_names
-        provider_names.sort(key=lambda x: x.lower())
+        self.ss_u_to_p_names = { manager.ui_name(pn):pn for pn in manager.provider_names }
+        ui_names = list(self.ss_u_to_p_names.keys())
+        ui_names.sort(key=lambda x: x.lower())
         provider_layout = QGridLayout()
         layout.addLayout(provider_layout)
-        provider_layout.addWidget(QLabel("Add "), 0, 0, len(provider_names), 1)
+        provider_layout.addWidget(QLabel("Add "), 0, 0, len(ui_names), 1)
 
         self.parameter_widgets = QStackedWidget()
-        provider_layout.addWidget(self.parameter_widgets, 0, 2, len(provider_names), 1)
+        provider_layout.addWidget(self.parameter_widgets, 0, 2, len(ui_names), 1)
         self.ss_widgets = {}
         self.ss_button_group = QButtonGroup()
-        self.ss_button_group.buttonClicked[QAbstractButton].connect(
-            lambda but: self.parameter_widgets.setCurrentWidget(self.ss_widgets[but.text()]))
-        for row, name in enumerate(provider_names):
-            but = QRadioButton(name)
+        self.ss_button_group.buttonClicked[QAbstractButton].connect(self._ss_provider_changed)
+        for row, ui_name in enumerate(ui_names):
+            but = QRadioButton(ui_name)
             self.ss_button_group.addButton(but)
             provider_layout.addWidget(but, row, 1, alignment=Qt.AlignLeft)
             params_title = " ".join([x.capitalize()
-                if x.islower() else x for x in name.split()]) + " Parameters"
-            self.ss_widgets[name] = widget = QGroupBox(params_title)
-            manager.fill_parameters_widget(name, widget)
+                if x.islower() else x for x in ui_name.split()]) + " Parameters"
+            self.ss_widgets[ui_name] = widget = QGroupBox(params_title)
+            manager.fill_parameters_widget(self.ss_u_to_p_names[ui_name], widget)
             self.parameter_widgets.addWidget(widget)
             if row == 0:
                 but.setChecked(True)
@@ -244,11 +240,8 @@ class BuildStructureTool(ToolInstance):
         self.ss_model_name_edit = edit = QLineEdit()
         edit.setText("custom built")
         model_layout.addWidget(edit)
-        self.ss_color_by_element = QCheckBox("Color new atoms by element")
-        self.ss_color_by_element.setChecked(True)
-        layout.addWidget(self.ss_color_by_element, alignment=Qt.AlignCenter)
 
-        apply_but = QPushButton("Apply")
+        self.ss_apply_button = apply_but = QPushButton("Apply")
         apply_but.clicked.connect(lambda checked: self._ss_apply_cb())
         layout.addWidget(apply_but, alignment=Qt.AlignCenter)
 
@@ -356,10 +349,22 @@ class BuildStructureTool(ToolInstance):
         pass
 
     def _ss_apply_cb(self):
-        ss_type = self.ss_button_group.checkedButton().text()
+        ui_name = self.ss_button_group.checkedButton().text()
+        provider_name = self.ss_u_to_p_names[ui_name]
 
         from .manager import manager
-        manager.apply(ss_type, self.ss_widgets[ss_type], structure)
+        substring = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
+        if substring is not None:
+            run(self.session, " ".join("structure start", provider_name, substring))
+
+    def _ss_provider_changed(self, button):
+        ui_name = but.text()
+        self.parameter_widgets.setCurrentWidget(self.ss_widgets[ui_name])
+        from .manager import manager
+        if manager.is_indirect(self.ss_u_to_p_names[ui_name]):
+            self.ss_apply_button.setHidden(True)
+        else:
+            self.ss_apply_button.setHidden(False)
 
     def _ss_struct_changed(self):
         show = self.ss_struct_menu.value == "new model"
