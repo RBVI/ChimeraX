@@ -60,7 +60,7 @@ class BasicActions(StateManager):
         from . import cmd
         from chimerax.core.objects import Objects
         for name, value in data["spec"]:
-            cmd.name(session, name, value)
+            cmd.name(session, name, value, skip_check=True)
         for name, value in data["frozen"]:
             cmd.name_frozen(session, name, Objects(**value))
         return session.basic_actions
