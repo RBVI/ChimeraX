@@ -950,14 +950,14 @@ both depict isosurfaces.
 The <i>mode</i> can be any of the following:
 <ul>
 <li><b>full region</b> &ndash; <a href="#dimensions">full region</a>
-<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a>
 <li><b>orthoplanes</b> &ndash; <a href="#orthoplanes">orthoplanes</a>
+<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a>
 <li><a name="tiltedslab"><b>tilted slab</b></a>
 &ndash; a single- or multi-plane slab at any angle relative to the data axes,
 with additional options:
   <ul>
   <li><b>tiltedSlabAxis</b> 
-  <a href="pointspec.html#vector"><i>vector-spec</i></a> &ndash;
+  &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a> &ndash;
   slab orientation expressed as a vector perpendicular to the slab
   <li><b>tiltedSlabOffset</b> <i>d</i> &ndash; position along the axis,
 where <i>d</i> is the inner product of the vector <i>p</i> (a point on the slab)
@@ -990,9 +990,9 @@ title="Medical Image Toolbar...">
 can both rotate the tilted slab and translate it along its axis.
 The initial tilted slab is perpendicular to the line of sight, 
 with center at the center of the <a href="#dimensions">current region</a>,
-thickness set to 1/5 of the total number of data planes along X, Y, or Z,
-whichever is the least, and spacing equal to the smallest of the X, Y, or Z
-spacing of the data grid.
+thickness set to 1/5 of the planes in the 
+<a href="#dimensions">current region</a> along X, Y, or Z (whichever is least),
+and spacing equal to the smallest of the X, Y, or Z spacing of the data grid.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
