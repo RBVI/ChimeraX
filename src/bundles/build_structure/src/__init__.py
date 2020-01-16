@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .mod import modify_atom
+from .start import place_helium
+
 from chimerax.core.toolshed import BundleAPI
 
 class BuildStructureAPI(BundleAPI):

@@ -27,8 +27,8 @@ class StartStructureManager(ProviderManager):
     def add_provider(self, bundle_info, name, *, ui_name=None, indirect=False):
         # 'name' is the name used as an arg in the command
         # 'ui_name' is the name used in the tool interface
-        # if 'indirect' is True, then the bundle does not directly add atoms but
-        #    instead provides information or links to other tools (the Apply button will be disabled)
+        # if 'indirect' is True, then the bundle does not directly add atoms but instead provides 
+        #     information or links to other tools or web pages (the Apply button will be disabled)
         self.providers[name] = bundle_info
         self._ui_names[name] = name if ui_name is None else ui_name
         self._indirect[name] = indirect
@@ -45,6 +45,9 @@ class StartStructureManager(ProviderManager):
         #for tool in self.session.tools.find_by_class(BuildStructureTool):
         #    tool._new_start_providers(self._new_providers)
         self._new_providers = []
+
+    def execute_command(self, name, structure, args):
+        self.providers[name].run_provider(self.session, name, self, command_info=(structure, args))
 
     def fill_parameters_widget(self, name, widget):
         self.providers[name].run_provider(self.session, name, self, widget_info=(widget, True))

@@ -73,7 +73,7 @@ def process_widget(name, widget):
                 if not coord_entry.hasAcceptableInput():
                     raise UserError("%s coordinate must be a number" % axis)
                 coords.append(coord_entry.text().strip())
-            args.append("xyz " + ','.join(coords))
+            args.append("pos " + ','.join(coords))
         res_name_entry = widget.findChild(QLineEdit, "res name")
         res_name = res_name_entry.text().strip()
         if not res_name:
@@ -85,3 +85,30 @@ def process_widget(name, widget):
             args.append("select false")
     return " ".join(args)
 
+from chimerax.core.commands import register, CmdDesc, Command
+from chimerax.core.commands.cli import RegisteredCommandInfo
+command_registries = {}
+def process_command(session, name, structure, substring):
+    # all the commands use the trick that the structure arg is temporarily made available in the global
+    # namespace as '_structure'
+    global _structure
+    _structure = structure
+    try:
+        if name == "atom":
+            if 'name' not in command_registries:
+                command_registries[name] = registry = RegisteredCommandInfo()
+                from chimerax.core.commands import Float3Arg, StringArg, BoolArg
+                register(name, CmdDesc(keyword=[("position", Float3Arg), ("res_name", StringArg),
+                    ("select", BoolArg)], synopsis="place helium atom"), shim_place_atom, registry=registry)
+            registry = command_registries[name]
+        cmd = Command(session, registry=registry)
+        cmd.run(name + ' ' + substring, log=False)
+    finally:
+        _structure = None
+
+def shim_place_atom(session, position=None, res_name="UNL", select=True):
+    from .start import place_helium
+    a = place_helium(_structure, res_name, position=position)
+    if select:
+        session.selection.clear()
+        a.selected = True

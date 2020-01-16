@@ -354,8 +354,16 @@ class BuildStructureTool(ToolInstance):
 
         from .manager import manager
         substring = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
-        if substring is not None:
-            run(self.session, " ".join("structure start", provider_name, substring))
+        struct_info = self.ss_struct_menu.value
+        if isinstance(struct_info, str):
+            model_name = self.ss_model_name_edit.text().strip()
+            if not model_name:
+                raise UserError("New structure name must not be blank")
+            from chimerax.core.commands import StringArg
+            struct_arg = StringArg.unparse(model_name)
+        else:
+            struct_arg = struct_info.atomspec
+        run(self.session, " ".join(["structure start", provider_name, struct_arg, substring]))
 
     def _ss_provider_changed(self, button):
         ui_name = but.text()
