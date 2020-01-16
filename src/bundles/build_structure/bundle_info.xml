@@ -26,6 +26,13 @@
     <Dependency name="ChimeraX-Atom_Search" version=">=1.0"/>
   </Dependencies>
 
+  <Managers>
+    <Manager name="start structure"/>
+  </Managers>
+
+  <Providers manager="start structure">
+    <Provider name="atom"/>
+  </Providers>
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

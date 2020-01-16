@@ -12,8 +12,6 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import Element
-#from chimerax.atomic.colors import element_color
-#from chimerax.atomic.bond_geom import linear
 
 class ParamError(ValueError):
     pass
