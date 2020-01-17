@@ -130,12 +130,12 @@ class BuildStructureTool(ToolInstance):
         self.ms_atom_name = name_edit = QLineEdit()
         name_edit.setFixedWidth(50)
         name_edit.setText(ebut.text())
-        elements_menu.triggered.connect(lambda act, edit=name_edit: name_edit.setText(act.text()))
+        elements_menu.triggered.connect(lambda act: self._ms_update_atom_name())
         atom_name_layout.addWidget(name_edit, 1, 1, alignment=Qt.AlignLeft)
 
         apply_but = QPushButton("Apply")
         apply_but.clicked.connect(lambda checked: self._ms_apply_cb())
-        frame_layout.addWidget(apply_but, alignment=Qt.AlignCenter)
+        layout.addWidget(apply_but, alignment=Qt.AlignCenter)
 
         checkbox_area = QWidget()
         layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
@@ -316,34 +316,32 @@ class BuildStructureTool(ToolInstance):
         but.setText(gname)
 
     def _ms_sel_changed(self, *args):
-        from chimerax.atomic import selected_atoms, Residue
+        from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
         if len(sel_atoms) != 1:
             return
         a = sel_atoms[0]
-        new_element = self.ms_elements_button.text()
-        if a.element.name == new_element:
-            self.ms_atom_name.setText(a.name)
-            self.ms_retain_atom_name.setChecked(True)
-        else:
-            counter = 1
-            while True:
-                test_name = "%s%d" % (new_element, counter)
-                if len(test_name) > 4:
-                    test_name = "X"
-                    break
-                if not a.residue.find_atom(test_name):
-                    break
-                counter += 1
-            self.ms_atom_name.setText(test_name)
-            self.ms_change_atom_name.setChecked(True)
-        res_name = {
-            Residue.PT_NONE: "UNL",
-            Residue.PT_AMINO: "UNK",
-            Residue.PT_NUCLEIC: "N"
-        }[a.residue.polymer_type]
+        self._ms_update_atom_name(a)
+        from .mod import unknown_res_name
+        res_name = unknown_res_name(a.residue)
         self.ms_mod_edit.setText(res_name)
         self.ms_res_new_name.setText(res_name)
+
+    def _ms_update_atom_name(self, a=None):
+        if a is None:
+            from chimerax.atomic import selected_atoms
+            sel_atoms = selected_atoms(self.session)
+            if len(sel_atoms) != 1:
+                return
+            a = sel_atoms[0]
+        new_element = self.ms_elements_button.text()
+        from .mod import default_changed_name
+        new_name = default_changed_name(a, new_element)
+        self.ms_atom_name.setText(new_name)
+        if new_name == a.name:
+            self.ms_retain_atom_name.setChecked(True)
+        else:
+            self.ms_change_atom_name.setChecked(True)
 
     def _new_start_providers(self, new_providers):
         pass
