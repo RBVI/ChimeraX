@@ -49,7 +49,7 @@ def register_command(command_name, logger):
         required=[('atom', AtomArg), ('element', ElementArg), ('num_bonds', IntArg)],
         keyword = [('geometry', EnumOf(range(len(geometry_name)), ids=geometry_name)),
             ('name', StringArg), ('connect_back', BoolArg), ('color_by_element', BoolArg),
-            ('res_name', StringArg), ('res_new_only', BoolArg)],
+            ('res_name', StringArg), ('new_res', BoolArg)],
         synopsis = 'modify atom'
     )
     register('structure modify', desc, cmd_modify_atom, logger=logger)
