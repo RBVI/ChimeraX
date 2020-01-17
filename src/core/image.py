@@ -20,12 +20,12 @@ class ImageFormat:
 
 
 _formats = [
-    ('png', ['png'], 'PNG'),
-    ('jpeg', ['jpg', 'jpeg'], 'JPEG'),
-    ('tiff', ['tif', 'tiff'], 'TIFF'),
-    ('gif', ['gif'], 'GIF'),
-    ('ppm', ['ppm'], 'PPM'),
-    ('bmp', ['bmp'], 'BMP'),
+    ('PNG', ['png'], 'PNG'),
+    ('JPEG', ['jpg', 'jpeg'], 'JPEG'),
+    ('TIFF', ['tif', 'tiff'], 'TIFF'),
+    ('GIF', ['gif'], 'GIF'),
+    ('PPM', ['ppm'], 'PPM'),
+    ('BMP', ['bmp'], 'BMP'),
 ]
 default_format = 'png'
 image_formats = [ImageFormat(name, suffixes, pil_name)
@@ -67,7 +67,7 @@ def save_image(session, path, format_name, width=None, height=None,
     fmt = None
     if format_name is not None:
         for f in image_formats:
-            if f.name == format_name:
+            if f.name.casefold() == format_name.casefold():
                 fmt = f
         if fmt is None:
             from .errors import UserError
@@ -169,7 +169,7 @@ def save_image(session, path, format_name, width=None, height=None,
 def register_image_save(session):
     from .io import register_format
     for format in image_formats:
-        register_format("%s image" % format.name,
+        register_format("%s image" % format.name.upper(),
                         category='Image',
                         extensions=['.%s' % s for s in format.suffixes],
                         nicknames=[format.name.casefold()],
@@ -221,7 +221,7 @@ def register_image_save_options_gui(save_dialog):
             
         @property
         def format_name(self):
-            return self._image_format.name
+            return '%s image' % self._image_format.name
         
         def make_ui(self, parent):
             from PyQt5.QtWidgets import QFrame, QGridLayout, QComboBox, QLabel, QHBoxLayout, \
@@ -349,4 +349,4 @@ def register_image_save_options_gui(save_dialog):
             return wildcard
 
     for fmt in image_formats:
-        save_dialog.register(ImageSaveOptionsGUI(fmt))
+        save_dialog.add_options_gui(ImageSaveOptionsGUI(fmt))

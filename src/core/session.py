@@ -1099,7 +1099,7 @@ def register_session_save_options_gui(save_dialog):
                 cmd += ' includeMaps true'
             run(session, cmd)
 
-    save_dialog.register(SessionSaveOptionsGUI())
+    save_dialog.add_options_gui(SessionSaveOptionsGUI())
 
 
 def _register_core_file_formats(session):
