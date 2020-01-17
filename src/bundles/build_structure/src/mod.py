@@ -166,10 +166,13 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
     return changed_atoms
 
 def handle_res_params(atoms, res_name, new_res):
-    if not res_name:
-        return
+    a = atoms[0]
+    if res_name:
+        if not new_res and a.residue.name == res_name:
+            return
+    else:
+        res_name = unknown_res_name(a.residue)
     if new_res:
-        a = atoms[0]
         chain_id = a.residue.chain_id
         pos = 1
         while a.structure.find_residue(chain_id, pos):
@@ -179,7 +182,7 @@ def handle_res_params(atoms, res_name, new_res):
             a.residue.remove_atom(a)
             r.add_atom(a)
     else:
-        atoms[0].residue.name = res_name
+        a.residue.name = res_name
 
 element_radius = {}
 for i in range(Element.NUM_SUPPORTED_ELEMENTS):
@@ -258,3 +261,12 @@ def default_changed_name(a, element_name):
             break
         counter += 1
     return test_name
+
+def unknown_res_name(res):
+    from chimerax.atomic import Residue
+    return {
+        Residue.PT_NONE: "UNL",
+        Residue.PT_AMINO: "UNK",
+        Residue.PT_NUCLEIC: "N"
+    }[res.polymer_type]
+

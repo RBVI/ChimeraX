@@ -316,17 +316,14 @@ class BuildStructureTool(ToolInstance):
         but.setText(gname)
 
     def _ms_sel_changed(self, *args):
-        from chimerax.atomic import Residue, selected_atoms
+        from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
         if len(sel_atoms) != 1:
             return
         a = sel_atoms[0]
         self._ms_update_atom_name(a)
-        res_name = {
-            Residue.PT_NONE: "UNL",
-            Residue.PT_AMINO: "UNK",
-            Residue.PT_NUCLEIC: "N"
-        }[a.residue.polymer_type]
+        from .mod import unknown_res_name
+        res_name = unknown_res_name(a.residue)
         self.ms_mod_edit.setText(res_name)
         self.ms_res_new_name.setText(res_name)
 
