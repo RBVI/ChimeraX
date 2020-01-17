@@ -25,7 +25,6 @@ _ctx_client = None
 
 
 def get_ctx_server():
-    import os.path, ssl
     global _ctx_server
     if _ctx_server is None:
         cert = os.path.join(os.path.dirname(__file__), "server.pem")
@@ -35,7 +34,6 @@ def get_ctx_server():
 
 
 def make_server_socket(hostname, port, backlog=0):
-    import socket
     # Pre-3.8 code
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     s.bind((hostname, port))
@@ -48,7 +46,6 @@ def make_server_socket(hostname, port, backlog=0):
 
 
 def get_ctx_client():
-    import os.path, ssl
     global _ctx_client
     if _ctx_client is None:
         # ssl in Python 3.7 on Windows has a problem with TLS 1.3.
@@ -64,7 +61,6 @@ def get_ctx_client():
 
 
 def make_client_socket(hostname, port):
-    import socket
     s = socket.create_connection((hostname, port))
     if _use_ssl:
         s = get_ctx_client().wrap_socket(s, server_hostname=hostname)
@@ -324,23 +320,56 @@ class Server(threading.Thread):
         self._sessions = {}
         self._stopped = False
         self._lock = threading.RLock()
-        self._address = None
+        self._addresses = None
         self._admin_word = admin_word
 
     @property
-    def service_address(self):
+    def service_addresses(self):
         if self._socket is None:
             return "not_in_service"
-        if self._address is None:
+        if self._addresses is None:
             ip, port = self._socket.getsockname()
+            if ip == "0.0.0.0":
+                self._addresses = ["%s:%s" % (host_name, port)
+                                   for host_name in self._get_hostnames()]
+            else:
+                try:
+                    host_info = socket.gethostbyaddr(ip)
+                except socket.herror:
+                    host_name = ip
+                else:
+                    host_name = host_info[0]
+                self._addresses = ["%s:%s" % (host_name, port)]
+        return self._addresses
+
+    def _get_hostnames(self):
+        import netifaces
+        gateways = netifaces.gateways().get(netifaces.AF_INET)
+        if not gateways:
+            interfaces = netifaces.interfaces()
+        else:
+            interfaces = [gw[1] for gw in gateways]
+        ips = set()
+        for intf in interfaces:
+            addrs = netifaces.ifaddresses(intf).get(netifaces.AF_INET, [])
+            for addr in addrs:
+                ips.add(addr["addr"])
+        hostnames = set()
+        for ip in ips:
             try:
                 host_info = socket.gethostbyaddr(ip)
             except socket.herror:
                 host_name = ip
             else:
                 host_name = host_info[0]
-            self._address = "%s:%s" % (host_name, port)
-        return self._address
+            hostnames.add(host_name)
+        return hostnames
+
+    def get_port(self):
+        if self._socket is None:
+            raise RuntimeError("no active conference server")
+        _, port = self._socket.getsockname()
+        return port
 
     def run(self):
         # Overrides Thread method
@@ -369,7 +398,7 @@ class Server(threading.Thread):
             return Resp.Failure, "not associated with session"
         with self._lock:
             if handler.session in self._sessions:
-                return Resp.Success, (self.service_address, handler.session)
+                return Resp.Success, (self.service_addresses, handler.session)
             else:
                 return Resp.Failure, ("session \"%s\" terminated" %
                                       handler.session)

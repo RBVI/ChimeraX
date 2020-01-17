@@ -37,9 +37,10 @@ def register_command(ci, logger):
     elif ci.name == "conference":
         from chimerax.core.commands import (StringArg, IntArg, ColorArg,
                                             OpenFileNameArg, BoolArg, EnumOf)
-        desc = CmdDesc(required=[("action", EnumOf(["start", "join"])),
-                                 ("location", StringArg)],
-                       keyword=[("color", ColorArg),
+        desc = CmdDesc(required=[("action", EnumOf(["start", "join", "host"]))],
+                       optional=[("location", StringArg)],
+                       keyword=[("name", StringArg),
+                                ("color", ColorArg),
                                 ("face_image", OpenFileNameArg),
                                 ("copy_scene", BoolArg),
                                 ("relay_commands", BoolArg),

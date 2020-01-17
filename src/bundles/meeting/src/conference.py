@@ -17,7 +17,7 @@ from .tracking import MouseTracking, VRTracking
 from . import mux
 
 
-def conference(session, action, location, **kw):
+def conference(session, action, location=None, name=None, **kw):
     '''Similar to "meeting", but uses a hub that all participants
     can reach to exchange messages.
 
@@ -25,12 +25,13 @@ def conference(session, action, location, **kw):
     ----------
     action : enumeration
       One of "start" or "join".
-    location : string of form [identity@]host[:port]/session
-      String to identify the session location.  Optional 'identity'
-      provides a unique handle for this participant in the conference.
+    location : string of form host[:port]/session
+      String to identify the session location.
       'host' is the name or IP address of the host to connect to.
       'port' is the TCP port number, default 443, to connect to.
       'session' is the name of the session to start or join.
+    name : string
+      A unique handle for this participant in the conference.
     color : Color
       Color for my mouse pointer shown on other machines.
     face_image : string
@@ -51,36 +52,14 @@ def conference(session, action, location, **kw):
     conference = conference_server(session, create=False)
     if conference is not None:
         raise UserError("ChimeraX conference already in progress")
-    host, port, ses_name, identity = _parse_location(location)
     conference = conference_server(session, create=True)
     try:
-        conference.connect(action, host, port, ses_name, identity)
+        conference.connect(action, location, name)
     except RuntimeError as e:
         conference.close()
         raise UserError(str(e))
     else:
         conference_set(session, announce=True, **kw)
-
-
-def _parse_location(location):
-    parts = location.split('@', 1)
-    if len(parts) == 1:
-        identity = None
-        loc = location
-    else:
-        identity = parts[0]
-        loc = parts[1]
-    try:
-        addr, ses_name = loc.split('/', 1)
-        parts = addr.split(':', 1)
-        if len(parts) != 2:
-            host = addr
-            port = 443
-        else:
-            host, port = parts
-    except ValueError:
-        raise UserError("bad conference location: %s" % location)
-    return host, port, ses_name, identity
 
 
 def conference_set(session, color=None, face_image=None, copy_scene=None,
@@ -123,7 +102,7 @@ def conference_set(session, color=None, face_image=None, copy_scene=None,
             log.warning(msg)
         log.status(msg, color="red")
     if announce or not acted:
-        log.status("Conference at %s" % conference.location(False), log=True)
+        log.status("Conference at %s" % conference.location(), log=True)
 
 
 def conference_close(session):
@@ -192,29 +171,57 @@ class ConferenceClient:
     def connected(self):
         return self._hub is not None
 
-    def location(self, show_identity):
+    def location(self):
         if self._hub is None:
             return "not connected to conference"
-        addr, session = self._hub.get_session_info()
-        location = "%s/%s" % (addr, session)
-        if show_identity:
-            identity = self._hub.identity
-            if identity is None:
-                identity = "[anonymous]"
-            location = identity + '@' + location
-        return location
+        addrs, session = self._hub.get_session_info()
+        return ", ".join(["%s/%s" % (addr, session) for addr in addrs])
 
-    def connect(self, action, host, port, ses_name, ident):
+    def connect(self, action, location, identity):
         if action == "start":
-            self._hub = MuxClient(host, port, ses_name, ident,
+            if location is None:
+                raise("conference location must be specified for \"start\"")
+            host, port, ses_name = self._parse_location(location, True)
+            self._hub = MuxClient(host, port, ses_name, identity,
                                   True, server=self)
             self.copy_scene(True)
             self.set_color = (255,255,0,255)
         elif action == "join":
-            self._hub = MuxClient(host, port, ses_name, ident,
+            if location is None:
+                raise("conference location must be specified for \"join\"")
+            host, port, ses_name = self._parse_location(location, False)
+            self._hub = MuxClient(host, port, ses_name, identity,
                                   False, server=self)
+        elif action == "host":
+            if location is None:
+                host = ""
+                port = 0
+                ses_name = "session"
+            else:
+                host, port, ses_name = self._parse_location(location, False)
+            self._hub = MuxHostClient(identity, server=self)
         else:
             raise UserError("unknown conference mode: \"%s\"" % action)
+
+    def _parse_location(self, location, need_session):
+        try:
+            parts = location.split('/', 1)
+            if len(parts) == 1:
+                if need_session:
+                    raise UserError("missing session name in conference location")
+                addr = location
+                ses_name = "session"
+            else:
+                addr, ses_name = parts
+            parts = addr.split(':', 1)
+            if len(parts) != 2:
+                host = addr
+                port = 443
+            else:
+                host, port = parts
+        except ValueError:
+            raise UserError("bad conference location: %s" % location)
+        return host, port, ses_name
 
     def close(self):
         # Have to override because we both delete trackers
@@ -377,9 +384,10 @@ class ConferenceClient:
 
 class MuxClient(mux.Client):
 
-    def __init__(self, *args, server=None, **kw):
+    def __init__(self, hostname, port, ses_name, ident, create,
+                 server=None, **kw):
         self._server = server
-        super().__init__(*args, **kw)
+        super().__init__(hostname, port, ses_name, ident, create, **kw)
         self.start()
 
     def handle_message(self, packet, sender):
@@ -402,3 +410,18 @@ class MuxClient(mux.Client):
         else:
             raise RuntimeError("unsupported mux notification: %s" % ntype)
         return mux.Resp.Success, None
+
+
+class MuxHostClient(MuxClient):
+
+    def __init__(self, ident, **kw):
+        # First start the server, then create client
+        self.mux_server = mux.Server("", 0, "chimeraxmux")
+        self.mux_server.start()
+        port = self.mux_server.get_port()
+        super().__init__("localhost", port, "default", ident, True, **kw)
+
+    def close(self):
+        super().close()
+        self.mux_server.stop()
+        del self.mux_server
