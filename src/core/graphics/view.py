@@ -731,7 +731,7 @@ class View:
         Use bounding box center if zoomed out, or the front center
         point if zoomed in.
         '''
-        b = self.drawing_bounds()
+        b = self.drawing_bounds(allow_drawing_changes = False)
         if b is None:
             return
         vw = self.camera.view_width(b.center())
