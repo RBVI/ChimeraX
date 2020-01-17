@@ -52,7 +52,7 @@ def register_command(command_name, logger):
             ('res_name', StringArg), ('new_res', BoolArg)],
         synopsis = 'modify atom'
     )
-    register('structure modify', desc, cmd_modify_atom, logger=logger)
+    register('build modify', desc, cmd_modify_atom, logger=logger)
 
     from .manager import manager
     desc = CmdDesc(
@@ -61,4 +61,4 @@ def register_command(command_name, logger):
         keyword = [],
         synopsis = 'start structure'
     )
-    register('structure start', desc, cmd_start_structure, logger=logger)
+    register('build start', desc, cmd_start_structure, logger=logger)
