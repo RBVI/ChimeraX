@@ -36,7 +36,15 @@ See also:
 <b>Build Structure</b> can be opened from the 
 <b>Structure Editing</b> section of the <b>Tools</b> menu and 
 manipulated like other panels (<a href="../window.html#panels">more...</a>).
-Currently its only section is <a href="#modify"><b>Modify Structure</b></a>.
+Sections:
+</p>
+</ul>
+<li><a href="#modify"><b>Modify Structure</b></a>
+<li><a href="#start"><b>Start Structure</b></a>
+</ul>
+<p>
+The <b>Delete</b> button at the bottom removes any
+<a href="../selection.html">selected</a> atoms and bonds.
 </p>
 
 <a name="modify"></a>
@@ -67,8 +75,8 @@ Clicking <b>Apply</b> changes the
 <ul>
 <li><b>Element</b> &ndash; desired element
 <li><b>Bonds</b> &ndash; desired total number of substituents on the atom
-(0-4 allowed); pre-existing atoms are not removed, so this number must
-be no less than the atom's current number of substituents.
+(0-4 allowed); this number must be no less than the atom's current number 
+of substituents, not counting hydrogens.
 Substituents can be deleted beforehand, such as with the <b>Delete</b>
 button near the bottom of the dialog.
 <li><b>Geometry</b> &ndash; target arrangement of bonds around the atom
@@ -109,17 +117,17 @@ an atom name can be up to four characters long and should be unique
 within a residue. An atom name normally starts with the element symbol.
 </p>
 <li><b>Connect to pre-existing atoms if appropriate</b>
-(initial default <b>on</b>)
+(default <b>on</b>)
 &ndash; if a newly added hydrogen would be very close to
 an existing atom in the same model as the
 <a href="../selection.html">selected</a> atom, discard
 the hydrogen and form a bond to the existing atom instead
 <li><b>Focus view on modified residue</b>
-(initial default <b>off</b>) &ndash; 
+(default <b>off</b>) &ndash; 
 <a href="../commands/view.html#initial">focus the view</a> on the
 the residue containing the modified atom
 <li><b>Color new atoms by element</b> 
-(initial default <b>on</b>) &ndash; 
+(default <b>on</b>) &ndash; 
 color-code the modified atom and any newly added hydrogens
 <a href="../commands/colortables.html#element">by element</a>
 </ul><ul>
@@ -142,9 +150,13 @@ residue names are normally three characters long and chain identifiers a
 single character.
 </p>
 </ul>
+<a name="start"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Start Structure</h3>
 <p>
-Clicking <b>Delete</b> removes the
-<a href="../selection.html">selected</a> atoms and bonds.
+Documentation under construction...
 </p>
 
 <hr>
