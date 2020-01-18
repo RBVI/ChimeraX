@@ -586,6 +586,12 @@ class View:
             return dm.cached_drawing_bounds
         if allow_drawing_changes:
             # Cause graphics update so bounds include changes in models.
+            # TODO: This has been the source of many hard to debug problems.
+            #  Some code calls drawing_bounds() and it has all kinds of side effects
+            #  because of this check_for_drawing_changes() firing the "graphics update"
+            #  trigger.  It would be a good idea to make drawing_bounds() never
+            #  call this, or at least make allow_drawing_changes default False.
+            #  It will require some close study to find the problems that change causes.
             self.check_for_drawing_change()
         b = dm.cached_drawing_bounds
         if b is None:
@@ -731,7 +737,7 @@ class View:
         Use bounding box center if zoomed out, or the front center
         point if zoomed in.
         '''
-        b = self.drawing_bounds()
+        b = self.drawing_bounds(allow_drawing_changes = False)
         if b is None:
             return
         vw = self.camera.view_width(b.center())

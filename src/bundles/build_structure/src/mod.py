@@ -12,18 +12,20 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.atomic import Element
-#from chimerax.atomic.colors import element_color
-#from chimerax.atomic.bond_geom import linear
 
 class ParamError(ValueError):
     pass
 
 def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_back=True,
-        color_by_element=True, res_name=None, res_new_only=False):
+        color_by_element=True, res_name=None, new_res=False):
 
-    if atom.num_bonds > num_bonds:
-        raise ParamError("Atom already has more bonds that requested.\n"
-            "Either delete some bonds or choose a different number of requested bonds.")
+    neighbor_Hs = [nb for nb in atom.neighbors if nb.element.number == 1]
+    if atom.num_bonds -len(neighbor_Hs) > num_bonds:
+        raise ParamError("Atom already has more bonds to heavy atoms than requested.\n"
+            "Either delete some of those bonds/atoms or choose a different number of requested bonds.")
+    for h in neighbor_Hs:
+        h.structure.delete_atom(h)
+
     if geometry is None:
         if num_bonds < 2:
             # geometry irrelevant
@@ -39,7 +41,7 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
 
     changed_atoms = [atom]
     if name:
-        atom.name = name
+        atom.name = name if name else default_changed_name(atom, element.name)
     atom.element = element
     if color_by_element:
         from chimerax.atomic.colors import element_color
@@ -52,7 +54,7 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
         set_bond_length(atom.bonds[0], new_length, move_smaller_side=True)
 
     if num_bonds == atom.num_bonds:
-        handle_res_params(changed_atoms, res_name, res_new_only)
+        handle_res_params(changed_atoms, res_name, new_res)
         return changed_atoms
 
     from chimerax.atomic.bond_geom import bond_positions
@@ -160,14 +162,17 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
             else:
                 bonder.color = atom.color
             h_num += 1
-    handle_res_params(changed_atoms, res_name, res_new_only)
+    handle_res_params(changed_atoms, res_name, new_res)
     return changed_atoms
 
-def handle_res_params(atoms, res_name, res_new_only):
-    if not res_name:
-        return
-    if res_new_only:
-        a = atoms[0]
+def handle_res_params(atoms, res_name, new_res):
+    a = atoms[0]
+    if res_name:
+        if not new_res and a.residue.name == res_name:
+            return
+    else:
+        res_name = unknown_res_name(a.residue)
+    if new_res:
         chain_id = a.residue.chain_id
         pos = 1
         while a.structure.find_residue(chain_id, pos):
@@ -177,7 +182,7 @@ def handle_res_params(atoms, res_name, res_new_only):
             a.residue.remove_atom(a)
             r.add_atom(a)
     else:
-        atoms[0].residue.name = res_name
+        a.residue.name = res_name
 
 element_radius = {}
 for i in range(Element.NUM_SUPPORTED_ELEMENTS):
@@ -242,4 +247,26 @@ def set_bond_length(bond, bond_length, *, move_smaller_side=True, status=None):
     delta = v1 - (mp - fp)
     moving_atoms = bond.side_atoms(moving)
     moving_atoms.coords = moving_atoms.coords + delta
+
+def default_changed_name(a, element_name):
+    if a.element.name == element_name:
+        return a.name
+    counter = 1
+    while True:
+        test_name = "%s%d" % (element_name, counter)
+        if len(test_name) > 4:
+            test_name = "X"
+            break
+        if not a.residue.find_atom(test_name):
+            break
+        counter += 1
+    return test_name
+
+def unknown_res_name(res):
+    from chimerax.atomic import Residue
+    return {
+        Residue.PT_NONE: "UNL",
+        Residue.PT_AMINO: "UNK",
+        Residue.PT_NUCLEIC: "N"
+    }[res.polymer_type]
 

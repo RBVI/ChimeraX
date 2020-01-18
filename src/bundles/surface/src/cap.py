@@ -15,6 +15,9 @@ def update_clip_caps(view):
         return
     cp = view.clip_planes
     planes = cp.planes()
+    # TODO: The check of cp.changed is unreliable because View.check_for_drawing_change()
+    #  clears this flag, so it can be cleared before caps get a chance to update as happened
+    #  in chimerax bug #2751.  Need a reliable mechanism to detect clipping changes.
     update = (cp.changed or
               (planes and
                (view.shape_changed or

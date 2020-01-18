@@ -16,6 +16,7 @@ from chimerax.core.errors import UserError
 from chimerax.core.commands import run
 from PyQt5.QtWidgets import QVBoxLayout, QPushButton, QMenu, QStackedWidget, QWidget, QLabel, QFrame
 from PyQt5.QtWidgets import QGridLayout, QRadioButton, QHBoxLayout, QLineEdit, QCheckBox, QGroupBox
+from PyQt5.QtWidgets import QButtonGroup, QAbstractButton
 from PyQt5.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
@@ -46,14 +47,16 @@ class BuildStructureTool(ToolInstance):
 
         self.handlers = []
         self.category_widgets = {}
-        for category in ["Modify Structure"]:
+        for category in ["Start Structure", "Modify Structure"]:
             self.category_widgets[category] = widget = QFrame()
             widget.setLineWidth(2)
             widget.setFrameStyle(QFrame.Panel | QFrame.Sunken)
             getattr(self, "_layout_" + category.lower().replace(' ', '_'))(widget)
             self.category_areas.addWidget(widget)
-        self.category_button.setText(category)
-        self.category_areas.setCurrentWidget(widget)
+            cat_menu.addAction(category)
+        initial_category = "Start Structure"
+        self.category_button.setText(initial_category)
+        self.category_areas.setCurrentWidget(self.category_widgets[initial_category])
 
         tw.manage(placement="side")
 
@@ -62,12 +65,9 @@ class BuildStructureTool(ToolInstance):
             handler.remove()
         super().delete()
 
-    def run_cmd(self, cmd):
-        from chimerax.core.commands import run
-        run(self.session, " ".join(cmd))
-
     def _cat_menu_cb(self, action):
         self.category_areas.setCurrentWidget(self.category_widgets[action.text()])
+        self.category_button.setText(action.text())
 
     def _layout_modify_structure(self, parent):
         layout = QVBoxLayout()
@@ -130,12 +130,12 @@ class BuildStructureTool(ToolInstance):
         self.ms_atom_name = name_edit = QLineEdit()
         name_edit.setFixedWidth(50)
         name_edit.setText(ebut.text())
-        elements_menu.triggered.connect(lambda act, edit=name_edit: name_edit.setText(act.text()))
+        elements_menu.triggered.connect(lambda act: self._ms_update_atom_name())
         atom_name_layout.addWidget(name_edit, 1, 1, alignment=Qt.AlignLeft)
 
         apply_but = QPushButton("Apply")
         apply_but.clicked.connect(lambda checked: self._ms_apply_cb())
-        frame_layout.addWidget(apply_but, alignment=Qt.AlignCenter)
+        layout.addWidget(apply_but, alignment=Qt.AlignCenter)
 
         checkbox_area = QWidget()
         layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
@@ -190,6 +190,62 @@ class BuildStructureTool(ToolInstance):
         del_but.clicked.connect(self._ms_del_cb)
         delete_layout.addWidget(del_but, alignment=Qt.AlignRight)
         delete_layout.addWidget(QLabel("selected atoms/bonds"), alignment=Qt.AlignLeft)
+
+    def _layout_start_structure(self, parent):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        from .manager import manager
+        # until "lazy" managers are supported, 'manager' cannot be None at this point
+        self.ss_u_to_p_names = { manager.ui_name(pn):pn for pn in manager.provider_names }
+        ui_names = list(self.ss_u_to_p_names.keys())
+        ui_names.sort(key=lambda x: x.lower())
+        provider_layout = QGridLayout()
+        layout.addLayout(provider_layout)
+        provider_layout.addWidget(QLabel("Add "), 0, 0, len(ui_names), 1)
+
+        self.parameter_widgets = QStackedWidget()
+        provider_layout.addWidget(self.parameter_widgets, 0, 2, len(ui_names), 1)
+        self.ss_widgets = {}
+        self.ss_button_group = QButtonGroup()
+        self.ss_button_group.buttonClicked[QAbstractButton].connect(self._ss_provider_changed)
+        for row, ui_name in enumerate(ui_names):
+            but = QRadioButton(ui_name)
+            self.ss_button_group.addButton(but)
+            provider_layout.addWidget(but, row, 1, alignment=Qt.AlignLeft)
+            params_title = " ".join([x.capitalize()
+                if x.islower() else x for x in ui_name.split()]) + " Parameters"
+            self.ss_widgets[ui_name] = widget = QGroupBox(params_title)
+            manager.fill_parameters_widget(self.ss_u_to_p_names[ui_name], widget)
+            self.parameter_widgets.addWidget(widget)
+            if row == 0:
+                but.setChecked(True)
+                self.parameter_widgets.setCurrentWidget(widget)
+
+        model_area = QWidget()
+        layout.addWidget(model_area, alignment=Qt.AlignCenter)
+        model_layout = QHBoxLayout()
+        model_layout.setSpacing(2)
+        model_area.setLayout(model_layout)
+        model_layout.addWidget(QLabel("Put atoms in"))
+        from chimerax.atomic.widgets import StructureMenuButton
+        self.ss_struct_menu = StructureMenuButton(self.session, special_items=["new model"])
+        self.ss_struct_menu.value = "new model"
+        self.ss_struct_menu.value_changed.connect(self._ss_struct_changed)
+        model_layout.addWidget(self.ss_struct_menu)
+        self.ss_model_name_label = QLabel("named:")
+        model_layout.addWidget(self.ss_model_name_label)
+        self.ss_model_name_edit = edit = QLineEdit()
+        edit.setText("custom built")
+        model_layout.addWidget(edit)
+
+        self.ss_apply_button = apply_but = QPushButton("Apply")
+        apply_but.clicked.connect(lambda checked: self._ss_apply_cb())
+        layout.addWidget(apply_but, alignment=Qt.AlignCenter)
+
+        layout.addStretch(1)
 
     def _ms_apply_cb(self):
         from chimerax.atomic import selected_atoms
@@ -260,31 +316,63 @@ class BuildStructureTool(ToolInstance):
         but.setText(gname)
 
     def _ms_sel_changed(self, *args):
-        from chimerax.atomic import selected_atoms, Residue
+        from chimerax.atomic import selected_atoms
         sel_atoms = selected_atoms(self.session)
         if len(sel_atoms) != 1:
             return
         a = sel_atoms[0]
-        new_element = self.ms_elements_button.text()
-        if a.element.name == new_element:
-            self.ms_atom_name.setText(a.name)
-            self.ms_retain_atom_name.setChecked(True)
-        else:
-            counter = 1
-            while True:
-                test_name = "%s%d" % (new_element, counter)
-                if len(test_name) > 4:
-                    test_name = "X"
-                    break
-                if not a.residue.find_atom(test_name):
-                    break
-                counter += 1
-            self.ms_atom_name.setText(test_name)
-            self.ms_change_atom_name.setChecked(True)
-        res_name = {
-            Residue.PT_NONE: "UNL",
-            Residue.PT_AMINO: "UNK",
-            Residue.PT_NUCLEIC: "N"
-        }[a.residue.polymer_type]
+        self._ms_update_atom_name(a)
+        from .mod import unknown_res_name
+        res_name = unknown_res_name(a.residue)
         self.ms_mod_edit.setText(res_name)
         self.ms_res_new_name.setText(res_name)
+
+    def _ms_update_atom_name(self, a=None):
+        if a is None:
+            from chimerax.atomic import selected_atoms
+            sel_atoms = selected_atoms(self.session)
+            if len(sel_atoms) != 1:
+                return
+            a = sel_atoms[0]
+        new_element = self.ms_elements_button.text()
+        from .mod import default_changed_name
+        new_name = default_changed_name(a, new_element)
+        self.ms_atom_name.setText(new_name)
+        if new_name == a.name:
+            self.ms_retain_atom_name.setChecked(True)
+        else:
+            self.ms_change_atom_name.setChecked(True)
+
+    def _new_start_providers(self, new_providers):
+        pass
+
+    def _ss_apply_cb(self):
+        ui_name = self.ss_button_group.checkedButton().text()
+        provider_name = self.ss_u_to_p_names[ui_name]
+
+        from .manager import manager
+        substring = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
+        struct_info = self.ss_struct_menu.value
+        if isinstance(struct_info, str):
+            model_name = self.ss_model_name_edit.text().strip()
+            if not model_name:
+                raise UserError("New structure name must not be blank")
+            from chimerax.core.commands import StringArg
+            struct_arg = StringArg.unparse(model_name)
+        else:
+            struct_arg = struct_info.atomspec
+        run(self.session, " ".join(["structure start", provider_name, struct_arg, substring]))
+
+    def _ss_provider_changed(self, button):
+        ui_name = but.text()
+        self.parameter_widgets.setCurrentWidget(self.ss_widgets[ui_name])
+        from .manager import manager
+        if manager.is_indirect(self.ss_u_to_p_names[ui_name]):
+            self.ss_apply_button.setHidden(True)
+        else:
+            self.ss_apply_button.setHidden(False)
+
+    def _ss_struct_changed(self):
+        show = self.ss_struct_menu.value == "new model"
+        self.ss_model_name_label.setHidden(not show)
+        self.ss_model_name_edit.setHidden(not show)

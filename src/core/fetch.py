@@ -211,6 +211,10 @@ def read_and_report_progress(file_in, file_out, name, content_length, logger, ch
             msg = 'Fetching %s, %.3g Mbytes received' % (name, tb / 1048576)
         logger.status(msg)
 
+    if content_length is not None and tb != content_length:
+        # In ChimeraX bug #2747 zero bytes were read and no error reported.
+        from urllib.request import URLError
+        raise URLError('Got %d bytes when %d were expected' % (tb, content_length))
 
 # -----------------------------------------------------------------------------
 #
