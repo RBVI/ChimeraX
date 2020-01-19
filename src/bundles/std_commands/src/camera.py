@@ -18,7 +18,7 @@ def camera(session, type=None, field_of_view=None,
     Parameters
     ----------
     type : string
-        Controls type of projection, currently "mono", "360", "360tb" (stereoscopic top-bottom layout),
+        Controls type of projection, currently "mono", "360", "dome", "360tb" (stereoscopic top-bottom layout),
         "360sbs" (stereoscopic side-by-side layout), "stereo", "sbs" (side by side stereo), "tb" (top bottom stereo)
     field_of_view : float
         Horizontal field of view in degrees.
@@ -50,35 +50,30 @@ def camera(session, type=None, field_of_view=None,
                     from chimerax.core.commands import run
                     run(session, 'toolshed show "Side View"')
         camera = None
+        from chimerax.core import graphics
         if type == 'mono':
-            from chimerax.core.graphics import MonoCamera
-            camera = MonoCamera()
+            camera = graphics.MonoCamera()
         elif type == 'ortho':
-            from chimerax.core.graphics import OrthographicCamera
             w = view.camera.view_width(view.center_of_rotation)
-            camera = OrthographicCamera(w)
+            camera = graphics.OrthographicCamera(w)
         elif type == '360':
-            from chimerax.core.graphics import Mono360Camera
-            camera = Mono360Camera()
+            camera = graphics.Mono360Camera()
+        elif type == 'dome':
+            camera = graphics.DomeCamera()
         elif type == '360tb':
-            from chimerax.core.graphics import Stereo360Camera
-            camera = Stereo360Camera()
+            camera = graphics.Stereo360Camera()
         elif type == '360sbs':
-            from chimerax.core.graphics import Stereo360Camera
-            camera = Stereo360Camera(layout = 'side-by-side')
+            camera = graphics.Stereo360Camera(layout = 'side-by-side')
         elif type == 'stereo':
-            from chimerax.core.graphics import StereoCamera
-            camera = StereoCamera()
+            camera = graphics.StereoCamera()
             b = view.drawing_bounds()
             if b:
                 camera.position = view.camera.position
                 camera.set_focus_depth(b.center(), view.window_size[0])
         elif type == 'sbs':
-            from chimerax.core.graphics import SplitStereoCamera
-            camera = SplitStereoCamera()
+            camera = graphics.SplitStereoCamera()
         elif type == 'tb':
-            from chimerax.core.graphics import SplitStereoCamera
-            camera = SplitStereoCamera(layout = 'top-bottom')
+            camera = graphics.SplitStereoCamera(layout = 'top-bottom')
 
         if camera is not None:
             camera.position = view.camera.position  # Preserve current camera position
@@ -130,7 +125,7 @@ def camera(session, type=None, field_of_view=None,
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf
-    types = EnumOf(('mono', 'ortho', '360', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
+    types = EnumOf(('mono', 'ortho', '360', 'dome', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
     desc = CmdDesc(
         optional = [('type', types)],
         keyword = [('field_of_view', FloatArg),
