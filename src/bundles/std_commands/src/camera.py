@@ -12,7 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 def camera(session, type=None, field_of_view=None,
-           eye_separation=None, pixel_eye_separation=None):
+           eye_separation=None, pixel_eye_separation=None,
+           cube_pixels=1024):
     '''Change camera parameters.
 
     Parameters
@@ -31,6 +32,10 @@ def camera(session, type=None, field_of_view=None,
         Usually this need not be set and will be figured out from the pixels/inch reported
         by the display.  But for projectors the size of the displayed image is unknown and
         it is necessary to set this option to get comfortable stereoscopic viewing.
+    cube_pixels : int
+        Controls resolution of 360 and dome modes as the width of the cube map faces in
+        pixels.  For best appearance this value should be about as large as the window size.
+        Default is 1024.
     '''
     view = session.main_view
     has_arg = False
@@ -57,13 +62,13 @@ def camera(session, type=None, field_of_view=None,
             w = view.camera.view_width(view.center_of_rotation)
             camera = graphics.OrthographicCamera(w)
         elif type == '360':
-            camera = graphics.Mono360Camera()
+            camera = graphics.Mono360Camera(cube_face_size = cube_pixels)
         elif type == 'dome':
-            camera = graphics.DomeCamera()
+            camera = graphics.DomeCamera(cube_face_size = cube_pixels)
         elif type == '360tb':
-            camera = graphics.Stereo360Camera()
+            camera = graphics.Stereo360Camera(cube_face_size = cube_pixels)
         elif type == '360sbs':
-            camera = graphics.Stereo360Camera(layout = 'side-by-side')
+            camera = graphics.Stereo360Camera(layout = 'side-by-side', cube_face_size = cube_pixels)
         elif type == 'stereo':
             camera = graphics.StereoCamera()
             b = view.drawing_bounds()
@@ -124,13 +129,14 @@ def camera(session, type=None, field_of_view=None,
 
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf
+    from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf, IntArg
     types = EnumOf(('mono', 'ortho', '360', 'dome', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
     desc = CmdDesc(
         optional = [('type', types)],
         keyword = [('field_of_view', FloatArg),
                    ('eye_separation', FloatArg),
-                   ('pixel_eye_separation', FloatArg)],
+                   ('pixel_eye_separation', FloatArg),
+                   ('cube_pixels', IntArg)],
         synopsis='adjust camera parameters'
     )
     register('camera', desc, camera, logger=logger)

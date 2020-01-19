@@ -14,11 +14,11 @@ class CubeMapCamera(Camera):
 
     name = 'cube map'
 
-    def __init__(self, projection_size = (360, 180)):
+    def __init__(self, projection_size = (360, 180), cube_face_size = 1024):
 
         Camera.__init__(self)
         self._framebuffer = None        	# Framebuffer for rendering each face
-        self._cube_face_size = 1024		# Pixels
+        self._cube_face_size = cube_face_size	# Pixels
         self._projection_size = projection_size	# Grid size for projecting cubemap.
         self._drawing = None			# Drawing of rectangle with cube map texture
         self._view_rotations = _cube_map_face_views()   # Camera views for cube faces
@@ -103,6 +103,10 @@ class CubeMapCamera(Camera):
 
 class Mono360Camera(CubeMapCamera):
     name = 'mono 360'
+
+    def __init__(self, projection_size = (360, 180), cube_face_size = 1024):
+        CubeMapCamera.__init__(self, projection_size = projection_size,
+                               cube_face_size = cube_face_size)
     
     def _direction_map(self, x, y):
         return _equirectangular_direction(x,y)
@@ -110,8 +114,9 @@ class Mono360Camera(CubeMapCamera):
 class DomeCamera(CubeMapCamera):
     name = 'dome'
 
-    def __init__(self, projection_size = (180, 180)):
-        CubeMapCamera.__init__(self, projection_size)
+    def __init__(self, projection_size = (180, 180), cube_face_size = 1024):
+        CubeMapCamera.__init__(self, projection_size = projection_size,
+                               cube_face_size = cube_face_size)
         
     def _direction_map(self, x, y):
         return _fisheye_direction(x,y)
@@ -120,12 +125,12 @@ class Stereo360Camera(Camera):
 
     name = 'stereo 360'
 
-    def __init__(self, layout = 'top-bottom'):
+    def __init__(self, layout = 'top-bottom', cube_face_size = 1024):
 
         Camera.__init__(self)
         self.eye_separation_scene = 0.2			# Angstroms
         self._framebuffer = {'left':None, 'right':None} # Framebuffer for rendering each face
-        self._cube_face_size = 1024			# Pixels
+        self._cube_face_size = cube_face_size		# Pixels
         self._projection_size = (360,180)		# Grid size for projecting cubemap.
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
         v = _cube_map_face_views()
