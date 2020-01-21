@@ -67,7 +67,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     try:
         retrieve_url(url, filename, uncompress=uncompress, logger=session.logger,
                      check_certificates=check_certificates, name=name, timeout=timeout)
-    except URLError as e:
+    except (URLError, EOFError) as e:
         from .errors import UserError
         raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
     return filename
@@ -99,7 +99,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
     :param update: if true, then existing file is okay if newer than web version
     :param check_certificates: if true
     :returns: None if an existing file, otherwise the content type
-    :raises urllib.request.URLError: if unsuccessful
+    :raises urllib.request.URLError or EOFError if unsuccessful
 
 
     If 'update' and the filename already exists, fetch the HTTP headers for
