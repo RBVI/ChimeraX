@@ -8,6 +8,7 @@ all install build:	check
 	$(APP_EXE) --nogui --silent --exit --script '$(SCRIPT) build'
 	$(MAKE) -C $(TOP)/docs/user/tools DOCDIR=$$(pwd)/user/tools RSYNC="ln -s" install-icons
 
+ifneq (,$(wildcard $(PYTHON_EXE)))
 check:
 	$(PYTHON_EXE) $(SCRIPT) check $(VERBOSE)
 
@@ -16,6 +17,10 @@ clean:	check
 
 distclean:
 	$(PYTHON_EXE) $(SCRIPT) clean
+else
+clean distclean:
+	rm -rf user
+endif
 
 from-daily:
 	rm -rf user
