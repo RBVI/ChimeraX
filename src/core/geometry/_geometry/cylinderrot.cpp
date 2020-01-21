@@ -38,7 +38,7 @@ static void cylinder_rotations(float *axyz0, float *axyz1, int n, float *radii,
       float vz = axyz1[2] - axyz0[2];
       float d = sqrtf(vx*vx + vy*vy + vz*vz);
       if (d == 0)
-	{ vx = vy = 0 ; vz = 1; d = 1; }
+	{ vx = vy = 0 ; vz = 1; }
       else
 	{ vx /= d; vy /= d; vz /= d; }
 
@@ -123,7 +123,7 @@ static void half_cylinder_rotations(float *axyz0, float *axyz1, int n, float *ra
       float vx = x1-x0, vy = y1-y0, vz = z1-z0;
       float d = sqrtf(vx*vx + vy*vy + vz*vz);
       if (d == 0)
-	{ vx = vy = 0 ; vz = 1; d = 1; }
+	{ vx = vy = 0 ; vz = 1; }
       else
 	{ vx /= d; vy /= d; vz /= d; }
 
