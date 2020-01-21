@@ -27,7 +27,7 @@ class="clRight" title="User Guide Index"/></a>
 <p>
 The <b>Build Structure</b> tool is for building and modifying atomic structures.
 It is implemented as the
-<a href="../commands/structure.html"><b>structure</b></a> command.
+<a href="../commands/build.html"><b>build</b></a> command.
 See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
@@ -36,9 +36,24 @@ See also:
 <b>Build Structure</b> can be opened from the 
 <b>Structure Editing</b> section of the <b>Tools</b> menu and 
 manipulated like other panels (<a href="../window.html#panels">more...</a>).
-</p><p>
-Currently it includes just one section, <b>Modify Structure</b>,
-which can be used to change the element,
+Sections:
+</p>
+</ul>
+<li><a href="#modify"><b>Modify Structure</b></a>
+<li><a href="#start"><b>Start Structure</b></a>
+</ul>
+<p>
+The <b>Delete</b> button at the bottom removes any
+<a href="../selection.html">selected</a> atoms and bonds.
+</p>
+
+<a name="modify"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Modify Structure</h3>
+<p>
+<b>Modify Structure</b> can change the element,
 valence (number of directly attached atoms), and/or geometry
 (spatial arrangement of attached atoms) of a single
 <a href="../selection.html">selected</a> atom at a time.
@@ -55,14 +70,14 @@ an atom when 0 or &gt;3 other atoms are already
 <a href="../../UsersGuide/mouse.html#contextmenus">context menu</a>.
 -->
 </p><p>
-Clicking <b>Apply</b> will change the
+Clicking <b>Apply</b> changes the 
 <a href="../selection.html">selected</a> atom as specified:
 <ul>
 <li><b>Element</b> &ndash; desired element
 <li><b>Bonds</b> &ndash; desired total number of substituents on the atom
-(0-4 allowed); pre-existing atoms are not removed, so this number must
-be no less than the atom's current number of substituents.
-Substituents can be deleted beforehand, such as with the <b>Delete</b>
+(0-4 allowed); cannot be fewer than the current number of 
+substituents other than hydrogen.
+Atoms can be deleted beforehand, such as with the <b>Delete</b>
 button near the bottom of the dialog.
 <li><b>Geometry</b> &ndash; target arrangement of bonds around the atom
   <ul>
@@ -73,17 +88,20 @@ button near the bottom of the dialog.
   target bond angle(s) 109.5&deg;
   </ul>
 <p>
-There is no checking as to whether the chosen number of bonds 
+There is no checking as to whether the specified number of bonds 
 and geometry are chemically reasonable.
 Hydrogens will be added to the atom to generate the indicated
-number of bonds.
-If the atom is already bonded to one (and only one) other atom, the bond
-will be adjusted to an <b><i>approximate</i></b> length depending
-on the elements involved.
-The positions of any other atoms already present will not be changed.
-New hydrogens will be placed to form the idealized angles for the geometry,
-or if the atom already has two or more
-substituents, to maximally avoid those substituents.
+total number of bonds. They are added to form the idealized bond angles for 
+the specified geometry, or if the atom already has two or more substituents,
+to maximally avoid those substituents.
+The default geometry is the same as for the atom's
+current <a href="../atomtypes.html">type</a>.
+Since the geometry around the atom may be changing, any
+pre-existing directly attached hydrogens are removed beforehand.
+No other atoms are removed automatically.
+If the atom is already bonded to one (and only one) other nonhydrogen atom,
+the bond will be adjusted to an approximate length depending on
+the elements involved. No other atoms are moved.
 Bond lengths for X-H (X = C/N/O/S) are taken from the
 <a href="http://ambermd.org/" target="_blank"><b>Amber</b></a>
 parm99 parameters.
@@ -99,17 +117,17 @@ an atom name can be up to four characters long and should be unique
 within a residue. An atom name normally starts with the element symbol.
 </p>
 <li><b>Connect to pre-existing atoms if appropriate</b>
-(initial default <b>on</b>)
+(default <b>on</b>)
 &ndash; if a newly added hydrogen would be very close to
 an existing atom in the same model as the
 <a href="../selection.html">selected</a> atom, discard
 the hydrogen and form a bond to the existing atom instead
 <li><b>Focus view on modified residue</b>
-(initial default <b>off</b>) &ndash; 
+(default <b>off</b>) &ndash; 
 <a href="../commands/view.html#initial">focus the view</a> on the
 the residue containing the modified atom
 <li><b>Color new atoms by element</b> 
-(initial default <b>on</b>) &ndash; 
+(default <b>on</b>) &ndash; 
 color-code the modified atom and any newly added hydrogens
 <a href="../commands/colortables.html#element">by element</a>
 </ul><ul>
@@ -132,9 +150,13 @@ residue names are normally three characters long and chain identifiers a
 single character.
 </p>
 </ul>
+<a name="start"></a>
+<p class="nav">
+[<a href="#top">back to top: Build Structure</a>]
+</p>
+<h3>Start Structure</h3>
 <p>
-Clicking <b>Delete</b> removes the
-<a href="../selection.html">selected</a> atoms and bonds.
+Documentation under construction...
 </p>
 
 <hr>

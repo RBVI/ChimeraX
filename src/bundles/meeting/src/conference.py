@@ -25,11 +25,11 @@ def conference(session, action, location=None, name=None, **kw):
     ----------
     action : enumeration
       One of "start" or "join".
-    location : string of form host[:port]/session
-      String to identify the session location.
+    location : string of form host[:port]/conference_name
+      String to identify the conference location.
       'host' is the name or IP address of the host to connect to.
       'port' is the TCP port number, default 443, to connect to.
-      'session' is the name of the session to start or join.
+      'conference_name' is the name of the conference to start or join.
     name : string
       A unique handle for this participant in the conference.
     color : Color
@@ -55,7 +55,7 @@ def conference(session, action, location=None, name=None, **kw):
     conference = conference_server(session, create=True)
     try:
         conference.connect(action, location, name)
-    except RuntimeError as e:
+    except ConnectionRefusedError as e:
         conference.close()
         raise UserError(str(e))
     else:
@@ -91,7 +91,7 @@ def conference_set(session, color=None, face_image=None, copy_scene=None,
         acted = True
     if relay_commands is not None:
         if conference.connected:
-            conference.relay_commands(realy_commands)
+            conference.relay_commands(relay_commands)
         acted = True
     if update_interval is not None:
         conference.vr_tracker.update_interval = update_interval
@@ -126,13 +126,13 @@ def conference_server(session, create=False):
         return session._conference_server
     except AttributeError:
         if create:
-            session._conference_server = ConferenceClient(session)
+            session._conference_server = ConferenceServer(session)
             return session._conference_server
         else:
             return None
 
 
-class ConferenceClient:
+class ConferenceServer:
     # We want to use the same variables and methods for managing
     # VR and commands, but use a different connection mechanism.
     # So we create the meeting server but override everything
@@ -150,18 +150,13 @@ class ConferenceClient:
 
         self._command_relay_handler = None	# Send commands to peers
         self._running_received_command = False
-        self.relay_commands()
 
         self._status_report_interval = 0.5
         self._status_start_time = None
         self._last_status_time = None
         self._last_status_bytes = None
 
-        self._hub = None
-
-    @property
-    def session(self):
-        return self._session
+        self._mux_node = None
 
     #
     # Connection stuff
@@ -169,50 +164,51 @@ class ConferenceClient:
 
     @property
     def connected(self):
-        return self._hub is not None
+        return self._mux_node is not None
 
     def location(self):
-        if self._hub is None:
+        if self._mux_node is None:
             return "not connected to conference"
-        addrs, session = self._hub.get_session_info()
-        return ", ".join(["%s/%s" % (addr, session) for addr in addrs])
+        addrs, conf_name = self._mux_node.get_conference_info()
+        return ", ".join(["%s/%s" % (addr, conf_name) for addr in addrs])
 
     def connect(self, action, location, identity):
         if action == "start":
             if location is None:
                 raise("conference location must be specified for \"start\"")
-            host, port, ses_name = self._parse_location(location, True)
-            self._hub = MuxClient(host, port, ses_name, identity,
-                                  True, server=self)
+            host, port, conf_name = self._parse_location(location, True)
+            self._mux_node = MuxNode(host, port, conf_name, identity,
+                                     True, server=self)
             self.copy_scene(True)
             self.set_color = (255,255,0,255)
         elif action == "join":
             if location is None:
                 raise("conference location must be specified for \"join\"")
-            host, port, ses_name = self._parse_location(location, False)
-            self._hub = MuxClient(host, port, ses_name, identity,
-                                  False, server=self)
+            host, port, conf_name = self._parse_location(location, False)
+            self._mux_node = MuxNode(host, port, conf_name, identity,
+                                     False, server=self)
         elif action == "host":
             if location is None:
                 host = ""
                 port = 0
-                ses_name = "session"
+                conf_name = "conference"
             else:
-                host, port, ses_name = self._parse_location(location, False)
-            self._hub = MuxHostClient(identity, server=self)
+                host, port, conf_name = self._parse_location(location, False)
+            self._mux_node = MuxHostNode(identity, server=self)
         else:
             raise UserError("unknown conference mode: \"%s\"" % action)
+        self.relay_commands()
 
-    def _parse_location(self, location, need_session):
+    def _parse_location(self, location, need_name):
         try:
             parts = location.split('/', 1)
             if len(parts) == 1:
-                if need_session:
-                    raise UserError("missing session name in conference location")
+                if need_name:
+                    raise UserError("conference name missing from location")
                 addr = location
-                ses_name = "session"
+                conf_name = "conference"
             else:
-                addr, ses_name = parts
+                addr, conf_name = parts
             parts = addr.split(':', 1)
             if len(parts) != 2:
                 host = addr
@@ -221,7 +217,7 @@ class ConferenceClient:
                 host, port = parts
         except ValueError:
             raise UserError("bad conference location: %s" % location)
-        return host, port, ses_name
+        return host, port, conf_name
 
     def close(self):
         # Have to override because we both delete trackers
@@ -230,11 +226,11 @@ class ConferenceClient:
             for t in self._trackers:
                 t.delete()
             self._trackers = []
-        if self._hub:
-            self._hub.close()
-            self._hub = None
-        if self.session._conference_server is self:
-            del self.session._conference_server
+        if self._mux_node:
+            self._mux_node.close()
+            self._mux_node = None
+        if self._session._conference_server is self:
+            del self._session._conference_server
 
     #
     # Scene/session stuff
@@ -343,7 +339,7 @@ class ConferenceClient:
     #
 
     def add_client(self, identity):
-        logger = self.session.logger
+        logger = self._session.logger
         logger.info("\"%s\" joined conference" % identity)
         self._initiate_tracking()
         if self._copy_scene:
@@ -352,22 +348,22 @@ class ConferenceClient:
 
     def drop_client(self, identity):
         # The hub handles all that for us, so we do not need to do anything
-        logger = self.session.logger
+        logger = self._session.logger
         logger.info("\"%s\" left conference" % identity)
 
     def _send_message(self, msg, identities=None):
-        self._hub.send(msg, receivers=identities)
+        self._mux_node.send(msg, receivers=identities)
 
     def _message_received(self, sender, msg):
         # Note that this method is typically called from the "run()"
-        # thread of the ConferenceClient, but we need to do the actual
+        # thread of the ConferenceServer, but we need to do the actual
         # work in the main thread.  So we use ui.thread_safe to
         # call the function, and use a Queue instance for synchronization
-        #logger = self.session.logger
+        #logger = self._session.logger
         #logger.info("Message from %s: %s" % (sender, msg))
         from queue import SimpleQueue
         q = SimpleQueue()
-        self.session.ui.thread_safe(self._message_execute, q, sender, msg)
+        self._session.ui.thread_safe(self._message_execute, q, sender, msg)
         return q.get()
 
     def _message_execute(self, q, sender, msg):
@@ -382,16 +378,16 @@ class ConferenceClient:
         q.put(None)
 
 
-class MuxClient(mux.Client):
+class MuxNode(mux.Node):
 
-    def __init__(self, hostname, port, ses_name, ident, create,
+    def __init__(self, hostname, port, conf_name, ident, create,
                  server=None, **kw):
         self._server = server
-        super().__init__(hostname, port, ses_name, ident, create, **kw)
+        super().__init__(hostname, port, conf_name, ident, create, **kw)
         self.start()
 
     def handle_message(self, packet, sender):
-        #logger = self._server.session.logger
+        #logger = self._server._session.logger
         #logger.info("Packet from %s: %s" % (sender, packet))
         # packet should contain two keys: "receivers" and "data"
         # for now, we just ignore who the message was sent to
@@ -399,7 +395,7 @@ class MuxClient(mux.Client):
         return mux.Resp.Success, retval
 
     def handle_notification(self, ntype, data):
-        #logger = self._server.session.logger
+        #logger = self._server._session.logger
         #logger.info("Notification from %s: %s" % (ntype, data))
         if ntype == mux.Notify.Joined:
             # data is just the name of the client that joined
@@ -412,16 +408,16 @@ class MuxClient(mux.Client):
         return mux.Resp.Success, None
 
 
-class MuxHostClient(MuxClient):
+class MuxHostNode(MuxNode):
 
     def __init__(self, ident, **kw):
         # First start the server, then create client
-        self.mux_server = mux.Server("", 0, "chimeraxmux")
-        self.mux_server.start()
-        port = self.mux_server.get_port()
+        self.mux_hub = mux.Hub("", 0, "chimeraxmux")
+        self.mux_hub.start()
+        port = self.mux_hub.get_port()
         super().__init__("localhost", port, "default", ident, True, **kw)
 
     def close(self):
         super().close()
-        self.mux_server.stop()
-        del self.mux_server
+        self.mux_hub.stop()
+        del self.mux_hub
