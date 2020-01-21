@@ -26,6 +26,15 @@ except ImportError:
     import pickle
 
 
+logging.basicConfig()
+logger = logging.getLogger()
+logger.setLevel("WARNING")
+
+
+#
+# SSL and connection code
+#
+
 _use_ssl = True
 _ctx_hub = None
 _ctx_node = None
@@ -74,54 +83,69 @@ def make_node_socket(hostname, port):
     return s
 
 
-class PacketType:
-    _enum = itertools.count(1)
-    Req = next(_enum)
-    Resp = next(_enum)
+def _dump_ciphers(ctx, prefix):
+    for cipher in ctx.get_ciphers():
+        logger.info("%s: %s: %s", prefix, cipher["protocol"], cipher["name"], flush=True)
 
-class Req:
+
+#
+# Data exchange format and constants
+#
+
+
+class Enum:
     _enum = itertools.count(1)
+    _enum_map = {}
+
+    @classmethod
+    def define(cls, name):
+        value = next(cls._enum)
+        cls._enum_map[value] = name
+        setattr(cls, name, value)
+
+    @classmethod
+    def name(cls, value):
+        return cls._enum_map.get(value, str(value))
+
+
+class PacketType(Enum):
+    Enum.define("Req")
+    Enum.define("Resp")
+
+
+class Req(Enum):
     # debugging requests
-    Echo = next(_enum)
+    Enum.define("Echo")
     # admin requests
-    Exit = next(_enum)
-    GetConferences = next(_enum)
+    Enum.define("Exit")
+    Enum.define("GetConferences")
     # Notifications
-    Joined = next(_enum)
-    Departed = next(_enum)
+    Enum.define("Joined")
+    Enum.define("Departed")
     # node requests
-    CreateConference = next(_enum)
-    JoinConference = next(_enum)
-    GetConferenceInfo = next(_enum)
-    GetIdentities = next(_enum)
-    Message = next(_enum)
-
-ReqNames = {getattr(Req, a):a for a in dir(Req)
-            if isinstance(getattr(Req, a), int)}
-
-class Resp:
-    _enum = itertools.count(1)
-    Failure = next(_enum)
-    Success = next(_enum)
-
-class Notify:
-    Joined = "joined"
-    Departed = "departed"
+    Enum.define("CreateConference")
+    Enum.define("JoinConference")
+    Enum.define("GetConferenceInfo")
+    Enum.define("GetIdentities")
+    Enum.define("Message")
 
 
-logging.basicConfig()
-logger = logging.getLogger()
-logger.setLevel("WARNING")
+class Resp(Enum):
+    Enum.define("Failure")
+    Enum.define("Success")
 
 
-def req_name(n):
-    try:
-        return ReqNames[n]
-    except KeyError:
-        return str(n)
+class Notify(Enum):
+    Enum.define("Joined")
+    Enum.define("Departed")
 
 
-class EndPoint:
+#
+# Packet transmission and reception code
+#
+
+
+class _Serializer:
 
     HeaderFormat = "III"
     HeaderSize = struct.calcsize(HeaderFormat)
@@ -130,118 +154,75 @@ class EndPoint:
         self._socket = s
         self._lock = threading.Lock()
 
+    def getpeername(self):
+        with self._lock:
+            if self._socket is None:
+                return None, None
+            return self._socket.getpeername()
+
     def get(self):
         # Only one thread will read /from/ the socket so no thread-safety
-        if self._socket is None:
-            return None, None, None
+        with self._lock:
+            sock = self._socket
+            if sock is None:
+                return None, None, None
         try:
-            header_data = self._socket.recv(self.HeaderSize)
+            header_data = sock.recv(self.HeaderSize)
             if len(header_data) == 0:
                 raise ConnectionError("recv")
+            # logger.debug("get: %s: received %d bytes", self, len(header_data))
+            try:
+                s = header_data.decode().lower()
+            except:
+                # If data is not text, assume it is not HTTP protocol
+                pass
+            else:
+                if s.startswith("get") or s.startswith("post"):
+                    self._send(b"HTTP/2.0 418 I'm a teapot\n\n")
+                    self.close()
+                    return None, None, None
+            ptype, serial, count = struct.unpack(self.HeaderFormat, header_data)
+            sdata = bytes()
+            while len(sdata) < count:
+                new_data = sock.recv(count - len(sdata))
+                if len(new_data) == 0:
+                    self.close()
+                    return None, None, None
+                sdata += new_data
+            data = pickle.loads(sdata) if len(sdata) > 0 else None
+            # logger.debug("get: %s %s %s %s", self, PacketType.name(ptype), serial, data)
+            return ptype, serial, data
         except (OSError, ConnectionError):
             self.close()
             return None, None, None
-        # logger.debug("get: %s: received %d bytes", self, len(header_data))
-        try:
-            s = header_data.decode().lower()
-        except:
-            pass
-        else:
-            if s.startswith("get") or s.startswith("post"):
-                self._send(b"HTTP/2.0 418 I'm a teapot\n\n")
-                self.close()
-                return None, None, None
-        dtype, serial, count = struct.unpack(self.HeaderFormat, header_data)
-        sdata = bytes()
-        while len(sdata) < count:
-            new_data = self._socket.recv(count - len(sdata))
-            if len(new_data) == 0:
-                self._socket.close()
-                return None, None, None
-            sdata += new_data
-        data = pickle.loads(sdata) if len(sdata) > 0 else None
-        # logger.debug("get: %s %s %s %s", self, dtype, serial, data)
-        return dtype, serial, data
 
-    def put(self, dtype, serial, data):
-        # Make "put" thread-safe since multiple nodes might want
-        # to send simultaneously
+    def put(self, ptype, serial, data):
         # Serialization code copied from ActiveState recipe
-        # logger.debug("put: %s %s %s %s", self, dtype, serial, data)
-        if self._socket is None:
-            logger.warning("put: socket closed already: %s %s %s %s",
-                           self, dtype, serial, data)
-            return
+        # logger.debug("put: %s %s %s %s", self, PacketType.name(ptype), serial, data)
         d = pickle.dumps(data)
-        sdata = struct.pack(self.HeaderFormat, dtype, serial, len(d)) + d
-        with self._lock:
-            self._send(sdata)
+        sdata = struct.pack(self.HeaderFormat, ptype, serial, len(d)) + d
+        self._send(sdata)
 
     def _send(self, *args, **kw):
-        try:
-            self._socket.send(*args, **kw)
-        except ConnectionError:
-            self.close()
-        except:
-            logger.exception("_send: %s", self._socket)
-            raise
+        # Make "_send" thread-safe since multiple nodes might want
+        # to send simultaneously
+        with self._lock:
+            if self._socket is None:
+                logger.warning("put: socket closed already: %s", self)
+                return
+            try:
+                self._socket.send(*args, **kw)
+            except ConnectionError:
+                self.close()
+            except:
+                logger.exception("_send: %s", self._socket)
+                raise
 
     def close(self):
-        if self._socket is not None:
-            self._socket.close()
-            self._socket = None
-
-
-class _BasicNode(threading.Thread):
-
-    def __init__(self, s):
-        super().__init__(daemon=True)
-        self._endpoint = EndPoint(s)
-        self._requests = {}
-        self._serial = itertools.count(1)
-
-    def _send_request(self, data, callback, action=Req.Message):
-        logger.debug("_send_request: %s %s", action, data)
-        serial = next(self._serial)
-        self._requests[serial] = callback
-        self._endpoint.put(PacketType.Req, serial, (action, data))
-
-    def send_response(self, status, data, serial):
-        self._endpoint.put(PacketType.Resp, serial, (status, data))
-
-    def run(self):
-        while True:
-            dtype, serial, data = self._endpoint.get()
-            if dtype is None:
-                break
-            try:
-                self.handle_packet(dtype, serial, data)
-            except:
-                logger.error("message handler failed", exc_info=sys.exc_info())
-        logger.info("run terminated: %s", self)
-
-    def handle_packet(self, dtype, serial, packet):
-        if dtype == PacketType.Req:
-            action, request = packet
-            status, response = self.process_request(action, request)
-            self.send_response(status, response, serial)
-        elif dtype == PacketType.Resp:
-            status, data = packet
-            self.process_response(serial, status, data)
-        else:
-            raise ValueError("unknown packet type: %s" % dtype)
-
-    def process_request(self, action, data):
-        raise NotImplementedError("process_request()")
-
-    def process_response(self, serial, status, data):
-        try:
-            callback = self._requests.pop(serial)
-        except KeyError:
-            pass
-        else:
-            if callback is not None:
-                callback(status, data)
+        with self._lock:
+            if self._socket is not None:
+                self._socket.close()
+                self._socket = None
 
 
 class _SyncCall:
@@ -263,6 +244,62 @@ class _SyncCall:
         return self.__data
 
 
+#
+# Node code
+#
+
+class _BasicNode(threading.Thread):
+
+    def __init__(self, s):
+        super().__init__(daemon=True)
+        self._serializer = _Serializer(s)
+        self._requests = {}
+        self._serial = itertools.count(1)
+
+    def _send_request(self, data, callback, action=Req.Message):
+        logger.debug("_send_request: %s %s", Req.name(action), data)
+        serial = next(self._serial)
+        self._requests[serial] = callback
+        self._serializer.put(PacketType.Req, serial, (action, data))
+
+    def send_response(self, status, data, serial):
+        self._serializer.put(PacketType.Resp, serial, (status, data))
+
+    def run(self):
+        while True:
+            ptype, serial, data = self._serializer.get()
+            if ptype is None:
+                break
+            try:
+                self.handle_packet(ptype, serial, data)
+            except:
+                logger.error("message handler failed", exc_info=sys.exc_info())
+        logger.info("run terminated: %s", self)
+
+    def handle_packet(self, ptype, serial, packet):
+        if ptype == PacketType.Req:
+            action, request = packet
+            status, response = self.process_request(action, request)
+            self.send_response(status, response, serial)
+        elif ptype == PacketType.Resp:
+            status, data = packet
+            self.process_response(serial, status, data)
+        else:
+            raise ValueError("unknown packet type: %s" % ptype)
+
+    def process_request(self, action, data):
+        raise NotImplementedError("process_request()")
+
+    def process_response(self, serial, status, data):
+        try:
+            callback = self._requests.pop(serial)
+        except KeyError:
+            pass
+        else:
+            if callback is not None:
+                callback(status, data)
+
+
 class Node(_BasicNode):
 
     def __init__(self, hostname, port, conf_name, identity,
@@ -276,7 +313,7 @@ class Node(_BasicNode):
         return "%s/%s" % (self.conf_name, self.identity)
 
     def close(self):
-        self._endpoint.close()
+        self._serializer.close()
 
     def start(self):
         super().start()
@@ -298,7 +335,7 @@ class Node(_BasicNode):
         return _SyncCall(self, action, data).response
 
     def process_request(self, action, req_data):
-        logger.info("process_request: %s", req_name(action))
+        logger.info("process_request: %s", Req.name(action))
         sender, data = req_data
         if action == Req.Message:
             return self.handle_message(data, sender)
@@ -318,8 +355,13 @@ class Node(_BasicNode):
         raise NotImplementedError("handle_message()")
 
     def handle_notification(self, ntype, data):
+        logger.warning("handle_notification missing: %s", self.__class__)
         raise NotImplementedError("handle_notification()")
 
+
+#
+# Hub code
+#
 
 class Hub(threading.Thread):
 
@@ -418,21 +460,21 @@ class Hub(threading.Thread):
             return Resp.Failure, "not associated with conference"
         with self._lock:
             try:
-                ses = self._conferences[handler.conf_name]
+                conf = self._conferences[handler.conf_name]
             except KeyError:
                 return Resp.Failure, ("conference \"%s\" terminated" %
                                       handler.conf_name)
             else:
-                return Resp.Success, list(ses.keys())
+                return Resp.Success, list(conf.keys())
 
     def get_conferences(self, data, handler):
         if data != self._admin_word:
             return Resp.Failure, "permission denied"
         with self._lock:
             data = {}
-            for conf_name, ses in self._conferences.items():
+            for conf_name, conf in self._conferences.items():
                 ses_data = []
-                for ident, handler in ses.items():
+                for ident, handler in conf.items():
                     node_data = {}
                     node_data["identity"] = handler.identity
                     node_data["address"] = handler.get_address()
@@ -444,29 +486,30 @@ class Hub(threading.Thread):
         identity = self._make_identity(identity)
         with self._lock:
             try:
-                ses = self._conferences[conf_name]
+                conf = self._conferences[conf_name]
             except KeyError:
-                ses = self._conferences[conf_name] = weakref.WeakValueDictionary()
+                conf = self._conferences[conf_name] = weakref.WeakValueDictionary()
             else:
-                if len(ses) > 0:
+                if len(conf) > 0:
                     return (Resp.Failure,
                             "conference name already in use: %s" % conf_name)
+            logger.debug("Set identity: %s %s %s", handler, conf_name, identity)
             handler.set_conference_identity(conf_name, identity)
-            ses[handler.identity] = handler
+            conf[handler.identity] = handler
             return Resp.Success, identity
 
     def join_conference(self, handler, conf_name, identity):
         identity = self._make_identity(identity)
         with self._lock:
             try:
-                ses = self._conferences[conf_name]
+                conf = self._conferences[conf_name]
             except KeyError:
                 return Resp.Failure, "no such conference: %s" % conf_name
             else:
-                if identity in ses:
+                if identity in conf:
                     return Resp.Failure, "identity in use: %s" % identity
                 handler.set_conference_identity(conf_name, identity)
-                ses[handler.identity] = handler
+                conf[handler.identity] = handler
                 self.notify(handler, Req.Joined)
                 return Resp.Success, identity
 
@@ -477,8 +520,7 @@ class Hub(threading.Thread):
             return handler.make_identity()
 
     def process_request(self, handler, action, data):
-        logger.info("hub process_request [from %s]: %s",
-                    str(handler), req_name(action))
+        logger.info("hub process_request [from %s]: %s", str(handler), Req.name(action))
         if action == Req.Message:
             return self.handle_message(data, handler)
         elif action == Req.GetIdentities:
@@ -507,17 +549,17 @@ class Hub(threading.Thread):
             if handler.conf_name is None:
                 return Resp.Failure, "not associated with conference"
             receivers = data.get("receivers")
-            ses = self._conferences[handler.conf_name]
+            conf = self._conferences[handler.conf_name]
             if receivers is None:
-                receivers = set(ses.keys())
+                receivers = set(conf.keys())
                 receivers.discard(handler.identity)
-            unknowns = [r for r in receivers if r not in ses]
+            unknowns = [r for r in receivers if r not in conf]
             if unknowns:
                 return (Resp.Failure,
                         "not in conference: %s" % ", ".join(unknowns))
             count = 0
             for r in receivers:
-                ses[r].forward(handler, data)
+                conf[r].forward(handler, data)
                 count += 1
             return Resp.Success, count
 
@@ -525,23 +567,22 @@ class Hub(threading.Thread):
         # Send joined or departed message to all others in conference
         with self._lock:
             try:
-                ses = self._conferences[handler.conf_name]
+                conf = self._conferences[handler.conf_name]
             except KeyError:
                 # Conference must be gone.  Just ignore.
                 pass
             else:
-                logger.info("notify: %s %s", req_name(action), str(handler))
+                logger.info("notify: %s %s", Req.name(action), str(handler))
                 if action == Req.Departed:
                     try:
-                        del ses[handler.identity]
+                        del conf[handler.identity]
                     except KeyError:
                         pass
-                for ident, hdlr in ses.items():
+                for ident, hdlr in conf.items():
                     if ident != handler.identity:
-                        logger.debug("notify request [to: %s]: %s %s",
-                                     str(hdlr), req_name(action), str(handler))
+                        logger.debug("notify request [to: %s]: %s %s", str(hdlr), Req.name(action), str(handler))
                         hdlr.forward(None, handler.identity, action=action)
-                if not ses:
+                if not conf:
                     logger.info("end conference: %s", handler.conf_name)
                     del self._conferences[handler.conf_name]
 
@@ -563,10 +604,10 @@ class _Handler(_BasicNode):
         self.identity = identity
 
     def get_address(self):
-        return self._endpoint._socket.getpeername()
+        return self._serializer.getpeername()
 
     def make_identity(self):
-        addr, port = self._endpoint._socket.getpeername()
+        addr, port = self._serializer.getpeername()
         return "%s_%s" % (addr, port)
 
     def process_request(self, action, data):
@@ -576,27 +617,91 @@ class _Handler(_BasicNode):
         super().run()
         self._hub.notify(self, Req.Departed)
 
+    def forward(self, sender, data, action=Req.Message):
+        ident = None if sender is None else sender.identity
+        logger.info("handler forward [to %s, from %s]: %s", str(self), str(sender), Req.name(action))
+        super()._send_request((ident, data), None, action=action)
+        # No callbacks for forwarding
+
+
+#
+# Code for a "hosting" node, which starts and connects to
+# a hub on the same host.  A simple way to do this is to
+# use a network connection between the node and hub, but
+# that requires every request on this node (probably the
+# hosting node responsible for sending scenes to newly
+# joined nodes) to be transmitted twice: once between 
+# this node and hub, and another from the hub to the
+# receiving node(s).  If SSL is in play as well, the
+# overhead is unnecessarily high.  To get around it, we
+# create "loopback" node and handler, where sending from
+# the node invokes the handler receiving method, and
+# vice versa.
+#
+
+
+class LoopbackNode(Node):
+
+    def __init__(self, conf_name, identity):
+        # We do not want to use the base class __init__()s
+        # because they set up sockets and threads, so we just
+        # do the variable initializations and then set up
+        # the hub and handler
+        self._requests = {}
+        self._serial = itertools.count(1)
+        self.conf_name = conf_name
+        self.identity = identity
+        self._mux_hub = Hub("", 0, "chimeraxmux")
+        self._mux_hub.start()
+        self._mux_handler = _LoopbackHandler(self, self._mux_hub)
+
+    def start(self):
+        # Do not start the thread running since we will
+        # get all our data straight from the handler
+        self.identity = self.sync_request(Req.CreateConference,
+                                          (self.conf_name, self.identity))
+
     def _send_request(self, data, callback, action=Req.Message):
-        # Override to include our identity
-        logger.info("handler send_request [to %s]: %s %s %s",
-                    str(self), req_name(action), data)
-        super()._send_request((self.identity, data), callback, action=action)
+        logger.debug("_send_request: %s %s", Req.name(action), data)
+        serial = next(self._serial)
+        self._requests[serial] = callback
+        self._mux_handler.handle_packet(PacketType.Req, serial, (action, data))
+        # self._mux_hub.process_request(self._mux_handler, action, data)
+
+    def send_response(self, status, data, serial):
+        self._mux_hub.process_response(serial, status, data)
+
+
+class _LoopbackHandler(_Handler):
+
+    def __init__(self, node, hub):
+        self._node = node
+        self._hub = hub
+        self.conf_name = None
+        self.identity = None
+        hub.register(self)
+
+    def __str__(self):
+        return "LoopbackHandler-" + super().__str__()
+
+    def run(self):
+        # No need to run read-loop since we will get called
+        # directly by node when there is data available
+        return
 
     def forward(self, sender, data, action=Req.Message):
         ident = None if sender is None else sender.identity
-        logger.info("handler forward [to %s, from %s]: %s",
-                    str(self), str(sender), req_name(action))
-        super()._send_request((ident, data), None, action=action)
+        logger.info("handler forward [to %s, from %s]: %s", str(self), str(sender), Req.name(action))
+        self._node.process_request(action, (ident, data))
+        # No callbacks for forwarding
+
+    def send_response(self, status, data, serial):
+        self._node.process_response(serial, status, data)
 
 
-def noop_callback(status, data):
-    pass
-
-
-def _dump_ciphers(ctx, prefix):
-    for cipher in ctx.get_ciphers():
-        logger.info("%s: %s: %s", prefix, cipher["protocol"],
-                    cipher["name"], flush=True)
+#
+# Server main program
+#
 
 
 def serve(hostname, port, admin_word):
@@ -609,9 +714,14 @@ def serve(hostname, port, admin_word):
     logger.info("Exiting")
 
 
+#
+# Script invocation and test code
+#
+
+
 if __name__ == "__main__":
 
-    def test_basic(hostname, port, admin_word):
+    def run_main(func, hostname, port, admin_word):
         finished = threading.Event()
         # If something goes wrong (e.g., exception thrown in node/hub
         # code), make sure that we terminate anyway.
@@ -620,94 +730,84 @@ if __name__ == "__main__":
             finished.set()
         timer = threading.Timer(20, timeout_cb)
         timer.start()
+        logger.info("running %s", func.__name__)
+        func(hostname, port, admin_word, finished)
+        logger.info("waiting for activity to finish: %s", finished)
+        finished.wait()
+        timer.cancel()
+        logger.info("finished")
 
+
+    def test_basic(hostname, port, admin_word, finished):
         logger.debug("create hub")
         hub = Hub(hostname, port, admin_word)
         logger.info("hub created: %s", hub)
         hub.start()
         logger.info("hub running: %s", hub)
 
-        if True:
-            class MyNode(Node):
-                def handle_notification(self, ntype, data):
-                    logger.info("notification: %s: %s %s",
-                                self.identity, ntype, data)
-                    return Resp.Success, None
-            nodes = []
-            for i in range(2):
-                logger.debug("create node %s", i)
-                conf_name = "conf-%d" % i
-                ident = "node-%d" % i
-                n = MyNode(hostname, port, conf_name, ident, True)
-                logger.info("node created: %s", n)
-                nodes.append(n)
-                ident = "node-%da" % i
-                n = MyNode(hostname, port, conf_name, ident, False)
-                logger.info("node created: %s", n)
-                nodes.append(n)
-            for n in nodes:
-                logger.debug("start node: %s", n)
-                n.start()
-                logger.info("node running: %s", n)
+        class MyNode(Node):
+            def handle_notification(self, ntype, data):
+                logger.info("notification: %s: %s %s", self.identity, Notify.name(ntype), data)
+                return Resp.Success, None
+        nodes = []
+        for i in range(2):
+            logger.debug("create node %s", i)
+            conf_name = "conf-%d" % i
+            ident = "node-%d" % i
+            n = MyNode(hostname, port, conf_name, ident, True)
+            logger.info("node created: %s", n)
+            nodes.append(n)
+            ident = "node-%da" % i
+            n = MyNode(hostname, port, conf_name, ident, False)
+            logger.info("node created: %s", n)
+            nodes.append(n)
+        for n in nodes:
+            logger.debug("start node: %s", n)
+            n.start()
+            logger.info("node running: %s", n)
 
-            class Counter:
-                def __init__(self):
-                    self._lock = threading.RLock()
-                    self._count = 1
+        class Counter:
+            def __init__(self):
+                self._lock = threading.RLock()
+                self._count = 1
 
-                def __str__(self):
-                    return str(self._count)
+            def __str__(self):
+                return str(self._count)
 
-                def increment(self):
-                    with self._lock:
-                        self._count += 1
+            def increment(self):
+                with self._lock:
+                    self._count += 1
 
-                def decrement(self):
-                    with self._lock:
-                        self._count -= 1
-                        if self._count == 0:
-                            finished.set()
-            count = Counter()
+            def decrement(self):
+                with self._lock:
+                    self._count -= 1
+                    if self._count == 0:
+                        finished.set()
+        count = Counter()
 
-            for n in nodes:
-                msg = "hello %s" % n.identity
-                def cb(status, data, msg=msg):
-                    count.decrement()
-                    logger.info("(%s) Response \"%s\": status=%d, data=%s",
-                                count, msg, status, data)
-                count.increment()
-                logger.debug("[%s] Sending \"%s\"", count, msg)
-                n._send_request(msg, cb, action=Req.Echo)
-                logger.info("[%s] Request \"%s\"", count, msg)
+        for n in nodes:
+            msg = "hello %s" % n.identity
+            def cb(status, data, msg=msg):
+                count.decrement()
+                logger.info("(%s) Response \"%s\": status=%s, data=%s", count, msg, Resp.name(status), data)
+            count.increment()
+            logger.debug("[%s] Sending \"%s\"", count, msg)
+            n._send_request(msg, cb, action=Req.Echo)
+            logger.info("[%s] Request \"%s\"", count, msg)
 
-            for n in nodes:
-                logger.info("identities [%s]: %s", n.identity,
-                            n.sync_request(Req.GetIdentities, None))
+        for n in nodes:
+            logger.info("identities [%s]: %s", n.identity, n.get_identities())
 
-            ac = Node(hostname, port, "admin", "admin", True)
-            logger.debug("admin node created: %s", ac)
-            ac.start()
-            logger.info("admin node started: %s", ac)
-            logger.info("conferences: %s", ac.sync_request(Req.GetConferences,
-                                                           admin_word))
-            count.decrement()
-
-        # If something goes wrong (e.g., exception thrown in node/hub
-        # code, make sure that we terminate anyway.
-        finished.wait()
-        timer.cancel()
+        ac = Node(hostname, port, "admin", "admin", True)
+        logger.debug("admin node created: %s", ac)
+        ac.start()
+        logger.info("admin node started: %s", ac)
+        logger.info("conferences: %s", ac.sync_request(Req.GetConferences,
+                                                       admin_word))
+        count.decrement()
 
 
-    def test_conference(hostname, port, admin_word):
-        finished = threading.Event()
-        # If something goes wrong (e.g., exception thrown in node/hub
-        # code), make sure that we terminate anyway.
-        def timeout_cb():
-            logger.info("timeout expired: %s", finished)
-            finished.set()
-        timer = threading.Timer(20, timeout_cb)
-        timer.start()
-
+    def test_conference(hostname, port, admin_word, finished):
         logger.debug("create hub")
         hub = Hub(hostname, port, admin_word)
         logger.info("hub created: %s", hub)
@@ -745,10 +845,35 @@ if __name__ == "__main__":
         n00.send("junk", callback=cb)
         logger.info(n00.get_identities())
 
-        logger.info("waiting for activity to finish: %s", finished)
-        finished.wait()
-        timer.cancel()
-        logger.info("finished")
+
+    def test_loopback(hostname, port, admin_word, finished):
+        class NodeMixin:
+            def handle_message(self, data, sender):
+                logger.info("handle_message: %s %s %s", self, sender, data)
+                return Resp.Success, None
+            def handle_notification(self, ntype, data):
+                logger.info("notification: %s: %s %s",
+                            self.identity, ntype, data)
+                return Resp.Success, None
+        class MyLoopbackNode(NodeMixin, LoopbackNode):
+            pass
+        class MyNode(NodeMixin, Node):
+            pass
+
+        conf_name = "conference"
+        h = MyLoopbackNode(conf_name, "host")
+        h.start()
+        logger.info("host started")
+        addrs, conf_name = h.get_conference_info()
+        logger.info("conference location: %s",
+                    ", ".join(["%s/%s" % (addr, conf_name) for addr in addrs]))
+
+        port = h._mux_hub.get_port()
+        g = MyNode("localhost", port, conf_name, "guest", False)
+        g.start()
+        logger.info("conference info: %s", g.get_conference_info())
+        logger.info("participants: %s", h.get_identities())
+        finished.set()
 
 
     def main():
@@ -773,12 +898,13 @@ if __name__ == "__main__":
         logger.setLevel(log_level)
         run_map = {
             "serve": serve,
-            "basic": test_basic,
-            "conference": test_conference
+            "basic": lambda *args: test_basic(*args),
+            "conference": lambda *args: test_conference(*args),
+            "loopback": lambda *args: test_loopback(*args),
         }
         if run not in run_map:
             print("-T value must be one of %s" % ", ".join(run_map.keys()))
             raise SystemExit(1)
-        run_map[run](hostname, port, admin_word)
+        run_main(run_map[run], hostname, port, admin_word)
 
     main()
