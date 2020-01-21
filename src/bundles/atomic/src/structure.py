@@ -2101,9 +2101,16 @@ class AtomsDrawing(Drawing):
             print('%s</Transform>' % tab, file=stream)
 
 class BondsDrawing(Drawing):
-    # Used for both bonds and pseudoonds
-    # can't have any child drawings
-
+    # Used for both bonds and pseudoonds.
+    # Should not have any child drawings, as bounds and picking will ignore any children.
+    #
+    # If zero length bonds are included then there will be singular position matrices
+    # that will cause errors in any code that relies on inverting position matrices.
+    # Ideally zero length bonds would be removed from drawn geometry and all positions
+    # would be invertible.  But the code is simpler and faster if all displayed bonds are
+    # included, so we will tolerate the singular position matrices unless the cause
+    # problems.
+    #
     skip_bounds = True
 
     def __init__(self, name, pick_class, picks_class):
