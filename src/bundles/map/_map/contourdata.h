@@ -47,6 +47,31 @@
 //
 // The cube_edge_info structure defines the edge numbering.
 //
+#define EDGE_A00 0
+#define EDGE_1A0 1
+#define EDGE_A10 2
+#define EDGE_0A0 3
+#define EDGE_A01 4
+#define EDGE_1A1 5
+#define EDGE_A11 6
+#define EDGE_0A1 7
+#define EDGE_00A 8
+#define EDGE_10A 9
+#define EDGE_11A 10
+#define EDGE_01A 11
+
+#define CORNER_000 0
+#define CORNER_100 1
+#define CORNER_110 2
+#define CORNER_010 3
+#define CORNER_001 4
+#define CORNER_101 5
+#define CORNER_111 6
+#define CORNER_011 7
+
+typedef int Edge_Number;
+typedef int Corner_Number;
+
 struct cube_edge_info
 {
   int vertex_1, vertex_2;		// 0-7
