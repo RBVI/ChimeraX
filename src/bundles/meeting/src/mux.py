@@ -11,6 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# Terminology:
+#   Conference = Collection of nodes communicating with each other.
+#       Each conference has a unique name.
+#   Node = participant in a conference.
+#       Each node has a unique name, aka "identity", within a conference.
+#   Hub = server that manages multiple conferences and forwards messages
+
 import socket, threading, struct, weakref, itertools, ssl
 import sys, os.path, logging
 try:
@@ -20,50 +27,50 @@ except ImportError:
 
 
 _use_ssl = True
-_ctx_server = None
-_ctx_client = None
+_ctx_hub = None
+_ctx_node = None
 
 
-def get_ctx_server():
-    global _ctx_server
-    if _ctx_server is None:
+def get_ctx_hub():
+    global _ctx_hub
+    if _ctx_hub is None:
         cert = os.path.join(os.path.dirname(__file__), "server.pem")
-        _ctx_server = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        _ctx_server.load_cert_chain(cert)
-    return _ctx_server
+        _ctx_hub = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        _ctx_hub.load_cert_chain(cert)
+    return _ctx_hub
 
 
-def make_server_socket(hostname, port, backlog=0):
+def make_hub_socket(hostname, port, backlog=0):
     # Pre-3.8 code
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
     s.bind((hostname, port))
     s.listen(5)
     # Post-3.8 code
-    # s = socket.create_server((hostname, port), backlog=backlog)
+    # s = socket.create_hub((hostname, port), backlog=backlog)
     if _use_ssl:
-        s = get_ctx_server().wrap_socket(s, server_side=True)
+        s = get_ctx_hub().wrap_socket(s, server_side=True)
     return s
 
 
-def get_ctx_client():
-    global _ctx_client
-    if _ctx_client is None:
+def get_ctx_node():
+    global _ctx_node
+    if _ctx_node is None:
         # ssl in Python 3.7 on Windows has a problem with TLS 1.3.
         # It raises an error:
         # "ConnectionResetError: [WinError 10054] An existing connection was forcibly closed by the remote host"
         # So explicitly ask for TLS 1.2.
         # This bug might already be fixed in Python 3.8.
-        _ctx_client = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-        # _ctx_client = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        _ctx_client.check_hostname = False
-        _ctx_client.verify_mode = ssl.CERT_NONE
-    return _ctx_client
+        _ctx_node = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        # _ctx_node = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        _ctx_node.check_hostname = False
+        _ctx_node.verify_mode = ssl.CERT_NONE
+    return _ctx_node
 
 
-def make_client_socket(hostname, port):
+def make_node_socket(hostname, port):
     s = socket.create_connection((hostname, port))
     if _use_ssl:
-        s = get_ctx_client().wrap_socket(s, server_hostname=hostname)
+        s = get_ctx_node().wrap_socket(s, server_hostname=hostname)
     return s
 
 
@@ -78,14 +85,14 @@ class Req:
     Echo = next(_enum)
     # admin requests
     Exit = next(_enum)
-    GetSessions = next(_enum)
+    GetConferences = next(_enum)
     # Notifications
     Joined = next(_enum)
     Departed = next(_enum)
-    # client requests
-    CreateSession = next(_enum)
-    JoinSession = next(_enum)
-    GetSessionInfo = next(_enum)
+    # node requests
+    CreateConference = next(_enum)
+    JoinConference = next(_enum)
+    GetConferenceInfo = next(_enum)
     GetIdentities = next(_enum)
     Message = next(_enum)
 
@@ -125,11 +132,13 @@ class EndPoint:
 
     def get(self):
         # Only one thread will read /from/ the socket so no thread-safety
+        if self._socket is None:
+            return None, None, None
         try:
             header_data = self._socket.recv(self.HeaderSize)
             if len(header_data) == 0:
                 raise ConnectionError("recv")
-        except ConnectionError:
+        except (OSError, ConnectionError):
             self.close()
             return None, None, None
         # logger.debug("get: %s: received %d bytes", self, len(header_data))
@@ -155,7 +164,7 @@ class EndPoint:
         return dtype, serial, data
 
     def put(self, dtype, serial, data):
-        # Make "put" thread-safe since multiple clients might want
+        # Make "put" thread-safe since multiple nodes might want
         # to send simultaneously
         # Serialization code copied from ActiveState recipe
         # logger.debug("put: %s %s %s %s", self, dtype, serial, data)
@@ -183,7 +192,7 @@ class EndPoint:
             self._socket = None
 
 
-class _BasicClient(threading.Thread):
+class _BasicNode(threading.Thread):
 
     def __init__(self, s):
         super().__init__(daemon=True)
@@ -237,9 +246,9 @@ class _BasicClient(threading.Thread):
 
 class _SyncCall:
 
-    def __init__(self, client, action, data):
+    def __init__(self, node, action, data):
         self.__event = threading.Event()
-        client._send_request(data, self, action=action)
+        node._send_request(data, self, action=action)
         self.__event.wait()
         if self.__status != Resp.Success:
             raise RuntimeError(self.__data)
@@ -254,32 +263,33 @@ class _SyncCall:
         return self.__data
 
 
-class Client(_BasicClient):
+class Node(_BasicNode):
 
-    def __init__(self, hostname, port, session, identity, create, timeout=None):
-        super().__init__(make_client_socket(hostname, port))
-        self.session = session
+    def __init__(self, hostname, port, conf_name, identity,
+                 create, timeout=None):
+        super().__init__(make_node_socket(hostname, port))
+        self.conf_name = conf_name
         self.identity = identity
         self._create = create
 
     def __str__(self):
-        return "%s/%s" % (self.session, self.identity)
+        return "%s/%s" % (self.conf_name, self.identity)
 
     def close(self):
         self._endpoint.close()
 
     def start(self):
         super().start()
-        req = Req.CreateSession if self._create else Req.JoinSession
+        req = Req.CreateConference if self._create else Req.JoinConference
         ev = threading.Event()
-        self.identity = self.sync_request(req, (self.session, self.identity))
+        self.identity = self.sync_request(req, (self.conf_name, self.identity))
 
     def send(self, data, *, receivers=None, callback=None, action=Req.Message):
         packet = {"receivers":receivers, "data":data}
         self._send_request(packet, callback, action=action)
 
-    def get_session_info(self):
-        return self.sync_request(Req.GetSessionInfo, None)
+    def get_conference_info(self):
+        return self.sync_request(Req.GetConferenceInfo, None)
 
     def get_identities(self):
         return self.sync_request(Req.GetIdentities, None)
@@ -303,21 +313,21 @@ class Client(_BasicClient):
             return Resp.Failure, "unknown action %d" % action
 
     def handle_message(self, data, sender):
-        # "data" comes from remote client
-        # "sender" is session identity of requester
+        # "data" comes from remote node
+        # "sender" is identity of requester
         raise NotImplementedError("handle_message()")
 
     def handle_notification(self, ntype, data):
         raise NotImplementedError("handle_notification()")
 
 
-class Server(threading.Thread):
+class Hub(threading.Thread):
 
     def __init__(self, hostname, port, admin_word):
         super().__init__(daemon=True)
-        self._socket = make_server_socket(hostname, port)
+        self._socket = make_hub_socket(hostname, port)
         self._handlers = set()
-        self._sessions = {}
+        self._conferences = {}
         self._stopped = False
         self._lock = threading.RLock()
         self._addresses = None
@@ -367,17 +377,17 @@ class Server(threading.Thread):
 
     def get_port(self):
         if self._socket is None:
-            raise RuntimeError("no active conference server")
+            raise RuntimeError("no active conference hub")
         _, port = self._socket.getsockname()
         return port
 
     def run(self):
         # Overrides Thread method
-        logger.debug("server accepting connections: %s" % self._socket)
+        logger.debug("hub accepting connections: %s" % self._socket)
         while not self._stopped:
             try:
                 ns, addr = self._socket.accept()
-                logger.info("server connection:: from %s", addr)
+                logger.info("hub connection:: from %s", addr)
             except socket.timeout:
                 pass
             except:
@@ -393,68 +403,69 @@ class Server(threading.Thread):
         with self._lock:
             self._handlers.add(rc)
 
-    def get_session_info(self, data, handler):
-        if handler.session is None:
-            return Resp.Failure, "not associated with session"
+    def get_conference_info(self, data, handler):
+        if handler.conf_name is None:
+            return Resp.Failure, "not associated with conference"
         with self._lock:
-            if handler.session in self._sessions:
-                return Resp.Success, (self.service_addresses, handler.session)
+            if handler.conf_name in self._conferences:
+                return Resp.Success, (self.service_addresses, handler.conf_name)
             else:
-                return Resp.Failure, ("session \"%s\" terminated" %
-                                      handler.session)
+                return Resp.Failure, ("conference \"%s\" terminated" %
+                                      handler.conf_name)
 
     def get_identities(self, data, handler):
-        if handler.session is None:
-            return Resp.Failure, "not associated with session"
+        if handler.conf_name is None:
+            return Resp.Failure, "not associated with conference"
         with self._lock:
             try:
-                ses = self._sessions[handler.session]
+                ses = self._conferences[handler.conf_name]
             except KeyError:
-                return Resp.Failure, ("session \"%s\" terminated" %
-                                      handler.session)
+                return Resp.Failure, ("conference \"%s\" terminated" %
+                                      handler.conf_name)
             else:
                 return Resp.Success, list(ses.keys())
 
-    def get_sessions(self, data, handler):
+    def get_conferences(self, data, handler):
         if data != self._admin_word:
             return Resp.Failure, "permission denied"
         with self._lock:
             data = {}
-            for ses_name, ses in self._sessions.items():
+            for conf_name, ses in self._conferences.items():
                 ses_data = []
                 for ident, handler in ses.items():
-                    client_data = {}
-                    client_data["identity"] = handler.identity
-                    client_data["address"] = handler.get_address()
-                    ses_data.append(client_data)
-                data[ses_name] = ses_data
+                    node_data = {}
+                    node_data["identity"] = handler.identity
+                    node_data["address"] = handler.get_address()
+                    ses_data.append(node_data)
+                data[conf_name] = ses_data
             return Resp.Success, data
 
-    def create_session(self, handler, session, identity):
+    def create_conference(self, handler, conf_name, identity):
         identity = self._make_identity(identity)
         with self._lock:
             try:
-                ses = self._sessions[session]
+                ses = self._conferences[conf_name]
             except KeyError:
-                ses = self._sessions[session] = weakref.WeakValueDictionary()
+                ses = self._conferences[conf_name] = weakref.WeakValueDictionary()
             else:
                 if len(ses) > 0:
-                    return Resp.Failure, "session already in use: %s" % session
-            handler.set_session_identity(session, identity)
+                    return (Resp.Failure,
+                            "conference name already in use: %s" % conf_name)
+            handler.set_conference_identity(conf_name, identity)
             ses[handler.identity] = handler
             return Resp.Success, identity
 
-    def join_session(self, handler, session, identity):
+    def join_conference(self, handler, conf_name, identity):
         identity = self._make_identity(identity)
         with self._lock:
             try:
-                ses = self._sessions[session]
+                ses = self._conferences[conf_name]
             except KeyError:
-                return Resp.Failure, "no such session: %s" % session
+                return Resp.Failure, "no such conference: %s" % conf_name
             else:
                 if identity in ses:
                     return Resp.Failure, "identity in use: %s" % identity
-                handler.set_session_identity(session, identity)
+                handler.set_conference_identity(conf_name, identity)
                 ses[handler.identity] = handler
                 self.notify(handler, Req.Joined)
                 return Resp.Success, identity
@@ -466,24 +477,24 @@ class Server(threading.Thread):
             return handler.make_identity()
 
     def process_request(self, handler, action, data):
-        logger.info("server process_request [from %s]: %s",
+        logger.info("hub process_request [from %s]: %s",
                     str(handler), req_name(action))
         if action == Req.Message:
             return self.handle_message(data, handler)
         elif action == Req.GetIdentities:
             return self.get_identities(data, handler)
-        elif action == Req.GetSessionInfo:
-            return self.get_session_info(data, handler)
-        elif action == Req.CreateSession:
-            session, identity = data
-            return self.create_session(handler, session, identity)
-        elif action == Req.JoinSession:
-            session, identity = data
-            return self.join_session(handler, session, identity)
+        elif action == Req.GetConferenceInfo:
+            return self.get_conference_info(data, handler)
+        elif action == Req.CreateConference:
+            conf_name, identity = data
+            return self.create_conference(handler, conf_name, identity)
+        elif action == Req.JoinConference:
+            conf_name, identity = data
+            return self.join_conference(handler, conf_name, identity)
         elif action == Req.Exit:
             return self.terminate(data, handler)
-        elif action == Req.GetSessions:
-            return self.get_sessions(data, handler)
+        elif action == Req.GetConferences:
+            return self.get_conferences(data, handler)
         elif action == Req.Echo:
             return Resp.Success, data
         else:
@@ -491,18 +502,19 @@ class Server(threading.Thread):
 
     def handle_message(self, data, handler):
         with self._lock:
-            # "data" comes from remote client,
-            # "handler" is session handler for client
-            if handler.session is None:
-                return Resp.Failure, "not associated with session"
+            # "data" comes from remote node,
+            # "handler" is connection handler for node
+            if handler.conf_name is None:
+                return Resp.Failure, "not associated with conference"
             receivers = data.get("receivers")
-            ses = self._sessions[handler.session]
+            ses = self._conferences[handler.conf_name]
             if receivers is None:
                 receivers = set(ses.keys())
                 receivers.discard(handler.identity)
             unknowns = [r for r in receivers if r not in ses]
             if unknowns:
-                return Resp.Failure, "not in session: %s" % ", ".join(unknowns)
+                return (Resp.Failure,
+                        "not in conference: %s" % ", ".join(unknowns))
             count = 0
             for r in receivers:
                 ses[r].forward(handler, data)
@@ -510,12 +522,12 @@ class Server(threading.Thread):
             return Resp.Success, count
 
     def notify(self, handler, action):
-        # Send joined or departed message to all others in session
+        # Send joined or departed message to all others in conference
         with self._lock:
             try:
-                ses = self._sessions[handler.session]
+                ses = self._conferences[handler.conf_name]
             except KeyError:
-                # Session must be gone.  Just ignore.
+                # Conference must be gone.  Just ignore.
                 pass
             else:
                 logger.info("notify: %s %s", req_name(action), str(handler))
@@ -530,24 +542,24 @@ class Server(threading.Thread):
                                      str(hdlr), req_name(action), str(handler))
                         hdlr.forward(None, handler.identity, action=action)
                 if not ses:
-                    logger.info("end session: %s", handler.session)
-                    del self._sessions[handler.session]
+                    logger.info("end conference: %s", handler.conf_name)
+                    del self._conferences[handler.conf_name]
 
 
-class _Handler(_BasicClient):
+class _Handler(_BasicNode):
 
-    def __init__(self, s, server):
+    def __init__(self, s, hub):
         super().__init__(s)
-        self._server = server
-        self.session = None
+        self._hub = hub
+        self.conf_name = None
         self.identity = None
-        server.register(self)
+        hub.register(self)
 
     def __str__(self):
-        return "%s/%s" % (self.session, self.identity)
+        return "%s/%s" % (self.conf_name, self.identity)
 
-    def set_session_identity(self, session, identity):
-        self.session = session
+    def set_conference_identity(self, conf_name, identity):
+        self.conf_name = conf_name
         self.identity = identity
 
     def get_address(self):
@@ -558,11 +570,11 @@ class _Handler(_BasicClient):
         return "%s_%s" % (addr, port)
 
     def process_request(self, action, data):
-        return self._server.process_request(self, action, data)
+        return self._hub.process_request(self, action, data)
 
     def run(self):
         super().run()
-        self._server.notify(self, Req.Departed)
+        self._hub.notify(self, Req.Departed)
 
     def _send_request(self, data, callback, action=Req.Message):
         # Override to include our identity
@@ -589,11 +601,11 @@ def _dump_ciphers(ctx, prefix):
 
 def serve(hostname, port, admin_word):
     # Main program to act as hub
-    server = Server(hostname, port, admin_word)
-    logger.info("Starting server on %s:%s" % (hostname, port))
-    server.start()
-    logger.info("Waiting for server to finish")
-    server.join()
+    hub = Hub(hostname, port, admin_word)
+    logger.info("Starting hub on %s:%s" % (hostname, port))
+    hub.start()
+    logger.info("Waiting for hub to finish")
+    hub.join()
     logger.info("Exiting")
 
 
@@ -601,7 +613,7 @@ if __name__ == "__main__":
 
     def test_basic(hostname, port, admin_word):
         finished = threading.Event()
-        # If something goes wrong (e.g., exception thrown in client/server
+        # If something goes wrong (e.g., exception thrown in node/hub
         # code), make sure that we terminate anyway.
         def timeout_cb():
             logger.info("timeout expired")
@@ -609,34 +621,34 @@ if __name__ == "__main__":
         timer = threading.Timer(20, timeout_cb)
         timer.start()
 
-        logger.debug("create server")
-        server = Server(hostname, port, admin_word)
-        logger.info("server created: %s", server)
-        server.start()
-        logger.info("server running: %s", server)
+        logger.debug("create hub")
+        hub = Hub(hostname, port, admin_word)
+        logger.info("hub created: %s", hub)
+        hub.start()
+        logger.info("hub running: %s", hub)
 
         if True:
-            class MyClient(Client):
+            class MyNode(Node):
                 def handle_notification(self, ntype, data):
                     logger.info("notification: %s: %s %s",
                                 self.identity, ntype, data)
                     return Resp.Success, None
-            clients = []
+            nodes = []
             for i in range(2):
-                logger.debug("create client %s", i)
-                session = "session-%d" % i
-                ident = "client-%d" % i
-                c = MyClient(hostname, port, session, ident, True)
-                logger.info("client created: %s", c)
-                clients.append(c)
-                ident = "client-%da" % i
-                c = MyClient(hostname, port, session, ident, False)
-                logger.info("client created: %s", c)
-                clients.append(c)
-            for c in clients:
-                logger.debug("start client: %s", c)
-                c.start()
-                logger.info("client running: %s", c)
+                logger.debug("create node %s", i)
+                conf_name = "conf-%d" % i
+                ident = "node-%d" % i
+                n = MyNode(hostname, port, conf_name, ident, True)
+                logger.info("node created: %s", n)
+                nodes.append(n)
+                ident = "node-%da" % i
+                n = MyNode(hostname, port, conf_name, ident, False)
+                logger.info("node created: %s", n)
+                nodes.append(n)
+            for n in nodes:
+                logger.debug("start node: %s", n)
+                n.start()
+                logger.info("node running: %s", n)
 
             class Counter:
                 def __init__(self):
@@ -657,38 +669,38 @@ if __name__ == "__main__":
                             finished.set()
             count = Counter()
 
-            for c in clients:
-                msg = "hello %s" % c.identity
+            for n in nodes:
+                msg = "hello %s" % n.identity
                 def cb(status, data, msg=msg):
                     count.decrement()
                     logger.info("(%s) Response \"%s\": status=%d, data=%s",
                                 count, msg, status, data)
                 count.increment()
                 logger.debug("[%s] Sending \"%s\"", count, msg)
-                c._send_request(msg, cb, action=Req.Echo)
+                n._send_request(msg, cb, action=Req.Echo)
                 logger.info("[%s] Request \"%s\"", count, msg)
 
-            for c in clients:
-                logger.info("identities [%s]: %s", c.identity,
-                            c.sync_request(Req.GetIdentities, None))
+            for n in nodes:
+                logger.info("identities [%s]: %s", n.identity,
+                            n.sync_request(Req.GetIdentities, None))
 
-            ac = Client(hostname, port, "admin", "admin", True)
-            logger.debug("admin client created: %s", ac)
+            ac = Node(hostname, port, "admin", "admin", True)
+            logger.debug("admin node created: %s", ac)
             ac.start()
-            logger.info("admin client started: %s", ac)
-            logger.info("sessions: %s", ac.sync_request(Req.GetSessions,
-                                                        admin_word))
+            logger.info("admin node started: %s", ac)
+            logger.info("conferences: %s", ac.sync_request(Req.GetConferences,
+                                                           admin_word))
             count.decrement()
 
-        # If something goes wrong (e.g., exception thrown in client/server
+        # If something goes wrong (e.g., exception thrown in node/hub
         # code, make sure that we terminate anyway.
         finished.wait()
         timer.cancel()
 
 
-    def test_session(hostname, port, admin_word):
+    def test_conference(hostname, port, admin_word):
         finished = threading.Event()
-        # If something goes wrong (e.g., exception thrown in client/server
+        # If something goes wrong (e.g., exception thrown in node/hub
         # code), make sure that we terminate anyway.
         def timeout_cb():
             logger.info("timeout expired: %s", finished)
@@ -696,13 +708,13 @@ if __name__ == "__main__":
         timer = threading.Timer(20, timeout_cb)
         timer.start()
 
-        logger.debug("create server")
-        server = Server(hostname, port, admin_word)
-        logger.info("server created: %s", server)
-        server.start()
-        logger.info("server running: %s", server)
+        logger.debug("create hub")
+        hub = Hub(hostname, port, admin_word)
+        logger.info("hub created: %s", hub)
+        hub.start()
+        logger.info("hub running: %s", hub)
 
-        class MyClient(Client):
+        class MyNode(Node):
             def handle_message(self, data, sender):
                 logger.info("handle_message: %s %s %s", self, sender, data)
                 return Resp.Success, None
@@ -711,27 +723,27 @@ if __name__ == "__main__":
                             self.identity, ntype, data)
                 return Resp.Success, None
 
-        # Create two sessions, each with three clients
-        c00 = MyClient(hostname, port, "s0", "c0", True)
-        c01 = MyClient(hostname, port, "s0", "c1", False)
-        c02 = MyClient(hostname, port, "s0", "c2", False)
-        # c10 = MyClient(hostname, port, "s1", "c0", True)
-        # c11 = MyClient(hostname, port, "s1", "c1", False)
-        # c12 = MyClient(hostname, port, "s1", "c2", False)
-        clients = [c00, c01, c02]
-        for c in clients:
-            c.start()
-        c01.close()
-        logger.debug("closed c01")
-        logger.info("session info: %s", c00.get_session_info())
+        # Create two conferences, each with three nodes
+        n00 = MyNode(hostname, port, "s0", "n0", True)
+        n01 = MyNode(hostname, port, "s0", "n1", False)
+        n02 = MyNode(hostname, port, "s0", "n2", False)
+        # n10 = MyNode(hostname, port, "s1", "n0", True)
+        # n11 = MyNode(hostname, port, "s1", "n1", False)
+        # n12 = MyNode(hostname, port, "s1", "n2", False)
+        nodes = [n00, n01, n02]
+        for n in nodes:
+            n.start()
+        n01.close()
+        logger.debug("closed n01")
+        logger.info("conference info: %s", n00.get_conference_info())
 
-        # Send a broadcast from c00 (to c01 and c02)
+        # Send a broadcast from n00 (to n01 and n02)
         def cb(status, data):
             logger.info("broadcast status: %s", status)
             logger.info("broadcast data: %s", data)
             finished.set()
-        c00.send("junk", callback=cb)
-        logger.info(c00.get_identities())
+        n00.send("junk", callback=cb)
+        logger.info(n00.get_identities())
 
         logger.info("waiting for activity to finish: %s", finished)
         finished.wait()
@@ -762,7 +774,7 @@ if __name__ == "__main__":
         run_map = {
             "serve": serve,
             "basic": test_basic,
-            "session": test_session
+            "conference": test_conference
         }
         if run not in run_map:
             print("-T value must be one of %s" % ", ".join(run_map.keys()))
