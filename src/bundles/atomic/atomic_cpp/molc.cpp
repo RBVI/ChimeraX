@@ -1697,7 +1697,7 @@ extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, 
     float vx = x1-x0, vy = y1-y0, vz = z1-z0;
     float d = sqrtf(vx*vx + vy*vy + vz*vz);
     if (d == 0)
-      { vx = vy = 0 ; vz = 1; }
+      { vx = vy = 0 ; vz = 1; d = 1; }
     else
       { vx /= d; vy /= d; vz /= d; }
 
