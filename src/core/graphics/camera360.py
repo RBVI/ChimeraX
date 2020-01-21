@@ -10,16 +10,16 @@
 # === UCSF ChimeraX Copyright ===
 
 from .camera import Camera
-class Mono360Camera(Camera):
+class CubeMapCamera(Camera):
 
-    name = 'mono 360'
+    name = 'cube map'
 
-    def __init__(self):
+    def __init__(self, projection_size = (360, 180), cube_face_size = 1024):
 
         Camera.__init__(self)
         self._framebuffer = None        	# Framebuffer for rendering each face
-        self._cube_face_size = 1024		# Pixels
-        self._projection_size = (360,180)	# Grid size for projecting cubemap.
+        self._cube_face_size = cube_face_size	# Pixels
+        self._projection_size = projection_size	# Grid size for projecting cubemap.
         self._drawing = None			# Drawing of rectangle with cube map texture
         self._view_rotations = _cube_map_face_views()   # Camera views for cube faces
 
@@ -86,22 +86,51 @@ class Mono360Camera(Camera):
     def _projection_drawing(self):
         d = self._drawing
         if d is None:
-            self._drawing = d = _equirectangular_projection_drawing(self._projection_size)
+            d = _cube_map_projection_drawing(self._projection_size, self._direction_map)
+            self._drawing = d
         return d
 
     def view_width(self, point):
         return view_width_360(point, self.position.origin())
 
+    def _direction_map(self, x, y):
+        '''
+        Maps image x,y position (0-1 range) to a 3d direction vector
+        for projecting the cube map onto a rectangle.
+        Derived class must define this function.
+        '''
+        pass
+
+class Mono360Camera(CubeMapCamera):
+    name = 'mono 360'
+
+    def __init__(self, projection_size = (360, 180), cube_face_size = 1024):
+        CubeMapCamera.__init__(self, projection_size = projection_size,
+                               cube_face_size = cube_face_size)
+    
+    def _direction_map(self, x, y):
+        return _equirectangular_direction(x,y)
+
+class DomeCamera(CubeMapCamera):
+    name = 'dome'
+
+    def __init__(self, projection_size = (180, 180), cube_face_size = 1024):
+        CubeMapCamera.__init__(self, projection_size = projection_size,
+                               cube_face_size = cube_face_size)
+        
+    def _direction_map(self, x, y):
+        return _fisheye_direction(x,y)
+    
 class Stereo360Camera(Camera):
 
     name = 'stereo 360'
 
-    def __init__(self, layout = 'top-bottom'):
+    def __init__(self, layout = 'top-bottom', cube_face_size = 1024):
 
         Camera.__init__(self)
         self.eye_separation_scene = 0.2			# Angstroms
         self._framebuffer = {'left':None, 'right':None} # Framebuffer for rendering each face
-        self._cube_face_size = 1024			# Pixels
+        self._cube_face_size = cube_face_size		# Pixels
         self._projection_size = (360,180)		# Grid size for projecting cubemap.
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
         v = _cube_map_face_views()
@@ -264,11 +293,29 @@ def _adjust_light_directions(render, rotation = None):
         l.fill_light_direction = rinv * l._original_fill_light_direction
     render.update_lighting_parameters()
 
-def _equirectangular_projection_drawing(size):
+def _equirectangular_direction(x, y):
+    '''-z axis in middle of rectangle'''
+    from math import pi, cos, sin
+    theta, phi = x * 2*pi, y * pi
+    ct, st = cos(theta), sin(theta)
+    cp, sp = cos(phi), sin(phi)
+    return (-st*sp,-cp,ct*sp)
+
+def _fisheye_direction(x, y):
+    '''-z axis in middle of rectangle'''
+    xs, ys = 2*x - 1, 2*y - 1
+    from math import atan2, pi, sqrt, cos, sin
+    theta = atan2(ys, xs)
+    phi = 0.5*pi*sqrt(xs*xs + ys*ys)
+    ct, st = cos(theta), sin(theta)
+    cp, sp = cos(phi), sin(phi)
+    return (ct*sp, st*sp, -cp)
+
+def _cube_map_projection_drawing(size, direction_function):
     w,h = size
 
     # Compute vertices (-1 to 1 range) for rectangular grid.
-    from numpy import arange, empty, float32, int32, cos, sin
+    from numpy import arange, empty, float32, int32
     x = arange(w)*(2/(w-1)) - 1
     y = arange(h)*(2/(h-1)) - 1
     va = empty((h,w,3), float32)
@@ -288,15 +335,10 @@ def _equirectangular_projection_drawing(size):
     ta = ta.reshape(((h-1)*(w-1)*2, 3))
 
     # Compute direction vectors as texture coordinates
-    from math import pi
-    a = arange(w)*(2*pi/w)
-    ca, sa = cos(a), sin(a)
-    b = arange(h)*(pi/h)
-    cb, sb = cos(b), sin(b)
     tc = empty((h,w,3), float32)
     for j in range(h):
         for i in range(w):
-            tc[j,i,:] = (-sa[i]*sb[j],-cb[j],ca[i]*sb[j])     # z-axis in middle of rectangle
+            tc[j,i,:] = direction_function((i+.5)/w, (j+.5)/h)
     tc = tc.reshape((h*w,3))
 
     # Create rectangle drawing with sphere point texture coordinates.

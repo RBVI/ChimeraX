@@ -59,9 +59,11 @@ class _SurfaceBundle(BundleAPI):
         elif command_name == 'volume splitbyzone':
             from . import colorzone
             colorzone.register_volume_split_command(logger)
-        else:
+        elif command_name.startswith('surface') or command_name.startswith('sop'):
             from . import surfacecmds
             surfacecmds.register_command(logger)
+            from . import check
+            check.register_command(logger)
 
     @staticmethod
     def open_file(session, stream, file_name):
