@@ -18,7 +18,7 @@ pub_chem: PubChem fetch support
 def fetch_pubchem(session, pubchem_id, *, ignore_cache=False, **kw):
     from chimerax.core.errors import UserError
     if not pubchem_id.isdigit():
-        raise UserError('PubChem identifiers numeric, got "%s"' % pubchem_id)
+        raise UserError('PubChem identifiers are numeric, got "%s"' % pubchem_id)
 
     import os
     url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/SDF?record_type=3d" % pubchem_id
