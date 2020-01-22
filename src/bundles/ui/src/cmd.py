@@ -39,6 +39,16 @@ def register_ui_command(logger):
         synopsis = "control whether main window status bar is shown or hidden")
     register('ui statusbar', ui_statusbar_desc, ui_statusbar, logger=logger)
 
+    ui_menubar_desc = CmdDesc(
+        required=[('show', BoolArg)],
+        synopsis = "control whether main window menu bar is shown or hidden")
+    register('ui menubar', ui_menubar_desc, ui_menubar, logger=logger)
+
+    ui_fullscreen_desc = CmdDesc(
+        required=[('show', BoolArg)],
+        synopsis = "control whether main window is shown fullscreen without titlebar")
+    register('ui fullscreen', ui_fullscreen_desc, ui_fullscreen, logger=logger)
+
 # -----------------------------------------------------------------------------
 #
 def ui_autostart(session, do_start, tool_name):
@@ -104,3 +114,19 @@ def ui_statusbar(session, show):
     Show or hide the statusbar.
     '''
     session.ui.main_window.show_statusbar(show)
+
+# -----------------------------------------------------------------------------
+#
+def ui_menubar(session, show):
+    '''
+    Show or hide the top of window menubar.
+    '''
+    session.ui.main_window.show_menubar(show)
+
+# -----------------------------------------------------------------------------
+#
+def ui_fullscreen(session, show):
+    '''
+    Show fullscreen (no titlebar) or normal mode.
+    '''
+    session.ui.main_window.show_fullscreen(show)
