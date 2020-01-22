@@ -21,6 +21,7 @@ class CubeMapCamera(Camera):
         self._framebuffer = None        	# Framebuffer for rendering each face
         self._cube_face_size = cube_face_size	# Pixels
         self._view_rotations = _cube_map_face_views()   # Camera views for cube faces
+        self._drawing = None	# CubeMapProjectionDrawing of that renders cube map texture
 
     def delete(self):
         fb = self._framebuffer
@@ -114,11 +115,10 @@ class CubeMapCamera(Camera):
 class Mono360Camera(CubeMapCamera):
     name = 'mono 360'
 
-    def __init__(self, projection_size = (360, 180), cube_face_size = 1024):
+    def __init__(self, cube_face_size = 1024, projection_size = (360, 180)):
         CubeMapCamera.__init__(self, cube_face_size = cube_face_size)
 
         self._projection_size = projection_size
-        self._drawing = None	# CubeMapProjectionDrawing of that renders cube map texture
 
     def projected_geometry(self):
         '''Return vertices and triangles.'''
@@ -143,15 +143,14 @@ class DomeCamera(CubeMapCamera):
     name = 'dome'
     aspect = 1
     
-    def __init__(self, projection_size = (180, 180), cube_face_size = 1024):
+    def __init__(self, cube_face_size = 1024, grid_spacing = 1):
         CubeMapCamera.__init__(self, cube_face_size = cube_face_size)
 
-        self._projection_size = projection_size
-        self._drawing = None	# CubeMapProjectionDrawing of that renders cube map texture
+        self._grid_spacing = grid_spacing	# Degrees
 
     def projected_geometry(self):
         '''Return vertices and triangles.'''
-        return _rectangle_geometry(self._projection_size)
+        return _circle_geometry(self._grid_spacing)
         
     def projection_direction(self, x, y):
         '''
@@ -330,7 +329,7 @@ def _adjust_light_directions(render, rotation = None):
         l.fill_light_direction = rinv * l._original_fill_light_direction
     render.update_lighting_parameters()
 
-def _rectangle_geometry(size):
+def _rectangle_geometry(size = (360, 180)):
     # Compute vertices (-1 to 1 range) for rectangular grid.
     from numpy import arange, empty, float32, int32
     w,h = size
@@ -354,6 +353,57 @@ def _rectangle_geometry(size):
 
     return va,ta
 
+def _circle_geometry(spacing = 1):
+    '''spacing is in degrees at perimeter'''
+    vertices = []
+    triangles = []
+    from math import pi, cos, sin
+    step = 2*pi * spacing/360
+    nr = max(2, int(1/step))
+    prev_ring = None
+    for r in range(nr):
+        rad = r / (nr-1)
+        nc = max(1, int(2*pi*rad / step))
+        ring = []
+        for c in range(nc):
+            a = (c/nc) * 2*pi
+            ring.append((rad*cos(a), rad*sin(a), 0))
+        offset = len(vertices)
+        vertices.extend(ring)
+        if prev_ring is not None:
+            triangles.extend(_stitched_triangles(prev_ring, prev_offset, ring, offset))
+        prev_ring = ring
+        prev_offset = offset
+
+    from numpy import array, float32, int32
+    va = array(vertices, float32)
+    ta = array(triangles, int32)
+
+    return va, ta
+
+def _stitched_triangles(loop1_vertices, offset1, loop2_vertices, offset2):
+    triangles = []
+    n1, n2 = len(loop1_vertices), len(loop2_vertices)
+    i1 = i2 = 0
+    from chimerax.core.geometry import distance
+    while i1 < n1 or i2 < n2:
+        v1, v2 = loop1_vertices[i1%n1], loop2_vertices[i2%n2]
+        vn1, vn2 = loop1_vertices[(i1+1)%n1], loop2_vertices[(i2+1)%n2]
+        if i2 == n2:
+            step1 = True
+        elif i1 == n1:
+            step1 = False
+        else:
+            step1 = (distance(v2,vn1) < distance(v1,vn2))
+        i3 = (offset1 + (i1+1)%n1) if step1 else (offset2 + (i2+1)%n2)
+        triangles.append((offset1+i1%n1, offset2+i2%n2, i3))
+        if step1:
+            i1 += 1
+        else:
+            i2 += 1
+
+    return triangles
+    
 from . import Drawing
 class CubeMapProjectionDrawing(Drawing):
     def __init__(self, vertices, triangles, direction_function):
