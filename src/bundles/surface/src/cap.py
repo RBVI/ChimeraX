@@ -172,9 +172,9 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
         cap_name = 'cap ' + plane_name
         np = len(d.get_scene_positions(displayed_only = True))
         if np == 1:
-            cm = new_cap(d.session, d, cap_name)
+            cm = new_cap(d, cap_name)
         else:
-            cm = new_cap(d.session, None, cap_name + ' ' + d.name)
+            cm = new_cap(d.parent, cap_name + ' ' + d.name)
             cm.pickable = False	  # Don't want pick of one cap to pick all instance caps.
         cm.clip_plane_name = plane_name
         cm.clip_cap_owner = d
@@ -183,18 +183,15 @@ def set_cap_drawing_geometry(drawing, plane_name, varray, narray, tarray):
 
     cm.set_geometry(varray, narray, tarray)
 
-def new_cap(session, drawing, cap_name):
+def new_cap(drawing, cap_name):
     from chimerax.core.models import Model, Surface
-    if isinstance(drawing, Model) or drawing is None:
+    if isinstance(drawing, Model):
         # Make cap a model when capping a model so color can be set by command.
-        c = Surface(cap_name, session)
+        c = Surface(cap_name, drawing.session)
         c.SESSION_SAVE = False
-        c.is_clip_cap = True
-        if drawing is None:
-            session.models.add([c])
-        else:
-            drawing.add([c])
+        drawing.add([c])
     else:
         # Cap is on a Drawing that is not a Model
         c = drawing.new_drawing(cap_name)
+    c.is_clip_cap = True
     return c
