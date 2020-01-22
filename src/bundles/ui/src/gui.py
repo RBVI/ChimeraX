@@ -794,6 +794,9 @@ class MainWindow(QMainWindow, PlainTextLog):
     def status(self, msg, color, secondary):
         self._status_bar.status(msg, color, secondary)
 
+    def show_statusbar(self, show):
+        self._status_bar.show(show)
+        
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView
         import os.path

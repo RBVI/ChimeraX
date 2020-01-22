@@ -34,6 +34,11 @@ def register_ui_command(logger):
         synopsis = "control whether a tool's windows can be docked")
     register('ui dockable', ui_dockable_desc, ui_dockable, logger=logger)
 
+    ui_statusbar_desc = CmdDesc(
+        required=[('show', BoolArg)],
+        synopsis = "control whether main window status bar is shown or hidden")
+    register('ui statusbar', ui_statusbar_desc, ui_statusbar, logger=logger)
+
 # -----------------------------------------------------------------------------
 #
 def ui_autostart(session, do_start, tool_name):
@@ -91,3 +96,11 @@ def ui_dockable(session, dockable, tool_name):
     settings.save('undockable')
     if session.ui.is_gui:
         session.ui.main_window._dockability_change(tool_name, dockable)
+
+# -----------------------------------------------------------------------------
+#
+def ui_statusbar(session, show):
+    '''
+    Show or hide the statusbar.
+    '''
+    session.ui.main_window.show_statusbar(show)

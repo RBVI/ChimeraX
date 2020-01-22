@@ -49,7 +49,12 @@ class _StatusBarOpenGL:
             if v is not None:
                 v.delete()
                 setattr(self, attr, None)
-        
+
+    def show(self, show):
+        w = self.widget
+        if w:
+            w.setVisible(show)
+            
     def _make_widget(self):
         from PyQt5.QtWidgets import QStatusBar, QSizePolicy, QWidget
         sb = QStatusBar()
