@@ -13,15 +13,13 @@ from .camera import Camera
 class CubeMapCamera(Camera):
 
     name = 'cube map'
+    aspect = None	# Aspect ratio of projected image.  None means use full window.
 
-    def __init__(self, projection_size = (360, 180), cube_face_size = 1024, aspect = None):
+    def __init__(self, cube_face_size = 1024):
 
         Camera.__init__(self)
         self._framebuffer = None        	# Framebuffer for rendering each face
         self._cube_face_size = cube_face_size	# Pixels
-        self._projection_size = projection_size	# Grid size for projecting cubemap.
-        self._aspect = aspect
-        self._drawing = None			# Drawing of rectangle with cube map texture
         self._view_rotations = _cube_map_face_views()   # Camera views for cube faces
 
     def delete(self):
@@ -76,7 +74,17 @@ class CubeMapCamera(Camera):
         render.pop_framebuffer()	        # Pop the cube face framebuffer.
         cubemap = self._cube_face_framebuffer(render.opengl_context).color_texture
         proj = self._projection_drawing(render.render_size())
-        _project_cubemap(cubemap, proj, render) # Project cubemap to longitude/lattitude rectangle
+        proj.project_cubemap(cubemap, render) # Project cubemap to longitude/lattitude rectangle
+
+    def _projection_drawing(self, window_size):
+        d = self._drawing
+        if d is None:
+            vertices, triangles = self.projected_geometry()
+            d = CubeMapProjectionDrawing(vertices, triangles, self.projection_direction)
+            self._drawing = d
+        if self.aspect is not None:
+            d.set_aspect(1, window_size)
+        return d
 
     def _cube_face_framebuffer(self, opengl_context):
         fb = self._framebuffer
@@ -84,45 +92,80 @@ class CubeMapCamera(Camera):
             self._framebuffer = fb = _cube_map_framebuffer(opengl_context, self._cube_face_size)
         return fb
 
-    def _projection_drawing(self, window_size):
-        d = self._drawing
-        if d is None:
-            d = CubeMapProjectionDrawing(self._projection_size, self._direction_map)
-            self._drawing = d
-        if self._aspect is not None:
-            d.set_aspect(self._aspect, window_size)
-        return d
-
     def view_width(self, point):
         return view_width_360(point, self.position.origin())
 
-    def _direction_map(self, x, y):
+    def projected_geometry(self):
         '''
-        Maps image x,y position (0-1 range) to a 3d direction vector
-        for projecting the cube map onto a rectangle.
+        Return vertices and triangles that cube map projects onto.
+        Vertex x,y coordinates range from -1 to 1 spanning full window.
         Derived class must define this function.
         '''
-        pass
+        raise NotImplementedError('CubeMapCamera %s did not implement projected_geometry() method.')
+        
+    def projection_direction(self, x, y):
+        '''
+        Cube map direction vector for vertex position (x,y) (range -1 to 1)
+        -z axis is at x,y = 0,0.
+        Derived class must define this function.
+        '''
+        raise NotImplementedError('CubeMapCamera %s did not implement projection_direction() method.')
 
 class Mono360Camera(CubeMapCamera):
     name = 'mono 360'
 
     def __init__(self, projection_size = (360, 180), cube_face_size = 1024):
-        CubeMapCamera.__init__(self, projection_size = projection_size,
-                               cube_face_size = cube_face_size)
-    
-    def _direction_map(self, x, y):
+        CubeMapCamera.__init__(self, cube_face_size = cube_face_size)
+
+        self._projection_size = projection_size
+        self._drawing = None	# CubeMapProjectionDrawing of that renders cube map texture
+
+    def projected_geometry(self):
+        '''Return vertices and triangles.'''
+        return _rectangle_geometry(self._projection_size)
+
+    def projection_direction(self, x, y):
+        '''
+        Equirectangular projection maps image x to longitude and image y to lattitude.
+        Direction vector for texture position (x,y) (range -1 to 1)
+        -z axis is at x,y = 0,0.
+        '''
         return _equirectangular_direction(x,y)
 
+def _equirectangular_direction(x, y):
+    from math import pi, cos, sin
+    theta, phi = x * pi, (1-y) * (pi/2)
+    ct, st = cos(theta), sin(theta)
+    cp, sp = cos(phi), sin(phi)
+    return (st*sp,cp,-ct*sp)
+    
 class DomeCamera(CubeMapCamera):
     name = 'dome'
+    aspect = 1
+    
+    def __init__(self, projection_size = (180, 180), cube_face_size = 1024):
+        CubeMapCamera.__init__(self, cube_face_size = cube_face_size)
 
-    def __init__(self, projection_size = (180, 180), cube_face_size = 1024, aspect = 1):
-        CubeMapCamera.__init__(self, projection_size = projection_size,
-                               cube_face_size = cube_face_size, aspect = aspect)
+        self._projection_size = projection_size
+        self._drawing = None	# CubeMapProjectionDrawing of that renders cube map texture
+
+    def projected_geometry(self):
+        '''Return vertices and triangles.'''
+        return _rectangle_geometry(self._projection_size)
         
-    def _direction_map(self, x, y):
-        return _fisheye_direction(x,y)
+    def projection_direction(self, x, y):
+        '''
+        Fisheye projection maps image x,y to hemisphere point where 90*sqrt(x*x+y*y) is angle from pole.
+        Direction vector for texture position (x,y) (range -1 to 1)
+        -z axis is at x,y = 0,0.
+        '''
+        from math import atan2, pi, sqrt, cos, sin
+        theta = atan2(y, x)
+        phi = 0.5*pi*sqrt(x*x + y*y)
+        ct, st = cos(theta), sin(theta)
+        cp, sp = cos(phi), sin(phi)
+        return (ct*sp, st*sp, -cp)
+
     
 class Stereo360Camera(Camera):
 
@@ -214,7 +257,7 @@ class Stereo360Camera(Camera):
         for eye in ('left', 'right'):
             cubemap = self._cube_face_framebuffer(eye, render.opengl_context).color_texture
             proj = self._projection_drawing(eye)
-            _project_cubemap(cubemap, proj, render) # Project cubemap to longitude/lattitude rectangle
+            proj.project_cubemap(cubemap, render) # Project cubemap to longitude/lattitude rectangle
 
     def _cube_face_framebuffer(self, eye, opengl_context):
         fb = self._framebuffer[eye]
@@ -225,7 +268,9 @@ class Stereo360Camera(Camera):
     def _projection_drawing(self, eye):
         d = self._drawing[eye]
         if d is None:
-            self._drawing[eye] = d = _equirectangular_projection_drawing(self._projection_size)
+            vertices, triangles = _rectangle_geometry(self._projection_size)
+            d = CubeMapProjectionDrawing(vertices, triangles, _equirectangular_direction)
+            self._drawing[eye] = d
             if self.layout == 'top-bottom':
                 # Shift left eye to top half of window, right eye to bottom half
                 y = d.vertices[:,1]
@@ -269,19 +314,6 @@ def _cube_map_framebuffer(opengl_context, size):
     fb = opengl.Framebuffer('cubemap', opengl_context, color_texture = t)
     return fb
 
-# Project cubemap to longitude/lattitude rectangle
-def _project_cubemap(cubemap_texture, projection_drawing, render):
-    if projection_drawing.pad():
-        render.draw_background()
-    dc = render.disable_capabilities
-    render.disable_capabilities |= render.SHADER_STEREO_360
-    d = projection_drawing
-    d.texture = cubemap_texture
-    d.opaque_texture = True
-    from .drawing import draw_overlays
-    draw_overlays([d], render)
-    render.disable_capabilities = dc
-
 def _adjust_light_directions(render, rotation = None):
     l = render.lighting
     if not hasattr(l, '_original_key_light_direction'):
@@ -298,101 +330,70 @@ def _adjust_light_directions(render, rotation = None):
         l.fill_light_direction = rinv * l._original_fill_light_direction
     render.update_lighting_parameters()
 
-def _equirectangular_direction(x, y):
-    '''-z axis in middle of rectangle'''
-    from math import pi, cos, sin
-    theta, phi = x * 2*pi, y * pi
-    ct, st = cos(theta), sin(theta)
-    cp, sp = cos(phi), sin(phi)
-    return (-st*sp,-cp,ct*sp)
+def _rectangle_geometry(size):
+    # Compute vertices (-1 to 1 range) for rectangular grid.
+    from numpy import arange, empty, float32, int32
+    w,h = size
+    x = arange(w)*(2/(w-1)) - 1
+    y = arange(h)*(2/(h-1)) - 1
+    va = empty((h,w,3), float32)
+    for i in range(w):
+        va[:,i,1] = y
+    for j in range(h):
+        va[j,:,0] = x
+    va[:,:,2] = 0
+    va = va.reshape((h*w,3))
 
-def _fisheye_direction(x, y):
-    '''-z axis in middle of rectangle'''
-    xs, ys = 2*x - 1, 2*y - 1
-    from math import atan2, pi, sqrt, cos, sin
-    theta = atan2(ys, xs)
-    phi = 0.5*pi*sqrt(xs*xs + ys*ys)
-    ct, st = cos(theta), sin(theta)
-    cp, sp = cos(phi), sin(phi)
-    return (ct*sp, st*sp, -cp)
+    # Compute triangles for rectangular grid
+    ta = empty((h-1,w-1,2,3), int32)
+    for j in range(h-1):
+        for i in range(w-1):
+            ta[j,i,0,:] = (j*w+i, j*w+(i+1), (j+1)*w+(i+1))
+            ta[j,i,1,:] = (j*w+i, (j+1)*w+(i+1), (j+1)*w+i)
+    ta = ta.reshape(((h-1)*(w-1)*2, 3))
+
+    return va,ta
 
 from . import Drawing
 class CubeMapProjectionDrawing(Drawing):
-    def __init__(self, size, direction_function):
+    def __init__(self, vertices, triangles, direction_function):
         Drawing.__init__(self, 'cube map projection')
 
-        w,h = size
-        va = self._vertex_array(size)
-        ta = self._triangle_array(size)
-        tc = self._texture_coordinate_array(size, direction_function)
+        tc = self._texture_coordinate_array(vertices, direction_function)
         
         # Create rectangle drawing with sphere point texture coordinates.
-        self.set_geometry(va, None, ta)
+        self.set_geometry(vertices, None, triangles)
         self.color = (255,255,255,255)
         self.use_lighting = False
         self.texture_coordinates = tc
+        self.opaque_texture = True
 
-        self._aspect = None
-        self._window_size = None
-        self._unit_vertices = va
+        self._scale = (1,1)
 
-    def _vertex_array(self, size):
-        # Compute vertices (-1 to 1 range) for rectangular grid.
-        from numpy import arange, empty, float32
-        w,h = size
-        x = arange(w)*(2/(w-1)) - 1
-        y = arange(h)*(2/(h-1)) - 1
-        va = empty((h,w,3), float32)
-        for i in range(w):
-            va[:,i,1] = y
-        for j in range(h):
-            va[j,:,0] = x
-        va[:,:,2] = 0
-        va = va.reshape((h*w,3))
-        return va
-
-    def _triangle_array(self, size):
-        # Compute triangles for rectangular grid
-        w,h = size
-        from numpy import empty, int32
-        ta = empty((h-1,w-1,2,3), int32)
-        for j in range(h-1):
-            for i in range(w-1):
-                ta[j,i,0,:] = (j*w+i, j*w+(i+1), (j+1)*w+(i+1))
-                ta[j,i,1,:] = (j*w+i, (j+1)*w+(i+1), (j+1)*w+i)
-        ta = ta.reshape(((h-1)*(w-1)*2, 3))
-        return ta
-
-    def _texture_coordinate_array(self, size, direction_function):
+    def _texture_coordinate_array(self, vertices, direction_function):
         # Compute direction vectors as texture coordinates
-        from numpy import empty, float32
-        w,h = size
-        tc = empty((h,w,3), float32)
-        for j in range(h):
-            for i in range(w):
-                tc[j,i,:] = direction_function((i+.5)/w, (j+.5)/h)
-        tc = tc.reshape((h*w,3))
+        from numpy import array, float32
+        tc = array([direction_function(vx, vy) for vx,vy,vz in vertices], float32)
         return tc
 
     def set_aspect(self, aspect, window_size):
-        if  self._aspect == aspect and self._window_size == window_size:
-            return
-        self._aspect = aspect
-        self._window_size = window_size
-        
         w,h = window_size
         ah = aspect*h
-        va = self._unit_vertices.copy()
         if w > ah:
             e = (w - ah)/w
-            va[:,0] *= 1-e
+            s = (1-e, 1)
         else:
             e = (ah - w)/ah
-            va[:,1] *= 1-e
-        self.set_geometry(va, None, self.triangles)
+            s = (1, 1-e)
+        self._scale = s
 
-    def pad(self):
-        if self._aspect is None or self._window_size is None:
-            return False
-        w,h = self._window_size
-        return w != self._aspect * h
+    def project_cubemap(self, cubemap_texture, render):
+        '''Project cubemap onto overlay drawing'''
+        if self._scale != (1,1):
+            render.draw_background()
+        dc = render.disable_capabilities
+        render.disable_capabilities |= render.SHADER_STEREO_360
+        self.texture = cubemap_texture
+        from .drawing import draw_overlays
+        draw_overlays([self], render, scale = self._scale)
+        render.disable_capabilities = dc
