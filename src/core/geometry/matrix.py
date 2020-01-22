@@ -575,11 +575,10 @@ def R_to_axis_angle(matrix):
     @rtype:     numpy 3D rank-1 array, float
     """
 
-    from numpy import array, zeros, float64, ndarray
+    from numpy import array, float64, ndarray
     from math import sqrt
 
     # Axes.
-    axis = zeros(3, float64)
     if isinstance(matrix, ndarray):
         m00, m11, m22 = matrix[0,0], matrix[1,1], matrix[2,2]
         ax = matrix[2,1] - matrix[1,2]
