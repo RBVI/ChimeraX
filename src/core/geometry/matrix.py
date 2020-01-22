@@ -575,27 +575,48 @@ def R_to_axis_angle(matrix):
     @rtype:     numpy 3D rank-1 array, float
     """
 
-    from numpy import array, zeros, hypot, float64
+    from numpy import array, float64, ndarray
+    from math import sqrt
+
     # Axes.
-    axis = zeros(3, float64)
-    matrix = array(matrix)
-    axis[0] = matrix[2, 1] - matrix[1, 2]
-    axis[1] = matrix[0, 2] - matrix[2, 0]
-    axis[2] = matrix[1, 0] - matrix[0, 1]
+    if isinstance(matrix, ndarray):
+        m00, m11, m22 = matrix[0,0], matrix[1,1], matrix[2,2]
+        ax = matrix[2,1] - matrix[1,2]
+        ay = matrix[0,2] - matrix[2,0]
+        az = matrix[1,0] - matrix[0,1]
+    else:
+        m00, m11, m22 = matrix[0][0], matrix[1][1], matrix[2][2]
+        ax = matrix[2][1] - matrix[1][2]
+        ay = matrix[0][2] - matrix[2][0]
+        az = matrix[1][0] - matrix[0][1]
 
-    # Angle.
-    r = hypot(axis[0], hypot(axis[1], axis[2]))
-    if r == 0:
-        return array((0, 0, 1), float64), 0
+    # Handle 180 degree rotations.
+    near_zero = 1e-14
+    if abs(ax) < near_zero and abs(ay) < near_zero and abs(az) < near_zero:
+        # For 180 degree rotation R is symmetric
+        #   R = [(2*ax*ax-1, 2*ax*ay, 2*ax*az),
+        #        (2*ax*ay, 2*ay*ay-1, 2*ay*az),
+        #        (2*ax*az, 2*ay*az, 2*az*az-1)]
+        # so use diagonal to get rotation axis.
+        axis = array([sqrt(max(0, 0.5*(d + 1))) for d in (m00,m11,m22)], float64)
+        theta_deg = 180
+    else:
+        axis = array((ax, ay, az), float64)
 
-    t = matrix[0, 0] + matrix[1, 1] + matrix[2, 2]
-    theta = atan2(r, t - 1)
+        # Angle.
+        r = sqrt(ax*ax + ay*ay + az*az)
+        if r == 0:
+            return array((0, 0, 1), float64), 0
 
-    # Normalise the axis.
-    axis = axis / r
+        t = m00 + m11 + m22
+        theta = atan2(r, t - 1)
+        theta_deg = theta * 180 / pi
+    
+        # Normalise the axis.
+        axis = axis / r
 
     # Return the data.
-    return axis, theta * 180 / pi
+    return axis, theta_deg
 
 
 # -----------------------------------------------------------------------------

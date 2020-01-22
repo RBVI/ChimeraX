@@ -31,11 +31,11 @@
 static void cylinder_rotations(float *axyz0, float *axyz1, int n, float *radii,
 			       float *rot44)
 {
-  for (int i = 0 ; i < n ; ++i)
+  for (int i = 0 ; i < n ; ++i, axyz0 += 3, axyz1 += 3)
     {
-      float vx = *axyz1++ - *axyz0++;
-      float vy = *axyz1++ - *axyz0++;
-      float vz = *axyz1++ - *axyz0++;
+      float vx = axyz1[0] - axyz0[0];
+      float vy = axyz1[1] - axyz0[1];
+      float vz = axyz1[2] - axyz0[2];
       float d = sqrtf(vx*vx + vy*vy + vz*vz);
       if (d == 0)
 	{ vx = vy = 0 ; vz = 1; }
@@ -115,11 +115,11 @@ static void half_cylinder_rotations(float *axyz0, float *axyz1, int n, float *ra
 				    float *rot44)
 {
   float *rot44b = rot44 + 16*n;
-  for (int i = 0 ; i < n ; ++i)
+  for (int i = 0 ; i < n ; ++i, axyz0 += 3, axyz1 += 3)
     {
-      float x0 = *axyz0++, x1 = *axyz1++;
-      float y0 = *axyz0++, y1 = *axyz1++;
-      float z0 = *axyz0++, z1 = *axyz1++;
+      float x0 = axyz0[0], x1 = axyz1[0];
+      float y0 = axyz0[1], y1 = axyz1[1];
+      float z0 = axyz0[2], z1 = axyz1[2];
       float vx = x1-x0, vy = y1-y0, vz = z1-z0;
       float d = sqrtf(vx*vx + vy*vy + vz*vz);
       if (d == 0)

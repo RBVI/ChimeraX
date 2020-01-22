@@ -143,7 +143,7 @@ endif
 .NOTPARALLEL:
 
 # keep in alphabetical order, dependencies go below
-SUBDIRS	+= gdcm imex numpy openmm \
+SUBDIRS	+= gdcm imex lineprofiler numpy openmm \
 	   pips \
 	   PyOpenGL PyQt Python \
 	   scipy

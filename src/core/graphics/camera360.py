@@ -14,12 +14,13 @@ class CubeMapCamera(Camera):
 
     name = 'cube map'
 
-    def __init__(self, projection_size = (360, 180), cube_face_size = 1024):
+    def __init__(self, projection_size = (360, 180), cube_face_size = 1024, aspect = None):
 
         Camera.__init__(self)
         self._framebuffer = None        	# Framebuffer for rendering each face
         self._cube_face_size = cube_face_size	# Pixels
         self._projection_size = projection_size	# Grid size for projecting cubemap.
+        self._aspect = aspect
         self._drawing = None			# Drawing of rectangle with cube map texture
         self._view_rotations = _cube_map_face_views()   # Camera views for cube faces
 
@@ -74,7 +75,7 @@ class CubeMapCamera(Camera):
         _adjust_light_directions(render)	# Restore light directions
         render.pop_framebuffer()	        # Pop the cube face framebuffer.
         cubemap = self._cube_face_framebuffer(render.opengl_context).color_texture
-        proj = self._projection_drawing()
+        proj = self._projection_drawing(render.render_size())
         _project_cubemap(cubemap, proj, render) # Project cubemap to longitude/lattitude rectangle
 
     def _cube_face_framebuffer(self, opengl_context):
@@ -83,11 +84,13 @@ class CubeMapCamera(Camera):
             self._framebuffer = fb = _cube_map_framebuffer(opengl_context, self._cube_face_size)
         return fb
 
-    def _projection_drawing(self):
+    def _projection_drawing(self, window_size):
         d = self._drawing
         if d is None:
-            d = _cube_map_projection_drawing(self._projection_size, self._direction_map)
+            d = CubeMapProjectionDrawing(self._projection_size, self._direction_map)
             self._drawing = d
+        if self._aspect is not None:
+            d.set_aspect(self._aspect, window_size)
         return d
 
     def view_width(self, point):
@@ -114,9 +117,9 @@ class Mono360Camera(CubeMapCamera):
 class DomeCamera(CubeMapCamera):
     name = 'dome'
 
-    def __init__(self, projection_size = (180, 180), cube_face_size = 1024):
+    def __init__(self, projection_size = (180, 180), cube_face_size = 1024, aspect = 1):
         CubeMapCamera.__init__(self, projection_size = projection_size,
-                               cube_face_size = cube_face_size)
+                               cube_face_size = cube_face_size, aspect = aspect)
         
     def _direction_map(self, x, y):
         return _fisheye_direction(x,y)
@@ -268,6 +271,8 @@ def _cube_map_framebuffer(opengl_context, size):
 
 # Project cubemap to longitude/lattitude rectangle
 def _project_cubemap(cubemap_texture, projection_drawing, render):
+    if projection_drawing.pad():
+        render.draw_background()
     dc = render.disable_capabilities
     render.disable_capabilities |= render.SHADER_STEREO_360
     d = projection_drawing
@@ -311,42 +316,83 @@ def _fisheye_direction(x, y):
     cp, sp = cos(phi), sin(phi)
     return (ct*sp, st*sp, -cp)
 
-def _cube_map_projection_drawing(size, direction_function):
-    w,h = size
+from . import Drawing
+class CubeMapProjectionDrawing(Drawing):
+    def __init__(self, size, direction_function):
+        Drawing.__init__(self, 'cube map projection')
 
-    # Compute vertices (-1 to 1 range) for rectangular grid.
-    from numpy import arange, empty, float32, int32
-    x = arange(w)*(2/(w-1)) - 1
-    y = arange(h)*(2/(h-1)) - 1
-    va = empty((h,w,3), float32)
-    for i in range(w):
-        va[:,i,1] = y
-    for j in range(h):
-        va[j,:,0] = x
-    va[:,:,2] = 0
-    va = va.reshape((h*w,3))
+        w,h = size
+        va = self._vertex_array(size)
+        ta = self._triangle_array(size)
+        tc = self._texture_coordinate_array(size, direction_function)
+        
+        # Create rectangle drawing with sphere point texture coordinates.
+        self.set_geometry(va, None, ta)
+        self.color = (255,255,255,255)
+        self.use_lighting = False
+        self.texture_coordinates = tc
 
-    # Compute triangles for rectangular grid
-    ta = empty((h-1,w-1,2,3), int32)
-    for j in range(h-1):
-        for i in range(w-1):
-            ta[j,i,0,:] = (j*w+i, j*w+(i+1), (j+1)*w+(i+1))
-            ta[j,i,1,:] = (j*w+i, (j+1)*w+(i+1), (j+1)*w+i)
-    ta = ta.reshape(((h-1)*(w-1)*2, 3))
+        self._aspect = None
+        self._window_size = None
+        self._unit_vertices = va
 
-    # Compute direction vectors as texture coordinates
-    tc = empty((h,w,3), float32)
-    for j in range(h):
+    def _vertex_array(self, size):
+        # Compute vertices (-1 to 1 range) for rectangular grid.
+        from numpy import arange, empty, float32
+        w,h = size
+        x = arange(w)*(2/(w-1)) - 1
+        y = arange(h)*(2/(h-1)) - 1
+        va = empty((h,w,3), float32)
         for i in range(w):
-            tc[j,i,:] = direction_function((i+.5)/w, (j+.5)/h)
-    tc = tc.reshape((h*w,3))
+            va[:,i,1] = y
+        for j in range(h):
+            va[j,:,0] = x
+        va[:,:,2] = 0
+        va = va.reshape((h*w,3))
+        return va
 
-    # Create rectangle drawing with sphere point texture coordinates.
-    from . import Drawing
-    d = Drawing('equirectangular projection')
-    d.set_geometry(va, None, ta)
-    d.color = (255,255,255,255)
-    d.use_lighting = False
-    d.texture_coordinates = tc
+    def _triangle_array(self, size):
+        # Compute triangles for rectangular grid
+        w,h = size
+        from numpy import empty, int32
+        ta = empty((h-1,w-1,2,3), int32)
+        for j in range(h-1):
+            for i in range(w-1):
+                ta[j,i,0,:] = (j*w+i, j*w+(i+1), (j+1)*w+(i+1))
+                ta[j,i,1,:] = (j*w+i, (j+1)*w+(i+1), (j+1)*w+i)
+        ta = ta.reshape(((h-1)*(w-1)*2, 3))
+        return ta
 
-    return d
+    def _texture_coordinate_array(self, size, direction_function):
+        # Compute direction vectors as texture coordinates
+        from numpy import empty, float32
+        w,h = size
+        tc = empty((h,w,3), float32)
+        for j in range(h):
+            for i in range(w):
+                tc[j,i,:] = direction_function((i+.5)/w, (j+.5)/h)
+        tc = tc.reshape((h*w,3))
+        return tc
+
+    def set_aspect(self, aspect, window_size):
+        if  self._aspect == aspect and self._window_size == window_size:
+            return
+        self._aspect = aspect
+        self._window_size = window_size
+        
+        w,h = window_size
+        ah = aspect*h
+        va = self._unit_vertices.copy()
+        if w > ah:
+            e = (w - ah)/w
+            va[:,0] *= 1-e
+        else:
+            e = (ah - w)/ah
+            va[:,1] *= 1-e
+        self.set_geometry(va, None, self.triangles)
+
+    def pad(self):
+        if self._aspect is None or self._window_size is None:
+            return False
+        w,h = self._window_size
+        return w != self._aspect * h

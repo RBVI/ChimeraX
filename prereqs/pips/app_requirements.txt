@@ -14,8 +14,7 @@ imagecodecs-lite==2019.12.3
 ipykernel==5.1.3
 ipython==7.11.1
 # see ../lineprofiler
-#line_profiler==2.1.2
-line_profiler==3.0.2
+#line_profiler==3.0.2
 lxml==4.4.2
 matplotlib==3.1.2
 msgpack==0.6.2
