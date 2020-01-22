@@ -3206,6 +3206,19 @@ def all_atoms(session, atomic_only=False):
 
 # -----------------------------------------------------------------------------
 #
+def is_informative_name(name):
+    '''Does the string 'name' seem like it would actually be an informative name for the structure'''
+    nm = name.strip().lower()
+    if "unknown" in nm:
+        return False
+
+    for c in nm:
+        if c.isalnum():
+            return True
+    return False
+
+# -----------------------------------------------------------------------------
+#
 def structure_atoms(structures):
     '''Return all atoms in specified atomic structures as an :class:`.Atoms` collection.'''
     from .molarray import concatenate, Atoms
