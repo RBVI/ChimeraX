@@ -32,6 +32,7 @@
 
   <Providers manager="start structure">
     <Provider name="atom"/>
+    <Provider name="pubchem" ui_name="PubChem CID" new_model_only="true"/>
   </Providers>
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
