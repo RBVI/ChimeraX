@@ -393,11 +393,14 @@ class Model(State, Drawing):
         html_title = self.get_html_title(session)
         if not html_title:
             return
-        fmt = '<i>%s</i> title:<br><b>%s</b>'
+        if getattr(self, 'prefix_html_title', True):
+            fmt = '<i>%s</i> title:<br><b>%s</b>' % self.name
+        else:
+            fmt = '<b>%s</b>'
         if self.has_formatted_metadata(session):
             fmt += ' <a href="cxcmd:log metadata #%s">[more&nbsp;info...]</a>' % self.id_string
         fmt += '<br>'
-        session.logger.info(fmt % (self.name, html_title) , is_html=True)
+        session.logger.info(fmt % html_title, is_html=True)
 
     def removed_from_session(self, session):
         pass

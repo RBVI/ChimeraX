@@ -112,7 +112,7 @@ def read_sdf(session, stream, file_name):
                 if line == "$$$$":
                     nonblank = False
                     state = "init"
-                elif reading_data:
+                elif reading_data == "charges":
                     data_item = line.strip()
                     if data_item:
                         try:
@@ -147,6 +147,18 @@ def read_sdf(session, stream, file_name):
                         if "mmff94" in data_name:
                             s.charge_model = "MMFF94"
                         reading_data = None
+                elif reading_data == "cid":
+                    data_item = line.strip()
+                    if data_item:
+                        try:
+                            cid = int(data_item)
+                        except ValueError:
+                            raise UserError("PubChem CID (%s) is %s data is not an integer" % (data_item,
+                                orid_data_name))
+                        s.prefix_html_title = False
+                        s.get_html_title = lambda *args, cid=cid: 'PubChem entry <a href="https://pubchem.ncbi.nlm.nih.gov/compound/%d">%d</a>' % (cid, cid)
+                        s.has_formatted_metadata = lambda *args: False
+                        reading_data = None
                 elif line.startswith('>'):
                     try:
                         lp = line.index('<')
@@ -159,6 +171,8 @@ def read_sdf(session, stream, file_name):
                         reading_data = "charges"
                         indexed_charges = False
                         data = []
+                    elif data_name == "pubchem_compound_cid":
+                        reading_data = "cid"
     except:
         for s in structures:
             s.delete()
