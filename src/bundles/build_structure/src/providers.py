@@ -75,6 +75,7 @@ def fill_widget(name, widget):
         cid_edit.setObjectName("CID")
         acknowledgement = QLabel('PubChem CID support courtesy of <a href="https://pubchemdocs.ncbi.nlm.nih.gov/power-user-gateway">PubChem Power User Gateway (PUG) web services</a>')
         acknowledgement.setWordWrap(True)
+        acknowledgement.setOpenExternalLinks(True)
         layout.addWidget(acknowledgement, 2, 0, 1, 2)
         layout.setRowStretch(3, 1)
 
