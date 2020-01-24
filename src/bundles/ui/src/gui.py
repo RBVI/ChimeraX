@@ -287,6 +287,8 @@ class UI(QApplication):
             run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
+            # accepting the event prevents both the main Ui and tools from forwarding the same keystrokes
+            event.setAccepted(True)
 
     def intercept_key(self, qt_key_number, callback):
         self._key_callbacks[qt_key_number] = callback

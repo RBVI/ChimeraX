@@ -39,9 +39,12 @@ class BuildStructureAPI(BundleAPI):
                 from .providers import fill_widget
                 fill_widget(name, widget)
             else:
-                # process prarameters widget to generate provider command (sub)string;
-                # can return None if widget doesn't actually directly add atoms
-                # (e.g. it links to another tool/interface)
+                # process parameters widget to generate provider command (sub)string;
+                # will not be called if 'indirect' was specified as 'true' in the provider info
+                # (e.g. it links to another tool/interface);
+                # if 'new_model_only' in the provider info was 'true' then the returned string
+                # should be the _entire_ command for opening the model, not a substring of the
+                # 'build' command
                 from .providers import process_widget
                 return process_widget(name, widget)
         else:

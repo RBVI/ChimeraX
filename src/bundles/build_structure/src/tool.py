@@ -33,8 +33,8 @@ class BuildStructureTool(ToolInstance):
         layout.setSpacing(3)
         parent.setLayout(layout)
 
-        session.logger.status("Build Structure is a work in progress, many more functions coming soon...",
-            color="red")
+        session.logger.status("Build Structure is a work in progress, more functions coming soon...",
+            color="blue")
 
         self.category_button = QPushButton()
         layout.addWidget(self.category_button, alignment=Qt.AlignCenter)
@@ -204,17 +204,18 @@ class BuildStructureTool(ToolInstance):
         ui_names.sort(key=lambda x: x.lower())
         provider_layout = QGridLayout()
         layout.addLayout(provider_layout)
-        provider_layout.addWidget(QLabel("Add "), 0, 0, len(ui_names), 1)
+        provider_layout.addWidget(QLabel("Add "), 0, 0, len(ui_names)+2, 1)
 
         self.parameter_widgets = QStackedWidget()
-        provider_layout.addWidget(self.parameter_widgets, 0, 2, len(ui_names), 1)
+        provider_layout.addWidget(self.parameter_widgets, 0, 2, len(ui_names)+2, 1)
         self.ss_widgets = {}
         self.ss_button_group = QButtonGroup()
         self.ss_button_group.buttonClicked[QAbstractButton].connect(self._ss_provider_changed)
+        provider_layout.setRowStretch(0, 1)
         for row, ui_name in enumerate(ui_names):
             but = QRadioButton(ui_name)
             self.ss_button_group.addButton(but)
-            provider_layout.addWidget(but, row, 1, alignment=Qt.AlignLeft)
+            provider_layout.addWidget(but, row+1, 1, alignment=Qt.AlignLeft)
             params_title = " ".join([x.capitalize()
                 if x.islower() else x for x in ui_name.split()]) + " Parameters"
             self.ss_widgets[ui_name] = widget = QGroupBox(params_title)
@@ -223,22 +224,27 @@ class BuildStructureTool(ToolInstance):
             if row == 0:
                 but.setChecked(True)
                 self.parameter_widgets.setCurrentWidget(widget)
+        provider_layout.setRowStretch(len(ui_names)+1, 1)
 
         model_area = QWidget()
         layout.addWidget(model_area, alignment=Qt.AlignCenter)
         model_layout = QHBoxLayout()
         model_layout.setSpacing(2)
         model_area.setLayout(model_layout)
-        model_layout.addWidget(QLabel("Put atoms in"))
+        self.ss_struct_widgets= [QLabel("Put atoms in")]
+        model_layout.addWidget(self.ss_struct_widgets[0])
         from chimerax.atomic.widgets import StructureMenuButton
         self.ss_struct_menu = StructureMenuButton(self.session, special_items=["new model"])
         self.ss_struct_menu.value = "new model"
         self.ss_struct_menu.value_changed.connect(self._ss_struct_changed)
+        self.ss_struct_widgets.append(self.ss_struct_menu)
         model_layout.addWidget(self.ss_struct_menu)
         self.ss_model_name_label = QLabel("named:")
         model_layout.addWidget(self.ss_model_name_label)
+        self.ss_struct_widgets.append(self.ss_model_name_label)
         self.ss_model_name_edit = edit = QLineEdit()
         edit.setText("custom built")
+        self.ss_struct_widgets.append(edit)
         model_layout.addWidget(edit)
 
         self.ss_apply_button = apply_but = QPushButton("Apply")
@@ -351,26 +357,35 @@ class BuildStructureTool(ToolInstance):
         provider_name = self.ss_u_to_p_names[ui_name]
 
         from .manager import manager
-        substring = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
-        struct_info = self.ss_struct_menu.value
-        if isinstance(struct_info, str):
-            model_name = self.ss_model_name_edit.text().strip()
-            if not model_name:
-                raise UserError("New structure name must not be blank")
-            from chimerax.core.commands import StringArg
-            struct_arg = StringArg.unparse(model_name)
+        subcmd_string = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
+        if manager.new_model_only(provider_name):
+            # provider needs to provide its own command in this case
+            run(self.session, subcmd_string)
         else:
-            struct_arg = struct_info.atomspec
-        run(self.session, " ".join(["structure start", provider_name, struct_arg, substring]))
+            struct_info = self.ss_struct_menu.value
+            if isinstance(struct_info, str):
+                model_name = self.ss_model_name_edit.text().strip()
+                if not model_name:
+                    raise UserError("New structure name must not be blank")
+                from chimerax.core.commands import StringArg
+                struct_arg = StringArg.unparse(model_name)
+            else:
+                struct_arg = struct_info.atomspec
+            run(self.session, " ".join(["structure start", provider_name, struct_arg, subcmd_string]))
 
     def _ss_provider_changed(self, button):
-        ui_name = but.text()
+        ui_name = button.text()
         self.parameter_widgets.setCurrentWidget(self.ss_widgets[ui_name])
         from .manager import manager
-        if manager.is_indirect(self.ss_u_to_p_names[ui_name]):
+        provider_name = self.ss_u_to_p_names[ui_name]
+        hidden = manager.new_model_only(provider_name)
+        if manager.is_indirect(provider_name):
             self.ss_apply_button.setHidden(True)
+            hidden = True
         else:
             self.ss_apply_button.setHidden(False)
+        for widget in self.ss_struct_widgets:
+            widget.setHidden(hidden)
 
     def _ss_struct_changed(self):
         show = self.ss_struct_menu.value == "new model"
