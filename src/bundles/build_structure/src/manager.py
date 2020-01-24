@@ -22,16 +22,25 @@ class StartStructureManager(ProviderManager):
         self.providers = {}
         self._ui_names = {}
         self._indirect = {}
+        self._new_model_only = {}
         self._new_providers = []
 
-    def add_provider(self, bundle_info, name, *, ui_name=None, indirect=False):
+    def add_provider(self, bundle_info, name, *, ui_name=None, indirect=False, new_model_only=False):
         # 'name' is the name used as an arg in the command
         # 'ui_name' is the name used in the tool interface
         # if 'indirect' is True, then the bundle does not directly add atoms but instead provides 
         #     information or links to other tools or web pages (the Apply button will be disabled)
+        # if 'new_model_only' is True then the provider can only construct new models and can't
+        #     add atoms to existing models.  In that case, no model spec will be expected in the
+        #     command and the 'structure' part of run_provider's command_info will be None.
+        if isinstance(indirect, str):
+            indirect = eval(indirect.capitalize())
+        if isinstance(new_model_only, str):
+            new_model_only = eval(new_model_only.capitalize())
         self.providers[name] = bundle_info
         self._ui_names[name] = name if ui_name is None else ui_name
         self._indirect[name] = indirect
+        self._new_model_only[name] = new_model_only
         self._new_providers.append(name)
 
     def get_command_substring(self, name, param_widget):
@@ -54,6 +63,9 @@ class StartStructureManager(ProviderManager):
 
     def is_indirect(self, name):
         return self._indirect[name]
+
+    def new_model_only(self, name):
+        return self._new_model_only[name]
 
     @property
     def provider_names(self):

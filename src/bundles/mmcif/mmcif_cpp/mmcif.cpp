@@ -1370,7 +1370,7 @@ ExtractMolecule::parse_atom_site()
             }
             bool make_new_residue = true;
             if (coordsets) {
-                auto& res_map = all_residues[model_num][chain_id];
+                auto& res_map = all_residues[first_model_num][chain_id];
                 if (!res_map.empty()) {
                     auto ri = res_map.find(ResidueKey(entity_id, position, residue_name));
                     if (ri != res_map.end()) {

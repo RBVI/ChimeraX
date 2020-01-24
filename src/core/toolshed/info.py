@@ -449,9 +449,12 @@ class BundleInfo:
 
     def run_provider(self, session, name, mgr, **kw):
         """Supported API. Called by manager to invoke bundle provider."""
+        from chimerax.core.errors import NotABug
         try:
             api = self._get_api(session.logger)
             return api._api_caller.run_provider(api, session, name, mgr, **kw)
+        except NotABug:
+            raise
         except Exception as e:
             import traceback
             session.logger.warning(traceback.format_exc())

@@ -211,6 +211,10 @@ Provides a Windows ribbon-style toolbar interface
 
     <Provider tab="Home" section="Images"
       name="layout-Images" after="File"/>
+    <Provider tab="Home" section="Images"
+      name="snapshot-1" link="ChimeraX-Shortcuts:sx"/>
+    <Provider tab="Home" section="Images"
+      name="spin-1" link="ChimeraX-Shortcuts:vd"/>
 
     <Provider tab="Home" section="Atoms"
       name="layout-Atoms" after="Images"/>
