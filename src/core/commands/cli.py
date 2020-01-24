@@ -2766,6 +2766,11 @@ class Command:
         * Possible completions are in self.completions.
         * The prefix of the completions is in self.completion_prefix.
         """
+        if text.startswith("addh"):
+            from traceback import print_stack
+            import sys
+            print_stack(file=sys.__stderr__)
+            print("", file=sys.__stderr__)
         session = self._session()  # resolve back reference
         if isinstance(session, _FakeSession):
             log = False
