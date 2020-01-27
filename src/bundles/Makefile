@@ -27,7 +27,7 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  registration remote_control rest_server \
 	  residue_fit rotamer_lib_mgr rotamer_libs scheme_mgr \
 	  sdf segger segment seq_view sim_matrices \
-	  shell shortcuts show_attr sideview \
+	  shell shortcuts show_attr sideview smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
 	  tape_measure test texture toolbar tug ui uniprot \
