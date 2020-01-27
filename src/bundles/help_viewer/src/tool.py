@@ -194,7 +194,7 @@ class HelpUI(ToolInstance):
         self.tool_window.manage(placement=None)
 
         self.profile = create_chimerax_profile(
-            parent, interceptor=self.intercept,
+            self.tabs, interceptor=self.intercept,
             download=self.download_requested)
 
     def status(self, message):
@@ -224,10 +224,6 @@ class HelpUI(ToolInstance):
         # TODO? p.selectionChanged.connect(....)
         # TODO? p.windowCloseRequested.connect(....)
         return w
-
-    def deleteLater(self):
-        delete_profile(self.profile)
-        super().deleteLater()
 
     def authorize(self, requestUrl, auth):
         from PyQt5.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
@@ -304,8 +300,11 @@ class HelpUI(ToolInstance):
                     qurl.setPath(new_path)
                     request_info.redirect(qurl)
                     return
-        chimerax_intercept(request_info, *args, session=self.session,
-                           view=self.tabs.currentWidget())
+        import sip
+        tabs = self.tabs
+        if not sip.isdeleted(tabs):
+            chimerax_intercept(request_info, *args, session=self.session,
+                               view=tabs.currentWidget())
 
     def download_requested(self, item):
         # "item" is an instance of QWebEngineDownloadItem
