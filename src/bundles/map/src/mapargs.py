@@ -96,6 +96,10 @@ class MapRegionArg(Annotation):
         if len(s) != 6:
             raise UserError('Must specify 6 comma-separated integers, got %s' % token)
         r = s[:3], s[3:]
+        for a in (0,1,2):
+            if r[0][a] > r[1][a]:
+                raise UserError('Volume region axis minimum values %d,%d,%d' % r[0] +
+                                ' must be less than or equal to axis maximum values %d,%d,%d' % r[1])
         return r, text, rest
 
 class BoxArg(Annotation):
