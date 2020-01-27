@@ -1153,7 +1153,7 @@ class Volume(Model):
     operation = 'reading %s' % d.name
     from .data import ProgressReporter
     progress = ProgressReporter(operation, size, d.value_type.itemsize,
-                                message = self.message_cb)
+                                log = self.session.logger)
     from_cache_only = not read_matrix
     m = d.matrix(origin, size, step, progress, from_cache_only)
     return m
