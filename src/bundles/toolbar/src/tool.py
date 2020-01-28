@@ -333,36 +333,52 @@ class CustomizeTool(ToolInstance):
         )
         from PyQt5.QtGui import QIcon
         from PyQt5.QtCore import Qt
+        from .manager import fake_mouse_mode_bundle_info
         # widget layout:
         parent = self.tool_window.ui_area
-        layout = QGridLayout()
-        parent.setLayout(layout)
+        main_layout = QGridLayout()
+        parent.setLayout(main_layout)
         self.instructions = QLabel(parent)
-        layout.addWidget(self.instructions, 1, 1, 1, 2)
+        main_layout.addWidget(self.instructions, 1, 1, 1, 2)
         self.home = QTreeWidget(parent)
-        layout.addWidget(self.home, 2, 1)
+        main_layout.addWidget(self.home, 2, 1)
         self.home.setColumnCount(1)
         self.other = QTreeWidget(parent)
-        layout.addWidget(self.other, 2, 2)
+        main_layout.addWidget(self.other, 2, 2)
         self.other.setColumnCount(1)
+        mod_layout = QHBoxLayout()
+        main_layout.addLayout(mod_layout, 3, 1, Qt.AlignCenter)
         line = QHLine(parent)
-        layout.addWidget(line, 3, 1, 1, 2)
-        bottom = QWidget(parent)
-        layout.addWidget(bottom, 4, 1, 1, 2)
-        layout = QHBoxLayout()
-        bottom.setLayout(layout)
-        # TODO: right-justify bottom buttons
-        save = QPushButton("Save", bottom)
+        main_layout.addWidget(line, 4, 1, 1, 2)
+        bottom_layout = QHBoxLayout()
+        main_layout.addLayout(bottom_layout, 5, 1, 1, 2, Qt.AlignRight)
+
+        new_section = QPushButton("New section", parent)
+        new_section.setToolTip("Add another section to Home tab")
+        new_section.clicked.connect(self.new_section)
+        mod_layout.addWidget(new_section)
+        remove = QPushButton("Remove", parent)
+        remove.setToolTip("Remove selection items")
+        remove.clicked.connect(self.remove)
+        mod_layout.addWidget(remove)
+
+        # bottom section
+        save = QPushButton("Save", parent)
         save.setToolTip("Save current Home tab configuration")
-        layout.addWidget(save)
-        revert = QPushButton("Revert", bottom)
-        revert.setToolTip("Revert to previously saved Home tab configuration")
-        layout.addWidget(revert)
-        reset = QPushButton("Reset", bottom)
+        save.clicked.connect(self.save)
+        bottom_layout.addWidget(save)
+        reset = QPushButton("Reset", parent)
         reset.setToolTip("Reset Home tab to default configuration")
-        layout.addWidget(reset)
-        close = QPushButton("Close", bottom)
-        layout.addWidget(close)
+        reset.clicked.connect(self.reset)
+        bottom_layout.addWidget(reset)
+        restore = QPushButton("Restore", parent)
+        restore.setToolTip("Restore previously saved Home tab configuration")
+        restore.clicked.connect(self.restore)
+        bottom_layout.addWidget(restore)
+        close = QPushButton("Close", parent)
+        close.setToolTip("Close dialog")
+        close.clicked.connect(self.close)
+        bottom_layout.addWidget(close)
 
         # widget contents/customization:
         self.instructions.setText("""
@@ -373,32 +389,38 @@ class CustomizeTool(ToolInstance):
 
         # the following is very similar to code for toolbar layout
         self.home.setHeaderLabels(["Home Tab"])
+        home_buttons = Qt.ItemIsDropEnabled | Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+        home_sections = home_buttons | Qt.ItemIsUserCheckable
         last_section = None
         section_item = None
         for (section, compact, display_name, icon_path, description, link, bi, name, kw) in _home_layout(self.session, _settings.home_tab):
             if section != last_section:
                 last_section = section
                 section_item = QTreeWidgetItem(self.home, [section], self.SECTION_TYPE)
-                section_item.setFlags(Qt.ItemIsDropEnabled | Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                section_item.setFlags(home_sections)
+                section_item.setCheckState(0, compact)
                 self.home.expandItem(section_item)
-            item = QTreeWidgetItem(section_item, [f"{display_name} ({link})"], self.BUTTON_TYPE)
-            item.setFlags(Qt.ItemIsDropEnabled | Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-            if 0:
-                # TODO
-                if icon_path is None:
-                    icon = None
-                else:
-                    icon = QIcon(icon_path)
-                item.setIcon(1, icon)
-            item.setToolTip(1, description)
+            item = QTreeWidgetItem(section_item, [f"{display_name}"], self.BUTTON_TYPE)
+            item.setData(0, Qt.UserRole, link)
+            item.setFlags(home_buttons)
+            if icon_path is None:
+                icon = None
+            else:
+                icon = QIcon(icon_path)
+                item.setIcon(0, icon)
+            item.setToolTip(0, description)
+        self.home.itemChanged.connect(self.update)
 
-        self.other.setHeaderLabels([""])
+        self.other.setHeaderLabels(["Available Buttons"])
+        other_flags = Qt.ItemIsDropEnabled | Qt.ItemIsEnabled
         toolbar = self.session.toolbar._toolbar
         last_tab = None
         last_section = None
         tab_item = None
         section_item = None
-        for (tab, section, compact, display_name, icon_path, description, bundle_info, name, kw) in _other_layout(self.session, toolbar):
+        for (tab, section, compact, display_name, icon_path, description, bundle_info, name, kw) in _other_layout(self.session, toolbar, hide_hidden=False):
+            if bundle_info == fake_mouse_mode_bundle_info:
+                continue
             if tab != last_tab:
                 last_tab = tab
                 last_section = None
@@ -408,11 +430,74 @@ class CustomizeTool(ToolInstance):
             if section != last_section:
                 last_section = section
                 section_item = QTreeWidgetItem(tab_item, [section], self.SECTION_TYPE)
-                section_item.setFlags(Qt.ItemIsDropEnabled | Qt.ItemIsEnabled)
+                section_item.setFlags(other_flags)
                 self.other.expandItem(section_item)
             item = QTreeWidgetItem(section_item, [f"{display_name}"], self.BUTTON_TYPE)
             item.setFlags(Qt.ItemIsDragEnabled | Qt.ItemIsEnabled)
-            item.setToolTip(1, description)
+            if icon_path is None:
+                icon = None
+            else:
+                icon = QIcon(icon_path)
+                item.setIcon(0, icon)
+            item.setToolTip(0, description)
+
+    def update(self):
+        # propagate changes to home tab
+        import sys
+        print("UPDATE", file=sys.__stderr__)
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtWidgets import QTreeWidgetItemIterator
+        home_tab = []
+        cur_section = []
+        #for item in self.home.findItems("*", Qt.MatchWrap | Qt.MatchWildcard | Qt.MatchRecursive):
+        it = QTreeWidgetItemIterator(self.home)
+        while it.value():
+            item = it.value()
+            it += 1
+            if item.type() == self.BUTTON_TYPE:
+                display_name = item.text(0)
+                link = item.data(0, Qt.UserRole)
+                # TODO: examine linked item to see if display_name is the same
+                name = link.split(sep=':', maxsplit=1)[1]
+                if name == display_name:
+                    cur_section.append(link)
+                else:
+                    cur_section.append((link, display_name))
+            elif item.type() == self.SECTION_TYPE:
+                name = item.text(0)
+                cur_section = []
+                if item.checkState(0):
+                    home_tab.append(((name, True), cur_section))
+                else:
+                    home_tab.append((name, cur_section))
+        print(home_tab, file=sys.__stderr__)
+
+    def new_section(self):
+        # add new section to home tab
+        pass
+
+    def remove(self):
+        # remove selected sections/buttons from home tab
+        import sys
+        print([si.text(0) for si in self.home.selectedItems()], file=sys.__stderr__)
+        pass
+
+    def save(self):
+        # save current configuration in preferences
+        _settings.save()
+
+    def reset(self):
+        # reset current configuration in original defaults
+        _settings.reset()
+        # TODO: redo layout and update toolbar
+
+    def restore(self):
+        # restore current configuration from saved preferences
+        _settings.restore()
+        # TODO: redo layout and update toolbar
+
+    def close(self):
+        self.delete()
 
 # Adapted QHLine from
 # https://stackoverflow.com/questions/5671354/how-to-programmatically-make-a-horizontal-line-in-qt
