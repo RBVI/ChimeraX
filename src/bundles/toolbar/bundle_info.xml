@@ -201,68 +201,10 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Other" name="mO1"
       mouse_mode="next docked" display_name="Next docked" description="Show next docked ligand"/>
 
-    <!-- Home tab -->
-    <Provider tab="Home" section="File"
-      name="Open-1" link="ChimeraX-Toolbar:Open"/>
-    <Provider tab="Home" section="File"
-      name="Recent-1" link="ChimeraX-Toolbar:Recent" after="Open"/>
-    <Provider tab="Home" section="File"
-      name="Save-1" link="ChimeraX-Toolbar:Save" after="Recent"/>
-
-    <Provider tab="Home" section="Images"
-      name="layout-Images" after="File"/>
-    <Provider tab="Home" section="Images"
-      name="snapshot-1" link="ChimeraX-Shortcuts:sx"/>
-    <Provider tab="Home" section="Images"
-      name="spin-1" link="ChimeraX-Shortcuts:vd"/>
-
-    <Provider tab="Home" section="Atoms"
-      name="layout-Atoms" after="Images"/>
-    <Provider tab="Home" section="Atoms"
-      name="atomshow-1" link="ChimeraX-Shortcuts:da"/>
-    <Provider tab="Home" section="Atoms"
-      name="atomhide-1" link="ChimeraX-Shortcuts:ha"/>
-
-    <Provider tab="Home" section="Cartoons"
-      name="layout-Cartoons" after="Atoms"/>
-    <Provider tab="Home" section="Cartoons"
-      name="ribshow-1" link="ChimeraX-Shortcuts:rb"/>
-    <Provider tab="Home" section="Cartoons"
-      name="ribhide-1" link="ChimeraX-Shortcuts:hr"/>
-
-    <Provider tab="Home" section="Styles"
-      name="layout-Styles" after="Cartoons"/>
-    <Provider tab="Home" section="Styles"
-      name="stick-1" link="ChimeraX-Shortcuts:st"/>
-    <Provider tab="Home" section="Styles"
-      name="sphere-1" link="ChimeraX-Shortcuts:sp"/>
-    <Provider tab="Home" section="Styles"
-      name="ball-1" link="ChimeraX-Shortcuts:bs"/>
-
-    <Provider tab="Home" section="Background"
-      name="layout-Background" after="Styles"/>
-    <Provider tab="Home" section="Background"
-      name="White-1" link="ChimeraX-Shortcuts:wb"/>
-    <Provider tab="Home" section="Background"
-      name="Black-1" link="ChimeraX-Shortcuts:bk"/>
-
-    <Provider tab="Home" section="Lighting"
-      name="layout-Lighting" after="Background"/>
-    <Provider tab="Home" section="Lighting"
-      name="Simple-1" link="ChimeraX-Shortcuts:ls"/>
-    <Provider tab="Home" section="Lighting"
-      name="Soft-1" link="ChimeraX-Shortcuts:la"/>
-    <Provider tab="Home" section="Lighting"
-      name="Full-1" link="ChimeraX-Shortcuts:lf"/>
-  <!--
-    <Provider tab="Home" section="Undo"
-      name="layout-Undo" after="Lighting"/>
-    <Provider tab="Home" section="Undo"
+    <Provider tab="Undo" section="Undo" hidden="true"
       name="Undo" icon="undo-variant.png" description="Undo last action"/>
-    <Provider tab="Home" section="Undo"
+    <Provider tab="Undo" section="Undo" hidden="true"
       name="Redo" icon="redo-variant.png" description="Redo last action"/>
-  -->
-
   </Providers>
 
   <DataFiles>
@@ -276,6 +218,9 @@ Provides a Windows ribbon-style toolbar interface
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Toolbar :: General :: a Windows ribbon-style toolbar</ChimeraXClassifier>
+<!--
+    <ChimeraXClassifier>ChimeraX :: Tool :: Customize Toolbar :: General :: Customize Home tab in Toolbar</ChimeraXClassifier>
+-->
   </Classifiers>
 
 </BundleInfo>
