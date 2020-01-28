@@ -53,6 +53,9 @@ class ToolbarManager(ProviderManager):
         if tab is None:
             self.session.logger.warning('Missing tab %s' % where())
             return
+        if tab == "Home":
+            self.session.logger.warning('Home tab managed by user preferences %s' % where())
+            return
         section = kw.pop('section', None)
         before = kw.pop('before', None)
         after = kw.pop('after', None)
