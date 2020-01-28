@@ -226,8 +226,8 @@ def _pick_description(picks):
     for p in picks:
         d = p.description()
         if d is not None:
-            count, name = d.split(maxsplit = 1)
             try:
+                count, name = d.split(maxsplit = 1)
                 c = int(count)
                 item_counts[name] = item_counts.get(name,0) + c
             except:
