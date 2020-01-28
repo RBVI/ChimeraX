@@ -29,5 +29,5 @@ def fetch_pubchem(session, pubchem_id, *, ignore_cache=False, **kw):
 
     session.logger.status("Opening PubChem %s" % (pubchem_id,))
     from chimerax.core import io
-    models, status = io.open_data(session, filename, format='sdf', name=pubchem_id, **kw)
+    models, status = io.open_data(session, filename, format='sdf', name="pubchem:" + pubchem_id, **kw)
     return models, status

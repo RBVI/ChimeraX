@@ -43,14 +43,14 @@ def fetch_smiles(session, smiles_string, **kw):
             structures, status = read_sdf(session, open_filename(path, url_encoding='utf=8'), path)
             if structures:
                 for s in structures:
-                    s.name = smiles_string
+                    s.name = "smiles:" + smiles_string
                 break
         session.logger.info("Failed to translate SMILES to 3D structure via %s wen service (SMILES: %s)"
             % (moniker, smiles_string))
     else:
         raise SmilesTranslationError("Web services failed to translate SMILES string to 3D structure.")
-    translation_info = "Translated SMILES to 3D structure via %s (SMILES: %s)" % (moniker, smiles_string)
-    session.logger.info(translation_info)
+    translation_info = "Translated SMILES to 3D structure via %s web service (SMILES: %s)" % (
+        moniker, smiles_string)
     return structures, translation_info
 
 def _cactus_fetch(session, smiles):
