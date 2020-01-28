@@ -155,6 +155,7 @@ def read_sdf(session, stream, file_name):
                         except ValueError:
                             raise UserError("PubChem CID (%s) is %s data is not an integer" % (data_item,
                                 orid_data_name))
+                        s.name = "pubchem:%d" % cid
                         s.prefix_html_title = False
                         s.get_html_title = lambda *args, cid=cid: 'PubChem entry <a href="https://pubchem.ncbi.nlm.nih.gov/compound/%d">%d</a>' % (cid, cid)
                         s.has_formatted_metadata = lambda *args: False
