@@ -366,7 +366,7 @@ inline void CSurface<Data_Type>::mark_interior_edge_cuts(Index k1, Index k2,
 							 Grid_Cell_List &gp1)
 {
   Stride step0 = stride[0], step1 = stride[1], step2 = stride[2];
-  Index k0_max = size[0]-1;
+  Index k0_max = (size[0] > 0 ? size[0]-1 : 0);
 
   const Data_Type *g = grid + step2*k2 + step1*k1 + step0;
   for (Index k0 = 1 ; k0 < k0_max ; ++k0, g += step0)
