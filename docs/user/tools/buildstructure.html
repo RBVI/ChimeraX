@@ -42,10 +42,6 @@ Sections:
 <li><a href="#modify"><b>Modify Structure</b></a>
 <li><a href="#start"><b>Start Structure</b></a>
 </ul>
-<p>
-The <b>Delete</b> button at the bottom removes any
-<a href="../selection.html">selected</a> atoms and bonds.
-</p>
 
 <a name="modify"></a>
 <p class="nav">
@@ -53,9 +49,9 @@ The <b>Delete</b> button at the bottom removes any
 </p>
 <h3>Modify Structure</h3>
 <p>
-<b>Modify Structure</b> can change the element,
-valence (number of directly attached atoms), and/or geometry
-(spatial arrangement of attached atoms) of a single
+The <b>Modify Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
+can change the element, valence (number of directly attached atoms),
+and/or geometry (spatial arrangement of attached atoms) of a single
 <a href="../selection.html">selected</a> atom at a time.
 Hydrogens are appended as needed to fill the valence.
 Building outward can be done by successive cycles
@@ -77,8 +73,7 @@ Clicking <b>Apply</b> changes the
 <li><b>Bonds</b> &ndash; desired total number of substituents on the atom
 (0-4 allowed); cannot be fewer than the current number of 
 substituents other than hydrogen.
-Atoms can be deleted beforehand, such as with the <b>Delete</b>
-button near the bottom of the dialog.
+Atoms can be <a href="#deletion">deleted</a> beforehand.
 <li><b>Geometry</b> &ndash; target arrangement of bonds around the atom
   <ul>
   <li><b>linear</b> &ndash; allowed for 2 bonds, target bond angle 180&deg;
@@ -150,13 +145,82 @@ residue names are normally three characters long and chain identifiers a
 single character.
 </p>
 </ul>
+<p>
+<a name="deletion"></a>
+Clicking <b>Delete</b> removes any
+<a href="../selection.html">selected</a> atoms and bonds.
+See also command: <a href="../commands/delete.html"><b>delete</b></a>, 
+menu: <a href="../menu.html#actions"><b>Actions... Delete</b>
+</p>
+
 <a name="start"></a>
 <p class="nav">
 [<a href="#top">back to top: Build Structure</a>]
 </p>
 <h3>Start Structure</h3>
 <p>
-Documentation under construction...
+The <b>Start Structure</b> section of <a href="#top"><b>Build Structure</b></a> 
+adds new atoms or molecules independent of any pre-existing atoms.
+See also:
+<a href="../commands/open.html#fetch"><b>open</b></a>
+</p><p>
+Options are to <b>Add</b>:
+<ul>
+<li> <b>atom</b> &ndash; a single atom of helium (used as the initial type
+since it exists as a singleton), with placement options:
+  <ul>
+  <li><b>Center of view</b>
+  <li><b>x</b>, <b>y</b> and <b>z</b> coordinates in the
+  <a href="#startmodel">model</a> coordinate system (same as
+  <a href="../commands/view.html#scenecoords">scene coordinates</a>
+  unless the model has been moved separately)
+  </ul>
+<b>Select placed atom</b> &ndash; whether to
+<a href="../selection.html">select</a> the new atom, such as for
+subsequent <a href="#modify">modification</a>
+<br><br>
+<!--
+<li><b>fragment</b> &ndash; the specified fragment, placed in the center of view.
+Several planar ring systems are available; a small diagram of the
+chosen <b>Fragment</b> is displayed.
+<br><br>
+<li><b>SMILES string</b> &ndash; a 3D structure for the specified
+<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string. The structure is generated using the
+<a href="http://cactus.nci.nih.gov/translate/" target="_blank">SMILES
+translator</a> provided by the
+<a href="http://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
+CADD group</a>, or if that does not produce a structure, the
+<i>smi23d</i> web service provided by the
+cheminformatics group at Indiana University.
+The <i>smi23d</i> service deploys the same procedure
+as described for <b>Pub3D</b> in
+<a href="http://www.biomedcentral.com/1471-2105/8/487"
+target="_blank">Willighagen <i>et al.</i></a>, <i>BMC Bioinformatics</i>
+<b>8</b>:487 (2007).
+Hydrogens are included, although it
+may be necessary to <a href="../addh/addh.html">add</a> or
+<a href="#deletion">delete</a> hydrogens
+to generate the desired protonation state.
+<br><br>
+-->
+<li><b>PubChem CID</b> &ndash; a modeled structure from
+<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+target="_blank"><b>PubChem3D</b></a>, specified by
+<a href="http://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
+compound identifier (CID).
+<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+target="_blank"><b>PubChem3D</b></a>
+includes most but not all PubChem Compound entries.
+Hydrogens are included, although it
+may be necessary to <a href="../commands/addh.html">add</a> or
+<a href="#deletion">delete</a> hydrogens
+to generate the desired protonation state.
+</ul>
+Clicking <b>Apply</b>
+adds the atom(s) with the specified <b>Residue name</b>, in either
+<a name="startmodel"></a>
+an existing molecule model or a <b>new model</b> with a specified name.
 </p>
 
 <hr>
