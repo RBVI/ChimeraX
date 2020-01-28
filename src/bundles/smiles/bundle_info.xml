@@ -19,9 +19,11 @@
     <Dependency name="ChimeraX-SDF" version=">=1.0"/>
   </Dependencies>
 
+  <!--
   <Providers manager="start structure">
     <Provider name="smiles" ui_name="SMILES string" new_model_only="true"/>
   </Providers>
+  -->
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
