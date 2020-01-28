@@ -30,7 +30,7 @@ def fetch_smiles(session, smiles_string, **kw):
     if diff > 0:
         session.logger.warning("Removed %d blank/non-printable characters from SMILES string" % diff)
         smiles_string = "".join(printables)
-    # triple-bond characters (#) get mangled by the http protocol, so switch to http-firendly equivalent
+    # triple-bond characters (#) get mangled by the http protocol, so switch to http-friendly equivalent
     web_smiles = smiles_string.replace('#', "%23")
     for fetcher, moniker, info_url in fetcher_info:
         try:
@@ -40,7 +40,7 @@ def fetch_smiles(session, smiles_string, **kw):
         else:
             from chimerax.atomic.sdf import read_sdf
             from chimerax.core.io import open_filename
-            structures, status = read_sdf(session, open_filename(path), path)
+            structures, status = read_sdf(session, open_filename(path, url_encoding='utf=8'), path)
             if structures:
                 for s in structures:
                     s.name = smiles_string
@@ -55,18 +55,15 @@ def fetch_smiles(session, smiles_string, **kw):
 
 def _cactus_fetch(session, smiles):
     cactus_site = "cactus.nci.nih.gov"
-    from urllib.request import urlopen
+    from chimerax.core.io import open_filename
     from urllib.error import URLError
-    import sys
     try:
-        reply = urlopen("http://%s/cgi-bin/translate.tcl?smiles=%s&format=sdf&astyle=kekule&dim=3D&file="
-            % (cactus_site, smiles))
+        reply = open_filename("http://%s/cgi-bin/translate.tcl?smiles=%s&format=sdf&astyle=kekule&dim=3D"
+            "&file=" % (cactus_site, smiles))
     except URLError as e:
-        print(str(e), file=sys.__stderr__)
         pass
     else:
-        text = reply.read().decode('utf-8')
-        for line in text.splitlines():
+        for line in reply:
             if "Click here" in line and line.count('"') == 2 and "href=" in line:
                 pre, url, post = line.split('"')
                 return "http://%s%s" % (cactus_site, url)
