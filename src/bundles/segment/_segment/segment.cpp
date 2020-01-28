@@ -265,21 +265,24 @@ point_counts : array of int, size bcount
    (PyCFunction)segment_surface,
    METH_VARARGS|METH_KEYWORDS,
    R"(
-segment_surface(region_map, region_index)
+segment_surface(region_map, region_index [, surface_ids])
 
 Calculate surface vertices and triangles surrounding 3d region map voxels
-having a specified region index.
+having a specified surface id or region index.
 Implemented in C++.
 
 Parameters
 ----------
 region_map : 3d array, uint32
 region_index : int
+surface_ids : 1d array of int
+  This array maps the region index to a surface id allowing multiple regions to be grouped forming one surface.
 
 Returns
 -------
+surface_id : int
 vertices : n x 3 array of float
-triangles : m x 3 array of int) 
+triangles : m x 3 array of int 
 )"
   },
   
@@ -287,31 +290,10 @@ triangles : m x 3 array of int)
    (PyCFunction)segment_surfaces,
    METH_VARARGS|METH_KEYWORDS,
    R"(
-segment_surfaces(region_map)
+segment_surfaces(region_map [, surface_ids])
 
 Calculate surfaces (vertices and triangles) surrounding each set of
-3d region map voxels having the same region index value.
-Implemented in C++.
-
-Parameters
-----------
-region_map : 3d array, uint32
-
-Returns
--------
-surfaces : list of 3-tuples (int region_index, vertices n x 3 array of float, triangles m x 3 array of int)
-)"
-  },
-  
-  {const_cast<char*>("segment_group_surfaces"),
-   (PyCFunction)segment_group_surfaces,
-   METH_VARARGS|METH_KEYWORDS,
-   R"(
-segment_group_surfaces(region_map, surface_ids)
-
-Calculate surfaces (vertices and triangles) surrounding several sets of
-3d region map voxels.  The region map must have integer values.  The surface_ids array
-maps region index values to surface id value.
+3d region map voxels having the same surface id or region index value.
 Implemented in C++.
 
 Parameters
@@ -322,7 +304,7 @@ surface_ids : 1d array of int
 
 Returns
 -------
-surfaces : list of 3-tuples (int surface_id, vertices n x 3 array of float, triangles m x 3 array of int)
+surfaces : list of 3-tuples (int region_index, vertices n x 3 array of float, triangles m x 3 array of int)
 )"
   },
 

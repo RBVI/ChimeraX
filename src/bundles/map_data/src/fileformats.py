@@ -302,7 +302,7 @@ def save_grid_data(grids, path, session, format = None, options = {}):
   operation = 'Writing %s to %s' % (g.name, basename(path))
   from .progress import ProgressReporter
   p = ProgressReporter(operation, g.size, g.value_type.itemsize,
-                       message = session.logger.status)
+                       log = session.logger)
   if 'multigrid' in ff.writer_options:
     garg = glist
   else:

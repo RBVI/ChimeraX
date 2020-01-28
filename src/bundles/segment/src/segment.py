@@ -283,7 +283,7 @@ def segmentation_surfaces(session, segmentations,
     conditions = (where if where else []) + ([each] if each else [])
     for seg in segmentations:
         if where is None and each is None:
-            max_seg_id = _maximum_segment_id(segmentation)
+            max_seg_id = _maximum_segment_id(seg)
             if max_seg_id > 100:
                 from chimerax.core.errors import UserError
                 raise UserError('Segmentation %s (#%s) has %d segments (> 100).'
@@ -292,8 +292,13 @@ def segmentation_surfaces(session, segmentations,
         group, attribute_name = _which_segments(seg, conditions)
         sstep = _voxel_limit_step(seg, region) if step is None else step
         matrix = seg.matrix(step = sstep, subregion = region)
-        from ._segment import segment_group_surfaces
-        surfs = segment_group_surfaces(matrix, group, zero=zero)
+        from . import segment_surfaces
+        # TODO: Use zero option.
+        surfs = segment_surfaces(matrix, group)
+#        print ('got %d surfaces' % len(surfs),
+#               ','.join('%d v %d t %d max %d tri %s'
+#                        % (s[0], len(s[1]), len(s[2]), s[2].max(), s[2][:3]) for s in surfs[:5]))
+#        raise RuntimeError('stop here')
         attr = None if attribute_name == 'segment' else attribute_name
         colors = _attribute_colors(seg, attr).attribute_rgba
         if each is None and len(surfs) > 1:
