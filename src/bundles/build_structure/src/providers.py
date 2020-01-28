@@ -60,24 +60,6 @@ def fill_widget(name, widget):
         check_box.setObjectName("select atom")
         layout.addWidget(check_box, alignment=Qt.AlignCenter)
         layout.addStretch(1)
-    elif name == "pubchem":
-        layout = QGridLayout()
-        layout.setContentsMargins(0,0,0,5)
-        layout.setSpacing(0)
-        widget.setLayout(layout)
-        layout.setRowStretch(0, 1)
-        layout.addWidget(QLabel("PubChem CID:"), 1, 0, alignment=Qt.AlignRight)
-        cid_edit = QLineEdit()
-        cid_validator = QIntValidator()
-        cid_validator.setBottom(1)
-        cid_edit.setValidator(cid_validator)
-        layout.addWidget(cid_edit, 1, 1, alignment=Qt.AlignLeft)
-        cid_edit.setObjectName("CID")
-        acknowledgement = QLabel('PubChem CID support courtesy of <a href="https://pubchemdocs.ncbi.nlm.nih.gov/power-user-gateway">PubChem Power User Gateway (PUG) web services</a>')
-        acknowledgement.setWordWrap(True)
-        acknowledgement.setOpenExternalLinks(True)
-        layout.addWidget(acknowledgement, 2, 0, 1, 2)
-        layout.setRowStretch(3, 1)
 
 def process_widget(name, widget):
     from chimerax.core.commands import StringArg
@@ -101,12 +83,6 @@ def process_widget(name, widget):
         check_box = widget.findChild(QCheckBox, "select atom")
         if not check_box.isChecked():
             args.append("select false")
-    elif name == "pubchem":
-        cid_edit = widget.findChild(QLineEdit, "CID")
-        text = cid_edit.text().strip()
-        if not text:
-            raise UserError("No PubChem CID given")
-        return "open %s from pubchem" % text
     return " ".join(args)
 
 from chimerax.core.commands import register, CmdDesc, Command

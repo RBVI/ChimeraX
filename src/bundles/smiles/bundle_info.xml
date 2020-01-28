@@ -1,13 +1,13 @@
-<BundleInfo name="ChimeraX-PubChem" version="1.0"
-	    package="chimerax.atomic.pub_chem"
+<BundleInfo name="ChimeraX-Smiles" version="1.0"
+	    package="chimerax.atomic.smiles"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
 
-  <Synopsis>PubChem fetch</Synopsis>
-  <Description>This bundle provides the abiility to fetch PubChem files.</Description>
+  <Synopsis>SMILES fetch</Synopsis>
+  <Description>This bundle provides the abiility to get 3D structures for SMILES strings.</Description>
 
   <Categories>
     <Category name="Molecular structure"/>
@@ -20,13 +20,14 @@
   </Dependencies>
 
   <Providers manager="start structure">
-    <Provider name="pubchem" ui_name="PubChem CID" new_model_only="true"/>
+    <Provider name="smiles" ui_name="SMILES string" new_model_only="true"/>
   </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Fetch :: pubchem :: MDL MOL/SDF :: pubchem :: 12123 ::</ChimeraXClassifier>
+    <ChimeraXClassifier>DataFormat :: SMILES :: smiles :: Molecular structure :: :: :: https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system :: :: :: SMILES :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: smiles :: SMILES :: smiles :: c1ccccc1 ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
