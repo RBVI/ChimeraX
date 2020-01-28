@@ -1070,7 +1070,12 @@ def minimize_crosslinks(atoms, session):
     crosslink(session, minimize = atoms.unique_structures, frames = 30)
 
 def save_image(session, directory = None, basename = 'image', suffix = '.png'):
-    cmd = 'save %s supersample 3' % unused_file_name(directory, basename, suffix)
+    path = unused_file_name(directory, basename, suffix)
+    cmd = 'save %s supersample 3' % path
+    # For retina displays use the display image size.
+    r = session.main_view.render
+    if r.opengl_context.pixel_scale() > 1:
+        cmd += ' width %d height %d' % r.render_size()
     run(session, cmd)
 
 def save_spin_movie(session, directory = None, basename = 'movie', suffix = '.mp4'):
