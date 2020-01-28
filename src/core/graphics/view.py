@@ -493,7 +493,7 @@ class View:
 
     def _window_size_matching_aspect(self, width, height):
         w, h = width, height
-        vw, vh = self.window_size
+        vw, vh = self.render.render_size()	# Match display resolution on retina screens
         if w is not None and h is not None:
             return (w, h)
         elif w is not None:

@@ -54,12 +54,10 @@ def conference(session, action, location=None, name=None, **kw):
         raise UserError("ChimeraX conference already in progress")
     conference = conference_server(session, create=True)
     try:
-        conference.connect(action, location, name)
+        conference.connect(action, location, name, **kw)
     except ConnectionRefusedError as e:
         conference.close()
         raise UserError(str(e))
-    else:
-        conference_set(session, announce=True, **kw)
 
 
 def conference_set(session, color=None, face_image=None, copy_scene=None,
@@ -70,6 +68,7 @@ def conference_set(session, color=None, face_image=None, copy_scene=None,
     ----------
     Same as the keyword arguments as ``conference``.
     '''
+    mux.logger.debug("conference_set")
     conference = conference_server(session, create=False)
     if conference is None:
         raise UserError("No ChimeraX conference started")
@@ -96,13 +95,14 @@ def conference_set(session, color=None, face_image=None, copy_scene=None,
     if update_interval is not None:
         conference.vr_tracker.update_interval = update_interval
         acted = True
+    mux.logger.debug("conference_set: warnings: %s", warnings)
     log = session.logger
     if warnings:
         for msg in warnings:
             log.warning(msg)
         log.status(msg, color="red")
     if announce or not acted:
-        log.status("Conference at %s" % conference.location(), log=True)
+        log.status("Conference location: %s" % conference.location(), log=True)
 
 
 def conference_close(session):
@@ -157,6 +157,7 @@ class ConferenceServer:
         self._last_status_bytes = None
 
         self._mux_node = None
+        self._mux_addresses = None
 
     #
     # Connection stuff
@@ -166,35 +167,57 @@ class ConferenceServer:
     def connected(self):
         return self._mux_node is not None
 
-    def location(self):
-        if self._mux_node is None:
-            return "not connected to conference"
-        addrs, conf_name = self._mux_node.get_conference_info()
-        return ", ".join(["%s/%s" % (addr, conf_name) for addr in addrs])
+    def _setup_cb(self, status, data):
+        import threading
+        mux.logger.debug("_setup_cb: main %s current %s", threading.main_thread(), threading.current_thread())
+        if status != mux.Resp.Success:
+            self.close()
+            raise RuntimeError("conference connection failed: %s" % data)
+        conf_name, identity, addrs = data
+        mux.logger.debug("_setup_cb: %s %s %s", conf_name, identity, addrs)
+        self._mux_node.set_identity(identity)
+        mux.logger.debug("_setup_cb: identity set")
+        self._mux_addresses = addrs
+        mux.logger.debug("_setup_cb: addresses assigned, kw %s", self._setup_kw)
+        conference_set(self._session, announce=True, **self._setup_kw)
+        mux.logger.debug("_setup_cb: parameters set")
+        del self._setup_kw
+        mux.logger.debug("_setup_cb: returning")
 
-    def connect(self, action, location, identity):
+    def connect(self, action, location, identity, **kw):
         if action == "start":
             if location is None:
                 raise("conference location must be specified for \"start\"")
             host, port, conf_name = self._parse_location(location, True)
-            self._mux_node = MuxNode(host, port, conf_name, identity,
-                                     True, server=self)
             self.copy_scene(True)
             self.set_color = (255,255,0,255)
+            self._setup_kw = kw
+            # Note that _mux_node assignment must be done /before/
+            # starting the node or else the callback may reference
+            # a non-existent attribute
+            self._mux_node = MuxNetworkNode(host, port, conf_name, identity,
+                                            True, server=self)
+            self._mux_node.start(callback=self._setup_cb)
         elif action == "join":
             if location is None:
                 raise("conference location must be specified for \"join\"")
             host, port, conf_name = self._parse_location(location, False)
-            self._mux_node = MuxNode(host, port, conf_name, identity,
-                                     False, server=self)
+            self._setup_kw = kw
+            self._mux_node = MuxNetworkNode(host, port, conf_name, identity,
+                                            False, server=self)
+            self._mux_node.start(callback=self._setup_cb)
         elif action == "host":
             if location is None:
                 host = ""
                 port = 0
-                conf_name = "conference"
+                conf_name = "unnamed"
             else:
                 host, port, conf_name = self._parse_location(location, False)
-            self._mux_node = MuxHostNode(identity, server=self)
+            self.copy_scene(True)
+            self.set_color = (255,255,0,255)
+            self._setup_kw = kw
+            self._mux_node = MuxLoopbackNode(conf_name, identity, server=self)
+            self._mux_node.start(callback=self._setup_cb)
         else:
             raise UserError("unknown conference mode: \"%s\"" % action)
         self.relay_commands()
@@ -206,7 +229,7 @@ class ConferenceServer:
                 if need_name:
                     raise UserError("conference name missing from location")
                 addr = location
-                conf_name = "conference"
+                conf_name = "unnamed"
             else:
                 addr, conf_name = parts
             parts = addr.split(':', 1)
@@ -218,6 +241,19 @@ class ConferenceServer:
         except ValueError:
             raise UserError("bad conference location: %s" % location)
         return host, port, conf_name
+
+    def location(self):
+        mux.logger.debug("conference.location: %s", self._mux_addresses)
+        if self._mux_addresses is None:
+            loc = "unknown"
+        else:
+            if self._mux_node.conf_name == "unnamed":
+                loc = ", ".join(self._mux_addresses)
+            else:
+                loc = ", ".join(["%s/%s" % (addr, self._mux_node.conf_name)
+                                 for addr in self._mux_addresses])
+        mux.logger.debug("conference.location: loc %s", loc)
+        return loc
 
     def close(self):
         # Have to override because we both delete trackers
@@ -343,6 +379,7 @@ class ConferenceServer:
         logger.info("\"%s\" joined conference" % identity)
         self._initiate_tracking()
         if self._copy_scene:
+            logger.info("copying scene to %s" % identity)
             self.send_scene([identity])
         self._send_room_coords([identity])
 
@@ -354,19 +391,8 @@ class ConferenceServer:
     def _send_message(self, msg, identities=None):
         self._mux_node.send(msg, receivers=identities)
 
-    def _message_received(self, sender, msg):
-        # Note that this method is typically called from the "run()"
-        # thread of the ConferenceServer, but we need to do the actual
-        # work in the main thread.  So we use ui.thread_safe to
-        # call the function, and use a Queue instance for synchronization
-        #logger = self._session.logger
-        #logger.info("Message from %s: %s" % (sender, msg))
-        from queue import SimpleQueue
-        q = SimpleQueue()
-        self._session.ui.thread_safe(self._message_execute, q, sender, msg)
-        return q.get()
-
     def _message_execute(self, q, sender, msg):
+        mux.logger.debug("_message_execute")
         if 'id' not in msg:
             msg['id'] = sender
         if 'scene' in msg:
@@ -375,49 +401,78 @@ class ConferenceServer:
             self._run_command(msg)
         for t in self._trackers:
             t.update_model(msg)
-        q.put(None)
+        mux.logger.debug("_message_execute returning")
+        q.put((mux.Resp.Success, None))
+
+    def _notification_execute(self, q, ntype, data):
+        if ntype == mux.Notify.Joined:
+            # data is just the name of the client that joined
+            self.add_client(data)
+        elif ntype == mux.Notify.Departed:
+            # data is just the name of the client that joined
+            self.drop_client(data)
+        else:
+            raise RuntimeError("unsupported mux notification: %s" % ntype)
+        q.put((mux.Resp.Success, None))
 
 
-class MuxNode(mux.Node):
+class BaseMuxNode:
+
+    def handle_packet(self, ptype, serial, packet):
+        mux.logger.debug("handle_packet: %s %s", mux.PacketType.name(ptype), serial)
+        from queue import SimpleQueue
+        q = SimpleQueue()
+        session = self._server._session
+        session.ui.thread_safe(self._handle_pkt, q, ptype, serial, packet)
+        mux.logger.debug("handle_packet: waiting for queue")
+        return q.get()
+
+    def _handle_pkt(self, q, ptype, serial, packet):
+        mux.logger.debug("_handle_pkt: %s %s", mux.PacketType.name(ptype), serial)
+        try:
+            retval = super().handle_packet(ptype, serial, packet)
+        except RuntimeError as e:
+            session = self._server._session
+            session.logger.error(str(e))
+            retval = None
+        mux.logger.debug("_handle_pkt: waiting for queue")
+        q.put(retval)
+
+    def handle_message(self, msg, sender):
+        #logger = self._server._session.logger
+        #logger.info("Packet from %s: %s" % (sender, packet))
+        # packet should contain two keys: "receivers" and "data"
+        # for now, we just ignore who the message was sent to
+        mux.logger.debug("handle_message: %s %s", msg, sender)
+        from queue import SimpleQueue
+        q = SimpleQueue()
+        session = self._server._session
+        session.ui.thread_safe(self._server._message_execute,
+                               q, sender, msg["data"])
+        mux.logger.debug("handle_message: waiting for queue")
+        return q.get()
+
+    def handle_notification(self, ntype, data):
+        #logger = self._server._session.logger
+        #logger.info("Notification from %s: %s" % (ntype, data))
+        from queue import SimpleQueue
+        q = SimpleQueue()
+        session = self._server._session
+        session.ui.thread_safe(self._server._notification_execute,
+                               q, ntype, data)
+        return q.get()
+
+
+class MuxNetworkNode(BaseMuxNode, mux.NetworkNode):
 
     def __init__(self, hostname, port, conf_name, ident, create,
                  server=None, **kw):
         self._server = server
         super().__init__(hostname, port, conf_name, ident, create, **kw)
-        self.start()
-
-    def handle_message(self, packet, sender):
-        #logger = self._server._session.logger
-        #logger.info("Packet from %s: %s" % (sender, packet))
-        # packet should contain two keys: "receivers" and "data"
-        # for now, we just ignore who the message was sent to
-        retval = self._server._message_received(sender, packet["data"])
-        return mux.Resp.Success, retval
-
-    def handle_notification(self, ntype, data):
-        #logger = self._server._session.logger
-        #logger.info("Notification from %s: %s" % (ntype, data))
-        if ntype == mux.Notify.Joined:
-            # data is just the name of the client that joined
-            self._server.add_client(data)
-        elif ntype == mux.Notify.Departed:
-            # data is just the name of the client that joined
-            self._server.drop_client(data)
-        else:
-            raise RuntimeError("unsupported mux notification: %s" % ntype)
-        return mux.Resp.Success, None
 
 
-class MuxHostNode(MuxNode):
+class MuxLoopbackNode(BaseMuxNode, mux.LoopbackNode):
 
-    def __init__(self, ident, **kw):
-        # First start the server, then create client
-        self.mux_hub = mux.Hub("", 0, "chimeraxmux")
-        self.mux_hub.start()
-        port = self.mux_hub.get_port()
-        super().__init__("localhost", port, "default", ident, True, **kw)
-
-    def close(self):
-        super().close()
-        self.mux_hub.stop()
-        del self.mux_hub
+    def __init__(self, conf_name, ident, server=None):
+        self._server = server
+        super().__init__(conf_name, ident)

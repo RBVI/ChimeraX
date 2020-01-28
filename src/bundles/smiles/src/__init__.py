@@ -13,15 +13,15 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _PubChemAPI(BundleAPI):
+class _SmilesAPI(BundleAPI):
 
     @staticmethod
     def fetch_from_database(session, identifier, ignore_cache=False, database_name=None,
             format_name=None, **kw):
-        # 'fetch_from_database' is called by session code to fetch data with give identifier
+        # 'fetch_from_database' is called by session code to fetch data with the given identifier;
         # returns (list of models, status message)
-        from . import pub_chem
-        return pub_chem.fetch_pubchem(session, identifier, ignore_cache=ignore_cache)
+        from . import smiles
+        return smiles.fetch_smiles(session, identifier, ignore_cache=ignore_cache)
 
     @staticmethod
     def run_provider(session, name, mgr, *, widget_info=None, **kw):
@@ -40,4 +40,4 @@ class _PubChemAPI(BundleAPI):
             from .build_ui import process_widget
             return process_widget(widget)
 
-bundle_api = _PubChemAPI()
+bundle_api = _SmilesAPI()
