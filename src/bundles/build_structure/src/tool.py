@@ -264,7 +264,7 @@ class BuildStructureTool(ToolInstance):
         element_name = self.ms_elements_button.text()
         num_bonds = self.ms_bonds_button.text()
 
-        cmd = "structure modify %s %s %s" % (a.atomspec, element_name, num_bonds)
+        cmd = "build modify %s %s %s" % (a.atomspec, element_name, num_bonds)
 
         geometry = self.ms_geom_button.text()
         if geometry != "N/A":
@@ -371,7 +371,7 @@ class BuildStructureTool(ToolInstance):
                 struct_arg = StringArg.unparse(model_name)
             else:
                 struct_arg = struct_info.atomspec
-            run(self.session, " ".join(["structure start", provider_name, struct_arg, subcmd_string]))
+            run(self.session, " ".join(["build start", provider_name, struct_arg, subcmd_string]))
 
     def _ss_provider_changed(self, button):
         ui_name = button.text()
