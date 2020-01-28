@@ -591,14 +591,15 @@ def R_to_axis_angle(matrix):
         az = matrix[1][0] - matrix[0][1]
 
     # Handle 180 degree rotations.
-    near_zero = 1e-14
+    near_zero = 1e-9
     if abs(ax) < near_zero and abs(ay) < near_zero and abs(az) < near_zero:
-        # For 180 degree rotation R is symmetric
+        # A 180 degree rotation R about axis (ax,ay,az) is symmetric
         #   R = [(2*ax*ax-1, 2*ax*ay, 2*ax*az),
         #        (2*ax*ay, 2*ay*ay-1, 2*ay*az),
         #        (2*ax*az, 2*ay*az, 2*az*az-1)]
         # so use diagonal to get rotation axis.
-        axis = array([sqrt(max(0, 0.5*(d + 1))) for d in (m00,m11,m22)], float64)
+        signs = [(1 if s >= 0 else -1) for s in (matrix[1][2], matrix[0][2], matrix[0][1])]
+        axis = array([sign*sqrt(max(0, 0.5*(d + 1))) for d,sign in zip((m00,m11,m22),signs)], float64)
         theta_deg = 180
     else:
         axis = array((ax, ay, az), float64)
