@@ -32,7 +32,7 @@ def fetch_smiles(session, smiles_string, **kw):
         smiles_string = "".join(printables)
     # triple-bond characters (#) get mangled by the http protocol, so switch to http-friendly equivalent
     web_smiles = smiles_string.replace('#', "%23")
-    for fetcher, moniker, info_url in fetcher_info:
+    for fetcher, moniker, ack_name, info_url in fetcher_info:
         try:
             path = fetcher(session, web_smiles)
         except SmilesTranslationError:
@@ -76,7 +76,7 @@ def _indiana_fetch(session, smiles):
     return filename
 
 fetcher_info = [
-    (_cactus_fetch, "NCI", "http://cactus.nci.nih.gov"),
-    (_indiana_fetch, "Indiana University",
+    (_cactus_fetch, "NCI", "NCI CADD Group", "http://cactus.nci.nih.gov"),
+    (_indiana_fetch, "Indiana University", "CICC@iu",
         "http://www.soic.indiana.edu/faculty-research/chemical-informatics-center.html"),
 ]
