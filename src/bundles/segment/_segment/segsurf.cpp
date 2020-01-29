@@ -589,7 +589,13 @@ int cap_triangle_table[6][16][10] = {
 //
 
 typedef unsigned int Index; // grid and edge indices, and surface vertex indices
+
+#ifdef _WIN32
+typedef long long Stride;   // Use long long for 64-bit integer on Windows.
+#else
 typedef long Stride;	    // Array strides and pointer offsets, signed
+#endif
+
 typedef int Region_Id;
 
 class Region_Surface
@@ -955,7 +961,7 @@ void CSurface<Data_Type>::find_region_group_points(Points_Per_Region &region_poi
   for (Index k2 = 0 ; k2 < k2_size ; ++k2)
 	for (Index k1 = 0 ; k1 < k1_size ; ++k1)
 	  {
-	    const Data_Type *g = grid + step2*k2 + step1*k1;
+	    const Data_Type *g = grid + step2*(Stride)k2 + step1*(Stride)k1;
 	    unsigned char b12 = ((k1 == 0 ? 4 : 0) | (k1+1 == k1_size ? 8 : 0) |
 				 (k2 == 0 ? 16 : 0) | (k2+1 == k2_size ? 32 : 0));
 	    for (Index k0 = 0 ; k0 < k0_size ; ++k0, g += step0)
@@ -1000,7 +1006,7 @@ void CSurface<Data_Type>::find_region_points(Points_Per_Region &region_points)
   for (Index k2 = 0 ; k2 < k2_size ; ++k2)
     for (Index k1 = 0 ; k1 < k1_size ; ++k1)
 	  {
-	    const Data_Type *g = grid + step2*k2 + step1*k1;
+	    const Data_Type *g = grid + step2*(Stride)k2 + step1*(Stride)k1;
 	    unsigned char b12 = ((k1 == 0 ? 4 : 0) | (k1+1 == k1_size ? 8 : 0) |
 				 (k2 == 0 ? 16 : 0) | (k2+1 == k2_size ? 32 : 0));
 	    for (Index k0 = 0 ; k0 < k0_size ; ++k0, g += step0)
@@ -1124,7 +1130,7 @@ inline void CSurface<Data_Type>::mark_interior_edge_cuts(Index k1, Index k2,
   Stride step0 = stride[0], step1 = stride[1], step2 = stride[2];
   Index k0_max = size[0]-1;
 
-  const Data_Type *g = grid + step2*k2 + step1*k1 + step0;
+  const Data_Type *g = grid + step2*(Stride)k2 + step1*(Stride)k1 + step0;
   for (Index k0 = 1 ; k0 < k0_max ; ++k0, g += step0)
     {
       if (inside(*g))
@@ -1158,7 +1164,7 @@ inline void CSurface<Data_Type>::mark_boundary_edge_cuts(Index k0, Index k1, Ind
 {
   Stride step0 = stride[0], step1 = stride[1], step2 = stride[2];
   Index k0_size = size[0], k1_size = size[1], k2_size = size[2];
-  const Data_Type *g = grid + step2*k2 + step1*k1 + step0*k0;
+  const Data_Type *g = grid + step2*(Stride)k2 + step1*(Stride)k1 + step0*(Stride)k0;
   if (!inside(*g))
     return;
 
@@ -1375,7 +1381,7 @@ void CSurface<Data_Type>::make_triangles(Grid_Cell_List &gp0, Index k2)
   for (Index k = 0 ; k < cc ; ++k)
     {
       Grid_Cell *c = clist[k];
-      const Data_Type *gc = g0 + c->k0*step0 + c->k1*step1, *gc2 = gc + step2;
+      const Data_Type *gc = g0 + step0*(Stride)c->k0 + step1*(Stride)c->k1, *gc2 = gc + step2;
       int bits = ((inside(gc[0]) ? 1 : 0) |
 		  (inside(gc[step0]) ? 2 : 0) |
 		  (inside(gc[step01]) ? 4 : 0) |
@@ -1408,7 +1414,7 @@ void CSurface<Data_Type>::make_triangles(Grid_Cell_List &gp0, Index k2, Region_I
   for (Index k = 0 ; k < cc ; ++k)
     {
       Grid_Cell *c = clist[k];
-      const Data_Type *gc = g0 + c->k0*step0 + c->k1*step1, *gc2 = gc + step2;
+      const Data_Type *gc = g0 + step0*(Stride)c->k0 + step1*(Stride)c->k1, *gc2 = gc + step2;
       int bits = ((inside(gc[0]) == region_id ? 1 : 0) |
 		  (inside(gc[step0]) == region_id ? 2 : 0) |
 		  (inside(gc[step01]) == region_id ? 4 : 0) |
