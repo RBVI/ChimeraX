@@ -404,6 +404,9 @@ class SteamVRCamera(Camera, StateManager):
         self._z_far = 500.0		# Meters, far clip plane distance
         # TODO: Scaling models to be huge causes clipping at far clip plane.
 
+        self._new_frame_handler = None
+        self._app_quit_handler = None
+
     def start_vr(self):
         import openvr
         self._vr_system = vrs = openvr.init(openvr.VRApplication_Scene)
