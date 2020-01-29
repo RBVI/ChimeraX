@@ -1499,7 +1499,7 @@ void contour_surfaces(const Reference_Counted_Array::Array<Data_Type> &data,
 
 // ----------------------------------------------------------------------------
 //
-static PyObject *python_surface(const Region_Surface &surf)
+static PyObject *python_surface(const Region_Surface &surf, bool include_id = false)
 {
   float *vxyz;
   int *tvi;
@@ -1512,29 +1512,32 @@ static PyObject *python_surface(const Region_Surface &surf)
     vxyz[i] = surf.vertices[i];
   for (size_t i = 0 ; i < nt3 ; ++i)
     tvi[i] = surf.triangles[i];
-  
-  return python_tuple(PyLong_FromLong(surf.region_id), vertex_xyz, tv_indices);
+
+  PyObject *py_surf = (include_id ?
+		       python_tuple(PyLong_FromLong(surf.region_id), vertex_xyz, tv_indices) :
+		       python_tuple(vertex_xyz, tv_indices));
+  return py_surf;
 }
 
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-segment_surface(PyObject *, PyObject *args, PyObject *keywds)
+segmentation_surface(PyObject *, PyObject *args, PyObject *keywds)
 {
-  Numeric_Array image;
+  Numeric_Array region_map;
   int value;
-  IArray surface_ids;
-  const char *kwlist[] = {"image", "value", "surface_ids", NULL};
+  IArray groups;
+  const char *kwlist[] = {"region_map", "index", "groups", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&p|O&"),
 				   (char **)kwlist,
-				   parse_3d_array, &image,
+				   parse_3d_array, &region_map,
 				   &value,
-				   parse_int_n_array, &surface_ids))
+				   parse_int_n_array, &groups))
     return NULL;
 
-  if (surface_ids.dimension() == 1 && !surface_ids.is_contiguous())
+  if (groups.dimension() == 1 && !groups.is_contiguous())
     {
-      PyErr_Format(PyExc_ValueError, "segment_surface(): surface_ids array argument must be contiguous");
+      PyErr_Format(PyExc_ValueError, "segmentation_surface(): groups array argument must be contiguous");
       return NULL;
     }
   
@@ -1545,8 +1548,8 @@ segment_surface(PyObject *, PyObject *args, PyObject *keywds)
   
       Contour_Surface *cs;
       Py_BEGIN_ALLOW_THREADS
-	call_template_function(contour_surface, image.value_type(),
-			       (image, value, surface_ids, cap_faces, &cs));
+	call_template_function(contour_surface, region_map.value_type(),
+			       (region_map, value, groups, cap_faces, &cs));
       Py_END_ALLOW_THREADS
 
       surf = python_surface(cs->surfaces()[0]);
@@ -1558,8 +1561,8 @@ segment_surface(PyObject *, PyObject *args, PyObject *keywds)
   catch (std::bad_alloc&)
     {
       PyErr_Format(PyExc_MemoryError,
-		   "segment_surface(): Out of memory, image size (%d,%d,%d)",
-		   image.size(0), image.size(1), image.size(2));
+		   "segmentation_surface(): Out of memory, region map size (%d,%d,%d)",
+		   region_map.size(0), region_map.size(1), region_map.size(2));
       return NULL;
     }
 
@@ -1569,20 +1572,20 @@ segment_surface(PyObject *, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-segment_surfaces(PyObject *, PyObject *args, PyObject *keywds)
+segmentation_surfaces(PyObject *, PyObject *args, PyObject *keywds)
 {
-  Numeric_Array image;
-  IArray surface_ids;
-  const char *kwlist[] = {"image", "surface_ids", NULL};
+  Numeric_Array region_map;
+  IArray groups;
+  const char *kwlist[] = {"region_map", "groups", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|O&"),
 				   (char **)kwlist,
-				   parse_3d_array, &image,
-				   parse_int_n_array, &surface_ids))
+				   parse_3d_array, &region_map,
+				   parse_int_n_array, &groups))
     return NULL;
 
-  if (surface_ids.dimension() == 1 && !surface_ids.is_contiguous())
+  if (groups.dimension() == 1 && !groups.is_contiguous())
     {
-      PyErr_Format(PyExc_ValueError, "segment_surfaces(): surface_ids array argument must be contiguous");
+      PyErr_Format(PyExc_ValueError, "segmentation_surfaces(): groups array argument must be contiguous");
       return NULL;
     }
   
@@ -1593,22 +1596,22 @@ segment_surfaces(PyObject *, PyObject *args, PyObject *keywds)
   
       Contour_Surface *cs;
       Py_BEGIN_ALLOW_THREADS
-	call_template_function(contour_surfaces, image.value_type(),
-			       (image, surface_ids, cap_faces, &cs));
+	call_template_function(contour_surfaces, region_map.value_type(),
+			       (region_map, groups, cap_faces, &cs));
       Py_END_ALLOW_THREADS
 
       const Region_Surfaces &surfaces = cs->surfaces();
       size_t ns = surfaces.size();
       surfs = PyTuple_New(ns);
       for (size_t i = 0 ; i < ns ; ++i)
-	PyTuple_SetItem(surfs, i, python_surface(surfaces[i]));
+	PyTuple_SetItem(surfs, i, python_surface(surfaces[i], true));
       delete cs;
     }
   catch (std::bad_alloc&)
     {
       PyErr_Format(PyExc_MemoryError,
-		   "segment_surface(): Out of memory, image size (%d,%d,%d)",
-		   image.size(0), image.size(1), image.size(2));
+		   "segmentation_surfaces(): Out of memory, region map size (%d,%d,%d)",
+		   region_map.size(0), region_map.size(1), region_map.size(2));
       return NULL;
     }
 
