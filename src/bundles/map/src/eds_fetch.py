@@ -35,8 +35,9 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False, **kw):
   filename = fetch_file(session, map_url, 'map %s' % id, map_name, 'EDS',
                         ignore_cache=ignore_cache)
 
+  model_name = 'eds:%s' % id
   from chimerax.core import io
-  models, status = io.open_data(session, filename, format = 'ccp4', name = id,
+  models, status = io.open_data(session, filename, format = 'ccp4', name = model_name,
                                 polar_values = (type == 'fofc'), **kw)
   for v in models:
     v.set_display_style('mesh')

@@ -44,8 +44,9 @@ def fetch_emdb(session, emdb_id, ignore_cache=False, **kw):
     filename = fetch_file(session, map_url, 'map %s' % emdb_id, map_name, 'EMDB',
                           uncompress = True, ignore_cache=ignore_cache)
 
+    model_name = 'emdb:%s' % emdb_id
     from chimerax.core import io
-    models, status = io.open_data(session, filename, format = 'ccp4', name = emdb_id, **kw)
+    models, status = io.open_data(session, filename, format = 'ccp4', name = model_name, **kw)
     return models, status
 
 # -----------------------------------------------------------------------------
