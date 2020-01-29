@@ -59,7 +59,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
     if enable is None and room_position is None:
         enable = True
 
-    c = vr_camera(session)
+    c = vr_camera(session, create = False)
     start = (session.main_view.camera is not c)
 
     if enable is not None:
@@ -68,6 +68,8 @@ def vr(session, enable = None, room_position = None, mirror = None,
         else:
             stop_vr(session, simplify_graphics)
 
+    c = vr_camera(session, create = False)
+    
     if room_position is not None:
         if isinstance(room_position, str) and room_position == 'report':
             p = ','.join('%.5g' % x for x in tuple(c.room_to_scene.matrix.flat))
@@ -216,7 +218,7 @@ def register_vr_command(logger):
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
-                              ('display', EnumOf(('mirror', 'independent', 'blank'))),
+                              ('mirror', BoolArg),
                               ('gui', StringArg),
                               ('center', BoolArg),
                               ('click_range', FloatArg),
