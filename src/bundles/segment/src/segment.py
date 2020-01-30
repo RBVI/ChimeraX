@@ -292,9 +292,9 @@ def segmentation_surfaces(session, segmentations,
         group, attribute_name = _which_segments(seg, conditions)
         sstep = _voxel_limit_step(seg, region) if step is None else step
         matrix = seg.matrix(step = sstep, subregion = region)
-        from . import segment_surfaces
+        from . import segmentation_surfaces
         # TODO: Use zero option.
-        surfs = segment_surfaces(matrix, group)
+        surfs = segmentation_surfaces(matrix, group)
 #        print ('got %d surfaces' % len(surfs),
 #               ','.join('%d v %d t %d max %d tri %s'
 #                        % (s[0], len(s[1]), len(s[2]), s[2].max(), s[2][:3]) for s in surfs[:5]))

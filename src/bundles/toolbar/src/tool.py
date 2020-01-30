@@ -14,7 +14,8 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 from copy import deepcopy
-from PyQt5.QtWidgets import QFrame
+from PyQt5.QtWidgets import QFrame, QTreeWidget, QTreeWidgetItem
+from PyQt5.QtCore import pyqtSignal
 
 defaults = {
     "home_tab": [
@@ -54,6 +55,14 @@ defaults = {
 }
 
 _settings = None
+_tb = None
+
+
+def get_toolbar_singleton(session, create=True):
+    global _tb
+    if create and _tb is None:
+        _tb = ToolbarTool(session, "Toolbar")
+    return _tb
 
 
 class _ToolbarSettings(Settings):
@@ -96,7 +105,7 @@ class ToolbarTool(ToolInstance):
             self.tool_window.ui_area, show_section_titles=_settings.show_section_labels,
             show_button_titles=_settings.show_button_labels)
         layout.addWidget(self.ttb)
-        self._build_buttons()
+        self._build_tabs()
         self.tool_window.ui_area.setLayout(layout)
         self.tool_window.manage(self.PLACEMENT)
 
@@ -123,14 +132,10 @@ class ToolbarTool(ToolInstance):
         _settings.show_section_labels = show_section_labels
         self.ttb.set_show_section_titles(show_section_labels)
 
-    def _build_buttons(self):
-        # add buttons from toolbar manager
+    def build_home_tab(self):
+        # (re)Build Home tab from settings
         from PyQt5.QtGui import QIcon
-        from .manager import fake_mouse_mode_bundle_info
-        self.right_mouse_buttons = {}
-        self.current_right_mouse_button = None
-
-        # Build Home tab from settings
+        self.ttb.clear_tab("Home")
         last_section = None
         for (section, compact, display_name, icon_path, description, link, bundle_info, name, kw) in _home_layout(self.session, _settings.home_tab):
             if section != last_section:
@@ -147,6 +152,16 @@ class ToolbarTool(ToolInstance):
             self.ttb.add_button(
                     "Home", section, display_name, callback,
                     icon, description, **kw)
+
+
+    def _build_tabs(self):
+        # add buttons from toolbar manager
+        from PyQt5.QtGui import QIcon
+        from .manager import fake_mouse_mode_bundle_info
+        self.right_mouse_buttons = {}
+        self.current_right_mouse_button = None
+
+        self.build_home_tab()
 
         # Build other tabs from toolbar manager
         toolbar = self.session.toolbar._toolbar
@@ -304,6 +319,47 @@ def _layout(d, what):
     return ordered
 
 
+class _HomeTab(QTreeWidget):
+
+    childDraggedAndDropped = pyqtSignal(
+                QTreeWidgetItem, int, int, QTreeWidgetItem, int, name="childDraggedAndDropped")
+
+    def __init__(self, *args, **kw):
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtWidgets import QAbstractItemView
+        super().__init__(*args, **kw)
+        self.setDragEnabled(True)
+        self.viewport().setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
+        self.setDragDropMode(QAbstractItemView.InternalMove)
+        # disable dropping button above section
+        # TODO: remove this so sections can be moved
+        self.invisibleRootItem().setFlags(Qt.NoItemFlags)
+
+    def dropEvent(self, event):
+        # TODO: prevent dropping button at section level
+        # signal from https://vicrucann.github.io/tutorials/qtreewidget-child-drag-notify/
+        from PyQt5.QtCore import Qt
+        if not isinstance(event.source(), _HomeTab):
+            event.ignore()
+            return
+        #event.setDropAction(Qt.MoveAction)
+        #super().dropEvent(event)
+        kids = self.selectedItems()
+        if len(kids) == 0:
+            return
+        start = self.indexFromItem(kids[0]).row()
+        end = start;
+        parent = kids[0].parent()
+        super().dropEvent(event)
+        row = self.indexFromItem(kids[0]).row
+        destination = kids[0].parent()
+        if not parent or not destination:
+            event.setDropAction(Qt.IgnoreAction)
+            return
+        self.childDraggedAndDropped.emit(parent, start, end, destination, row)
+
+
 class CustomizeTool(ToolInstance):
 
     SESSION_ENDURING = False
@@ -327,7 +383,7 @@ class CustomizeTool(ToolInstance):
 
     def _build_ui(self):
         from PyQt5.QtWidgets import (
-            QWidget, QLabel, QPushButton,
+            QLabel, QPushButton,
             QTreeWidget, QTreeWidgetItem,
             QGridLayout, QHBoxLayout,
         )
@@ -340,7 +396,7 @@ class CustomizeTool(ToolInstance):
         parent.setLayout(main_layout)
         self.instructions = QLabel(parent)
         main_layout.addWidget(self.instructions, 1, 1, 1, 2)
-        self.home = QTreeWidget(parent)
+        self.home = _HomeTab(parent)
         main_layout.addWidget(self.home, 2, 1)
         self.home.setColumnCount(1)
         self.other = QTreeWidget(parent)
@@ -353,6 +409,7 @@ class CustomizeTool(ToolInstance):
         bottom_layout = QHBoxLayout()
         main_layout.addLayout(bottom_layout, 5, 1, 1, 2, Qt.AlignRight)
 
+        # TODO: group and ungroup buttons for drop downs
         new_section = QPushButton("New section", parent)
         new_section.setToolTip("Add another section to Home tab")
         new_section.clicked.connect(self.new_section)
@@ -387,32 +444,11 @@ class CustomizeTool(ToolInstance):
         Instructional text on how to use inteface.
         """)
 
-        # the following is very similar to code for toolbar layout
-        self.home.setHeaderLabels(["Home Tab"])
-        home_buttons = Qt.ItemIsDropEnabled | Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
-        home_sections = home_buttons | Qt.ItemIsUserCheckable
-        last_section = None
-        section_item = None
-        for (section, compact, display_name, icon_path, description, link, bi, name, kw) in _home_layout(self.session, _settings.home_tab):
-            if section != last_section:
-                last_section = section
-                section_item = QTreeWidgetItem(self.home, [section], self.SECTION_TYPE)
-                section_item.setFlags(home_sections)
-                section_item.setCheckState(0, compact)
-                self.home.expandItem(section_item)
-            item = QTreeWidgetItem(section_item, [f"{display_name}"], self.BUTTON_TYPE)
-            item.setData(0, Qt.UserRole, link)
-            item.setFlags(home_buttons)
-            if icon_path is None:
-                icon = None
-            else:
-                icon = QIcon(icon_path)
-                item.setIcon(0, icon)
-            item.setToolTip(0, description)
-        self.home.itemChanged.connect(self.update)
+        self.build_home_tab()
+        self.home.childDraggedAndDropped.connect(self.update)
 
         self.other.setHeaderLabels(["Available Buttons"])
-        other_flags = Qt.ItemIsDropEnabled | Qt.ItemIsEnabled
+        other_flags = Qt.ItemIsEnabled | Qt.ItemIsDragEnabled
         toolbar = self.session.toolbar._toolbar
         last_tab = None
         last_section = None
@@ -433,7 +469,7 @@ class CustomizeTool(ToolInstance):
                 section_item.setFlags(other_flags)
                 self.other.expandItem(section_item)
             item = QTreeWidgetItem(section_item, [f"{display_name}"], self.BUTTON_TYPE)
-            item.setFlags(Qt.ItemIsDragEnabled | Qt.ItemIsEnabled)
+            item.setFlags(other_flags)
             if icon_path is None:
                 icon = None
             else:
@@ -441,15 +477,50 @@ class CustomizeTool(ToolInstance):
                 item.setIcon(0, icon)
             item.setToolTip(0, description)
 
-    def update(self):
-        # propagate changes to home tab
-        import sys
-        print("UPDATE", file=sys.__stderr__)
+    def build_home_tab(self):
+        # the following is very similar to code for toolbar layout
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QIcon
+        from PyQt5.QtWidgets import QTreeWidgetItem
+        if self.home.topLevelItemCount() != 0:
+            self.home.itemChanged.disconnect()
+            self.home.clear()
+        self.home.setHeaderLabels(["Home Tab"])
+        home_buttons = (
+            Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+            | Qt.ItemNeverHasChildren | Qt.ItemIsDragEnabled
+        )
+        home_sections = (
+            Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+            | Qt.ItemIsUserCheckable | Qt.ItemIsDropEnabled
+        )
+        last_section = None
+        section_item = None
+        for (section, compact, display_name, icon_path, description, link, bi, name, kw) in _home_layout(self.session, _settings.home_tab):
+            if section != last_section:
+                last_section = section
+                section_item = QTreeWidgetItem(self.home, [section], self.SECTION_TYPE)
+                section_item.setFlags(home_sections)
+                section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
+                self.home.expandItem(section_item)
+            item = QTreeWidgetItem(section_item, [f"{display_name}"], self.BUTTON_TYPE)
+            item.setData(0, Qt.UserRole, link)
+            item.setFlags(home_buttons)
+            if icon_path is None:
+                icon = None
+            else:
+                icon = QIcon(icon_path)
+                item.setIcon(0, icon)
+            item.setToolTip(0, description)
+        if self.home.topLevelItemCount() != 0:
+            self.home.itemChanged.connect(self.update)
+
+    def update(self, *args):
+        # propagate user changes to home tab
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QTreeWidgetItemIterator
         home_tab = []
         cur_section = []
-        #for item in self.home.findItems("*", Qt.MatchWrap | Qt.MatchWildcard | Qt.MatchRecursive):
         it = QTreeWidgetItemIterator(self.home)
         while it.value():
             item = it.value()
@@ -470,7 +541,16 @@ class CustomizeTool(ToolInstance):
                     home_tab.append(((name, True), cur_section))
                 else:
                     home_tab.append((name, cur_section))
-        print(home_tab, file=sys.__stderr__)
+        _settings.home_tab = home_tab
+        tb = get_toolbar_singleton(self.session, create=False)
+        if tb:
+            tb.build_home_tab()
+
+    def update_from_settings(self):
+        self.build_home_tab()
+        tb = get_toolbar_singleton(self.session, create=False)
+        if tb:
+            tb.build_home_tab()
 
     def new_section(self):
         # add new section to home tab
@@ -480,7 +560,7 @@ class CustomizeTool(ToolInstance):
         # remove selected sections/buttons from home tab
         import sys
         print([si.text(0) for si in self.home.selectedItems()], file=sys.__stderr__)
-        pass
+        # TODO:
 
     def save(self):
         # save current configuration in preferences
@@ -489,12 +569,12 @@ class CustomizeTool(ToolInstance):
     def reset(self):
         # reset current configuration in original defaults
         _settings.reset()
-        # TODO: redo layout and update toolbar
+        self.update_from_settings()
 
     def restore(self):
         # restore current configuration from saved preferences
         _settings.restore()
-        # TODO: redo layout and update toolbar
+        self.update_from_settings()
 
     def close(self):
         self.delete()

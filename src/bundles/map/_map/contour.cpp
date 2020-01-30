@@ -368,7 +368,7 @@ inline void CSurface<Data_Type>::mark_interior_edge_cuts(Index k1, Index k2,
   Stride step0 = stride[0], step1 = stride[1], step2 = stride[2];
   Index k0_max = (size[0] > 0 ? size[0]-1 : 0);
 
-  const Data_Type *g = grid + step2*k2 + step1*k1 + step0;
+  const Data_Type *g = grid + step2*(Stride)k2 + step1*(Stride)k1 + step0;
   for (Index k0 = 1 ; k0 < k0_max ; ++k0, g += step0)
     {
       float v0 = *g - threshold;
@@ -404,7 +404,7 @@ inline void CSurface<Data_Type>::mark_boundary_edge_cuts(Index k0, Index k1, Ind
 {
   Stride step0 = stride[0], step1 = stride[1], step2 = stride[2];
   Index k0_size = size[0], k1_size = size[1], k2_size = size[2];
-  const Data_Type *g = grid + step2*k2 + step1*k1 + step0*k0;
+  const Data_Type *g = grid + step2*(Stride)k2 + step1*(Stride)k1 + step0*(Stride)k0;
   float v0 = *g - threshold;
   if (v0 < 0)
     return;
@@ -619,12 +619,12 @@ void CSurface<Data_Type>::make_triangles(Grid_Cell_List &gp0, Index k2)
   Index k0_size = size[0], k1_size = size[1], k2_size = size[2];
   Block_Array<Grid_Cell *> &clist = gp0.cells;
   Index cc = gp0.cell_count;
-  const Data_Type *g0 = grid + (k2-1)*step2;
+  const Data_Type *g0 = grid + step2*(Stride)(k2-1);
   Stride step01 = step0 + step1;
   for (Index k = 0 ; k < cc ; ++k)
     {
       Grid_Cell *c = clist.element(k);
-      const Data_Type *gc = g0 + c->k0*step0 + c->k1*step1, *gc2 = gc + step2;
+      const Data_Type *gc = g0 + step0*(Stride)c->k0 + step1*(Stride)c->k1, *gc2 = gc + step2;
       int bits = ((gc[0] < threshold ? 0 : 1) |
 		  (gc[step0] < threshold ? 0 : 2) |
 		  (gc[step01] < threshold ? 0 : 4) |
@@ -675,7 +675,7 @@ void CSurface<Data_Type>::normals(float *normals)
       if (g[0] == 0 && g[1] == 0 && g[2] == 0)
 	{
 	  Index i[3] = {(Index)x[0], (Index)x[1], (Index)x[2]};
-	  const Data_Type *ga = grid + i[0]*stride[0]+i[1]*stride[1]+i[2]*stride[2];
+	  const Data_Type *ga = grid + stride[0]*(Stride)i[0]+stride[1]*(Stride)i[1]+stride[2]*(Stride)i[2];
 	  const Data_Type *gb = ga;
 	  Index off[3] = {0,0,0};
 	  float fb = 0;

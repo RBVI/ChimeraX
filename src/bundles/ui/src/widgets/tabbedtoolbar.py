@@ -366,6 +366,7 @@ class TabbedToolbar(QTabWidget):
         section.add_button(button_title, callback, icon, description, group, vr_mode)
 
     def show_tab(self, tab_title):
+        """Make given tab the current tab"""
         tab_info = self._buttons.get(tab_title, None)
         if tab_info is None:
             return
@@ -376,6 +377,18 @@ class TabbedToolbar(QTabWidget):
         if index == -1:
             return
         self.setCurrentIndex(index)
+
+    def clear_tab(self, tab_title):
+        """Clear contents of tab"""
+        tab_info = self._buttons.get(tab_title, None)
+        if tab_info is None:
+            return
+        tab = tab_info.get("__toolbar__", None)
+        if tab is None:
+            return
+        tab.clear()
+        self._buttons[tab_title].clear()
+        self._buttons[tab_title]["__toolbar__"] = tab
 
     def _recompute_tab_sizes(self):
         # can't shrink vertically unless the size of all tabs are recomputed
