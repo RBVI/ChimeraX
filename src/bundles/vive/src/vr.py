@@ -295,7 +295,7 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         import openvr
     except Exception as e:
         from chimerax.core.errors import UserError
-        raise UserError('Failed to import OpenVR module: %s' % str(e))
+        raise UserError('Failed to import OpenVR module: %s' % str(e)) from e
 
     import sys
     if sys.platform == 'darwin':
@@ -311,11 +311,14 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
                    'Possibly a cable to the VR headset is not plugged in.\n' +
                    'If the headset is a Vive Pro, the link box may be turned off.\n' +
                    'If using a Vive Pro wireless adapter it may not be powered on.')
+        elif 'InterfaceNotFound' in str(e):
+            msg = ('Your installed SteamVR runtime does not support the requested version.\n' +
+                   'You probably need to update SteamVR by starting the Steam application.\n')
         else:
             msg = ('Failed to initialize OpenVR.\n' +
                    'Possibly SteamVR is not installed or it failed to start.')
         from chimerax.core.errors import UserError
-        raise UserError('%s\n%s' % (msg, str(e)))
+        raise UserError('%s\n%s' % (msg, str(e))) from e
 
     session.main_view.camera = c
 
