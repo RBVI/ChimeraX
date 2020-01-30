@@ -153,7 +153,6 @@ class ToolbarTool(ToolInstance):
                     "Home", section, display_name, callback,
                     icon, description, **kw)
 
-
     def _build_tabs(self):
         # add buttons from toolbar manager
         from PyQt5.QtGui import QIcon
@@ -319,6 +318,13 @@ def _layout(d, what):
     return ordered
 
 
+# tree item types:
+TAB_TYPE = 1
+SECTION_TYPE = 2
+BUTTON_TYPE = 3
+GROUP_TYPE = 4
+
+
 class _HomeTab(QTreeWidget):
 
     childDraggedAndDropped = pyqtSignal(
@@ -336,6 +342,45 @@ class _HomeTab(QTreeWidget):
         # TODO: remove this so sections can be moved
         self.invisibleRootItem().setFlags(Qt.NoItemFlags)
 
+    def dragEnterEvent(self, event):
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtWidgets import QTreeWidgetItemIterator
+        # alter drop targets based on what is being dragged
+        if event.source() != self:
+            event.ignore()
+            return
+        kids = self.selectedItems()
+        if len(kids) == 0:
+            return
+        source_type = kids[0].type()
+        if source_type == SECTION_TYPE:
+            self.invisibleRootItem().setFlags(Qt.ItemIsDropEnabled)
+        else:
+            self.invisibleRootItem().setFlags(Qt.NoItemFlags)
+
+        accept_drop = source_type == BUTTON_TYPE
+        for i in range(self.topLevelItemCount()):
+            item = self.topLevelItem(i)
+            if accept_drop:
+                item.setFlags(item.flags() | Qt.ItemIsDropEnabled)
+            else:
+                item.setFlags(item.flags() & ~Qt.ItemIsDropEnabled)
+        return super().dragEnterEvent(event)
+        return
+        it = QTreeWidgetItemIterator(self)
+        while it.value():
+            item = it.value()
+            it += 1
+            accept_drop = False
+            item_type = item.type()
+            if source_type == BUTTON_TYPE and item_type == SECTION_TYPE:
+                accept_drop = True
+            if accept_drop:
+                item.setFlags(item.flags() | Qt.ItemIsDropEnabled)
+            else:
+                item.setFlags(item.flags() & ~Qt.ItemIsDropEnabled)
+        return super().dragEnterEvent(event)
+
     def dropEvent(self, event):
         # TODO: prevent dropping button at section level
         # signal from https://vicrucann.github.io/tutorials/qtreewidget-child-drag-notify/
@@ -343,20 +388,24 @@ class _HomeTab(QTreeWidget):
         if not isinstance(event.source(), _HomeTab):
             event.ignore()
             return
-        #event.setDropAction(Qt.MoveAction)
-        #super().dropEvent(event)
+        # save: event.setDropAction(Qt.MoveAction)
+        # save: super().dropEvent(event)
+        # row number before the drag - initial position
         kids = self.selectedItems()
         if len(kids) == 0:
             return
         start = self.indexFromItem(kids[0]).row()
-        end = start;
+        end = start  # assume only 1 kid can be dragged
         parent = kids[0].parent()
+
+        # perform the default implementation
         super().dropEvent(event)
+
+        # get new index
         row = self.indexFromItem(kids[0]).row
         destination = kids[0].parent()
-        if not parent or not destination:
-            event.setDropAction(Qt.IgnoreAction)
-            return
+
+        # emit signal about the move
         self.childDraggedAndDropped.emit(parent, start, end, destination, row)
 
 
@@ -367,11 +416,6 @@ class CustomizeTool(ToolInstance):
     PLACEMENT = "top"
     CUSTOM_SCHEME = "toolbar"
     help = "help:user/tools/Toolbar.html#customize"  # Let ChimeraX know about our help page
-
-    TAB_TYPE = 1
-    SECTION_TYPE = 2
-    BUTTON_TYPE = 3
-    GROUP_TYPE = 4
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -460,15 +504,15 @@ class CustomizeTool(ToolInstance):
             if tab != last_tab:
                 last_tab = tab
                 last_section = None
-                tab_item = QTreeWidgetItem(self.other, [tab], self.TAB_TYPE)
+                tab_item = QTreeWidgetItem(self.other, [tab], TAB_TYPE)
                 tab_item.setFlags(Qt.ItemIsEnabled)
                 self.other.expandItem(tab_item)
             if section != last_section:
                 last_section = section
-                section_item = QTreeWidgetItem(tab_item, [section], self.SECTION_TYPE)
+                section_item = QTreeWidgetItem(tab_item, [section], SECTION_TYPE)
                 section_item.setFlags(other_flags)
                 self.other.expandItem(section_item)
-            item = QTreeWidgetItem(section_item, [f"{display_name}"], self.BUTTON_TYPE)
+            item = QTreeWidgetItem(section_item, [f"{display_name}"], BUTTON_TYPE)
             item.setFlags(other_flags)
             if icon_path is None:
                 icon = None
@@ -492,18 +536,18 @@ class CustomizeTool(ToolInstance):
         )
         home_sections = (
             Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-            | Qt.ItemIsUserCheckable | Qt.ItemIsDropEnabled
+            | Qt.ItemIsUserCheckable | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
         )
         last_section = None
         section_item = None
         for (section, compact, display_name, icon_path, description, link, bi, name, kw) in _home_layout(self.session, _settings.home_tab):
             if section != last_section:
                 last_section = section
-                section_item = QTreeWidgetItem(self.home, [section], self.SECTION_TYPE)
+                section_item = QTreeWidgetItem(self.home, [section], SECTION_TYPE)
                 section_item.setFlags(home_sections)
                 section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
                 self.home.expandItem(section_item)
-            item = QTreeWidgetItem(section_item, [f"{display_name}"], self.BUTTON_TYPE)
+            item = QTreeWidgetItem(section_item, [f"{display_name}"], BUTTON_TYPE)
             item.setData(0, Qt.UserRole, link)
             item.setFlags(home_buttons)
             if icon_path is None:
@@ -525,7 +569,7 @@ class CustomizeTool(ToolInstance):
         while it.value():
             item = it.value()
             it += 1
-            if item.type() == self.BUTTON_TYPE:
+            if item.type() == BUTTON_TYPE:
                 display_name = item.text(0)
                 link = item.data(0, Qt.UserRole)
                 # TODO: examine linked item to see if display_name is the same
@@ -534,7 +578,7 @@ class CustomizeTool(ToolInstance):
                     cur_section.append(link)
                 else:
                     cur_section.append((link, display_name))
-            elif item.type() == self.SECTION_TYPE:
+            elif item.type() == SECTION_TYPE:
                 name = item.text(0)
                 cur_section = []
                 if item.checkState(0):
