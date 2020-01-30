@@ -15,7 +15,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 from copy import deepcopy
 from PyQt5.QtWidgets import QFrame, QTreeWidget, QTreeWidgetItem
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal
 
 defaults = {
     "home_tab": [
@@ -318,6 +318,9 @@ def _layout(d, what):
     return ordered
 
 
+# tree item data roles:
+LINK_ROLE = Qt.UserRole
+ITEM_TYPE_ROLE = Qt.UserRole + 1
 # tree item types:
 TAB_TYPE = 1
 SECTION_TYPE = 2
@@ -327,32 +330,33 @@ GROUP_TYPE = 4
 
 class _HomeTab(QTreeWidget):
 
-    childDraggedAndDropped = pyqtSignal(
-                QTreeWidgetItem, int, int, QTreeWidgetItem, int, name="childDraggedAndDropped")
+    childDraggedAndDropped = pyqtSignal(name="childDraggedAndDropped")
 
-    def __init__(self, *args, **kw):
+    def __init__(self, parent, *args, sources=[], **kw):
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QAbstractItemView
         super().__init__(*args, **kw)
+        self.sources = sources
+        self.setColumnCount(1)
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(True)
         self.setDropIndicatorShown(True)
-        self.setDragDropMode(QAbstractItemView.InternalMove)
-        # disable dropping button above section
-        # TODO: remove this so sections can be moved
-        self.invisibleRootItem().setFlags(Qt.NoItemFlags)
+        self.setDragDropMode(QAbstractItemView.DragDrop)
+        self.setDefaultDropAction(Qt.MoveAction)
 
     def dragEnterEvent(self, event):
+        # alter drop targets based on what is being dragged
         from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QTreeWidgetItemIterator
-        # alter drop targets based on what is being dragged
-        if event.source() != self:
+        source = event.source()
+        if source != self and source not in self.sources:
             event.ignore()
             return
-        kids = self.selectedItems()
-        if len(kids) == 0:
+        selected = source.selectedItems()
+        if len(selected) == 0:
+            event.ignore()
             return
-        source_type = kids[0].type()
+        source_type = selected[0].data(0, ITEM_TYPE_ROLE)
         if source_type == SECTION_TYPE:
             self.invisibleRootItem().setFlags(Qt.ItemIsDropEnabled)
         else:
@@ -366,13 +370,13 @@ class _HomeTab(QTreeWidget):
             else:
                 item.setFlags(item.flags() & ~Qt.ItemIsDropEnabled)
         return super().dragEnterEvent(event)
-        return
+        # alternate implementation
         it = QTreeWidgetItemIterator(self)
         while it.value():
             item = it.value()
             it += 1
             accept_drop = False
-            item_type = item.type()
+            item_type = item.data(0, ITEM_TYPE_ROLE)
             if source_type == BUTTON_TYPE and item_type == SECTION_TYPE:
                 accept_drop = True
             if accept_drop:
@@ -382,31 +386,8 @@ class _HomeTab(QTreeWidget):
         return super().dragEnterEvent(event)
 
     def dropEvent(self, event):
-        # TODO: prevent dropping button at section level
-        # signal from https://vicrucann.github.io/tutorials/qtreewidget-child-drag-notify/
-        from PyQt5.QtCore import Qt
-        if not isinstance(event.source(), _HomeTab):
-            event.ignore()
-            return
-        # save: event.setDropAction(Qt.MoveAction)
-        # save: super().dropEvent(event)
-        # row number before the drag - initial position
-        kids = self.selectedItems()
-        if len(kids) == 0:
-            return
-        start = self.indexFromItem(kids[0]).row()
-        end = start  # assume only 1 kid can be dragged
-        parent = kids[0].parent()
-
-        # perform the default implementation
         super().dropEvent(event)
-
-        # get new index
-        row = self.indexFromItem(kids[0]).row
-        destination = kids[0].parent()
-
-        # emit signal about the move
-        self.childDraggedAndDropped.emit(parent, start, end, destination, row)
+        self.childDraggedAndDropped.emit()
 
 
 class CustomizeTool(ToolInstance):
@@ -428,27 +409,26 @@ class CustomizeTool(ToolInstance):
     def _build_ui(self):
         from PyQt5.QtWidgets import (
             QLabel, QPushButton,
-            QTreeWidget, QTreeWidgetItem,
+            QTreeWidget, QAbstractItemView,
             QGridLayout, QHBoxLayout,
         )
         from PyQt5.QtGui import QIcon
         from PyQt5.QtCore import Qt
         from .manager import fake_mouse_mode_bundle_info
-        # widget layout:
         parent = self.tool_window.ui_area
+        # main widgets
+        self.instructions = QLabel(parent)
+        self.other = QTreeWidget(parent)
+        self.home = _HomeTab(parent, sources=[self.other])
+        line = QHLine(parent)
+        # widget layout:
         main_layout = QGridLayout()
         parent.setLayout(main_layout)
-        self.instructions = QLabel(parent)
         main_layout.addWidget(self.instructions, 1, 1, 1, 2)
-        self.home = _HomeTab(parent)
         main_layout.addWidget(self.home, 2, 1)
-        self.home.setColumnCount(1)
-        self.other = QTreeWidget(parent)
         main_layout.addWidget(self.other, 2, 2)
-        self.other.setColumnCount(1)
         mod_layout = QHBoxLayout()
         main_layout.addLayout(mod_layout, 3, 1, Qt.AlignCenter)
-        line = QHLine(parent)
         main_layout.addWidget(line, 4, 1, 1, 2)
         bottom_layout = QHBoxLayout()
         main_layout.addLayout(bottom_layout, 5, 1, 1, 2, Qt.AlignRight)
@@ -485,14 +465,18 @@ class CustomizeTool(ToolInstance):
         self.instructions.setText("""
         <h1>Customize Toolbar Home Tab</h1>
 
-        Instructional text on how to use inteface.
+        Use drag and drop to move buttons and sections around in the Home tab or to copy them from the available menus.
         """)
 
         self.build_home_tab()
         self.home.childDraggedAndDropped.connect(self.update)
 
+        self.other.setColumnCount(1)
+        self.other.setDragEnabled(True)
+        self.other.setDropIndicatorShown(True)
+        self.other.setDragDropMode(QAbstractItemView.DragOnly)
         self.other.setHeaderLabels(["Available Buttons"])
-        other_flags = Qt.ItemIsEnabled | Qt.ItemIsDragEnabled
+        other_flags = Qt.ItemIsEnabled | Qt.ItemIsDragEnabled | Qt.ItemIsSelectable
         toolbar = self.session.toolbar._toolbar
         last_tab = None
         last_section = None
@@ -504,15 +488,19 @@ class CustomizeTool(ToolInstance):
             if tab != last_tab:
                 last_tab = tab
                 last_section = None
-                tab_item = QTreeWidgetItem(self.other, [tab], TAB_TYPE)
+                tab_item = QTreeWidgetItem(self.other, [tab])
+                tab_item.setData(0, ITEM_TYPE_ROLE, TAB_TYPE)
                 tab_item.setFlags(Qt.ItemIsEnabled)
                 self.other.expandItem(tab_item)
             if section != last_section:
                 last_section = section
-                section_item = QTreeWidgetItem(tab_item, [section], SECTION_TYPE)
+                section_item = QTreeWidgetItem(tab_item, [section])
+                section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
                 section_item.setFlags(other_flags)
                 self.other.expandItem(section_item)
-            item = QTreeWidgetItem(section_item, [f"{display_name}"], BUTTON_TYPE)
+            item = QTreeWidgetItem(section_item, [f"{display_name}"])
+            item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
+            item.setData(0, LINK_ROLE, f"{bundle_info.name}:{name}")
             item.setFlags(other_flags)
             if icon_path is None:
                 icon = None
@@ -525,10 +513,7 @@ class CustomizeTool(ToolInstance):
         # the following is very similar to code for toolbar layout
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QIcon
-        from PyQt5.QtWidgets import QTreeWidgetItem
-        if self.home.topLevelItemCount() != 0:
-            self.home.itemChanged.disconnect()
-            self.home.clear()
+        self.home.clear()
         self.home.setHeaderLabels(["Home Tab"])
         home_buttons = (
             Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
@@ -543,12 +528,14 @@ class CustomizeTool(ToolInstance):
         for (section, compact, display_name, icon_path, description, link, bi, name, kw) in _home_layout(self.session, _settings.home_tab):
             if section != last_section:
                 last_section = section
-                section_item = QTreeWidgetItem(self.home, [section], SECTION_TYPE)
+                section_item = QTreeWidgetItem(self.home, [section])
+                section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
                 section_item.setFlags(home_sections)
                 section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
                 self.home.expandItem(section_item)
-            item = QTreeWidgetItem(section_item, [f"{display_name}"], BUTTON_TYPE)
-            item.setData(0, Qt.UserRole, link)
+            item = QTreeWidgetItem(section_item, [f"{display_name}"])
+            item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
+            item.setData(0, LINK_ROLE, link)
             item.setFlags(home_buttons)
             if icon_path is None:
                 icon = None
@@ -556,12 +543,9 @@ class CustomizeTool(ToolInstance):
                 icon = QIcon(icon_path)
                 item.setIcon(0, icon)
             item.setToolTip(0, description)
-        if self.home.topLevelItemCount() != 0:
-            self.home.itemChanged.connect(self.update)
 
     def update(self, *args):
         # propagate user changes to home tab
-        from PyQt5.QtCore import Qt
         from PyQt5.QtWidgets import QTreeWidgetItemIterator
         home_tab = []
         cur_section = []
@@ -569,16 +553,17 @@ class CustomizeTool(ToolInstance):
         while it.value():
             item = it.value()
             it += 1
-            if item.type() == BUTTON_TYPE:
+            item_type = item.data(0, ITEM_TYPE_ROLE)
+            if item_type == BUTTON_TYPE:
                 display_name = item.text(0)
-                link = item.data(0, Qt.UserRole)
+                link = item.data(0, LINK_ROLE)
                 # TODO: examine linked item to see if display_name is the same
                 name = link.split(sep=':', maxsplit=1)[1]
                 if name == display_name:
                     cur_section.append(link)
                 else:
                     cur_section.append((link, display_name))
-            elif item.type() == SECTION_TYPE:
+            elif item_type == SECTION_TYPE:
                 name = item.text(0)
                 cur_section = []
                 if item.checkState(0):
