@@ -767,7 +767,7 @@ def color_name(color_or_rgba8):
     return name
 
 def hex_color(rgba8):
-    return ('#%02x%02x%02x' % rgba8[:3]) if rgba8[3] == 255 else ('#%02x%02x%02x%02x' % rgba8)
+    return ('#%02x%02x%02x' % tuple(rgba8[:3])) if rgba8[3] == 255 else ('#%02x%02x%02x%02x' % tuple(rgba8))
 
 def rgba_to_rgba8(rgba):
     return tuple(int(255 * r) for r in rgba)
