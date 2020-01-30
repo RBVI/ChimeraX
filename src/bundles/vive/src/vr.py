@@ -301,6 +301,7 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
     if sys.platform == 'darwin':
         # SteamVR on Mac is older then what PyOpenVR expects.
         openvr.IVRSystem_Version = "IVRSystem_019"
+        openvr.IVRCompositor_Version = "IVRCompositor_022"
         
     try:
         c.start_vr()
