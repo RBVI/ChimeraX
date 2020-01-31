@@ -1372,6 +1372,7 @@ specified atoms, or limit the display to a zone without making a new map
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Add two or more maps to create a new map.
@@ -1413,9 +1414,8 @@ Note resampling causes some loss in resolution
   used along all three axes; if three numbers are supplied
   (separated by commas but not spaces), they
   are used along the X, Y, and Z axes, respectively.
-  <li><b>gridSubregion</b>
-  &ndash; whether to use the full extents of <i>gridmap</i> (<b>all</b>, default)
-  or a specified subregion.
+  <li><b>gridSubregion</b> &ndash; whether to use the full extents 
+  of <i>gridmap</i> (<b>all</b>, default) or a specified subregion.
   A subregion can be specified by:
    <ul>
    <li> <i>name</i> previously assigned
@@ -1434,6 +1434,9 @@ and can be 8-, 16-, or 32-bit signed integer
 8-, 16-, or 32-bit unsigned integer
 (<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
 or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+</p><p>
+The <b>hideMaps</b> option indicates whether to hide the input maps
+(default <b>true</b>).
 </p><p>
 If the new map is large, for example a whole tomogram, the command may
 fail for lack of memory.  The whole new map must fit in memory.
@@ -1789,6 +1792,7 @@ See also: <a href="#multiply"><b>volume multiply</b></a>,
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Set each value to the maximum at that point in two or more input maps.
@@ -1824,6 +1828,7 @@ perform (default <b>1</b>).
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Set each value to the minimum at that point in two or more input maps.
@@ -1895,6 +1900,7 @@ See also:
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Multiply the values pointwise in two or more maps.
@@ -2052,6 +2058,7 @@ target="_top"><b>Volume Tracer</b></a>
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Resample values to a different grid using trilinear interpolation.
@@ -2136,6 +2143,7 @@ See also: <a href="../tools/segment.html"><b>Segment Map</b></a>
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Subtract the values of <i>othermap</i> from <i>map</i>, both specified by
