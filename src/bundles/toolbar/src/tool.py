@@ -511,11 +511,14 @@ class ToolbarSettingsTool:
 
         # widget contents/customization:
         self.instructions.setWordWrap(True)
-        self.instructions.setText("""
-        <h3>Customize Toolbar Home Tab</h3>
-
-        Use drag and drop to move buttons and sections around in the Home tab or to copy them from the Available Buttons.  Edit the text in the Home tab.  Checked sections are made compact.  Currently, pulldown menus are unsupported.
-        """)
+        self.instructions.setText(
+            "To customize the Toolbar's Home tab, "
+            "use drag and drop to either move buttons and sections around within the Home tab "
+            "or to copy them from the Available Buttons.  "
+            "Edit the text in the Home tab to change the displayed name.  "
+            "Check sections to make them compact.  "
+            "All changes are immediately shown in the actual toobar.  "
+            "Currently, pulldown menus and mouse modes are unsupported.")
 
         self.build_home_tab()
         self.home.childDraggedAndDropped.connect(self.update)
@@ -642,6 +645,7 @@ class ToolbarSettingsTool:
                 section_item.setFlags(SECTION_FLAGS)
                 section_item.setCheckState(0, Qt.Unchecked)
                 self.home.expandItem(section_item)
+                self.home.scrollToItem(section_item)
                 return
 
     def remove(self):
