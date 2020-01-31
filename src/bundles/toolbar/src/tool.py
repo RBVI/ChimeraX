@@ -357,10 +357,8 @@ class _HomeTab(QTreeWidget):
             event.ignore()
             return
         source_type = selected[0].data(0, ITEM_TYPE_ROLE)
-        if source_type == SECTION_TYPE:
-            self.invisibleRootItem().setFlags(Qt.ItemIsDropEnabled)
-        else:
-            self.invisibleRootItem().setFlags(Qt.NoItemFlags)
+        self.invisibleRootItem().setFlags(
+                Qt.ItemIsDropEnabled if source_type == SECTION_TYPE else Qt.NoItemFlags)
 
         accept_drop = source_type == BUTTON_TYPE
         for i in range(self.topLevelItemCount()):
@@ -386,7 +384,35 @@ class _HomeTab(QTreeWidget):
         return super().dragEnterEvent(event)
 
     def dropEvent(self, event):
+        source = event.source()
+        if source == self:
+            copy_subtree = False
+        else:
+            # from dragEnterEvent, we know there is at least one selected item
+            original = source.selectedItems()[0]
+            original_type = original.data(0, ITEM_TYPE_ROLE)
+            copy_subtree = original_type == SECTION_TYPE
         super().dropEvent(event)
+        if copy_subtree:
+            # find where it was copied to
+            new_section = self.itemAt(event.pos())
+            self.expandItem(new_section)
+            for i in range(original.childCount()):
+                new_child = original.child(i).clone()
+                new_section.addChild(new_child)
+            original_name = original.text(0)
+            new_section_name = new_section.text(0)
+            if new_section_name == original_name:
+                current_sections = set()
+                for i in range(self.topLevelItemCount()):
+                    item_name = self.topLevelItem(i).text(0)
+                    current_sections.add(item_name)
+                from itertools import chain, count
+                for suffix in chain(("",), count(2)):
+                    new_name = f"new {original_name}{suffix}"
+                    if new_name not in current_sections:
+                        new_section.setText(0, new_name)
+                        break
         self.childDraggedAndDropped.emit()
 
 
@@ -397,6 +423,15 @@ class CustomizeTool(ToolInstance):
     PLACEMENT = "top"
     CUSTOM_SCHEME = "toolbar"
     help = "help:user/tools/Toolbar.html#customize"  # Let ChimeraX know about our help page
+
+    BUTTON_FLAGS = (
+        Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+        | Qt.ItemNeverHasChildren | Qt.ItemIsDragEnabled
+    )
+    SECTION_FLAGS = (
+        Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+        | Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled
+    )
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -497,6 +532,7 @@ class CustomizeTool(ToolInstance):
                 section_item = QTreeWidgetItem(tab_item, [section])
                 section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
                 section_item.setFlags(other_flags)
+                section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
                 self.other.expandItem(section_item)
             item = QTreeWidgetItem(section_item, [f"{display_name}"])
             item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
@@ -513,16 +549,10 @@ class CustomizeTool(ToolInstance):
         # the following is very similar to code for toolbar layout
         from PyQt5.QtCore import Qt
         from PyQt5.QtGui import QIcon
-        self.home.clear()
+        if self.home.topLevelItemCount() != 0:
+            self.home.itemChanged.disconnect()
+            self.home.clear()
         self.home.setHeaderLabels(["Home Tab"])
-        home_buttons = (
-            Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-            | Qt.ItemNeverHasChildren | Qt.ItemIsDragEnabled
-        )
-        home_sections = (
-            Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-            | Qt.ItemIsUserCheckable | Qt.ItemIsDropEnabled | Qt.ItemIsDragEnabled
-        )
         last_section = None
         section_item = None
         for (section, compact, display_name, icon_path, description, link, bi, name, kw) in _home_layout(self.session, _settings.home_tab):
@@ -530,19 +560,21 @@ class CustomizeTool(ToolInstance):
                 last_section = section
                 section_item = QTreeWidgetItem(self.home, [section])
                 section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
-                section_item.setFlags(home_sections)
+                section_item.setFlags(self.SECTION_FLAGS)
                 section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
                 self.home.expandItem(section_item)
             item = QTreeWidgetItem(section_item, [f"{display_name}"])
             item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
             item.setData(0, LINK_ROLE, link)
-            item.setFlags(home_buttons)
+            item.setFlags(self.BUTTON_FLAGS)
             if icon_path is None:
                 icon = None
             else:
                 icon = QIcon(icon_path)
                 item.setIcon(0, icon)
             item.setToolTip(0, description)
+        if self.home.topLevelItemCount() != 0:
+            self.home.itemChanged.connect(self.update)
 
     def update(self, *args):
         # propagate user changes to home tab
@@ -583,13 +615,30 @@ class CustomizeTool(ToolInstance):
 
     def new_section(self):
         # add new section to home tab
-        pass
+        current_sections = set()
+        for i in range(self.home.topLevelItemCount()):
+            item_name = self.home.topLevelItem(i).text(0)
+            current_sections.add(item_name)
+        from itertools import chain, count
+        for suffix in chain(("",), count(2)):
+            new_name = f"new section{suffix}"
+            if new_name not in current_sections:
+                section_item = QTreeWidgetItem(self.home, [new_name])
+                section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
+                section_item.setFlags(self.SECTION_FLAGS)
+                section_item.setCheckState(0, Qt.Unchecked)
+                self.home.expandItem(section_item)
+                return
 
     def remove(self):
         # remove selected sections/buttons from home tab
-        import sys
-        print([si.text(0) for si in self.home.selectedItems()], file=sys.__stderr__)
-        # TODO:
+        for si in self.home.selectedItems():
+            parent = si.parent()
+            if parent:
+                parent.removeChild(si)
+            else:
+                self.home.invisibleRootItem().removeChild(si)
+        self.update()
 
     def save(self):
         # save current configuration in preferences
