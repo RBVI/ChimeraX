@@ -590,18 +590,24 @@ def R_to_axis_angle(matrix):
         ay = matrix[0][2] - matrix[2][0]
         az = matrix[1][0] - matrix[0][1]
 
-    # Handle 180 degree rotations.
+    trace = m00 + m11 + m22
     near_zero = 1e-9
-    if abs(ax) < near_zero and abs(ay) < near_zero and abs(az) < near_zero:
+    if abs(ax) < near_zero and abs(ay) < near_zero and abs(az) < near_zero and trace < 1.1:
+        # Handle 180 degree rotations.
+        #
+        # Matrix is nearly symmetric and not close to the identity (trace = 3).
+        #
         # A 180 degree rotation R about axis (ax,ay,az) is symmetric
         #   R = [(2*ax*ax-1, 2*ax*ay, 2*ax*az),
         #        (2*ax*ay, 2*ay*ay-1, 2*ay*az),
         #        (2*ax*az, 2*ay*az, 2*az*az-1)]
-        # so use diagonal to get rotation axis.
+        # so use this form to get rotation axis.
+        #
         signs = [(1 if s >= 0 else -1) for s in (matrix[1][2], matrix[0][2], matrix[0][1])]
         axis = array([sign*sqrt(max(0, 0.5*(d + 1))) for d,sign in zip((m00,m11,m22),signs)], float64)
         theta_deg = 180
     else:
+        # Handle non-180 degree rotations.
         axis = array((ax, ay, az), float64)
 
         # Angle.
@@ -609,8 +615,7 @@ def R_to_axis_angle(matrix):
         if r == 0:
             return array((0, 0, 1), float64), 0
 
-        t = m00 + m11 + m22
-        theta = atan2(r, t - 1)
+        theta = atan2(r, trace - 1)
         theta_deg = theta * 180 / pi
     
         # Normalise the axis.

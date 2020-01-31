@@ -97,18 +97,20 @@ from ._segment import find_local_maxima, crosssection_midpoints
 
 # ----------------------------------------------------------------------------
 # Calculate surface vertices and triangles surrounding 3d region map voxels
-# having a specified region index.
+# having a specified region or group index.  The optional group array maps
+# region map values to group index values.
 #
-# segment_surface(region_map, region_index[, surface_ids]) -> (surface id, vertices, triangles)
+# segmentation_surface(region_map, index[, groups]) -> (vertices, triangles)
 #
 # ----------------------------------------------------------------------------
-# Calculate surfaces (vertices and triangles) surrounding several sets of
-# 3d region map voxels.  The region map must have integer values.  The surface_ids array
-# maps region index values to surface id value.
+# Calculate surface vertices and triangles for several regions of region_map.
+# The region map must have integer values.  A surfce is made for each region
+# integer value.  If the groups array is given it maps region index values to
+# group index values and a surface is made for each group index.
 #
-# segment_surfaces(region_map[, surface_ids]) -> list of (surface id, vertices, triangles)
+# segmentation_surfaces(region_map[, groups]) -> list of (id, vertices, triangles)
 #
-from ._segment import segment_surface, segment_surfaces
+from ._segment import segmentation_surface, segmentation_surfaces
 
 # -----------------------------------------------------------------------------
 #

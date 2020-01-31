@@ -270,7 +270,7 @@ def _which_segments(segmentation, conditions):
 #
 def segmentation_surfaces(session, segmentations,
                           where = None, each = None, region = 'all', step = None,
-                          color = None, zero = False):
+                          color = None):
 
     if len(segmentations) == 0:
         from chimerax.core.errors import UserError
@@ -280,84 +280,115 @@ def segmentation_surfaces(session, segmentations,
         color = color.uint8x4()
 
     surfaces = []
-    conditions = (where if where else []) + ([each] if each else [])
     for seg in segmentations:
-        if where is None and each is None:
-            max_seg_id = _maximum_segment_id(seg)
-            if max_seg_id > 100:
-                from chimerax.core.errors import UserError
-                raise UserError('Segmentation %s (#%s) has %d segments (> 100).'
-                                ' To create surface for each segment use "each segment" option.'
-                                % (seg.name, seg.id_string, max_seg_id))
-        group, attribute_name = _which_segments(seg, conditions)
         sstep = _voxel_limit_step(seg, region) if step is None else step
-        matrix = seg.matrix(step = sstep, subregion = region)
-        from . import segment_surfaces
-        # TODO: Use zero option.
-        surfs = segment_surfaces(matrix, group)
-#        print ('got %d surfaces' % len(surfs),
-#               ','.join('%d v %d t %d max %d tri %s'
-#                        % (s[0], len(s[1]), len(s[2]), s[2].max(), s[2][:3]) for s in surfs[:5]))
-#        raise RuntimeError('stop here')
-        attr = None if attribute_name == 'segment' else attribute_name
-        colors = _attribute_colors(seg, attr).attribute_rgba
-        if each is None and len(surfs) > 1:
-            # Combine to single surface
-            scount = len(surfs)
-            va, ta, vertex_colors = _combine_geometry(surfs, colors)
-            surfs = [(None, va, ta)]
-        segsurfs = []
-        tf = seg.matrix_indices_to_xyz_transform(step = sstep, subregion = region)
-        for surf in surfs:
-            region_id, va, ta = surf
-            tf.transform_points(va, in_place = True)
-            from chimerax.surface import calculate_vertex_normals
-            na = calculate_vertex_normals(va, ta)
-            from chimerax.core.models import Surface
-            if region_id is None:
-                name = '%s %d %ss' % (seg.name, scount, attribute_name)
-            else:
-                name = '%s %s %d' % (seg.name, attribute_name, region_id)
-            s = Surface(name, session)
-            s.set_geometry(va, na, ta)
-            s.clip_cap = True  # Cap surface when clipped
-            if color is None and region_id is None:
-                s.vertex_colors = vertex_colors
-            else:
-                s.color = colors[region_id] if color is None else color
-            segsurfs.append(s)
+        segsurfs = calculate_segmentation_surfaces(seg, where=where, each=each,
+                                                   region=region, step=sstep, color=color)
         surfaces.extend(segsurfs)
 
         nsurf = len(segsurfs)
         if nsurf > 1:
-            models_name = ('%s %d surfaces' % (seg.name, len(surfs)))
+            models_name = ('%s %d surfaces' % (seg.name, nsurf))
             session.models.add_group(segsurfs, name = models_name)
         elif nsurf == 1:
             session.models.add(segsurfs)
 
-        tcount = sum([len(ta) for value, va, ta in surfs])
+        tcount = sum([len(s.triangles) for s in segsurfs])
         session.logger.info('Created %d segmentation surfaces, %d triangles, subsampled %s'
                             % (nsurf, tcount, _step_string(sstep)))
     return surfaces
 
 # -----------------------------------------------------------------------------
 #
-def _combine_geometry(surfs, colors):
-    nv = sum(len(va) for region_id, va, ta in surfs)
+def calculate_segmentation_surfaces(seg, where = None, each = None,
+                                    region = 'all', step = None, color = None):
+    # Warn if number of surfaces is large.
+    if where is None and each is None:
+        max_seg_id = _maximum_segment_id(seg)
+        if max_seg_id > 100:
+            from chimerax.core.errors import UserError
+            raise UserError('Segmentation %s (#%s) has %d segments (> 100).'
+                            ' To create surface for each segment use "each segment" option.'
+                            % (seg.name, seg.id_string, max_seg_id))
+
+    # Compute surfaces
+    conditions = (where if where else []) + ([each] if each else [])
+    group, attribute_name = _which_segments(seg, conditions)
+    matrix = seg.matrix(step = step, subregion = region)
+    from . import segmentation_surfaces
+    surfs = segmentation_surfaces(matrix, group)
+
+    # Transform vertices from index to scene units and compute normals.
+    geom = []
+    tf = seg.matrix_indices_to_xyz_transform(step = step, subregion = region)
+    for region_id, va, ta in surfs:
+        tf.transform_points(va, in_place = True)
+        from chimerax.surface import calculate_vertex_normals
+        na = calculate_vertex_normals(va, ta)
+        geom.append((region_id, va, na, ta))
+
+    # Determine surface coloring.
+    if color is None:
+        attr = None if attribute_name == 'segment' else attribute_name
+        colors = _attribute_colors(seg, attr).attribute_rgba
+        
+    # Create one or more surface models
+    from chimerax.core.models import Surface
+    segsurfs = []
+    if each is None and len(geom) > 1:
+        # Combine multiple surfaces into one.
+        va, na, ta = _combine_geometry([g[1:] for g in geom])
+        name = '%s %d %ss' % (seg.name, len(geom), attribute_name)
+        s = Surface(name, seg.session)
+        s.clip_cap = True  # Cap surface when clipped
+        s.set_geometry(va, na, ta)
+        if color is None:
+            color_counts = [(colors[region_id], len(sva)) for region_id, sva, sna, sta in geom]
+            s.vertex_colors = _vertex_colors(len(va), color_counts)
+        else:
+            s.color = color
+        segsurfs.append(s)
+    else:
+        # Create multiple surface models
+        for region_id, va, na, ta in geom:
+            name = '%s %s %d' % (seg.name, attribute_name, region_id)
+            s = Surface(name, seg.session)
+            s.clip_cap = True  # Cap surface when clipped
+            s.set_geometry(va, na, ta)
+            s.color = colors[region_id] if color is None else color
+            segsurfs.append(s)
+
+    return segsurfs
+
+# -----------------------------------------------------------------------------
+#
+def _combine_geometry(surfs):
+    nv = sum(len(va) for va, na, ta in surfs)
     from numpy import empty, float32, uint8, concatenate
     cva = empty((nv,3), float32)
-    cvc = empty((nv,4), uint8)
+    cna = empty((nv,3), float32)
     voffset = 0
     tlist = []
-    for region_id, va, ta in surfs:
+    for va, na, ta in surfs:
         snv = len(va)
         cva[voffset:voffset+snv,:] = va
-        cvc[voffset:voffset+snv,:] = colors[region_id]
+        cna[voffset:voffset+snv,:] = na
         ta += voffset
         tlist.append(ta)
         voffset += snv
     cta = concatenate(tlist)
-    return cva, cta, cvc
+    return cva, cna, cta
+
+# -----------------------------------------------------------------------------
+#
+def _vertex_colors(n, color_counts):
+    from numpy import empty, uint8
+    vertex_colors = empty((n,4), uint8)
+    voffset = 0
+    for color, nc in color_counts:
+        vertex_colors[voffset:voffset+nc,:] = color
+        voffset += nc
+    return vertex_colors
 
 # -----------------------------------------------------------------------------
 #
@@ -399,10 +430,9 @@ def _attribute_values(seg, attribute_name):
     if hasattr(seg, attribute_name):
         g = getattr(seg, attribute_name)
     else:
-        try:
-            g = seg.data.find_attribute(attribute_name)
-        except:
-            g = None
+        g = seg.data.find_attribute(attribute_name)
+        if g is None and not attribute_name.endswith('_id'):
+            g = seg.data.find_attribute(attribute_name + '_id')
         if g is None:
             raise UserError('Segmentation %s (#%s) has no attribute %s'
                             % (seg.name, seg.id_string, attribute_name))
@@ -460,8 +490,7 @@ def register_segmentation_command(logger):
                    ('each', StringArg),
                    ('region', MapRegionArg),
                    ('step', MapStepArg),
-                   ('color', ColorArg),
-                   ('zero', BoolArg),],
+                   ('color', ColorArg),],
         synopsis = 'Create surfaces for a segmentation regions.'
     )
     register('segmentation surfaces', desc, segmentation_surfaces, logger=logger)

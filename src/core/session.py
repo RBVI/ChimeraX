@@ -275,8 +275,8 @@ class _SaveManager:
             try:
                 data = sm.take_snapshot(obj, session, self.state_flags)
             except Exception as e:
-                msg = 'Error while saving session data for %s: %s' % (_obj_stack(parents, obj), e)
-                raise RuntimeError(msg)
+                msg = 'Error while saving session data for %s' % _obj_stack(parents, obj)
+                raise RuntimeError(msg) from e
         elif isinstance(obj, type):
             return None
         if data is None:

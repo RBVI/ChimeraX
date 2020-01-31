@@ -1431,6 +1431,10 @@ class Volume(Model):
       # Optimization: avoid interpolation for identical grids.
       values = self.matrix(step = step, subregion = subregion)
     else:
+      if subregion == 'all' and self.data.voxel_count() > 2**28:
+        # Load just the small subregion of self that covers the grid in case
+        # the vgrid is small and map self is huge (e.g. does not fit in memory).
+        subregion = self._covering_subregion(vgrid)
       size_limit = 2 ** 22          # 4 Mvoxels
       isize, jsize, ksize = vgrid.matrix_size(step = 1, subregion = 'all')
       shape = (ksize, jsize, isize)
@@ -1453,6 +1457,23 @@ class Volume(Model):
 
     return values, same
 
+  # -----------------------------------------------------------------------------
+  #
+  def _covering_subregion(self, v):
+    '''Return subregion of self that covers the full region of map v.'''
+    vijk_min = (0,0,0)
+    vijk_max = tuple(s-1 for s in v.data.size)
+    from .data import box_corners, bounding_box
+    vijk_corners = box_corners(vijk_min, vijk_max)
+    vxyz_corners = v.data.ijk_to_xyz(vijk_corners)
+    xyz_corners = self.scene_position.inverse() * v.scene_position * vxyz_corners
+    ijk_corners = self.data.xyz_to_ijk(xyz_corners)
+    ijk_min, ijk_max = bounding_box(ijk_corners)
+    from math import floor, ceil
+    ijk_min = tuple(max(0,int(floor(i))) for i in ijk_min)
+    ijk_max = tuple(min(s-1,int(ceil(i))) for i,s in zip(ijk_max, self.data.size))
+    return ijk_min, ijk_max
+    
   # -----------------------------------------------------------------------------
   #
   def mean_sd_rms(self):

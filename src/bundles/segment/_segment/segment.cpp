@@ -261,50 +261,53 @@ point_counts : array of int, size bcount
   },
 
   /* segsurf.h */
-  {const_cast<char*>("segment_surface"),
-   (PyCFunction)segment_surface,
+  {const_cast<char*>("segmentation_surface"),
+   (PyCFunction)segmentation_surface,
    METH_VARARGS|METH_KEYWORDS,
    R"(
-segment_surface(region_map, region_index [, surface_ids])
+segmentation_surface(region_map, index [, groups])
 
 Calculate surface vertices and triangles surrounding 3d region map voxels
-having a specified surface id or region index.
+having a specified region or group index.  The optional group array maps
+region map values to group index values.
 Implemented in C++.
 
 Parameters
 ----------
 region_map : 3d array, uint32
-region_index : int
-surface_ids : 1d array of int
-  This array maps the region index to a surface id allowing multiple regions to be grouped forming one surface.
+index : int
+  Region or group index of voxels to compute surface for.
+groups : 1d array of int
+  This array maps the region index to a group index allowing multiple regions to form one surface.
 
 Returns
 -------
-surface_id : int
 vertices : n x 3 array of float
 triangles : m x 3 array of int 
 )"
   },
   
-  {const_cast<char*>("segment_surfaces"),
-   (PyCFunction)segment_surfaces,
+  {const_cast<char*>("segmentation_surfaces"),
+   (PyCFunction)segmentation_surfaces,
    METH_VARARGS|METH_KEYWORDS,
    R"(
-segment_surfaces(region_map [, surface_ids])
+segmentation_surfaces(region_map [, groups])
 
-Calculate surfaces (vertices and triangles) surrounding each set of
-3d region map voxels having the same surface id or region index value.
+Calculate surface vertices and triangles for several regions of region_map.
+The region map must have integer values.  A surfce is made for each region
+integer value.  If the groups array is given it maps region index values to
+group index values and a surface is made for each group index.
 Implemented in C++.
 
 Parameters
 ----------
 region_map : 3d array, uint32
-surface_ids : 1d array of int
-  This array maps the region index to a surface id allowing multiple regions to be grouped forming one surface.
+groups : 1d array of int
+  This array maps the region index to a surface id allowing multiple regions to form one surface.
 
 Returns
 -------
-surfaces : list of 3-tuples (int region_index, vertices n x 3 array of float, triangles m x 3 array of int)
+surfaces : list of 3-tuples (int index, vertices n x 3 array of float, triangles m x 3 array of int)
 )"
   },
 
