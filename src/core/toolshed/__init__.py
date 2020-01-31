@@ -1011,7 +1011,8 @@ class Toolshed:
                 if m is None:
                     logger = session.logger
                     if logger:
-                        logger.error("Manager %r failed to initialize" % mgr)
+                        logger.error("Manager initialization for %r failed to return the manager instance"
+                            % mgr)
                     continue
                 for pbi in all_bundles:
                     for pvdr, params in pbi.providers.items():

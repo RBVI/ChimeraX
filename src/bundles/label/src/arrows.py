@@ -76,7 +76,8 @@ def arrow_change(session, arrows, *, color=None, weight=None,
         'head_style': head_style,
         'frames': frames
     }
-    return [_update_arrow(session, a, **kw) for a in arrows]
+    for a in arrows:
+        _update_arrow(session, a, **kw)
 
 
 def _update_arrow(session, a, *, color=None, weight=None,
