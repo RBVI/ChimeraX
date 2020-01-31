@@ -123,6 +123,17 @@ class ToolbarTool(ToolInstance):
         section_labels.setChecked(_settings.show_section_labels)
         section_labels.toggled.connect(lambda arg, f=self._set_section_labels: f(arg))
         menu.addAction(section_labels)
+        settings_action = QAction("Settings...", menu)
+        settings_action.triggered.connect(lambda arg: self.show_settings())
+        menu.addAction(settings_action)
+
+    def show_settings(self):
+        if not hasattr(self, "settings_tool"):
+            self.settings_tool = ToolbarSettingsTool(
+                self.session, self,
+                self.tool_window.create_child_window("Toolbar Settings", close_destroys=False))
+            self.settings_tool.tool_window.manage(None)
+        self.settings_tool.tool_window.shown = True
 
     def _set_button_labels(self, show_button_labels):
         _settings.show_button_labels = show_button_labels
@@ -326,6 +337,15 @@ TAB_TYPE = 1
 SECTION_TYPE = 2
 BUTTON_TYPE = 3
 GROUP_TYPE = 4
+# tree item flags:
+BUTTON_FLAGS = (
+    Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+    | Qt.ItemNeverHasChildren | Qt.ItemIsDragEnabled
+)
+SECTION_FLAGS = (
+    Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
+    | Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled
+)
 
 
 class _HomeTab(QTreeWidget):
@@ -396,50 +416,42 @@ class _HomeTab(QTreeWidget):
         if copy_subtree:
             # find where it was copied to
             new_section = self.itemAt(event.pos())
+            new_section.setFlags(SECTION_FLAGS)
             self.expandItem(new_section)
             for i in range(original.childCount()):
                 new_child = original.child(i).clone()
+                new_child.setFlags(BUTTON_FLAGS)
                 new_section.addChild(new_child)
-            original_name = original.text(0)
-            new_section_name = new_section.text(0)
-            if new_section_name == original_name:
-                current_sections = set()
-                for i in range(self.topLevelItemCount()):
-                    item_name = self.topLevelItem(i).text(0)
-                    current_sections.add(item_name)
+            # make sure section name is unique
+            from collections import Counter
+            section_name = original.text(0)
+            current_section_names = []
+            for i in range(self.topLevelItemCount()):
+                item_name = self.topLevelItem(i).text(0)
+                current_section_names.append(item_name)
+            current_sections = Counter(current_section_names)
+            if current_sections[section_name] > 1:
                 from itertools import chain, count
                 for suffix in chain(("",), count(2)):
-                    new_name = f"new {original_name}{suffix}"
+                    new_name = f"new {section_name}{suffix}"
                     if new_name not in current_sections:
                         new_section.setText(0, new_name)
                         break
+        elif source != self:
+            new_button = self.itemAt(event.pos())
+            new_button.setFlags(BUTTON_FLAGS)
         self.childDraggedAndDropped.emit()
 
 
-class CustomizeTool(ToolInstance):
+class ToolbarSettingsTool:
 
-    SESSION_ENDURING = False
-    SESSION_SAVE = False        # No session saving for now
-    PLACEMENT = "top"
-    CUSTOM_SCHEME = "toolbar"
-    help = "help:user/tools/Toolbar.html#customize"  # Let ChimeraX know about our help page
+    # help = "help:user/tools/Toolbar.html#customize"  # Let ChimeraX know about our help page
 
-    BUTTON_FLAGS = (
-        Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-        | Qt.ItemNeverHasChildren | Qt.ItemIsDragEnabled
-    )
-    SECTION_FLAGS = (
-        Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
-        | Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled
-    )
-
-    def __init__(self, session, tool_name):
-        super().__init__(session, tool_name)
-        from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self)
-        tw.title = "Customize Toolbar Home Tab"
+    def __init__(self, session, toolbar, tool_window):
+        self.session = session
+        self.toolbar = toolbar
+        self.tool_window = tool_window
         self._build_ui()
-        tw.manage(placement=None)
 
     def _build_ui(self):
         from PyQt5.QtWidgets import (
@@ -491,16 +503,18 @@ class CustomizeTool(ToolInstance):
         restore.setToolTip("Restore previously saved Home tab configuration")
         restore.clicked.connect(self.restore)
         bottom_layout.addWidget(restore)
-        close = QPushButton("Close", parent)
-        close.setToolTip("Close dialog")
-        close.clicked.connect(self.close)
-        bottom_layout.addWidget(close)
+        help = QPushButton("Help", parent)
+        help.setToolTip("Show Help")
+        help.setEnabled(False)
+        # TODO: help.clicked.connect(self.help)
+        bottom_layout.addWidget(help)
 
         # widget contents/customization:
+        self.instructions.setWordWrap(True)
         self.instructions.setText("""
-        <h1>Customize Toolbar Home Tab</h1>
+        <h3>Customize Toolbar Home Tab</h3>
 
-        Use drag and drop to move buttons and sections around in the Home tab or to copy them from the available menus.
+        Use drag and drop to move buttons and sections around in the Home tab or to copy them from the Available Buttons.  Edit the text in the Home tab.  Checked sections are made compact.  Currently, pulldown menus are unsupported.
         """)
 
         self.build_home_tab()
@@ -512,7 +526,7 @@ class CustomizeTool(ToolInstance):
         self.other.setDragDropMode(QAbstractItemView.DragOnly)
         self.other.setHeaderLabels(["Available Buttons"])
         other_flags = Qt.ItemIsEnabled | Qt.ItemIsDragEnabled | Qt.ItemIsSelectable
-        toolbar = self.session.toolbar._toolbar
+        toolbar = self.session.toolbar._toolbar  # internal manager data
         last_tab = None
         last_section = None
         tab_item = None
@@ -560,13 +574,13 @@ class CustomizeTool(ToolInstance):
                 last_section = section
                 section_item = QTreeWidgetItem(self.home, [section])
                 section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
-                section_item.setFlags(self.SECTION_FLAGS)
+                section_item.setFlags(SECTION_FLAGS)
                 section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
                 self.home.expandItem(section_item)
             item = QTreeWidgetItem(section_item, [f"{display_name}"])
             item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
             item.setData(0, LINK_ROLE, link)
-            item.setFlags(self.BUTTON_FLAGS)
+            item.setFlags(BUTTON_FLAGS)
             if icon_path is None:
                 icon = None
             else:
@@ -625,7 +639,7 @@ class CustomizeTool(ToolInstance):
             if new_name not in current_sections:
                 section_item = QTreeWidgetItem(self.home, [new_name])
                 section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
-                section_item.setFlags(self.SECTION_FLAGS)
+                section_item.setFlags(SECTION_FLAGS)
                 section_item.setCheckState(0, Qt.Unchecked)
                 self.home.expandItem(section_item)
                 return
@@ -653,9 +667,6 @@ class CustomizeTool(ToolInstance):
         # restore current configuration from saved preferences
         _settings.restore()
         self.update_from_settings()
-
-    def close(self):
-        self.delete()
 
 # Adapted QHLine from
 # https://stackoverflow.com/questions/5671354/how-to-programmatically-make-a-horizontal-line-in-qt
