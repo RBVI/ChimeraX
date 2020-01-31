@@ -43,7 +43,7 @@ The command <b>open</b> reads data in several
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
-<li><a href="#fetch">online databases</a>
+<li><a href="#fetch">online sources</a>
 </ul>
 <p>
 Input files may contain data to be displayed or commands or code to be executed.
@@ -982,7 +982,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 <p class="nav">
 [<a href="#top">back to top: open</a>]
 </p>
-<h3>Fetch from Online Databases</h3>
+<h3>Fetch from Online Sources</h3>
 
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
@@ -999,8 +999,10 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 -->
 </blockquote>
 <p>
-An entry can be fetched from a database if its <i>identifier</i> is supplied.
-The source database can be indicated with either a <i>prefix</i>
+Atomic structures, density maps, and protein sequences can be fetched directly
+into ChimeraX from online sources. A specific compound or entry is specified 
+by an <i>identifier</i>, and its source (database or web service)
+can be indicated with either a <i>prefix</i>
 before the identifier or the <b>fromDatabase</b> option.
 The default database for a 4-character identifier without prefix is the
 <a href="http://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>;
@@ -1029,7 +1031,8 @@ See also:
 <a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
 </center>
 <table border cellpadding="4" cellspacing="0"><tr>
-<td align="center" style="background-color:#cccccc"><b>database</b></td>
+<td align="center" style="background-color:#cccccc"><b>database
+or web service</b></td>
 <td align="center" style="background-color:#cccccc"><b><i>source</i></b></td>
 <td align="center" style="background-color:#cccccc"><b>description</b></td>
 <td align="center" style="background-color:#cccccc"><b><i>format-name</i></b></td>
@@ -1116,7 +1119,7 @@ Chimera instructions</a> for available identifiers</td>
 </tr><tr>
 <td align="center">
 <a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
-target="_blank"><b>PubChem3D</b></a></td>
+target="_blank">PubChem3D</a></td>
 <td align="center"><b>pubchem</b></td>
 <td align="center">modeled atomic coordinates specified by
 <a href="http://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
@@ -1126,6 +1129,21 @@ compound identifier (CID);
 <a href="../attributes.html">attribute</a> named <b>charge</b>)
 </td>
 <td align="center"><b>sdf</b></td>
+</tr><tr>
+<td align="center">SMILES &rarr; 3D translator</td>
+<td align="center"><b>smiles</b></td>
+<td align="center">modeled atomic coordinates specified by
+<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string, generated using the
+<a href="http://cactus.nci.nih.gov/translate/" target="_blank">SMILES
+translator</a> provided by the
+<a href="http://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
+CADD group</a>, or if that does not produce a structure, the
+<i>smi23d</i> web service provided by the
+cheminformatics group at Indiana University; see also
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>
+</td>
+<td align="center"><b>smiles</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.uniprot.org" 
 target="_blank">UniProt</a></td>
