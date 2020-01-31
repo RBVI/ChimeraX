@@ -165,7 +165,7 @@ class _Section(QWidgetAction):
                 if row < self.compact_height:
                     parent._layout.setRowStretch(row, 1)
                 column = index // self.compact_height
-                parent._layout.addWidget(b, row, column, Qt.AlignCenter)
+                parent._layout.addWidget(b, row, column, Qt.AlignLeft | Qt.AlignVCenter)
             else:
                 if not self.show_button_titles or button_info.icon is None:
                     align = Qt.AlignCenter

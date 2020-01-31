@@ -67,6 +67,7 @@ def register_volume_filtering_subcommands(logger):
         ('grid_step', MapStepArg),
         ('spacing', Float1or3Arg),
         ('value_type', ValueTypeArg),
+        ('hide_maps', BoolArg),
     ] + ssm_kw
     add_kw = resample_kw + [
         ('in_place', BoolArg),
@@ -302,51 +303,60 @@ def register_volume_filtering_subcommands(logger):
 def volume_add(session, volumes, on_grid = None, bounding_grid = None,
                subregion = 'all', step = 1,
                grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
-               in_place = False, scale_factors = None, model_id = None):
+               in_place = False, scale_factors = None, model_id = None,
+               hide_maps = True):
     '''Add maps.'''
     combine_op(volumes, 'add', on_grid, bounding_grid, subregion, step,
                grid_subregion, grid_step, spacing, value_type,
-               in_place, scale_factors, model_id, session)
+               in_place, scale_factors, model_id, session,
+               hide_maps = hide_maps)
 
 # -----------------------------------------------------------------------------
 #
 def volume_maximum(session, volumes, on_grid = None, bounding_grid = None,
-                subregion = 'all', step = 1,
-                grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
-                in_place = False, scale_factors = None, model_id = None):
+                   subregion = 'all', step = 1,
+                   grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
+                   in_place = False, scale_factors = None, model_id = None,
+                   hide_maps = True):
     '''Pointwise maximum of maps.'''
     combine_op(volumes, 'maximum', on_grid, bounding_grid, subregion, step,
                grid_subregion, grid_step, spacing, value_type,
-               in_place, scale_factors, model_id, session)
+               in_place, scale_factors, model_id, session,
+               hide_maps = hide_maps)
 
 # -----------------------------------------------------------------------------
 #
 def volume_minimum(session, volumes, on_grid = None, bounding_grid = None,
-                subregion = 'all', step = 1,
-                grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
-                in_place = False, scale_factors = None, model_id = None):
+                   subregion = 'all', step = 1,
+                   grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
+                   in_place = False, scale_factors = None, model_id = None,
+                   hide_maps = True):
     '''Pointwise minimum of maps.'''
     combine_op(volumes, 'minimum', on_grid, bounding_grid, subregion, step,
                grid_subregion, grid_step, spacing, value_type,
-               in_place, scale_factors, model_id, session)
+               in_place, scale_factors, model_id, session,
+               hide_maps = hide_maps)
 
 # -----------------------------------------------------------------------------
 #
 def volume_multiply(session, volumes, on_grid = None, bounding_grid = None,
-                 subregion = 'all', step = 1,
-                 grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
-                 in_place = False, scale_factors = None, model_id = None):
+                    subregion = 'all', step = 1,
+                    grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
+                    in_place = False, scale_factors = None, model_id = None,
+                    hide_maps = True):
     '''Pointwise multiply maps.'''
     combine_op(volumes, 'multiply', on_grid, bounding_grid, subregion, step,
                grid_subregion, grid_step, spacing, value_type,
-               in_place, scale_factors, model_id, session)
+               in_place, scale_factors, model_id, session,
+               hide_maps = hide_maps)
 
 # -----------------------------------------------------------------------------
 #
 def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
                subregion = 'all', step = 1,
                grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
-               in_place = False, scale_factors = None, model_id = None, session = None):
+               in_place = False, scale_factors = None, model_id = None, session = None,
+               hide_maps = True):
 
     if bounding_grid is None and not in_place:
         bounding_grid = (on_grid is None)
@@ -365,13 +375,15 @@ def combine_op(volumes, operation = 'add', on_grid = None, bounding_grid = None,
     for gv in on_grid:
         combine_operation(volumes, operation, subregion, step,
                           gv, grid_subregion, grid_step, spacing, value_type,
-                          bounding_grid, in_place, scale_factors, model_id, session)
+                          bounding_grid, in_place, scale_factors, model_id, session,
+                          hide_maps = hide_maps)
 
 # -----------------------------------------------------------------------------
 #
 def combine_operation(volumes, operation, subregion, step,
                       gv, grid_subregion, grid_step, spacing, value_type,
-                      bounding_grid, in_place, scale, model_id, session):
+                      bounding_grid, in_place, scale, model_id, session,
+                      hide_maps = True):
 
     if scale is None:
         scale = [1]*len(volumes)
@@ -425,9 +437,10 @@ def combine_operation(volumes, operation, subregion, step,
         if rv.data.name.endswith('difference'):
             rv.set_parameters(cap_faces = False)
 
-    for v in volumes:
-        if not v is rv:
-            v.display = False
+    if hide_maps:
+        for v in volumes:
+            if not v is rv:
+                v.display = False
 
 # -----------------------------------------------------------------------------
 #
@@ -763,7 +776,7 @@ def volume_permute_axes(session, volumes, axis_order = 'xyz',
 def volume_resample(session, volumes, on_grid = None, bounding_grid = False,
                     subregion = 'all', step = 1,
                     grid_subregion = 'all', grid_step = 1, spacing = None,
-                    value_type = None, model_id = None):
+                    value_type = None, model_id = None, hide_maps = True):
     '''Interoplate a map on a new grid.'''
     if on_grid is None and spacing is None:
             raise CommandError('volume resample must specify onGrid option or spacing option')
@@ -773,7 +786,8 @@ def volume_resample(session, volumes, on_grid = None, bounding_grid = False,
         for gv in on_grid:
             combine_operation([v], 'add', subregion, step,
                               gv, grid_subregion, grid_step, spacing, value_type,
-                              bounding_grid, False, None, model_id, session)
+                              bounding_grid, False, None, model_id, session,
+                              hide_maps = hide_maps)
 
 # -----------------------------------------------------------------------------
 #
@@ -802,7 +816,7 @@ def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
                     subregion = 'all', step = 1,
                     grid_subregion = 'all', grid_step = 1, spacing = None, value_type = None,
                     in_place = False, scale_factors = None, min_rms = False,
-                    model_id = None):
+                    model_id = None, hide_maps = True):
     '''Subtract two maps.'''
     if len(volumes) != 2:
         raise CommandError('volume subtract operation requires exactly two volumes')
@@ -812,7 +826,8 @@ def volume_subtract(session, volumes, on_grid = None, bounding_grid = False,
 
     combine_op(volumes, 'subtract', on_grid, bounding_grid, subregion, step,
                grid_subregion, grid_step, spacing, value_type,
-               in_place, mult, model_id, session)
+               in_place, mult, model_id, session,
+               hide_maps = hide_maps)
 
 # -----------------------------------------------------------------------------
 #
