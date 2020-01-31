@@ -235,6 +235,7 @@ class FileFormat:
 _file_formats = {}
 
 
+_used_register = []
 def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
                     encoding=None, synopsis=None, allow_directory=None,
@@ -256,6 +257,10 @@ def register_format(format_name, category, extensions, nicknames=None,
     .. todo::
         possibly break up in to multiple functions
     """
+    if isinstance(_used_register, list):
+        _used_register.append(format_name)
+    else:
+        _used_register(format_name)
     if dangerous is None:
         # scripts are inherently dangerous
         dangerous = category == SCRIPT
