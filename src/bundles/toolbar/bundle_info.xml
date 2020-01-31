@@ -40,16 +40,22 @@ Provides a Windows ribbon-style toolbar interface
 
   <Providers manager="toolbar">
     <!-- hidden File tab -->
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Open" icon="open-in-app.png" description="Open data file"/>
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Recent" icon="recentfiles.png" description="Open recent files" after="Open"/>
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Save" icon="content-save.png" description="Save session file" after="Recent"/>
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Close" icon="close-box.png" description="Close current session" after="Save"/>
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Exit" icon="exit.png" description="Exit application" after="Close"/>
+
+    <!-- hidden Undo tab -->
+    <Provider tab="Extras" section="Undo" hidden="true"
+      name="Undo" icon="undo-variant.png" description="Undo last action"/>
+    <Provider tab="Extras" section="Undo" hidden="true"
+      name="Redo" icon="redo-variant.png" description="Redo last action"/>
 
     <!-- Molecule Display tab -->
     <Provider tab="Molecule Display"
@@ -200,11 +206,6 @@ Provides a Windows ribbon-style toolbar interface
       name="layout-mouse-other" after="Structure Modification"/>
     <Provider tab="Right Mouse" section="Other" name="mO1"
       mouse_mode="next docked" display_name="Next docked" description="Show next docked ligand"/>
-
-    <Provider tab="Undo" section="Undo" hidden="true"
-      name="Undo" icon="undo-variant.png" description="Undo last action"/>
-    <Provider tab="Undo" section="Undo" hidden="true"
-      name="Redo" icon="redo-variant.png" description="Redo last action"/>
   </Providers>
 
   <DataFiles>
@@ -218,9 +219,6 @@ Provides a Windows ribbon-style toolbar interface
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Toolbar :: General :: a Windows ribbon-style toolbar</ChimeraXClassifier>
-<!--
-    <ChimeraXClassifier>ChimeraX :: Tool :: Customize Toolbar :: General :: Customize Home tab in Toolbar</ChimeraXClassifier>
--->
   </Classifiers>
 
 </BundleInfo>
