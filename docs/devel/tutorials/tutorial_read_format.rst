@@ -92,6 +92,11 @@ changed to reflect the new bundle name and documentation
 
 The ``ChimeraXClassifier`` tags on lines 41-43 informs ChimeraX that
 this bundle supports reading a data format named **XYZ**.
+
+**WARNING: the DataFormat classifier is deprecated and will be replaced
+by the more flexible Manager/Provider bundle_info mechanism in the
+future.  This example will be updated when implementation is complete.**
+
 The **DataFormat** classifier consists of several fields after
 the format name:
 
@@ -110,6 +115,10 @@ the format name:
 - the path to an icon for files in this format (none in this example).
 - the description for the format to show to users (**XYZ format**).
 - the encoding for the file contents (**utf-8**).
+
+**WARNING: the Open classifier is deprecated and will be replaced
+by the more flexible Manager/Provider bundle_info mechanism in the
+future.  This example will be updated when implementation is complete.**
 
 The **Open** classifier fields are:
 
