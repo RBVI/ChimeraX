@@ -100,6 +100,10 @@ The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
 (lines 8-10 and 17-23).
 
+**WARNING: the DataFormat, Open, and Save classifiers are all deprecated and will be replaced
+by the more flexible Manager/Provider bundle_info mechanism in the
+future.  This example will be updated when implementation is complete.**
+
 The ``ChimeraXClassifier`` tags on lines 41-43 informs ChimeraX that
 this bundle supports reading a data format named **XYZ**.
 The **DataFormat** classifier consists of several fields after
