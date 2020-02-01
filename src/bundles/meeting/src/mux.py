@@ -749,7 +749,7 @@ class Hub(threading.Thread):
                 return Resp.Failure, "no such conference: %s" % conf_name
             else:
                 if identity in conf:
-                    return Resp.Failure, "identity in use: %s" % identity
+                    identity = self._make_unique_identity(identity, conf)
                 handler.set_conference_identity(conf_name, identity)
                 conf[handler.identity] = handler
         self.notify(handler, Req.Joined)
@@ -760,6 +760,25 @@ class Hub(threading.Thread):
             return identity
         else:
             return handler.make_identity()
+
+    def _make_unique_identity(self, identity, conf):
+        parts = identity.rsplit('_', 1)
+        if len(parts) == 1:
+            base = identity
+        else:
+            try:
+                num = int(parts[1])
+            except ValueError:
+                # There is an _ but we did not put it there
+                base = identity
+            else:
+                base = parts[0]
+        num = 2
+        while True:
+            identity = base + '_' + str(num)
+            if identity not in conf:
+                return identity
+            num += 1
 
     def process_req(self, handler, req, data):
         logger.debug("hub process_req [handler %s]: %s", str(handler), Req.name(req))

@@ -13,8 +13,18 @@
 
 
 from chimerax.core.errors import UserError
+from chimerax.core.settings import Settings
 from .tracking import MouseTracking, VRTracking
 from . import mux
+
+
+class _ConferenceSettings(Settings):
+    AUTO_SAVE = {
+        "conf_name": True,
+        "user_name": True,
+        "host_name": True,
+        "port": True,
+    }
 
 
 def conference(session, action, location=None, name=None, **kw):
@@ -102,7 +112,8 @@ def conference_set(session, color=None, face_image=None, copy_scene=None,
             log.warning(msg)
         log.status(msg, color="red")
     if announce or not acted:
-        log.status("Conference location: %s" % conference.location(), log=True)
+        log.status("In conference %s as \"%s\"" % (conference.location(),
+                                                   conference.name), log=True)
 
 
 def conference_close(session):
@@ -140,6 +151,7 @@ class ConferenceServer:
 
     def __init__(self, session):
         self._session = session
+        self._settings = None
         self._name = 'Remote'
         self._color = (0,255,0,255)	# Tracking model color
 
@@ -159,6 +171,21 @@ class ConferenceServer:
         self._mux_node = None
         self._mux_addresses = None
 
+
+    #
+    # Settings stuff
+    #
+
+    @property
+    def settings(self):
+        if self._settings is None:
+            self._settings = _ConferenceSettings(self._session, "Conference")
+        return self._settings
+
+    @property
+    def name(self):
+        return self._name
+
     #
     # Connection stuff
     #
@@ -173,12 +200,17 @@ class ConferenceServer:
             self.close()
             raise RuntimeError("conference connection failed: %s" % data)
         conf_name, identity, addrs = data
+        self._name = identity
         self._mux_node.set_identity(identity)
         self._mux_addresses = addrs
         conference_set(self._session, announce=True, **self._setup_kw)
         del self._setup_kw
 
     def connect(self, action, location, identity, **kw):
+        if identity is None:
+            identity = self.settings.user_name
+        else:
+            self.settings.user_name = identity
         if action == "start":
             if location is None:
                 raise("conference location must be specified for \"start\"")
@@ -221,17 +253,37 @@ class ConferenceServer:
             parts = location.split('/', 1)
             if len(parts) == 1:
                 if need_name:
-                    raise UserError("conference name missing from location")
-                addr = location
-                conf_name = "unnamed"
+                    if self.settings.conf_name is None:
+                        raise UserError("conference name missing from location")
+                    else:
+                        addr = location
+                        conf_name = self.settings.conf_name
+                else:
+                    addr = location
+                    conf_name = "unnamed"
             else:
                 addr, conf_name = parts
+                self.settings.conf_name = conf_name
             parts = addr.split(':', 1)
             if len(parts) != 2:
-                host = addr
-                port = 443
+                host = addr.strip()
+                if not host:
+                    if self.settings.host_name is None:
+                        raise UserError("host name is missing")
+                    else:
+                        host = self.settings.host_name
+                if self.settings.port is None:
+                    port = 443
+                else:
+                    port = self.settings.port
             else:
-                host, port = parts
+                host = parts[0]
+                try:
+                    port = int(parts[1])
+                except ValueError:
+                    raise UserError("port number must be an integer")
+                self.settings.host_name = host
+                self.settings.port = port
         except ValueError:
             raise UserError("bad conference location: %s" % location)
         return host, port, conf_name
@@ -368,20 +420,23 @@ class ConferenceServer:
     # Callbacks from hub
     #
 
-    def add_client(self, identity):
-        # "identity" is a 2-tuple of (name, source)
+    def add_participant(self, identity):
+        # "identity" is a 2-tuple of (name, address)
         logger = self._session.logger
         logger.info("\"%s\" [%s] joined conference" % identity)
         self._initiate_tracking()
+        name = identity[0]
         if self._copy_scene:
-            logger.info("copying scene to \"%s\" [%s]" % identity)
-            self.send_scene([identity[0]])
-        self._send_room_coords([identity])
+            logger.info("copying scene to \"%s\"" % name)
+            self.send_scene([name])
+        self._send_room_coords([name])
 
-    def drop_client(self, identity):
+    def drop_participant(self, identity):
         # The hub handles all that for us, so we do not need to do anything
+        # "identity" is a 2-tuple of (name, address) but address
+        # is typically uninformative since the participant already left
         logger = self._session.logger
-        logger.info("\"%s\" [%s] left conference" % identity)
+        logger.info("\"%s\" left conference" % identity[0])
 
     def _send_message(self, msg, identities=None):
         self._mux_node.send(msg, receivers=identities)
@@ -401,11 +456,11 @@ class ConferenceServer:
 
     def _notification_execute(self, q, ntype, data):
         if ntype == mux.Notify.Joined:
-            # data is just the name of the client that joined
-            self.add_client(data)
+            # data is just the name of the participant that joined
+            self.add_participant(data)
         elif ntype == mux.Notify.Departed:
-            # data is just the name of the client that joined
-            self.drop_client(data)
+            # data is just the name of the participant that joined
+            self.drop_participant(data)
         else:
             raise RuntimeError("unsupported mux notification: %s" % ntype)
         q.put((mux.Resp.Success, None))
