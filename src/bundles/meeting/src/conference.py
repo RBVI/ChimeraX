@@ -169,20 +169,14 @@ class ConferenceServer:
 
     def _setup_cb(self, status, data):
         import threading
-        mux.logger.debug("_setup_cb: main %s current %s", threading.main_thread(), threading.current_thread())
         if status != mux.Resp.Success:
             self.close()
             raise RuntimeError("conference connection failed: %s" % data)
         conf_name, identity, addrs = data
-        mux.logger.debug("_setup_cb: %s %s %s", conf_name, identity, addrs)
         self._mux_node.set_identity(identity)
-        mux.logger.debug("_setup_cb: identity set")
         self._mux_addresses = addrs
-        mux.logger.debug("_setup_cb: addresses assigned, kw %s", self._setup_kw)
         conference_set(self._session, announce=True, **self._setup_kw)
-        mux.logger.debug("_setup_cb: parameters set")
         del self._setup_kw
-        mux.logger.debug("_setup_cb: returning")
 
     def connect(self, action, location, identity, **kw):
         if action == "start":
@@ -375,18 +369,19 @@ class ConferenceServer:
     #
 
     def add_client(self, identity):
+        # "identity" is a 2-tuple of (name, source)
         logger = self._session.logger
-        logger.info("\"%s\" joined conference" % identity)
+        logger.info("\"%s\" [%s] joined conference" % identity)
         self._initiate_tracking()
         if self._copy_scene:
-            logger.info("copying scene to %s" % identity)
-            self.send_scene([identity])
+            logger.info("copying scene to \"%s\" [%s]" % identity)
+            self.send_scene([identity[0]])
         self._send_room_coords([identity])
 
     def drop_client(self, identity):
         # The hub handles all that for us, so we do not need to do anything
         logger = self._session.logger
-        logger.info("\"%s\" left conference" % identity)
+        logger.info("\"%s\" [%s] left conference" % identity)
 
     def _send_message(self, msg, identities=None):
         self._mux_node.send(msg, receivers=identities)
