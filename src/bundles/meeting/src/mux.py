@@ -303,7 +303,7 @@ class _Endpoint(threading.Thread):
         else:
             self.send_request(Req.GetConferenceInfo, None, callback)
 
-    def get_identities(self, callback=None):
+    def get_participants(self, callback=None):
         if callback is None:
             return self.sync_request(Req.GetIdentities, None)
         else:
@@ -471,7 +471,7 @@ class _NetworkHandler(_BaseHandler, _NetworkEndpoint):
         # No callbacks for forwarding
 
     def get_address(self):
-        return self._connection.getpeername()
+        return "%s:%s" % self._connection.getpeername()
 
     def make_identity(self):
         addr, port = self._connection.getpeername()
@@ -588,6 +588,9 @@ class _LoopbackHandler(_BaseHandler, _Endpoint):
         logger.debug("send_response: [via: %s] %s %s %s", self, Resp.name(status), data, serial)
         self._node._queue.put((PacketType.Resp, serial, (status, data)))
 
+    def get_address(self):
+        return "hub:loopback"
+
 
 #
 # Hub code
@@ -688,18 +691,20 @@ class Hub(threading.Thread):
                 return Resp.Failure, ("conference \"%s\" terminated" %
                                       handler.conf_name)
 
-    def get_identities(self, data, handler):
+    def get_participants(self, data, handler):
         if handler.conf_name is None:
             return Resp.Failure, "not associated with conference"
         with self._hub_lock:
-            logger.debug("hub locked: get_identities %s", repr(threading.current_thread()))
+            logger.debug("hub locked: get_participants %s", repr(threading.current_thread()))
             try:
                 conf = self._conferences[handler.conf_name]
             except KeyError:
                 return Resp.Failure, ("conference \"%s\" terminated" %
                                       handler.conf_name)
             else:
-                return Resp.Success, list(conf.keys())
+                idents = [(handler.identity, handler.get_address())
+                          for handler in conf.values()]
+                return Resp.Success, idents
 
     def get_conferences(self, data, handler):
         if data != self._admin_word:
@@ -761,7 +766,7 @@ class Hub(threading.Thread):
         if req == Req.Message:
             return self.handle_msg(data, handler)
         elif req == Req.GetIdentities:
-            return self.get_identities(data, handler)
+            return self.get_participants(data, handler)
         elif req == Req.GetConferenceInfo:
             return self.get_conference_info(data, handler)
         elif req == Req.CreateConference:
@@ -818,10 +823,11 @@ class Hub(threading.Thread):
                         del conf[handler.identity]
                     except KeyError:
                         pass
+                data = (handler.identity, handler.get_address())
                 for ident, hdlr in conf.items():
                     if ident != handler.identity:
                         logger.debug("hub notify request [to: %s]: %s %s", str(hdlr), Req.name(req), str(handler))
-                        hdlr.forward(req, None, handler.identity)
+                        hdlr.forward(req, None, data)
                 if not conf:
                     logger.info("hub end conference: %s", handler.conf_name)
                     del self._conferences[handler.conf_name]
@@ -928,8 +934,8 @@ if __name__ == "__main__":
             def cb(status, data, n=n):
                 if status != Resp.Success:
                     raise RuntimeError(data)
-                logger.info("identities [%s]: %s", n.identity, data)
-            n.get_identities(callback=cb)
+                logger.info("participants [%s]: %s", n.identity, data)
+            n.get_participants(callback=cb)
 
         ac = NetworkNode(hostname, port, "admin", "admin", True)
         logger.debug("admin node created: %s", ac)
@@ -987,8 +993,8 @@ if __name__ == "__main__":
         def cb(status, data):
             if status != Resp.Success:
                 raise RuntimeError(data)
-            logger.info("identities: %s", data)
-        n00.get_identities(callback=cb)
+            logger.info("participants: %s", data)
+        n00.get_participants(callback=cb)
 
 
     def test_loopback(hostname, port, admin_word, finished):
@@ -1035,7 +1041,7 @@ if __name__ == "__main__":
                 raise RuntimeError(data)
             logger.info("participants: %s", data)
             q.put(None)
-        h.get_identities(callback=cb)
+        h.get_participants(callback=cb)
         q.get()
         finished.set()
 
