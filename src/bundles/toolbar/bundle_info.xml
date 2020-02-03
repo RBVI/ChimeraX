@@ -145,9 +145,9 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Movement" name="mm4"
       mouse_mode="zoom" display_name="Zoom" description="Zoom view"/>
     <Provider tab="Right Mouse" section="Movement" name="mm5"
-      mouse_mode="translate selected models" display_name="Translate Selected" description="Translate selected models"/>
+      mouse_mode="translate selected models" display_name="Translate selected" description="Translate selected models"/>
     <Provider tab="Right Mouse" section="Movement" name="mm6"
-      mouse_mode="rotate selected models" display_name="Rotate Selected" description="Rotate selected models"/>
+      mouse_mode="rotate selected models" display_name="Rotate selected" description="Rotate selected models"/>
     <Provider tab="Right Mouse" section="Movement" name="mm7"
       mouse_mode="pivot" display_name="Pivot" description="Set center of rotation at atom"/>
 
@@ -198,8 +198,10 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Structure Modification" name="ms2"
       mouse_mode="swapaa" display_name="Swapaa" description="Mutate and label residue"/>
     <Provider tab="Right Mouse" section="Structure Modification" name="ms3"
-      mouse_mode="tug" display_name="Tug" description="Drag atom while applying dynamics"/>
+      mouse_mode="play coordinates" display_name="Play coords" description="Play trajectory"/>
     <Provider tab="Right Mouse" section="Structure Modification" name="ms4"
+      mouse_mode="tug" display_name="Tug" description="Drag atom while applying dynamics"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms5"
       mouse_mode="minimize" display_name="Minimize" description="Jiggle residue and its neighbors"/>
 
     <Provider tab="Right Mouse" section="Other"
