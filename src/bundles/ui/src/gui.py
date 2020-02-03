@@ -1086,6 +1086,24 @@ class MainWindow(QMainWindow, PlainTextLog):
             cmd="hide %s target %s":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), precise_target(ses))))
 
+        # Atom Style submenu...
+        atom_style_menu = atoms_bonds_menu.addMenu("Atom Style")
+        style_info = [("Stick", "stick"), ("Ball && Stick", "ball"), ("Sphere", "sphere")]
+        for menu_entry, style_name in style_info:
+            action = QAction(menu_entry, self)
+            atom_style_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="style %%s %s" % style_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        rings_menu = atom_style_menu.addMenu("Ring Fill")
+        rings_info = [("Thick", "thick"), ("Thin", "thin"), ("None", "off")]
+        for menu_entry, ring_style in rings_info:
+            action = QAction(menu_entry, self)
+            rings_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="style %%s ringFill %s" % ring_style:
+                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Atom Style submenu
+
         atoms_bonds_menu.addSeparator()
 
         action = QAction("Show Sidechain/Base", self)
@@ -1144,26 +1162,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
         # end Cartoon submenu
 
-        # Atom Style submenu...
-        atom_style_menu = atoms_bonds_menu.addMenu("Atom Style")
-        style_info = [("Stick", "stick"), ("Ball && Stick", "ball"), ("Sphere", "sphere")]
-        for menu_entry, style_name in style_info:
-            action = QAction(menu_entry, self)
-            atom_style_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="style %%s %s" % style_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        rings_menu = atom_style_menu.addMenu("Ring Fill")
-        rings_info = [("Thick", "thick"), ("Thin", "thin"), ("None", "off")]
-        for menu_entry, ring_style in rings_info:
-            action = QAction(menu_entry, self)
-            rings_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="style %%s ringFill %s" % ring_style:
-                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        # end Atom Style submenu
-
         # Nucleotide Style submenu...
-        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Depiction")
+        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Style")
         nuc_info = [("Ladder", "ladder"), ("Stubs", "stubs"), ("Slab Base, Ribose Tube", "tube/slab"),
             ("Slab Base, Ribose Atoms", "slab"), ("Atoms (Filled Rings)", "fill"),
             ("Atoms (No Ring Fill)", "atoms")]
