@@ -91,10 +91,12 @@ def save_image(session, path, format_name, width=None, height=None,
     from .session import standard_metadata
     std_metadata = standard_metadata()
     metadata = {}
-    if fmt.name == 'png':
+    if fmt.name == 'PNG':
         metadata['optimize'] = True
         # if dpi is not None:
         #     metadata['dpi'] = (dpi, dpi)
+        if session.main_view.render.opengl_context.pixel_scale() == 2:
+            metadata['dpi'] = (144, 144)
         from PIL import PngImagePlugin
         pnginfo = PngImagePlugin.PngInfo()
         # tags are from <https://www.w3.org/TR/PNG/#11textinfo>
@@ -112,7 +114,7 @@ def save_image(session, path, format_name, width=None, height=None,
         add_text('Author', std_metadata['creator'])
         add_text('Copy' 'right', std_metadata['dateCopyrighted'])
         metadata['pnginfo'] = pnginfo
-    elif fmt.name == 'tiff':
+    elif fmt.name == 'TIFF':
         # metadata['compression'] = 'lzw:2'
         # metadata['description'] = description
         metadata['software'] = std_metadata['generator']
@@ -137,7 +139,7 @@ def save_image(session, path, format_name, width=None, height=None,
         #     metadata['resolution unit'] = 'cm'
         #     metadata['x resolution'] = dpcm
         #     metadata['y resolution'] = dpcm
-    elif fmt.name == 'jpeg':
+    elif fmt.name == 'JPEG':
         metadata['quality'] = quality
         # if dpi is not None:
         #     # PIL's jpeg_encoder requires integer dpi values
