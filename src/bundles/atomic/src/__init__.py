@@ -16,7 +16,7 @@ from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
 # pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, interatom_pseudobonds, selected_pseudobonds
-from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, \
+from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, Structures, \
     PseudobondGroups, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail
 from .structure import selected_atoms, selected_bonds, selected_residues

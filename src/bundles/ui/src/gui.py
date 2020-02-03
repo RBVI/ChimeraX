@@ -1085,35 +1085,32 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="hide %s target %s":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), precise_target(ses))))
-        # Cartoon submenu...
-        cartoon_menu = atoms_bonds_menu.addMenu("Cartoon")
-        action = QAction("Ribbons (Smooth Edges)", self)
-        cartoon_menu.addAction(action)
+
+        # Atom Style submenu...
+        atom_style_menu = atoms_bonds_menu.addMenu("Atom Style")
+        style_info = [("Stick", "stick"), ("Ball && Stick", "ball"), ("Sphere", "sphere")]
+        for menu_entry, style_name in style_info:
+            action = QAction(menu_entry, self)
+            atom_style_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="style %%s %s" % style_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        rings_menu = atom_style_menu.addMenu("Ring Fill")
+        rings_info = [("Thick", "thick"), ("Thin", "thin"), ("None", "off")]
+        for menu_entry, ring_style in rings_info:
+            action = QAction(menu_entry, self)
+            rings_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="style %%s ringFill %s" % ring_style:
+                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Atom Style submenu
+
+        atoms_bonds_menu.addSeparator()
+
+        action = QAction("Show Sidechain/Base", self)
+        atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection oval modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Ribbons (Sharp Edges)", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection rectangle modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Ribbons (Lipped Edges)", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection oval;"
-            " cartoon style %s xsection barbell modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']),
-            sel_or_all(ses, ['atoms', 'bonds'], restriction="coil"), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Helix Tubes", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s modeHelix tube sides 20":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("None", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        # end Cartoon submenu
+            cmd="show %s target ab":
+            run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues", restriction="sidechain")))
         action = QAction("Backbone Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
@@ -1131,37 +1128,52 @@ class MainWindow(QMainWindow, PlainTextLog):
             precise_target(ses), sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
                 restriction="((protein&@ca)|(nucleic&@p))"))))
-        action = QAction("Show Side Chain/Base", self)
-        atoms_bonds_menu.addAction(action)
+
+        # Cartoon submenu...
+        cartoon_menu = atoms_bonds_menu.addMenu("Cartoon")
+        action = QAction("Show", self)
+        cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="show %s target ab":
-            run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues", restriction="sidechain")))
+            cmd="cartoon %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action = QAction("Hide", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action = QAction("Rounded Edges", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon style %s xsection oval modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Squared Edges", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon style %s xsection rectangle modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Piped Edges", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon style %s xsection oval; cartoon style %s xsection barbell modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], restriction="coil"),
+                sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Tube Helices", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon style %s modeHelix tube sides 20":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
+        # end Cartoon submenu
 
-        atoms_bonds_menu.addSeparator()
-
-        style_info = [("Stick", "stick"), ("Ball && Stick", "ball"), ("Sphere", "sphere")]
-        for menu_entry, style_name in style_info:
-            action = QAction(menu_entry, self)
-            atoms_bonds_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="style %%s %s" % style_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        rings_menu = atoms_bonds_menu.addMenu("Rings")
-        rings_info = [("Fill Thick", "thick"), ("Fill Thin", "thin"), ("No Fill", "off")]
-        for menu_entry, ring_style in rings_info:
-            action = QAction(menu_entry, self)
-            rings_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="style %%s ringFill %s" % ring_style:
-                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Depiction")
-        nuc_info = [("Filled Rings", "fill"), ("Ladder", "ladder"), ("Slab", "slab"),
-            ("Broken Rungs", "stubs"), ("Tube/Slab", "tube/slab"), ("None", "atoms")]
+        # Nucleotide Style submenu...
+        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Style")
+        nuc_info = [("Ladder", "ladder"), ("Stubs", "stubs"), ("Slab Base, Ribose Tube", "tube/slab"),
+            ("Slab Base, Ribose Atoms", "slab"), ("Atoms (Filled Rings)", "fill"),
+            ("Atoms (No Ring Fill)", "atoms")]
         for menu_entry, nuc_style in nuc_info:
             action = QAction(menu_entry, self)
             nuc_menu.addAction(action)
             action.triggered.connect(lambda *args, run=run, ses=self.session,
                 cmd="nucleotides %%s %s" % nuc_style:
                 run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Nucleotide Style submenu
 
         atoms_bonds_menu.addSeparator()
 
