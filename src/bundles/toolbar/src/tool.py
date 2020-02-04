@@ -405,12 +405,12 @@ class _HomeTab(QTreeWidget):
 
     def dropEvent(self, event):
         source = event.source()
+        # from dragEnterEvent, we know there is at least one selected item
+        original = source.selectedItems()[0]
+        original_type = original.data(0, ITEM_TYPE_ROLE)
         if source == self:
             copy_subtree = False
         else:
-            # from dragEnterEvent, we know there is at least one selected item
-            original = source.selectedItems()[0]
-            original_type = original.data(0, ITEM_TYPE_ROLE)
             copy_subtree = original_type == SECTION_TYPE
         super().dropEvent(event)
         if copy_subtree:
@@ -437,7 +437,10 @@ class _HomeTab(QTreeWidget):
                     if new_name not in current_sections:
                         new_section.setText(0, new_name)
                         break
-        elif source != self:
+        elif source == self:
+            if original_type == SECTION_TYPE:
+                self.expandItem(original)
+        else:
             new_button = self.itemAt(event.pos())
             new_button.setFlags(BUTTON_FLAGS)
         self.childDraggedAndDropped.emit()
@@ -548,7 +551,8 @@ class ToolbarSettingsTool:
                 section_item = QTreeWidgetItem(tab_item, [section])
                 section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
                 section_item.setFlags(other_flags)
-                section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
+                # Treat all available section as not compact
+                # section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
                 self.other.expandItem(section_item)
             item = QTreeWidgetItem(section_item, [f"{display_name}"])
             item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
