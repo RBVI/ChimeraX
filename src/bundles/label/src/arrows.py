@@ -11,15 +11,43 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import UserError
 
-def arrow_create(session, name, start, end, *, color=None, weight=1.0,
+def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None,
+        visibility=None, mid_point=None, head_style=None, frames=None):
+    from inspect import getargvalues, currentframe
+    args, varargs, kw, locals_dict = getargvalues(currentframe())
+    cmd_kw = {}
+    for name in args:
+        if name == "session" or name == "arrows":
+            continue
+        val = locals_dict[name]
+        if val is None:
+            continue
+        if name != 'frames':
+            cmd_kw[name] = val
+        cmd_kw[name] = val
+    if arrows is None:
+        if start is None or end is None:
+            arrows = all_arrows(session)
+        else:
+            if 'frames' in cmd_kw:
+                raise UserError("'frames' keyword not legal during 2D arrow creation")
+            for arg in ('start', 'end'):
+                if arg in cmd_kw:
+                    del cmd_kw[arg]
+            return arrow_create(session, start, end, **cmd_kw)
+    if not arrows:
+        raise UserError("No 2D arrows in session")
+    for a in arrows:
+        _update_arrow(session, a, **cmd_kw)
+
+def arrow_create(session, start, end, *, color=None, weight=1.0,
                  visibility=True, mid_point=None, head_style="solid"):
     '''Create an arrow at a fixed position in the graphics window.
 
     Parameters
     ----------
-    name : string
-        Identifier for the arrow, used to change or delete arrow.
     start : numeric two-tuple
         Where arrow starts as x,y "screen coordinates" where coordinates go from 0 to 1, lower left
         to upper right.
@@ -41,9 +69,15 @@ def arrow_create(session, name, start, end, *, color=None, weight=1.0,
     head_style : string; "blocky", "solid", "pointy", or "pointer"
         Style of arrowhead.
     '''
-    if name == 'all':
-        from chimerax.core.errors import UserError
-        raise UserError("'all' is reserved to refer to all arrows")
+    arrows = session_arrows(session, create=False)
+    if arrows:
+        cur_arrow_names = arrows.arrow_names()
+    else:
+        cur_arrow_names = []
+    num = 1
+    while ("arrow %d" % num) in cur_arrow_names:
+        num += 1
+    name = "arrow %d" % num
 
     kw = {
         'start': start,
@@ -274,22 +308,19 @@ def register_arrow_command(logger):
     from .label3d import DefArg, NoneArg
 
     arrows_arg = [('arrows', Or(NamedArrowsArg, ArrowsArg))]
-    start_end_args = [('start', Float2Arg), ('end', Float2Arg)]
-    # Create and change have same arguments
-    common_args = [('color', Or(DefArg, ColorArg)),
-             ('weight', FloatArg),
-             ('visibility', BoolArg),
-             ('head_style', EnumOf(("blocky", "solid", "pointy", "pointer")))]
-    create_desc = CmdDesc(
-        required=[('name', StringArg)] + start_end_args,
-        keyword=[('mid_point', Float2Arg)] + common_args,
-        synopsis='Create a 2d arrow')
-    register('2dlabels acreate', create_desc, arrow_create, logger=logger)
-    change_desc = CmdDesc(
-        required=arrows_arg,
-        keyword=common_args + start_end_args + [('mid_point', Or(NoneArg, Float2Arg)), ('frames', IntArg)],
-        synopsis='Change a 2d arrow')
-    register('2dlabels achange', change_desc, arrow_change, logger=logger)
+    arrows_desc = CmdDesc(optional=arrows_arg,
+        keyword=[
+            ('start', Float2Arg),
+            ('end', Float2Arg),
+            ('color', Or(DefArg, ColorArg)),
+            ('weight', FloatArg),
+            ('visibility', BoolArg),
+            ('head_style', EnumOf(("blocky", "solid", "pointy", "pointer"))),
+            ('mid_point', Or(NoneArg, Float2Arg)),
+            ('frames', IntArg)],
+        synopsis='Create/change a 2d arrow')
+    register('2dlabels arrow', arrows_desc, arrow, logger=logger)
+
     delete_desc = CmdDesc(optional=arrows_arg, synopsis = 'Delete a 2d arrow')
     register('2dlabels adelete', delete_desc, arrow_delete, logger=logger)
 
