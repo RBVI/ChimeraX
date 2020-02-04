@@ -1695,35 +1695,32 @@ extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, 
 
     float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
     float vx = x1-x0, vy = y1-y0, vz = z1-z0;
-    float d = sqrtf(vx*vx + vy*vy + vz*vz);
-    if (d == 0)
+    float h = sqrtf(vx*vx + vy*vy + vz*vz);
+    if (h == 0)
       { vx = vy = 0 ; vz = 1; }
     else
-      { vx /= d; vy /= d; vz /= d; }
+      { vx /= h; vy /= h; vz /= h; }
 
-    float c = vz, c1;
-    if (c <= -1)
-      c1 = 0;       // Degenerate -z axis case.
-    else
-      c1 = 1.0/(1+c);
-
-    float wx = -vy, wy = vx;
-    float cx = c1*wx, cy = c1*wy;
-    float h = d;
-
-    *m44++ = *m44b++ = r*(cx*wx + c);
-    *m44++ = *m44b++ = r*cy*wx;
-    *m44++ = *m44b++ = -r*wy;
+    // Avoid degenerate vz = -1 case.
+    if (vz < 0)
+      { vx = -vx; vy = -vy; vz = -vz; }
+    
+    float c1 = 1.0/(1+vz);
+    float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
+      
+    *m44++ = *m44b++ = r*(vyy + vz);
+    *m44++ = *m44b++ = -r*vxy;
+    *m44++ = *m44b++ = -r*vx;
     *m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = r*cx*wy;
-    *m44++ = *m44b++ = r*(cy*wy + c);
-    *m44++ = *m44b++ = r*wx;
+    *m44++ = *m44b++ = -r*vxy;
+    *m44++ = *m44b++ = r*(vxx + vz);
+    *m44++ = *m44b++ = -r*vy;
     *m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = h*wy;
-    *m44++ = *m44b++ = -h*wx;
-    *m44++ = *m44b++ = h*c;
+    *m44++ = *m44b++ = h*vx;
+    *m44++ = *m44b++ = h*vy;
+    *m44++ = *m44b++ = h*vz;
     *m44++ = *m44b++ = 0;
 
     *m44++ = .75*x0 + .25*x1;
