@@ -264,31 +264,6 @@ def arrow_delete(session, arrows = None):
         a.delete()
 
 
-from chimerax.core.commands import Annotation
-class NamedArrowsArg(Annotation):
-
-    name = "'all' or a 2d arrow name"
-    _html_name = "<b>all</b> or a 2d arrow name"
-
-    @staticmethod
-    def parse(text, session):
-        from chimerax.core.commands import AnnotationError, next_token
-        if not text:
-            raise AnnotationError("Expected %s" % NamedArrowsArg.name)
-        lm = session_arrows(session)
-        token, text, rest = next_token(text)
-        if lm.named_arrow(token) is None:
-            possible = [name for name in lm.arrow_names() if name.startswith(token)]
-            if 'all'.startswith(token):
-                possible.append('all')
-            if not possible:
-                raise AnnotationError("Unknown arrow identifier: '%s'" % token)
-            possible.sort(key=len)
-            token = possible[0]
-        arrows = lm.all_arrows if token == 'all' else [lm.named_arrow(token)]
-        return arrows, token, rest
-
-
 from chimerax.core.commands import ModelsArg
 class ArrowsArg(ModelsArg):
     """Parse command arrow model specifier"""
@@ -307,7 +282,7 @@ def register_arrow_command(logger):
     from chimerax.core.commands import Float2Arg, EnumOf
     from .label3d import DefArg, NoneArg
 
-    arrows_arg = [('arrows', Or(NamedArrowsArg, ArrowsArg))]
+    arrows_arg = [('arrows', ArrowsArg)]
     arrows_desc = CmdDesc(optional=arrows_arg,
         keyword=[
             ('start', Float2Arg),
@@ -321,8 +296,7 @@ def register_arrow_command(logger):
         synopsis='Create/change a 2d arrow')
     register('2dlabels arrow', arrows_desc, arrow, logger=logger)
 
-    delete_desc = CmdDesc(optional=arrows_arg, synopsis = 'Delete a 2d arrow')
-    register('2dlabels adelete', delete_desc, arrow_delete, logger=logger)
+    # arrow deletion incorporated into '2Dlabels delete'
 
 
 from chimerax.core.models import Model
