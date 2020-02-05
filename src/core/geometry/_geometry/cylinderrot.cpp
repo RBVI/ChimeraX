@@ -36,36 +36,33 @@ static void cylinder_rotations(float *axyz0, float *axyz1, int n, float *radii,
       float vx = axyz1[0] - axyz0[0];
       float vy = axyz1[1] - axyz0[1];
       float vz = axyz1[2] - axyz0[2];
-      float d = sqrtf(vx*vx + vy*vy + vz*vz);
-      if (d == 0)
+      float h = sqrtf(vx*vx + vy*vy + vz*vz);
+      if (h == 0)
 	{ vx = vy = 0 ; vz = 1; }
       else
-	{ vx /= d; vy /= d; vz /= d; }
+	{ vx /= h; vy /= h; vz /= h; }
 
-      float c = vz, c1;
-      if (c <= -1)
-	c1 = 0;       // Degenerate -z axis case.
-      else
-	c1 = 1.0/(1+c);
+      // Avoid degenerate vz = -1 case.
+      if (vz < 0)
+	{ vx = -vx; vy = -vy; vz = -vz; }
 
-      float wx = -vy, wy = vx;
-      float cx = c1*wx, cy = c1*wy;
+      float c1 = 1.0/(1+vz);
+      float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
       float r = *radii++;
-      float h = d;
 
-      *rot44++ = r*(cx*wx + c);
-      *rot44++ = r*cy*wx;
-      *rot44++ = -r*wy;
+      *rot44++ = r*(vyy + vz);
+      *rot44++ = -r*vxy;
+      *rot44++ = -r*vx;
       *rot44++ = 0;
 
-      *rot44++ = r*cx*wy;
-      *rot44++ = r*(cy*wy + c);
-      *rot44++ = r*wx;
+      *rot44++ = -r*vxy;
+      *rot44++ = r*(vxx + vz);
+      *rot44++ = -r*vy;
       *rot44++ = 0;
 
-      *rot44++ = h*wy;
-      *rot44++ = -h*wx;
-      *rot44++ = h*c;
+      *rot44++ = h*vx;
+      *rot44++ = h*vy;
+      *rot44++ = h*vz;
       *rot44++ = 0;
 
       *rot44++ = 0;
@@ -121,36 +118,33 @@ static void half_cylinder_rotations(float *axyz0, float *axyz1, int n, float *ra
       float y0 = axyz0[1], y1 = axyz1[1];
       float z0 = axyz0[2], z1 = axyz1[2];
       float vx = x1-x0, vy = y1-y0, vz = z1-z0;
-      float d = sqrtf(vx*vx + vy*vy + vz*vz);
-      if (d == 0)
+      float h = sqrtf(vx*vx + vy*vy + vz*vz);
+      if (h == 0)
 	{ vx = vy = 0 ; vz = 1; }
       else
-	{ vx /= d; vy /= d; vz /= d; }
+	{ vx /= h; vy /= h; vz /= h; }
 
-      float c = vz, c1;
-      if (c <= -1)
-	c1 = 0;       // Degenerate -z axis case.
-      else
-	c1 = 1.0/(1+c);
+      // Avoid degenerate vz = -1 case.
+      if (vz < 0)
+	{ vx = -vx; vy = -vy; vz = -vz; }
 
-      float wx = -vy, wy = vx;
-      float cx = c1*wx, cy = c1*wy;
+      float c1 = 1.0/(1+vz);
+      float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
       float r = *radii++;
-      float h = d;
 
-      *rot44++ = *rot44b++ = r*(cx*wx + c);
-      *rot44++ = *rot44b++ = r*cy*wx;
-      *rot44++ = *rot44b++ = -r*wy;
+      *rot44++ = *rot44b++ = r*(vyy + vz);
+      *rot44++ = *rot44b++ = -r*vxy;
+      *rot44++ = *rot44b++ = -r*vx;
       *rot44++ = *rot44b++ = 0;
 
-      *rot44++ = *rot44b++ = r*cx*wy;
-      *rot44++ = *rot44b++ = r*(cy*wy + c);
-      *rot44++ = *rot44b++ = r*wx;
+      *rot44++ = *rot44b++ = -r*vxy;
+      *rot44++ = *rot44b++ = r*(vxx + vz);
+      *rot44++ = *rot44b++ = -r*vy;
       *rot44++ = *rot44b++ = 0;
 
-      *rot44++ = *rot44b++ = h*wy;
-      *rot44++ = *rot44b++ = -h*wx;
-      *rot44++ = *rot44b++ = h*c;
+      *rot44++ = *rot44b++ = h*vx;
+      *rot44++ = *rot44b++ = h*vy;
+      *rot44++ = *rot44b++ = h*vz;
       *rot44++ = *rot44b++ = 0;
 
       *rot44++ = .75*x0 + .25*x1;
