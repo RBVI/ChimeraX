@@ -258,9 +258,12 @@ def label_under_window_position(session, win_x, win_y):
 #
 def label_delete(session, labels = None):
     '''Delete label.'''
-    if labels is None:
-        lm = session_labels(session)
-        labels = lm.all_labels if lm else ()
+    if labels is None or labels == 'all':
+        lm = session_labels(session, create=False)
+        labels = lm.all_labels if lm else []
+        from .arrows import session_arrows
+        am = session_arrows(session, create=False)
+        labels = labels + (am.all_arrows if am else [])
     for l in tuple(labels):
         l.delete()
 
@@ -317,12 +320,24 @@ class LabelsArg(ModelsArg):
         labels = [m.label for m in models if isinstance(m, LabelModel)]
         return labels, text, rest
 
+class LabelsArrowsArg(ModelsArg):
+    """Parse command label/arrow model specifier"""
+    name = "a label/arrow models specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        from .arrows import ArrowModel
+        models, text, rest = super().parse(text, session)
+        labels = [m.label for m in models if isinstance(m, LabelModel)]
+        arrows = [m.arrow for m in models if isinstance(m, ArrowModel)]
+        return labels + arrows, text, rest
+
 # -----------------------------------------------------------------------------
 #
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
-    from chimerax.core.commands import NonNegativeFloatArg
+    from chimerax.core.commands import NonNegativeFloatArg, EnumOf
     from .label3d import DefArg, NoneArg
 
     labels_arg = [('labels', Or(NamedLabelsArg, LabelsArg))]
@@ -345,7 +360,7 @@ def register_label_command(logger):
     change_desc = CmdDesc(required = labels_arg, keyword = cargs + [('frames', IntArg)],
                           synopsis = 'Change a 2d label')
     register('2dlabels change', change_desc, label_change, logger=logger)
-    delete_desc = CmdDesc(optional = labels_arg,
+    delete_desc = CmdDesc(optional = [('labels', Or(EnumOf(['all']), LabelsArrowsArg))],
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
     fonts_desc = CmdDesc(synopsis = 'List available fonts')
@@ -366,12 +381,13 @@ class Labels(Model):
         self._labels = []	   
         self._named_labels = {}    # Map label name to Label object
         from chimerax.core.core_settings import settings
-        settings.triggers.add_handler('setting changed', self._background_color_changed)
+        self.handler = settings.triggers.add_handler('setting changed', self._background_color_changed)
         session.main_view.add_overlay(self)
         self.model_panel_show_expanded = False
 
     def delete(self):
         self.session.main_view.remove_overlays([self], delete = False)
+        self.handler.remove()
         Model.delete(self)
 
     def add_label(self, label):

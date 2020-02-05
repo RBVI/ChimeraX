@@ -11,15 +11,43 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import UserError
 
-def arrow_create(session, name, start, end, *, color=None, weight=1.0,
+def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None,
+        visibility=None, mid_point=None, head_style=None, frames=None):
+    from inspect import getargvalues, currentframe
+    args, varargs, kw, locals_dict = getargvalues(currentframe())
+    cmd_kw = {}
+    for name in args:
+        if name == "session" or name == "arrows":
+            continue
+        val = locals_dict[name]
+        if val is None:
+            continue
+        if name != 'frames':
+            cmd_kw[name] = val
+        cmd_kw[name] = val
+    if arrows is None:
+        if start is None or end is None:
+            arrows = all_arrows(session)
+        else:
+            if 'frames' in cmd_kw:
+                raise UserError("'frames' keyword not legal during 2D arrow creation")
+            for arg in ('start', 'end'):
+                if arg in cmd_kw:
+                    del cmd_kw[arg]
+            return arrow_create(session, start, end, **cmd_kw)
+    if not arrows:
+        raise UserError("No 2D arrows in session")
+    for a in arrows:
+        _update_arrow(session, a, **cmd_kw)
+
+def arrow_create(session, start, end, *, color=None, weight=1.0,
                  visibility=True, mid_point=None, head_style="solid"):
     '''Create an arrow at a fixed position in the graphics window.
 
     Parameters
     ----------
-    name : string
-        Identifier for the arrow, used to change or delete arrow.
     start : numeric two-tuple
         Where arrow starts as x,y "screen coordinates" where coordinates go from 0 to 1, lower left
         to upper right.
@@ -41,9 +69,15 @@ def arrow_create(session, name, start, end, *, color=None, weight=1.0,
     head_style : string; "blocky", "solid", "pointy", or "pointer"
         Style of arrowhead.
     '''
-    if name == 'all':
-        from chimerax.core.errors import UserError
-        raise UserError("'all' is reserved to refer to all arrows")
+    arrows = session_arrows(session, create=False)
+    if arrows:
+        cur_arrow_names = arrows.arrow_names()
+    else:
+        cur_arrow_names = []
+    num = 1
+    while ("arrow %d" % num) in cur_arrow_names:
+        num += 1
+    name = "arrow %d" % num
 
     kw = {
         'start': start,
@@ -231,31 +265,6 @@ def arrow_delete(session, arrows = None):
         a.delete()
 
 
-from chimerax.core.commands import Annotation
-class NamedArrowsArg(Annotation):
-
-    name = "'all' or a 2d arrow name"
-    _html_name = "<b>all</b> or a 2d arrow name"
-
-    @staticmethod
-    def parse(text, session):
-        from chimerax.core.commands import AnnotationError, next_token
-        if not text:
-            raise AnnotationError("Expected %s" % NamedArrowsArg.name)
-        lm = session_arrows(session)
-        token, text, rest = next_token(text)
-        if lm.named_arrow(token) is None:
-            possible = [name for name in lm.arrow_names() if name.startswith(token)]
-            if 'all'.startswith(token):
-                possible.append('all')
-            if not possible:
-                raise AnnotationError("Unknown arrow identifier: '%s'" % token)
-            possible.sort(key=len)
-            token = possible[0]
-        arrows = lm.all_arrows if token == 'all' else [lm.named_arrow(token)]
-        return arrows, token, rest
-
-
 from chimerax.core.commands import ModelsArg
 class ArrowsArg(ModelsArg):
     """Parse command arrow model specifier"""
@@ -274,25 +283,21 @@ def register_arrow_command(logger):
     from chimerax.core.commands import Float2Arg, EnumOf
     from .label3d import DefArg, NoneArg
 
-    arrows_arg = [('arrows', Or(NamedArrowsArg, ArrowsArg))]
-    start_end_args = [('start', Float2Arg), ('end', Float2Arg)]
-    # Create and change have same arguments
-    common_args = [('color', Or(DefArg, ColorArg)),
-             ('weight', FloatArg),
-             ('visibility', BoolArg),
-             ('head_style', EnumOf(("blocky", "solid", "pointy", "pointer")))]
-    create_desc = CmdDesc(
-        required=[('name', StringArg)] + start_end_args,
-        keyword=[('mid_point', Float2Arg)] + common_args,
-        synopsis='Create a 2d arrow')
-    register('2dlabels acreate', create_desc, arrow_create, logger=logger)
-    change_desc = CmdDesc(
-        required=arrows_arg,
-        keyword=common_args + start_end_args + [('mid_point', Or(NoneArg, Float2Arg)), ('frames', IntArg)],
-        synopsis='Change a 2d arrow')
-    register('2dlabels achange', change_desc, arrow_change, logger=logger)
-    delete_desc = CmdDesc(optional=arrows_arg, synopsis = 'Delete a 2d arrow')
-    register('2dlabels adelete', delete_desc, arrow_delete, logger=logger)
+    arrows_arg = [('arrows', ArrowsArg)]
+    arrows_desc = CmdDesc(optional=arrows_arg,
+        keyword=[
+            ('start', Float2Arg),
+            ('end', Float2Arg),
+            ('color', Or(DefArg, ColorArg)),
+            ('weight', FloatArg),
+            ('visibility', BoolArg),
+            ('head_style', EnumOf(("blocky", "solid", "pointy", "pointer"))),
+            #('mid_point', Or(NoneArg, Float2Arg)),
+            ('frames', IntArg)],
+        synopsis='Create/change a 2d arrow')
+    register('2dlabels arrow', arrows_desc, arrow, logger=logger)
+
+    # arrow deletion incorporated into '2Dlabels delete'
 
 
 from chimerax.core.models import Model
@@ -302,12 +307,13 @@ class Arrows(Model):
         self._arrows = []
         self._named_arrows = {}    # Map arrow name to Arrow object
         from chimerax.core.core_settings import settings
-        settings.triggers.add_handler('setting changed', self._background_color_changed)
+        self.handler = settings.triggers.add_handler('setting changed', self._background_color_changed)
         session.main_view.add_overlay(self)
         self.model_panel_show_expanded = False
 
     def delete(self):
         self.session.main_view.remove_overlays([self], delete = False)
+        self.handler.remove()
         Model.delete(self)
 
     def add_arrow(self, arrow):

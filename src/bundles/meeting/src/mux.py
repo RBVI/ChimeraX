@@ -131,7 +131,7 @@ class Req(Enum):
     Enum.define("CreateConference")
     Enum.define("JoinConference")
     Enum.define("GetConferenceInfo")
-    Enum.define("GetIdentities")
+    Enum.define("GetParticipants")
     Enum.define("Message")
 
 
@@ -305,9 +305,9 @@ class _Endpoint(threading.Thread):
 
     def get_participants(self, callback=None):
         if callback is None:
-            return self.sync_request(Req.GetIdentities, None)
+            return self.sync_request(Req.GetParticipants, None)
         else:
-            self.send_request(Req.GetIdentities, None, callback)
+            self.send_request(Req.GetParticipants, None, callback)
 
     def get_conferences(self, admin_word, callback=None):
         if callback is None:
@@ -507,6 +507,7 @@ class LoopbackNode(_Endpoint):
         self._mux_hub = Hub("", 0, "chimeraxmux")
         self._mux_hub.start()
         self._mux_handler = _LoopbackHandler(self, self._mux_hub)
+        self._closed = False
 
     def __str__(self):
         return "%s/%s" % (self.conf_name, self.identity)
@@ -520,7 +521,7 @@ class LoopbackNode(_Endpoint):
 
     def run(self):
         while True:
-            if self._queue is None:
+            if self._closed or self._queue is None:
                 break
             ptype, serial, packet = self._queue.get()
             logger.debug("loopback run received: %s %s %s", PacketType.name(ptype), serial, packet)
@@ -542,6 +543,10 @@ class LoopbackNode(_Endpoint):
         logger.debug("send_response: [via: %s] %s %s %s", self, Resp.name(status), data, serial)
         self._mux_handler._queue.put((PacketType.Resp, serial, (status, data)))
 
+    def close(self):
+        self._closed = True
+        self._mux_handler._closed = True
+
 
 class _LoopbackHandler(_BaseHandler, _Endpoint):
 
@@ -549,6 +554,7 @@ class _LoopbackHandler(_BaseHandler, _Endpoint):
         super().__init__()
         self._node = node
         self.set_hub(hub)
+        self._closed = False
 
     def __str__(self):
         return "LoopbackHandler-" + super().__str__()
@@ -561,7 +567,7 @@ class _LoopbackHandler(_BaseHandler, _Endpoint):
         # No need to run read-loop since we will get called
         # directly by node when there is data available
         while True:
-            if self._queue is None:
+            if self._closed or self._queue is None:
                 break
             ptype, serial, packet = self._queue.get()
             logger.debug("run received: [%s] %s %s %s", self, PacketType.name(ptype), serial, packet)
@@ -784,7 +790,7 @@ class Hub(threading.Thread):
         logger.debug("hub process_req [handler %s]: %s", str(handler), Req.name(req))
         if req == Req.Message:
             return self.handle_msg(data, handler)
-        elif req == Req.GetIdentities:
+        elif req == Req.GetParticipants:
             return self.get_participants(data, handler)
         elif req == Req.GetConferenceInfo:
             return self.get_conference_info(data, handler)

@@ -37,7 +37,6 @@ Like other tools, the <b>Toolbar</b> can be started from the <b>Tools</b> menu
 It is organized into several tabbed sections:
 <ul>
 <li><a href="#home"><b>Home</b></a>
-&ndash; will be customizable, currently populated automatically:
 &nbsp;<img class="iconbar" src="../home-icons.png">&nbsp;[...]
 <br><br>
 <li><a href="moldisplay.html"><b>Molecule Display</b></a>:&nbsp;
@@ -65,25 +64,29 @@ It is organized into several tabbed sections:
 <img class="iconbar" src="../mouse-icons.png">
 </ul>
 <p>
-Each tab is further organized into sections with names. 
-The section names and descriptions of individual icons (buttons)
-can be hidden and shown by unchecking and checking the following options
-in the <b>Toolbar</b> <a href="../window.html#context-menu">context menu</a>:
-</p>
-<ul>
-<li><b>Show button labels</b>
-<li><b>Show section labels</b>
-</ul>
-<p>
+Each tab is further organized into sections with names.
 Icon sections that would extend beyond the current window width can be 
 disclosed by clicking the double arrowhead at the right end of the 
 <b>Toolbar</b>. The tabs are all part of the same tool and cannot be dragged
 apart, unlike tabs for separate tools that were previously dragged on top 
 of each other (see <a href="../window.html#panels">panel manipulation</a>).
 </p><p>
+The <b>Toolbar</b> <a href="../window.html#context-menu">context menu</a>
+includes:
+</p>
+<ul>
+<li><b>Settings...</b> preferences for customizing the
+<a href="#home"><b>Home</b></a> tab
+<li><b>Show button labels</b>
+&ndash; whether to show individual icon descriptions 
+<li><b>Show section labels</b>
+&ndash; whether to show icon section names
+</ul>
+</p><p>
 <a name="home"></a>
 The <b>Home</b> tab of the <a href="#top"><b>Toolbar</b></a>
-includes some icons that do not appear in other tabs:
+is <a href="#settings">customizable</a> and may include the following icons
+in addition to those from other tabs: 
 </p>
 <table border cellpadding="4" cellspacing="0">
 <tr>
@@ -134,9 +137,59 @@ between 3D graphics and recent files (<b>Rapid Access</b>)</td>
 ~/Desktop/movie</b><i>N</i><b>.mp4</b>
 <p style="margin-top:2px;margin-bottom:3px">
 (<i>N</i> = 1,2, ...)</td>
+</tr><tr>
+<td align="center"><img src="toolbar-icons/close-box.png" width="35px"></td>
+<td align="center">close models</td>
+<td align="center">
+<b><a href="../commands/close.html">close</a></b></td>
+</tr><tr>
+<td align="center"><img src="toolbar-icons/exit.png" width="35px"></td>
+<td align="center">exit</td>
+<td align="center">
+<b><a href="../commands/exit.html">exit</a></b></td>
+</tr><tr>
+<td align="center"><img src="toolbar-icons/undo-variant.png" width="35px"></td>
+<td align="center">undo</td>
+<td align="center">
+<b><a href="../commands/undo.html">undo</a></b></td>
+</tr><tr>
+<td align="center"><img src="toolbar-icons/redo-variant.png" width="35px"></td>
+<td align="center">redo</td>
+<td align="center">
+<b><a href="../commands/undo.html">redo</a></b></td>
 </tr>
 </table>
+
+<a name="settings"></a>
+<p class="nav">
+[<a href="#top">back to top: Toolbar</a>]
+</p>
+<h3>Toolbar Settings (Preferences)</h3>
+<p>
+Choosing <b>Settings...</b> from the <b>Toolbar</b>
+<a href="../window.html#context-menu">context menu</a>
+opens a dialog for customizing the <a href="#home"><b>Home</b></a> tab.
+In this dialog:
+</p>
+<ul>
+<li>individual icons or sections (groupings of icons with text descriptions)
+can be dragged from the &ldquo;available&rdquo; list on the right
+to the <b>Home</b> tab list on the left.
+Sections can be in any order, but a section cannot be inside another section.
+<li>icons and sections in the <b>Home</b> tab can be reordered by dragging
+<li>text descriptions of icons and sections in the <b>Home</b> tab can be edited
+<li>section checkboxes indicate whether a compact layout is used
+</ul>
+<p>
+Changes are applied immediately; however, 
+clicking <b>Save</b> is required to save the current settings 
+as <a href="../preferences.html#other">preferences</a>.
+<b>Reset</b> returns the <b>Home</b> tab to its &ldquo;factory&rdquo; defaults,
+whereas <b>Restore</b> applies any previously saved settings.
+</p><p>
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2019</address>
+February 2020</address>
 </body></html>
