@@ -291,7 +291,7 @@ def register_arrow_command(logger):
             ('weight', FloatArg),
             ('visibility', BoolArg),
             ('head_style', EnumOf(("blocky", "solid", "pointy", "pointer"))),
-            ('mid_point', Or(NoneArg, Float2Arg)),
+            #('mid_point', Or(NoneArg, Float2Arg)),
             ('frames', IntArg)],
         synopsis='Create/change a 2d arrow')
     register('2dlabels arrow', arrows_desc, arrow, logger=logger)
