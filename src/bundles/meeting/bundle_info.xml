@@ -12,11 +12,16 @@
   <DataFiles>
     <DataFile>face.png</DataFile>
     <DataFile>server.pem</DataFile>
+    <DataFile>gui.html</DataFile>
   </DataFiles>
 
   <Categories>
     <Category name="General"/>
   </Categories>
+
+  <Providers>
+    <Provider name="conference" manager="url_schemes"/>
+  </Providers>
 
   <Dependencies>
     <Dependency name="netifaces" version=">=0.10.9"/>
@@ -33,6 +38,7 @@
     <ChimeraXClassifier>Command :: conference set :: General :: Set options for current conference</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: conference close :: General :: Close connection to conference</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: conference send :: General :: Copy my scene to all other conference participants</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Conference Call :: Utilities :: Show the same data set in multiple ChimeraX instances</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
