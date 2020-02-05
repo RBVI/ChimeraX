@@ -79,7 +79,7 @@ class ToolbarTool(ToolInstance):
     SESSION_SAVE = False
     PLACEMENT = "top"
     CUSTOM_SCHEME = "toolbar"
-    help = "help:user/tools/Toolbar.html"  # Let ChimeraX know about our help page
+    help = "help:user/tools/toolbar.html"  # Let ChimeraX know about our help page
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -405,12 +405,12 @@ class _HomeTab(QTreeWidget):
 
     def dropEvent(self, event):
         source = event.source()
+        # from dragEnterEvent, we know there is at least one selected item
+        original = source.selectedItems()[0]
+        original_type = original.data(0, ITEM_TYPE_ROLE)
         if source == self:
             copy_subtree = False
         else:
-            # from dragEnterEvent, we know there is at least one selected item
-            original = source.selectedItems()[0]
-            original_type = original.data(0, ITEM_TYPE_ROLE)
             copy_subtree = original_type == SECTION_TYPE
         super().dropEvent(event)
         if copy_subtree:
@@ -437,7 +437,10 @@ class _HomeTab(QTreeWidget):
                     if new_name not in current_sections:
                         new_section.setText(0, new_name)
                         break
-        elif source != self:
+        elif source == self:
+            if original_type == SECTION_TYPE:
+                self.expandItem(original)
+        else:
             new_button = self.itemAt(event.pos())
             new_button.setFlags(BUTTON_FLAGS)
         self.childDraggedAndDropped.emit()
@@ -445,7 +448,7 @@ class _HomeTab(QTreeWidget):
 
 class ToolbarSettingsTool:
 
-    # help = "help:user/tools/Toolbar.html#customize"  # Let ChimeraX know about our help page
+    help_url = "help:user/tools/toolbar.html#settings"
 
     def __init__(self, session, toolbar, tool_window):
         self.session = session
@@ -505,8 +508,7 @@ class ToolbarSettingsTool:
         bottom_layout.addWidget(restore)
         help = QPushButton("Help", parent)
         help.setToolTip("Show Help")
-        help.setEnabled(False)
-        # TODO: help.clicked.connect(self.help)
+        help.clicked.connect(self.help)
         bottom_layout.addWidget(help)
 
         # widget contents/customization:
@@ -549,7 +551,8 @@ class ToolbarSettingsTool:
                 section_item = QTreeWidgetItem(tab_item, [section])
                 section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
                 section_item.setFlags(other_flags)
-                section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
+                # Treat all available section as not compact
+                # section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
                 self.other.expandItem(section_item)
             item = QTreeWidgetItem(section_item, [f"{display_name}"])
             item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
@@ -671,6 +674,10 @@ class ToolbarSettingsTool:
         # restore current configuration from saved preferences
         _settings.restore()
         self.update_from_settings()
+
+    def help(self):
+        from chimerax.help_viewer import show_url
+        show_url(self.session, self.help_url)
 
 # Adapted QHLine from
 # https://stackoverflow.com/questions/5671354/how-to-programmatically-make-a-horizontal-line-in-qt
