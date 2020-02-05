@@ -134,7 +134,13 @@ instead of changing the name of the existing residue
 [&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
 [&nbsp;<b>select</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
-Currently the only choice for starting a molecule is with a single <b>atom</b>.
+Currently the only choice in for starting a molecule 
+with <b>build start</b> is a single <b>atom</b>. 
+(However, atomic structures to use as starting points for 
+modification can be obtained from many sources or modeled from a
+<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string
+using the <a href="open.html#fetch"><b>open</b></a> command.)
 The <i>model</i> can be given as the
 <a href="atomspec.html#hierarchy">identifier</a> (number, for example #2)
 of an existing model, or a character-string name for a new model.
@@ -145,8 +151,10 @@ a name for the new residue (default <b>UNL</b>).
 The <b>select</b> option indicates whether to 
 <a href="../selection.html">select</a> the new atom (default <b>true</b>),
 which may be convenient for subsequent <a href="#modify">modification</a>.
+</p><p>
+Small molecules can be generated from SMILES strings or by PubChem
 </blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2020</address>
+February 2020</address>
 </body></html>
