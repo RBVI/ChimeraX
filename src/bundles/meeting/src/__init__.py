@@ -18,6 +18,11 @@ class _MeetingAPI(BundleAPI):
     api_version = 1
 
     @staticmethod
+    def start_tool(session, bi, ti):
+        from .tool import ConferenceUI
+        return ConferenceUI(session, ti.name)
+
+    @staticmethod
     def register_command(bi, ci, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import reg_cmd
