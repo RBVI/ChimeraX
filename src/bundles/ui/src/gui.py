@@ -2081,7 +2081,7 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
             StringArg.unparse(ti.tool_name))))
         menu.addAction(fav_action)
     if memorable and tool_window.hides_title_bar and not tool_window.floating:
-        undock_action = QAction("Undock This Tool")
+        undock_action = QAction("Undock")
         undock_action.triggered.connect(lambda *, dock_widget=memorable: dock_widget.setFloating(True))
         menu.addAction(undock_action)
     undockable = ti.tool_name in session.ui.settings.undockable
