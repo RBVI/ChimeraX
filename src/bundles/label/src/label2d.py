@@ -381,12 +381,13 @@ class Labels(Model):
         self._labels = []	   
         self._named_labels = {}    # Map label name to Label object
         from chimerax.core.core_settings import settings
-        settings.triggers.add_handler('setting changed', self._background_color_changed)
+        self.handler = settings.triggers.add_handler('setting changed', self._background_color_changed)
         session.main_view.add_overlay(self)
         self.model_panel_show_expanded = False
 
     def delete(self):
         self.session.main_view.remove_overlays([self], delete = False)
+        self.handler.remove()
         Model.delete(self)
 
     def add_label(self, label):
