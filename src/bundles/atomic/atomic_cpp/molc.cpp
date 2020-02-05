@@ -1688,50 +1688,52 @@ extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, 
     try {
       float32_t *m44b = m44 + 16*n;
       for (size_t i = 0; i != n; ++i) {
-    Bond *bd = b[i];
-    Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
-    const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
-    float r = bd->radius();
+	Bond *bd = b[i];
+	Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
+	const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
+	float r = bd->radius();
 
-    float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
-    float vx = x1-x0, vy = y1-y0, vz = z1-z0;
-    float h = sqrtf(vx*vx + vy*vy + vz*vz);
-    if (h == 0)
-      { vx = vy = 0 ; vz = 1; }
-    else
-      { vx /= h; vy /= h; vz /= h; }
+	float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
+	float vx = x1-x0, vy = y1-y0, vz = z1-z0;
+	float h = sqrtf(vx*vx + vy*vy + vz*vz);
+	if (h == 0)
+	  { vx = vy = 0 ; vz = 1; }
+	else
+	  { vx /= h; vy /= h; vz /= h; }
 
-    // Avoid degenerate vz = -1 case.
-    if (vz < 0)
-      { vx = -vx; vy = -vy; vz = -vz; }
+	float sx = r, sy = r, sz = h;	// Scale factors
+
+	// Avoid degenerate vz = -1 case.
+	if (vz < 0)
+	  { vx = -vx; vy = -vy; vz = -vz; sx = -r; sz = -h; }
     
-    float c1 = 1.0/(1+vz);
-    float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
+	float c1 = 1.0/(1+vz);
+	float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
       
-    *m44++ = *m44b++ = r*(vyy + vz);
-    *m44++ = *m44b++ = -r*vxy;
-    *m44++ = *m44b++ = -r*vx;
-    *m44++ = *m44b++ = 0;
+	*m44++ = *m44b++ = sx*(vyy + vz);
+	*m44++ = *m44b++ = -sx*vxy;
+	*m44++ = *m44b++ = -sx*vx;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = -r*vxy;
-    *m44++ = *m44b++ = r*(vxx + vz);
-    *m44++ = *m44b++ = -r*vy;
-    *m44++ = *m44b++ = 0;
+	*m44++ = *m44b++ = -sy*vxy;
+	*m44++ = *m44b++ = sy*(vxx + vz);
+	*m44++ = *m44b++ = -sy*vy;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = h*vx;
-    *m44++ = *m44b++ = h*vy;
-    *m44++ = *m44b++ = h*vz;
-    *m44++ = *m44b++ = 0;
+	*m44++ = *m44b++ = sz*vx;
+	*m44++ = *m44b++ = sz*vy;
+	*m44++ = *m44b++ = sz*vz;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = .75*x0 + .25*x1;
-    *m44++ = .75*y0 + .25*y1;
-    *m44++ = .75*z0 + .25*z1;
-    *m44++ = 1;
+	*m44++ = .75*x0 + .25*x1;
+	*m44++ = .75*y0 + .25*y1;
+	*m44++ = .75*z0 + .25*z1;
+	*m44++ = 1;
 
-    *m44b++ = .25*x0 + .75*x1;
-    *m44b++ = .25*y0 + .75*y1;
-    *m44b++ = .25*z0 + .75*z1;
-    *m44b++ = 1;
+	*m44b++ = .25*x0 + .75*x1;
+	*m44b++ = .25*y0 + .75*y1;
+	*m44b++ = .25*z0 + .75*z1;
+	*m44b++ = 1;
       }
     } catch (...) {
         molc_error();

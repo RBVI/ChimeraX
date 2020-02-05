@@ -42,27 +42,29 @@ static void cylinder_rotations(float *axyz0, float *axyz1, int n, float *radii,
       else
 	{ vx /= h; vy /= h; vz /= h; }
 
+      float r = *radii++;
+      float sx = r, sy = r, sz = h;
+      
       // Avoid degenerate vz = -1 case.
       if (vz < 0)
-	{ vx = -vx; vy = -vy; vz = -vz; }
+	{ vx = -vx; vy = -vy; vz = -vz; sx = -r; sz = -h; }
 
       float c1 = 1.0/(1+vz);
       float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
-      float r = *radii++;
 
-      *rot44++ = r*(vyy + vz);
-      *rot44++ = -r*vxy;
-      *rot44++ = -r*vx;
+      *rot44++ = sx*(vyy + vz);
+      *rot44++ = -sx*vxy;
+      *rot44++ = -sx*vx;
       *rot44++ = 0;
 
-      *rot44++ = -r*vxy;
-      *rot44++ = r*(vxx + vz);
-      *rot44++ = -r*vy;
+      *rot44++ = -sy*vxy;
+      *rot44++ = sy*(vxx + vz);
+      *rot44++ = -sy*vy;
       *rot44++ = 0;
 
-      *rot44++ = h*vx;
-      *rot44++ = h*vy;
-      *rot44++ = h*vz;
+      *rot44++ = sz*vx;
+      *rot44++ = sz*vy;
+      *rot44++ = sz*vz;
       *rot44++ = 0;
 
       *rot44++ = 0;
@@ -124,27 +126,29 @@ static void half_cylinder_rotations(float *axyz0, float *axyz1, int n, float *ra
       else
 	{ vx /= h; vy /= h; vz /= h; }
 
+      float r = *radii++;
+      float sx = r, sy = r, sz = h;
+
       // Avoid degenerate vz = -1 case.
       if (vz < 0)
-	{ vx = -vx; vy = -vy; vz = -vz; }
+	{ vx = -vx; vy = -vy; vz = -vz; sx = -r; sz = -h; }
 
       float c1 = 1.0/(1+vz);
       float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
-      float r = *radii++;
 
-      *rot44++ = *rot44b++ = r*(vyy + vz);
-      *rot44++ = *rot44b++ = -r*vxy;
-      *rot44++ = *rot44b++ = -r*vx;
+      *rot44++ = *rot44b++ = sx*(vyy + vz);
+      *rot44++ = *rot44b++ = -sx*vxy;
+      *rot44++ = *rot44b++ = -sx*vx;
       *rot44++ = *rot44b++ = 0;
 
-      *rot44++ = *rot44b++ = -r*vxy;
-      *rot44++ = *rot44b++ = r*(vxx + vz);
-      *rot44++ = *rot44b++ = -r*vy;
+      *rot44++ = *rot44b++ = -sy*vxy;
+      *rot44++ = *rot44b++ = sy*(vxx + vz);
+      *rot44++ = *rot44b++ = -sy*vy;
       *rot44++ = *rot44b++ = 0;
 
-      *rot44++ = *rot44b++ = h*vx;
-      *rot44++ = *rot44b++ = h*vy;
-      *rot44++ = *rot44b++ = h*vz;
+      *rot44++ = *rot44b++ = sz*vx;
+      *rot44++ = *rot44b++ = sz*vy;
+      *rot44++ = *rot44b++ = sz*vz;
       *rot44++ = *rot44b++ = 0;
 
       *rot44++ = .75*x0 + .25*x1;
