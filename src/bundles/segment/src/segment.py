@@ -334,10 +334,11 @@ def calculate_segmentation_surfaces(seg, where = None, each = None,
         
     # Create one or more surface models
     from chimerax.core.models import Surface
+    from chimerax.surface import combine_geometry_xvnt
     segsurfs = []
     if each is None and len(geom) > 1:
         # Combine multiple surfaces into one.
-        va, na, ta = _combine_geometry([g[1:] for g in geom])
+        va, na, ta = combine_geometry_xvnt(geom)
         name = '%s %d %ss' % (seg.name, len(geom), attribute_name)
         s = Surface(name, seg.session)
         s.clip_cap = True  # Cap surface when clipped
@@ -359,25 +360,6 @@ def calculate_segmentation_surfaces(seg, where = None, each = None,
             segsurfs.append(s)
 
     return segsurfs
-
-# -----------------------------------------------------------------------------
-#
-def _combine_geometry(surfs):
-    nv = sum(len(va) for va, na, ta in surfs)
-    from numpy import empty, float32, uint8, concatenate
-    cva = empty((nv,3), float32)
-    cna = empty((nv,3), float32)
-    voffset = 0
-    tlist = []
-    for va, na, ta in surfs:
-        snv = len(va)
-        cva[voffset:voffset+snv,:] = va
-        cna[voffset:voffset+snv,:] = na
-        ta += voffset
-        tlist.append(ta)
-        voffset += snv
-    cta = concatenate(tlist)
-    return cva, cna, cta
 
 # -----------------------------------------------------------------------------
 #
