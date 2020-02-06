@@ -19,7 +19,8 @@ class _OpenBundleAPI(BundleAPI):
     def init_manager(session, bundle_info, name, **kw):
         """Initialize open-command manager"""
         if name == "open command":
-            from .manager import OpenManager
-            return OpenManager(session)
+            from . import manager
+            manager._manager = manager.OpenManager(session)
+            return manager._manager
 
 bundle_api = _OpenBundleAPI()

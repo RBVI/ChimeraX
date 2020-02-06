@@ -81,7 +81,7 @@ class FormatsManager(ProviderManager):
             raise TypeError("Data format key is not a string")
         if key in self._formats:
             return self._formats[key][1]
-        for bi, format_data in self.formats.values():
-            if key in format_data.suffixes:
+        for bi, format_data in self._formats.values():
+            if key in format_data.nicknames:
                 return format_data
         raise KeyError("No known data format '%s'" % key)

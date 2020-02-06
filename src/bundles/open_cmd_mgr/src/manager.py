@@ -17,7 +17,7 @@ class OpenManager(ProviderManager):
 
     def __init__(self, session):
         self.session = session
-        self._provider_info = {}
+        self._openers = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("open command changed")
@@ -28,59 +28,27 @@ class OpenManager(ProviderManager):
         io._user_register = self.add_format
         """
 
-    def add_format(self, name, category, *, suffixes=None, nicknames=None, bundle_info=None,
-            mime_types=None, reference_url=None, insecure=None, encoding=None, synopsis=None,
-            allow_directory=False, raise_trigger=True):
-
-        def convert_arg(arg, default=None):
-            if arg and isinstance(arg, str):
-                return arg.split(',')
-            return [] if default is None else default
-        suffixes = convert_arg(suffixes)
-        nicknames = convert_arg(nicknames, [name.lower()])
-        mime_types = convert_arg(mime_types)
-        insecure = category == self.CAT_SCRIPT if insecure is None else insecure
-
-        if name in self._formats:
-            registrant = lambda bi: "unknown registrant" if bi is None else "%s bundle" % bi.name
-            self.session.logger.info("Replacing data format '%s' as defined by %s with definition from %s"
-                % (name, registrant(self._formats[name][0]), registrant(bundle_info)))
-        from .format import DataFormat
-        self._formats[name] = (bundle_info, DataFormat(name, category, suffixes, nicknames, mime_types,
-            reference_url, insecure, encoding, synopsis, allow_directory))
-        if raise_trigger:
-            self.triggers.activate_trigger("data formats changed", self)
-
-    def add_provider(self, bundle_info, name, *, category=None, suffixes=None, nicknames=None,
-            mime_types=None, reference_url=None, insecure=None, encoding=None, synopsis=None,
-            allow_directory=False, **kw):
+    def add_provider(self, bundle_info, name, *, type="open", check_path=True, **kw):
         logger = self.session.logger
         if kw:
-            logger.warning("Data format provider '%s' supplied unknown keywords with format description: %s"
+            logger.warning("Open-command provider '%s' supplied unknown keywords in provider description: %s"
                 % (name, repr(kw)))
-        if suffixes is None:
-            if allow_directory:
-                suffixes = []
-            else:
-                logger.error("Data format provider '%s' didn't specify any suffixes." % name)
-            return
-        if category is None:
-            logger.warning("Data format provider '%s' didn't specify a category."
-                "  Using catch-all category '%s'" % (name, self.CAT_GENERAL))
-            category = self.CAT_GENERAL
-        self.add_format(name, category, suffixes=suffixes, nicknames=nicknames, bundle_info=bundle_info,
-            mime_types=mime_types, reference_url=reference_url, insecure=insecure, encoding=encoding,
-            synopsis=synopsis, allow_directory=allow_directory, raise_trigger=False)
+        try:
+            data_format = self.session.data_formats[name]
+        except KeyError:
+            raise ValueError("Open-command provider in bundle %s specified unknown data format '%s'"
+                % (_readable_bundle_name(bundle_info), name))
+        if data_format in self._openers:
+            logger.warning("Replacing opener for '%s' from %s bundle with that from %s bundle"
+                % (data_format.name, _readable_bundle_name(self._openers[data_format][0]),
+                _readable_bundle_name(bundle_info)))
+        self._openers[data_format] = (bundle_info, check_path)
 
     def end_providers(self):
-        self.triggers.activate_trigger("data formats changed", self)
+        self.triggers.activate_trigger("open command changed", self)
 
-    def __getitem__(self, key):
-        if not isinstance(key, str):
-            raise TypeError("Data format key is not a string")
-        if key in self._formats:
-            return self._formats[key][1]
-        for bi, format_data in self.formats.values():
-            if key in format_data.suffixes:
-                return format_data
-        raise KeyError("No known data format '%s'" % key)
+def _readable_bundle_name(bundle_info):
+    name = bundle_info.name
+    if name.lower().startswith("chimerax"):
+        return name[9:]
+    return name
