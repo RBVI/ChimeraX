@@ -28,7 +28,7 @@ class OpenManager(ProviderManager):
         io._user_register = self.add_format
         """
 
-    def add_provider(self, bundle_info, name, *, type="open", check_path=True, **kw):
+    def add_provider(self, bundle_info, name, *, type="open", want_path=False, check_path=True, **kw):
         logger = self.session.logger
         if kw:
             logger.warning("Open-command provider '%s' supplied unknown keywords in provider description: %s"
@@ -42,7 +42,7 @@ class OpenManager(ProviderManager):
             logger.warning("Replacing opener for '%s' from %s bundle with that from %s bundle"
                 % (data_format.name, _readable_bundle_name(self._openers[data_format][0]),
                 _readable_bundle_name(bundle_info)))
-        self._openers[data_format] = (bundle_info, check_path)
+        self._openers[data_format] = (bundle_info, want_path, check_path)
 
     def end_providers(self):
         self.triggers.activate_trigger("open command changed", self)
