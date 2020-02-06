@@ -2356,6 +2356,7 @@ class OutlineBox:
     d.display_style = d.Mesh
 #    d.linewidth = linewidth
     d.use_lighting = False
+    d.casts_shadows = False
     d.pickable = False
     d.no_cofr = True
     # Set geometry after setting outline_box attribute to avoid undesired
