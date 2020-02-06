@@ -1711,6 +1711,7 @@ class Panel:
         d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
+        d.casts_shadows = False
         # d.skip_bounds = True	# Clips if far from models.
         drawing_parent.add_drawing(d)
         return d

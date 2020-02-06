@@ -412,10 +412,17 @@ class _HomeTab(QTreeWidget):
             copy_subtree = False
         else:
             copy_subtree = original_type == SECTION_TYPE
-        super().dropEvent(event)
+        result = super().dropEvent(event)
         if copy_subtree:
             # find where it was copied to
             new_section = self.itemAt(event.pos())
+            parent = new_section.parent()
+            if parent is None:
+                parent = self.invisibleRootItem()
+            if new_section.childCount() != 0:
+                i = parent.indexOfChild(new_section)
+                new_section = parent.child(i + 1)
+                # assert new_section.childCount() == 0
             new_section.setFlags(SECTION_FLAGS)
             self.expandItem(new_section)
             for i in range(original.childCount()):
@@ -426,8 +433,8 @@ class _HomeTab(QTreeWidget):
             from collections import Counter
             section_name = original.text(0)
             current_section_names = []
-            for i in range(self.topLevelItemCount()):
-                item_name = self.topLevelItem(i).text(0)
+            for i in range(parent.childCount()):
+                item_name = parent.child(i).text(0)
                 current_section_names.append(item_name)
             current_sections = Counter(current_section_names)
             if current_sections[section_name] > 1:
@@ -444,6 +451,7 @@ class _HomeTab(QTreeWidget):
             new_button = self.itemAt(event.pos())
             new_button.setFlags(BUTTON_FLAGS)
         self.childDraggedAndDropped.emit()
+        return result
 
 
 class ToolbarSettingsTool:
@@ -597,6 +605,30 @@ class ToolbarSettingsTool:
             self.home.itemChanged.connect(self.update)
 
     def update(self, *args):
+        # check if text of current section item is a duplicate
+        if args:
+            item, column = args
+        else:
+            item = None
+        if item and item.data(0, ITEM_TYPE_ROLE) == SECTION_TYPE:
+            # make sure section name is unique
+            from collections import Counter
+            section_name = item.text(0)
+            parent = item.parent()
+            if parent is None:
+                parent = self.home.invisibleRootItem()
+            current_section_names = []
+            for i in range(parent.childCount()):
+                item_name = parent.child(i).text(0)
+                current_section_names.append(item_name)
+            current_sections = Counter(current_section_names)
+            if current_sections[section_name] > 1:
+                from itertools import chain, count
+                for suffix in chain(("",), count(2)):
+                    new_name = f"new {section_name}{suffix}"
+                    if new_name not in current_sections:
+                        item.setText(0, new_name)
+                        break
         # propagate user changes to home tab
         from PyQt5.QtWidgets import QTreeWidgetItemIterator
         home_tab = []
