@@ -26,6 +26,12 @@
     <Manager name="open command"/>
   </Managers>
 
+  <Providers manager="open command">
+    <Provider type="compression" name="gzip" compression_suffixes=".gz"/>
+    <Provider type="compression" name="bz2" compression_suffixes=".bz2"/>
+    <Provider type="compression" name="lzma" compression_suffixes=".xz"/>
+  </Providers>
+
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

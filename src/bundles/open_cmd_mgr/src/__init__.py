@@ -23,4 +23,10 @@ class _OpenBundleAPI(BundleAPI):
             manager._manager = manager.OpenManager(session)
             return manager._manager
 
+    @staticmethod
+    def run_provider(session, name, mgr, type=None, path=None, encoding=None, **kw):
+        if type == "compression":
+            from .providers import get_compression
+            return get_compression(name, path, encoding)
+
 bundle_api = _OpenBundleAPI()
