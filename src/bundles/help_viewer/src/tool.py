@@ -20,7 +20,7 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.ui.widgets.htmlview import (
     ChimeraXHtmlView, chimerax_intercept,
-    create_chimerax_profile, delete_profile
+    create_chimerax_profile
 )
 
 _singleton = None
