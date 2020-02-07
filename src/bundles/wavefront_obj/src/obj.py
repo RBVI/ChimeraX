@@ -91,9 +91,6 @@ def read_obj(session, filename, name):
                 oname = object_name if object_name else name
                 m = new_object(session, oname, vertices, normals, texcoords, triangles, voffset)
                 models.append(m)
-                print ('obj obj, vertices', len(vertices), 'tri', len(triangles),
-                       'range', m.triangles.min()-voffset, m.triangles.max()-voffset, 'voffset', voffset, 'tri', triangles[:5])
-
                 voffset += len(vertices)
                 vertices, normals, texcoords, triangles = [], [], [], []
             object_name = line[2:].strip()
@@ -199,7 +196,8 @@ def write_obj(session, filename, models, obj_to_unity = True, single_object = Fa
                 geom.append((full_name(d), va, na, tca, ta, pos))
 
     if single_object:
-        va, na, tca, ta = combine_geometry(geom)
+        from chimerax.surface import combine_geometry_xvntctp
+        va, na, tca, ta = combine_geometry_xvntctp(geom)
         geom = [(None, va, na, tca, ta, None)]
 
     # Write 80 character comment.
@@ -235,7 +233,8 @@ def write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity):
 
     if pos is not None and not pos.is_identity():
         # Expand out positions including instancing.
-        va, na, tca, ta = combine_geometry([(name, va, na, tca, ta, pos)])
+        from chimerax.surface import combine_geometry_xvntctp
+        va, na, tca, ta = combine_geometry_xvntctp([(name, va, na, tca, ta, pos)])
 
     # Write vertices
     file.write('\n'.join(('v %.5g %.5g %.5g' % tuple(xyz)) for xyz in va))
@@ -269,39 +268,3 @@ def write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity):
     file.write('\n')
 
     return len(va)
-
-# -----------------------------------------------------------------------------
-#
-def combine_geometry(geom):
-    vc = tc = 0
-    tex_coord = False
-    for name, va, na, tca, ta, pos in geom:
-        n, nv, nt = len(pos), len(va), len(ta)
-        vc += n*nv
-        tc += n*nt
-        if tca is not None:
-            tex_coord = True
-        elif tex_coord:
-            raise OBJError('OBJ writer cannot handle some models with texture coordinates'
-                           ' and others without texture coordinates')
-
-    from numpy import empty, float32, int32
-    varray = empty((vc,3), float32)
-    narray = empty((vc,3), float32)
-    tcarray = empty((vc,2), float32) if tex_coord else None
-    tarray = empty((tc,3), int32)
-
-    v = t = 0
-    for name, va, na, tca, ta, pos in geom:
-        n, nv, nt = len(pos), len(va), len(ta)
-        for p in pos:
-            varray[v:v+nv,:] = va if p.is_identity() else p*va
-            narray[v:v+nv,:] = na if p.is_identity() else p.transform_vectors(na)
-            if tex_coord:
-                tcarray[v:v+nv,:] = tca
-            tarray[t:t+nt,:] = ta
-            tarray[t:t+nt,:] += v
-            v += nv
-            t += nt
-    
-    return varray, narray, tcarray, tarray

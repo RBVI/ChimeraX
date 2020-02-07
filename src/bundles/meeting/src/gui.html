@@ -39,90 +39,99 @@
         function update_status(params) {
             if (params["active"]) {
                 update_params(params);
-                $("#action-leave").prop("disabled", false);
-                $("#action-join").prop("disabled", true);
-                $("#action-start").prop("disabled", true);
-                $("#action-host").prop("disabled", true);
+                $(".conf-active").prop("disabled", false);
+                $(".conf-inactive").prop("disabled", true);
                 $("#body-log").collapse("show");
                 message("Joined conference call at " + params["location"])
             } else {
                 message("Left conference call.")
-                $("#action-leave").prop("disabled", true);
-                $("#action-join").prop("disabled", false);
-                $("#action-start").prop("disabled", false);
-                $("#action-host").prop("disabled", false);
+                $(".conf-active").prop("disabled", true);
+                $(".conf-inactive").prop("disabled", false);
                 $("#body-params").collapse("show");
             }
         }
         $(document).ready(init);
     // ]]>
     </script>
+    <style>
+        .tight { margin-left:0px; margin-right:0px;
+                 margin-top:1px; margin-bottom:1px; }
+        .light-padding { padding:3px; }
+    </style>
 </head>
 <body>
 <div class="accordion" id="conference">
-    <div class="card">
-        <div class="card-header p-0 mt-0 mb-0" id="header-params">
+    <div class="card p-0">
+        <div class="card-header p-0" id="header-params">
             <button class="btn btn-link p-1" type="button"
                     data-toggle="collapse" data-target="#body-params"
                     aria-expanded="true" aria-controls="body-params">
                 Parameters</button>
         </div>
-        <div class="collapse show" id="body-params"
+        <div class="collapse show light-padding" id="body-params"
              aria-labelledby="header-params" data-parent="#conference">
-            <div class="card-body">
+            <div class="card-body light-padding">
                 <form method="get" action="conference:action" role="form">
-                    <div class="form-group form-row ml-0 mr-0 mt-1 mb-1">
+                    <div class="form-group form-row p-0 tight">
                         <label for="host" class="col-sm-3 col-form-label text-right">Host</label>
                         <div class="col-sm-8">
                             <input name="host" type="text" class="form-control" id="host"
                                    placeholder="Host name or IP (required for Start and Join)"/>
                         </div>
                     </div>
-                    <div class="form-group form-row ml-0 mr-0 mt-1 mb-1">
+                    <div class="form-group form-row p-0 tight">
                         <label for="port" class="col-sm-3 col-form-label text-right">Port</label>
                         <div class="col-sm-8">
                             <input name="port" type="number" class="form-control" step="1" id="port"
                                    placeholder="Port number (required for Start and Join)"/>
                         </div>
                     </div>
-                    <div class="form-group form-row ml-0 mr-0 mt-1 mb-1">
+                    <div class="form-group form-row p-0 tight">
+
                         <label for="conf" class="col-sm-3 col-form-label text-right">Conference name</label>
                         <div class="col-sm-8">
                             <input name="conf_name" type="text" class="form-control" id="conf_name"
                                    placeholder="Name of conference (required for Start)"/>
                         </div>
                     </div>
-                    <div class="form-group form-row ml-0 mr-0 mt-1 mb-1">
+                    <div class="form-group form-row p-0 tight">
                         <label for="user" class="col-sm-3 col-form-label text-right">User name</label>
                         <div class="col-sm-8">
                             <input name="user_name" type="text" class="form-control" id="user_name"
                                    placeholder="Name to use in conference (optional)"/>
                         </div>
                     </div>
-                    <div class="btn-group col-sm-2 mt-2" role="group" aria-label="Actions">
-                        <button type="submit" name="action" value="leave" disabled
-                                id="action-leave" class="btn btn-secondary">Leave</button>
-                        <button type="submit" name="action" value="join"
-                                id="action-join" class="btn btn-secondary">Join</button>
-                        <button type="submit" name="action" value="start"
-                                id="action-start" class="btn btn-secondary">Start</button>
-                        <button type="submit" name="action" value="host"
-                                id="action-host" class="btn btn-secondary">Host</button>
+                    <div class="form-row">
+                        <div class="btn-group" role="group" aria-label="Actions">
+                            <button type="submit" name="action" value="join" id="action-join"
+                                    class="btn btn-secondary conf-inactive">Join</button>
+                            <button type="submit" name="action" value="start" id="action-start"
+                                    class="btn btn-secondary conf-inactive">Start</button>
+                            <button type="submit" name="action" value="host" id="action-host"
+                                    class="btn btn-secondary conf-inactive">Host</button>
+                        </div>
+                        <div class="btn-group ml-2" role="group" aria-label="Actions">
+                            <button type="submit" name="action" value="send" id="action-send"
+                                    class="btn btn-secondary conf-active" disabled>Broadcast Session</button>
+                            <button type="submit" name="action" value="leave" id="action-leave"
+                                    class="btn btn-secondary conf-active" disabled>Leave</button>
+                        </div>
                     </div>
                 </form>
             </div>
         </div>
     </div>
-    <div class="card">
-        <div class="card-header p-0 mt-0 mb-0" id="header-log">
+    <div class="card p-0">
+
+        <div class="card-header p-0 tight" id="header-log">
             <button class="btn btn-link p-1 collapsed" type="button"
                     data-toggle="collapse" data-target="#body-log"
                     aria-expanded="false" aria-controls="body-log">
                 Log</button>
         </div>
-        <div class="collapse" id="body-log"
+        <div class="collapse light-padding" id="body-log"
              aria-labelledby="header-log" data-parent="#conference">
-            <div class="card-body">
+            <div class="card-body light-padding">
                 <div id="msg"></div>
             </div>
         </div>
