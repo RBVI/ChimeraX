@@ -55,8 +55,18 @@
     <ChimeraXClassifier>Command :: color height :: Surfaces :: color surface by distance from a plane</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface :: Surfaces :: create/modify surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~surface :: Surfaces :: delete surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface show :: Surfaces :: show atom surface patches for existing surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface hide :: Surfaces :: hide patches of existing surfaces for specified atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface close :: Surfaces :: close surfaces for specified atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface style :: Surfaces :: set surface mesh, solid, or dot display style</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface cap :: Surfaces :: control surface caps when clipping</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface dust :: Surfaces :: hide small pieces of surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface undust :: Surfaces :: show small pieces of surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface zone :: Surfaces :: show surface near atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface unzone :: Surfaces :: show all of surface</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface check :: Surfaces :: check surface topology</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: sop :: Surfaces :: alias for surface commands</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: volume splitbyzone :: Volume Data :: split volume by color zone</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: sop :: Surfaces :: surface operation</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure sasa :: Surfaces :: measure solvent-accessible surface area</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure volume :: Surfaces :: measure enclosed surface volume</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: measure area :: Surfaces :: measure surface area</ChimeraXClassifier>

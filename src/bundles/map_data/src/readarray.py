@@ -203,9 +203,9 @@ def allocate_array(size, value_type = float32, step = None, progress = None,
         m = alloc(shape, value_type)
     except ValueError:
         # numpy 1.0.3 sometimes gives ValueError, sometimes MemoryError
-        report_memory_error(msize, value_type)
+        report_memory_error(msize, value_type, progress)
     except MemoryError:
-        report_memory_error(msize, value_type)
+        report_memory_error(msize, value_type, progress)
 
     if progress:
         progress.array_size(msize, m.itemsize)
@@ -214,7 +214,7 @@ def allocate_array(size, value_type = float32, step = None, progress = None,
   
 # -----------------------------------------------------------------------------
 #
-def report_memory_error(size, value_type):
+def report_memory_error(size, value_type, progress):
 
     from numpy import dtype, product, float
     vtype = dtype(value_type)
@@ -224,6 +224,7 @@ def report_memory_error(size, value_type):
     sz = ','.join(['%d' % s for s in size])
     e = ('Could not allocate %.0f Mbyte array of size %s and type %s.\n'
          % (mbytes, sz, vtype.name))
-    from chimera import replyobj, CancelOperation
-    replyobj.error(e)
-    raise CancelOperation(e)
+#    progress.error(e)
+    from chimerax.core.errors import UserError
+    raise UserError(e)
+#    raise CancelOperation(e)

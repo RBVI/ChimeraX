@@ -278,14 +278,18 @@ class ReplacementFilePaths:
 # ---------------------------------------------------------------------------
 #
 def existing_directory(path):
-  if not path:
-    import os
-    return os.getcwd()
   from os.path import dirname, isdir
-  d = dirname(path)
-  if isdir(d):
-    return d
-  return existing_directory(d)
+  d = path
+  while d:
+    if isdir(d):
+      return d
+    parent = dirname(d)
+    if parent == d:
+      break
+    d = parent
+
+  from os import getcwd
+  return getcwd()
 
 # ---------------------------------------------------------------------------
 #
@@ -666,9 +670,13 @@ rendering_options_attributes = (
   'smoothing_iterations',
   'square_mesh',
   'cap_faces',
-  'box_faces',
   'orthoplanes_shown',
   'orthoplane_positions',
+  'tilted_slab_axis',
+  'tilted_slab_offset',
+  'tilted_slab_spacing',
+  'tilted_slab_plane_count',
+  'image_mode',
 )
 
 # ---------------------------------------------------------------------------
@@ -677,16 +685,24 @@ def state_from_rendering_options(rendering_options):
 
   s = dict((attr,getattr(rendering_options, attr))
            for attr in rendering_options_attributes)
-  s['version'] = 1
+  s['version'] = 2
   return s
 
 # ---------------------------------------------------------------------------
 #
 def rendering_options_from_state(s):
 
-  from .volume import Rendering_Options
-  ro = Rendering_Options()
+  from .volume import RenderingOptions
+  ro = RenderingOptions()
   for attr in rendering_options_attributes:
     if attr in s and attr != 'version':
       setattr(ro, attr, s[attr])
+
+  # Handle old session file box_faces attribute.
+  if s['version'] == 1:
+    if s.get('box_faces', False):
+      ro.image_mode = 'box faces'
+    elif s['orthoplanes_shown'] != (False, False, False):
+      ro.image_mode = 'orthoplanes'
+    
   return ro

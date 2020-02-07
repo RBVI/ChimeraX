@@ -72,6 +72,36 @@ Whether the tool should be listed in the <a href="../menu.html#favorites">
 through <a href="../window.html#tool-context">context menus</a>.
 </blockquote>
 
+<a name="fullscreen"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>ui fullscreen</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<blockquote>
+<p>
+Make the <a href="../window.html">ChimeraX window</a> 
+fill the screen and hide its title bar.
+See also: 
+<a href="camera.html"><b>camera</b></a>,
+<a href="../window.html#fullscreen">using ChimeraX fullscreen</a>
+</p>
+</blockquote>
+
+<a name="menubar"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>ui menubar</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<blockquote>
+<p>
+Show/hide the <a href="../menu.html">ChimeraX menu</a> on Windows.
+</p>
+</blockquote>
+<a name="statusbar"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>ui statusbar</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<blockquote>
+<p>
+Show/hide the <a href="../window.html">status line</a>.
+</p>
+</blockquote>
+
 <a name="functionkey"></a>
 <a href="#top" class="nounder">&bull;</a>
 <b>functionkey</b> &nbsp;<i>key</i> [&nbsp;<i>wordlist</i>&nbsp;]
@@ -201,7 +231,7 @@ trackpad + <b>Ctrl</b>, + <b>Shift</b> to toggle</td>
 The right mouse button (= trackpad + <b>Alt</b> on Windows,
 trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
 is also assigned to <b>translate</b> by default, 
-but can be reassigned by clicking an icon in the following tabs of the
+but can be reassigned by clicking any of the following icons in the
 <a href="../tools/toolbar.html"><b>Toolbar</b></a>
 (details on the functions <a href="#functions">below</a>):
 </p>
@@ -210,8 +240,16 @@ but can be reassigned by clicking an icon in the following tabs of the
 &nbsp;<img class="iconbar" src="../mouse-icons.png">
 <li><a href="../tools/markers.html"><b>Markers</b></a>:&nbsp;
 <img class="iconbar" src="../marker-icons.png">
+<li><a href="../tools/medicalimage.html"><b>Medical Image</b></a>:&nbsp; 
+<img class="iconbar" src="../tools/mouse-icons/rotateslab.png">&nbsp;
+(which also contains some of the same icons as
+<a href="../tools/mousemodes.html"><b>Right Mouse</b></a>)
 </ul>
 <p>
+The icon for the current right-mouse assignment is highlighted
+in the <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
+A specific mouse button can only be assigned one function at a time.
+</p><p>
 The <a href="#functions"><i>function</i></a> can be truncated to a unique string. 
 If the string contains spaces, it should be enclosed in quotation marks.
 Not all functions make sense for a given input mode; for example,
@@ -365,6 +403,18 @@ if full region shown initially, move plane or slab along its axis to show
 a different section; see also <a href="volume.html"><b>volume</b></a></td>
 <td align="center"><img src="../tools/mouse-icons/moveplanes.png" width="35px"></td>
 </tr><tr>
+<td align="center"><b>rotate slab</b></td>
+<td align="center" class="text">
+activate <a href="volume.html#tiltedslab">tilted slab</a> slicing of 
+<a href="../tools/volumeviewer.html">volume data</a> (image style only),
+rotate the slab to adjust the slicing angle;
+the center of rotation from clicking over the slab is the center of the slab,
+and from clicking elsewhere is the center of the volume box;
+in <a href="../vr.html">VR</a>, this mode
+both rotates and translates the slab</td>
+<td align="center"><img src="../tools/mouse-icons/rotateslab.png" width="35px">
+<br><font size="-1"><a href="../tools/medicalimage.html#mousemodes"><b>Medical Image</b></a></font></td>
+</tr><tr>
 <td align="center"><b>crop volume</b></td>
 <td align="center" class="text">
 show <a href="../tools/volumeviewer.html">volume data</a> outline box
@@ -422,6 +472,14 @@ under the mouseclick,
 with vertical drag cycling through the 20 standard types
 in arbitrary conformations; original sidechain not retained</td>
 <td align="center"><img src="../tools/mouse-icons/swapaa.png" width="35px"></td>
+</tr><tr>
+<td align="center"><b>play coordinates</b></td>
+<td align="center" class="text">
+drag up/down or left/right to play through the coordinate sets
+in each displayed <a href="../trajectories.html">trajectory</a>;
+dragging horizontally the full width of the graphics window (or in 
+<a href="../vr.html">VR</a>, 50 cm vertically) plays the whole trajectory</td>
+<td align="center"><img src="../tools/mouse-icons/coordset.png" width="35px"></td>
 </tr><tr>
 <td align="center"><b>tug</b></td>
 <td align="center" class="text">drag atoms and apply OpenMM dynamics
@@ -537,7 +595,7 @@ with the <a href="commands/size.html"><b>size</b></a> command)
 </tr>
 </table>
 </blockquote>
- 
+
 <a name="touchpad"></a>
 <h3><a href="#mousemode" class="nounder"><b>&larr;</b></a>
 Trackpad or Single-Button Mouse</h3>
@@ -577,5 +635,5 @@ interpreted as right-click, but a two-finger drag still performs scrolling.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2019</address>
+February 2020</address>
 </body></html>

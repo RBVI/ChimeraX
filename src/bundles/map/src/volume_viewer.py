@@ -603,8 +603,8 @@ class Volume_Dialog:
   #
   def rendering_options_from_gui(self):
 
-    from volume import Rendering_Options
-    ro = Rendering_Options()
+    from volume import RenderingOptions
+    ro = RenderingOptions()
     dop = self.display_options_panel
     dop.rendering_options_from_gui(ro)
     imop = self.image_options_panel
@@ -1774,7 +1774,7 @@ class Histogram_Pane:
     stm.setStyleSheet(menu_button_style)
     stm.setAttribute(Qt.WA_LayoutUsesWidgetRect) # Avoid extra padding on Mac
     sm = QMenu(df)
-    for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box'):
+    for style in ('surface', 'mesh', 'volume', 'maximum', 'plane', 'orthoplanes', 'box', 'tilted slab'):
         sm.addAction(style, lambda s=style: self.display_style_changed_cb(s))
     stm.setMenu(sm)
     layout.addWidget(stm)
@@ -2310,15 +2310,17 @@ class Histogram_Pane:
 
   def _get_style(self):
       style = self.style.text()
-      repr = 'image' if style in ('volume', 'maximum', 'plane', 'orthoplanes', 'box') else style
+      repr = 'image' if style in ('volume', 'maximum', 'plane', 'orthoplanes', 'box', 'tilted slab') else style
       return repr
   def _set_style(self, style):
       if style == 'image':
           v = self.volume
-          if v.showing_orthoplanes():
+          if v.showing_image('orthoplanes'):
               mstyle = 'orthoplanes'
-          elif v.showing_box_faces():
+          elif v.showing_image('box faces'):
               mstyle = 'box'
+          elif v.showing_image('tilted slab'):
+              mstyle = 'tilted slab'
           elif v.rendering_options.maximum_intensity_projection:
               mstyle = 'maximum'
           elif min(v.matrix_size()) == 1:
@@ -2362,26 +2364,22 @@ class Histogram_Pane:
           if v.showing_one_plane:
               self.show_full_region(v, show_volume = False)
               
-      if style != 'box' and v.showing_box_faces():
-          v.set_parameters(box_faces = False,
-                           color_mode = 'auto8')
+      if style != 'maximum':
+          v.set_parameters(maximum_intensity_projection = False)
           
       if style in ('surface', 'mesh'):
           v.set_display_style(style)
       elif style == 'volume':
-          v.set_parameters(orthoplanes_shown = (False, False, False),
-                           color_mode = 'auto8',
-                           maximum_intensity_projection = False)
+          v.set_parameters(image_mode = 'full region', color_mode = 'auto8')
           v.set_display_style('image')
       elif style == 'maximum':
-          v.set_parameters(orthoplanes_shown = (False, False, False),
+          v.set_parameters(image_mode = 'full region',
                            color_mode = 'auto8',
                            maximum_intensity_projection = True)
           v.set_display_style('image')
       elif style == 'plane':
-          v.set_parameters(orthoplanes_shown = (False, False, False),
+          v.set_parameters(image_mode = 'full region',
                            color_mode = 'auto8',
-                           maximum_intensity_projection = False,
                            show_outline_box = True)
           if v is self.volume:
               self.show_plane_slider(True)
@@ -2391,24 +2389,31 @@ class Histogram_Pane:
               self.show_one_plane(v, show_volume = False)
       elif style == 'orthoplanes':
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
-          v.set_parameters(orthoplanes_shown = (True, True, True),
+          v.set_parameters(image_mode = 'orthoplanes',
+                           orthoplanes_shown = (True, True, True),
                            orthoplane_positions = middle,
                            color_mode = 'opaque8',
-                           maximum_intensity_projection = False,
                            show_outline_box = True)
           v.set_display_style('image')
           v.expand_single_plane()
           self.enable_move_planes()
       elif style == 'box':
           middle = tuple((imin + imax) // 2 for imin, imax in zip(v.region[0], v.region[1]))
-          v.set_parameters(box_faces = True,
-                           orthoplanes_shown = (False, False, False),
+          v.set_parameters(image_mode = 'box faces',
                            color_mode = 'opaque8',
-                           maximum_intensity_projection = False,
                            show_outline_box = True)
           v.set_display_style('image')
           v.expand_single_plane()
           self.enable_crop_box()
+      elif style == 'tilted slab':
+          v.set_parameters(image_mode = 'tilted slab',
+                           color_mode = 'auto8',
+                           show_outline_box = True)
+          v.set_display_style('image')
+          v.expand_single_plane()
+          from .tiltedslab import set_initial_tilted_slab
+          set_initial_tilted_slab(v)
+          self.enable_rotate_slab()
       
   # ---------------------------------------------------------------------------
   #
@@ -2423,6 +2428,13 @@ class Histogram_Pane:
       # Bind crop box mouse mode
       mm = self.dialog.session.ui.mouse_modes
       mm.bind_mouse_mode('right', [], mm.named_mode('crop volume'))
+      
+  # ---------------------------------------------------------------------------
+  #
+  def enable_rotate_slab(self):
+      # Bind crop box mouse mode
+      mm = self.dialog.session.ui.mouse_modes
+      mm.bind_mouse_mode('right', [], mm.named_mode('rotate slab'))
 
   # ---------------------------------------------------------------------------
   #
@@ -2461,8 +2473,16 @@ class Histogram_Pane:
           extra_opts.append('orthoplanes %s' % op)
       if aro.orthoplane_positions != bro.orthoplane_positions:
           extra_opts.append('positionPlanes %d,%d,%d' % tuple(aro.orthoplane_positions))
-      if aro.box_faces != bro.box_faces:
-          extra_opts.append('boxFaces %s' % aro.box_faces)
+      if aro.image_mode != bro.image_mode:
+          extra_opts.append('imageMode "%s"' % aro.image_mode)
+      if tuple(aro.tilted_slab_axis) != tuple(bro.tilted_slab_axis):
+          extra_opts.append('tiltedSlabAxis %.4g,%.4g,%.4g' % tuple(aro.tilted_slab_axis))
+      if aro.tilted_slab_offset != bro.tilted_slab_offset:
+          extra_opts.append('tiltedSlabOffset %.4g' % aro.tilted_slab_offset)
+      if aro.tilted_slab_spacing != bro.tilted_slab_spacing:
+          extra_opts.append('tiltedSlabSpacing %.4g' % aro.tilted_slab_spacing)
+      if aro.tilted_slab_plane_count != bro.tilted_slab_plane_count:
+          extra_opts.append('tiltedSlabPlaneCount %d' % aro.tilted_slab_plane_count)
       
       cmd = 'volume %s %s' % (_channel_volumes_spec(v), ' '.join(extra_opts))
       from chimerax.core.commands import log_equivalent_command
@@ -2583,6 +2603,7 @@ class Histogram_Pane:
         style = 'image'
     else:
         style = 'surface'
+
     self.display_style = style
     self.image_mode(style == 'image')
 
@@ -3235,7 +3256,7 @@ class Plane_Panel(PopupPanel):
     # Set number of planes shown.
     a = self.axis_number()
     s = ijk_step[a]
-    if v.showing_orthoplanes():
+    if v.showing_image('orthoplanes'):
       d = 1
     else:
       d = max(1, ijk_max[a]/s - (ijk_min[a]+s-1)/s + 1)
@@ -3255,7 +3276,7 @@ class Plane_Panel(PopupPanel):
   def update_axis(self, ijk_min, ijk_max, ijk_step):
 
     v = active_volume()
-    if v.showing_orthoplanes():
+    if v.showing_image('orthoplanes'):
       axis_i = v.shown_orthoplanes()
       if self.axis_number() in dict(axis_i):
         return
@@ -3286,8 +3307,7 @@ class Plane_Panel(PopupPanel):
     if v is None or v.region is None:
       return
 
-    v.set_parameters(orthoplanes_shown = (False, False, False),
-                     box_faces = False, color_mode = 'auto8')
+    v.set_parameters(image_mode = 'full region', color_mode = 'auto8')
     self.depth_var.set(1, invoke_callbacks = False)
     ijk_min, ijk_max, ijk_step = v.region
     a = self.axis_number()
@@ -3306,8 +3326,8 @@ class Plane_Panel(PopupPanel):
     if v is None or v.region is None:
       return
 
-    if v.showing_orthoplanes():
-      v.set_parameters(orthoplanes_shown = (False, False, False))
+    if v.showing_image('orthoplanes'):
+      v.set_parameters(orthoplanes = False)
       v.show()
     ijk_min, ijk_max, ijk_step = v.region
     a = self.axis_number()
@@ -3331,7 +3351,7 @@ class Plane_Panel(PopupPanel):
     self.set_scale_range(max, step)
     p = (ijk_min[a] + ijk_max[a]) / 2
     p -= p % step
-    if v.showing_orthoplanes():
+    if v.showing_image('orthoplanes'):
       oaxes = dict(v.shown_orthoplanes())
       p = dict(v.shown_orthoplanes()).get(a, p)
     self.plane.set_value(p, invoke_callbacks = False)
@@ -3479,7 +3499,7 @@ class Orthoplane_Panel(PopupPanel):
 
     image = volume.image_shown
     ro = volume.rendering_options
-    box_faces = ro.box_faces
+    box_faces = (ro.image_mode == 'box faces')
     shown = ro.orthoplanes_shown
     msize = volume.matrix_size()
     for axis in (0,1,2):
@@ -3510,12 +3530,11 @@ class Orthoplane_Panel(PopupPanel):
   def show_planes(self, volume, show_xyz):
 
     self.box_faces.set(False, invoke_callbacks = False)
-    volume.set_parameters(box_faces = False)
+    volume.set_parameters(image_mode = 'orthoplanes')
 
     n = show_xyz.count(True)
     if n == 0:          # No planes
-      volume.set_parameters(orthoplanes_shown = (False, False, False),
-                            color_mode = 'auto8')
+      volume.set_parameters(image_mode = 'full region', color_mode = 'auto8')
       volume.expand_single_plane()
     elif n == 1:        # Single plane
       axis = show_xyz.index(True)
@@ -3528,13 +3547,12 @@ class Orthoplane_Panel(PopupPanel):
         if a != axis and msize[a] == 1:
           ijk_min[a] = 0
           ijk_max[a] = volume.data.size[a]-1
-      volume.set_parameters(orthoplanes_shown = (False, False, False),
-                            color_mode = 'auto8',
+      volume.set_parameters(image_mode = 'full region', color_mode = 'auto8',
                             show_outline_box = True)
       volume.new_region(ijk_min, ijk_max)
     else:               # 2 or 3 planes
       ro = volume.rendering_options
-      if ro.any_orthoplanes_shown():
+      if ro.image_mode == 'orthoplanes':
         center = ro.orthoplane_positions
       else:
         ijk_min, ijk_max = volume.region[:2]
@@ -3557,16 +3575,15 @@ class Orthoplane_Panel(PopupPanel):
 
     if self.box_faces.get():
       v.set_display_style('image')
-      v.set_parameters(box_faces = True,
+      v.set_parameters(image_mode = 'box faces',
                        color_mode = 'opaque8',
-                       show_outline_box = True,
-                       orthoplanes_shown = (False, False, False))
+                       show_outline_box = True)
       v.expand_single_plane()
       v.show()
       for a in (0,1,2):
         self.planes[a].set(False, invoke_callbacks = False)
     else:
-      v.set_parameters(box_faces = False, color_mode = 'auto8')
+      v.set_parameters(image_mode = 'full region', color_mode = 'auto8')
       v.show()
 
 # -----------------------------------------------------------------------------

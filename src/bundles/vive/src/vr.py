@@ -59,7 +59,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
     if enable is None and room_position is None:
         enable = True
 
-    c = vr_camera(session)
+    c = vr_camera(session, create = False)
     start = (session.main_view.camera is not c)
 
     if enable is not None:
@@ -68,6 +68,8 @@ def vr(session, enable = None, room_position = None, mirror = None,
         else:
             stop_vr(session, simplify_graphics)
 
+    c = vr_camera(session, create = False)
+    
     if room_position is not None:
         if isinstance(room_position, str) and room_position == 'report':
             p = ','.join('%.5g' % x for x in tuple(c.room_to_scene.matrix.flat))
@@ -216,7 +218,7 @@ def register_vr_command(logger):
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
-                              ('display', EnumOf(('mirror', 'independent', 'blank'))),
+                              ('mirror', BoolArg),
                               ('gui', StringArg),
                               ('center', BoolArg),
                               ('click_range', FloatArg),
@@ -293,12 +295,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         import openvr
     except Exception as e:
         from chimerax.core.errors import UserError
-        raise UserError('Failed to import OpenVR module: %s' % str(e))
+        raise UserError('Failed to import OpenVR module: %s' % str(e)) from e
 
     import sys
     if sys.platform == 'darwin':
         # SteamVR on Mac is older then what PyOpenVR expects.
         openvr.IVRSystem_Version = "IVRSystem_019"
+        openvr.IVRCompositor_Version = "IVRCompositor_022"
         
     try:
         c.start_vr()
@@ -308,11 +311,14 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
                    'Possibly a cable to the VR headset is not plugged in.\n' +
                    'If the headset is a Vive Pro, the link box may be turned off.\n' +
                    'If using a Vive Pro wireless adapter it may not be powered on.')
+        elif 'InterfaceNotFound' in str(e):
+            msg = ('Your installed SteamVR runtime does not support the requested version.\n' +
+                   'You probably need to update SteamVR by starting the Steam application.\n')
         else:
             msg = ('Failed to initialize OpenVR.\n' +
                    'Possibly SteamVR is not installed or it failed to start.')
         from chimerax.core.errors import UserError
-        raise UserError('%s\n%s' % (msg, str(e)))
+        raise UserError('%s\n%s' % (msg, str(e))) from e
 
     session.main_view.camera = c
 
@@ -401,6 +407,9 @@ class SteamVRCamera(Camera, StateManager):
         self._z_near = 0.1		# Meters, near clip plane distance
         self._z_far = 500.0		# Meters, far clip plane distance
         # TODO: Scaling models to be huge causes clipping at far clip plane.
+
+        self._new_frame_handler = None
+        self._app_quit_handler = None
 
     def start_vr(self):
         import openvr
@@ -952,7 +961,7 @@ class SteamVRCamera(Camera, StateManager):
         
     def other_controller(self, controller):
         for hc in self.hand_controllers():
-            if hc != controller:
+            if hc != controller and hc.on:
                 return hc
         return None
 
@@ -1702,6 +1711,7 @@ class Panel:
         d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
+        d.casts_shadows = False
         # d.skip_bounds = True	# Clips if far from models.
         drawing_parent.add_drawing(d)
         return d
@@ -1752,6 +1762,8 @@ class Panel:
             
     def _panel_click_position(self, room_point):
         ui = self._panel_drawing
+        if ui is None:
+            return None, None
         scene_point = self._ui._camera.room_to_scene * room_point
         x,y,z = ui.scene_position.inverse() * scene_point
         w,h = self.size

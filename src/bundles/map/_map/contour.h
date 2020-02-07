@@ -33,8 +33,14 @@
 
 namespace Contour_Calculation
 {
+
 typedef unsigned int Index; // grid and edge indices, and surface vertex indices
+
+#ifdef _WIN32
+typedef long long Stride;   // Use long long for 64-bit integer on Windows.
+#else
 typedef long Stride;	    // Array strides and pointer offsets, signed
+#endif
 
 class Contour_Surface
 {

@@ -43,7 +43,7 @@ The command <b>open</b> reads data in several
 <ul>
 <li><a href="#local">local files</a>
 <li><a href="#url">URLs</a>
-<li><a href="#fetch">online databases</a>
+<li><a href="#fetch">online sources</a>
 </ul>
 <p>
 Input files may contain data to be displayed or commands or code to be executed.
@@ -120,7 +120,8 @@ File types can be categorized as:
 <td align="center"><a href="http://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/tutorials/framepdbintro.html" 
 target="_blank">PDB (Protein Data Bank)</a></td>
 <td align="center"><b>pdb</b></td>
-<td align="center">.pdb, .pdb1<br>.ent, .pqr</td>
+<td align="center">.pdb, .pdb1<br>.ent, .pqr
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations;
 if PQR, sets atomic <a href="../radii.html">radius</a></td>
 </tr><tr>
@@ -137,8 +138,41 @@ target="_blank">ChimeraX Fast mmCIF Guidelines</a>)</td>
 <td align="center" class="text"><a href="http://mmtf.rcsb.org/"
 target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <td align="center"><b>mmtf</b></td>
-<td align="center">.mmtf</td>
+<td align="center">.mmtf
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">atomic coordinates and associated annotations</td>
+</tr><tr>
+<td align="center">
+<a href="https://en.wikipedia.org/wiki/Chemical_table_file"
+target="_blank">MDL Molfile/SDF</a></td>
+<td align="center"><b>sdf</b></td>
+<td align="center">.mol, .sdf</td>
+<td align="center">atomic coordinates</td>
+</tr><tr>
+<td align="center"><a href="http://autodock.scripps.edu/faqs-help/faq/what-is-the-format-of-a-pdbqt-file"
+target="_blank">PDBQT</a></td>
+<td align="center"><b>pdbqt</b></td>
+<td align="center">.pdbqt</td>
+<td align="center" class="text">atomic coordinates
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from
+<a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>)
+</td>
+</tr><tr>
+<td align="center">Sybyl Mol2</td>
+<td align="center"><b>mol2</b></td>
+<td align="center">.mol2</td>
+<td align="center" class="text">atomic coordinates
+<br>
+(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+for analysis of docking results from <a href="http://dock.compbio.ucsf.edu/" 
+target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6, 
+<a href="http://dock.compbio.ucsf.edu/DOCK3.7/" 
+target="_blank">DOCK&nbsp;v3.7</a>, or
+<a href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
+target="_blank">GOLD</a>)
+</td>
 </tr><tr>
 <td align="center">Schr&ouml;dinger Maestro
 <br><br>*requires installing the
@@ -156,34 +190,11 @@ for analysis of docking results from
 <a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>)
 </td>
 </tr><tr>
-<td align="center">Sybyl Mol2</td>
-<td align="center"><b>mol2</b></td>
-<td align="center">.mol2</td>
-<td align="center" class="text">atomic coordinates
-<br>
-(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
-for analysis of docking results from <a href="http://dock.compbio.ucsf.edu/" 
-target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6, 
-<a href="http://dock.compbio.ucsf.edu/DOCK3.7/" 
-target="_blank">DOCK&nbsp;v3.7</a>, or
-<a href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
-target="_blank">GOLD</a>)
-</td>
-</tr><tr>
-<td align="center">PDBQT</td>
-<td align="center"><b>pdbqt</b></td>
-<td align="center">.pdbqt</td>
-<td align="center" class="text">atomic coordinates
-<br>
-(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
-for analysis of docking results from
-<a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>)
-</td>
-</tr><tr>
 <td align="center"><a href="../pseudobonds.html#pbfiles">Pseudobond
 file</a></td>
 <td align="center" class="text"><b>pseudobonds</b></td>
-<td align="center">.pb</td>
+<td align="center">.pb
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">
 list of atom pairs
 to connect with <a href="../pseudobonds.html">pseudobonds</a>
@@ -301,7 +312,8 @@ see the <a href="#verbose"><b>verbose</b></a> option</td>
 </tr><tr>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
-<td align="center">.dres</td>
+<td align="center">.dres
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">directional resolution to show on a colored globe
 <br>(plain text file with four whitespace-separated columns of numbers,
 an XYZ vector and a resolution or other value
@@ -442,7 +454,8 @@ target="_blank">SPIDER</a> map</td>
 target="_blank">STORM (STochastic Optical Reconstruction Microscopy)</a>
 </td>
 <td align="center"><b>storm</b></td>
-<td align="center">.storm</td>
+<td align="center">.storm
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">super-resolution microscopy data</td>
 </tr><tr>
 <td align="center"><a href="https://www.biochem.mpg.de/tom"
@@ -466,7 +479,8 @@ University of Houston Brownian Dynamics</td>
 <a href="../formats/bild.html">Chimera/ChimeraX BILD</a>
 </td>
 <td align="center"><b>bild</b></td>
-<td align="center">.bild, .bld</td>
+<td align="center">.bild, .bld
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects</td>
 </tr><tr>
 <td align="center">
@@ -480,20 +494,23 @@ University of Houston Brownian Dynamics</td>
 <td align="center"><a href="http://www.khronos.org/collada/"
 target="_blank">COLLADA</a></td>
 <td align="center"><b>collada</b></td>
-<td align="center">.dae</td>
+<td align="center">.dae
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects
 <br>(TriangleSets only)</td>
 </tr><tr>
 <td align="center"><a href="https://www.khronos.org/gltf"
 target="_blank">GL Transmission Format</a></td>
 <td align="center"><b>gltf</b></td>
-<td align="center">.glb</td>
+<td align="center">.glb
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects</td>
 </tr><tr>
 <td align="center"><a href="http://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
 target="_blank">STereoLithography</a> (binary)</td>
 <td align="center"><b>stl</b></td>
-<td align="center">.stl</td>
+<td align="center">.stl
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">triangle-based format
 native to stereolithography CAD software</td>
 </tr><tr>
@@ -501,7 +518,8 @@ native to stereolithography CAD software</td>
 <a href="http://vtk.org/" target="_blank">VTK (Visualization ToolKit)</a>
 PolyData</td>
 <td align="center"><b>vtk</b></td>
-<td align="center">.vtk</td>
+<td align="center">.vtk
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">lines, polygons
 [documentation
 <a href="http://vtk.org/VTK/img/file-formats.pdf" target="_blank">PDF</a>]</td>
@@ -510,7 +528,8 @@ PolyData</td>
 <a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
 target="_blank">Wavefront OBJ</a></td>
 <td align="center"><b>obj</b></td>
-<td align="center">.obj</td>
+<td align="center">.obj
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">graphical objects
 <br>(triangles only: vertices, vertex normals, faces; no colors)</td>
 </tr><tr>
@@ -522,29 +541,34 @@ target="_blank">Wavefront OBJ</a></td>
 </tr><tr>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
-<td align="center" class="text">.aln, .clustal<br>.clustalw,&nbsp;.clustalx</td>
+<td align="center" class="text">.aln, .clustal<br>.clustalw,&nbsp;.clustalx
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
-<td align="center">.fasta, .fa<br>.afasta, .afa</td>
+<td align="center">.fasta, .fa<br>.afasta, .afa</a>
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 </tr><tr>
 <td align="center">GCG MSF (Multiple Sequence Format)</td>
 <td align="center"><b>msf</b></td>
-<td align="center">.msf</td>
+<td align="center">.msf
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">GCG RSF (Rich Sequence Format)</td>
 <td align="center"><b>rsf</b></td>
-<td align="center">.rsf</td>
+<td align="center">.rsf
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">
 <a href="http://nar.oxfordjournals.org/content/25/1/226.full"
 target="_blank">HSSP</a></td>
 <td align="center"><b>hssp</b></td>
-<td align="center">.hssp</td>
+<td align="center">.hssp
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment
 <br>(other information not read; see
 <a href="http://swift.cmbi.ru.nl/gv/hssp/" target="_blank">HSSP database</a>)
@@ -552,19 +576,22 @@ target="_blank">HSSP</a></td>
 </tr><tr>
 <td align="center" class="text">PIR (NBRF), aligned PIR</td>
 <td align="center"><b>pir</b></td>
-<td align="center">.pir, .ali</td>
+<td align="center">.pir, .ali
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 </tr><tr>
 <td align="center">Selex (Pfam)</td>
 <td align="center"><b>pfam</b></td>
-<td align="center">.selex, .slx<br>.pfam</td>
+<td align="center">.selex, .slx<br>.pfam
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">
 <a href="http://en.wikipedia.org/wiki/Stockholm_format"
 target="_blank">Stockholm</a></td>
 <td align="center"><b>stockholm</b></td>
-<td align="center">.sth, .sto</td>
+<td align="center">.sth, .sto
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td colspan=4 align="center" style="background-color:#eaeaea">
@@ -603,7 +630,8 @@ command file</a></td>
 </tr><tr>
 <td align="center">Python</td>
 <td align="center"><b>py</b></td>
-<td align="center">.py, .pyc, .pyo</td>
+<td align="center">.py, .pyc, .pyo
+<br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">Python code
 <br>(see also <a href="runscript.html"><b>runscript</b></a>)</td>
 </tr><tr>
@@ -667,8 +695,8 @@ name and location interactively.
 </p><p>
 The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option (where <i>format-name</i> can be truncated).
-Files that are gzipped, as indicated by their additional .gz suffix, 
-can also be read.
+Certain formats can be read when compressed (.gz, .bz2, or .xz, see
+<a href="#compressed">details</a>).
 </p><p>
 Giving <a href="usageconventions.html#browse"><b>browse</b></a> as the 
 <i>filename</i> brings up a dialog for browsing the filesystem interactively.
@@ -954,7 +982,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 <p class="nav">
 [<a href="#top">back to top: open</a>]
 </p>
-<h3>Fetch from Online Databases</h3>
+<h3>Fetch from Online Sources</h3>
 
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>: <b>open</b> 
@@ -971,8 +999,10 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 -->
 </blockquote>
 <p>
-An entry can be fetched from a database if its <i>identifier</i> is supplied.
-The source database can be indicated with either a <i>prefix</i>
+Atomic structures, density maps, and protein sequences can be fetched directly
+into ChimeraX from online sources. A specific compound or entry is specified 
+by an <i>identifier</i>, and its source (database or web service)
+can be indicated with either a <i>prefix</i>
 before the identifier or the <b>fromDatabase</b> option.
 The default database for a 4-character identifier without prefix is the
 <a href="http://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>;
@@ -1001,7 +1031,8 @@ See also:
 <a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
 </center>
 <table border cellpadding="4" cellspacing="0"><tr>
-<td align="center" style="background-color:#cccccc"><b>database</b></td>
+<td align="center" style="background-color:#cccccc"><b>database
+or web service</b></td>
 <td align="center" style="background-color:#cccccc"><b><i>source</i></b></td>
 <td align="center" style="background-color:#cccccc"><b>description</b></td>
 <td align="center" style="background-color:#cccccc"><b><i>format-name</i></b></td>
@@ -1085,6 +1116,34 @@ target="_blank">cellPACK</a></td>
 see <a href="http://www.cellpack.org/use/" target="_blank">cellPACK
 Chimera instructions</a> for available identifiers</td>
 <td align="center"><b>cellpack</b></td>
+</tr><tr>
+<td align="center">
+<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
+target="_blank">PubChem3D</a></td>
+<td align="center"><b>pubchem</b></td>
+<td align="center">modeled atomic coordinates specified by
+<a href="http://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
+compound identifier (CID); 
+<br>available for most but not all entries in PubChem Compound
+<br>(partial charges are assigned as the atom 
+<a href="../attributes.html">attribute</a> named <b>charge</b>)
+</td>
+<td align="center"><b>sdf</b></td>
+</tr><tr>
+<td align="center">SMILES &rarr; 3D translator</td>
+<td align="center"><b>smiles</b></td>
+<td align="center">modeled atomic coordinates specified by
+<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string, generated using the
+<a href="http://cactus.nci.nih.gov/translate/" target="_blank">SMILES
+translator</a> provided by the
+<a href="http://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
+CADD group</a>, or if that does not produce a structure, the
+<i>smi23d</i> web service provided by the
+cheminformatics group at Indiana University; see also
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>
+</td>
+<td align="center"><b>smiles</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.uniprot.org" 
 target="_blank">UniProt</a></td>
@@ -1203,6 +1262,25 @@ See also the <a href="#channel"><b>channel</b></a>
 option of the <a href="#top"><b>open</b></a> command.
 </p>
 
+<a name="compressed"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Compressed Files</h3>
+<p>
+Certain <a href="#formats">file types</a> 
+can be read when compressed, as indicated with
+a suffix for the type of compression (.gz, .bz2, or .xz following the 
+usual suffix for the type of file). 
+For example, myfile.pdb.gz is a gzipped PDB file.
+</p><p>
+The file types that can be read by ChimeraX in compressed form
+(as well as uncompressed) are
+ALN, BILD, Collada, compiled Python code, directional FSC,
+FASTA, glTF, HSSP, MMTF, MSF, PDB, Pfam, PIR, pseudobonds, Python code,
+RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
+</p>
+
 <a name="clipper"></a>
 <p class="nav">
 [<a href="#top">back to top: open</a>]
@@ -1255,5 +1333,5 @@ generated by Clipper. If <b>false</b>, just save the experimental data.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+January 2020</address>
 </body></html>

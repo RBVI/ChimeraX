@@ -16,6 +16,13 @@ from chimerax.core.toolshed import BundleAPI
 class StdCommandsAPI(BundleAPI):
 
     @staticmethod
+    def initialize(session, bundle_info):
+        # 'initialize' is called by the toolshed on start up
+        if session.ui.is_gui:
+            from . import coordset_gui
+            coordset_gui.register_mousemode(session)
+
+    @staticmethod
     def get_class(class_name):
         if class_name in ['NamedView', 'NamedViews']:
             from . import view

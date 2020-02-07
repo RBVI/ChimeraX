@@ -208,6 +208,7 @@ def select_pick(session, pick, mode = 'replace'):
         if isinstance(pick, list):
             for p in pick:
                 p.select(mode)
+            session.logger.info('Drag select of %s' % _pick_description(pick))
         else:
             spec = pick.specifier()
             if mode == 'add' and spec:
@@ -218,6 +219,22 @@ def select_pick(session, pick, mode = 'replace'):
     sel.clear_promotion_history()
     sel.undo_add_selected(undo_state, True, old_state=False)
     session.undo.register(undo_state)
+
+def _pick_description(picks):
+    pdesc = []
+    item_counts = {}
+    for p in picks:
+        d = p.description()
+        if d is not None:
+            try:
+                count, name = d.split(maxsplit = 1)
+                c = int(count)
+                item_counts[name] = item_counts.get(name,0) + c
+            except:
+                pdesc.append(d)
+    pdesc.extend('%d %s' % (count, name) for name, count in item_counts.items())
+    desc = ', '.join(pdesc)
+    return desc
 
 class RotateMouseMode(MouseMode):
     '''

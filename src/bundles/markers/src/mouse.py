@@ -390,8 +390,9 @@ def volume_plane_intercept(xyz_in, xyz_out, vlist):
         if not v.shown():
             continue
         plane = (v.single_plane() or
-                 v.showing_orthoplanes() or
-                 v.showing_box_faces())
+                 v.showing_image('orthoplanes') or
+                 v.showing_image('box faces') or
+                 v.showing_image('tilted slab'))
         if not plane:
             continue
         v_xyz_in, v_xyz_out = data_slice(v, line)
@@ -415,11 +416,13 @@ def data_slice(v, line):
   if not v.shown():
     return None, None
 
-  from chimerax.map import slice
-  if v.showing_orthoplanes() or v.showing_box_faces():
+  from chimerax.map import slice, tiltedslab
+  if v.showing_image('orthoplanes') or v.showing_image('box faces'):
     xyz_in = xyz_out = slice.face_intercept_point(v, line)
   else:
     xyz_in, xyz_out = slice.volume_segment(v, line)
+    if v.showing_image('tilted slab') and xyz_in is not None:
+        xyz_in, xyz_out = tiltedslab.slab_segment(v, (xyz_in, xyz_out))
 
   return xyz_in, xyz_out
 

@@ -44,6 +44,9 @@ PyObject *boundary_edges(PyObject *s, PyObject *args, PyObject *keywds);
 // PyObject *boundary_loops(PyObject *triangle_array);
 PyObject *boundary_loops(PyObject *s, PyObject *args, PyObject *keywds);
 
+// Returns unsigned char array of edge mask values with only boundary shown.
+// PyObject *boundary_edge_mask(PyObject *triangle_array);
+PyObject *boundary_edge_mask(PyObject *, PyObject *args, PyObject *keywds);
 }
 
 #endif

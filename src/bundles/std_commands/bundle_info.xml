@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-Std_Commands" version="1.0"
-	    package="chimerax.std_commands"
+	    package="chimerax.std_commands" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -8,6 +8,10 @@
 
   <Synopsis>Standard commands</Synopsis>
   <Description>General purpose commands always available in ChimeraX</Description>
+
+  <DataFiles>
+    <DataFile>coordset.png</DataFile>
+  </DataFiles>
 
   <Categories>
     <Category name="Structure Analysis"/>

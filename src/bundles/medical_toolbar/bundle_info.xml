@@ -24,6 +24,8 @@
 
   <Providers manager="toolbar">
     <!-- Most buttons are just links to buttons on other toolbar tabs -->
+  <Provider tab="Medical Image"
+	  name="layout1" after="Map" before="Markers:Right Mouse"/>
     <!-- File section -->
     <Provider tab="Medical Image" section="File"
 	      name="open dicom" display_name="Open DICOM" icon="opendicom.png"
@@ -47,6 +49,8 @@
     <Provider tab="Medical Image" section="Color"
 	      name="airways" link="ChimeraX-Shortcuts:aw"/>
     <Provider tab="Medical Image" section="Color"
+	      name="chest" link="ChimeraX-Shortcuts:ch"/>
+    <Provider tab="Medical Image" section="Color"
 	      name="skin" link="ChimeraX-Shortcuts:as"/>
     <Provider tab="Medical Image" section="Color"
 	      name="default thresholds" link="ChimeraX-Shortcuts:dc"/>
@@ -64,18 +68,21 @@
 	      name="perpendicular slices" link="ChimeraX-Shortcuts:ps"/>
 
     <!-- Mouse Mode section -->
-    <!-- These cannot currently be linked because they are hardcoded in the toolbar bundle tool.py -->
-    <Provider tab="Medical Image" section="Mouse Mode"
-	      name="mouse:crop volume" display_name="Crop" icon="crop.png"
+    <!-- These cannot currently be linked -->
+    <Provider tab="Medical Image" section="Mouse Mode" name="mm1"
+	      mouse_mode="crop volume" display_name="Crop"
 	      description="Crop volume data dragging any face of box outline"/>
-    <Provider tab="Medical Image" section="Mouse Mode"
-	      name="mouse:move planes" display_name="Move planes" icon="moveplanes.png"
+    <Provider tab="Medical Image" section="Mouse Mode" name="mm2"
+	      mouse_mode="move planes" display_name="Move planes"
 	      description="Move plane or slab along its axis to show a different section"/>
-    <Provider tab="Medical Image" section="Mouse Mode"
-	      name="mouse:tape measure" display_name="Measure" icon="tape.png"
+    <Provider tab="Medical Image" section="Mouse Mode" name="mm3"
+	      mouse_mode="rotate slab" display_name="Tilt slab"
+	      description="Tilt image planes"/>
+    <Provider tab="Medical Image" section="Mouse Mode" name="mm4"
+	      mouse_mode="tape measure" display_name="Tape"
 	      description="Measure distance between two points"/>
-    <Provider tab="Medical Image" section="Mouse Mode"
-	      name="mouse:windowing" display_name="Windowing" icon="windowing.png"
+    <Provider tab="Medical Image" section="Mouse Mode" name="mm5"
+	      mouse_mode="windowing" display_name="Windowing"
 	      description="Adjust volume data thresholds collectively"/>
 
   </Providers>

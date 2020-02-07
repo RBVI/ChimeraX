@@ -37,6 +37,7 @@ from ._map import linear_combination
 from ._map import covariance_sum
 from ._map import offset_range, box_cuts
 from ._map import high_indices
+from ._map import indices_to_colors
 
 # -----------------------------------------------------------------------------
 # Control whether maps are pickable with mouse.
@@ -58,7 +59,7 @@ from .eds_fetch import register_eds_fetch
 from .emdb_fetch import register_emdb_fetch
 from .volumecommand import register_volume_command
 from .molmap import register_molmap_command
-from .mapargs import MapArg, MapsArg, Float1or3Arg
+from .mapargs import MapArg, MapsArg, Float1or3Arg, ValueTypeArg, MapRegionArg, MapStepArg
 
 # -----------------------------------------------------------------------------
 #
@@ -87,6 +88,8 @@ class _MapBundle(BundleAPI):
         elif command_name == 'measure mapstats':
             from . import measure
             measure.register_measure_mapstats_command(logger)
+        elif command_name == 'segmentation':
+            map.register_segmentation_command(logger)
 
     @staticmethod
     def initialize(session, bundle_info):
@@ -96,10 +99,11 @@ class _MapBundle(BundleAPI):
         map.register_eds_fetch()
         map.register_emdb_fetch()
         if session.ui.is_gui:
-            from . import mouselevel, moveplanes, windowing
+            from . import mouselevel, moveplanes, windowing, tiltedslab
             mouselevel.register_mousemode(session)
             moveplanes.register_mousemode(session)
             windowing.register_mousemode(session)
+            tiltedslab.register_mousemode(session)
 
 
     @staticmethod

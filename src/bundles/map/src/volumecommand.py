@@ -22,8 +22,8 @@ def register_volume_command(logger):
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
     from .colortables import appearance_names
 
-    from .volume import Rendering_Options
-    ro = Rendering_Options()
+    from .volume import RenderingOptions
+    ro = RenderingOptions()
 
     volume_desc = CmdDesc(
         optional = [('volumes', MapsArg)],
@@ -101,6 +101,12 @@ def register_volume_command(logger):
                ('box_faces', BoolArg),
                ('orthoplanes', EnumOf(('xyz', 'xy', 'xz', 'yz', 'off'))),
                ('position_planes', Int3Arg),
+               ('tilted_slab', BoolArg),
+               ('tilted_slab_axis', AxisArg),
+               ('tilted_slab_offset', FloatArg),
+               ('tilted_slab_spacing', FloatArg),
+               ('tilted_slab_plane_count', IntArg),
+               ('image_mode', EnumOf(('full region', 'orthoplanes', 'box faces', 'tilted slab'))),
                ('calculate_surfaces', BoolArg),
         ],
         synopsis = 'set volume model parameters, display style and colors')
@@ -191,6 +197,12 @@ def volume(session,
            box_faces = None,
            orthoplanes = None,
            position_planes = None,
+           tilted_slab = None,
+           tilted_slab_axis = None,
+           tilted_slab_spacing = None,
+           tilted_slab_offset = None,
+           tilted_slab_plane_count = None,
+           image_mode = None,
            calculate_surfaces = None
            ):
     '''
@@ -301,6 +313,12 @@ def volume(session,
     orthoplanes : One of 'xyz', 'xy', 'xz', 'yz', 'off'
     position_planes : sequence of 3 integers
       Intersection grid point of orthoplanes display
+    tilted_slab : bool
+    tilted_slab_axis : sequence of 3 floats
+    tilted_slab_offset : float
+    tilted_slab_spacing : float
+    tilted_slab_plane_count : int
+    image_mode : 'full region', 'orthoplanes', 'box faces', or 'tilted slab'
     calculate_surfaces : bool
       Whether to calculate surfaces immediately instead of waiting until they are drawn.
     '''
@@ -315,11 +333,14 @@ def volume(session,
 
     # Special defaults
     if box_faces:
-        defaults = (('style', 'image'), ('color_mode', 'opaque8'),
+        defaults = (('style', 'image'), ('image_mode', 'box faces'), ('color_mode', 'opaque8'),
                     ('show_outline_box', True), ('expand_single_plane', True),
-                    ('orthoplanes', 'off'))
+                    ('orthoplanes', 'off'), ('tilted_slab', False))
     elif not orthoplanes is None and orthoplanes != 'off':
-        defaults = (('style', 'image'), ('color_mode', 'opaque8'),
+        defaults = (('style', 'image'), ('image_mode', 'orthoplanes'), ('color_mode', 'opaque8'),
+                    ('show_outline_box', True), ('expand_single_plane', True))
+    elif tilted_slab:
+        defaults = (('style', 'image'), ('image_mode', 'tilted slab'), ('color_mode', 'auto8'),
                     ('show_outline_box', True), ('expand_single_plane', True))
     elif not box_faces is None or not orthoplanes is None:
         defaults = (('color_mode', 'auto8'),)
@@ -363,12 +384,14 @@ def volume(session,
         'line_thickness', 'smooth_lines', 'mesh_lighting',
         'two_sided_lighting', 'flip_normals', 'subdivide_surface',
         'subdivision_levels', 'surface_smoothing', 'smoothing_iterations',
-        'smoothing_factor', 'square_mesh', 'cap_faces', 'box_faces')
+        'smoothing_factor', 'square_mesh', 'cap_faces',
+        'tilted_slab', 'tilted_slab_axis', 'tilted_slab_offset',
+        'tilted_slab_spacing', 'tilted_slab_plane_count', 'image_mode')
     rsettings = dict((n,loc[n]) for n in ropt if not loc[n] is None)
     if not orthoplanes is None:
         rsettings['orthoplanes_shown'] = ('x' in orthoplanes,
-                                         'y' in orthoplanes,
-                                         'z' in orthoplanes)
+                                          'y' in orthoplanes,
+                                          'z' in orthoplanes)
     if not position_planes is None:
         rsettings['orthoplane_positions'] = position_planes
     if outline_box_rgb:
@@ -413,6 +436,8 @@ def apply_volume_options(v, doptions, roptions, session):
 
     kw = level_and_color_settings(v, doptions)
     kw.update(roptions)
+    if 'tilted_slab_axis' in roptions:
+        kw['tilted_slab_axis'] = roptions['tilted_slab_axis'].scene_coordinates(coordinate_system = v)
     if kw:
         v.set_parameters(**kw)
 
@@ -675,6 +700,7 @@ def volume_settings(session, volumes = None):
 # -----------------------------------------------------------------------------
 #
 def volume_settings_text(v):
+    from chimerax.core.colors import hex_color, rgba_to_rgba8
     lines = ['Settings for map %s' % v.name,
              'grid size = %d %d %d' % tuple(v.data.size),
              'region = %d %d %d' % tuple(v.region[0]) + ' to %d %d %d' % tuple(v.region[1]),
@@ -682,8 +708,10 @@ def volume_settings_text(v):
              'voxel size = %.4g %.4g %.4g' % tuple(v.data.step),
              'origin = %.4g %.4g %.4g' % tuple(v.data.origin),
              'origin index = %.4g %.4g %.4g' % tuple(v.data.xyz_to_ijk((0,0,0))),
-             'surface levels = ' + ','.join('%.5g' % s.level for s in v.surfaces),
+             'surface levels = ' + ', '.join('%.5g' % s.level for s in v.surfaces),
+             'surface colors = ' + ', '.join(hex_color(s.color) for s in v.surfaces),
              'image levels = ' + ' '.join('%.5g,%.5g' % tuple(sl) for sl in v.image_levels),
+             'image colors = ' + ', '.join(hex_color(rgba_to_rgba8(c)) for c in v.image_colors),
              'image brightness factor = %.5g' % v.image_brightness_factor,
              'image transparency depth = %.5g' % v.transparency_depth,
              ]

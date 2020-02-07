@@ -48,8 +48,8 @@ def delete_bonds(session, bonds):
         Delete these bonds.
     '''
     if bonds is None:
-        from chimerax.atomic import all_structures
-        bonds = all_structures(session).bonds
+        from chimerax.atomic import all_structures, Structures
+        bonds = Structures(all_structures(session)).bonds
     bonds.delete()
 
 def delete_pbonds(session, pbonds, name=None):

@@ -51,7 +51,9 @@ file_formats = [
   MapFileFormat('BRIX density map', 'dsn6', ['dsn6'], ['brix'], writable = True),
   MapFileFormat('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map']),
   MapFileFormat('Chimera map', 'cmap', ['cmap'], ['cmap', 'cmp'], writable = True,
-                writer_options = ('chunk_shapes', 'append', 'compress', 'multigrid')),
+                writer_options = ('subsamples', 'chunk_shapes', 'append',
+                                  'compress', 'compress_method', 'compress_level', 'compress_shuffle',
+                                  'multigrid')),
   MapFileFormat('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor']),
   MapFileFormat('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi']),
   MapFileFormat('DeltaVision map', 'deltavision', ['dv'], ['dv']),
@@ -300,7 +302,7 @@ def save_grid_data(grids, path, session, format = None, options = {}):
   operation = 'Writing %s to %s' % (g.name, basename(path))
   from .progress import ProgressReporter
   p = ProgressReporter(operation, g.size, g.value_type.itemsize,
-                       message = session.logger.status)
+                       log = session.logger)
   if 'multigrid' in ff.writer_options:
     garg = glist
   else:

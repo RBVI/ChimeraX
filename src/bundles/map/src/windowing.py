@@ -16,7 +16,7 @@
 from chimerax.mouse_modes import MouseMode
 class WindowingMouseMode(MouseMode):
     name = 'windowing'
-    icon_file = 'windowing.png'
+    icon_file = 'icons/windowing.png'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

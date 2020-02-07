@@ -12,13 +12,14 @@
 # === UCSF ChimeraX Copyright ===
 
 def camera(session, type=None, field_of_view=None,
-           eye_separation=None, pixel_eye_separation=None):
+           eye_separation=None, pixel_eye_separation=None,
+           cube_pixels=1024):
     '''Change camera parameters.
 
     Parameters
     ----------
     type : string
-        Controls type of projection, currently "mono", "360", "360tb" (stereoscopic top-bottom layout),
+        Controls type of projection, currently "mono", "360", "dome", "360tb" (stereoscopic top-bottom layout),
         "360sbs" (stereoscopic side-by-side layout), "stereo", "sbs" (side by side stereo), "tb" (top bottom stereo)
     field_of_view : float
         Horizontal field of view in degrees.
@@ -31,6 +32,10 @@ def camera(session, type=None, field_of_view=None,
         Usually this need not be set and will be figured out from the pixels/inch reported
         by the display.  But for projectors the size of the displayed image is unknown and
         it is necessary to set this option to get comfortable stereoscopic viewing.
+    cube_pixels : int
+        Controls resolution of 360 and dome modes as the width of the cube map faces in
+        pixels.  For best appearance this value should be about as large as the window size.
+        Default is 1024.
     '''
     view = session.main_view
     has_arg = False
@@ -50,35 +55,30 @@ def camera(session, type=None, field_of_view=None,
                     from chimerax.core.commands import run
                     run(session, 'toolshed show "Side View"')
         camera = None
+        from chimerax.core import graphics
         if type == 'mono':
-            from chimerax.core.graphics import MonoCamera
-            camera = MonoCamera()
+            camera = graphics.MonoCamera()
         elif type == 'ortho':
-            from chimerax.core.graphics import OrthographicCamera
             w = view.camera.view_width(view.center_of_rotation)
-            camera = OrthographicCamera(w)
+            camera = graphics.OrthographicCamera(w)
         elif type == '360':
-            from chimerax.core.graphics import Mono360Camera
-            camera = Mono360Camera()
+            camera = graphics.Mono360Camera(cube_face_size = cube_pixels)
+        elif type == 'dome':
+            camera = graphics.DomeCamera(cube_face_size = cube_pixels)
         elif type == '360tb':
-            from chimerax.core.graphics import Stereo360Camera
-            camera = Stereo360Camera()
+            camera = graphics.Stereo360Camera(cube_face_size = cube_pixels)
         elif type == '360sbs':
-            from chimerax.core.graphics import Stereo360Camera
-            camera = Stereo360Camera(layout = 'side-by-side')
+            camera = graphics.Stereo360Camera(layout = 'side-by-side', cube_face_size = cube_pixels)
         elif type == 'stereo':
-            from chimerax.core.graphics import StereoCamera
-            camera = StereoCamera()
+            camera = graphics.StereoCamera()
             b = view.drawing_bounds()
             if b:
                 camera.position = view.camera.position
                 camera.set_focus_depth(b.center(), view.window_size[0])
         elif type == 'sbs':
-            from chimerax.core.graphics import SplitStereoCamera
-            camera = SplitStereoCamera()
+            camera = graphics.SplitStereoCamera()
         elif type == 'tb':
-            from chimerax.core.graphics import SplitStereoCamera
-            camera = SplitStereoCamera(layout = 'top-bottom')
+            camera = graphics.SplitStereoCamera(layout = 'top-bottom')
 
         if camera is not None:
             camera.position = view.camera.position  # Preserve current camera position
@@ -129,13 +129,14 @@ def camera(session, type=None, field_of_view=None,
 
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf
-    types = EnumOf(('mono', 'ortho', '360', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
+    from chimerax.core.commands import CmdDesc, register, FloatArg, EnumOf, IntArg
+    types = EnumOf(('mono', 'ortho', '360', 'dome', '360tb', '360sbs', 'stereo', 'sbs', 'tb'))
     desc = CmdDesc(
         optional = [('type', types)],
         keyword = [('field_of_view', FloatArg),
                    ('eye_separation', FloatArg),
-                   ('pixel_eye_separation', FloatArg)],
+                   ('pixel_eye_separation', FloatArg),
+                   ('cube_pixels', IntArg)],
         synopsis='adjust camera parameters'
     )
     register('camera', desc, camera, logger=logger)

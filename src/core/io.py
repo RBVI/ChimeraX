@@ -345,6 +345,7 @@ def deduce_format(filename, has_format=None, open=True, save=False, no_raise=Fal
                 return None, filename, compression
             from .errors import UserError
             raise UserError("Missing filename suffix %s" % filename)
+        ext = ext.split('#', 1)[0]  # allow for .html#tag to match .html
         ext = ext.casefold()
         fmt = None
         for f in _file_formats.values():
@@ -577,13 +578,16 @@ def _compressed_open(filename, compression, *args, **kw):
     return filename, name, stream
 
 
-def open_filename(filename, *args, **kw):
+def open_filename(filename, *args, url_encoding=None, **kw):
     """Supported API. Open a file/URL with or without compression
 
     Takes the same arguments as built-in open and returns a file-like
     object.  However, `filename` can also be a file-like object itself,
     in which case it is simply returned.  Also, if `filename` is a string
-    that begins with "http:", then it is interpreted as an URL.
+    that begins with "http:", then it is interpreted as an URL.  The
+    encoding of the data returned by the URL is attempted  to be determined
+    by examining Content-Encoding and/or Content-Type headers, but if those
+    are missing then 'url_encoding' is used instead (None = binary).
 
     If the file is opened for input, compression is checked for and
     handled automatically.  If the file is opened for output, the `compress`
@@ -607,7 +611,19 @@ def open_filename(filename, *args, **kw):
 
     if filename.startswith(("http:", "https:")):
         from urllib.request import urlopen
-        return urlopen(filename)
+        result = urlopen(filename)
+        content_encoding = result.getheader('Content-Encoding')
+        if content_encoding:
+            url_encoding = content_encoding
+        else:
+            content_type = result.getheader('Content-Type')
+            if content_type:
+                if 'text' in content_type and 'charset=' in content_type:
+                    url_encoding = content_type.split('charset=')[-1]
+        if url_encoding:
+            from io import StringIO
+            return StringIO(result.read().decode(url_encoding))
+        return result
 
     stripped, compression = determine_compression(filename)
     import os.path

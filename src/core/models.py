@@ -51,10 +51,15 @@ class Model(State, Drawing):
         If True, then model survives across sessions.
     SESSION_SAVE : bool, class-level optional
         If True, then model is saved in sessions.
+    SESSION_WARN : bool, class-level optional
+        If True and SESSION_SAVE is False then a warning is issued when
+        a session is saved explaining that session save is not supported
+        for this type of model.
     """
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
+    SESSION_WARN = False
 
     def __init__(self, name, session):
         self._name = name
@@ -301,6 +306,14 @@ class Model(State, Drawing):
         self.session.triggers.activate_trigger(MODEL_DISPLAY_CHANGED, self)
     display = Drawing.display.setter(_set_display)
 
+    @property
+    def _save_in_session(self):
+        '''Test if all parents are saved in session.'''
+        m = self
+        while m is not None and m.SESSION_SAVE:
+            m = m.parent
+        return m is None
+        
     def take_snapshot(self, session, flags):
         p = self.parent
         if p is session.models.scene_root_model:
@@ -380,11 +393,14 @@ class Model(State, Drawing):
         html_title = self.get_html_title(session)
         if not html_title:
             return
-        fmt = '<i>%s</i> title:<br><b>%s</b>'
+        if getattr(self, 'prefix_html_title', True):
+            fmt = '<i>%s</i> title:<br><b>%%s</b>' % self.name
+        else:
+            fmt = '<b>%s</b>'
         if self.has_formatted_metadata(session):
             fmt += ' <a href="cxcmd:log metadata #%s">[more&nbsp;info...]</a>' % self.id_string
         fmt += '<br>'
-        session.logger.info(fmt % (self.name, html_title) , is_html=True)
+        session.logger.info(fmt % html_title, is_html=True)
 
     def removed_from_session(self, session):
         pass
@@ -474,13 +490,23 @@ class Models(StateManager):
 
     def take_snapshot(self, session, flags):
         models = {}
+        not_saved = []
         for id, model in self._models.items():
             assert(isinstance(model, Model))
-            if not model.SESSION_SAVE:
+            if not model._save_in_session:
+                not_saved.append(model)
                 continue
             models[id] = model
         data = {'models': models,
                 'version': CORE_STATE_VERSION}
+        if not_saved:
+            mwarn = [m for m in not_saved
+                     if m.SESSION_WARN and (m.parent is None or m.parent.SESSION_SAVE)]
+            if mwarn:
+                log = self._session().logger
+                log.bug('The session file will not include the following models'
+                        ' because these model types have not implemented saving: %s'
+                        % ', '.join('%s #%s' % (m.name, m.id_string) for m in mwarn))
         return data
 
     @staticmethod

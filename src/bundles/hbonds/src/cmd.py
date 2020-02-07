@@ -141,7 +141,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
         for precise in precise_lists:
             precise[:] = restrict_hbonds(precise, atoms, restrict)
             if not intra_mol:
-                precise[:] = [hb for hb in precise is mol_map[hb[0]] != mol_map[hb[1]]]
+                precise[:] = [hb for hb in precise if mol_map[hb[0]] != mol_map[hb[1]]]
             if not intra_res:
                 precise[:] = [hb for hb in precise if hb[0].residue != hb[1].residue]
             if salt_only:
