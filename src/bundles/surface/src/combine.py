@@ -105,3 +105,26 @@ def combine_geometry_xvntctp(geom):
             t += nt
     
     return varray, narray, tcarray, tarray
+
+# -----------------------------------------------------------------------------
+#
+def combine_geometry_vte(geom):
+    nv = nt = 0
+    for va, ta, ema in geom:
+        nv += len(va)
+        nt += len(ta)
+    from numpy import empty, float32, int32, uint8
+    cva = empty((nv,3), float32)
+    cta = empty((nt,3), int32)
+    cea = empty((nt,), uint8)
+    voffset = 0
+    toffset = 0
+    for va, ta, ema in geom:
+        vc, tc = len(va), len(ta)
+        cva[voffset:voffset+vc,:] = va
+        cta[toffset:toffset+tc,:] = ta
+        cta[toffset:toffset+tc,:] += voffset
+        cea[toffset:toffset+tc] = ema
+        voffset += vc
+        toffset += tc
+    return cva, cta, cea

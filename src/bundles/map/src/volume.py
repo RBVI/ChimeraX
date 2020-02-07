@@ -2335,17 +2335,11 @@ class OutlineBox:
     bva, bta, be = self._box_outline()
 
     # Combine box and slab arrays.
-    from numpy import empty, float32, int32, uint8, concatenate, array
-    va = empty((len(bva)+len(sva),3), float32)
-    concatenate((bva,sva), out = va)
-    ta = empty((len(bta)+len(sta),3), int32)
-    concatenate((bta,sta), out = ta)
-    ta[len(bta):,] += len(bva)
-    edge_mask = empty((len(be)+len(se),), uint8)
-    concatenate((array(be,uint8),se), out = edge_mask)
-    
+    from chimerax.surface import combine_geometry_vte
+    va, ta, edge_mask = combine_geometry_vte(((bva,bta,be), (sva,sta,se)))
+
     return va, ta, edge_mask
-    
+
   # ---------------------------------------------------------------------------
   #
   def _make_box(self, rgb, linewidth, vertices, triangles, edge_mask):
@@ -2362,7 +2356,8 @@ class OutlineBox:
     # Set geometry after setting outline_box attribute to avoid undesired
     # coloring and capping of outline boxes.
     from numpy import array
-    d.set_geometry(array(vertices), None, array(triangles))
+    va, ta = array(vertices), array(triangles)
+    d.set_geometry(va, None, ta)
     d.edge_mask = edge_mask
     rgba = tuple(rgb) + (1,)
     d.color = tuple(int(255*r) for r in rgba)
@@ -2626,7 +2621,7 @@ class RenderingOptions:
     self.cap_faces = True
     self.orthoplanes_shown = (False, False, False)
     self.orthoplane_positions = (0,0,0) # image rendering
-    self.tilted_slab_axis = (0,0,1)
+    self.tilted_slab_axis = (0,0,1)	# volume xyz coordinates
     self.tilted_slab_offset = 0
     self.tilted_slab_spacing = 1
     self.tilted_slab_plane_count = 1
