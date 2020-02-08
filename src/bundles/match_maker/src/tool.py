@@ -25,6 +25,7 @@ class MatchMakerTool(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
         from PyQt5.QtWidgets import QVBoxLayout, QGridLayout, QLabel, QDialogButtonBox, QStackedWidget
+        from PyQt5.QtWidgets import QCheckBox
         from PyQt5.QtCore import Qt
         overall_layout = QVBoxLayout()
         overall_layout.setContentsMargins(0,0,0,0)
@@ -75,16 +76,40 @@ class MatchMakerTool(ToolInstance):
             CP_SPECIFIC_BEST: (self.ref_chain_list, self.match_chain_structure_list),
             CP_SPECIFIC_SPECIFIC: (self.ref_chains_list, self.match_chain_lists),
         }
+        self.ref_sel_restrict = QCheckBox("Also restrict to selection")
+        matching_layout.addWidget(self.ref_sel_restrict, 2, 0, alignment=Qt.AlignCenter)
+        self.match_sel_restrict = QCheckBox("Also restrict to selection")
+        matching_layout.addWidget(self.match_sel_restrict, 2, 1, alignment=Qt.AlignCenter)
 
-        from chimerax.ui.options import CategorizedSettingsPanel
+        from chimerax.ui.options import CategorizedSettingsPanel, IntOption, BooleanOption
         self.options = CategorizedSettingsPanel(category_sorting=False, option_sorting=False,
             category_scrolled={"Chain pairing": False})
-        overall_layout.addWidget(self.options)
+        overall_layout.addWidget(self.options, stretch=1)
         from .settings import get_settings
         settings = get_settings(session)
+
         cp_opt = ChainPairingOption("", None, self._pairing_change, attr_name="chain_pairing",
             settings=settings, as_radio_buttons=True)
         self.options.add_option("Chain pairing", cp_opt)
+
+        from chimerax.seqalign.align_algs.options import SeqAlignmentAlgOption
+        self.options.add_option("Method", SeqAlignmentAlgOption("Sequence alignment algorithm", None, None,
+            attr_name="alignment_algorithm", settings=settings))
+        from chimerax.seqalign.sim_matrices.options import SimilarityMatrixNameOption
+        self.options.add_option("Method", SimilarityMatrixNameOption("Matrix", None, None,
+            attr_name="matrix", settings=settings))
+        self.gap_open_option = IntOption("Gap opening penalty", None, None,
+            attr_name="gap_open", settings=settings)
+        self.options.add_option("Method", self.gap_open_option)
+        self.options.add_option("Method", IntOption("Gap extension penalty", None, None,
+            attr_name="gap_extend", settings=settings))
+        ss_opt = BooleanOption("Include secondary structure score", None, self._include_ss_change,
+            attr_name="use_ss", settings=settings)
+        self.options.add_option("Method", ss_opt)
+        self.compute_ss_option = BooleanOption("Compute secondary structure assignments", None, None,
+            attr_name="compute_ss", settings=settings)
+        self.options.add_option("Method", self.compute_ss_option)
+        self._include_ss_change(ss_opt)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -103,6 +128,16 @@ class MatchMakerTool(ToolInstance):
     def run_matchmaker(self):
         from chimerax.core.commands import run
         #run(self.session, " ".join(self.gui.get_command()))
+
+    def _include_ss_change(self, opt):
+        self.gap_open_option.enabled = not opt.value
+        self.compute_ss_option.enabled = opt.value
+        if opt.value:
+            from .settings import get_settings
+            settings = get_settings(self.session)
+            self.compute_ss_option.value = settings.compute_ss
+        else:
+            self.compute_ss_option.value = False
 
     def _pairing_change(self, opt):
         ref_label, match_label = self.label_texts[opt.value]

@@ -15,8 +15,8 @@ CP_SPECIFIC_SPECIFIC = "ss"
 CP_SPECIFIC_BEST = "bs"
 CP_BEST_BEST = "bb"
 
-AA_NEEDLEMAN_WUNSCH = "Needleman-Wunsch"
-AA_SMITH_WATERMAN = "Smith-Waterman"
+from chimerax.seqalign.align_algs import NEEDLEMAN_WUNSCH as AA_NEEDLEMAN_WUNSCH, \
+    SMITH_WATERMAN as AA_SMITH_WATERMAN
 
 from .settings import defaults
 default_ss_matrix = defaults['ss_scores']
@@ -33,7 +33,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
                     gap_open_other=defaults["other_open"],
                     compute_ss=defaults["compute_ss"]):
     from chimerax.seqalign import sim_matrices
-    similarity_matrix = sim_matrices.matrix(session, matrix_name)
+    similarity_matrix = sim_matrices.matrix(matrix_name, session.logger)
     ssf = ss_fraction
     ssm = ss_matrix
     if ssf is not None and ssf is not False and compute_ss:
@@ -260,11 +260,11 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         match_mols = {}
         ref_mols = {}
         for ref, match in match_items:
-            if not matrix_compatible(session, ref, matrix):
+            if not matrix_compatible(ref, matrix, session.logger):
                 raise UserError("Reference chain (%s) not"
                     " compatible with %s similarity"
                     " matrix" % (ref.fullName(), matrix))
-            if not matrix_compatible(session, match, matrix):
+            if not matrix_compatible(match, matrix, session.logger):
                 raise UserError("Match chain (%s) not"
                     " compatible with %s similarity"
                     " matrix" % (match.fullName(), matrix))
@@ -298,13 +298,13 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         ref, matches = match_items
         if not ref or not matches:
             raise UserError("Must select at least one reference and match item.\n")
-        if not matrix_compatible(session, ref, matrix):
+        if not matrix_compatible(ref, matrix, session.logger):
             raise UserError("Reference chain (%s) not compatible"
                         " with %s similarity matrix" % (ref.full_name, matrix))
         ref = check_domain_matching([ref], rd_res)[0]
         for match in matches:
             best_score = None
-            seqs = [s for s in match.chains if matrix_compatible(session, s, matrix)]
+            seqs = [s for s in match.chains if matrix_compatible(s, matrix, session.logger)]
             if not seqs and match.chains:
                 raise UserError("No chains in match structure"
                     " %s compatible with %s similarity"
@@ -328,7 +328,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             raise UserError("Must select at least one reference"
                 " and match item in different models.\n")
         rseqs = [s for s in check_domain_matching(ref.chains, rd_res)
-                    if matrix_compatible(session, s, matrix)]
+                    if matrix_compatible(s, matrix, session.logger)]
         if not rseqs and ref.chains:
             raise UserError("No chains in reference structure"
                 " %s compatible with %s similarity"
@@ -336,7 +336,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         for match in matches:
             best_score = None
             mseqs = [s for s in check_domain_matching(match.chains, md_res)
-                        if matrix_compatible(session, s, matrix)]
+                        if matrix_compatible(s, matrix, session.logger)]
             if not mseqs and match.chains:
                 raise UserError("No chains in match structure"
                     " %s compatible with %s similarity"
@@ -601,7 +601,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     ref_atoms = to
 
     from chimerax.seqalign import sim_matrices
-    if matrix not in sim_matrices.matrices(session):
+    if matrix not in sim_matrices.matrices(session.logger):
         raise UserError("No such matrix name: %s" % str(matrix))
     if pairing == CP_SPECIFIC_SPECIFIC:
         matches = match_atoms.residues.chains.unique()

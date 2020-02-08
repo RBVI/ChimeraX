@@ -179,8 +179,8 @@ def segmentHingeApproximate(m0, m1, fraction=0.5, min_hinge_spacing=6, matrix="B
                 if log:
                         log.status('Aligning sequences %d of %d' % (si+1, ns))
                 for matrix in matrices:
-                        if (matrix_compatible(session, seq0, matrix)
-                        and matrix_compatible(session, seq1, matrix)):
+                        if (matrix_compatible(seq0, matrix, session.logger)
+                        and matrix_compatible(seq1, matrix, session.logger)):
                                 break
                 else:
                         continue

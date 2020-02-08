@@ -38,6 +38,7 @@ class OptionsPanel(QWidget):
             self._layout.setContentsMargins(*contents_margins)
         if scrolled:
             sublayout = QVBoxLayout()
+            sublayout.setContentsMargins(3,0,3,2)
             self.setLayout(sublayout)
             scroller = QScrollArea()
             scroller.setWidgetResizable(True)
