@@ -34,7 +34,7 @@ then
 
 	VCINSTALLDIR="$VSINSTALLDIR\\VC"
 	VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
-	VCToolsRedistDir="$VCINSTALLDIR\\Redis\t\MSVC\\14.24.28127"
+	VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.24.28127"
 else
 	echo "error: Microsoft Visual C++ 2019 compiler not found"
 	exit 1
@@ -42,6 +42,8 @@ fi
 
 export VSINSTALLDIR
 export VCINSTALLDIR
+export VCToolsInstallDir
+export VCToolsRedistDir
 export FrameworkDir="c:\\Windows\\Microsoft.NET\\Framework$B64"
 export VisualStudioVersion
 
