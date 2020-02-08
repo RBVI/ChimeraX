@@ -12,31 +12,34 @@
 # port of VSINSTALLDIR/Common7/Tools/vsvars32.bat to bash
 # and merged with Visual Studio 2008's version and 64-bit version
 B64=""
+AMD64=""
 X64=""
-if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2019" ]
+if [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0" ]
 then
-	echo Setting environment for using Microsoft Visual Studio 2019
-	Platform=x64
-	VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community"
+	echo Setting environment for using Microsoft Visual Studio 2015
+	platform=2015
+	VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio 14.0"
 	WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10"
-	ExtensionSdkDir="$WindowsSdkDir\\ExtensionSDKs"
-	# also use 64 bit tools
-	B64=64
-	X64="\\x64"
-
-	Framework40Version=v4.0
+	MicrosoftSdkDir="c:\Program Files (x86)\Microsoft SDKs\Windows Kits\10"
+	if [ -d "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio 14.0/VC/bin/amd64" ]
+	then
+		echo Using native 64 bit tools
+		B64="64"
+		AMD64="amd64"
+		X64="\\x64"
+	else
+		echo Using native 32 bit tools
+	fi
+	VCINSTALLDIR="$VSINSTALLDIR\\VC"
 	FrameworkVersion=v4.0.30319
 	FrameworkVersion64=v4.0.30319
-	VCToolsVersion=14.24.28314
-	VisualStudioVersion=16.0
-	WindowsSDKLibVersion=10.0.18362.0
-	WindowsSDKVersion=10.0.18362.0
+	Framework40Version=v4.0
+	VisualStudioVersion=14.0
+	WindowsSDKLibVersion=10.0.10586.0
+	WindowsSDKVersion=10.0.10586.0
 
-	VCINSTALLDIR="$VSINSTALLDIR\\VC"
-	VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
-	VCToolsRedistDir="$VCINSTALLDIR\\Redis\t\MSVC\\14.24.28127"
 else
-	echo "error: Microsoft Visual C++ 2019 compiler not found"
+	echo "error: Microsoft Visual C++ 2015 compiler not found"
 	exit 1
 fi
 
@@ -90,39 +93,37 @@ export DevEnvDir="$VSINSTALLDIR\\Common7\\IDE"
 DED=`cygpath -u "$DevEnvDir"`
 VSD=`cygpath -u "$VSINSTALLDIR"`
 VCD=`cygpath -u "$VCINSTALLDIR"`
-VCT=`cygpath -u "$VCToolsInstallDir"`
 FD=`cygpath -u "$FrameworkDir"`
 WSD=`cygpath -u "$WindowsSdkDir"`
 
-export PATH="$VCT/bin/HostX64/x64:\
+export PATH="$VCD/bin/$AMD64:\
 $WSD/bin/x64:\
-$VSD/Team Tools/Performance Tools/x64:\
-$VSD/Team Tools/Performance Tools:\
-$WSD/bin/$WindowsSDKVersion/x64;\
-$WSD/bin/x64;\
+$VCD/VCPackages:\
+$VSD/Common7/IDE:\
 $VSD/Common7/Tools:\
+$VSD/Team Tools/Performance Tools/x64:\
 $PATH"
 
-export INCLUDE="$VCToolsInstallDir\\include;\
-$VCToolsInstallDir\\atlmfc\\include;\
+export INCLUDE="$VCINSTALLDIR\\include;\
+$VCINSTALLDIR\\atlmfc\\include;\
 $WindowsSdkDir\\include\\$WindowsSDKVersion\\ucrt;\
 $WindowsSdkDir\\include\\$WindowsSDKVersion\\shared;\
 $WindowsSdkDir\\include\\$WindowsSDKVersion\\um;\
 $WindowsSdkDir\\include\\$WindowsSDKVersion\\winrt;\
-$WindowsSdkDir\\include\\$WindowsSDKVersion\\cppwinrt;\
 $INCLUDE"
+#$UniversalCRTSdkDir\\include\\$UCRTVersion\\ucrt
 
-export LIB="$VCToolsInstallDir\\lib\\$X64;\
-$VCToolsInstallDir\\atlmfc\\lib\\$X64;\
+export LIB="$VCINSTALLDIR\\lib\\$AMD64;\
+$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;\
 $WindowsSdkDir\\lib\\$WindowsSDKLibVersion\\ucrt$X64;\
 $WindowsSdkDir\\lib\\$WindowsSDKLibVersion\\um$X64;\
 $LIB"
 
-export LIBPATH="$VCToolsInstallDir\\lib\\$X64;\
-$VCToolsInstallDir\\atlmfc\\lib\\$X64;\
-$VCToolsInstallDir\\lib\\x86\\store\\references\\$X64;\
-$WindowsSdkDir\\UnionMetadata\\$WindowsSDKVersion;\
-$WindowsSdkDir\\References\\$WindowsSDKVersion;\
+export LIBPATH="$VCINSTALLDIR\\lib\\$AMD64;\
+$VCINSTALLDIR\\atlmfc\\lib\\$AMD64;\
+$WindowsSdkDir\\UnionMetadata;\
+$WindowsSdkDir\\References;\
+$MicrosoftSdkDir\\ExtensionSDKs\\Microsoft.VCLibs\\$VisualStudioVersion\\References\\CommonConfiguration\neutral;\
 $LIBPATH"
 
-unset DED VSD VCD FD WSD VCT
+unset DED VSD VCD FD WSD
