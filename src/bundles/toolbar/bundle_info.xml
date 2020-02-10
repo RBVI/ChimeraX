@@ -145,9 +145,9 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Movement" name="mm4"
       mouse_mode="zoom" display_name="Zoom" description="Zoom view"/>
     <Provider tab="Right Mouse" section="Movement" name="mm5"
-      mouse_mode="translate selected models" display_name="Translate selected" description="Translate selected models"/>
+      mouse_mode="translate selected models" display_name="Translate selected" description="Translate selected models, hold shift key to rotate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm6"
-      mouse_mode="rotate selected models" display_name="Rotate selected" description="Rotate selected models"/>
+      mouse_mode="rotate selected models" display_name="Rotate selected" description="Rotate selected models, hold shift key to translate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm7"
       mouse_mode="pivot" display_name="Pivot" description="Set center of rotation at atom"/>
 

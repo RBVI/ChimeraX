@@ -677,6 +677,7 @@ rendering_options_attributes = (
   'tilted_slab_spacing',
   'tilted_slab_plane_count',
   'image_mode',
+  'backing_color',
 )
 
 # ---------------------------------------------------------------------------

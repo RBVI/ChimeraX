@@ -345,6 +345,7 @@ def deduce_format(filename, has_format=None, open=True, save=False, no_raise=Fal
                 return None, filename, compression
             from .errors import UserError
             raise UserError("Missing filename suffix %s" % filename)
+        ext = ext.split('#', 1)[0]  # allow for .html#tag to match .html
         ext = ext.casefold()
         fmt = None
         for f in _file_formats.values():

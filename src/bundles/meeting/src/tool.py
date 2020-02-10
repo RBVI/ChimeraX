@@ -81,6 +81,8 @@ class ConferenceUI(HtmlToolInstance):
                 self.action_start(query)
             elif action == "host":
                 self.action_host(query)
+            elif action == "send":
+                self.action_send(query)
             elif action == "leave":
                 self.action_leave(query)
         else:
@@ -225,6 +227,11 @@ class ConferenceUI(HtmlToolInstance):
         # and construct a command to execute
         host, port, conf_name, user_name = self._get_args(query)
         cmd = self._build_action("host", None, None, None, user_name)
+        from chimerax.core.commands import run
+        run(self.session, cmd)
+
+    def action_send(self, query):
+        cmd = self._build_action("send", None, None, None, None)
         from chimerax.core.commands import run
         run(self.session, cmd)
 

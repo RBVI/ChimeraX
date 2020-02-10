@@ -389,6 +389,9 @@ void Structure::_copy(Structure* s) const
             }
             a->set_alt_loc(aloc);	// Restore original alt loc.
             ca->set_alt_loc(aloc);
+        } else {
+            ca->set_bfactor(a->bfactor());
+            ca->set_occupancy(a->occupancy());
         }
         ca->set_draw_mode(a->draw_mode());
         ca->set_radius(a->radius());
