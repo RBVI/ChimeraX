@@ -76,6 +76,7 @@ def register_volume_command(logger):
                ('colormap_size', IntArg),
                ('colormap_extend_left', BoolArg),
                ('colormap_extend_right', BoolArg),
+               ('backing_color', Or(ColorArg, EnumOf(['none']))),
                ('blend_on_gpu', BoolArg),
                ('projection_mode', EnumOf(ro.projection_modes)),
                ('plane_spacing', Or(EnumOf(('min', 'max', 'mean')), FloatArg)),
@@ -172,6 +173,7 @@ def volume(session,
            colormap_size = None,             # image colormapping
            colormap_extend_left = None,
            colormap_extend_right = None,
+           backing_color = None,
            blend_on_gpu = None,		     # image blending on gpu or cpu
            projection_mode = None,           # auto, 2d-xyz, 2d-x, 2d-y, 2d-z, 3d
            plane_spacing = None,	     # min, max, or numeric value
@@ -277,6 +279,8 @@ def volume(session,
       Whether colormapping is done on gpu or cpu for image rendering.
     colormap_size : integer
       Size of colormap to use for image rendering.
+    backing_color : Color or None
+      Draw this color behind transparent image data if different from the background color.
     blend_on_gpu : bool
       Whether image blending is done on gpu or cpu.
     projection_mode : string
@@ -386,7 +390,7 @@ def volume(session,
         'subdivision_levels', 'surface_smoothing', 'smoothing_iterations',
         'smoothing_factor', 'square_mesh', 'cap_faces',
         'tilted_slab', 'tilted_slab_axis', 'tilted_slab_offset',
-        'tilted_slab_spacing', 'tilted_slab_plane_count', 'image_mode')
+        'tilted_slab_spacing', 'tilted_slab_plane_count', 'image_mode', 'backing_color')
     rsettings = dict((n,loc[n]) for n in ropt if not loc[n] is None)
     if not orthoplanes is None:
         rsettings['orthoplanes_shown'] = ('x' in orthoplanes,
@@ -438,6 +442,9 @@ def apply_volume_options(v, doptions, roptions, session):
     kw.update(roptions)
     if 'tilted_slab_axis' in roptions:
         kw['tilted_slab_axis'] = roptions['tilted_slab_axis'].scene_coordinates(coordinate_system = v)
+    if 'backing_color' in kw:
+        bc = kw['backing_color']
+        kw['backing_color'] = (None if bc == 'none' else tuple(bc.uint8x4()))
     if kw:
         v.set_parameters(**kw)
 

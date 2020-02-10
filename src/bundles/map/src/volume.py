@@ -2626,6 +2626,7 @@ class RenderingOptions:
     self.tilted_slab_spacing = 1
     self.tilted_slab_plane_count = 1
     self.image_mode = 'full region'	# 'full region', 'orthoplanes', 'box faces', or 'tilted slab'
+    self.backing_color = None		# Color drawn behind transparent images
 
   # ---------------------------------------------------------------------------
   #

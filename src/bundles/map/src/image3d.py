@@ -44,6 +44,8 @@ class Image3d(Model):
     self._planes_2d_multiaxis = [None, None, None]	# For x, y, z axis projection mode
     self._planes_2d = None			# For ortho and box mode display
     self._planes_3d = None			# Texture3dPlanes instance for 3d projection mode
+
+    self._backing_drawing = None		# For drawing black background behind image
     
   # ---------------------------------------------------------------------------
   #
@@ -121,7 +123,7 @@ class Image3d(Model):
                  'colormap_extend_left', 'colormap_extend_right',
                  'dim_transparent_voxels',
                  'projection_mode', 'plane_spacing', 'full_region_on_gpu',
-                 'image_mode', 'linear_interpolation'):
+                 'image_mode', 'linear_interpolation', 'backing_color'):
         if getattr(rendering_options, attr) != getattr(ro, attr):
             change = True
             break
@@ -694,6 +696,11 @@ class Image3d(Model):
     self._remove_planes()
     Model.delete(self)
 
+    bd = self._backing_drawing
+    if bd:
+      bd.delete()
+      self._backing_drawing = None
+
   # ---------------------------------------------------------------------------
   #
   def bounds(self):
@@ -759,6 +766,10 @@ class Image3d(Model):
   # ---------------------------------------------------------------------------
   #
   def _draw_planes(self, renderer, draw_pass, dtransp, drawing):
+
+    if dtransp:
+      self._draw_backing(renderer)
+      
     r = renderer
     ro = self._rendering_options
     max_proj = dtransp and ro.maximum_intensity_projection
@@ -779,6 +790,89 @@ class Image3d(Model):
     if max_proj:
       r.blend_max(False)
 
+  # ---------------------------------------------------------------------------
+  #
+  def _draw_backing(self, renderer):
+    bcolor = self._rendering_options.backing_color
+    if bcolor is None or tuple(self.session.main_view.background_color) == tuple(bcolor):
+      return	# Background color is the same as backing color.
+
+    bd = self._backing_drawing
+    if bd is None:
+      self._backing_drawing = bd = BackingDrawing(self.name + ' backing', self)
+    bd.draw_backing(renderer)
+    
+# ---------------------------------------------------------------------------
+#
+from chimerax.core.graphics import Drawing
+class BackingDrawing(Drawing):
+  def __init__(self, name, image):
+    self._image = image			# Parent Image3D
+    Drawing.__init__(self, name)
+    self.use_lighting = False
+    self.color = (0,0,0,255)
+    self._settings = {}
+
+  def draw_backing(self, renderer):
+    im = self._image
+    ro = self._image._rendering_options
+    mode = ro.image_mode
+    if mode not in ('full region', 'tilted slab'):
+      return
+
+    settings = {'region':im._region, 'transform':im._last_ijk_to_xyz_transform}
+    if mode == 'tilted slab':
+      settings.update({
+        'tilted spacing': ro.tilted_slab_spacing,
+        'tilted offset': ro.tilted_slab_offset,
+        'tilted plane count': ro.tilted_slab_plane_count,
+        'tilted axis': ro.tilted_slab_axis})
+    if settings != self._settings:
+      self._settings = settings
+      self._set_cube_geometry()
+
+    bcolor = ro.backing_color
+    if tuple(bcolor) != tuple(self.color):
+      self.color = bcolor
+      
+    renderer.enable_backface_culling(True)
+    from chimerax.core.graphics import Drawing
+    self.draw(renderer, self.OPAQUE_DRAW_PASS)
+    renderer.enable_backface_culling(False)
+
+  def _set_cube_geometry(self):
+    im = self._image
+    imin, imax = im._region[:2]
+    ijk_min = tuple(i-0.5 for i in imin)
+    ijk_max = tuple(i+0.5 for i in imax)
+    xyz_min, xyz_max = im._last_ijk_to_xyz_transform * (ijk_min, ijk_max)
+    from .data import box_corners
+    corners = box_corners(xyz_min, xyz_max)
+
+    ro = im._rendering_options
+    if ro.image_mode == 'tilted slab':
+      spacing = ro.tilted_slab_spacing
+      start = ro.tilted_slab_offset - 0.5*spacing
+      thickness = spacing * ro.tilted_slab_plane_count
+      axis = ro.tilted_slab_axis
+      from . import box_cuts
+      va, ta = box_cuts(corners, axis, start, thickness, num_cuts = 2)
+      va1, ta1 = box_cuts(corners, axis, start, thickness, num_cuts = 1)
+      t2 = len(ta1)
+      temp = ta[:t2,0].copy()
+      ta[:t2,0] = ta[:t2,1]
+      ta[:t2,1] = temp
+    else:
+      from numpy import array, float32, int32
+      va = array(corners, float32)
+      # Inward facing triangles.
+      tlist = ((0,5,4), (5,0,1), (0,6,2), (6,0,4),
+               (0,3,1), (3,0,2), (7,1,3), (1,7,5),
+               (7,2,6), (2,7,3), (7,4,5), (4,7,6))
+      ta = array(tlist, int32)
+      
+    self.set_geometry(va, None, ta)
+  
 # ---------------------------------------------------------------------------
 #
 class Colormap:
