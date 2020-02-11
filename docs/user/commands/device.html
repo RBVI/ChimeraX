@@ -356,7 +356,7 @@ in position and orientation saved with <b>saveTrackerMount true</b>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
-<a name="realsense"><b>device realsense</b></a> 
+<a name="realsense"><b>realsense</b></a> 
 [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>x,y</i>&nbsp;]
 [&nbsp;<b>dsize</b>&nbsp;&nbsp;<i>dx,dy</i>&nbsp;]
@@ -369,10 +369,13 @@ in position and orientation saved with <b>saveTrackerMount true</b>.
 [&nbsp;<b>projector</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>angstromsPerMeter</b>&nbsp;&nbsp;<i>apm</i>&nbsp;]
 [&nbsp;<b>skipFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>setWindowSize</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
-The command <b>device realsense</b> enables blending video from an 
+The command <b>realsense</b> (same as <b>device realsense</b>) enables blending video from an 
 Intel RealSense depth-sensing camera with ChimeraX graphics to
-make augmented reality videos.
+make augmented reality videos.  If VR is enabled it starts a virtual reality room camera
+which renders the models to be blended with the RealSense camera.  This command also sets
+the graphics window size to match the RealSense camera image size.
 This command is only available after installation of the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
 target="_blank"><b>RealSense</b> bundle</a> from the
@@ -404,6 +407,8 @@ relative scale (default <b>50</b>).
 The <b>skipFrames</b> option indicates how many ChimeraX graphics update frames
 to skip before getting a new camera frame (default <b>2</b>, meaning to get
 a new camera frame at every 3rd ChimeraX graphics frame).
+The <b>setWindowSize</b> option causes the graphics window size to be changed
+to match the camera color image resolution (default <b>true</b>).
 </p><p>
 <b>Denoising details:</b>
 The depth values from RealSense cameras fluctuate rapidly over time by small amounts

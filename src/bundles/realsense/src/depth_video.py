@@ -17,7 +17,7 @@ def device_realsense(session, enable = True,
                      size = (960,540), dsize = (1280,720), frames_per_second = 30,
                      align = True, denoise = True, denoise_weight = 0.1,
                      denoise_color_tolerance = 10, projector = False,
-                     angstroms_per_meter = 50, skip_frames = 2):
+                     angstroms_per_meter = 50, skip_frames = 2, set_window_size = True):
 
     di = session.models.list(type = DepthVideo)
     if enable:
@@ -38,13 +38,16 @@ def device_realsense(session, enable = True,
         session.models.add([di])
         msg = 'RealSense camera model #%s' % di.id_string
         session.logger.info(msg)
+        if set_window_size:
+            di.set_window_size()
     else:
         session.models.close(di)
             
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, BoolArg, FloatArg, IntArg, Int2Arg
+    from chimerax.core.commands import CmdDesc, register, create_alias
+    from chimerax.core.commands import BoolArg, FloatArg, IntArg, Int2Arg
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('size', Int2Arg),
                               ('dsize', Int2Arg),
@@ -56,9 +59,13 @@ def register_command(logger):
                               ('projector', BoolArg),
                               ('angstroms_per_meter', FloatArg),
                               ('skip_frames', IntArg),
+                              ('set_window_size', BoolArg),
                    ],
-                   synopsis = 'Turn on RealSense camera rendering')
-    register('device realsense', desc, device_realsense, logger=logger)
+                   synopsis = 'Turn on RealSense camera rendering',
+                   url = 'help:user/commands/device.html#realsense')
+    register('realsense', desc, device_realsense, logger=logger)
+    create_alias('device realsense', 'realsense $*', logger=logger,
+                 url='help:user/commands/device.html#realsense')
             
 # -----------------------------------------------------------------------------
 #
@@ -126,6 +133,11 @@ class DepthVideo (Model):
         if dt:
             dt.delete_texture()
             self._depth_texture = None
+
+    def set_window_size(self):
+        w,h = self._color_image_size
+        from chimerax.core.commands import run
+        run(self.session, 'windowsize %d %d' % (w,h))
         
     def _start_video(self):
         # Configure depth and color streams
@@ -151,6 +163,14 @@ class DepthVideo (Model):
 
     def _update_image(self, tname, view):
 
+        cam = view.camera
+        if hasattr(cam, 'have_room_camera') and not cam.have_room_camera:
+            cmd = 'vr roomCamera on fieldOfView %.1f' % self._render_field_of_view
+            if hasattr(cam, 'have_tracker') and cam.have_tracker:
+                cmd += ' tracker on'
+            from chimerax.core.commands import run
+            run(self.session, cmd)
+            
         if not self.display:
             if self._pipeline_started:
                 # Stop video processing if not displayed.

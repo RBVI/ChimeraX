@@ -9,11 +9,11 @@ all:
 install:
 	cp rsync.convert $(bindir)
 	$(RSYNC) include/* $(includedir)
-	$(RSYNC) $(DLL_DIR)/*.dll $(bindir)
+	if [ -d $(DLL_DIR) ]; then $(RSYNC) $(DLL_DIR)/*.dll $(bindir); fi
 
 
 app-install:;
 	$(RSYNC) include/* $(app_includedir)
-	$(RSYNC) $(DLL_DIR)/*.dll $(app_bindir)
+	if [ -d $(DLL_DIR) ]; then $(RSYNC) $(DLL_DIR)/*.dll $(bindir); fi
 
 clean:

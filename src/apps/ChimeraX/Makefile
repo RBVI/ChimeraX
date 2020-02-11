@@ -30,17 +30,18 @@ endif
 ifdef WIN32
 ICONS	+= $(APP_NAME).ico
 endif
-SRCS	= launcher.c
+SHARED_SRCS	= launcher.c
 ifdef WIN32
+SHARED_OBJS	= $(SHARED_SRCS:.c=.obj)
 ifeq ($(DESKTOP),1)
-SRCS	+= main_desktop.c
+SRCS	= $(SHARED_SRCS) main_desktop.c
 else
-SRCS	+= main_console.c
+SRCS	= $(SHARED_SRCS) main_console.c
 endif
 RCSRCS	= icon.rc
 OBJS	= $(SRCS:.c=.$(OBJ_EXT)) $(RCSRCS:.rc=.$(OBJ_EXT))
 else
-SRCS	+= main_console.c
+SRCS	= $(SHARED_SRCS) main_console.c
 OBJS	= $(SRCS:.c=.$(OBJ_EXT))
 endif
 INCS	+= $(PYTHON_INCLUDE_DIRS)
@@ -51,10 +52,10 @@ all: $(PROG)
 ifdef WIN32
 install:	install-desktop install-console
 
-install-desktop:
+install-desktop:	$(SHARED_OBJS)
 	$(MAKE) real-install DESKTOP=1
 
-install-console:
+install-console:	$(SHARED_OBJS)
 	$(MAKE) real-install DESKTOP=0
 
 real-install: $(PROG)
