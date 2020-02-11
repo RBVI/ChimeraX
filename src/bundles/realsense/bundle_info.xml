@@ -21,12 +21,14 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.91"/>
+    <Dependency name="ChimeraX-Vive" version=">=1.1"/>
     <Dependency name="pyrealsense2" version=">=2.30.0.1184"/>
   </Dependencies>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: realsense :: General :: Show Intel RealSense camera video</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: device realsense :: General :: Show Intel RealSense camera video</ChimeraXClassifier>
   </Classifiers>
 
