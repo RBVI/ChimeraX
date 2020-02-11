@@ -60,6 +60,13 @@ class OpenManager(ProviderManager):
     def end_providers(self):
         self.triggers.activate_trigger("open command changed", self)
 
+    def remove_compression_suffix(self, file_name):
+        for suffix in self._compression_info.keys():
+            if file_name.endswith(suffix):
+                file_name = file_name[:-len(suffix)]
+                break
+        return file_name
+
 def _readable_bundle_name(bundle_info):
     name = bundle_info.name
     if name.lower().startswith("chimerax"):

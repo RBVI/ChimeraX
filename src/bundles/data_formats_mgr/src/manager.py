@@ -21,6 +21,7 @@ class FormatsManager(ProviderManager):
     def __init__(self, session):
         self.session = session
         self._formats = {}
+        self._suffix_to_format = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("data formats changed")
@@ -42,13 +43,22 @@ class FormatsManager(ProviderManager):
         mime_types = convert_arg(mime_types)
         insecure = category == self.CAT_SCRIPT if insecure is None else insecure
 
+        logger = self.session.logger
         if name in self._formats:
             registrant = lambda bi: "unknown registrant" if bi is None else "%s bundle" % bi.name
-            self.session.logger.info("Replacing data format '%s' as defined by %s with definition from %s"
+            logger.info("Replacing data format '%s' as defined by %s with definition from %s"
                 % (name, registrant(self._formats[name][0]), registrant(bundle_info)))
         from .format import DataFormat
-        self._formats[name] = (bundle_info, DataFormat(name, category, suffixes, nicknames, mime_types,
-            reference_url, insecure, encoding, synopsis, allow_directory))
+        data_format = DataFormat(name, category, suffixes, nicknames, mime_types, reference_url, insecure,
+            encoding, synopsis, allow_directory)
+        for suffix in suffixes:
+            if suffix in self._suffix_to_format:
+                other_name = self._suffix_to_format[suffix].name
+                if name != other_name:
+                    logger.warning("File suffix '%s' for data format %s being replaced by format %s"
+                        % (suffix, other_name, name))
+            self._suffix_to_format[suffix] = data_format
+        self._formats[name] = (bundle_info, data_format)
         if raise_trigger:
             self.triggers.activate_trigger("data formats changed", self)
 
@@ -72,6 +82,9 @@ class FormatsManager(ProviderManager):
         self.add_format(name, category, suffixes=suffixes, nicknames=nicknames, bundle_info=bundle_info,
             mime_types=mime_types, reference_url=reference_url, insecure=insecure, encoding=encoding,
             synopsis=synopsis, allow_directory=allow_directory, raise_trigger=False)
+
+    def data_format_from_suffix(self, suffix):
+        return self._suffix_to_format.get(suffix, None)
 
     def end_providers(self):
         self.triggers.activate_trigger("data formats changed", self)
