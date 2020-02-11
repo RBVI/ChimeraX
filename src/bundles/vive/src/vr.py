@@ -225,19 +225,21 @@ def register_vr_command(logger):
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                    ],
-                   synopsis = 'Start SteamVR virtual reality rendering')
+                   synopsis = 'Start SteamVR virtual reality rendering',
+                   url = 'help:user/commands/device.html#vr')
     register('vr', desc, vr, logger=logger)
     create_alias('device vr', 'vr $*', logger=logger,
-            url="help:user/commands/device.html#vr")
+                 url='help:user/commands/device.html#vr')
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
     desc = CmdDesc(required = [('button', button_name),
                                ('mode', VRModeArg)],
                    keyword = [('hand', EnumOf(('left', 'right')))],
-                   synopsis = 'Assign VR hand controller buttons')
+                   synopsis = 'Assign VR hand controller buttons',
+                   url = 'help:user/commands/device.html#vr-button')
     register('vr button', desc, vr_button, logger=logger)
     create_alias('device vr button', 'vr button $*', logger=logger,
-            url="help:user/commands/device.html#vr-button")
+                 url='help:user/commands/device.html#vr-button')
 
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('field_of_view', FloatArg),
@@ -246,10 +248,11 @@ def register_vr_command(logger):
                               ('tracker', BoolArg),
                               ('save_position', BoolArg),
                               ('save_tracker_mount', BoolArg)],
-                   synopsis = 'Control VR room camera')
+                   synopsis = 'Control VR room camera',
+                   url = 'help:user/commands/device.html#vr-roomCamera')
     register('vr roomCamera', desc, vr_room_camera, logger=logger)
     create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger,
-            url="help:user/commands/device.html#vr-roomCamera")
+                 url='help:user/commands/device.html#vr-roomCamera')
 
 # -----------------------------------------------------------------------------
 #
@@ -517,6 +520,15 @@ class SteamVRCamera(Camera, StateManager):
             self._room_camera = None
         return rc
 
+    @property
+    def have_room_camera(self):
+        return self._room_camera is not None
+
+    @property
+    def have_tracker(self):
+        return (self._tracker_device_index is not None
+                or self._find_tracker() is not None)
+    
     def tracker_room_position(self):
         i = self._tracker_device_index
         if i is None:
