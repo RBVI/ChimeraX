@@ -11,13 +11,24 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, register, FileNameArg, RestOfLine, next_token
-from chimerax.core.errors import UserError
+from chimerax.core.commands import CmdDesc, register, OpenFileNamesArg, RestOfLine, next_token, FileNameArg
+from chimerax.core.errors import UserError, LimitationError
 
-def cmd_open(session, file_name, rest_of_line):
-    from .manager import _manager as mgr
+# need to use non-repeatable OpenFilesNamesArg (rather than OpenFileNameArg) so that 'browse' can still be
+# used to open multiple files
+class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
+    allow_repeat = False
+
+def cmd_open(session, file_names, rest_of_line):
+    from .manager import _manager as mgr, NoOpenerError
+    file_name = file_names[0]
+    if len(file_names) > 1:
+        remainder = " ".join([FileNameArg.unparse(x) for x in file_names[1:]])
+        if rest_of_line:
+            remainder += " " + rest_of_line
+    else:
+        remainder = rest_of_line
     tokens = []
-    remainder = rest_of_line
     while remainder:
         token, token_log, remainder = next_token(remainder)
         remainder = remainder.lstrip()
@@ -52,10 +63,15 @@ def cmd_open(session, file_name, rest_of_line):
                 raise UserError("No known data format for file suffix '%s'" % base_name[dot_pos:])
         else:
             database_name = "pdb"
-    print("data_format:", data_format, " database name:", database_name)
-
-    #return _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, "clashes", color, radius, **kw)
+    if data_format:
+        try:
+            provider_args, want_path, check_path = mgr.open_info(data_format)
+        except NoOpenerError as e:
+            raise LimitationError(str(e))
+    else:
+        raise LimitationError("Revamped data fetching not yet implemented")
 
 def register_command(command_name, logger):
-    register('open2', CmdDesc(required=[('file_name', FileNameArg), ('rest_of_line', RestOfLine)],
+    register('open2', CmdDesc(
+        required=[('file_names', OpenFileNamesArgNoRepeat), ('rest_of_line', RestOfLine)],
         synopsis="Open/fetch data files"), cmd_open, logger=logger)

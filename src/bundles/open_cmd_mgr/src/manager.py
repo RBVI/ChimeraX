@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class NoOpenerError(ValueError):
+    pass
+
 from chimerax.core.toolshed import ProviderManager
 class OpenManager(ProviderManager):
     """Manager for open command"""
@@ -41,7 +44,7 @@ class OpenManager(ProviderManager):
             if data_format in self._openers:
                 logger.warning("Replacing opener for '%s' from %s bundle with that from %s bundle"
                     % (data_format.name, _readable_bundle_name(self._openers[data_format][0]), bundle_name))
-            self._openers[data_format] = (bundle_info, want_path, check_path)
+            self._openers[data_format] = (bundle_info, name, want_path, check_path)
         elif type == "fetch":
             pass #TODO
         elif type == "compression":
@@ -59,6 +62,13 @@ class OpenManager(ProviderManager):
 
     def end_providers(self):
         self.triggers.activate_trigger("open command changed", self)
+
+    def open_info(self, data_format):
+        try:
+            bundle_info, name, want_path, check_path = self._openers[data_format]
+        except KeyError:
+            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
+        return bundle_info.run_provider(self.session, name, self, operation="args"), want_path, check_path
 
     def remove_compression_suffix(self, file_name):
         for suffix in self._compression_info.keys():
