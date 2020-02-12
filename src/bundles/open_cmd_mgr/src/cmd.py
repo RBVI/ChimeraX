@@ -11,7 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, register, OpenFileNamesArg, RestOfLine, next_token, FileNameArg
+from chimerax.core.commands import CmdDesc, register, Command, OpenFileNamesArg, RestOfLine, next_token, \
+    FileNameArg, BoolArg, StringArg, DynamicEnum
+from chimerax.core.commands.cli import RegisteredCommandInfo
 from chimerax.core.errors import UserError, LimitationError
 
 # need to use non-repeatable OpenFilesNamesArg (rather than OpenFileNameArg) so that 'browse' can still be
@@ -70,6 +72,35 @@ def cmd_open(session, file_names, rest_of_line):
             raise LimitationError(str(e))
     else:
         raise LimitationError("Revamped data fetching not yet implemented")
+    provider_cmd_text = "open " + " ".join([FileNameArg.unparse(file_name)] + tokens)
+    print("provider-open command: %s" % repr(provider_cmd_text))
+    # register a private 'open' command that handles the provider's keywords
+    registry = RegisteredCommandInfo()
+    def format_names(formats=session.data_formats.formats):
+        names = set()
+        for f in formats:
+            names.update(f.nicknames)
+        #TODO: fetch databases
+        return names
+
+    keywords = {
+        'format': DynamicEnum(format_names),
+        #'from_database':
+        'ignore_cache': BoolArg,
+        'name': StringArg
+    }
+    for keyword, annotation in provider_args.items():
+        if keyword in keywords:
+            raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of same name" % keyword)
+        keywords[keyword] = annotation
+    desc = CmdDesc(required=[('file_names', OpenFileNamesArg)], keyword=keywords.items(),
+        synopsis="unnecessary")
+    register("open", desc, provider_open, registry=registry)
+    Command(session, registry=registry).run(provider_cmd_text, log=True)
+
+def provider_open(session, file_names, format=None, ignore_cache=False, name=None, **provider_kw):
+    print("provider open, file names:", file_names, " format:", format, " ignore cache:", ignore_cache, " name:", name, " provider kw:", provider_kw)
+
 
 def register_command(command_name, logger):
     register('open2', CmdDesc(

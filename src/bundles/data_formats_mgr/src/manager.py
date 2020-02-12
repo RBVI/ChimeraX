@@ -86,6 +86,10 @@ class FormatsManager(ProviderManager):
     def data_format_from_suffix(self, suffix):
         return self._suffix_to_format.get(suffix, None)
 
+    @property
+    def formats(self):
+        return [info[1] for info in self._formats.values()]
+
     def end_providers(self):
         self.triggers.activate_trigger("data formats changed", self)
 
