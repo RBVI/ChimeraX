@@ -35,8 +35,30 @@ then
 	VCINSTALLDIR="$VSINSTALLDIR\\VC"
 	VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
 	VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.24.28127"
+elif [ -e "/cygdrive/c/Program Files (x86)/Microsoft Visual Studio/2017" ]
+then
+	echo Setting environment for using Microsoft Visual Studio 2017
+	Platform=x64
+	VSINSTALLDIR="c:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community"
+	WindowsSdkDir="c:\\Program Files (x86)\\Windows Kits\\10"
+	ExtensionSdkDir="$WindowsSdkDir\\ExtensionSDKs"
+	# also use 64 bit tools
+	B64=64
+	X64="\\x64"
+
+	Framework40Version=v4.0
+	FrameworkVersion=v4.0.30319
+	FrameworkVersion64=v4.0.30319
+	VCToolsVersion=14.16.27023
+	VisualStudioVersion=15.0
+	WindowsSDKLibVersion=10.0.17763.0
+	WindowsSDKVersion=10.0.17763.0
+
+	VCINSTALLDIR="$VSINSTALLDIR\\VC"
+	VCToolsInstallDir="$VCINSTALLDIR\\Tools\\MSVC\\$VCToolsVersion"
+	VCToolsRedistDir="$VCINSTALLDIR\\Redist\MSVC\\14.16.27012"
 else
-	echo "error: Microsoft Visual C++ 2019 compiler not found"
+	echo "error: neither Microsoft Visual C++ 2019 nor 2017 compiler found"
 	exit 1
 fi
 

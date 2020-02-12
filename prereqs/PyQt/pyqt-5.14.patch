@@ -14,7 +14,7 @@ index 7cb921220..c48771e6b 100644
  
 -VERSION = 5.12
 -PYQT_MINOR_VERSION = 3
--QT_MINOR_VERSION = 5
+-QT_MINOR_VERSION = 7
 +VERSION = 5.14
 +QT_MINOR_VERSION = 1
 +PYQT_MINOR_VERSION = 1
@@ -46,7 +46,7 @@ index decb6fc2e..3ee353c72 100644
  
  # VERSION is overriden by Makefile
 -VERSION = 5.12
--QT_MINOR_VERSION = 5
+-QT_MINOR_VERSION = 7
 -PYQT_MINOR_VERSION = 3
 -PYQTWE_MINOR_VERSION = 1
 +VERSION = 5.14
@@ -75,7 +75,7 @@ index decb6fc2e..3ee353c72 100644
 -# Explicitly choose sip version that works -- depends how unlicensed wheel
 -# from Riverbank Computing Limited was built and presumably matches the gpl
 -# wheel in PyPI.
--SIP_VERSION = 4.19.18
+-SIP_VERSION = 4.19.19
  
 -PYQT_LICENSE_VERSION = 1.17
  PYTHON_TAGS = cp35.cp36.cp37.cp38
