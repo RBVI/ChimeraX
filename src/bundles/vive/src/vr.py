@@ -1246,7 +1246,13 @@ class RoomCameraModel(Model):
 
     def draw(self, renderer, draw_pass):
         if self.enable_draw:
+            # TODO: Graphics is drawn in opaque draw pass because self.opaque_texture is True
+            # but the texture may have transparent alpha values.  The drawing code uses alpha
+            # blending even in the opaque pass so we need to turn it off here.  Maybe draw pass
+            # code should be disabling alpha blending.
+            renderer.enable_blending(False)
             Model.draw(self, renderer, draw_pass)
+            renderer.enable_blending(True)
             
     def update_scene_position(self, new_rts):
         old_rts = self._last_room_to_scene
