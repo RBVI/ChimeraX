@@ -560,7 +560,8 @@ data formats, and selectors.
     - Bundles may provide more than one command.
 
 
-*Data Format Metadata*
+*Data Format Metadata*  **DEPRECATED**
+    **The Data Format Metadata tags below will be withdrawn in a future version of ChimeraX in favor of the more flexible and generic Manager/Provider mechanism documented above.**  Details of the manager/provider API will be provided as they become finialized.  A changeover date will be pre-announced on the chimerax-users mailing list.
 
     ``DataFormat`` :: *format_name* :: *nicknames* :: *category* :: *suffixes* :: *mime_types* :: *url* :: *dangerous* :: *icon* :: *synopsis* :: *encoding*
 

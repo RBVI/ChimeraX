@@ -1876,7 +1876,10 @@ class Structure(Model, StructureData):
     def atomspec_has_atoms(self):
         return True
 
-    def atomspec_atoms(self):
+    def atomspec_atoms(self, ordered=False):
+        if ordered:
+            from .molarray import Atoms
+            return Atoms(sorted(self.atoms))
         return self.atoms
 
     def atomspec_filter(self, level, atoms, num_atoms, parts, attrs):
@@ -2111,9 +2114,16 @@ class AtomsDrawing(Drawing):
             print('%s</Transform>' % tab, file=stream)
 
 class BondsDrawing(Drawing):
-    # Used for both bonds and pseudoonds
-    # can't have any child drawings
-
+    # Used for both bonds and pseudoonds.
+    # Should not have any child drawings, as bounds and picking will ignore any children.
+    #
+    # If zero length bonds are included then there will be singular position matrices
+    # that will cause errors in any code that relies on inverting position matrices.
+    # Ideally zero length bonds would be removed from drawn geometry and all positions
+    # would be invertible.  But the code is simpler and faster if all displayed bonds are
+    # included, so we will tolerate the singular position matrices unless the cause
+    # problems.
+    #
     skip_bounds = True
 
     def __init__(self, name, pick_class, picks_class):
@@ -3206,6 +3216,19 @@ def all_atoms(session, atomic_only=False):
     '''All atoms in all structures as an :class:`.Atoms` collection.'''
     func = all_atomic_structures if atomic_only else all_structures
     return structure_atoms(func(session))
+
+# -----------------------------------------------------------------------------
+#
+def is_informative_name(name):
+    '''Does the string 'name' seem like it would actually be an informative name for the structure'''
+    nm = name.strip().lower()
+    if "unknown" in nm:
+        return False
+
+    for c in nm:
+        if c.isalnum():
+            return True
+    return False
 
 # -----------------------------------------------------------------------------
 #

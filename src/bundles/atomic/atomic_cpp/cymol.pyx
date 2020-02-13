@@ -35,6 +35,8 @@ cdef const char * _translate_struct_cat(cydecl.StructCat cat):
         return "ligand"
     if cat == cydecl.StructCat.Ions:
         return "ions"
+    if cat == cydecl.StructCat.Unassigned:
+        return "other"
     raise ValueError("Unknown structure category")
 
 cdef class CyAtom:
@@ -315,6 +317,12 @@ cdef class CyAtom:
         "Supported API. :class:`Element` corresponding to the atom's chemical element"
         if self._deleted: raise RuntimeError("Atom already deleted")
         return self.cpp_atom.element().py_instance(True)
+
+    @element.setter
+    def element(self, Element e):
+        "Supported API. set atom's chemical element"
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        self.cpp_atom.set_element(dereference(e.cpp_element))
 
     @property
     def hide(self):
@@ -1475,6 +1483,10 @@ cdef class CyResidue:
         except IndexError:
             return
         _set_angle(self.session, a3, a3.bonds[i], val, cur_chi, "chi%s" % chi_num)
+
+    def remove_atom(self, CyAtom atom):
+        "Supported API.  Remove the atom from this residue."
+        self.cpp_res.remove_atom(atom.cpp_atom)
 
     def string(self, residue_only = False, omit_structure = False, style = None):
         "Supported API.  Get text representation of Residue"

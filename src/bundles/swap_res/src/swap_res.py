@@ -14,6 +14,7 @@
 from chimerax.core.errors import LimitationError, UserError
 from chimerax.atomic.rotamers import NoResidueRotamersError, RotamerLibrary, NoRotamerLibraryError, \
     UnsupportedResTypeError
+from chimerax.atomic import AtomicStructure
 
 from .cmd import default_criteria
 from .settings import defaults
@@ -158,7 +159,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                         session.logger.info("%s has %d equal-value rotamers;"
                             " choosing one arbitrarily." % (res, len(rots)))
                 by_alt_loc[alt_loc] = rots[0]
-            use_rotamer(session, res, rotamers[res], retain=retain, log=log)
+            use_rotamer(session, res, rotamers[res], retain=retain, log=log, bfactor=bfactor)
     else:
         # Nth-most-probable rotamer(s)
         for res, by_alt_loc in list(rotamers.items()):
@@ -178,16 +179,17 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                     raise UserError("Only %d rotamers for %s" % (len(rots), res))
                 rotamers[res] = p_rots
         for res in rotamers:
-            use_rotamer(session, res, rotamers[res], retain=retain, log=log)
+            use_rotamer(session, res, rotamers[res], retain=retain, log=log, bfactor=bfactor)
 
     for rot in destroy_list:
         rot.delete()
 
 def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib="Dunbrack", log=False):
     """Takes a Residue instance and optionally phi/psi angles (if different from the Residue), residue
-       type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances.
-       The AtomicStructures are each a single residue (a rotamer) and are in descending probability order.
-       Each has an attribute "rotamer_prob" for the probability and "chis" for the chi angles.
+       type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances (sublass of
+       AtomicStructure).  The AtomicStructure are each a single residue (a rotamer) and are in descending
+       probability order.  Each has an attribute "rotamer_prob" for the probability and "chis" for the
+       chi angles.
     """
     res_type = res_type or res.name
     if res_type == "ALA" or res_type == "GLY":
@@ -198,7 +200,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
 
     # check that the residue has the n/c/ca atoms needed to position the rotamer
     # and to ensure that it is an amino acid
-    from chimerax.atomic import Residue, AtomicStructure
+    from chimerax.atomic import Residue
     match_atoms = {}
     for bb_name in Residue.aa_min_backbone_names:
         match_atoms[bb_name] = a = res.find_atom(bb_name)
@@ -240,7 +242,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     from chimerax.core.geometry import align_points
     from numpy import array
     xform, rmsd = align_points(array([fa.coord for fa in tmpl_match_atoms]),
-        array([ta.scene_coord for ta in res_match_atoms]))
+        array([ta.coord for ta in res_match_atoms]))
     n_coord = xform * tmpl_N.coord
     ca_coord = xform * tmpl_CA.coord
     cb_coord = xform * tmpl_CB.coord
@@ -255,7 +257,10 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
         s = AtomicStructure(session, name="rotamer %d" % (i+1))
         structs.append(s)
         r = s.new_residue(mapped_res_type, 'A', 1)
+        registerer = "swap_res get_rotamers"
+        AtomicStructure.register_attr(session, "rotamer_prob", registerer, attr_type=float)
         s.rotamer_prob = rp.p
+        AtomicStructure.register_attr(session, "chis", registerer)
         s.chis = rp.chis
         rot_N = add_atom("N", tmpl_N.element, r, n_coord)
         rot_CA = add_atom("CA", tmpl_CA.element, r, ca_coord, bonded_to=rot_N)
@@ -348,10 +353,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             else:
                 uniform_color = het.color
 
-    # if bfactor not specified, find highest bfactor in residue and use that for swapped-in atoms
-    if bfactor is None:
-        import numpy
-        bfactor = numpy.max(res.atoms.bfactors)
+    bfactor = bfactor_for_res(res, bfactor)
 
     if preserve:
         if "CA" in fixed and res_type not in ['GLY', 'ALA']:
@@ -408,7 +410,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
         except KeyError:
             raise AssertionError("Can't determine atom type information for atom %s of residue %s" % (bud, res))
 
-        # use .coord rather than .scene_coord:  we want to set # the new atom's coord,
+        # use .coord rather than .scene_coord:  we want to set the new atom's coord,
         # to which the proper xform will then be applied
         for a, b in zip(tmpl_bud.neighbors, tmpl_bud.bonds):
             if a.element.number == 1:
@@ -597,7 +599,7 @@ def side_chain_locs(residue):
         locs.add(a.alt_loc)
     return locs
 
-def use_rotamer(session, res, rots, retain=False, log=False):
+def use_rotamer(session, res, rots, retain=False, log=False, bfactor=None):
     """Takes a Residue instance and either a list or dictionary of rotamers (as returned by get_rotamers,
        i.e. with backbone already matched) and swaps the Residue's side chain with the given rotamers.
 
@@ -607,7 +609,8 @@ def use_rotamer(session, res, rots, retain=False, log=False):
        rotamers, then the CA must have only one alt loc (namely ' ') and all the rotamers will be attached,
        using different alt loc characters for each.
 
-       If 'retain' is True, existing side chains will be retained.
+       If 'retain' is True, existing side chains will be retained.  If 'bfactor' is None, then the
+       current highest existing bfactor in the residue will be used.
     """
     N = res.find_atom("N")
     CA = res.find_atom("CA")
@@ -649,6 +652,7 @@ def use_rotamer(session, res, rots, retain=False, log=False):
     else:
         uniform_color = N.color
     # prune old side chain
+    bfactor = bfactor_for_res(res, bfactor)
     if not retain:
         res_atoms = res.atoms
         side_atoms = res_atoms.filter(res_atoms.is_side_onlys)
@@ -689,8 +693,10 @@ def use_rotamer(session, res, rots, retain=False, log=False):
                         occupancy = rot.rotamer_prob / tot_prob
                     if not built_nb:
                         serial = serials.get(nb.name, None)
-                        built_nb = add_atom(nb.name, nb.element, res, nb.coord, occupancy=occupancy,
+                        built_nb = add_atom(nb.name, nb.element, res, nb.coord,
                             serial_number=serial, bonded_to=built_sprout, alt_loc=alt_loc)
+                        built_nb.occupancy = occupancy
+                        built_nb.bfactor = bfactor
                         if color_by_element:
                             if built_nb.element.name == "C":
                                 built_nb.color = carbon_color
@@ -703,6 +709,7 @@ def use_rotamer(session, res, rots, retain=False, log=False):
                         built_nb.set_alt_loc(alt_loc, True)
                         built_nb.coord = nb.coord
                         built_nb.occupancy = occupancy
+                        built_nb.bfactor = bfactor
                     if built_nb not in visited:
                         sprouts.append(nb)
                         visited.add(built_nb)
@@ -838,6 +845,13 @@ def process_volume(session, residue, by_alt_loc, volume):
         precision += 1
         abs_max *= 10
     return "%%%d.%df" % (precision+2+add_minus_sign, precision)
+
+def bfactor_for_res(res, bfactor):
+    # if bfactor not specified, find highest bfactor in residue and use that for swapped-in atoms
+    if bfactor is None:
+        import numpy
+        return numpy.max(res.atoms.bfactors)
+    return bfactor
 
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
     from chimerax.core.geometry import distance, angle

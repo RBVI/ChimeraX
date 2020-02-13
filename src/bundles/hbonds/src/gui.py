@@ -44,11 +44,12 @@ class HBondsGUI(QWidget):
             slop_color=BuiltinColors["dark orange"], two_colors=False,
 
             # what controls to show in the interface
-            show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_intra_model=True,
-            show_intra_mol=True, show_intra_res=True, show_inter_submodel=False, show_log=True,
-            show_make_pseudobonds=True, show_model_restrict=True, show_radius=True, show_relax=True,
-            show_retain_current=True, show_reveal=True, show_salt_only=True, show_save_file=True,
-            show_show_dist=True, show_slop=True, show_slop_color=True, show_two_colors=True):
+            show_bond_restrict=True, show_color=True, show_dashes=True, show_inter_model=True,
+            show_intra_model=True, show_intra_mol=True, show_intra_res=True, show_inter_submodel=False,
+            show_log=True, show_make_pseudobonds=True, show_model_restrict=True, show_radius=True,
+            show_relax=True, show_retain_current=True, show_reveal=True, show_salt_only=True,
+            show_save_file=True, show_show_dist=True, show_slop=True, show_slop_color=True,
+            show_two_colors=True):
 
         self.session = session
 
@@ -143,8 +144,8 @@ class HBondsGUI(QWidget):
                     " differently", default_value, None, **kw)
                 relax_options.add_option(self.__slop_color_option)
 
-        if show_model_restrict or show_inter_intra_model or show_bond_restrict or show_salt_only \
-        or show_intra_mol or show_intra_res or show_inter_submodel:
+        if show_model_restrict or show_inter_model or show_intra_model or show_bond_restrict \
+        or show_salt_only or show_intra_mol or show_intra_res or show_inter_submodel:
             group = QGroupBox("Limit results:")
             layout.addWidget(group)
             limit_layout = QVBoxLayout()
@@ -160,16 +161,6 @@ class HBondsGUI(QWidget):
                     "Choose specific models...", None, self._model_restrict_cb, class_filter=AtomicStructure)
                 limit_options.add_option(self.__model_restrict_option)
 
-            if show_inter_intra_model:
-                inter_val = final_val['inter_model'] and not final_val['intra_model']
-                self.__inter_model_only_option = BooleanOption("Intermodel only", inter_val,
-                    self._inter_model_cb)
-                limit_options.add_option(self.__inter_model_only_option)
-                intra_val = final_val['intra_model'] and not final_val['inter_model']
-                self.__intra_model_only_option = BooleanOption("Intramodel only", intra_val,
-                    self._intra_model_cb, attr_name="intra_model", settings=settings)
-                limit_options.add_option(self.__intra_model_only_option)
-
             if show_bond_restrict:
                 self.__bond_restrict_option = OptionalHBondRestrictOption("Limit by selection",
                     None, None, atom_word="end")
@@ -179,6 +170,16 @@ class HBondsGUI(QWidget):
                 self.__salt_only_option = BooleanOption("Salt bridges only",
                     None if settings else salt_only, None, attr_name="salt_only", settings=settings)
                 limit_options.add_option(self.__salt_only_option)
+
+            if show_inter_model:
+                self.__inter_model_option = BooleanOption("Include intermodel",
+                    None if settings else inter_model, None, attr_name="inter_model", settings=settings)
+                limit_options.add_option(self.__inter_model_option)
+
+            if show_intra_model:
+                self.__intra_model_option = BooleanOption("Include intramodel",
+                    None if settings else intra_model, None, attr_name="intra_model", settings=settings)
+                limit_options.add_option(self.__intra_model_option)
 
             if show_intra_mol:
                 self.__intra_mol_option = BooleanOption("Include intramolecule",
@@ -285,11 +286,15 @@ class HBondsGUI(QWidget):
         else:
             settings['show_dist'] = None
 
-        if self.__show_values['inter_intra_model']:
-            settings['inter_model'] = not self.__intra_model_only_option.value
-            settings['intra_model'] = not self.__inter_model_only_option.value
+        if self.__show_values['inter_model']:
+            settings['inter_model'] = self.__inter_model_option.value
         else:
-            settings['inter_model'] = settings['intra_model'] = None
+            settings['inter_model'] = None
+
+        if self.__show_values['intra_model']:
+            settings['intra_model'] = self.__intra_model_option.value
+        else:
+            settings['intra_model'] = None
 
         if self.__show_values['relax']:
             settings['relax'] = self.__relax_group.isChecked()
@@ -397,14 +402,6 @@ class HBondsGUI(QWidget):
                     next_upper = False
             kw_values += (" " if kw_values else "") + camel + " " + val_to_str(self.session, val, kw)
         return "hbonds", atom_spec, kw_values
-
-    def _inter_model_cb(self, opt):
-        if opt.value:
-            self.__intra_model_only_option.value = False
-
-    def _intra_model_cb(self, opt):
-        if opt.value:
-            self.__inter_model_only_option.value = False
 
     def _model_restrict_cb(self, opt):
         if opt.value is None:

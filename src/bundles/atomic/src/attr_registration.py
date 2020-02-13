@@ -80,20 +80,13 @@ class AttrRegistration:
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:
             session_attrs.add(attr_name)
-            self._ses_attr_counts[attr_name] = self._ses_attr_counts.get(attr_name, 0) + 1
 
     # session functions; called from manager, not directly from session-saving mechanism,
     # so API varies from that for State class
     def reset_state(self, session):
-        if session not in self._session_attrs:
-            return
-        for attr_name in self._session_attrs[session]:
-            if self._ses_attr_counts[attr_name] == 1:
-                del self._ses_attr_counts[attr_name]
-                del self.reg_attr_info[attr_name]
-            else:
-                self._ses_attr_counts[attr_name] -= 1
-        del self._session_attrs[session]
+        # don't nuke existing attributes, since tools that registered attributes with default
+        # values may still depend on those attributes working
+        return
 
     def take_snapshot(self, session, flags):
         ses_reg_attr_info = {}

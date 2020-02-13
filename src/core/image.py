@@ -20,12 +20,12 @@ class ImageFormat:
 
 
 _formats = [
-    ('png', ['png'], 'PNG'),
-    ('jpeg', ['jpg', 'jpeg'], 'JPEG'),
-    ('tiff', ['tif', 'tiff'], 'TIFF'),
-    ('gif', ['gif'], 'GIF'),
-    ('ppm', ['ppm'], 'PPM'),
-    ('bmp', ['bmp'], 'BMP'),
+    ('PNG', ['png'], 'PNG'),
+    ('JPEG', ['jpg', 'jpeg'], 'JPEG'),
+    ('TIFF', ['tif', 'tiff'], 'TIFF'),
+    ('GIF', ['gif'], 'GIF'),
+    ('PPM', ['ppm'], 'PPM'),
+    ('BMP', ['bmp'], 'BMP'),
 ]
 default_format = 'png'
 image_formats = [ImageFormat(name, suffixes, pil_name)
@@ -67,7 +67,7 @@ def save_image(session, path, format_name, width=None, height=None,
     fmt = None
     if format_name is not None:
         for f in image_formats:
-            if f.name == format_name:
+            if f.name.casefold() == format_name.casefold():
                 fmt = f
         if fmt is None:
             from .errors import UserError
@@ -91,10 +91,12 @@ def save_image(session, path, format_name, width=None, height=None,
     from .session import standard_metadata
     std_metadata = standard_metadata()
     metadata = {}
-    if fmt.name == 'png':
+    if fmt.name == 'PNG':
         metadata['optimize'] = True
         # if dpi is not None:
         #     metadata['dpi'] = (dpi, dpi)
+        if session.main_view.render.opengl_context.pixel_scale() == 2:
+            metadata['dpi'] = (144, 144)
         from PIL import PngImagePlugin
         pnginfo = PngImagePlugin.PngInfo()
         # tags are from <https://www.w3.org/TR/PNG/#11textinfo>
@@ -112,7 +114,7 @@ def save_image(session, path, format_name, width=None, height=None,
         add_text('Author', std_metadata['creator'])
         add_text('Copy' 'right', std_metadata['dateCopyrighted'])
         metadata['pnginfo'] = pnginfo
-    elif fmt.name == 'tiff':
+    elif fmt.name == 'TIFF':
         # metadata['compression'] = 'lzw:2'
         # metadata['description'] = description
         metadata['software'] = std_metadata['generator']
@@ -137,7 +139,7 @@ def save_image(session, path, format_name, width=None, height=None,
         #     metadata['resolution unit'] = 'cm'
         #     metadata['x resolution'] = dpcm
         #     metadata['y resolution'] = dpcm
-    elif fmt.name == 'jpeg':
+    elif fmt.name == 'JPEG':
         metadata['quality'] = quality
         # if dpi is not None:
         #     # PIL's jpeg_encoder requires integer dpi values
@@ -146,6 +148,13 @@ def save_image(session, path, format_name, width=None, height=None,
         # metadata['exif'] = exif
 
     view = session.main_view
+    view.render.make_current()
+    max_size = view.render.max_framebuffer_size()
+    if max_size and ((width is not None and width > max_size)
+                     or (height is not None and height > max_size)):
+        raise UserError('Image size %d x %d too large, exceeds maximum OpenGL render buffer size %d'
+                        % (width, height, max_size))
+
     i = view.image(width, height, supersample=supersample,
                    transparent_background=transparent_background)
     if i is not None:
@@ -162,7 +171,7 @@ def save_image(session, path, format_name, width=None, height=None,
 def register_image_save(session):
     from .io import register_format
     for format in image_formats:
-        register_format("%s image" % format.name,
+        register_format("%s image" % format.name.upper(),
                         category='Image',
                         extensions=['.%s' % s for s in format.suffixes],
                         nicknames=[format.name.casefold()],
@@ -214,7 +223,7 @@ def register_image_save_options_gui(save_dialog):
             
         @property
         def format_name(self):
-            return self._image_format.name
+            return '%s image' % self._image_format.name
         
         def make_ui(self, parent):
             from PyQt5.QtWidgets import QFrame, QGridLayout, QComboBox, QLabel, QHBoxLayout, \
@@ -342,4 +351,4 @@ def register_image_save_options_gui(save_dialog):
             return wildcard
 
     for fmt in image_formats:
-        save_dialog.register(ImageSaveOptionsGUI(fmt))
+        save_dialog.add_options_gui(ImageSaveOptionsGUI(fmt))

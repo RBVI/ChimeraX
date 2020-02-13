@@ -192,6 +192,19 @@ class Settings(ConfigFile):
         else:
             ConfigFile.__setattr__(self, name, value)
 
+    def default_value(self, name):
+        return self.PROPERTY_INFO[name].default
+
+    def reset(self):
+        '''Supported API.  Reset (revert to default) all settings.'''
+        for name in self.PROPERTY_INFO.keys():
+            setattr(self, name, self.default_value(name))
+
+    def restore(self):
+        '''Supported API.  Restore (revert to saved) all settings.'''
+        for name in self.__class__.EXPLICIT_SAVE.keys():
+            setattr(self, name, self.saved_value(name))
+
     def save(self, setting=None, *, settings=None):
         '''Supported API. If 'setting' or 'settings' is specified, save only those settings (don't
         change saved value of any other setting. Otherwise, save all settings.'''

@@ -22,6 +22,7 @@ def find_clashes(session, test_atoms,
         hbond_allowance=defaults["clash_hbond_allowance"],
         inter_model=True,
         inter_submodel=False,
+        intra_model=True,
         intra_res=False,
         intra_mol=True,
         res_separation=None,
@@ -48,6 +49,7 @@ def find_clashes(session, test_atoms,
        or equal to 'bond_separation' bonds apart.
 
        Intra-residue clashes are ignored unless intra_res is True.
+       Intra-model clashes are ignored unless intra_model is True.
        Intra-molecule (covalently connected fragment) clashes are ignored
        unless intra_mol is True.
        Inter-(sibling)submodel clashes are ignored unless inter_submodel is True.
@@ -101,10 +103,18 @@ def find_clashes(session, test_atoms,
     else:
         search_atoms = test_atoms
 
+    if res_separation is not None:
+        chain_pos = {}
+        for s in test_atoms.unique_structures:
+            for c in s.chains:
+                for i, r in enumerate(c.residues):
+                    if r:
+                        chain_pos[r] = i
     from chimerax.atomic.search import AtomSearchTree
     tree = AtomSearchTree(search_atoms, scene_coords=inter_model)
     clashes = {}
     from chimerax.core.geometry import distance
+    intra_mol_map = {}
     for a in test_atoms:
         if distance_only:
             cutoff = distance_only
@@ -125,22 +135,33 @@ def find_clashes(session, test_atoms,
                     exclusions.add(n)
                     next_need.append(n)
             need_expansion = next_need
+        if not intra_mol and a not in intra_mol_map:
+            connected = set([a])
+            to_do = list(a.neighbors)
+            while to_do:
+                conn = to_do.pop()
+                connected.add(conn)
+                for nb in conn.neighbors:
+                    if nb not in connected:
+                        to_do.append(nb)
+            for ca in connected:
+                intra_mol_map[ca] = connected
         for nb in nearby:
             if nb in exclusions:
                 continue
             if not intra_res and a.residue == nb.residue:
                 continue
-            if not intra_mol and a.molecule.rootForAtom(a,
-                    True) == nb.molecule.rootForAtom(nb, True):
+            if not intra_mol and nb in intra_mol_map[a]:
                 continue
             if not inter_model and a.structure != nb.structure:
+                continue
+            if not intra_model and a.structure == nb.structure:
                 continue
             if a in clashes and nb in clashes[a]:
                 continue
             if res_separation is not None:
                 if a.residue.chain is not None and a.residue.chain == nb.residue.chain:
-                    residues = a.residue.chain.residues
-                    if abs(residues.index(a.residue) - residues.index(nb.residue)) < res_separation:
+                    if abs(chain_pos[a.residue] - chain_pos[nb.residue]) < res_separation:
                         continue
             if not inter_submodel \
             and a.structure.id and nb.structure.id \

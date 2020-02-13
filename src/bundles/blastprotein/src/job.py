@@ -34,7 +34,9 @@ class BlastProteinJob(OpalJob):
     RESULTS_FILENAME = "results.txt"
 
     def __init__(self, session, seq, atomspec, database="pdb", cutoff=1.0e-3,
-                 matrix="BLOSUM62", max_seqs=500, log=None, tool=None):
+                 matrix="BLOSUM62", max_seqs=500, log=None,
+                 tool_inst_name=None):
+        from . import tool
         super().__init__(session)
         self.seq = seq                          # string
         self.atomspec = atomspec                # string (atom specifier)
@@ -43,7 +45,8 @@ class BlastProteinJob(OpalJob):
         self.matrix = matrix                    # string
         self.max_seqs = max_seqs                # int
         self.log = log
-        self.tool = tool
+        self.tool_inst_name = tool_inst_name
+        self.tool = tool.find(tool_inst_name)
 
         options = ["-d", self.database,
                    "-e", str(self.cutoff),
@@ -103,7 +106,8 @@ class BlastProteinJob(OpalJob):
                     if self.session.ui.is_gui:
                         from .tool import ToolUI
                         ToolUI(self.session, "BlastProtein",
-                               blast_results=p, params=self._params())
+                               blast_results=p, params=self._params(),
+                               instance_name=self.tool_inst_name)
                 if self.log or (self.log is None and
                                 not self.session.ui.is_gui):
                     msgs = ["BLAST results for:"]

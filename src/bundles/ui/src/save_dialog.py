@@ -15,7 +15,7 @@ class SaveOptionsGUI:
     '''
     This base class is used to register panels of options associated with a
     particular file format for display in the Save File dialog.
-    Call the register() method with an instance to register an options gui.
+    Call the add_to_save_dialog() method with an instance to register an options gui.
     '''
 
     def __init__(self, format = None):
@@ -67,13 +67,13 @@ class SaveOptionsGUI:
             self._window = self.make_ui(parent)
         return self._window
 
-    def register(self, session):
+    def add_to_save_dialog(self, session):
         '''Registers this options panel with the Save File dialog.'''
         if hasattr(session, 'ui') and hasattr(session.ui, 'main_window') and hasattr(session.ui.main_window, 'save_dialog'):
-            session.ui.main_window.save_dialog.register(self)
+            session.ui.main_window.save_dialog.add_options_gui(self)
         elif session.ui.is_gui:
             # Wait for main window to be created
-            session.ui.triggers.add_handler('ready', lambda *args,s=session: self.register(s))
+            session.ui.triggers.add_handler('ready', lambda *args,s=session: self.add_to_save_dialog(s))
         return 'delete handler'
 
 class MainSaveDialog:
@@ -83,7 +83,7 @@ class MainSaveDialog:
         self.file_dialog = None
         self._registered_formats = {}
 
-    def register(self, save_options_gui):
+    def add_options_gui(self, save_options_gui):
         '''Argument must be an instance of SaveOptionsGUI.'''
         self._registered_formats[save_options_gui.format_name] = save_options_gui
         self._update_format_menu()
@@ -191,7 +191,7 @@ class MainSaveDialog:
 def register_save_dialog_options(save_dialog):
     from chimerax.core.io import formats
     for fmt in formats(open=False):
-        save_dialog.register(SaveOptionsGUI(fmt))
+        save_dialog.add_options_gui(SaveOptionsGUI(fmt))
 
     # Register session and image save gui options here instead of in core
     # because ui does not exist when core registers these file formats.

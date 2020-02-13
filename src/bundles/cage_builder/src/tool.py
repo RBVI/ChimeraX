@@ -19,6 +19,7 @@ from chimerax.core.tools import ToolInstance
 # ------------------------------------------------------------------------------
 #
 class CageBuilder(ToolInstance):
+    help = "help:user/tools/cagebuilder.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
@@ -53,10 +54,18 @@ class CageBuilder(ToolInstance):
         self.edge_length = el = QLineEdit('50')
         el.setMaximumWidth(30)
         layout.addWidget(el)
+        dp = QPushButton('Delete')
+        dp.clicked.connect(self.delete_polygon_cb)
+        layout.addWidget(dp)
         layout.addStretch(1)    # Extra space at end of button row.
         parent.setLayout(layout)
 
         tw.manage(placement="side")
+
+    @classmethod
+    def get_singleton(self, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, CageBuilder, 'Cage Builder', create=create)
 
     def show(self):
         self.tool_window.shown = True
@@ -86,9 +95,8 @@ class CageBuilder(ToolInstance):
         from . import cage
         for i in range(self.minimize_steps):
             cage.optimize_shape(self.session)
-
-def cage_builder_panel(session, tool_name):
-  cb = getattr(session, '_cage_builder', None)
-  if cb is None:
-    session._cage_builder = cb = CageBuilder(session, tool_name)
-  return cb
+    
+    def delete_polygon_cb(self, event):
+        from . import cage
+        polys = cage.selected_polygons(self.session)
+        cage.delete_polygons(polys)

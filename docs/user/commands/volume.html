@@ -121,11 +121,13 @@ The <b>volume</b> command has many options, here grouped into categories:
 <img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/chest.png"></a>
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
@@ -939,7 +941,71 @@ both depict isosurfaces.
 <p>
   The <b>image</b> <a href="#style">display style</a>
   shows data as a semitransparent solid.
+  The following options apply to this style.
 </p>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="imageMode"></a>
+  <b>imageMode</b> &nbsp;<i>mode</i> 
+<br>
+The <i>mode</i> can be any of the following:
+<ul>
+<li><b>full region</b> &ndash; <a href="#dimensions">full region</a>
+<li><b>orthoplanes</b> &ndash; <a href="#orthoplanes">orthoplanes</a>
+<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a>
+<li><a name="tiltedslab"><b>tilted slab</b></a>
+&ndash; a single- or multi-plane slab at any angle relative to the data axes,
+with additional options:
+  <ul>
+  <li><b>tiltedSlabAxis</b> 
+  &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a> &ndash;
+  slab orientation expressed as a vector perpendicular to the slab
+  <li><b>tiltedSlabOffset</b> <i>d</i> &ndash; position along the axis,
+where <i>d</i> is the inner product of the vector <i>p</i> (a point on the slab)
+and the axis vector: <i>d</i> = (<i>p</i>,<i>axis</i>) 
+  <li><b>tiltedSlabPlaneCount</b> <i>N</i> &ndash; 
+  slab thickness in number of planes
+  <li><b>tiltedSlabSpacing</b> <i>s</i> &ndash; plane spacing in &Aring;
+  </ul>
+</ul>
+Typically, the graphical interface would be used rather than commands:
+the <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> 
+display-style menu would be used to switch the image mode, and in
+the <b>tilted slab</b> mode, slab orientation would be adjusted with the
+<b>rotate slab</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/medicalimage.html#mousemodes" 
+title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>,
+slab offset with the 
+<b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>,
+and slab thickness with the 
+<b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>.
+In <a href="../vr.html">virtual reality</a>, the <b>rotate slab</b> mode
+<a href="../tools/medicalimage.html#mousemodes" 
+title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>
+can both rotate the tilted slab and translate it along its axis.
+The initial tilted slab is perpendicular to the line of sight, 
+with center at the center of the <a href="#dimensions">current region</a>,
+thickness set to 1/5 of the planes in the 
+<a href="#dimensions">current region</a> along X, Y, or Z (whichever is least),
+and spacing equal to the smallest of the X, Y, or Z spacing of the data grid.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="backingColor"></a>
+  <b>backingColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;
+  <br>
+Specify a backing color (default <b>none</b>) for rendering when the
+<a href="#imageMode">image mode</a> is <b>full region</b> or <b>tilted slab</b>.
+A dark backing color such as <b>black</b> may improve data visibility
+when the <a href="set.html#bgColor">background color</a>
+is white or some other light color.
+</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="cmode"></a>
@@ -1012,6 +1078,30 @@ scale voxel brightness in image displays by a factor of (1&ndash;transparency).
 If <b>false</b>, increasing the <a href="#transparency">transparency</a>
 makes a volume appear brighter because less light is blocked.
 The <a href="#appearance"><b>appearance</b></a> option also adjusts this setting.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="colormapExtendRight"></a>
+  <b>colormapExtendRight</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <br>
+The thresholds and connecting lines on each histogram define a 
+<a href="#transferfunction">transfer function</a>
+that maps data values to colors and intensities.
+This option specifies whether the function should be extended horizontally
+from the rightmost threshold to the maximum data value
+at the far right of the histogram (default <b>true</b>).
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="colormapExtendLeft"></a>
+  <b>colormapExtendLeft</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+  <br>
+The thresholds and connecting lines on each histogram define a 
+<a href="#transferfunction">transfer function</a>
+that maps data values to colors and intensities.
+This option specifies whether the function should be extended horizontally
+from the leftmost threshold to the minimum data value
+at the far left of the histogram (default <b>false</b>).
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -1114,9 +1204,6 @@ Color blending on the GPU is about an order of magnitude faster.
   <a href="#top" class="nounder">&bull;</a>
   <a name="appearance"></a>
   <b>appearance</b> &nbsp;<i>preset-name</i>
-  <br>
-  <a href="#top" class="nounder">&bull;</a>
-  <b>appearance</b> &nbsp;<b>initial</b>
 <br>
 Apply a
 <a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
@@ -1145,22 +1232,36 @@ may not be a direct correspondence between settings in different programs,
 and parts of the definition files may have been ignored.
 The Horos 3D presets are generally intended for
 3D rendering (not <a href="#planes">planes</a>).
+The <a href="../tools/medicalimage.html"><b>Medical Image</b></a> icons
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a> and
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a> apply the
+Horos "<b>Airways II</b>" and MRIcroGL <b>CT_Skin</b> settings, respectively.
 </p><p>
-Besides a preset name, <b>initial</b> can be used to (re)set to the
-<a href="#level">threshold levels</a> and colors chosen automatically 
-for the data when first shown as image, with
+Two other presets, also available as 
+<a href="../tools/medicalimage.html"><b>Medical Image</b></a> icons,
+are defined in ChimeraX only:
+</p>
+<ul class="none">
+<li>
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/chest.png"></a>
+&nbsp;<b>chest</b>
+&ndash; yellow bones, blue airways, and some other tissues in pink
+<li>
+<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
+&nbsp;<b>initial</b>
+&ndash; (re)set to the <a href="#level">threshold levels</a> and colors
+chosen automatically for the data when first shown as image, with
 <a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
 <a href="../dicom/dicom.html">DICOM</a> data are initially shown 
 as image with thresholds: (&ndash;1000,0),(300,0.9),(3000,1).
-The <b>initial</b> settings may be useful for viewing 
+</ul>
+The <b>initial</b> preset may be useful for viewing 
 <a href="#planes">planes</a> or thin slabs.
 See also:
-<a href="../tools/densitymaps.html"><b>Map</b></a> icons
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
-<img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a>
-<a href="../tools/densitymaps.html" title="Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>,
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
 </p>
 </blockquote>
@@ -1283,6 +1384,7 @@ specified atoms, or limit the display to a zone without making a new map
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Add two or more maps to create a new map.
@@ -1324,9 +1426,8 @@ Note resampling causes some loss in resolution
   used along all three axes; if three numbers are supplied
   (separated by commas but not spaces), they
   are used along the X, Y, and Z axes, respectively.
-  <li><b>gridSubregion</b>
-  &ndash; whether to use the full extents of <i>gridmap</i> (<b>all</b>, default)
-  or a specified subregion.
+  <li><b>gridSubregion</b> &ndash; whether to use the full extents 
+  of <i>gridmap</i> (<b>all</b>, default) or a specified subregion.
   A subregion can be specified by:
    <ul>
    <li> <i>name</i> previously assigned
@@ -1345,6 +1446,9 @@ and can be 8-, 16-, or 32-bit signed integer
 8-, 16-, or 32-bit unsigned integer
 (<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
 or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+</p><p>
+The <b>hideMaps</b> option indicates whether to hide the input maps
+(default <b>true</b>).
 </p><p>
 If the new map is large, for example a whole tomogram, the command may
 fail for lack of memory.  The whole new map must fit in memory.
@@ -1700,6 +1804,7 @@ See also: <a href="#multiply"><b>volume multiply</b></a>,
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Set each value to the maximum at that point in two or more input maps.
@@ -1735,6 +1840,7 @@ perform (default <b>1</b>).
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Set each value to the minimum at that point in two or more input maps.
@@ -1806,6 +1912,7 @@ See also:
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Multiply the values pointwise in two or more maps.
@@ -1875,27 +1982,43 @@ Erase values outside the positive octant. Options are as described for
 
 <a href="#vop" class="nounder">&bull;</a>
 <a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>surface-spec</i>&nbsp;
-[&nbsp;<b>border</b> &nbsp;<i>B</i>&nbsp;]
-[&nbsp;<b>spacing</b> &nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
-[&nbsp;<b>pad</b> &nbsp;<i>distance</i>&nbsp;]
-[&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
-[&nbsp;<b>invertMask</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>axis</b> &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
-[&nbsp;<b>sandwich</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
-[&nbsp;<b>fillOverlap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>border</b>&nbsp;&nbsp;<i>B</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>distance</i>&nbsp;]
+[&nbsp;<b>extend</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>slab</b>&nbsp;&nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
+[&nbsp;<b>invertMask</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>sandwich</b>&nbsp; &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
+[&nbsp;<b>fillOverlap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <blockquote>
 Create a map with values of 1 bounded by a surface 
-(<a href="#masking">details...</a>). The <b>border</b> option indicates
-how far out from the bounding surface in all six directions
-(&plusmn;X, &plusmn;Y, &plusmn;Z) to place the edge of the output map.
-The <b>spacing</b> option gives the grid spacing for the output map
+(<a href="#masking">details...</a>).
+The <b>onGrid</b> option allows creating the new map on the grid
+of another map, <i>gridmap</i>, specified by model number.
+Alternatively (if <b>onGrid</b> is not used): 
+<ul>
+<li>the <b>border</b> option indicates how far out from the bounding surface 
+in all six directions
+(&plusmn;X, &plusmn;Y, &plusmn;Z) to place the edge of the output map
+<li>the <b>spacing</b> option gives the grid spacing for the output map
 in physical units of length, typically &Aring;
 (default is 1% of the maximum of the X, Y, and Z dimensions
 of the bounding surfaces). If a single number is supplied, it is used 
 in all three directions; if three numbers are supplied (separated by commas 
 but not spaces), they are used in the X, Y, and Z directions, respectively.
+</ul>
+<p>
+The <i>value-type</i> defaults to the current type
+of the <b>onGrid</b> map (if any), otherwise <b>int8</b>; 
+the choices are 8-, 16-, or 32-bit signed integer
+(<b>int8</b>, <b>int16</b>, or <b>int32</b>),
+8-, 16-, or 32-bit unsigned integer
+(<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
 The remaining options are the same as described for 
 <a href="#mask"><b>volume mask</b></a>. See also:
 <a href="#new"><b>volume new</b></a>
@@ -1947,6 +2070,7 @@ target="_top"><b>Volume Tracer</b></a>
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Resample values to a different grid using trilinear interpolation.
@@ -2031,6 +2155,7 @@ See also: <a href="../tools/segment.html"><b>Segment Map</b></a>
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Subtract the values of <i>othermap</i> from <i>map</i>, both specified by
@@ -2303,19 +2428,22 @@ Resampling to a finer grid can be specified with the <b>spacing</b> option
 of the command.
 </p><p>
 <a name="transferfunction"><b>Transfer function</b></a>.
-The thresholds and connecting lines on each histogram define a 
-<b><i>transfer function</i></b> 
+For <a href="#dispsolid"><b>image</b></a> displays, the thresholds 
+and connecting lines on the histogram define a <b><i>transfer function</i></b>
 that maps data values to colors and intensities.
 For each voxel, the data value is compared to the thresholds on the histogram.
 The colors and intensities of the closest threshold at a lower data value 
 (to the left) and the closest threshold at a higher data value (to the right)
-are linearly interpolated. Voxels with data values greater than the rightmost
-threshold or less than the leftmost threshold are colorless and completely
-transparent. Color is defined by red, green, blue and opacity components.
+are linearly interpolated. 
+Color is defined by red, green, blue and opacity components.
 The intensity at a threshold is further scaled by its vertical position,
-where 0 is the bottom of the histogram and 1 is the top. Rendering time
-does not depend on the positions of the thresholds, but increases with
-greater numbers of thresholds.
+where 0 is the bottom of the histogram and 1 is the top. 
+Unless the function is <a href="#colormapExtendRight">extended</a>
+horizontally to the maximum and/or minimum value,
+voxels with data values greater than the rightmost threshold or 
+less than the leftmost threshold are colorless and completely transparent.
+Rendering time does not depend on the positions of the thresholds, 
+but increases with greater numbers of thresholds.
 </p><p>
 <a name="soliddetails"><b>Image transparency details</b></a>.
 For <a href="#dispsolid"><b>image</b></a> displays,
@@ -2396,5 +2524,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+January 2020</address>
 </body></html>

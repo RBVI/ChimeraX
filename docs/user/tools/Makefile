@@ -24,23 +24,23 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/dist_ui/src/distance.png \
 		$(TOP)/src/bundles/label/src/label.png \
 		$(TOP)/src/bundles/label/src/movelabel.png \
-		$(TOP)/src/bundles/map/src/contour.png \
-		$(TOP)/src/bundles/map/src/moveplanes.png \
-		$(TOP)/src/bundles/map/src/crop.png \
-		$(TOP)/src/bundles/map/src/windowing.png \
+		$(TOP)/src/bundles/map/src/icons/*.png \
 		$(TOP)/src/bundles/map_series/src/vseries.png \
 		$(TOP)/src/bundles/markers/src/icons/*.png \
+		$(TOP)/src/bundles/std_commands/src/coordset.png \
 		$(TOP)/src/bundles/swapaa/src/swapaa.png \
 		$(TOP)/src/bundles/tug/src/minimize.png \
 		$(TOP)/src/bundles/tug/src/tug.png \
 		$(TOP)/src/bundles/zone/src/zone.png \
 		$(TOP)/src/bundles/pick_blobs/src/pickblobs.png \
 		$(TOP)/src/bundles/map_eraser/src/eraser.png \
-		$(TOP)/src/bundles/tape_measure/src/tape.png
+		$(TOP)/src/bundles/tape_measure/src/tape.png \
+		$(TOP)/src/bundles/viewdockx/src/nextdocking.png
 MICONDIR = $(DOCDIR)/mouse-icons
 SHORTCUTICONS = $(TOP)/src/bundles/shortcuts/src/icons/*.png
 SICONDIR = $(DOCDIR)/shortcut-icons
-TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png
+TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png \
+		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.png
 TICONDIR = $(DOCDIR)/toolbar-icons
 NUCICONS = $(TOP)/src/bundles/nucleotides/src/icons/*.png
 NICONDIR = $(DOCDIR)/nuc-icons
@@ -49,9 +49,11 @@ BICONDIR = $(DOCDIR)/basic-icons
 UIICONS = $(TOP)/src/bundles/ui/src/icons/*.png
 UICONDIR = $(DOCDIR)/ui-icons
 
-install:
+install: install-icons
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(SRCS) $(IMAGES) $(DOCDIR)
+
+install-icons:
 	if [ ! -d "$(MICONDIR)" ]; then mkdir -p $(MICONDIR); fi
 	$(RSYNC) $(MOUSEICONS) $(MICONDIR)
 	if [ ! -d "$(SICONDIR)" ]; then mkdir -p $(SICONDIR); fi

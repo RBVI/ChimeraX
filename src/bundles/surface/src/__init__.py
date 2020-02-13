@@ -22,6 +22,7 @@ from ._surface import calculate_vertex_normals, invert_vertex_normals
 from ._surface import connected_triangles, triangle_vertices
 from ._surface import sharp_edge_patches, unique_vertex_map, connected_pieces
 from ._surface import boundary_edges, compute_cap, triangulate_polygon, refine_mesh, boundary_loops
+from ._surface import boundary_edge_mask
 from ._surface import vertex_convexity
 from ._surface import smooth_vertex_positions
 from .dust import largest_blobs_triangle_mask
@@ -30,6 +31,8 @@ from .cap import update_clip_caps, remove_clip_caps
 from .topology import check_surface_topology
 from .colorgeom import color_radial, color_cylindrical, color_height
 from .colorvol import color_sample, color_electrostatic, color_gradient, color_surfaces_by_map_value
+from .combine import combine_geometry_vnt, combine_geometry_xvnt, combine_geometry_vtp
+from .combine import combine_geometry_xvntctp, combine_geometry_vte
 from .surfacecmds import surface, surface_hide
 from .sop import surface_zone
 
@@ -58,9 +61,11 @@ class _SurfaceBundle(BundleAPI):
         elif command_name == 'volume splitbyzone':
             from . import colorzone
             colorzone.register_volume_split_command(logger)
-        else:
+        elif command_name.startswith('surface') or command_name.startswith('sop'):
             from . import surfacecmds
             surfacecmds.register_command(logger)
+            from . import check
+            check.register_command(logger)
 
     @staticmethod
     def open_file(session, stream, file_name):

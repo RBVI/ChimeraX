@@ -1377,6 +1377,22 @@ class CoordSets(Collection):
         return self.structures.unique()
 
 # -----------------------------------------------------------------------------
+#
+class Structures(StructureDatas):
+    '''
+    Collection of Python structure objects.
+    '''
+    def __init__(self, mol_pointers):
+        from . import Structure
+        Collection.__init__(self, mol_pointers, Structure, Structures)
+
+    @classmethod
+    def session_restore_pointers(cls, session, data):
+        return array([s._c_pointer.value for s in data], dtype=cptr)
+    def session_save_pointers(self, session):
+        return [s for s in self]
+
+# -----------------------------------------------------------------------------
 # For making collections from lists of objects.
 #
 def object_pointers(objects):

@@ -187,7 +187,7 @@ def face_intercept(v, line):
   xyz1, xyz2 = line
   zmin = None
   hit = (None, None, None)
-  if v.showing_orthoplanes():
+  if v.showing_image('orthoplanes'):
     for ijk, axis in orthoplane_intercepts(v, line):
       xyz = v.ijk_to_global_xyz(ijk)
       z = line_position(xyz, line)
@@ -204,6 +204,15 @@ def face_intercept(v, line):
         hit = (ijk_in, axis, side)
         zmin = z
   return hit
+
+# -----------------------------------------------------------------------------
+#
+def face_intercept_point(v, line):
+  ijk, axis, side = face_intercept(v, line)
+  if ijk is None:
+    return None
+  p = v.data.ijk_to_xyz(ijk)
+  return p
   
 # -----------------------------------------------------------------------------
 #

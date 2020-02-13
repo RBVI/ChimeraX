@@ -72,10 +72,17 @@ class _MyAPI(toolshed.BundleAPI):
     def open_file(session, path, file_name, new_tab=False):
         # 'open_file' is called by session code to open a file
         import os
+        base, ext = os.path.splitext(path)
+        ext, *fragment = ext.split('#')
+        if not fragment:
+            fragment = ''
+        else:
+            fragment = fragment[0]
+            path = path[:-(len(fragment) + 1)]
         path = os.path.abspath(path)
         from urllib.parse import urlunparse
         from urllib.request import pathname2url
-        url = urlunparse(('file', '', pathname2url(path), '', '', ''))
+        url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
         show_url(session, url, new_tab=new_tab)
         return [], "Opened %s" % file_name
 

@@ -46,6 +46,8 @@ def read_ihm(session, filename, name, *args, load_ensembles = False, load_linked
 #
 from chimerax.core.models import Model
 class IHMModel(Model):
+    SESSION_SAVE = False
+    SESSION_WARN = True
     def __init__(self, session, filename,
                  load_ensembles = False,
                  load_linked_files = True,

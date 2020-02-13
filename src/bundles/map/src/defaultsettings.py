@@ -81,6 +81,8 @@ class VolumeDefaultSettings:
         'color_mode': 'auto8',
         'colormap_on_gpu': False,
         'colormap_size': 256,
+        'colormap_extend_left': False,
+        'colormap_extend_right': True,
         'blend_on_gpu': False,
         'projection_mode': 'auto',
         'plane_spacing': 'min',
@@ -103,9 +105,14 @@ class VolumeDefaultSettings:
         'smoothing_iterations': 2,
         'square_mesh': True,
         'cap_faces': True,
-        'box_faces': False,
         'orthoplanes_shown': (False, False, False),
         'orthoplane_positions': (0,0,0),
+        'tilted_slab_axis': (0,0,1),
+        'tilted_slab_offset': 0,
+        'tilted_slab_spacing': 1,
+        'tilted_slab_plane_count': 1,
+        'image_mode': 'full region',
+        'backing_color': None,
     }
 
     try:
@@ -153,9 +160,14 @@ class VolumeDefaultSettings:
             'smoothing_iterations',
             'square_mesh',
             'cap_faces',
-            'box_faces',
             'orthoplanes_shown',
             'orthoplane_positions',
+            'tilted_slab_axis',
+            'tilted_slab_offset',
+            'tilted_slab_spacing',
+            'tilted_slab_plane_count',
+            'image_mode',
+            'backing_color',
             )
 
   # ---------------------------------------------------------------------------
@@ -212,8 +224,8 @@ class VolumeDefaultSettings:
   #
   def rendering_option_defaults(self):
     
-    from .volume import Rendering_Options
-    ro = Rendering_Options()
+    from .volume import RenderingOptions
+    ro = RenderingOptions()
     p = self.current_prefs
     
     for attr in self.rendering_option_names():

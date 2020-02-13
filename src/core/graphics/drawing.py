@@ -1442,7 +1442,7 @@ def draw_depth(renderer, drawings, opaque_only = True):
     r.disable_shader_capabilities(dc)
 
 
-def draw_overlays(drawings, renderer):
+def draw_overlays(drawings, renderer, scale = (1,1)):
     '''Render drawings using an identity projection matrix with no
     depth test.'''
     r = renderer
@@ -1451,7 +1451,8 @@ def draw_overlays(drawings, renderer):
                                   r.SHADER_SHADOW |
                                   r.SHADER_MULTISHADOW |
                                   r.SHADER_CLIP_PLANES)
-    r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
+    xscale, yscale = scale
+    r.set_projection_matrix(((xscale, 0, 0, 0), (0, yscale, 0, 0), (0, 0, 1, 0),
                              (0, 0, 0, 1)))
 
     from ..geometry import place

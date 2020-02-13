@@ -292,6 +292,7 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
             Package: {pkg_name}
             Version: {version}
             Architecture: amd64
+            Depends: {depends}
             Maintainer: Chimera Staff <chimera-staff@cgl.ucsf.edu>
             Description: molecular visualization
              UCSF ChimeraX (or simply ChimeraX) is the next-generation
@@ -312,7 +313,6 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
              interface::3d, interface::graphical, interface::commandline,
              implemented-in::c++, implemented-in::python, uitoolkit::qt,
              network::client
-            Depends: {depends}
             """), file=f)
 
 

@@ -630,7 +630,8 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
                     logger::warning(_logger, "Empty ", r->name(),
                                     " residue template");
                 }
-                // No connectivity, so don't connect
+                // Fill in missing connectivity
+                pdb_connect::connect_residue_by_distance(r);
                 return;
             }
             bool connected = false;
@@ -1369,7 +1370,7 @@ ExtractMolecule::parse_atom_site()
             }
             bool make_new_residue = true;
             if (coordsets) {
-                auto& res_map = all_residues[model_num][chain_id];
+                auto& res_map = all_residues[first_model_num][chain_id];
                 if (!res_map.empty()) {
                     auto ri = res_map.find(ResidueKey(entity_id, position, residue_name));
                     if (ri != res_map.end()) {

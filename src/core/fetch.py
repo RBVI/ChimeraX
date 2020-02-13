@@ -67,7 +67,7 @@ def fetch_file(session, url, name, save_name, save_dir, *,
     try:
         retrieve_url(url, filename, uncompress=uncompress, logger=session.logger,
                      check_certificates=check_certificates, name=name, timeout=timeout)
-    except URLError as e:
+    except (URLError, EOFError) as e:
         from .errors import UserError
         raise UserError('Fetching url %s failed:\n%s' % (url, str(e)))
     return filename
@@ -99,7 +99,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
     :param update: if true, then existing file is okay if newer than web version
     :param check_certificates: if true
     :returns: None if an existing file, otherwise the content type
-    :raises urllib.request.URLError: if unsuccessful
+    :raises urllib.request.URLError or EOFError if unsuccessful
 
 
     If 'update' and the filename already exists, fetch the HTTP headers for
@@ -211,6 +211,10 @@ def read_and_report_progress(file_in, file_out, name, content_length, logger, ch
             msg = 'Fetching %s, %.3g Mbytes received' % (name, tb / 1048576)
         logger.status(msg)
 
+    if content_length is not None and tb != content_length:
+        # In ChimeraX bug #2747 zero bytes were read and no error reported.
+        from urllib.request import URLError
+        raise URLError('Got %d bytes when %d were expected' % (tb, content_length))
 
 # -----------------------------------------------------------------------------
 #

@@ -51,3 +51,41 @@ class ChainListWidget(ItemListWidget):
 class ChainMenuButton(ItemMenuButton):
     def __init__(self, session, **kw):
         super().__init__(**_process_chain_kw(session, **kw))
+
+def make_elements_menu(*, _session=None, _parent_menus=None):
+    '''keyword args for internal use only (adding Elements menu under main Select menu)'''
+    if _session and _parent_menus:
+        add_submenu = _session.ui.main_window.add_select_submenu
+        elements_menu = add_submenu(_parent_menus[:-1], _parent_menus[-1])
+    else:
+        from PyQt5.QtWidgets import QMenu
+        elements_menu = QMenu()
+
+    for element_name in ["C", "H", "N", "O", "P", "S"]:
+        elements_menu.addAction(element_name)
+
+    from . import Element
+    known_elements = [nm for nm in Element.names if len(nm) < 3]
+    known_elements.sort()
+    from math import sqrt
+    num_menus = int(sqrt(len(known_elements)) + 0.5)
+    incr = len(known_elements) / num_menus
+    start_index = 0
+    if _session and _parent_menus:
+        other_menu = add_submenu(_parent_menus, "Other")
+    else:
+        other_menu = elements_menu.addMenu("Other")
+    for i in range(num_menus):
+        if i < num_menus-1:
+            end_index = int((i+1) * incr + 0.5)
+        else:
+            end_index = len(known_elements) - 1
+        range_string = "%s-%s" % (known_elements[start_index], known_elements[end_index])
+        if _session and _parent_menus:
+            submenu = add_submenu(_parent_menus + ["Other"], range_string)
+        else:
+            submenu = other_menu.addMenu(range_string)
+        for en in known_elements[start_index:end_index+1]:
+            submenu.addAction(en)
+        start_index = end_index + 1
+    return elements_menu

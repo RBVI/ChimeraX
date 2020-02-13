@@ -16,11 +16,9 @@ from chimerax.core.colors import BuiltinColors
 
 defaults = {
     "action_attr": False,
-    "action_color": False,
     "action_log": False,
     "action_pseudobonds": True,
     "action_select": False,
-    "atom_color": (255, 0, 0, 255),
     "attr_name": "overlap",
     "bond_separation": 4,
     "clash_hbond_allowance": 0.4,
@@ -29,7 +27,6 @@ defaults = {
     "contact_threshold": -0.4,
     "intra_mol": True,
     "intra_res": False,
-    "other_atom_color": None,
     "clash_pb_color": BuiltinColors["medium orchid"],
     "contact_pb_color": BuiltinColors["forest green"],
     "clash_pb_radius": 2 * AtomicStructure.default_hbond_radius,

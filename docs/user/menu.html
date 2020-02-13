@@ -165,78 +165,69 @@ The <b>Actions</b> menu works on the current
 or if nothing is selected, all applicable items.
 </p>
 <ul>
-<li><b>Atoms/Bonds</b></a>
-&ndash; <a href="commands/show.html"><b>show</b></a>
-and <a href="commands/show.html"><b>hide</b></a> atom and bond representations
+<li><b>Atoms/Bonds</b> &ndash; <a href="commands/show.html"><b>show/hide</b></a>
   <ul>
   <li><b>Show</b>
   <li><b>Show Only</b>
   <li><b>Hide</b>
+  <li><b>Atom Style</b>
+  &ndash; atom/bond <a href="commands/style.html"><b>style</b></a> settings
+    <ul>
+    <li><b>Stick</b>
+    <li><b>Ball & Stick</b>
+    <li><b>Sphere</b>
+    <li><b>Ring Fill</b>
+      <ul>
+      <li><b>Thick</b>
+      <li><b>Thin</b>
+      <li><b>None</b>
+      </ul>
+    </ul>
   </ul>
 <p>
-The following set of entries applies
-only to residues in bonded chains of amino acids or nucleic acids:
+The following apply to biopolymers (peptides and nucleic acids):
 </p>
   <ul>
-  <li><b>Cartoon</b></a>
-&ndash; <a href="commands/show.html"><b>show</b></a>
-and <a href="commands/show.html"><b>hide</b></a> cartoon representations
-(see also commands <a href="commands/cartoon.html"><b>cartoon</b></a>
-and <a href="commands/cartoon.html#style"><b>cartoon style</b></a>).
-By <a href="commands/cartoon.html#suppress">default</a>,
-showing cartoons hides the corresponding backbone atoms.
-</a>
-    <ul>
-    <li><b>Ribbons (Smooth Edges)</b>
-&ndash; cartoon with oval cross-section
-    <li><b>Ribbons (Sharp Edges)</b>
-&ndash; cartoon with rectangular cross-section
-    <li><b>Ribbons (Lipped Edges)</b>
-&ndash; cartoon
-with barbell cross-section
-    <li><b>Helix Tubes</b>
-&ndash; cartoon with curved-tube helices
-    <li><b>None</b> 
-    </ul>
+  <li><b>Show Side Chain/Base</b>
+&ndash; show amino acid sidechain + CA (for connectivity to cartoons),
+nucleic acid base + ribose
   <li><b>Backbone Only</b>
 &ndash; hide cartoon and show atoms in
 peptide backbone, nucleic acid phosphoribosyl backbone
   <li><b>Chain Trace Only</b>
-&ndash; hide cartoon and show trace atoms: amino acid CA, nucleic acid P
-  <li><b>Show Side Chain/Base</b>
-&ndash; show amino acid sidechain + CA (for connectivity to cartoons),
-nucleic acid base + ribose
-  </ul>
-<p>
-The <a href="commands/style.html"><b>style</b></a> settings do not
-show/hide atoms, only change their styles:
-</p>
-  <ul>
-  <li><b>Stick</b>
-  <li><b>Ball & Stick</b>
-  <li><b>Sphere</b>
-  <li><b>Rings</b>
+&ndash; hide cartoon and show chain-trace atoms: amino acid CA, nucleic acid P
+  <li><b>Cartoon</b></a>
+&ndash; <a href="commands/cartoon.html"><b>cartoon</b></a> settings;
+note showing cartoon hides backbone atoms unless 
+their simultaneous display has been enabled with 
+<a href="commands/cartoon.html#suppress"><b>cartoon suppress false</b></a>
+(see also <a href="commands/show.html"><b>show/hide</b></a>,
+<a href="commands/cartoon.html#style"><b>cartoon style</b></a>)
     <ul>
-    <li><b>Fill Thick</b>
-    <li><b>Fill Thin</b>
-    <li><b>No Fill</b>
+    <li><b>Show</b>
+    <li><b>Hide</b>
+    <li><b>Rounded Edges</b> &ndash; oval cross-section
+(for a round cross-section, use
+<a href="commands/cartoon.html#style"><b>cartoon style</b></a>
+to set width = thickness, for example: <b>cartoon style
+<a href="commands/atomspec.html#builtin">sel</a> width 1.5 thick 1.5</b>)
+    <li><b>Squared Edges</b> &ndash; rectangular cross-section
+    <li><b>Piped Edges</b> &ndash; barbell cross-section
+    <li><b>Tube Helices</b> &ndash; protein &alpha;-helices as curved cylinders
     </ul>
-  <li><b>Nucleotide Depiction</b>
-  &ndash; <a href="commands/nucleotides.html"><b>nucleotides</b></a>
-  style settings
+  <li><b>Nucleotide Style</b>
+  &ndash; <a href="commands/nucleotides.html"><b>nucleotides</b></a> settings
     <ul>
-    <li><b>Filled Rings</b>
     <li><b>Ladder</b>
-    <li><b>Slab</b>
-    <li><b>Broken Rungs</b>
-    <li><b>Tube/Slab</b>
-    <li><b>None</b> 
-&ndash; show atoms instead of sugar/base abstractions, 
-remove any nucleotide ring fill
+    <li><b>Stubs</b>
+    <li><b>Slab Base, Ribose Tube</b>
+    <li><b>Slab Base, Ribose Atoms</b>
+    <li><b>Atoms (Filled Rings)</b>
+    <li><b>Atoms (No Ring Fill)</b>
     </ul>
 <br>
-  <li><b>Delete</b> &ndash; remove atoms/bonds (<b>caution: irreversible</b>)
-  like the command <a href="commands/delete.html"><b>delete</b></a>
+  <li><b>Delete</b> &ndash; <a href="commands/delete.html"><b>delete</b></a>
+atoms/bonds (<b>caution: irreversible</b>)
   </ul>
 <br>
 <li><b>Surface</b>
@@ -374,13 +365,15 @@ and subsequently hidden with its own entry: <b>Hide Volume Menu</b>
 <ul>
 <li><a href="index.html"><b>User Guide</b></a>
 <li><a href="../quickstart/index.html"><b>Quick Start Guide</b></a>
+<li><a href="http://www.rbvi.ucsf.edu/chimerax/tutorials.html"
+target="_blank"><b>Tutorials</b></a>
 <li><a href="../devel/index.html"><b>Programming Manual</b></a>
 <li><a href="../index.html"><b>Documentation Index</b></a>
-<li><a href="../contact.html"><b>Contact Us</b></a>
 <li><b>Report a Bug</b>
+<li><a href="../contact.html"><b>Contact Us</b></a>
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-September 2019</address>
+February 2020</address>
 </body></html> 

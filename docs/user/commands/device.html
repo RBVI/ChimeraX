@@ -45,6 +45,14 @@ where the <i>device-type</i> can be:
   &ndash; set up a separate camera view fixed in the VR room coordinates,
   useful for making videos
   </ul>
+<li><a href="#realsense"><b>realsense</b></a>
+&ndash; requires installing the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
+target="_blank"><b>RealSense</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
+allows blending video from a Intel RealSense depth-sensing camera 
+with ChimeraX graphics to make augmented reality videos
 </ul>
 <p>
 <a name="status"></a>
@@ -102,6 +110,7 @@ See also:
 <a href="#vr-button"><b>vr button</b></a>,
 <a href="#vr-roomCamera"><b>vr roomCamera</b></a>,
 <a href="meeting.html"><b>meeting</b></a>,
+<a href="buttonpanel.html"><b>buttonpanel</b></a>,
 <a href="camera.html"><b>camera</b></a>,
 <a href="view.html"><b>view</b></a>,
 <a href="../movies.html">making movies</a>
@@ -273,9 +282,12 @@ by tilting the Oculus <b><i>thumbstick</i></b> are <b>rotate</b>
 <b>contour level</b>
 <a href="ui.html#functions">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>,
-and <b>play map series</b>
+<b>play map series</b>
 <a href="ui.html#functions">
-<img class="icon" border=1 src="../tools/mouse-icons/vseries.png"></a>.
+<img class="icon" border=1 src="../tools/mouse-icons/vseries.png"></a>,
+and <b>play coordinates</b>
+<a href="ui.html#functions">
+<img class="icon" border=1 src="../tools/mouse-icons/coordset.png"></a>.
 </p>
 </blockquote>
 
@@ -343,7 +355,96 @@ in position and orientation saved with <b>saveTrackerMount true</b>.
 </p>
 </blockquote>
 
+<a href="#top" class="nounder">&bull;</a>
+<a name="realsense"><b>realsense</b></a> 
+[&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>x,y</i>&nbsp;]
+[&nbsp;<b>dsize</b>&nbsp;&nbsp;<i>dx,dy</i>&nbsp;]
+[&nbsp;<b>framesPerSecond</b>&nbsp;&nbsp;<i>fps</i>&nbsp;]
+[&nbsp;<b>align</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>denoise</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>denoiseWeight</b>&nbsp;&nbsp;<i>weight</i>&nbsp;]
+[&nbsp;<b>denoiseColorTolerance</b>&nbsp;&nbsp;<i>tolerance</i>&nbsp;]
+[&nbsp;<b>denoise</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>projector</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>angstromsPerMeter</b>&nbsp;&nbsp;<i>apm</i>&nbsp;]
+[&nbsp;<b>skipFrames</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>setWindowSize</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+The command <b>realsense</b> (same as <b>device realsense</b>) 
+enables blending video from an Intel RealSense depth-sensing camera 
+with ChimeraX graphics to make augmented reality videos. 
+If <a href="#vr">VR</a> is enabled, this command automatically starts a 
+<a href="#vr-roomCamera">virtual-reality room camera</a>
+which renders the models to be blended with the RealSense camera image.
+It also sets the graphics window size to match the RealSense camera image size.
+This command is only available after installation of the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
+target="_blank"><b>RealSense</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>).
+See also:
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mixed-reality-nov2019/mrhowto.html" target="blank">Mixed Reality Video Recording in ChimeraX</a>
+</p><p>
+The <b>size</b> and <b>dsize</b> options set camera image resolution
+for color and depth, respectively. Each takes a pair of comma-separated values
+indicating the pixel dimensions in X and Y (defaults: <b>size 960,540</b> and
+<b>dsize 1280,720</b>). The <b>framesPerSecond</b> option gives the video
+capture rate (default <b>30</b>). The <b>align</b> option indicates whether
+to compensate the offset between the color and depth cameras in the device
+(default <b>true</b>, which slows rendering). 
+The <b>denoise</b> option (default <b>true</b>)
+specifies whether to depth-denoise by averaging depth over time at pixels
+when their colors remain fairly constant using parameters
+<b>denoiseWeight</b> (default <b>0.1</b>) and <b>denoiseColorTolerance</b>
+(default <b>10</b>). Denoising details are given below.
+The <b>projector</b> option enables spraying the room with IR dots
+from a projector on the camera device for better depth detection (default 
+<b>false</b>, as the IR beams interfere with other devices that use IR
+such as Vive VR tracking). Normally the camera device is used at the
+same time as <a href="#vr">VR</a>, which in turn sets the scale factor
+of the scene relative to the room.  However, if <a href="#vr">VR</a> is not
+in use, the <b>angstromsPerMeter</b> option can be used to specify the
+relative scale (default <b>50</b>).
+The <b>skipFrames</b> option indicates how many ChimeraX graphics update frames
+to skip before getting a new camera frame (default <b>2</b>, meaning to get
+a new camera frame at every 3rd ChimeraX graphics frame).
+The <b>setWindowSize</b> option causes the graphics window size to be changed
+to match the camera color image resolution (default <b>true</b>).
+</p><p>
+<b>Denoising details:</b>
+The depth values from RealSense cameras fluctuate rapidly over time by 
+small amounts, and the depth value for some pixels is unknown.
+This depth noise causes flickering in the blended video where depths 
+are fluctuating or unknown, especially at boundaries
+between video objects and computer-generated objects.
+The <b>denoise true</b> option reduces the depth noise by averaging 
+depth over time at pixels when their colors remain fairly constant. 
+When the color of a pixel changes by more than 10 on a RGBA scale of 255,
+its depth is always updated immediately to reduce motion blur.
+The averaging blends current depth values with the previously 
+used depth with weight 0.1, so it roughly averages depth from the 
+previous 10 frames. Pixels with unknown depth occur for two reasons.
+In some areas of the video frame such as blank white walls the camera is
+unable to judge depth because it relies on matching features in the 
+two stereo IR cameras, and if there are no discernible features to match,
+the depth is reported as 0. This problem can be reduced by using 
+<b>projector true</b>, which projects a dense array of invisible 
+infrared laser dots in the room to add texture (but can 
+interfere with tracking by VR headsets that also use infrared).
+The second cause of missing depth values is that only one stereo camera sees a
+part of the room because the other stereo camera is blocked by an object.
+This happens at boundaries of foreground objects in the room.
+To minimize both of these effects (but especially the second), 
+the denoise option keeps track of the maximum depth seen at each pixel 
+and its color, representing the room background. If a depth value is not 
+available for a pixel for a frame, it will use the maximum depth value,
+provided that the color of the pixel is close to the color of the background.
+This background depth fill does not help for pixels for which the 
+camera has never reported a depth value. The denoising algorithm 
+is based on the assumption that the camera is not moving.
+</blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2019</address>
+February 2020</address>
 </body></html>

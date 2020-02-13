@@ -167,6 +167,11 @@ class _InterpolateLabel:
         self.xpos1, self.xpos2 = label.xpos, xpos
         self.ypos1, self.ypos2 = label.ypos, ypos
         self.visibility1, self.visibility2 = label.visibility, visibility
+        if visibility is not None and self.visibility1 != self.visibility2:
+            if self.label.color is None:
+                # need to interpolate alpha, so set it to a real color;
+                # the last frame will set it to the right final value
+                self.label.color = array(self.label.drawing.label_color, dtype=uint8)
         self.margin1, self.margin2 = label.margin, margin
         self.outline_width1, self.outline_width2 = label.outline_width, outline_width
         self.frames = frames
@@ -253,9 +258,12 @@ def label_under_window_position(session, win_x, win_y):
 #
 def label_delete(session, labels = None):
     '''Delete label.'''
-    if labels is None:
-        lm = session_labels(session)
-        labels = lm.all_labels if lm else ()
+    if labels is None or labels == 'all':
+        lm = session_labels(session, create=False)
+        labels = lm.all_labels if lm else []
+        from .arrows import session_arrows
+        am = session_arrows(session, create=False)
+        labels = labels + (am.all_arrows if am else [])
     for l in tuple(labels):
         l.delete()
 
@@ -312,12 +320,24 @@ class LabelsArg(ModelsArg):
         labels = [m.label for m in models if isinstance(m, LabelModel)]
         return labels, text, rest
 
+class LabelsArrowsArg(ModelsArg):
+    """Parse command label/arrow model specifier"""
+    name = "a label/arrow models specifier"
+
+    @classmethod
+    def parse(cls, text, session):
+        from .arrows import ArrowModel
+        models, text, rest = super().parse(text, session)
+        labels = [m.label for m in models if isinstance(m, LabelModel)]
+        arrows = [m.arrow for m in models if isinstance(m, ArrowModel)]
+        return labels + arrows, text, rest
+
 # -----------------------------------------------------------------------------
 #
 def register_label_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, Or, BoolArg, IntArg, StringArg, FloatArg, ColorArg
-    from chimerax.core.commands import NonNegativeFloatArg
+    from chimerax.core.commands import NonNegativeFloatArg, EnumOf
     from .label3d import DefArg, NoneArg
 
     labels_arg = [('labels', Or(NamedLabelsArg, LabelsArg))]
@@ -340,7 +360,7 @@ def register_label_command(logger):
     change_desc = CmdDesc(required = labels_arg, keyword = cargs + [('frames', IntArg)],
                           synopsis = 'Change a 2d label')
     register('2dlabels change', change_desc, label_change, logger=logger)
-    delete_desc = CmdDesc(optional = labels_arg,
+    delete_desc = CmdDesc(optional = [('labels', Or(EnumOf(['all']), LabelsArrowsArg))],
                           synopsis = 'Delete a 2d label')
     register('2dlabels delete', delete_desc, label_delete, logger=logger)
     fonts_desc = CmdDesc(synopsis = 'List available fonts')
@@ -361,12 +381,13 @@ class Labels(Model):
         self._labels = []	   
         self._named_labels = {}    # Map label name to Label object
         from chimerax.core.core_settings import settings
-        settings.triggers.add_handler('setting changed', self._background_color_changed)
+        self.handler = settings.triggers.add_handler('setting changed', self._background_color_changed)
         session.main_view.add_overlay(self)
         self.model_panel_show_expanded = False
 
     def delete(self):
         self.session.main_view.remove_overlays([self], delete = False)
+        self.handler.remove()
         Model.delete(self)
 
     def add_label(self, label):
@@ -407,13 +428,8 @@ class Labels(Model):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('name', 'text', 'color', 'background', 'size', 'font',
-                  'bold', 'italic', 'xpos', 'ypos', 'visibility')
-        lstate = tuple({attr:getattr(l, attr) for attr in lattrs}
-                       for l in self.all_labels)
-        data = {'labels state': lstate,
-                'model state': Model.take_snapshot(self, session, flags),
-                'version': 3}
+        data = {'model state': Model.take_snapshot(self, session, flags),
+                'version': 4}
         return data
 
     @staticmethod
@@ -422,7 +438,9 @@ class Labels(Model):
             s = Labels(session)
             Model.set_state_from_snapshot(s, session, data['model state'])
             session.models.add([s], root_model = True)
-            s.set_state_from_snapshot(session, data)
+            if 'labels state' in data:
+                # Older sessions restored the labels here.
+                s.set_state_from_snapshot(session, data)
         else:
             # Restoring old session before 2d labels were Models.
             # Need to create labels model after all models created
@@ -437,7 +455,6 @@ class Labels(Model):
 
     def set_state_from_snapshot(self, session, data):
         self._labels = [Label(session, **ls) for ls in data['labels state']]
-        self._named_labels = {l.name:l for l in self._labels if l.name}
 
 
 # -----------------------------------------------------------------------------
@@ -514,13 +531,11 @@ class Label:
 
 # -----------------------------------------------------------------------------
 #
-#from chimerax.core.graphics.drawing import Drawing
 from chimerax.core.models import Model
 class LabelModel(Model):
 
     pickable = False
     casts_shadows = False
-    SESSION_SAVE = False	# LabelsModel saves all labels
     
     def __init__(self, session, label):
         name = label.name if label.name else label.text
@@ -616,3 +631,17 @@ class LabelModel(Model):
     def custom_x3d(self, stream, x3d_scene, indent, place):
         # TODO
         pass
+
+    def take_snapshot(self, session, flags):
+        lattrs = ('name', 'text', 'color', 'background', 'size', 'font',
+                  'bold', 'italic', 'xpos', 'ypos', 'visibility')
+        l = self.label
+        lstate = {attr:getattr(l, attr) for attr in lattrs}
+        data = {'label state': lstate,
+                'version': 1}
+        return data
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        label = Label(session, **data['label state'])
+        return label.drawing

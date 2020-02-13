@@ -287,6 +287,8 @@ class UI(QApplication):
             run(self.session, 'select down')
         elif self._keystroke_sinks:
             self._keystroke_sinks[-1].forwarded_keystroke(event)
+            # accepting the event prevents both the main Ui and tools from forwarding the same keystrokes
+            event.setAccepted(True)
 
     def intercept_key(self, qt_key_number, callback):
         self._key_callbacks[qt_key_number] = callback
@@ -794,6 +796,18 @@ class MainWindow(QMainWindow, PlainTextLog):
     def status(self, msg, color, secondary):
         self._status_bar.status(msg, color, secondary)
 
+    def show_statusbar(self, show):
+        self._status_bar.show(show)
+
+    def show_menubar(self, show):
+        self.menuBar().setVisible(show)
+
+    def show_fullscreen(self, show):
+        if show:
+            self.showFullScreen()
+        else:
+            self.showNormal()
+        
     def _about(self, arg):
         from PyQt5.QtWebEngineWidgets import QWebEngineView
         import os.path
@@ -968,17 +982,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         help_menu = mb.addMenu("&Help")
         help_menu.setObjectName("Help")
         help_menu.setToolTipsVisible(True)
-        for entry, topic, tooltip in (
+        for entry, location, tooltip in (
                 ('User Guide', 'user', 'Tutorials and user documentation'),
                 ('Quick Start Guide', 'quickstart', 'Interactive ChimeraX basics'),
+                ('Tutorials', 'https://www.rbvi.ucsf.edu/chimerax/tutorials.html', 'Tutorials'),
                 ('Programming Manual', 'devel', 'How to develop ChimeraX tools'),
                 ('Documentation Index', 'index.html', 'Access all documentarion'),
                 ('Contact Us', 'contact.html', 'Report problems/issues; ask questions')):
             help_action = QAction(entry, self)
             help_action.setToolTip(tooltip)
-            def cb(arg, ses=session, t=topic):
+            cmd = ('open %s' % location) if location.startswith('http') else ('help help:%s' % location)
+            def cb(arg, ses=session, cmd=cmd):
                 from chimerax.core.commands import run
-                run(ses, 'help help:%s' % t)
+                run(ses, cmd)
             help_action.triggered.connect(cb)
             help_menu.addAction(help_action)
         from chimerax import app_dirs as ad
@@ -1069,35 +1085,32 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="hide %s target %s":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), precise_target(ses))))
-        # Cartoon submenu...
-        cartoon_menu = atoms_bonds_menu.addMenu("Cartoon")
-        action = QAction("Ribbons (Smooth Edges)", self)
-        cartoon_menu.addAction(action)
+
+        # Atom Style submenu...
+        atom_style_menu = atoms_bonds_menu.addMenu("Atom Style")
+        style_info = [("Stick", "stick"), ("Ball && Stick", "ball"), ("Sphere", "sphere")]
+        for menu_entry, style_name in style_info:
+            action = QAction(menu_entry, self)
+            atom_style_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="style %%s %s" % style_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        rings_menu = atom_style_menu.addMenu("Ring Fill")
+        rings_info = [("Thick", "thick"), ("Thin", "thin"), ("None", "off")]
+        for menu_entry, ring_style in rings_info:
+            action = QAction(menu_entry, self)
+            rings_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="style %%s ringFill %s" % ring_style:
+                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Atom Style submenu
+
+        atoms_bonds_menu.addSeparator()
+
+        action = QAction("Show Sidechain/Base", self)
+        atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection oval modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Ribbons (Sharp Edges)", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection rectangle modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Ribbons (Lipped Edges)", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s xsection oval;"
-            " cartoon style %s xsection barbell modeHelix default":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']),
-            sel_or_all(ses, ['atoms', 'bonds'], restriction="coil"), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("Helix Tubes", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon %s; cartoon style %s modeHelix tube sides 20":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
-        action = QAction("None", self)
-        cartoon_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        # end Cartoon submenu
+            cmd="show %s target ab":
+            run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues", restriction="sidechain")))
         action = QAction("Backbone Only", self)
         atoms_bonds_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
@@ -1115,37 +1128,52 @@ class MainWindow(QMainWindow, PlainTextLog):
             precise_target(ses), sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues"),
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
                 restriction="((protein&@ca)|(nucleic&@p))"))))
-        action = QAction("Show Side Chain/Base", self)
-        atoms_bonds_menu.addAction(action)
+
+        # Cartoon submenu...
+        cartoon_menu = atoms_bonds_menu.addMenu("Cartoon")
+        action = QAction("Show", self)
+        cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="show %s target ab":
-            run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues", restriction="sidechain")))
+            cmd="cartoon %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action = QAction("Hide", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action = QAction("Rounded Edges", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon style %s xsection oval modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Squared Edges", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon style %s xsection rectangle modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Piped Edges", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon style %s xsection oval; cartoon style %s xsection barbell modeHelix default":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds'], restriction="coil"),
+                sel_or_all(ses, ['atoms', 'bonds']))))
+        action = QAction("Tube Helices", self)
+        cartoon_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="cartoon style %s modeHelix tube sides 20":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
+        # end Cartoon submenu
 
-        atoms_bonds_menu.addSeparator()
-
-        style_info = [("Stick", "stick"), ("Ball && Stick", "ball"), ("Sphere", "sphere")]
-        for menu_entry, style_name in style_info:
-            action = QAction(menu_entry, self)
-            atoms_bonds_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="style %%s %s" % style_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        rings_menu = atoms_bonds_menu.addMenu("Rings")
-        rings_info = [("Fill Thick", "thick"), ("Fill Thin", "thin"), ("No Fill", "off")]
-        for menu_entry, ring_style in rings_info:
-            action = QAction(menu_entry, self)
-            rings_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="style %%s ringFill %s" % ring_style:
-                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Depiction")
-        nuc_info = [("Filled Rings", "fill"), ("Ladder", "ladder"), ("Slab", "slab"),
-            ("Broken Rungs", "stubs"), ("Tube/Slab", "tube/slab"), ("None", "atoms")]
+        # Nucleotide Style submenu...
+        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Style")
+        nuc_info = [("Ladder", "ladder"), ("Stubs", "stubs"), ("Slab Base, Ribose Tube", "tube/slab"),
+            ("Slab Base, Ribose Atoms", "slab"), ("Atoms (Filled Rings)", "fill"),
+            ("Atoms (No Ring Fill)", "atoms")]
         for menu_entry, nuc_style in nuc_info:
             action = QAction(menu_entry, self)
             nuc_menu.addAction(action)
             action.triggered.connect(lambda *args, run=run, ses=self.session,
                 cmd="nucleotides %%s %s" % nuc_style:
                 run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Nucleotide Style submenu
 
         atoms_bonds_menu.addSeparator()
 
@@ -2052,6 +2080,10 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
             run(ses, "ui favorite %s %s" % (("true" if arg else "false"),
             StringArg.unparse(ti.tool_name))))
         menu.addAction(fav_action)
+    if memorable and tool_window.hides_title_bar and not tool_window.floating:
+        undock_action = QAction("Undock")
+        undock_action.triggered.connect(lambda *, dock_widget=memorable: dock_widget.setFloating(True))
+        menu.addAction(undock_action)
     undockable = ti.tool_name in session.ui.settings.undockable
     dock_action = QAction("Dockable Tool")
     dock_action.setCheckable(True)

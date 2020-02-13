@@ -1178,6 +1178,8 @@ extern "C" EXPORT void atom_structure_category(void *atoms, size_t n, pyobject_t
                 cat_name = "ligand";
             else if (cat == Atom::StructCat::Ions)
                 cat_name = "ions";
+            else if (cat == Atom::StructCat::Unassigned)
+                cat_name = "other";
             else
                 throw std::range_error("Unknown structure category");
             names[i] = unicode_from_string(cat_name);
@@ -1686,53 +1688,52 @@ extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, 
     try {
       float32_t *m44b = m44 + 16*n;
       for (size_t i = 0; i != n; ++i) {
-    Bond *bd = b[i];
-    Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
-    const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
-    float r = bd->radius();
+	Bond *bd = b[i];
+	Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
+	const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
+	float r = bd->radius();
 
-    float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
-    float vx = x1-x0, vy = y1-y0, vz = z1-z0;
-    float d = sqrtf(vx*vx + vy*vy + vz*vz);
-    if (d == 0)
-      { vx = vy = 0 ; vz = 1; }
-    else
-      { vx /= d; vy /= d; vz /= d; }
+	float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
+	float vx = x1-x0, vy = y1-y0, vz = z1-z0;
+	float h = sqrtf(vx*vx + vy*vy + vz*vz);
+	if (h == 0)
+	  { vx = vy = 0 ; vz = 1; }
+	else
+	  { vx /= h; vy /= h; vz /= h; }
 
-    float c = vz, c1;
-    if (c <= -1)
-      c1 = 0;       // Degenerate -z axis case.
-    else
-      c1 = 1.0/(1+c);
+	float sx = r, sy = r, sz = h;	// Scale factors
 
-    float wx = -vy, wy = vx;
-    float cx = c1*wx, cy = c1*wy;
-    float h = d;
+	// Avoid degenerate vz = -1 case.
+	if (vz < 0)
+	  { vx = -vx; vy = -vy; vz = -vz; sx = -r; sz = -h; }
+    
+	float c1 = 1.0/(1+vz);
+	float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
+      
+	*m44++ = *m44b++ = sx*(vyy + vz);
+	*m44++ = *m44b++ = -sx*vxy;
+	*m44++ = *m44b++ = -sx*vx;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = r*(cx*wx + c);
-    *m44++ = *m44b++ = r*cy*wx;
-    *m44++ = *m44b++ = -r*wy;
-    *m44++ = *m44b++ = 0;
+	*m44++ = *m44b++ = -sy*vxy;
+	*m44++ = *m44b++ = sy*(vxx + vz);
+	*m44++ = *m44b++ = -sy*vy;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = r*cx*wy;
-    *m44++ = *m44b++ = r*(cy*wy + c);
-    *m44++ = *m44b++ = r*wx;
-    *m44++ = *m44b++ = 0;
+	*m44++ = *m44b++ = sz*vx;
+	*m44++ = *m44b++ = sz*vy;
+	*m44++ = *m44b++ = sz*vz;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = h*wy;
-    *m44++ = *m44b++ = -h*wx;
-    *m44++ = *m44b++ = h*c;
-    *m44++ = *m44b++ = 0;
+	*m44++ = .75*x0 + .25*x1;
+	*m44++ = .75*y0 + .25*y1;
+	*m44++ = .75*z0 + .25*z1;
+	*m44++ = 1;
 
-    *m44++ = .75*x0 + .25*x1;
-    *m44++ = .75*y0 + .25*y1;
-    *m44++ = .75*z0 + .25*z1;
-    *m44++ = 1;
-
-    *m44b++ = .25*x0 + .75*x1;
-    *m44b++ = .25*y0 + .75*y1;
-    *m44b++ = .25*z0 + .75*z1;
-    *m44b++ = 1;
+	*m44b++ = .25*x0 + .75*x1;
+	*m44b++ = .25*y0 + .75*y1;
+	*m44b++ = .25*z0 + .75*z1;
+	*m44b++ = 1;
       }
     } catch (...) {
         molc_error();
@@ -4282,6 +4283,18 @@ extern "C" EXPORT void set_structure_alt_loc_change_notify(void *structures, siz
     error_wrap_array_set(s, n, &Structure::set_alt_loc_change_notify, alcn);
 }
 
+extern "C" EXPORT void structure_idatm_valid(void *structures, size_t n, npy_bool *valid)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_get(s, n, &Structure::idatm_valid, valid);
+}
+
+extern "C" EXPORT void set_structure_idatm_valid(void *structures, size_t n, npy_bool *valid)
+{
+    Structure **s = static_cast<Structure **>(structures);
+    error_wrap_array_set(s, n, &Structure::set_idatm_valid, valid);
+}
+
 extern "C" EXPORT void structure_num_atoms(void *mols, size_t n, size_t *natoms)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -5298,6 +5311,21 @@ extern "C" EXPORT PyObject *structure_new_residue(void *mol, const char *residue
     Residue *nb = static_cast<Residue *>(precedes);
     try {
         Residue *r = m->new_residue(residue_name, chain_id, pos, insert, nb, false);
+        return r->py_instance(true);
+    } catch (...) {
+        molc_error();
+        return nullptr;
+    }
+}
+
+extern "C" EXPORT PyObject *structure_find_residue(void *mol, const char *chain_id, int pos, char insert)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        Residue *r = m->find_residue(chain_id, pos, insert);
+        if (r == nullptr) {
+            Py_RETURN_NONE;
+        }
         return r->py_instance(true);
     } catch (...) {
         molc_error();

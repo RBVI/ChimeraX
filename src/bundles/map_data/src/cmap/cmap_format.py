@@ -102,6 +102,32 @@ class Chimera_HDF_Data:
         f.close()
         return array
 
+    # --------------------------------------------------------------------------
+    #
+    def find_attribute(self, attribute_name):
+        '''Used for finding segmentation attributes.'''
+        values = []
+        import tables
+        f = tables.open_file(self.path)
+        from tables.array import Array
+        from tables.group import Group
+        for node in f.root._f_walknodes():
+            if isinstance(node, Array) and node.name == attribute_name:
+                values.append((node._v_pathname, node.read()))
+            elif isinstance(node, Group) and attribute_name in node._v_attrs:
+                a = getattr(node._v_attrs, attribute_name)
+                values.append(('%s/%s' % (node._v_pathname, attribute_name), a))
+        f.close()
+        if len(values) > 1:
+            paths = ','.join(path for path,value in values[:5])
+            if len(paths) > 5:
+                paths += '...'
+            raise LookupError('Chimera_HDF_Grid.find_attribute(): More than one'
+                              ' attribute with name "%s" in file %s (%s)'
+                              % (attribute_name, self.path, paths))
+        value = values[0][1] if len(values) == 1 else None
+        return value
+            
 # -----------------------------------------------------------------------------
 #
 def copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array,
