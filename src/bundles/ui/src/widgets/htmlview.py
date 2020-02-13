@@ -142,6 +142,8 @@ class HtmlView(QWebEngineView):
                   'interceptor', 'schemes', and 'download' parameters are
                   ignored because they are assumed to be already set in
                   the profile.  Default None.
+    profile_is_private :  True if profile should be deleted when widget is
+                  closed.  Default True if profile is None.
     tool_window : if specified, ChimeraX context menu is displayed instead
                   of default context menu.  Default None.
     log_errors :  whether to log JavaScript error/warning/info messages
@@ -156,15 +158,16 @@ class HtmlView(QWebEngineView):
 
     def __init__(self, *args, size_hint=None, schemes=None,
                  interceptor=None, download=None, profile=None,
+                 profile_is_private=None,
                  tool_window=None, log_errors=False, **kw):
         super().__init__(*args, **kw)
         self._size_hint = size_hint
         self._tool_window = tool_window
         if profile is not None:
             self._profile = profile
-            self._private_profile = False
+            self._private_profile = True if profile_is_private else False
         else:
-            self._private_profile = True
+            self._private_profile = profile_is_private if profile_is_private is not None else True
             self._profile = create_profile(self.parent(), schemes, interceptor, download)
         page = _LoggingPage(self._profile, self, log_errors=log_errors)
         self.setPage(page)
@@ -321,23 +324,22 @@ class ChimeraXHtmlView(HtmlView):
 
     def __init__(self, session, parent, *args, schemes=None, interceptor=None, download=None, profile=None, **kw):
         self.session = session
-        private_profile = profile is None
-        if private_profile:
+        create_profile = profile is None
+        if create_profile:
             bad_keywords = ('interceptor',)
         else:
             bad_keywords = ('schemes', 'interceptor', 'download')
         for k in bad_keywords:
             if k in kw:
                 raise ValueError("Cannot override HtmlView's %s" % k)
-        if private_profile:
+        if create_profile:
             # don't share profiles, so interceptor is bound to this QWebEngineView instance
 
             def intercept(*args, session=session, view=self):
                 chimerax_intercept(*args, view=view, session=session)
             profile = create_chimerax_profile(parent, schemes=schemes, interceptor=intercept, download=download)
-        super().__init__(parent, *args, profile=profile, **kw)
-        if private_profile:
-            self._private_profile = True
+        profile_is_private = create_profile or kw.get('profile_is_profile', None) == True
+        super().__init__(parent, *args, profile=profile, profile_is_private=profile_is_private, **kw)
 
 
 def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None):
