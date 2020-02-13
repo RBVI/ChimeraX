@@ -21,7 +21,7 @@ from PyQt5.QtCore import Qt
 
 class BuildStructureTool(ToolInstance):
 
-    #help = "help:user/tools/hbonds.html"
+    help = "help:user/tools/buildstructure.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
