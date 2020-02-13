@@ -304,9 +304,9 @@ def extend_to_chains(atoms):
 def register_command(logger):
 
     from chimerax.core.commands import CmdDesc, register, EnumOf, BoolArg, FloatArg, IntArg
-    from chimerax.atomic import AtomsArg
-    desc = CmdDesc(required = [('atoms', AtomsArg)],
-                   keyword = [('to_atoms', AtomsArg),
+    from chimerax.atomic import OrderedAtomsArg
+    desc = CmdDesc(required = [('atoms', OrderedAtomsArg)],
+                   keyword = [('to_atoms', OrderedAtomsArg),
                               ('move', EnumOf(('atoms', 'residues', 'chains', 'structures',
                                                'structure atoms', 'nothing'))),
                               ('each', EnumOf(('chain', 'structure', 'coordset'))),
