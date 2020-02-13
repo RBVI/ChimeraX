@@ -33,8 +33,14 @@ class ModelPanel(ToolInstance):
         self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
         from PyQt5.QtWidgets import QTreeWidget, QHBoxLayout, QVBoxLayout, QAbstractItemView, \
-            QFrame, QPushButton
-        self.tree = QTreeWidget()
+            QFrame, QPushButton, QSizePolicy
+        class SizedTreeWidget(QTreeWidget):
+            def sizeHint(self):
+                from PyQt5.QtCore import QSize
+                # side buttons will keep the vertical size reasonable
+                return QSize(300, 200)
+        self.tree = SizedTreeWidget()
+        self.tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.tree.keyPressEvent = session.ui.forward_keystroke
         self.tree.expanded.connect(self._ensure_id_width)
         layout = QHBoxLayout()
