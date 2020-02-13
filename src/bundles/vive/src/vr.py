@@ -233,7 +233,7 @@ def register_vr_command(logger):
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
     desc = CmdDesc(required = [('button', button_name),
-                               ('mode', VRModeArg)],
+                               ('mode', VRModeArg(logger.session))],
                    keyword = [('hand', EnumOf(('left', 'right')))],
                    synopsis = 'Assign VR hand controller buttons',
                    url = 'help:user/commands/device.html#vr-button')
@@ -260,6 +260,15 @@ from chimerax.core.commands import Annotation, AnnotationError
 class VRModeArg(Annotation):
     '''Command argument for specifying VR hand controller mode.'''
 
+    def __init__(self, session):
+        Annotation.__init__(self)
+        from chimerax.core.commands import quote_if_necessary
+        names = list(hand_mode_names(session) + ('default',))
+        names.sort()
+        qnames = [quote_if_necessary(n) for n in names]
+        self.name = 'one of %s' % ', '.join(qnames)
+        self._html_name = 'one of %s' % ', '.join('<b>%s</b>' % n for n in qnames)
+        
     @staticmethod
     def parse(text, session):
         from chimerax.core.commands import EnumOf
