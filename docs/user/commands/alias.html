@@ -43,22 +43,16 @@ Subsequent uses of <i>name</i>
 as a command (at the beginning of a line, following a semicolon,
 or as a command argument of <a href="perframe.html"><b>perframe</b></a>)
 will be replaced with <i>wordlist</i>.
-</p><p>
+Aliases are saved in <a href="save.html#session">sessions</a>.
+It may be useful to create aliases automatically at ChimeraX startup
+by including <b>alias</b> commands in the
+<a href="../preferences.html#startup"><b>Startup</b> preferences</a>.
 For assigning a name to a <a href="../selection.html">selection</a> or
-longer <a href="atomspec.html">target specification</a>, see
+<a href="atomspec.html">target specification</a>, see
 the <a href="name.html"><b>name</b></a> command instead. See also:
 <a href="buttonpanel.html"><b>buttonpanel</b></a>,
 <a href="ui.html#functionkey"><b>functionkey</b></a>,
-<a href="../preferences.html#startup">user-defined presets</a>
-</p><p>
-Aliases are saved in <a href="save.html#session">sessions</a>.
-The command <b>alias list</b> lists the current user-defined aliases 
-in the <a href="../tools/log.html"><b>Log</b></a>,
-whereas <b>alias list internal</b> lists the built-in aliases.
-The definition of a specific alias can be shown with <b>alias</b> <i>name</i>.
-</p><p>
-The <b>delete</b> option can be used to &ldquo;forget&rdquo; a specific
-alias or <b>all</b> aliases.
+<a href="../preferences.html#startup">custom presets</a>
 </p><p>
 Within <i>wordlist</i>, <b>$1</b>, <b>$2</b>, <b>$3</b> ... 
 may be used to indicate the first, second, third ... arguments of
@@ -94,8 +88,18 @@ An example of multiple commands, in this case without arguments:
 <b>alias reset <a href="view.html">view</a> orient;
 <a href="view.html">view</a> initial</b>
 </blockquote>
+<p>
+The definition of a pre-existing alias can be shown with <b>alias</b> <i>name</i>.
+</p><p>
+The command <b>alias list</b> lists the current user-defined aliases 
+in the <a href="../tools/log.html"><b>Log</b></a>,
+whereas <b>alias list internal</b> lists the built-in aliases.
+</p><p>
+The command <b>alias delete</b> can be used to &ldquo;forget&rdquo; a specific
+alias or <b>all</b> aliases.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+February 2020</address>
 </body></html>

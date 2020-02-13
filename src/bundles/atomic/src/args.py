@@ -13,18 +13,53 @@
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.commands import Annotation, AnnotationError, AtomSpecArg, ObjectsArg, ModelArg
+from chimerax.core.commands import Annotation, AnnotationError, AtomSpecArg, ObjectsArg, ModelArg, StringArg
 
 class AtomsArg(AtomSpecArg):
     """Parse command atoms specifier"""
     name = "an atoms specifier"
 
     @classmethod
-    def parse(cls, text, session):
+    def parse(cls, text, session, ordered=False):
         aspec, text, rest = super().parse(text, session)
-        atoms = aspec.evaluate(session).atoms
+        atoms = aspec.evaluate(session, order_implicit_atoms=ordered).atoms
         atoms.spec = str(aspec)
         return atoms, text, rest
+
+
+class AtomArg(AtomsArg):
+    """Parse command specifier for an atom"""
+    name = 'an atom specifier'
+
+    @classmethod
+    def parse(cls, text, session):
+        atoms, used, rest = super().parse(text, session)
+        if len(atoms) != 1:
+            from chimerax.core.commands import AnnotationError
+            raise AnnotationError("Must specify exactly one atom (specified %d)" % len(atoms))
+        return atoms[0], used, rest
+
+
+class ElementArg(StringArg):
+    """Parse command specifier for an atomic symbol"""
+    name = 'an atomic symbol'
+
+    @classmethod
+    def parse(cls, text, session):
+        element_name, used, rest = super().parse(text, session)
+        from . import Element
+        e = Element.get_element(element_name)
+        if e.number == 0:
+            from chimerax.core.commands import AnnotationError
+            raise AnnotationError("'%s' is not an atomic symbol" % element_name)
+        return e, used, rest
+
+
+class OrderedAtomsArg(AtomsArg):
+
+    @classmethod
+    def parse(cls, text, session):
+        return super().parse(text, session, ordered=True)
 
 
 class ResiduesArg(AtomSpecArg):

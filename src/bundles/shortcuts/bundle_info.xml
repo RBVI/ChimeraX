@@ -46,7 +46,7 @@
       name="bs" display_name="Ball &amp; stick" icon="ball.png" description="Display atoms in ball and stick style"/>
 
     <Provider tab="Molecule Display" section="Coloring"
-      name="ce" display_name="heteoatom" icon="colorbyelement.png" description="Color non-carbon atoms by element"/>
+      name="ce" display_name="heteroatom" icon="colorbyelement.png" description="Color non-carbon atoms by element"/>
     <Provider tab="Molecule Display" section="Coloring"
       name="cc" display_name="chain" icon="colorbychain.png" description="Color by chain"/>
     <Provider tab="Molecule Display" section="Coloring"
@@ -141,9 +141,9 @@
     <Provider tab="Map" section="Image Display"
       name="dc" display_name="Default thresholds" icon="initialcurve.png" description="Default volume curve"/>
 
-    <Provider tab="Home" section="Images"
+    <Provider tab="Extras" section="Images" hidden="true"
       name="sx" display_name="Snapshot" icon="camera.png" description="Save snapshot to desktop"/>
-    <Provider tab="Home" section="Images"
+    <Provider tab="Extras" section="Images" hidden="true"
       name="vd" display_name="Spin movie" icon="video.png" description="Record spin movie"/>
   </Providers>
 

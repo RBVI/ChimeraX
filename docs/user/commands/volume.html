@@ -941,7 +941,71 @@ both depict isosurfaces.
 <p>
   The <b>image</b> <a href="#style">display style</a>
   shows data as a semitransparent solid.
+  The following options apply to this style.
 </p>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="imageMode"></a>
+  <b>imageMode</b> &nbsp;<i>mode</i> 
+<br>
+The <i>mode</i> can be any of the following:
+<ul>
+<li><b>full region</b> &ndash; <a href="#dimensions">full region</a>
+<li><b>orthoplanes</b> &ndash; <a href="#orthoplanes">orthoplanes</a>
+<li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a>
+<li><a name="tiltedslab"><b>tilted slab</b></a>
+&ndash; a single- or multi-plane slab at any angle relative to the data axes,
+with additional options:
+  <ul>
+  <li><b>tiltedSlabAxis</b> 
+  &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a> &ndash;
+  slab orientation expressed as a vector perpendicular to the slab
+  <li><b>tiltedSlabOffset</b> <i>d</i> &ndash; position along the axis,
+where <i>d</i> is the inner product of the vector <i>p</i> (a point on the slab)
+and the axis vector: <i>d</i> = (<i>p</i>,<i>axis</i>) 
+  <li><b>tiltedSlabPlaneCount</b> <i>N</i> &ndash; 
+  slab thickness in number of planes
+  <li><b>tiltedSlabSpacing</b> <i>s</i> &ndash; plane spacing in &Aring;
+  </ul>
+</ul>
+Typically, the graphical interface would be used rather than commands:
+the <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> 
+display-style menu would be used to switch the image mode, and in
+the <b>tilted slab</b> mode, slab orientation would be adjusted with the
+<b>rotate slab</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/medicalimage.html#mousemodes" 
+title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>,
+slab offset with the 
+<b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>,
+and slab thickness with the 
+<b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>.
+In <a href="../vr.html">virtual reality</a>, the <b>rotate slab</b> mode
+<a href="../tools/medicalimage.html#mousemodes" 
+title="Medical Image Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>
+can both rotate the tilted slab and translate it along its axis.
+The initial tilted slab is perpendicular to the line of sight, 
+with center at the center of the <a href="#dimensions">current region</a>,
+thickness set to 1/5 of the planes in the 
+<a href="#dimensions">current region</a> along X, Y, or Z (whichever is least),
+and spacing equal to the smallest of the X, Y, or Z spacing of the data grid.
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="backingColor"></a>
+  <b>backingColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;
+  <br>
+Specify a backing color (default <b>none</b>) for rendering when the
+<a href="#imageMode">image mode</a> is <b>full region</b> or <b>tilted slab</b>.
+A dark backing color such as <b>black</b> may improve data visibility
+when the <a href="set.html#bgColor">background color</a>
+is white or some other light color.
+</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="cmode"></a>
@@ -1320,6 +1384,7 @@ specified atoms, or limit the display to a zone without making a new map
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Add two or more maps to create a new map.
@@ -1361,9 +1426,8 @@ Note resampling causes some loss in resolution
   used along all three axes; if three numbers are supplied
   (separated by commas but not spaces), they
   are used along the X, Y, and Z axes, respectively.
-  <li><b>gridSubregion</b>
-  &ndash; whether to use the full extents of <i>gridmap</i> (<b>all</b>, default)
-  or a specified subregion.
+  <li><b>gridSubregion</b> &ndash; whether to use the full extents 
+  of <i>gridmap</i> (<b>all</b>, default) or a specified subregion.
   A subregion can be specified by:
    <ul>
    <li> <i>name</i> previously assigned
@@ -1382,6 +1446,9 @@ and can be 8-, 16-, or 32-bit signed integer
 8-, 16-, or 32-bit unsigned integer
 (<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
 or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+</p><p>
+The <b>hideMaps</b> option indicates whether to hide the input maps
+(default <b>true</b>).
 </p><p>
 If the new map is large, for example a whole tomogram, the command may
 fail for lack of memory.  The whole new map must fit in memory.
@@ -1737,6 +1804,7 @@ See also: <a href="#multiply"><b>volume multiply</b></a>,
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Set each value to the maximum at that point in two or more input maps.
@@ -1772,6 +1840,7 @@ perform (default <b>1</b>).
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Set each value to the minimum at that point in two or more input maps.
@@ -1843,6 +1912,7 @@ See also:
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Multiply the values pointwise in two or more maps.
@@ -1912,27 +1982,43 @@ Erase values outside the positive octant. Options are as described for
 
 <a href="#vop" class="nounder">&bull;</a>
 <a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>surface-spec</i>&nbsp;
-[&nbsp;<b>border</b> &nbsp;<i>B</i>&nbsp;]
-[&nbsp;<b>spacing</b> &nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
-[&nbsp;<b>pad</b> &nbsp;<i>distance</i>&nbsp;]
-[&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
-[&nbsp;<b>invertMask</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>axis</b> &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
-[&nbsp;<b>sandwich</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
-[&nbsp;<b>fillOverlap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
+[&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>border</b>&nbsp;&nbsp;<i>B</i>&nbsp;]
+[&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>distance</i>&nbsp;]
+[&nbsp;<b>extend</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>slab</b>&nbsp;&nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
+[&nbsp;<b>invertMask</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>sandwich</b>&nbsp; &nbsp;<b>true</b>&nbsp;|&nbsp;false</a>&nbsp;]
+[&nbsp;<b>fillOverlap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <blockquote>
 Create a map with values of 1 bounded by a surface 
-(<a href="#masking">details...</a>). The <b>border</b> option indicates
-how far out from the bounding surface in all six directions
-(&plusmn;X, &plusmn;Y, &plusmn;Z) to place the edge of the output map.
-The <b>spacing</b> option gives the grid spacing for the output map
+(<a href="#masking">details...</a>).
+The <b>onGrid</b> option allows creating the new map on the grid
+of another map, <i>gridmap</i>, specified by model number.
+Alternatively (if <b>onGrid</b> is not used): 
+<ul>
+<li>the <b>border</b> option indicates how far out from the bounding surface 
+in all six directions
+(&plusmn;X, &plusmn;Y, &plusmn;Z) to place the edge of the output map
+<li>the <b>spacing</b> option gives the grid spacing for the output map
 in physical units of length, typically &Aring;
 (default is 1% of the maximum of the X, Y, and Z dimensions
 of the bounding surfaces). If a single number is supplied, it is used 
 in all three directions; if three numbers are supplied (separated by commas 
 but not spaces), they are used in the X, Y, and Z directions, respectively.
+</ul>
+<p>
+The <i>value-type</i> defaults to the current type
+of the <b>onGrid</b> map (if any), otherwise <b>int8</b>; 
+the choices are 8-, 16-, or 32-bit signed integer
+(<b>int8</b>, <b>int16</b>, or <b>int32</b>),
+8-, 16-, or 32-bit unsigned integer
+(<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
 The remaining options are the same as described for 
 <a href="#mask"><b>volume mask</b></a>. See also:
 <a href="#new"><b>volume new</b></a>
@@ -1984,6 +2070,7 @@ target="_top"><b>Volume Tracer</b></a>
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Resample values to a different grid using trilinear interpolation.
@@ -2068,6 +2155,7 @@ See also: <a href="../tools/segment.html"><b>Segment Map</b></a>
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Subtract the values of <i>othermap</i> from <i>map</i>, both specified by
@@ -2436,5 +2524,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2019</address>
+January 2020</address>
 </body></html>

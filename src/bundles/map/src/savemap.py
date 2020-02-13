@@ -75,10 +75,12 @@ class ModelSaveOptionsGUI(SaveOptionsGUI):
                                       ','.join('*%s' % suffix for suffix in f.extensions))
         return wildcard
 
+    register = SaveOptionsGUI.add_to_save_dialog
+
 def register_map_save_options(session):
     from chimerax.map.data.fileformats import file_formats
     from chimerax.core.io import format_from_name
     formats = [format_from_name(fmt.description) for fmt in file_formats if fmt.writable]
     from chimerax.map import Volume
     for format in formats:
-         ModelSaveOptionsGUI(session, format, Volume, 'Map').register(session)
+         ModelSaveOptionsGUI(session, format, Volume, 'Map').add_to_save_dialog(session)

@@ -42,10 +42,11 @@ class AtomProximityGUI(QWidget):
             # Your tool needs to call the GUI's destroy() method when it's deleted
             attr_name=defaults["attr_name"], bond_separation=defaults["bond_separation"],
             continuous=False, dashes=None, distance_only=None, inter_model=True, inter_submodel=False,
-            intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"], log=defaults["action_log"],
-            make_pseudobonds=defaults["action_pseudobonds"], res_separation=None, restrict="any",
-            reveal=False, save_file=None, select=defaults["action_select"],
-            set_attrs=defaults["action_attr"], show_dist=False, summary=True, test_atoms=None,
+            intra_model=True, intra_mol=defaults["intra_mol"], intra_res=defaults["intra_res"],
+            log=defaults["action_log"], make_pseudobonds=defaults["action_pseudobonds"],
+            res_separation=None, restrict="any", reveal=False, save_file=None,
+            select=defaults["action_select"], set_attrs=defaults["action_attr"], show_dist=False,
+            summary=True, test_atoms=None,
 
             # what controls to show in the interface
             #
@@ -53,10 +54,11 @@ class AtomProximityGUI(QWidget):
             # regardless of the 'show_restrict' value
             show_attr_name=True, show_bond_separation=True, show_checking_frequency=True, show_color=True,
             show_dashes=True, show_distance_only=True, show_hbond_allowance=True, show_inter_model=True,
-            show_inter_submodel=False, show_intra_mol=True, show_intra_res=True, show_log=True,
-            show_make_pseudobonds=True, show_name=True, show_overlap_cutoff=True, show_radius=True,
-            show_res_separation=True, show_restrict=True, show_reveal=True, show_save_file=True,
-            show_select=True, show_set_attrs=True, show_show_dist=True, show_summary=False):
+            show_inter_submodel=False, show_intra_model=True, show_intra_mol=True, show_intra_res=True,
+            show_log=True, show_make_pseudobonds=True, show_name=True, show_overlap_cutoff=True,
+            show_radius=True, show_res_separation=True, show_restrict=True, show_reveal=True,
+            show_save_file=True, show_select=True, show_set_attrs=True, show_show_dist=True,
+            show_summary=False):
 
         self.session = session
         self.cmd_name = cmd_name
@@ -94,7 +96,8 @@ class AtomProximityGUI(QWidget):
         self.prox_words = prox_words = plural_of(prox_word)
         if test_atoms is not None:
             show_restrict = False
-        show_bool_params = show_intra_mol or show_intra_res or show_inter_model or show_inter_submodel
+        show_bool_params = show_intra_model or show_intra_mol or show_intra_res or show_inter_model \
+            or show_inter_submodel
         if show_overlap_cutoff or show_hbond_allowance or show_restrict or show_bond_separation \
         or show_bool_params:
             group = QGroupBox("Interaction parameters")
@@ -255,6 +258,10 @@ class AtomProximityGUI(QWidget):
                         None if settings else inter_submodel, None,
                         attr_name="inter_submodel", settings=settings)
                     bool_param_options.add_option(self.inter_submodel_option)
+                if show_intra_model:
+                    self.intra_model_option = BooleanOption("Include intramodel",
+                        None if settings else intra_model, None, attr_name="intra_model", settings=settings)
+                    bool_param_options.add_option(self.intra_model_option)
                 if show_intra_mol:
                     self.intra_mol_option = BooleanOption("Include intramolecule",
                         None if settings else intra_mol, None, attr_name="intra_mol", settings=settings)
@@ -494,6 +501,11 @@ class AtomProximityGUI(QWidget):
             settings['intra_res'] = self.intra_res_option.value
         else:
             settings['intra_res'] = None
+
+        if self.show_values['intra_model']:
+            settings['intra_model'] = self.intra_model_option.value
+        else:
+            settings['intra_model'] = None
 
         if self.show_values['intra_mol']:
             settings['intra_mol'] = self.intra_mol_option.value

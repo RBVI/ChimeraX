@@ -15,18 +15,8 @@ def run_provider(session, name):
     # run shortcut chosen via bundle provider interface
     if name == 'open dicom':
         open_dicom(session)
-    elif name.startswith('mouse:'):
-        set_mouse_mode(session, name)
     else:
         raise ValueError('Medical Toolbar called with unknown operation "%s"' % name)
 
 def open_dicom(session):
     session.ui.main_window.folder_open_cb(session)
-
-def set_mouse_mode(session, name):
-    mode = name[6:]
-    if ' ' in mode:
-        mode = '"%s"' % mode
-    from chimerax.core.commands import run
-    run(session, 'mousemode right %s' % mode)
-

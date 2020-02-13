@@ -71,6 +71,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         PolymerType polymer_type()
         Atom* principal_atom()
         object py_instance(bool)
+        void remove_atom(Atom*)
         float ribbon_adjust()
         const Rgba& ribbon_color()
         bool ribbon_display()
@@ -173,6 +174,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_coord_index(unsigned int) except +
         void set_display(bool)
         void set_draw_mode(DrawMode)
+        void set_element(const cyelem.Element&)
         void set_hide(int)
         void set_hide_bits(int)
         void set_idatm_type(const char*)

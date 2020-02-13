@@ -18,7 +18,10 @@
 #   "delete" - called to clean up before instance is deleted
 #
 from chimerax.core.tools import ToolInstance
-from chimerax.ui.widgets import ChimeraXHtmlView
+from chimerax.ui.widgets.htmlview import (
+    ChimeraXHtmlView, chimerax_intercept,
+    create_chimerax_profile
+)
 
 _singleton = None
 
@@ -42,8 +45,8 @@ def _qurl2text(qurl):
 
 class _HelpWebView(ChimeraXHtmlView):
 
-    def __init__(self, session, tool):
-        super().__init__(session, tool.tabs, size_hint=(800, 800))
+    def __init__(self, session, tool, profile):
+        super().__init__(session, tool.tabs, size_hint=(800, 800), profile=profile)
         self.help_tool = tool
 
     def createWindow(self, win_type):  # noqa
@@ -79,30 +82,6 @@ class _HelpWebView(ChimeraXHtmlView):
         #    menu.addAction(page.action(QWebEnginePage.SavePage))
         menu.popup(event.globalPos())
 
-    def link_clicked(self, request_info, *args):
-        # check for help:user and generate the index page if need be
-        qurl = request_info.requestUrl()
-        scheme = qurl.scheme()
-        if scheme == 'file' and qurl.path().endswith(('/docs/user', '/docs/user/index.html')):
-            import os, sys
-            path = qurl.toLocalFile()
-            from chimerax import app_dirs
-            cached_index = os.path.join(app_dirs.user_cache_dir, 'docs', 'user', 'index.html')
-            if not os.path.exists(cached_index):
-                from .cmd import _generate_index
-                from chimerax import app_data_dir
-                path = os.path.join(app_data_dir, 'docs', 'user', 'index.html')
-                new_path = _generate_index(path, self.session.logger)
-                if new_path is not None:
-                    if sys.platform == 'win32':
-                        new_path = new_path.replace(os.path.sep, '/')
-                        if os.path.isabs(new_path):
-                            new_path = '/' + new_path
-                    qurl.setPath(new_path)
-                    request_info.redirect(qurl)
-                    return
-        super().link_clicked(request_info, *args)
-
 
 class HelpUI(ToolInstance):
 
@@ -114,6 +93,7 @@ class HelpUI(ToolInstance):
     def __init__(self, session):
         tool_name = "Help Viewer"
         ToolInstance.__init__(self, session, tool_name)
+        self._pending_downloads = []
         from chimerax.ui import MainToolWindow
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
@@ -213,11 +193,15 @@ class HelpUI(ToolInstance):
 
         self.tool_window.manage(placement=None)
 
+        self.profile = create_chimerax_profile(
+            self.tabs, interceptor=self.intercept,
+            download=self.download_requested)
+
     def status(self, message):
         self.status_bar.showMessage(message, 2000)
 
     def create_tab(self, *, empty=False, background=False):
-        w = _HelpWebView(self.session, self)
+        w = _HelpWebView(self.session, self, profile=self.profile)
         self.tabs.addTab(w, "New Tab")
         if empty:
             from chimerax import app_dirs
@@ -292,6 +276,117 @@ class HelpUI(ToolInstance):
 
         p = PasswordDialog(requestUrl, auth)
         p.exec_()
+
+    def intercept(self, request_info, *args):
+        # check for help:user and generate the index page if need be
+        qurl = request_info.requestUrl()
+        scheme = qurl.scheme()
+        if scheme == 'file' and qurl.path().endswith(('/docs/user', '/docs/user/index.html')):
+            import sys
+            import os
+            path = qurl.toLocalFile()
+            from chimerax import app_dirs
+            cached_index = os.path.join(app_dirs.user_cache_dir, 'docs', 'user', 'index.html')
+            if not os.path.exists(cached_index):
+                from .cmd import _generate_index
+                from chimerax import app_data_dir
+                path = os.path.join(app_data_dir, 'docs', 'user', 'index.html')
+                new_path = _generate_index(path, self.session.logger)
+                if new_path is not None:
+                    if sys.platform == 'win32':
+                        new_path = new_path.replace(os.path.sep, '/')
+                        if os.path.isabs(new_path):
+                            new_path = '/' + new_path
+                    qurl.setPath(new_path)
+                    request_info.redirect(qurl)
+                    return
+        import sip
+        tabs = self.tabs
+        if not sip.isdeleted(tabs):
+            chimerax_intercept(request_info, *args, session=self.session,
+                               view=tabs.currentWidget())
+
+    def download_requested(self, item):
+        # "item" is an instance of QWebEngineDownloadItem
+        # print("HelpUI.download_requested", item)
+        import os
+        url_file = item.url().fileName()
+        base, extension = os.path.splitext(url_file)
+        # print("HelpUI.download_requested connect", item.mimeType(), extension)
+        # Normally, we would look at the download type or MIME type,
+        # but since neither one is set by the server, we look at the
+        # download extension instead
+        if extension == ".whl":
+            if not base.endswith("x86_64"):
+                # Since the file name encodes the package name and version
+                # number, we make sure that we are using the right name
+                # instead of whatever QWebEngine may want to use.
+                # Remove _# which may be present if bundle author submitted
+                # the same version of the bundle multiple times.
+                parts = base.rsplit('_', 1)
+                if len(parts) == 2 and parts[1].isdigit():
+                    url_file = parts[0] + extension
+            file_path = os.path.join(os.path.dirname(item.path()), url_file)
+            import pkg_resources
+            py_env = pkg_resources.Environment()
+            dist = pkg_resources.Distribution.from_filename(file_path)
+            if not py_env.can_add(dist):
+                raise ValueError("unsupported wheel platform")
+            item.setPath(file_path)
+            # print("HelpUI.download_requested clean", file_path)
+            try:
+                # Guarantee that file name is available
+                os.remove(file_path)
+            except OSError:
+                pass
+            self._pending_downloads.append(item)
+            self.session.logger.info("Downloading bundle %s" % url_file)
+            item.finished.connect(self.download_finished)
+        else:
+            from PyQt5.QtWidgets import QFileDialog
+            path, filt = QFileDialog.getSaveFileName(directory=item.path())
+            if not path:
+                return
+            self.session.logger.info("Downloading file %s" % url_file)
+            item.setPath(path)
+        # print("HelpUI.download_requested accept", file_path)
+        item.accept()
+
+    def download_finished(self, *args, **kw):
+        # print("HelpUI.download_finished", args, kw)
+        finished = []
+        pending = []
+        for item in self._pending_downloads:
+            if not item.isFinished():
+                pending.append(item)
+            else:
+                finished.append(item)
+        self._pending_downloads = pending
+        import pkginfo
+        from chimerax.ui.ask import ask
+        for item in finished:
+            item.finished.disconnect()
+            filename = item.path()
+            try:
+                w = pkginfo.Wheel(filename)
+            except Exception as e:
+                self.session.logger.info("Error parsing %s: %s" % (filename, str(e)))
+                self.session.logger.info("File saved as %s" % filename)
+                continue
+            if not _installable(w, self.session.logger):
+                self.session.logger.info("Bundle saved as %s" % filename)
+                continue
+            how = ask(self.session,
+                      "Install %s %s (file %s)?" % (w.name, w.version, filename),
+                      ["install", "cancel"],
+                      title="Toolshed")
+            if how == "cancel":
+                self.session.logger.info("Bundle installation canceled")
+                continue
+            self.session.toolshed.install_bundle(filename,
+                                                 self.session.logger,
+                                                 per_user=True,
+                                                 session=self.session)
 
     def show(self, url, *, new_tab=False, html=None):
         from urllib.parse import urlparse, urlunparse
@@ -437,3 +532,24 @@ class HelpUI(ToolInstance):
         if _singleton is None:
             _singleton = HelpUI(session)
         return _singleton
+
+
+def _installable(w, logger):
+    import re
+    from distutils.version import LooseVersion as Version
+    import chimerax.core
+    pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
+    for req in w.requires_dist:
+        m = pat.match(req)
+        if m:
+            op = m.group("op")
+            version = m.group("version")
+            if op == ">=":
+                return Version(chimerax.core.version) >= Version(version)
+            elif op == "==":
+                return Version(chimerax.core.version) == Version(version)
+            elif op == "<=":
+                return Version(chimerax.core.version) <= Version(version)
+            logger.info("Unsupported version comparison:", op)
+            return False
+    return True

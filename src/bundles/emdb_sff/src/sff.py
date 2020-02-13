@@ -168,13 +168,14 @@ def segment_color(sff_color, float = False):
 def mesh_models(session, seg):
     surfs = []
     from chimerax.core.models import Surface
+    from chimerax.surface import combine_geometry_vnt
     for segment in seg.segments:
         if segment.meshes is None:
             continue
         geoms = [mesh_geometry(mesh, seg) for mesh in segment.meshes]
         if len(geoms) == 0:
             continue
-        va,na,ta = combine_geometry(geoms)
+        va,na,ta = combine_geometry_vnt(geoms)
         s = Surface('mesh %d' % segment.id, session)
         s.set_geometry(va, na, ta)
 #        s.display_style = s.Mesh
@@ -252,16 +253,3 @@ def transform_by_id(seg, tf_id):
         if tf.id == tf_id:
             return scale((160,160,160)) * Place(tf.data_array)
     return Place()
-    
-def combine_geometry(geoms):
-    from numpy import concatenate
-    cva = concatenate([va for va,na,ta in geoms])
-    cna = concatenate([na for va,na,ta in geoms])
-    cta = concatenate([ta for va,na,ta in geoms])
-    voffset = 0
-    toffset = 0
-    for va,na,ta in geoms:
-        cta[toffset:toffset+len(ta)] += voffset
-        voffset += len(va)
-        toffset += len(ta)
-    return va,na,ta

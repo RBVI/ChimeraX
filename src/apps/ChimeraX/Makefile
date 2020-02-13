@@ -9,7 +9,11 @@ LDFLAGS	+= -Wl,-rpath,'@executable_path/../lib'
 endif
 
 ifdef WIN32
+ifeq ($(DESKTOP),1)
 PROG	= $(APP_NAME).exe
+else
+PROG	= $(APP_NAME)-console.exe
+endif
 else
 PROG	= $(APP_NAME)
 endif
@@ -26,17 +30,50 @@ endif
 ifdef WIN32
 ICONS	+= $(APP_NAME).ico
 endif
-SRCS	= launcher.c
-OBJS	= $(SRCS:.c=.$(OBJ_EXT))
+SHARED_SRCS	= launcher.c
 ifdef WIN32
+SHARED_OBJS	= $(SHARED_SRCS:.c=.obj)
+ifeq ($(DESKTOP),1)
+SRCS	= $(SHARED_SRCS) main_desktop.c
+else
+SRCS	= $(SHARED_SRCS) main_console.c
+endif
 RCSRCS	= icon.rc
-OBJS	+= $(RCSRCS:.rc=.$(OBJ_EXT))
+OBJS	= $(SRCS:.c=.$(OBJ_EXT)) $(RCSRCS:.rc=.$(OBJ_EXT))
+else
+SRCS	= $(SHARED_SRCS) main_console.c
+OBJS	= $(SRCS:.c=.$(OBJ_EXT))
 endif
 INCS	+= $(PYTHON_INCLUDE_DIRS)
 LIBS	+= $(PYTHON_LIB)
 
 all: $(PROG)
 
+ifdef WIN32
+install:	install-desktop install-console
+
+install-desktop:	$(SHARED_OBJS)
+	$(MAKE) real-install DESKTOP=1
+
+install-console:	$(SHARED_OBJS)
+	$(MAKE) real-install DESKTOP=0
+
+real-install: $(PROG)
+	$(RSYNC) $(PROG) $(bindir)
+	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
+	$(RSYNC) $(ICONS) $(datadir)
+	if [ -d "$(app_prefix)" ]; then \
+		$(RSYNC) $(PROG) $(app_bindir); \
+		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
+		$(RSYNC) $(ICONS) $(app_datadir); \
+	fi
+ifdef DEBUG
+	$(RSYNC) *.pdb $(bindir)
+	-if [ -d "$(app_prefix)" ]; then \
+		$(RSYNC) *.pdb $(app_bindir); \
+	fi
+endif
+else
 install: $(PROG)
 	$(RSYNC) $(PROG) $(bindir)
 	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
@@ -46,22 +83,12 @@ install: $(PROG)
 		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
 		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
-ifdef WIN32
-ifdef DEBUG
-	$(RSYNC) *.pdb $(bindir)
-	-if [ -d "$(app_prefix)" ]; then \
-		$(RSYNC) *.pdb $(app_bindir); \
-	fi
-endif
-endif
-ifndef WIN32
 	mkdir -p $(datadir)/man/man1
 	$(RSYNC) $(APP_NAME).1 $(datadir)/man/man1
 	-if [ -d "$(app_prefix)" ]; then \
 		mkdir -p $(app_datadir)/man/man1; \
 		$(RSYNC) $(APP_NAME).1 $(app_datadir)/man/man1; \
 	fi
-endif
 ifeq ($(OS),Darwin)
 	# Must use hard link for code signing to work
 	-if [ -d "$(app_prefix)" ]; then \
@@ -69,6 +96,7 @@ ifeq ($(OS),Darwin)
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
 		$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns; \
 	fi
+endif
 endif
 
 clean:

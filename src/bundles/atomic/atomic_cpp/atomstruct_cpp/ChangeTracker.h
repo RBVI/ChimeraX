@@ -89,6 +89,7 @@ public:
     static const std::string  REASON_COORDSET;
     static const std::string  REASON_DISPLAY;
     static const std::string  REASON_DRAW_MODE;
+    static const std::string  REASON_ELEMENT;
     static const std::string  REASON_HALFBOND;
     static const std::string  REASON_HIDE;
     static const std::string  REASON_IDATM_TYPE;

@@ -16,6 +16,8 @@
   <CModule name="_segment">
     <SourceFile>_segment/bin.cpp</SourceFile>
     <SourceFile>_segment/pysegment.cpp</SourceFile>
+    <SourceFile>_segment/segment.cpp</SourceFile>
+    <SourceFile>_segment/segsurf.cpp</SourceFile>
     <Library>arrays</Library>
   </CModule>
 
@@ -26,6 +28,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: segmentation :: Volume data :: color and surface segmentations</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -769,7 +769,7 @@ class EnumOf(Annotation):
         # "ab", not "abc".
         if ids is not None:
             assert all([isinstance(x, str) for x in ids])
-            pairs = sorted(zip(self.ids, self.values))
+            pairs = sorted(zip(ids, values))
             self.ids = [p[0] for p in pairs]
             self.values = [p[1] for p in pairs]
         else:
@@ -831,7 +831,7 @@ class DynamicEnum(Annotation):
         if self.__name is not None:
             return self.__name
         return 'one of ' + commas(["'%s'" % str(v)
-                                  for v in sorted(self.values_func())])
+              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
 
     @property
     def _html_name(self):
@@ -842,7 +842,7 @@ class DynamicEnum(Annotation):
             name = self.__name
         else:
             name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
-                                      for v in sorted(self.values_func())])
+              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)

@@ -33,6 +33,7 @@ const std::string ChangeTracker::REASON_COORD("coord changed");
 const std::string ChangeTracker::REASON_COORDSET("coordset changed");
 const std::string ChangeTracker::REASON_DISPLAY("display changed");
 const std::string ChangeTracker::REASON_DRAW_MODE("draw_mode changed");
+const std::string ChangeTracker::REASON_ELEMENT("element changed");
 const std::string ChangeTracker::REASON_HALFBOND("halfbond changed");
 const std::string ChangeTracker::REASON_HIDE("hide changed");
 const std::string ChangeTracker::REASON_IDATM_TYPE("idatm_type changed");

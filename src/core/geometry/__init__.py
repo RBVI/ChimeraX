@@ -17,6 +17,7 @@ from .place import multiply_transforms
 from .vector import interpolate_points, inner_product, normalize_vector, normalize_vectors, ray_segment
 from .vector import planes_as_4_vectors, distance, cross_product, norm, distance_squared
 from .vector import angle, dihedral, dihedral_point
+from .vector import clip_segment
 from .matrix import linear_combination
 from .bounds import sphere_bounds, union_bounds, Bounds, point_bounds
 from .bounds import copies_bounding_box, copy_tree_bounds, clip_bounds

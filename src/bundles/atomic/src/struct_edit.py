@@ -249,7 +249,7 @@ def gen_atom_name(element, residue):
     n = 1
     while True:
         name = "%s%d" % (str(element).upper(), n)
-        if name not in residue.atomsMap:
+        if not residue.find_atom(name):
             break
         n += 1
     return name

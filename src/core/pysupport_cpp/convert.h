@@ -118,7 +118,7 @@ public:
 
 template <class Str>
 PyObject* cchar_to_pystring(Str& cchar, const char* item_description) {
-    auto pyobj = PyUnicode_FromString(cchar.c_str());
+    auto pyobj = PyUnicode_DecodeUTF8(cchar.c_str(), cchar.size(), "replace");
     if (pyobj == nullptr)
         throw ErrStringCreate(item_description);
     return pyobj;

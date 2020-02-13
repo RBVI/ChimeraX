@@ -59,7 +59,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
     if enable is None and room_position is None:
         enable = True
 
-    c = vr_camera(session)
+    c = vr_camera(session, create = False)
     start = (session.main_view.camera is not c)
 
     if enable is not None:
@@ -68,6 +68,8 @@ def vr(session, enable = None, room_position = None, mirror = None,
         else:
             stop_vr(session, simplify_graphics)
 
+    c = vr_camera(session, create = False)
+    
     if room_position is not None:
         if isinstance(room_position, str) and room_position == 'report':
             p = ','.join('%.5g' % x for x in tuple(c.room_to_scene.matrix.flat))
@@ -216,26 +218,28 @@ def register_vr_command(logger):
     from chimerax.core.commands import register, create_alias
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('room_position', Or(EnumOf(['report']), PlaceArg)),
-                              ('display', EnumOf(('mirror', 'independent', 'blank'))),
+                              ('mirror', BoolArg),
                               ('gui', StringArg),
                               ('center', BoolArg),
                               ('click_range', FloatArg),
                               ('multishadow_allowed', BoolArg),
                               ('simplify_graphics', BoolArg),
                    ],
-                   synopsis = 'Start SteamVR virtual reality rendering')
+                   synopsis = 'Start SteamVR virtual reality rendering',
+                   url = 'help:user/commands/device.html#vr')
     register('vr', desc, vr, logger=logger)
     create_alias('device vr', 'vr $*', logger=logger,
-            url="help:user/commands/device.html#vr")
+                 url='help:user/commands/device.html#vr')
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
     desc = CmdDesc(required = [('button', button_name),
-                               ('mode', VRModeArg)],
+                               ('mode', VRModeArg(logger.session))],
                    keyword = [('hand', EnumOf(('left', 'right')))],
-                   synopsis = 'Assign VR hand controller buttons')
+                   synopsis = 'Assign VR hand controller buttons',
+                   url = 'help:user/commands/device.html#vr-button')
     register('vr button', desc, vr_button, logger=logger)
     create_alias('device vr button', 'vr button $*', logger=logger,
-            url="help:user/commands/device.html#vr-button")
+                 url='help:user/commands/device.html#vr-button')
 
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('field_of_view', FloatArg),
@@ -244,10 +248,11 @@ def register_vr_command(logger):
                               ('tracker', BoolArg),
                               ('save_position', BoolArg),
                               ('save_tracker_mount', BoolArg)],
-                   synopsis = 'Control VR room camera')
+                   synopsis = 'Control VR room camera',
+                   url = 'help:user/commands/device.html#vr-roomCamera')
     register('vr roomCamera', desc, vr_room_camera, logger=logger)
     create_alias('device vr roomCamera', 'vr roomCamera $*', logger=logger,
-            url="help:user/commands/device.html#vr-roomCamera")
+                 url='help:user/commands/device.html#vr-roomCamera')
 
 # -----------------------------------------------------------------------------
 #
@@ -255,6 +260,15 @@ from chimerax.core.commands import Annotation, AnnotationError
 class VRModeArg(Annotation):
     '''Command argument for specifying VR hand controller mode.'''
 
+    def __init__(self, session):
+        Annotation.__init__(self)
+        from chimerax.core.commands import quote_if_necessary
+        names = list(hand_mode_names(session) + ('default',))
+        names.sort()
+        qnames = [quote_if_necessary(n) for n in names]
+        self.name = 'one of %s' % ', '.join(qnames)
+        self._html_name = 'one of %s' % ', '.join('<b>%s</b>' % n for n in qnames)
+        
     @staticmethod
     def parse(text, session):
         from chimerax.core.commands import EnumOf
@@ -293,12 +307,13 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
         import openvr
     except Exception as e:
         from chimerax.core.errors import UserError
-        raise UserError('Failed to import OpenVR module: %s' % str(e))
+        raise UserError('Failed to import OpenVR module: %s' % str(e)) from e
 
     import sys
     if sys.platform == 'darwin':
         # SteamVR on Mac is older then what PyOpenVR expects.
         openvr.IVRSystem_Version = "IVRSystem_019"
+        openvr.IVRCompositor_Version = "IVRCompositor_022"
         
     try:
         c.start_vr()
@@ -308,11 +323,14 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
                    'Possibly a cable to the VR headset is not plugged in.\n' +
                    'If the headset is a Vive Pro, the link box may be turned off.\n' +
                    'If using a Vive Pro wireless adapter it may not be powered on.')
+        elif 'InterfaceNotFound' in str(e):
+            msg = ('Your installed SteamVR runtime does not support the requested version.\n' +
+                   'You probably need to update SteamVR by starting the Steam application.\n')
         else:
             msg = ('Failed to initialize OpenVR.\n' +
                    'Possibly SteamVR is not installed or it failed to start.')
         from chimerax.core.errors import UserError
-        raise UserError('%s\n%s' % (msg, str(e)))
+        raise UserError('%s\n%s' % (msg, str(e))) from e
 
     session.main_view.camera = c
 
@@ -401,6 +419,9 @@ class SteamVRCamera(Camera, StateManager):
         self._z_near = 0.1		# Meters, near clip plane distance
         self._z_far = 500.0		# Meters, far clip plane distance
         # TODO: Scaling models to be huge causes clipping at far clip plane.
+
+        self._new_frame_handler = None
+        self._app_quit_handler = None
 
     def start_vr(self):
         import openvr
@@ -508,6 +529,15 @@ class SteamVRCamera(Camera, StateManager):
             self._room_camera = None
         return rc
 
+    @property
+    def have_room_camera(self):
+        return self._room_camera is not None
+
+    @property
+    def have_tracker(self):
+        return (self._tracker_device_index is not None
+                or self._find_tracker() is not None)
+    
     def tracker_room_position(self):
         i = self._tracker_device_index
         if i is None:
@@ -1225,7 +1255,13 @@ class RoomCameraModel(Model):
 
     def draw(self, renderer, draw_pass):
         if self.enable_draw:
+            # TODO: Graphics is drawn in opaque draw pass because self.opaque_texture is True
+            # but the texture may have transparent alpha values.  The drawing code uses alpha
+            # blending even in the opaque pass so we need to turn it off here.  Maybe draw pass
+            # code should be disabling alpha blending.
+            renderer.enable_blending(False)
             Model.draw(self, renderer, draw_pass)
+            renderer.enable_blending(True)
             
     def update_scene_position(self, new_rts):
         old_rts = self._last_room_to_scene
@@ -1702,6 +1738,7 @@ class Panel:
         d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
+        d.casts_shadows = False
         # d.skip_bounds = True	# Clips if far from models.
         drawing_parent.add_drawing(d)
         return d
@@ -2192,12 +2229,14 @@ class HandController:
             #    A or X button = k_EButton_A = 7
             #    B or Y button = k_EButton_ApplicationMenu = 1
             #    thumbstick = k_EButton_Axis0 = 32 = k_EButton_SteamVR_Touchpad
-            thumbstick_mode = ZoomMode() if self.left_or_right == 'right' else MoveSceneMode()
+            right = (self.left_or_right == 'right')
+            thumbstick_mode = ZoomMode() if right else MoveSceneMode()
+            ax_mode = ZoomMode() if right else RecenterMode()
             initial_modes = {
                 menu: ShowUIMode(),
                 trigger: MoveSceneMode(),
                 grip: MoveSceneMode(),
-                a: ZoomMode(),
+                a: ax_mode,
                 touchpad: thumbstick_mode
             }
         else:
