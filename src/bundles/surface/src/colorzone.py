@@ -8,9 +8,10 @@
 # The points are in model object coordinates.
 #
 def color_zone(surface, points, point_colors, distance,
-               sharp_edges = False, auto_update = True):
+               sharp_edges = False, far_color = None, auto_update = True):
 
-    zc = ZoneColor(surface, points, point_colors, distance, sharp_edges)
+    zc = ZoneColor(surface, points, point_colors, distance, sharp_edges,
+                   far_color = far_color)
     zc.set_vertex_colors()
     
     if auto_update:
@@ -39,7 +40,7 @@ def points_and_colors(atoms, bonds, bond_point_spacing = None):
 
 # -----------------------------------------------------------------------------
 #
-def color_surface(surf, points, point_colors, distance):
+def color_surface(surf, points, point_colors, distance, far_color = None):
 
     varray = surf.vertices
     from chimerax.core.geometry import find_closest_points
@@ -47,7 +48,7 @@ def color_surface(surf, points, point_colors, distance):
 
     from numpy import empty, uint8
     rgba = empty((len(varray),4), uint8)
-    rgba[:,:] = surf.color
+    rgba[:,:] = (surf.color if far_color is None else far_color)
     for k in range(len(i1)):
         rgba[i1[k],:] = point_colors[n1[k]]
         
@@ -65,23 +66,25 @@ def uncolor_zone(model):
 #
 from chimerax.core.state import State
 class ZoneColor(State):
-    def __init__(self, surface, points, point_colors, distance, sharp_edges):
+    def __init__(self, surface, points, point_colors, distance, sharp_edges, far_color = None):
         self.surface = surface
         self.points = points
         self.point_colors = point_colors
         self.distance = distance
         self.sharp_edges = sharp_edges
-
+        self.far_color = far_color
+        
     def __call__(self):
         self.set_vertex_colors()
 
     def set_vertex_colors(self):
         surf = self.surface
         if surf.vertices is not None:
-            color_surface(surf, self.points, self.point_colors, self.distance)
+            color_surface(surf, self.points, self.point_colors, self.distance,
+                          far_color = self.far_color)
             if self.sharp_edges:
                 color_zone_sharp_edges(surf, self.points, self.point_colors, self.distance,
-                                       replace = True)
+                                       far_color = self.far_color, replace = True)
         surf.auto_recolor_vertices = self
 
     # -------------------------------------------------------------------------
@@ -93,6 +96,7 @@ class ZoneColor(State):
             'point_colors': self.point_colors,
             'distance': self.distance,
             'sharp_edges': self.sharp_edges,
+            'far_color': self.far_color,
             'version': 1,
         }
         return data
@@ -104,14 +108,16 @@ class ZoneColor(State):
         surf = data['surface']
         if surf is None:
             return None		# Surface to color is gone.
-        c = cls(surf, data['points'], data['point_colors'], data['distance'], data['sharp_edges'])
+        c = cls(surf, data['points'], data['point_colors'], data['distance'], data['sharp_edges'],
+                far_color = data.get('far_color'))
         c.set_vertex_colors()
         return c
 
         
 # -----------------------------------------------------------------------------
 #
-def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
+def color_zone_sharp_edges(surface, points, colors, distance, far_color = None,
+                           replace = False):
     # Transform points to surface coordinates
     surface.scene_position.inverse().transform_points(points, in_place = True)
 
@@ -128,7 +134,7 @@ def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
     
     from numpy import empty, uint8
     carray = empty((len(varray),4), uint8)
-    carray[:,:] = surface.color
+    carray[:,:] = (surface.color if far_color is None else far_color)
     for vi,ai in zip(i1, n1):
         carray[vi,:] = colors[ai]
 
