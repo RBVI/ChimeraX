@@ -2229,12 +2229,14 @@ class HandController:
             #    A or X button = k_EButton_A = 7
             #    B or Y button = k_EButton_ApplicationMenu = 1
             #    thumbstick = k_EButton_Axis0 = 32 = k_EButton_SteamVR_Touchpad
-            thumbstick_mode = ZoomMode() if self.left_or_right == 'right' else MoveSceneMode()
+            right = (self.left_or_right == 'right')
+            thumbstick_mode = ZoomMode() if right else MoveSceneMode()
+            ax_mode = ZoomMode() if right else RecenterMode()
             initial_modes = {
                 menu: ShowUIMode(),
                 trigger: MoveSceneMode(),
                 grip: MoveSceneMode(),
-                a: ZoomMode(),
+                a: ax_mode,
                 touchpad: thumbstick_mode
             }
         else:
