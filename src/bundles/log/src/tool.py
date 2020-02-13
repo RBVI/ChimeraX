@@ -174,7 +174,9 @@ class Log(ToolInstance, HtmlLog):
         class HtmlWindow(ChimeraXHtmlView):
 
             def __init__(self, session, parent, log):
-                super().__init__(session, parent, size_hint=(575, 500), tool_window=log.tool_window)
+                from chimerax.ui.widgets.htmlview import create_chimerax_profile
+                profile = create_chimerax_profile(parent, interceptor=self.link_intercept)
+                super().__init__(session, parent, size_hint=(575, 500), tool_window=log.tool_window, profile=profile)
                 page = MyPage(self._profile, self)
                 self.setPage(page)
                 s = page.settings()
@@ -197,18 +199,16 @@ class Log(ToolInstance, HtmlLog):
                 #from PyQt5.QtCore import Qt
                 #self.setContextMenuPolicy(Qt.NoContextMenu)
 
-            def link_clicked(self, request_info, *args, **kw):
+            def link_intercept(self, request_info, *args, **kw):
                 # for #2289, don't scroll log when a link in it is clicked
                 qurl = request_info.requestUrl()
                 scheme = qurl.scheme()
-                if scheme == 'data':
-                    # fix #2303, spurious link_clicked
-                    return
                 if scheme == 'cxcmd':
                     cmd = qurl.url(qurl.None_)[6:].lstrip()  # skip cxcmd:
                     self.log.suppress_scroll = cmd and (
                             cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
-                super().link_clicked(request_info, *args, **kw)
+                from chimerax.ui.widgets.htmlview import chimerax_intercept
+                chimerax_intercept(request_info, *args, session=self.session, view=self, **kw)
                 if not self.log.suppress_scroll:
                     return
                 def defer(log_tool):
@@ -216,12 +216,6 @@ class Log(ToolInstance, HtmlLog):
                 # clicked link is executed via thread_safe, so add another
                 # that is executed after that one
                 self.session.ui.thread_safe(defer, self.log)
-
-
-            ## Moved into ui/widgets/htmlview.py
-            ## def contextMenuEvent(self, event):
-            ##     # kludge to allow QWebView to show our context menu (see comment above)
-            ##     self.log.tool_window._show_context_menu(event)
 
             def cm_save(self):
                 from chimerax.ui.open_save import export_file_filter, SaveDialog
