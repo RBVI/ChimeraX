@@ -74,7 +74,7 @@ class SelectMouseMode(MouseMode):
         entries.sort(key = lambda e: e.label(ses))
         dangerous_entries.sort(key = lambda e: e.label(ses))
         from PyQt5.QtWidgets import QMenu, QAction
-        menu = QMenu()
+        menu = QMenu(ses.ui.main_window)
         actions = []
         all_entries = entries
         if dangerous_entries:

@@ -2151,7 +2151,7 @@ class DefineSelectorDialog(QDialog):
         self.cur_sel_text = "current selection"
         self.atom_spec_text = "target specifier"
         self.push_button = QPushButton(self.cur_sel_text)
-        menu = QMenu()
+        menu = QMenu(self)
         menu.triggered.connect(self._menu_cb)
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
@@ -2376,7 +2376,7 @@ class InitWindowSizeOption(Option):
         from PyQt5.QtWidgets import QPushButton, QMenu
         size_scheme, size_data = self.default
         self.push_button = QPushButton(size_scheme)
-        menu = QMenu()
+        menu = QMenu(self.widget)
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
         menu = self.push_button.menu()
