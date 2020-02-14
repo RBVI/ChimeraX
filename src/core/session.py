@@ -1030,6 +1030,8 @@ def common_startup(sess):
     from .updateloop import UpdateLoop
     sess.update_loop = UpdateLoop(sess)
 
+    from . import attributes
+    attributes.RegAttrManager(sess)
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],

@@ -74,7 +74,6 @@ _class_class_init = {
     "Structure": 'chimerax.atomic',
     "StructureSeq": 'chimerax.atomic',
     "AttrRegistration": '.attributes',
-    "CustomizedInstanceManager": '.attributes',
     "_NoDefault": '.attributes',
     "RegAttrManager": '.attributes',
      "XSectionManager": 'chimerax.atomic.ribbon',
