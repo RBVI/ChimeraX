@@ -1981,7 +1981,8 @@ class Panel:
         return self._click('release', window_xy)
 
     def _click(self, type, window_xy):
-        '''Type can be "press" or "release".'''
+        'Type can be "press" or "release" or "move".'
+        self._move_mouse_pointer(window_xy)
         w = self._post_mouse_event(type, window_xy)
         if w:
             if type == 'press':
@@ -1991,7 +1992,21 @@ class Panel:
                 self._ui.redraw_ui()
             return True
         return False
-    
+
+    def _move_mouse_pointer(self, window_xy):
+        # Sometimes Windows uses the mouse position instead of the button
+        # event coordinates, for instance when handling cascaded menus.
+        # Details in ChimeraX bug #2848.
+        # So move the mouse pointer to the position of the virtual button event.
+        pw = self.widget
+        if pw is not None:
+            x,y = window_xy
+            from PyQt5.QtCore import QPoint
+            wp = QPoint(int(x), int(y))
+            p = pw.mapToGlobal(wp)
+            from PyQt5.QtGui import QCursor
+            QCursor.setPos(p)
+
     def _post_mouse_event(self, type, window_xy):
         '''Type is "press", "release" or "move".'''
         w, pos = self.clicked_widget(window_xy)
