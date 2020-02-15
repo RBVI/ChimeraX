@@ -1369,7 +1369,8 @@ class UserInterface:
         for tool_name in tool_names:
             w = _tool_widget(tool_name, self._session)
             if w:
-                p = Panel(w, ui, self, tool_name = tool_name)
+                p = Panel(w, ui, self, tool_name = tool_name,
+                          add_titlebar = (tool_name != 'Toolbar'))
                 panels.append(p)
             else:
                 self._session.logger.warning('VR user interface could not find tool "%s"' % tool_name)
@@ -1422,7 +1423,8 @@ class UserInterface:
         w = _tool_widget(tool_name, self._session)
         if w is None:
             return
-        p = Panel(w, self._ui_model, self, tool_name = tool_name)
+        p = Panel(w, self._ui_model, self, tool_name = tool_name,
+                  add_titlebar = (tool_name != 'Toolbar'))
         self._panels.append(p)
         self.redraw_ui()
 
@@ -1433,7 +1435,9 @@ class UserInterface:
               if w.isVisible() and not isinstance(w, (QDockWidget, QMainWindow))]
         wset = set(p._widget for p in self._panels)
         neww = [w for w in tw if w not in wset]
-        newp = [Panel(w, self._ui_model, self, tool_name = w.windowTitle()) for w in neww]
+        newp = [Panel(w, self._ui_model, self, tool_name = w.windowTitle(),
+                      add_titlebar = not isinstance(w, QMenu))
+                for w in neww]
         self._panels.extend(newp)
         
         for p in newp:
@@ -1548,7 +1552,8 @@ class UserInterface:
             if panel:
                 if panel.clicked_on_close_button(window_xy):
                     self._delete_panel(panel)
-                    panel.widget.close()
+                    panel.close_widget()
+                    self.redraw_ui()
                 elif panel.clicked_on_title_bar(window_xy):
                     # Drag on title bar moves VR gui
                     self._move_gui.add((hc,b))
@@ -1710,7 +1715,7 @@ class Panel:
         self._widget = qt_widget	# This Qt widget is shown in the VR panel.
         self._ui = ui			# UserInterface instance
         self._tool_name = tool_name	# Name of tool instance
-        th = 20 if add_titlebar or self._needs_titlebar() else 0
+        th = 20 if add_titlebar else 0
         self._titlebar_height = th      # Added titlebar height in pixels
         w,h = self._panel_size
         self._size = (pixel_size*w, pixel_size*h) # Billboard width, height in room coords, meters.
@@ -2078,6 +2083,16 @@ class Panel:
             x,y = window_xy
             return y < 0 and x >= self._panel_size[0]-th
         return False
+
+    def close_widget(self):
+        '''Called when close button on panel titlebar pressed.'''
+        w = self.widget
+        session = self._ui._session
+        tw = _widget_tool_window(w, session)
+        if tw:
+            session.ui.main_window.close_request(tw)
+        else:
+            w.close()
         
     def clicked_on_title_bar(self, window_xy):
         th = self._titlebar_height
@@ -2120,10 +2135,11 @@ class Panel:
         from PyQt5.QtCore import QPoint
         pos = w.mapToGlobal(QPoint(0,0))
         ppos = p._widget.mapFromGlobal(pos)
+        y = ppos.y() + p._titlebar_height
         ps = p._pixel_size
         pw,ph = p._size
         sw,sh = self._size
-        offset = (ppos.x()*ps + sw/2 - pw/2, -(ppos.y()*ps + sh/2 - ph/2), .01)
+        offset = (ppos.x()*ps + sw/2 - pw/2, -(y*ps + sh/2 - ph/2), .01)
         pd = self._panel_drawing
         from chimerax.core.geometry import translation
         pd.position = p._panel_drawing.position * translation(offset)
@@ -2149,7 +2165,9 @@ def _ancestor_widgets(w):
 
 def _tool_y_position(tool_instance):
     if hasattr(tool_instance, 'tool_window'):
-        return tool_instance.tool_window._dock_widget.y()
+        w = tool_instance.tool_window.ui_area
+        from PyQt5.QtCore import QPoint
+        return w.mapToGlobal(QPoint(0,0)).y()
     return None
 
 def _find_tool_by_name(name, session):
@@ -2161,11 +2179,19 @@ def _find_tool_by_name(name, session):
 def _tool_widget(name, session):
     ti = _find_tool_by_name(name, session)
     if ti and hasattr(ti, 'tool_window'):
-        w = ti.tool_window._dock_widget
+        w = ti.tool_window.ui_area
     else:
         w = None
     return w
-        
+
+def _widget_tool_window(w, session):
+    for ti in session.tools.list():
+        if ti and hasattr(ti, 'tool_window'):
+            tw = ti.tool_window
+            if tw.ui_area is w:
+                return tw
+    return None
+            
 class HandController:
     _controller_colors = {'left':(200,200,0,255), 'right':(0,200,200,255), 'default':(180,180,180,255)}
 

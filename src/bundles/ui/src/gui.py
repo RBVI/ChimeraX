@@ -568,26 +568,30 @@ class MainWindow(QMainWindow, PlainTextLog):
         event.accept()
         self.session.ui.quit()
 
-    def close_request(self, tool_window, close_event):
+    def close_request(self, tool_window, close_event = None):
         # closing a tool window has been requested
         if self._is_quitting:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             return
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
         close_destroys = tool_window.close_destroys
         if is_main_window and close_destroys:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             tool_instance.delete()
             return
         if close_destroys:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             # _destroy will remove window from all_windows indirectly
             # via tw._destroy -> toolkit.destroy -> mw->_tool_window_destroyed
             tool_window._destroy()
         else:
-            close_event.ignore()
+            if close_event:
+                close_event.ignore()
             tool_window.shown = False
 
         if is_main_window:
