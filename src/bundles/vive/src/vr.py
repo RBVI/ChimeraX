@@ -1419,12 +1419,12 @@ class UserInterface:
         self._delete_tool_panel(tool_window)
 
     def _add_tool_panel(self, tool_window):
-        tool_name = tool_window.tool_instance.tool_name
-        if self._find_tool_panel(tool_name):
+        if self._find_tool_panel(tool_window):
             return
-        w = _tool_widget(tool_name, self._session)
+        w = _tool_window_widget(tool_window)
         if w is None:
             return
+        tool_name = tool_window.tool_instance.tool_name
         p = Panel(w, self._ui_model, self, tool_name = tool_name,
                   add_titlebar = (tool_name != 'Toolbar'))
         self._panels.append(p)
@@ -1465,15 +1465,15 @@ class UserInterface:
             if not vis:
                 self._delete_panel(p)
 
-    def _find_tool_panel(self, tool_name):
+    def _find_tool_panel(self, tool_window):
+        w = _tool_window_widget(tool_window)
         for p in self._panels:
-            if p.name == tool_name:
+            if w and p.widget is w:
                 return p
         return None
 
     def _delete_tool_panel(self, tool_window):
-        tool_name = tool_window.tool_instance.tool_name
-        p = self._find_tool_panel(tool_name)
+        p = self._find_tool_panel(tool_window)
         if p:
             self._delete_panel(p)
         self.redraw_ui()
@@ -2185,6 +2185,9 @@ def _tool_widget(name, session):
     else:
         w = None
     return w
+
+def _tool_window_widget(tool_window):
+    return tool_window.ui_area
 
 def _widget_tool_window(w, session):
     for ti in session.tools.list():
