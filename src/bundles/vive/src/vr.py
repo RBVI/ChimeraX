@@ -1900,6 +1900,9 @@ class Panel:
         #  Looks like Qt can't get the title bar.  I may want to add a title to the
         #  top of the grabbed image.
         pixmap = w.grab()
+        size = pixmap.size()
+        if size.width() == 0 or size.height() == 0:
+            return None
         im = pixmap.toImage()
         from chimerax.core.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
