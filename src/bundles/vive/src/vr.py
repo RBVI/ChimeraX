@@ -965,9 +965,26 @@ class SteamVRCamera(Camera, StateManager):
 
     def _controller_left_or_right(self, device_index):
         vrs = self._vr_system
+
         import openvr
         left_id = vrs.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_LeftHand)
-        return 'left' if device_index == left_id else 'right'
+        if device_index == left_id:
+            return 'left'
+        right_id = vrs.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_RightHand)
+        if device_index == right_id:
+            return 'right'
+
+        # Above left and right role are 2**32-1 for Oculus when first started.
+        # Try looking at the controller name.
+        model_name = vrs.getStringTrackedDeviceProperty(device_index,
+                                                        openvr.Prop_RenderModelName_String)
+        if model_name.endswith('right'):
+            return 'right'
+        if model_name.endswith('left'):
+            return 'left'
+
+        # Don't know whether left or right.
+        return 'right'
 
     def _vr_control_model_group(self):
         g = self._vr_model_group
@@ -1315,8 +1332,9 @@ class UserInterface:
             self._ui_model = None
 
         for h in (self._tool_show_handler, self._tool_hide_handler):
-            triggers = self._session.ui.triggers
-            triggers.remove_handler(h)
+            if h is not None:
+                triggers = self._session.ui.triggers
+                triggers.remove_handler(h)
         self._tool_show_handler = self._tool_hide_handler = None
             
     @property
