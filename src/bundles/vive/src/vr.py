@@ -1397,12 +1397,10 @@ class UserInterface:
         # Stack panels.
         y = h/2
         z = -dz
-        from chimerax.core.geometry import translation
         for p in spanels:
             h = p.size[1]
             y -= 0.5*h
-            pd = p._panel_drawing
-            pd.position = translation((0,y,z))
+            p.center = (0,y,z)
             y -= 0.5*h + sep
             z -= dz
 
@@ -1427,9 +1425,25 @@ class UserInterface:
         tool_name = tool_window.tool_instance.tool_name
         p = Panel(w, self._ui_model, self, tool_name = tool_name,
                   add_titlebar = (tool_name != 'Toolbar'))
-        self._panels.append(p)
+        self._add_panels([p])
         self.redraw_ui()
 
+    def _add_panels(self, panels):
+        z = max([p.center[2]+p.thickness for p in self._panels],
+                default = 0)
+        for p in panels:
+            if not p.is_menu():
+                z += p.thickness
+                p.center = (0,0,z)
+                z += p.thickness
+        self._panels.extend(panels)
+
+    def _user_moved_panels(self):
+        for p in self._panels:
+            if p.position.rotation_angle() != 0:
+                return True
+        return False
+            
     def _check_for_new_panels(self):
         # Add new panels for newly appeared top level widgets.
         from PyQt5.QtWidgets import QDockWidget, QMainWindow, QMenu
@@ -1440,7 +1454,7 @@ class UserInterface:
         newp = [Panel(w, self._ui_model, self, tool_name = w.windowTitle(),
                       add_titlebar = not isinstance(w, QMenu))
                 for w in neww]
-        self._panels.extend(newp)
+        self._add_panels(newp)
         
         for p in newp:
             if p.is_menu():
@@ -1451,7 +1465,7 @@ class UserInterface:
         if w.isVisible() and w not in wset:
             p = Panel(w, self._ui_model, self, tool_name = 'Recent Files',
                       add_titlebar = True)
-            self._panels.append(p)
+            self._add_panels([p])
             
         if neww:
             self.redraw_ui()
@@ -1750,6 +1764,26 @@ class Panel:
         drawing_parent.add_drawing(d)
         return d
 
+    def _get_center(self):
+        pd = self._panel_drawing
+        return pd.position.origin() if pd else None
+    def _set_center(self, center):
+        pd = self._panel_drawing
+        if pd:
+            from chimerax.core.geometry import translation
+            pd.position = translation(center)
+    center = property(_get_center, _set_center)
+
+    @property
+    def thickness(self):
+        return self._panel_thickness
+    
+    @property
+    def position(self):
+        pd = self._panel_drawing
+        from chimerax.core.geometry import Place
+        return pd.position if pd else Place()
+    
     def delete(self, parent):
         pd = self._panel_drawing
         if pd:
