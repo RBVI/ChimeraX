@@ -1300,6 +1300,7 @@ class UserInterface:
         self._move_gui = set()		# set of (HandController, button) if gui being moved by press on title bar
         self._move_ui_mode = MoveUIMode()
         self._tool_show_handler = None
+        self._tool_hide_handler = None
 
         # Buttons that can be pressed on user interface.
         import openvr
@@ -1313,11 +1314,10 @@ class UserInterface:
                 self._session.models.close([ui])
             self._ui_model = None
 
-        h = self._tool_show_handler
-        if h:
+        for h in (self._tool_show_handler, self._tool_hide_handler):
             triggers = self._session.ui.triggers
             triggers.remove_handler(h)
-            self._tool_show_handler = None
+        self._tool_show_handler = self._tool_hide_handler = None
             
     @property
     def model(self):
@@ -1383,8 +1383,10 @@ class UserInterface:
         
         # Monitor when windows are shown and hidden.
         triggers = self._session.ui.triggers
-        self._tool_show_handler = triggers.add_handler('tool window show or hide',
-                                                       self._tool_window_show_or_hide)
+        self._tool_show_handler = triggers.add_handler('tool window show',
+                                                       self._tool_window_show)
+        self._tool_hide_handler = triggers.add_handler('tool window hide',
+                                                       self._tool_window_hide)
         return panels
 
     def _stack_panels(self, panels):
@@ -1410,11 +1412,11 @@ class UserInterface:
             for mp in mpanels:
                 mp.position_menu_over_parent(spanels)
                 
-    def _tool_window_show_or_hide(self, trig_name, tool_window):
-        if tool_window.shown:
-            self._add_tool_panel(tool_window)
-        else:
-            self._delete_tool_panel(tool_window)
+    def _tool_window_show(self, trig_name, tool_window):
+        self._add_tool_panel(tool_window)
+
+    def _tool_window_hide(self, trig_name, tool_window):
+        self._delete_tool_panel(tool_window)
 
     def _add_tool_panel(self, tool_window):
         tool_name = tool_window.tool_instance.tool_name
