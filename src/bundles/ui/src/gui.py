@@ -131,8 +131,8 @@ class UI(QApplication):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('ready')
-        self.triggers.add_trigger('tool window show or hide')
-
+        self.triggers.add_trigger('tool window show')
+        self.triggers.add_trigger('tool window hide')
 
     @property
     def mouse_modes(self):
@@ -1709,6 +1709,7 @@ class ToolWindow(StatusLogger):
         self.tool_instance.session.ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
+        self.shown = True
 
     @property
     def shown(self):
@@ -1719,7 +1720,8 @@ class ToolWindow(StatusLogger):
     def shown(self, shown):
         ui = self.session.ui
         ui.main_window._tool_window_request_shown(self, shown)
-        ui.triggers.activate_trigger('tool window show or hide', self)
+        tname = 'tool window show' if shown else 'tool window hide'
+        ui.triggers.activate_trigger(tname, self)
 
     def shown_changed(self, shown):
         """Supported API. Perform actions when window hidden/shown
