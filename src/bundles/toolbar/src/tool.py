@@ -416,6 +416,9 @@ class _HomeTab(QTreeWidget):
         if copy_subtree:
             # find where it was copied to
             new_section = self.itemAt(event.pos())
+            if new_section is None:
+                # assume dropped below bottom
+                new_section = self.topLevelItem(self.topLevelItemCount() - 1)
             parent = new_section.parent()
             if parent is None:
                 parent = self.invisibleRootItem()

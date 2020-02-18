@@ -220,7 +220,7 @@ class AtomProximityGUI(QWidget):
                 bond_sep_layout.addWidget(QLabel("Ignore interactions between atoms"))
                 self.bond_sep_button = QPushButton()
                 bond_sep_layout.addWidget(self.bond_sep_button)
-                bond_sep_menu = QMenu()
+                bond_sep_menu = QMenu(self)
                 for bond_sep in range(2, 6):
                     bond_sep_menu.addAction(str(bond_sep))
                 bond_sep_menu.triggered.connect(lambda action, but=self.bond_sep_button:

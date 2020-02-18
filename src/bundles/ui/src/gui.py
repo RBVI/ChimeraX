@@ -131,8 +131,8 @@ class UI(QApplication):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('ready')
-        self.triggers.add_trigger('tool window show or hide')
-
+        self.triggers.add_trigger('tool window show')
+        self.triggers.add_trigger('tool window hide')
 
     @property
     def mouse_modes(self):
@@ -568,26 +568,30 @@ class MainWindow(QMainWindow, PlainTextLog):
         event.accept()
         self.session.ui.quit()
 
-    def close_request(self, tool_window, close_event):
+    def close_request(self, tool_window, close_event = None):
         # closing a tool window has been requested
         if self._is_quitting:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             return
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
         close_destroys = tool_window.close_destroys
         if is_main_window and close_destroys:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             tool_instance.delete()
             return
         if close_destroys:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             # _destroy will remove window from all_windows indirectly
             # via tw._destroy -> toolkit.destroy -> mw->_tool_window_destroyed
             tool_window._destroy()
         else:
-            close_event.ignore()
+            if close_event:
+                close_event.ignore()
             tool_window.shown = False
 
         if is_main_window:
@@ -1705,6 +1709,7 @@ class ToolWindow(StatusLogger):
         self.tool_instance.session.ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
+        self.shown = True
 
     @property
     def shown(self):
@@ -1715,7 +1720,8 @@ class ToolWindow(StatusLogger):
     def shown(self, shown):
         ui = self.session.ui
         ui.main_window._tool_window_request_shown(self, shown)
-        ui.triggers.activate_trigger('tool window show or hide', self)
+        tname = 'tool window show' if shown else 'tool window hide'
+        ui.triggers.activate_trigger(tname, self)
 
     def shown_changed(self, shown):
         """Supported API. Perform actions when window hidden/shown
@@ -2151,7 +2157,7 @@ class DefineSelectorDialog(QDialog):
         self.cur_sel_text = "current selection"
         self.atom_spec_text = "target specifier"
         self.push_button = QPushButton(self.cur_sel_text)
-        menu = QMenu()
+        menu = QMenu(self)
         menu.triggered.connect(self._menu_cb)
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
@@ -2376,7 +2382,7 @@ class InitWindowSizeOption(Option):
         from PyQt5.QtWidgets import QPushButton, QMenu
         size_scheme, size_data = self.default
         self.push_button = QPushButton(size_scheme)
-        menu = QMenu()
+        menu = QMenu(self.widget)
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
         menu = self.push_button.menu()

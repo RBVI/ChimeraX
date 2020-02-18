@@ -20,9 +20,9 @@ class AtomsArg(AtomSpecArg):
     name = "an atoms specifier"
 
     @classmethod
-    def parse(cls, text, session):
+    def parse(cls, text, session, ordered=False):
         aspec, text, rest = super().parse(text, session)
-        atoms = aspec.evaluate(session).atoms
+        atoms = aspec.evaluate(session, order_implicit_atoms=ordered).atoms
         atoms.spec = str(aspec)
         return atoms, text, rest
 
@@ -53,6 +53,13 @@ class ElementArg(StringArg):
             from chimerax.core.commands import AnnotationError
             raise AnnotationError("'%s' is not an atomic symbol" % element_name)
         return e, used, rest
+
+
+class OrderedAtomsArg(AtomsArg):
+
+    @classmethod
+    def parse(cls, text, session):
+        return super().parse(text, session, ordered=True)
 
 
 class ResiduesArg(AtomSpecArg):
