@@ -29,7 +29,11 @@ install:
 endif
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
+ifdef NO_PREBUILT
+	$(MAKE) -C prereqs install
+else
 	$(MAKE) -C prereqs install-prebuilt
+endif
 	$(MAKE) -C prereqs app-install
 	$(MAKE) build-app-dirs
 	$(MAKE) -C src install
