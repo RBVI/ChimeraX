@@ -248,7 +248,7 @@ class MoveMouseMode(MouseMode):
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self._z_rotate = False
-        self._atoms = None
+        self._moved = False
 
         # Restrict rotation to this axis using coordinate system of first model.
         self._restrict_to_axis = None
@@ -256,6 +256,13 @@ class MoveMouseMode(MouseMode):
         # Restrict translation to the plane perpendicular to this axis.
         # Axis is in coordinate system of first model.
         self._restrict_to_plane = None
+
+        # Moving atoms
+        self._atoms = None
+
+        # Undo
+        self._starting_atom_scene_coords = None
+        self._starting_model_positions = None
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -263,7 +270,12 @@ class MoveMouseMode(MouseMode):
             self._set_z_rotation(event)
         if self.move_atoms:
             from chimerax.atomic import selected_atoms
-            self._atoms = selected_atoms(self.session)
+            self._atoms = atoms = selected_atoms(self.session)
+            self._starting_atom_scene_coords = atoms.scene_coords
+        else:
+            models = self.models()
+            self._starting_model_positions = None if models is None else [m.position for m in models]
+        self._moved = False
 
     def mouse_drag(self, event):
         if self.action(event) == 'rotate':
@@ -272,6 +284,7 @@ class MoveMouseMode(MouseMode):
         else:
             shift = self._translation(event)
             self._translate(shift)
+        self._moved = True
 
     def mouse_up(self, event):
         if self.click_to_select:
@@ -279,9 +292,15 @@ class MoveMouseMode(MouseMode):
                 mode = 'toggle' if event.shift_down() else 'replace'
                 mouse_select(event, mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
+
+        self._undo_save()
+
         if self.move_atoms:
             self._atoms = None
-
+            self._starting_atom_scene_coords = None
+        else:
+            self._starting_model_positions = None
+        
     def wheel(self, event):
         d = event.wheel_value()
         if self.move_atoms:
@@ -395,6 +414,25 @@ class MoveMouseMode(MouseMode):
 
     def _atoms_center(self):
         return self._atoms.scene_coords.mean(axis=0)
+
+    def _undo_save(self):
+        if not self._moved:
+            return
+        if self._moving_atoms:
+            if self._starting_atom_scene_coords is not None:
+                from chimerax.core.undo import UndoState
+                undo_state = UndoState('move atoms')
+                a = self._atoms
+                undo_state.add(a, "scene_coords", self._starting_atom_scene_coords, a.scene_coords)
+                self.session.undo.register(undo_state)
+        elif self._starting_model_positions is not None:
+            from chimerax.core.undo import UndoState
+            undo_state = UndoState('move models')
+            models = self.models()
+            new_model_positions = [m.position for m in models]
+            undo_state.add(models, "position", self._starting_model_positions, new_model_positions,
+                           option='S')
+            self.session.undo.register(undo_state)
 
     def vr_motion(self, event):
         # Virtual reality hand controller motion.
