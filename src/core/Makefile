@@ -31,8 +31,10 @@ PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
 PKG_DIR = $(PYSITEDIR)/$(PKG_PATH)
-ifdef WIN32
-TOP := $(shell cygpath -m '$(TOP)' | sed 's,/,\\\\\\\\,g')
+ifndef WIN32
+BUILD_TOP = $(TOP)
+else
+BUILD_TOP := $(shell cygpath -m '$(TOP)' | sed 's,/,\\\\\\\\,g')
 PKG_DIR := $(shell cygpath -m '$(PKG_DIR)' | sed 's,/,\\\\\\\\,g')
 shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
@@ -61,6 +63,13 @@ wheel: setup.py
 	rm -f $(WHEEL)
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
 	rm -rf $(WHL_BNDL_NAME).egg-info
+
+sync:
+ifneq (,$(wildcard dist/*-py3-none-any.whl))
+	rsync -av dist/*.whl $(build_prefix)/sync/python-only
+else
+	rsync -av dist/*.whl $(build_prefix)/sync/binary
+endif
 
 SETUP_SED_ARGS = -e 's,PKG_DIR,$(PKG_DIR),' \
 		-e 's,SHLIB_DIR,$(shlibdir),' \
@@ -95,7 +104,7 @@ pylint:
 .PHONY: buildinfo.py
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
-	$(PYTHON_EXE) mkbuildinfo $(TOP) $(BUNDLE_VERSION) > buildinfo.py || (rm buildinfo.py ; exit 1)
+	$(PYTHON_EXE) mkbuildinfo $(BUILD_TOP) $(BUNDLE_VERSION) > buildinfo.py || (rm buildinfo.py ; exit 1)
 
 _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx

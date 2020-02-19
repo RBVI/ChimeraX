@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -25,13 +26,11 @@ try:
 except ImportError:
     import pickle
 
+#
+# Logging code
+#
 
-logging.basicConfig()
-#logging.basicConfig(filename="conference.log")
 logger = logging.getLogger()
-logger.setLevel("WARNING")
-#logger.setLevel("DEBUG")
-
 
 #
 # SSL and connection code
@@ -46,6 +45,11 @@ def get_ctx_hub():
     global _ctx_hub
     if _ctx_hub is None:
         cert = os.path.join(os.path.dirname(__file__), "server.pem")
+        if not os.path.exists(cert):
+            cert = "/usr/local/etc/cxconference.pem"
+            if not os.path.exists(cert):
+                logger.error("no SSL certificate file found")
+                raise SystemExit(1)
         _ctx_hub = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         _ctx_hub.load_cert_chain(cert)
     return _ctx_hub
@@ -863,15 +867,24 @@ class Hub(threading.Thread):
 #
 
 
-def serve(hostname, port, admin_word, finished):
+def serve(hostname, port, admin_word, pid_file=None):
     # Main program to act as hub
+    # Make sure SSL cert is in place first
+    get_ctx_hub()
+    if pid_file:
+        import os
+        pid = os.fork()
+        if pid > 0:
+            logger.info("Forked PID: %d" % pid)
+            with open(pid_file, "wt") as f:
+                print(pid, file=f)
+            raise SystemExit(0)
     hub = Hub(hostname, port, admin_word)
     logger.info("Starting hub on %s:%s" % (hostname, port))
     hub.start()
     logger.info("Waiting for hub to finish")
     hub.join()
     logger.info("Exiting")
-    finished.set()
 
 
 #
@@ -1073,12 +1086,14 @@ if __name__ == "__main__":
 
     def main():
         import sys, getopt
-        opts, args = getopt.getopt(sys.argv[1:], "h:p:l:a:T:")
+        opts, args = getopt.getopt(sys.argv[1:], "h:p:l:L:a:P:T:")
         hostname = "localhost"
         port = 8443
         admin_word = "chimeraxmux"
-        run = "serve"
+        run = None
+        log_name = None
         log_level = "INFO"
+        pid_file = None
         for opt, val in opts:
             if opt == "-h":
                 hostname = val
@@ -1086,20 +1101,26 @@ if __name__ == "__main__":
                 port = int(val)
             elif opt == "-l":
                 log_level = val
+            elif opt == "-L":
+                log_name = val
             elif opt == "-a":
                 admin_word = val
+            elif opt == "-P":
+                pid_file = val
             elif opt == "-T":
                 run = val
-        logger.setLevel(log_level)
-        run_map = {
-            "serve": serve,
-            "basic": lambda *args: test_basic(*args),
-            "conference": lambda *args: test_conference(*args),
-            "loopback": lambda *args: test_loopback(*args),
-        }
-        if run not in run_map:
-            print("-T value must be one of %s" % ", ".join(run_map.keys()))
-            raise SystemExit(1)
-        run_main(run_map[run], hostname, port, admin_word)
+        logging.basicConfig(filename=log_name, level=log_level)
+        if run is None:
+            serve(hostname, port, admin_word, pid_file)
+        else:
+            run_map = {
+                "basic": lambda *args: test_basic(*args),
+                "conference": lambda *args: test_conference(*args),
+                "loopback": lambda *args: test_loopback(*args),
+            }
+            if run not in run_map:
+                print("-T value must be one of %s" % ", ".join(run_map.keys()))
+                raise SystemExit(1)
+            run_main(run_map[run], hostname, port, admin_word)
 
     main()

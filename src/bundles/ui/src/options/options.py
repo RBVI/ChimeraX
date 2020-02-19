@@ -291,7 +291,7 @@ class EnumBase(Option):
             display_value = self.default
         self.__widget = QPushButton(display_value, **kw)
         self.__widget.setAutoDefault(False)
-        menu = QMenu()
+        menu = QMenu(self.__widget)
         self.__widget.setMenu(menu)
         self.remake_menu()
         return self.__widget

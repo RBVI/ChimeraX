@@ -38,7 +38,7 @@ class BuildStructureTool(ToolInstance):
 
         self.category_button = QPushButton()
         layout.addWidget(self.category_button, alignment=Qt.AlignCenter)
-        cat_menu = QMenu()
+        cat_menu = QMenu(parent)
         self.category_button.setMenu(cat_menu)
         cat_menu.triggered.connect(self._cat_menu_cb)
 
@@ -92,14 +92,14 @@ class BuildStructureTool(ToolInstance):
             params_layout.addWidget(QLabel(title), 0, col, alignment=Qt.AlignHCenter | Qt.AlignBottom)
         self.ms_elements_button = ebut = QPushButton()
         from chimerax.atomic.widgets import make_elements_menu
-        elements_menu = make_elements_menu()
+        elements_menu = make_elements_menu(parent)
         elements_menu.triggered.connect(lambda act, but=ebut: but.setText(act.text()))
         ebut.setMenu(elements_menu)
         ebut.setText("C")
         params_layout.addWidget(ebut, 1, 0)
 
         self.ms_bonds_button = bbut = QPushButton()
-        bonds_menu = QMenu()
+        bonds_menu = QMenu(parent)
         for nb in range(5):
             bonds_menu.addAction(str(nb))
         bonds_menu.triggered.connect(lambda act, but=bbut: but.setText(act.text()))
@@ -108,7 +108,7 @@ class BuildStructureTool(ToolInstance):
         params_layout.addWidget(bbut, 1, 1)
 
         self.ms_geom_button = gbut = QPushButton()
-        geom_menu = QMenu()
+        geom_menu = QMenu(parent)
         geom_menu.triggered.connect(lambda act, but=gbut: but.setText(act.text()))
         bonds_menu.triggered.connect(lambda act: self._ms_geom_menu_update())
         gbut.setMenu(geom_menu)

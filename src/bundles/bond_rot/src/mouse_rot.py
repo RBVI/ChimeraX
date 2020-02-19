@@ -78,8 +78,10 @@ class BondRotationMouseMode(MouseMode):
     def vr_press(self, event):
         # Virtual reality hand controller button press.
         pick = event.picked_object(self.view)
-        self._bond_rot = self._bond_rotation(pick)
-
+        self._bond_rot = br = self._bond_rotation(pick)
+        if br:
+            br.bond.selected = True
+        
         # Move the side of the bond the VR click is closest to.
         # Would like to have a command to enable this mode for rotating bonds
         # with small ligands
@@ -108,8 +110,11 @@ class BondRotationMouseMode(MouseMode):
 
     def vr_release(self, event):
         # Virtual reality hand controller button release.
-        self._log_command()
-        self._delete_bond_rotation()
+        br = self._bond_rot
+        if br:
+            br.bond.selected = False
+            self._log_command()
+            self._delete_bond_rotation()
 
 def log_torsion_command(bond_rotator):
     bond = bond_rotator.rotation.bond
