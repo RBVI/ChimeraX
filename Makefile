@@ -49,6 +49,7 @@ test src.test:
 	$(MAKE) -C src test
 
 sync:
+	mkdir -p $(build_prefix)/sync/{python-only,binary}
 	$(MAKE) -C src/bundles sync
 
 ifdef WIN32
