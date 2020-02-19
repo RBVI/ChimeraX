@@ -270,12 +270,8 @@ class MoveMouseMode(MouseMode):
             self._set_z_rotation(event)
         if self.move_atoms:
             from chimerax.atomic import selected_atoms
-            self._atoms = atoms = selected_atoms(self.session)
-            self._starting_atom_scene_coords = atoms.scene_coords
-        else:
-            models = self.models()
-            self._starting_model_positions = None if models is None else [m.position for m in models]
-        self._moved = False
+            self._atoms = selected_atoms(self.session)
+        self._undo_start()
 
     def mouse_drag(self, event):
         if self.action(event) == 'rotate':
@@ -297,9 +293,6 @@ class MoveMouseMode(MouseMode):
 
         if self.move_atoms:
             self._atoms = None
-            self._starting_atom_scene_coords = None
-        else:
-            self._starting_model_positions = None
         
     def wheel(self, event):
         d = event.wheel_value()
@@ -415,32 +408,54 @@ class MoveMouseMode(MouseMode):
     def _atoms_center(self):
         return self._atoms.scene_coords.mean(axis=0)
 
-    def _undo_save(self):
-        if not self._moved:
-            return
+    def _undo_start(self):
         if self._moving_atoms:
-            if self._starting_atom_scene_coords is not None:
-                from chimerax.core.undo import UndoState
-                undo_state = UndoState('move atoms')
-                a = self._atoms
-                undo_state.add(a, "scene_coords", self._starting_atom_scene_coords, a.scene_coords)
-                self.session.undo.register(undo_state)
-        elif self._starting_model_positions is not None:
-            from chimerax.core.undo import UndoState
-            undo_state = UndoState('move models')
+            self._starting_atom_scene_coords = self._atoms.scene_coords
+        else:
             models = self.models()
-            new_model_positions = [m.position for m in models]
-            undo_state.add(models, "position", self._starting_model_positions, new_model_positions,
-                           option='S')
-            self.session.undo.register(undo_state)
+            self._starting_model_positions = None if models is None else [m.position for m in models]
+        self._moved = False
 
+    def _undo_save(self):
+        if self._moved:
+            if self._moving_atoms:
+                if self._starting_atom_scene_coords is not None:
+                    from chimerax.core.undo import UndoState
+                    undo_state = UndoState('move atoms')
+                    a = self._atoms
+                    undo_state.add(a, "scene_coords", self._starting_atom_scene_coords, a.scene_coords)
+                    self.session.undo.register(undo_state)
+            elif self._starting_model_positions is not None:
+                from chimerax.core.undo import UndoState
+                undo_state = UndoState('move models')
+                models = self.models()
+                new_model_positions = [m.position for m in models]
+                undo_state.add(models, "position", self._starting_model_positions, new_model_positions,
+                               option='S')
+                self.session.undo.register(undo_state)
+
+        self._starting_atom_scene_coords = None
+        self._starting_model_positions = None
+
+    def vr_press(self, event):
+        # Virtual reality hand controller button press.
+        if self.move_atoms:
+            from chimerax.atomic import selected_atoms
+            self._atoms = selected_atoms(self.session)
+        self._undo_start()
+        
     def vr_motion(self, event):
         # Virtual reality hand controller motion.
         if self._moving_atoms:
             self._move_atoms(event.motion)
         else:
             self.view.move(event.motion, self.models())
-
+        self._moved = True
+        
+    def vr_release(self, event):
+        # Virtual reality hand controller button release.
+        self._undo_save()
+        
 class RotateMouseMode(MoveMouseMode):
     '''
     Mouse mode to rotate objects (actually the camera is moved) by dragging.
