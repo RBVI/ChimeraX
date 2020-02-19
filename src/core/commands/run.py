@@ -97,20 +97,41 @@ def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=Tr
         full_spec += spec
     return full_spec if full_spec else '#'
 
-def sel_or_all(session, sel_types, sel="sel", restriction=None):
-    for sel_type in sel_types:
+def sel_or_all(session, sel_type_info, sel="sel", restriction=None):
+    # sel_type_info is either a list of strings each of which is appropriate as an arg for
+    # session.selection.items(arg), or a Model subclass
+
+    from chimerax.core.errors import UserError
+    from chimerax.core.models import Model
+    if isinstance(sel_type_info, Model):
+        type_models = [m for m in session.models.list(type=sel_type_info)]
+        if not type_models:
+            raise UserError("No %s models open" % sel_type_info.__name__)
+        msel = [m for m in type_models if m.selected]
+        if msel:
+            if restriction:
+                return '(%s & %s)' % (concise_model_spec(msel), restriction)
+            return concise_model_spec(msel)
+        if session.selection.empty():
+            mshown = [m for m in type_models if m.visible]
+            if mshown and mshown != type_models:
+                if restriction:
+                    return '(%s & %s)' % (concise_model_spec(mshown), restriction)
+                return concise_model_spec(mshown)
+            if restriction:
+                return '(%s & %s)' % (concise_model_spec(type_models), restriction)
+            return concise_model_spec(type_models)
+        raise UserError("No %s models selected" % sel_type_info.__name__)
+
+    # specific types rather than a Model subclass
+    for sel_type in sel_type_info:
         if session.selection.items(sel_type):
             if restriction:
                 return '(%s & %s)' % (sel, restriction)
             return sel
-    for m in session.models:
-        if not m.display:
-            if restriction:
-                return "(##display & %s)" % restriction
-            return "##display"
-    if restriction:
-        return restriction
-    return ""
+    if session.selection.empty():
+        return ""
+    raise UserError("No %s selected" % " or ".join(sel_type_info))
 
 def _make_id_tree(models):
     tree = {}
