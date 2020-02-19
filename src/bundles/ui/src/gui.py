@@ -1661,10 +1661,12 @@ class ToolWindow(StatusLogger):
         and removed from the menu when this method returns."""
         pass
 
-    @property
-    def floating(self):
+    def _get_floating(self):
         return self.__toolkit.dock_widget.isFloating()
-
+    def _set_floating(self, floating):
+        return self.__toolkit.dock_widget.setFloating(floating)
+    floating = property(_get_floating, _set_floating)
+    
     @property
     def hides_title_bar(self):
         return self.__toolkit.hide_title_bar
