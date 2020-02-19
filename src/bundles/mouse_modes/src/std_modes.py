@@ -243,10 +243,12 @@ class MoveMouseMode(MouseMode):
     '''
     click_to_select = False
     mouse_action = 'translate'	# translate or rotate
+    move_atoms = False		# Move atoms, else move whole models
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self._z_rotate = False
+        self._atoms = None
 
         # Restrict rotation to this axis using coordinate system of first model.
         self._restrict_to_axis = None
@@ -259,6 +261,9 @@ class MoveMouseMode(MouseMode):
         MouseMode.mouse_down(self, event)
         if self.action(event) == 'rotate':
             self._set_z_rotation(event)
+        if self.move_atoms:
+            from chimerax.atomic import selected_atoms
+            self._atoms = selected_atoms(self.session)
 
     def mouse_drag(self, event):
         if self.action(event) == 'rotate':
@@ -274,9 +279,14 @@ class MoveMouseMode(MouseMode):
                 mode = 'toggle' if event.shift_down() else 'replace'
                 mouse_select(event, mode, self.session, self.view)
         MouseMode.mouse_up(self, event)
+        if self.move_atoms:
+            self._atoms = None
 
     def wheel(self, event):
         d = event.wheel_value()
+        if self.move_atoms:
+            from chimerax.atomic import selected_atoms
+            self._atoms = selected_atoms(self.session)
         if self.action(event) == 'rotate':
             self._rotate((0,1,0), 10*d)
         else:
@@ -301,7 +311,11 @@ class MoveMouseMode(MouseMode):
     def _rotate(self, axis, angle):
         # Convert axis from camera to scene coordinates
         saxis = self.camera_position.transform_vector(axis)
-        self.view.rotate(saxis, angle, self.models())
+        if self._moving_atoms:
+            from chimerax.core.geometry import rotation
+            self._move_atoms(rotation(saxis, angle, center = self._atoms_center()))
+        else:
+            self.view.rotate(saxis, angle, self.models())
 
     def _rotation_axis_angle(self, event):
         '''Returned axis is in camera coordinate system.'''
@@ -340,8 +354,12 @@ class MoveMouseMode(MouseMode):
         psize = self.pixel_size()
         s = tuple(dx*psize for dx in shift)     # Scene units
         step = self.camera_position.transform_vector(s)    # Scene coord system
-        self.view.translate(step, self.models())
-
+        if self._moving_atoms:
+            from chimerax.core.geometry import translation
+            self._move_atoms(translation(step))
+        else:
+            self.view.translate(step, self.models())
+        
     def _translation(self, event):
         '''Returned shift is in camera coordinates.'''
         dx, dy = self.mouse_motion(event)
@@ -367,9 +385,23 @@ class MoveMouseMode(MouseMode):
     def models(self):
         return None
 
+    @property
+    def _moving_atoms(self):
+        return self.move_atoms and self._atoms is not None and len(self._atoms) > 0
+        
+    def _move_atoms(self, transform):
+        atoms = self._atoms
+        atoms.scene_coords = transform * atoms.scene_coords
+
+    def _atoms_center(self):
+        return self._atoms.scene_coords.mean(axis=0)
+
     def vr_motion(self, event):
         # Virtual reality hand controller motion.
-        self.view.move(event.motion, self.models())
+        if self._moving_atoms:
+            self._move_atoms(event.motion)
+        else:
+            self.view.move(event.motion, self.models())
 
 class RotateMouseMode(MoveMouseMode):
     '''
@@ -380,7 +412,6 @@ class RotateMouseMode(MoveMouseMode):
     '''
     name = 'rotate'
     icon_file = 'icons/rotate.png'
-    click_to_select = False
     mouse_action = 'rotate'
 
 class RotateAndSelectMouseMode(RotateMouseMode):
@@ -394,7 +425,7 @@ class RotateAndSelectMouseMode(RotateMouseMode):
     icon_file = 'icons/rotatesel.png'
     click_to_select = True
 
-class RotateSelectedMouseMode(RotateMouseMode):
+class RotateSelectedModelsMouseMode(RotateMouseMode):
     '''
     Mouse mode to rotate objects like RotateMouseMode but only selected
     models are rotated. Selected models are actually moved in scene
@@ -407,13 +438,13 @@ class RotateSelectedMouseMode(RotateMouseMode):
     def models(self):
         return top_selected(self.session)
 
-class RotateZSelectedMouseMode(RotateSelectedMouseMode):
+class RotateZSelectedModelsMouseMode(RotateSelectedModelsMouseMode):
     '''
     Rotate selected models about first model z axis.
     '''
     name = 'rotate z selected models'
     def __init__(self, session):
-        RotateSelectedMouseMode.__init__(self, session)
+        RotateSelectedModelsMouseMode.__init__(self, session)
         self._restrict_to_axis = (0,0,1)
         self._restrict_to_plane = (0,0,1)
 
@@ -437,7 +468,7 @@ class TranslateMouseMode(MoveMouseMode):
     icon_file = 'icons/translate.png'
     mouse_action = 'translate'
 
-class TranslateSelectedMouseMode(TranslateMouseMode):
+class TranslateSelectedModelsMouseMode(TranslateMouseMode):
     '''
     Mouse mode to move objects in x and y like TranslateMouseMode but only selected
     models are moved. Selected models are actually moved in scene
@@ -450,31 +481,31 @@ class TranslateSelectedMouseMode(TranslateMouseMode):
     def models(self):
         return top_selected(self.session)
 
-class TranslateXYSelectedMouseMode(TranslateSelectedMouseMode):
+class TranslateXYSelectedModelsMouseMode(TranslateSelectedModelsMouseMode):
     '''
     Translate selected models only in x and y of the first selected models coordinate system.
     '''
     name = 'translate xy selected models'
     def __init__(self, session):
-        TranslateSelectedMouseMode.__init__(self, session)
+        TranslateSelectedModelsMouseMode.__init__(self, session)
         self._restrict_to_plane = (0,0,1)
         self._restrict_to_axis = (0,0,1)
 
-class MoveSelectedAtomsMouseMode(MouseMode):
+class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     '''
-    Mouse mode to move selected atoms.
+    Mouse mode to translate selected atoms.
     '''
-    name = 'move selected atoms'
-    icon_file = 'icons/move_h2o.png'
+    name = 'translate selected atoms'
+    icon_file = 'icons/move_atoms.png'
+    move_atoms = True
 
-    def __init__(self, session):
-        MouseMode.__init__(self, session)
-
-    def vr_motion(self, event):
-        from chimerax.atomic import selected_atoms
-        atoms = selected_atoms(self.session)
-        if len(atoms) > 0:
-            atoms.scene_coords = event.motion * atoms.scene_coords
+class RotateSelectedAtomsMouseMode(RotateMouseMode):
+    '''
+    Mouse mode to rotate selected atoms.
+    '''
+    name = 'rotate selected atoms'
+    icon_file = 'icons/rotate_atoms.png'
+    move_atoms = True
         
 class ZoomMouseMode(MouseMode):
     '''
@@ -816,13 +847,15 @@ def standard_mouse_mode_classes():
         SelectSubtractMouseMode,
         SelectToggleMouseMode,
         RotateMouseMode,
+        RotateAndSelectMouseMode,
         TranslateMouseMode,
         ZoomMouseMode,
-        RotateAndSelectMouseMode,
-        TranslateSelectedMouseMode,
-        TranslateXYSelectedMouseMode,
-        RotateSelectedMouseMode,
-        RotateZSelectedMouseMode,
+        TranslateSelectedModelsMouseMode,
+        TranslateXYSelectedModelsMouseMode,
+        TranslateSelectedAtomsMouseMode,
+        RotateSelectedModelsMouseMode,
+        RotateZSelectedModelsMouseMode,
+        RotateSelectedAtomsMouseMode,
         ClipMouseMode,
         ClipRotateMouseMode,
         ObjectIdMouseMode,
