@@ -263,8 +263,11 @@ class _InterpolateViews:
         self.view2 = v2
         self.frames = frames
         self.centers = _model_motion_centers(v1.positions, v2.positions)
-        from chimerax.core.commands import motion
-        motion.CallForNFrames(self.frame_cb, frames, session)
+        if frames == 1:
+            self.frame_cb(session, 0)
+        else:
+            from chimerax.core.commands import motion
+            motion.CallForNFrames(self.frame_cb, frames, session)
 
     def frame_cb(self, session, frame):
         v1, v2 = self.view1, self.view2
