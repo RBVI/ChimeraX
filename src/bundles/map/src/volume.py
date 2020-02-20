@@ -497,7 +497,7 @@ class Volume(Model):
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = [-v,v]
-      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      neg_rgba = _negative_color(rgba)
       colors = [neg_rgba,rgba]
     elif binary:
       levels = [0.5]
@@ -3231,6 +3231,17 @@ def set_initial_volume_color(v, session):
     icolors = ds['initial_colors']
     rgba = icolors[i%len(icolors)]
     v.set_parameters(default_rgba = rgba)
+
+# ---------------------------------------------------------------------------
+#
+def _negative_color(rgba):
+  neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+  minc = max(neg_rgba[:3])
+  if minc == 0:
+    neg_rgba = (1,0,0,neg_rgba[3])
+  elif minc < 0.7:
+    neg_rgba = tuple(c/minc for c in neg_rgba[:3]) + (neg_rgba[3],)
+  return neg_rgba
 
 # ---------------------------------------------------------------------------
 #
