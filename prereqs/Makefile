@@ -193,7 +193,7 @@ endif
 
 SUBDIR_APP_INSTALL = $(SUBDIRS:=.app-install)
 .PHONY: $(SUBDIR_APP_INSTALL)
-app-install: $(SUBDIR_APP_INSTALL)
+app-install: install $(SUBDIR_APP_INSTALL)
 #	# recreate $(PYSITEDIR)/easy-install.pth with actually installed eggs
 #	cd $(APP_PYSITEDIR); \
 #		(echo "import sys; sys.__plen = len(sys.path)"; \

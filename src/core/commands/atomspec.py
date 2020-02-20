@@ -71,9 +71,22 @@ all atoms.
 
 import re
 from .cli import Annotation
+from contextlib import contextmanager
 
 _double_quote = re.compile(r'"(.|\")*?"(\s|$)')
-_terminator = re.compile("[;\s]")  # semicolon or whitespace
+_terminator = re.compile(r"[;\s]")  # semicolon or whitespace
+
+MAX_STACK_DEPTH = 10000000
+
+
+@contextmanager
+def maximum_stack(max_depth=MAX_STACK_DEPTH):
+    # fix #2790 by increasing maximum stack depth
+    import sys
+    save_current_limit = sys.getrecursionlimit()
+    sys.setrecursionlimit(max_depth)
+    yield
+    sys.setrecursionlimit(save_current_limit)
 
 
 class AtomSpecArg(Annotation):
@@ -120,7 +133,8 @@ class AtomSpecArg(Annotation):
         semantics = _AtomSpecSemantics(session)
         from grako.exceptions import FailedParse, FailedSemantics
         try:
-            ast = parser.parse(token, "atom_specifier", semantics=semantics)
+            with maximum_stack():
+                ast = parser.parse(token, "atom_specifier", semantics=semantics)
         except FailedSemantics as e:
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
@@ -150,7 +164,8 @@ class AtomSpecArg(Annotation):
         semantics = _AtomSpecSemantics(session)
         from grako.exceptions import FailedParse, FailedSemantics
         try:
-            ast = parser.parse(text, "atom_specifier", semantics=semantics)
+            with maximum_stack():
+                ast = parser.parse(text, "atom_specifier", semantics=semantics)
         except FailedSemantics as e:
             from .cli import AnnotationError
             raise AnnotationError(str(e), offset=e.pos)
@@ -830,6 +845,7 @@ class _AttrTest:
             invert = self.op in (operator.ne, "!==")
             if _has_wildcard(self.value):
                 from fnmatch import fnmatchcase
+
                 def matcher(obj):
                     try:
                         v = getattr(obj, attr_name)
@@ -856,6 +872,7 @@ class _AttrTest:
         else:
             op = self.op
             attr_value = self.value
+
             def matcher(obj):
                 try:
                     v = getattr(obj, attr_name)
@@ -961,13 +978,15 @@ class _Invert:
     def evaluate(self, session, models=None, *, ordered=False, **kw):
         if models is None:
             models = session.models.list(**kw)
-        results = self._atomspec.evaluate(session, models, top=False, ordered=ordered)
+        with maximum_stack():
+            results = self._atomspec.evaluate(session, models, top=False, ordered=ordered)
         add_implied_bonds(results)
         results.invert(session, models)
         return results
 
     def find_matches(self, session, models, results, ordered):
-        self._atomspec.find_matches(session, models, results, ordered)
+        with maximum_stack():
+            self._atomspec.find_matches(session, models, results, ordered)
         add_implied_bonds(results)
         results.invert(session, models)
         return results
@@ -1019,21 +1038,21 @@ class AtomSpec:
             models = session.models.list(**kw)
             models.sort(key=lambda m: m.id)
         if self._operator is None:
-            results = self._left_spec.evaluate(session, models, top=False,
-                ordered=order_implicit_atoms)
+            results = self._left_spec.evaluate(
+                session, models, top=False, ordered=order_implicit_atoms)
         elif self._operator == '|':
-            left_results = self._left_spec.evaluate(session, models, top=False,
-                ordered=order_implicit_atoms)
-            right_results = self._right_spec.evaluate(session, models, top=False,
-                ordered=order_implicit_atoms)
+            left_results = self._left_spec.evaluate(
+                session, models, top=False, ordered=order_implicit_atoms)
+            right_results = self._right_spec.evaluate(
+                session, models, top=False, ordered=order_implicit_atoms)
             from ..objects import Objects
             results = Objects.union(left_results, right_results)
         elif self._operator == '&':
-            left_results = self._left_spec.evaluate(session, models, top=False,
-                ordered=order_implicit_atoms)
+            left_results = self._left_spec.evaluate(
+                session, models, top=False, ordered=order_implicit_atoms)
             add_implied_bonds(left_results)
-            right_results = self._right_spec.evaluate(session, models, top=False,
-                ordered=order_implicit_atoms)
+            right_results = self._right_spec.evaluate(
+                session, models, top=False, ordered=order_implicit_atoms)
             add_implied_bonds(right_results)
             from ..objects import Objects
             results = Objects.intersect(left_results, right_results)
@@ -1046,6 +1065,7 @@ class AtomSpec:
         my_results = self.evaluate(session, models, top=False, ordered=ordered)
         results.combine(my_results)
         return results
+
 
 def add_implied_bonds(objects):
     atoms = objects.atoms
@@ -1183,7 +1203,7 @@ def check_selectors(trigger_name, model):
         if isinstance(sel.value, Objects):
             for m in sel.value.models:
                 if not m.deleted and m.id is not None:
-                     break
+                    break
             else:
                 empty.append(name)
     for name in empty:

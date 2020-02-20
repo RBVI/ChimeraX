@@ -51,6 +51,7 @@ def get_ctx_hub():
                 logger.error("no SSL certificate file found")
                 raise SystemExit(1)
         _ctx_hub = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        _ctx_hub.options |= (ssl.OP_NO_TLSv1|ssl.OP_NO_TLSv1_1)
         _ctx_hub.load_cert_chain(cert)
     return _ctx_hub
 
@@ -186,9 +187,9 @@ class _Connection:
                 # If data is not text, assume it is not HTTP protocol
                 pass
             else:
-                if s.startswith("get") or s.startswith("post"):
-                    self._send(b"HTTP/2.0 418 I'm a teapot\n\n")
-                    self.close()
+                if (s.startswith("get") or s.startswith("post") or
+                    s.startswith("head") or s.startswith("put")):
+                    self._send_http_error()
                     return None, None, None
             ptype, serial, count = struct.unpack(self.HeaderFormat, header_data)
             sdata = bytes()
@@ -204,6 +205,14 @@ class _Connection:
         except (OSError, ConnectionError):
             self.close()
             return None, None, None
+
+    def _send_http_error(self):
+        self._send(b"HTTP/1.1 418 I'm a teapot\r\n")
+        self._send(b"Content-Type: text/plain; charset=utf-8\r\n")
+        self._send(b"Connection: close\r\n")
+        self._send(b"\r\n")
+        self._send(b"I'm a teapot\r\n")
+        self.close()
 
     def put(self, ptype, serial, data):
         # Serialization code copied from ActiveState recipe
