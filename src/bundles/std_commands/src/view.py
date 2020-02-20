@@ -100,6 +100,15 @@ def view_name(session, name):
       Name the current camera view and model positions so they can be shown
       later with the "show" option.
     """
+    reserved = ('clip', 'cofr', 'delete', 'frames', 'initial',
+                'list', 'matrix', 'orient', 'pad', 'position')
+    matches = [r for r in reserved if r.startswith(name)]
+    if matches:
+        from chimerax.core.errors import UserError
+        raise UserError('view name "%s" conflicts with "%s" view option.\n' % (name, matches[0]) +
+                        'Names cannot be option names or their abbreviations:\n %s'
+                        % ', '.join('"%s"' % n for n in reserved))
+    
     nv = _named_views(session).views
     v = session.main_view
     models = session.models.list()
