@@ -3568,7 +3568,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     else:
       vlist = [m for m in models if isinstance(m, Volume)]
       if len(vlist) == 0:
-          mstring = ' (#%s)' % ','.join(model.id_string for m in models) if models else ''
+          mstring = ' (#%s)' % ','.join(m.id_string for m in models) if models else ''
           from chimerax.core.errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
 
