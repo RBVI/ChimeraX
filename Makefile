@@ -29,7 +29,11 @@ install:
 endif
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
+ifdef NO_PREBUILT
+	$(MAKE) -C prereqs install
+else
 	$(MAKE) -C prereqs install-prebuilt
+endif
 	$(MAKE) -C prereqs app-install
 	$(MAKE) build-app-dirs
 	$(MAKE) -C src install
@@ -45,6 +49,7 @@ test src.test:
 	$(MAKE) -C src test
 
 sync:
+	mkdir -p $(build_prefix)/sync/{python-only,binary}
 	$(MAKE) -C src/bundles sync
 
 ifdef WIN32

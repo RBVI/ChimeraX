@@ -191,7 +191,7 @@ def add_select_menu_items(session):
     atom_triggers.add_handler("changes", _check_chains_update_status)
 
     from .widgets import make_elements_menu
-    elements_menu = make_elements_menu(_session=session, _parent_menus=["Che&mistry", "&Element"])
+    elements_menu = make_elements_menu(mw, _session=session, _parent_menus=["Che&mistry", "&Element"])
     elements_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
 
     parent_menus = ["Che&mistry", "&IDATM Type"]

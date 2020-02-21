@@ -1866,7 +1866,10 @@ class Structure(Model, StructureData):
     def atomspec_has_atoms(self):
         return True
 
-    def atomspec_atoms(self):
+    def atomspec_atoms(self, ordered=False):
+        if ordered:
+            from .molarray import Atoms
+            return Atoms(sorted(self.atoms))
         return self.atoms
 
     def atomspec_filter(self, level, atoms, num_atoms, parts, attrs):

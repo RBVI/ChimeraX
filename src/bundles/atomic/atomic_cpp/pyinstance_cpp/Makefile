@@ -37,8 +37,6 @@ endif
 endif
 	$(RSYNC) imex.h imex.map.h $(wildcard *.h) ../include/$(DIRNAME)/
 
-PythonInstance.o: imex.map.h
-
 imex.map.h: imex.h
 	sed -e 's/$(UPLIBNAME)/$(UPLIBNAME)_MAP/' < imex.h > imex.map.h
 
@@ -48,4 +46,4 @@ ifdef WIN32
 	rm -f lib$(LIBNAME).{lib,exp,pdb} vc*.pdb
 endif
 
-PythonInstance.o: PythonInstance.declare.h PythonInstance.instantiate.h
+PythonInstance.$(OBJ_EXT): PythonInstance.declare.h PythonInstance.instantiate.h imex.map.h

@@ -9,7 +9,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-CHIMERAX_APP = $(wildcard ../../../ChimeraX*.app)
+TOP = ../../..
+CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
@@ -46,7 +47,7 @@ install app-install: $(WHEEL)
 	$(PYTHON_EXE) -m pip install --upgrade --force-reinstall $(WHEEL)
 
 sync:
-	rsync -av dist/*.whl plato:/usr/local/projects/chimerax/builds/repo/
+	rsync -av dist/*.whl $(TOP)/build/sync/python-only
 
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\

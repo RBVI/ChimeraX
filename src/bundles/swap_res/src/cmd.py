@@ -121,8 +121,11 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
                 "%s Side-Chain Rotamers" % r, mgr, res_type, session.rotamers.library(lib).display_name)
         ret_val.append(mgr)
         rot_structs = AtomicStructures(rotamers)
+        rot_objects = Objects(atoms=rot_structs.atoms, bonds=rot_structs.bonds)
         from chimerax.std_commands.color import color
-        color(session, Objects(atoms=rot_structs.atoms), color="byelement")
+        color(session, rot_objects, color="byelement")
+        from chimerax.std_commands.size import size
+        size(session, rot_objects, stick_radius=0.1)
     return ret_val
 
 def _check_residues(residues):
