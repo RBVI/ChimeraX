@@ -319,8 +319,15 @@ class FloatOption(Option):
        a means to increment the value (e.g. up/down arrow) then 'step' is how much the
        value will be incremented (default: 10x the smallest value implied by 'decimal_places').
        
+       if 'as_slider' is True, then a slider widget will be used instead of an entry widget.
+       If using a slider, it is recommended to set 'min' and 'max' values; otherwise the
+       widget will cover a very large numeric range.  When using a slider, you can specify
+       'continuous_callback' as True/False (default False) to control whether the option's
+       callback happens as the slider is dragged, or just when the slider is released.
+
        Supports 'left_text' and 'right_text' keywords for putting text before
-       and after the entry widget on the right side of the form"""
+       and after the entry widget on the right side of the form, or below left/right
+       of the slider if using a slider."""
 
     def get_value(self):
         val = self._float_widget.value()
