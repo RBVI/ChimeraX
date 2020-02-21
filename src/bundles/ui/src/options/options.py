@@ -312,7 +312,6 @@ class EnumBase(Option):
                 self.value = labels[0]
                 self.make_callback()
     remake_buttons = remake_menu
-<<<<<<< HEAD
 
     def _make_widget(self, *, as_radio_buttons=False, display_value=None, **kw):
         from PyQt5.QtWidgets import QPushButton, QMenu, QWidget, QButtonGroup, QVBoxLayout
