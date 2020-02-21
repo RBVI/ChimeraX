@@ -51,7 +51,7 @@ def register_settings_options(session):
             "How many digits after the decimal point to show for distances"),
         'radius': (
             "Radius",
-            (FloatOption, {'min': 'positive', 'decimal_places': 3 }),
+            (FloatOption, {'min': 'positive', 'decimal_places': 3 ),
             "distance style radius %g",
             None,
             "Radial line thickness of distance"),
