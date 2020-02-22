@@ -589,8 +589,14 @@ class _HistoryDialog:
     def update_list(self):
         c = self.controller
         last8 = list(reversed(self.history()[-8:]))
+        # without blocking signals, if the command list is empty then
+        # "Command History" (the first entry) will execute...
+        c.text.blockSignals(True)
         c.text.clear()
         c.text.addItems(last8 + [c.show_history_label, c.compact_label])
+        if not last8:
+            c.text.lineEdit().setText("")
+        c.text.blockSignals(False)
 
     def history(self):
         if self.typed_only:
