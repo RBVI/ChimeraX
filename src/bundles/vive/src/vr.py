@@ -1392,7 +1392,7 @@ class UserInterface:
                          if tw.tool_instance.tool_name not in exclude_tools]
         tool_wins.sort(key = _tool_y_position)
         tpanels = [Panel(tw, ui, self, add_titlebar = (tw.tool_instance.tool_name != 'Toolbar'))
-                   for tw in tool_wins]
+                   for tw in tool_wins if tw.shown]
         panels.extend(tpanels)
 
         # Position panels on top of each other
@@ -1779,7 +1779,9 @@ class Panel:
     def __init__(self, tool_or_widget, drawing_parent, ui,
                  tool_name = None, pixel_size = 0.001, add_titlebar = False):
         from chimerax.ui.gui import ToolWindow
-        if isinstance(tool_or_widget, ToolWindow):
+        if isinstance(tool_or_widget, ToolWindow) or hasattr(tool_or_widget, 'tool_instance'):
+            # TODO: Remove test for tool_instance attribute
+            # needed to work around bug #2875
             tw = tool_or_widget
             self._tool_window = tw
             self._widget = tw.ui_area
