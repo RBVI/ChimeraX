@@ -44,7 +44,7 @@ class Chimera_HDF_Data:
 
         agroups = self.find_arrays(f.root)
         if len(agroups) == 0:
-            raise ValueError('Chimera HDF5 file %s contains no 3d arrays' % path)
+            raise SyntaxError('Chimera HDF5 file %s contains no 3d arrays' % path)
 
         imlist = [Chimera_HDF_Image(g,a) for g,a in agroups]
         imlist.sort(key = lambda i: i.name)
@@ -354,7 +354,7 @@ class Chimera_HDF_Image:
                            ((a._v_name,) + tuple(a.shape) + (a.atom.dtype.name,))
                            for a in arrays])
         message += sizes
-        raise ValueError(message)
+        raise SyntaxError(message)
 
 # -----------------------------------------------------------------------------
 #
