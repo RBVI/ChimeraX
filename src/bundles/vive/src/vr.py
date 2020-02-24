@@ -1316,7 +1316,7 @@ class UserInterface:
         self._raised_buttons = {}	# maps highlight_id to (widget, panel)
         self._move_gui = set()		# set of (HandController, button) if gui being moved by press on title bar
         self._move_ui_mode = MoveUIMode()
-        self._resizing_panel = None	# Panel being resized by click and drag on titlebar
+        self._resizing_panel = None	# (Panel, HandController) when panel being resized by click and drag on titlebar
         self._tool_show_handler = None
         self._tool_hide_handler = None
 
@@ -1392,7 +1392,7 @@ class UserInterface:
                          if tw.tool_instance.tool_name not in exclude_tools]
         tool_wins.sort(key = _tool_y_position)
         tpanels = [Panel(tw, ui, self, add_titlebar = (tw.tool_instance.tool_name != 'Toolbar'))
-                   for tw in tool_wins]
+                   for tw in tool_wins if tw.shown]
         panels.extend(tpanels)
 
         # Position panels on top of each other
@@ -1587,7 +1587,7 @@ class UserInterface:
                     self.redraw_ui()
                 elif panel.clicked_on_resize_button(window_xy):
                     panel.undock()
-                    self._resizing_panel = panel
+                    self._resizing_panel = (panel, hc)
                 elif panel.clicked_on_title_bar(window_xy):
                     # Drag on title bar moves VR gui
                     self._move_gui.add((hc,b))
@@ -1621,12 +1621,7 @@ class UserInterface:
     def process_hand_controller_motion(self, hand_controller):
         hc = hand_controller
 
-        if self._resizing_panel:
-            panel = self._resizing_panel
-            window_xy, z_offset = panel._panel_click_position(hc.room_position.origin())
-            if window_xy is not None:
-                wx,wy = window_xy
-                panel.resize_widget(-2*int(wx), -2*int(wy))
+        if self._resize_panel(hc):
             return True
         
         dragged = False
@@ -1645,6 +1640,38 @@ class UserInterface:
             self._highlight_button(p, hc)
 
         return False
+
+    def _resize_panel(self, hand_controller):
+        if self._resizing_panel is None:
+            self._last_panel_resize_position = None
+            return False
+
+        panel, resize_hc = self._resizing_panel
+        if hand_controller is not resize_hc:
+            return False
+
+        hpos = hand_controller.room_position.origin()
+        window_xy, z_offset = panel._panel_click_position(hpos)
+        if window_xy is None:
+            return True
+        
+        lhpos = getattr(self, '_last_panel_resize_position', None)
+        self._last_panel_resize_position = hpos
+        if lhpos is None:
+            return True
+        
+        last_xy, z_offset = panel._panel_click_position(lhpos)
+        if last_xy is None:
+            return True
+        
+        dx,dy = [x-xl for x,xl in zip(window_xy, last_xy)]
+        rx,ry = -2*int(round(dx)), -2*int(round(dy))
+        panel.resize_widget(rx, ry)
+        
+        if rx == 0 and ry == 0:
+            self._last_panel_resize_position = lhpos  # Accumulate motion
+
+        return True
             
     def _highlight_button(self, room_point, highlight_id):
         window_xy, panel = self._click_position(room_point)
@@ -1752,7 +1779,9 @@ class Panel:
     def __init__(self, tool_or_widget, drawing_parent, ui,
                  tool_name = None, pixel_size = 0.001, add_titlebar = False):
         from chimerax.ui.gui import ToolWindow
-        if isinstance(tool_or_widget, ToolWindow):
+        if isinstance(tool_or_widget, ToolWindow) or hasattr(tool_or_widget, 'tool_instance'):
+            # TODO: Remove test for tool_instance attribute
+            # needed to work around bug #2875
             tw = tool_or_widget
             self._tool_window = tw
             self._widget = tw.ui_area
@@ -1833,6 +1862,8 @@ class Panel:
         return self._size
 
     def resize_widget(self, dx, dy):
+        if dx == 0 and dy == 0:
+            return
         w = self._widget
         top = w.window()
         s = top.size()
@@ -1843,7 +1874,7 @@ class Panel:
 
     def undock(self):
         tw = self._tool_window
-        if tw is not None:
+        if tw is not None and not tw.floating:
             tw.floating = True
 
     @property
@@ -2013,7 +2044,7 @@ class Panel:
             title_rgba = text_image_rgba(title, title_color, th, 'Arial',
                                          background_color = background_color,
                                          xpad = 8, ypad = 4, pixels = True)
-            tw = min(title_rgba.shape[1], trgba.shape[1])
+            tw = min(title_rgba.shape[1], trgba.shape[1]-rw)
             trgba[h:,rw:rw+tw,:] = title_rgba[:,:tw,:]
 
         # Add close button

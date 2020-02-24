@@ -38,7 +38,12 @@ class ModelPanel(ToolInstance):
             def sizeHint(self):
                 from PyQt5.QtCore import QSize
                 # side buttons will keep the vertical size reasonable
-                return QSize(500, 200)
+                if getattr(self, '_first_size_hint_call', True):
+                    self._first_size_hint_call = False
+                    width = 0
+                else:
+                    width = self.header().length()
+                return QSize(width, 200)
         self.tree = SizedTreeWidget()
         self.tree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.tree.keyPressEvent = session.ui.forward_keystroke

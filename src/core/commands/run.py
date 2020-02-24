@@ -52,6 +52,9 @@ def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=Tr
     models = [m for m in models if m.id is not None]
     if not models:
         return '#'
+    # algorithm only works (namely _make_id_tree) if ids are longest to shortest...
+    universe = sorted(universe, key=lambda m: len(m.id))
+    models = sorted(models, key=lambda m: len(m.id))
     u_id_tree = _make_id_tree(universe)
     m_id_tree = _make_id_tree(models)
 

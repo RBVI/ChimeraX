@@ -79,18 +79,28 @@ Each <b>Sequence Viewer</b> window has a
 with choices including:
 <p>
 <ul>
-<li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
-[various <a href="../commands/save.html#seqformats">sequence file formats</a>]
-&ndash;
-save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
+<li><b>File</b>
+  <ul>
+  <li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  [various <a href="../commands/save.html#seqformats">sequence file formats</a>]
+  &ndash; save to file; 
+  see also <a href="../commands/save.html#sequence"><b>save</b></a>
+  <li><b>Load Sequence Coloring File...</b> open a
+  <a href="../formats/scf.html">sequence coloring file</a>
+  to create <a href="#regions">regions</a> and color 
+  <a href="#association">associated</a> structure to match
+  </ul>
+<li><b>Structure</b>
+  <ul>
+  <li><b>Associations...</b> show dialog for controlling 
+  <a href="#association">sequence-structure association</a>
+  <li><b>Modeller Comparative Modeling...</b> 
+start <a href="modeller.html"><b>Modeller Comparative Modeling</b></a>
+(requires a structure to be <a href="#association">associated</a> 
+with any sequence in the alignment, for use as a template in modeling)
+  </ul>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
-<li><b>Associations...</b> show dialog for controlling 
-<a href="#association">sequence-structure association</a>
-<li><b>Load Sequence Coloring File...</b> open a
-<a href="../formats/scf.html">sequence coloring file</a>
-to create <a href="#regions">regions</a> and color 
-<a href="#association">associated</a> structure to match
 </ul>
 
 <a name="headers"></a>
@@ -492,5 +502,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+February 2020</address>
 </body></html>

@@ -513,12 +513,6 @@ class SequenceViewer(ToolInstance):
         file_menu.addAction(scf_action)
 
         structure_menu = menu.addMenu("Structure")
-        comp_model_action = QAction("Modeller Comparative Modeling...", structure_menu)
-        comp_model_action.triggered.connect(lambda arg: run(self.session,
-            "toolshed show 'Modeller Comparative'"))
-        if not self.alignment.associations:
-            comp_model_action.setEnabled(False)
-        structure_menu.addAction(comp_model_action)
         assoc_action = QAction("Associations...", structure_menu)
         assoc_action.triggered.connect(lambda arg: self.show_associations())
         from chimerax.atomic import AtomicStructure
@@ -528,6 +522,12 @@ class SequenceViewer(ToolInstance):
         else:
             assoc_action.setEnabled(False)
         structure_menu.addAction(assoc_action)
+        comp_model_action = QAction("Modeller Comparative Modeling...", structure_menu)
+        comp_model_action.triggered.connect(lambda arg: run(self.session,
+            "toolshed show 'Modeller Comparative'"))
+        if not self.alignment.associations:
+            comp_model_action.setEnabled(False)
+        structure_menu.addAction(comp_model_action)
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(lambda arg: self.show_settings())
