@@ -27,6 +27,7 @@ class WindowingMouseMode(MouseMode):
         self._centers = []
         self._window_num = 0
         self._vr_window_switch_motion = 0.02	# meters
+        self._dragged = False
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -100,12 +101,12 @@ class WindowingMouseMode(MouseMode):
         horz_shift, vert_shift = hand_motion[0], hand_motion[1]
         if abs(horz_shift) > abs(vert_shift):
             if self._multiwindow:
-                scale_window(self._maps, horz_shift, self._centers)
+                _scale_window(self._maps, horz_shift, self._centers)
             else:
                 scale_levels(self._maps, horz_shift)
         else:
             if self._multiwindow:
-                self._centers = translate_window(self._maps, vert_shift, self._centers)
+                self._centers = _translate_window(self._maps, vert_shift, self._centers)
             else:
                 translate_levels(self._maps, vert_shift)
         self._dragged += max(abs(horz_shift), abs(vert_shift))
@@ -114,7 +115,7 @@ class WindowingMouseMode(MouseMode):
         # Virtual reality hand controller button release.
         self.log_volume_command()
         self._maps = []
-        if self._multiwindow and self._dragged > self._vr_window_switch_motion:
+        if self._multiwindow and self._dragged <= self._vr_window_switch_motion:
             self._window_num += 1
 
     def log_volume_command(self):
