@@ -53,8 +53,13 @@ Its main purpose is to allow multi-person
 although it can also be used without VR. 
 Each participant is represented by an image and 
 hand-controller pointers (or if not using VR, the mouse pointer)
-so that participants can see each other pointing at atoms in the scene.
-See also: <a href="vr.html"><b>vr</b></a>
+so that participants can see each other pointing at objects in the scene.
+</p><p>
+A <a href="#limitations">limitation</a> is that the hub server is run
+on the initiator's local host, which may not be reachable through participants'
+firewalls. The related command <a href="conference.html"><b>conference</b></a>
+allows instead using a publicly accessible address/port to run the hub server.
+See also: <a href="device.html#vr"><b>vr</b></a>
 </p><p>
 The meeting is initiated with <b>meeting start</b>, which reports the 
 hostname and IP address in the <a href="../tools/log.html"><b>Log</b></a>.
@@ -157,6 +162,27 @@ the position is only displayed to others when it hovers over an atom.
 </p>
 <h3>Limitations and Potential Developments</h3>
 <p>
+  <b>Firewalls block connections.</b>
+Most academic institutions have firewalls that block incoming network 
+connections, and require administrative requests to open up network ports.
+Whereas the <b>meeting</b> command only allows running the hub
+server on the initiator's local host (and is thus susceptible to being
+blocked by participants' firewalls), the
+<a href="conference.html"><b>conference</b></a> command
+allows using a publicly accessible address/port instead.
+To allow this to scale to hundreds of instances running simultaneously,
+ChimeraX could start a cloud-based server on demand using a commercial service
+that accepts the connections and forwards changes to all participants. 
+However, this is a complex undertaking that would require 
+accounts and payment for commercial services.
+Currently, the
+<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a> is providing a hub server for use with the
+<a href="conference.html"><b>conference</b></a> command at:
+<b>cxconference.rbvi.ucsf.edu:443</b>
+</p>
+
+<p>
   <b>Synchronizing changes.</b>
   After the initial scene is shared not all changes made by one participant will
   be propagated to other participants.  Changes that are propagated
@@ -180,19 +206,6 @@ the position is only displayed to others when it hovers over an atom.
   <b>No audio chat support.</b>
 An audio connection is not provided,
 so it is necessary to set up a separate audio link for remote participants.
-</p>
-
-<p>
-  <b>Firewalls block connections.</b>
-Most academic institutions have firewalls that block incoming network 
-connections, and require administrative requests to open up network ports.
-A more usable design for shared ChimeraX sessions
-would have all participants connect to a hub machine.
-To allow this to scale to hundreds of instances running simultaneously,
-ChimeraX could start a cloud-based server on demand using a commercial service
-that accepts the connections and forwards changes to all participants. 
-However, this is a complex undertaking that would require 
-accounts and payment for commercial services.
 </p>
 
 <p>
@@ -222,5 +235,5 @@ way to make both computers use the same orientation.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2018</address>
+February 2020</address>
 </body></html>
