@@ -52,8 +52,6 @@ class Option(metaclass=ABCMeta):
 
         if default is None and attr_name and settings:
             self.default = getattr(settings, attr_name)
-            if self.__class__.__name__ == "ChainPairingOption":
-                print("__init__ sets default to:", self.default)
         if default is not None or not hasattr(self, 'default'):
             self.default = default
 
@@ -386,8 +384,8 @@ class FloatOption(Option):
         self._float_widget.setValue(self._float_widget.minimum())
 
     def _make_widget(self, *, min=None, max=None, left_text=None, right_text=None,
-            decimal_places=3, step=None, **kw):
-        self._float_widget = _make_float_widget(min, max, step, decimal_places, **kw)
+            decimal_places=3, step=None, as_slider=False, **kw):
+        self._float_widget = _make_float_widget(min, max, step, decimal_places, as_slider=as_slider, **kw)
         self._float_widget.valueChanged.connect(lambda val, s=self: s.make_callback())
         if (not left_text and not right_text) or as_slider:
             if left_text:
@@ -782,13 +780,14 @@ class FloatSlider(QWidget):
     valueChanged = pyqtSignal(float)
 
     def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, **kw):
-        from PyQt5.QtWidgets import QGridLayout, QSlider, QLabel
+        from PyQt5.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
         super().__init__()
         layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
         self.setLayout(layout)
         self._slider = QSlider(**kw)
         self._slider.setOrientation(Qt.Horizontal)
+        self._slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._minimum = minimum
         self._maximum = maximum
         self._continuous = continuous_callback
@@ -800,11 +799,14 @@ class FloatSlider(QWidget):
         layout.addWidget(self._slider, 0, 0, 1, 3)
         self._left_text = QLabel()
         self._left_text.setWordWrap(True)
+        self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         layout.addWidget(self._left_text, 1, 0, alignment=Qt.AlignLeft | Qt.AlignTop)
         self._value_text = QLabel()
+        self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
         self._right_text = QLabel()
         self._right_text.setWordWrap(True)
+        self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
         layout.addWidget(self._right_text, 1, 2, alignment=Qt.AlignRight | Qt.AlignTop)
         self._format = "%%.%df" % decimal_places
         self._slider.valueChanged.connect(self._slider_value_changed)

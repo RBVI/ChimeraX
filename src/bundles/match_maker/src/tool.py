@@ -81,7 +81,7 @@ class MatchMakerTool(ToolInstance):
         self.match_sel_restrict = QCheckBox("Also restrict to selection")
         matching_layout.addWidget(self.match_sel_restrict, 2, 1, alignment=Qt.AlignCenter)
 
-        from chimerax.ui.options import CategorizedSettingsPanel, IntOption, BooleanOption
+        from chimerax.ui.options import CategorizedSettingsPanel, IntOption, BooleanOption, FloatOption
         self.options = CategorizedSettingsPanel(category_sorting=False, option_sorting=False,
             category_scrolled={"Chain pairing": False})
         overall_layout.addWidget(self.options, stretch=1)
@@ -109,6 +109,10 @@ class MatchMakerTool(ToolInstance):
         self.compute_ss_option = BooleanOption("Compute secondary structure assignments", None, None,
             attr_name="compute_ss", settings=settings)
         self.options.add_option("Method", self.compute_ss_option)
+        self.ss_ratio_option = FloatOption("Sequence vs. structure score weighting", None, None,
+            attr_name="ss_mixture", settings=settings, as_slider=True, left_text="Residue similarity",
+            right_text="Secondary structure", min=0.0, max=1.0, decimal_places=2)
+        self.options.add_option("Method", self.ss_ratio_option)
         self._include_ss_change(ss_opt)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
@@ -132,6 +136,7 @@ class MatchMakerTool(ToolInstance):
     def _include_ss_change(self, opt):
         self.gap_open_option.enabled = not opt.value
         self.compute_ss_option.enabled = opt.value
+        self.ss_ratio_option.enabled = opt.value
         if opt.value:
             from .settings import get_settings
             settings = get_settings(self.session)
