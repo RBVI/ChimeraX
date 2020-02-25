@@ -196,7 +196,6 @@ class Chimera_HDF_Image:
                 parrays.append(a)
 
         # TODO: Handle error when group has only subsample arrays
-        parrays = parrays[:1]
         self.array_paths = [a._v_pathname for a in parrays]
         self.size = self.check_array_sizes(parrays)
         self.name = self.find_name(group)
