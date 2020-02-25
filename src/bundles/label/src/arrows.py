@@ -583,26 +583,50 @@ class ArrowModel(Model):
                 x, y = float_xy
                 # image y axis points down
                 return (self.PIXEL_MARGIN + (x-l), self.PIXEL_MARGIN + (t-y))
+            """
             if len(shaft_geom) == 4:
                 p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in shaft_geom])
             else:
                 #TODO: draw arc
                 pass
+            """
             
             start_pos, norm = head_start
             scale_factor = min(w,h)
             half_width = scale_factor * self.STD_HALF_WIDTH * self.arrow.weight
+            head_width = 4 * half_width
+            ex, ey = self.arrow.end[0] * w, self.arrow.end[1] * h
+            head_back = (ex - norm[0] * head_width, ey - norm[1] * head_width)
+            perp = norm[1], -norm[0]
+            edge1 = (head_back[0] + head_width * perp[0], head_back[1] + head_width * perp[1])
+            edge2 = (head_back[0] - head_width * perp[0], head_back[1] - head_width * perp[1])
+            shaft_base1, shaft_base2, shaft_inside2, shaft_inside1 = shaft_geom
             if self.arrow.head_style == "solid":
-                head_width = 4 * half_width
-                ex, ey = self.arrow.end[0] * w, self.arrow.end[1] * h
-                head_back = (ex - norm[0] * head_width, ey - norm[1] * head_width)
-                perp = norm[1], -norm[0]
-                edge1 = (head_back[0] + head_width * perp[0], head_back[1] + head_width * perp[1])
-                edge2 = (head_back[0] - head_width * perp[0], head_back[1] - head_width * perp[1])
-                p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in [edge1, edge2, (ex, ey)]])
+                # need to avoid crossing the shaft so that fading looks good...
+                inner_edge1 = (head_back[0] + half_width * perp[0], head_back[1] + half_width * perp[1])
+                inner_edge2 = (head_back[0] - half_width * perp[0], head_back[1] - half_width * perp[1])
+                poly_points = [edge1, inner_edge1, shaft_base1, shaft_base2, inner_edge2, edge2, (ex, ey)]
             elif self.arrow.head_style == "blocky":
-                pass
-            #TODO: other head styles
+                flange_width = 1.5 * half_width
+                from math import sqrt
+                fw_root2 = flange_width / sqrt(2.0)
+                v1 = (fw_root2 * (-norm[0] - perp[0]), fw_root2 * (-norm[1] - perp[1]))
+                v2 = (fw_root2 * (perp[0] - norm[0]), fw_root2 * (perp[1] - norm[1]))
+                ex, ey = self.arrow.end[0] * w, self.arrow.end[1] * h
+                inner_tip = (ex - 2 * fw_root2 * norm[0], ey - 2 * fw_root2 * norm[1])
+                flange1 = edge1[0] + v1[0], edge1[1] + v1[1]
+                flange2 = edge2[0] + v2[0], edge2[1] + v2[1]
+                inner_flange1 = (inner_tip[0] + half_width * (-norm[0] + perp[0]),
+                                inner_tip[1] + half_width * (-norm[1] + perp[1]))
+                inner_flange2 = (inner_tip[0] + half_width * (-norm[0] - perp[0]),
+                                inner_tip[1] + half_width * (-norm[1] - perp[1]))
+                poly_points = [edge1, flange1, inner_flange1, shaft_base1, shaft_base2, inner_flange2,
+                    flange2, edge2, (ex, ey)]
+            else:
+                #TODO: other head styles
+                poly_points = []
+            if poly_points:
+                p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in poly_points])
 
             # Convert to numpy rgba array.
             from chimerax.core.graphics import qimage_to_numpy
