@@ -333,7 +333,7 @@ class UndoState(UndoAction):
         have been added to the action.
     """
 
-    _valid_options = ["A", "M", "MA", "MK"]
+    _valid_options = ["A", "M", "MA", "MK", "S"]
 
     def __init__(self, name, can_redo=True):
         super().__init__(name, can_redo)
@@ -371,7 +371,10 @@ class UndoState(UndoAction):
             the attribute is called with the values as its argument
             list, i.e., attribute(*value).  If option is "MK", the
             attribute iscalled with the values as keywords, i.e.,
-            attribute(**value).
+            attribute(**value). If option is "S" then owner is a sequence
+            and old and new values are sequences of the same length
+            and setattr is used to set each element of the owner sequence
+            to the corresponding element of the value sequence.
         """
         if option not in self._valid_options:
             raise ValueError("invalid UndoState option: %s" % option)
@@ -418,6 +421,9 @@ class UndoState(UndoAction):
             getattr(owner, attribute)(**value)
         elif option == "MA":
             getattr(owner, attribute)(*value)
+        elif option == "S":
+            for e,v in zip(owner, value):
+                setattr(e, attribute, v)
 
 
 class UndoHandler(metaclass=abc.ABCMeta):

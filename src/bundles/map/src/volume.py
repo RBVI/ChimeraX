@@ -497,7 +497,7 @@ class Volume(Model):
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = [-v,v]
-      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      neg_rgba = _negative_color(rgba)
       colors = [neg_rgba,rgba]
     elif binary:
       levels = [0.5]
@@ -1823,7 +1823,8 @@ class VolumeImage(Image3d):
     if ro.image_mode == 'tilted slab':
       thickness = ro.tilted_slab_spacing * ro.tilted_slab_plane_count
     else:
-      box_size = [x1-x0 for x0,x1 in zip(*v.xyz_bounds())]
+      ijk_min, ijk_max = v.ijk_bounds()
+      box_size = [(i1-i0)*s for i0,i1,s in zip(ijk_min, ijk_max, v.data.step)]
       thickness = min(box_size)
     return v.transparency_depth * thickness
   
@@ -3234,6 +3235,17 @@ def set_initial_volume_color(v, session):
 
 # ---------------------------------------------------------------------------
 #
+def _negative_color(rgba):
+  neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+  minc = max(neg_rgba[:3])
+  if minc == 0:
+    neg_rgba = (1,0,0,neg_rgba[3])
+  elif minc < 0.7:
+    neg_rgba = tuple(c/minc for c in neg_rgba[:3]) + (neg_rgba[3],)
+  return neg_rgba
+
+# ---------------------------------------------------------------------------
+#
 def data_already_opened(path, grid_id, session):
 
   if not path:
@@ -3557,7 +3569,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     else:
       vlist = [m for m in models if isinstance(m, Volume)]
       if len(vlist) == 0:
-          mstring = ' (#%s)' % ','.join(model.id_string for m in models) if models else ''
+          mstring = ' (#%s)' % ','.join(m.id_string for m in models) if models else ''
           from chimerax.core.errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
 

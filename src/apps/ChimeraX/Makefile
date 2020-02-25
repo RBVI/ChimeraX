@@ -31,14 +31,14 @@ ifdef WIN32
 ICONS	+= $(APP_NAME).ico
 endif
 SHARED_SRCS	= launcher.c
+RCSRCS	= icon.rc
 ifdef WIN32
-SHARED_OBJS	= $(SHARED_SRCS:.c=.obj)
+SHARED_OBJS	= $(SHARED_SRCS:.c=.obj) $(RCSRCS:.rc=.$(OBJ_EXT))
 ifeq ($(DESKTOP),1)
 SRCS	= $(SHARED_SRCS) main_desktop.c
 else
 SRCS	= $(SHARED_SRCS) main_console.c
 endif
-RCSRCS	= icon.rc
 OBJS	= $(SRCS:.c=.$(OBJ_EXT)) $(RCSRCS:.rc=.$(OBJ_EXT))
 else
 SRCS	= $(SHARED_SRCS) main_console.c
@@ -50,7 +50,7 @@ LIBS	+= $(PYTHON_LIB)
 all: $(PROG)
 
 ifdef WIN32
-install:	install-desktop install-console
+install:	install-desktop install-console install-others
 
 install-desktop:	$(SHARED_OBJS)
 	$(MAKE) real-install DESKTOP=1
@@ -60,12 +60,8 @@ install-console:	$(SHARED_OBJS)
 
 real-install: $(PROG)
 	$(RSYNC) $(PROG) $(bindir)
-	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
-	$(RSYNC) $(ICONS) $(datadir)
 	if [ -d "$(app_prefix)" ]; then \
 		$(RSYNC) $(PROG) $(app_bindir); \
-		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
-		$(RSYNC) $(ICONS) $(app_datadir); \
 	fi
 ifdef DEBUG
 	$(RSYNC) *.pdb $(bindir)
@@ -73,6 +69,14 @@ ifdef DEBUG
 		$(RSYNC) *.pdb $(app_bindir); \
 	fi
 endif
+
+install-others:
+	$(RSYNC) $(PY_MAIN) $(PYSITEDIR)
+	$(RSYNC) $(ICONS) $(datadir)
+	if [ -d "$(app_prefix)" ]; then \
+		$(RSYNC) $(PY_MAIN) $(APP_PYSITEDIR); \
+		$(RSYNC) $(ICONS) $(app_datadir); \
+	fi
 else
 install: $(PROG)
 	$(RSYNC) $(PROG) $(bindir)

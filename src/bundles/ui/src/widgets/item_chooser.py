@@ -223,7 +223,7 @@ class ModelListWidget(ItemListWidget):
 class MenuButton(QPushButton):
     def __init__(self, **kw):
         super().__init__(**kw)
-        self.setMenu(QMenu())
+        self.setMenu(QMenu(self))
 
 class ItemMenuButton(ItemsGenerator, ItemsUpdater, MenuButton):
 

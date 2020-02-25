@@ -120,7 +120,11 @@ def check():
 
 def clean():
     bad_files = []
-    os.remove('user/index.html')
+    index_file = 'user/index.html'
+    try:
+        os.remove(index_file)
+    except OSError as e:
+        print("%s: %s" % (index_file, str(e)))
     for dirpath, dirnames, filenames in os.walk(".", topdown=False):
         for filename in filenames:
             if filename in skip or filename[0] == '.':

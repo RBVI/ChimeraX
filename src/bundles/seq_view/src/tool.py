@@ -497,7 +497,8 @@ class SequenceViewer(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from PyQt5.QtWidgets import QAction
-        save_as_menu = menu.addMenu("Save As")
+        file_menu = menu.addMenu("File")
+        save_as_menu = file_menu.addMenu("Save As")
         from chimerax.core import io
         from chimerax.core.commands import run, quote_path_if_necessary
         for fmt in io.formats(open=False):
@@ -507,22 +508,30 @@ class SequenceViewer(ToolInstance):
                     run(self.session, "save browse format %s alignment %s"
                     % (fmt.name, quote_path_if_necessary(self.alignment.ident))))
                 save_as_menu.addAction(action)
+        scf_action = QAction("Load Sequence Coloring File...", file_menu)
+        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
+        file_menu.addAction(scf_action)
 
-        settings_action = QAction("Settings...", menu)
-        settings_action.triggered.connect(lambda arg: self.show_settings())
-        menu.addAction(settings_action)
-        settings_action = QAction("Associations...", menu)
-        settings_action.triggered.connect(lambda arg: self.show_associations())
+        structure_menu = menu.addMenu("Structure")
+        assoc_action = QAction("Associations...", structure_menu)
+        assoc_action.triggered.connect(lambda arg: self.show_associations())
         from chimerax.atomic import AtomicStructure
         for m in self.session.models:
             if isinstance(m, AtomicStructure):
                 break
         else:
-            settings_action.setEnabled(False)
+            assoc_action.setEnabled(False)
+        structure_menu.addAction(assoc_action)
+        comp_model_action = QAction("Modeller Comparative Modeling...", structure_menu)
+        comp_model_action.triggered.connect(lambda arg: run(self.session,
+            "toolshed show 'Modeller Comparative'"))
+        if not self.alignment.associations:
+            comp_model_action.setEnabled(False)
+        structure_menu.addAction(comp_model_action)
+
+        settings_action = QAction("Settings...", menu)
+        settings_action.triggered.connect(lambda arg: self.show_settings())
         menu.addAction(settings_action)
-        scf_action = QAction("Load Sequence Coloring File...", menu)
-        scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
-        menu.addAction(scf_action)
 
     def headers(self, shown_only=False):
         headers = self.seq_canvas.headers

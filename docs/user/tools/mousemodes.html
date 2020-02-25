@@ -100,13 +100,22 @@ see also <a href="../commands/zoom.html"><b>zoom</b></a>
 <td align="center"><b>translate selected models</b></td>
 <td align="center" class="text">translate models with any part 
 <a href="../selection.html">selected</a>, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to <b>rotate selected models</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to
+<b>rotate selected models</b> instead</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/rotate_h2o.png" width="35px"></td>
 <td align="center"><b>rotate selected models</b></td>
 <td align="center" class="text">rotate models with any part 
 <a href="../selection.html">selected</a>, or if no selection, all models;
-<br>assigned button + <b>Shift</b> switches to <b>translate selected models</b> instead</td>
+<br>assigned button + <b>Shift</b> switches to
+<b>translate selected models</b> instead</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/move_atoms.png" width="35px"></td>
+<td align="center"><b>translate selected atoms</b></td>
+<td align="center" class="text">translate any
+<a href="../selection.html">selected</a> atoms, or if no selection, all models;
+<br>assigned button + <b>Shift</b> switches to
+<b>rotate selected atoms</b> instead</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/pivot.png" width="35px"></td>
 <td align="center"><b>pivot</b></td>
@@ -180,9 +189,19 @@ to a zone around the clicked residue
 <td align="center" class="text">
 show <a href="../commands/volume.html#planes">single plane</a> of clicked
 <a href="volumeviewer.html">volume data</a>
-if full region shown initially, move plane or slab along its axis to show
-a different section; see also 
-<a href="../commands/volume.html"><b>volume</b></a></td>
+if full region shown initially; move plane or slab along its axis to show
+a different section</td>
+</tr><tr>
+<td align="center"><img src="mouse-icons/rotateslab.png" width="35px"></td>
+<td align="center"><b>rotate slab</b></td>
+<td align="center" class="text">
+activate <a href="../commands/volume.html#tiltedslab">tilted slab</a>
+slicing of <a href="volumeviewer.html">volume data</a> (image style only),
+rotate the slab to adjust the slicing angle;
+the center of rotation from clicking over the slab is the center of the slab,
+and from clicking elsewhere is the center of the volume box;
+in <a href="../vr.html">VR</a>, this mode
+both rotates and translates the slab</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/crop.png" width="35px"></td>
 <td align="center"><b>crop volume</b></td>

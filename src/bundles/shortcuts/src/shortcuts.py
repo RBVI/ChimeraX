@@ -588,20 +588,20 @@ def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
-    from chimerax.mouse_modes import RotateSelectedMouseMode, TranslateSelectedMouseMode
+    from chimerax.mouse_modes import RotateSelectedModelsMouseMode, TranslateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode('left', RotateSelectedMouseMode(m.session))
-    m.bind_mouse_mode('middle', TranslateSelectedMouseMode(m.session))
+    m.bind_mouse_mode('left', RotateSelectedModelsMouseMode(m.session))
+    m.bind_mouse_mode('middle', TranslateSelectedMOdelsMouseMode(m.session))
 
 def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.mouse_modes import TranslateSelectedMouseMode
+    from chimerax.mouse_modes import TranslateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, TranslateSelectedMouseMode(m.session))
+    m.bind_mouse_mode(button, TranslateSelectedModelsMouseMode(m.session))
 
 def enable_rotate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.mouse_modes import RotateSelectedMouseMode
+    from chimerax.mouse_modes import RotateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, RotateSelectedMouseMode(m.session))
+    m.bind_mouse_mode(button, RotateSelectedModelsMouseMode(m.session))
 
 def enable_move_mouse_mode(mouse_modes):
     from chimerax.mouse_modes import RotateMouseMode, TranslateMouseMode

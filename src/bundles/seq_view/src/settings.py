@@ -58,7 +58,7 @@ defaults = {
     "show_sel": (REGIONS, "Show selection region", 3, BooleanOption, {}, True),
     SINGLE_PREFIX + "wrap": (APPEARANCE, "Wrap", 2, BooleanOption, {}, True),
     ALIGNMENT_PREFIX + "wrap_threshold":
-        (APPEARANCE, "Wrap if", 2, IntOption, {'trailing_text': "sequences or fewer"}, 8),
+        (APPEARANCE, "Wrap if", 2, IntOption, {'right_text': "sequences or fewer"}, 8),
 }
 
 from  chimerax.core.settings import Settings

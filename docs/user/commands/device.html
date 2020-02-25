@@ -109,7 +109,7 @@ see <a href="../vr.html">ChimeraX virtual reality</a>.
 See also: 
 <a href="#vr-button"><b>vr button</b></a>,
 <a href="#vr-roomCamera"><b>vr roomCamera</b></a>,
-<a href="meeting.html"><b>meeting</b></a>,
+<a href="conference.html"><b>conference</b></a>,
 <a href="buttonpanel.html"><b>buttonpanel</b></a>,
 <a href="camera.html"><b>camera</b></a>,
 <a href="view.html"><b>view</b></a>,
@@ -228,20 +228,27 @@ target="_blank">Oculus</a> &ldquo;Touch&rdquo; hand controllers
 <p>
 The <b>vr button</b> command assigns modes (functions) to 
 the hand-controller buttons in <a href="../vr.html">virtual reality</a>,
-as a scriptable alternative to
-<a href="../vr.html#mousemodes">clicking icons
+as a scriptable alternative to <a href="../vr.html#mousemodes">clicking icons
 to assign modes interactively</a>.
-The available <a href="ui.html#functions"><i>function</i></a> names
-are the same as for <a href="ui.html#mousemode"><b>mousemode</b></a>,
-including <b>none</b>
-(command <a href="usage.html"><b>usage</b></a> <b>mousemode</b>
-lists them in the <a href="../tools/log.html"><b>Log</b></a>),
+The available <i>function</i> names are as listed 
+<a href="ui.html#functions">above</a> for 
+<a href="ui.html#mousemode"><b>mousemode</b></a>,
+plus the following VR-specific modes:
+<ul>
+<li><b>recenter</b> &ndash; center and scale models in the room
+<li><b>show ui</b> &ndash; collectively show, hide, move ChimeraX tool panels
+</ul>
+The available <i>function</i> names can be listed in the
+<a href="../tools/log.html"><b>Log</b></a> with
+command <a href="usage.html"><b>usage</b></a> <b>vr button</b>,
 and should be enclosed in quotation marks if they contain spaces.
 The function can also be given as the word <b>default</b> to reset to
 <a href="../vr.html#default-controller">default functions</a>.
+</p><p>
 The <b>hand</b> option can be given to assign a function 
 to the specified button of only one hand controller; 
 otherwise, those on both controllers will be assigned.
+</p><p>
 The <i>button-name</i> can be:
 </p>
 <ul>
@@ -269,8 +276,9 @@ The <i>button-name</i> can be:
 </ul>
 <p>
 Initial defaults are to <b>translate</b> and <b>rotate</b> with triggers,
-<b>zoom</b> with Vive touchpad or Oculus A/X button,
-and show/hide ChimeraX tool panels with the Vive menu or Oculus B/Y button
+<b>zoom</b> with Vive touchpad or Oculus A button,
+<b>recenter</b> with Vive grip or Oculus X button,
+and <b>show ui</b> with the Vive menu or Oculus B/Y button
 (<a href="../vr.html#default-controller">more...</a>).
 </p><p>
 The only <a href="ui.html#functions"><i>function</i></a> settings that work

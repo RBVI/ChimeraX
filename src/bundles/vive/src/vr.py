@@ -233,7 +233,7 @@ def register_vr_command(logger):
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
     desc = CmdDesc(required = [('button', button_name),
-                               ('mode', VRModeArg)],
+                               ('mode', VRModeArg(logger.session))],
                    keyword = [('hand', EnumOf(('left', 'right')))],
                    synopsis = 'Assign VR hand controller buttons',
                    url = 'help:user/commands/device.html#vr-button')
@@ -260,6 +260,15 @@ from chimerax.core.commands import Annotation, AnnotationError
 class VRModeArg(Annotation):
     '''Command argument for specifying VR hand controller mode.'''
 
+    def __init__(self, session):
+        Annotation.__init__(self)
+        from chimerax.core.commands import quote_if_necessary
+        names = list(hand_mode_names(session) + ('default',))
+        names.sort()
+        qnames = [quote_if_necessary(n) for n in names]
+        self.name = 'one of %s' % ', '.join(qnames)
+        self._html_name = 'one of %s' % ', '.join('<b>%s</b>' % n for n in qnames)
+        
     @staticmethod
     def parse(text, session):
         from chimerax.core.commands import EnumOf
@@ -956,9 +965,26 @@ class SteamVRCamera(Camera, StateManager):
 
     def _controller_left_or_right(self, device_index):
         vrs = self._vr_system
+
         import openvr
         left_id = vrs.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_LeftHand)
-        return 'left' if device_index == left_id else 'right'
+        if device_index == left_id:
+            return 'left'
+        right_id = vrs.getTrackedDeviceIndexForControllerRole(openvr.TrackedControllerRole_RightHand)
+        if device_index == right_id:
+            return 'right'
+
+        # Above left and right role are 2**32-1 for Oculus when first started.
+        # Try looking at the controller name.
+        model_name = vrs.getStringTrackedDeviceProperty(device_index,
+                                                        openvr.Prop_RenderModelName_String)
+        if model_name.endswith('right'):
+            return 'right'
+        if model_name.endswith('left'):
+            return 'left'
+
+        # Don't know whether left or right.
+        return 'right'
 
     def _vr_control_model_group(self):
         g = self._vr_model_group
@@ -1246,7 +1272,13 @@ class RoomCameraModel(Model):
 
     def draw(self, renderer, draw_pass):
         if self.enable_draw:
+            # TODO: Graphics is drawn in opaque draw pass because self.opaque_texture is True
+            # but the texture may have transparent alpha values.  The drawing code uses alpha
+            # blending even in the opaque pass so we need to turn it off here.  Maybe draw pass
+            # code should be disabling alpha blending.
+            renderer.enable_blending(False)
             Model.draw(self, renderer, draw_pass)
+            renderer.enable_blending(True)
             
     def update_scene_position(self, new_rts):
         old_rts = self._last_room_to_scene
@@ -1284,7 +1316,9 @@ class UserInterface:
         self._raised_buttons = {}	# maps highlight_id to (widget, panel)
         self._move_gui = set()		# set of (HandController, button) if gui being moved by press on title bar
         self._move_ui_mode = MoveUIMode()
+        self._resizing_panel = None	# (Panel, HandController) when panel being resized by click and drag on titlebar
         self._tool_show_handler = None
+        self._tool_hide_handler = None
 
         # Buttons that can be pressed on user interface.
         import openvr
@@ -1298,11 +1332,11 @@ class UserInterface:
                 self._session.models.close([ui])
             self._ui_model = None
 
-        h = self._tool_show_handler
-        if h:
-            triggers = self._session.ui.triggers
-            triggers.remove_handler(h)
-            self._tool_show_handler = None
+        for h in (self._tool_show_handler, self._tool_hide_handler):
+            if h is not None:
+                triggers = self._session.ui.triggers
+                triggers.remove_handler(h)
+        self._tool_show_handler = self._tool_hide_handler = None
             
     @property
     def model(self):
@@ -1342,22 +1376,24 @@ class UserInterface:
             panels.append(p)
 
         # Tools
-        exclude_tools = set(['Command Line Interface'])
         tool_names = self._gui_tool_names
-        if tool_names is None:
-            # Show all displayed tools.
-            tools = [ti for ti in self._session.tools.list()
-                     if hasattr(ti, 'tool_window') and ti.displayed()
-                        and ti.tool_name not in exclude_tools]
-            tools.sort(key = _tool_y_position)
-            tool_names = [ti.tool_name for ti in tools]
-        for tool_name in tool_names:
-            w = _tool_widget(tool_name, self._session)
-            if w:
-                p = Panel(w, ui, self, tool_name = tool_name)
-                panels.append(p)
-            else:
-                self._session.logger.warning('VR user interface could not find tool "%s"' % tool_name)
+        if tool_names:
+            tool_wins = []
+            for tool_name in tool_names:
+                twins = _tool_windows(tool_name, self._session)
+                if len(twins) == 0:
+                    self._session.logger.warning('VR user interface tool "%s" not running'
+                                                 % tool_name)
+                tool_wins.extend(twins)
+        else:
+            # Use all shown tools.
+            exclude_tools = set(['Command Line Interface'])
+            tool_wins = [tw for tw in _tool_windows(None, self._session)
+                         if tw.tool_instance.tool_name not in exclude_tools]
+        tool_wins.sort(key = _tool_y_position)
+        tpanels = [Panel(tw, ui, self, add_titlebar = (tw.tool_instance.tool_name != 'Toolbar'))
+                   for tw in tool_wins if tw.shown]
+        panels.extend(tpanels)
 
         # Position panels on top of each other
         self._stack_panels(panels)
@@ -1367,8 +1403,10 @@ class UserInterface:
         
         # Monitor when windows are shown and hidden.
         triggers = self._session.ui.triggers
-        self._tool_show_handler = triggers.add_handler('tool window show or hide',
-                                                       self._tool_window_show_or_hide)
+        self._tool_show_handler = triggers.add_handler('tool window show',
+                                                       self._tool_window_show)
+        self._tool_hide_handler = triggers.add_handler('tool window hide',
+                                                       self._tool_window_hide)
         return panels
 
     def _stack_panels(self, panels):
@@ -1379,12 +1417,10 @@ class UserInterface:
         # Stack panels.
         y = h/2
         z = -dz
-        from chimerax.core.geometry import translation
         for p in spanels:
             h = p.size[1]
             y -= 0.5*h
-            pd = p._panel_drawing
-            pd.position = translation((0,y,z))
+            p.center = (0,y,z)
             y -= 0.5*h + sep
             z -= dz
 
@@ -1394,23 +1430,35 @@ class UserInterface:
             for mp in mpanels:
                 mp.position_menu_over_parent(spanels)
                 
-    def _tool_window_show_or_hide(self, trig_name, tool_window):
-        if tool_window.shown:
-            self._add_tool_panel(tool_window)
-        else:
-            self._delete_tool_panel(tool_window)
+    def _tool_window_show(self, trig_name, tool_window):
+        self._add_tool_panel(tool_window)
+
+    def _tool_window_hide(self, trig_name, tool_window):
+        self._delete_tool_panel(tool_window)
 
     def _add_tool_panel(self, tool_window):
-        tool_name = tool_window.tool_instance.tool_name
-        if self._find_tool_panel(tool_name):
-            return
-        w = _tool_widget(tool_name, self._session)
-        if w is None:
-            return
-        p = Panel(w, self._ui_model, self, tool_name = tool_name)
-        self._panels.append(p)
-        self.redraw_ui()
+        if not self._find_tool_panel(tool_window):
+            is_toolbar = (tool_window.tool_instance.tool_name == 'Toolbar')
+            p = Panel(tool_window, self._ui_model, self, add_titlebar = not is_toolbar)
+            self._add_panels([p])
+            self.redraw_ui()
 
+    def _add_panels(self, panels):
+        z = max([p.center[2]+p.thickness for p in self._panels],
+                default = 0)
+        for p in panels:
+            if not p.is_menu():
+                z += p.thickness
+                p.center = (0,0,z)
+                z += p.thickness
+        self._panels.extend(panels)
+
+    def _user_moved_panels(self):
+        for p in self._panels:
+            if p.position.rotation_angle() != 0:
+                return True
+        return False
+            
     def _check_for_new_panels(self):
         # Add new panels for newly appeared top level widgets.
         from PyQt5.QtWidgets import QDockWidget, QMainWindow, QMenu
@@ -1418,8 +1466,10 @@ class UserInterface:
               if w.isVisible() and not isinstance(w, (QDockWidget, QMainWindow))]
         wset = set(p._widget for p in self._panels)
         neww = [w for w in tw if w not in wset]
-        newp = [Panel(w, self._ui_model, self, tool_name = w.windowTitle()) for w in neww]
-        self._panels.extend(newp)
+        newp = [Panel(w, self._ui_model, self, tool_name = w.windowTitle(),
+                      add_titlebar = not isinstance(w, QMenu))
+                for w in neww]
+        self._add_panels(newp)
         
         for p in newp:
             if p.is_menu():
@@ -1430,7 +1480,7 @@ class UserInterface:
         if w.isVisible() and w not in wset:
             p = Panel(w, self._ui_model, self, tool_name = 'Recent Files',
                       add_titlebar = True)
-            self._panels.append(p)
+            self._add_panels([p])
             
         if neww:
             self.redraw_ui()
@@ -1444,15 +1494,14 @@ class UserInterface:
             if not vis:
                 self._delete_panel(p)
 
-    def _find_tool_panel(self, tool_name):
+    def _find_tool_panel(self, tool_window):
         for p in self._panels:
-            if p.name == tool_name:
+            if tool_window is p._tool_window:
                 return p
         return None
 
     def _delete_tool_panel(self, tool_window):
-        tool_name = tool_window.tool_instance.tool_name
-        p = self._find_tool_panel(tool_name)
+        p = self._find_tool_panel(tool_window)
         if p:
             self._delete_panel(p)
         self.redraw_ui()
@@ -1510,6 +1559,7 @@ class UserInterface:
 
         bdown = self._buttons_down
         if released:
+            self._resizing_panel = None
             if (hc,b) in bdown:
                 # Current button down has been released.
                 panel = bdown[(hc,b)]
@@ -1533,7 +1583,11 @@ class UserInterface:
             if panel:
                 if panel.clicked_on_close_button(window_xy):
                     self._delete_panel(panel)
-                    panel.widget.close()
+                    panel.close_widget()
+                    self.redraw_ui()
+                elif panel.clicked_on_resize_button(window_xy):
+                    panel.undock()
+                    self._resizing_panel = (panel, hc)
                 elif panel.clicked_on_title_bar(window_xy):
                     # Drag on title bar moves VR gui
                     self._move_gui.add((hc,b))
@@ -1566,6 +1620,10 @@ class UserInterface:
 
     def process_hand_controller_motion(self, hand_controller):
         hc = hand_controller
+
+        if self._resize_panel(hc):
+            return True
+        
         dragged = False
         for (bhc, b), panel in self._buttons_down.items():
             if hc == bhc:
@@ -1582,6 +1640,38 @@ class UserInterface:
             self._highlight_button(p, hc)
 
         return False
+
+    def _resize_panel(self, hand_controller):
+        if self._resizing_panel is None:
+            self._last_panel_resize_position = None
+            return False
+
+        panel, resize_hc = self._resizing_panel
+        if hand_controller is not resize_hc:
+            return False
+
+        hpos = hand_controller.room_position.origin()
+        window_xy, z_offset = panel._panel_click_position(hpos)
+        if window_xy is None:
+            return True
+        
+        lhpos = getattr(self, '_last_panel_resize_position', None)
+        self._last_panel_resize_position = hpos
+        if lhpos is None:
+            return True
+        
+        last_xy, z_offset = panel._panel_click_position(lhpos)
+        if last_xy is None:
+            return True
+        
+        dx,dy = [x-xl for x,xl in zip(window_xy, last_xy)]
+        rx,ry = -2*int(round(dx)), -2*int(round(dy))
+        panel.resize_widget(rx, ry)
+        
+        if rx == 0 and ry == 0:
+            self._last_panel_resize_position = lhpos  # Accumulate motion
+
+        return True
             
     def _highlight_button(self, room_point, highlight_id):
         window_xy, panel = self._click_position(room_point)
@@ -1619,15 +1709,11 @@ class UserInterface:
                 self._update_ui_images()
 
     def _update_ui_images(self):
-        ui = self._session.ui
-        im = ui.window_image()
-        from chimerax.core.graphics.drawing import qimage_to_numpy
-        rgba = qimage_to_numpy(im)
         for panel in tuple(self._panels):
             if panel._window_closed():
                 self._delete_panel(panel)
             else:
-                panel._update_image(rgba)
+                panel._update_image()
 #            self._stack_panels(self._panels)
         
     def set_mouse_mode_click_range(self, range):
@@ -1690,12 +1776,23 @@ class UserInterface:
 
 class Panel:
     '''The VR user interface consists of one or more rectangular panels.'''
-    def __init__(self, qt_widget, drawing_parent, ui,
+    def __init__(self, tool_or_widget, drawing_parent, ui,
                  tool_name = None, pixel_size = 0.001, add_titlebar = False):
-        self._widget = qt_widget	# This Qt widget is shown in the VR panel.
+        from chimerax.ui.gui import ToolWindow
+        if isinstance(tool_or_widget, ToolWindow) or hasattr(tool_or_widget, 'tool_instance'):
+            # TODO: Remove test for tool_instance attribute
+            # needed to work around bug #2875
+            tw = tool_or_widget
+            self._tool_window = tw
+            self._widget = tw.ui_area
+            if tool_name is None:
+                tool_name = tw.tool_instance.tool_name
+        else:
+            self._tool_window = None
+            self._widget = tool_or_widget	# This Qt widget is shown in the VR panel.
         self._ui = ui			# UserInterface instance
         self._tool_name = tool_name	# Name of tool instance
-        th = 20 if add_titlebar or self._needs_titlebar() else 0
+        th = 20 if add_titlebar else 0
         self._titlebar_height = th      # Added titlebar height in pixels
         w,h = self._panel_size
         self._size = (pixel_size*w, pixel_size*h) # Billboard width, height in room coords, meters.
@@ -1728,6 +1825,26 @@ class Panel:
         drawing_parent.add_drawing(d)
         return d
 
+    def _get_center(self):
+        pd = self._panel_drawing
+        return pd.position.origin() if pd else None
+    def _set_center(self, center):
+        pd = self._panel_drawing
+        if pd:
+            from chimerax.core.geometry import translation
+            pd.position = translation(center)
+    center = property(_get_center, _set_center)
+
+    @property
+    def thickness(self):
+        return self._panel_thickness
+    
+    @property
+    def position(self):
+        pd = self._panel_drawing
+        from chimerax.core.geometry import Place
+        return pd.position if pd else Place()
+    
     def delete(self, parent):
         pd = self._panel_drawing
         if pd:
@@ -1743,6 +1860,22 @@ class Panel:
     def size(self):
         '''Panel width and height in room coordinate system (meters).'''
         return self._size
+
+    def resize_widget(self, dx, dy):
+        if dx == 0 and dy == 0:
+            return
+        w = self._widget
+        top = w.window()
+        s = top.size()
+        xs = max(1, s.width() + dx)
+        ys = max(1, s.height() + dy)
+        top.resize(xs, ys)
+        self._update_image()
+
+    def undock(self):
+        tw = self._tool_window
+        if tw is not None and not tw.floating:
+            tw.floating = True
 
     @property
     def drawing(self):
@@ -1792,8 +1925,8 @@ class Panel:
         window_xy = sx * (x + hw) * ws, sy * (hh - y) * hs - th
         return window_xy, z_offset
 
-    def _update_image(self, main_window_rgba):
-        rgba = self._panel_image(main_window_rgba)
+    def _update_image(self):
+        rgba = self._panel_image()
         if rgba is None:
             return False
         lrgba = self._last_image_rgba
@@ -1865,7 +1998,7 @@ class Panel:
     def panel_image_rgba(self):
         return self._last_image_rgba
 
-    def _panel_image(self, main_window_rgba):
+    def _panel_image(self):
         rgba = self._widget_rgba()
         return rgba
 
@@ -1878,6 +2011,9 @@ class Panel:
         #  Looks like Qt can't get the title bar.  I may want to add a title to the
         #  top of the grabbed image.
         pixmap = w.grab()
+        size = pixmap.size()
+        if size.width() == 0 or size.height() == 0:
+            return None
         im = pixmap.toImage()
         from chimerax.core.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
@@ -1893,28 +2029,42 @@ class Panel:
         from numpy import empty
         trgba = empty((h+th,ww,c), rgba.dtype)
         trgba[:h,:,:] = rgba
+        trgba[h:,:,:] = background_color
+
+        # Add resize button
+        rs_sign = '\u21F1'	# Unicode resize symbol
+        rs_rgba = self._icon_image('resize', rs_sign, title_color, th, background_color)
+        rw = min(rs_rgba.shape[1], trgba.shape[1])
+        trgba[h:,:rw,:] = rs_rgba[:,:rw,:]
 
         # Add title text
-        trgba[h:,:,:] = background_color
         title = self.name
         if title:
             from chimerax.core.graphics import text_image_rgba
             title_rgba = text_image_rgba(title, title_color, th, 'Arial',
                                          background_color = background_color,
                                          xpad = 8, ypad = 4, pixels = True)
-            tw = min(title_rgba.shape[1], trgba.shape[1])
-            trgba[h:,:tw,:] = title_rgba[:,:tw,:]
+            tw = min(title_rgba.shape[1], trgba.shape[1]-rw)
+            trgba[h:,rw:rw+tw,:] = title_rgba[:,:tw,:]
 
         # Add close button
         x_sign = '\u00D7'	# Unicode multiply symbol
-        from chimerax.core.graphics import text_image_rgba
-        x_rgba = text_image_rgba(x_sign, title_color, th, 'Arial',
-                                 background_color = background_color,
-                                 xpad = 6, pixels = True)
+        x_rgba = self._icon_image('close', x_sign, title_color, th, background_color, xpad = 6)
         xw = min(x_rgba.shape[1], trgba.shape[1])
         trgba[h:,-xw:,:] = x_rgba[:,:xw,:]
 
         return trgba
+
+    def _icon_image(self, name, character, color, height, background_color, xpad = 0):
+        attr = '_%s_icon_rgba' % name
+        icon_rgba = getattr(self, attr, None)
+        if icon_rgba is None:
+            from chimerax.core.graphics import text_image_rgba
+            icon_rgba = text_image_rgba(character, color, height, 'Arial',
+                                     background_color = background_color,
+                                     xpad = xpad, pixels = True)
+            setattr(self, attr, icon_rgba)
+        return icon_rgba
 
     def is_menu(self):
         from PyQt5.QtWidgets import QMenu
@@ -1975,7 +2125,8 @@ class Panel:
         return self._click('release', window_xy)
 
     def _click(self, type, window_xy):
-        '''Type can be "press" or "release".'''
+        'Type can be "press" or "release" or "move".'
+        self._move_mouse_pointer(window_xy)
         w = self._post_mouse_event(type, window_xy)
         if w:
             if type == 'press':
@@ -1985,7 +2136,21 @@ class Panel:
                 self._ui.redraw_ui()
             return True
         return False
-    
+
+    def _move_mouse_pointer(self, window_xy):
+        # Sometimes Windows uses the mouse position instead of the button
+        # event coordinates, for instance when handling cascaded menus.
+        # Details in ChimeraX bug #2848.
+        # So move the mouse pointer to the position of the virtual button event.
+        pw = self.widget
+        if pw is not None:
+            x,y = window_xy
+            from PyQt5.QtCore import QPoint
+            wp = QPoint(int(x), int(y))
+            p = pw.mapToGlobal(wp)
+            from PyQt5.QtGui import QCursor
+            QCursor.setPos(p)
+
     def _post_mouse_event(self, type, window_xy):
         '''Type is "press", "release" or "move".'''
         w, pos = self.clicked_widget(window_xy)
@@ -2042,12 +2207,27 @@ class Panel:
                 widget._show_pressed = pressed
                 self._update_geometry()	# Show partially depressed button
 
+    def clicked_on_resize_button(self, window_xy):
+        th = self._titlebar_height
+        if th > 0:
+            x,y = window_xy
+            return y < 0 and x <= th
+        return False
+
     def clicked_on_close_button(self, window_xy):
         th = self._titlebar_height
         if th > 0:
             x,y = window_xy
             return y < 0 and x >= self._panel_size[0]-th
         return False
+
+    def close_widget(self):
+        '''Called when close button on panel titlebar pressed.'''
+        tw = self._tool_window
+        if tw:
+            self._ui._session.ui.main_window.close_request(tw)
+        else:
+            self.widget.close()
         
     def clicked_on_title_bar(self, window_xy):
         th = self._titlebar_height
@@ -2090,10 +2270,11 @@ class Panel:
         from PyQt5.QtCore import QPoint
         pos = w.mapToGlobal(QPoint(0,0))
         ppos = p._widget.mapFromGlobal(pos)
+        y = ppos.y() + p._titlebar_height
         ps = p._pixel_size
         pw,ph = p._size
         sw,sh = self._size
-        offset = (ppos.x()*ps + sw/2 - pw/2, -(ppos.y()*ps + sh/2 - ph/2), .01)
+        offset = (ppos.x()*ps + sw/2 - pw/2, -(y*ps + sh/2 - ph/2), .01)
         pd = self._panel_drawing
         from chimerax.core.geometry import translation
         pd.position = p._panel_drawing.position * translation(offset)
@@ -2117,25 +2298,15 @@ def _ancestor_widgets(w):
             return alist
         alist.append(p)
 
-def _tool_y_position(tool_instance):
-    if hasattr(tool_instance, 'tool_window'):
-        return tool_instance.tool_window._dock_widget.y()
-    return None
+def _tool_y_position(tool_window):
+    w = tool_window.ui_area
+    from PyQt5.QtCore import QPoint
+    return w.mapToGlobal(QPoint(0,0)).y()
 
-def _find_tool_by_name(name, session):
-    for ti in session.tools.list():
-        if ti.tool_name == name:
-            return ti
-    return None
-
-def _tool_widget(name, session):
-    ti = _find_tool_by_name(name, session)
-    if ti and hasattr(ti, 'tool_window'):
-        w = ti.tool_window._dock_widget
-    else:
-        w = None
-    return w
-        
+def _tool_windows(name, session):
+    return [ti.tool_window for ti in session.tools.list()
+            if hasattr(ti, 'tool_window')]
+            
 class HandController:
     _controller_colors = {'left':(200,200,0,255), 'right':(0,200,200,255), 'default':(180,180,180,255)}
 
@@ -2214,12 +2385,14 @@ class HandController:
             #    A or X button = k_EButton_A = 7
             #    B or Y button = k_EButton_ApplicationMenu = 1
             #    thumbstick = k_EButton_Axis0 = 32 = k_EButton_SteamVR_Touchpad
-            thumbstick_mode = ZoomMode() if self.left_or_right == 'right' else MoveSceneMode()
+            right = (self.left_or_right == 'right')
+            thumbstick_mode = ZoomMode() if right else MoveSceneMode()
+            ax_mode = ZoomMode() if right else RecenterMode()
             initial_modes = {
                 menu: ShowUIMode(),
                 trigger: MoveSceneMode(),
                 grip: MoveSceneMode(),
-                a: ZoomMode(),
+                a: ax_mode,
                 touchpad: thumbstick_mode
             }
         else:

@@ -52,14 +52,14 @@ class ChainMenuButton(ItemMenuButton):
     def __init__(self, session, **kw):
         super().__init__(**_process_chain_kw(session, **kw))
 
-def make_elements_menu(*, _session=None, _parent_menus=None):
+def make_elements_menu(parent, *, _session=None, _parent_menus=None):
     '''keyword args for internal use only (adding Elements menu under main Select menu)'''
     if _session and _parent_menus:
         add_submenu = _session.ui.main_window.add_select_submenu
         elements_menu = add_submenu(_parent_menus[:-1], _parent_menus[-1])
     else:
         from PyQt5.QtWidgets import QMenu
-        elements_menu = QMenu()
+        elements_menu = QMenu(parent)
 
     for element_name in ["C", "H", "N", "O", "P", "S"]:
         elements_menu.addAction(element_name)
