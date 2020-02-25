@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -11,7 +13,7 @@
 
 from chimerax.mouse_modes import MouseMode
 class MoveLabelMouseMode(MouseMode):
-    '''Move 2D labels with mouse.'''
+    '''Move 2D labels or arrows with mouse.'''
     name = 'move label'
     icon_file = 'movelabel.png'
 
@@ -24,9 +26,13 @@ class MoveLabelMouseMode(MouseMode):
         x,y = event.position()
         from .label2d import label_under_window_position
         self._label = label = label_under_window_position(self.session, x, y)
+        self._arr_part = None
         if label is None:
-            from .label3d import picked_3d_label
-            self._label = picked_3d_label(self.session, x, y)
+            from .arrows import arrow_under_window_position
+            self._label, self._arr_part = arrow_under_window_position(self.session, x, y)
+            if self._label is None:
+                from .label3d import picked_3d_label
+                self._label = picked_3d_label(self.session, x, y)
 
     def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
@@ -34,6 +40,7 @@ class MoveLabelMouseMode(MouseMode):
         ses = self.session
         from .label3d import ObjectLabel
         from .label2d import Label
+        from .arrows import Arrow
         if isinstance(lbl, ObjectLabel):
             lmodel = lbl._label_model
             ps = ses.main_view.pixel_size(lmodel.scene_position * lbl.location())
@@ -46,6 +53,13 @@ class MoveLabelMouseMode(MouseMode):
             ypos = lbl.ypos - dy/h
             from .label2d import label2d
             label2d(ses, [lbl], xpos = xpos, ypos = ypos)
+        elif isinstance(lbl, Arrow):
+            w,h = ses.main_view.window_size
+            x,y = self._get_arr_xy()
+            xpos = x + dx/w
+            ypos = y - dy/h
+            from .arrows import arrow
+            arrow(ses, [lbl], **{self._arr_part: (xpos, ypos)})
 
     def mouse_up(self, event):
         self._log_label_move_command()
@@ -55,10 +69,25 @@ class MoveLabelMouseMode(MouseMode):
     def _log_label_move_command(self):
         lbl = self._label
         from .label2d import Label
+        from .arrows import Arrow
         if isinstance(lbl, Label):
             command = '2dlabel #%s xpos %.3f ypos %.3f' % (lbl.drawing.id_string, lbl.xpos, lbl.ypos)
             from chimerax.core.commands import log_equivalent_command
             log_equivalent_command(self.session, command)
+        elif isinstance(lbl, Arrow):
+            x,y = self._get_arr_xy()
+            command = '2dlabel arrow #%s %s %.3f,%.3f' % (lbl.drawing.id_string, self._arr_part, x, y)
+            from chimerax.core.commands import log_equivalent_command
+            log_equivalent_command(self.session, command)
+
+    def _get_arr_xy(self):
+        if self._arr_part == "start":
+            x, y = self._label.start
+        elif self._arr_part == "mid_point":
+            x, y = self._label.mid_point
+        else:
+            x, y = self._label.end
+        return x,y
         
 def register_mousemode(session):
     mm = session.ui.mouse_modes

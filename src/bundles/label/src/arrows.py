@@ -246,13 +246,20 @@ def arrow_under_window_position(session, win_x, win_y):
     fx,fy = (win_x+.5)/w, 1-(win_y+.5)/h    # win_y is 0 at top
     lm = session_arrows(session)
     if lm is None:
-        return None
+        return None, None
+    best = None
     for arr in lm.all_arrows:
-        dx,dy = fx - arr.xpos, fy - arr.ypos
-        lw,lh = arr.drawing.size
-        if dx >=0 and dx < lw and dy >=0 and dy < lh:
-            return arr
-    return None
+        for x, y, part in [(arr.start[0], arr.start[1], "start"), (arr.end[0], arr.end[1], "end")]:
+            dist2 = (x-fx)*(x-fx) + (y-fy)*(y-fy)
+            if dist2 > 0.0025:  # 0.05 squared
+                continue
+            if best is None or dist2 < best:
+                best = dist2
+                best_arr = arr
+                best_part = part
+    if best is None:
+        return None, None
+    return best_arr, best_part
 
 
 def arrow_delete(session, arrows = None):
