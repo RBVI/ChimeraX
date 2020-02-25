@@ -14,7 +14,7 @@
 from chimerax.core.errors import UserError
 
 def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None,
-        visibility=None, mid_point=None, head_style=None, frames=None):
+        visibility=None, head_style=None, frames=None):
     from inspect import getargvalues, currentframe
     args, varargs, kw, locals_dict = getargvalues(currentframe())
     cmd_kw = {}
@@ -42,8 +42,7 @@ def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None
     for a in arrows:
         _update_arrow(session, a, **cmd_kw)
 
-def arrow_create(session, start, end, *, color=None, weight=1.0,
-                 visibility=True, mid_point=None, head_style="solid"):
+def arrow_create(session, start, end, *, color=None, weight=1.0, visibility=True, head_style="solid"):
     '''Create an arrow at a fixed position in the graphics window.
 
     Parameters
@@ -61,11 +60,6 @@ def arrow_create(session, start, end, *, color=None, weight=1.0,
       Relative thickness of arrow, where 1.0 is "normal" (default) thickness.
     visibility : bool
       Whether or not to display the label.
-    mid_point : numeric two-tuple
-        If given, the arrow will be curved.  The curve will be determined by taking a straight line
-        through the 'start' and 'end' points and determining the distance from 'mid_point' to that
-        line.  The arrow will be curved by that amount to the appropriate side (and therefore may not
-        actually go through 'mid_point').
     head_style : string; "blocky", "solid", "pointy", or "pointer"
         Style of arrowhead.
     '''
@@ -84,7 +78,6 @@ def arrow_create(session, start, end, *, color=None, weight=1.0,
         'end': end,
         'weight': weight,
         'visibility': visibility,
-        'mid_point': mid_point,
         'head_style': head_style
     }
 
@@ -98,7 +91,7 @@ def arrow_create(session, start, end, *, color=None, weight=1.0,
 
 
 def arrow_change(session, arrows, *, color=None, weight=None,
-                 start=None, end=None, visibility=None, mid_point=None, head_style=None, frames=None):
+                 start=None, end=None, visibility=None, head_style=None, frames=None):
     '''Change label parameters.'''
     kw = {
         'color': color,
@@ -106,7 +99,6 @@ def arrow_change(session, arrows, *, color=None, weight=None,
         'start': start,
         'end': end,
         'visibility': visibility,
-        'mid_point': mid_point,
         'head_style': head_style,
         'frames': frames
     }
@@ -114,7 +106,7 @@ def arrow_change(session, arrows, *, color=None, weight=None,
 
 
 def _update_arrow(session, a, *, color=None, weight=None,
-                 start=None, end=None, visibility=None, mid_point=None, head_style=None, frames=None):
+                 start=None, end=None, visibility=None, head_style=None, frames=None):
     if head_style is not None: a.head_style = head_style
     if frames is None:
         if color is not None:
@@ -123,17 +115,13 @@ def _update_arrow(session, a, *, color=None, weight=None,
         if start is not None: a.start = start
         if end is not None: a.end = end
         if visibility is not None: a.visibility = visibility
-        if mid_point == 'none':
-            a.mid_point = None
-        elif mid_point is not None:
-            a.mid_point = mid_point
         a.update_drawing()
     else:
-        _InterpolateArrow(session, a, color, weight, start, end, visibility, mid_point, frames)
+        _InterpolateArrow(session, a, color, weight, start, end, visibility, frames)
 
 
 class _InterpolateArrow:
-    def __init__(self, session, arrow, color, weight, start, end, visibility, mid_point, frames):
+    def __init__(self, session, arrow, color, weight, start, end, visibility, frames):
         self.arrow = arrow
         from numpy import array_equal
         # even if color/background not changing, need color1/2 and bg1/2 for visibility changes
@@ -159,16 +147,6 @@ class _InterpolateArrow:
                 # need to interpolate alpha, so set it to a real color;
                 # the last frame will set it to the right final value
                 self.arrow.color = array(self.arrow.drawing.arrow_color, dtype=uint8)
-        if mid_point == 'none':
-            if arrow.mid_point is None:
-                self.interp_midpoint = False
-            else:
-                self.interp_midpoint = True
-        elif mid_point is None:
-            self.interp_midpoint = False
-        else:
-            self.interp_midpoint = True
-        self.mid_point1, self.mid_point2 = arrow.mid_point, mid_point
         self.frames = frames
         from chimerax.core.commands import motion
         motion.CallForNFrames(self.frame_cb, frames, session)
@@ -216,26 +194,6 @@ class _InterpolateArrow:
                     # becoming hidden
                     self.arrow.color[-1] = self.color1[-1] * (1 - fraction)
                 self.arrow.visibility = True
-        if self.interp_midpoint:
-            if frame == self.frames-1:
-                self.arrow.mid_point = self.mid_point2
-            else:
-                if self.mid_point2 is None:
-                    # going to straight line from curved
-                    mx1, my1 = self.mid_point1
-                    mx2 = (self.arrow.start[0] + self.arrow.end[0]) / 2
-                    my2 = (self.arrow.start[1] + self.arrow.end[1]) / 2
-                elif self.mid_point1 is None:
-                    # going from straight line to curved
-                    mx1 = (self.arrow.start[0] + self.arrow.end[0]) / 2
-                    my1 = (self.arrow.start[1] + self.arrow.end[1]) / 2
-                    mx2, my2 = self.mid_point2
-                else:
-                    # going from one curve to another
-                    mx1, my1 = self.mid_point1
-                    mx2, my2 = self.mid_point2
-                self.arrow.mid_point = ((1 - fraction) * mx1 + fraction * mx2,
-                    (1 - fraction) * my1 + fraction * my2)
         self.arrow.update_drawing()
 
 
@@ -298,7 +256,6 @@ def register_arrow_command(logger):
             ('weight', FloatArg),
             ('visibility', BoolArg),
             ('head_style', EnumOf(("blocky", "solid", "pointy", "pointer"))),
-            #('mid_point', Or(NoneArg, Float2Arg)),
             ('frames', IntArg)],
         synopsis='Create/change a 2d arrow')
     register('2dlabels arrow', arrows_desc, arrow, logger=logger)
@@ -360,7 +317,7 @@ class Arrows(Model):
 
     def take_snapshot(self, session, flags):
         lattrs = ('name', 'color', 'weight', 'head_style',
-                  'start', 'end', 'mid_point', 'visibility')
+                  'start', 'end', 'visibility')
         lstate = tuple({attr:getattr(a, attr) for attr in lattrs}
                        for a in self.all_arrows)
         data = {'arrows state': lstate,
@@ -403,7 +360,7 @@ def session_arrows(session, create=False):
 
 class Arrow:
     def __init__(self, session, name, color=None, weight=1.0, start=(0.0, 0.0), end=(1.0, 1.0),
-            mid_point=None, visibility=True, head_style="solid"):
+            visibility=True, head_style="solid"):
         self.session = session
         self.name = name
         self.color = color
@@ -411,7 +368,6 @@ class Arrow:
         self.start = start
         self.end = end
         self.visibility = visibility
-        self.mid_point = mid_point
         self.head_style = head_style
         self.drawing = d = ArrowModel(session, self)
         lb = session_arrows(session, create = True)
@@ -497,11 +453,6 @@ class ArrowModel(Model):
             return None, None
 
         half_width = scale_factor * self.STD_HALF_WIDTH * self.arrow.weight
-
-        if self.arrow.mid_point:
-            # curved arrow
-            from chimerax.core.errors import LimitationError
-            raise LimitationError("Curved arrows not implemented yet")
 
         # straight arrow
         vx, vy = ex - sx, ey - sy

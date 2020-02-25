@@ -83,8 +83,6 @@ class MoveLabelMouseMode(MouseMode):
     def _get_arr_xy(self):
         if self._arr_part == "start":
             x, y = self._label.start
-        elif self._arr_part == "mid_point":
-            x, y = self._label.mid_point
         else:
             x, y = self._label.end
         return x,y
