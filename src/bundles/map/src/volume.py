@@ -1823,7 +1823,8 @@ class VolumeImage(Image3d):
     if ro.image_mode == 'tilted slab':
       thickness = ro.tilted_slab_spacing * ro.tilted_slab_plane_count
     else:
-      box_size = [x1-x0 for x0,x1 in zip(*v.xyz_bounds())]
+      ijk_min, ijk_max = v.ijk_bounds()
+      box_size = [(i1-i0)*s for i0,i1,s in zip(ijk_min, ijk_max, v.data.step)]
       thickness = min(box_size)
     return v.transparency_depth * thickness
   
