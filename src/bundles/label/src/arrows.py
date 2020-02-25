@@ -622,9 +622,13 @@ class ArrowModel(Model):
                                 inner_tip[1] + half_width * (-norm[1] - perp[1]))
                 poly_points = [edge1, flange1, inner_flange1, shaft_base1, shaft_base2, inner_flange2,
                     flange2, edge2, (ex, ey)]
+            elif self.arrow.head_style == "pointer":
+                poly_points = [shaft_inside1, shaft_base1, shaft_base2, shaft_inside2, (ex, ey)]
+            elif self.arrow.head_style == "pointy":
+                poly_points = [edge1, shaft_inside1, shaft_base1, shaft_base2, shaft_inside2, edge2,
+                    (ex, ey)]
             else:
-                #TODO: other head styles
-                poly_points = []
+                raise ValueError("Don't know how to draw arrowhead style '%s'" % self.arrow.head_style)
             if poly_points:
                 p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in poly_points])
 
