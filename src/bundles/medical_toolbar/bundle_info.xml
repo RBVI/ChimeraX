@@ -77,7 +77,7 @@
 	      description="Move plane or slab along its axis to show a different section"/>
     <Provider tab="Medical Image" section="Mouse Mode" name="mm3"
 	      mouse_mode="rotate slab" display_name="Tilt slab"
-	      description="Tilt image planes"/>
+	      description="Tilt image planes, hold shift key to translate"/>
     <Provider tab="Medical Image" section="Mouse Mode" name="mm4"
 	      mouse_mode="tape measure" display_name="Tape"
 	      description="Measure distance between two points"/>
