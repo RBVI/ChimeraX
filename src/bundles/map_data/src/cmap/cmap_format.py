@@ -44,7 +44,7 @@ class Chimera_HDF_Data:
 
         agroups = self.find_arrays(f.root)
         if len(agroups) == 0:
-            raise ValueError('Chimera HDF5 file %s contains no 3d arrays' % path)
+            raise SyntaxError('Chimera HDF5 file %s contains no 3d arrays' % path)
 
         imlist = [Chimera_HDF_Image(g,a) for g,a in agroups]
         imlist.sort(key = lambda i: i.name)
@@ -142,8 +142,11 @@ def copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array,
 
     # Read in blocks along axis with smallest chunk size.
     cshape = a._v_chunkshape
-    csmin = min(cshape)
-    axis = cshape.index(csmin)
+    if cshape is None:
+        axis = 0
+    else:
+        csmin = min(cshape)
+        axis = cshape.index(csmin)
     bf = block_size / array.nbytes
     if axis == 0:
         n = ksz // kstep
@@ -193,6 +196,7 @@ class Chimera_HDF_Image:
                 parrays.append(a)
 
         # TODO: Handle error when group has only subsample arrays
+        parrays = parrays[:1]
         self.array_paths = [a._v_pathname for a in parrays]
         self.size = self.check_array_sizes(parrays)
         self.name = self.find_name(group)
@@ -354,7 +358,7 @@ class Chimera_HDF_Image:
                            ((a._v_name,) + tuple(a.shape) + (a.atom.dtype.name,))
                            for a in arrays])
         message += sizes
-        raise ValueError(message)
+        raise SyntaxError(message)
 
 # -----------------------------------------------------------------------------
 #

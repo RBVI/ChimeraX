@@ -247,21 +247,26 @@ def _which_segments(segmentation, conditions):
             logical_and(mask, group, mask)
             group[:] = 0
             group[mask] = value
+        elif condition == 'segment':
+            pass
         else:
             try:
+                seg_id = int(condition)
+            except ValueError:
+                seg_id = None
+            if seg_id is not None:
                 # One specific segment ("5")
                 attribute_name = 'segment'
-                seg_id = int(condition)
                 if group[seg_id]:
                     group[:] = 0
                     group[seg_id] = seg_id
                 else:
                     group[:] = 0
-            except:
+            else:
                 # All segments with non-zero attribute value ("neuron_id").
                 attribute_name = condition
-                mask = (group != 0)
                 av = _attribute_values(segmentation, attribute_name)
+                mask = (group != 0)
                 group[mask] = av[mask]
 
     return group, attribute_name
