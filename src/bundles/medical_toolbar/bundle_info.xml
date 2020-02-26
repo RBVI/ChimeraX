@@ -51,7 +51,7 @@
     <Provider tab="Medical Image" section="Color"
 	      name="chest" link="ChimeraX-Shortcuts:ch"/>
     <Provider tab="Medical Image" section="Color"
-	      name="skin" link="ChimeraX-Shortcuts:as"/>
+	      name="brain" link="ChimeraX-Shortcuts:bc"/>
     <Provider tab="Medical Image" section="Color"
 	      name="default thresholds" link="ChimeraX-Shortcuts:dc"/>
 
