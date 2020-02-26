@@ -238,16 +238,20 @@ surface blob</a> to measure area, volume, size; see also
 <a href="../trajectories.html#vseries">volume series</a>, with wrapping;
 see also <a href="../commands/vseries.html"><b>vseries</b></a></td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/windowing.png" width="35px"></td>
+<td align="center">
+<a name="windowing"></a>
+<img src="mouse-icons/windowing.png" width="35px"></td>
 <td align="center"><b>windowing</b></td>
 <td align="center" class="text">adjust
 <a href="volumeviewer.html">volume data</a> image display
 thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
 (moves all thresholds in parallel to higher or lower values),
 horizontal motion adjusts <b><i>window width</i></b>
-(moves thresholds symmetrically farther apart or closer together);
-the dominant type of motion wins out, <i>i.e.</i>, a diagonal motion
-will not change both level and width</td>
+(moves thresholds symmetrically farther apart or closer together),
+and the dominant type of motion wins out;
+for adjusting multiple windows within a single histogram,
+see <a href="#multiwindowing">details</a>
+</td>
 </tr><tr>
 <td align="center"><img src="mouse-icons/bondrot.png" width="35px"></td>
 <td align="center"><b>bond rotation</b></td>
@@ -415,6 +419,37 @@ See also:
 <a href="../commands/atomspec.html#zones">zone atom specification</a>
 </p>
 
+<a name="multiwindowing"></a>
+<p class="nav">
+[<a href="#top">back to top: Mouse Modes...</a>]
+</p>
+<h3>Windowing</h3>
+<p>
+The <a href="#windowing"><b>windowing</b></a> mode adjusts
+<a href="volumeviewer.html">volume data</a> image display
+thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
+(moves all thresholds in parallel to higher or lower values) and
+horizontal motion adjusts <b><i>window width</i></b>
+(moves thresholds symmetrically farther apart or closer together).
+The dominant type of motion wins out, <i>i.e.</i>, a diagonal motion
+will not change both level and width. 
+</p><p>
+A single
+<a href="../commands/volume.html#transferfunction">transfer function</a>
+(set of thresholds for an image display)
+may contain multiple windows, where each window contains one or more
+thresholds with vertical values above zero and is separated horizontally 
+from other windows by at least two thresholds at the vertical zero.
+The <a href="../commands/volume.html#appearance"><b>chest</b> preset</a>
+is an example of this situation.
+The <a href="#windowing"><b>windowing</b></a> mode initially applies to
+the leftmost window.  Click-release of the assigned button without dragging 
+switches the target of this mode to the next window (going from left to right), 
+eventually wrapping around from the rightmost to the leftmost. 
+Any changes in window level and width are limited by 
+&ldquo;bumping&rdquo; into a neighboring window.
+</p>
+
 <a name="vr"></a>
 <p class="nav">
 [<a href="#top">back to top: Mouse Modes...</a>]
@@ -449,8 +484,6 @@ them only upon a 45&deg; change in viewing angle rather than continuously
 <li>the <b>zone</b> mode does not turn on ribbon (cartoon) display
 <li><b>rotate</b> and <b>translate</b> are a single mode in VR
 <li><b>rotate slab</b> 
-(<a href="medicalimage.html#mousemodes"><b>Medical Image</b></a>:
-<img src="mouse-icons/rotateslab.png" class="icon3">)
 both rotates and translates the volume-data slice in
 <a href="../commands/volume.html#tiltedslab"><b>tilted slab</b></a> image mode
 </ul>
