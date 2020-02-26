@@ -21,8 +21,11 @@ from chimerax.core.errors import UserError, LimitationError
 class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
     allow_repeat = False
 
-def cmd_open(session, file_names, rest_of_line):
-    from .manager import _manager as mgr, NoOpenerError
+import os.path
+def likely_pdb_id(text):
+    return not os.path.exists(text) and len(text) == 4 and text[0].isdigit() and text[1:].isalphanum()
+
+def cmd_open(session, file_names, rest_of_line, *, log=True):
     file_name = file_names[0]
     if len(file_names) > 1:
         remainder = " ".join([FileNameArg.unparse(x) for x in file_names[1:]])
@@ -35,36 +38,18 @@ def cmd_open(session, file_names, rest_of_line):
         token, token_log, remainder = next_token(remainder)
         remainder = remainder.lstrip()
         tokens.append(token)
-    database_name = data_format = None
+    database_name = format_name = None
     for i in range(len(tokens)-2, -1, -2):
         test_token = tokens[i].lower()
         if "format".startswith(test_token):
             format_name = tokens[i+1]
-            try:
-                data_format = session.data_formats[format_name]
-            except KeyError:
-                raise UserError("Unknown data format: '%s'" % format_name)
             break
         elif "fromdatabase".startswith(test_token):
             database_name = tokens[i+1]
             break
-    if not data_format and not database_name:
-        if ':' in file_name:
-            database_name, file_name = file_name.split(':', 1)
-            #TODO: when fetch actually implemented, check that it's a known fetch type and if not,
-            # treat the whole thing as a file name
-        elif '.' in file_name:
-            base_name = mgr.remove_compression_suffix(file_name)
-            try:
-                dot_pos = base_name.rindex('.')
-            except ValueError:
-                raise UserError("'%s' has only compression suffix; cannot determine format from suffix"
-                    % file_name)
-            data_format = session.data_formats.data_format_from_suffix(base_name[dot_pos:])
-            if not data_format:
-                raise UserError("No known data format for file suffix '%s'" % base_name[dot_pos:])
-        else:
-            database_name = "pdb"
+    data_format, database_name = process_file_info(session, file_name, format_name, database_name)
+
+    from .manager import _manager as mgr, NoOpenerError
     if data_format:
         try:
             provider_args, want_path, check_path = mgr.open_info(data_format)
@@ -73,19 +58,17 @@ def cmd_open(session, file_names, rest_of_line):
     else:
         raise LimitationError("Revamped data fetching not yet implemented")
     provider_cmd_text = "open " + " ".join([FileNameArg.unparse(file_name)] + tokens)
-    print("provider-open command: %s" % repr(provider_cmd_text))
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(formats=session.data_formats.formats):
         names = set()
         for f in formats:
             names.update(f.nicknames)
-        #TODO: fetch databases
         return names
 
     keywords = {
         'format': DynamicEnum(format_names),
-        #'from_database':
+        #TODO: keywords['from_database'] = DynamicEnum(database_names)
         'ignore_cache': BoolArg,
         'name': StringArg
     }
@@ -96,13 +79,66 @@ def cmd_open(session, file_names, rest_of_line):
     desc = CmdDesc(required=[('file_names', OpenFileNamesArg)], keyword=keywords.items(),
         synopsis="unnecessary")
     register("open", desc, provider_open, registry=registry)
-    Command(session, registry=registry).run(provider_cmd_text, log=True)
+    Command(session, registry=registry).run(provider_cmd_text, log=log)
 
-def provider_open(session, file_names, format=None, ignore_cache=False, name=None, **provider_kw):
-    print("provider open, file names:", file_names, " format:", format, " ignore cache:", ignore_cache, " name:", name, " provider kw:", provider_kw)
+def provider_open(session, file_names, format=None, from_database=None, ignore_cache=False, name=None,
+        **provider_kw):
+    file_infos = [FileInfo(session, fn, format, from_database) for fn in file_names]
+    formats = set([fi.data_format for fi in file_infos])
+    databases = set([fi.database_name for fi in file_infos])
+    if provider_kw and (len(formats) > 1 or len(databases) > 1):
+        raise UserError("Cannot provide format/database-specific keywords when opening multiple different"
+            " formats or databases; use several 'open' commands instead.")
+    for fi in file_infos:
+        if fi.database_name:
+            #TODO: core.commands.open._fetch_from_database
+            continue
+        bundle_info, name, want_path, check_path = mgr.open_info(fi.data_format.name)
+
+def process_file_info(session, file_name, format_name, database_name):
+    if format_name:
+        try:
+            data_format = session.data_formats[format_name]
+        except KeyError:
+            raise UserError("Unknown data format: '%s'" % format_name)
+    else:
+        data_format = None
+    # it's possible for a fetch to have no database specified and still have a format, e.g.
+    # "open 1gcn format pdb"
+    if not database_name:
+        if ':' in file_name:
+            database_name, file_name = file_name.split(':', 1)
+            #TODO: when fetch actually implemented, check that it's a known fetch type and if not,
+            # treat the whole thing as a file name
+        elif not data_format:
+            if '.' in file_name:
+                from .manager import _manager as mgr
+                base_name = mgr.remove_compression_suffix(file_name)
+                try:
+                    dot_pos = base_name.rindex('.')
+                except ValueError:
+                    raise UserError("'%s' has only compression suffix; cannot determine format from suffix"
+                        % file_name)
+                data_format = session.data_formats.data_format_from_suffix(base_name[dot_pos:])
+                if not data_format:
+                    raise UserError("No known data format for file suffix '%s'" % base_name[dot_pos:])
+            elif likely_pdb_id(file_name):
+                database_name = "pdb"
+            else:
+                raise UserError("Cannot determine format for '%s'" % file_name)
+        elif likely_pdb_id(file_name):
+            # handle "open 1gcn format pdb"
+            database_name = "pdb"
+    return data_format, database_name
+
+class FileInfo:
+    def __init__(self, session, file_name, format_name, database_name):
+        self.file_name = file_name
+        self.data_format, self.database_name = process_file_info(
+                    session, file_name, format_name, database_name)
 
 
 def register_command(command_name, logger):
     register('open2', CmdDesc(
         required=[('file_names', OpenFileNamesArgNoRepeat), ('rest_of_line', RestOfLine)],
-        synopsis="Open/fetch data files"), cmd_open, logger=logger)
+        synopsis="Open/fetch data files", self_logging=True), cmd_open, logger=logger)

@@ -1977,12 +1977,12 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        '_hidden', 'url', 'synopsis'
+        '_hidden', 'url', 'synopsis', 'self_logging'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
                  postconditions=(), required_arguments=(),
-                 non_keyword=(), hidden=(), url=None, synopsis=None):
+                 non_keyword=(), hidden=(), url=None, synopsis=None, self_logging=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = dict(keyword)
@@ -2001,6 +2001,7 @@ class CmdDesc:
         self._required_arguments = required_arguments
         self.url = url
         self.synopsis = synopsis
+        self.self_logging = self_logging
         self._function = None
 
     @property
@@ -2798,12 +2799,12 @@ class Command:
                 return results
             prev_annos = self._process_positional_arguments()
             if self._error:
-                if log:
+                if log and not self._ci.self_logging:
                     self.log_parse_error()
                 raise UserError(self._error)
             self._process_keyword_arguments(final, prev_annos)
             if self._error:
-                if log:
+                if log and not self._ci.self_logging:
                     self.log_parse_error()
                 raise UserError(self._error)
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
@@ -2812,13 +2813,13 @@ class Command:
                 msg = commas(arg_names, 'and')
                 noun = plural_form(arg_names, 'argument')
                 self._error = "Missing required %s %s" % (msg, noun)
-                if log:
+                if log and not self._ci.self_logging:
                     self.log_parse_error()
                 raise UserError(self._error)
             for cond in self._ci._postconditions:
                 if not cond.check(self._kw_args):
                     self._error = cond.error_message()
-                    if log:
+                    if log and not self._ci.self_logging:
                         self.log_parse_error()
                     raise UserError(self._error)
 
@@ -2827,7 +2828,7 @@ class Command:
 
             ci = self._ci
             kw_args = self._kw_args
-            really_log = log and _used_aliases is None
+            really_log = log and _used_aliases is None and not self._ci.self_logging
             if really_log:
                 self.log()
             cmd_text = self.current_text[self.start:self.amount_parsed]

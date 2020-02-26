@@ -24,7 +24,6 @@ class _SDF_API(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, *, operation=None):
         if operation == "args":
-            from chimerax.core.commands import BoolArg
             return {}
 
 bundle_api = _SDF_API()
