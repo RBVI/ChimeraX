@@ -753,7 +753,7 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None, case_sensitive = False):
         from collections.abc import Iterable
         if isinstance(values, Iterable):
             values = list(values)
@@ -786,17 +786,21 @@ class EnumOf(Annotation):
         if abbreviations is not None:
             self.allow_truncated = abbreviations
 
+        self._case_sensitive = case_sensitive
+        
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text, convert=True)
-        folded = token.casefold()
+        case = self._case_sensitive
+        word = token if case  else token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
-            if ident.casefold() == folded:
+            id = ident if case else ident.casefold()
+            if id == word:
                 return self.values[i], quote_if_necessary(ident), rest
             elif self.allow_truncated:
-                if ident.casefold().startswith(folded):
+                if id.startswith(word):
                     matches.append((i, ident))
         if len(matches) == 1:
             i, ident = matches[0]

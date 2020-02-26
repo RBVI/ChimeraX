@@ -48,8 +48,8 @@ Contour levels can also be changed interactively with the
 <a href="ui.html#mousemode">mouse mode</a> for <b>contour level</b>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
-or <b>windowing</b> 
-<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+or <b>windowing</b> <a href="../tools/mousemodes.html#multiwindowing" 
+title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>.
 </p><p>
 Volume data can be opened with the command
@@ -70,6 +70,7 @@ See also:
 <a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="sym.html"><b>sym</b></a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
+<a href="segmentation.html"><b>segmentation</b></a>,
 <a href="../tools/densitymaps.html"><b>Map</b></a> icons,
 <a href="../measurements.html">measurements</a>,
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
@@ -240,8 +241,8 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   <b>contour level</b>
   <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
-  or <b>windowing</b> 
-  <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+  or <b>windowing</b> <a href="../tools/mousemodes.html#multiwindowing" 
+  title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>
   in the graphics window.
 </blockquote>
@@ -975,7 +976,7 @@ the <b>tilted slab</b> mode, slab orientation would be adjusted with the
 <b>rotate slab</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>,
-slab offset with the 
+slab offset with either the <b>rotate slab</b> button + <b>Shift</b> or the
 <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>,
@@ -1121,12 +1122,11 @@ the data values rather than the resulting color values are interpolated.
   <a name="colormapSize"></a>
   <b>colormapSize</b> &nbsp;<i>N</i>
 <br>
-Specify the size of the color lookup table (default <b>256</b>)
-for colormapping on the GPU (any data type) or on the CPU 
-with floating-point data.
-For color mapping on the CPU with 8-bit or 16-bit map data, 
-this value is ignored and sizes 256 and 65536 are used instead
-so that each data value has its own color. 
+Specify the size of the color lookup table (default <b>2048</b>) for 
+colormapping on the GPU (any data type) or on the CPU with floating-point data. 
+For color mapping on the CPU with 8-bit or 16-bit map data, this value 
+is ignored and sizes 256 and 65536 are used instead
+so that each data value has its own color.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -1790,6 +1790,7 @@ only those points in the shell between the two surfaces.
 The related command <a href="#onesmask"><b>volume onesmask</b></a> 
 creates a new map with values of 1 bounded by a surface.
 See also: <a href="#multiply"><b>volume multiply</b></a>,
+<a href="segmentation.html"><b>segmentation</b></a>,
 <a href="../tools/segment.html"><b>Segment Map</b></a>
 </p>
 </blockquote>
@@ -2523,5 +2524,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+February 2020</address>
 </body></html>

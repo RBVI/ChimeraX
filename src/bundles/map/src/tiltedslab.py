@@ -84,13 +84,25 @@ class RotateSlabMouseMode(MouseMode):
         dx, dy = (x - xl, yl - y)
         if dx == 0 and dy == 0:
             return
-        speed = 0.1 if event.shift_down() else 1
-        view = self.session.main_view
-        from math import sqrt
-        dn = sqrt(dx*dx + dy*dy)
-        rangle = speed * dn
-        raxis = view.camera.position.transform_vector((-dy/dn, dx/dn, 0))
-        self._rotate_slab(raxis, rangle)
+        
+        camera = self.session.main_view.camera
+        if event.shift_down():
+            # Translate slab
+            ro = v.rendering_options
+            spacing = ro.tilted_slab_spacing
+            slab_normal = v.scene_position.transform_vector(ro.tilted_slab_axis)
+            move_dir = camera.position.transform_vector((dx,dy,0))
+            from chimerax.core.geometry import inner_product, norm
+            sign = 1 if inner_product(move_dir, slab_normal) > 0 else -1
+            dist = sign * norm(move_dir) * spacing
+            self._move_slab(dist)
+        else:
+            # Rotate slab
+            from math import sqrt
+            dn = sqrt(dx*dx + dy*dy)
+            rangle = dn
+            raxis = camera.position.transform_vector((-dy/dn, dx/dn, 0))
+            self._rotate_slab(raxis, rangle)
         self._xy_last = (x,y)
 
     def _rotate_slab(self, axis, angle, center = None):

@@ -1,0 +1,171 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: segmentation</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: segmentation</h3>
+<p>
+The <b>segmentation</b> command does not calculate map segmentations;
+instead it shows an existing segmentation as surfaces or with coloring.
+See also: 
+<a href="color.html#byattribute"><b>color byattribute</b></a>,
+<a href="color.html#map"><b>color map</b></a>,
+<a href="color.html#zone"><b>color zone</b></a>,
+<a href="volume.html#mask"><b>volume mask</b></a>,
+<a href="../tools/segment.html"><b>Segment Map</b></a>
+</p>
+<ul>
+<li><a href="#surfaces"><b>segmentation surfaces</b></a>
+&ndash; show segmentation regions as surfaces
+<li><a href="#colors"><b>segmentation colors</b></a>
+&ndash; color another map (generally the original map that was segmented)
+or a surface model by segmentation region
+</ul>
+<p>
+For display with this command,
+a segmentation can be read from an <b><i>index map</i></b>, a specific type of 
+<a href="../tools/volumeviewer.html">volume data</a> that consists of 
+non-negative integer values defining <b><i>segmentation regions</i></b>. 
+In the index map, a value of zero means the grid point is not assigned to 
+a region, a value of 1 means the grid point is part of region 1, <i>etc.</i>
+<a name="segment-attribute"></a>
+Segmentation regions are automatically assigned an attribute named 
+<b>segment</b> with integer <i>segment-id</i> values.
+</p><p>
+For index maps read from the HDF5-based
+<a href="save.html#chimap">Chimera map</a> format, 
+additional attributes of the segmentation regions can be assigned from 
+one-dimensional integer arrays with lengths equal to the number of regions.
+The array names are used as the attribute names.
+For example, a brain segmentation file could contain an array
+named &ldquo;neuron&rdquo; containing different integers for different neurons
+This would allow showing all neuron surfaces collectively, or the surface of a 
+specific neuron, as shown in the examples <a href="#surfaces">below</a>.
+</p>
+
+<a name="surfaces"></a>
+<p class="nav">
+[<a href="#top">back to top: segmentation</a>]
+</p>
+<h3>Showing Segmentation Regions as Surfaces</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>segmentation &nbsp;surfaces</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>seg-map</i></a>&nbsp;
+<span class="nowrap">[&nbsp;<b>where</b>&nbsp;&nbsp;<i>segment-id</i>&nbsp;|&nbsp;<i>attribute-name</i>&nbsp;|&nbsp;<i>attribute-name</i>=<i>attribute-value</i>&nbsp;]</span>
+[&nbsp;<b>each</b>&nbsp;&nbsp;<i>attribute-name</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
+[&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+</blockquote>
+<p>
+Create one or more surface models enclosing segmentation regions defined in 
+<i>seg-map</i>. The <b>where</b> option limits surface generation to
+a subset of the segmentation regions:
+</p>
+<ul>
+<li><i>segment-id</i> &ndash; the region with the specified <i>segment-id</i>
+<li><i>attribute-name</i>
+&ndash; regions with any nonzero value of the specified attribute
+<li><i>attribute-name</i>=<i>attribute-value</i>
+&ndash; regions with a specific value of a specified attribute
+</ul>
+<p>
+The <b>each</b> option controls how many surface models will be created,
+either a single model (default) or a separate (sub)model
+for each value of a specified attribute.
+The <b>color</b> option gives a <a href="colornames.html">single color</a>;
+omitting it uses colors chosen randomly for different values of
+the <a href="#segment-attribute"><b>segment</b></a> attribute 
+unless a different attribute was specified with <b>where</b>
+(see also <a href="#colors"><b>segmentation colors</b></a> below).
+Example commands:
+</p>
+<blockquote><b>
+seg surf #3 each segment
+<br>
+seg surf #3 where 2 color blue
+<br>
+seg surf #1 where neuron
+<br>
+seg surf #1 where neuron=5
+</b></blockquote>
+<p>
+The <b>region</b> option does not refer to a segmentation region,
+but instead a spatial subregion of the segmentation map: 
+the full dimensions (<b>all</b>, default)
+or a subregion previously <a href="volume.html#name">assigned</a> <i>name</i>,
+or the subregion with grid indices <i>i1&ndash;i2</i> along the X axis,
+<i>j1&ndash;j2</i> along the Y axis, and <i>k1&ndash;k2</i> along the Z axis.
+Grid indices must be integers separated by commas but not spaces.
+</p><p>
+The <b>step</b> option indicates density of sampling the segmentation map;
+1 means to use the full resolution (default), 2 means to use every other point 
+along each axis, <i>etc.</i>. Step values must be integers. 
+If a single integer is supplied, it is used in all three directions; 
+if three integers are supplied (separated by commas but not spaces),
+they are used in the X, Y, and Z directions, respectively.
+</p>
+
+<a name="colors"></a>
+<p class="nav">
+[<a href="#top">back to top: segmentation</a>]
+</p>
+<h3>Coloring a Map by Segmentation Region</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>segmentation &nbsp;colors</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>seg-map</i></a>&nbsp;
+[&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>map</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp;]
+[&nbsp;<b>surface</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surface-model</i></a>&nbsp;]
+[&nbsp;<b>byAttribute</b>&nbsp;&nbsp;<i>attribute-name</i>&nbsp;]
+[&nbsp;<b>outsideColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>maxSegmentId</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+</blockquote>
+<p>
+Color a <b>map</b> or <b>surface</b> model by the segmentation regions 
+defined in <i>seg-map</i>.
+The <b>map</b> option should only be used for maps shown in the <b>image</b>
+<a href="volume.html#style">display style</a>; for maps shown as 
+contour surfaces, the <b>surface</b> option should be used instead.
+If <a href="colornames.html"><i>color-spec</i></a> is omitted, 
+random coloring is applied according to values of the attribute 
+specified with the <b>byAttribute</b> option (default attribute 
+<a href="#segment-attribute"><b>segment</b></a>).
+The <b>outsideColor</b> color is used for parts the map or surface that
+fall outside of the extents of <i>seg-map</i> or that correspond 
+to zero values of the attribute within <i>seg-map</i>.
+</p><p>
+The <b>maxSegmentId</b> is only used to speed coloring by restricting it to 
+only the lowest-numbered subset of a very high number of segmentation regions.
+</p><p>
+The <b>step</b> option indicates sampling density of the segmentation map,
+as described <a href="#surfaces">above</a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+February 2020</address>
+</body></html>

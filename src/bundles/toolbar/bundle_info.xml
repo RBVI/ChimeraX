@@ -181,7 +181,7 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Map" name="mM2"
       mouse_mode="move planes" display_name="Move planes" description="Move plane or slab along its axis to show a different section"/>
     <Provider tab="Right Mouse" section="Map" name="mM3"
-      mouse_mode="rotate slab" display_name="Rotate slab" description="Tilt volume planes"/>
+      mouse_mode="rotate slab" display_name="Rotate slab" description="Tilt volume planes, hold shift key to translate"/>
     <Provider tab="Right Mouse" section="Map" name="mM4"
       mouse_mode="crop volume" display_name="Crop" description="Crop volume data dragging any face of box outline"/>
     <Provider tab="Right Mouse" section="Map" name="mM5"

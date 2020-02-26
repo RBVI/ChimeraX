@@ -133,11 +133,11 @@
     <Provider tab="Map" section="Image Display"
       name="ps" display_name="Perpendicular slices" icon="perpslice.png" description="Volume perpendicular slices"/>
     <Provider tab="Map" section="Image Display" hidden="true"
-      name="aw" display_name="Airways preset" icon="airways.png" description="Airways preset"/>
+      name="aw" display_name="Airways" icon="airways.png" description="Airways CT scan coloring"/>
     <Provider tab="Map" section="Image Display" hidden="true"
-      name="ch" display_name="Chest preset" icon="chest.png" description="Chest preset"/>
+      name="ch" display_name="Chest CT" icon="chest.png" description="Chest CT scan coloring"/>
     <Provider tab="Map" section="Image Display" hidden="true"
-      name="as" display_name="Skin preset" icon="ear.png" description="Skin preset"/>
+      name="bc" display_name="Brain CT" icon="brain.png" description="Brain CT scan coloring"/>
     <Provider tab="Map" section="Image Display"
       name="dc" display_name="Default thresholds" icon="initialcurve.png" description="Default volume curve"/>
 

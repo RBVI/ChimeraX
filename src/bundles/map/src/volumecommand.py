@@ -42,7 +42,7 @@ def register_volume_command(logger):
                ('color', RepeatOf(ColorArg)),
                ('brightness', FloatArg),
                ('transparency', FloatArg),
-               ('appearance', EnumOf(appearance_names())),
+               ('appearance', EnumOf(appearance_names(), case_sensitive=True)),
                ('step', MapStepArg),
                ('region', MapRegionArg),
                ('name_region', StringArg),
