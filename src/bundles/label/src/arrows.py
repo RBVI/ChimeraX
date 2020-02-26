@@ -334,7 +334,12 @@ class Arrows(Model):
         return s
 
     def set_state_from_snapshot(self, session, data):
-        self._arrows = [Arrow(session, **ls) for ls in data['arrows state']]
+        compatible_arrows_state = []
+        for arrow_state in data['arrows state']:
+            if 'mid_point' in arrow_state:
+                del arrow_state['mid_point']
+            compatible_arrows_state.append(arrow_state)
+        self._arrows = [Arrow(session, **ls) for ls in compatible_arrows_state]
         self._named_arrows = {a.name:a for a in self._arrows if a.name}
 
 
