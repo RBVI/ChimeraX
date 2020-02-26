@@ -2594,7 +2594,7 @@ class RenderingOptions:
     self.color_mode = 'auto8'         # image rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
     self.colormap_on_gpu = False      # image rendering with colors computed on gpu
-    self.colormap_size = 256	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.colormap_size = 2048	      # image rendering on GPU or other than 8 or 16-bit data types
     self.colormap_extend_left = False
     self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu

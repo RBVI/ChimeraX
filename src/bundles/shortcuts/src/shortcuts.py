@@ -127,9 +127,10 @@ def standard_shortcuts(session):
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
-        ('aw', if_sel_maps('volume sel appearance "Airways II"'), 'Airways preset', mapcat, sesarg, mmenu),
+        ('aw', if_sel_maps('volume sel appearance airways'), 'Airways CT scan coloring', mapcat, sesarg, mmenu),
         ('as', if_sel_maps('volume sel appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
-        ('ch', if_sel_maps('volume sel appearance chest'), 'Chest preset', mapcat, sesarg, mmenu),
+        ('bc', if_sel_maps('volume sel appearance brain'), 'Brain CT scan coloring', mapcat, sesarg, mmenu),
+        ('ch', if_sel_maps('volume sel appearance chest'), 'Chest CT scan coloring', mapcat, sesarg, mmenu),
         ('dc', if_sel_maps('volume sel appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
         ('zs', if_sel_maps('volume sel projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
         ('ps', if_sel_maps('volume sel projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
