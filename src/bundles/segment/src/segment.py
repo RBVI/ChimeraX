@@ -48,8 +48,8 @@ def segmentation_colors(session, segmentations, color = None,
         seg = segmentations[0]
         if tuple(map.data.size) != tuple(seg.data.size):
             from chimerax.core.errors import UserError
-            raise UserError('segmentation colors: Volume size %s' % tuple(map.data.size) +
-                            ' does not match segmentation size %s' % tuple(seg.data.size))
+            raise UserError('segmentation colors: Volume size %d,%d,%d' % tuple(map.data.size) +
+                            ' does not match segmentation size %d,%d,%d' % tuple(seg.data.size))
 
         _color_map(map, seg, by_attribute, color, outside_color)
 
