@@ -365,8 +365,7 @@ class _HistoryDialog:
             but.clicked.connect(lambda arg, txt=but_name: self.button_clicked(txt))
             button_layout.addWidget(but)
         button_frame.setLayout(button_layout)
-        self.window.manage(placement=None)
-        self.window.shown = False
+        self.window.manage(placement=None, initially_hidden=True)
         from chimerax.core.history import FIFOHistory
         self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
         self._record_dialog = None

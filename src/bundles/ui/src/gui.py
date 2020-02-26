@@ -1678,7 +1678,8 @@ class ToolWindow(StatusLogger):
         Qt.TopDockWidgetArea: "top",
         Qt.BottomDockWidgetArea: "bottom"
     }
-    def manage(self, placement, fixed_size=False, allowed_areas=Qt.AllDockWidgetAreas):
+    def manage(self, placement, fixed_size=False, allowed_areas=Qt.AllDockWidgetAreas,
+            initially_hidden=False):
         """Supported API. Show this tool window in the interface
 
         Tool will be docked into main window on the side indicated by
@@ -1694,6 +1695,9 @@ class ToolWindow(StatusLogger):
 
         The tool window will be allowed to dock in the allowed_areas, the value
         of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
+
+        The tool will be displayed unless 'initially_hidden' is True.  This flag is needed because
+        setting tool.shown to False after manage() will otherwise briefly show the tool.
         """
         settings =  self.session.ui.settings
         tool_name = self.tool_instance.tool_name
@@ -1711,7 +1715,7 @@ class ToolWindow(StatusLogger):
         self.tool_instance.session.ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
-        self.shown = True
+        self.shown = not initially_hidden
 
     @property
     def shown(self):
