@@ -83,9 +83,10 @@ file_formats = [
 #
 electrostatics_types = ('apbs', 'delphi', 'uhbd')
 
+from chimerax.core.errors import UserError
 # -----------------------------------------------------------------------------
 #
-class UnknownFileType(Exception):
+class UnknownFileType(UserError):
 
   def __init__(self, path):
 
@@ -98,7 +99,7 @@ class UnknownFileType(Exception):
 
 # -----------------------------------------------------------------------------
 #
-class FileFormatError(Exception):
+class FileFormatError(UserError):
   pass
   
 # -----------------------------------------------------------------------------

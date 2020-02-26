@@ -59,7 +59,9 @@ class EMAN_HDF_Data:
 
         arrays = self.find_arrays(f.root)
         if len(arrays) == 0:
-            raise ValueError('EMAN HDF5 file %s contains no arrays' % path)
+            raise SyntaxError('EMAN HDF5 file %s contains no arrays\n' % path
+                              + 'Perhaps this is not an EMAN HDF5 file.\n'
+                              + 'Try command "open file-path format cmap" to open generic HDF5 data')
 
         self.images = [EMAN_HDF_Image(a) for a in arrays]
 
