@@ -29,7 +29,10 @@ The <b>segmentation</b> command does not calculate map segmentations;
 instead it shows an existing segmentation as surfaces or with coloring.
 See also: 
 <a href="color.html#byattribute"><b>color byattribute</b></a>,
-<a href="color.html#map"><b>color map</b></a>
+<a href="color.html#map"><b>color map</b></a>,
+<a href="color.html#zone"><b>color zone</b></a>,
+<a href="volume.html#mask"><b>volume mask</b></a>,
+<a href="../tools/segment.html"><b>Segment Map</b></a>
 </p>
 <ul>
 <li><a href="#surfaces"><b>segmentation surfaces</b></a>
@@ -39,8 +42,8 @@ See also:
 or a surface model by segmentation region
 </ul>
 <p>
-Currently, a segmentation can be read from an <b><i>index map</i></b>,
-a specific type of 
+For display with this command,
+a segmentation can be read from an <b><i>index map</i></b>, a specific type of 
 <a href="../tools/volumeviewer.html">volume data</a> that consists of 
 non-negative integer values defining <b><i>segmentation regions</i></b>. 
 In the index map, a value of zero means the grid point is not assigned to 
