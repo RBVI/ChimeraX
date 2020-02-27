@@ -27,9 +27,11 @@ class OpenManager(ProviderManager):
         self.triggers.add_trigger("open command changed")
 
     def add_provider(self, bundle_info, name, *, type="open", want_path=False, check_path=True,
-            compression_suffixes=None, **kw):
+            batch=False, compression_suffixes=None, **kw):
         logger = self.session.logger
 
+        if batch or not check_path:
+            want_path = True
         type_description = "Open-command" if type == "open" else type.capitalize()
         bundle_name = _readable_bundle_name(bundle_info)
         if kw:
@@ -44,7 +46,7 @@ class OpenManager(ProviderManager):
             if data_format in self._openers:
                 logger.warning("Replacing opener for '%s' from %s bundle with that from %s bundle"
                     % (data_format.name, _readable_bundle_name(self._openers[data_format][0]), bundle_name))
-            self._openers[data_format] = (bundle_info, name, want_path, check_path)
+            self._openers[data_format] = (bundle_info, name, want_path, check_path, batch)
         elif type == "fetch":
             pass #TODO
         elif type == "compression":
@@ -65,10 +67,11 @@ class OpenManager(ProviderManager):
 
     def open_info(self, data_format):
         try:
-            bundle_info, name, want_path, check_path = self._openers[data_format]
+            bundle_info, name, want_path, check_path, batch = self._openers[data_format]
         except KeyError:
             raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
-        return bundle_info.run_provider(self.session, name, self, operation="args"), want_path, check_path
+        return (bundle_info.run_provider(self.session, name, self, operation="args"),
+                    want_path, check_path, batch)
 
     def remove_compression_suffix(self, file_name):
         for suffix in self._compression_info.keys():

@@ -2616,14 +2616,14 @@ class Command:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % kw_name
+                        arg_name = '"%s"' % _user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 if kw_name in self._ci._required:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % kw_name
+                        arg_name = '"%s"' % _user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 # optional and wrong type, try as keyword
@@ -2803,12 +2803,12 @@ class Command:
                 return results
             prev_annos = self._process_positional_arguments()
             if self._error:
-                if log and not self._ci.self_logging:
+                if log:
                     self.log_parse_error()
                 raise UserError(self._error)
             self._process_keyword_arguments(final, prev_annos)
             if self._error:
-                if log and not self._ci.self_logging:
+                if log:
                     self.log_parse_error()
                 raise UserError(self._error)
             missing = [kw for kw in self._ci._required_arguments if kw not in self._kw_args]
@@ -2817,13 +2817,13 @@ class Command:
                 msg = commas(arg_names, 'and')
                 noun = plural_form(arg_names, 'argument')
                 self._error = "Missing required %s %s" % (msg, noun)
-                if log and not self._ci.self_logging:
+                if log:
                     self.log_parse_error()
                 raise UserError(self._error)
             for cond in self._ci._postconditions:
                 if not cond.check(self._kw_args):
                     self._error = cond.error_message()
-                    if log and not self._ci.self_logging:
+                    if log:
                         self.log_parse_error()
                     raise UserError(self._error)
 
