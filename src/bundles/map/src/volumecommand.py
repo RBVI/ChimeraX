@@ -441,7 +441,7 @@ def apply_volume_options(v, doptions, roptions, session):
     kw = level_and_color_settings(v, doptions)
     kw.update(roptions)
     if 'tilted_slab_axis' in roptions:
-        kw['tilted_slab_axis'] = roptions['tilted_slab_axis'].scene_coordinates(coordinate_system = v)
+        kw['tilted_slab_axis'] = roptions['tilted_slab_axis'].coords
     if 'backing_color' in kw:
         bc = kw['backing_color']
         kw['backing_color'] = (None if bc == 'none' else tuple(bc.uint8x4()))
