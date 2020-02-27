@@ -39,6 +39,8 @@
     <Provider tab="Medical Image" section="Style"
 	      name="plane style" link="ChimeraX-Shortcuts:pl"/>
     <Provider tab="Medical Image" section="Style"
+	      name="slab style" link="ChimeraX-Shortcuts:is"/>
+    <Provider tab="Medical Image" section="Style"
 	      name="orthoplanes style" link="ChimeraX-Shortcuts:o3"/>
     <Provider tab="Medical Image" section="Style"
 	      name="full style" link="ChimeraX-Shortcuts:pa"/>
