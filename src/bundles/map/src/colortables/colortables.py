@@ -53,16 +53,20 @@ _appearances = {
 
 # -----------------------------------------------------------------------------
 #
-def appearance_names():
+def appearance_names(session):
     nset = set(_appearances.keys())
     from os import listdir
-    nset.update([filename[:-6] for filename in listdir(preset_directory()) if filename.endswith('.plist')])
-    nset.update([filename[:-5] for filename in listdir(clut_directory()) if filename.endswith('.clut')])
+    nset.update([filename[:-6] for filename in listdir(preset_directory())
+                 if filename.endswith('.plist')])
+    nset.update([filename[:-5] for filename in listdir(clut_directory())
+                 if filename.endswith('.clut')])
+    ap = _custom_appearance_settings(session)
+    nset.update(ap.appearances.keys())
     nset.add('initial')
     names = list(nset)
     names.sort()
     return tuple(names)
-     
+
 # -----------------------------------------------------------------------------
 #
 def preset_directory():
@@ -76,12 +80,68 @@ def clut_directory():
    from os.path import dirname, join
    dir = join(dirname(__file__), 'cluts')
    return dir
-     
+
+# -----------------------------------------------------------------------------
+#
+def add_appearance(name, v):
+    ap = _custom_appearance_settings(v.session)
+    # Must copy dictionary value or Settings object decides
+    # the value has not changed and does not save it.
+    appearances = dict(ap.appearances)
+    appearances[name] = _volume_appearance(v)
+    ap.appearances = appearances
+    ap.save()
+
+# -----------------------------------------------------------------------------
+#
+def _volume_appearance(v):
+    return {
+        'image_levels':v.image_levels,
+        'image_colors':v.image_colors,
+        'dim_transparent_voxels': v.rendering_options.dim_transparent_voxels,
+        'transparency_depth': v.transparency_depth,
+        'image_brightness_factor': v.image_brightness_factor,
+    }
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.commands import DynamicEnum
+class AppearanceArg(DynamicEnum):
+    def __init__(self, session):
+        values = lambda s=session: appearance_names(s)
+        DynamicEnum.__init__(self, values, case_sensitive = True)
+
+# -----------------------------------------------------------------------------
+#
+def delete_appearance(name, session):
+    ap = _custom_appearance_settings(session)
+    if name in ap.appearances:
+        # Must copy dictionary value or Settings object decides
+        # the value has not changed and does not save it.
+        appearances = dict(ap.appearances)
+        del appearances[name]
+        ap.appearances = appearances
+        ap.save()
+
+# -----------------------------------------------------------------------------
+#
+def _custom_appearance_settings(session):
+    ap = getattr(session, '_volume_appearances', None)
+    if ap is None:
+        from chimerax.core.settings import Settings
+        class _VolumeAppearanceSettings(Settings):
+            EXPLICIT_SAVE = {'appearances': {}}
+        session._volume_appearances = ap = _VolumeAppearanceSettings(session, 'volume_appearance')
+    return ap
+
 # -----------------------------------------------------------------------------
 #
 def appearance_settings(name, v):
     if name == 'initial':
         return initial_settings(v)
+    cap = _custom_appearance_settings(v.session)
+    if name in cap.appearances:
+        return cap.appearances[name]
     if name in _appearances:
         return _appearances[name]
     from os.path import join
