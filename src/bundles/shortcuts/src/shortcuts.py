@@ -115,16 +115,17 @@ def standard_shortcuts(session):
 
         ('fl', if_sel_maps('volume sel style surface'), 'Show map or surface in filled style', mapcat, sesarg, mmenu),
         ('me', if_sel_maps('volume sel style mesh'), 'Show map or surface as mesh', mapcat, sesarg, mmenu),
-        ('gs', if_sel_maps('volume sel style solid'), 'Show map as grayscale', mapcat, sesarg, mmenu, sep),
+        ('gs', if_sel_maps('volume sel style image'), 'Show map as grayscale', mapcat, sesarg, mmenu, sep),
 
         ('s1', if_sel_maps('volume sel step 1'), 'Show map at step 1', mapcat, sesarg, mmenu, sep),
         ('s2', if_sel_maps('volume sel step 2'), 'Show map at step 2', mapcat, sesarg, mmenu, sep),
         ('s4', if_sel_maps('volume sel step 4'), 'Show map at step 4', mapcat, sesarg, mmenu, sep),
 
-        ('pl', if_sel_maps('volume sel plane z orthoplanes off style solid'), 'Show one plane', mapcat, sesarg, mmenu),
-        ('pa', if_sel_maps('volume sel region all orthoplanes off'), 'Show all planes', mapcat, sesarg, mmenu),
+        ('pl', if_sel_maps('volume sel plane z style image imageMode full ; mousemode right "move planes"'), 'Show one plane', mapcat, sesarg, mmenu),
+        ('pa', if_sel_maps('volume sel region all imageMode full ; mousemode right "crop volume"'), 'Show all planes', mapcat, sesarg, mmenu),
         ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
+        ('is', show_slab, 'Show slab', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
         ('aw', if_sel_maps('volume sel appearance airways'), 'Airways CT scan coloring', mapcat, sesarg, mmenu),
@@ -554,7 +555,21 @@ def show_all_planes(m):
 def show_orthoplanes(m):
   p = tuple(s//2 for s in m.data.size)
   cmd = ('volume #%s ' % m.id_string +
-         'orthoplanes xyz positionPlanes %d,%d,%d style solid region all' % p)
+         'orthoplanes xyz positionPlanes %d,%d,%d style image region all' % p)
+  cmd += ' ; mousemode right "move planes"'
+  run(m.session, cmd)
+
+def show_slab(m):
+  d = m.data
+  spacing = min(d.step)
+  ijk_center = tuple(s/2 for s in d.size)
+  center = d.ijk_to_xyz(ijk_center)
+  offset = center[2]
+  plane_count = 10
+  cmd = ('volume #%s ' % m.id_string +
+         ' style image region all imageMode "tilted slab"' +
+         ' tiltedSlabAxis 0,0,1 tiltedSlabOffset %.4g tiltedSlabSpacing %.4g tiltedSlabPlaneCount %d' % (offset, spacing, plane_count))
+  cmd += ' ; mousemode right "rotate slab"'
   run(m.session, cmd)
 
 def toggle_box_faces(m):

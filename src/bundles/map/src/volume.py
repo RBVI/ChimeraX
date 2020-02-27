@@ -1765,9 +1765,10 @@ class VolumeImage(Image3d):
     v.add([self])
 
     if hasattr(v, 'mask_colors'):
-      s.mask_colors = v.mask_colors
+      self.mask_colors = v.mask_colors
+      self._need_color_update()	# Adjust color mode to rgb
     if hasattr(v, 'segment_colors'):
-      s.segment_colors = v.segment_colors
+      self.segment_colors = v.segment_colors
 
   # ---------------------------------------------------------------------------
   #

@@ -20,7 +20,7 @@ def register_volume_command(logger):
     from chimerax.core.commands import BoolArg, IntArg, StringArg, FloatArg, FloatsArg, NoArg, ListOf, EnumOf, Int3Arg, ColorArg, CenterArg, AxisArg, CoordSysArg, RepeatOf, Or
     from chimerax.atomic import SymmetryArg
     from .mapargs import MapsArg, MapRegionArg, MapStepArg, Float1or3Arg, Int1or3Arg
-    from .colortables import appearance_names
+    from .colortables import AppearanceArg
 
     from .volume import RenderingOptions
     ro = RenderingOptions()
@@ -42,7 +42,9 @@ def register_volume_command(logger):
                ('color', RepeatOf(ColorArg)),
                ('brightness', FloatArg),
                ('transparency', FloatArg),
-               ('appearance', EnumOf(appearance_names(), case_sensitive=True)),
+               ('appearance', AppearanceArg(logger.session)),
+               ('name_appearance', StringArg),
+               ('name_forget', AppearanceArg(logger.session)),
                ('step', MapStepArg),
                ('region', MapRegionArg),
                ('name_region', StringArg),
@@ -140,6 +142,8 @@ def volume(session,
            brightness = None,
            transparency = None,
            appearance = None,
+           name_appearance = None,
+           name_forget = None,
            step = None,
            region = None,
            name_region = None,
@@ -373,7 +377,8 @@ def volume(session,
     dopt = ('style', 'change', 'show', 'hide', 'toggle', 'close',
             'level', 'rms_level', 'sd_level',
             'enclose_volume', 'fast_enclose_volume',
-            'color', 'brightness', 'transparency', 'appearance',
+            'color', 'brightness', 'transparency',
+            'appearance', 'name_appearance', 'name_forget',
             'step', 'region', 'name_region', 'expand_single_plane', 'origin',
             'origin_index', 'voxel_size', 'planes',
             'symmetry', 'center', 'center_index', 'axis', 'coordinate_system', 'dump_header', 'pickable')
@@ -441,7 +446,7 @@ def apply_volume_options(v, doptions, roptions, session):
     kw = level_and_color_settings(v, doptions)
     kw.update(roptions)
     if 'tilted_slab_axis' in roptions:
-        kw['tilted_slab_axis'] = roptions['tilted_slab_axis'].scene_coordinates(coordinate_system = v)
+        kw['tilted_slab_axis'] = roptions['tilted_slab_axis'].coords
     if 'backing_color' in kw:
         bc = kw['backing_color']
         kw['backing_color'] = (None if bc == 'none' else tuple(bc.uint8x4()))
@@ -626,7 +631,15 @@ def level_and_color_settings(v, options):
         from . import colortables
         akw = colortables.appearance_settings(options['appearance'], v)
         kw.update(akw)
-                              
+
+    if 'name_appearance' in options:
+        from . import colortables
+        colortables.add_appearance(options['name_appearance'], v)
+
+    if 'name_forget' in options:
+        from . import colortables
+        colortables.delete_appearance(options['name_forget'], v.session)
+        
     return kw
 
 # -----------------------------------------------------------------------------

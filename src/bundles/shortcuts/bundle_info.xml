@@ -117,6 +117,8 @@
     <Provider tab="Map" section="Subregions"
       name="pl" display_name="Z-plane" icon="plane.png" description="Show one plane"/>
     <Provider tab="Map" section="Subregions"
+      name="is" display_name="Slab" icon="slab.png" description="Show rotatable slab"/>
+    <Provider tab="Map" section="Subregions"
       name="o3" display_name="Orthoplanes" icon="orthoplanes.png" description="Show 3 orthogonal planes"/>
     <Provider tab="Map" section="Subregions"
       name="pa" display_name="Full" icon="fullvolume.png" description="Show all planes"/>
