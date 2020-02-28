@@ -130,6 +130,7 @@ class RotateSlabMouseMode(MouseMode):
     def _move_slab(self, distance):
         v = self._map
         offset = v.rendering_options.tilted_slab_offset + distance
+        offset = keep_tilted_slab_in_box(v, offset)
         for m in [v] + self._matching_maps:
             m.set_parameters(tilted_slab_offset = offset)
         # Make sure new plane is shown before another mouse event shows another plane.
