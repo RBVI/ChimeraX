@@ -390,7 +390,9 @@ class _AtomSpecSemantics:
                 except ValueError as e:
                     from ..errors import UserError
                     raise UserError("bad color: %s: %s" % (av, e))
-                v = c.uint8x4()
+                # convert to tinyarray because numpy equality comparison is dumb
+                import tinyarray as ta
+                v = ta.array(c.uint8x4())
             elif quoted or op in ["==", "!=="]:
                 # case sensitive compare must be string
                 v = av

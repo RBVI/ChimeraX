@@ -191,7 +191,7 @@ class Color(State):
         return self.rgba[3] >= 1.0
 
     def __repr__(self):
-        return '%s' % repr(list(self.rgba))
+        return '%s(%s)' % (self.__class__.__name__, repr(list(self.rgba)))
 
     def uint8x4(self):
         """Return uint8x4 version color"""
