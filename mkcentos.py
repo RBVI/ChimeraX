@@ -91,7 +91,7 @@ CENTOS_DEPENDENCIES = {
        "xdg-utils": "1.1.0",
        "xz-libs": "5.2.2",
        "zlib": "1.2.7",
-    }
+    },
     "8": {
        "alsa-lib": "1.1.9",
        "atk": "2.28.1",
