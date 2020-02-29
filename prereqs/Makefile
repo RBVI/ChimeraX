@@ -41,7 +41,12 @@ endif
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
+ifndef CENTOS_DIST
 NEED_MESA=1
+endif
+ifeq ($(CENTOS_DIST),7)
+NEED_MESA=1
+endif
 # NEED_HDF5=1
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
