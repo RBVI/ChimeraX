@@ -818,17 +818,21 @@ class EnumOf(Annotation):
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
 
-    def __init__(self, values_func, name=None, url=None, html_name=None):
+    def __init__(self, values_func, name=None, url=None, html_name=None,
+                 case_sensitive=False):
         Annotation.__init__(self, url=url)
         self.__name = name
         self.__html_name = html_name
+        self._case_sensitive = case_sensitive
         self.values_func = values_func
 
     def parse(self, text, session):
-        return EnumOf(self.values_func()).parse(text, session)
+        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        return e.parse(text, session)
 
     def unparse(self, value, session=None):
-        return EnumOf(self.values_func()).unparse(value, session)
+        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        return e.unparse(value, session)
 
     @property
     def name(self):

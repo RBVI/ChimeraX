@@ -338,6 +338,7 @@ class ConferenceServer:
             for t in self._trackers:
                 t.delete()
             self._trackers = []
+        self.relay_commands(False)
         if self._mux_node:
             self._mux_node.close()
             self._mux_node = None

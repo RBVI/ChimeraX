@@ -110,7 +110,7 @@ def scan_dir(start_dir, pkg_type):
     if start_dir.endswith('/'):
         start_dir = start_dir[:-1]
     env = {
-        'LD_LIBRARY_PATH': f'{start_dir}/lib:{start_dir}/lib/python3.6/site-packages/PyQt5'
+        'LD_LIBRARY_PATH': f'{start_dir}/lib:{start_dir}/lib/python3.7/site-packages/PyQt5'
     }
     for dirpath, dirnames, filenames in os.walk(start_dir):
         if dirpath == 'build':
@@ -171,6 +171,7 @@ def main(directory, pkg_type):
     scan_dir(directory, pkg_type)
     # pretend we saw CUDA libraries
     seen.update(['libcuda.so.1', 'libcufft.so.9.0', 'libnvrtc.so.9.0'])
+    seen.update(['libcufft.so.10.0', 'libnvrtc.so.10.0'])
     # pretend we saw OpenCL libraries
     seen.update(['libOpenCL.so.1'])
 
@@ -226,7 +227,7 @@ def main(directory, pkg_type):
         libs.sort()
         for lib in libs:
             package = libraries[lib]
-            print(f'{lib}: {package}')
+            print(f'"{lib}": "{package}"')
     raise SystemExit(0)
 
 
