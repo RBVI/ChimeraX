@@ -65,6 +65,15 @@ class OpenManager(ProviderManager):
     def end_providers(self):
         self.triggers.activate_trigger("open command changed", self)
 
+    def open_file(self, path, encoding=None):
+        """Open possibly compressed file for reading.  If encoding is 'None', open as binary"""
+        for suffix, comp_info in self._compression_info.items():
+            if path.endswith(suffix):
+                bundle_info, name = comp_info
+                return bundle_info.run_provider(name, self,
+                    operation="compression", path=path, encoding=encoding)
+        return open(path, 'r' if encoding else 'b', encoding=encoding)
+
     def open_info(self, data_format):
         try:
             bundle_info, name, want_path, check_path, batch = self._openers[data_format]

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Data_Formats_Mgr" version="1.0" package="chimerax.data_formats_mgr"
+<BundleInfo name="ChimeraX-Data_Formats" version="1.0" package="chimerax.data_formats"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

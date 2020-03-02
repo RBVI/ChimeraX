@@ -123,13 +123,31 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                     if want_path:
                         data = _get_path(fi.file_name, check_path)
                     else:
-                        data = _get_stream(_get_path(fi.file_name, True), fi.data_format.encoding)
+                        data = _get_stream(fi.file_name, fi.data_format.encoding)
                     models = bundle_info.run_provider(session, self, provider_name,
                                     operation="open", data=data, **provider_kw)
                     name_models(models, name, fi.file_name)
                     opened_models.extend(models)
-    session.models.add(opened_models)
+    if opened_models:
+        session.models.add(opened_models)
     return opened_models
+
+def _get_path(file_name, check_path, check_compression=True):
+    from os.path import expanduser, expandvars, exists
+    expanded = expanduser(expandvars(file_name))
+    if check_path and not exists(expanded):
+        raise UserError("No such file/path: %s" % file_name)
+
+    if check_compression:
+        from .manager import _manager as mgr
+        if mgr.remove_compression_suffix(expanded) != expanded:
+            raise UserError("File reader requires uncompressed file; '%s' is compressed" % file_name)
+    return expanded
+
+def _get_stream(file_name, encoding):
+    path = _get_path(file_name, True, check_compression=False)
+    from .manager import _manager as mgr
+    return mgr.open_file(path, encoding)
 
 def fetches_vs_files(names, format_name, database_name):
     fetches = []
@@ -142,7 +160,7 @@ def fetches_vs_files(names, format_name, database_name):
             f = fetch_info(name, format_name, database_name)
             if f:
                 fetches.append(f)
-            else
+            else:
                 files.extend(expand_path(name))
     return fetches, files
 
@@ -164,6 +182,8 @@ def fetch_info(identifier, format_name, database_name):
     return None
 
 def name_models(models, name_arg, path_info):
+    if not models:
+        return
     if name_arg:
         for m in models:
             m.name = name_arg
