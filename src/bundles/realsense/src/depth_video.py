@@ -72,6 +72,7 @@ def register_command(logger):
 from chimerax.core.models import Model
 class DepthVideo (Model):
     skip_bounds = True
+    SESSION_SAVE = False
     def __init__(self, name, session,
                  size = (960,540),		# color frame size in pixels
                  dsize = (1280,720),		# depth frame size in pixels
