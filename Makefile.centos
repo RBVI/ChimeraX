@@ -9,7 +9,7 @@ include $(TOP)/mk/config.make
 
 install:
 	# assume ". /opt/rh/devtoolset-3/enable" has been done already
-	env HOME=`pwd` $(MAKE) install CENTOS_DIST=1
+	env HOME=`pwd` $(MAKE) install CENTOS_DIST=$(CENTOS)
 
 package: centos
 	env HOME=`pwd` $(PYTHON_EXE) mkcentos.py $(CENTOS)

@@ -933,6 +933,16 @@ class Sequence(State):
         self._fire_trigger('rename', (self, old_name))
 
     def _fire_trigger(self, trig_name, arg):
+        # If no one is listening to the trigger, don't create a delayed firing of the trigger
+        # ... because ...
+        # this class has a __del__ method that can execute multiple times because the
+        # __del__ method in some cases can create a self reference.  If the only reference
+        # back to this class is the delayed trigger handler below, then as the set of
+        # trigger handlers is cleared, the __del__ can execute multiple times and the
+        # dict/set-clearing code doesn't like that and can crash
+        if not self.triggers.trigger_handlers(trig_name):
+            return
+
         # when C++ layer notifies us directly of change, delay firing trigger until
         # next 'changes' trigger to ensure that entire C++ layer is in a consistent state
         def delayed(*args, trigs=self.triggers, trig_name=trig_name, trig_arg=arg):

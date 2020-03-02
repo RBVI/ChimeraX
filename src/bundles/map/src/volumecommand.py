@@ -340,17 +340,17 @@ def volume(session,
         style = 'image'	# Rename solid to image.
 
     # Special defaults
-    if box_faces:
+    if box_faces or image_mode == 'box faces':
         defaults = (('style', 'image'), ('image_mode', 'box faces'), ('color_mode', 'opaque8'),
                     ('show_outline_box', True), ('expand_single_plane', True),
                     ('orthoplanes', 'off'), ('tilted_slab', False))
-    elif not orthoplanes is None and orthoplanes != 'off':
+    elif (orthoplanes is not None and orthoplanes != 'off') or image_mode == 'orthoplanes':
         defaults = (('style', 'image'), ('image_mode', 'orthoplanes'), ('color_mode', 'opaque8'),
                     ('show_outline_box', True), ('expand_single_plane', True))
-    elif tilted_slab:
+    elif tilted_slab or image_mode == 'tilted slab':
         defaults = (('style', 'image'), ('image_mode', 'tilted slab'), ('color_mode', 'auto8'),
                     ('show_outline_box', True), ('expand_single_plane', True))
-    elif not box_faces is None or not orthoplanes is None:
+    elif image_mode == 'full region' or box_faces is not None or orthoplanes is not None:
         defaults = (('color_mode', 'auto8'),)
     else:
         defaults = ()
