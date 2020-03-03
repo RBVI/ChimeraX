@@ -48,7 +48,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
     else:
         data_format= file_format(session, files[0], format_name)
         try:
-            provider_args, want_path, check_path, batch = mgr.open_info(data_format)
+            provider_args = mgr.open_args(data_format)
         except NoOpenerError as e:
             raise LimitationError(str(e))
 
@@ -87,19 +87,23 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
     if provider_kw and not homogeneous:
         raise UserError("Cannot provide format/database-specific keywords when opening multiple different"
             " formats or databases; use several 'open' commands instead.")
+    from .manager import _manager as mgr
     opened_models = []
-    if homogenous:
-        #TODO: continue revamp
-        data_format, database_name = formats.pop(), databases.pop()
+    statuses = []
+    if homogeneous:
+        data_format = formats.pop() if formats else None
+        database_name = databases.pop() if databases else None
         if database_name:
             #TODO: core.commands.open._fetch_from_database
             pass
         else:
-            bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format.name)
+            bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format)
             if batch:
                 paths = [_get_path(fi.file_name, check_path) for fi in file_infos]
-                models = bundle_info.run_provider(session, self, provider_name,
+                models, status = bundle_info.run_provider(session, self, provider_name,
                                     operation="open", data=paths, **provider_kw)
+                if status:
+                    statuses.append(status)
                 name_models(models, name, paths)
                 opened_models.extend(models)
             else:
@@ -108,8 +112,10 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                         data = _get_path(fi.file_name, check_path)
                     else:
                         data = _get_stream(fi.file_name, data_format.encoding)
-                    models = bundle_info.run_provider(session, self, provider_name,
-                                    operation="open", data=data, **provider_kw)
+                    models, status = bundle_info.run_provider(session, provider_name, mgr,
+                                    operation="open", data=data, file_name=fi.file_name, **provider_kw)
+                    if status:
+                        statuses.append(status)
                     name_models(models, name, fi.file_name)
                     opened_models.extend(models)
     else:
@@ -118,18 +124,22 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                 #TODO: core.commands.open._fetch_from_database
                 pass
             else:
-                bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(fi.data_format.name)
+                bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(fi.data_format)
                 for fi in file_infos:
                     if want_path:
                         data = _get_path(fi.file_name, check_path)
                     else:
                         data = _get_stream(fi.file_name, fi.data_format.encoding)
-                    models = bundle_info.run_provider(session, self, provider_name,
-                                    operation="open", data=data, **provider_kw)
+                    models, status = bundle_info.run_provider(session, provider_name, mgr,
+                                    operation="open", data=data, file_name=fi.file_name, **provider_kw)
+                    if status:
+                        statuses.append(status)
                     name_models(models, name, fi.file_name)
                     opened_models.extend(models)
     if opened_models:
         session.models.add(opened_models)
+    if statuses:
+        session.logger.status('\n'.join(statuses), log=True)
     return opened_models
 
 def _get_path(file_name, check_path, check_compression=True):
@@ -237,7 +247,7 @@ def file_format(session, file_name, format_name):
 class FileInfo:
     def __init__(self, session, file_name, format_name):
         self.file_name = file_name
-        self.data_format = process_file_info(session, file_name, format_name)
+        self.data_format = file_format(session, file_name, format_name)
 
 
 def register_command(command_name, logger):

@@ -22,8 +22,10 @@ class _SDF_API(BundleAPI):
         return read_sdf(session, stream, file_name)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, operation=None):
+    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None):
         if operation == "args":
             return {}
+        elif operation == "open":
+            return read_sdf(session, data, file_name)
 
 bundle_api = _SDF_API()

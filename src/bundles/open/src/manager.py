@@ -74,13 +74,18 @@ class OpenManager(ProviderManager):
                     operation="compression", path=path, encoding=encoding)
         return open(path, 'r' if encoding else 'b', encoding=encoding)
 
-    def open_info(self, data_format):
+    def open_args(self, data_format):
         try:
             bundle_info, name, want_path, check_path, batch = self._openers[data_format]
         except KeyError:
             raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
-        return (bundle_info.run_provider(self.session, name, self, operation="args"),
-                    want_path, check_path, batch)
+        return bundle_info.run_provider(self.session, name, self, operation="args")
+
+    def open_info(self, data_format):
+        try:
+            return self._openers[data_format]
+        except KeyError:
+            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
 
     def remove_compression_suffix(self, file_name):
         for suffix in self._compression_info.keys():
