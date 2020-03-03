@@ -91,7 +91,7 @@ CENTOS_DEPENDENCIES = {
        "xdg-utils": "1.1.0",
        "xz-libs": "5.2.2",
        "zlib": "1.2.7",
-    }
+    },
     "8": {
        "alsa-lib": "1.1.9",
        "atk": "2.28.1",
@@ -107,7 +107,6 @@ CENTOS_DEPENDENCIES = {
        "glib2": "2.56.4",
        "glibc": "2.28",
        "gtk3": "3.22.30",
-       "krb5-libs": "1.17",
        "libdrm": "2.4.98",
        "libffi": "3.1",
        "libgcc": "8.3.1",
@@ -133,7 +132,7 @@ CENTOS_DEPENDENCIES = {
        "libXrender": "0.9.10",
        "libXtst": "1.2.3",
        "mesa-libGLU": "9.0.0",
-       "mesa-libOSMesa": "17.2.3",
+       "mesa-libOSMesa": "19.1.4",
        "nspr": "4.21.0",
        "nss": "3.44.0",
        "nss-util": "3.44.0",
