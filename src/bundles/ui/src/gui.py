@@ -1699,7 +1699,8 @@ class ToolWindow(StatusLogger):
         The tool will be displayed unless 'initially_hidden' is True.  This flag is needed because
         setting tool.shown to False after manage() will otherwise briefly show the tool.
         """
-        settings =  self.session.ui.settings
+        ui = self.session.ui
+        settings =  ui.settings
         tool_name = self.tool_instance.tool_name
         if tool_name in settings.undockable:
             from PyQt5.QtCore import Qt
@@ -1715,7 +1716,10 @@ class ToolWindow(StatusLogger):
         self.tool_instance.session.ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
-        self.shown = not initially_hidden
+        if initially_hidden:
+            self.shown = False
+        else:
+            ui.triggers.activate_trigger('tool window show', self)
 
     @property
     def shown(self):
