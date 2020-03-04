@@ -27,7 +27,7 @@ LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib libarray
 else
 LIBS	+= -Llib -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
 ifeq ($(OS),Linux)
-LDFLAGS += -Wl,-rpath,\$${ORIGIN}/lib -Wl,--as-needed
+LDFLAGS += -Wl,-rpath,\$${ORIGIN}/lib:\$${ORIGIN}/../../../.. -Wl,--as-needed
 endif
 endif
 

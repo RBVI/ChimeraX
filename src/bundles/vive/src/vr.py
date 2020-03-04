@@ -1337,7 +1337,9 @@ class UserInterface:
                 triggers = self._session.ui.triggers
                 triggers.remove_handler(h)
         self._tool_show_handler = self._tool_hide_handler = None
-            
+
+        self._panels = []
+
     @property
     def model(self):
         return self._ui_model

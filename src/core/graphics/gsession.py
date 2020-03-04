@@ -67,6 +67,7 @@ class ViewState:
 
         # Restore clip planes
         cplist = data['clip_planes']
+        cplist = [cp for cp in cplist if cp is not None]	# Fix old session files.
         ClipPlaneState._fix_plane_points(cplist, v.camera.position)	# Fix old session files.
         v.clip_planes.replace_planes(cplist)
 
