@@ -130,7 +130,7 @@ def suffix_warning(paths):
   
 # -----------------------------------------------------------------------------
 #
-def open_file(path, file_type = None, log = None, verbose = False):
+def open_file(path, file_type = None, **kw):
 
   if file_type is None:
     p = path if isinstance(path, str) else path[0]
@@ -145,20 +145,20 @@ def open_file(path, file_type = None, log = None, verbose = False):
 
   apath = absolute_path(path) if isinstance(path,str) else [absolute_path(p) for p in path]
 
-  kw = {}
-  from inspect import getargspec
-  if log is not None and 'log' in getargspec(open_func).args:
-    kw['log'] = log
-  if verbose:
-    if 'verbose' in getargspec(open_func).args:
-      kw['verbose'] = verbose
+  if kw:
+    from inspect import getargspec
+    args = getargspec(open_func).args
+    okw = {name:value for name, value in kw.items() if name in args}
+  else:
+    okw = {}
+
   try:
     if fmt.batch or isinstance(apath,str):
-      data = open_func(apath, **kw)
+      data = open_func(apath, **okw)
     else:
       data = []
       for p in apath:
-        data.extend(open_func(p, **kw))
+        data.extend(open_func(p, **okw))
   except SyntaxError as value:
     raise FileFormatError(value)
   

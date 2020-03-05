@@ -55,15 +55,23 @@ class HDFGrid(GridData):
     
 # -----------------------------------------------------------------------------
 #
-def read_hdf_map(path):
+def read_hdf_map(path, array_name = None):
 
   from .hdf_format import HDFData
   d = HDFData(path)
 
+  images = d.images
+  if len(images) == 0:
+    raise SyntaxError('HDF map reader: No 3D arrays found in file %s' % path)
+  if array_name is not None:
+    images = [i for i in images if i.name == array_name]
+    if len(images) == 0:
+      raise SyntaxError('HDF map reader: No 3D arrays with name "%s"\nfound in file %s,\nfound names %s'
+                        % (array_name, path, ', '.join(i.name for i in d.images)))
+
   glist = []
-  for i in d.images:
-    if len(d.images) > 1: image_name = i.name
-    else:                 image_name = ''
+  for i in images:
+    image_name = i.name if len(images) > 1 else ''
     g = HDFGrid(d, image_name, i.array_path, size = i.size, value_type = i.value_type)
     glist.append(g)
 

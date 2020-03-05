@@ -42,7 +42,7 @@ class EMANHDFGrid(GridData):
     
 # -----------------------------------------------------------------------------
 #
-def read_eman_hdf5(path):
+def read_eman_hdf5(path, array_name = None):
 
   from .eman_hdf_format import EMAN_HDF_Data
   d = EMAN_HDF_Data(path)
@@ -50,7 +50,7 @@ def read_eman_hdf5(path):
   if len(d.images) == 0:
     # Didn't find any EMAN HDF5 3d arrays.  Try generic HDF reader.
     from .. import hdf
-    return hdf.open(path)
+    return hdf.open(path, array_name = array_name)
 
   glist = []
   for i in d.images:

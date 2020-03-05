@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # Generic HDF map file reader.
 #
-def open(path):
+def open(path, array_name = None):
 
   from .hdf_grid import read_hdf_map
-  return read_hdf_map(path)
+  return read_hdf_map(path, array_name = array_name)
