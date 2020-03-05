@@ -43,8 +43,10 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
     from .manager import _manager as mgr, NoOpenerError
     fetches, files = fetches_vs_files(file_names, format_name, database_name)
     if fetches:
-        #TODO
-        raise LimitationError("Revamped data fetching not yet implemented")
+        try:
+            provider_args = mgr.fetch_args(fetches[0][1], format_name=fetches[0][2])
+        except NoOpenerError as e:
+            raise LimitationError(str(e))
     else:
         data_format= file_format(session, files[0], format_name)
         try:
@@ -61,9 +63,12 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
             names.update(f.nicknames)
         return names
 
+    def database_names(mgr=mgr):
+        return mgr.database_names
+
     keywords = {
         'format': DynamicEnum(format_names),
-        #TODO: keywords['from_database'] = DynamicEnum(database_names)
+        'from_database' = DynamicEnum(database_names)
         'ignore_cache': BoolArg,
         'name': StringArg
     }
@@ -94,8 +99,24 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
         data_format = formats.pop() if formats else None
         database_name = databases.pop() if databases else None
         if database_name:
-            #TODO: core.commands.open._fetch_from_database
-            pass
+            db_info = mgr.database_info(database_name)
+            if format:
+                try:
+                    bundle_info, is_default = db_info[format]
+                except KeyError:
+                    raise UserError("Format '%s' not available for database '%s'.  Available formats are: %s"
+                        % (format, database_name, ", ".join(db_info.keys())))
+            else:
+                for format, fmt_info in db_info.items():
+                    bundle_info, is_default = fmt_info
+                    if is_default:
+                        break
+                else:
+                    raise UserError("No default format for database '%s'.  Possible formats are: %s"
+                        % (database_name, ", ".join(db_info.keys())))
+                for ident, database_name, format_name in fetches:
+                    models, status = bundle_info.run_provider(session, database_name, mgr,
+                                operation="fetch", ident=ident, ignore_cache=ignore_cache, **provider_kw)
         else:
             bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format)
             if batch:
@@ -104,8 +125,7 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                                     operation="open", data=paths, **provider_kw)
                 if status:
                     statuses.append(status)
-                name_models(models, name, paths)
-                opened_models.extend(models)
+                opened_models.append(name_and_group_models(models, name, paths))
             else:
                 for fi in file_infos:
                     if want_path:
@@ -116,8 +136,7 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                                     operation="open", data=data, file_name=fi.file_name, **provider_kw)
                     if status:
                         statuses.append(status)
-                    name_models(models, name, fi.file_name)
-                    opened_models.extend(models)
+                    opened_models.append(name_and_group_models(models, name, fi.file_name))
     else:
         for fi in file_infos:
             if fi.database_name:
@@ -134,8 +153,7 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                                     operation="open", data=data, file_name=fi.file_name, **provider_kw)
                     if status:
                         statuses.append(status)
-                    name_models(models, name, fi.file_name)
-                    opened_models.extend(models)
+                    opened_models.append(name_and_group_models(models, name, fi.file_name))
     if opened_models:
         session.models.add(opened_models)
     if statuses:
@@ -187,29 +205,59 @@ def expand_path(file_name):
     file_names.sort()
     return file_names
 
-def fetch_info(identifier, format_name, database_name):
-    #TODO
-    return None
+def fetch_info(file_arg, format_name, database_name):
+    from os.path import exists
+    if not database_name and exists(file_arg):
+        return None
+    if ':' in file_arg:
+        db_name, ident = file_arg.split(':', maxsplit=1)
+    elif database_name:
+        db_name = database_name
+        ident = file_arg
+    elif likely_pdb_id(file_arg):
+        db_name = "pdb"
+        ident = file_arg
+    else:
+        return None
+    try:
+        db_formats = mgr.database_formats(db_name)
+    except NoOpenerError as e:
+        raise LimitationError(str(e))
+    if format_name and format_name not in [dbf for dbf in db_formats]:
+        raise UserError("Format '%s' not supported for database '%s'.  Supported formats are: %s"
+            % (format_name, db_name, ", ".join([dbf for dbf in db_formats])))
+    return (ident, db_name, format_name)
 
-def name_models(models, name_arg, path_info):
+def name_and_group_models(models, name_arg, path_info):
     if not models:
         return
-    if name_arg:
-        for m in models:
-            m.name = name_arg
-        return
-    if isinstance(path_info, str):
-        model_name = model_name_from_path(path_info)
-    elif len(path_info) != len(models):
-        model_name = model_name_from_path(path_info[0])
-    else:
-        for m, path in zip(models, path_info):
+    if len(models) > 1:
+        # name arg only applies to group, not underlings
+        if len(path_info) == len(models):
+            path_names = [model_name_from_path(p) for p in path_info]
+        else:
+            path_names = [model_name_from_path(path_info[0])] * len(models)
+        for m, pn im zip(models, path_names):
             if not m.name:
-                m.name = model_name_from_path(path)
-        return
-    for m in models:
-        if not m.name:
-            m.name = model_name
+                m.name = pn
+        from chimerax.core.models import Model
+        if name_arg:
+            group_name = name_arg
+        else:
+            names = set([m.name for m in models])
+            if len(names) == 1:
+                group_name = names.pop() + " group"
+            else:
+                group_name = "group"
+        group = Model(group_name, models[0].session)
+        return group
+    model = models[0]
+    if name_arg:
+        model.name = name_arg
+    else:
+        if not model.name:
+            model.name = model_name_from_path(path_info[0])
+    return model
 
 def model_name_from_path(path):
     from os.path import basename, dirname

@@ -21,13 +21,14 @@ class OpenManager(ProviderManager):
     def __init__(self, session):
         self.session = session
         self._openers = {}
+        self._fetchers = {}
         self._compression_info = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("open command changed")
 
     def add_provider(self, bundle_info, name, *, type="open", want_path=False, check_path=True,
-            batch=False, compression_suffixes=None, **kw):
+            batch=False, compression_suffixes=None, format_name=None, is_default=True, **kw):
         logger = self.session.logger
 
         if batch or not check_path:
@@ -48,7 +49,21 @@ class OpenManager(ProviderManager):
                     % (data_format.name, _readable_bundle_name(self._openers[data_format][0]), bundle_name))
             self._openers[data_format] = (bundle_info, name, want_path, check_path, batch)
         elif type == "fetch":
-            pass #TODO
+            if format_name is None:
+                raise ValueError("Database fetch '%s' in bundle %s failed to specify file format"
+                    % (name, bundle_name))
+            try:
+                data_format = self.session.data_formats[format_name]
+            except KeyError:
+                raise ValueError("Database-fetch provider '%s' in bundle %s"
+                    " specified unknown data format '%s'" % (name, bundle_name, format_name))
+            if name in self._fetchers and format_name in self._fetchers[name]:
+                logger.warning("Replacing fetcher for '%s' and format %s from %s bundle with that from %s"
+                    " bundle" % (name, format_name,
+                    _readable_bundle_name(self._fetchers[name][format_name][0]), bundle_name))
+            self._fetchers.setdefault(name, {})[format_name] = (bundle_info, is_default)
+            if is_default and len([fmt for fmt, info in self._fetchers[name].items() if info[1]]) > 1:
+                logger.warning("Multiple default formats declared for database fetch '%s'" % name)
         elif type == "compression":
             suffixes = process_suffixes(compression_suffixes, "compression", name, logger, bundle_name)
             for suffix in suffixes:
@@ -62,8 +77,40 @@ class OpenManager(ProviderManager):
             logger.warning("Unknown provider type '%s' with name '%s' from bundle %s"
                 % (type, name, bundle_name))
 
+    def database_info(self, database_name):
+        try:
+            return self._fetchers[database_name]
+        except KeyError:
+            raise NoOpenerError("No such database '%s'" % database_name)
+
+    @property
+    def database_names(self):
+        return list(self._fetchers.keys())
+
     def end_providers(self):
         self.triggers.activate_trigger("open command changed", self)
+
+    def fetch_args(self, database_name, *, format_name=None):
+        try:
+            db_formats = self._fetchers[database_name]
+        except KeyError:
+            raise NoOpenerError("No such database '%s'" % database_name)
+        if format_name:
+            try:
+                bundle_info, is_default = db_formats[format_name]
+            except KeyError:
+                raise NoOpenerError("Format '%s' not supported for database '%s'.  Supported formats are: %s"
+                    % (format_name, database_name, ", ".join(dbf for dbf in db_formats)))
+        else:
+            for format_name, info in db_formats.items():
+                bundle_info, is_default = info
+                if is_default:
+                    break
+            else:
+                raise NoOpenerError("No default format for database '%s'.  Possible formats are: %s"
+                    % (database_name, ", ".join(dbf for dbf in db_formats)))
+        return bundle_info.run_provider(self.session, database_name, self,
+            operation="args", format_name=format_name)
 
     def open_file(self, path, encoding=None):
         """Open possibly compressed file for reading.  If encoding is 'None', open as binary"""
