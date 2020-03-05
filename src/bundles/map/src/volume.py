@@ -3275,8 +3275,7 @@ def open_map(session, path, name = None, format = None, **kw):
       name = basename(path if isinstance(path, str) else path[0])
 
     from . import data
-    grids = data.open_file(path, file_type = format, log = session.logger,
-                           verbose = kw.get('verbose'))
+    grids = data.open_file(path, file_type = format, log = session.logger, **kw)
 
     models = []
     msg_lines = []
@@ -3704,9 +3703,15 @@ def register_map_file_formats(session):
         register_map_format(session, ff)
 
     # Add keywords to open command for maps
-    from chimerax.core.commands import BoolArg, IntArg, RepeatOf
+    from chimerax.core.commands import BoolArg, IntArg, StringArg, RepeatOf
     from chimerax.core.commands.cli import add_keyword_arguments
-    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg, 'verbose':BoolArg})
+    open_map_args = [
+      ('vseries', BoolArg),
+      ('channel', IntArg),
+      ('verbose', BoolArg),
+      ('array_name', StringArg)
+    ]
+    add_keyword_arguments('open', dict(open_map_args))
 
     # Add keywords to save command for maps
     from chimerax.core.commands import BoolArg, ListOf, EnumOf, IntArg

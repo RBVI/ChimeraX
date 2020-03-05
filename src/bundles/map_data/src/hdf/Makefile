@@ -9,10 +9,18 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-# EMAN HDF map file reader.
-#
-def open(path, array_name = None):
+TOP = ../../../../..
+include $(TOP)/mk/config.make
 
-  from .eman_hdf_grid import read_eman_hdf5
-  return read_eman_hdf5(path, array_name = array_name)
+PKG_DIR = $(PYSITEDIR)/chimerax/map/data/hdf
+
+PYSRCS = __init__.py hdf_format.py hdf_grid.py
+
+all: $(PYOBJS)
+
+install: all
+	-mkdir -p $(PKG_DIR)
+	$(RSYNC) $(PYSRCS) $(PKG_DIR)
+
+clean:
+	rm -rf __pycache__

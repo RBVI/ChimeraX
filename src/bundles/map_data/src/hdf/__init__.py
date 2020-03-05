@@ -10,9 +10,9 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# EMAN HDF map file reader.
+# Generic HDF map file reader.
 #
 def open(path, array_name = None):
 
-  from .eman_hdf_grid import read_eman_hdf5
-  return read_eman_hdf5(path, array_name = array_name)
+  from .hdf_grid import read_hdf_map
+  return read_hdf_map(path, array_name = array_name)
