@@ -59,9 +59,10 @@ file_formats = [
   MapFileFormat('DeltaVision map', 'deltavision', ['dv'], ['dv']),
   MapFileFormat('DSN6 density map', 'dsn6', ['dsn6'], ['omap']),
   MapFileFormat('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg']),
-  MapFileFormat('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'h5']),
+  MapFileFormat('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'hdf5', 'h5']),
   MapFileFormat('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub']),
   MapFileFormat('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt']),
+  MapFileFormat('HDF map', 'hdf', ['hdf'], []),
   MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True, check_path = False),
   MapFileFormat('Imaris map', 'ims', ['ims'], ['ims']),
   MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),
@@ -197,7 +198,7 @@ def file_format_by_name(name):
   for ff in file_formats:
     if ff.name == name:
       return ff
-  raise ValueError('Unknown map file format %s' % file_type)
+  raise ValueError('Unknown map file format %s' % name)
 
 # -----------------------------------------------------------------------------
 #
