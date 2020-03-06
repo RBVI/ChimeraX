@@ -566,6 +566,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         # the MainWindow close button has been clicked
         self._is_quitting = True
         event.accept()
+        sbar = self._status_bar
+        if sbar is not None:
+            sbar.destroy()
+            self._status_bar = None
         self.session.ui.quit()
 
     def close_request(self, tool_window, close_event = None):
@@ -798,7 +802,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         _show_context_menu(event, tool, None, fill_cb, True, tb)
 
     def status(self, msg, color, secondary):
-        self._status_bar.status(msg, color, secondary)
+        sbar = self._status_bar
+        if sbar:
+            sbar.status(msg, color, secondary)
 
     def show_statusbar(self, show):
         self._status_bar.show(show)
@@ -1699,7 +1705,8 @@ class ToolWindow(StatusLogger):
         The tool will be displayed unless 'initially_hidden' is True.  This flag is needed because
         setting tool.shown to False after manage() will otherwise briefly show the tool.
         """
-        settings =  self.session.ui.settings
+        ui = self.session.ui
+        settings =  ui.settings
         tool_name = self.tool_instance.tool_name
         if tool_name in settings.undockable:
             from PyQt5.QtCore import Qt
@@ -1715,7 +1722,10 @@ class ToolWindow(StatusLogger):
         self.tool_instance.session.ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
-        self.shown = not initially_hidden
+        if initially_hidden:
+            self.shown = False
+        else:
+            ui.triggers.activate_trigger('tool window show', self)
 
     @property
     def shown(self):
@@ -1912,7 +1922,10 @@ class _Qt:
         # free up references
         self.tool_window = None
         self.main_window = None
-        self.status_bar = None
+        sbar = self.status_bar
+        if sbar is not None:
+            sbar.destroy()
+            self.status_bar = None
         # horrible hack to try to work around two different crashes, in 5.12:
         # 1) destroying floating window closed with red-X with immediate destroy() 
         # 2) resize event to dead window if deleteLater() used

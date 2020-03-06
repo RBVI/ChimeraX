@@ -118,6 +118,9 @@ def color(session, objects, color=None, what=None, target=None,
         satoms = concatenate(msatoms + [atoms]) if msatoms else atoms
         if color == "byhetero":
             satoms = satoms.filter(satoms.element_numbers != 6)
+        if color == "bynucleotide":
+            from chimerax.atomic import Residue
+            satoms = satoms.filter(satoms.residues.polymer_types == Residue.PT_NUCLEIC)
         ns = _set_surface_colors(session, satoms, color, opacity, bgcolor,
                                  undo_state=undo_state)
         # Handle non-molecular surfaces like density maps

@@ -15,11 +15,11 @@
 Included third-party packages
 =============================
 
-  * Python 3.6
-  * Qt 5.9
+  * Python 3
+  * Qt 5
   * PyQt
   * PyOpenGL
-  * Numpy 1.15
+  * Numpy
   * SciPy
   * OpenMM
   * ffmpeg
