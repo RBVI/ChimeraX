@@ -1014,7 +1014,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         preset_info = session.presets.presets_by_category
         self._presets_menu_needs_update = False
        
+        from PyQt5.QtWidgets import QAction
+        help_action = QAction("Add A Preset...", self)
+        from chimerax.core.commands import run
+        help_action.triggered.connect(lambda arg, run=run, ses=session: run(ses,
+            "open http://rbvi.ucsf.edu/chimerax/docs/user/preferences.html#startup"))
         if not preset_info:
+            self.presets_menu.addAction(help_action)
             return
         
         if len(preset_info) == 1:
@@ -1023,6 +1029,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._inline_categorized_preset_menu(session, preset_info)
         else:
             self._rollover_categorized_preset_menu(session, preset_info)
+        self.presets_menu.addSeparator()
+        self.presets_menu.addAction(help_action)
     
     def _uncategorized_preset_menu(self, session, preset_info):
         for category, preset_names in preset_info.items():
