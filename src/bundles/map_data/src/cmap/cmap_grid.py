@@ -45,6 +45,17 @@ class ChimeraHDFGrid(GridData):
     self.hdf_data.read_matrix(ijk_origin, ijk_size, ijk_step,
                               self.array_paths, m, progress)
     return m
+
+  # ---------------------------------------------------------------------------
+  #
+  def find_attribute(self, attribute_name):
+    '''
+    This is for finding segmentation attributes.
+    If found in the HDF5 file it returns the attribute value (array, scalar, string).
+    Returns None if the attribute is not found in the HDF5 file.
+    If multiple attributes with the specified name are found it raises LookupError.
+    '''
+    return self.hdf_data.find_attribute(attribute_name)
     
 # -----------------------------------------------------------------------------
 #
@@ -74,10 +85,11 @@ def read_chimera_map(path):
 # -----------------------------------------------------------------------------
 # Add subsample grids.
 #
-def add_subsamples(hdf_data, hdf_image, g):
+def add_subsamples(hdf_data, hdf_image, grid):
 
   from ..subsample import SubsampledGrid
-  g = SubsampledGrid(g)
+  g = SubsampledGrid(grid)
+  g.find_attribute = grid.find_attribute
   i = hdf_image
   for cell_size, data_size, array_paths in i.subsamples:
       settings = {attr:getattr(i,attr) for attr in ChimeraHDFGrid.attributes}

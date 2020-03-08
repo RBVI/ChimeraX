@@ -59,10 +59,19 @@ class BasicActions(StateManager):
     def restore_snapshot(session, data):
         from . import cmd
         from chimerax.core.objects import Objects
+        from chimerax.core.errors import UserError
         for name, value in data["spec"]:
-            cmd.name(session, name, value)
+            try:
+                cmd.name(session, name, value, skip_check=True)
+            except UserError as e:
+                session.logger.warning("Name \"%s\" not restored: %s" %
+                                       (name, str(e)))
         for name, value in data["frozen"]:
-            cmd.name_frozen(session, name, Objects(**value))
+            try:
+                cmd.name_frozen(session, name, Objects(**value))
+            except UserError as e:
+                session.logger.warning("Frozen name \"%s\" not restored: %s" %
+                                       (name, str(e)))
         return session.basic_actions
 
     def reset_state(self, session):

@@ -29,19 +29,14 @@ def set_user_agent(profile):
     profile.setHttpUserAgent('%s %s' % (profile.httpUserAgent(), html_user_agent(app_dirs)))
 
 
-class HtmlView(QWebEngineView):
+def create_profile(parent, schemes=None, interceptor=None, download=None):
     """
-    HtmlView is a derived class from PyQt5.QtWebEngineWidgets.QWebEngineView
-    that simplifies using custom schemes and intercepting navigation requests.
-
-    HtmlView may be instantiated just like QWebEngineView, with additional
-    keyword arguments:
+    Create a QWebEngineProfile.  The profile provides shared access to the
+    files in the html directory in the chimerax.ui package by rewriting links
+    to /chimerax/ui/html to that directory.
 
     Parameters
     ----------
-    size_hint :   a QSize compatible value, typically (width, height),
-                  specifying the preferred initial size for the view.
-                  Default None.
     interceptor : a callback function taking one argument, an instance
                   of QWebEngineUrlRequestInfo, invoked to handle navigation
                   requests.  Default None.
@@ -51,70 +46,11 @@ class HtmlView(QWebEngineView):
     download :    a callback function taking one argument, an instance
                   of QWebEngineDownloadItem, invoked when download is
                   requested.  Default None.
-    profile :     the QWebEngineProfile to use.  If it is given, then
-                  'interceptor', 'schemes', and 'download' parameters are
-                  ignored because they are assumed to be already set in
-                  the profile.  Default None.
-    tool_window : if specified, ChimeraX context menu is displayed instead
-                  of default context menu.  Default None.
-    log_errors :  whether to log JavaScript error/warning/info messages
-                  to ChimeraX console.  Default False.
-
-    Attributes
-    ----------
-    profile :     the QWebEngineProfile used
     """
+    profile = QWebEngineProfile(parent)
+    set_user_agent(profile)
 
-    require_native_window = False
-    
-    def __init__(self, *args, size_hint=None, schemes=None,
-                 interceptor=None, download=None, profile=None,
-                 tool_window=None, log_errors=False, **kw):
-        super().__init__(*args, **kw)
-        self._size_hint = size_hint
-        self._tool_window = tool_window
-        if profile is not None:
-            self._profile = profile
-            self._private_profile = False
-        else:
-            p = self._profile = QWebEngineProfile(self.parent())
-            self._private_profile = True
-            set_user_agent(p)
-            self._intercept = _RequestInterceptor(callback=self.intercept)
-            self._intercept_cb = interceptor
-            p.setRequestInterceptor(self._intercept)
-            if schemes:
-                self._schemes = [s.encode("utf-8") for s in schemes]
-                self._scheme_handler = _SchemeHandler()
-                for scheme in self._schemes:
-                    p.installUrlSchemeHandler(scheme, self._scheme_handler)
-            if download:
-                p.downloadRequested.connect(download)
-        page = _LoggingPage(self._profile, self, log_errors=log_errors)
-        self.setPage(page)
-        s = page.settings()
-        s.setAttribute(s.LocalStorageEnabled, True)
-        self.setAcceptDrops(False)
-
-        if self.require_native_window:
-            # This is to work around ChimeraX bug #2537 where the entire
-            # GUI becomes blank with some 2019 Intel graphics drivers.
-            self.winId()  # Force it to make a native window
-
-    def deleteLater(self):  # noqa
-        """Supported API.  Schedule HtmlView instance for deletion at a safe time."""
-        if self._private_profile:
-            p = self._profile
-            p.downloadRequested.disconnect()
-            p.removeAllUrlSchemeHandlers()
-            p.setRequestInterceptor(None)
-        super().deleteLater()
-
-    @property
-    def profile(self):
-        return self._profile
-
-    def intercept(self, request_info, *args):
+    def _intercept(request_info, *args, interceptor=interceptor):
         import os
         qurl = request_info.requestUrl()
         scheme = qurl.scheme()
@@ -146,8 +82,115 @@ class HtmlView(QWebEngineView):
                 qurl.setPath(full_path)
                 request_info.redirect(qurl)
                 return
-        if self._intercept_cb:
-            return self._intercept_cb(request_info, *args)
+        if interceptor:
+            return interceptor(request_info, *args)
+
+    profile._intercept = _RequestInterceptor(callback=_intercept)
+    from PyQt5.QtCore import QT_VERSION
+    if QT_VERSION < 0x050d00:
+        profile.setRequestInterceptor(profile._intercept)
+    else:
+        # Qt 5.13 and later
+        profile.setUrlRequestInterceptor(profile._intercept)
+    if schemes:
+        profile._schemes = [s.encode("utf-8") for s in schemes]
+        profile._scheme_handler = _SchemeHandler()
+        for scheme in profile._schemes:
+            profile.installUrlSchemeHandler(scheme, profile._scheme_handler)
+    if download:
+        profile.downloadRequested.connect(download)
+    return profile
+
+
+def delete_profile(profile):
+    """Cleanup profiles created by create_profile"""
+    profile.downloadRequested.disconnect()
+    if hasattr(profile, '_schemes'):
+        profile.removeAllUrlSchemeHandlers()
+        del profile._scheme_handler
+        del profile._schemes
+    from PyQt5.QtCore import QT_VERSION
+    if QT_VERSION < 0x050d00:
+        profile.setRequestInterceptor(None)
+    else:
+        profile.setUrlRequestInterceptor(None)
+
+
+class HtmlView(QWebEngineView):
+    """
+    HtmlView is a derived class from PyQt5.QtWebEngineWidgets.QWebEngineView
+    that simplifies using custom schemes and intercepting navigation requests.
+
+    HtmlView may be instantiated just like QWebEngineView, with additional
+    keyword arguments:
+
+    Parameters
+    ----------
+    size_hint :   a QSize compatible value, typically (width, height),
+                  specifying the preferred initial size for the view.
+                  Default None.
+    interceptor : a callback function taking one argument, an instance
+                  of QWebEngineUrlRequestInfo, invoked to handle navigation
+                  requests.  Default None.
+    schemes :     an iterable of custom schemes that will be used in the
+                  view.  If schemes is specified, then interceptor will
+                  be called when custom URLs are clicked.  Default None.
+    download :    a callback function taking one argument, an instance
+                  of QWebEngineDownloadItem, invoked when download is
+                  requested.  Default None.
+    profile :     the QWebEngineProfile to use.  If it is given, then
+                  'interceptor', 'schemes', and 'download' parameters are
+                  ignored because they are assumed to be already set in
+                  the profile.  Default None.
+    profile_is_private :  True if profile should be deleted when widget is
+                  closed.  Default True if profile is None.
+    tool_window : if specified, ChimeraX context menu is displayed instead
+                  of default context menu.  Default None.
+    log_errors :  whether to log JavaScript error/warning/info messages
+                  to ChimeraX console.  Default False.
+
+    Attributes
+    ----------
+    profile :     the QWebEngineProfile used
+    """
+
+    require_native_window = False
+
+    def __init__(self, *args, size_hint=None, schemes=None,
+                 interceptor=None, download=None, profile=None,
+                 profile_is_private=None,
+                 tool_window=None, log_errors=False, **kw):
+        super().__init__(*args, **kw)
+        self._size_hint = size_hint
+        self._tool_window = tool_window
+        if profile is not None:
+            self._profile = profile
+            self._private_profile = True if profile_is_private else False
+        else:
+            self._private_profile = profile_is_private if profile_is_private is not None else True
+            self._profile = create_profile(self.parent(), schemes, interceptor, download)
+        page = _LoggingPage(self._profile, self, log_errors=log_errors)
+        self.setPage(page)
+        s = page.settings()
+        s.setAttribute(s.LocalStorageEnabled, True)
+        self.setAcceptDrops(False)
+
+        if self.require_native_window:
+            # This is to work around ChimeraX bug #2537 where the entire
+            # GUI becomes blank with some 2019 Intel graphics drivers.
+            self.winId()  # Force it to make a native window
+
+    def deleteLater(self):  # noqa
+        """Supported API.  Schedule HtmlView instance for deletion at a safe time."""
+        if self._private_profile:
+            profile = self._profile
+            del self._profile
+            delete_profile(profile)
+        super().deleteLater()
+
+    @property
+    def profile(self):
+        return self._profile
 
     def sizeHint(self):  # noqa
         """Supported API.  Returns size hint as a :py:class:PyQt5.QtCore.QSize instance."""
@@ -229,6 +272,7 @@ class HtmlView(QWebEngineView):
         """
         self.page().runJavaScript(script, *args)
 
+
 class _LoggingPage(QWebEnginePage):
 
     Levels = {
@@ -248,6 +292,7 @@ class _LoggingPage(QWebEnginePage):
         filename = os.path.basename(sourceId)
         print("JS console(%s:%d:%s): %s" % (filename, lineNumber,
                                             self.Levels[level], msg))
+
 
 class _RequestInterceptor(QWebEngineUrlRequestInterceptor):
 
@@ -277,183 +322,119 @@ class ChimeraXHtmlView(HtmlView):
     The schemes are 'cxcmd' and 'help'.
     """
 
-    def __init__(self, session, *args, **kw):
+    def __init__(self, session, parent, *args, schemes=None, interceptor=None, download=None, profile=None, **kw):
         self.session = session
-        for k in ('schemes', 'interceptor', 'download', 'profile'):
+        create_profile = profile is None
+        if create_profile:
+            bad_keywords = ('interceptor',)
+        else:
+            bad_keywords = ('schemes', 'interceptor', 'download')
+        for k in bad_keywords:
             if k in kw:
                 raise ValueError("Cannot override HtmlView's %s" % k)
-        # don't share profiles, so interceptor is bound to this instance
-        super().__init__(*args, schemes=('cxcmd', 'help'),
-                         interceptor=self.link_clicked,
-                         download=self.download_requested, **kw)
-        self._pending_downloads = []
+        if create_profile:
+            # don't share profiles, so interceptor is bound to this QWebEngineView instance
 
-    def link_clicked(self, request_info, *args):
-        import os
-        qurl = request_info.requestUrl()
-        scheme = qurl.scheme()
-        if scheme == 'file':
-            # Paths to existing and chimerax.ui have already been intercepted.
-            # Treat all directories with help documentation as equivalent
-            # to integrate bundle help with the main help.  That is, so
-            # relative hrefs will find files in other help directories.
-            import sys
-            from chimerax.core import toolshed
-            path = os.path.normpath(qurl.path())
-            if sys.platform == "win32" and path[0] == os.path.sep:
-                path = path[1:]
-            help_directories = toolshed.get_help_directories()
-            for hd in help_directories:
-                if path.startswith(hd):
-                    break
-            else:
-                return   # not in a help directory
-            tail = path[len(hd) + 1:]
-            for hd in help_directories:
-                path = os.path.join(hd, tail)
-                if os.path.exists(path):
-                    break
-            else:
-                return  # not in another help directory
-            path = os.path.sep + path
-            if sys.platform == "win32":
-                path = path.replace(os.path.sep, '/')
-                if os.path.isabs(path):
-                    path = '/' + path
-            qurl.setPath(path)
-            request_info.redirect(qurl)  # set requested url to good location
-            return
-        if scheme in ('cxcmd', 'help'):
-            # originating_url = request_info.firstPartyUrl()  # doesn't work
-            originating_url = self.url()
-            from_dir = None
-            if originating_url.isLocalFile():
-                from_dir = os.path.dirname(originating_url.toLocalFile())
+            def intercept(*args, session=session, view=self):
+                chimerax_intercept(*args, view=view, session=session)
+            profile = create_chimerax_profile(parent, schemes=schemes, interceptor=intercept, download=download)
+        profile_is_private = create_profile or kw.get('profile_is_profile', None) == True
+        super().__init__(parent, *args, profile=profile, profile_is_private=profile_is_private, **kw)
 
-            def defer(session, topic, from_dir):
-                prev_dir = None
-                try:
-                    if from_dir:
-                        prev_dir = os.getcwd()
-                        try:
-                            os.chdir(from_dir)
-                        except OSError as e:
-                            prev_dir = None
-                            session.logger.warning(
-                                'Unable to change working directory: %s' % e)
-                    if scheme == 'cxcmd':
-                        cxcmd(session, topic)
-                    elif scheme == 'help':
-                        from chimerax.help_viewer.cmd import help
-                        help(session, topic)
-                finally:
-                    if prev_dir:
-                        os.chdir(prev_dir)
-            self.session.ui.thread_safe(defer, self.session, qurl.url(qurl.None_), from_dir)
-            return
 
-    def download_requested(self, item):
-        # "item" is an instance of QWebEngineDownloadItem
-        # print("ChimeraXHtmlView.download_requested", item)
-        import os
-        url_file = item.url().fileName()
-        base, extension = os.path.splitext(url_file)
-        # print("ChimeraXHtmlView.download_requested connect", item.mimeType(), extension)
-        # Normally, we would look at the download type or MIME type,
-        # but since neither one is set by the server, we look at the
-        # download extension instead
-        if extension == ".whl":
-            if not base.endswith("x86_64"):
-                # Since the file name encodes the package name and version
-                # number, we make sure that we are using the right name
-                # instead of whatever QWebEngine may want to use.
-                # Remove _# which may be present if bundle author submitted
-                # the same version of the bundle multiple times.
-                parts = base.rsplit('_', 1)
-                if len(parts) == 2 and parts[1].isdigit():
-                    url_file = parts[0] + extension
-            file_path = os.path.join(os.path.dirname(item.path()), url_file)
-            import pkg_resources
-            py_env = pkg_resources.Environment()
-            dist = pkg_resources.Distribution.from_filename(file_path)
-            if not py_env.can_add(dist):
-                raise ValueError("unsupported wheel platform")
-            item.setPath(file_path)
-            # print("ChimeraXHtmlView.download_requested clean", file_path)
-            try:
-                # Guarantee that file name is available
-                os.remove(file_path)
-            except OSError:
-                pass
-            self._pending_downloads.append(item)
-            self.session.logger.info("Downloading bundle %s" % url_file)
-            item.finished.connect(self.download_finished)
+def create_chimerax_profile(parent, schemes=None, interceptor=None, download=None):
+    """
+    Create QWebEngineProfile with ChimeraX-specific scheme support
+
+    See :py:func:`create_profile` for argument types.  The interceptor should
+    incorporate the :py:func:`chimerax_intercept` functionality.
+    """
+    if interceptor is None:
+        raise ValueError("Excepted interceptor")
+    if schemes is None:
+        schemes = ('cxcmd', 'help')
+    else:
+        schemes += type(schemes)(('cxcmd', 'help'))
+    return create_profile(parent, schemes, interceptor, download)
+
+
+def chimerax_intercept(request_info, *args, session=None, view=None):
+    """Interceptor for ChimeraX-specific schemes
+    
+    Parameters
+    ----------
+    request_info : QWebEngineRequestInfo
+    session : a :py:class:`~chimerax.core.session.Session` instance
+    view : a QWebEngineView instance or a function that returns the instance
+    """
+    # interceptor for 'cxcmd' and 'help'
+    if session is None or view is None:
+        raise ValueError("session and view must be set")
+    import os
+    qurl = request_info.requestUrl()
+    scheme = qurl.scheme()
+    if scheme == 'file':
+        # Paths to existing and chimerax.ui have already been intercepted.
+        # Treat all directories with help documentation as equivalent
+        # to integrate bundle help with the main help.  That is, so
+        # relative hrefs will find files in other help directories.
+        import sys
+        from chimerax.core import toolshed
+        path = os.path.normpath(qurl.path())
+        if sys.platform == "win32" and path[0] == os.path.sep:
+            path = path[1:]
+        help_directories = toolshed.get_help_directories()
+        for hd in help_directories:
+            if path.startswith(hd):
+                break
         else:
-            from PyQt5.QtWidgets import QFileDialog
-            path, filt = QFileDialog.getSaveFileName(directory=item.path())
-            if not path:
-                return
-            self.session.logger.info("Downloading file %s" % url_file)
-            item.setPath(path)
-        # print("ChimeraXHTMLView.download_requested accept", file_path)
-        item.accept()
+            return   # not in a help directory
+        tail = path[len(hd) + 1:]
+        for hd in help_directories:
+            path = os.path.join(hd, tail)
+            if os.path.exists(path):
+                break
+        else:
+            return  # not in another help directory
+        path = os.path.sep + path
+        if sys.platform == "win32":
+            path = path.replace(os.path.sep, '/')
+            if os.path.isabs(path):
+                path = '/' + path
+        qurl.setPath(path)
+        request_info.redirect(qurl)  # set requested url to good location
+        return
+    if scheme in ('cxcmd', 'help'):
+        # originating_url = request_info.firstPartyUrl()  # doesn't work
+        if callable(view):
+            originating_url = view().url()
+        else:
+            originating_url = view.url()
+        from_dir = None
+        if originating_url.isLocalFile():
+            from_dir = os.path.dirname(originating_url.toLocalFile())
 
-    def download_finished(self, *args, **kw):
-        # print("ChimeraXHtmlView.download_finished", args, kw)
-        finished = []
-        pending = []
-        for item in self._pending_downloads:
-            if not item.isFinished():
-                pending.append(item)
-            else:
-                finished.append(item)
-        self._pending_downloads = pending
-        import pkginfo
-        from chimerax.ui.ask import ask
-        for item in finished:
-            item.finished.disconnect()
-            filename = item.path()
+        def defer(session, topic, from_dir):
+            prev_dir = None
             try:
-                w = pkginfo.Wheel(filename)
-            except Exception as e:
-                logger.info("Error parsing %s: %s" % (filename, str(e)))
-                self.session.logger.info("File saved as %s" % filename)
-                continue
-            if not _installable(w, self.session.logger):
-                self.session.logger.info("Bundle saved as %s" % filename)
-                continue
-            how = ask(self.session,
-                      "Install %s %s (file %s)?" % (w.name, w.version, filename),
-                      ["install", "cancel"],
-                      title="Toolshed")
-            if how == "cancel":
-                self.session.logger.info("Bundle installation canceled")
-                continue
-            self.session.toolshed.install_bundle(filename,
-                                                 self.session.logger,
-                                                 per_user=True,
-                                                 session=self.session)
-
-
-def _installable(w, logger):
-    import re
-    from distutils.version import LooseVersion as Version
-    import chimerax.core
-    pat = re.compile(r'ChimeraX-Core \((?P<op>.*=)(?P<version>\d.*)\)')
-    for req in w.requires_dist:
-        m = pat.match(req)
-        if m:
-            op = m.group("op")
-            version = m.group("version")
-            if op == ">=":
-                return Version(chimerax.core.version) >= Version(version)
-            elif op == "==":
-                return Version(chimerax.core.version) == Version(version)
-            elif op == "<=":
-                return Version(chimerax.core.version) <= Version(version)
-            logger.info("Unsupported version comparison:", op)
-            return False
-    return True
+                if from_dir:
+                    prev_dir = os.getcwd()
+                    try:
+                        os.chdir(from_dir)
+                    except OSError as e:
+                        prev_dir = None
+                        session.logger.warning(
+                            'Unable to change working directory: %s' % e)
+                if scheme == 'cxcmd':
+                    cxcmd(session, topic)
+                elif scheme == 'help':
+                    from chimerax.help_viewer.cmd import help
+                    help(session, topic)
+            finally:
+                if prev_dir:
+                    os.chdir(prev_dir)
+        session.ui.thread_safe(defer, session, qurl.url(qurl.None_), from_dir)
+        return
 
 
 def cxcmd(session, url):

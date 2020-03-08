@@ -16,7 +16,7 @@ from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue
 from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
 # pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
 from .pbgroup import PseudobondGroup, all_pseudobond_groups, interatom_pseudobonds, selected_pseudobonds
-from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, \
+from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, Pseudobonds, Structures, \
     PseudobondGroups, Residues, concatenate
 from .structure import AtomicStructure, Structure, LevelOfDetail
 from .structure import selected_atoms, selected_bonds, selected_residues
@@ -28,8 +28,8 @@ from .changes import check_for_changes
 from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing
-from .args import SymmetryArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
-from .args import StructureArg, StructuresArg
+from .args import SymmetryArg, AtomArg, AtomsArg, ResiduesArg, UniqueChainsArg, AtomicStructuresArg
+from .args import StructureArg, StructuresArg, ElementArg, OrderedAtomsArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
 from .cytmpl import TmplResidue
 

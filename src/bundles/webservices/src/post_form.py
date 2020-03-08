@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def post_multipart(host, selector, fields, ssl=False):
+def post_multipart(host, selector, fields, ssl=False, **kw):
     """
 Post fields and files to an http host as multipart/form-data.
 fields is a sequence of (name, filename, value) elements for form fields.
@@ -19,9 +19,9 @@ If filename is None, the field is treated as a regular field;
 otherwise, the field is uploaded as a file.
 Return the server's response page.
 """
-    return post_multipart_formdata(host, selector, fields, ssl)[3]
+    return post_multipart_formdata(host, selector, fields, ssl, **kw)[3]
 
-def post_multipart_formdata(host, url, fields, ssl=False):
+def post_multipart_formdata(host, url, fields, ssl=False, *, accept_type=None):
     content_type, body = encode_multipart_formdata(fields)
     from urllib import request
     proxies = request.getproxies_environment()
@@ -34,7 +34,10 @@ def post_multipart_formdata(host, url, fields, ssl=False):
         h = HTTPSConnection(realhost)
     else:
         h = HTTPConnection(realhost)
-    h.request('POST', url, body=body, headers={'Content-type': content_type})
+    headers = {'Content-type': content_type}
+    if accept_type is not None:
+        headers['Accept'] = accept_type
+    h.request('POST', url, body=body, headers=headers)
     r = h.getresponse()
     return r.status, r.msg, r.getheaders(), r.read()
 

@@ -44,13 +44,18 @@ Consider also the functionality in Chimera command rmfalias.
 <p>
 The <b>name</b> command defines a <i>target-name</i>
 to be used as a synonym for <a href="atomspec.html"><i>spec</i></a>
-in subsequent commands. 
-The <i>target-name</i> will also be listed in
-<a href="../tools/basicactions.html"><b>Basic Actions</b></a>
-for easy showing/hiding (<i>etc.</i>) without commands.
-Defined targets can also be created with menu: 
-<a href="../menu.html#named-selections"><b>Select... Define Selector</b></a>,
-and they are saved in <a href="save.html#session">sessions</a>.
+in subsequent commands. The <i>target-name</i> will also be listed in:
+<p>
+<ul>
+<li>the menu under <a href="../menu.html#named-selections"><b>Select...
+User-Defined Selectors</b></a>
+<li>the <a href="../tools/basicactions.html"><b>Basic Actions</b></a> tool
+for easy showing/hiding (<i>etc.</i>) without commands
+</ul>
+<p>
+Defined targets are saved in <a href="save.html#session">sessions</a>,
+and they can also be created with menu: 
+<a href="../menu.html#named-selections"><b>Select... Define Selector</b></a>.
 See also: <a href="alias.html"><b>alias</b></a>,
 <a href="rename.html"><b>rename</b></a>
 </p><p>
@@ -78,6 +83,11 @@ is simply expanded to the original
 <b>
 <br><a href="color.html">color</a> /a:34-64 medium blue
 </b></blockquote>
+<p>
+Evaluate-later targets can be defined automatically at ChimeraX
+startup by including <b>name</b> commands in the
+<a href="../preferences.html#startup"><b>Startup</b> preferences</a>.
+</p>
 <li>A evaluate-now target created with <b>name frozen</b> specifies
 only the contents of <a href="atomspec.html"><i>spec</i></a>
 at the time of creation. 
@@ -116,5 +126,5 @@ user-defined target or <b>all</b> user-defined targets.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2019</address>
+February 2020</address>
 </body></html>

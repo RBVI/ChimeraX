@@ -4,7 +4,7 @@
 
 #include "floodfill.h"
 
-namespace Segmentation_Calculation
+namespace Segment_Map
 {
 
 class Grid_Index
@@ -19,7 +19,7 @@ public:
 template <class T>
 Index flood_fill(const T *data, const int *data_size,
 		 int start_position[3], float threshold,
-		 Index mv, Index *mask)
+		 Index mv, Index *region_map)
 {
   int s0 = data_size[0], s1 = data_size[1], s2 = data_size[2];
   Index st0 = s1*s2, st1 = s2;
@@ -28,7 +28,7 @@ Index flood_fill(const T *data, const int *data_size,
 
   int i0 = start_position[2], i1 = start_position[1], i2 = start_position[0];
   Index i = i0*st0 + i1*st1 + i2;
-  if (mask[i] == 0 && data[i] >= threshold)
+  if (region_map[i] == 0 && data[i] >= threshold)
     bndry.push_back(Grid_Index(i0,i1,i2));
 
   Index c = 0;
@@ -38,21 +38,21 @@ Index flood_fill(const T *data, const int *data_size,
       bndry.pop_back();
       i0 = p.i0; i1 = p.i1; i2 = p.i2;
       Index i = i0*st0 + i1*st1 + i2;
-      if (mask[i] == 0)
+      if (region_map[i] == 0)
 	{
-	  mask[i] = mv;
+	  region_map[i] = mv;
 	  c += 1;
-	  if (i0 > 0 && mask[i-st0] == 0 && data[i-st0] >= threshold)
+	  if (i0 > 0 && region_map[i-st0] == 0 && data[i-st0] >= threshold)
 	    bndry.push_back(Grid_Index(i0-1,i1,i2));
-	  if (i1 > 0 && mask[i-st1] == 0 && data[i-st1] >= threshold)
+	  if (i1 > 0 && region_map[i-st1] == 0 && data[i-st1] >= threshold)
 	    bndry.push_back(Grid_Index(i0,i1-1,i2));
-	  if (i2 > 0 && mask[i-1] == 0 && data[i-1] >= threshold)
+	  if (i2 > 0 && region_map[i-1] == 0 && data[i-1] >= threshold)
 	    bndry.push_back(Grid_Index(i0,i1,i2-1));
-	  if (i0+1 < s0 && mask[i+st0] == 0 && data[i+st0] >= threshold)
+	  if (i0+1 < s0 && region_map[i+st0] == 0 && data[i+st0] >= threshold)
 	    bndry.push_back(Grid_Index(i0+1,i1,i2));
-	  if (i1+1 < s1 && mask[i+st1] == 0 && data[i+st1] >= threshold)
+	  if (i1+1 < s1 && region_map[i+st1] == 0 && data[i+st1] >= threshold)
 	    bndry.push_back(Grid_Index(i0,i1+1,i2));
-	  if (i2+1 < s2 && mask[i+1] == 0 && data[i+1] >= threshold)
+	  if (i2+1 < s2 && region_map[i+1] == 0 && data[i+1] >= threshold)
 	    bndry.push_back(Grid_Index(i0,i1,i2+1));
 	}
     }
@@ -60,4 +60,4 @@ Index flood_fill(const T *data, const int *data_size,
   return c;		  // Return number of regions found.
 }
 
-} // end of namespace Segmentation_Calculation
+} // end of namespace Segment_Map

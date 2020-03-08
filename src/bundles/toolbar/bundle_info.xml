@@ -40,16 +40,22 @@ Provides a Windows ribbon-style toolbar interface
 
   <Providers manager="toolbar">
     <!-- hidden File tab -->
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Open" icon="open-in-app.png" description="Open data file"/>
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Recent" icon="recentfiles.png" description="Open recent files" after="Open"/>
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Save" icon="content-save.png" description="Save session file" after="Recent"/>
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Close" icon="close-box.png" description="Close current session" after="Save"/>
-    <Provider tab="File" section="File" hidden="true"
+    <Provider tab="Extras" section="File" hidden="true"
       name="Exit" icon="exit.png" description="Exit application" after="Close"/>
+
+    <!-- hidden Undo tab -->
+    <Provider tab="Extras" section="Undo" hidden="true"
+      name="Undo" icon="undo-variant.png" description="Undo last action"/>
+    <Provider tab="Extras" section="Undo" hidden="true"
+      name="Redo" icon="redo-variant.png" description="Redo last action"/>
 
     <!-- Molecule Display tab -->
     <Provider tab="Molecule Display"
@@ -139,10 +145,14 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Movement" name="mm4"
       mouse_mode="zoom" display_name="Zoom" description="Zoom view"/>
     <Provider tab="Right Mouse" section="Movement" name="mm5"
-      mouse_mode="translate selected models" display_name="Translate Selected" description="Translate selected models"/>
+      mouse_mode="translate selected models" display_name="Move model" description="Translate selected models, hold shift key to rotate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm6"
-      mouse_mode="rotate selected models" display_name="Rotate Selected" description="Rotate selected models"/>
+      mouse_mode="rotate selected models" display_name="Rotate model" description="Rotate selected models, hold shift key to translate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm7"
+      mouse_mode="translate selected atoms" display_name="Move atoms" description="Translate selected atoms, hold shift key to rotate"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm8" hidden="true"
+      mouse_mode="rotate selected atoms" display_name="Rotate atoms" description="Rotate selected atoms, hold shift key to translate"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm9"
       mouse_mode="pivot" display_name="Pivot" description="Set center of rotation at atom"/>
 
     <Provider tab="Right Mouse" section="Annotation"
@@ -171,16 +181,18 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Map" name="mM2"
       mouse_mode="move planes" display_name="Move planes" description="Move plane or slab along its axis to show a different section"/>
     <Provider tab="Right Mouse" section="Map" name="mM3"
-      mouse_mode="crop volume" display_name="Crop" description="Crop volume data dragging any face of box outline"/>
+      mouse_mode="rotate slab" display_name="Rotate slab" description="Tilt volume planes, hold shift key to translate"/>
     <Provider tab="Right Mouse" section="Map" name="mM4"
-      mouse_mode="tape measure" display_name="Tape" description="Measure distance between two map points"/>
+      mouse_mode="crop volume" display_name="Crop" description="Crop volume data dragging any face of box outline"/>
     <Provider tab="Right Mouse" section="Map" name="mM5"
-      mouse_mode="pick blobs" display_name="Blob" description="Measure and color connected parts of surface"/>
+      mouse_mode="tape measure" display_name="Tape" description="Measure distance between two map points"/>
     <Provider tab="Right Mouse" section="Map" name="mM6"
-      mouse_mode="map eraser" display_name="Erase" description="Erase parts of a density map setting values in a sphere to zero"/>
+      mouse_mode="pick blobs" display_name="Blob" description="Measure and color connected parts of surface"/>
     <Provider tab="Right Mouse" section="Map" name="mM7"
-      mouse_mode="play map series" display_name="Play series" description="Play map series"/>
+      mouse_mode="map eraser" display_name="Erase" description="Erase parts of a density map setting values in a sphere to zero"/>
     <Provider tab="Right Mouse" section="Map" name="mM8"
+      mouse_mode="play map series" display_name="Play series" description="Play map series"/>
+    <Provider tab="Right Mouse" section="Map" name="mM9"
       mouse_mode="windowing" display_name="Windowing" description="Adjust volume data thresholds collectively"/>
 
     <Provider tab="Right Mouse" section="Structure Modification"
@@ -190,73 +202,16 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Structure Modification" name="ms2"
       mouse_mode="swapaa" display_name="Swapaa" description="Mutate and label residue"/>
     <Provider tab="Right Mouse" section="Structure Modification" name="ms3"
-      mouse_mode="tug" display_name="Tug" description="Drag atom while applying dynamics"/>
+      mouse_mode="play coordinates" display_name="Play coords" description="Play trajectory"/>
     <Provider tab="Right Mouse" section="Structure Modification" name="ms4"
+      mouse_mode="tug" display_name="Tug" description="Drag atom while applying dynamics"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms5"
       mouse_mode="minimize" display_name="Minimize" description="Jiggle residue and its neighbors"/>
 
     <Provider tab="Right Mouse" section="Other"
       name="layout-mouse-other" after="Structure Modification"/>
     <Provider tab="Right Mouse" section="Other" name="mO1"
       mouse_mode="next docked" display_name="Next docked" description="Show next docked ligand"/>
-
-    <!-- Home tab -->
-    <Provider tab="Home" section="File"
-      name="Open-1" link="ChimeraX-Toolbar:Open"/>
-    <Provider tab="Home" section="File"
-      name="Recent-1" link="ChimeraX-Toolbar:Recent" after="Open"/>
-    <Provider tab="Home" section="File"
-      name="Save-1" link="ChimeraX-Toolbar:Save" after="Recent"/>
-
-    <Provider tab="Home" section="Images"
-      name="layout-Images" after="File"/>
-
-    <Provider tab="Home" section="Atoms"
-      name="layout-Atoms" after="Images"/>
-    <Provider tab="Home" section="Atoms"
-      name="atomshow-1" link="ChimeraX-Shortcuts:da"/>
-    <Provider tab="Home" section="Atoms"
-      name="atomhide-1" link="ChimeraX-Shortcuts:ha"/>
-
-    <Provider tab="Home" section="Cartoons"
-      name="layout-Cartoons" after="Atoms"/>
-    <Provider tab="Home" section="Cartoons"
-      name="ribshow-1" link="ChimeraX-Shortcuts:rb"/>
-    <Provider tab="Home" section="Cartoons"
-      name="ribhide-1" link="ChimeraX-Shortcuts:hr"/>
-
-    <Provider tab="Home" section="Styles"
-      name="layout-Styles" after="Cartoons"/>
-    <Provider tab="Home" section="Styles"
-      name="stick-1" link="ChimeraX-Shortcuts:st"/>
-    <Provider tab="Home" section="Styles"
-      name="sphere-1" link="ChimeraX-Shortcuts:sp"/>
-    <Provider tab="Home" section="Styles"
-      name="ball-1" link="ChimeraX-Shortcuts:bs"/>
-
-    <Provider tab="Home" section="Background"
-      name="layout-Background" after="Styles"/>
-    <Provider tab="Home" section="Background"
-      name="White-1" link="ChimeraX-Shortcuts:wb"/>
-    <Provider tab="Home" section="Background"
-      name="Black-1" link="ChimeraX-Shortcuts:bk"/>
-
-    <Provider tab="Home" section="Lighting"
-      name="layout-Lighting" after="Background"/>
-    <Provider tab="Home" section="Lighting"
-      name="Simple-1" link="ChimeraX-Shortcuts:ls"/>
-    <Provider tab="Home" section="Lighting"
-      name="Soft-1" link="ChimeraX-Shortcuts:la"/>
-    <Provider tab="Home" section="Lighting"
-      name="Full-1" link="ChimeraX-Shortcuts:lf"/>
-  <!--
-    <Provider tab="Home" section="Undo"
-      name="layout-Undo" after="Lighting"/>
-    <Provider tab="Home" section="Undo"
-      name="Undo" icon="undo-variant.png" description="Undo last action"/>
-    <Provider tab="Home" section="Undo"
-      name="Redo" icon="redo-variant.png" description="Redo last action"/>
-  -->
-
   </Providers>
 
   <DataFiles>

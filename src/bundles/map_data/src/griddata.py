@@ -220,6 +220,15 @@ class GridData:
     return self.ijk_to_xyz_transform.determinant()
     
   # ---------------------------------------------------------------------------
+  #
+  def voxel_count(self):
+    '''
+    Return the total number of voxels.
+    '''
+    s = self.size
+    return s[0]*s[1]*s[2]
+    
+  # ---------------------------------------------------------------------------
   # Spacings in xyz space of jk, ik, and ij planes.
   #
   def plane_spacings(self):

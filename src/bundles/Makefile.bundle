@@ -7,6 +7,7 @@
 
 TOP = ../../..
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
+SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 # These can be overridden by bundles for customization
 DEVEL_ARGS =
@@ -21,7 +22,7 @@ endif
 # For Windows, we assume Cygwin is being used.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
 PYMOD_EXT = pyd
 endif
 ifeq ($(OS),Darwin)
@@ -43,7 +44,11 @@ install app-install:	bundle_info.xml $(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(DEVEL_ARGS)"
 
 sync:
-	rsync -av dist/*.whl plato:/usr/local/projects/chimerax/builds/repo/
+ifneq (,$(wildcard dist/*-py3-none-any.whl))
+	rsync -av dist/*.whl $(SYNC_DIR)/python-only
+else
+	rsync -av dist/*.whl $(SYNC_DIR)/binary
+endif
 
 test:
 	for t in $(wildcard cxtest*.cxc) $(wildcard cxtest*.py);\

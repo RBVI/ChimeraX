@@ -175,6 +175,49 @@ static Vertex_Loops *boundary_loops(const IArray &tarray)
   return vloops;
 }
 
+
+// ----------------------------------------------------------------------------
+// Returns NULL if surface is not oriented.
+//
+static void boundary_edge_mask(const IArray &tarray, unsigned char *edge_mask)
+{
+  Edge_Set *eset = boundary_edge_set(tarray);
+  long s0 = tarray.stride(0), s1 = tarray.stride(1);
+  int n = tarray.size(0);
+  int *ta = tarray.values();
+  int *t = ta;
+  for (int i = 0 ; i < n ; ++i, t += s0)
+    {
+      int emask = 0;
+      int v0 = t[0], v1 = t[s1], v2 = t[2*s1];
+      if (eset->find(Edge(v0,v1)) != eset->end() || eset->find(Edge(v1,v0)) != eset->end())
+	emask |= 0x1;
+      if (eset->find(Edge(v1,v2)) != eset->end() || eset->find(Edge(v2,v1)) != eset->end())
+	emask |= 0x2;
+      if (eset->find(Edge(v2,v0)) != eset->end() || eset->find(Edge(v0,v2)) != eset->end())
+	emask |= 0x4;
+      edge_mask[i] = emask;
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *boundary_edge_mask(PyObject *, PyObject *args, PyObject *keywds)
+{
+  IArray tarray;
+  const char *kwlist[] = {"triangle_array", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds,
+				   const_cast<char *>("O&"), (char **)kwlist,
+				   parse_int_n3_array, &tarray))
+    return NULL;
+
+  int n = tarray.size(0);
+  unsigned char *emask;
+  PyObject *edge_mask = python_uint8_array(n, &emask);
+  boundary_edge_mask(tarray, emask);
+  return edge_mask;
+}
+
 // ----------------------------------------------------------------------------
 //
 static float cap_volume(float *v, const Vertex_Loops &vloops)

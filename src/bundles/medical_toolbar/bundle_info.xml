@@ -39,6 +39,8 @@
     <Provider tab="Medical Image" section="Style"
 	      name="plane style" link="ChimeraX-Shortcuts:pl"/>
     <Provider tab="Medical Image" section="Style"
+	      name="slab style" link="ChimeraX-Shortcuts:is"/>
+    <Provider tab="Medical Image" section="Style"
 	      name="orthoplanes style" link="ChimeraX-Shortcuts:o3"/>
     <Provider tab="Medical Image" section="Style"
 	      name="full style" link="ChimeraX-Shortcuts:pa"/>
@@ -51,7 +53,7 @@
     <Provider tab="Medical Image" section="Color"
 	      name="chest" link="ChimeraX-Shortcuts:ch"/>
     <Provider tab="Medical Image" section="Color"
-	      name="skin" link="ChimeraX-Shortcuts:as"/>
+	      name="brain" link="ChimeraX-Shortcuts:bc"/>
     <Provider tab="Medical Image" section="Color"
 	      name="default thresholds" link="ChimeraX-Shortcuts:dc"/>
 
@@ -76,9 +78,12 @@
 	      mouse_mode="move planes" display_name="Move planes"
 	      description="Move plane or slab along its axis to show a different section"/>
     <Provider tab="Medical Image" section="Mouse Mode" name="mm3"
+	      mouse_mode="rotate slab" display_name="Tilt slab"
+	      description="Tilt image planes, hold shift key to translate"/>
+    <Provider tab="Medical Image" section="Mouse Mode" name="mm4"
 	      mouse_mode="tape measure" display_name="Tape"
 	      description="Measure distance between two points"/>
-    <Provider tab="Medical Image" section="Mouse Mode" name="mm4"
+    <Provider tab="Medical Image" section="Mouse Mode" name="mm5"
 	      mouse_mode="windowing" display_name="Windowing"
 	      description="Adjust volume data thresholds collectively"/>
 

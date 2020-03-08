@@ -4,19 +4,19 @@
 #ifndef WATERSHED_HEADER_INCLUDED
 #define WATERSHED_HEADER_INCLUDED
 
-#include "mask.h"		// use Index
+#include "region_map.h"		// use Index
 
-namespace Segmentation_Calculation
+namespace Segment_Map
 {
 
 //
 // Find regions consisting of grid points above specified threshold
 // which reach the same local maximum taking a steepest ascent walk.
-// Calculates index mask and returns number of regions found.
+// Calculates region map and returns number of regions found.
 //
 template <class T>
 Index watershed_regions(const T *data, const int *data_size,
-			float threshold, Index *mask);
+			float threshold, Index *region_map);
 
 //
 // Do a steepest ascent walk from given starting index positions until
@@ -27,7 +27,7 @@ template <class T>
 void find_local_maxima(const T *data, const int *data_size,
 		       int *start_positions, int nstart);
 
-} // end of namespace Segmentation_Calculation
+} // end of namespace Segment_Map
 
 #include "watershed.cpp"	// template implementation
 

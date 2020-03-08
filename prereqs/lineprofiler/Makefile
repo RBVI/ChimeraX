@@ -3,7 +3,11 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 include ../pips/Makefile.pip
 
-# pypi is missing binary version for macOS
+# pypi is missing binary version for macOS and Windows.
+# PEP517 does not allow install from source wheels and
+# setuptools-45.1.0 enforces PEP517 by default.
+# Version 3.0.2 is built using cmake, and that is
+# a bridge too far.  Sticking with 2.1.2.
 
 VERSION = 2.1.2
 DISTRIBUTION = line_profiler-$(VERSION).tar.gz

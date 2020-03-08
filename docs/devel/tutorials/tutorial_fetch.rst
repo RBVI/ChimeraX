@@ -90,6 +90,10 @@ The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
 (lines 8-10 and 17-24).
 
+**WARNING: the DataFormat, Open, and Fetch classifiers are all deprecated and will be replaced
+by the more flexible Manager/Provider bundle_info mechanism in the
+future.  This example will be updated when implementation is complete.**
+
 The ``ChimeraXClassifier`` tags on lines 41-47 informs ChimeraX that
 this bundle supports fetching data from a source named ``HomoloGene``.
 Note that there is no **DataFormat** or **Open** classifiers

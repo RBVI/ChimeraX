@@ -191,7 +191,7 @@ class Color(State):
         return self.rgba[3] >= 1.0
 
     def __repr__(self):
-        return '%s' % self.rgba
+        return '%s(%s)' % (self.__class__.__name__, repr(list(self.rgba)))
 
     def uint8x4(self):
         """Return uint8x4 version color"""
@@ -767,7 +767,7 @@ def color_name(color_or_rgba8):
     return name
 
 def hex_color(rgba8):
-    return ('#%02x%02x%02x' % rgba8[:3]) if rgba8[3] == 255 else ('#%02x%02x%02x%02x' % rgba8)
+    return ('#%02x%02x%02x' % tuple(rgba8[:3])) if rgba8[3] == 255 else ('#%02x%02x%02x%02x' % tuple(rgba8))
 
 def rgba_to_rgba8(rgba):
     return tuple(int(255 * r) for r in rgba)

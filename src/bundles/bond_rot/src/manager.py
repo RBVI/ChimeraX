@@ -123,7 +123,7 @@ class BondRotationManager(StateManager):
             nb_structures = new_bonds.unique_structures
             for br in list(self.bond_rotations.values()):
                 if br.bond.structure in nb_structures:
-                    if br.bond.rings(cross_residues=True):
+                    if br.bond.rings(cross_residue=True):
                         # new bond closed a cycle involving bond-rotation bond
                         self._delete_rotation(br)
 

@@ -31,16 +31,28 @@ Although the coordinate sets are in a specific order, the data need not be
 a time series; for example, it could be an <b><i>ensemble</i></b>
 for which the order is not meaningful.
 Only one frame of a trajectory is shown at a time.
-Different frames can be shown or played back sequentially with the 
-<a href="commands/coordset.html"><b>coordset</b></a> command, or interactively
-with a <a href="commands/coordset.html#slider">slider interface</a>.
+A trajectory can be played back with the
+<a href="commands/coordset.html"><b>coordset</b></a> command,
+the associated <a href="commands/coordset.html#slider">slider interface</a>,
+or the <b>play coordinates</b> 
+<a href="commands/ui.html#mousemode">mouse mode</a>
+<a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/coordset.png"></a>,
+and saved to a file with <a href="commands/save.html"><b>save</b></a>.
+</p><p>
 A multi-model file in mmCIF or PDB format can be opened as a trajectory
 by using the command <a href="commands/open.html"><b>open</b></a> with
 <b>coordsets true</b> (default <b>false</b>).
 A trajectory can also be read from any of several 
 <a href="commands/open.html#trajectory">trajectory formats</a>
-or created with the <a href="commands/morph.html"><b>morph</b></a> command,
-and saved to a file with <a href="commands/save.html"><b>save</b></a>.
+or created with the <a href="commands/morph.html"><b>morph</b></a> command.
+Reading a trajectory from one of the
+<a href="commands/open.html#trajectory">trajectory formats</a>
+requires <i>first</i> opening a structure (<i>e.g.</i> from a PDB file) 
+containing the same set of atoms as the trajectory, and then 
+specifying that existing model in the trajectory-opening command 
+(<a href="commands/open.html#structureModel">details...</a>).
+This additional model is needed to provide the topology.
 The number of coordinate sets in a trajectory
 can be reported with the command <a href="commands/info.html"><b>info</b></a>.
 See also:
@@ -73,7 +85,8 @@ the sort order in the dialog may define the temporal order.
 Volume series can be played back with the 
 <a href="commands/vseries.html"><b>vseries</b></a> command,
 the associated <a href="commands/vseries.html#slider">slider interface</a>,
-or the <b>play map series</b> <a href="commands/ui.html#mousemode">mouse mode</a>
+or the <b>play map series</b>
+<a href="commands/ui.html#mousemode">mouse mode</a>
 <a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="tools/mouse-icons/vseries.png"></a>.
 See also: <a href="commands/measure.html#motion"><b>measure motion</b></a>
@@ -81,5 +94,5 @@ See also: <a href="commands/measure.html#motion"><b>measure motion</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2019</address>
+March 2020</address>
 </body></html>

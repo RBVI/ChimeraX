@@ -157,3 +157,32 @@ def dihedral_point(n1, n2, n3, dist, angle, dihed):
     pt = (tmp*sin(radDihed), tmp*cos(radDihed), dist*cos(radAngle))
     dp = pt[0]*x + pt[1]*y + pt[2]*v12 + n1
     return dp
+
+def clip_segment(line, axis, offset1, offset2):
+    '''
+    Line defines a segment as two points that is to be clipped
+    by slab offset1 <= (axis,p) <= offset2.
+    The clipped line is returned.  If the clipped segment is empty
+    then both returned segment endpoints are None.
+    '''
+    xyz1, xyz2 = line
+    a1 = inner_product(axis, xyz1)
+    a2 = inner_product(axis, xyz2)
+    if (a1 < offset1 and a2 < offset1) or (a1 > offset2 and a2 > offset2):
+        return None, None
+
+    if a1 < offset1:
+        cxyz1 = xyz1 + (offset1-a1)/(a2-a1) * (xyz2-xyz1)
+    elif a1 > offset2:
+        cxyz1 = xyz1 + (offset2-a1)/(a2-a1) * (xyz2-xyz1)
+    else:
+        cxyz1 = xyz1
+
+    if a2 < offset1:
+        cxyz2 = xyz2 + (offset1-a2)/(a1-a2) * (xyz1-xyz2)
+    elif a2 > offset2:
+        cxyz2 = xyz2 + (offset2-a2)/(a1-a2) * (xyz1-xyz2)
+    else:
+        cxyz2 = xyz2
+        
+    return cxyz1, cxyz2

@@ -1,0 +1,33 @@
+<BundleInfo name="ChimeraX-Smiles" version="1.0"
+	    package="chimerax.atomic.smiles"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>SMILES fetch</Synopsis>
+  <Description>This bundle provides the abiility to get 3D structures for SMILES strings.</Description>
+
+  <Categories>
+    <Category name="Molecular structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-SDF" version=">=1.0"/>
+  </Dependencies>
+
+  <Providers manager="start structure">
+    <Provider name="smiles" ui_name="SMILES string" new_model_only="true"/>
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>DataFormat :: SMILES :: smiles :: Molecular structure :: :: :: https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system :: :: :: SMILES :: utf-8</ChimeraXClassifier>
+    <ChimeraXClassifier>Fetch :: smiles :: SMILES :: smiles :: c1ccccc1 ::</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

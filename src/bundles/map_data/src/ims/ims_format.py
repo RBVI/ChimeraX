@@ -121,7 +121,7 @@ class IMS_Data:
 
         agroups = self.find_arrays(f.root)
         if len(agroups) == 0:
-            raise ValueError('Imaris file %s contains no 3d arrays' % path)
+            raise SyntaxError('Imaris file %s contains no 3d arrays' % path)
 
         # Sort data arrays by channel, time and resolution level.
         ch_arrays = {}
@@ -406,7 +406,7 @@ class IMS_Image:
                            ((a._v_name,) + tuple(a.shape) + (a.atom.dtype.name,))
                            for a in arrays])
         message += sizes
-        raise ValueError(message)
+        raise SyntaxError(message)
 
 # -----------------------------------------------------------------------------
 #

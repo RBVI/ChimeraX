@@ -20,13 +20,9 @@ class ProgressReporter:
                ijk_size = None,
                element_size = None,
                report_interval = 0.2,           # seconds
-               message = None):
+               log = None):
 
-    if message is None:
-      def status(msg):
-          pass
-      message = status
-    self.message = message
+    self._log = log
 
     self.allow_cancel = True
     self.cancel = False
@@ -42,6 +38,23 @@ class ProgressReporter:
     self.ksize = None
     self.array_size(ijk_size, element_size)
 
+  # ---------------------------------------------------------------------------
+  #
+  def message(self, text):
+    log = self._log
+    if log:
+      log.status(text)
+
+  # ---------------------------------------------------------------------------
+  #
+  def error(self, text):
+    log = self._log
+    if log:
+      log.error(text)
+    else:
+      import sys
+      sys.stderr.write(text)
+      
   # ---------------------------------------------------------------------------
   #
   def show_status(self, text):

@@ -192,7 +192,7 @@ def main():
     # print('bin_name:', bin_name)
 
     os.umask(0o22)  # turn off group and other writability
-    pkg_root = deb_name
+    pkg_root = f"{deb_name}-{os_version}"
     os.mkdir(pkg_root)
     debian_dir = f"{pkg_root}/DEBIAN"
     os.mkdir(debian_dir)
@@ -292,6 +292,7 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
             Package: {pkg_name}
             Version: {version}
             Architecture: amd64
+            Depends: {depends}
             Maintainer: Chimera Staff <chimera-staff@cgl.ucsf.edu>
             Description: molecular visualization
              UCSF ChimeraX (or simply ChimeraX) is the next-generation
@@ -312,7 +313,6 @@ def make_control_file(debian_dir, pkg_name, version, dependencies):
              interface::3d, interface::graphical, interface::commandline,
              implemented-in::c++, implemented-in::python, uitoolkit::qt,
              network::client
-            Depends: {depends}
             """), file=f)
 
 

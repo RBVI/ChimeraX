@@ -1,7 +1,7 @@
 // ----------------------------------------------------------------------------
 //
 
-namespace Segmentation_Calculation
+namespace Segment_Map
 {
 
 void bin_sums(float *xyz, int n, float *v, float b0, float bsize, int bcount,
@@ -24,4 +24,4 @@ void bin_sums(float *xyz, int n, float *v, float b0, float bsize, int bcount,
 }
 
 
-} // end of namespace Segmentation_Calculation
+} // end of namespace Segment_Map

@@ -63,7 +63,7 @@ if sys.platform.startswith('win'):
     os.EX_NOPERM = 77           # permission denied
     os.EX_CONFIG = 78           # configuration error
 
-    if 'LANG' in os.environ:
+    if 'LANG' in os.environ and sys.stdout is not None:
         # Double check that stdout matches what LANG asks for.
         # This is a problem when running in nogui mode from inside a cygwin
         # shell -- the console is supposed to use UTF-8 encoding in Python
@@ -285,13 +285,16 @@ def init(argv, event_loop=True):
             os.environ['PATH'] = ':'.join(paths)
         del paths
 
-        # Setup SSL CA certificates file
-        import certifi
-        os.environ["SSL_CERT_FILE"] = certifi.where()
     if sys.platform.startswith('linux'):
         # Workaround for #638:
         # "any number of threads more than one leads to 200% CPU usage"
         os.environ["OPENBLAS_NUM_THREADS"] = "1"
+
+    # Setup SSL CA certificates file
+    # This used to be only necessary for darwin, but Windows
+    # appears to need it as well.  So use it for all platforms.
+    import certifi
+    os.environ["SSL_CERT_FILE"] = certifi.where()
 
     # distlib, since 0.2.8, does not recognize "Obsoletes" as a legal
     # metadata classifier, but jurko 0.6 (SOAP package) claims to be

@@ -16,7 +16,7 @@ __all__ = [
     'Drawing', 'Pick',
     'Camera', 'MonoCamera', 'OrthographicCamera',
     'StereoCamera', 'SplitStereoCamera',
-    'Mono360Camera', 'Stereo360Camera',
+    'Mono360Camera', 'Stereo360Camera', 'DomeCamera',
     'CrossFade', 'MotionBlur',
     'Texture', 'Lighting', 'Material',
     'View', 'OpenGLContext',
@@ -27,7 +27,7 @@ from .drawing import text_image_rgba, qimage_to_numpy
 from .drawing import concatenate_geometry
 
 from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera, SplitStereoCamera
-from .camera360 import Mono360Camera, Stereo360Camera
+from .camera360 import Mono360Camera, Stereo360Camera, DomeCamera
 
 from .crossfade import CrossFade, MotionBlur
 

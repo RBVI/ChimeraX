@@ -79,17 +79,28 @@ Each <b>Sequence Viewer</b> window has a
 with choices including:
 <p>
 <ul>
-<li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
-[various <a href="../commands/save.html#seqformats">sequence file formats</a>]
-- save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
+<li><b>File</b>
+  <ul>
+  <li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  [various <a href="../commands/save.html#seqformats">sequence file formats</a>]
+  &ndash; save to file; 
+  see also <a href="../commands/save.html#sequence"><b>save</b></a>
+  <li><b>Load Sequence Coloring File...</b> open a
+  <a href="../formats/scf.html">sequence coloring file</a>
+  to create <a href="#regions">regions</a> and color 
+  <a href="#association">associated</a> structure to match
+  </ul>
+<li><b>Structure</b>
+  <ul>
+  <li><b>Associations...</b> show dialog for controlling 
+  <a href="#association">sequence-structure association</a>
+  <li><b>Modeller Comparative Modeling...</b> 
+start <a href="modeller.html"><b>Modeller Comparative Modeling</b></a>
+(requires a structure to be <a href="#association">associated</a> 
+with any sequence in the alignment, for use as a template in modeling)
+  </ul>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
-<li><b>Associations...</b> show dialog for controlling 
-<a href="#association">sequence-structure association</a>
-<li><b>Load Sequence Coloring File...</b> open a
-<a href="../formats/scf.html">sequence coloring file</a>
-to create <a href="#regions">regions</a> and color 
-<a href="#association">associated</a> structure to match
 </ul>
 
 <a name="headers"></a>
@@ -233,11 +244,11 @@ shows its settings in a separate window, with sections:
 </p>
 <ul>
 <li><a href="#settings-appearance"><b>Appearance</b></a>
-- sequence display parameters
+&ndash; sequence display parameters
 <li><a href="#settings-headers"><b>Headers</b></a>
-- rows of information above the sequences in an alignment
+&ndash; rows of information above the sequences in an alignment
 <li><a href="#settings-regions"><b>Regions</b></a>
-- creation and display of <a href="#regions">regions</a> (colored boxes)
+&ndash; creation and display of <a href="#regions">regions</a> (colored boxes)
 </ul>
 <p>
 The settings window can be manipulated like other panels in the
@@ -263,25 +274,27 @@ Appearance</h4>
 <li><b>Single Sequence</b>
   <ul class="none">
   <li><b>Horizontal spacing (pixels)</b> [<i>S</i>]
-  - space between characters within a row (initial default <b>&minus;2</b>)
-  <li><b>Wrap</b> - whether to wrap lines within the window (<b>on</b>)
+  &ndash; space between characters within a row
+  (initial default <b>&minus;2</b>)
+  <li><b>Wrap</b> &ndash; whether to wrap lines within the window (<b>on</b>)
   <li><b>Wrap lines at multiple of</b> [<i>N</i>]
-  - when wrapping, allow breaks at multiples of <i>N</i> residues (<b>5</b>)
+  &ndash; when wrapping, allow breaks at multiples of <i>N</i> residues
+  (<b>5</b>)
   <li><b>Vertically separate wrapped lines</b> (<b>off</b>)
   </ul>
 <li><b>Alignment</b>
   <ul class="none">
   <li><b>Horizontal spacing (pixels)</b> [<i>S</i>]
-  - space between characters within a row (initial default <b>0</b>)
+  &ndash; space between characters within a row (initial default <b>0</b>)
   <li><b>Wrap if</b> [<i>M</i>] <b>sequences or fewer</b>
-  - do not wrap if the alignment contains &gt;<i>M</i> sequences (<b>8</b>);
-  set to &le;1 for no wrapping
+  &ndash; do not wrap if the alignment contains 
+  &gt;<i>M</i> sequences (<b>8</b>); set to &le;1 for no wrapping
   <li><b>Wrap lines at multiple of</b> [<i>N</i>]
-  - when wrapping, allow breaks at multiples of <i>N</i> alignment positions
-  (<b>5</b>)
+  &ndash; when wrapping, allow breaks at multiples of 
+  <i>N</i> alignment positions (<b>5</b>)
   <li><b>Vertically separate wrapped blocks</b> (<b>on</b>)
   <li><b>Show numbering at startup</b> 
-  - whether to show alignment numbering (1, 11, <i>etc.</i>)
+  &ndash; whether to show alignment numbering (1, 11, <i>etc.</i>)
   for subsequently opened alignments (<b>on</b>)
   </ul>
 </ul>
@@ -311,7 +324,7 @@ for calculating the consensus fraction.
 <ul>
 <li><b>Conservation: style</b>
   <ul>
-  <li><b>identity histogram</b> - what proportion of the sequences
+  <li><b>identity histogram</b> &ndash; what proportion of the sequences
 have the most prevalent nongap character per alignment column.
 Histogram bar heights are proportional to (M-1)/(N-1), where
 M is the number of occurrences of the most prevalent residue type at
@@ -323,7 +336,7 @@ However, M/N values (not the values used for display purposes) are
 used for the <a href="#mavAttributes"><b>mavConservation</b> attribute</a>
 and written out when conservation values are <a href="#saveheader">saved</a>.
 -->
-  <li><b>Clustal characters</b> - as in Clustal format, 
+  <li><b>Clustal characters</b> &ndash; as in Clustal format, 
      <ul class="none"> 
      <li>* (asterisk) for complete identity
      <li>: (colon) for 
@@ -333,8 +346,8 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
      <li> blank otherwise
      </ul>
   <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
-  initial default) - more sophisticated options for calculating conservation.
-  Users should cite:
+  initial default) &ndash; more sophisticated options
+  for calculating conservation. Users should cite:
   <a name="al2coref"></a>
     <blockquote>
     <a href="http://www.ncbi.nlm.nih.gov/pubmed/11524371" target="_blank">
@@ -345,7 +358,8 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
    </blockquote>
   <b>AL2CO parameters</b>:
   <ul>
-  <li><b>Averaging window</b> (initial default <b>1</b>) - window width, or
+  <li><b>Averaging window</b> (initial default <b>1</b>)
+  &ndash; window width, or
   how many alignment positions to average in a sliding window.
   The result is assigned to the central column of the window
   when the width is odd, the column left of center when the width is even
@@ -353,20 +367,21 @@ and written out when conservation values are <a href="#saveheader">saved</a>.
   with various adjustments at the termini.
   The authors of AL2CO recommend a width of 3 for motif analyses.
   <li><a name="al2comeas"><b>Conservation measure</b></a>
-  - which AL2CO conservation equation to use:
+  &ndash; which AL2CO conservation equation to use:
     <ul>
     <li><b>entropy-based</b> (initial default)
     <li><b>variance-based</b>
     <li><b>sum of pairs</b>
     </ul>
-  <li><b>Frequency estimation method</b> - whether/how to weight the sequences
+  <li><b>Frequency estimation method</b> 
+  &ndash; whether/how to weight the sequences
     <ul>
     <li><b>unweighted</b>
     <li><b>modified Henikoff & Henikoff</b>
     <li><b>independent counts</b> (initial default)
     </ul>
   <li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
-   - maximum fraction of sequences with gaps in a column
+   &ndash; maximum fraction of sequences with gaps in a column
   for conservation to still be calculated; for example, if the
   <b>gap fraction</b> is 0.25, conservation values will only be calculated
   for columns in which at least three-fourths of the sequences have residues
@@ -378,9 +393,9 @@ Additional settings if the AL2CO
   BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default), 
   BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90, 
   BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120, 
-  PAM-150, PAM-250, SDM] - which residue similarity matrix to use
+  PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
   <li><b>Matrix transformation</b> 
-  - whether/how to modify the matrix
+  &ndash; whether/how to modify the matrix
      <ul>
      <li><b>none</b> (initial default)
      <li><b>normalization</b>
@@ -487,5 +502,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+February 2020</address>
 </body></html>

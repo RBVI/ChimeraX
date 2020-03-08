@@ -753,7 +753,7 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None, case_sensitive = False):
         from collections.abc import Iterable
         if isinstance(values, Iterable):
             values = list(values)
@@ -769,7 +769,7 @@ class EnumOf(Annotation):
         # "ab", not "abc".
         if ids is not None:
             assert all([isinstance(x, str) for x in ids])
-            pairs = sorted(zip(self.ids, self.values))
+            pairs = sorted(zip(ids, values))
             self.ids = [p[0] for p in pairs]
             self.values = [p[1] for p in pairs]
         else:
@@ -786,17 +786,21 @@ class EnumOf(Annotation):
         if abbreviations is not None:
             self.allow_truncated = abbreviations
 
+        self._case_sensitive = case_sensitive
+        
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text, convert=True)
-        folded = token.casefold()
+        case = self._case_sensitive
+        word = token if case  else token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
-            if ident.casefold() == folded:
+            id = ident if case else ident.casefold()
+            if id == word:
                 return self.values[i], quote_if_necessary(ident), rest
             elif self.allow_truncated:
-                if ident.casefold().startswith(folded):
+                if id.startswith(word):
                     matches.append((i, ident))
         if len(matches) == 1:
             i, ident = matches[0]
@@ -814,24 +818,28 @@ class EnumOf(Annotation):
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
 
-    def __init__(self, values_func, name=None, url=None, html_name=None):
+    def __init__(self, values_func, name=None, url=None, html_name=None,
+                 case_sensitive=False):
         Annotation.__init__(self, url=url)
         self.__name = name
         self.__html_name = html_name
+        self._case_sensitive = case_sensitive
         self.values_func = values_func
 
     def parse(self, text, session):
-        return EnumOf(self.values_func()).parse(text, session)
+        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        return e.parse(text, session)
 
     def unparse(self, value, session=None):
-        return EnumOf(self.values_func()).unparse(value, session)
+        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        return e.unparse(value, session)
 
     @property
     def name(self):
         if self.__name is not None:
             return self.__name
         return 'one of ' + commas(["'%s'" % str(v)
-                                  for v in sorted(self.values_func())])
+              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
 
     @property
     def _html_name(self):
@@ -842,7 +850,7 @@ class DynamicEnum(Annotation):
             name = self.__name
         else:
             name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
-                                      for v in sorted(self.values_func())])
+              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)

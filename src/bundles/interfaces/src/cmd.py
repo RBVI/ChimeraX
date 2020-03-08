@@ -61,6 +61,7 @@ class SphereGroup(Node):
     def __init__(self, name, atoms):
         self.full_name = self.name = name
         self.atoms = atoms
+        self._original_atom_count = len(atoms)	# For detecting if atoms deleted
         self.residues = atoms.unique_residues
         self.centers = atoms.scene_coords
         self.radii = atoms.radii
@@ -139,6 +140,10 @@ class SphereGroup(Node):
         if hasattr(self, '_original_atom_colors'):
             self.atoms.colors = self._original_atom_colors
 
+    @property
+    def atoms_deleted(self):
+        return len(self.atoms) < self._original_atom_count
+    
 def chain_spheres(atoms, session):
     if atoms is None:
         from chimerax.atomic import all_atoms

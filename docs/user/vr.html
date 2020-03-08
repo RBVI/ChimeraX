@@ -51,7 +51,9 @@ ChimeraX allows display and analysis of structures and density maps
 using virtual reality headsets such as HTC Vive,
 Vive Pro, Oculus Rift, Samsung Odyssey and Windows Mixed Reality.
 For multi-person VR sessions, see the 
-<a href="commands/meeting.html"><b>meeting</b></a> command.
+<a href="commands/conference.html"><b>conference</b></a> command.
+To add buttons for easy command execution from within VR, see 
+<a href="commands/buttonpanel.html"><b>buttonpanel</b></a>.
 ChimeraX can also <a href="vrphone.html">record 360&deg; movies</a>.
 </p>
 
@@ -150,7 +152,6 @@ and icons on the cones indicate button functions
 or <a href="#mousemodes">modes</a>. Default assignments:
 </p>
 
-<a name="default-controller"></a>
 <table border cellpadding="4" cellspacing="0"><tr>
 <td align="center" width="35%">rotate
 <br><img src="tools/mouse-icons/rotate.png" class="icon3"></td>
@@ -185,13 +186,11 @@ to reflect the different physical positions of the buttons on the controllers.
 together with both <b><i>triggers</i></b> pressed
 <br>&nbsp;&nbsp;&ndash; or &ndash;<br>
 &nbsp;move hand controller vertically with 
-Vive <b><i>trackpad</i></b> pressed (Oculus A/X button)
-</td>
+Vive <b><i>trackpad</i></b> pressed (Oculus A button)</td>
 </tr><tr>
 <td align="center">center and rescale
 <br><img src="tools/shortcut-icons/viewall.png" class="icon2"></td>
-<td class="text">&nbsp;Vive <b><i>grip</i></b> button
-</td>
+<td class="text">&nbsp;Vive <b><i>grip</i></b> button (Oculus X button)</td>
 </tr><tr>
 <td align="center" class="text">
 collectively show, hide, move tool panels
@@ -201,8 +200,7 @@ click-dragging with any button on its title bar,
 or on a blank area in the panel if no title bar)
 </td>
 <td class="text">
-&nbsp;Vive <b><i>menu</i></b> button (Oculus B/Y button)
-</td>
+&nbsp;Vive <b><i>menu</i></b> button (Oculus B/Y button)</td>
 </tr></table>
 <p>
 <table class="clRight" cellspacing="0">
@@ -259,8 +257,7 @@ but not after exiting ChimeraX.
 Most of the ChimeraX &ldquo;mouse&rdquo; modes
 (function assignments) can be used with the VR hand controllers.
 Functions are described in more detail in the
-<a href="tools/mousemodes.html"><b>Right Mouse</b></a> and 
-<a href="tools/markers.html"><b>Markers</b></a> documentation, but include:
+<a href="commands/ui.html#mousemode">mouse mode</a> documentation, but include:
 </p>
 <ul>
   <li><a href="selection.html">select</a>
@@ -277,24 +274,26 @@ Functions are described in more detail in the
   <li>view map planes
   <li>crop map box
   <li>play map time series
+  <li>play trajectory
   <li>next/previous docked ligand
+ <li>rotate + translate <a href="commands/volume.html#tiltedslab">image slab</a>
+  (single mode in VR)
 </ul>
 <p>
 The function of a hand-controller button can be reassigned
-by using it to &ldquo;click&rdquo; the corresponding icon in
-one of the following <a href="tools/toolbar.html"><b>Toolbar</b></a> tabs:
+by using it to &ldquo;click&rdquo; an icon in the following tabs of the
+<a href="tools/toolbar.html"><b>Toolbar</b></a>:
 </p>
 <ul>
 <li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>:&nbsp;
 <img class="iconbar" src="mouse-icons.png">
 <li><a href="tools/markers.html"><b>Markers</b></a>:&nbsp;
 <img class="iconbar" src="marker-icons.png">
+<li><a href="tools/medicalimage.html"><b>Medical Image</b></a>
+(just the last section, which contains a subset of the
+<a href="tools/mousemodes.html"><b>Right Mouse</b></a> icons)
 </ul>
 <p>
-A select few of the <a href="tools/mousemodes.html"><b>Right Mouse</b></a>
-icons also appear in the 
-<a href="tools/medicalimage.html"><b>Medical Image</b></a> tab.
-</p><p>
 Headset display of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
 and other ChimeraX tool panels can be toggled with the
 the Vive <b><i>menu</i></b> button or Oculus B/Y button.
@@ -316,9 +315,12 @@ zoom <a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
 contour level
 <a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="tools/mouse-icons/contour.png"></a>,
-and play map series
+play map series
 <a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="tools/mouse-icons/vseries.png"></a>.
+<img class="icon" border=1 src="tools/mouse-icons/vseries.png"></a>,
+and play trajectory
+<a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border=1 src="tools/mouse-icons/coordset.png"></a>.
 </p><p>
 With N assignable buttons on each controller, up to 2N modes
 can be assigned. However, leaving the <b><i>triggers</i></b> with their
@@ -377,6 +379,10 @@ the Vive <b><i>menu</i></b> button or Oculus B/Y button.
 An icon will pop up slightly when the cone tip is in position to click it.
 The scope of action of some of the icons can be specified/limited by
 <a href="selection.html">selection</a>.
+</p><p>
+For desired actions not already available as icons,
+custom panels of buttons to execute commands can be defined with the
+<a href="commands/buttonpanel.html"><b>buttonpanel</b></a> command.
 </p>
 
 <a name="interactive"></a>
@@ -503,5 +509,5 @@ at each corner of the room reliably produces the correct SteamVR bounds.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-December 2019</address>
+February 2020</address>
 </body></html> 

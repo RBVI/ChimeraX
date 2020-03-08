@@ -27,7 +27,7 @@ LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib libarray
 else
 LIBS	+= -Llib -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
 ifeq ($(OS),Linux)
-LDFLAGS += -Wl,-rpath,\$${ORIGIN}/lib -Wl,--as-needed
+LDFLAGS += -Wl,-rpath,\$${ORIGIN}/lib:\$${ORIGIN}/../../../.. -Wl,--as-needed
 endif
 endif
 
@@ -45,12 +45,12 @@ include:
 data:
 	mkdir data
 
-cymol.$(PYMOD_EXT): cymol.pyx include/atomstruct/Atom.h include/atomstruct/Residue.h
+cymol.$(PYMOD_EXT): $(SHLIB) cymol.pyx include/atomstruct/Atom.h include/atomstruct/Residue.h
 	LDFLAGS="-L." $(PYTHON_EXE) setup-cymol.py build_ext -i
 	mv chimerax/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
 	rmdir -p chimerax/atomic
 
-cytmpl.$(PYMOD_EXT): cytmpl.pyx
+cytmpl.$(PYMOD_EXT): $(SHLIB) cytmpl.pyx
 	LDFLAGS="-L." $(PYTHON_EXE) setup-cytmpl.py build_ext -i
 	mv chimerax/atomic/cytmpl.cp*.$(PYMOD_EXT) cytmpl.$(PYMOD_EXT)
 	rmdir -p chimerax/atomic
