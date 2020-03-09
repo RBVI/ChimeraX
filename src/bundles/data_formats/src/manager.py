@@ -25,10 +25,6 @@ class FormatsManager(ProviderManager):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("data formats changed")
-        from chimerax.core import io
-        for format_name, category, fmt_kw in io._used_register:
-            self.add_format(format_name, category, **fmt_kw)
-        io._user_register = self.add_format
 
     def add_format(self, name, category, *, suffixes=None, nicknames=None, bundle_info=None,
             mime_types=None, reference_url=None, insecure=None, encoding=None, synopsis=None,

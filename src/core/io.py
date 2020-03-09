@@ -235,7 +235,6 @@ class FileFormat:
 _file_formats = {}
 
 
-_used_register = []
 def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
                     encoding=None, synopsis=None, allow_directory=None,
@@ -260,10 +259,6 @@ def register_format(format_name, category, extensions, nicknames=None,
     new_kw = { 'suffixes': extensions, 'nicknames': nicknames, 'mime_types': mime,
         'reference_url': reference, 'insecure': dangerous, 'encoding': encoding, 'synopsis': synopsis,
         'allow_directory': allow_directory }
-    if isinstance(_used_register, list):
-        _used_register.append((format_name, category, new_kw))
-    else:
-        _used_register(format_name, category, **new_kw)
     if dangerous is None:
         # scripts are inherently dangerous
         dangerous = category == SCRIPT

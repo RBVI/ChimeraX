@@ -89,6 +89,16 @@ class OpenManager(ProviderManager):
 
     def end_providers(self):
         self.triggers.activate_trigger("open command changed", self)
+        if True:
+            return
+        new_formats = set(list(self.session.data_formats._formats.keys()))
+        from chimerax.core.io import _file_formats
+        old_formats = set(list(_file_formats.keys()))
+        old_only_formats = old_formats - new_formats
+        print("%d data formats in common, %d new only, %d old only" %(len(new_formats&old_formats),
+            len(new_formats - old_formats), len(old_only_formats)))
+        from random import choice
+        print("Port format", choice(list(old_only_formats)))
 
     def fetch_args(self, database_name, *, format_name=None):
         try:
