@@ -68,7 +68,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
 
     keywords = {
         'format': DynamicEnum(format_names),
-        'from_database' = DynamicEnum(database_names)
+        'from_database': DynamicEnum(database_names),
         'ignore_cache': BoolArg,
         'name': StringArg
     }
@@ -99,24 +99,17 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
         data_format = formats.pop() if formats else None
         database_name = databases.pop() if databases else None
         if database_name:
-            db_info = mgr.database_info(database_name)
-            if format:
-                try:
-                    bundle_info, is_default = db_info[format]
-                except KeyError:
-                    raise UserError("Format '%s' not available for database '%s'.  Available formats are: %s"
-                        % (format, database_name, ", ".join(db_info.keys())))
-            else:
-                for format, fmt_info in db_info.items():
-                    bundle_info, is_default = fmt_info
-                    if is_default:
-                        break
-                else:
-                    raise UserError("No default format for database '%s'.  Possible formats are: %s"
-                        % (database_name, ", ".join(db_info.keys())))
-                for ident, database_name, format_name in fetches:
-                    models, status = bundle_info.run_provider(session, database_name, mgr,
-                                operation="fetch", ident=ident, ignore_cache=ignore_cache, **provider_kw)
+            bundle_info, default_format_name = _fetch_info(mgr, database_name, format)
+            for ident, database_name, format_name in fetches:
+                if format_name is None:
+                    format_name = default_format_name
+                models, status = bundle_info.run_provider(session, database_name, mgr,
+                    operation="fetch", ident=ident, database_name=database_name, format_name=format_name,
+                    ignore_cache=ignore_cache, **provider_kw)
+                if status:
+                    statuses.append(status)
+                if models:
+                    opened_models.append(name_and_group_models(models, name, [ident]))
         else:
             bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format)
             if batch:
@@ -125,7 +118,8 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                                     operation="open", data=paths, **provider_kw)
                 if status:
                     statuses.append(status)
-                opened_models.append(name_and_group_models(models, name, paths))
+                if models:
+                    opened_models.append(name_and_group_models(models, name, paths))
             else:
                 for fi in file_infos:
                     if want_path:
@@ -136,29 +130,56 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                                     operation="open", data=data, file_name=fi.file_name, **provider_kw)
                     if status:
                         statuses.append(status)
-                    opened_models.append(name_and_group_models(models, name, fi.file_name))
+                    if models:
+                        opened_models.append(name_and_group_models(models, name, fi.file_name))
     else:
         for fi in file_infos:
-            if fi.database_name:
-                #TODO: core.commands.open._fetch_from_database
-                pass
-            else:
-                bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(fi.data_format)
-                for fi in file_infos:
-                    if want_path:
-                        data = _get_path(fi.file_name, check_path)
-                    else:
-                        data = _get_stream(fi.file_name, fi.data_format.encoding)
-                    models, status = bundle_info.run_provider(session, provider_name, mgr,
-                                    operation="open", data=data, file_name=fi.file_name, **provider_kw)
-                    if status:
-                        statuses.append(status)
+            bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(fi.data_format)
+            for fi in file_infos:
+                if want_path:
+                    data = _get_path(fi.file_name, check_path)
+                else:
+                    data = _get_stream(fi.file_name, fi.data_format.encoding)
+                models, status = bundle_info.run_provider(session, provider_name, mgr,
+                                operation="open", data=data, file_name=fi.file_name, **provider_kw)
+                if status:
+                    statuses.append(status)
+                if models:
                     opened_models.append(name_and_group_models(models, name, fi.file_name))
+        for ident, database_name, format_name in fetches:
+            bundle_info, default_format_name = _fetch_info(mgr, database_name, format)
+            if format_name is None:
+                format_name = default_format_name
+            models, status = bundle_info.run_provider(session, database_name, mgr,
+                operation="fetch", ident=ident, database_name=database_name, format_name=format_name,
+                ignore_cache=ignore_cache, **provider_kw)
+            if status:
+                statuses.append(status)
+            if models:
+                opened_models.append(name_and_group_models(models, name, [ident]))
     if opened_models:
         session.models.add(opened_models)
     if statuses:
         session.logger.status('\n'.join(statuses), log=True)
     return opened_models
+
+def _fetch_info(mgr, database_name, default_format_name):
+    db_info = mgr.database_info(database_name)
+    if default_format_name:
+        try:
+            bundle_info, is_default = db_info[default_format_name]
+        except KeyError:
+            raise UserError("Format '%s' not available for database '%s'.  Available formats are: %s"
+                % (default_format_name, database_name, ", ".join(db_info.keys())))
+    else:
+        for default_format_name, fmt_info in db_info.items():
+            bundle_info, is_default = fmt_info
+            if is_default:
+                break
+        else:
+            raise UserError("No default format for database '%s'.  Possible formats are: %s"
+                % (database_name, ", ".join(db_info.keys())))
+    return bundle_info, default_format_name
 
 def _get_path(file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists
@@ -219,8 +240,9 @@ def fetch_info(file_arg, format_name, database_name):
         ident = file_arg
     else:
         return None
+    from .manager import _manager as mgr, NoOpenerError
     try:
-        db_formats = mgr.database_formats(db_name)
+        db_formats = mgr.database_info(db_name).keys()
     except NoOpenerError as e:
         raise LimitationError(str(e))
     if format_name and format_name not in [dbf for dbf in db_formats]:
@@ -229,15 +251,13 @@ def fetch_info(file_arg, format_name, database_name):
     return (ident, db_name, format_name)
 
 def name_and_group_models(models, name_arg, path_info):
-    if not models:
-        return
     if len(models) > 1:
         # name arg only applies to group, not underlings
         if len(path_info) == len(models):
             path_names = [model_name_from_path(p) for p in path_info]
         else:
             path_names = [model_name_from_path(path_info[0])] * len(models)
-        for m, pn im zip(models, path_names):
+        for m, pn in zip(models, path_names):
             if not m.name:
                 m.name = pn
         from chimerax.core.models import Model

@@ -50,7 +50,7 @@ class OpenManager(ProviderManager):
             self._openers[data_format] = (bundle_info, name, want_path, check_path, batch)
         elif type == "fetch":
             if format_name is None:
-                raise ValueError("Database fetch '%s' in bundle %s failed to specify file format"
+                raise ValueError("Database fetch '%s' in bundle %s failed to specify file format name"
                     % (name, bundle_name))
             try:
                 data_format = self.session.data_formats[format_name]

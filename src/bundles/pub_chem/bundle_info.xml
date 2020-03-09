@@ -19,12 +19,9 @@
     <Dependency name="ChimeraX-SDF" version=">=1.0"/>
   </Dependencies>
 
-  <Providers manager="open command">
-    <Provider name="pubchem" type="fetch" format="sdf"/>
-  </Providers>
-
-  <Providers manager="start structure">
-    <Provider name="pubchem" ui_name="PubChem CID" new_model_only="true"/>
+  <Providers>
+    <Provider manager="start structure" name="pubchem" ui_name="PubChem CID" new_model_only="true"/>
+    <Provider manager="open command" name="pubchem" type="fetch" format_name="sdf"/>
   </Providers>
 
   <Classifiers>

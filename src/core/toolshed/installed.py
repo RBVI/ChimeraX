@@ -253,7 +253,7 @@ class InstalledBundleCache(list):
                 to_be_done.difference_update(can_move)
                 seen.update([d.key for d in can_move])
             else:
-                logger.warning("Unexpected circular dependencies:",
+                logger.warning("Unexpected circular dependencies: " +
                                ', '.join([str(d) for d in to_be_done]))
                 ready.extend(to_be_done)
                 to_be_done.clear()
