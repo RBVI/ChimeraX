@@ -29,7 +29,7 @@ class _PubChemAPI(BundleAPI):
             widget_info=None,
 
             # 'fetch' command
-            ident=None, ignore_cache=False, **kw):
+            operation=None, ident=None, ignore_cache=False, **kw):
         if widget_info is not None:
             # Build Structure interface
             widget, fill = widget_info
@@ -48,7 +48,10 @@ class _PubChemAPI(BundleAPI):
                 return process_widget(widget)
         else:
             # fetch command
-            from . import pub_chem
-            return pub_chem.fetch_pubchem(session, ident, ignore_cache=ignore_cache)
+            if operation == "args":
+                return {}
+            else:
+                from . import pub_chem
+                return pub_chem.fetch_pubchem(session, ident, ignore_cache=ignore_cache)
 
 bundle_api = _PubChemAPI()

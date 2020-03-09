@@ -23,7 +23,7 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
-	  nucleotides open pdb pick_blobs preset_mgr pub_chem read_pbonds \
+	  nucleotides open pdb pick_blobs preset_mgr pubchem read_pbonds \
 	  registration remote_control rest_server \
 	  residue_fit rotamer_lib_mgr rotamer_libs scheme_mgr \
 	  sdf segger segment seq_view sim_matrices \

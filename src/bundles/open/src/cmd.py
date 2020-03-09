@@ -97,7 +97,7 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
     statuses = []
     if homogeneous:
         data_format = formats.pop() if formats else None
-        database_name = databases.pop() if databases else None
+        database_name, format = databases.pop() if databases else (None, format)
         if database_name:
             bundle_info, default_format_name = _fetch_info(mgr, database_name, format)
             for ident, database_name, format_name in fetches:

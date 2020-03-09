@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-PubChem" version="1.0"
-	    package="chimerax.atomic.pub_chem"
+	    package="chimerax.atomic.pubchem"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
