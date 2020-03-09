@@ -17,6 +17,7 @@ class _LogSettings(Settings):
     EXPLICIT_SAVE = {
         'errors_raise_dialog': True,
         'warnings_raise_dialog': False,
+        'session_restore_clears': True,
     }
 
     AUTO_SAVE = {
@@ -36,6 +37,10 @@ def register_settings_options(session):
             'Warnings shown in dialog',
             BooleanOption,
             'Should warning messages be shown in a separate dialog as well as being logged'),
+        'session_restore_clears': (
+            'Restoring session clears log',
+            BooleanOption,
+            'Restoring session clears log'),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
