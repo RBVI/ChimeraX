@@ -350,6 +350,22 @@ class TriggerSet:
         """
         self._triggers[name].release()
 
+    def profile_trigger(self, name, sort_by='time', num_entries=20):
+        """Supported API. Profile the next firing of the given trigger.
+
+        triggerset.profile_trigger(name) => None
+
+        The resulting profile information will be printed to the ChimeraX log.
+        The optional sort_by argument may be any of the arguments allowed by
+        Python's `pstats.sort_stats()` method. Typically, the most useful of
+        these are:
+
+        'calls':        call count
+        'cumulative':   cumulative time
+        'time':         internal time
+        """
+        self._triggers[name].profile_next_run(sort_by=sort_by, num_entries=num_entries)
+
     def has_trigger(self, name):
         """Supported API. Check if trigger exists."""
         return name in self._triggers
