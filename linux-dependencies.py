@@ -237,8 +237,8 @@ def main(directory, pkg_type):
                 if p.startswith('postgres'):
                     del package_versions[p]
             packages = list(package_versions.keys())
+        packages.sort(key=str.casefold)
     #
-    packages.sort(key=str.casefold)
     print('Packages needed:')
     skipped = []
     needed_by = packages_needed_by(packages, pkg_type)

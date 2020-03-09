@@ -75,6 +75,12 @@ def marker_link(session, markers, radius = 0.5, color = (255,255,0,255)):
         raise UserError('marker link already exists between %s' % _markers_spec(markers))
     
     m1, m2 = markers
+    if m1.structure is not m2.structure:
+        from chimerax.core.errors import UserError
+        raise UserError('marker link: Cannot link markers from different models (#%s:%d, #%s:%d)'
+                        % (m1.structure.id_string, m1.residue.number,
+                           m2.structure.id_string, m2.residue.number))
+    
     from chimerax.core.colors import Color
     rgba = color.uint8x4() if isinstance(color, Color) else color
     from . import create_link
