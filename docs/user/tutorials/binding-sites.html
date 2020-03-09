@@ -14,7 +14,7 @@ or derivations thereof.
 -->
 
 <head>
-<link rel="stylesheet" type="text/css" href="http://www.rbvi.ucsf.edu/chimerax/docs/user/userdocs.css" />
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
 <title>ChimeraX Tutorial: Protein-Ligand Binding Sites</title>
 </head><body>
 
@@ -94,8 +94,8 @@ The structure includes four copies of the protein as chains A, B, C, and D.
 border:solid black 1px; padding:5px">
 Note:
 <a href="../selection.html">Selections</a>
-are also used to specify the target of using the <b>Actions</b> menu
-or clicking certain icons, as will be shown later.
+are also used to limit the scope of using the <b>Actions</b> menu
+or clicking certain icons.
 The &nbsp;<img class="iconbar" src="../tools/ui-icons/select.png"
 title="hand icon" alt="hand icon"> checkbox
 in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>
@@ -106,7 +106,7 @@ In the <b>Non-standard residues</b> table,
 click the residue name <b>STI</b> (imatinib)
 to see where it is in the structure.
 In this context, &ldquo;nonstandard&rdquo; means residues other than water
-and the types of amino acid and nucleic acids typically found in biomolecules. 
+and the types of amino acids and nucleic acids typically found in biomolecules. 
 Imatinib inhibits protein kinases that are overactive in certain cancers.
 </p><p>
 In the <b>2hyy mmCIF Assemblies</b> table, click <b>1</b> to generate
@@ -166,12 +166,14 @@ trackpad + <b>Alt</b>
 trackpad 2-finger drag (except pinch on Mac as per
 <a href="../preferences.html#trackpad">Trackpad preferences</a>)</td>
 </tr><tr>
-<td align="center" rowspan="2"><b>select</b>
+<td align="center" rowspan="2"><a href="../selection.html">select</a>
 <br><img src="../tools/mouse-icons/select.png" class="icon3"></td>
-<td>left mouse button + <b>Ctrl</b>, + <b>Shift</b> to toggle</td>
+<td>left mouse button + <b>Ctrl</b>, + <b>Shift</b> to toggle
+or add to selection</td>
 </tr><tr>
 <td class="text">
-trackpad + <b>Ctrl</b>, + <b>Shift</b> to toggle</td>
+trackpad + <b>Ctrl</b>, + <b>Shift</b> to toggle
+or add to selection</td>
 </td>
 </tr></table>
 <p>
@@ -180,7 +182,7 @@ To list the current assignments in the <b>Log</b>:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:mousemode">mousemode</a></b>
 </blockquote>
 <p>
-If anything is selected,
+If anything is <a href="../selection.html">selected</a>,
 Ctrl-click in &ldquo;empty space&rdquo; in the graphics window
 (away from any atoms) to clear the selection.
 Alternatively, you can use the menu: <b>Select... Clear</b> or the command:
@@ -225,8 +227,7 @@ be displayed at the time.
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:style ball">style ball</a></b>
 <br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:style :STI sphere">style 
-:STI sphere</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:style :STI sphere">style :STI sphere</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:style stick">style stick</a></b>
 </blockquote>
@@ -238,12 +239,18 @@ in the <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>
 apply to the currently <a href="../selection.html">selected</a> atoms, or
 if none are selected, all atoms.
-</p><p>
+</p>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="bind1.png" alt="imatinib binding site" width="300px">
+</td></tr>
+</table>
+<p>
 Make imatinib more obvious by changing the color of its carbon atoms:
 </p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:color :sti & C lime">
-color :sti & C lime</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:color :sti & C salmon">
+color :sti & C salmon</a></b>
 </blockquote>
 <p>
 Capitalization of residue names in the command line is optional, 
@@ -262,21 +269,6 @@ color list</a></b>
 <h3><a href="#top" class="nounder">&larr;</a>
 H-Bonds and Contacts</h3>
 <p>
-<!--
-Although water could be included in the various analyses,
-remove it to simplify the tutorial:
-<blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:show solvent">show solvent</a></b>
-<br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:delete solvent">delete solvent</a></b>
-</blockquote>
-Deletion is irreversible except by reopening the original structure.
-</p><p>
-Label the residues with displayed atoms:
-<blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:label @@display">label @@display</a></b>
-</blockquote>
--->
 To find only the H-bonds involving imatinib,
 Ctrl-click to select any atom in that residue, then
 press the keyboard up arrow to promote the selection to the whole residue.
@@ -294,12 +286,13 @@ with the menu: <b>Select... Residues... STI</b> or a command:
 (You could also scroll back up in the <b>Log</b> to the
 <b>Non-standard residues</b> table and click its name there.)
 Focus the view on the selection and hide all other atoms:
+</p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:view sel">view sel</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:hide ~sel">hide ~sel</a></b>
 </blockquote>
-</p><p>
+<p>
 Use the <b><a href="../tools/hbonds.html">H-Bonds</a></b> tool
 (menu: <b>Tools... Structure Analysis... H-Bonds</b>) with the
 following options checked:
@@ -318,7 +311,13 @@ the <a href="../tools/log.html"><b>Log</b></a>
 Make sure that the imatinib residue is still selected, then run the calculation
 by clicking <b>Apply</b> or <b>OK</b> (the difference between those two
 is that <b>OK</b> closes the dialog).
-</p><p>
+</p>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="bind2.png" alt="imatinib H-bonds" width="300px">
+</td></tr>
+</table>
+<p>
 The <b>Log</b> lists five H-bonds involving imatinib.
 If the wrong settings were used by mistake, no worries: just change the
 settings and run the calculation again.
@@ -401,7 +400,7 @@ with imatinib:
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:name resist :250,253,256,301,315,317,320,351,373,381">name resist :250,253,256,301,315,317,320,351,373,381</a></b>
 <br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:color resist & C hot pink target al">color resist & C hot pink target al</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:color resist & C gold target al">color resist & C gold target al</a></b>
 </blockquote>
 <p>
 The five residues 253, 256, 315, 317, and 381 are among those listed in the 
@@ -413,7 +412,7 @@ are not yet displayed. To see them all:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:show resist">show resist</a></b>
 </blockquote>
 <p>
-The newly displayed residues have pink carbons but are not labeled.
+The newly displayed residues have gold carbons but are not labeled.
 One way to make the 10 residues more obvious is to change their style,
 for example: 
 </p>
@@ -423,11 +422,16 @@ for example:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:view resist clip false">view resist clip false</a></b>
 </blockquote>
 <p>
-The latter command adjusts the view to contain all of the specified atoms
-and turns off clipping. Clipping had been turned on by the use of
+The latter command zooms out to make the view contain all of the specified
+residues and turns off clipping. Clipping had been turned on by the use of
 <a href="../commands/view.html#initial"><b>view</b></a>
-in the <a href="#hbonds">previous section</a> of the tutorial.
-</p><p>
+in the <a href="#hbonds">previous section</a>.
+If you like, make the labels bigger (default height 0.7 &Aring;):
+</p>
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:label height 1.0">label height 1.0</a></b>
+</blockquote>
+<p>
 Residues not directly involved in binding might contribute to drug resistance
 by changing in the conformation, flexibility, or stability of the protein.
 </p><p>
@@ -438,13 +442,20 @@ Show the protein sequence in the
 <i>Command</i>:&nbsp;<b><a href="cxcmd:seq chain /A">seq chain /A</a></b>
 </blockquote>
 <p>
-A selection in the 3D structure is shown as green boxes in the sequence:
+If the sequence window seems vertically scrunched, you can click and drag 
+its top margin upwards to increase its size within the overall window.
+</p><p>
+A selection in the 3D structure is shown as green boxes in the sequence,
+for example:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:select resist">select resist</a></b>
 </blockquote>
 <p>
-Other colored boxes indicate information from the structure:
+Conversely, you can change the 3D structure selection
+by clicking an existing box or dragging a new box in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+The other colored boxes indicate information from the structure:
 <span class="nowrap"><font style="background:rgb(255,255,204);
 border:solid goldenrod 1px;padding:1px 3px">
 <b>structure&nbsp;helices</b></font></span>,
@@ -453,9 +464,6 @@ border:solid rgb(168,191,191) 1px;padding:1px 3px">
 <b>structure&nbsp;strands</b></font></span>,
 <span class="nowrap"><font style="border:solid black 1px;padding:1px 3px">
 <b>missing&nbsp;from structure</b></font></span>.
-Conversely, you can change the 3D structure selection
-by clicking an existing box or dragging a new box in the
-<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
 </p><p>
 When done with this structure, close it and clear the <b>Log</b>:
 </p>
@@ -483,31 +491,42 @@ From the interactive tables of information in the <b>Log</b>,
 you can see that the structure is a heterodimer
 (two different protein chains) bound to a single molecule of FPP.
 Remember that clicking a residue name in the <b>Non-standard residues</b>
-table selects the corresponding residue(s).
-</p><p>
+table selects the corresponding residue(s). Clear the selection by 
+Ctrl-clicking in empty space or with the command:
+</p>
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:select clear">select clear</a></b>
+</blockquote>
+<p>
 A &ldquo;molecular lipophilicity potential&rdquo; (MLP) is calculated using
 atomic coordinates, atomic lipophilicity parameters, and a distance-dependent
 function. ChimeraX can calculate MLP maps for proteins and color their 
-surfaces by the values. This is easily available by clicking
-<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png">
-in the <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> tab
-of the <a href="../tools/toolbar.html"><b>Toolbar</b></a> (clear any
-selection first), or with a command:
+surfaces by the values. This can be done with the command:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:mlp">mlp</a></b>
 </blockquote>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="bind3.png" alt="hydrophobic pocket" width="300px">
+</td></tr>
+</table>
 <p>
-Different options for the functional form of the calculation and the coloring 
-scheme are available with the <a href="../commands/mlp.html"><b>mlp</b></a>
-command. The default coloring is from <b>dark cyan</b> for most hydrophilic 
+...or by clicking the
+<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png"> icon
+in the <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> tab
+of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
+The default coloring is from <b>dark cyan</b> for most hydrophilic 
 through <b>white</b> to <b>dark goldenrod</b> for most hydrophobic:
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=darkcyan width="10px" title="darkcyan"></td>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=darkgoldenrod width="10px" title="darkgoldenrod"></td>
-</tr></table>
+</tr></table>.
+Different options for the functional form of the calculation and the coloring 
+scheme are available with the <a href="../commands/mlp.html"><b>mlp</b></a>
+command.
 </p><p>
 If you rotate the structure, you may be able to see that FPP
 occupies a deep pocket that is mostly hydrophobic.
@@ -531,7 +550,7 @@ You can hide/show them individually with the checkboxes under the eye icon
 &nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png" title="eye icon" 
 alt="eye icon">.
 </p><p>
-Close the structure:
+When finished viewing this pocket, close the structure:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:close">close</a></b>
@@ -547,23 +566,33 @@ on a transmembrane protein (many examples:
 <a href="http://www.rcsb.org/structure/4XT3" target="_blank">4xt3</a>,
 <a href="http://www.rcsb.org/structure/1EYS" target="_blank">1eys</a>,
 <i>etc.</i>)
-</p><p>
+</p>
+<table class="clRight">
+<tr><th>4xt3: MLP vs. Kyte-Doolittle coloring</th></tr>
+<tr><td>
+<img class="outline" src="bind4.png" alt="4xt3 MLP vs. kdHydrophobicity" 
+width="250px">
+</td></tr>
+</table>
+<p>
 An alternative to calculating the MLP is to use a constant lookup value for 
-each type of amino acid residue. This is available in Chimera as a preset,
-and a ChimeraX script to do the same thing is provided here:
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/user/kyte-doolittle_hydrophobicity.cxc">kyte-doolittle_hydrophobicity.cxc</a>. It can be used in ChimeraX
-as a <a href="../preferences.html#startup">custom preset</a>.
-<!--
-This script uses the same coloring
-as the hydrophobicity preset in Chimera, from <b>dodger blue</b> for the most
-hydrophilic through <b>white</b> to <b>orange red</b> for the most hydrophobic:
+each type of amino acid residue. 
+A ChimeraX script to assign Kyte-Doolittle hydrophobicity values
+and color the protein surface from <b>dodger blue</b> for the most
+hydrophilic through <b>white</b> to <b>orange red</b> for the most hydrophobic
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=dodgerblue width="10px" title="dodgerblue"></td>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=orangered width="10px" title="orangered"></td>
 </tr></table>
--->
+is provided here:
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/user/kyte-doolittle_hydrophobicity.cxc">kyte-doolittle_hydrophobicity.cxc</a>. 
+This script can be used to define a 
+<a href="../preferences.html#startup">custom preset</a> in ChimeraX
+similar to the preset that was built into Chimera.
+(Of course, a different coloring scheme could be used, including the
+same as used by <a href="../commands/mlp.html"><b>mlp</b></a>.)
 </p><p>
 Coloring by a lookup value for each residue type often gives a similar 
 impression to MLP coloring, but can be quite different in specific cases
@@ -600,35 +629,50 @@ a structure of the bacterial gene regulator BmrR:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open 3q5s">open 3q5s</a></b>
 </blockquote>
 <p>
-BmrR regulates multidrug resistance. In this structure, it
-is bound to DNA and the small molecule acetylcholine.
-The <b>Non-standard residues</b> table lists ACH (acetylcholine)
-and GOL (glycerol); hide glycerol and water:
+BmrR regulates multidrug resistance. In this structure, it is bound to DNA 
+and the small molecule acetylcholine. The <b>Non-standard residues</b> table 
+in the <b>Log</b> lists acetylcholine and glycerol; click the residue names
+<b>ACH</b> and <b>GOL</b> to see where they are in the structure.
+Hide glycerol and water: 
+</p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:hide :gol">hide :gol</a></b>
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:hide solvent">hide solvent</a></b>
 </blockquote>
-You can see that the DNA is essentially half of a double helix, suggesting
-that it will be necessary to duplicate the structure to get the biological
-assembly. In the <b>Assemblies</b> table for this structure in the <b>Log</b>,
-click <b>1</b> to generate the assembly, or use a command:
+<p>
+To avoid any confusion from a hidden selection, clear it by Ctrl-clicking
+in empty space or using the command:
+</p>
 <blockquote>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:sym #1 assembly 1">
-sym #1 assembly 1</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:select clear">select clear</a></b>
+</blockquote>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="bind5.png" alt="3q5s half-assembly" width="300px">
+</td></tr>
+</table>
+<p>
+The DNA looks like half of a double helix, suggesting it will be necessary 
+to duplicate the structure to generate the biological assembly. 
+Generate the assembly by clicking <b>1</b> in the 
+<b>Assemblies</b> table for this structure in the <b>Log</b>
+&ndash; OR &ndash; by using the command:
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:sym #1 assembly 1">sym #1 assembly 1</a></b>
 </blockquote>
 It is fine that the additional copy is a graphical clone since we will be
 using the same coloring for both copies.
-</blockquote>
-<p>
+</p><p>
 Open the ESP map:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open https://www.rbvi.ucsf.edu/chimerax/data/esp/3q5s.dx">open https://www.rbvi.ucsf.edu/chimerax/data/esp/3q5s.dx</a></b>
 </blockquote>
 <p>
-The ESP map may take several seconds to load (81 Mb).
-Initially, many blobs are shown: these are positive
+<b>**Avoid clicking this command more than once!**</b>
+The ESP map is 81 Mb and may take several seconds to load.
+Once the map is loaded, many blobs appear: these are positive
 and negative contour surfaces, with coloring indicated by the vertical bars
 in the <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> tool. 
 This tool is shown automatically when &ldquo;volume data&rdquo; (values on
@@ -637,14 +681,18 @@ you can drag the vertical bars left and right to change the contour levels.
 However, since we will be coloring a molecular surface
 instead, hide the ESP contour surfaces by clicking the eye icon
 &nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png" title="eye icon"
-alt="eye icon">&nbsp; in that tool, or with a command:
+alt="eye icon">&nbsp;
+in <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>,
+or with a command:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:volume all hide">volume all hide</a></b>
 </blockquote>
 <p>
-Show the protein molecular surface and
-<a href="../commands/color.html#map">color it by ESP</a>.
+The <a href="../tools/modelpanel.html"><b>Model Panel</b></a> indicates
+that the displayed assembly is model #2 and the ESP map read from the dx
+file is model #3.
+Show the protein molecular surface and color it by the ESP map:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:surface protein">surface protein</a></b>
@@ -661,11 +709,17 @@ style="display:inline-block; vertical-align:middle"><tr>
 <td bgcolor=red width="10px" title="red"></td>
 <td bgcolor=white width="10px" title="white"></td>
 <td bgcolor=blue width="10px" title="blue"></td>
-</tr></table>
+</tr></table>.
 There are obvious regions of positive potential for binding the
-negatively charged DNA, and the positively charged small molecule
-acetylcholine is in a deep pocket of negative potential.
-</p><p>
+negatively charged DNA, and a deep pocket of negative potential
+is binding the positively charged small molecule acetylcholine.
+</p>
+<table class="clRight">
+<tr><td>
+<img class="outline" src="bind6.png" alt="assembly colored by ESP" width="300px">
+</td></tr>
+</table>
+<p>
 The remaining commands in this section are just examples of display settings
 that might be useful for figures. 
 </p><p>
@@ -677,15 +731,15 @@ to a round cross-section, and show nucleotide sidechains as ellipsoids:
 <br>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:cartoon style nucleic xsection round width 1.5 thick 1.5">cartoon style nucleic xsection round width 1.5 thick 1.5</a></b>
 <br>
-<i>Command</i>:&nbsp;<b><a href="cxcmd:nuc tube/slab shape ellipsoid">nuc tube/slab shape ellipsoid</a></b>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:nuc stubs">nuc stubs</a></b>
 </blockquote>
 <p>
-The latter can also be done by clicking
-<img class="iconbar" src="../tools/nuc-icons/nuc-elli.png">
+The nucleotide style change can also be done by clicking
+<img class="iconbar" src="../tools/nuc-icons/nuc-stubs.png">
 in the <a href="../tools/nucdisplay.html"><b>Nucleotides</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
 </p><p>
-The ellipsoids are color-coded by base type:
+The nucleotide stubs are color-coded by base type:
 <table border cellpadding="4" cellspacing="0"
 style="display:inline-block; vertical-align:middle"><tr style="line-height:8px">
 <td style="background:#ff4040;color:white">A</td>

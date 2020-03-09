@@ -140,7 +140,8 @@ class SegmentInterpolator:
                 from chimerax.core.geometry import align_points
                 from chimerax.atomic import Atoms
                 for rList in residue_groups:
-                        raindices = Atoms(segment_alignment_atoms(rList)).coord_indices
+                        aatoms = Atoms(segment_alignment_atoms(rList))
+                        raindices = aatoms.coord_indices
                         cList0 = coordset0[raindices]
                         c0 = cList0.mean(axis = 0)
                         cList1 = coordset1[raindices]
@@ -177,7 +178,7 @@ def apply_rigid_motion_py(coordset, atom_indices, axis, angle, center, shift, f)
 # Use C++ optimized version
 from ._morph import apply_rigid_motion
 
-def interpolate_corkscrew(xf, c0, c1):
+def interpolate_corkscrew(xf, c0, c1, minimum_rotation = 0.1):
         '''
         Rotate and move along a circular arc perpendicular to the rotation axis and
         translate parallel the rotation axis.  This makes the initial geometric center c0
@@ -185,24 +186,31 @@ def interpolate_corkscrew(xf, c0, c1):
         equal to the rotation angle so it is nearly a straight segment for small angles,
         and for the largest possible rotation angle of 180 degrees it is a half circle
         centered half-way between c0 and c1 in the plane perpendicular to the rotation axis.
+        Rotations less than the minimum (degrees) are treated as no rotation.
         '''
-        from chimerax.core.geometry import inner_product, cross_product, identity, norm
         from chimerax.core.geometry import normalize_vector
         dc = c1 - c0
-        vr, a = xf.rotation_axis_and_angle()      # a is in degrees.
-        tra = inner_product(dc, vr)               # Magnitude of translation along rotation axis.
-        vt = dc - tra * vr                        # Translation perpendicular to rotation axis.
-        # where c1 would end up if only rotation is used
-        cm = c0 + vt / 2
-        v0 = cross_product(vr, vt)
-        if norm(v0) == 0 or a == 0:
-                cr = c0
+        axis, angle = xf.rotation_axis_and_angle()      # a is in degrees.
+        if abs(angle) < minimum_rotation:
+                # Use linear instead of corkscrew interpolation to
+                # avoid numerical precision problems at small rotation angles.
+                # ChimeraX bug #2928.
+                center = c0
+                shift = dc
         else:
-                import math
-                l = 0.5*norm(vt) / math.tan(math.radians(a / 2))
-                cr = cm + normalize_vector(v0) * l
+                from chimerax.core.geometry import inner_product, cross_product, norm
+                tra = inner_product(dc, axis)           # Magnitude of translation along rotation axis.
+                shift = tra*axis
+                vt = dc - tra * axis                    # Translation perpendicular to rotation axis.
+                v0 = cross_product(axis, vt)
+                if norm(v0) == 0 or angle == 0:
+                        center = c0
+                else:
+                        import math
+                        l = 0.5*norm(vt) / math.tan(math.radians(angle / 2))
+                        center = c0 + 0.5*vt + l*normalize_vector(v0)
 
-        return vr, a, cr, tra*vr
+        return axis, angle, center, shift
 
 def interpolate_linear(xf, c0, c1):
         'Rotate about center c0 and translate c0 linearly to c1.'

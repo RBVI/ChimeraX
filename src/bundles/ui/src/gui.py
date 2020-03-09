@@ -566,6 +566,10 @@ class MainWindow(QMainWindow, PlainTextLog):
         # the MainWindow close button has been clicked
         self._is_quitting = True
         event.accept()
+        sbar = self._status_bar
+        if sbar is not None:
+            sbar.destroy()
+            self._status_bar = None
         self.session.ui.quit()
 
     def close_request(self, tool_window, close_event = None):
@@ -798,7 +802,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         _show_context_menu(event, tool, None, fill_cb, True, tb)
 
     def status(self, msg, color, secondary):
-        self._status_bar.status(msg, color, secondary)
+        sbar = self._status_bar
+        if sbar:
+            sbar.status(msg, color, secondary)
 
     def show_statusbar(self, show):
         self._status_bar.show(show)
@@ -1924,7 +1930,10 @@ class _Qt:
         # free up references
         self.tool_window = None
         self.main_window = None
-        self.status_bar = None
+        sbar = self.status_bar
+        if sbar is not None:
+            sbar.destroy()
+            self.status_bar = None
         # horrible hack to try to work around two different crashes, in 5.12:
         # 1) destroying floating window closed with red-X with immediate destroy() 
         # 2) resize event to dead window if deleteLater() used
