@@ -178,7 +178,7 @@ def apply_rigid_motion_py(coordset, atom_indices, axis, angle, center, shift, f)
 # Use C++ optimized version
 from ._morph import apply_rigid_motion
 
-def interpolate_corkscrew(xf, c0, c1, minimum_rotation = 1):
+def interpolate_corkscrew(xf, c0, c1, minimum_rotation = 0.1):
         '''
         Rotate and move along a circular arc perpendicular to the rotation axis and
         translate parallel the rotation axis.  This makes the initial geometric center c0
@@ -192,9 +192,9 @@ def interpolate_corkscrew(xf, c0, c1, minimum_rotation = 1):
         dc = c1 - c0
         axis, angle = xf.rotation_axis_and_angle()      # a is in degrees.
         if abs(angle) < minimum_rotation:
-                # Treat as a translation with no rotation
-                axis = normalize_vector(dc)
-                angle = 0
+                # Use linear instead of corkscrew interpolation to
+                # avoid numerical precision problems at small rotation angles.
+                # ChimeraX bug #2928.
                 center = c0
                 shift = dc
         else:
