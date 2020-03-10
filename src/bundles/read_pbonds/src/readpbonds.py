@@ -12,7 +12,9 @@
 # === UCSF ChimeraX Copyright ===
 
 def read_pseudobond_file(session, stream, file_name, *args,
-                         radius = 0.5, color = (255,255,0,255), **kw):
+                         radius = 0.5, color = (255,255,0,255),
+                         halfbond_coloring = False, dashes = None,
+                         **kw):
     lines = stream.readlines()
     stream.close()
 
@@ -27,13 +29,17 @@ def read_pseudobond_file(session, stream, file_name, *args,
     for i, line in enumerate(lines):
         if len(line.strip()) == 0:
             continue
-        
+
         if line.lstrip().startswith(';'):
-            keyval = line.lstrip()[1:].split('=')
-            if len(keyval) == 2:
-                k,v = keyval
-                if k.strip() == 'radius':
-                    radius = float(v)
+            opt = _global_options(line, session)
+            if 'radius' in opt:
+                radius = opt['radius']
+            if 'color' in opt:
+                color = opt['color']
+            if 'halfbond' in opt:
+                halfbond_coloring = opt['halfbond']
+            if 'dashes' in opt:
+                dashes = opt['dashes']
             continue
 
         fields = line.split()
@@ -46,15 +52,47 @@ def read_pseudobond_file(session, stream, file_name, *args,
                                   % (i, len(a), aspec))
         b = g.new_pseudobond(a1[0], a2[0])
         if len(fields) >= 3:
-            from chimerax.core.commands import ColorArg
-            c, used, rest = ColorArg.parse(fields[2], session)
-            b.color = c.uint8x4()
+            b.color = _parse_color(fields[2], session)
         else:
             b.color = color
         b.radius = radius
-        b.halfbond = False
+        b.halfbond = halfbond_coloring
 
+    if dashes is not None:
+        g.dashes = dashes
+        
     return ret_models, 'Opened Pseudobonds %s, %d bonds' % (file_name, len(lines))
+
+def _global_options(line, session):
+    line = line.lstrip()
+    if not line.startswith(';'):
+        return {}
+
+    opt = {}
+    keyval = line[1:].split('=')
+    if len(keyval) == 2:
+        k,v = keyval
+        name = k.strip()
+        if name == 'radius':
+            opt = {'radius': float(v)}
+        elif name == 'color':
+            opt = {'color': _parse_color(v, session)}
+        elif name == 'halfbond':
+            opt = {'halfbond': _parse_bool(v, session)}
+        elif name == 'dashes':
+            opt = {'dashes': int(v)}
+
+    return opt
+
+def _parse_color(string, session):
+    from chimerax.core.commands import ColorArg
+    c, used, rest = ColorArg.parse(string.strip(), session)
+    return c.uint8x4()
+
+def _parse_bool(string, session):
+    from chimerax.core.commands import BoolArg
+    c, used, rest = BoolArg.parse(string.strip(), session)
+    return c
 
 def write_pseudobond_file(session, path, models=None, selected_only=False):
     if models is None:

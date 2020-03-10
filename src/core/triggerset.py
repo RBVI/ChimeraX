@@ -150,6 +150,12 @@ class _Trigger:
         self._usage_cb = usage_cb
         self._default_one_time = default_one_time
         self._remove_bad_handlers = remove_bad_handlers
+        self._profile_next_run = False
+        self._profile_params = None
+
+    def profile_next_run(self, sort_by='time', num_entries=20):
+        self._profile_next_run = True
+        self._profile_params = {'sort_by': sort_by, 'num_entries': num_entries}
 
     def add(self, handler):
         if self._locked:
@@ -172,6 +178,23 @@ class _Trigger:
                 self._usage_cb(self._name, 0)
 
     def activate(self, data):
+        if not self._profile_next_run:
+            self._activate(data)
+            return
+        import cProfile, pstats, io
+        params = self._profile_params
+        pr = cProfile.Profile()
+        pr.enable()
+        self._activate(data)
+        pr.disable()
+        s = io.StringIO()
+        ps = pstats.Stats(pr, stream=s).sort_stats(params['sort_by'])
+        ps.print_stats(params['num_entries'])
+        print('Profile for last activation of {} trigger:'.format(self._name))
+        print(s.getvalue())
+        self._profile_next_run = False
+
+    def _activate(self, data):
         if self._blocked:
             # don't raise trigger multiple times for identical
             # data

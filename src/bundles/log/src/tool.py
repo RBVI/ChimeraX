@@ -126,6 +126,7 @@ function init_menus() {
 class Log(ToolInstance, HtmlLog):
 
     SESSION_ENDURING = True
+    SESSION_SAVE = True
     help = "help:user/tools/log.html"
 
     def __init__(self, session, tool_name):
@@ -447,3 +448,31 @@ class Log(ToolInstance, HtmlLog):
     def get_singleton(cls, session):
         from chimerax.core import tools
         return tools.get_singleton(session, Log, 'Log')
+
+    def set_state_from_snapshot(self, session, data):
+        super().set_state_from_snapshot(session, data)
+        log_data = data['log data']
+        prev_ses_html = "<details><summary>Log from %s</summary>%s</details>" % (
+            log_data['date'], log_data['contents'])
+        if self.settings.session_restore_clears:
+            # look for the command that restored the session and include it
+            index = self.page_source.rfind('<div class="cxcmd">')
+            if index == -1:
+                retain = ""
+            else:
+                retain = self.page_source[index:]
+            self.page_source = retain + prev_ses_html
+        else:
+            self.page_source += prev_ses_html
+        #self.show_page_source()
+
+    def take_snapshot(self, session, flags):
+        from datetime import datetime
+        data = super().take_snapshot(session, flags)
+        data['log data'] = {
+            'version': 1,
+            'date': datetime.now().ctime(),
+            'contents': self.page_source,
+        }
+        return data
+

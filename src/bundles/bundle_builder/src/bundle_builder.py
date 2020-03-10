@@ -276,7 +276,7 @@ class BundleBuilder:
                 if len(manager) == 0:
                     manager = default_manager
                 if len(manager) == 0:
-                    raise ValueError("Missing Provider's manager at line %d" % e.sourceline)
+                    raise ValueError("Missing manager from Provider at line %d" % e.sourceline)
                 name = keywords.pop("name", None)
                 if name is None:
                     raise ValueError("Missing Provider's name at line %d" % e.sourceline)
