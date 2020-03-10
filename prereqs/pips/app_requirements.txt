@@ -51,3 +51,7 @@ sphinxcontrib-blockdiag==2.0.0
 #
 pywin32==227; sys_platform == 'win32'
 WMI==1.4.9; sys_platform == 'win32'
+#
+# Linux
+#
+distro==1.4.0; sys.platform == 'linux'
