@@ -98,7 +98,7 @@ class OpenManager(ProviderManager):
         print("%d data formats in common, %d new only, %d old only" %(len(new_formats&old_formats),
             len(new_formats - old_formats), len(old_only_formats)))
         from random import choice
-        print("Port format", choice(list(old_only_formats)))
+        print("Port format", choice(list(old_only_formats)+['http']))
 
     def fetch_args(self, database_name, *, format_name=None):
         try:
