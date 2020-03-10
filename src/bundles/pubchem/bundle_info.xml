@@ -20,8 +20,8 @@
   </Dependencies>
 
   <Providers>
-    <Provider manager="start structure" name="pubchem" ui_name="PubChem CID" new_model_only="true"/>
     <Provider manager="open command" name="pubchem" type="fetch" format_name="sdf"/>
+    <Provider manager="start structure" name="pubchem" ui_name="PubChem CID" new_model_only="true"/>
   </Providers>
 
   <Classifiers>

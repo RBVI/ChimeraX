@@ -1015,8 +1015,8 @@ class Toolshed:
                             % mgr)
                     continue
                 for pbi in all_bundles:
-                    for pvdr, params in pbi.providers.items():
-                        p_mgr, kw = params
+                    for name, kw in pbi.providers.items():
+                        p_mgr, pvdr = name.split('/', 1)
                         if p_mgr == mgr:
                             m.add_provider(pbi, pvdr, **kw)
                 m.end_providers()

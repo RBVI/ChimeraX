@@ -578,7 +578,7 @@ def _make_bundle_info(d, installed, logger):
                 else:
                     v = unescape(v)
                 kw[k] = v
-            bi.providers[name] = (mgr, kw)
+            bi.providers[mgr + '/' + name] = kw
         elif parts[1] == 'InitAfter':
             if bi is None:
                 logger.warning('ChimeraX :: Bundle entry must be first')
