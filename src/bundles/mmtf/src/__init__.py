@@ -28,7 +28,7 @@ class _MyAPI(BundleAPI):
         # 'fetch_from_database' is called by session code to fetch data with give identifier
         # returns (list of models, status message)
         from . import mmtf
-        return mmtf.fetch_mmtf(session, identifier, ignore_cache, **kw)
+        return mmtf.fetch_mmtf(session, identifier, ignore_cache)
 
     @staticmethod
     def open_file(session, stream, file_name):

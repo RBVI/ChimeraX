@@ -15,7 +15,7 @@
 pubchem: PubChem fetch support
 """
 
-def fetch_pubchem(session, pubchem_id, *, ignore_cache=False, **kw):
+def fetch_pubchem(session, pubchem_id, *, ignore_cache=False):
     from chimerax.core.errors import UserError
     if not pubchem_id.isdigit():
         raise UserError('PubChem identifiers are numeric, got "%s"' % pubchem_id)
@@ -28,6 +28,4 @@ def fetch_pubchem(session, pubchem_id, *, ignore_cache=False, **kw):
                           ignore_cache=ignore_cache)
 
     session.logger.status("Opening PubChem %s" % (pubchem_id,))
-    from chimerax.core import io
-    models, status = io.open_data(session, filename, format='sdf', name="pubchem:" + pubchem_id, **kw)
-    return models, status
+    return session.open.open_data(filename, format='sdf', name="pubchem:" + pubchem_id)

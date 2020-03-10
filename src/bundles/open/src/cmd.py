@@ -40,8 +40,9 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         elif "fromdatabase".startswith(test_token):
             database_name = tokens[i+1]
 
-    from .manager import _manager as mgr, NoOpenerError
-    fetches, files = fetches_vs_files(file_names, format_name, database_name)
+    from .manager import NoOpenerError
+    mgr = session.open
+    fetches, files = fetches_vs_files(mgr, file_names, format_name, database_name)
     if fetches:
         try:
             provider_args = mgr.fetch_args(fetches[0][1], format_name=fetches[0][2])
@@ -82,9 +83,10 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_open(session, file_names, format=None, from_database=None, ignore_cache=False, name=None,
-        **provider_kw):
+        return_status=False, **provider_kw):
+    mgr = session.open
     # since the "file names" may be globs, need to preprocess them...
-    fetches, file_names = fetches_vs_files(file_names, format, from_database)
+    fetches, file_names = fetches_vs_files(mgr, file_names, format, from_database)
     file_infos = [FileInfo(session, fn, format) for fn in file_names]
     formats = set([fi.data_format for fi in file_infos])
     databases = set([f[1:] for f in fetches])
@@ -92,7 +94,6 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
     if provider_kw and not homogeneous:
         raise UserError("Cannot provide format/database-specific keywords when opening multiple different"
             " formats or databases; use several 'open' commands instead.")
-    from .manager import _manager as mgr
     opened_models = []
     statuses = []
     if homogeneous:
@@ -113,7 +114,7 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
         else:
             bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format)
             if batch:
-                paths = [_get_path(fi.file_name, check_path) for fi in file_infos]
+                paths = [_get_path(mgr, fi.file_name, check_path) for fi in file_infos]
                 models, status = bundle_info.run_provider(session, self, provider_name,
                                     operation="open", data=paths, **provider_kw)
                 if status:
@@ -123,9 +124,9 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
             else:
                 for fi in file_infos:
                     if want_path:
-                        data = _get_path(fi.file_name, check_path)
+                        data = _get_path(mgr, fi.file_name, check_path)
                     else:
-                        data = _get_stream(fi.file_name, data_format.encoding)
+                        data = _get_stream(mgr, fi.file_name, data_format.encoding)
                     models, status = bundle_info.run_provider(session, provider_name, mgr,
                                     operation="open", data=data, file_name=fi.file_name, **provider_kw)
                     if status:
@@ -137,9 +138,9 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
             bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(fi.data_format)
             for fi in file_infos:
                 if want_path:
-                    data = _get_path(fi.file_name, check_path)
+                    data = _get_path(mgr, fi.file_name, check_path)
                 else:
-                    data = _get_stream(fi.file_name, fi.data_format.encoding)
+                    data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
                 models, status = bundle_info.run_provider(session, provider_name, mgr,
                                 operation="open", data=data, file_name=fi.file_name, **provider_kw)
                 if status:
@@ -159,8 +160,11 @@ def provider_open(session, file_names, format=None, from_database=None, ignore_c
                 opened_models.append(name_and_group_models(models, name, [ident]))
     if opened_models:
         session.models.add(opened_models)
-    if statuses:
-        session.logger.status('\n'.join(statuses), log=True)
+    status ='\n'.join(statuses) if statuses else ""
+    if return_status:
+        return opened_models, status
+    elif status:
+        session.logger.status(status, log=True)
     return opened_models
 
 def _fetch_info(mgr, database_name, default_format_name):
@@ -181,24 +185,22 @@ def _fetch_info(mgr, database_name, default_format_name):
                 % (database_name, ", ".join(db_info.keys())))
     return bundle_info, default_format_name
 
-def _get_path(file_name, check_path, check_compression=True):
+def _get_path(mgr, file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists
     expanded = expanduser(expandvars(file_name))
     if check_path and not exists(expanded):
         raise UserError("No such file/path: %s" % file_name)
 
     if check_compression:
-        from .manager import _manager as mgr
         if mgr.remove_compression_suffix(expanded) != expanded:
             raise UserError("File reader requires uncompressed file; '%s' is compressed" % file_name)
     return expanded
 
-def _get_stream(file_name, encoding):
-    path = _get_path(file_name, True, check_compression=False)
-    from .manager import _manager as mgr
+def _get_stream(mgr, file_name, encoding):
+    path = _get_path(mgr, file_name, True, check_compression=False)
     return mgr.open_file(path, encoding)
 
-def fetches_vs_files(names, format_name, database_name):
+def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []
     files = []
     from os.path import exists
@@ -206,7 +208,7 @@ def fetches_vs_files(names, format_name, database_name):
         if not database_name and exists(name):
             files.append(name)
         else:
-            f = fetch_info(name, format_name, database_name)
+            f = fetch_info(mgr, name, format_name, database_name)
             if f:
                 fetches.append(f)
             else:
@@ -226,7 +228,7 @@ def expand_path(file_name):
     file_names.sort()
     return file_names
 
-def fetch_info(file_arg, format_name, database_name):
+def fetch_info(mgr, file_arg, format_name, database_name):
     from os.path import exists
     if not database_name and exists(file_arg):
         return None
@@ -240,7 +242,7 @@ def fetch_info(file_arg, format_name, database_name):
         ident = file_arg
     else:
         return None
-    from .manager import _manager as mgr, NoOpenerError
+    from .manager import NoOpenerError
     try:
         db_formats = mgr.database_info(db_name).keys()
     except NoOpenerError as e:
@@ -292,13 +294,14 @@ def file_format(session, file_name, format_name):
         try:
             data_format = session.data_formats[format_name]
         except KeyError:
-            raise UserError("Unknown data format: '%s'" % format_name)
+            #raise UserError("Unknown data format: '%s'" % format_name)
+            raise ValueError("Unknown data format: '%s'" % format_name)
     else:
         data_format = None
 
     if not data_format:
         if '.' in file_name:
-            from .manager import _manager as mgr
+            mgr = session.open
             base_name = mgr.remove_compression_suffix(file_name)
             try:
                 dot_pos = base_name.rindex('.')

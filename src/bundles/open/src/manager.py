@@ -122,6 +122,10 @@ class OpenManager(ProviderManager):
         return bundle_info.run_provider(self.session, database_name, self,
             operation="args", format_name=format_name)
 
+    def open_data(self, path, **kw):
+        from .cmd import provider_open
+        return provider_open(self.session, [path], return_status=True, **kw)
+
     def open_file(self, path, encoding=None):
         """Open possibly compressed file for reading.  If encoding is 'None', open as binary"""
         for suffix, comp_info in self._compression_info.items():
@@ -129,7 +133,7 @@ class OpenManager(ProviderManager):
                 bundle_info, name = comp_info
                 return bundle_info.run_provider(name, self,
                     operation="compression", path=path, encoding=encoding)
-        return open(path, 'r' if encoding else 'b', encoding=encoding)
+        return open(path, ('r' if encoding else 'rb'), encoding=encoding)
 
     def open_args(self, data_format):
         try:

@@ -20,7 +20,7 @@ Fetch and read MMTF format files
 
 from chimerax.core.errors import UserError
 
-def fetch_mmtf(session, pdb_id, ignore_cache=False, **kw):
+def fetch_mmtf(session, pdb_id, ignore_cache=False):
     if len(pdb_id) != 4:
         raise UserError("PDB identifers are 4 characters long, got %r" % pdb_id)
 
@@ -33,9 +33,7 @@ def fetch_mmtf(session, pdb_id, ignore_cache=False, **kw):
         ignore_cache=ignore_cache, uncompress=True)
 
     session.logger.status("Opening MMTF %s" % (pdb_id,))
-    from chimerax.core import io
-    models, status = io.open_data(session, filename, format='MMTF', name=pdb_id, **kw)
-    return models, status
+    return session.open.open_data(filename, format='mmtf', name=pdb_id)
 
 def open_mmtf(session, filename, name, auto_style=True, coordsets=False):
     """Create atomic structures from MMTF file
