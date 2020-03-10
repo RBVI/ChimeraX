@@ -455,12 +455,23 @@ class Log(ToolInstance, HtmlLog):
         prev_ses_html = "<details><summary>Log from %s</summary>%s</details>" % (
             log_data['date'], log_data['contents'])
         if self.settings.session_restore_clears:
+            # "retain" version info
+            class FakeLogger:
+                def __init__(self):
+                    self.msgs = []
+                def info(self, msg):
+                    self.msgs.append(msg)
+            fl = FakeLogger()
+            from chimerax.core.logger import log_version
+            log_version(fl)
+            version = "<br>".join(fl.msgs)
+
             # look for the command that restored the session and include it
             index = self.page_source.rfind('<div class="cxcmd">')
             if index == -1:
-                retain = ""
+                retain = version
             else:
-                retain = self.page_source[index:]
+                retain = version + '<br>' + self.page_source[index:]
             self.page_source = retain + prev_ses_html
         else:
             self.page_source += prev_ses_html
