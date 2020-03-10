@@ -99,7 +99,7 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Map" section="Calculations"
       name="layout-map-calculations" after="Subregions"/>
     <Provider tab="Map" section="Image Display"
-      name="layout-map-calculations" after="Calculations"/>
+      name="layout-map-image-display" after="Calculations"/>
 
 
     <!-- Markers tab -->
