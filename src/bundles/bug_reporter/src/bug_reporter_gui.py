@@ -365,9 +365,9 @@ def _win32_info():
         os_name = osi.Name.split('|', 1)[0]
         csi = w.Win32_ComputerSystem()[0]
         info = f"""
-OS: {os_name} (Build {osi.BuildNumber})
 Manufacturer: {csi.Manufacturer}
 Model: {csi.Model}
+OS: {os_name} (Build {osi.BuildNumber})
 Memory: {int(csi.TotalPhysicalMemory):,}
 MaxProcessMemory: {int(osi.MaxProcessMemorySize):,}
 CPU: {pi.NumberOfLogicalProcessors} {pi.Name}"
@@ -414,7 +414,18 @@ def _linux_info():
             graphics_info = '\n'.join([line, next(lines), next(lines)])
         except Exception as e:
             graphics_info = "   Unknown"
+        dmi_prefix = "/sys/devices/virtual/dmi/id/"
+        try:
+            vendor = open(dmi_prefix + "sys_vendor", encoding='utf-8').read().strip()
+        except Exception:
+            vendor = "Unknown"
+        try:
+            product = open(dmi_prefix + "product_name", encoding='utf-8').read().strip()
+        except Exception:
+            product = "Unknown"
         info = f"""
+Manufacturer: {vendor}
+Model: {product}
 OS: {' '.join(distro.linux_distribution())}
 Architecture: {' '.join(platform.architecture())}
 CPU: {count} {model_name}
