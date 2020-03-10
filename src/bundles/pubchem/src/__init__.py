@@ -20,8 +20,8 @@ class _PubChemAPI(BundleAPI):
             format_name=None, **kw):
         # 'fetch_from_database' is called by session code to fetch data with give identifier
         # returns (list of models, status message)
-        from . import pub_chem
-        return pub_chem.fetch_pubchem(session, identifier, ignore_cache=ignore_cache)
+        from . import pubchem
+        return pubchem.fetch_pubchem(session, identifier, ignore_cache=ignore_cache)
 
     @staticmethod
     def run_provider(session, name, mgr, *,
@@ -51,7 +51,7 @@ class _PubChemAPI(BundleAPI):
             if operation == "args":
                 return {}
             else:
-                from . import pub_chem
-                return pub_chem.fetch_pubchem(session, ident, ignore_cache=ignore_cache)
+                from . import pubchem
+                return pubchem.fetch_pubchem(session, ident, ignore_cache=ignore_cache)
 
 bundle_api = _PubChemAPI()

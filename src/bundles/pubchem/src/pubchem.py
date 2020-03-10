@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 """
-pub_chem: PubChem fetch support
+pubchem: PubChem fetch support
 """
 
 def fetch_pubchem(session, pubchem_id, *, ignore_cache=False, **kw):
