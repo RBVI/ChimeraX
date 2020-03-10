@@ -2406,13 +2406,16 @@ class AtomicStructure(Structure):
     @staticmethod
     def restore_snapshot(session, data):
         s = AtomicStructure(session, auto_style = False, log_info = False)
+        s.set_state_from_snapshot(session, data)
+        return s
+
+    def set_state_from_snapshot(self, session, data):
         if data.get('AtomicStructure version', 1) == 1:
-            Structure.set_state_from_snapshot(s, session, data)
+            Structure.set_state_from_snapshot(self, session, data)
         else:
             from .molobject import set_custom_attrs
-            Structure.set_state_from_snapshot(s, session, data['structure state'])
-            set_custom_attrs(s, data)
-        return s
+            Structure.set_state_from_snapshot(self, session, data['structure state'])
+            set_custom_attrs(self, data)
 
     def _determine_het_res_descriptions(self, session):
         # Don't actually set the description in the residue in order to avoid having
