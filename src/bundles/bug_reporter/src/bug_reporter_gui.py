@@ -108,7 +108,13 @@ class BugReporter(ToolInstance):
         gil.setAlignment(Qt.AlignRight|Qt.AlignVCenter)
         layout.addWidget(gil, row, 1)
         self.gathered_info = gi = TextEdit('', 3)
-        gi.setText(self.opengl_info())
+        import sys
+        info = self.opengl_info()
+        if sys.platform == 'win32':
+            info += _win32_info()
+        elif sys.platform == 'linux':
+            info += _linux_info()
+        gi.setText(info)
         layout.addWidget(gi, row, 2)
         row += 1
 
@@ -348,3 +354,74 @@ def add_help_menu_entry(session):
             return "delete handler"
     
         ui.triggers.add_handler('ready', main_window_created)
+
+
+def _win32_info():
+    try:
+        import wmi
+        w = wmi.WMI()
+        pi = w.CIM_Processor()[0]
+        osi = w.CIM_OperatingSystem()[0]
+        os_name = osi.Name.split('|', 1)[0]
+        csi = w.Win32_ComputerSystem()[0]
+        info = f"""
+OS: {os_name} (Build {osi.BuildNumber})
+Manufacturer: {csi.Manufacturer}
+Model: {csi.Model}
+Memory: {int(csi.TotalPhysicalMemory):,}
+MaxProcessMemory: {int(osi.MaxProcessMemorySize):,}
+CPU: {pi.NumberOfLogicalProcessors} {pi.Name}"
+"""
+        return info
+    except Exception:
+        return ""
+
+
+def _linux_info():
+    try:
+        import distro
+        import platform
+        import subprocess
+        with open("/proc/cpuinfo", encoding='utf-8') as f:
+            count = 0
+            model_name = ""
+            cache_size = ""
+            for line in f.readlines():
+                if not model_name and line.startswith("model name"):
+                    info = line.split(':', 1)
+                    if len(info) > 1:
+                        model_name = info[1].strip()
+                elif line.startswith("processor"):
+                    count += 1
+                elif not cache_size and line.startswith("cache size"):
+                    info = line.split(':', 1)
+                    if len(info) > 1:
+                        cache_size = info[1].strip()
+        try:
+            output = subprocess.check_output(
+                ["lspci", "-nnk"],
+                stdin=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                encoding="UTF-8",
+                env={
+                    "LANG": "en_US.UTF-8",
+                    "PATH": "/sbin:/usr/sbin:/bin:/usr/bin",
+                })
+            lines = iter(output.split('\n'))
+            for line in lines:
+                if "VGA compatible" in line:
+                    break
+            graphics_info = '\n'.join([line, next(lines), next(lines)])
+        except Exception as e:
+            graphics_info = "   Unknown"
+        info = f"""
+OS: {' '.join(distro.linux_distribution())}
+Architecture: {' '.join(platform.architecture())}
+CPU: {count} {model_name}
+Cache Size: {cache_size}
+Graphics:
+\t{graphics_info}
+"""
+        return info
+    except Exception as e:
+        return ""
