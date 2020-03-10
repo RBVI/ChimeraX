@@ -31,6 +31,17 @@
     <Dependency name="ChimeraX-PDB" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Macromolecular Transmission Format (MMTF)" nicknames="mmtf"
+		category="Molecular structure" suffixes=".mmtf" reference_url="http://mmtf.rcsb.org/" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="mmtf" />
+    <Provider name="pdb" type="fetch" format_name="mmtf"/>
+  </Providers>
+
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

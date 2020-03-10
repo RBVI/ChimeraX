@@ -43,4 +43,16 @@ class _MyAPI(BundleAPI):
     #     from . import mmtf
     #     return mmtf.write_mmtf(session, name, models)
 
+    @staticmethod
+    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
+            ident=None, ignore_cache=False, **kw):
+        if operation == "args":
+            return {}
+        elif operation == "open":
+            from . import mmtf
+            return mmtf.open_mmtf(session, data, file_name)
+        elif operation == "fetch":
+            from . import mmtf
+            return mmtf.fetch_mmtf(session, ident, ignore_cache)
+
 bundle_api = _MyAPI()

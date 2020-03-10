@@ -23,7 +23,7 @@ class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
 
 import os.path
 def likely_pdb_id(text):
-    return not os.path.exists(text) and len(text) == 4 and text[0].isdigit() and text[1:].isalphanum()
+    return not os.path.exists(text) and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
 
 def cmd_open(session, file_names, rest_of_line, *, log=True):
     tokens = []
