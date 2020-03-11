@@ -487,7 +487,7 @@ PyObject *c_array_to_python(const std::vector<int64_t> &i)
   int64_t dimensions[1] = {sz};
   PyObject *a = allocate_python_array(1, dimensions, NPY_LONG);
   if (a) {
-    int *py_data = (int *)PyArray_DATA((PyArrayObject *)a);
+    int64_t *py_data = (int64_t *)PyArray_DATA((PyArrayObject *)a);
     for (int64_t k = 0 ; k < sz ; ++k)
        py_data[k] = i[k];
   }
