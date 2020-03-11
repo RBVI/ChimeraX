@@ -299,7 +299,7 @@ def _interpolate_camera(v1, v2, f, camera):
     c1, c2 = v1.camera, v2.camera
 
     # Interpolate camera position
-    from chimerax.core.geometry import interpolate_rotation, interpolate_points
+    from chimerax.geometry import interpolate_rotation, interpolate_points
     p1, p2 = c1['position'], c2['position']
     r = interpolate_rotation(p1, p2, f)
     la = interpolate_points(v1.look_at, v2.look_at, f)
@@ -309,7 +309,7 @@ def _interpolate_camera(v1, v2, f, camera):
     cla = interpolate_points(cl1, cl2, f)
     # Make camera translation so that camera coordinate look-at point
     # maps to scene coordinate look-at point r*cla + t = la.
-    from chimerax.core.geometry import translation
+    from chimerax.geometry import translation
     t = translation(la - r * cla)
     camera.position = t * r
 
@@ -348,7 +348,7 @@ def _interpolate_model_positions(v1, v2, centers, f):
 
 
 def _interpolated_positions(places1, places2, center, f):
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     pf = Places([p1.interpolate(p2, p1.inverse() * center, f)
                  for p1, p2 in zip(places1, places2)])
     return pf
@@ -369,7 +369,7 @@ def _model_motion_centers(mpos1, mpos2):
                 blist.append(b)
                 bounds[m] = blist
 
-    from chimerax.core.geometry import union_bounds
+    from chimerax.geometry import union_bounds
     centers = {m: union_bounds(blist).center() for m, blist in bounds.items()}
     return centers
 
@@ -412,7 +412,7 @@ def view_initial(session, models=None):
 
     if models is None:
         models = session.models.list()
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     for m in models:
         m.position = Place()
 

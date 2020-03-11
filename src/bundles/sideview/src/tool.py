@@ -19,7 +19,7 @@
 #
 from PyQt5.QtGui import QWindow, QSurface
 from chimerax.core.tools import ToolInstance
-from chimerax.core.geometry import Place
+from chimerax.geometry import Place
 from chimerax.core.graphics import View, Camera, Drawing
 
 

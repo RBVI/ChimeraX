@@ -30,7 +30,6 @@ RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
 
-
 class Model(State, Drawing):
     """A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
@@ -353,7 +352,7 @@ class Model(State, Drawing):
         if pa.dtype == float32:
             # Fix old sessions that saved array as float32
             pa = pa.astype(float64)
-        from .geometry import Places
+        from chimerax.geometry import Places
         self.positions = Places(place_array=pa)
         self.display_positions = data['display_positions']
         for d in self.all_drawings():

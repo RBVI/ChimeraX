@@ -23,7 +23,7 @@ def map_covering_box(v, ijk_min, ijk_max, ijk_cell_size, symmetries, step):
     return cg
 
   out_ijk_size = tuple(a-b+1 for a,b in zip(ijk_max, ijk_min))
-  from chimerax.core.geometry import translation
+  from chimerax.geometry import translation
   out_ijk_to_vijk_transform = translation(ijk_min)
 
   ijk_symmetries = ijk_symmetry_matrices(d, symmetries)
@@ -61,7 +61,7 @@ def extend_crystal_map(volarray, ijk_cell_size, ijk_symmetries,
 
   ksz, jsz, isz = out_array.shape
   otf = out_ijk_to_vol_ijk_transform
-  from chimerax.core.geometry import identity
+  from chimerax.geometry import identity
   itf = identity()
   nsym = len(ijk_symmetries)
   from numpy import empty, float32, delete as delete_array_elements
@@ -100,7 +100,7 @@ def extend_crystal_map(volarray, ijk_cell_size, ijk_symmetries,
 def ijk_symmetry_matrices(data, symmetries):
 
   if symmetries is None or len(symmetries) == 0:
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     return Places()
 
   isyms = symmetries.transform_coordinates(data.ijk_to_xyz_transform)

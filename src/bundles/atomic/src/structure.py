@@ -362,7 +362,7 @@ class Structure(Model, StructureData):
             xyzr[:, :3] = atoms.coords
             xyzr[:, 3] = self._atom_display_radii(atoms)
 
-            from chimerax.core.geometry import Places
+            from chimerax.geometry import Places
             p.positions = Places(shift_and_scale=xyzr)
 
         if changes & self._COLOR_CHANGE:
@@ -511,13 +511,13 @@ class Structure(Model, StructureData):
 
     def fill_small_ring(self, atoms, offset, color):
         # 3-, 4-, and 5- membered rings
-        from chimerax.core.geometry import fill_small_ring
+        from chimerax.geometry import fill_small_ring
         vertices, normals, triangles = fill_small_ring(atoms.coords, offset)
         self._ring_drawing.add_shape(vertices, normals, triangles, color, atoms)
 
     def fill_6ring(self, atoms, offset, color):
         # 6-membered rings
-        from chimerax.core.geometry import fill_6ring
+        from chimerax.geometry import fill_6ring
         # Picking the "best" orientation to show chair/boat configuration is hard
         # so choose anchor the ring using atom nomenclature.
         # Find index of atom with lowest element with lowest number (C1 < C6).
@@ -1025,7 +1025,7 @@ class Structure(Model, StructureData):
         sp = p.new_drawing(str(self) + " normal spline")
         from chimerax import surface
         from numpy import empty, array, float32, linspace
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         num_pts = num_coords*self._level_of_detail.ribbon_divisions
         #S
         #S va, na, ta = surface.sphere_geometry(20)
@@ -1706,7 +1706,7 @@ class Structure(Model, StructureData):
         ad = self._atoms_drawing
         drawings = [ad]
         drawings.extend(rd for rd in self.child_drawings() if isinstance(rd, RibbonDrawing))
-        from chimerax.core.geometry import union_bounds
+        from chimerax.geometry import union_bounds
         b = union_bounds([d.bounds() for d in drawings if d is not None])
         return b
 
@@ -1967,7 +1967,7 @@ class Structure(Model, StructureData):
         return selected
 
     def atomspec_zone(self, session, coords, distance, target_type, operator, results):
-        from chimerax.core.geometry import find_close_points
+        from chimerax.geometry import find_close_points
         atoms = self.atoms
         a, _ = find_close_points(atoms.scene_coords, coords, distance)
         def not_a():
@@ -2031,7 +2031,7 @@ class AtomsDrawing(Drawing):
         #       If that was fixed by using a precomputed radius, then it would make
         #       sense to optimize this bounds calculation in C++ so arrays
         #       of display state, radii and coordinates are not needed.
-        from chimerax.core.geometry import sphere_bounds, copies_bounding_box
+        from chimerax.geometry import sphere_bounds, copies_bounding_box
         sb = sphere_bounds(coords, radii)
         spos = self.parent.get_scene_positions(displayed_only=True)
         b = sb if spos.is_identity() else copies_bounding_box(sb, spos)
@@ -2054,7 +2054,7 @@ class AtomsDrawing(Drawing):
         coords, radii = xyzr[:,:3], xyzr[:,3]
 
         # Check for atom sphere intercept
-        from chimerax.core import geometry
+        from chimerax import geometry
         fmin, anum = geometry.closest_sphere_intercept(coords, radii, mxyz1, mxyz2)
         if fmin is None:
             return None
@@ -2074,7 +2074,7 @@ class AtomsDrawing(Drawing):
             return []
 
         xyz = self.positions.shift_and_scale_array()[:,:3]
-        from chimerax.core import geometry
+        from chimerax import geometry
         pmask = geometry.points_within_planes(xyz, planes)
         if pmask.sum() == 0:
             return []
@@ -2135,7 +2135,7 @@ class BondsDrawing(Drawing):
         from numpy import amin, amax
         xyz_min = amin([amin(c1 - r, axis=0), amin(c2 - r, axis=0)], axis=0)
         xyz_max = amax([amax(c1 + r, axis=0), amax(c2 + r, axis=0)], axis=0)
-        from chimerax.core.geometry import Bounds, copies_bounding_box
+        from chimerax.geometry import Bounds, copies_bounding_box
         cb = Bounds(xyz_min, xyz_max)
         spos = self.parent.get_scene_positions(displayed_only=True)
         b = cb if spos.is_identity() else copies_bounding_box(cb, spos)
@@ -2338,7 +2338,7 @@ class AtomicStructure(Structure):
                     # show residues interacting with ligand
                     lig_points = ligand.atoms.coords
                     mol_points = atoms.coords
-                    from chimerax.core.geometry import find_close_points
+                    from chimerax.geometry import find_close_points
                     close_indices = find_close_points(lig_points, mol_points, 3.6)[1]
                     display |= atoms.filter(close_indices).residues
                 display_atoms = display.atoms
@@ -2791,7 +2791,7 @@ class LevelOfDetail(State):
         # Cache sphere triangulations of different sizes.
         sg = self._sphere_geometries
         if not ntri in sg:
-            from chimerax.core.geometry.sphere import sphere_triangulation
+            from chimerax.geometry.sphere import sphere_triangulation
             va, ta = sphere_triangulation(ntri)
             sg[ntri] = (va,va,ta)
         return sg[ntri]
@@ -2937,7 +2937,7 @@ def _bond_intercept(bonds, mxyz1, mxyz2, scene_coordinates = False):
     r = bs.radii
 
     # Check for atom sphere intercept
-    from chimerax.core import geometry
+    from chimerax import geometry
     f, bnum = geometry.closest_cylinder_intercept(cxyz1, cxyz2, r, mxyz1, mxyz2)
 
     if f is None:
@@ -2957,7 +2957,7 @@ def _bonds_planes_pick(drawing, planes):
     hb_xyz = drawing.positions.array()[:,:,3]	# Half-bond centers
     n = len(hb_xyz)//2
     xyz = 0.5*(hb_xyz[:n] + hb_xyz[n:])	# Bond centers
-    from chimerax.core import geometry
+    from chimerax import geometry
     pmask = geometry.points_within_planes(xyz, planes)
     return pmask
 
@@ -3105,12 +3105,12 @@ def _bond_cylinder_placements(axyz0, axyz1, radii):
   from numpy import empty, float32
   p = empty((n,4,4), float32)
 
-  from chimerax.core.geometry import cylinder_rotations
+  from chimerax.geometry import cylinder_rotations
   cylinder_rotations(axyz0, axyz1, radii, p)
 
   p[:,3,:3] = 0.5*(axyz0 + axyz1)
 
-  from chimerax.core.geometry import Places
+  from chimerax.geometry import Places
   pl = Places(opengl_array = p)
   return pl
 
@@ -3126,10 +3126,10 @@ def _halfbond_cylinder_placements(axyz0, axyz1, radii, parray = None):
   else:
       p = parray
 
-  from chimerax.core.geometry import half_cylinder_rotations
+  from chimerax.geometry import half_cylinder_rotations
   half_cylinder_rotations(axyz0, axyz1, radii, p)
 
-  from chimerax.core.geometry import Places
+  from chimerax.geometry import Places
   pl = Places(opengl_array = p)
 
   return pl
@@ -3144,7 +3144,7 @@ def _halfbond_cylinder_x3d(axyz0, axyz1, radii):
   from numpy import empty, float32
   ci = empty((2 * n, 9), float32)
 
-  from chimerax.core.geometry import cylinder_rotations_x3d
+  from chimerax.geometry import cylinder_rotations_x3d
   cylinder_rotations_x3d(axyz0, axyz1, radii, ci[:n])
   ci[n:, :] = ci[:n, :]
 

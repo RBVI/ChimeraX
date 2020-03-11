@@ -243,7 +243,7 @@ class Objects:
 
     def bounds(self):
         '''Bounds of objects including undisplayed ones in scene coordinates.'''
-        from .geometry import union_bounds, copies_bounding_box
+        from chimerax.geometry import union_bounds, copies_bounding_box
 
         # Model bounds excluding structures and pseudobond groups.
         from chimerax.atomic import Structure, PseudobondGroup

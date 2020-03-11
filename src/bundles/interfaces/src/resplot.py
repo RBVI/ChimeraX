@@ -55,7 +55,7 @@ class ResiduePlot(Graph):
         xyz1, xyz2 = [r.atoms.scene_coords.mean(axis = 0) for r in (r1,r2)]
         zaxis = xyz2 - xyz1
         center = 0.5 * (xyz1 + xyz2)
-        from chimerax.core.geometry import orthonormal_frame
+        from chimerax.geometry import orthonormal_frame
         f = orthonormal_frame(zaxis, origin = center)
         finv = f.inverse()
         return finv

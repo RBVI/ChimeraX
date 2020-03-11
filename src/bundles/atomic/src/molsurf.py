@@ -268,7 +268,7 @@ class MolecularSurface(Surface):
             xyz2 = self.atom_coords()
             radii = {'scale2':self.atoms.radii} if self.resolution is None else {}
             max_dist = self._maximum_atom_to_surface_distance()
-            from chimerax.core import geometry
+            from chimerax import geometry
             i1, i2, nearest1 = geometry.find_closest_points(xyz1, xyz2, max_dist, **radii)
             if len(i1) < len(xyz1):
                 # TODO: For Gaussian surface should increase max_dist and try again.

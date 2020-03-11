@@ -357,7 +357,7 @@ class DepthVideo (Model):
         cur_proj = r.current_projection_matrix
         r.set_projection_matrix(((sx, 0, 0, 0), (0, sy, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)))
 
-        from chimerax.core.geometry import place
+        from chimerax.geometry import place
         p0 = place.identity()
         cur_view = r.current_view_matrix
         r.set_view_matrix(p0)

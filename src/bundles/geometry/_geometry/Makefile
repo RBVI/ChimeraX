@@ -12,8 +12,8 @@
 TOP	= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/core/geometry
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/geometry
+PKG_DIR = $(PYSITEDIR)/chimerax/geometry
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/geometry
 
 PYMOD_NAME = _geometry
 SRCS	= bounds.cpp closepoints.cpp cylinderrot.cpp distances.cpp distancespy.cpp \

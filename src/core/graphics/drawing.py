@@ -63,7 +63,7 @@ class Drawing:
 
         self.parent = None
         
-        from ..geometry import Places
+        from chimerax.geometry import Places
         # Copies of drawing are placed at these positions:
         self._positions = Places()
         self._displayed_scene_positions = None	# Cached
@@ -445,7 +445,7 @@ class Drawing:
         return self._positions[0]
 
     def _drawing_set_position(self, pos):
-        from ..geometry import Places
+        from chimerax.geometry import Places
         self._positions = Places([pos])
         if (not self._displayed_positions is None
             and len(self._displayed_positions) != 1):
@@ -457,7 +457,7 @@ class Drawing:
     '''Position and orientation of the surface in space.'''
 
     def _get_scene_position(self):
-        from ..geometry import product
+        from chimerax.geometry import product
         return product([d.position for d in self.drawing_lineage])
     def _set_scene_position(self, pos):
         self.positions = self.positions * (self.scene_position.inverse() * pos)
@@ -490,7 +490,7 @@ class Drawing:
         return self._positions
 
     def set_positions(self, positions):
-        from ..geometry import Places
+        from chimerax.geometry import Places
         if positions and not isinstance(positions, Places):
             raise ValueError('Got %s instead of Places' % str(type(positions)))
         self._positions = positions
@@ -903,7 +903,7 @@ class Drawing:
         '''
 
         # Get child drawing bounds
-        from ..geometry.bounds import union_bounds, copies_bounding_box
+        from chimerax.geometry.bounds import union_bounds, copies_bounding_box
         dbounds = [d.bounds() for d in self.child_drawings()
                    if d.display and not getattr(d, 'skip_bounds', False)]
         nc = len(dbounds)
@@ -953,7 +953,7 @@ class Drawing:
             return None
         xyz_min = va.min(axis=0)
         xyz_max = va.max(axis=0)
-        from ..geometry.bounds import Bounds
+        from chimerax.geometry.bounds import Bounds
         b = Bounds(xyz_min, xyz_max)
         self._cached_geometry_bounds = b
         return b
@@ -1013,7 +1013,7 @@ class Drawing:
             # TODO: Intercept only for triangles, not lines or points.
             return None
         p = None
-        from ..geometry import closest_triangle_intercept
+        from chimerax.geometry import closest_triangle_intercept
         if self.positions.is_identity():
             fmin, tmin = closest_triangle_intercept(va, ta, mxyz1, mxyz2)
             if fmin is not None:
@@ -1039,7 +1039,7 @@ class Drawing:
             return []
         c, r = b.center(), b.radius()
         pc = self.positions * c
-        from ..geometry import segment_intercepts_spheres
+        from chimerax.geometry import segment_intercepts_spheres
         bi = segment_intercepts_spheres(pc, r, mxyz1, mxyz2)
         dp = self._displayed_positions
         if dp is not None:
@@ -1071,7 +1071,7 @@ class Drawing:
 
         picks = []
         if not self.empty_drawing():
-            from ..geometry import points_within_planes
+            from chimerax.geometry import points_within_planes
             if len(self.positions) > 1:
                 # Use center of instances.
                 b = self.geometry_bounds()
@@ -1087,7 +1087,7 @@ class Drawing:
                         picks.append(PickedInstance(pmask, self))
             else:
                 # For non-instances pick using all vertices.
-                from ..geometry import transform_planes
+                from chimerax.geometry import transform_planes
                 pplanes = transform_planes(self.position, planes)
                 vmask = points_within_planes(self.vertices, pplanes)
                 if vmask.sum() > 0:
@@ -1100,7 +1100,7 @@ class Drawing:
                         logical_and(tmask, tm, tmask)
                     if tmask.sum() > 0:
                         picks.append(PickedTriangles(tmask, self))
-        from ..geometry import transform_planes
+        from chimerax.geometry import transform_planes
         for d in self.child_drawings():
             for p in self.positions:
                 pplanes = transform_planes(p, planes)
@@ -1455,7 +1455,7 @@ def draw_overlays(drawings, renderer, scale = (1,1)):
     r.set_projection_matrix(((xscale, 0, 0, 0), (0, yscale, 0, 0), (0, 0, 1, 0),
                              (0, 0, 0, 1)))
 
-    from ..geometry import place
+    from chimerax.geometry import place
     p0 = place.identity()
     r.set_view_matrix(p0)
     r.set_model_matrix(p0)
@@ -1511,7 +1511,7 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     d.edge_mask = array((3, 6), uint8)
     d.color = color
 
-    from ..geometry import identity
+    from chimerax.geometry import identity
     p0 = identity()
     r.set_view_matrix(p0)
 

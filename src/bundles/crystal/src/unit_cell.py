@@ -74,7 +74,7 @@ def unit_cell_skew(alpha, beta, gamma):
 def unit_cell_to_xyz_matrix(a, b, c, alpha, beta, gamma):
 
     axes = unit_cell_axes(a, b, c, alpha, beta, gamma)
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     return Place(axes = axes)
 
 # -----------------------------------------------------------------------------
@@ -118,7 +118,7 @@ def close_packing_matrices(tflist, ref_point, center,
   r2u = u2r.inverse()
 
   stflist = []
-  from chimerax.core.geometry import translation
+  from chimerax.geometry import translation
   from numpy import array, subtract, add
   for tf in tflist:
 #    shift = u2r * -map(int, r2u * (tf * center - center) + (.5,.5,.5))
@@ -176,7 +176,7 @@ def is_transform(m):
 #
 def translation_matrices(cell_axes, tranges):
 
-  from chimerax.core.geometry import translation
+  from chimerax.geometry import translation
   (xmin, xmax), (ymin, ymax), (zmin, zmax) = tranges
   mlist = []
   for z in range(zmin, zmax+1):
@@ -215,7 +215,7 @@ def unit_cell_matrices(slist, mlist, uc = None, pack = None, group = False):
   elif mlist:
     smlist = mlist
   else:
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     smlist = [Place()]
 
   if pack:

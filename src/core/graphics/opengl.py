@@ -864,7 +864,7 @@ class Render:
         params = {}
 
         # Key light
-        from ..geometry import normalize_vector
+        from chimerax.geometry import normalize_vector
         kld = normalize_vector(lp.key_light_direction)
         if move:
             kld = move.transform_vector(kld)
@@ -1369,7 +1369,7 @@ class Shadow:
             return (s.lvinv, s.stf)
 
         # Compute the view matrix looking along the light direction.
-        from ..geometry import normalize_vector, orthonormal_frame, translation, scale
+        from chimerax.geometry import normalize_vector, orthonormal_frame, translation, scale
         ld = normalize_vector(light_direction)
         # Light view frame:
         lv = translation(center - radius * ld) * orthonormal_frame(-ld)
@@ -1402,7 +1402,7 @@ class Multishadow:
 
         # cached state
         self._multishadow_dir = None
-        from ..geometry import Places
+        from chimerax.geometry import Places
         self._multishadow_transforms = Places()
         self._multishadow_depth = None
         self._multishadow_current_params = None
@@ -1479,7 +1479,7 @@ class Multishadow:
             r.set_view_matrix(lvinv)
             mstf_array[l,:,:] = tf.matrix
             draw_depth(r, sdrawings, opaque_only = not mat.transparent_cast_shadows)
-        from ..geometry import Places
+        from chimerax.geometry import Places
         mstf = Places(place_array = mstf_array)
 
         self._finish_rendering_multishadowmap()
@@ -1509,7 +1509,7 @@ class Multishadow:
             from .gllist import Mat34Func
             self._multishadow_view_transforms = Mat34Func('multishadow matrices', lambda: (stf * ctf()), len(stf))
         else:
-            from ..geometry import multiply_transforms
+            from chimerax.geometry import multiply_transforms
             multiply_transforms(stf, ctf, result = vtf)
 
         # TODO: Issue warning if maximum number of shadows exceeded.
@@ -1555,7 +1555,7 @@ class Multishadow:
         directions = self._multishadow_dir
         n = self._render.lighting.multishadow
         if directions is None or len(directions) != n:
-            from ..geometry import sphere
+            from chimerax.geometry import sphere
             self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
 

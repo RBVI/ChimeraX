@@ -131,7 +131,7 @@ class PivotIndicator(Drawing):
             center = tuple(v.center_of_rotation)
         if center != self._center:
             self._center = center
-            from chimerax.core.geometry import Place
+            from chimerax.geometry import Place
             self.position = Place(origin = center)
 
     def _create_geometry(self, axis_length, axis_radius, axis_colors):
@@ -143,7 +143,7 @@ class PivotIndicator(Drawing):
         vaz, naz, taz = cylinder_geometry(radius = axis_radius, height = axis_length)
         vcz, ncz, tcz = cone_geometry(radius = axis_radius * 2, height = axis_length * 0.2, 
                                         caps = True)
-        from chimerax.core.geometry import Place
+        from chimerax.geometry import Place
         vct = Place(origin = (0,0,axis_length/2))
         vcz = vct.transform_points(vcz)
         nv = len(vaz)

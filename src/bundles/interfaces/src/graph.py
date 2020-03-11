@@ -228,7 +228,7 @@ class Graph(Plot):
         ne = len(self.edges)
         if ne > 0:
             # Compute average distance between nodes
-            from chimerax.core.geometry import distance
+            from chimerax.geometry import distance
             d = sum(distance(ipos[e.nodes[0]], ipos[e.nodes[1]]) for e in self.edges) / ne
             import networkx as nx
             pos = nx.spring_layout(self.graph, pos = ipos, k = d) # positions for all nodes

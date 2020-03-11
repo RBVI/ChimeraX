@@ -626,7 +626,7 @@ class MousePointerModel(Model):
             self.color = msg['color']
         if 'mouse' in msg:
             xyz, axis = msg['mouse']
-            from chimerax.core.geometry import vector_rotation, translation
+            from chimerax.geometry import vector_rotation, translation
             p = translation(xyz) * vector_rotation((0,0,1), axis)
             self.position = p
 
@@ -739,7 +739,7 @@ class VRTracking(PointerModels):
         self._meeting._send_message(msg)
 
     def _head_position(self, vr_camera):
-        from chimerax.core.geometry import scale
+        from chimerax.geometry import scale
         return _place_matrix(vr_camera.room_position * scale(1/vr_camera.scene_scale))
 
     def _face_image_update(self):
@@ -1041,7 +1041,7 @@ def _place_matrix(p):
     return tuple(tuple(row) for row in p.matrix)
 
 def _matrix_place(m):
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     return Place(matrix = m)
 
 def _encode_face_image(path):

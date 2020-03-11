@@ -159,7 +159,7 @@ class RegionMouseMode(MouseMode):
         dxyz = v.scene_position.inverse() * trans
         if v.showing_image('tilted slab'):
             ro = v.rendering_options
-            from chimerax.core.geometry import inner_product
+            from chimerax.geometry import inner_product
             istep = inner_product(dxyz, ro.tilted_slab_axis) / ro.tilted_slab_spacing
         else:
             dijk = v.data.xyz_to_ijk_transform.transform_vector(dxyz)

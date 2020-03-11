@@ -133,7 +133,7 @@ def scene_and_node_models(scenes, nodes, file_name, session):
             nm.gltf_child_nodes = node['children']
         if 'matrix' in node:
             m = node['matrix']
-            from chimerax.core.geometry import Place
+            from chimerax.geometry import Place
             nm.position = Place(((m[0],m[4],m[8],m[12]),
                                  (m[1],m[5],m[9],m[13]),
                                  (m[2],m[6],m[10],m[14])))
@@ -287,7 +287,7 @@ def write_gltf(session, filename, models, center = None, size = None, short_vert
     top_nodes = [node_index[m] for m in top_models]
     
     if center is not None or size is not None:
-        from chimerax.core.geometry import union_bounds
+        from chimerax.geometry import union_bounds
         bounds = union_bounds(m.bounds() for m in top_models)
         tnodes = [nodes[ni] for ni in top_nodes]
         # Apply matrix to only top-level nodes

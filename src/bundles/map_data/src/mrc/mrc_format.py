@@ -117,7 +117,7 @@ class MRC_Data:
     for lbl in v['labels']:
       if lbl.startswith(b'Chimera rotation: '):
         ax,ay,az,angle = [float(x) for x in lbl.rstrip(b'\0').split()[2:]]
-        from chimerax.core.geometry import rotation
+        from chimerax.geometry import rotation
         r = rotation((ax,ay,az), angle).matrix[:,:3]
     self.rotation = r
     
@@ -338,7 +338,7 @@ class MRC_Data:
     u2r = unit_cell_to_xyz_matrix(a, b, c, alpha, beta, gamma)
 
     r2u = u2r.inverse()
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     syms = Places([u2r*u2u*r2u for u2u in usyms])
   
     return syms

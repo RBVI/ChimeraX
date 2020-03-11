@@ -37,13 +37,12 @@ _class_class_init = {
     'Models': '.models',
     'MonoCamera': '.graphics',
     'OrthographicCamera': '.graphics',
-    'Place': '.geometry',
-    'Places': '.geometry',
+    'Place': 'chimerax.geometry',
+    'Places': 'chimerax.geometry',
     'SceneClipPlane': '.graphics',
     'Surface': '.models',
     'Tasks': '.tasks',
     'Tools': '.tools',
-    'TriangleInfo': '.stl',
     'Undo': '.undo',
     'UserColors': '.colors',
     'UserColormaps': '.colors',
@@ -51,7 +50,7 @@ _class_class_init = {
     '_Input': '.nogui',
     # atomic classes moved to a separate bundle; listed here
     # for backwards compatibility
-    # (perhaps remove at 1.0?)
+    # (perhaps remove at 1.0? No. Removing breaks loading old sessions.)
     "Atom": 'chimerax.atomic',
     "AtomicStructure": 'chimerax.atomic',
     "AtomicStructures": 'chimerax.atomic',
@@ -77,7 +76,7 @@ _class_class_init = {
     "CustomizedInstanceManager": 'chimerax.atomic.attr_registration',
     "_NoDefault": 'chimerax.atomic.attr_registration',
     "RegAttrManager": 'chimerax.atomic.attr_registration',
-     "XSectionManager": 'chimerax.atomic.ribbon',
+    "XSectionManager": 'chimerax.atomic.ribbon',
 }
 
 

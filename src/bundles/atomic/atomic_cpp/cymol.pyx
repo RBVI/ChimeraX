@@ -1136,7 +1136,7 @@ cdef class CyResidue:
         prev_ca = prev_c.residue.find_atom("CA")
         if prev_ca is None:
             return None
-        from chimerax.core.geometry import dihedral
+        from chimerax.geometry import dihedral
         return dihedral(prev_ca.coord, prev_c.coord, n.coord, ca.coord)
 
     @omega.setter
@@ -1180,7 +1180,7 @@ cdef class CyResidue:
                 break
         else:
             return None
-        from chimerax.core.geometry import dihedral
+        from chimerax.geometry import dihedral
         return dihedral(prev_c.coord, n.coord, ca.coord, c.coord)
 
     @phi.setter
@@ -1217,7 +1217,7 @@ cdef class CyResidue:
                 break
         else:
             return None
-        from chimerax.core.geometry import dihedral
+        from chimerax.geometry import dihedral
         return dihedral(n.coord, ca.coord, c.coord, next_n.coord)
 
     @psi.setter
@@ -1439,7 +1439,7 @@ cdef class CyResidue:
         chi_atoms = self.get_chi_atoms(std_name, chi_num)
         if chi_atoms is None:
             return None
-        from chimerax.core.geometry import dihedral
+        from chimerax.geometry import dihedral
         chi = dihedral(*[a.coord for a in chi_atoms])
         if account_for_symmetry:
             if (std_name, chi_num) in self.chi_sym_info:

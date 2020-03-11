@@ -62,7 +62,7 @@ def cbumps(session, surfaces, convexity_minimum = 0.3, area = None,
                        if surface_area(va, ta[ti]) >= area]
         c0 = None if center is None else s.position.inverse() * center.scene_coordinates()
         if radius is not None and center is not None:
-            from chimerax.core.geometry import distance
+            from chimerax.geometry import distance
             patches = [(vi,ti) for vi,ti in patches
                        if distance(va[vi].sum(axis=0)/len(vi), c0) <= radius]
         if outward is not None and center is not None:
@@ -131,7 +131,7 @@ def _report_patch_intensities(patches, va, ta, signal_map, surf_position):
     lines = ['# Area average intensities of map %s for %d patches' % (signal_map.name, len(patches)),
              '# pnum area intensity']
     from chimerax.surface import surface_area, vertex_areas
-    from chimerax.core.geometry import inner_product
+    from chimerax.geometry import inner_product
     varea = vertex_areas(va, ta)
     for i, (vi,ti) in enumerate(patches):
         pva, pta = va[vi], ta[ti]

@@ -70,7 +70,7 @@ def make_closest_placement_identity(tflist, center):
     i = d2.argmin()
     tfinv = tflist[i].inverse()
 
-    from chimerax.core.geometry import Place, Places
+    from chimerax.geometry import Place, Places
     rtflist = Places([Place()] + [tf*tfinv for tf in tflist[:i]+tflist[i+1:]])
     return rtflist
 

@@ -505,7 +505,7 @@ class Session:
             from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material
             from .graphics import SceneClipPlane, CameraClipPlane, ClipPlane, Drawing
             from .graphics import gsession as g
-            from .geometry import Place, Places, psession as p
+            from chimerax.geometry import Place, Places, psession as p
             self._snapshot_methods = {
                 View: g.ViewState,
                 MonoCamera: g.CameraState,
@@ -954,7 +954,7 @@ def save_x3d(session, path, transparent_background=False):
             t = 0
         print("  <Background skyColor='%g %g %g' transparency='%g'/>" % (c[0], c[1], c[2], t), file=stream)
         # TODO: write out lighting?
-        from .geometry import Place
+        from chimerax.geometry import Place
         p = Place()
         for m in session.models.list():
             m.write_x3d(stream, x3d_scene, 2, p)

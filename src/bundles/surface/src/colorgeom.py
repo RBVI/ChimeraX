@@ -215,7 +215,7 @@ def distances_along_axis(points, origin, axis):
     from numpy import zeros, single as floatc
     d = zeros(len(points), floatc)
         
-    from chimerax.core import geometry
+    from chimerax import geometry
     geometry.distances_parallel_to_axis(points, origin, axis, d)
 
     return d
@@ -242,7 +242,7 @@ def distances_from_origin(points, origin):
     from numpy import zeros, single as floatc
     d = zeros(len(points), floatc)
         
-    from chimerax.core.geometry import distances_from_origin
+    from chimerax.geometry import distances_from_origin
     distances_from_origin(points, origin, d)
 
     return d
@@ -267,7 +267,7 @@ def distances_from_axis(points, origin, axis):
     from numpy import zeros, single as floatc
     d = zeros(len(points), floatc)
         
-    from chimerax.core import geometry
+    from chimerax import geometry
     geometry.distances_perpendicular_to_axis(points, origin, axis, d)
 
     return d

@@ -59,7 +59,7 @@ def turn(session, axis=Axis((0,1,0)), angle=90, frames=None, rock=None,
 
     def _turn(angle, saxis=saxis, c=c, models=models, atoms=atoms):
         a = -angle if models is None else angle
-        from chimerax.core.geometry import rotation
+        from chimerax.geometry import rotation
         r = rotation(saxis, a, c0)
         if models is not None:
             for m in models:

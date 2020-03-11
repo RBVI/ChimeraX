@@ -210,7 +210,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
                 for pb in pbg_pseudobonds:
                     pre_existing[pb.atoms] = pb
 
-            from chimerax.core.geometry import distance_squared
+            from chimerax.geometry import distance_squared
             for don, acc in cs_hbonds:
                 nearest = None
                 heavy_don = don
@@ -323,7 +323,7 @@ def _file_output(file_name, output_info, naming_style):
         # figure out field widths to make things line up
         dwidth = awidth = hwidth = 0
         labels = {}
-        from chimerax.core.geometry import distance
+        from chimerax.geometry import distance
         for don, acc in hbonds:
             if cs_id is None:
                 don_coord = don.scene_coord

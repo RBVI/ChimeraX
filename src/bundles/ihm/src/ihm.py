@@ -809,7 +809,7 @@ class IHMModel(Model):
             for model, fit in r.fits.items():
                 rm = fit.rot_matrix
                 t = fit.tr_vector
-                from chimerax.core.geometry import Place
+                from chimerax.geometry import Place
                 rt.setdefault(r._id,{})[model._id] = Place(((rm[0][0],rm[0][1],rm[0][2],t[0]),(rm[1][0],rm[1][1],rm[1][2],t[1]),(rm[2][0],rm[2][1],rm[2][2],t[2]))).inverse()
             
             d = self.data_set(r.dataset)
@@ -1357,7 +1357,7 @@ def crosslink_colors(xltype):
 #
 def probability_grid(wcc, voxel_size = 5, cutoff_sigmas = 3):
     # Find bounding box for probability distribution
-    from chimerax.core.geometry import Bounds, union_bounds
+    from chimerax.geometry import Bounds, union_bounds
     from math import sqrt, ceil
     bounds = []
     for weight, center, covar in wcc:
@@ -1662,7 +1662,7 @@ def align_starting_models_to_spheres(amodels, smodel):
                 sxyz.append(s.coord)
                 # TODO: For spheres with multiple residues use average residue center
         if len(mxyz) >= 3:
-            from chimerax.core.geometry import align_points
+            from chimerax.geometry import align_points
             from numpy import array, float64
             p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
             m.position = p
@@ -1698,7 +1698,7 @@ def align_starting_models_to_atoms(amodels, refmodel):
                 else:
                     print ('could not find res for alignment', (r.chain_id, r.number))
         if len(mxyz) >= 3:
-            from chimerax.core.geometry import align_points
+            from chimerax.geometry import align_points
             from numpy import array, float64
             p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
             m.position = p

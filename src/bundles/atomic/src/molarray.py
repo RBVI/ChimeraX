@@ -567,7 +567,7 @@ class Atoms(Collection):
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
         blist = []
-        from chimerax.core.geometry import sphere_bounds, copy_tree_bounds, union_bounds
+        from chimerax.geometry import sphere_bounds, copy_tree_bounds, union_bounds
         for m, a in self.by_structure:
             ba = sphere_bounds(a.coords, a.radii)
             ib = copy_tree_bounds(ba,
@@ -865,7 +865,7 @@ class Bonds(Collection):
         f = c_function('bond_halfbond_cylinder_placements',
                        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
         f(self._c_pointers, n, pointer(opengl_array))
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         return Places(opengl_array = opengl_array)
         
     @classmethod
