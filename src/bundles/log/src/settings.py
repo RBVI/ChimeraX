@@ -28,17 +28,18 @@ class _LogSettings(Settings):
 
 def register_settings_options(session):
     from chimerax.ui.options import BooleanOption
+    from chimerax.core.utils import CustomSortString
     settings_info = {
         'errors_raise_dialog': (
-            'Errors shown in dialog',
+            CustomSortString('Errors shown in dialog', 1),
             BooleanOption,
             'Should error messages be shown in a separate dialog as well as being logged'),
         'warnings_raise_dialog': (
-            'Warnings shown in dialog',
+            CustomSortString('Warnings shown in dialog', 1),
             BooleanOption,
             'Should warning messages be shown in a separate dialog as well as being logged'),
         'session_restore_clears': (
-            'Restoring session clears log',
+            CustomSortString('Restoring session clears log', 2),
             BooleanOption,
             'Restoring session clears log'),
     }

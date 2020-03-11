@@ -30,6 +30,7 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<b>maxDistance</b>&nbsp;&nbsp;<i>D</i>&nbsp;]
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>map</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>surfaces</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<i><a href="#palette-options">palette-options</a></i>&nbsp;
 </h3>
@@ -120,13 +121,17 @@ The <b>spacing</b> <i>s</i> of the map grid can be
 specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
 Decreasing the spacing increases map size and calculation time.
 </p><p>
-With <b>color true</b> (default),
-<a href="surface.html">molecular surfaces</a> for the protein chains 
-containing the specified atoms are generated
-if they do not already exist and colored by the MLP,
-and the surface patches for those atoms displayed.
-A separate MLP map is computed for each surface (protein chain), and its 
+With <b>color true</b> (default), a
+<a href="surface.html">molecular surface</a> is generated as needed
+for each protein chain that contains any of the specified atoms,
+colored by the MLP, and the surface patches for those atoms are displayed.
+Alternatively, one or more pre-existing 
+<a href="surface.html">molecular surfaces</a> for the atoms
+(for example, a surface that encloses all protein chains collectively)
+can be specified with the <b>surfaces</b> option.
+A separate MLP map is computed for each surface, and its 
 value ranges reported in the <a href="../tools/log.html"><b>Log</b></a>.
+</p><p>
 <a name="palette-options"></a>
 Defaults for the coloring
 <a href="color.html#palette-options"><i>palette-options</i></a> are
@@ -158,5 +163,5 @@ and/or <a href="save.html#map">saving the maps</a> to files.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2019</address>
+March 2020</address>
 </body></html>
