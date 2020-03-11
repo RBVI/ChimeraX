@@ -23,7 +23,7 @@ class _SDF_API(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None):
-        if operation == "args":
+        if operation == "open args":
             return {}
         elif operation == "open":
             return read_sdf(session, data, file_name)

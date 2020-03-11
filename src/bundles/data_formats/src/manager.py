@@ -98,3 +98,6 @@ class FormatsManager(ProviderManager):
             if key in format_data.nicknames:
                 return format_data
         raise KeyError("No known data format '%s'" % key)
+
+    def __len__(self):
+        return len(self._formats)

@@ -42,6 +42,33 @@ class _PDBioAPI(BundleAPI):
             combine_sym_atoms=combine_sym_atoms)
 
     @staticmethod
+    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
+            database_name=None, ident=None, ignore_cache=None, format_name=None, **kw):
+        if operation.endswith("args"):
+            from chimerax.core.commands import BoolArg, IntArg, FloatArg
+            return {
+                'atomic': BoolArg,
+                'auto_style': BoolArg,
+                'combine_sym_atoms': BoolArg,
+                'coordsets': BoolArg,
+                'log_info': BoolArg,
+                'max_models': IntArg,
+                'oversampling': FloatArg,
+                'structure_factors': BoolArg,
+            }
+        elif operation == "open":
+            from . import pdb
+            return pdb.open_pdb(session, data, file_name, **kw)
+        elif operation == "fetch":
+            from . import pdb
+            dispatch = {
+                'pdb': pdb.fetch_pdb,
+                'pdbe': pdb.fetch_pdb_pdbe,
+                'pdbj': pdb.fetch_pdb_pdbj
+            }
+            return dispatch[database_name](session, ident, ignore_cache=ignore_cache, **kw)
+
+    @staticmethod
     def save_file(session, path, *, models=None, selected_only=False, displayed_only=False,
         all_coordsets=False, pqr=False, rel_model=None, serial_numbering="h36"):
         # 'save_file' is called by session code to save a file

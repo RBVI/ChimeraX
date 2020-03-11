@@ -255,23 +255,23 @@ def fetch_info(mgr, file_arg, format_name, database_name):
 def name_and_group_models(models, name_arg, path_info):
     if len(models) > 1:
         # name arg only applies to group, not underlings
-        if len(path_info) == len(models):
-            path_names = [model_name_from_path(p) for p in path_info]
+        if name_arg:
+            names = [name_arg] * len(models)
+        elif len(path_info) == len(models):
+            names = [model_name_from_path(p) for p in path_info]
         else:
-            path_names = [model_name_from_path(path_info[0])] * len(models)
-        for m, pn in zip(models, path_names):
-            if not m.name:
+            names = [model_name_from_path(path_info[0])] * len(models)
+        for m, pn in zip(models, names):
+            if name_arg or not m.name:
                 m.name = pn
         from chimerax.core.models import Model
-        if name_arg:
-            group_name = name_arg
+        names = set([m.name for m in models])
+        if len(names) == 1:
+            group_name = names.pop() + " group"
         else:
-            names = set([m.name for m in models])
-            if len(names) == 1:
-                group_name = names.pop() + " group"
-            else:
-                group_name = "group"
+            group_name = "group"
         group = Model(group_name, models[0].session)
+        group.add(models)
         return group
     model = models[0]
     if name_arg:

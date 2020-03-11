@@ -91,12 +91,19 @@ class OpenManager(ProviderManager):
         self.triggers.activate_trigger("open command changed", self)
         if True:
             return
-        new_formats = set(list(self.session.data_formats._formats.keys()))
+        in_common = []
+        old_only = []
         from chimerax.core.io import _file_formats
-        old_formats = set(list(_file_formats.keys()))
-        old_only_formats = old_formats - new_formats
-        print("%d data formats in common, %d new only, %d old only" %(len(new_formats&old_formats),
-            len(new_formats - old_formats), len(old_only_formats)))
+        for old in _file_formats.keys():
+            try:
+                in_common.append(self.session.data_formats[old])
+            except KeyError:
+                print("old only:", old)
+                old_only.append(old)
+        for df in self.session.data_formats.formats:
+            print("new:", df.name)
+        print("%d data formats in common, %d new only, %d old only" %(len(in_common),
+            len(self.session.data_formats) - len(in_common), len(old_only)))
         from random import choice
         print("Port format", choice(list(old_only_formats)+['http']))
 
