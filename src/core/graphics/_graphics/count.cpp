@@ -18,10 +18,10 @@
 
 // ----------------------------------------------------------------------------
 //
-static int count_value(unsigned char *a, long n, long stride, unsigned char v)
+static int64_t count_value(unsigned char *a, int64_t n, int64_t stride, unsigned char v)
 {
-  int c = 0;
-  for (long i = 0 ; i < n ; ++i, a += stride)
+  int64_t c = 0;
+  for (int64_t i = 0 ; i < n ; ++i, a += stride)
     if (*a == v)
       c += 1;
   return c;

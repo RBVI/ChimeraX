@@ -557,8 +557,8 @@ fill_6ring(PyObject *, PyObject *args, PyObject *keywds)
     FArray cvertices_in = vertices_in.contiguous_array();
 
     if (cvertices_in.size() != 6 * 3) {
-	PyErr_Format(PyExc_ValueError, "Expecting 6 xyz values (18 floats), got %zu",
-		     static_cast<size_t>(cvertices_in.size()));
+	PyErr_Format(PyExc_ValueError, "Expecting 6 xyz values (18 floats), got %s",
+		     cvertices_in.size_string().c_str());
 	return NULL;
     }
 

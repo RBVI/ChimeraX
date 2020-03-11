@@ -89,15 +89,16 @@ PyObject *cylinder_rotations(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_writable_float_3d_array, &rot44))
     return NULL;
 
-  int n = xyz0.size(0);
+  int64_t n = xyz0.size(0);
   if (xyz1.size(0) != n || radii.size(0) != n)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder end-point and radii arrays must have same size, got %d %d %d",
-			n, xyz1.size(0), radii.size(0));
+			"Cylinder end-point and radii arrays must have same size, got sizes %s %s %s",
+			xyz0.size_string(0).c_str(), xyz1.size_string(0).c_str(),
+			radii.size_string(0).c_str());
   if (rot44.size(0) != n || rot44.size(1) != 4 || rot44.size(2) != 4)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder rotations wrong size, got %d %d %d, expected %d 4 4",
-			rot44.size(0), rot44.size(1), rot44.size(2), n);
+			"Cylinder rotations wrong size, got (%s), expected (%s,4,4)",
+			rot44.size_string().c_str(), xyz0.size_string(0).c_str());
   if (!xyz0.is_contiguous() || !xyz1.is_contiguous() || !radii.is_contiguous()
       || !rot44.is_contiguous())
     return PyErr_Format(PyExc_ValueError,
@@ -110,11 +111,11 @@ PyObject *cylinder_rotations(PyObject *, PyObject *args, PyObject *keywds)
 
 // -----------------------------------------------------------------------------
 //
-static void half_cylinder_rotations(float *axyz0, float *axyz1, int n, float *radii,
+static void half_cylinder_rotations(float *axyz0, float *axyz1, int64_t n, float *radii,
 				    float *rot44)
 {
   float *rot44b = rot44 + 16*n;
-  for (int i = 0 ; i < n ; ++i, axyz0 += 3, axyz1 += 3)
+  for (int64_t i = 0 ; i < n ; ++i, axyz0 += 3, axyz1 += 3)
     {
       float x0 = axyz0[0], x1 = axyz1[0];
       float y0 = axyz0[1], y1 = axyz1[1];
@@ -178,15 +179,16 @@ PyObject *half_cylinder_rotations(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_writable_float_3d_array, &rot44))
     return NULL;
 
-  int n = xyz0.size(0);
+  int64_t n = xyz0.size(0);
   if (xyz1.size(0) != n || radii.size(0) != n)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder end-point and radii arrays must have same size, got %d %d %d",
-			n, xyz1.size(0), radii.size(0));
+			"Cylinder end-point and radii arrays must have same size, got sizes %s %s %s",
+			xyz0.size_string(0).c_str(), xyz1.size_string(0).c_str(),
+			radii.size_string(0).c_str());
   if (rot44.size(0) != 2*n || rot44.size(1) != 4 || rot44.size(2) != 4)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder rotations wrong size, got %d %d %d, expected %d 4 4",
-			rot44.size(0), rot44.size(1), rot44.size(2), 2*n);
+			"Cylinder rotations wrong size, got (%s), expected (2*%s,4,4)",
+			rot44.size_string().c_str(), xyz0.size_string(0).c_str());
   if (!xyz0.is_contiguous() || !xyz1.is_contiguous() || !radii.is_contiguous()
       || !rot44.is_contiguous())
     return PyErr_Format(PyExc_ValueError,
@@ -199,7 +201,7 @@ PyObject *half_cylinder_rotations(PyObject *, PyObject *args, PyObject *keywds)
 
 // -----------------------------------------------------------------------------
 //
-static void cylinder_rotations_x3d(float *axyz0, float *axyz1, int n,
+static void cylinder_rotations_x3d(float *axyz0, float *axyz1, int64_t n,
                                    float *radii, float *info)
 {
 # define OFF_HEIGHT 0
@@ -218,7 +220,7 @@ static void cylinder_rotations_x3d(float *axyz0, float *axyz1, int n,
 # define OBJ_AXIS_Y 1.0f
 # define OBJ_AXIS_Z 0.0f
     float rx, ry, rz, angle;
-    for (int i = 0 ; i < n * STRIDE ; i += STRIDE) {
+    for (int64_t i = 0 ; i < n * STRIDE ; i += STRIDE) {
         float vx = *axyz1++ - *axyz0++;
         float vy = *axyz1++ - *axyz0++;
         float vz = *axyz1++ - *axyz0++;
@@ -274,15 +276,16 @@ PyObject *cylinder_rotations_x3d(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_writable_float_n9_array, &info))
     return NULL;
 
-  int n = xyz0.size(0);
+  int64_t n = xyz0.size(0);
   if (xyz1.size(0) != n || radii.size(0) != n)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder end-point and radii arrays must have same size, got %d %d %d",
-			n, xyz1.size(0), radii.size(0));
+			"Cylinder end-point and radii arrays must have same size, got sizes %s %s %s",
+			xyz0.size_string(0).c_str(), xyz1.size_string(0).c_str(),
+			radii.size_string(0).c_str());
   if (info.size(0) != n || info.size(1) != 9)
     return PyErr_Format(PyExc_ValueError,
-			"Cylinder rotations wrong size, got %d %d, expected %d 9",
-			info.size(0), info.size(1), n);
+			"Cylinder rotations wrong size, got (%s), expected (%s, 9)",
+			info.size_string().c_str(), xyz0.size_string(0).c_str());
   if (!xyz0.is_contiguous() || !xyz1.is_contiguous() || !radii.is_contiguous()
       || !info.is_contiguous())
     return PyErr_Format(PyExc_ValueError,

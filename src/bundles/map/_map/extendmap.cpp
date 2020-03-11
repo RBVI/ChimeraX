@@ -39,7 +39,7 @@ inline float wrap(float f, int i)
 //
 template <class T>
 bool interpolate(const T *ia,
-		 int isz, int jsz, int ksz, long ist, long jst, long kst,
+		 int isz, int jsz, int ksz, int64_t ist, int64_t jst, int64_t kst,
 		 float i, float j, float k, float *v)
 {
   if (i < 0 || j < 0 || k < 0 || i > isz-1 || j > jsz-1 || k > ksz-1)
@@ -65,19 +65,19 @@ bool interpolate(const T *ia,
 template <class T>
 void extend_map(const Reference_Counted_Array::Array<T> &in, int cell_size[3],
 		const FArray &syms, FArray &out, float out_to_in_tf[3][4],
-		long *nmiss, float *dmax)
+		int64_t *nmiss, float *dmax)
 {
-  int kinsz = in.size(0), jinsz = in.size(1), iinsz = in.size(2);
-  int kinst = in.stride(0), jinst = in.stride(1), iinst = in.stride(2);
+  int64_t kinsz = in.size(0), jinsz = in.size(1), iinsz = in.size(2);
+  int64_t kinst = in.stride(0), jinst = in.stride(1), iinst = in.stride(2);
   const T *ia = in.values();
 
-  int ksz = out.size(0), jsz = out.size(1), isz = out.size(2);
-  long kst = out.stride(0), jst = out.stride(1), ist = out.stride(2);
+  int64_t ksz = out.size(0), jsz = out.size(1), isz = out.size(2);
+  int64_t kst = out.stride(0), jst = out.stride(1), ist = out.stride(2);
   float *oa = out.values();
 
   int csi = cell_size[0], csj = cell_size[1], csk = cell_size[2];
 
-  int nsym = syms.size(0);
+  int64_t nsym = syms.size(0);
   float *sa = syms.values();
 
   float *oi = &out_to_in_tf[0][0];
@@ -85,16 +85,16 @@ void extend_map(const Reference_Counted_Array::Array<T> &in, int cell_size[3],
   *nmiss = 0;
   *dmax = 0;
 
-  for (int k = 0 ; k < ksz ; ++k)
-    for (int j = 0 ; j < jsz ; ++j)
-      for (int i = 0 ; i < isz ; ++i)
+  for (int64_t k = 0 ; k < ksz ; ++k)
+    for (int64_t j = 0 ; j < jsz ; ++j)
+      for (int64_t i = 0 ; i < isz ; ++i)
 	{
 	  float ini = oi[0]*i + oi[1]*j + oi[2]*k + oi[3];
 	  float inj = oi[4]*i + oi[5]*j + oi[6]*k + oi[7];
 	  float ink = oi[8]*i + oi[9]*j + oi[10]*k + oi[11];
 	  int inside = 0;
 	  float vsum = 0, vmin = 0, vmax = 0;
-	  for (int s = 0 ; s < nsym ; ++s)
+	  for (int64_t s = 0 ; s < nsym ; ++s)
 	    {
 	      float *sym = &sa[s*12];
 	      float si = sym[0]*ini + sym[1]*inj + sym[2]*ink + sym[3];
@@ -130,7 +130,7 @@ void extend_map(const Reference_Counted_Array::Array<T> &in, int cell_size[3],
 	      if (d > *dmax)
 		*dmax = d;
 	    }
-	  long oi = k*kst + j*jst + i*ist;
+	  int64_t oi = k*kst + j*jst + i*ist;
 	  oa[oi] = vijk;
 	}		 
 }
@@ -174,7 +174,7 @@ extend_crystal_map(PyObject *, PyObject *args, PyObject *keywds)
       return NULL;
     }
 
-  long nmiss;
+  int64_t nmiss;
   float dmax;
   call_template_function(extend_map, in.value_type(),
   			 (in, csize, syms, out, oitf, &nmiss, &dmax));

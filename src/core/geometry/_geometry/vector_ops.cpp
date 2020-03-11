@@ -30,13 +30,13 @@ static void inner(const Reference_Counted_Array::Array<T> &m1,
 		  double *sum)
 {
   double s = 0;
-  int n = m1.size(), s1 = m1.stride(0), s2 = m2.stride(0);
+  int64_t n = m1.size(), s1 = m1.stride(0), s2 = m2.stride(0);
   T *v1 = m1.values(), *v2 = m2.values();
   if (s1 == 1 && s2 == 1)
-    for (int k = 0 ; k < n ; ++k)
+    for (int64_t k = 0 ; k < n ; ++k)
       s += ((double)v1[k])*((double)v2[k]);
   else
-    for (int k = 0 ; k < n ; ++k)
+    for (int64_t k = 0 ; k < n ; ++k)
       s += ((double)v1[k*s1])*((double)v2[k*s2]);
   *sum = s;
 }

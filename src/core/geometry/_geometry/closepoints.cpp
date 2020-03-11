@@ -15,6 +15,7 @@
 // Find pairs of close points given two sets of points and a distance.
 //
 #include <Python.h>			// use PyTuple*(), ...
+#include <cstdint>			// use std::int64_t
 #include <iostream>			// use std:cerr for debugging
 #include <map>				// use map
 #include <vector>			// use vector
@@ -29,7 +30,8 @@ using std::vector;
 using std::map;
 using std::pair;
 
-typedef vector<int> Index_List;
+typedef std::int64_t Index;
+typedef vector<Index> Index_List;
 
 typedef enum {CP_ALL_PAIRS, CP_BOX_ALL_PAIRS, CP_BINS, CP_BOX_BINS, CP_BOXES}
    Close_Points_Method;
@@ -44,8 +46,8 @@ typedef enum {CP_ALL_PAIRS, CP_BOX_ALL_PAIRS, CP_BINS, CP_BOX_BINS, CP_BOXES}
 // point i is scaled by 1/scales[i] when computing the nearest point.
 //
 void find_close_points(Close_Points_Method m,
-		       const float *xyz1, int n1,
-		       const float *xyz2, int n2,
+		       const float *xyz1, Index n1,
+		       const float *xyz2, Index n2,
 		       float d, float *scales,
 		       Index_List *i1, Index_List *i2,
 		       Index_List *nearest1 = NULL);
@@ -57,7 +59,7 @@ class Transformed_Points
 {
  public:
   const float *xyz;
-  int n;
+  Index n;
   float rotation[3][3];		// Rotation matrix
   float translation[3];		// Translation vector (after rotation).
 };
@@ -90,22 +92,22 @@ typedef map<Index3, Index_List> Bin_Map;
 class Index_Set
 {
 public:
-  Index_Set(Index_List *ilist, int n) : have_index(n, 0)
+  Index_Set(Index_List *ilist, Index n) : have_index(n, 0)
     {
       this->ilist = ilist;
       Index_List::size_type m = ilist->size();
       for (Index_List::size_type k = 0 ; k < m ; ++k)
 	{
-	  int i = (*ilist)[k];
+	  Index i = (*ilist)[k];
 	  if (i < n)
 	    have_index[i] = 1;
 	}
     }
-  void add_index(int i)
+  void add_index(Index i)
     { if (have_index[i] == 0) { have_index[i] = 1; ilist->push_back(i); } }
-  bool in_set(int i) const
+  bool in_set(Index i) const
     { return have_index[i]; }
-  int size() const
+  Index size() const
     { return ilist->size(); }
 private:
   Index_List *ilist;
@@ -119,11 +121,11 @@ private:
 class Nearest_Points
 {
 public:
-  Nearest_Points(int n)
+  Nearest_Points(Index n)
   {
-    this->closest = new int[n];
+    this->closest = new Index[n];
     this->d2 = new float[n];
-    for (int k = 0 ; k < n ; ++k)
+    for (Index k = 0 ; k < n ; ++k)
       {
 	d2[k] = NO_DISTANCE;
 	closest[k] = -1;
@@ -136,7 +138,7 @@ public:
     delete [] d2;
     d2 = NULL;
   }
-  virtual void close_pair(int i, int j, float d2_ij)
+  virtual void close_pair(Index i, Index j, float d2_ij)
   {
     float d2min = d2[i];
     if (d2min == NO_DISTANCE || d2_ij < d2min)
@@ -147,14 +149,14 @@ public:
   }
   void nearest_list(const Index_List &i1, Index_List &nearest1)
   {
-    int m = i1.size();
+    Index m = i1.size();
     nearest1.resize(m,0);
-    for (int k = 0 ; k < m ; ++k)
+    for (Index k = 0 ; k < m ; ++k)
       nearest1[k] = closest[i1[k]];
   }
 
 protected:
-  int *closest;
+  Index *closest;
   float *d2;
   static const float NO_DISTANCE;
 };
@@ -167,8 +169,8 @@ const float Nearest_Points::NO_DISTANCE = -1.0;
 class Nearest_Scaled_Points : public Nearest_Points
 {
 public:
-  Nearest_Scaled_Points(int n, float *scales) : Nearest_Points(n), scales(scales) {}
-  virtual void close_pair(int i, int j, float d2_ij)
+  Nearest_Scaled_Points(Index n, float *scales) : Nearest_Points(n), scales(scales) {}
+  virtual void close_pair(Index i, Index j, float d2_ij)
   {
     float d2min = d2[i];
     if (d2min == NO_DISTANCE)
@@ -213,7 +215,7 @@ class Point_List
 {
 public:
   const float *xyz;
-  Point_List(const float *xyz, int n)
+  Point_List(const float *xyz, Index n)
     {
       this->xyz = xyz;
       this->nxyz = n;
@@ -222,7 +224,7 @@ public:
       this->delete_ilist = false;
       this->bbox_valid = false;
     }
-  Point_List(const float *xyz, int nxyz, int *ilist, int ni,
+  Point_List(const float *xyz, Index nxyz, Index *ilist, Index ni,
 	     bool delete_ilist = false)
     {
       this->xyz = xyz;
@@ -238,9 +240,9 @@ public:
       this->nxyz = p.nxyz;
       if (p.ilist)
 	{
-	  int ni = p.nilist;
-	  this->ilist = new int[ni];
-	  for (int k = 0 ; k < ni ; ++k)
+	  Index ni = p.nilist;
+	  this->ilist = new Index[ni];
+	  for (Index k = 0 ; k < ni ; ++k)
 	    ilist[k] = p.ilist[k];
 	  this->delete_ilist = true;
 	}
@@ -263,11 +265,11 @@ public:
 	  ilist = NULL;
 	}
     }
-  int size() const
+  Index size() const
     { return (ilist ? nilist : nxyz); }
-  int index_range() const
+  Index index_range() const
     { return nxyz; }
-  int index(int k) const
+  Index index(Index k) const
     { return (ilist ? ilist[k] : k); }
   // TODO: Use separate classes for ilist vs no ilist to improve
   //       indexing inlining performance.
@@ -275,9 +277,9 @@ public:
   bool have_bounding_box() const { return bbox_valid; }
   const Box &bounding_box() const;
 private:
-  int nxyz;
-  int *ilist;
-  int nilist;
+  Index nxyz;
+  Index *ilist;
+  Index nilist;
   bool delete_ilist;
   mutable Box bbox;
   mutable bool bbox_valid;
@@ -309,7 +311,7 @@ class Contacts
  public:
   Contacts() { finished = false; }
   virtual ~Contacts() {}
-  virtual void add_contact(int /*i1*/, int /*i2*/) { finished = true; }
+  virtual void add_contact(Index /*i1*/, Index /*i2*/) { finished = true; }
   virtual void all_in_contact() { finished = true; }
   bool finished;
 };
@@ -320,8 +322,8 @@ static void find_close_points(Close_Points_Method m,
 			      const Point_List &p1, const Point_List &p2,
 			      float d, Index_Set &i1, Index_Set &i2,
 			      Nearest_Points *np1);
-static void find_close_points_all_pairs(const float *xyz1, int n1,
-					const float *xyz2, int n2,
+static void find_close_points_all_pairs(const float *xyz1, Index n1,
+					const float *xyz2, Index n2,
 					float d,
 					Index_Set &is1, Index_Set &is2,
 					Nearest_Points *np1);
@@ -348,24 +350,24 @@ static void find_close_points_subboxes(const Point_List &p1, Box *box1,
 static void split_point_list(const Point_List &p, int axis,
 			     Point_List **p1, Point_List **p2);
 static void split_point_list(const Point_List &p, int axis,
-			     int **i1, int *ni1, int **i2, int *ni2);
+			     Index **i1, Index *ni1, Index **i2, Index *ni2);
 static float maximum_separation_squared(const Box &box1, const Box &box2);
 static float minimum_separation_squared(const Box &box1, const Box &box2);
 static void add_points_to_set(const Point_List &p, Index_Set &is);
-static int points_in_box(const Point_List &p, const Box &box, int **i, int *ni);
+static Index points_in_box(const Point_List &p, const Box &box, Index **i, Index *ni);
 static void reduce_to_box_intersection(Point_List &p1, Point_List &p2,
 				       float d, float volume_threshold);
 static bool reduce_to_box_intersection(Point_List &p, const Box &box,
 			       float d, float volume_threshold, bool &change);
-static void transform_points(const float *xyz, int n,
+static void transform_points(const float *xyz, Index n,
 			     const float rotation[3][3],
 			     const float translation[3], float *txyz);
-static void inverse_transform_points(const float *xyz, int n,
+static void inverse_transform_points(const float *xyz, Index n,
 				     const float rotation[3][3],
 				     const float translation[3],
 				     float *itxyz);
 static void box_corners(const Box &box, float *corners);
-static void transformed_points_bounding_box(const float *xyz, int n,
+static void transformed_points_bounding_box(const float *xyz, Index n,
 					    const float rotation[3][3],
 					    const float translation[3],
 					    Box *box);
@@ -374,8 +376,8 @@ static bool boxes_are_close(const Box &box1, const Box &box2, float distance);
 // ----------------------------------------------------------------------------
 //
 void find_close_points(Close_Points_Method m,
-		       const float *xyz1, int n1,
-		       const float *xyz2, int n2,
+		       const float *xyz1, Index n1,
+		       const float *xyz2, Index n2,
 		       float d, float *scales,
 		       Index_List *i1, Index_List *i2, Index_List *nearest1)
 {
@@ -441,18 +443,18 @@ static void find_close_points(Close_Points_Method m,
 
 // ----------------------------------------------------------------------------
 //
-static void find_close_points_all_pairs(const float *xyz1, int n1,
-					const float *xyz2, int n2,
+static void find_close_points_all_pairs(const float *xyz1, Index n1,
+					const float *xyz2, Index n2,
 					float d,
 					Index_Set &is1, Index_Set &is2,
 					Nearest_Points *np1)
 {
   float d2_limit = d * d;
-  int s1 = 3*n1, s2 = 3*n2;
-  for (int j1 = 0 ; j1 < s1 ; j1 += 3)
+  Index s1 = 3*n1, s2 = 3*n2;
+  for (Index j1 = 0 ; j1 < s1 ; j1 += 3)
     {
       float x1 = xyz1[j1], y1 = xyz1[j1+1], z1 = xyz1[j1+2];
-      for (int j2 = 0 ; j2 < s2 ; j2 += 3)
+      for (Index j2 = 0 ; j2 < s2 ; j2 += 3)
 	{
 	  float dx = xyz2[j2] - x1;
 	  float dy = xyz2[j2+1] - y1;
@@ -477,17 +479,17 @@ static void find_close_points_all_pairs(const float *xyz1, const Index_List &i1,
 					Index_Set &is1, Index_Set &is2,
 					Nearest_Points *np1)
 {
-  int n1 = i1.size(), n2 = i2.size();
+  Index n1 = i1.size(), n2 = i2.size();
   float d2_limit = d*d;
-  for (int k1 = 0 ; k1 < n1 ; ++k1)
+  for (Index k1 = 0 ; k1 < n1 ; ++k1)
     {
-      int i1ind = i1[k1];
-      int i1ind3 = 3 * i1ind;
+      Index i1ind = i1[k1];
+      Index i1ind3 = 3 * i1ind;
       float x1 = xyz1[i1ind3], y1 = xyz1[i1ind3+1], z1 = xyz1[i1ind3+2];
-      for (int k2 = 0 ; k2 < n2 ; ++k2)
+      for (Index k2 = 0 ; k2 < n2 ; ++k2)
 	{
-	  int i2ind = i2[k2];
-	  int i2ind3 = 3 * i2ind;
+	  Index i2ind = i2[k2];
+	  Index i2ind3 = 3 * i2ind;
 	  float dx = xyz2[i2ind3] - x1;
 	  float dy = xyz2[i2ind3+1] - y1;
 	  float dz = xyz2[i2ind3+2] - z1;
@@ -511,7 +513,7 @@ static void find_close_points_all_pairs(const Point_List &p1,
 					Index_Set &is1, Index_Set &is2,
 					Nearest_Points *np1)
 {
-  int n1 = p1.size(), n2 = p2.size();
+  Index n1 = p1.size(), n2 = p2.size();
   if (p1.index_range() == n1 && p2.index_range() == n2)
     {
       // Optimization for non-sublist case.
@@ -519,15 +521,15 @@ static void find_close_points_all_pairs(const Point_List &p1,
       return;
     }
   float d2_limit = d*d;
-  for (int k1 = 0 ; k1 < n1 ; ++k1)
+  for (int64_t k1 = 0 ; k1 < n1 ; ++k1)
     {
-      int i1ind = p1.index(k1);
-      int i1ind3 = 3 * i1ind;
+      Index i1ind = p1.index(k1);
+      Index i1ind3 = 3 * i1ind;
       float x1 = p1.xyz[i1ind3], y1 = p1.xyz[i1ind3+1], z1 = p1.xyz[i1ind3+2];
-      for (int k2 = 0 ; k2 < n2 ; ++k2)
+      for (int64_t k2 = 0 ; k2 < n2 ; ++k2)
 	{
-	  int i2ind = p2.index(k2);
-	  int i2ind3 = 3 * i2ind;
+	  Index i2ind = p2.index(k2);
+	  Index i2ind3 = 3 * i2ind;
 	  float dx = p2.xyz[i2ind3] - x1;
 	  float dy = p2.xyz[i2ind3+1] - y1;
 	  float dz = p2.xyz[i2ind3+2] - z1;
@@ -547,11 +549,11 @@ static void find_close_points_all_pairs(const Point_List &p1,
 //
 static void bin_points(const Point_List &p, float d, Bin_Map &bins)
 {
-  int n = p.size();
-  for (int k = 0 ; k < n ; ++k)
+  Index n = p.size();
+  for (int64_t k = 0 ; k < n ; ++k)
     {
-      int i = p.index(k);
-      int i3 = 3*i;
+      Index i = p.index(k);
+      Index i3 = 3*i;
       float x = p.xyz[i3], y = p.xyz[i3+1], z = p.xyz[i3+2];
       Index3 b(static_cast<int>(floor(x/d)),
 	       static_cast<int>(floor(y/d)),
@@ -594,7 +596,7 @@ static void find_close_points_boxes(const Point_List &p1, const Point_List &p2,
 				    Nearest_Points *np1)
 {
   const float volume_threshold = .5;
-  const int n_cutoff = 20;
+  const Index n_cutoff = 20;
 
   if (p1.size() < n_cutoff || p2.size() < n_cutoff)
     {
@@ -622,7 +624,7 @@ static void find_close_points_boxes(const Point_List &p1, const Point_List &p2,
       else if (box2.size(0) == 0 && box2.size(1) == 0 && box2.size(2) == 0 && p2.size() > 0)
 	{
 	  // If lots of identical points are in list 2 avoid recursing forever.
-	  int i2 = p2.index(0);
+	  Index i2 = p2.index(0);
 	  Point_List p20(p2.xyz, p2.index_range(), &i2, 1);
 	  find_close_points_all_pairs(p1, p20, d, is1, is2, np1);
 	  return;
@@ -672,7 +674,7 @@ static void find_close_points_subboxes(const Point_List &p1, Box *box1,
 {
   if (box1 && box2)
     {
-      int *ib1, nib1, *ib2, nib2;
+      Index *ib1, nib1, *ib2, nib2;
       if (points_in_box(p1, *box1, &ib1, &nib1) == 0)
 	return;
       if (points_in_box(p2, *box2, &ib2, &nib2) == 0)
@@ -686,7 +688,7 @@ static void find_close_points_subboxes(const Point_List &p1, Box *box1,
     }
   else if (box1)
     {
-      int *ib1, nib1;
+      Index *ib1, nib1;
       if (points_in_box(p1, *box1, &ib1, &nib1) == 0)
 	return;
       Point_List p1f(p1.xyz, p1.index_range(), ib1, nib1, true);
@@ -694,7 +696,7 @@ static void find_close_points_subboxes(const Point_List &p1, Box *box1,
     }
   else if (box2)
     {
-      int *ib2, nib2;
+      Index *ib2, nib2;
       if (points_in_box(p2, *box2, &ib2, &nib2) == 0)
 	return;
       Point_List p2f(p2.xyz, p2.index_range(), ib2, nib2, true);
@@ -708,7 +710,7 @@ static void split_point_list(const Point_List &p, int axis,
 			     Point_List **p1, Point_List **p2)
 {
   // TODO: Should split box in one loop comparing only one axis for speed.
-  int *i1, ni1, *i2, ni2;
+  Index *i1, ni1, *i2, ni2;
   split_point_list(p, axis, &i1, &ni1, &i2, &ni2);
   *p1 = new Point_List(p.xyz, p.index_range(), i1, ni1, true);
   *p2 = new Point_List(p.xyz, p.index_range(), i2, ni2, true);
@@ -717,18 +719,18 @@ static void split_point_list(const Point_List &p, int axis,
 // ----------------------------------------------------------------------------
 //
 static void split_point_list(const Point_List &p, int axis,
-			     int **i1, int *ni1, int **i2, int *ni2)
+			     Index **i1, Index *ni1, Index **i2, Index *ni2)
 {
   const Box &box = p.bounding_box();
   float amid = .5 * (box.xyz_min[axis] + box.xyz_max[axis]);
-  int n = p.size();
-  int *il = new int[n];
-  int li = 0, gi = n-1;
+  Index n = p.size();
+  Index *il = new Index[n];
+  Index li = 0, gi = n-1;
   const float *axyz = p.xyz + axis;
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
-      int i = p.index(k);
-      int i3 = 3*i;
+      Index i = p.index(k);
+      Index i3 = 3*i;
       float ap = axyz[i3];
       if (ap >= amid)
 	il[li++] = i;
@@ -736,11 +738,11 @@ static void split_point_list(const Point_List &p, int axis,
 	il[gi--] = i;
     }
 
-  int *ic1 = new int[li];
-  int *ic2 = new int[n-1-gi];
-  for (int k = 0 ; k < li ; ++k)
+  Index *ic1 = new Index[li];
+  Index *ic2 = new Index[n-1-gi];
+  for (int64_t k = 0 ; k < li ; ++k)
     ic1[k] = il[k];
-  for (int k = n-1 ; k > gi ; --k)
+  for (int64_t k = n-1 ; k > gi ; --k)
     ic2[n-1-k] = il[k];
   delete [] il;
 
@@ -795,8 +797,8 @@ static float minimum_separation_squared(const Box &box1, const Box &box2)
 //
 static void add_points_to_set(const Point_List &p, Index_Set &is)
 {
-  int n = p.size();
-  for (int k = 0 ; k < n ; ++k)
+  Index n = p.size();
+  for (int64_t k = 0 ; k < n ; ++k)
     is.add_index(p.index(k));
 }
 
@@ -879,7 +881,7 @@ const Box &Point_List::bounding_box() const
 
   float xmin, xmax, ymin, ymax, zmin, zmax;
 
-  int n = size();
+  Index n = size();
   if (n == 0)
     {
       xmin = ymin = zmin = 0;
@@ -887,14 +889,14 @@ const Box &Point_List::bounding_box() const
     }
   else
     {
-      int i3 = 3*index(0);
+      Index i3 = 3*index(0);
       xmin = xyz[i3]; ymin = xyz[i3+1]; zmin = xyz[i3+2];
       xmax = xmin; ymax = ymin; zmax = zmin;
     }
 
-  for (int k = 1 ; k < n ; ++k)
+  for (int64_t k = 1 ; k < n ; ++k)
     {
-      int i3 = 3*index(k);
+      Index i3 = 3*index(k);
       float x = xyz[i3], y = xyz[i3+1], z = xyz[i3+2];
       if (x < xmin) xmin = x;
       else if (x > xmax) xmax = x;
@@ -912,19 +914,19 @@ const Box &Point_List::bounding_box() const
 
 // ----------------------------------------------------------------------------
 //
-static int points_in_box(const Point_List &p, const Box &box,
-			 int **ilist, int *nilist)
+static Index points_in_box(const Point_List &p, const Box &box,
+			 Index **ilist, Index *nilist)
 {
   float x, y, z;
   float xmin = box.xyz_min[0], ymin = box.xyz_min[1], zmin = box.xyz_min[2];
   float xmax = box.xyz_max[0], ymax = box.xyz_max[1], zmax = box.xyz_max[2];
-  int n = p.size();
-  int *il = new int[n];
-  int ni = 0;
-  for (int k = 0 ; k < n ; ++k)
+  Index n = p.size();
+  Index *il = new Index[n];
+  Index ni = 0;
+  for (int64_t k = 0 ; k < n ; ++k)
     {
-      int i = p.index(k);
-      int i3 = 3*i;
+      Index i = p.index(k);
+      Index i3 = 3*i;
       x = p.xyz[i3];
       if (x >= xmin && x <= xmax)
 	{
@@ -938,8 +940,8 @@ static int points_in_box(const Point_List &p, const Box &box,
 	}
     }
 
-  int *iresize = (ni > 0 ? new int[ni] : NULL);
-  for (int k = 0 ; k < ni ; ++k)
+  Index *iresize = (ni > 0 ? new Index[ni] : NULL);
+  for (int64_t k = 0 ; k < ni ; ++k)
     iresize[k] = il[k];
   delete [] il;
 
@@ -981,7 +983,7 @@ static bool reduce_to_box_intersection(Point_List &p, const Box &box,
   change = false;
   if (ibox.volume() < volume_threshold * pbox.volume())
     {
-      int pre = p.size();
+      Index pre = p.size();
       p.restrict_to_box(ibox);
       if (pre > p.size())
         change = true;
@@ -994,7 +996,7 @@ static bool reduce_to_box_intersection(Point_List &p, const Box &box,
 //
 void Point_List::restrict_to_box(const Box &box)
 {
-  int *i, ni;
+  Index *i, ni;
   points_in_box(*this, box, &i, &ni);
   if (ilist && delete_ilist)
     delete [] ilist;
@@ -1018,13 +1020,14 @@ void find_close_points(Close_Points_Method m,
   typedef map<int, Index_Set *> ISTable;
   ISTable is1, is2;
   BBox_Cache bbox_cache;
-  for (unsigned int k1 = 0 ; k1 < p1.size() ; ++k1)
+  Index n1 = p1.size(), n2 = p2.size();
+  for (Index k1 = 0 ; k1 < n1 ; ++k1)
     {
       const Transformed_Points &tp1 = p1[k1];
       Box bbox1;
       Point_List *pl1;
       bbox_cache.bounding_box(tp1, &bbox1, &pl1);
-      for (unsigned int k2 = 0 ; k2 < p2.size() ; ++k2)
+      for (Index k2 = 0 ; k2 < n2 ; ++k2)
 	{
 	  const Transformed_Points &tp2 = p2[k2];
 	  Box bbox2;
@@ -1166,15 +1169,15 @@ Point_List *BBox_Cache::point_list(const Transformed_Points &tp)
 
 // ----------------------------------------------------------------------------
 //
-static void transform_points(const float *xyz, int n,
+static void transform_points(const float *xyz, Index n,
 			     const float rotation[3][3],
 			     const float translation[3],
 			     float *txyz)
 {
   const float (*r)[3] = rotation;
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
-      int k3 = 3*k;
+      Index k3 = 3*k;
       float x = xyz[k3], y = xyz[k3+1], z = xyz[k3+2];
       txyz[k3] = r[0][0]*x + r[0][1]*y + r[0][2]*z + translation[0];
       txyz[k3+1] = r[1][0]*x + r[1][1]*y + r[1][2]*z + translation[1];
@@ -1184,15 +1187,15 @@ static void transform_points(const float *xyz, int n,
 
 // ----------------------------------------------------------------------------
 //
-static void inverse_transform_points(const float *xyz, int n,
+static void inverse_transform_points(const float *xyz, Index n,
 				     const float rotation[3][3],
 				     const float translation[3],
 				     float *itxyz)
 {
   const float (*r)[3] = rotation;
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
-      int k3 = 3*k;
+      Index k3 = 3*k;
       float x = xyz[k3] - translation[0];
       float y = xyz[k3+1] - translation[1];
       float z = xyz[k3+2] - translation[2];
@@ -1220,7 +1223,7 @@ static void box_corners(const Box &box, float *corners)
 
 // ----------------------------------------------------------------------------
 //
-static void transformed_points_bounding_box(const float *xyz, int n,
+static void transformed_points_bounding_box(const float *xyz, Index n,
 					    const float rotation[3][3],
 					    const float translation[3],
 					    Box *box)
@@ -1231,9 +1234,9 @@ static void transformed_points_bounding_box(const float *xyz, int n,
   const float (*r)[3] = rotation;
   // Initialized to zero to suppress compiler warning about uninitialized use.
   float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
-      int k3 = 3*k;
+      Index k3 = 3*k;
       float x = xyz[k3], y = xyz[k3+1], z = xyz[k3+2];
       float tx = r[0][0]*x + r[0][1]*y + r[0][2]*z + translation[0];
       float ty = r[1][0]*x + r[1][1]*y + r[1][2]*z + translation[1];
@@ -1414,7 +1417,7 @@ static bool transformed_points(PyObject *py_tp, Transformed_Points *tp)
   PyObject *py_xyz = PySequence_GetItem(py_tp, 0);
   Py_XDECREF(py_xyz);
   float *xyz;
-  int n;
+  Index n;
   if (! float_2d_array_values(py_xyz, 3, &xyz, &n))
     return false;
 
@@ -1454,8 +1457,8 @@ static bool transformed_points_list(PyObject *py_tpl,
 		      "Transformed points list argument is not a sequence");
       return false;
     }
-  int size = PySequence_Length(py_tpl);
-  for (int k = 0 ; k < size ; ++k)
+  Index size = PySequence_Length(py_tpl);
+  for (int64_t k = 0 ; k < size ; ++k)
     {
       PyObject *py_tp = PySequence_GetItem(py_tpl, k);
       Py_XDECREF(py_tp);
@@ -1472,9 +1475,9 @@ static bool transformed_points_list(PyObject *py_tpl,
 //
 static PyObject *index_lists(const vector<Index_List> &i)
 {
-  int sz = i.size();
+  Index sz = i.size();
   PyObject *t = PyTuple_New(sz);
-  for (int k = 0 ; k < sz ; ++k)
+  for (int64_t k = 0 ; k < sz ; ++k)
     PyTuple_SetItem(t, k, c_array_to_python(i[k]));
   return t;
 }
@@ -1531,7 +1534,7 @@ extern "C" PyObject *find_close_points_sets(PyObject *, PyObject *args, PyObject
       !transformed_points_list(py_tp2, &p2))
     return NULL;
 
-  int n1 = p1.size(), n2 = p2.size();
+  Index n1 = p1.size(), n2 = p2.size();
   vector<Index_List> i1(n1), i2(n2);
   Py_BEGIN_ALLOW_THREADS
   find_close_points(CP_BOXES, p1, p2, static_cast<float>(d), &i1, &i2);

@@ -28,15 +28,15 @@
 static void axes_sphere_bounds(const FArray &centers, const FArray &radii, const FArray &axes,
 			       float *axes_bounds)
 {
-  long n = centers.size(0), na = axes.size(0);
-  long cs0 = centers.stride(0), cs1 = centers.stride(1);
-  long rs = radii.stride(0), as0 = axes.stride(0), as1 = axes.stride(1);
+  int64_t n = centers.size(0), na = axes.size(0);
+  int64_t cs0 = centers.stride(0), cs1 = centers.stride(1);
+  int64_t rs = radii.stride(0), as0 = axes.stride(0), as1 = axes.stride(1);
   float *ca = centers.values(), *ra = radii.values(), *aa = axes.values(), *ba = axes_bounds;
-  for (long i = 0 ; i < n ; ++i)
+  for (int64_t i = 0 ; i < n ; ++i)
     {
       float *ci = ca + i*cs0;
       float x = ci[0], y = ci[cs1], z = ci[2*cs1], r = ra[i*rs];
-      for (long j = 0 ; j < na ; ++j)
+      for (int64_t j = 0 ; j < na ; ++j)
 	{
 	  float *aj = aa + j*as0;
 	  float d = x*aj[0] + y*aj[as1] + z*aj[2*as1];
@@ -64,8 +64,8 @@ PyObject *sphere_axes_bounds(PyObject *, PyObject *args, PyObject *keywds)
     return NULL;
 
   if (radii.size() != centers.size(0))
-    return PyErr_Format(PyExc_ValueError, "Centers and radii arrays have different sizes %ld and %ld",
-			centers.size(0), radii.size());
+    return PyErr_Format(PyExc_ValueError, "Centers and radii arrays have different sizes %s and %s",
+			centers.size_string(0).c_str(), radii.size_string().c_str());
 
   float *axes_bounds;
   PyObject *bounds = python_float_array(axes.size(0), 2, &axes_bounds);
@@ -78,17 +78,17 @@ PyObject *sphere_axes_bounds(PyObject *, PyObject *args, PyObject *keywds)
 static void spheres_in_axes_bounds(const FArray &centers, const FArray &radii, const FArray &axes,
 				   const FArray &axes_bounds, float padding, std::vector<int> &in)
 {
-  long n = centers.size(0), na = axes.size(0);
-  long cs0 = centers.stride(0), cs1 = centers.stride(1);
-  long rs = radii.stride(0), as0 = axes.stride(0), as1 = axes.stride(1);
-  long bs0 = axes_bounds.stride(0), bs1 = axes_bounds.stride(1);
+  int64_t n = centers.size(0), na = axes.size(0);
+  int64_t cs0 = centers.stride(0), cs1 = centers.stride(1);
+  int64_t rs = radii.stride(0), as0 = axes.stride(0), as1 = axes.stride(1);
+  int64_t bs0 = axes_bounds.stride(0), bs1 = axes_bounds.stride(1);
   float *ca = centers.values(), *ra = radii.values(), *aa = axes.values(), *ba = axes_bounds.values();
-  for (long i = 0 ; i < n ; ++i)
+  for (int64_t i = 0 ; i < n ; ++i)
     {
       float *ci = ca + i*cs0;
       float x = ci[0], y = ci[cs1], z = ci[2*cs1], r = ra[i*rs];
       bool jin = true;
-      for (long j = 0 ; j < na ; ++j)
+      for (int64_t j = 0 ; j < na ; ++j)
 	{
 	  float *aj = aa + j*as0;
 	  float d = x*aj[0] + y*aj[as1] + z*aj[2*as1];
@@ -122,11 +122,11 @@ PyObject *spheres_in_bounds(PyObject *, PyObject *args, PyObject *keywds)
     return NULL;
 
   if (radii.size() != centers.size(0))
-    return PyErr_Format(PyExc_ValueError, "Centers and radii arrays have different sizes %ld and %ld",
-			centers.size(0), radii.size());
+    return PyErr_Format(PyExc_ValueError, "Centers and radii arrays have different sizes %s and %s",
+			centers.size_string(0).c_str(), radii.size_string().c_str());
   if (axes.size(0) != axes_bounds.size(0))
-    return PyErr_Format(PyExc_ValueError, "Axes and axes bounds arrays have different sizes %ld and %ld",
-			axes.size(0), axes_bounds.size(0));
+    return PyErr_Format(PyExc_ValueError, "Axes and axes bounds arrays have different sizes %s and %s",
+			axes.size_string(0).c_str(), axes_bounds.size_string(0).c_str());
 
   std::vector<int> in;
   spheres_in_axes_bounds(centers, radii, axes, axes_bounds, padding, in);
@@ -138,11 +138,11 @@ PyObject *spheres_in_bounds(PyObject *, PyObject *args, PyObject *keywds)
 //
 static bool axes_bounds_overlap(const FArray &bounds1, const FArray &bounds2, float padding)
 {
-  long n = bounds1.size(0);
-  long b1s0 = bounds1.stride(0), b1s1 = bounds1.stride(1);
-  long b2s0 = bounds2.stride(0), b2s1 = bounds2.stride(1);
+  int64_t n = bounds1.size(0);
+  int64_t b1s0 = bounds1.stride(0), b1s1 = bounds1.stride(1);
+  int64_t b2s0 = bounds2.stride(0), b2s1 = bounds2.stride(1);
   float *b1 = bounds1.values(), *b2 = bounds2.values();
-  for (long i = 0 ; i < n ; ++i)
+  for (int64_t i = 0 ; i < n ; ++i)
     {
       float b1min = b1[i*b1s0], b1max = b1[i*b1s0+b1s1];
       float b2min = b2[i*b2s0], b2max = b2[i*b2s0+b2s1];
@@ -179,11 +179,11 @@ PyObject *bounds_overlap(PyObject *, PyObject *args, PyObject *keywds)
 //
 static void sphere_bounding_box(const FArray &centers, const FArray &radii, float *xyz_min, float *xyz_max)
 {
-  long n = centers.size(0);
-  long cs0 = centers.stride(0), cs1 = centers.stride(1), rs = radii.stride(0);
+  int64_t n = centers.size(0);
+  int64_t cs0 = centers.stride(0), cs1 = centers.stride(1), rs = radii.stride(0);
   float *ca = centers.values(), *ra = radii.values();
   float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
-  for (long i = 0 ; i < n ; ++i, ca += cs0, ra += rs)
+  for (int64_t i = 0 ; i < n ; ++i, ca += cs0, ra += rs)
     {
       float x = ca[0], y = ca[cs1], z = ca[2*cs1], r = *ra;
       if (i == 0)
@@ -216,8 +216,8 @@ PyObject *sphere_bounds(PyObject *, PyObject *args, PyObject *keywds)
     return NULL;
 
   if (radii.size() != centers.size(0))
-    return PyErr_Format(PyExc_ValueError, "Centers and radii arrays have different sizes %ld and %ld",
-			centers.size(0), radii.size());
+    return PyErr_Format(PyExc_ValueError, "Centers and radii arrays have different sizes %s and %s",
+			centers.size_string(0).c_str(), radii.size_string().c_str());
 
   float *xyz_bounds;
   PyObject *bounds = python_float_array(2, 3, &xyz_bounds);
@@ -230,10 +230,10 @@ PyObject *sphere_bounds(PyObject *, PyObject *args, PyObject *keywds)
 static void points_within_planes(const FArray &points, const FArray &planes, unsigned char *pmask)
 {
   float *p = points.values(), *pl = planes.values();
-  int n = points.size(0), np = planes.size(0), j;
-  long ps0 = points.stride(0), ps1 = points.stride(1);
-  long pls0 = planes.stride(0), pls1 = planes.stride(1);
-  for (int i = 0 ; i < n ; ++i)
+  int64_t n = points.size(0), np = planes.size(0), j;
+  int64_t ps0 = points.stride(0), ps1 = points.stride(1);
+  int64_t pls0 = planes.stride(0), pls1 = planes.stride(1);
+  for (int64_t i = 0 ; i < n ; ++i)
     {
       for (j = 0 ; j < np ; ++j)
 	if (p[i*ps0]*pl[j*pls0] + p[i*ps0+ps1]*pl[j*pls0+pls1] + p[i*ps0+2*pls1]*pl[j*pls0+2*pls1] + pl[j*pls0+3*pls1] < 0)
@@ -265,11 +265,11 @@ PyObject *points_within_planes(PyObject *, PyObject *args, PyObject *keywds)
 //
 static void points_bounding_box(const FArray &points, float *xyz_min, float *xyz_max)
 {
-  long n = points.size(0);
-  long ps0 = points.stride(0), ps1 = points.stride(1);
+  int64_t n = points.size(0);
+  int64_t ps0 = points.stride(0), ps1 = points.stride(1);
   float *pa = points.values();
   float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
-  for (long i = 0 ; i < n ; ++i, pa += ps0)
+  for (int64_t i = 0 ; i < n ; ++i, pa += ps0)
     {
       float x = pa[0], y = pa[ps1], z = pa[2*ps1];
       if (i == 0)
@@ -311,20 +311,20 @@ PyObject *point_bounds(PyObject *, PyObject *args, PyObject *keywds)
 static void point_copies_bounding_box(const FArray &points, const FArray &positions,
 				      float *xyz_min, float *xyz_max)
 {
-  long n = points.size(0), m = positions.size(0);
-  long ps0 = points.stride(0), ps1 = points.stride(1);
-  long pos0 = positions.stride(0), pos1 = positions.stride(1), pos2 = positions.stride(2);
+  int64_t n = points.size(0), m = positions.size(0);
+  int64_t ps0 = points.stride(0), ps1 = points.stride(1);
+  int64_t pos0 = positions.stride(0), pos1 = positions.stride(1), pos2 = positions.stride(2);
   float *pa0 = points.values(), *poa = positions.values();
   float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
-  for (long j = 0 ; j < m ; ++j, poa += pos0)
+  for (int64_t j = 0 ; j < m ; ++j, poa += pos0)
     {
-      long k0 = 0, k1 = pos2, k2 = 2*pos2, k3 = 3*pos2;
+      int64_t k0 = 0, k1 = pos2, k2 = 2*pos2, k3 = 3*pos2;
       float *poa0 = poa, *poa1 = poa + pos1, *poa2 = poa + 2*pos1;
       float p00 = poa0[k0], p01 = poa0[k1], p02 = poa0[k2], p03 = poa0[k3];
       float p10 = poa1[k0], p11 = poa1[k1], p12 = poa1[k2], p13 = poa1[k3];
       float p20 = poa2[k0], p21 = poa2[k1], p22 = poa2[k2], p23 = poa2[k3];
       float *pa = pa0;
-      for (long i = 0 ; i < n ; ++i, pa += ps0)
+      for (int64_t i = 0 ; i < n ; ++i, pa += ps0)
 	{
 	  float x0 = pa[0], y0 = pa[ps1], z0 = pa[2*ps1];
 	  float x = p00*x0 + p01*y0 + p02*z0 + p03;
@@ -364,8 +364,8 @@ PyObject *point_copies_bounds(PyObject *, PyObject *args, PyObject *keywds)
     return PyErr_Format(PyExc_ValueError, "Positions array is not 3 dimensional, got %d",
 			positions.dimension());
   if (positions.size(1) != 3 || positions.size(2) != 4)
-    return PyErr_Format(PyExc_ValueError, "Positions array is not of size Nx3x4, got %ld by %ld by %ld",
-			positions.size(0), positions.size(1), positions.size(2));
+    return PyErr_Format(PyExc_ValueError, "Positions array is not of size Nx3x4, got %s",
+			positions.size_string().c_str());
 
   float *xyz_bounds;
   PyObject *bounds = python_float_array(2, 3, &xyz_bounds);

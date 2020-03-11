@@ -30,10 +30,10 @@ static void blend_colors(float f, const Reference_Counted_Array::Array<T> &m1,
 			 const Reference_Counted_Array::Array<T> &bgcolor,
 			 float alpha,
 			 const Reference_Counted_Array::Array<T> &m,
-			 long *count)
+			 int64_t *count)
 			   
 {
-  long n = m.size(), c = 0;
+  int64_t n = m.size(), c = 0;
   T *v1 = m1.values(), *v2 = m2.values(), *v = m.values(), *bg = bgcolor.values();
   T bg0 = bg[0], bg1 = bg[1], bg2 = bg[2], a = static_cast<T>(floor(alpha));;
   for (int k = 0 ; k < n ; k += 4)
@@ -98,7 +98,7 @@ extern "C" PyObject *blur_blend_images(PyObject *, PyObject *args, PyObject *key
       PyErr_SetString(PyExc_TypeError, "blend_images: bgcolor must be contiguous 3 element array");
       return NULL;
     }
-  long count;
+  int64_t count;
   call_template_function(blend_colors, m.value_type(), (f, m1, m2, bgcolor, alpha, m, &count));
 
   PyObject *count_py = PyLong_FromLong(count);
@@ -135,8 +135,8 @@ extern "C" PyObject *accumulate_images(PyObject *, PyObject *args, PyObject *key
 
   unsigned char *v8 = static_cast<unsigned char *>(rgba8.values());
   unsigned int *v32 = static_cast<unsigned int *>(rgba32.values());
-  long n = rgba8.size();
-  for (long i = 0 ; i < n ; ++i)
+  int64_t n = rgba8.size();
+  for (int64_t i = 0 ; i < n ; ++i)
     v32[i] += v8[i];
 
   return python_none();

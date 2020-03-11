@@ -29,9 +29,9 @@ static void scale_and_shift_vertices(FArray &vertex_positions,
 				     float xyz_origin[3], float xyz_step[3])
 {
   float *xyz = vertex_positions.values();
-  int n = vertex_positions.size(0);
-  int n3 = 3 * n;
-  for (int k = 0 ; k < n3 ; k += 3)
+  int64_t n = vertex_positions.size(0);
+  int64_t n3 = 3 * n;
+  for (int64_t k = 0 ; k < n3 ; k += 3)
     for (int a = 0 ; a < 3 ; ++a)
       xyz[k+a] = xyz[k+a] * xyz_step[a] + xyz_origin[a];
 }
@@ -59,9 +59,9 @@ extern "C" PyObject *scale_and_shift_vertices(PyObject *, PyObject *args)
 static void scale_vertices(FArray &vertex_positions, float xyz_step[3])
 {
   float *xyz = vertex_positions.values();
-  int n = vertex_positions.size(0);
-  int n3 = 3 * n;
-  for (int k = 0 ; k < n3 ; k += 3)
+  int64_t n = vertex_positions.size(0);
+  int64_t n3 = 3 * n;
+  for (int64_t k = 0 ; k < n3 ; k += 3)
     for (int a = 0 ; a < 3 ; ++a)
       xyz[k+a] *= xyz_step[a];
 }
@@ -88,9 +88,9 @@ extern "C" PyObject *scale_vertices(PyObject *, PyObject *args)
 static void shift_vertices(FArray &vertex_positions, float xyz_origin[3])
 {
   float *xyz = vertex_positions.values();
-  int n = vertex_positions.size(0);
-  int n3 = 3 * n;
-  for (int k = 0 ; k < n3 ; k += 3)
+  int64_t n = vertex_positions.size(0);
+  int64_t n3 = 3 * n;
+  for (int64_t k = 0 ; k < n3 ; k += 3)
     for (int a = 0 ; a < 3 ; ++a)
       xyz[k+a] += xyz_origin[a];
 }
@@ -117,12 +117,12 @@ extern "C" PyObject *shift_vertices(PyObject *, PyObject *args)
 static void affine_transform_vertices(FArray &vertex_positions, float tf[3][4])
 {
   float *xyz = vertex_positions.values();
-  int n = vertex_positions.size(0);
-  int s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
+  int64_t n = vertex_positions.size(0);
+  int64_t s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
   float t00 = tf[0][0], t01 = tf[0][1], t02 = tf[0][2], t03 = tf[0][3];
   float t10 = tf[1][0], t11 = tf[1][1], t12 = tf[1][2], t13 = tf[1][3];
   float t20 = tf[2][0], t21 = tf[2][1], t22 = tf[2][2], t23 = tf[2][3];
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float *px = xyz + s0*k;
       float *py = px + s1;
@@ -139,12 +139,12 @@ static void affine_transform_vertices(FArray &vertex_positions, float tf[3][4])
 static void affine_transform_vertices(DArray &vertex_positions, double tf[3][4])
 {
   double *xyz = vertex_positions.values();
-  int n = vertex_positions.size(0);
-  int s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
+  int64_t n = vertex_positions.size(0);
+  int64_t s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
   double t00 = tf[0][0], t01 = tf[0][1], t02 = tf[0][2], t03 = tf[0][3];
   double t10 = tf[1][0], t11 = tf[1][1], t12 = tf[1][2], t13 = tf[1][3];
   double t20 = tf[2][0], t21 = tf[2][1], t22 = tf[2][2], t23 = tf[2][3];
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       double *px = xyz + s0*k;
       double *py = px + s1;
@@ -188,8 +188,8 @@ extern "C" PyObject *affine_transform_vertices(PyObject *, PyObject *args)
 static void affine_transform_normals(FArray &vertex_positions, float tf[3][3])
 {
   float *xyz = vertex_positions.values();
-  int n = vertex_positions.size(0);
-  int s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
+  int64_t n = vertex_positions.size(0);
+  int64_t s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
 
   float t00 = tf[0][0], t01 = tf[0][1], t02 = tf[0][2];
   float t10 = tf[1][0], t11 = tf[1][1], t12 = tf[1][2];
@@ -209,7 +209,7 @@ static void affine_transform_normals(FArray &vertex_positions, float tf[3][3])
   r10 /= det; r11 /= det; r12 /= det;
   r20 /= det; r21 /= det; r22 /= det;
 
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       float *px = xyz + s0*k;
       float *py = px + s1;
@@ -234,8 +234,8 @@ static void affine_transform_normals(FArray &vertex_positions, float tf[3][3])
 static void affine_transform_normals(DArray &vertex_positions, double tf[3][3])
 {
   double *xyz = vertex_positions.values();
-  int n = vertex_positions.size(0);
-  int s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
+  int64_t n = vertex_positions.size(0);
+  int64_t s0 = vertex_positions.stride(0), s1 = vertex_positions.stride(1);
 
   double t00 = tf[0][0], t01 = tf[0][1], t02 = tf[0][2];
   double t10 = tf[1][0], t11 = tf[1][1], t12 = tf[1][2];
@@ -255,7 +255,7 @@ static void affine_transform_normals(DArray &vertex_positions, double tf[3][3])
   r10 /= det; r11 /= det; r12 /= det;
   r20 /= det; r21 /= det; r22 /= det;
 
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
     {
       double *px = xyz + s0*k;
       double *py = px + s1;

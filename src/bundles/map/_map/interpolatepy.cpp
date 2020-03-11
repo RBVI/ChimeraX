@@ -55,7 +55,7 @@ extern "C" PyObject *interpolate_volume_data(PyObject *, PyObject *args,
   FArray vcontig = vertices.contiguous_array();
   float (*varray)[3] = reinterpret_cast<float(*)[3]>(vcontig.values());
 
-  int n = vertices.size(0);
+  int64_t n = vertices.size(0);
 
   bool alloc_values = (values.dimension() == 0);
   if (alloc_values)
@@ -101,7 +101,7 @@ extern "C" PyObject *interpolate_volume_gradient(PyObject *, PyObject *args,
   FArray vcontig = vertices.contiguous_array();
   float (*varray)[3] = reinterpret_cast<float(*)[3]>(vcontig.values());
 
-  int n = vertices.size(0);
+  int64_t n = vertices.size(0);
   
   bool alloc_gradients = (gradients.dimension() == 0);
   if (alloc_gradients)
@@ -159,7 +159,7 @@ extern "C" PyObject *interpolate_colormap(PyObject *, PyObject *args)
 			parse_float_4_array, &rgba_above,
 			parse_float_4_array, &rgba_below,
 			parse_writable_float_n4_array, &rgba) ||
-      !check_array_size(colors, color_data_values.size(), 4) ||
+      !check_array_size(colors, color_data_values.size(), (int64_t)4) ||
       (rgba.dimension() > 0 && !check_array_size(rgba, values.size(0), 4, true)))
     return NULL;
 
@@ -168,7 +168,7 @@ extern "C" PyObject *interpolate_colormap(PyObject *, PyObject *args)
   FArray cvcontig = colors.contiguous_array();
   float (*cva)[4] = reinterpret_cast<float(*)[4]>(cvcontig.values());
 
-  int n = values.size();
+  int64_t n = values.size();
 
   bool alloc_rgba = (rgba.dimension() == 0);
   if (alloc_rgba)
