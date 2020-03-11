@@ -17,6 +17,7 @@ class _LogSettings(Settings):
     EXPLICIT_SAVE = {
         'errors_raise_dialog': True,
         'warnings_raise_dialog': False,
+        'session_restore_clears': True,
     }
 
     AUTO_SAVE = {
@@ -27,15 +28,20 @@ class _LogSettings(Settings):
 
 def register_settings_options(session):
     from chimerax.ui.options import BooleanOption
+    from chimerax.core.utils import CustomSortString
     settings_info = {
         'errors_raise_dialog': (
-            'Errors shown in dialog',
+            CustomSortString('Errors shown in dialog', 1),
             BooleanOption,
             'Should error messages be shown in a separate dialog as well as being logged'),
         'warnings_raise_dialog': (
-            'Warnings shown in dialog',
+            CustomSortString('Warnings shown in dialog', 1),
             BooleanOption,
             'Should warning messages be shown in a separate dialog as well as being logged'),
+        'session_restore_clears': (
+            CustomSortString('Restoring session clears log', 2),
+            BooleanOption,
+            'Restoring session clears log'),
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
