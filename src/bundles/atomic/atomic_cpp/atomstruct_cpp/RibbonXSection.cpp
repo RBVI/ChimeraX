@@ -26,7 +26,7 @@ static void
 dump_farray(const char *label, const FArray& v, int nc)
 {
     std::cerr << label << "(" << v.size(0) << ", " << nc << "):\n";
-    int index[2];
+    int64_t index[2];
     for (int i = 0; i != v.size(0); ++i) {
         index[0] = i;
         std::cerr << '\t';
@@ -266,8 +266,8 @@ RibbonXSection::_generate_normals()
 {
     FArray &c = is_arrow ? xs_coords2 : xs_coords;
     int num_coords = c.size(0);
-    int index0[2] = { 0, 0 };
-    int index1[2] = { 0, 1 };
+    int64_t index0[2] = { 0, 0 };
+    int64_t index1[2] = { 0, 1 };
     if (!is_faceted) {
         xs_normals = FArray(c.dimension(), c.sizes());
         for (int i = 0; i != num_coords; ++i) {
@@ -794,10 +794,10 @@ RibbonXSection::_blend_faceted(const IArray& back_band,
 void
 RibbonXSection::_normalize_normals(FArray& v) const
 {
-    int size = v.size(0);
-    int index0[2] = { 0, 0 };
-    int index1[2] = { 0, 1 };
-    for (int i = 0; i != size; ++i) {
+    int64_t size = v.size(0);
+    int64_t index0[2] = { 0, 0 };
+    int64_t index1[2] = { 0, 1 };
+    for (int64_t i = 0; i != size; ++i) {
         index0[0] = index1[0] = i;
         float x = v.value(index0);
         float y = v.value(index1);
@@ -813,11 +813,11 @@ void
 RibbonXSection::_tessellate()
 {
     // XXX: Assume convex for now
-    int num_coords = xs_coords.size(0);
-    int size[2] = { num_coords - 2, 3 };
+    int64_t num_coords = xs_coords.size(0);
+    int64_t size[2] = { num_coords - 2, 3 };
     tessellation = IArray(2, size);
     int* tdata = tessellation.values();
-    for (int i = 1; i != num_coords - 1; ++i) {
+    for (int64_t i = 1; i != num_coords - 1; ++i) {
         tdata[0] = 0;
         tdata[1] = i;
         tdata[2] = i + 1;

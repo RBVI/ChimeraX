@@ -22,25 +22,25 @@
 #include "intercept.h"
 
 static bool closest_triangle_intercept(const float *varray,
-				       const int *tarray, int nt,
+				       const int *tarray, int64_t nt,
 				       const float *xyz1, const float *xyz2,
-				       float *fmin, int *tmin);
+				       float *fmin, int64_t *tmin);
 static bool triangle_intercept(const float *va, const float *vb,
 			       const float *vc,
 			       const float *xyz1, const float *xyz2,
 			       float *fret);
-static bool closest_sphere_intercept(const float *centers, int n, int cstride0, int cstride1,
-				     const float *radii, int rstride,
+static bool closest_sphere_intercept(const float *centers, int64_t n, int64_t cstride0, int64_t cstride1,
+				     const float *radii, int64_t rstride,
 				     const float *xyz1, const float *xyz2,
-				     float *fmin, int *snum);
-static int segment_intercepts_spheres(const float *centers, int n, int cstride0, int cstride1,
+				     float *fmin, int64_t *snum);
+static int64_t segment_intercepts_spheres(const float *centers, int64_t n, int64_t cstride0, int64_t cstride1,
 				      const float radius, const float *xyz1, const float *xyz2,
 				      unsigned char *intercept);
-static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0, int b1stride1,
-				       const float *base2, int b2stride0, int b2stride1,
-				       const float *radii, int rstride,
+static bool closest_cylinder_intercept(const float *base1, int64_t n, int64_t b1stride0, int64_t b1stride1,
+				       const float *base2, int64_t b2stride0, int64_t b2stride1,
+				       const float *radii, int64_t rstride,
 				       const float *xyz1, const float *xyz2,
-				       float *fmin, int *cnum);
+				       float *fmin, int64_t *cnum);
 
 const char *closest_triangle_intercept_doc = 
   "closest_triangle_intercept(vertices, tarray, xyz1, xyz2) -> f, tnum\n"
@@ -88,7 +88,7 @@ PyObject *closest_triangle_intercept(PyObject *, PyObject *args, PyObject *keywd
     return NULL;
 
   float fmin;
-  int tmin;
+  int64_t tmin;
   PyObject *py_fmin, *py_tmin;
   if (closest_triangle_intercept(vertices.values(), triangles.values(), triangles.size(0),
 				 xyz1, xyz2, &fmin, &tmin))
@@ -109,13 +109,13 @@ PyObject *closest_triangle_intercept(PyObject *, PyObject *args, PyObject *keywd
 // ----------------------------------------------------------------------------
 //
 static bool closest_triangle_intercept(const float *varray,
-				       const int *tarray, int nt,
+				       const int *tarray, int64_t nt,
 				       const float *xyz1, const float *xyz2,
-				       float *fmin, int *tmin)
+				       float *fmin, int64_t *tmin)
 {
   float fc = -1;
-  int tc = -1;
-  for (int t = 0 ; t < nt ; ++t)
+  int64_t tc = -1;
+  for (int64_t t = 0 ; t < nt ; ++t)
     {
       int ia = tarray[3*t], ib = tarray[3*t+1], ic = tarray[3*t+2];
       const float *va = varray + 3*ia, *vb = varray + 3*ib, *vc = varray + 3*ic;
@@ -235,7 +235,7 @@ PyObject *closest_sphere_intercept(PyObject *, PyObject *args, PyObject *keywds)
     }
 
   float fmin;
-  int s;
+  int64_t s;
   PyObject *py_fmin, *py_snum;
   if (closest_sphere_intercept(centers.values(), centers.size(0), centers.stride(0), centers.stride(1),
 			       radii.values(), radii.stride(0),
@@ -256,10 +256,10 @@ PyObject *closest_sphere_intercept(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-static bool closest_sphere_intercept(const float *centers, int n, int cstride0, int cstride1,
-				     const float *radii, int rstride,
+static bool closest_sphere_intercept(const float *centers, int64_t n, int64_t cstride0, int64_t cstride1,
+				     const float *radii, int64_t rstride,
 				     const float *xyz1, const float *xyz2,
-				     float *fmin, int *snum)
+				     float *fmin, int64_t *snum)
 {
   float x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
   float dx = xyz2[0]-xyz1[0], dy = xyz2[1]-xyz1[1], dz = xyz2[2]-xyz1[2];
@@ -269,10 +269,10 @@ static bool closest_sphere_intercept(const float *centers, int n, int cstride0, 
   dx /= d; dy /= d; dz /= d;
 
   float dc = 2*d;
-  int sc;
-  for (int s = 0 ; s < n ; ++s)
+  int64_t sc;
+  for (int64_t s = 0 ; s < n ; ++s)
     {
-      int s3 = cstride0*s;
+      int64_t s3 = cstride0*s;
       float x = centers[s3], y = centers[s3+cstride1], z = centers[s3+2*cstride1], r = radii[s*rstride];
       float p = (x-x1)*dx + (y-y1)*dy + (z-z1)*dz;
       if (p >= 0 && p <= d + r && p < dc + r)
@@ -338,7 +338,7 @@ PyObject *segment_intercepts_spheres(PyObject *, PyObject *args, PyObject *keywd
 				   parse_float_3_array, &xyz2))
     return NULL;
 
-  int n = centers.size(0);
+  int64_t n = centers.size(0);
   unsigned char *intercept;
   PyObject *ipy = python_bool_array(n, &intercept);
   segment_intercepts_spheres(centers.values(), n, centers.stride(0), centers.stride(1),
@@ -348,7 +348,7 @@ PyObject *segment_intercepts_spheres(PyObject *, PyObject *args, PyObject *keywd
 
 // ----------------------------------------------------------------------------
 //
-static int segment_intercepts_spheres(const float *centers, int n, int cstride0, int cstride1,
+static int64_t segment_intercepts_spheres(const float *centers, int64_t n, int64_t cstride0, int64_t cstride1,
 				      const float radius, const float *xyz1, const float *xyz2,
 				      unsigned char *intercept)
 {
@@ -357,18 +357,18 @@ static int segment_intercepts_spheres(const float *centers, int n, int cstride0,
   float d = sqrt(dx*dx + dy*dy + dz*dz);
   if (d == 0)
     {
-      for (int s = 0 ; s < n ; ++s)
+      for (int64_t s = 0 ; s < n ; ++s)
 	intercept[s] = 0;
       return 0;
     }
   dx /= d; dy /= d; dz /= d;
   float r2 = radius * radius;
 
-  int ic, count = 0;
-  for (int s = 0 ; s < n ; ++s)
+  int64_t ic, count = 0;
+  for (int64_t s = 0 ; s < n ; ++s)
     {
       ic = 0;
-      int s3 = cstride0*s;
+      int64_t s3 = cstride0*s;
       float x = centers[s3], y = centers[s3+cstride1], z = centers[s3+2*cstride1];
       float p = (x-x1)*dx + (y-y1)*dy + (z-z1)*dz;
       if (p >= -radius && p <= d + radius)
@@ -440,7 +440,7 @@ PyObject *closest_cylinder_intercept(PyObject *, PyObject *args, PyObject *keywd
     }
 
   float fmin;
-  int c;
+  int64_t c;
   PyObject *py_fmin, *py_cnum;
   if (closest_cylinder_intercept(base1.values(), base1.size(0), base1.stride(0), base1.stride(1),
 				 base2.values(), base1.stride(0), base1.stride(1),
@@ -462,11 +462,11 @@ PyObject *closest_cylinder_intercept(PyObject *, PyObject *args, PyObject *keywd
 
 // ----------------------------------------------------------------------------
 //
-static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0, int b1stride1,
-				       const float *base2, int b2stride0, int b2stride1,
-				       const float *radii, int rstride,
+static bool closest_cylinder_intercept(const float *base1, int64_t n, int64_t b1stride0, int64_t b1stride1,
+				       const float *base2, int64_t b2stride0, int64_t b2stride1,
+				       const float *radii, int64_t rstride,
 				       const float *xyz1, const float *xyz2,
-				       float *fmin, int *cnum)
+				       float *fmin, int64_t *cnum)
 {
   float cx = xyz1[0], cy = xyz1[1], cz = xyz1[2];
   float dx = xyz2[0]-xyz1[0], dy = xyz2[1]-xyz1[1], dz = xyz2[2]-xyz1[2];
@@ -481,10 +481,10 @@ static bool closest_cylinder_intercept(const float *base1, int n, int b1stride0,
   float pc = -(px*cx + pz*cz);
 
   float fc = 2;
-  int cc;
-  for (int c = 0 ; c < n ; ++c)
+  int64_t cc;
+  for (int64_t c = 0 ; c < n ; ++c)
     {
-      int s3 = b1stride0*c;
+      int64_t s3 = b1stride0*c;
       float bx = base1[s3], by = base1[s3+b1stride1], bz = base1[s3+2*b1stride1], r = radii[c*rstride];
       s3 = b2stride0*c;
       float b2x = base2[s3], b2y = base2[s3+b2stride1], b2z = base2[s3+2*b2stride1];
