@@ -101,7 +101,7 @@ def show_cofr_indicator(session, show = True, axis_length = 2.0, axis_radius = 0
         for pi in i:
             v.drawing.remove_drawing(pi)
 
-from chimerax.core.graphics import Drawing
+from chimerax.graphics import Drawing
 class PivotIndicator(Drawing):
     skip_bounds = True
     casts_shadows = False

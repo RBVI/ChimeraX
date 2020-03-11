@@ -364,7 +364,7 @@ def stop_vr(session, simplify_graphics = True):
 
     c.close()
     
-    from chimerax.core.graphics import MonoCamera
+    from chimerax.graphics import MonoCamera
     v = session.main_view
     v.camera = MonoCamera()
     session.update_loop.set_redraw_interval(10)
@@ -385,7 +385,7 @@ def wait_for_vsync(session, wait):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Camera
+from chimerax.graphics import Camera
 from chimerax.core.state import StateManager	# For session saving
 class SteamVRCamera(Camera, StateManager):
 
@@ -797,12 +797,12 @@ class SteamVRCamera(Camera, StateManager):
 
     def view_width(self, point):
         fov = 100	# Effective field of view, degrees
-        from chimerax.core.graphics.camera import perspective_view_width
+        from chimerax.graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), fov)
 
     def view_all(self, bounds, window_size = None, pad = 0):
         fov = 100	# Effective field of view, degrees
-        from chimerax.core.graphics.camera import perspective_view_all
+        from chimerax.graphics.camera import perspective_view_all
         p = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._move_camera_in_room(p)
         self.fit_scene_to_room(bounds)
@@ -871,7 +871,7 @@ class SteamVRCamera(Camera, StateManager):
         if self.mirror:
             # Render right eye to ChimeraX window.
             drawing = self._desktop_drawing()
-            from chimerax.core.graphics.drawing import draw_overlays
+            from chimerax.graphics.drawing import draw_overlays
             draw_overlays([drawing], render)
 
         rc = self._room_camera
@@ -886,7 +886,7 @@ class SteamVRCamera(Camera, StateManager):
         fbs = self._framebuffers
         if not fbs or fbs[0].width != tw or fbs[0].height != th:
             self._delete_framebuffers()
-            from chimerax.core.graphics import Texture, opengl
+            from chimerax.graphics import Texture, opengl
             for eye in ('left', 'right'):
                 t = Texture()
                 t.initialize_rgba((tw,th))
@@ -911,13 +911,13 @@ class SteamVRCamera(Camera, StateManager):
         td = self._texture_drawing
         if td is None:
             # Drawing object for rendering to ChimeraX window
-            from chimerax.core.graphics.drawing import _texture_drawing
+            from chimerax.graphics.drawing import _texture_drawing
             self._texture_drawing = td = _texture_drawing(texture)
             td.opaque_texture = True
         else:
             td.texture = texture
         window_size = self.render.render_size()
-        from chimerax.core.graphics.drawing import match_aspect_ratio
+        from chimerax.graphics.drawing import match_aspect_ratio
         match_aspect_ratio(td, window_size)
         return td
 
@@ -1088,7 +1088,7 @@ class RoomCamera:
     def projection_matrix(self, near_far_clip, view_num, window_size):
         pixel_shift = (0,0)
         fov = self._field_of_view
-        from chimerax.core.graphics.camera import perspective_projection_matrix
+        from chimerax.graphics.camera import perspective_projection_matrix
         return perspective_projection_matrix(fov, window_size, near_far_clip, pixel_shift)
     
     def _create_camera_model(self, parent, room_to_scene, texture):
@@ -1190,7 +1190,7 @@ class RoomCamera:
         fb = self._framebuffer
         if fb is None or fb.width != tw or fb.height != th:
             self._delete_framebuffer(render)
-            from chimerax.core.graphics import Texture, opengl
+            from chimerax.graphics import Texture, opengl
             t = Texture()
             t.initialize_rgba((tw,th))
             fb = opengl.Framebuffer('VR desktop', render.opengl_context, color_texture = t)
@@ -1818,7 +1818,7 @@ class Panel:
         return w
 
     def _create_panel_drawing(self, drawing_parent):
-        from chimerax.core.graphics import Drawing
+        from chimerax.graphics import Drawing
         d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
@@ -1943,7 +1943,7 @@ class Panel:
         if d.texture is not None:
             d.texture.reload_texture(rgba)
         else:
-            from chimerax.core.graphics import Texture
+            from chimerax.graphics import Texture
             d.texture = Texture(rgba)
 
         return True
@@ -2017,7 +2017,7 @@ class Panel:
         if size.width() == 0 or size.height() == 0:
             return None
         im = pixmap.toImage()
-        from chimerax.core.graphics.drawing import qimage_to_numpy
+        from chimerax.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
         trgba = self._add_titlebar(rgba)
         return trgba
@@ -2042,7 +2042,7 @@ class Panel:
         # Add title text
         title = self.name
         if title:
-            from chimerax.core.graphics import text_image_rgba
+            from chimerax.graphics import text_image_rgba
             title_rgba = text_image_rgba(title, title_color, th, 'Arial',
                                          background_color = background_color,
                                          xpad = 8, ypad = 4, pixels = True)
@@ -2061,7 +2061,7 @@ class Panel:
         attr = '_%s_icon_rgba' % name
         icon_rgba = getattr(self, attr, None)
         if icon_rgba is None:
-            from chimerax.core.graphics import text_image_rgba
+            from chimerax.graphics import text_image_rgba
             icon_rgba = text_image_rgba(character, color, height, 'Arial',
                                      background_color = background_color,
                                      xpad = xpad, pixels = True)
@@ -2705,7 +2705,7 @@ class HandModel(Model):
 
         self._buttons = b = HandButtons(self._controller_type)
         geom.extend(b.geometry(length, radius))
-        from chimerax.core.graphics import concatenate_geometry
+        from chimerax.graphics import concatenate_geometry
         va, na, tc, ta = concatenate_geometry(geom)
         
         self._cone_vertices = va
@@ -2768,7 +2768,7 @@ class HandButtons:
         self._button_rgba = rgba = empty((tex_size, tex_size*(nb + 1),4), uint8)
         rgba[:,0:tex_size,:] = cone_color
         rgba[:,tex_size:,:] = button_color
-        from chimerax.core.graphics import Texture
+        from chimerax.graphics import Texture
         self._texture = t = Texture(rgba)
         return t
 
@@ -2894,7 +2894,7 @@ class ButtonGeometry:
             s = image_size
             if qi.width() != s or qi.height() != s:
                 qi = qi.scaled(s,s)
-            from chimerax.core.graphics import qimage_to_numpy
+            from chimerax.graphics import qimage_to_numpy
             rgba = qimage_to_numpy(qi)
             # TODO: Need to alpha blend with button background.
             transp = (rgba[:,:,3] == 0)

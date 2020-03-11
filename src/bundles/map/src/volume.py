@@ -1014,7 +1014,7 @@ class Volume(Model):
           detail = ''
         return PickedMap(self, f, detail)
     elif self.surface_shown:
-      from chimerax.core.graphics import Drawing
+      from chimerax.graphics import Drawing
       pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
       if pd:
         d = pd.drawing()
@@ -1657,7 +1657,7 @@ class Volume(Model):
       return False
     if self.image_shown:
       return 'a' in self._image.color_mode
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     return Drawing.showing_transparent(self)
   
   # ---------------------------------------------------------------------------
@@ -2225,7 +2225,7 @@ def maps_pickable(session, pickable):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Pick
+from chimerax.graphics import Pick
 class PickedMap(Pick):
   def __init__(self, v, distance = None, detail = ''):
     Pick.__init__(self, distance)

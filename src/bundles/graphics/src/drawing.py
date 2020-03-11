@@ -1261,7 +1261,7 @@ class Drawing:
         if self.empty_drawing():
             return
         any_opaque, any_transp = self._transparency()
-        from .. import x3d
+        from chimerax.core import x3d
         # x3d_scene.need(x3d.Components.Core, 2)  # Prototyping
         x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
         if any_transp and self.vertex_colors:
@@ -2087,7 +2087,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     bg = (0,0,0,0) if background_color is None else tuple(background_color)
     if outline_width > 0:
         if outline_color is None:
-            from ..colors import contrast_with
+            from chimerax.core.colors import contrast_with
             outline_color = contrast_with(bg[:3]) + (255,)
         fill_color = tuple(outline_color)
     else:
@@ -2114,7 +2114,7 @@ def text_image_rgba(text, color, size, font, background_color = None, xpad = 0, 
     p.drawText(x, y, text)
 
     # Convert to numpy rgba array.
-    from chimerax.core.graphics import qimage_to_numpy
+    from chimerax.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(ti)
     
     p.end()

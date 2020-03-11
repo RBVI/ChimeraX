@@ -14,7 +14,7 @@
 # Allow fading from one scene to another
 
 from .drawing import Drawing
-from ..errors import LimitationError
+from chimerax.core.errors import LimitationError
 
 
 class CrossFade(Drawing):
@@ -57,7 +57,7 @@ class CrossFade(Drawing):
         if f >= n:
             view.remove_overlays([self])
             self.remove_all_drawings()
-            from ..triggerset import DEREGISTER
+            from chimerax.core.triggerset import DEREGISTER
             return DEREGISTER
 
         # Increase texture transparency

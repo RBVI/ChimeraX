@@ -944,7 +944,7 @@ class VRHeadModel(Model):
         qi = QImage(image_file)
         aspect = qi.width() / qi.height()
         va[:,0] *= aspect
-        from chimerax.core.graphics import qimage_to_numpy, Texture
+        from chimerax.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         from numpy import zeros, float32
         tc = zeros((24,2), float32)
@@ -966,7 +966,7 @@ class VRHeadModel(Model):
         caspect = va[:,0].max() / va[:,1].max()
         va[:,0] *= aspect / caspect
         self.set_geometry(va, self.normals, self.triangles)
-        from chimerax.core.graphics import qimage_to_numpy, Texture
+        from chimerax.graphics import qimage_to_numpy, Texture
         rgba = qimage_to_numpy(qi)
         r = self.session.main_view.render
         r.make_current()
@@ -1008,7 +1008,7 @@ class VRGUIModel(Model):
         if 'image' in panel_changes:
             p.update_image(panel_changes['image'], self.session)
 
-from chimerax.core.graphics import Drawing
+from chimerax.graphics import Drawing
 class VRGUIPanel(Drawing):
     casts_shadows = False
     pickable = False
@@ -1020,7 +1020,7 @@ class VRGUIPanel(Drawing):
 
     def set_size(self, size):
         self._size = (rw, rh) = size
-        from chimerax.core.graphics.drawing import position_rgba_drawing
+        from chimerax.graphics.drawing import position_rgba_drawing
         position_rgba_drawing(self, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
         
     def update_image(self, encoded_rgba, session):
@@ -1028,7 +1028,7 @@ class VRGUIPanel(Drawing):
         rgba = _decode_numpy_array(encoded_rgba)
         r = session.main_view.render
         r.make_current() # Required for deleting previous texture in rgba_drawing()
-        from chimerax.core.graphics.drawing import rgba_drawing
+        from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, pos = (-0.5*rw,-0.5*rh), size = (rw,rh))
 
 def _vr_camera(session):

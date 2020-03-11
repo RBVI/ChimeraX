@@ -221,7 +221,7 @@ def models_image(session, models, size, format = 'JPEG'):
     if models == 'all models':
         image = v.image(width, height)
     else:
-        from .graphics import camera
+        from chimerax.graphics import camera
         c = camera.camera_framing_drawings(models)
         image = v.image(width, height, camera = c, drawings = models)
     import io

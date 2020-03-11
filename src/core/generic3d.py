@@ -22,7 +22,7 @@ class Generic3DModel(Model):
 
     def take_snapshot(self, session, flags):
         from .state import CORE_STATE_VERSION
-        from .graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         data = {
             'model state': Model.take_snapshot(self, session, flags),
             'drawing state': DrawingState().take_snapshot(self, session, flags),
@@ -34,7 +34,7 @@ class Generic3DModel(Model):
     def restore_snapshot(cls, session, data):
         m = cls('name', session)
         m.set_state_from_snapshot(session, data['model state'])
-        from .graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         DrawingState().set_state_from_snapshot(m, session, data['drawing state'])
         return m
 

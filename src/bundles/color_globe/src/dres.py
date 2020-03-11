@@ -75,7 +75,7 @@ def colormap_from_comment_line(line):
     cmap = Colormap(res, colors)
     return cmap
 
-from chimerax.core.graphics.drawing import Drawing
+from chimerax.graphics.drawing import Drawing
 class ColorGlobe(Drawing):
     '''
     Create discs tangent to the surface of a sphere at specified points

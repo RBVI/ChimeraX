@@ -150,7 +150,7 @@ class TapeMeasureMouseMode(MouseMode):
         from chimerax.mouse_modes import picked_object_on_segment
         p = picked_object_on_segment(xyz1, xyz2, self.session.main_view,
                                      exclude = self._exclude_markers_from_pick)
-        from chimerax.core.graphics import PickedTriangle
+        from chimerax.graphics import PickedTriangle
         from chimerax.map.volume import PickedMap
         from chimerax.atomic import PickedAtom, PickedResidue
         sxyz = v = None

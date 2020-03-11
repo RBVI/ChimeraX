@@ -55,7 +55,7 @@ def camera(session, type=None, field_of_view=None,
                     from chimerax.core.commands import run
                     run(session, 'toolshed show "Side View"')
         camera = None
-        from chimerax.core import graphics
+        from chimerax import graphics
         if type == 'mono':
             camera = graphics.MonoCamera()
         elif type == 'ortho':

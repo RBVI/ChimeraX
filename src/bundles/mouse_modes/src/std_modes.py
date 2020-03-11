@@ -727,7 +727,7 @@ class ClipMouseMode(MouseMode):
         if pf is None and pb is None:
             return
 
-        from chimerax.core.graphics import SceneClipPlane, CameraClipPlane
+        from chimerax.graphics import SceneClipPlane, CameraClipPlane
         p = pf or pb
         if delta is not None:
             d = delta
@@ -865,7 +865,7 @@ class ClipRotateMouseMode(MouseMode):
     def _planes(self):
         v = self.view
         cp = v.clip_planes
-        from chimerax.core.graphics import SceneClipPlane
+        from chimerax.graphics import SceneClipPlane
         rplanes = [p for p in cp.planes() if isinstance(p, SceneClipPlane)]
         if len(rplanes) == 0:
             from chimerax.std_commands.clip import adjust_plane

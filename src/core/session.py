@@ -405,7 +405,7 @@ class Session:
     models : Instance of :py:class:`~chimerax.core.models.Models`.
     triggers : An instance of :py:class:`~chimerax.core.triggerset.TriggerSet`
         Starts with session triggers.
-    main_view : An instance of :py:class:`~chimerax.core.graphics.View`
+    main_view : An instance of :py:class:`~chimerax.graphics.View`
         Default view.
     """
 
@@ -427,7 +427,7 @@ class Session:
         # initialize state managers for various properties
         from . import models
         self.models = models.Models(self)
-        from .graphics.view import View
+        from chimerax.graphics.view import View
         self.main_view = View(self.models.scene_root_model, window_size=(256, 256),
                               trigger_set=self.triggers)
         self.user_aliases = UserAliases()
@@ -502,20 +502,19 @@ class Session:
         if issubclass(cls, base_type):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
-            from .graphics import View, MonoCamera, OrthographicCamera, Lighting, Material
-            from .graphics import SceneClipPlane, CameraClipPlane, ClipPlane, Drawing
-            from .graphics import gsession as g
+            from chimerax import graphics as gr
+            from chimerax.graphics import gsession as g
             from chimerax.geometry import Place, Places, psession as p
             self._snapshot_methods = {
-                View: g.ViewState,
-                MonoCamera: g.CameraState,
-                OrthographicCamera: g.CameraState,
-                Lighting: g.LightingState,
-                Material: g.MaterialState,
-                ClipPlane: g.ClipPlaneState,
-                SceneClipPlane: g.SceneClipPlaneState,
-                CameraClipPlane: g.CameraClipPlaneState,
-                Drawing: g.DrawingState,
+                gr.View: g.ViewState,
+                gr.MonoCamera: g.CameraState,
+                gr.OrthographicCamera: g.CameraState,
+                gr.Lighting: g.LightingState,
+                gr.Material: g.MaterialState,
+                gr.ClipPlane: g.ClipPlaneState,
+                gr.SceneClipPlane: g.SceneClipPlaneState,
+                gr.CameraClipPlane: g.CameraClipPlaneState,
+                gr.Drawing: g.DrawingState,
                 Place: p.PlaceState,
                 Places: p.PlacesState,
             }

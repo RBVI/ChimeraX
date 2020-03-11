@@ -15,7 +15,7 @@ from chimerax.core import toolshed
 from chimerax.core.models import Model
 from chimerax.core.state import State
 from .molobject import StructureData
-from chimerax.core.graphics import Drawing, Pick, PickedTriangles
+from chimerax.graphics import Drawing, Pick, PickedTriangles
 
 CATEGORY = toolshed.STRUCTURE
 

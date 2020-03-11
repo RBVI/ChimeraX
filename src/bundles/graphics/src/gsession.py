@@ -87,7 +87,7 @@ class ViewState:
         # Restore window size
         resize = session.restore_options.get('resize window')
         if resize is None:
-            from ..core_settings import settings
+            from chimerax.core.core_settings import settings
             resize = settings.resize_window_on_session_restore
         if resize:
             ui = session.ui

@@ -18,7 +18,7 @@ models: Displayed data
 """
 
 import weakref
-from .graphics.drawing import Drawing
+from chimerax.graphics import Drawing
 from .state import State, StateManager, CORE_STATE_VERSION
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
@@ -365,7 +365,7 @@ class Model(State, Drawing):
         Return state for saving Model and Drawing geometry that can be restored
         with restore_geometry().
         '''
-        from chimerax.core.graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'drawing state': DrawingState.take_snapshot(self, session, flags),
                 'version': 1
@@ -376,7 +376,7 @@ class Model(State, Drawing):
         '''
         Restore model and drawing state saved with save_geometry().
         '''
-        from chimerax.core.graphics.gsession import DrawingState            
+        from chimerax.graphics.gsession import DrawingState            
         Model.set_state_from_snapshot(self, session, data['model state'])
         DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
         return self

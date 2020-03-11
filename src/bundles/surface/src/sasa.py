@@ -96,7 +96,7 @@ def area_in_circles_on_unit_sphere(circles, draw = False, draw_center = (0,0,0),
         return 0
 
     if draw:
-        from chimerax.core.graphics import Drawing
+        from chimerax.graphics import Drawing
         surfc = Drawing('circles')
         s0 = (draw_center, draw_radius)
         draw_circles(circles, s0, surfc, width = 0.01, offset = 0.01)
@@ -434,7 +434,7 @@ def arc_points(arc, n):
 
 def sphere_model(indices, centers, radii, ntri = 2000):
 
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     s = Drawing('spheres')
     from .shapes import sphere_geometry
     for i in indices:

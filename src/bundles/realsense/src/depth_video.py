@@ -291,11 +291,11 @@ class DepthVideo (Model):
     def _create_textures_video(self, color_image, depth_image):
         # TODO: Does not have sensible bounds.  Bounds don't really make sense.
         #       Causes surprises if it is the first model opened.
-        from chimerax.core.graphics.drawing import rgba_drawing
+        from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, color_image, (-1, -1), (2, 2))
         # Invert y-axis by flipping texture coordinates
         self.texture_coordinates[:,1] = 1 - self.texture_coordinates[:,1]
-        from chimerax.core.graphics import Texture
+        from chimerax.graphics import Texture
         self._depth_texture = dt = Texture(depth_image)
         # Shader wants to handle 0 depth values (= unknown depth) as max distance
         # so need to turn off linear interpolation so fragment shader gets 0 values.
@@ -317,9 +317,9 @@ class DepthVideo (Model):
         depth = empty((h,w), uint16)
         depth[:] = 32000
         depth[h1:h2,w1:w2] = 64000
-        from chimerax.core.graphics.drawing import rgba_drawing
+        from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, color, (-1, -1), (2, 2))
-        from chimerax.core.graphics import Texture
+        from chimerax.graphics import Texture
         self._depth_texture = Texture(depth)
         
     def draw(self, renderer, draw_pass):
