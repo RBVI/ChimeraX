@@ -55,9 +55,9 @@
 
   <Providers manager="open command">
     <Provider name="PDB" />
-    <Provider name="pdb" type="fetch" format_name="pdb" />
-    <Provider name="pdbe" type="fetch" format_name="pdb" />
-    <Provider name="pdbj" type="fetch" format_name="pdb" />
+    <Provider name="pdb" type="fetch" format_name="pdb" is_default="false" />
+    <Provider name="pdbe" type="fetch" format_name="pdb" is_default="false" />
+    <Provider name="pdbj" type="fetch" format_name="pdb" is_default="false" />
   </Providers>
 
   <Classifiers>

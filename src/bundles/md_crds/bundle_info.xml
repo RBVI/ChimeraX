@@ -30,6 +30,23 @@
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Gromacs full-precision coordinates" category="Molecular trajectory"
+		nicknames="trr" suffixes=".trr" encoding="utf-8"
+		synopsis="Gromacs trr format" reference_url="http://manual.gromacs.org/online/trr.html" />
+    <Provider name="Gromacs compressed coordinates" category="Molecular trajectory"
+		nicknames="xtc" suffixes=".xtc" encoding="utf-8"
+		synopsis="Gromacs xtc format" reference_url="http://manual.gromacs.org/online/xtc.html" />
+    <Provider name="DCD coordinates" category="Molecular trajectory"
+		nicknames="dcd" suffixes=".dcd" encoding="utf-8" synopsis="DCD trajectory format" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="trr" want_path="true" />
+    <Provider name="xtc" want_path="true" />
+    <Provider name="dcd" want_path="true" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

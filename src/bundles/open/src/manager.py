@@ -31,10 +31,13 @@ class OpenManager(ProviderManager):
             batch=False, compression_suffixes=None, format_name=None, is_default=True, **kw):
         logger = self.session.logger
 
+        bundle_name = _readable_bundle_name(bundle_info)
+        is_default = bool_cvt(is_default, name, bundle_name, "is_default")
+        want_path = bool_cvt(want_path, name, bundle_name, "want_path")
+        check_path = bool_cvt(check_path, name, bundle_name, "check_path")
         if batch or not check_path:
             want_path = True
         type_description = "Open-command" if type == "open" else type.capitalize()
-        bundle_name = _readable_bundle_name(bundle_info)
         if kw:
             logger.warning("%s provider '%s' supplied unknown keywords in provider description: %s"
                 % (type_description, name, repr(kw)))
@@ -42,8 +45,9 @@ class OpenManager(ProviderManager):
             try:
                 data_format = self.session.data_formats[name]
             except KeyError:
-                raise ValueError("Open-command provider in bundle %s specified unknown data format '%s'"
-                    % (bundle_name, name))
+                logger.warning("Open-command provider in bundle %s specified unknown data format '%s';"
+                    " skipping" % (bundle_name, name))
+                return
             if data_format in self._openers:
                 logger.warning("Replacing opener for '%s' from %s bundle with that from %s bundle"
                     % (data_format.name, _readable_bundle_name(self._openers[data_format][0]), bundle_name))
@@ -127,7 +131,7 @@ class OpenManager(ProviderManager):
                 raise NoOpenerError("No default format for database '%s'.  Possible formats are: %s"
                     % (database_name, ", ".join(dbf for dbf in db_formats)))
         return bundle_info.run_provider(self.session, database_name, self,
-            operation="args", format_name=format_name)
+            operation="fetch args", format_name=format_name)
 
     def open_data(self, path, **kw):
         from .cmd import provider_open
@@ -147,7 +151,7 @@ class OpenManager(ProviderManager):
             bundle_info, name, want_path, check_path, batch = self._openers[data_format]
         except KeyError:
             raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
-        return bundle_info.run_provider(self.session, name, self, operation="args")
+        return bundle_info.run_provider(self.session, name, self, operation="open args")
 
     def open_info(self, data_format):
         try:
@@ -161,6 +165,15 @@ class OpenManager(ProviderManager):
                 file_name = file_name[:-len(suffix)]
                 break
         return file_name
+
+def bool_cvt(val, name, bundle_name, var_name):
+    if not isinstance(val, bool):
+        try:
+            val = eval(val.capitalize())
+        except (ValueError, NameError):
+            logger.warning("Database-fetch provider '%s' in bundle %s specified '%s' value"
+                " (%s) that was neither 'true' nor 'false'" % (name, bundle_name, var_name, val))
+    return val
 
 def _readable_bundle_name(bundle_info):
     name = bundle_info.name

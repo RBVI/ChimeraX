@@ -38,7 +38,7 @@
 
   <Providers manager="open command">
     <Provider name="mmtf" />
-    <Provider name="pdb" type="fetch" format_name="mmtf"/>
+    <Provider name="pdb" type="fetch" format_name="mmtf" is_default="false" />
   </Providers>
 
 

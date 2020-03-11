@@ -46,7 +46,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
             ident=None, ignore_cache=False, **kw):
-        if operation == "args":
+        if operation.endswith("args"):
             return {}
         elif operation == "open":
             from . import mmtf

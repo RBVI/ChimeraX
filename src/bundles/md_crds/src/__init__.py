@@ -30,6 +30,27 @@ class _MDCrdsBundleAPI(BundleAPI):
         return [], "Added %d frames to %s" % (num_coords, model)
 
     @staticmethod
+    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
+            structure_model=None, replace=True):
+        if operation == "open args":
+            from chimerax.atomic import StructureArg
+            from chimerax.core.commands import BoolArg
+            return {
+                'structure_model': StructureArg,
+                'replace': BoolArg
+            }
+        elif operation == "open":
+            if structure_model is None:
+                from chimerax.core.errors import UserError
+                raise UserError("Must specify a structure model to read the coordinates into")
+            from .read_coords import read_coords
+            num_coords = read_coords(session, data, structure_model, name, replace=replace)
+            if replace:
+                return [], "Replaced existing frames of %s with  %d new frames" % (structure_model,
+                    num_coords)
+            return [], "Added %d frames to %s" % (num_coords, structure_model)
+
+    @staticmethod
     def save_file(session, path, format_name, models=None):
         from chimerax import atomic
         if models is None:
