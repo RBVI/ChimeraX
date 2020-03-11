@@ -40,15 +40,15 @@ static void sum_of_gaussians(const FArray &centers, const FArray &coef,
 			     const FArray &sdev, float maxrange,
 			     FArray &matrix)
 {
-  const int *msize = matrix.sizes();
-  int n = centers.size(0);
+  const int64_t *msize = matrix.sizes();
+  int64_t n = centers.size(0);
   const float *ca = centers.values();
-  int cs0 = centers.stride(0), cs1 = centers.stride(1);
+  int64_t cs0 = centers.stride(0), cs1 = centers.stride(1);
   const float *cfa = coef.values(), *sa = sdev.values();
-  int cfs0 = coef.stride(0), ss0 = sdev.stride(0), ss1 = sdev.stride(1);
+  int64_t cfs0 = coef.stride(0), ss0 = sdev.stride(0), ss1 = sdev.stride(1);
   float *ma = matrix.values();
-  int ms0 = matrix.stride(0), ms1 = matrix.stride(1), ms2 = matrix.stride(2);
-  for (int c = 0 ; c < n ; ++c)
+  int64_t ms0 = matrix.stride(0), ms1 = matrix.stride(1), ms2 = matrix.stride(2);
+  for (int64_t c = 0 ; c < n ; ++c)
     {
       float sd[3] = {sa[c*ss0], sa[c*ss0 + ss1], sa[c*ss0 + 2*ss1]};
       if (sd[0] == 0 || sd[1] == 0 || sd[2] == 0)
@@ -117,15 +117,15 @@ extern "C" PyObject *py_sum_of_gaussians(PyObject *, PyObject *args,
 static void sum_of_balls(const FArray &centers, const FArray &radii,
 			 float sdev, float maxrange, FArray &matrix)
 {
-  const int *msize = matrix.sizes();
-  int n = centers.size(0);
+  const int64_t *msize = matrix.sizes();
+  int64_t n = centers.size(0);
   const float *ca = centers.values();
-  int cs0 = centers.stride(0), cs1 = centers.stride(1);
+  int64_t cs0 = centers.stride(0), cs1 = centers.stride(1);
   const float *ra = radii.values();
-  int rs0 = radii.stride(0);
+  int64_t rs0 = radii.stride(0);
   float *ma = matrix.values();
-  int ms0 = matrix.stride(0), ms1 = matrix.stride(1), ms2 = matrix.stride(2);
-  for (int c = 0 ; c < n ; ++c)
+  int64_t ms0 = matrix.stride(0), ms1 = matrix.stride(1), ms2 = matrix.stride(2);
+  for (int64_t c = 0 ; c < n ; ++c)
     {
       float cijk[3];
       int ijk_min[3], ijk_max[3];
@@ -197,7 +197,7 @@ static void covariance_sum(float c[3][3], float center[3], float scale, FArray &
 {
   int ksize = array.size(0), jsize = array.size(1), isize = array.size(2);
   float i0 = center[0], j0 = center[1], k0 = center[2];
-  long as0 = array.stride(0), as1 = array.stride(1), as2 = array.stride(2);
+  int64_t as0 = array.stride(0), as1 = array.stride(1), as2 = array.stride(2);
   float *aa = array.values();
   for (int k = 0 ; k < ksize ; ++k)
     for (int j = 0 ; j < jsize ; ++j)

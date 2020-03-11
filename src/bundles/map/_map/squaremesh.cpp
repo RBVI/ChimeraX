@@ -26,22 +26,25 @@
 #include <arrays/pythonarray.h>		// use array_from_python()
 #include <arrays/rcarray.h>		// use FArray, IArray
 
+#include "index_types.h"		// Use VIndex, TIndex
+
 // ----------------------------------------------------------------------------
 //
 static void principle_plane_edges(const FArray &varray, const IArray &tarray,
-				  unsigned char *e, long estride)
+				  unsigned char *e, int64_t estride)
 {
   int edge_01_mask = 1, edge_12_mask = 2, edge_20_mask = 4;
 
-  int *ta = tarray.values(), ts0 = tarray.stride(0), ts1 = tarray.stride(1);
+  VIndex *ta = tarray.values();
+  TIndex ts0 = tarray.stride(0), ts1 = tarray.stride(1);
   float *va = varray.values();
-  int vs0 = varray.stride(0), vs1 = varray.stride(1);
-  int yo = vs1, zo = 2*vs1;
-  int n = tarray.size(0);
-  for (int t = 0 ; t < n ; ++t)
+  VIndex vs0 = varray.stride(0), vs1 = varray.stride(1);
+  VIndex yo = vs1, zo = 2*vs1;
+  TIndex n = tarray.size(0);
+  for (TIndex t = 0 ; t < n ; ++t)
     {
-      int t0 = ts0 * t;
-      int i0 = ta[t0], i1 = ta[t0+ts1], i2 = ta[t0+2*ts1];
+      TIndex t0 = ts0 * t;
+      VIndex i0 = ta[t0], i1 = ta[t0+ts1], i2 = ta[t0+2*ts1];
       float *v0 = &va[vs0*i0], *v1 = &va[vs0*i1], *v2 = &va[vs0*i2];
       int emask = 0;
       if (v0[0] == v1[0] || v0[yo] == v1[yo] || v0[zo] == v1[zo])

@@ -50,7 +50,7 @@ static bool surface_z_depth(const FArray &varray, const IArray &tarray,
 			    const FArray *beyond, const IArray *beyond_tnum,
 			    int toffset)
 {
-  int dsize[2] = {depth.size(1),depth.size(0)};		// x and y size
+  int64_t dsize[2] = {depth.size(1),depth.size(0)};		// x and y size
 
   bool set = false;
 

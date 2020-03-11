@@ -191,9 +191,9 @@ static void compute_edge_split_points(Vertices &v, Normals &n, Atoms &va, Vertex
   int nt = t.size()/3;
   // Get pointers and strides for geometry
   float *aa = a.values();
-  long as0 = a.stride(0), as1 = a.stride(1);
+  int64_t as0 = a.stride(0), as1 = a.stride(1);
   float *ra = (r.dimension() == 1 ? r.values() : NULL);
-  long rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
+  int64_t rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
   for (int ti = 0 ; ti < nt ; ++ti)
     {
       int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
@@ -231,7 +231,7 @@ inline void cut_triangle_1_line(int v0, int v1, int v2, int a0, int a1, int a2,
 }
 
 inline void compute_triple_point(int v0, int v1, int v2, int a0, int a1, int a2, int v01, int v02,
-				 Vertices &v, Normals &n, float *aa, long as0, long as1,
+				 Vertices &v, Normals &n, float *aa, int64_t as0, int64_t as1,
 				 float *f1, float *f2, float *x, float *y, float *z,
 				 float *nx, float *ny, float *nz)
 {
@@ -407,7 +407,7 @@ inline void cut_triangle_3_lines(int v0, int v1, int v2, int a0, int a1, int a2,
 }
 
 inline bool three_patch_edge(const Vertices &v, int v1, int v2, int a1, int a0,
-			     float *aa, long as0, long as1, float *ra, long rs0,
+			     float *aa, int64_t as0, int64_t as1, float *ra, int64_t rs0,
 			     const Edge_Map &edge_splits, Atoms &va, Edge_Map &edge_3p)
 {
   float a0x = aa[as0*a0], a0y = aa[as0*a0+as1], a0z = aa[as0*a0+2*as1];
@@ -473,7 +473,7 @@ inline void split_triangle(int v0, int v1, int v2, int v01, int v12, int v20, Tr
 }
 
 inline int minimize_atom_distance(int v0, int v1, const Vertices &v, int a0, int a1,
-				  float *aa, long as0, long as1, float *ra, long rs0,
+				  float *aa, int64_t as0, int64_t as1, float *ra, int64_t rs0,
 				  Atoms &va)
 {
   if (a0 == a1)
@@ -529,11 +529,11 @@ static int minimize_atom_distances(const Vertices &v, Atoms &va, const Triangles
 {
   int nt = t.size()/3;
   float *aa = a.values();
-  long as0 = a.stride(0), as1 = a.stride(1);
+  int64_t as0 = a.stride(0), as1 = a.stride(1);
   float *ra = (r.dimension() == 1 ? r.values() : NULL);
-  long rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
+  int64_t rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
   int change = 0;
-  for (long ti = 0 ; ti < nt ; ++ti)
+  for (int64_t ti = 0 ; ti < nt ; ++ti)
     {
       int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
       int a0 = va[v0], a1 = va[v1], a2 = va[v2];
@@ -550,10 +550,10 @@ static void find_3_patch_edges(const Vertices &v, const Triangles &t, Atoms &va,
 {
   int nt = t.size()/3;
   float *aa = a.values();
-  long as0 = a.stride(0), as1 = a.stride(1);
+  int64_t as0 = a.stride(0), as1 = a.stride(1);
   float *ra = (r.dimension() == 1 ? r.values() : NULL);
-  long rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
-  for (long ti = 0 ; ti < nt ; ++ti)
+  int64_t rs0 = (r.dimension() == 1 ? r.stride(0) : 0);
+  for (int64_t ti = 0 ; ti < nt ; ++ti)
      {
       int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
       int a0 = va[v0], a1 = va[v1], a2 = va[v2];
@@ -570,8 +570,8 @@ static void split_3_patch_triangles(const Triangles &t, const Atoms &va, const E
 				    Triangles &tsplit, Triangles &tunsplit)
 {
   Edge_Map::const_iterator ei;
-  long nt = t.size()/3;
-  for (long ti = 0 ; ti < nt ; ++ti)
+  int64_t nt = t.size()/3;
+  for (int64_t ti = 0 ; ti < nt ; ++ti)
     {
       int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
       int a0 = va[v0], a1 = va[v1], a2 = va[v2];
@@ -653,9 +653,9 @@ static void divide_triangles(Vertices &v, Normals &n, Triangles &t, Atoms &va, V
 
   int nt = t.size()/3;
   float *aa = a.values();
-  long as0 = a.stride(0), as1 = a.stride(1);
+  int64_t as0 = a.stride(0), as1 = a.stride(1);
   Triangles td;
-  for (long ti = 0 ; ti < nt ; ++ti)
+  for (int64_t ti = 0 ; ti < nt ; ++ti)
     {
       int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
       int a0 = va[v0], a1 = va[v1], a2 = va[v2];
@@ -679,9 +679,9 @@ static void convert_arrays_to_vectors(const FArray &vs, const FArray &ns,
   // Get pointers and strides for arrays.
   float *vsa = vs.values(), *nsa = ns.values();
   int *vasa = vas.values();
-  long vs0 = vs.stride(0), vs1 = vs.stride(1);
-  long ns0 = ns.stride(0), ns1 = ns.stride(1);
-  long vas0 = vas.stride(0);
+  int64_t vs0 = vs.stride(0), vs1 = vs.stride(1);
+  int64_t ns0 = ns.stride(0), ns1 = ns.stride(1);
+  int64_t vas0 = vas.stride(0);
 
   // Copy vertices and normals to vectors.
   int nv = vs.size(0);
@@ -696,7 +696,7 @@ static void convert_arrays_to_vectors(const FArray &vs, const FArray &ns,
   // Copy triangles array to vector.
   int nt = ts.size(0);
   int *tsa = ts.values();
-  long ts0 = ts.stride(0), ts1 = ts.stride(1);
+  int64_t ts0 = ts.stride(0), ts1 = ts.stride(1);
   for (int i = 0 ; i < nt ; ++i)
     add_triangle(t, tsa[ts0*i], tsa[ts0*i+ts1], tsa[ts0*i+2*ts1]);
 }
@@ -780,7 +780,7 @@ extern "C" PyObject *sharp_edge_patches(PyObject *, PyObject *args, PyObject *ke
 
   PyObject *r = python_tuple(vp, np, tp, tj, vap);
 
-  for (long ti = 0 ; ti < nt ; ++ti)
+  for (int64_t ti = 0 ; ti < nt ; ++ti)
     {
       int v0 = t[3*ti], v1 = t[3*ti+1], v2 = t[3*ti+2];
       int a0 = va[v0], a1 = va[v1], a2 = va[v2];
@@ -810,7 +810,7 @@ static void unique_vertices(const FArray &vertices, int *vmap)
 {
   std::map<Vertex,int> vm;
   int nv = vertices.size(0);
-  long vs0 = vertices.stride(0), vs1 = vertices.stride(1);
+  int64_t vs0 = vertices.stride(0), vs1 = vertices.stride(1);
   const float *va = vertices.values();
   for (int v = 0 ; v < nv ; ++v)
     {

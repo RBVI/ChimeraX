@@ -182,8 +182,8 @@ extern "C" PyObject *multiply_matrix_lists(PyObject *, PyObject *args, PyObject 
       if (result.size(0) != n1*n2)
 	{
 	  PyErr_Format(PyExc_TypeError,
-		       "Require result array size %d x 3 x 4, got %d by 3 by 4",
-		       n1*n2, result.size(0));
+		       "Require result array size %d x 3 x 4, got %s by 3 by 4",
+		       n1*n2, result.size_string(0).c_str());
 	  return NULL;
 	}
       multiply_matrix_lists(m1.values(), n1, m2.values(), n2, result.values());
@@ -255,9 +255,9 @@ extern "C" PyObject *opengl_matrix(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-static void opengl_matrices(double *m34, int n, float *m44)
+static void opengl_matrices(double *m34, int64_t n, float *m44)
 {
-  for (int i = 0 ; i < n ; ++i)
+  for (int64_t i = 0 ; i < n ; ++i)
     opengl_matrix(m34 + 12*i, m44 + 16*i);
 }
 
@@ -291,8 +291,8 @@ extern "C" PyObject *opengl_matrices(PyObject *, PyObject *args, PyObject *keywd
       if (result.size(0) != n)
 	{
 	  PyErr_Format(PyExc_TypeError,
-		       "Require result array size %d x 4 x 4, got %d by 4 by 4",
-		       n, result.size(0));
+		       "Require result array size %d x 4 x 4, got %s by 4 by 4",
+		       n, result.size_string(0).c_str());
 	  return NULL;
 	}
       opengl_matrices(m.values(), n, result.values());

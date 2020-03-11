@@ -22,13 +22,13 @@
 #include <arrays/rcarray.h>		// use FArray, IArray
 #include "spline.h"
 
-static void solve_tridiagonal(double *y, int n, double *temp);
+static void solve_tridiagonal(double *y, int64_t n, double *temp);
 
 // -----------------------------------------------------------------------------
 // Match first and second derivatives at interval end-points and make second
 // derivatives zero at two ends of path.
 //
-static void natural_cubic_spline(float *path, int n, int segment_subdivisions,
+static void natural_cubic_spline(float *path, int64_t n, int segment_subdivisions,
 				 float *spath, float *tangents)
 {
   if (n == 0)
@@ -47,12 +47,12 @@ static void natural_cubic_spline(float *path, int n, int segment_subdivisions,
     {
       b[0] = 0;
       b[n-1] = 0;
-      for (int i = 1 ; i < n-1 ; ++i)
+      for (int64_t i = 1 ; i < n-1 ; ++i)
 	b[i] = path[3*(i+1)+a] -2*path[3*i+a] + path[3*(i-1)+a];
       solve_tridiagonal(b,n,temp);
-      int k = 0;
+      int64_t k = 0;
       int div = segment_subdivisions;
-      for (int i = 0 ; i < n-1 ; ++i)
+      for (int64_t i = 0 ; i < n-1 ; ++i)
 	{
 	  int pc = (i < n-2 ? div + 1 : div + 2);
 	  for (int s = 0 ; s < pc ; ++s)
@@ -71,9 +71,9 @@ static void natural_cubic_spline(float *path, int n, int segment_subdivisions,
   delete [] temp;
 
   // normalize tangent vectors.
-  int ns = n + (n-1)*segment_subdivisions;
-  int ns3 = 3*ns;
-  for (int i = 0 ; i < ns3 ; i += 3)
+  int64_t ns = n + (n-1)*segment_subdivisions;
+  int64_t ns3 = 3*ns;
+  for (int64_t i = 0 ; i < ns3 ; i += 3)
     {
       float tx = tangents[i], ty = tangents[i+1], tz = tangents[i+2];
       float tn = sqrt(tx*tx + ty*ty + tz*tz);
@@ -92,15 +92,15 @@ static void natural_cubic_spline(float *path, int n, int segment_subdivisions,
 // ones on superdiagonal except 0 on last row
 // and diagonal is 4 except for first and last row which are 1.
 //
-static void solve_tridiagonal(double *y, int n, double *temp)
+static void solve_tridiagonal(double *y, int64_t n, double *temp)
 {
   temp[0] = 0.0;
-  for (int i = 1 ; i < n-1 ; ++i)
+  for (int64_t i = 1 ; i < n-1 ; ++i)
     {
       temp[i] = 1.0 / (4.0 - temp[i-1]);
       y[i] = (y[i] - y[i-1]) * temp[i];
     }
-  for (int i = n-2 ; i >= 0 ; --i)
+  for (int64_t i = n-2 ; i >= 0 ; --i)
     y[i] -= temp[i] * y[i+1];
 }
 
@@ -143,10 +143,10 @@ PyObject *natural_cubic_spline(PyObject *, PyObject *args, PyObject *keywds)
 				   &segment_subdivisions))
     return NULL;
 
-  int n = path.size(0);
+  int64_t n = path.size(0);
   float *p = path.values();
   float *spath, *tangents;
-  int ns = (n > 1 ? n + (n-1)*segment_subdivisions : n);
+  int64_t ns = (n > 1 ? n + (n-1)*segment_subdivisions : n);
   PyObject *spath_py = python_float_array(ns, 3, &spath);
   PyObject *tangents_py = python_float_array(ns, 3, &tangents);
 

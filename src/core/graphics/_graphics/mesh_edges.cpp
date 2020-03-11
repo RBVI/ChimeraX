@@ -53,7 +53,7 @@ static IArray calculate_masked_edges(const IArray &triangles,
 	}
     }
 
-  int size[2] = {(int)edges.size(), 2};
+  int64_t size[2] = {(int64_t)edges.size(), 2};
   IArray masked_edges(2, size);
   int *eiarray = masked_edges.values();
   for (std::set< std::pair<int,int> >::iterator ei = edges.begin() ; 

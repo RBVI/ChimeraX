@@ -45,10 +45,14 @@
 #include "imex.h"
 
 #include "refcount.h"       // use Reference_Count
+#include <cstdint>	    // use std::int64_t
 #include <stdexcept>        // for std::invalid_argument in rcarrayt.cpp
+#include <string>	    // use std::string
 
 namespace Reference_Counted_Array
 {
+
+using std::int64_t;
 
 // ----------------------------------------------------------------------------
 // Used by Array.
@@ -78,14 +82,14 @@ class ARRAYS_IMEX Untyped_Array
 {
 public:
   Untyped_Array();
-  Untyped_Array(int element_size, int dim, const int *size);
-  Untyped_Array(int element_size, int dim, const int *size,
-        const void *values);  // Copies values
+  Untyped_Array(int element_size, int dim, const int64_t *size);
+  Untyped_Array(int element_size, int dim, const int64_t *size,
+		const void *values);  // Copies values
   // The release object is destroyed when data values are no longer needed.
-  Untyped_Array(int element_size, int dim, const int *size, void *values,
-        Release_Data *release);
-  Untyped_Array(int element_size, int dim, const int *sizes,
-        const long *strides, void *data, Release_Data *release);
+  Untyped_Array(int element_size, int dim, const int64_t *size, void *values,
+		Release_Data *release);
+  Untyped_Array(int element_size, int dim, const int64_t *sizes,
+		const int64_t *strides, void *data, Release_Data *release);
   Untyped_Array(const Untyped_Array &);
   virtual ~Untyped_Array();
   const Untyped_Array &operator=(const Untyped_Array &array);
@@ -93,11 +97,13 @@ public:
 
   int element_size() const;
   int dimension() const;
-  int size(int axis) const;
-  long size() const;
-  const int *sizes() const;
-  long stride(int axis) const;
-  const long *strides() const;
+  int64_t size(int axis) const;
+  int64_t size() const;
+  const int64_t *sizes() const;
+  std::string size_string() const; // Used for error message reporting.
+  std::string size_string(int axis) const;
+  int64_t stride(int axis) const;
+  const int64_t *strides() const;
   void *values() const;
 
   //
@@ -105,8 +111,8 @@ public:
   // of one less dimension.  The data is not copied.  Modifying the slice data
   // values will effect the parent array.
   //
-  Untyped_Array slice(int axis, int index) const;
-  Untyped_Array subarray(int axis, int i_min, int i_max);
+  Untyped_Array slice(int axis, int64_t index) const;
+  Untyped_Array subarray(int axis, int64_t i_min, int64_t i_max);
   bool is_contiguous() const;
 
   // Allows super classes to retrieve Python source data object for array.
@@ -118,11 +124,11 @@ private:
   Release_Data *release_data;
   int element_siz;
   int dim;
-  long start;
-  long *stride_size;
-  int *siz;
+  int64_t start;
+  int64_t *stride_size;
+  int64_t *siz;
 
-  void initialize(int element_size, int dim, const int *size, bool allocate);
+  void initialize(int element_size, int dim, const int64_t *size, bool allocate);
 };
 
 template <class T> class Array_Operator;
@@ -135,21 +141,21 @@ class Array : public Untyped_Array
 {
 public:
   Array();
-  Array(int dim, const int *size);
-  Array(int dim, const int *size, const T *values); // copies values
+  Array(int dim, const int64_t *size);
+  Array(int dim, const int64_t *size, const T *values); // copies values
   // The release object is destroyed when data values are no longer needed.
-  Array(int dim, const int *size, T *values, Release_Data *release);
+  Array(int dim, const int64_t *size, T *values, Release_Data *release);
   Array(const Untyped_Array &);
   Array(const Array<T> &);
   virtual ~Array();
   const Array<T> &operator=(const Array<T> &array);
   Array<T> copy() const;
 
-  T value(const int *index) const;
+  T value(const int64_t *index) const;
   T *values() const;
   T *copy_of_values() const;            // allocated with new []
   void get_values(T *v) const;
-  void set(const int *index, T value);
+  void set(const int64_t *index, T value);
   void set(T value);
   template <class S> void set(const Array<S> &a);  // cast values if needed
   void apply(class Array_Operator<T> &op);
@@ -158,8 +164,8 @@ public:
   // of one less dimension.  The data is not copied.  Modifying the slice data
   // values will effect the parent array.
   //
-  Array<T> slice(int axis, int index) const;
-  Array<T> subarray(int axis, int i_min, int i_max);
+  Array<T> slice(int axis, int64_t index) const;
+  Array<T> subarray(int axis, int64_t i_min, int64_t i_max);
   Array<T> contiguous_array() const;
 };
 
@@ -176,9 +182,9 @@ class ARRAYS_IMEX Numeric_Array : public Untyped_Array
   static const char *value_type_name(Value_Type type);
 
   Numeric_Array();
-  Numeric_Array(Value_Type type, int dim, const int *sizes);
-  Numeric_Array(Value_Type type, int dim, const int *sizes, const long *strides,
-        void *data, Release_Data *release);
+  Numeric_Array(Value_Type type, int dim, const int64_t *sizes);
+  Numeric_Array(Value_Type type, int dim, const int64_t *sizes, const int64_t *strides,
+		void *data, Release_Data *release);
   Numeric_Array(const Numeric_Array &);
   Numeric_Array(Value_Type type, const Untyped_Array &);
   Numeric_Array &operator=(const Numeric_Array &);
@@ -187,7 +193,7 @@ class ARRAYS_IMEX Numeric_Array : public Untyped_Array
 
   Value_Type value_type() const;
 
-  Numeric_Array slice(int axis, int index) const;
+  Numeric_Array slice(int axis, int64_t index) const;
   Numeric_Array contiguous_array() const;
 
  private:
@@ -236,14 +242,14 @@ Array<T>::Array() : Untyped_Array()
 // ----------------------------------------------------------------------------
 //
 template <class T>
-Array<T>::Array(int dim, const int *size) : Untyped_Array(sizeof(T), dim, size)
+Array<T>::Array(int dim, const int64_t *size) : Untyped_Array(sizeof(T), dim, size)
 {
 }
 
 // ----------------------------------------------------------------------------
 //
 template <class T>
-Array<T>::Array(int dim, const int *size, const T *values) :
+Array<T>::Array(int dim, const int64_t *size, const T *values) :
   Untyped_Array(sizeof(T), dim, size, (void *)values)
 {
 }
@@ -251,7 +257,7 @@ Array<T>::Array(int dim, const int *size, const T *values) :
 // ----------------------------------------------------------------------------
 //
 template <class T>
-Array<T>::Array(int dim, const int *size, T *values, Release_Data *release) :
+Array<T>::Array(int dim, const int64_t *size, T *values, Release_Data *release) :
   Untyped_Array(sizeof(T), dim, size, (void *)values, release)
 {
 }
@@ -289,9 +295,9 @@ Array<T>::~Array()
 // ----------------------------------------------------------------------------
 //
 template <class T>
-T Array<T>::value(const int *index) const
+T Array<T>::value(const int64_t *index) const
 {
-  long i = 0;
+  int64_t i = 0;
   int dim = dimension();
   for (int a = 0 ; a < dim ; ++a)
     i += index[a] * stride(a);
@@ -312,7 +318,7 @@ T *Array<T>::values() const
 template <class T>
 T *Array<T>::copy_of_values() const
 {
-  long s = size();
+  int64_t s = size();
   T *v = new T[s];
   get_values(v);
   return v;
@@ -327,8 +333,8 @@ void Array<T>::get_values(T *v) const
   if (is_contiguous())
     {
       T *d = values();
-      long length = size();
-      for (long i = 0 ; i < length ; ++i)
+      int64_t length = size();
+      for (int64_t i = 0 ; i < length ; ++i)
     v[i] = d[i];
       return;
     }
@@ -338,8 +344,8 @@ void Array<T>::get_values(T *v) const
 
   T *d = values();
 
-  long k = 0;
-  long i0, j0, js0 = stride(0), s0 = size(0);
+  int64_t k = 0;
+  int64_t i0, j0, js0 = stride(0), s0 = size(0);
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -347,7 +353,7 @@ void Array<T>::get_values(T *v) const
       return;
     }
 
-  long i1, j1, js1 = stride(1), s1 = size(1);
+  int64_t i1, j1, js1 = stride(1), s1 = size(1);
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -356,7 +362,7 @@ void Array<T>::get_values(T *v) const
       return;
     }
 
-  long i2, j2, js2 = stride(2), s2 = size(2);
+  int64_t i2, j2, js2 = stride(2), s2 = size(2);
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -366,7 +372,7 @@ void Array<T>::get_values(T *v) const
       return;
     }
 
-  long i3, j3, js3 = stride(3), s3 = size(3);
+  int64_t i3, j3, js3 = stride(3), s3 = size(3);
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -377,17 +383,17 @@ void Array<T>::get_values(T *v) const
       return;
     }
 
-  long step = size()/size(0);
-  for (long i = 0 ; i < s0 ; ++i)
+  int64_t step = size()/size(0);
+  for (int64_t i = 0 ; i < s0 ; ++i)
     slice(0,i).get_values(v + i*step);
 }
 
 // ----------------------------------------------------------------------------
 //
 template <class T>
-void Array<T>::set(const int *index, T value)
+void Array<T>::set(const int64_t *index, T value)
 {
-  long i = 0;
+  int64_t i = 0;
   int dim = dimension();
   for (int a = 0 ; a < dim ; ++a)
     i += index[a] * stride(a);
@@ -404,8 +410,8 @@ void Array<T>::set(T value)
   if (is_contiguous())
     {
       T *d = values();
-      long length = size();
-      for (int i = 0 ; i < length ; ++i)
+      int64_t length = size();
+      for (int64_t i = 0 ; i < length ; ++i)
         d[i] = value;
       return;
     }
@@ -415,7 +421,7 @@ void Array<T>::set(T value)
 
   T *d = values();
 
-  long i0, j0, js0 = stride(0), s0 = size(0);
+  int64_t i0, j0, js0 = stride(0), s0 = size(0);
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -423,7 +429,7 @@ void Array<T>::set(T value)
       return;
     }
 
-  long i1, j1, js1 = stride(1), s1 = size(1);
+  int64_t i1, j1, js1 = stride(1), s1 = size(1);
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -432,7 +438,7 @@ void Array<T>::set(T value)
       return;
     }
 
-  long i2, j2, js2 = stride(2), s2 = size(2);
+  int64_t i2, j2, js2 = stride(2), s2 = size(2);
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -442,7 +448,7 @@ void Array<T>::set(T value)
       return;
     }
 
-  long i3, j3, js3 = stride(3), s3 = size(3);
+  int64_t i3, j3, js3 = stride(3), s3 = size(3);
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -453,7 +459,7 @@ void Array<T>::set(T value)
       return;
     }
 
-  for (long i = 0 ; i < s0 ; ++i)
+  for (int64_t i = 0 ; i < s0 ; ++i)
     this->slice(0,i).set(value);
 }
 
@@ -473,8 +479,8 @@ void Array<T>::set(const Array<S> &a)
   T *d = values();
   S *ad = a.values();
   
-  long i0, j0, js0 = stride(0), k0, ks0 = a.stride(0);
-  int s0 = (size(0) < a.size(0) ? size(0) : a.size(0));
+  int64_t i0, j0, js0 = stride(0), k0, ks0 = a.stride(0);
+  int64_t s0 = (size(0) < a.size(0) ? size(0) : a.size(0));
   if (dimension() == 1)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
@@ -483,8 +489,8 @@ void Array<T>::set(const Array<S> &a)
     }
 
 
-  long i1, j1, js1 = stride(1), k1, ks1 = a.stride(1);
-  int s1 = (size(1) < a.size(1) ? size(1) : a.size(1));
+  int64_t i1, j1, js1 = stride(1), k1, ks1 = a.stride(1);
+  int64_t s1 = (size(1) < a.size(1) ? size(1) : a.size(1));
   if (dimension() == 2)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
@@ -493,8 +499,8 @@ void Array<T>::set(const Array<S> &a)
       return;
     }
 
-  long i2, j2, js2 = stride(2), k2, ks2 = a.stride(2);
-  int s2 = (size(2) < a.size(2) ? size(2) : a.size(2));
+  int64_t i2, j2, js2 = stride(2), k2, ks2 = a.stride(2);
+  int64_t s2 = (size(2) < a.size(2) ? size(2) : a.size(2));
   if (dimension() == 3)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
@@ -504,8 +510,8 @@ void Array<T>::set(const Array<S> &a)
       return;
     }
 
-  long i3, j3, js3 = stride(3), k3, ks3 = a.stride(3);
-  int s3 = (size(3) < a.size(3) ? size(3) : a.size(3));
+  int64_t i3, j3, js3 = stride(3), k3, ks3 = a.stride(3);
+  int64_t s3 = (size(3) < a.size(3) ? size(3) : a.size(3));
   if (dimension() == 4)
     {
       for (i0=0, j0=0, k0=0 ; i0<s0 ; ++i0, j0+=js0, k0+=ks0)
@@ -516,7 +522,7 @@ void Array<T>::set(const Array<S> &a)
       return;
     }
 
-  for (long i = 0 ; i < s0 ; ++i)
+  for (int64_t i = 0 ; i < s0 ; ++i)
     this->slice(0,i).set(a.slice(0,i));
 }
 
@@ -531,7 +537,7 @@ void Array<T>::apply(Array_Operator<T> &op)
 
   T *d = values();
   
-  long i0, j0, js0 = stride(0), s0 = size(0);
+  int64_t i0, j0, js0 = stride(0), s0 = size(0);
   if (dimension() == 1)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -539,7 +545,7 @@ void Array<T>::apply(Array_Operator<T> &op)
       return;
     }
 
-  long i1, j1, js1 = stride(1), s1 = size(1);
+  int64_t i1, j1, js1 = stride(1), s1 = size(1);
   if (dimension() == 2)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -548,7 +554,7 @@ void Array<T>::apply(Array_Operator<T> &op)
       return;
     }
 
-  long i2, j2, js2 = stride(2), s2 = size(2);
+  int64_t i2, j2, js2 = stride(2), s2 = size(2);
   if (dimension() == 3)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -558,7 +564,7 @@ void Array<T>::apply(Array_Operator<T> &op)
       return;
     }
 
-  long i3, j3, js3 = stride(3), s3 = size(3);
+  int64_t i3, j3, js3 = stride(3), s3 = size(3);
   if (dimension() == 4)
     {
       for (i0=0, j0=0 ; i0<s0 ; ++i0, j0+=js0)
@@ -569,14 +575,14 @@ void Array<T>::apply(Array_Operator<T> &op)
       return;
     }
 
-  for (long i = 0 ; i < s0 ; ++i)
+  for (int64_t i = 0 ; i < s0 ; ++i)
     this->slice(0,i).apply(op);
 }
 
 // ----------------------------------------------------------------------------
 //
 template <class T>
-Array<T> Array<T>::slice(int axis, int index) const
+Array<T> Array<T>::slice(int axis, int64_t index) const
 {
   return Array<T>(Untyped_Array::slice(axis, index));
 }
@@ -584,7 +590,7 @@ Array<T> Array<T>::slice(int axis, int index) const
 // ----------------------------------------------------------------------------
 //
 template <class T>
-Array<T> Array<T>::subarray(int axis, int i_min, int i_max)
+Array<T> Array<T>::subarray(int axis, int64_t i_min, int64_t i_max)
 {
   return Array<T>(Untyped_Array::subarray(axis, i_min, i_max));
 }
