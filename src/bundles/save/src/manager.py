@@ -11,21 +11,19 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-class NoOpenerError(ValueError):
+class NoSaverError(ValueError):
     pass
 
 from chimerax.core.toolshed import ProviderManager
-class OpenManager(ProviderManager):
+class SaveManager(ProviderManager):
     """Manager for open command"""
 
     def __init__(self, session):
         self.session = session
-        self._openers = {}
-        self._fetchers = {}
-        self._compression_info = {}
+        self._savers = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
-        self.triggers.add_trigger("open command changed")
+        self.triggers.add_trigger("save command changed")
 
     def add_provider(self, bundle_info, name, *, type="open", want_path=False, check_path=True,
             batch=False, compression_suffixes=None, format_name=None, is_default=True, **kw):
@@ -37,7 +35,7 @@ class OpenManager(ProviderManager):
         check_path = bool_cvt(check_path, name, bundle_name, "check_path")
         if batch or not check_path:
             want_path = True
-        type_description = "Open-command" if type == "open" else type.capitalize()
+        type_description = "Save-command" if type == "open" else type.capitalize()
         if kw:
             logger.warning("%s provider '%s' supplied unknown keywords in provider description: %s"
                 % (type_description, name, repr(kw)))
@@ -45,13 +43,13 @@ class OpenManager(ProviderManager):
             try:
                 data_format = self.session.data_formats[name]
             except KeyError:
-                logger.warning("Open-command provider in bundle %s specified unknown data format '%s';"
+                logger.warning("Save-command provider in bundle %s specified unknown data format '%s';"
                     " skipping" % (bundle_name, name))
                 return
-            if data_format in self._openers:
+            if data_format in self._savers:
                 logger.warning("Replacing opener for '%s' from %s bundle with that from %s bundle"
-                    % (data_format.name, _readable_bundle_name(self._openers[data_format][0]), bundle_name))
-            self._openers[data_format] = (bundle_info, name, want_path, check_path, batch)
+                    % (data_format.name, _readable_bundle_name(self._savers[data_format][0]), bundle_name))
+            self._savers[data_format] = (bundle_info, name, want_path, check_path, batch)
         elif type == "fetch":
             if format_name is None:
                 raise ValueError("Database fetch '%s' in bundle %s failed to specify file format name"
@@ -85,7 +83,7 @@ class OpenManager(ProviderManager):
         try:
             return self._fetchers[database_name]
         except KeyError:
-            raise NoOpenerError("No such database '%s'" % database_name)
+            raise NoSaverError("No such database '%s'" % database_name)
 
     @property
     def database_names(self):
@@ -115,12 +113,12 @@ class OpenManager(ProviderManager):
         try:
             db_formats = self._fetchers[database_name]
         except KeyError:
-            raise NoOpenerError("No such database '%s'" % database_name)
+            raise NoSaverError("No such database '%s'" % database_name)
         if format_name:
             try:
                 bundle_info, is_default = db_formats[format_name]
             except KeyError:
-                raise NoOpenerError("Format '%s' not supported for database '%s'.  Supported formats are: %s"
+                raise NoSaverError("Format '%s' not supported for database '%s'.  Supported formats are: %s"
                     % (format_name, database_name, ", ".join(dbf for dbf in db_formats)))
         else:
             for format_name, info in db_formats.items():
@@ -128,14 +126,14 @@ class OpenManager(ProviderManager):
                 if is_default:
                     break
             else:
-                raise NoOpenerError("No default format for database '%s'.  Possible formats are: %s"
+                raise NoSaverError("No default format for database '%s'.  Possible formats are: %s"
                     % (database_name, ", ".join(dbf for dbf in db_formats)))
         return bundle_info.run_provider(self.session, database_name, self,
-            operation="args", format_name=format_name)
+            operation="fetch args", format_name=format_name)
 
     def open_data(self, path, **kw):
         from .cmd import provider_open
-        return provider_open(self.session, [path], return_status=True, _add_to_file_history=False, **kw)
+        return provider_open(self.session, [path], return_status=True, **kw)
 
     def open_file(self, path, encoding=None):
         """Open possibly compressed file for reading.  If encoding is 'None', open as binary"""
@@ -148,16 +146,16 @@ class OpenManager(ProviderManager):
 
     def open_args(self, data_format):
         try:
-            bundle_info, name, want_path, check_path, batch = self._openers[data_format]
+            bundle_info, name, want_path, check_path, batch = self._savers[data_format]
         except KeyError:
-            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
-        return bundle_info.run_provider(self.session, name, self, operation="args")
+            raise NoSaverError("No opener registered for format '%s'" % data_format.name)
+        return bundle_info.run_provider(self.session, name, self, operation="open args")
 
     def open_info(self, data_format):
         try:
-            return self._openers[data_format]
+            return self._savers[data_format]
         except KeyError:
-            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
+            raise NoSaverError("No opener registered for format '%s'" % data_format.name)
 
     def remove_compression_suffix(self, file_name):
         for suffix in self._compression_info.keys():

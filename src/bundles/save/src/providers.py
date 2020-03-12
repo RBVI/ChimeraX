@@ -11,21 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .sdf import read_sdf
+def get_compression(name, path, encoding):
+    if name == "gzip":
+        from gzip import open as open_compressed
+    elif name == "bz2":
+        from bz2 import open as open_compressed
+    elif name == "lzma":
+        from lzma import open as open_compressed
+    else:
+        raise ValueError("Don't know how to handle compression type '%s'" % name)
+    if encoding:
+        return open_compressed(path, mode='r', encoding=encoding)
+    return open_compressed(path)
 
-from chimerax.core.toolshed import BundleAPI
-
-class _SDF_API(BundleAPI):
-
-    @staticmethod
-    def open_file(session, stream, file_name):
-        return read_sdf(session, stream, file_name)
-
-    @staticmethod
-    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None):
-        if operation == "args":
-            return {}
-        elif operation == "open":
-            return read_sdf(session, data, file_name)
-
-bundle_api = _SDF_API()

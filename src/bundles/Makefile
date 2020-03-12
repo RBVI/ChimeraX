@@ -25,7 +25,7 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
 	  nucleotides open pdb pick_blobs preset_mgr pubchem read_pbonds \
 	  registration remote_control rest_server \
-	  residue_fit rotamer_lib_mgr rotamer_libs scheme_mgr \
+	  residue_fit rotamer_lib_mgr rotamer_libs save scheme_mgr \
 	  sdf segger segment seq_view sim_matrices \
 	  shell shortcuts show_attr sideview smiles \
 	  smooth_lines spacenavigator std_commands \

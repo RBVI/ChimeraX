@@ -44,7 +44,7 @@ class _PDBioAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
             database_name=None, ident=None, ignore_cache=None, format_name=None, **kw):
-        if operation.endswith("args"):
+        if operation == "args":
             from chimerax.core.commands import BoolArg, IntArg, FloatArg
             return {
                 'atomic': BoolArg,

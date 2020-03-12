@@ -48,7 +48,7 @@ class _PubChemAPI(BundleAPI):
                 return process_widget(widget)
         else:
             # fetch command
-            if operation == "fetch args":
+            if operation == "args":
                 return {}
             else:
                 from . import pubchem

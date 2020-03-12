@@ -32,7 +32,7 @@ class _MDCrdsBundleAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
             structure_model=None, replace=True):
-        if operation == "open args":
+        if operation == "args":
             from chimerax.atomic import StructureArg
             from chimerax.core.commands import BoolArg
             return {

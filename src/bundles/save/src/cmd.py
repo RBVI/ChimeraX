@@ -77,16 +77,16 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         if keyword in keywords:
             raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of same name" % keyword)
         keywords[keyword] = annotation
-    desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
+    desc = CmdDesc(required=[('file_names', OpenFileNamesArg)], keyword=keywords.items(),
         synopsis="unnecessary")
     register("open", desc, provider_open, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
-def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None,
-        return_status=False, _add_to_file_history=True, **provider_kw):
+def provider_open(session, file_names, format=None, from_database=None, ignore_cache=False, name=None,
+        return_status=False, **provider_kw):
     mgr = session.open
     # since the "file names" may be globs, need to preprocess them...
-    fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
+    fetches, file_names = fetches_vs_files(mgr, file_names, format, from_database)
     file_infos = [FileInfo(session, fn, format) for fn in file_names]
     formats = set([fi.data_format for fi in file_infos])
     databases = set([f[1:] for f in fetches])
@@ -160,19 +160,6 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 opened_models.append(name_and_group_models(models, name, [ident]))
     if opened_models:
         session.models.add(opened_models)
-    if _add_to_file_history and len(names) == 1:
-        # TODO: Handle lists of file names in history
-        from chimerax.core.filehistory import remember_file
-        if fetches:
-            # Files opened in the help browser are done asynchronously and might have
-            # been misspelled and can't be deleted from file history.  So skip them.
-            if not statuses or not statuses[-1].endswith(" in browser"):
-                remember_file(session, names[0], format_name, opened_models or 'all models',
-                    database=database_name, open_options=provider_kw)
-        else:
-            remember_file(session, names[0], file_infos[0].data_format.name, opened_models or 'all models',
-                open_options=provider_kw)
-
     status ='\n'.join(statuses) if statuses else ""
     if return_status:
         return opened_models, status

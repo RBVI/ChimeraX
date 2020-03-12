@@ -11,21 +11,21 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .sdf import read_sdf
-
 from chimerax.core.toolshed import BundleAPI
 
-class _SDF_API(BundleAPI):
+class _OpenBundleAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        return read_sdf(session, stream, file_name)
+    def init_manager(session, bundle_info, name, **kw):
+        """Initialize open-command manager"""
+        if name == "save command":
+            from . import manager
+            session.save = manager.SaveManager(session)
+            return session.save
 
     @staticmethod
-    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None):
-        if operation == "args":
-            return {}
-        elif operation == "open":
-            return read_sdf(session, data, file_name)
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(command_name, logger)
 
-bundle_api = _SDF_API()
+bundle_api = _OpenBundleAPI()
