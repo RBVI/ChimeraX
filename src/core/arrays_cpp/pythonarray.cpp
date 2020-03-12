@@ -478,6 +478,11 @@ PyObject *c_array_to_python(const std::vector<int> &i)
 }
 
 // ----------------------------------------------------------------------------
+// Returns an array of long which will be 32-bit on Windows,
+// 64-bit on other platforms.
+//
+// TODO: Return 64-bit on Windows.  I will need to add NPY_INT64 support
+// to Numeric_Array and the ability of template code to operate on that type.
 //
 PyObject *c_array_to_python(const std::vector<int64_t> &i)
 {
@@ -487,7 +492,7 @@ PyObject *c_array_to_python(const std::vector<int64_t> &i)
   int64_t dimensions[1] = {sz};
   PyObject *a = allocate_python_array(1, dimensions, NPY_LONG);
   if (a) {
-    int64_t *py_data = (int64_t *)PyArray_DATA((PyArrayObject *)a);
+    long *py_data = (long *)PyArray_DATA((PyArrayObject *)a);
     for (int64_t k = 0 ; k < sz ; ++k)
        py_data[k] = i[k];
   }
