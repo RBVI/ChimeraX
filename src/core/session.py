@@ -423,6 +423,9 @@ class Session:
         self.session_file_path = None  # Last saved or opened session file.
         if minimal:
             return
+        if not _have_graphics():
+            # During build process ChimeraX is run before graphics module is installed.
+            return
 
         # initialize state managers for various properties
         from . import models
@@ -502,22 +505,28 @@ class Session:
         if issubclass(cls, base_type):
             return cls
         elif not hasattr(self, '_snapshot_methods'):
-            from chimerax import graphics as gr
-            from chimerax.graphics import gsession as g
-            from chimerax.geometry import Place, Places, psession as p
-            self._snapshot_methods = {
-                gr.View: g.ViewState,
-                gr.MonoCamera: g.CameraState,
-                gr.OrthographicCamera: g.CameraState,
-                gr.Lighting: g.LightingState,
-                gr.Material: g.MaterialState,
-                gr.ClipPlane: g.ClipPlaneState,
-                gr.SceneClipPlane: g.SceneClipPlaneState,
-                gr.CameraClipPlane: g.CameraClipPlaneState,
-                gr.Drawing: g.DrawingState,
-                Place: p.PlaceState,
-                Places: p.PlacesState,
-            }
+            try:
+                from chimerax import graphics as gr
+                from chimerax.graphics import gsession as g
+                from chimerax.geometry import Place, Places, psession as p
+            except ImportError:
+                # Session was created with no graphics or geometry modules.
+                # This happens during build process.
+                self._snapshot_methods = {}
+            else:
+                self._snapshot_methods = {
+                    gr.View: g.ViewState,
+                    gr.MonoCamera: g.CameraState,
+                    gr.OrthographicCamera: g.CameraState,
+                    gr.Lighting: g.LightingState,
+                    gr.Material: g.MaterialState,
+                    gr.ClipPlane: g.ClipPlaneState,
+                    gr.SceneClipPlane: g.SceneClipPlaneState,
+                    gr.CameraClipPlane: g.CameraClipPlaneState,
+                    gr.Drawing: g.DrawingState,
+                    Place: p.PlaceState,
+                    Places: p.PlacesState,
+                }
 
         methods = self._snapshot_methods.get(cls, None)
         return methods
@@ -663,6 +672,13 @@ class Session:
             self.restore_options.clear()
             mgr.cleanup()
 
+def _have_graphics():
+    # During build process ChimeraX is run before graphics module is installed.
+    try:
+        import chimerax.graphics
+    except ImportError:
+        return False
+    return True
 
 class InScriptFlag:
 
@@ -1017,18 +1033,6 @@ def common_startup(sess):
     set_exception_reporter(lambda preface, logger=sess.logger:
                            logger.report_exception(preface=preface))
 
-    from .selection import Selection
-    sess.selection = Selection(sess)
-
-    try:
-        from .core_settings import settings
-        sess.main_view.background_color = settings.background_color.rgba
-    except ImportError:
-        pass
-
-    from .updateloop import UpdateLoop
-    sess.update_loop = UpdateLoop(sess)
-
     register(
         'debug sdump',
         CmdDesc(required=[('session_file', OpenFileNameArg)],
@@ -1046,6 +1050,22 @@ def common_startup(sess):
 
     _register_core_file_formats(sess)
     _register_core_database_fetch()
+
+    if not _have_graphics():
+        # During build process ChimeraX is run before graphics module is installed.        
+        return
+
+    from .selection import Selection
+    sess.selection = Selection(sess)
+
+    try:
+        from .core_settings import settings
+        sess.main_view.background_color = settings.background_color.rgba
+    except ImportError:
+        pass
+
+    from .updateloop import UpdateLoop
+    sess.update_loop = UpdateLoop(sess)
 
 
 def _gen_exception(session):
