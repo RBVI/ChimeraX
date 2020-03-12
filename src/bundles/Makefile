@@ -54,5 +54,8 @@ Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
+# Segger bundle_info.xml is hidden in a tar file so Make_dependencies.py does not see it.
+segger.install: geometry.install graphics.install ui.install
+
 include Makefile.dependencies
 endif
