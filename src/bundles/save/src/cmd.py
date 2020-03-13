@@ -11,21 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.commands import CmdDesc, register, Command, OpenFileNamesArg, RestOfLine, next_token, \
+from chimerax.core.commands import CmdDesc, register, Command, SaveFileNameArg, RestOfLine, next_token, \
     FileNameArg, BoolArg, StringArg, DynamicEnum
 from chimerax.core.commands.cli import RegisteredCommandInfo
 from chimerax.core.errors import UserError, LimitationError
 
-# need to use non-repeatable OpenFilesNamesArg (rather than OpenFileNameArg) so that 'browse' can still be
-# used to open multiple files
-class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
-    allow_repeat = False
-
-import os.path
-def likely_pdb_id(text):
-    return not os.path.exists(text) and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
-
-def cmd_open(session, file_names, rest_of_line, *, log=True):
+def cmd_save(session, file_name, rest_of_line, *, log=True):
     tokens = []
     remainder = rest_of_line
     while remainder:
