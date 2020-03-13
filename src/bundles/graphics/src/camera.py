@@ -31,7 +31,7 @@ class Camera:
         # Camera postion and direction, neg z-axis is camera view direction,
         # x and y axes are horizontal and vertical screen axes.
         # First 3 columns are x, y, z axes, 4th column is camara location.
-        from ..geometry import Place
+        from chimerax.geometry import Place
         self._position = Place()
         """Coordinate frame for camera in scene coordinates with camera
         pointed along -z."""
@@ -150,8 +150,8 @@ class Camera:
             rays.append((origin,direction))
         (o1,d1),(o2,d2),(o3,d3),(o4,d4) = rays
         faces = ((o1,o1+d1,o2+d2), (o2,o2+d2,o3+d3), (o3,o3+d3,o4+d4), (o4,o4+d4,o1+d1))
-        from .. import geometry
-        planes = geometry.planes_as_4_vectors(faces)
+        from chimerax.geometry import planes_as_4_vectors
+        planes = planes_as_4_vectors(faces)
         return planes
 
     def set_special_render_modes(self, render):
@@ -234,7 +234,7 @@ def perspective_view_all(bounds, position, field_of_view, window_size = None, pa
                              for v in ((0,cy/sy,1), (0,-cy/sy,1))]) # frustum top/bottom normals
     center = bounds.center()
     bc = bounds.box_corners() - center
-    from ..geometry import inner_product, Place
+    from chimerax.geometry import inner_product, Place
     d = max(inner_product(n,c) for c in bc for n in face_normals)
     d *= 1/max(0.01, 1-pad)
     view_direction = -position.z_axis()
@@ -247,7 +247,7 @@ def perspective_view_width(point, origin, field_of_view):
     Return the visible width at the distance to the given point
     in scene coordinates.
     '''
-    from ..geometry import vector
+    from chimerax.geometry import vector
     d = vector.distance(origin, point)
     from math import radians
     # view width at center
@@ -279,7 +279,7 @@ def perspective_direction(window_x, window_y, window_size, field_of_view):
     t = tan(0.5 * fov)		# Field of view is in width
     wp, hp = window_size        # Screen size in pixels
     wx, wy = 2*(window_x - 0.5 * wp) / wp, 2*(0.5 * hp - window_y) / wp
-    from ..geometry import normalize_vector
+    from chimerax.geometry import normalize_vector
     d = normalize_vector((t*wx, t*wy, -1))
     return d
 
@@ -300,7 +300,7 @@ class OrthographicCamera(Camera):
         '''
         p = self.position
         corners = p.inverse() * bounds.box_corners()	# In camera coords
-        from ..geometry import point_bounds
+        from chimerax.geometry import point_bounds
         b = point_bounds(corners)
         xsize, ysize, zsize = b.xyz_max - b.xyz_min
         w = max(xsize, ysize * window_size[0] / window_size[1]) if window_size else xsize
@@ -309,7 +309,7 @@ class OrthographicCamera(Camera):
         zoffset = 2*b.radius()
         ca = bounds.center() - zoffset*self.view_direction()
         shift = ca - self.position.origin()
-        from ..geometry import translation
+        from chimerax.geometry import translation
         self.position = translation(shift) * self.position
 
     def view_width(self, center):
@@ -376,7 +376,7 @@ class StereoCamera(Camera):
             # Stereo eyes view in same direction with position shifted along x.
             s = -1 if view_num == 0 else 1
             es = self.eye_separation_scene
-            from ..geometry import place
+            from chimerax.geometry import place
             t = place.translation((s * 0.5 * es, 0, 0))
             v = camera_position * t
         return v
@@ -408,7 +408,7 @@ class StereoCamera(Camera):
         return (p.origin(), ds)
 
     def set_focus_depth(self, point_on_screen, window_width):
-        from ..geometry import inner_product
+        from chimerax.geometry import inner_product
         z = inner_product(self.view_direction(), point_on_screen - self.position.origin())
         if z <= 0:
             return
@@ -469,7 +469,7 @@ class SplitStereoCamera(Camera):
             # Stereo eyes view in same direction with position shifted along x.
             s = -1 if view_num == 0 else 1
             es = self.eye_separation_scene
-            from ..geometry import place
+            from chimerax.geometry import place
             t = place.translation((s*0.5*es,0,0))
             v = camera_position * t
         return v
@@ -624,7 +624,7 @@ def camera_framing_drawings(drawings):
     This is used for capturing thumbnail images.
     '''
     c = MonoCamera()
-    from ..geometry import bounds
+    from chimerax.geometry import bounds
     b = bounds.union_bounds(d.bounds() for d in drawings)
     if b is None:
         return None

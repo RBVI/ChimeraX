@@ -305,7 +305,7 @@ class CoordinateSetPlayer:
     coords = coordset_coords(atoms, cset, self.structure)
     if self._steady_coords is None:
       self._steady_coords = coords
-    from chimerax.core.geometry import align_points
+    from chimerax.geometry import align_points
     tf = align_points(coords, self._steady_coords)[0]
     tfc[cset] = tf
     return tf

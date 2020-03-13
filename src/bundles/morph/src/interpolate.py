@@ -137,7 +137,7 @@ class SegmentInterpolator:
                 self.motion_parameters = motion_params = []
                 self.motion_transforms = motion_transforms = []
                 from .util import segment_alignment_atoms
-                from chimerax.core.geometry import align_points
+                from chimerax.geometry import align_points
                 from chimerax.atomic import Atoms
                 for rList in residue_groups:
                         aatoms = Atoms(segment_alignment_atoms(rList))
@@ -170,7 +170,7 @@ class SegmentInterpolator:
                 rit += t1-t0
 
 def apply_rigid_motion_py(coordset, atom_indices, axis, angle, center, shift, f):
-        from chimerax.core.geometry import rotation, translation
+        from chimerax.geometry import rotation, translation
         xf = translation(f*shift) * rotation(axis, f*angle, center)
         ca = coordset[atom_indices]	# Copies array
         xf.transform_points(ca, in_place = True)  # Apply rigid segment motion
@@ -188,7 +188,7 @@ def interpolate_corkscrew(xf, c0, c1, minimum_rotation = 0.1):
         centered half-way between c0 and c1 in the plane perpendicular to the rotation axis.
         Rotations less than the minimum (degrees) are treated as no rotation.
         '''
-        from chimerax.core.geometry import normalize_vector
+        from chimerax.geometry import normalize_vector
         dc = c1 - c0
         axis, angle = xf.rotation_axis_and_angle()      # a is in degrees.
         if abs(angle) < minimum_rotation:
@@ -198,7 +198,7 @@ def interpolate_corkscrew(xf, c0, c1, minimum_rotation = 0.1):
                 center = c0
                 shift = dc
         else:
-                from chimerax.core.geometry import inner_product, cross_product, norm
+                from chimerax.geometry import inner_product, cross_product, norm
                 tra = inner_product(dc, axis)           # Magnitude of translation along rotation axis.
                 shift = tra*axis
                 vt = dc - tra * axis                    # Translation perpendicular to rotation axis.

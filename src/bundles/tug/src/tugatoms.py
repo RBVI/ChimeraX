@@ -176,7 +176,7 @@ class Puller2D:
         # Project atom onto view ray to get displacement.
         dir = x1 - x0
         da = axyz - x0
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
         return axyz, -offset
 

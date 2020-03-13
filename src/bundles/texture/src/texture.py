@@ -80,7 +80,7 @@ def image_file_as_rgba(path):
         raise UserError('texture image file "%s" does not exist' % p)
     from PyQt5.QtGui import QImage
     qi = QImage(p)
-    from chimerax.core.graphics import qimage_to_numpy
+    from chimerax.graphics import qimage_to_numpy
     rgba = qimage_to_numpy(qi)
     return rgba
 
@@ -157,7 +157,7 @@ def _set_vertex_color_texture_coordinates(session, drawings, max_width = 1024):
 
 def _set_texture(session, drawing, rgba):
     _remove_texture(session, drawing)
-    from chimerax.core.graphics import Texture
+    from chimerax.graphics import Texture
     t = Texture(rgba)
     t.linear_interpolation = False
     drawing.texture = t

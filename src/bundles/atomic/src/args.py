@@ -226,14 +226,14 @@ def parse_symmetry(session, group, center = None, axis = None, molecule = None):
 
     # Handle products of symmetry groups.
     groups = group.split('*')
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     ops = Places()
     for g in groups:
         ops = ops * group_symmetries(session, g, molecule)
 
     # Apply center and axis transformation.
     if center is not None or axis is not None:
-        from chimerax.core.geometry import Place, vector_rotation, translation
+        from chimerax.geometry import Place, vector_rotation, translation
         tf = Place()
         if center is not None and tuple(center) != (0,0,0):
             tf = translation([-c for c in center])
@@ -247,7 +247,7 @@ def parse_symmetry(session, group, center = None, axis = None, molecule = None):
 #
 def group_symmetries(session, group, molecule):
 
-    from chimerax.core import geometry
+    from chimerax import geometry
     from chimerax.core.errors import UserError
 
     g0 = group[:1].lower()
@@ -309,7 +309,7 @@ def group_symmetries(session, group, molecule):
             param.append(0.0)
         rise, angle, n, offset = param
         n = int(n)
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         tflist = Places([geometry.helical_symmetry_matrix(rise, angle, n = i+offset)
                          for i in range(n)])
     elif gfields[0].lower() == 'shift' or (g0 == 't' and nf >= 3):
@@ -407,6 +407,6 @@ def make_closest_placement_identity(tflist, center):
     i = d2.argmin()
     tfinv = tflist[i].inverse()
     rtflist = [tf*tfinv for tf in tflist]
-    from chimerax.core.geometry import Place, Places
+    from chimerax.geometry import Place, Places
     rtflist[i] = Place()
     return Places(rtflist)

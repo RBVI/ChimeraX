@@ -285,18 +285,18 @@ class Stereo360Camera(Camera):
 
 def view_width_360(point, origin):
     from math import pi
-    from ..geometry import vector
+    from chimerax.geometry import vector
     return 2 * pi * vector.distance(origin, point)
 
 def view_all_360(bounds, cam_position):
     center, size = bounds.center(), bounds.width()
     shift = center - cam_position.origin() + 2*size*cam_position.z_axis()
-    from ..geometry import translation
+    from chimerax.geometry import translation
     return translation(shift) * cam_position
 
 # Camera rotations for 6 cube faces. Face order +x,-x,+y,-y,+z,-z.
 def _cube_map_face_views():
-    from ..geometry import Place
+    from chimerax.geometry import Place
     views = [Place(matrix=m) for m in
              (((0,0,-1,0),(0,-1,0,0),(-1,0,0,0)),
               ((0,0,1,0),(0,-1,0,0),(1,0,0,0)),

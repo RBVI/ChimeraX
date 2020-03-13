@@ -304,7 +304,7 @@ def neighbors(ijk, ijk_max):
 def color_surface_from_mask(volume, mask):
     # Color maps using protrusion mask.
     emask = extend_mask(mask)
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     tf = Place().matrix
     n = mask.max()
     from numpy import random, uint8, int32, float32, empty

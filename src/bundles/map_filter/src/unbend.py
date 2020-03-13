@@ -40,7 +40,7 @@ def unbend_volume(volume, path, yaxis, xsize, ysize, grid_spacing,
   s = section.reshape((ny*nx,3))
 
   # Interpolate planes to fill straightened array.
-  from chimerax.core.geometry import translation
+  from chimerax.geometry import translation
   m = empty((nz,ny,nx), float32)
   for k in range(nz):
     tf = translation(points[k]) * axes[k]
@@ -63,12 +63,12 @@ def unbend_volume(volume, path, yaxis, xsize, ysize, grid_spacing,
 def spline_path(path, grid_spacing):
 
   oversample = 3
-  from chimerax.core.geometry import distance
+  from chimerax.geometry import distance
   subdiv = max([int(oversample * distance(path[i+1], path[i]) / grid_spacing)
                 for i in range(len(path)-1)])
   from numpy import array
   npath = array(path)
-  from chimerax.core.geometry import natural_cubic_spline
+  from chimerax.geometry import natural_cubic_spline
   points, tangents = natural_cubic_spline(npath, subdiv)
   epoints = equispaced_points(points, grid_spacing)
   return epoints
@@ -78,10 +78,10 @@ def spline_path(path, grid_spacing):
 def equispaced_points(points, grid_spacing):
 
   ep = [points[0]]
-  from chimerax.core.geometry import arc_lengths
+  from chimerax.geometry import arc_lengths
   arcs = arc_lengths(points)
   d = grid_spacing
-  from chimerax.core.geometry import linear_combination
+  from chimerax.geometry import linear_combination
   for i, a in enumerate(arcs):
     while a > d:
       f = (d - arcs[i-1]) / (arcs[i] - arcs[i-1])
@@ -94,7 +94,7 @@ def equispaced_points(points, grid_spacing):
 def path_point_axes(points, yaxis):
 
   zaxes = path_tangents(points)
-  from chimerax.core.geometry import orthonormal_frame
+  from chimerax.geometry import orthonormal_frame
   axes = [orthonormal_frame(za, ydir=yaxis) for za in zaxes]
   return axes
   
@@ -103,7 +103,7 @@ def path_point_axes(points, yaxis):
 def path_tangents(points):
 
   # TODO: Handle coincident points.
-  from chimerax.core.geometry import linear_combination, normalize_vector
+  from chimerax.geometry import linear_combination, normalize_vector
   tang = [linear_combination(1, points[1], -1, points[0])]
   for i in range(1,len(points)-1):
     tang.append(linear_combination(1, points[i+1], -1, points[i-1]))

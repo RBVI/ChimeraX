@@ -19,7 +19,7 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  cellpack chem_group clashes cmd_line \
 	  color_globe connect_structure crosslinks crystal data_formats \
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
-	  gltf hbonds help_viewer ihm interfaces label list_info log \
+	  geometry gltf graphics hbonds help_viewer ihm interfaces label list_info log \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds medical_toolbar meeting mlp model_series \
 	  mmcif mmtf model_panel modeller mol2 morph mouse_modes movie \
@@ -53,6 +53,9 @@ clean:
 Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
+
+# Segger bundle_info.xml is hidden in a tar file so Make_dependencies.py does not see it.
+segger.install: geometry.install graphics.install ui.install
 
 include Makefile.dependencies
 endif

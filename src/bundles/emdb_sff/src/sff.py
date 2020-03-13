@@ -213,7 +213,7 @@ def mesh_geometry(mesh, seg):
     '''
 
     if mesh.transform_id is None:
-        from chimerax.core.geometry import Place, scale
+        from chimerax.geometry import Place, scale
 #        transform = scale((160,160,160)) * Place(seg.transforms[0].data_array)
         transform = Place(seg.transforms[0].data_array) * scale((160,160,160))
     else:
@@ -245,7 +245,7 @@ def mesh_geometry(mesh, seg):
     return va,na,ta
 
 def transform_by_id(seg, tf_id):
-    from chimerax.core.geometry import Place, scale
+    from chimerax.geometry import Place, scale
     for tf in seg.transforms:
         if tf.id == tf_id:
             return scale((160,160,160)) * Place(tf.data_array)

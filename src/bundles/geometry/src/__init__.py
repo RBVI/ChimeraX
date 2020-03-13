@@ -43,3 +43,14 @@ from .icosahedron import coordinate_system_transform as icosahedral_coordinate_s
 from .spline import arc_lengths
 from .adaptive_tree import AdaptiveTree
 from .plane import Plane
+
+from chimerax.core.toolshed import BundleAPI
+class _GeometryBundleAPI(BundleAPI):
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'Place':
+            return Place
+        elif class_name == 'Places':
+            return Places
+
+bundle_api = _GeometryBundleAPI()

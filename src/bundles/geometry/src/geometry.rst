@@ -20,21 +20,21 @@ geometry: Points and coordinate systems
 
 .. _place-anchor:
 
-.. automodule:: chimerax.core.geometry.place
+.. automodule:: chimerax.geometry.place
     :members:
     :special-members:
     :exclude-members: __weakref__
 		      
 .. _vector-anchor:
 
-.. automodule:: chimerax.core.geometry.vector
+.. automodule:: chimerax.geometry.vector
     :members:  distance, norm, normalize_vector, normalize_vectors, vector_sum, cross_product, inner_product
 
-.. autofunction:: chimerax.core.geometry._geometry.inner_product_64
+.. autofunction:: chimerax.geometry._geometry.inner_product_64
 
 .. _bounds-anchor:
 
-.. automodule:: chimerax.core.geometry.bounds
+.. automodule:: chimerax.geometry.bounds
     :members:
     :special-members:
     :exclude-members: __weakref__
@@ -44,7 +44,7 @@ geometry: Points and coordinate systems
 Miscellaneous Routines
 ----------------------
 
-.. autofunction:: chimerax.core.geometry.align.align_points
+.. autofunction:: chimerax.geometry.align.align_points
 
-.. automodule:: chimerax.core.geometry._geometry
+.. automodule:: chimerax.geometry._geometry
     :members: closest_cylinder_intercept, closest_sphere_intercept, closest_triangle_intercept, find_close_points, find_closest_points, find_close_points_sets, natural_cubic_spline

@@ -92,11 +92,11 @@ class ClipPlane:
 
     def offset(self, point):
         '''Return distance of a point to the plane (signed).'''
-        from ..geometry import inner_product
+        from chimerax.geometry import inner_product
         return inner_product(self.plane_point - point, self.normal)
 
     def opengl_vec4(self):
-        from ..geometry import inner_product
+        from chimerax.geometry import inner_product
         nx,ny,nz = n = self.normal
         c0 = inner_product(n, self.plane_point)
         return (nx, ny, nz, -c0)

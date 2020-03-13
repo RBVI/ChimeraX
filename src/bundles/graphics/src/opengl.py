@@ -206,14 +206,14 @@ class OpenGLContext:
         major, minor = fmt.version()
         rmajor, rminor = self.required_opengl_version
         if major < rmajor or (major == rmajor and minor < rminor):
-            from chimerax.core.graphics import OpenGLVersionError
+            from chimerax.graphics import OpenGLVersionError
             raise OpenGLVersionError(
                 'ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
                 'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
                 'Try updating your graphics driver.')
         if self.required_opengl_core_profile:
             if fmt.profile() != fmt.CoreProfile:
-                from chimerax.core.graphics import OpenGLVersionError
+                from chimerax.graphics import OpenGLVersionError
                 raise OpenGLVersionError(
                     'ChimeraX requires an OpenGL graphics core profile.\n' +
                     'Your computer graphics driver a non-core profile (version %d.%d).\n'
@@ -864,7 +864,7 @@ class Render:
         params = {}
 
         # Key light
-        from ..geometry import normalize_vector
+        from chimerax.geometry import normalize_vector
         kld = normalize_vector(lp.key_light_direction)
         if move:
             kld = move.transform_vector(kld)
@@ -1369,7 +1369,7 @@ class Shadow:
             return (s.lvinv, s.stf)
 
         # Compute the view matrix looking along the light direction.
-        from ..geometry import normalize_vector, orthonormal_frame, translation, scale
+        from chimerax.geometry import normalize_vector, orthonormal_frame, translation, scale
         ld = normalize_vector(light_direction)
         # Light view frame:
         lv = translation(center - radius * ld) * orthonormal_frame(-ld)
@@ -1402,7 +1402,7 @@ class Multishadow:
 
         # cached state
         self._multishadow_dir = None
-        from ..geometry import Places
+        from chimerax.geometry import Places
         self._multishadow_transforms = Places()
         self._multishadow_depth = None
         self._multishadow_current_params = None
@@ -1479,7 +1479,7 @@ class Multishadow:
             r.set_view_matrix(lvinv)
             mstf_array[l,:,:] = tf.matrix
             draw_depth(r, sdrawings, opaque_only = not mat.transparent_cast_shadows)
-        from ..geometry import Places
+        from chimerax.geometry import Places
         mstf = Places(place_array = mstf_array)
 
         self._finish_rendering_multishadowmap()
@@ -1509,7 +1509,7 @@ class Multishadow:
             from .gllist import Mat34Func
             self._multishadow_view_transforms = Mat34Func('multishadow matrices', lambda: (stf * ctf()), len(stf))
         else:
-            from ..geometry import multiply_transforms
+            from chimerax.geometry import multiply_transforms
             multiply_transforms(stf, ctf, result = vtf)
 
         # TODO: Issue warning if maximum number of shadows exceeded.
@@ -1555,7 +1555,7 @@ class Multishadow:
         directions = self._multishadow_dir
         n = self._render.lighting.multishadow
         if directions is None or len(directions) != n:
-            from ..geometry import sphere
+            from chimerax.geometry import sphere
             self._multishadow_dir = directions = sphere.sphere_points(n)
         return directions
 
@@ -2039,7 +2039,7 @@ class Framebuffer:
 
     def __del__(self):
         if not self._deleted and self._fbo != 0:
-            raise OpenGLError('OpenGL framebuffer "%s" was not deleted before core.graphics.Framebuffer destroyed'
+            raise OpenGLError('OpenGL framebuffer "%s" was not deleted before graphics.Framebuffer destroyed'
                                % self.name)
 
     def delete(self, make_current = False):
@@ -2316,7 +2316,7 @@ class Bindings:
 
     def __del__(self):
         if self._vao_id is not None:
-            raise OpenGLError('OpenGL vertex array object was not deleted before core.graphics.Bindings destroyed')
+            raise OpenGLError('OpenGL vertex array object was not deleted before graphics.Bindings destroyed')
 
     def delete_bindings(self):
         'Delete the OpenGL vertex array object.'
@@ -2479,7 +2479,7 @@ class Buffer:
         
     def __del__(self):
         if not self._deleted_buffer:
-            raise OpenGLError('OpenGL buffer "%s" was not deleted before core.graphics.Buffer destroyed'
+            raise OpenGLError('OpenGL buffer "%s" was not deleted before graphics.Buffer destroyed'
                                % self.shader_variable_name)
 
     def delete_buffer(self):
@@ -2858,7 +2858,7 @@ class Texture:
 
     def __del__(self):
         if self.id is not None:
-            raise OpenGLError('OpenGL texture was not deleted before core.graphics.Texture destroyed')
+            raise OpenGLError('OpenGL texture was not deleted before graphics.Texture destroyed')
 
     def delete_texture(self):
         'Delete the OpenGL texture.'
@@ -3026,7 +3026,7 @@ class TextureWindow:
 
     def __del__(self):
         if self.vao is not None:
-            raise OpenGLError('core.graphics.TextureWindow delete() not called')
+            raise OpenGLError('graphics.TextureWindow delete() not called')
         
     def delete(self):
         if self.vao is None:

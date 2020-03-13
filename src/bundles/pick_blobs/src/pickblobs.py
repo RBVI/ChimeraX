@@ -61,7 +61,7 @@ def principle_axes_box(varray, tarray):
   weights = surface.vertex_areas(varray, tarray)
   from chimerax.std_commands.measure_inertia import moments_of_inertia
   axes, d2e, center = moments_of_inertia([(varray, weights)])
-  from chimerax.core.geometry import Place, point_bounds
+  from chimerax.geometry import Place, point_bounds
   axes_points = Place(axes = axes).inverse().transform_points(varray)
   bounds = point_bounds(axes_points)
   return axes, bounds
@@ -345,7 +345,7 @@ class PickBlobSettings(ToolInstance):
         
     def new_color(self):
         from random import random as r
-        from chimerax.core.geometry import normalize_vector
+        from chimerax.geometry import normalize_vector
         rgba = tuple(normalize_vector((r(), r(), r()))) + (1,)
         self._blob_color.color = rgba
 

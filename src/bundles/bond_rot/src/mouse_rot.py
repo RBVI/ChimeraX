@@ -91,7 +91,7 @@ class BondRotationMouseMode(MouseMode):
             atom1 = br.moving_side
             atom2 = br.bond.other_atom(atom1)
             p = event.tip_position
-            from chimerax.core.geometry import distance
+            from chimerax.geometry import distance
             if distance(p, atom2.scene_coord) < distance(p, atom1.scene_coord):
                 br.moving_side = atom2
         
@@ -100,7 +100,7 @@ class BondRotationMouseMode(MouseMode):
         br = self._bond_rot
         if br:
             axis, angle = event.motion.rotation_axis_and_angle()
-            from chimerax.core.geometry import inner_product
+            from chimerax.geometry import inner_product
             if inner_product(axis, br.axis) < 0:
                 angle = -angle
             angle_change = self._speed_factor * angle
@@ -125,7 +125,7 @@ def log_torsion_command(bond_rotator):
     if ms_atom2 is None or fs_atom2 is None:
         return 		# No connected atom to define a torsion
     side = '' if bond.smaller_side is ms_atom else 'move large'
-    from chimerax.core.geometry import dihedral
+    from chimerax.geometry import dihedral
     torsion = dihedral(fs_atom2.scene_coord, fs_atom.scene_coord,
                        ms_atom.scene_coord, ms_atom2.scene_coord)
     res = ms_atom.residue

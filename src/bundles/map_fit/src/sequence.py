@@ -20,7 +20,7 @@ def fit_sequence(models, volume, steps, subtract_maps = [],
                  ijk_step_size_min = 0.01, ijk_step_size_max = 0.5,
                  request_stop_cb = None, log = None):
 
-    from chimerax.core.geometry import identity
+    from chimerax.geometry import identity
     data_array, xyz_to_ijk_transform = \
         volume.matrix_and_transform(identity(), subregion = None, step = 1)
 

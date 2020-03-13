@@ -13,17 +13,17 @@
 graphics: Rendering using OpenGL
 ================================
 
-.. automodule:: chimerax.core.graphics.view
+.. automodule:: chimerax.graphics.view
     :members:
     :member-order: bysource
     :show-inheritance:
 
-.. automodule:: chimerax.core.graphics.camera
+.. automodule:: chimerax.graphics.camera
     :members:
     :member-order: bysource
     :show-inheritance:
 
-.. automodule:: chimerax.core.graphics.drawing
+.. automodule:: chimerax.graphics.drawing
     :members:
     :member-order: bysource
     :exclude-members: Pick
@@ -31,30 +31,30 @@ graphics: Rendering using OpenGL
 
 Pick
 ----
-.. autoclass:: chimerax.core.graphics.drawing.Pick
+.. autoclass:: chimerax.graphics.drawing.Pick
     :members:
 
 Lighting
 --------
-.. autoclass:: chimerax.core.graphics.opengl.Lighting
+.. autoclass:: chimerax.graphics.opengl.Lighting
     :members:
 
 Material
 --------
-.. autoclass:: chimerax.core.graphics.opengl.Material
+.. autoclass:: chimerax.graphics.opengl.Material
     :members:
 
 Texture
 --------
-.. autoclass:: chimerax.core.graphics.opengl.Texture
+.. autoclass:: chimerax.graphics.opengl.Texture
     :members:
 
 CrossFade
 -----------
-.. autoclass:: chimerax.core.graphics.crossfade.CrossFade
+.. autoclass:: chimerax.graphics.crossfade.CrossFade
     :members:
 
 MotionBlur
 -----------
-.. autoclass:: chimerax.core.graphics.crossfade.MotionBlur
+.. autoclass:: chimerax.graphics.crossfade.MotionBlur
     :members:

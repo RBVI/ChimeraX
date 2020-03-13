@@ -165,7 +165,7 @@ class CoordinatesPanel(ToolInstance):
       self._origin.value = vector_value_text(data.xyz_to_ijk((0,0,0)))
       self._voxel_size.value = vector_value_text(data.step)
       self._cell_angles.value = vector_value_text(data.cell_angles)
-      from chimerax.core.geometry import Place
+      from chimerax.geometry import Place
       axis, angle = Place(axes = data.rotation).rotation_axis_and_angle()
       from .volume_viewer import float_format
       self._rotation_axis.value = ' '.join([float_format(x,5) for x in axis])
@@ -258,7 +258,7 @@ class CoordinatesPanel(ToolInstance):
     if data.rotation == ((1,0,0),(0,1,0),(0,0,1)):
       axis, angle = (0,0,1), 0
     else:
-      from chimerax.core.geometry import Place
+      from chimerax.geometry import Place
       axis, angle = Place(axes = data.rotation).rotation_axis_and_angle()
 
     rax = self._rotation_axis.value
@@ -274,7 +274,7 @@ class CoordinatesPanel(ToolInstance):
     nangle = self._rotation_angle.value
 
     if tuple(naxis) != tuple(axis) or nangle != angle:
-      from chimerax.core.geometry import rotation
+      from chimerax.geometry import rotation
       r = rotation(naxis, nangle)
       data.set_rotation(r.matrix[:,:3])
       # Have to change xyz origin for index origin to remain the same.

@@ -85,7 +85,7 @@ class MinimizeMode(MouseMode):
 def _zone_atoms(atoms, near_atoms, distance):
     axyz = atoms.scene_coords
     naxyz = near_atoms.scene_coords
-    from chimerax.core.geometry import find_close_points
+    from chimerax.geometry import find_close_points
     i1,i2 = find_close_points(axyz, naxyz, distance)
     za = atoms[i1]
     return za

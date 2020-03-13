@@ -184,7 +184,7 @@ class Polygon:
     def normal(self):
 
         x0,x1,x2 = [m.coord for m in self.vertices[:3]]
-        from chimerax.core.geometry import normalize_vector, cross_product
+        from chimerax.geometry import normalize_vector, cross_product
         n = normalize_vector(cross_product(x1-x0, x2-x1))
         return n
         
@@ -425,7 +425,7 @@ def optimized_placement(polygon, vertex_degree):
         if l0j:
             lpairs.append((l0,l0j))
 
-    from chimerax.core.geometry import Place, align_points
+    from chimerax.geometry import Place, align_points
     if len(lpairs) == 0:
         tf = Place()
     elif len(lpairs) == 1:
@@ -461,7 +461,7 @@ def edge_join_transform(link, rlink, vertex_degree):
 
     f0 = edge_coordinate_frame(rlink)
     f1 = edge_coordinate_frame(link)
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     r = Place(((-1,0,0,0),
                (0,-1,0,0),
                (0,0,1,0)))     # Rotate 180 degrees about z.
@@ -495,7 +495,7 @@ def edge_coordinate_frame(edge):
     p = edge.polygon
     c = p.center()
     c01 = 0.5 * (x0+x1)
-    from chimerax.core.geometry import cross_product, normalize_vector, Place
+    from chimerax.geometry import cross_product, normalize_vector, Place
     xa = normalize_vector(x1 - x0)
     za = normalize_vector(cross_product(xa, c01-c))
     ya = cross_product(za, xa)
@@ -807,11 +807,11 @@ def parse_placements(name, marker_set):
 def placements(n, marker_set, each_edge = False):
 
     plist = polygons(marker_set)
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     tflist = Places([polygon_coordinate_frame(p) for p in plist if p.n == n])
 
     if each_edge:
-        from chimerax.core import geometry
+        from chimerax import geometry
         tflist = tflist * geometry.cyclic_symmetry_matrices(n)
 
     return tflist
@@ -826,7 +826,7 @@ def polygon_coordinate_frame(polygon):
     c = p.center()
     za = p.normal()
     xa = p.vertices[0].coord - c
-    from chimerax.core.geometry import normalize_vector, cross_product, Place
+    from chimerax.geometry import normalize_vector, cross_product, Place
     ya = normalize_vector(cross_product(za, xa))
     xa = normalize_vector(cross_product(ya, za))
     tf = [(xa[a], ya[a], za[a], c[a]) for a in (0,1,2)]

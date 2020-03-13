@@ -88,7 +88,7 @@ class Space_Navigator:
                 rmag = sqrt(rx*rx + ry*ry + rz*rz)
 
         from numpy import array, float32
-        from chimerax.core.geometry import place
+        from chimerax.geometry import place
 
         if rmag > 0:
             axis = array((rx/rmag, ry/rmag, rz/rmag), float32)
@@ -137,7 +137,7 @@ class Space_Navigator:
             if tf.rotation_angle() <= 1e-5:
                 v._update_center_of_rotation = True  # Translation
             cr = cpinv * v.center_of_rotation
-        from chimerax.core.geometry import translation
+        from chimerax.geometry import translation
         stf = cp * translation(cr) * tf * translation(-cr) * cpinv
         if self.collision(stf.inverse() * cam.position.origin()):
             return

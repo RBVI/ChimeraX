@@ -62,7 +62,7 @@ class RotateSlabMouseMode(MouseMode):
             c = v.center()
         else:
             vxyz0, vxyz1 = v.scene_position.inverse() * line
-            from chimerax.core.geometry import closest_triangle_intercept
+            from chimerax.geometry import closest_triangle_intercept
             f, t = closest_triangle_intercept(va, ta, vxyz0, vxyz1)
             if f is None:
                 # No intercept with middle slice.  Use center of slice.
@@ -92,7 +92,7 @@ class RotateSlabMouseMode(MouseMode):
             spacing = ro.tilted_slab_spacing
             slab_normal = v.scene_position.transform_vector(ro.tilted_slab_axis)
             move_dir = camera.position.transform_vector((dx,dy,0))
-            from chimerax.core.geometry import inner_product, norm
+            from chimerax.geometry import inner_product, norm
             sign = 1 if inner_product(move_dir, slab_normal) > 0 else -1
             dist = sign * norm(move_dir) * spacing
             self._move_slab(dist)
@@ -115,7 +115,7 @@ class RotateSlabMouseMode(MouseMode):
             rcenter = self._center
         else:
             rcenter = v.scene_position.inverse() * center
-        from chimerax.core.geometry import rotation, inner_product
+        from chimerax.geometry import rotation, inner_product
         axis = rotation(vaxis, angle).transform_vector(saxis)
 #        offset = inner_product(axis, rcenter) - 0.5*thickness
         offset = soffset + inner_product(axis-saxis, rcenter)
@@ -163,7 +163,7 @@ class RotateSlabMouseMode(MouseMode):
         trans = event.tip_motion
         dxyz = v.scene_position.inverse().transform_vector(trans)
         ro = v.rendering_options
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         dist = inner_product(ro.tilted_slab_axis, dxyz)
         self._move_slab(dist)
         center = event.tip_position
@@ -188,7 +188,7 @@ def set_initial_tilted_slab(volume, matching_maps = []):
     v = volume
     vdir = volume.session.main_view.camera.view_direction()
     axis = -v.scene_position.inverse().transform_vector(vdir)
-    from chimerax.core.geometry import inner_product
+    from chimerax.geometry import inner_product
     offset = inner_product(axis, v.center())
     spacing = min(v.data.step)
     v.expand_single_plane()
@@ -252,7 +252,7 @@ def slab_segment(v, line):
     offset1 = ro.tilted_slab_offset
     thickness = ro.tilted_slab_spacing * (ro.tilted_slab_plane_count - 1)
     offset2 = offset1 + thickness
-    from chimerax.core.geometry import clip_segment
+    from chimerax.geometry import clip_segment
     cline = clip_segment(line, ro.tilted_slab_axis, offset1, offset2)
     return cline
 

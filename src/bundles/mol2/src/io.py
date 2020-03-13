@@ -195,7 +195,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
 
     # transform...
     if rel_model is None:
-        from chimerax.core.geometry import identity
+        from chimerax.geometry import identity
         xform = identity()
     else:
         xform = rel_model.scene_position.inverse()

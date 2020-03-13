@@ -222,7 +222,7 @@ def stl_pack(varray, tarray):
 def triangle_normal(v0,v1,v2):
 
     e10, e20 = v1 - v0, v2 - v0
-    from chimerax.core.geometry import normalize_vector, cross_product
+    from chimerax.geometry import normalize_vector, cross_product
     n = normalize_vector(cross_product(e10, e20))
     return n
 

@@ -12,11 +12,13 @@
 TOP	= ../../../..
 include $(TOP)/mk/config.make
 
-PKG_DIR = $(PYSITEDIR)/chimerax/core/graphics
-APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/graphics
+PKG_DIR = $(PYSITEDIR)/chimerax/graphics
+APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/graphics
 
 PYMOD_NAME = _graphics
-SRCS	= blend_rgba.cpp count.cpp graphics.cpp linux_swap_interval.cpp mac_swap_interval.cpp mesh_edges.cpp
+SRCS	= blend_rgba.cpp count.cpp graphics.cpp \
+	  linux_swap_interval.cpp mac_swap_interval.cpp \
+	  mesh_edges.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS	+= $(PYDEF)
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
@@ -38,10 +40,10 @@ endif
 all: $(PYMOD)
 
 install: all
-	$(RSYNC) $(PYMOD) $(PKG_DIR)
+	$(RSYNC) $(PYMOD) ../src
 ifdef WIN32
 ifdef DEBUG
-	$(RSYNC) $(PYMOD_NAME).pdb $(PKG_DIR)
+	$(RSYNC) $(PYMOD_NAME).pdb ../src
 endif
 endif
 

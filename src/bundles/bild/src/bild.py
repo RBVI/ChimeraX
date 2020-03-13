@@ -25,7 +25,7 @@ The plan is to support all of the existing bild format.
 
 from chimerax.core.errors import UserError
 from numpy import array, empty, float32, int32, uint8
-from chimerax.core.geometry import identity, translation, rotation, scale, distance, z_align
+from chimerax.geometry import identity, translation, rotation, scale, distance, z_align
 from chimerax import atomic
 from chimerax import surface
 
@@ -405,7 +405,7 @@ class _BildFile:
             description = self.cur_description
         else:
             description = 'object %d: polygon' % self.num_objects
-        from chimerax.core.geometry import Plane
+        from chimerax.geometry import Plane
         plane = Plane(vertices)
         loops = ((0, len(vertices) - 1),)
         t = surface.triangulate_polygon(loops, plane.normal, vertices)
@@ -594,7 +594,7 @@ def get_dashed_cylinder(count, radius, p0, p1, closed=True, xform=None, pure=Fal
     h = distance(p0, p1)
     vertices, normals, triangles = surface.dashed_cylinder_geometry(count, radius, height=h, caps=closed)
     # rotate so z-axis matches p0->p1
-    from chimerax.core.geometry import z_align
+    from chimerax.geometry import z_align
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
@@ -616,7 +616,7 @@ def get_box(llb, urf, xform=None, pure=False):
 def get_cone(radius, p0, p1, bottom=False, xform=None, pure=False):
     h = distance(p0, p1)
     vertices, normals, triangles = surface.cone_geometry(radius, height=h, caps=bottom)
-    from chimerax.core.geometry import z_align
+    from chimerax.geometry import z_align
     xf = z_align(p0, p1)
     inverse = xf.inverse()
     vertices = inverse * (vertices + [0, 0, h / 2])
