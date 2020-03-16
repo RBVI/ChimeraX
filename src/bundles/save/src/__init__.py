@@ -17,7 +17,7 @@ class _OpenBundleAPI(BundleAPI):
 
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
-        """Initialize open-command manager"""
+        """Initialize save-command manager"""
         if name == "save command":
             from . import manager
             session.save = manager.SaveManager(session)

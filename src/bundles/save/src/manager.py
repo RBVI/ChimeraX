@@ -16,7 +16,7 @@ class NoSaverError(ValueError):
 
 from chimerax.core.toolshed import ProviderManager
 class SaveManager(ProviderManager):
-    """Manager for open command"""
+    """Manager for save command"""
 
     def __init__(self, session):
         self.session = session
@@ -29,10 +29,9 @@ class SaveManager(ProviderManager):
         logger = self.session.logger
 
         bundle_name = _readable_bundle_name(bundle_info)
-        type_description = "Save-command" if type == "open" else type.capitalize()
         if kw:
-            logger.warning("%s provider '%s' supplied unknown keywords in provider description: %s"
-                % (type_description, name, repr(kw)))
+            logger.warning("Save-command provider '%s' supplied unknown keywords in provider description: %s"
+                % (name, repr(kw)))
         try:
             data_format = self.session.data_formats[format_name]
         except KeyError:
@@ -40,40 +39,25 @@ class SaveManager(ProviderManager):
                 " skipping" % (bundle_name, format_name))
             return
         if data_format in self._savers:
-            logger.warning("Replacing opener for '%s' from %s bundle with that from %s bundle"
+            logger.warning("Replacing file-saver for '%s' from %s bundle with that from %s bundle"
                 % (data_format.name, _readable_bundle_name(self._savers[data_format][0]), bundle_name))
         self._savers[data_format] = (bundle_info, format_name)
 
     def end_providers(self):
-        self.triggers.activate_trigger("open command changed", self)
-
-    """
-    def open_data(self, path, **kw):
-        from .cmd import provider_open
-        return provider_open(self.session, [path], return_status=True, **kw)
-
-    def open_file(self, path, encoding=None):
-        """Open possibly compressed file for reading.  If encoding is 'None', open as binary"""
-        for suffix, comp_info in self._compression_info.items():
-            if path.endswith(suffix):
-                bundle_info, name = comp_info
-                return bundle_info.run_provider(name, self,
-                    operation="compression", path=path, encoding=encoding)
-        return open(path, ('r' if encoding else 'rb'), encoding=encoding)
-    """
+        self.triggers.activate_trigger("save command changed", self)
 
     def save_args(self, data_format):
         try:
             bundle_info, format_name = self._savers[data_format]
         except KeyError:
-            raise NoSaverError("No opener registered for format '%s'" % data_format.name)
+            raise NoSaverError("No file-saver registered for format '%s'" % data_format.name)
         return bundle_info.run_provider(self.session, format_name, self, operation="args")
 
     def save_info(self, data_format):
         try:
             return self._savers[data_format]
         except KeyError:
-            raise NoSaverError("No opener registered for format '%s'" % data_format.name)
+            raise NoSaverError("No file-saver registered for format '%s'" % data_format.name)
 
 def _readable_bundle_name(bundle_info):
     name = bundle_info.name
