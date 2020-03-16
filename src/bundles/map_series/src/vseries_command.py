@@ -345,7 +345,7 @@ def vseries_measure(session, series, output = None, centroids = True,
         d = 0
         cprev = None
         step = 0
-        from chimerax.core.geometry import distance
+        from chimerax.geometry import distance
         for n, (level, c, vol, area, elen) in enumerate(meas):
             if not cprev is None:
                 step = distance(cprev, c)

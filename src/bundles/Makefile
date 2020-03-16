@@ -13,9 +13,16 @@ TOP = ../..
 SUBDIR_SYNC = 1
 include $(TOP)/mk/config.make
 
-SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
+#
+# The FIRST_SUBDIRS subdirectories are built before REST_SUBDIRS.
+# Because core.models depends on graphics and geometry those are
+# installed first to test other bundles.
+#
+FIRST_SUBDIRS = bundle_builder geometry graphics
+
+REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter build_structure \
-	  bumps bundle_builder buttons cage_builder \
+	  bumps buttons cage_builder \
 	  cellpack chem_group clashes cmd_line \
 	  color_globe connect_structure crosslinks crystal \
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
@@ -33,6 +40,8 @@ SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  tape_measure test texture toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
 
+SUBDIRS = $(FIRST_SUBDIRS) $(REST_SUBDIRS)
+
 include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax
@@ -40,7 +49,13 @@ PKG_DIR = $(PYSITEDIR)/chimerax
 dir:	Makefile.dependencies
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
-$(SUBDIR_INSTALL): dir bundle_builder.install
+$(SUBDIR_INSTALL): dir
+
+# Make sure bundle_builder is installed before all others.
+$(SUBDIR_INSTALL): bundle_builder.install
+
+# Make sure first subidirectories are built before others.
+$(REST_SUBDIRS:=.install): $(FIRST_SUBDIRS:=.install)
 
 lint:
 ifneq (,$(PYSRCS))
@@ -53,6 +68,12 @@ clean:
 Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
+
+# Add any custom dependencies that are not captured in bundle_info.xml files
+# Segger bundle_info.xml is hidden in a tar file so Make_dependencies.py does not see it.
+segger.install: geometry.install graphics.install ui.install
+
+rotamer_libs.install: rotamer_lib_mgr.install
 
 include Makefile.dependencies
 endif

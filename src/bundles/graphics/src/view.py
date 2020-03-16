@@ -44,7 +44,7 @@ class View:
         # Create camera
         from .camera import MonoCamera
         self._camera = MonoCamera()
-        from ..geometry import Place
+        from chimerax.geometry import Place
         self._view_matrix = Place()		# Temporary used during rendering
 
         # Clip planes
@@ -566,7 +566,7 @@ class View:
             sdrawings = [self.drawing]
         else:
             sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
-            from ..geometry import bounds
+            from chimerax.geometry import bounds
             b = bounds.union_bounds(d.bounds() for d in sdrawings if not getattr(d, 'skip_bounds', False))
             # TODO: Need to transform drawing bounds if they have different positions.
             #   Check all places I use union_bounds() for this transform error.
@@ -602,7 +602,7 @@ class View:
                 # Clipping the bounding box does a poor giving tight bounds
                 # or even bounds centered on the visible objects.  But handling
                 # clip planes in bounds computations within models is more complex.
-                from ..geometry import clip_bounds
+                from chimerax.geometry import clip_bounds
                 b = clip_bounds(b, [(p.plane_point, p.normal) for p in planes])
         return b
 
@@ -627,7 +627,7 @@ class View:
         if b is None:
             return
         c = self.camera
-        from ..geometry import identity
+        from chimerax.geometry import identity
         c.position = identity()
         c.view_all(b, window_size = self.window_size, pad = pad)
         if set_pivot:
@@ -715,7 +715,7 @@ class View:
         cam_pos = self.camera.position.origin()
         vd = self.camera.view_direction()
         hyp = point - cam_pos
-        from ..geometry import inner_product, norm
+        from chimerax.geometry import inner_product, norm
         distance = inner_product(hyp, vd)
         cr = cam_pos + distance*vd
         old_cofr = self._center_of_rotation
@@ -848,7 +848,7 @@ class View:
         if include_clipping:
             p = self.clip_planes
             np, fp = p.find_plane('near'), p.find_plane('far')
-            from ..geometry import inner_product
+            from chimerax.geometry import inner_product
             if np:
                 near = max(near, inner_product(vd, (np.plane_point - cp)))
             if fp:
@@ -860,7 +860,7 @@ class View:
         b = self.drawing_bounds(allow_drawing_changes = False)
         if b is None:
             return self._min_near_fraction, 1  # Nothing shown
-        from ..geometry import inner_product
+        from chimerax.geometry import inner_product
         d = inner_product(b.center() - camera_pos, view_dir)         # camera to center of drawings
         r = (1 + self._near_far_pad) * b.radius()
         return (d-r, d+r)
@@ -887,8 +887,8 @@ class View:
         cplanes = [(origin + near*direction, direction), 
                    (origin + far*direction, -direction)]
         cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
-        from .. import geometry
-        f0, f1 = geometry.ray_segment(origin, direction, cplanes)
+        from chimerax.geometry import ray_segment
+        f0, f1 = ray_segment(origin, direction, cplanes)
         if f1 is None or f0 > f1:
             return (None, None)
         scene_pts = (origin + f0*direction, origin + f1*direction)
@@ -918,14 +918,14 @@ class View:
         in degrees.
         '''
         if drawings:
-            from ..geometry import bounds
+            from chimerax.geometry import bounds
             b = bounds.union_bounds(d.bounds() for d in drawings)
             if b is None:
                 return
             center = b.center()
         else:
             center = self.center_of_rotation
-        from ..geometry import rotation
+        from chimerax.geometry import rotation
         r = rotation(axis, angle, center)
         self.move(r, drawings)
 
@@ -937,7 +937,7 @@ class View:
         if self._center_of_rotation_method in ('front center', 'center of view'):
             self._update_center_of_rotation = True
         self._shift_near_far_clip_planes(shift)
-        from ..geometry import translation
+        from chimerax.geometry import translation
         t = translation(shift)
         self.move(t, drawings)
 
@@ -946,7 +946,7 @@ class View:
         np, fp = p.find_plane('near'), p.find_plane('far')
         if np or fp:
             vd = self.camera.view_direction()
-            from ..geometry import inner_product
+            from chimerax.geometry import inner_product
             plane_shift = inner_product(shift,vd)*vd
             if np:
                 np.plane_point += plane_shift
@@ -989,7 +989,7 @@ class View:
         b = self.drawing_bounds()
         if b is None:
             return
-        from ..geometry import distance
+        from chimerax.geometry import distance
         d = distance(b.center(), c.position.origin())
         if d == 0 and delta_z > 0.5*d:
             return

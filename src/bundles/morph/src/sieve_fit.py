@@ -36,7 +36,7 @@ def sieve(aList0, aList1, maxrmsd):
         from numpy import array, subtract, inner, add, argmax, transpose, multiply
         position0 = array([a.coord for a in aList0])        # fixed
         position1 = array([a.coord for a in aList1])        # movable
-        from chimerax.core.geometry import align_points
+        from chimerax.geometry import align_points
         p, rms = align_points(position1, position0)
         if rms < maxrmsd:
                 return False

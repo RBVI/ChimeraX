@@ -266,7 +266,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             return []
 
         picks = []
-        from chimerax.core.geometry import transform_planes
+        from chimerax.geometry import transform_planes
         for p in self.positions:
             pplanes = transform_planes(p, planes)
             picks.extend(self._pseudobonds_planes_pick(pplanes))

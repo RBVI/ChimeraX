@@ -173,7 +173,7 @@ def moments_of_inertia(vw):
   sevect = evect[:,order]
 
   axes = sevect.transpose()
-  from chimerax.core.geometry import inner_product, cross_product
+  from chimerax.geometry import inner_product, cross_product
   if inner_product(cross_product(axes[0],axes[1]),axes[2]) < 0:
     axes[2,:] = -axes[2,:]  # Make axes a right handed coordinate system
 
@@ -205,7 +205,7 @@ def ellipsoid_geometry(center, axes, axis_lengths, num_triangles = 1000):
   from chimerax.surface import sphere_geometry
   varray, narray, tarray = sphere_geometry(num_triangles)
   narray = narray.copy()        # Is same as varray for sphere.
-  from chimerax.core.geometry import Place, scale, normalize_vectors
+  from chimerax.geometry import Place, scale, normalize_vectors
   ptf = Place(axes = axes, origin = center) * scale(axis_lengths)
   ptf.transform_points(varray, in_place = True)
   ntf = Place(axes = axes) * scale([1/l for l in axis_lengths])

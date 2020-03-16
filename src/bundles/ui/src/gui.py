@@ -398,7 +398,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .graphics import GraphicsWindow
         stereo = getattr(ui, 'stereo', False)
         if stereo:
-            from chimerax.core.graphics import StereoCamera
+            from chimerax.graphics import StereoCamera
             session.main_view.camera = StereoCamera()
         self.graphics_window = g = GraphicsWindow(self._stack, ui, stereo)
         self._stack.addWidget(g.widget)

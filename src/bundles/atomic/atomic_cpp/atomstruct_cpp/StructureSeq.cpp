@@ -227,7 +227,8 @@ StructureSeq::push_front(Residue* r)
     if (r->chain() != nullptr)
         r->chain()->remove_residue(r);
     Sequence::push_front(Sequence::rname3to1(r->name()));
-    Residues pushed(_residues.size()+1);
+    Residues pushed;
+    pushed.reserve(_residues.size()+1);
     pushed.push_back(r);
     pushed.insert(pushed.end(), _residues.begin(), _residues.end());
     pushed.swap(_residues);

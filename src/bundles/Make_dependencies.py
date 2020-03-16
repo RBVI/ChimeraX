@@ -44,9 +44,6 @@ def make_dependencies(dir_path, output_name):
             if dep_dirs:
                 print("%s.install: %s" % (dir_name, ' '.join(dep_dirs)), file=f)
 
-        # Add any custom dependencies that is not captured by above
-        print("rotamer_libs.install: rotamer_lib_mgr.install", file=f)
-
     # Report any bundle dependencies that is not found
     missing.discard("ChimeraX-Core")
     missing.discard("qtconsole")

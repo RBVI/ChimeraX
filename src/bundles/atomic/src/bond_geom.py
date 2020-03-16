@@ -19,8 +19,8 @@ TODO
 """
 
 import tinyarray, numpy
-from chimerax.core.geometry import normalize_vector as normalize
-from chimerax.core.geometry import norm, cross_product, Plane, look_at, rotation, z_align
+from chimerax.geometry import normalize_vector as normalize
+from chimerax.geometry import norm, cross_product, Plane, look_at, rotation, z_align
 sqlength = lambda v: numpy.sum(v*v)
 
 from math import pi, sin, cos

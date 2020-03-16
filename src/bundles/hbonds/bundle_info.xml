@@ -22,6 +22,7 @@
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
     <Dependency name="ChimeraX-Atom_Search" version=">=1.0"/>
     <Dependency name="ChimeraX-ChemGroup" version=">=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version=">=1.0"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 

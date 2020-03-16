@@ -243,7 +243,7 @@ def _file_output(file_name, info, naming_style):
     print("Detect intra-molecule %s:" % test_type, intra_mol, file=out_file)
     seen = set()
     data = []
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for a, aclashes in clashes.items():
         for c, val in aclashes.items():
             if (c, a) in seen:

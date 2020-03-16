@@ -276,7 +276,7 @@ class Chimera_HDF_Image:
         if 'rotation_axis' in va and 'rotation_angle' in va:
             axis = va.rotation_axis
             angle = va.rotation_angle
-            from chimerax.core.geometry import matrix
+            from chimerax.geometry import matrix
             r = matrix.rotation_from_axis_angle(axis, angle)
         else:
             r = ((1,0,0),(0,1,0),(0,0,1))
@@ -288,7 +288,7 @@ class Chimera_HDF_Image:
 
         va = group._v_attrs
         if 'symmetries' in va:
-            from chimerax.core.geometry import Places
+            from chimerax.geometry import Places
             sym = Places(place_array = va.symmetries)
         else:
             sym = None

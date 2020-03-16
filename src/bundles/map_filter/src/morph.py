@@ -246,13 +246,13 @@ def interpolate_colors(f1, v1, f2, v2, v):
 
   nc = len(v.surfaces)
   if len(v1.surfaces) == nc and len(v2.surfaces) == nc:
-    from chimerax.core.geometry import linear_combination
+    from chimerax.geometry import linear_combination
     for s, s1, s2 in zip(v.surfaces, v1.surfaces, v2.surfaces):
       s.rgba = linear_combination(f1, s1.rgba, f2, s2.rgba)
 
   nc = len(v.image_colors)
   if len(v1.image_colors) == nc and len(v2.image_colors) == nc:
-    from chimerax.core.geometry import linear_combination
+    from chimerax.geometry import linear_combination
     scolors = [linear_combination(f1, v1.image_colors[c], f2, v2.image_colors[c])
                for c in range(nc)]
     v.set_parameters(image_colors = scolors)

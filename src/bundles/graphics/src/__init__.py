@@ -38,3 +38,22 @@ from .opengl import Render, OpenGLError, OpenGLVersionError
 
 from .view import View
 from .clipping import SceneClipPlane, CameraClipPlane, ClipPlane
+
+from chimerax.core.toolshed import BundleAPI
+class _GraphicsBundleAPI(BundleAPI):
+    _classes = {
+        'View': View,
+        'MonoCamera': MonoCamera,
+        'OrthographicCamera': OrthographicCamera,
+        'Lighting': Lighting,
+        'Material': Material,
+        'ClipPlane': ClipPlane,
+        'SceneClipPlane': SceneClipPlane,
+        'CameraClipPlane': CameraClipPlane,
+        'Drawing': Drawing,
+        }
+    @staticmethod
+    def get_class(class_name):
+        return _GraphicsBundleAPI._classes.get(class_name)
+
+bundle_api = _GraphicsBundleAPI()

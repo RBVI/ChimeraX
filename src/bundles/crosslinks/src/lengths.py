@@ -141,7 +141,7 @@ class EnsemblePlot(Plot):
         cset_ids = e.coordset_ids
         from numpy import empty, float32
         d = empty((len(cset_ids),), float32)
-        from chimerax.core.geometry import distance
+        from chimerax.geometry import distance
         # TODO: Optimize. Changing coordset scans all coordsets.
         #       Make routine to return coords for all coordsets for an atom?
         for i, id in enumerate(cset_ids):

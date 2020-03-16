@@ -224,7 +224,7 @@ def post_add(session, fake_n, fake_c):
             continue
         if add_nh:
             if dihed is None:
-                from chimerax.core.geometry import dihedral
+                from chimerax.geometry import dihedral
                 dihed = dihedral(pc.coord, pca.coord, pn.coord, ph.coord)
             session.logger.info("Adding 'H' to %s" % str(fn))
             from chimerax.atomic.struct_edit import add_dihedral_atom
@@ -344,7 +344,7 @@ def _handle_acid_protonation_scheme_item(r, protonation, res_types, atom_names,
 _tree_dist = 3.25
 h_rad = 1.0
 def _make_shared_data(session, protonation_models, in_isolation):
-    from chimerax.core.geometry import distance_squared
+    from chimerax.geometry import distance_squared
     from chimerax.atomic.search import AtomSearchTree
     # since adaptive search tree is static, it will not include
     # hydrogens added after this; they will have to be found by
@@ -683,7 +683,7 @@ def find_nearest(pos, atom, exclude, check_dist, avoid_metal_info=None):
     near_pos = n = near_atom = None
     exclude_pos = set([tuple(ex._addh_coord) for ex in exclude])
     exclude_pos.add(tuple(atom._addh_coord))
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for nb in nearby:
         n_pos = nb._addh_coord
         if tuple(n_pos) in exclude_pos:
@@ -734,7 +734,7 @@ def find_rotamer_nearest(at_pos, idatm_type, atom, neighbor, check_dist):
     from numpy.linalg import norm
     v *= cos70_5 * bond_len / norm(v)
     center = at_pos + v
-    from chimerax.core.geometry import Plane
+    from chimerax.geometry import Plane
     plane = Plane(center, normal=v)
     radius = sin70_5 * bond_len
     check_dist += radius
@@ -807,7 +807,7 @@ def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
     if parent_atom.element.valence < 5 and parent_type_info.geometry != linear:
         # non-sp1 carbons, et al, can't coordinate metals
         return False
-    from chimerax.core.geometry import distance, angle
+    from chimerax.geometry import distance, angle
     if distance(metal_pos, parent_pos) > _metal_dist:
         return False
     # 135.0 is not strict enough (see :1004.a in 1nyr)

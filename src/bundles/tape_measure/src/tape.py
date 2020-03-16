@@ -87,7 +87,7 @@ class TapeMeasureMouseMode(MouseMode):
               text = text, height = h, color = Color(self._color))
 
     def _label_text_and_height(self):
-        from chimerax.core.geometry import distance
+        from chimerax.geometry import distance
         m1, m2 = self._markers
         d = distance(m1.coord, m2.coord)
         text = '%.4g' % d
@@ -133,7 +133,7 @@ class TapeMeasureMouseMode(MouseMode):
     def _picked_point(self, event):
         xyz1, xyz2 = self._view_line(event)
         p = d = v = None
-        from chimerax.core.geometry import distance
+        from chimerax.geometry import distance
         for method in [self._surface_or_atom_point,
                        self._volume_maximum_point,
                        self._volume_plane_point]:
@@ -150,7 +150,7 @@ class TapeMeasureMouseMode(MouseMode):
         from chimerax.mouse_modes import picked_object_on_segment
         p = picked_object_on_segment(xyz1, xyz2, self.session.main_view,
                                      exclude = self._exclude_markers_from_pick)
-        from chimerax.core.graphics import PickedTriangle
+        from chimerax.graphics import PickedTriangle
         from chimerax.map.volume import PickedMap
         from chimerax.atomic import PickedAtom, PickedResidue
         sxyz = v = None
@@ -191,7 +191,7 @@ class TapeMeasureMouseMode(MouseMode):
         xyz1, xyz2 = self._view_line(event)
         p = self._start_point
         dx = xyz2 - xyz1
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         f = inner_product(p - xyz1, dx) / inner_product(dx, dx)
         cp = xyz1 + f * dx
         return cp

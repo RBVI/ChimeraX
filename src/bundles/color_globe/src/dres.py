@@ -75,7 +75,7 @@ def colormap_from_comment_line(line):
     cmap = Colormap(res, colors)
     return cmap
 
-from chimerax.core.graphics.drawing import Drawing
+from chimerax.graphics.drawing import Drawing
 class ColorGlobe(Drawing):
     '''
     Create discs tangent to the surface of a sphere at specified points
@@ -128,7 +128,7 @@ class ColorGlobe(Drawing):
         vs = []
         ns = []
         ts = []
-        from chimerax.core.geometry import vector_rotation, normalize_vector
+        from chimerax.geometry import vector_rotation, normalize_vector
         for i in range(len(points)):
             p = points[i]
             rv = vector_rotation((0,0,1), p)
@@ -173,7 +173,7 @@ class ColorGlobe(Drawing):
         r.set_view_matrix(rot.inverse())
         Drawing.draw(self, renderer, draw_pass)
         # Restore drawing settings so other overlays get expected state.
-        from chimerax.core.geometry import identity
+        from chimerax.geometry import identity
         r.set_view_matrix(identity())
         r.set_projection_matrix(((1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0),
                                  (0, 0, 0, 1)))
