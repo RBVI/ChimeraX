@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-ImageFormats" version="1.0"
+	    package="chimerax.image_formats"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Support for saving images</Synopsis>
+  <Description>Support for saving images</Description>
+
+  <Categories>
+    <Category name="I/O"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-Save" version=">=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version=">=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="BMP" synopsis="BMP image" category="Image" suffixes=".bmp"
+		reference_url="https://en.wikipedia.org/wiki/BMP_file_format" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="BMP" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

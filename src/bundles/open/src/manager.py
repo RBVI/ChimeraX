@@ -102,14 +102,14 @@ class OpenManager(ProviderManager):
             try:
                 in_common.append(self.session.data_formats[old])
             except KeyError:
-                print("old only:", old)
+                #print("old only:", old)
                 old_only.append(old)
-        for df in self.session.data_formats.formats:
-            print("new:", df.name)
+        #for df in self.session.data_formats.formats:
+        #    print("new:", df.name)
         print("%d data formats in common, %d new only, %d old only" %(len(in_common),
             len(self.session.data_formats) - len(in_common), len(old_only)))
         from random import choice
-        print("Port format", choice(list(old_only_formats)+['http']))
+        print("Port format", choice(list(old_only)+['http']))
 
     def fetch_args(self, database_name, *, format_name=None):
         try:

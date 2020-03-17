@@ -18,7 +18,7 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="MDL MOL/SDF" nicknames="sdf" category="Molecular structure" suffixes=".sdf,.mol"
+    <Provider name="SDF" synopsis="MDL MOL/SDF" category="Molecular structure" suffixes=".sdf,.mol"
 		reference_url="https://en.wikipedia.org/wiki/Chemical_table_file" encoding="utf-8" />
   </Providers>
 

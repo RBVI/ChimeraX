@@ -19,7 +19,7 @@
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Data_Formats" version=">=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version=">=1.0"/>
   </Dependencies>
 
   <Managers>
