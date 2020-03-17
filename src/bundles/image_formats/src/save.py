@@ -16,10 +16,11 @@ def save_image(session, path, format_name, width=None, height=None,
     '''
     Save an image of the current graphics window contents.
     '''
-    from .errors import UserError, LimitationError
+    from chimerax.core.errors import UserError, LimitationError
     has_graphics = session.main_view.render is not None
     if not has_graphics:
         raise LimitationError("Unable to save images because OpenGL rendering is not available")
+    from os.path import dirname, exists
     dir = dirname(path)
     if dir and not exists(dir):
         raise UserError('Directory "%s" does not exist' % dir)

@@ -22,10 +22,25 @@
   <Providers manager="data formats">
     <Provider name="BMP" synopsis="BMP image" category="Image" suffixes=".bmp"
 		reference_url="https://en.wikipedia.org/wiki/BMP_file_format" />
+    <Provider name="GIF" synopsis="GIF image" category="Image" suffixes=".gif"
+		reference_url="https://en.wikipedia.org/wiki/GIF" />
+    <Provider name="JPEG" synopsis="JPEG image" category="Image" suffixes=".jpg,.jpeg"
+		reference_url="https://en.wikipedia.org/wiki/JPEG" />
+    <Provider name="PNG" synopsis="PNG image" category="Image" suffixes=".png"
+		reference_url="https://en.wikipedia.org/wiki/Portable_Network_Graphics" />
+    <Provider name="PPM" synopsis="PPM image" category="Image" suffixes=".ppm"
+		reference_url="https://en.wikipedia.org/wiki/Netpbm" />
+    <Provider name="TIFF" synopsis="TIFF image" category="Image" suffixes=".tif,.tiff"
+		reference_url="https://en.wikipedia.org/wiki/TIFF" />
   </Providers>
 
   <Providers manager="save command">
     <Provider name="BMP" />
+    <Provider name="GIF" />
+    <Provider name="JPEG" />
+    <Provider name="PNG" />
+    <Provider name="PPM" />
+    <Provider name="TIFF" />
   </Providers>
 
   <Classifiers>
