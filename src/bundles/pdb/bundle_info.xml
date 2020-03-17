@@ -60,6 +60,10 @@
     <Provider name="pdbj" type="fetch" format_name="pdb" is_default="false" />
   </Providers>
 
+  <Providers manager="save command">
+    <Provider name="PDB" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

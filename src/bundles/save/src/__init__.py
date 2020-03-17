@@ -11,6 +11,14 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class SaverInfo:
+    def save(self, session, path, **kw):
+        raise NotImplementedError("Saver did not implement mandatory 'save' method")
+
+    @property
+    def save_args(self):
+        return {}
+
 from chimerax.core.toolshed import BundleAPI
 
 class _OpenBundleAPI(BundleAPI):

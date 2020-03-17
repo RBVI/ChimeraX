@@ -42,40 +42,61 @@ class _PDBioAPI(BundleAPI):
             combine_sym_atoms=combine_sym_atoms)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, type=None):
-        if type == "open":
-            from chimerax.open import OpenerInfo
-            class Info(OpenerInfo):
-                def open(self, session, data, file_name, **kw):
+    def run_provider(session, name, mgr):
+        if mgr == session.open:
+            if name == "PDB":
+                from chimerax.open import OpenerInfo
+                class Info(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        from . import pdb
+                        return pdb.open_pdb(session, data, file_name, **kw)
+
+                    @property
+                    def open_args(self):
+                        from chimerax.core.commands import BoolArg, IntArg, FloatArg
+                        return {
+                            'atomic': BoolArg,
+                            'auto_style': BoolArg,
+                            'combine_sym_atoms': BoolArg,
+                            'coordsets': BoolArg,
+                            'log_info': BoolArg,
+                            'max_models': IntArg,
+                            'oversampling': FloatArg,
+                            'structure_factors': BoolArg,
+                        }
+            else:
+                from chimerax.open import FetcherInfo
+                from . import pdb
+                fetcher = {
+                    'pdb': pdb.fetch_pdb,
+                    'pdbe': pdb.fetch_pdb_pdbe,
+                    'pdbj': pdb.fetch_pdb_pdbj
+                }[name]
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+        else:
+            from chimerax.save import SaverInfo
+            class Info(SaverInfo):
+                def save(self, session, path, **kw):
                     from . import pdb
-                    return pdb.open_pdb(session, data, file_name, **kw)
+                    pdb.save_pdb(session, path, **kw)
 
                 @property
-                def open_args(self):
-                    from chimerax.core.commands import BoolArg, IntArg, FloatArg
+                def save_args(self):
+                    from chimerax.core.commands import BoolArg, ModelsArg, ModelArg, EnumOf
                     return {
-                        'atomic': BoolArg,
-                        'auto_style': BoolArg,
-                        'combine_sym_atoms': BoolArg,
-                        'coordsets': BoolArg,
-                        'log_info': BoolArg,
-                        'max_models': IntArg,
-                        'oversampling': FloatArg,
-                        'structure_factors': BoolArg,
+                        'all_coordsets': BoolArg,
+                        'displayed_only': BoolArg,
+                        'models': ModelsArg,
+                        'pqr': BoolArg,
+                        'rel_model': ModelArg,
+                        'selected_only': BoolArg,
+                        'serial_numbering': EnumOf(("amber","h36"))
                     }
-        else:
-            from chimerax.open import FetcherInfo
-            from . import pdb
-            fetcher = {
-                'pdb': pdb.fetch_pdb,
-                'pdbe': pdb.fetch_pdb_pdbe,
-                'pdbj': pdb.fetch_pdb_pdbj
-            }[name]
-            class Info(FetcherInfo):
-                def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
-                    return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
-
+                    
         return Info()
+
 
     @staticmethod
     def save_file(session, path, *, models=None, selected_only=False, displayed_only=False,

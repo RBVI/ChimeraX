@@ -191,7 +191,7 @@ def _fetch_info(mgr, database_name, default_format_name):
         else:
             raise UserError("No default format for database '%s'.  Possible formats are: %s"
                 % (database_name, ", ".join(db_info.keys())))
-    return bundle_info.run_provider(mgr.session, database_name, mgr, type="fetch"), default_format_name
+    return bundle_info.run_provider(mgr.session, database_name, mgr), default_format_name
 
 def _get_path(mgr, file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists

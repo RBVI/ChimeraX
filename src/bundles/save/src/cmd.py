@@ -31,13 +31,13 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
 
     from .manager import NoSaverError
     mgr = session.save
-    data_format= file_format(session, files[0], format_name)
+    data_format= file_format(session, file_name, format_name)
     try:
         provider_args = mgr.save_args(data_format)
     except NoSaverError as e:
         raise LimitationError(str(e))
 
-    provider_cmd_text = "save " + " ".join([FileNameArg.unparse(fn) for fn in file_names] + tokens)
+    provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)] + tokens)
     # register a private 'save' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(formats=session.data_formats.formats):
@@ -60,13 +60,10 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
 
 def provider_save(session, file_name, format=None, **provider_kw):
     mgr = session.save
-    # since the "file names" may be globs, need to preprocess them...
     data_format = file_format(session, file_name, format)
     bundle_info, provider_name = mgr.save_info(data_format)
-    path = _get_path(fi.file_name)
-    ret_val = bundle_info.run_provider(session, provider_name, mgr,
-                    operation="save", path=path, **provider_kw)
-    return ret_val
+    path = _get_path(file_name)
+    return bundle_info.run_provider(session, provider_name, mgr).save(session, path, **provider_kw)
 
 def _get_path(file_name):
     from os.path import expanduser, expandvars, exists

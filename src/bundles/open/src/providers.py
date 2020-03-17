@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def get_compression(name, path, encoding):
+def uncompressed(name, path, encoding):
     if name == "gzip":
         from gzip import open as open_compressed
     elif name == "bz2":

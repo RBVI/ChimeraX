@@ -44,8 +44,8 @@ class _MyAPI(BundleAPI):
     #     return mmtf.write_mmtf(session, name, models)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, type=None):
-        if type == "open":
+    def run_provider(session, name, mgr):
+        if name == "mmtf":
             from chimerax.open import OpenerInfo
             class Info(OpenerInfo):
                 def open(self, session, data, file_name, **kw):

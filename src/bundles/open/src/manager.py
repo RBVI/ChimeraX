@@ -131,7 +131,7 @@ class OpenManager(ProviderManager):
                 raise NoOpenerError("No default format for database '%s'.  Possible formats are: %s"
                     % (database_name, ", ".join(dbf for dbf in db_formats)))
         args = self.open_args(self.session.data_formats[format_name])
-        args.update(bundle_info.run_provider(self.session, database_name, self, type="fetch").fetch_args)
+        args.update(bundle_info.run_provider(self.session, database_name, self).fetch_args)
         return args
 
     def open_data(self, path, **kw):
@@ -143,7 +143,7 @@ class OpenManager(ProviderManager):
         for suffix, comp_info in self._compression_info.items():
             if path.endswith(suffix):
                 bundle_info, name = comp_info
-                return bundle_info.decompress(session, name, path, encoding)
+                return bundle_info.run_provider(session, name, self, path=path, encoding=encoding)
         return open(path, ('r' if encoding else 'rb'), encoding=encoding)
 
     def open_args(self, data_format):
@@ -151,12 +151,12 @@ class OpenManager(ProviderManager):
             bundle_info, name, *args = self._openers[data_format]
         except KeyError:
             raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
-        return bundle_info.run_provider(self.session, name, self, type="open").open_args
+        return bundle_info.run_provider(self.session, name, self).open_args
 
     def open_info(self, data_format):
         try:
             bi, name, *args = self._openers[data_format]
-            return (bi.run_provider(self.session, name, self, type="open"), name) + tuple(args)
+            return (bi.run_provider(self.session, name, self), name) + tuple(args)
         except KeyError:
             raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
 
