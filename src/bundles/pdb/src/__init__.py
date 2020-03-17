@@ -42,31 +42,40 @@ class _PDBioAPI(BundleAPI):
             combine_sym_atoms=combine_sym_atoms)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
-            database_name=None, ident=None, ignore_cache=None, format_name=None, **kw):
-        if operation == "args":
-            from chimerax.core.commands import BoolArg, IntArg, FloatArg
-            return {
-                'atomic': BoolArg,
-                'auto_style': BoolArg,
-                'combine_sym_atoms': BoolArg,
-                'coordsets': BoolArg,
-                'log_info': BoolArg,
-                'max_models': IntArg,
-                'oversampling': FloatArg,
-                'structure_factors': BoolArg,
-            }
-        elif operation == "open":
+    def run_provider(session, name, mgr, *, type=None):
+        if type == "open":
+            from chimerax.open import OpenerInfo
+            class Info(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import pdb
+                    return pdb.open_pdb(session, data, file_name, **kw)
+
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import BoolArg, IntArg, FloatArg
+                    return {
+                        'atomic': BoolArg,
+                        'auto_style': BoolArg,
+                        'combine_sym_atoms': BoolArg,
+                        'coordsets': BoolArg,
+                        'log_info': BoolArg,
+                        'max_models': IntArg,
+                        'oversampling': FloatArg,
+                        'structure_factors': BoolArg,
+                    }
+        else:
+            from chimerax.open import FetcherInfo
             from . import pdb
-            return pdb.open_pdb(session, data, file_name, **kw)
-        elif operation == "fetch":
-            from . import pdb
-            dispatch = {
+            fetcher = {
                 'pdb': pdb.fetch_pdb,
                 'pdbe': pdb.fetch_pdb_pdbe,
                 'pdbj': pdb.fetch_pdb_pdbj
-            }
-            return dispatch[database_name](session, ident, ignore_cache=ignore_cache, **kw)
+            }[name]
+            class Info(FetcherInfo):
+                def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
+                    return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+
+        return Info()
 
     @staticmethod
     def save_file(session, path, *, models=None, selected_only=False, displayed_only=False,

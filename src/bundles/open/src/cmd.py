@@ -100,23 +100,20 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
         data_format = formats.pop() if formats else None
         database_name, format = databases.pop() if databases else (None, format)
         if database_name:
-            bundle_info, default_format_name = _fetch_info(mgr, database_name, format)
+            fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             for ident, database_name, format_name in fetches:
                 if format_name is None:
                     format_name = default_format_name
-                models, status = bundle_info.run_provider(session, database_name, mgr,
-                    operation="fetch", ident=ident, database_name=database_name, format_name=format_name,
-                    ignore_cache=ignore_cache, **provider_kw)
+                models, status = fetcher_info.fetch(session, ident, format_name, ignore_cache, **provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, [ident]))
         else:
-            bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format)
+            opener_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format)
             if batch:
                 paths = [_get_path(mgr, fi.file_name, check_path) for fi in file_infos]
-                models, status = bundle_info.run_provider(session, self, provider_name,
-                                    operation="open", data=paths, **provider_kw)
+                models, status = opener_info.open(session, paths, None, **provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
@@ -127,33 +124,29 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         data = _get_path(mgr, fi.file_name, check_path)
                     else:
                         data = _get_stream(mgr, fi.file_name, data_format.encoding)
-                    models, status = bundle_info.run_provider(session, provider_name, mgr,
-                                    operation="open", data=data, file_name=fi.file_name, **provider_kw)
+                    models, status = opener_info.open(session, data, fi.file_name, **provider_kw)
                     if status:
                         statuses.append(status)
                     if models:
                         opened_models.append(name_and_group_models(models, name, fi.file_name))
     else:
         for fi in file_infos:
-            bundle_info, provider_name, want_path, check_path, batch = mgr.open_info(fi.data_format)
+            opener_info, provider_name, want_path, check_path, batch = mgr.open_info(fi.data_format)
             for fi in file_infos:
                 if want_path:
                     data = _get_path(mgr, fi.file_name, check_path)
                 else:
                     data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
-                models, status = bundle_info.run_provider(session, provider_name, mgr,
-                                operation="open", data=data, file_name=fi.file_name, **provider_kw)
+                models, status = opener_info.open(session, data, fi.file_name, **provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, fi.file_name))
         for ident, database_name, format_name in fetches:
-            bundle_info, default_format_name = _fetch_info(mgr, database_name, format)
+            fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             if format_name is None:
                 format_name = default_format_name
-            models, status = bundle_info.run_provider(session, database_name, mgr,
-                operation="fetch", ident=ident, database_name=database_name, format_name=format_name,
-                ignore_cache=ignore_cache, **provider_kw)
+            models, status = fetcher_info.fetch(session, ident, format_name, ignore_cache, **provider_kw)
             if status:
                 statuses.append(status)
             if models:
@@ -196,7 +189,7 @@ def _fetch_info(mgr, database_name, default_format_name):
         else:
             raise UserError("No default format for database '%s'.  Possible formats are: %s"
                 % (database_name, ", ".join(db_info.keys())))
-    return bundle_info, default_format_name
+    return bundle_info.run_provider(mgr.session, database_name, mgr, type="fetch"), default_format_name
 
 def _get_path(mgr, file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists

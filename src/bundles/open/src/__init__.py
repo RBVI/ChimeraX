@@ -11,6 +11,22 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class OpenerInfo:
+    def open(self, session, data, file_name, **kw):
+        raise NotImplementedError("Opener did not implement mandatory 'open' method")
+
+    @property
+    def open_args(self):
+        return {}
+
+class FetcherInfo:
+    def fetch(self, session, ident, format_name, ignore_cache, **kw):
+        raise NotImplementedError("Fetcher did not implement mandatory 'fetch' method")
+
+    @property
+    def fetch_args(self):
+        return {}
+
 from chimerax.core.toolshed import BundleAPI
 
 class _OpenBundleAPI(BundleAPI):

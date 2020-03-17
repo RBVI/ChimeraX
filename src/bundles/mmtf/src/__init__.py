@@ -44,15 +44,27 @@ class _MyAPI(BundleAPI):
     #     return mmtf.write_mmtf(session, name, models)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
-            ident=None, ignore_cache=False, **kw):
-        if operation.endswith("args"):
-            return {}
-        elif operation == "open":
-            from . import mmtf
-            return mmtf.open_mmtf(session, data, file_name)
-        elif operation == "fetch":
-            from . import mmtf
-            return mmtf.fetch_mmtf(session, ident, ignore_cache)
+    def run_provider(session, name, mgr, *, type=None):
+        if type == "open":
+            from chimerax.open import OpenerInfo
+            class Info(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import mmtf
+                    return mmtf.open_mmtf(session, data, file_name, **kw)
+
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import BoolArg
+                    return {
+                        'auto_style': BoolArg,
+                        'coordsets': BoolArg
+                    }
+        else:
+            from chimerax.open import FetcherInfo
+            class Info(FetcherInfo):
+                def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                    from . import mmtf
+                    return mmtf.fetch_mmtf(session, ident, ignore_cache, **kw)
+        return Info()
 
 bundle_api = _MyAPI()

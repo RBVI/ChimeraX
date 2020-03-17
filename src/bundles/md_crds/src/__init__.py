@@ -30,25 +30,32 @@ class _MDCrdsBundleAPI(BundleAPI):
         return [], "Added %d frames to %s" % (num_coords, model)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, operation=None, data=None, file_name=None,
-            structure_model=None, replace=True):
-        if operation == "args":
-            from chimerax.atomic import StructureArg
-            from chimerax.core.commands import BoolArg
-            return {
-                'structure_model': StructureArg,
-                'replace': BoolArg
-            }
-        elif operation == "open":
-            if structure_model is None:
-                from chimerax.core.errors import UserError
-                raise UserError("Must specify a structure model to read the coordinates into")
-            from .read_coords import read_coords
-            num_coords = read_coords(session, data, structure_model, name, replace=replace)
-            if replace:
-                return [], "Replaced existing frames of %s with  %d new frames" % (structure_model,
-                    num_coords)
-            return [], "Added %d frames to %s" % (num_coords, structure_model)
+    def run_provider(session, name, mgr, **kw):
+        print("MD run_provider, name:", repr(name))
+        from chimerax.open import OpenerInfo
+        class MDOpenerInfo(OpenerInfo):
+            print("at definition time, name is", name)
+            def open(self, session, data, file_name, *, structure_model=None, md_type=name, replace=True, **kw):
+                if structure_model is None:
+                    from chimerax.core.errors import UserError
+                    raise UserError("Must specify a structure model to read the coordinates into")
+                from .read_coords import read_coords
+                print("at call time, md_type is", md_type)
+                num_coords = read_coords(session, data, structure_model, md_type, replace=replace)
+                if replace:
+                    return [], "Replaced existing frames of %s with  %d new frames" % (structure_model,
+                        num_coords)
+                return [], "Added %d frames to %s" % (num_coords, structure_model)
+            
+            @property
+            def open_args(self):
+                from chimerax.atomic import StructureArg
+                from chimerax.core.commands import BoolArg
+                return {
+                    'structure_model': StructureArg,
+                    'replace': BoolArg
+                }
+        return MDOpenerInfo()
 
     @staticmethod
     def save_file(session, path, format_name, models=None):

@@ -24,14 +24,15 @@ class _PubChemAPI(BundleAPI):
         return pubchem.fetch_pubchem(session, identifier, ignore_cache=ignore_cache)
 
     @staticmethod
-    def run_provider(session, name, mgr, *,
-            # Build Structure interface
-            widget_info=None,
-
-            # 'fetch' command
-            operation=None, ident=None, ignore_cache=False, **kw):
-        if widget_info is not None:
-            # Build Structure interface
+    def run_provider(session, name, mgr, *, widget_info=None, **kw):
+        if mgr == session.open:
+            from chimerax.open import FetcherInfo
+            class PubchemFetcherInfo(FetcherInfo):
+                def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                    from . import pubchem
+                    return pubchem.fetch_pubchem(session, ident, ignore_cache=ignore_cache, **kw)
+            return PubchemFetcherInfo()
+        elif widget_info is not None:
             widget, fill = widget_info
             if fill:
                 # fill parameters widget
@@ -46,12 +47,5 @@ class _PubChemAPI(BundleAPI):
                 # 'build' command
                 from .build_ui import process_widget
                 return process_widget(widget)
-        else:
-            # fetch command
-            if operation == "args":
-                return {}
-            else:
-                from . import pubchem
-                return pubchem.fetch_pubchem(session, ident, ignore_cache=ignore_cache)
 
 bundle_api = _PubChemAPI()
