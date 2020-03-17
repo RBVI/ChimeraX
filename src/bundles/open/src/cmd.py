@@ -113,7 +113,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             opener_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format)
             if batch:
                 paths = [_get_path(mgr, fi.file_name, check_path) for fi in file_infos]
-                models, status = opener_info.open(session, paths, None, **provider_kw)
+                models, status = opener_info.open(session, paths, name, **provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
@@ -124,7 +124,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         data = _get_path(mgr, fi.file_name, check_path)
                     else:
                         data = _get_stream(mgr, fi.file_name, data_format.encoding)
-                    models, status = opener_info.open(session, data, fi.file_name, **provider_kw)
+                    models, status = opener_info.open(session, data,
+                        name or model_name_from_path(fi.file_name), **provider_kw)
                     if status:
                         statuses.append(status)
                     if models:
@@ -137,7 +138,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     data = _get_path(mgr, fi.file_name, check_path)
                 else:
                     data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
-                models, status = opener_info.open(session, data, fi.file_name, **provider_kw)
+                models, status = opener_info.open(session, data,
+                    name or model_name_from_path(fi.file_name), **provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
