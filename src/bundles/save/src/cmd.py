@@ -63,7 +63,24 @@ def provider_save(session, file_name, format=None, **provider_kw):
     data_format = file_format(session, file_name, format)
     bundle_info, provider_name = mgr.save_info(data_format)
     path = _get_path(file_name)
-    return bundle_info.run_provider(session, provider_name, mgr).save(session, path, **provider_kw)
+
+    # TODO: The following line does a graphics update so that if the save command is exporting
+    # data in a script (e.g. scene export) the graphics is up to date.  Does not seem like the
+    # ideal solution to put this update here.
+    session.update_loop.update_graphics_now()
+    bundle_info.run_provider(session, provider_name, mgr).save(session, path, **provider_kw)
+
+    # remember in file history if appropriate
+    try:
+        session.open.open_info(data_format)
+    except:
+        pass
+    else:
+        from os.path import isfile
+        if data_format.category != "Image" and isfile(path):
+            from chimerax.core.filehistory import remember_file
+            remember_file(session, path, data_format.nicknames[0], provider_kw.get('models', 'all models'),
+                file_saved=True)
 
 def _get_path(file_name):
     from os.path import expanduser, expandvars, exists

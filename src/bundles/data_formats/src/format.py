@@ -128,20 +128,10 @@ class DataFormat:
             reference_url = parse.urlunsplit(r)
         self.reference_url = reference_url
 
-        #TODO: move to 'open' handling
-        self.batch = False
-        self.check_path = True
-        # If check_path is true then open file will check that file exists before
-        # passing path to the file reader.  If false, then the open routine can be
-        # passed paths that don't exist.  This is needed for custom expanding paths
-        # of microscopy data where {t}, {z}, {c} path sequences get expanded by the
-        # file reader.
-
 
 def register_format(format_name, category, extensions, nicknames=None,
                     *, mime=(), reference=None, dangerous=None, icon=None,
-                    encoding=None, synopsis=None, allow_directory=None,
-                    check_path=None, **kw):
+                    encoding=None, synopsis=None, allow_directory=None, **kw):
     """Register file format's I/O functions and meta-data
 
     :param format_name: format's name
@@ -183,13 +173,11 @@ def register_format(format_name, category, extensions, nicknames=None,
         icon, encoding, synopsis)
     if allow_directory is not None:
         ff.allow_directory = allow_directory
-    if check_path is not None:
-        ff.check_path = check_path
-    other_kws = set(['open_func', 'export_func', 'export_notes', 'batch'])
+    other_kws = set(['open_func', 'export_func', 'export_notes'])
     for attr in kw:
         if attr in other_kws:
             setattr(ff, attr, kw[attr])
-        else:
+        elif attr not in ('check_path', 'batch'): # just an 'else' after old data format support removed
             raise TypeError('Unexpected keyword argument %r' % attr)
 
     return ff
