@@ -43,7 +43,7 @@ class _PDBioAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr):
-        if mgr == session.open:
+        if mgr == session.open_command:
             if name == "PDB":
                 from chimerax.open import OpenerInfo
                 class Info(OpenerInfo):

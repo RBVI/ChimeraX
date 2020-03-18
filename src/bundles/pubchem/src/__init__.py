@@ -25,7 +25,7 @@ class _PubChemAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, *, widget_info=None, **kw):
-        if mgr == session.open:
+        if mgr == session.open_command:
             from chimerax.open import FetcherInfo
             class PubchemFetcherInfo(FetcherInfo):
                 def fetch(self, session, ident, format_name, ignore_cache, **kw):

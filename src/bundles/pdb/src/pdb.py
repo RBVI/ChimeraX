@@ -155,10 +155,11 @@ def fetch_pdb(session, pdb_id, *, fetch_source="rcsb", ignore_cache=False,
                               ignore_cache=ignore_cache)
 
     session.logger.status("Opening PDB %s" % (pdb_id,))
-    models, status = session.open.open_data(filename, format='pdb', name=pdb_id, **kw)
+    models, status = session.open_command.open_data(filename, format='pdb',
+        name=pdb_id, **kw)
     if structure_factors:
-        sf_file = fetch_cif.fetch_structure_factors(session, pdb_id, fetch_source=fetch_source,
-            ignore_cache=ignore_cache)
+        sf_file = fetch_cif.fetch_structure_factors(session, pdb_id,
+            fetch_source=fetch_source, ignore_cache=ignore_cache)
         from chimerax.clipper import get_map_mgr
         mmgr = get_map_mgr(models[0], create=True)
         if over_sampling < 1:

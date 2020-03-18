@@ -31,7 +31,7 @@ class _MDCrdsBundleAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr):
-        if mgr == session.open:
+        if mgr == session.open_command:
             from chimerax.open import OpenerInfo
             class MDInfo(OpenerInfo):
                 def open(self, session, data, file_name, *, structure_model=None, md_type=name, replace=True,

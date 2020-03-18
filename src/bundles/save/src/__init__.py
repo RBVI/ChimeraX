@@ -19,6 +19,10 @@ class SaverInfo:
     def save_args(self):
         return {}
 
+    @property
+    def hidden_args(self):
+        return []
+
     def save_args_widget(self, session):
         return None
 
@@ -36,8 +40,8 @@ class _OpenBundleAPI(BundleAPI):
             from . import dialog
             session.ui.triggers.add_handler('ready', lambda *args, ses=session: dialog.create_dialog(ses))
         from . import manager
-        session.save = manager.SaveManager(session)
-        return session.save
+        session.save_command = manager.SaveManager(session)
+        return session.save_command
 
     @staticmethod
     def register_command(command_name, logger):

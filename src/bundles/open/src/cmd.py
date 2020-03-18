@@ -41,7 +41,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
             database_name = tokens[i+1]
 
     from .manager import NoOpenerError
-    mgr = session.open
+    mgr = session.open_command
     fetches, files = fetches_vs_files(mgr, file_names, format_name, database_name)
     if fetches:
         try:
@@ -84,7 +84,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None,
         return_status=False, _add_to_file_history=True, **provider_kw):
-    mgr = session.open
+    mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
     fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
     file_infos = [FileInfo(session, fn, format) for fn in file_names]
@@ -309,7 +309,7 @@ def file_format(session, file_name, format_name):
 
     if not data_format:
         if '.' in file_name:
-            mgr = session.open
+            mgr = session.open_command
             base_name = mgr.remove_compression_suffix(file_name)
             try:
                 dot_pos = base_name.rindex('.')

@@ -99,6 +99,8 @@ class OpenManager(ProviderManager):
         old_only = []
         from chimerax.core.io import _file_formats
         for old in _file_formats.keys():
+            if old.endswith(" image"):
+                old = old[:-6]
             try:
                 in_common.append(self.session.data_formats[old])
             except KeyError:

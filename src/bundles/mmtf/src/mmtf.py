@@ -33,7 +33,7 @@ def fetch_mmtf(session, pdb_id, ignore_cache=False, **kw):
         ignore_cache=ignore_cache, uncompress=True)
 
     session.logger.status("Opening MMTF %s" % (pdb_id,))
-    return session.open.open_data(filename, format='mmtf', name=pdb_id, **kw)
+    return session.open_command.open_data(filename, format='mmtf', name=pdb_id, **kw)
 
 def open_mmtf(session, filename, name, auto_style=True, coordsets=False):
     """Create atomic structures from MMTF file

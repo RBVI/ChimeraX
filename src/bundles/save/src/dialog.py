@@ -26,7 +26,8 @@ class MainSaveDialog:
         fname = self._add_missing_file_suffix(dialog.selectedFiles()[0], fmt)
         cmd = "save2 %s" % SaveFileNameArg.unparse(fname)
         if self._current_option != self._no_options_label:
-            cmd += ' ' + session.save.save_args_string_from_widget(fmt, self._current_option)
+            cmd += ' ' + session.save_command.save_args_string_from_widget(fmt,
+                self._current_option)
         run(session, cmd)
         if self._settings:
             self._settings.format_name = fmt.name
@@ -40,7 +41,8 @@ class MainSaveDialog:
 
     def _customize_dialog(self, session, dialog):
         options_panel = dialog.custom_area
-        saveable_formats = [fmt for fmt in session.save.save_data_formats if fmt.suffixes]
+        saveable_formats = [fmt for fmt in session.save_command.save_data_formats
+            if fmt.suffixes]
         file_filters = ["%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes)) for fmt in saveable_formats]
         self._fmt_name2filter = dict(zip([fmt.name for fmt in saveable_formats], file_filters))
         self._filter2fmt = dict(zip(file_filters, saveable_formats))
@@ -66,7 +68,8 @@ class MainSaveDialog:
         if self._current_option:
             self._current_option.hide()
         from PyQt5.QtWidgets import QLabel
-        self._current_option = session.save.save_args_widget(fmt) or self._no_options_label
+        self._current_option = session.save_command.save_args_widget(fmt) \
+            or self._no_options_label
         self._options_layout.addWidget(self._current_option)
         self._current_option.show()
 

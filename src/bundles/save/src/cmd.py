@@ -30,7 +30,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
             format_name = tokens[i+1]
 
     from .manager import NoSaverError
-    mgr = session.save
+    mgr = session.save_command
     data_format= file_format(session, file_name, format_name)
     try:
         provider_args = mgr.save_args(data_format)
@@ -51,15 +51,16 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     }
     for keyword, annotation in provider_args.items():
         if keyword in keywords:
-            raise ValueError("Save-provider keyword '%s' conflicts with builtin arg of same name" % keyword)
+            raise ValueError("Save-provider keyword '%s' conflicts with builtin arg"
+                " of same name" % keyword)
         keywords[keyword] = annotation
     desc = CmdDesc(required=[('file_name', SaveFileNameArg)], keyword=keywords.items(),
-        synopsis="unnecessary")
+        hidden=mgr.hidden_args(data_format), synopsis="unnecessary")
     register("save", desc, provider_save, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_save(session, file_name, format=None, **provider_kw):
-    mgr = session.save
+    mgr = session.save_command
     data_format = file_format(session, file_name, format)
     bundle_info, provider_name = mgr.save_info(data_format)
     path = _get_path(file_name)
@@ -72,7 +73,7 @@ def provider_save(session, file_name, format=None, **provider_kw):
 
     # remember in file history if appropriate
     try:
-        session.open.open_info(data_format)
+        session.open_command.open_info(data_format)
     except:
         pass
     else:

@@ -1,0 +1,38 @@
+<BundleInfo name="ChimeraX-Session" version="1.0"
+	    package="chimerax.session"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>ChimeraX session support</Synopsis>
+  <Description>ChimeraX session support</Description>
+
+  <Categories>
+    <Category name="Atomic Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="session" synopsis="ChimeraX session" category="Session"
+		suffixes=".cxs" reference_url="help:user/commands/save.html" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="session" want_path="true" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="session" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

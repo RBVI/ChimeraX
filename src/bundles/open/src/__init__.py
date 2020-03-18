@@ -36,8 +36,8 @@ class _OpenBundleAPI(BundleAPI):
         """Initialize open-command manager"""
         if name == "open command":
             from . import manager
-            session.open = manager.OpenManager(session)
-            return session.open
+            session.open_command = manager.OpenManager(session)
+            return session.open_command
 
     @staticmethod
     def register_command(command_name, logger):
