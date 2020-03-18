@@ -19,6 +19,13 @@ class SaverInfo:
     def save_args(self):
         return {}
 
+    def save_args_string_from_widget(self, widget):
+        raise NotImplementedError("Saver did not implement 'save_args_string_from_widget' method")
+        
+    @property
+    def save_args_widget(self):
+        return None
+
 from chimerax.core.toolshed import BundleAPI
 
 class _OpenBundleAPI(BundleAPI):
@@ -26,10 +33,12 @@ class _OpenBundleAPI(BundleAPI):
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
         """Initialize save-command manager"""
-        if name == "save command":
-            from . import manager
-            session.save = manager.SaveManager(session)
-            return session.save
+        if session.ui.is_gui:
+            from . import dialog
+            session.ui.triggers.add_handler('ready', lambda *args, ses=session: dialog.create_dialog(ses))
+        from . import manager
+        session.save = manager.SaveManager(session)
+        return session.save
 
     @staticmethod
     def register_command(command_name, logger):

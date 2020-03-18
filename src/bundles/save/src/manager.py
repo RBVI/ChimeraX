@@ -53,6 +53,17 @@ class SaveManager(ProviderManager):
             raise NoSaverError("No file-saver registered for format '%s'" % data_format.name)
         return bundle_info.run_provider(self.session, format_name, self).save_args
 
+    def save_args_widget(self, data_format):
+        try:
+            bundle_info, format_name = self._savers[data_format]
+        except KeyError:
+            raise NoSaverError("No file-saver registered for format '%s'" % data_format.name)
+        return bundle_info.run_provider(self.session, format_name, self).save_args_widget
+
+    @property
+    def save_data_formats(self):
+        return list(self._savers.keys())
+
     def save_info(self, data_format):
         try:
             return self._savers[data_format]
