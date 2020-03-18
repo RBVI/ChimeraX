@@ -1410,7 +1410,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None):
+    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None, 
+            shortcut=None):
         '''Supported API.
         Add a main menu entry.  Adding entries to the Select menu should normally be done via
         the add_select_submenu method instead.  For details, see the doc string for that method.
@@ -1430,6 +1431,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda arg, cb = callback: cb())
         if tool_tip is not None:
             action.setToolTip(tool_tip)
+        if shortcut is not None:
+            action.setShortcut(shortcut)
         if insertion_point is None:
             menu.addAction(action)
         else:

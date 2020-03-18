@@ -84,4 +84,4 @@ def create_dialog(session):
     dlg = MainSaveDialog(settings=_settings)
     session.ui.main_window.add_menu_entry(["File"], "&Save...",
         lambda *args, dlg=dlg, ses=session: dlg.display(ses, ses.ui.main_window),
-        tool_tip="Save output file", insertion_point="Close Session")
+        tool_tip="Save output file", shortcut="Ctrl+S", insertion_point="Close Session")
