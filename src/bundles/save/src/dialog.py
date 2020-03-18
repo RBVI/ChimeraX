@@ -26,7 +26,7 @@ class MainSaveDialog:
         fname = self._add_missing_file_suffix(dialog.selectedFiles()[0], fmt)
         cmd = "save2 %s" % SaveFileNameArg.unparse(fname)
         if self._current_option != self._no_options_label:
-            cmd += ' ' + session.save.save_arg_string_from_widget(self._current_option)
+            cmd += ' ' + session.save.save_args_string_from_widget(fmt, self._current_option)
         run(session, cmd)
         if self._settings:
             self._settings.format_name = fmt.name
@@ -68,6 +68,7 @@ class MainSaveDialog:
         from PyQt5.QtWidgets import QLabel
         self._current_option = session.save.save_args_widget(fmt) or self._no_options_label
         self._options_layout.addWidget(self._current_option)
+        self._current_option.show()
 
 
 _settings = None

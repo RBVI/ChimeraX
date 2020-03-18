@@ -24,20 +24,25 @@ class _ImageFormatsBundleAPI(BundleAPI):
                 save_image(session, path, format_name, **kw)
 
             @property
-            def save_args(self):
+            def save_args(self, _name=name):
                 from chimerax.core.commands import PositiveIntArg, FloatArg, BoolArg, Bounded, IntArg
-                return {
+                args = {
                     'height': PositiveIntArg,
                     'pixel_size': FloatArg,
-                    'quality': Bounded(IntArg, min=0, max=100),
                     'supersample': PositiveIntArg,
                     'transparent_background': BoolArg,
                     'width': PositiveIntArg,
                 }
+                if _name == "JPEG":
+                    args['quality'] = Bounded(IntArg, min=0, max=100)
+                return args
 
             def save_args_widget(self, session):
                 from .gui import SaveOptionsWidget
                 return SaveOptionsWidget(session)
+
+            def save_args_string_from_widget(self, widget):
+                return widget.options_string()
 
         return ImageInfo()
 

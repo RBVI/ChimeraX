@@ -11,10 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-SUPERSAMPLE_OPTIONS = (("None", None),
-                       ("2x2", 2),
-                       ("3x3", 3),
-                       ("4x4", 4))
+SUPERSAMPLE_OPTIONS = (("None", 1),
+                       ("2x", 2),
+                       ("3x", 3),
+                       ("4x", 4))
 
 from PyQt5.QtWidgets import QFrame, QGridLayout, QComboBox, QLabel, QHBoxLayout, QLineEdit, QCheckBox
 class SaveOptionsWidget(QFrame):
@@ -58,6 +58,7 @@ class SaveOptionsWidget(QFrame):
         ss_label.setText("Supersample:")
         supersamples = QComboBox()
         supersamples.addItems([o[0] for o in SUPERSAMPLE_OPTIONS])
+        supersamples.setCurrentIndex(2)
         layout.addWidget(ss_label, row, 0, Qt.AlignRight | Qt.AlignVCenter)
         layout.addWidget(supersamples, row, 1, Qt.AlignLeft)
         self._supersample = supersamples
@@ -69,6 +70,26 @@ class SaveOptionsWidget(QFrame):
         self._height.setText(str(h))
 
         self.setLayout(layout)
+
+    def options_string(self):
+        # Get image width and height
+        try:
+            w = int(self._width.text())
+            h = int(self._height.text())
+        except ValueError:
+            from chimerax.core.errors import UserError
+            raise UserError("width/height must be integers")
+        if w <= 0 or h <= 0:
+            from chimerax.core.errors import UserError
+            raise UserError("width/height must be positive integers")
+
+        # Get supersampling
+        ss = SUPERSAMPLE_OPTIONS[self._supersample.currentIndex()][1]
+
+        cmd = "width %g height %g" % (w, h)
+        if ss is not None:
+            cmd += " supersample %g" % ss
+        return cmd
 
     def _width_changed(self):
         if self._keep_aspect.isChecked():
