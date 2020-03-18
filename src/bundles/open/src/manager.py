@@ -101,6 +101,8 @@ class OpenManager(ProviderManager):
         for old in _file_formats.keys():
             if old.endswith(" image"):
                 old = old[:-6]
+            elif old.endswith(" session"):
+                old = "session"
             try:
                 in_common.append(self.session.data_formats[old])
             except KeyError:
@@ -110,6 +112,8 @@ class OpenManager(ProviderManager):
         #    print("new:", df.name)
         print("%d data formats in common, %d new only, %d old only" %(len(in_common),
             len(self.session.data_formats) - len(in_common), len(old_only)))
+        if len(in_common) != len(self.session.data_formats):
+            return
         from random import choice
         print("Port format", choice(list(old_only)+['http']))
 
