@@ -45,14 +45,14 @@ class FormatsManager(ProviderManager):
             logger.info("Replacing data format '%s' as defined by %s with definition from %s"
                 % (name, registrant(self._formats[name][0]), registrant(bundle_info)))
         from .format import DataFormat
-        data_format = DataFormat(name, category, suffixes, nicknames, mime_types, reference_url, insecure,
-            encoding, synopsis, allow_directory)
+        data_format = DataFormat(name, category, suffixes, nicknames, mime_types, reference_url,
+            insecure, encoding, synopsis, allow_directory)
         for suffix in suffixes:
             if suffix in self._suffix_to_format:
                 other_name = self._suffix_to_format[suffix].name
                 if name != other_name:
-                    logger.warning("File suffix '%s' for data format %s being replaced by format %s"
-                        % (suffix, other_name, name))
+                    logger.warning("File suffix '%s' for data format %s being replaced by format"
+                        " %s" % (suffix, other_name, name))
             self._suffix_to_format[suffix] = data_format
         self._formats[name] = (bundle_info, data_format)
         if raise_trigger:
@@ -63,21 +63,16 @@ class FormatsManager(ProviderManager):
             allow_directory=False, **kw):
         logger = self.session.logger
         if kw:
-            logger.warning("Data format provider '%s' supplied unknown keywords with format description: %s"
-                % (name, repr(kw)))
-        if suffixes is None:
-            if allow_directory:
-                suffixes = []
-            else:
-                logger.error("Data format provider '%s' didn't specify any suffixes." % name)
-            return
+            logger.warning("Data format provider '%s' supplied unknown keywords with format"
+                " description: %s" % (name, repr(kw)))
         if category is None:
             logger.warning("Data format provider '%s' didn't specify a category."
                 "  Using catch-all category '%s'" % (name, self.CAT_GENERAL))
             category = self.CAT_GENERAL
-        self.add_format(name, category, suffixes=suffixes, nicknames=nicknames, bundle_info=bundle_info,
-            mime_types=mime_types, reference_url=reference_url, insecure=insecure, encoding=encoding,
-            synopsis=synopsis, allow_directory=allow_directory, raise_trigger=False)
+        self.add_format(name, category, suffixes=suffixes, nicknames=nicknames,
+            bundle_info=bundle_info, mime_types=mime_types, reference_url=reference_url,
+            insecure=insecure, encoding=encoding, synopsis=synopsis,
+            allow_directory=allow_directory, raise_trigger=False)
 
     def data_format_from_suffix(self, suffix):
         return self._suffix_to_format.get(suffix, None)

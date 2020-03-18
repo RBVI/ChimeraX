@@ -20,6 +20,15 @@ for more information.</Description>
     <Dependency name="ChimeraX-Geometry" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="cellpack" synopsis="cellPACK" category="Molecular structure" 
+		reference_url="http://www.cellpack.org" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="cellpack" type="fetch" format_name="cellpack"/>
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

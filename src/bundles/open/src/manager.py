@@ -126,37 +126,48 @@ class OpenManager(ProviderManager):
             try:
                 bundle_info, is_default = db_formats[format_name]
             except KeyError:
-                raise NoOpenerError("Format '%s' not supported for database '%s'.  Supported formats are: %s"
-                    % (format_name, database_name, ", ".join(dbf for dbf in db_formats)))
+                raise NoOpenerError("Format '%s' not supported for database '%s'."
+                    "  Supported formats are: %s" % (format_name, database_name,
+                    ", ".join(dbf for dbf in db_formats)))
         else:
             for format_name, info in db_formats.items():
                 bundle_info, is_default = info
                 if is_default:
                     break
             else:
-                raise NoOpenerError("No default format for database '%s'.  Possible formats are: %s"
-                    % (database_name, ", ".join(dbf for dbf in db_formats)))
-        args = self.open_args(self.session.data_formats[format_name])
-        args.update(bundle_info.run_provider(self.session, database_name, self).fetch_args)
+                raise NoOpenerError("No default format for database '%s'."
+                    "  Possible formats are: %s" % (database_name, ", ".join(dbf
+                    for dbf in db_formats)))
+        try:
+            args = self.open_args(self.session.data_formats[format_name])
+        except NoOpenerError:
+            # fetch-only type (e.g. cellPACK)
+            args = {}
+        args.update(bundle_info.run_provider(self.session,
+            database_name, self).fetch_args)
         return args
 
     def open_data(self, path, **kw):
         from .cmd import provider_open
-        return provider_open(self.session, [path], return_status=True, _add_to_file_history=False, **kw)
+        return provider_open(self.session, [path], return_status=True,
+            _add_to_file_history=False, **kw)
 
     def open_file(self, path, encoding=None):
-        """Open possibly compressed file for reading.  If encoding is 'None', open as binary"""
+        """Open possibly compressed file for reading.
+            If encoding is 'None', open as binary"""
         for suffix, comp_info in self._compression_info.items():
             if path.endswith(suffix):
                 bundle_info, name = comp_info
-                return bundle_info.run_provider(session, name, self, path=path, encoding=encoding)
+                return bundle_info.run_provider(session, name, self, path=path,
+                    encoding=encoding)
         return open(path, ('r' if encoding else 'rb'), encoding=encoding)
 
     def open_args(self, data_format):
         try:
             bundle_info, name, *args = self._openers[data_format]
         except KeyError:
-            raise NoOpenerError("No opener registered for format '%s'" % data_format.name)
+            raise NoOpenerError("No opener registered for format '%s'"
+                % data_format.name)
         return bundle_info.run_provider(self.session, name, self).open_args
 
     def open_info(self, data_format):
