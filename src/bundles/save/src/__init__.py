@@ -22,8 +22,7 @@ class SaverInfo:
     def save_args_string_from_widget(self, widget):
         raise NotImplementedError("Saver did not implement 'save_args_string_from_widget' method")
         
-    @property
-    def save_args_widget(self):
+    def save_args_widget(self, session):
         return None
 
 from chimerax.core.toolshed import BundleAPI

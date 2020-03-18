@@ -34,6 +34,11 @@ class _ImageFormatsBundleAPI(BundleAPI):
                     'transparent_background': BoolArg,
                     'width': PositiveIntArg,
                 }
+
+            def save_args_widget(self, session):
+                from .gui import SaveOptionsWidget
+                return SaveOptionsWidget(session)
+
         return ImageInfo()
 
 bundle_api = _ImageFormatsBundleAPI()
