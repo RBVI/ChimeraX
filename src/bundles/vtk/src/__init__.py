@@ -14,7 +14,7 @@
 from chimerax.core.toolshed import BundleAPI
 
 
-class _MyAPI(BundleAPI):
+class _VTKBundleAPI(BundleAPI):
 
     @staticmethod
     def open_file(session, stream, file_name):
@@ -23,4 +23,10 @@ class _MyAPI(BundleAPI):
         from . import vtk
         return vtk.read_vtk(session, stream, file_name)
 
-bundle_api = _MyAPI()
+    @staticmethod
+    def save_file(session, path, models=None):
+        # 'save_file' is called by session code to save a file
+        from .export_vtk import write_scene_as_vtk
+        write_scene_as_vtk(session, path, models)
+
+bundle_api = _VTKBundleAPI()

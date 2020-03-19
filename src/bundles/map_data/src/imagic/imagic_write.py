@@ -14,8 +14,8 @@
 # ******************************************************************************
 # *                                                                            *
 # *     Image Science Software GmbH                                            *
-# *     Gillweg 3                                                              *
-# *     14193 Berlin                                                           *
+# *     Lutterbacher Str. 22                                                   *
+# *     14167 Berlin                                                           *
 # *     Germany                                                                *
 # *     imagic@ImageScience.de                                                 *
 # *                                                                            *
@@ -35,15 +35,16 @@
 # *     IDAT1 (8)  - IDAT1(10)  - Creation time                                *
 # *     IDAT1(13)               - IXLP                                         *
 # *     IDAT1(14)               - IYLP                                         *
+# *     IDAT1(15)               - TYPE                                         *
 # *     IDAT1(18)               - AVDENS                                       *
 # *     IDAT1(19)               - SIGMA                                        *
 # *     IDAT1(22)               - DENSMAX                                      *
 # *     IDAT1(23)               - DENSMIN                                      *
 # *     IDAT1(61)               - IZLP                                         *
 # *     IDAT1(62)               - I4LP                                         *
+# *     IDAT1(68)               - IMAVERS                                      *
 # *     IDAT1(69)               - REALTYPE                                     *
-# *     IDAT1(15)               - TYPE                                         *
-# *     DAT1(123)               - RESOL                                        *
+# *     DAT1(123)               - PIXSIZE                                      *
 # *     IDAT1(200) - IDAT1(256) - HISTORY                                      *
 # *                                                                            *
 # ******************************************************************************
@@ -74,8 +75,14 @@ def write_imagic_grid_data(grid_data, path, options = {}, progress = None):
     if progress:
         progress.close_on_cancel(hed)
 
+    #
+    # Volume dimensions
+    #
     ix, iy, iz = grid_data.size
 
+    #
+    # Data type
+    #
     mtype = grid_data.value_type.type
     type  = volume_data_type(mtype)
 
@@ -139,11 +146,27 @@ def imagic_header(grid_data, value_type, location, densmin, densmax, avdens, sig
     import datetime
     d = datetime.datetime.now()
 
+    #
+    # Volume dimensions
+    #
     size       = grid_data.size
     ix, iy, iz = grid_data.size
 
     #
-    # From Chimera to IMAGIC coordinate system
+    # Pixel/Voxel size
+    #
+    step                = grid_data.step
+    stepx, stepy, stepz = grid_data.step
+
+    if stepx != stepy:
+        if location == 1:
+                print('**WARNING: Step x = ', stepx, ' and step y = ', stepy, 'are different. Stepx is used.')
+    if stepx != stepz:
+        if location == 1:
+                print('**WARNING: Step x = ', stepx, ' and step z = ', stepz, 'are different. Stepx is used.')
+    
+    #
+    # From ChimeraX to IMAGIC coordinate system
     #
     ixlp       = iy
     iylp       = ix
@@ -161,7 +184,9 @@ def imagic_header(grid_data, value_type, location, densmin, densmax, avdens, sig
     elif value_type == int16:         type = b'INTG'
     elif value_type == int8:          type = b'PACK'
 
-    cell_size = map(lambda a,b: a*b, grid_data.step, size)
+    pixsize    = stepx
+
+    cell_size  = map(lambda a,b: a*b, grid_data.step, size)
 
     from numpy import little_endian
     if little_endian:
@@ -169,7 +194,7 @@ def imagic_header(grid_data, value_type, location, densmin, densmax, avdens, sig
     else:
         endian      = 0x4040404
 
-    imavers         = 20151215
+    imavers         = 20190319
 
     from chimerax.core import version
     from time import asctime
@@ -259,8 +284,14 @@ def imagic_header(grid_data, value_type, location, densmin, densmax, avdens, sig
         # Floating point type / machine stamp - REALTYPE
         binary_string(endian, int32),
 
-        # Ignored * 130
-        binary_string([0]*130, int32),
+        # Ignored * 53
+        binary_string([0]*53, int32),
+
+        # Pixel/Voxel size - PIXSIZE
+        binary_string(pixsize, float32),
+
+        # Ignored * 76
+        binary_string([0]*76, int32),
 
         # Coded history of image (228 characters) - HISTORY
         history,
