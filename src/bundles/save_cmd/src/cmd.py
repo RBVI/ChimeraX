@@ -62,14 +62,15 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
 def provider_save(session, file_name, format=None, **provider_kw):
     mgr = session.save_command
     data_format = file_format(session, file_name, format)
-    bundle_info, provider_name = mgr.save_info(data_format)
-    path = _get_path(file_name)
+    bundle_info, provider_name, compression_okay = mgr.save_info(data_format)
+    path = _get_path(file_name, compression_okay)
 
-    # TODO: The following line does a graphics update so that if the save command is exporting
-    # data in a script (e.g. scene export) the graphics is up to date.  Does not seem like the
-    # ideal solution to put this update here.
+    # TODO: The following line does a graphics update so that if the save command is
+    # exporting data in a script (e.g. scene export) the graphics is up to date.  Does
+    # not seem like the ideal solution to put this update here.
     session.update_loop.update_graphics_now()
-    bundle_info.run_provider(session, provider_name, mgr).save(session, path, **provider_kw)
+    bundle_info.run_provider(session, provider_name, mgr).save(session, path,
+        **provider_kw)
 
     # remember in file history if appropriate
     try:
@@ -80,31 +81,27 @@ def provider_save(session, file_name, format=None, **provider_kw):
         from os.path import isfile
         if data_format.category != "Image" and isfile(path):
             from chimerax.core.filehistory import remember_file
-            remember_file(session, path, data_format.nicknames[0], provider_kw.get('models', 'all models'),
-                file_saved=True)
+            remember_file(session, path, data_format.nicknames[0],
+                provider_kw.get('models', 'all models'), file_saved=True)
 
-def _get_path(file_name):
+def _get_path(file_name, compression_okay):
     from os.path import expanduser, expandvars, exists
-    return expanduser(expandvars(file_name))
+    expanded = expanduser(expandvars(file_name))
+    if not compression_okay:
+        from chimerax import io
+        if io.remove_compression_suffix(expanded) != expanded:
+            raise UserError("File reader requires uncompressed file; '%s' is compressed"
+                % file_name)
+    return expanded
 
 def file_format(session, file_name, format_name):
     if format_name:
         try:
-            data_format = session.data_formats[format_name]
+            return session.data_formats[format_name]
         except KeyError:
             raise UserError("Unknown data format: '%s'" % format_name)
-    else:
-        data_format = None
 
-    if not data_format:
-        if '.' in file_name:
-            dot_pos = file_name.rindex('.')
-            data_format = session.data_formats.data_format_from_suffix(file_name[dot_pos:])
-            if not data_format:
-                raise UserError("No known data format for file suffix '%s'" % file_name[dot_pos:])
-        else:
-            raise UserError("Cannot determine format for '%s'" % file_name)
-    return data_format
+    return session.data_formats.file_name_to_format(file_name)
 
 
 def register_command(command_name, logger):

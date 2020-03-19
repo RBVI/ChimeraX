@@ -479,7 +479,8 @@ class Alignment(State):
         import importlib
         mod = importlib.import_module(".io.save%s" % format_name.upper(),
             "chimerax.seqalign")
-        with self.session.open_command.open_output(output, 'utf-8') as stream:
+        from chimerax import io
+        with io.open_output(output, 'utf-8') as stream:
             mod.save(self.session, self, stream)
 
     @property

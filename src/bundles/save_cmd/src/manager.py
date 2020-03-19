@@ -25,7 +25,7 @@ class SaveManager(ProviderManager):
         self.triggers = TriggerSet()
         self.triggers.add_trigger("save command changed")
 
-    def add_provider(self, bundle_info, format_name, **kw):
+    def add_provider(self, bundle_info, format_name, compression_okay=True, **kw):
         logger = self.session.logger
 
         bundle_name = _readable_bundle_name(bundle_info)
@@ -42,14 +42,15 @@ class SaveManager(ProviderManager):
             logger.warning("Replacing file-saver for '%s' from %s bundle with that from"
                 " %s bundle" % (data_format.name,
                 _readable_bundle_name(self._savers[data_format][0]), bundle_name))
-        self._savers[data_format] = (bundle_info, format_name)
+        self._savers[data_format] = (bundle_info, format_name,
+            bool_cvt(compression_okay, format_name, bundle_name, "compression_okay"))
 
     def end_providers(self):
         self.triggers.activate_trigger("save command changed", self)
 
     def save_args(self, data_format):
         try:
-            bundle_info, format_name = self._savers[data_format]
+            bundle_info, format_name, *args = self._savers[data_format]
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
@@ -57,7 +58,7 @@ class SaveManager(ProviderManager):
 
     def hidden_args(self, data_format):
         try:
-            bundle_info, format_name = self._savers[data_format]
+            bundle_info, format_name, *args = self._savers[data_format]
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
@@ -65,7 +66,7 @@ class SaveManager(ProviderManager):
 
     def save_args_widget(self, data_format):
         try:
-            bundle_info, format_name = self._savers[data_format]
+            bundle_info, format_name, *args = self._savers[data_format]
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
@@ -74,7 +75,7 @@ class SaveManager(ProviderManager):
 
     def save_args_string_from_widget(self, data_format, widget):
         try:
-            bundle_info, format_name = self._savers[data_format]
+            bundle_info, format_name, *args = self._savers[data_format]
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
@@ -97,3 +98,14 @@ def _readable_bundle_name(bundle_info):
     if name.lower().startswith("chimerax"):
         return name[9:]
     return name
+
+def bool_cvt(val, name, bundle_name, var_name):
+    if not isinstance(val, bool):
+        try:
+            val = eval(val.capitalize())
+        except (ValueError, NameError):
+            logger.warning("Save provider '%s' in bundle %s specified '%s'"
+                " value (%s) that was neither 'true' nor 'false'"
+                % (name, bundle_name, var_name, val))
+    return val
+

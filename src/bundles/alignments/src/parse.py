@@ -25,7 +25,8 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
         import os.path
         path = fname
         fname = os.path.basename(path)
-        stream = session.open_command.open_input(path, 'utf-8')
+        from chimerax import io
+        stream = io.open_input(path, 'utf-8')
     try:
         seqs, file_attrs, file_markups = ns['read'](session, stream)
     except FormatSyntaxError as err:

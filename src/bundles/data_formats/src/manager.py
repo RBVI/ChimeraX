@@ -26,9 +26,9 @@ class FormatsManager(ProviderManager):
         self.triggers = TriggerSet()
         self.triggers.add_trigger("data formats changed")
 
-    def add_format(self, name, category, *, suffixes=None, nicknames=None, bundle_info=None,
-            mime_types=None, reference_url=None, insecure=None, encoding=None, synopsis=None,
-            allow_directory=False, raise_trigger=True):
+    def add_format(self, name, category, *, suffixes=None, nicknames=None,
+            bundle_info=None, mime_types=None, reference_url=None, insecure=None,
+            encoding=None, synopsis=None, allow_directory=False, raise_trigger=True):
 
         def convert_arg(arg, default=None):
             if arg and isinstance(arg, str):
@@ -41,12 +41,14 @@ class FormatsManager(ProviderManager):
 
         logger = self.session.logger
         if name in self._formats:
-            registrant = lambda bi: "unknown registrant" if bi is None else "%s bundle" % bi.name
-            logger.info("Replacing data format '%s' as defined by %s with definition from %s"
-                % (name, registrant(self._formats[name][0]), registrant(bundle_info)))
+            registrant = lambda bi: "unknown registrant" \
+                if bi is None else "%s bundle" % bi.name
+            logger.info("Replacing data format '%s' as defined by %s with definition"
+                " from %s" % (name, registrant(self._formats[name][0]),
+                registrant(bundle_info)))
         from .format import DataFormat
-        data_format = DataFormat(name, category, suffixes, nicknames, mime_types, reference_url,
-            insecure, encoding, synopsis, allow_directory)
+        data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
+            reference_url, insecure, encoding, synopsis, allow_directory)
         for suffix in suffixes:
             if suffix in self._suffix_to_format:
                 other_name = self._suffix_to_format[suffix].name
@@ -74,8 +76,26 @@ class FormatsManager(ProviderManager):
             insecure=insecure, encoding=encoding, synopsis=synopsis,
             allow_directory=allow_directory, raise_trigger=False)
 
-    def data_format_from_suffix(self, suffix):
+    def format_from_suffix(self, suffix):
         return self._suffix_to_format.get(suffix, None)
+
+    def file_name_to_format(self, file_name):
+        "Return data format based on file_name's suffix, ignoring compression suffixes"
+        if '.' in file_name:
+            from chimerax import io
+            base_name = io.remove_compression_suffix(file_name)
+            try:
+                dot_pos = base_name.rindex('.')
+            except ValueError:
+                raise UserError("'%s' has only compression suffix; cannot determine"
+                    " format from suffix" % file_name)
+            data_format = self.format_from_suffix(base_name[dot_pos:])
+            if not data_format:
+                raise UserError("No known data format for file suffix '%s'"
+                    % base_name[dot_pos:])
+        else:
+            raise UserError("Cannot determine format for '%s'" % file_name)
+        return data_format
 
     @property
     def formats(self):

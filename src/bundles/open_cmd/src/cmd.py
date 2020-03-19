@@ -49,13 +49,14 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         except NoOpenerError as e:
             raise LimitationError(str(e))
     else:
-        data_format= file_format(session, files[0], format_name)
+        data_format = file_format(session, files[0], format_name)
         try:
             provider_args = mgr.open_args(data_format)
         except NoOpenerError as e:
             raise LimitationError(str(e))
 
-    provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn) for fn in file_names] + tokens)
+    provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn)
+        for fn in file_names] + tokens)
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(formats=session.data_formats.formats):
@@ -75,7 +76,8 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
     }
     for keyword, annotation in provider_args.items():
         if keyword in keywords:
-            raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of same name" % keyword)
+            raise ValueError("Open-provider keyword '%s' conflicts with builtin arg of"
+                " same name" % keyword)
         keywords[keyword] = annotation
     desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
         synopsis="unnecessary")
@@ -132,7 +134,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         opened_models.append(name_and_group_models(models, name, fi.file_name))
     else:
         for fi in file_infos:
-            opener_info, provider_name, want_path, check_path, batch = mgr.open_info(fi.data_format)
+            opener_info, provider_name, want_path, check_path, batch = mgr.open_info(
+                fi.data_format)
             for fi in file_infos:
                 if want_path:
                     data = _get_path(mgr, fi.file_name, check_path)
@@ -148,7 +151,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             if format_name is None:
                 format_name = default_format_name
-            models, status = fetcher_info.fetch(session, ident, format_name, ignore_cache, **provider_kw)
+            models, status = fetcher_info.fetch(session, ident, format_name,
+                ignore_cache, **provider_kw)
             if status:
                 statuses.append(status)
             if models:
@@ -162,11 +166,11 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             # Files opened in the help browser are done asynchronously and might have
             # been misspelled and can't be deleted from file history.  So skip them.
             if not statuses or not statuses[-1].endswith(" in browser"):
-                remember_file(session, names[0], format_name, opened_models or 'all models',
-                    database=database_name, open_options=provider_kw)
+                remember_file(session, names[0], format_name, opened_models or
+                    'all models', database=database_name, open_options=provider_kw)
         else:
-            remember_file(session, names[0], file_infos[0].data_format.name, opened_models or 'all models',
-                open_options=provider_kw)
+            remember_file(session, names[0], file_infos[0].data_format.name,
+                opened_models or 'all models', open_options=provider_kw)
 
     status ='\n'.join(statuses) if statuses else ""
     if return_status:
@@ -181,16 +185,17 @@ def _fetch_info(mgr, database_name, default_format_name):
         try:
             bundle_info, is_default = db_info[default_format_name]
         except KeyError:
-            raise UserError("Format '%s' not available for database '%s'.  Available formats are: %s"
-                % (default_format_name, database_name, ", ".join(db_info.keys())))
+            raise UserError("Format '%s' not available for database '%s'.  Available"
+                " formats are: %s" % (default_format_name, database_name,
+                ", ".join(db_info.keys())))
     else:
         for default_format_name, fmt_info in db_info.items():
             bundle_info, is_default = fmt_info
             if is_default:
                 break
         else:
-            raise UserError("No default format for database '%s'.  Possible formats are: %s"
-                % (database_name, ", ".join(db_info.keys())))
+            raise UserError("No default format for database '%s'.  Possible formats are:"
+                " %s" % (database_name, ", ".join(db_info.keys())))
     return bundle_info.run_provider(mgr.session, database_name, mgr), default_format_name
 
 def _get_path(mgr, file_name, check_path, check_compression=True):
@@ -200,13 +205,16 @@ def _get_path(mgr, file_name, check_path, check_compression=True):
         raise UserError("No such file/path: %s" % file_name)
 
     if check_compression:
-        if mgr.remove_compression_suffix(expanded) != expanded:
-            raise UserError("File reader requires uncompressed file; '%s' is compressed" % file_name)
+        from chimerax import io
+        if io.remove_compression_suffix(expanded) != expanded:
+            raise UserError("File reader requires uncompressed file; '%s' is compressed"
+                % file_name)
     return expanded
 
 def _get_stream(mgr, file_name, encoding):
     path = _get_path(mgr, file_name, True, check_compression=False)
-    return mgr.open_input(path, encoding)
+    from chimerax import io
+    return io.open_input(path, encoding)
 
 def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []
@@ -300,28 +308,11 @@ def model_name_from_path(path):
 def file_format(session, file_name, format_name):
     if format_name:
         try:
-            data_format = session.data_formats[format_name]
+            return session.data_formats[format_name]
         except KeyError:
-            #raise UserError("Unknown data format: '%s'" % format_name)
-            raise ValueError("Unknown data format: '%s'" % format_name)
-    else:
-        data_format = None
+            raise UserError("Unknown data format: '%s'" % format_name)
 
-    if not data_format:
-        if '.' in file_name:
-            mgr = session.open_command
-            base_name = mgr.remove_compression_suffix(file_name)
-            try:
-                dot_pos = base_name.rindex('.')
-            except ValueError:
-                raise UserError("'%s' has only compression suffix; cannot determine format from suffix"
-                    % file_name)
-            data_format = session.data_formats.data_format_from_suffix(base_name[dot_pos:])
-            if not data_format:
-                raise UserError("No known data format for file suffix '%s'" % base_name[dot_pos:])
-        else:
-            raise UserError("Cannot determine format for '%s'" % file_name)
-    return data_format
+    return session.data_formats.file_name_to_format(file_name)
 
 class FileInfo:
     def __init__(self, session, file_name, format_name):
@@ -330,6 +321,6 @@ class FileInfo:
 
 
 def register_command(command_name, logger):
-    register('open2', CmdDesc(
-        required=[('file_names', OpenFileNamesArgNoRepeat), ('rest_of_line', RestOfLine)],
-        synopsis="Open/fetch data files", self_logging=True), cmd_open, logger=logger)
+    register('open2', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
+        ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files",
+        self_logging=True), cmd_open, logger=logger)
