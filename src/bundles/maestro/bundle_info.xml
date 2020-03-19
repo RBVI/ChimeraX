@@ -19,6 +19,15 @@
     <Dependency name="ChimeraX-ChemGroup" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Maestro" synopsis="Schrodinger Maestro"
+		category="Molecular structure" suffixes=".mae,.maegz" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Maestro" want_path="true" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

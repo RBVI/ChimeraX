@@ -16,5 +16,14 @@ class _MyAPI(BundleAPI):
         else:
             raise ValueError("unsupported format: %s" % format_name)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open import OpenerInfo
+        class MaestroOpenerInfo(OpenerInfo):
+            def open(self, session, path, file_name, **kw):
+                from .io import open_mae
+                return open_mae(session, path, file_name, True, True)
+        return MaestroOpenerInfo()
+
 
 bundle_api = _MyAPI()
