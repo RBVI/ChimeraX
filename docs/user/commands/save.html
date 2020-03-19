@@ -215,17 +215,17 @@ target="_blank">X3D</a></td>
 </tr><tr id="seqformats">
 <td align="center"><b>aln</b></td>
 <td align="center" class="text">.aln, .clustal<br>.clustalw, .clustalx</td>
-<td align="center">biopolymer sequence or sequence alignment,
+<td align="center">biopolymer <a href="#sequence">sequence</a>,
 <br>Clustal ALN</td>
 </tr><tr>
 <td align="center"><b>fasta</b></td>
 <td align="center">.fasta, .fa<br>.afasta, .afa</td>
-<td align="center">biopolymer sequence or sequence alignment,
+<td align="center">biopolymer <a href="#sequence">sequence</a>,
 <br>FASTA</td>
 </tr><tr>
 <td align="center"><b>pir</b></td>
 <td align="center">.pir, .ali</td>
-<td align="center">biopolymer sequence or sequence alignment,
+<td align="center">biopolymer <a href="#sequence">sequence</a>,
 <br>PIR (NBRF)</td>
 </tr><tr>
 <td align="center"><b>mtz</b></td>
@@ -732,15 +732,17 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 <!--
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#seqformats"><i>format-name</i></a>&nbsp;]
 -->
-[&nbsp;<b>format</b>&nbsp;&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;aln&nbsp;|&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<i>alignment-id</i></a>&nbsp;]
 </blockquote>
 <p>
-Only the contents of a single
+An individual sequence or multiple sequence alignment open in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> 
+can be saved to a file. Only the contents of a single
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
-can be saved to a file at a time. When more than sequence window is present,
-the <b>alignment</b> option is needed to specify the window of interest,
-using the <i>alignment-id</i> shown in the title bar of the window.
+can be saved at a time. When more than sequence window is present,
+which one to save is indicated with the <b>alignment</b> option, 
+using the <i>alignment-id</i> shown in the window's title bar.
 Example:
 </p>
 <blockquote>

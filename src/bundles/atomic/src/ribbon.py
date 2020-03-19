@@ -11,12 +11,1385 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+timing = False
+if timing:
+    from time import time
+    rsegtime = 0
+
 EPSILON = 1e-6
 
 # Must match values in molc.cpp
 FLIP_MINIMIZE = 0
 FLIP_PREVENT = 1
 FLIP_FORCE = 2
+
+from .molobject import StructureData
+TETHER_CYLINDER = StructureData.TETHER_CYLINDER
+
+def _make_ribbon_graphics(structure, ribbons_drawing):
+    '''Update ribbons drawing.'''
+    
+    ribbons_drawing.clear()
+
+    # Mark all residues to indicate the ribbon is not highlighted.
+    structure.residues.ribbon_selected = False
+            
+    if structure.ribbon_display_count == 0:
+        return
+
+    if timing:
+        t0 = time()
+
+    polymers = structure.polymers(missing_structure_treatment=structure.PMS_TRACE_CONNECTS)
+
+    if timing:
+        t1 = time()
+        poltime = t1-t0
+
+    segtime = tritime = tethertime = 0
+    global rsegtime
+    rsegtime = 0
+    for rlist, ptype in polymers:
+        if timing:
+            t0 = time()
+            
+        # Always call get_polymer_spline to make sure hide bits are
+        # properly set when ribbons are completely undisplayed
+        any_display, atoms, coords, guides = rlist.get_polymer_spline()
+        if not any_display:
+            continue
+
+        # Use residues instead of rlist below because rlist may contain
+        # residues that do not participate in ribbon (e.g., because
+        # it does not have a CA)
+        residues = atoms.residues
+
+        # Always update all atom visibility so that undisplaying ribbon
+        # will bring back previously hidden backbone atoms
+        residues.atoms.update_ribbon_visibility()
+
+        if len(atoms) < 2:
+            continue
+        
+        displays = residues.ribbon_displays
+        if displays.sum() == 0:
+            continue
+
+        # Assign a residue class to each residue and compute the
+        # ranges of secondary structures
+        is_helix = residues.is_helix
+        ssids = residues.secondary_structure_ids
+        arc_helix = (structure.ribbon_mode_helix == structure.RIBBON_MODE_ARC)
+        res_class, helix_ranges, sheet_ranges, is_arc_helix = \
+            _ribbon_ranges(is_helix, residues.is_strand, ssids, residues.polymer_types, arc_helix)
+
+        # Assign front and back cross sections for each residue.
+        xs_mgr = structure.ribbon_xs_mgr
+        xs_front, xs_back, need_twist = \
+            _ribbon_crosssections(res_class, xs_mgr, is_helix, arc_helix)
+
+        # Perform any smoothing (e.g., strand smoothing
+        # to remove lasagna sheets, pipes and planks
+        # display as cylinders and planes, etc.)
+        _smooth_ribbon(residues, coords, guides, atoms, ssids,
+                       xs_front, xs_back, xs_mgr, ribbons_drawing,
+                       helix_ranges, sheet_ranges,
+                       structure.ribbon_mode_helix, structure.ribbon_mode_strand)
+
+        # from .ribbon import _ss_control_point_display
+        # _ss_control_point_display(ribbons_drawing, coords, guides)
+
+        # Create ribbon drawing
+        rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons")
+        ribbons_drawing.add_drawing(rp)
+
+        if timing:
+            t1 = time()
+            segtime += t1-t0
+
+        # Compute ribbon triangles
+        num_divisions = structure._level_of_detail.ribbon_divisions
+        orients = structure.ribbon_orients(residues)
+        default_helix_mode = (structure.ribbon_mode_helix == structure.RIBBON_MODE_DEFAULT)
+        spine = [] if structure.ribbon_show_spine else None
+        ribbon = Ribbon(coords, guides, orients, structure._use_spline_normals)
+        # _debug_show_normal_spline(ribbons_drawing, coords, ribbon, num_divisions)
+        va,na,ta,vc,tr = _ribbon_geometry(ribbon, num_divisions, residues, displays,
+                                          is_helix, is_arc_helix, default_helix_mode,
+                                          need_twist, xs_front, xs_back, xs_mgr, ssids,
+                                          rp, spine)
+        rp.triangle_ranges = tr     # Save triangle ranges for picking
+
+        # Set drawing geometry
+        if va is None:
+            rp.display = False
+        else:
+            rp.display = True
+            rp.set_geometry(va, na, ta)
+            rp.vertex_colors = vc
+
+        if timing:
+            t2 = time()
+            tritime += t2-t1
+
+        # Cache position of backbone atoms on ribbon and get list of tethered atoms
+        min_tether_offset = structure.bond_radius
+        tether, positions = _ribbon_tethers(ribbon, residues, ribbons_drawing,
+                                            min_tether_offset,
+                                            structure.ribbon_tether_scale,
+                                            structure.ribbon_tether_sides,
+                                            structure.ribbon_tether_shape)
+        ribbons_drawing.ribbon_tethers.append(tether)
+        ribbons_drawing.ribbon_spline_backbone.update(positions)
+
+        if timing:
+            t3 = time()
+            tethertime += t3-t2
+        
+        # Create spine if necessary
+        if structure.ribbon_show_spine:
+            spine_colors, spine_xyz1, spine_xyz2 = spine
+            _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2)
+
+    if timing:
+        print('ribbon times %d polymers %.4g, segments %.4g, triangles %.4g (spline %.4g), tethers %.4g'
+              % (len(polymers), poltime, segtime, tritime, rsegtime, tethertime))
+
+#
+# Assign a residue class to each residue and compute the
+# ranges of secondary structures
+#
+def _ribbon_ranges(is_helix, is_strand, ssids, polymer_type, arc_helix):
+    res_class = []
+    helix_ranges = []
+    sheet_ranges = []
+
+    was_sheet = was_helix = was_nucleic = False
+    last_ssid = None
+
+    from .molobject import Residue
+    
+    nr = len(is_helix)
+    for i in range(nr):
+        if polymer_type[i] == Residue.PT_NUCLEIC:
+            rc = XSectionManager.RC_NUCLEIC
+            am_sheet = am_helix = False
+            was_nucleic = True
+        elif polymer_type[i] == Residue.PT_AMINO:
+            if is_strand[i]:
+                # Define sheet SS as having higher priority over helix SS
+                if was_sheet:
+                    # Check if this is the start of another sheet
+                    # rather than continuation for the current one
+                    if ssids[i] != last_ssid:
+                        _end_strand(res_class, sheet_ranges, i)
+                        rc = XSectionManager.RC_SHEET_START
+                        sheet_ranges.append([i, -1])
+                    else:
+                        rc = XSectionManager.RC_SHEET_MIDDLE
+                else:
+                    rc = XSectionManager.RC_SHEET_START
+                    sheet_ranges.append([i, -1])
+                am_sheet = True
+                am_helix = False
+            elif is_helix[i]:
+                if was_helix:
+                    # Check if this is the start of another helix
+                    # rather than a continuation for the current one
+                    if ssids[i] != last_ssid:
+                        _end_helix(res_class, helix_ranges, i)
+                        rc = XSectionManager.RC_HELIX_START
+                        helix_ranges.append([i, -1])
+                    else:
+                        rc = XSectionManager.RC_HELIX_MIDDLE
+                else:
+                    rc = XSectionManager.RC_HELIX_START
+                    helix_ranges.append([i, -1])
+                am_sheet = False
+                am_helix = True
+            else:
+                rc = XSectionManager.RC_COIL
+                am_sheet = am_helix = False
+            was_nucleic = False
+        else:
+            if was_nucleic:
+                rc = XSectionManager.RC_NUCLEIC
+            else:
+                rc = XSectionManager.RC_COIL
+            am_sheet = am_helix = False
+        if was_sheet and not am_sheet:
+            _end_strand(res_class, sheet_ranges, i)
+        elif was_helix and not am_helix:
+            _end_helix(res_class, helix_ranges, i)
+        res_class.append(rc)
+        was_sheet = am_sheet
+        was_helix = am_helix
+        last_ssid = ssids[i]
+    if was_sheet:
+        # 1hxx ends in a strand
+        _end_strand(res_class, sheet_ranges, nr)
+    elif was_helix:
+        # 1hxx ends in a strand
+        _end_helix(res_class, helix_ranges, nr)
+
+    # Postprocess helix ranges if in arc mode to remove
+    # 2-residue helices since we cannot compute an arc
+    # from two points.
+    if arc_helix:
+        is_arc_helix = is_helix.copy()
+        keep = []
+        for r in helix_ranges:
+            if r[1] - r[0] > 2:
+                keep.append(r)
+            else:
+                for i in range(r[0], r[1]):
+                    is_arc_helix[i] = False
+        helix_ranges = keep
+    else:
+        from numpy import zeros, bool
+        is_arc_helix = zeros(len(is_helix), bool)
+        
+    return res_class, helix_ranges, sheet_ranges, is_arc_helix
+
+def _end_strand(res_class, ss_ranges, end):
+    if res_class[-1] == XSectionManager.RC_SHEET_START:
+        # Single-residue strands are coils
+        res_class[-1] = XSectionManager.RC_COIL
+        del ss_ranges[-1]
+    else:
+        # Multi-residue strands are okay
+        res_class[-1] = XSectionManager.RC_SHEET_END
+        ss_ranges[-1][1] = end
+
+def _end_helix(res_class, ss_ranges, end):
+    if res_class[-1] == XSectionManager.RC_HELIX_START:
+        # Single-residue helices are coils
+        res_class[-1] = XSectionManager.RC_COIL
+        del ss_ranges[-1]
+    else:
+        # Multi-residue helices are okay
+        res_class[-1] = XSectionManager.RC_HELIX_END
+        ss_ranges[-1][1] = end
+        
+def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix):
+    # Assign front and back cross sections for each residue.
+    # The "front" section is between this residue and the previous.
+    # The "back" section is between this residue and the next.
+    # The front and back sections meet at the control point atom.
+    # Compute cross sections and whether we care about a smooth
+    # transition between residues.
+    # If helices are displayed as tubes, we alter the cross sections
+    # at the beginning and end to coils since the wide ribbon looks
+    # odd when it is only for half a residue
+    xs_front = []
+    xs_back = []
+    need_twist = []
+    rc0 = XSectionManager.RC_COIL
+    nr = len(res_class)
+    for i in range(nr):
+        rc1 = res_class[i]
+        try:
+            rc2 = res_class[i + 1]
+        except IndexError:
+            rc2 = XSectionManager.RC_COIL
+        f, b = ribbon_xs_mgr.assign(rc0, rc1, rc2)
+        xs_front.append(f)
+        xs_back.append(b)
+        need_twist.append(_need_twist(rc1, rc2))
+        rc0 = rc1
+    if arc_helix:
+        for i in range(nr):
+            if not is_helix[i]:
+                continue
+            rc = res_class[i]
+            if rc == XSectionManager.RC_HELIX_START:
+                xs_front[i] = ribbon_xs_mgr.xs_coil
+            elif rc == XSectionManager.RC_HELIX_END:
+                xs_back[i] = ribbon_xs_mgr.xs_coil
+    need_twist[-1] = False
+    return xs_front, xs_back, need_twist
+
+def _need_twist(rc0, rc1):
+    # Determine if we need to twist ribbon smoothly from rc0 to rc1
+    if rc0 == rc1:
+        return True
+    if rc0 in XSectionManager.RC_ANY_SHEET and rc1 in XSectionManager.RC_ANY_SHEET:
+        return True
+    if rc0 in XSectionManager.RC_ANY_HELIX and rc1 in XSectionManager.RC_ANY_HELIX:
+        return True
+    if rc0 is XSectionManager.RC_HELIX_END or rc0 is XSectionManager.RC_SHEET_END:
+        return True
+    return False
+        
+# Compute triangle geometry for ribbon.
+def _ribbon_geometry(ribbon, num_divisions, residues, displays,
+                     is_helix, is_arc_helix, default_helix_mode,
+                     need_twist, xs_front, xs_back, xs_mgr, ssids,
+                     drawing, spine):
+
+    any_ribbon = True
+    v_start = 0
+    v_offset = 0        # for tracking vertex index offset as triangles added
+    t_start = 0         # for tracking starting triangle index for each residue
+    vertex_list = []
+    normal_list = []
+    color_list = []
+    triangle_list = []
+    colors = residues.ribbon_colors
+    tranges = []
+    rtr = drawing.parent.residue_triangle_ranges
+    
+    # Odd number of segments gets blending, even has sharp edge
+    rd = num_divisions
+    if rd % 2 == 1:
+        seg_blend = rd
+        seg_cap = seg_blend + 1
+    else:
+        seg_cap = rd
+        seg_blend = seg_cap + 1
+
+    def is_arc_helix_end(i):
+        return is_arc_helix[i]
+    def is_arc_helix_middle(i, j):
+        if not is_arc_helix[i] or not is_arc_helix[j]:
+            return False
+        return ssids[i] == ssids[j]
+
+    # Draw first and last residue differently because they
+    # are each only a single half segment, while the middle
+    # residues are each two half segments.
+
+    #import sys
+
+    from numpy import concatenate
+    
+    # First residues
+    from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
+    if displays[0] and not is_arc_helix_end(0):
+        # print(residues[0], file=sys.__stderr__); sys.__stderr__.flush()
+        xs_compat = xs_mgr.is_compatible(xs_back[0], xs_front[1])
+        capped = displays[0] != displays[1] or not xs_compat
+        seg = capped and seg_cap or seg_blend
+        front_c, front_t, front_n = ribbon.lead_segment(seg_cap // 2)
+        back_c, back_t, back_n = ribbon.segment(0, ribbon.FRONT, seg, not need_twist[0])
+        centers = concatenate((front_c, back_c))
+        tangents = concatenate((front_t, back_t))
+        normals = concatenate((front_n, back_n))
+        if spine is not None:
+            _ribbon_update_spine(colors[0], centers, normals, spine)
+        s = xs_back[0].extrude(centers, tangents, normals, colors[0], True, capped, v_offset)
+        v_offset += len(s.vertices)
+        t_end = t_start + len(s.triangles)
+        vertex_list.append(s.vertices)
+        normal_list.append(s.normals)
+        triangle_list.append(s.triangles)
+        color_list.append(s.colors)
+        prev_band = s.back_band if displays[1] and xs_compat else None
+        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[0])
+        tranges.append(triangle_range)
+        _add_residue_triangle_range(rtr, residues[0], triangle_range)
+        t_start = t_end
+        v_start = v_offset
+    else:
+        capped = True
+        prev_band = None
+
+    # Middle residues
+    for i in range(1, len(residues) - 1):
+        # print(residues[i], file=sys.__stderr__); sys.__stderr__.flush()
+        if not displays[i]:
+            continue
+        t_end = t_start
+        if is_arc_helix_middle(i, i - 1):
+            # Helix is shown separately as a tube, so we do not need to
+            # draw anything
+            mid_cap = True
+            next_cap = True
+            prev_band = None
+        else:
+            # Show as ribbon
+            seg = capped and seg_cap or seg_blend
+            mid_cap = not xs_mgr.is_compatible(xs_front[i], xs_back[i])
+            #print(residues[i], mid_cap, need_twist[i])
+            front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg,
+                                                       mid_cap or not need_twist[i], last=mid_cap)
+            if spine is not None:
+                _ribbon_update_spine(colors[i], front_c, front_n, spine)
+
+            xs_compat = xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
+            next_cap = displays[i] != displays[i + 1] or not xs_compat
+            sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
+                                       capped, mid_cap, v_offset)
+            
+            v_offset += len(sf.vertices)
+            t_end += len(sf.triangles)
+            vertex_list.append(sf.vertices)
+            normal_list.append(sf.normals)
+            triangle_list.append(sf.triangles)
+            color_list.append(sf.colors)
+            if prev_band is not None:
+                tjoin = xs_front[i].blend(prev_band, sf.front_band)
+                triangle_list.append(tjoin)
+                t_end += len(tjoin)
+        if is_arc_helix_middle(i, i + 1):
+            # Helix is shown separately as a tube, so we do not need to
+            # draw anything
+            prev_band = None
+        else:
+            seg = next_cap and seg_cap or seg_blend
+            flip_mode = FLIP_MINIMIZE
+            if default_helix_mode and is_helix[i] and is_helix[i + 1]:
+                flip_mode = FLIP_PREVENT
+            # strands generally flip normals at every residue but
+            # beta bulges violate this rule so we cannot always flip
+            # elif is_strand[i] and is_strand[i + 1]:
+            #     flip_mode = FLIP_FORCE
+            back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, not need_twist[i],
+                                                    flip_mode=flip_mode)
+            if spine is not None:
+                _ribbon_update_spine(colors[i], back_c, back_n, spine)
+
+            sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
+                                       mid_cap, next_cap, v_offset)
+            v_offset += len(sb.vertices)
+            t_end += len(sb.triangles)
+            vertex_list.append(sb.vertices)
+            normal_list.append(sb.normals)
+            triangle_list.append(sb.triangles)
+            color_list.append(sb.colors)
+            if not mid_cap:
+                tjoin = xs_back[i].blend(sf.back_band, sb.front_band)
+                triangle_list.append(tjoin)
+                t_end += len(tjoin)
+            prev_band = None if next_cap else sb.back_band
+        capped = next_cap
+        if t_end != t_start:
+            triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[i])
+            tranges.append(triangle_range)
+            _add_residue_triangle_range(rtr, residues[i], triangle_range)
+            t_start = t_end
+            v_start = v_offset
+
+    # Last residue
+    if displays[-1] and not is_arc_helix_end(-1):
+        # print(residues[-1], file=sys.__stderr__); sys.__stderr__.flush()
+        seg = capped and seg_cap or seg_blend
+        front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, True)
+        back_c, back_t, back_n = ribbon.trail_segment(seg_cap // 2)
+        centers = concatenate((front_c, back_c))
+        tangents = concatenate((front_t, back_t))
+        normals = concatenate((front_n, back_n))
+        if spine is not None:
+            _ribbon_update_spine(colors[-1], centers, normals, spine)
+
+        s = xs_front[-1].extrude(centers, tangents, normals, colors[-1],
+                                 capped, True, v_offset)
+        t_end = t_start + len(s.triangles)
+        v_offset += len(s.vertices)
+        vertex_list.append(s.vertices)
+        normal_list.append(s.normals)
+        triangle_list.append(s.triangles)
+        color_list.append(s.colors)
+        if prev_band is not None:
+            tjoin = xs_front[-1].blend(prev_band, s.front_band)
+            triangle_list.append(tjoin)
+            t_end += len(tjoin)
+        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[-1])
+        tranges.append(triangle_range)
+        _add_residue_triangle_range(rtr, residues[-1], triangle_range)
+
+    if vertex_list:
+        va = concatenate(vertex_list)
+        na = concatenate(normal_list)
+        from .ribbon import normalize_vector_array_inplace
+        normalize_vector_array_inplace(na)
+        ta = concatenate(triangle_list)
+        vc = concatenate(color_list)
+    else:
+        va = na = ta = vc = None
+
+    return va, na, ta, vc, tranges
+
+def update_ribbon_colors(structure, ribbons_drawing):
+    if ribbons_drawing is None:
+        return
+
+    if timing:
+        t0 = time()
+        
+    vertex_colors = {}	# Map RibbonDrawing to vertex color array
+    res_triangle_ranges = ribbons_drawing.residue_triangle_ranges
+    for r, tranges in res_triangle_ranges.items():
+        color = r.ribbon_color
+        for tr in tranges:
+            d = tr.drawing
+            if d in vertex_colors:
+                vc = vertex_colors[d]
+            else:
+                vertex_colors[d] = vc = d.vertex_colors
+            tri = d.triangles
+            vc[tr.vstart:tr.vend,:] = color
+
+    for d, vc in vertex_colors.items():
+        d.vertex_colors = vc
+
+    if timing:
+        t1 = time()
+        print ('update_ribbon_colors(): %.4g' % (t1-t0))
+        
+def update_ribbon_selection(structure, ribbons_drawing):
+    # Set selected ribbons in graphics
+
+    # Find residues that should be shown selected and are in ribbon drawing.
+    rsel = None
+    res_triangle_ranges = None
+    if ribbons_drawing:
+        res_triangle_ranges = ribbons_drawing.residue_triangle_ranges
+        atoms = structure.atoms
+        if atoms.num_selected > 0:
+            residues = atoms.filter(atoms.selected).unique_residues
+            from numpy import array
+            mask = array([r in res_triangle_ranges for r in residues], dtype=bool)
+            rsel = residues.filter(mask)
+
+    # Update the Residue.ribbon_selected flags
+    residues = structure.residues
+    selected_residues = residues.filter(residues.ribbon_selected)
+    if rsel is None:
+        hide = selected_residues
+        from .molarray import Residues
+        keep = show = Residues()
+    elif len(selected_residues) == 0:
+        from .molarray import Residues
+        hide = keep = Residues()
+        show = rsel
+    else:
+        hide = selected_residues - rsel
+        keep = selected_residues & rsel
+        show = rsel - selected_residues
+    hide.ribbon_selected = False
+    show.ribbon_selected = True
+
+    if not res_triangle_ranges:
+        return
+
+    # Figure out triangle ranges that need highlighting changed.
+    da = {}     # Map ribbon drawing to 3-tuple of triangle ranges - 0=hide, 1=keep, 2=show
+    residues = [hide, keep, show]
+    # Partition by drawing
+    for i in range(len(residues)):
+        for r in residues[i]:
+            try:
+                tr_list = res_triangle_ranges[r]
+            except KeyError:
+                continue
+            for tr in tr_list:
+                try:
+                    a = da[tr.drawing]
+                except KeyError:
+                    a = da[tr.drawing] = ([], [], [])
+                a[i].append((tr.start, tr.end))
+
+    # Update highlighted ribbon triangles
+    for p, residues in da.items():
+        if not residues[1] and not residues[2]:
+            # No residues being kept or added
+            p.highlighted_triangles_mask = None
+        else:
+            m = p.highlighted_triangles_mask
+            if m is None:
+                import numpy
+                m = numpy.zeros((p.number_of_triangles(),), bool)
+            for start, end in residues[0]:
+                m[start:end] = False
+            for start, end in residues[2]:
+                m[start:end] = True
+            p.highlighted_triangles_mask = m
+
+# -----------------------------------------------------------------------------
+#
+class RibbonTriangleRange:
+    __slots__ = ["start", "end", "vstart", "vend", "drawing", "residue"]
+    def __init__(self, start, end, vstart, vend, drawing, residue):
+        self.start = start
+        self.end = end
+        self.vstart = vstart
+        self.vend = vend
+        self.drawing = drawing
+        self.residue = residue
+    def __lt__(self, other): return self.start < other
+    def __le__(self, other): return self.start <= other
+    def __eq__(self, other): return self.start == other
+    def __ne__(self, other): return self.start != other
+    def __gt__(self, other): return self.start > other
+    def __gt__(self, other): return self.start >= other
+
+def _add_residue_triangle_range(rtr, r, tr):
+    try:
+        ranges = rtr[r]
+    except KeyError:
+        rtr[r] = [tr]
+    else:
+        ranges.append(tr)
+
+from chimerax.graphics import Drawing
+class RibbonsDrawing(Drawing):
+    def __init__(self, name, structure_name):
+        Drawing.__init__(self, name)
+        self.structure_name = structure_name
+        self.residue_triangle_ranges = {}         # map residue to list of RibbonTriangleRanges
+        self.ribbon_spline_backbone = {}          # backbone atom positions on ribbon
+        self.ribbon_tethers = []                  # ribbon tethers from ribbon to floating atoms
+
+    def clear(self):
+        self.remove_all_drawings()
+        self.residue_triangle_ranges.clear()
+        self.ribbon_spline_backbone.clear()
+        self.ribbon_tethers.clear()
+
+    def compute_ribbons(self, structure):
+        if timing:
+            t0 = time()
+        _make_ribbon_graphics(structure, self)
+        if timing:
+            t1 = time()
+            print ('compute_ribbons(): %.4g' % (t1-t0))
+
+    def update_tethers(self, structure):
+        if timing:
+            t0 = time()
+
+        from numpy import around
+        for all_atoms, tp, xyz1, tether_atoms, shape, scale in self.ribbon_tethers:
+            all_atoms.update_ribbon_visibility()
+            if tp:
+                xyz2 = tether_atoms.coords
+                radii = structure._atom_display_radii(tether_atoms) * scale
+                tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
+                tp.display_positions = tether_atoms.visibles & tether_atoms.residues.ribbon_displays
+                colors = tether_atoms.colors
+                colors[:,3] = around(colors[:,3] * structure.ribbon_tether_opacity).astype(int)
+                tp.colors = colors
+
+        if timing:
+            t1 = time()
+            print ('update_tethers(): %.4g' % (t1-t0))
+
+# -----------------------------------------------------------------------------
+#
+def _tether_placements(xyz0, xyz1, radius, shape):
+    from .molobject import StructureData
+    from .structure import _bond_cylinder_placements
+    c0,c1 = (xyz1,xyz0) if shape == StructureData.TETHER_REVERSE_CONE else (xyz0,xyz1)
+    return _bond_cylinder_placements(c0, c1, radius)
+                        
+class RibbonDrawing(Drawing):
+    def __init__(self, name):
+        Drawing.__init__(self, name)
+        self.triangle_ranges = []         # List of RibbonTriangleRange, used for picking
+
+    def first_intercept(self, mxyz1, mxyz2, exclude=None):
+        if not self.display or (exclude and exclude(self)):
+            return None
+        p = super().first_intercept(mxyz1, mxyz2)
+        if p is None:
+            return None
+        tranges = self.triangle_ranges
+        from bisect import bisect_right
+        n = bisect_right(tranges, p.triangle_number)
+        if n > 0:
+            triangle_range = tranges[n - 1]
+            from .structure import PickedResidue
+            return PickedResidue(triangle_range.residue, p.distance)
+        return None
+
+    def planes_pick(self, planes, exclude=None):
+        if not self.display:
+            return []
+        if exclude is not None and exclude(self):
+            return []
+        tranges = self.triangle_ranges
+        picks = []
+        rp = super().planes_pick(planes)
+        from chimerax.graphics import PickedTriangles
+        from .structure import PickedResidues
+        for p in rp:
+            if isinstance(p, PickedTriangles) and p.drawing() is self:
+                tmask = p._triangles_mask
+                res = [rtr.residue for rtr in tranges if tmask[rtr.start:rtr.end].sum() > 0]
+                if res:
+                    from .molarray import Residues
+                    rc = Residues(res)
+                    picks.append(PickedResidues(rc))
+        return picks
+
+def _ribbon_update_spine(c, centers, normals, spine):
+    from numpy import empty
+    xyz1 = centers + normals
+    xyz2 = centers - normals
+    color = empty((len(xyz1), 4), int)
+    color[:] = c
+    if len(spine) == 0:
+        spine.extend((color, xyz1, xyz2))
+    else:
+        # TODO: Fix O(N^2) accumulation
+        from numpy import concatenate
+        spine[0] = concatenate([spine[0], color])
+        spine[1] = concatenate([spine[1], xyz1])
+        spine[2] = concatenate([spine[2], xyz2])
+
+def _ribbon_tethers(ribbon, residues, drawing,
+                    min_tether_offset, tether_scale, tether_sides, tether_shape):
+    # Cache position of backbone atoms on ribbon
+    # and get list of tethered atoms
+    spositions = {}
+    positions = _ribbon_spline_position(ribbon, residues, _NonTetherPositions)
+    spositions.update(positions)
+    positions = _ribbon_spline_position(ribbon, residues, _TetherPositions)
+    from .molarray import Atoms
+    tether_atoms = Atoms(tuple(positions.keys()))
+    from numpy import array
+    spline_coords = array(tuple(positions.values()))
+    spositions.update(positions)
+    if len(spline_coords) == 0:
+        spline_coords = spline_coords.reshape((0,3))
+    atom_coords = tether_atoms.coords
+    offsets = atom_coords - spline_coords
+    from numpy.linalg import norm
+    tethered = norm(offsets, axis=1) > min_tether_offset
+
+    # Create tethers if necessary
+    from numpy import any
+    if tether_scale > 0 and any(tethered):
+        tp = drawing.new_drawing(drawing.structure_name + " ribbon_tethers")
+        tp.skip_bounds = True   # Don't include in bounds calculation. Optimization.
+        tp.no_cofr = True	# Don't use for finding center of rotation. Optimization.
+        tp.pickable = False	# Don't allow mouse picking.
+        from chimerax import surface
+        if tether_shape == TETHER_CYLINDER:
+            va, na, ta = surface.cylinder_geometry(nc=tether_sides, nz=2, caps=False)
+        else:
+            # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
+            va, na, ta = surface.cone_geometry(nc=tether_sides, caps=False, points_up=False)
+        tp.set_geometry(va, na, ta)
+        tether = (tether_atoms, tp,
+                  spline_coords[tethered],
+                  tether_atoms.filter(tethered),
+                  tether_shape, tether_scale)
+    else:
+        tether = (tether_atoms, None, None, None, None, None)
+
+    return tether, spositions
+
+# Position of atoms on ribbon in spline parameter units.
+# These should correspond to the "minimum" backbone atoms
+# listed in atomstruct/Residue.cpp.
+# Negative means on the spline between previous residue
+# and this one; positive between this and next.
+# These are copied from Chimera.  May want to do a survey
+# of closest spline parameters across many structures instead.
+_TetherPositions = {
+    # Amino acid
+    "N":  -1/3.,
+    "CA":  0.,
+    "C":   1/3.,
+    # Nucleotide
+    "P":   -2/6.,
+    "O5'": -1/6.,
+    "C5'":  0.,
+    "C4'":  1/6.,
+    "C3'":  2/6.,
+    "O3'":  3/6.,
+}
+_NonTetherPositions = {
+    # Amino acid
+    "O":    1/3.,
+    "OXT":  1/3.,
+    "OT1":  1/3.,
+    "OT2":  1/3.,
+    # Nucleotide
+    "OP1": -2/6.,
+    "O1P": -2/6.,
+    "OP2": -2/6.,
+    "O2P": -2/6.,
+    "OP3": -2/6.,
+    "O3P": -2/6.,
+    "O2'": -1/6.,
+    "C2'":  2/6.,
+    "O4'":  1/6.,
+    "C1'":  1.5/6.,
+    "O3'":  2/6.,
+}
+
+def _ribbon_spline_position(ribbon, residues, pos_map):
+    positions = {}
+    for n, r in enumerate(residues):
+        first = (r == residues[0])
+        last = (r == residues[-1])
+        for atom_name, position in pos_map.items():
+            a = r.find_atom(atom_name)
+            if a is None or not a.is_backbone():
+                continue
+            if last:
+                p = ribbon.position(n - 1, 1 + position)
+            elif position >= 0 or first:
+                p = ribbon.position(n, position)
+            else:
+                p = ribbon.position(n - 1, 1 + position)
+            positions[a] = p
+    return positions
+
+def _debug_show_normal_spline(ribbons_drawing, coords, ribbon):
+    # Normal spline can be shown as spheres on either side (S)
+    # or a cylinder across (C)
+    num_coords = len(coords)
+    try:
+        spline = ribbon.normal_spline
+        other_spline = ribbon.other_normal_spline
+    except AttributeError:
+        return
+    sp = ribbons_drawing.new_drawing(ribbons_drawing.structure_name + " normal spline")
+    from chimerax import surface
+    from numpy import empty, array, float32, linspace
+    from chimerax.geometry import Places
+    num_pts = num_coords*ribbon_divisions
+    #S
+    #S va, na, ta = surface.sphere_geometry(20)
+    #S xyzr = empty((num_pts*2, 4), float32)
+    #S t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
+    #S xyzr[:num_pts, :3] = [spline(i) for i in t]
+    #S xyzr[num_pts:, :3] = [other_spline(i) for i in t]
+    #S xyzr[:, 3] = 0.2
+    #S sp.positions = Places(shift_and_scale=xyzr)
+    #S sp_colors = empty((len(xyzr), 4), dtype=float32)
+    #S sp_colors[:num_pts] = (255, 0, 0, 255)
+    #S sp_colors[num_pts:] = (0, 255, 0, 255)
+    #S
+    #C
+    va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
+    radii = empty(num_pts, dtype=float32)
+    radii.fill(0.2)
+    t = linspace(0.0, num_coords, num=num_pts, endpoint=False)
+    xyz1 = array([spline(i) for i in t], dtype=float32)
+    xyz2 = array([other_spline(i) for i in t], dtype=float32)
+    sp.set_geometry(va, na, ta)
+    sp.positions = _tether_placements(xyz1, xyz2, radii, TETHER_CYLINDER)
+    sp_colors = empty((len(xyz1), 4), dtype=float32)
+    sp_colors[:] = (255, 0, 0, 255)
+    sp.colors = sp_colors
+    #C
+
+def _smooth_ribbon(rlist, coords, guides, atoms, ssids,
+                   xs_front, xs_back, xs_mgr, ribbons_drawing,
+                   helix_ranges, sheet_ranges, helix_mode, strand_mode):
+    ribbon_adjusts = rlist.ribbon_adjusts
+    from .molobject import StructureData
+    if helix_mode == StructureData.RIBBON_MODE_DEFAULT:
+        # Smooth helices
+        # XXX: Skip helix smoothing for now since it does not work well for bent helices
+        pass
+        # for start, end in helix_ranges:
+        #     _smooth_helix(coords, guides, xs_front, xs_back,
+        #                   ribbon_adjusts, start, end, ribbons_drawing)
+    elif helix_mode == StructureData.RIBBON_MODE_ARC:
+        for start, end in helix_ranges:
+            _arc_helix(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
+                       ribbon_adjusts, start, end, ribbons_drawing)
+    elif helix_mode == StructureData.RIBBON_MODE_WRAP:
+        for start, end in helix_ranges:
+            _wrap_helix(rlist, coords, guides, ssids, xs_front, xs_back,
+                        ribbon_adjusts, start, end, ribbons_drawing)
+    if strand_mode == StructureData.RIBBON_MODE_DEFAULT:
+        # Smooth strands
+        for start, end in sheet_ranges:
+            _smooth_strand(rlist, coords, guides, xs_front, xs_back,
+                           ribbon_adjusts, start, end, ribbons_drawing)
+    elif strand_mode == StructureData.RIBBON_MODE_ARC:
+        for start, end in sheet_ranges:
+            _arc_strand(rlist, coords, guides, xs_front, xs_back,
+                        ribbon_adjusts, start, end, ribbons_drawing)
+
+def _smooth_helix(rlist, coords, guides, xs_front, xs_back,
+                  ribbon_adjusts, start, end, ribbons_drawing):
+    # Try to fix up the ribbon orientation so that it is parallel to the helical axis
+    from numpy import dot, newaxis, mean
+    from numpy.linalg import norm
+    from .ribbon import normalize_vector_array
+    # We only "optimize" longer helices because short
+    # ones do not contain enough information to do
+    # things intelligently
+    ss_coords = coords[start:end]
+    adjusts = ribbon_adjusts[start:end][:, newaxis]
+    axis, centroid, rel_coords = _ss_axes(ss_coords)
+    # Compute position of cylinder center corresponding to
+    # helix control point atoms
+    axis_pos = dot(rel_coords, axis)[:, newaxis]
+    cyl_centers = centroid + axis * axis_pos
+    if False:
+        # Debugging code to display center of secondary structure
+        name = ribbons_drawing.structure_name + " helix " + str(start)
+        _ss_display(ribbons_drawing, name, cyl_centers)
+    # Compute radius of cylinder
+    spokes = ss_coords - cyl_centers
+    cyl_radius = mean(norm(spokes, axis=1))
+    # Compute smoothed position of helix control point atoms
+    ideal = cyl_centers + normalize_vector_array(spokes) * cyl_radius
+    offsets = adjusts * (ideal - ss_coords)
+    new_coords = ss_coords + offsets
+    # Update both control point and guide coordinates
+    coords[start:end] = new_coords
+    if guides is not None:
+        # Compute guide atom position relative to control point atom
+        delta_guides = guides[start:end] - ss_coords
+        # Move the guide location so that it forces the
+        # ribbon parallel to the axis
+        guides[start:end] = new_coords + axis
+    # Originally, we just update the guide location to
+    # the same relative place as before
+    #   guides[start:end] = new_coords + delta_guides
+
+def _arc_helix(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
+               ribbon_adjusts, start, end, ribbons_drawing):
+    # Only bother if at least one residue is displayed
+    displays = rlist.ribbon_displays
+    from numpy import any
+    if not any(displays[start:end]):
+        return
+
+    from .sse import HelixCylinder
+    from numpy import linspace, cos, sin
+    from math import pi
+    from numpy import empty, tile
+
+    hc = HelixCylinder(coords[start:end], radius=xs_mgr.tube_radius)
+    centers = hc.cylinder_centers()
+    radius = hc.cylinder_radius()
+    normals, binormals = hc.cylinder_normals()
+    icenters, inormals, ibinormals = hc.cylinder_intermediates()
+    coords[start:end] = centers
+
+    # Compute unit circle in 2D
+    num_pts = xs_mgr.params[xs_mgr.STYLE_ROUND]["sides"]
+    angles = linspace(0.0, pi * 2, num=num_pts, endpoint=False)
+    cos_a = radius * cos(angles)
+    sin_a = radius * sin(angles)
+
+    # Generate the cylinders and caps for displayed residues
+    # Each middle residue consists of three points:
+    #   intermediate point (i-1,i)
+    #   point i
+    #   intermediate point (i,i+1)
+    # The first and last residues only have two points.
+    # This means there are two bands of triangles for middle
+    # residues but only one for the end residues.
+    #
+    # Note that even though two adjacent residues share
+    # a single intermediate point, the intermediate point
+    # is duplicated for each residue since they may be
+    # colored differently.  XXX: Possible optimization
+    # is reusing intermediate points that have the same
+    # color instead of duplicating them.
+
+    # First we count up how many caps and bands are displayed
+    num_vertices = 0
+    num_triangles = 0
+    cap_triangles = num_pts - 2
+    band_triangles = 2 * num_pts
+    # First and last residues are special
+    if displays[start]:
+        # 3 = 1 for cap, 2 for tube
+        num_vertices += 3 * num_pts
+        num_triangles += cap_triangles + band_triangles
+    was_displayed = displays[start]
+    for i in range(start+1, end-1):
+        # Middle residues
+        if displays[i]:
+            if not was_displayed:
+                # front cap
+                num_vertices += num_pts
+                num_triangles += cap_triangles
+            # 3 for tube: (i-1,i),i,(i,i+1)
+            num_vertices += 3 * num_pts
+            num_triangles += 2 * band_triangles
+        else:
+            if was_displayed:
+                # back cap
+                num_vertices += num_pts
+                num_triangles += cap_triangles
+        was_displayed = displays[i]
+    # last residue
+    if displays[end-1]:
+        if was_displayed:
+            # 3 = 1 for back cap, 2 for tube
+            num_vertices += 3 * num_pts
+            num_triangles += cap_triangles + band_triangles
+        else:
+            # 4 = 2 for caps, 2 for tube
+            num_vertices += 4 * num_pts
+            num_triangles += 2 * cap_triangles + band_triangles
+    elif was_displayed:
+        # back cap
+        num_vertices += num_pts
+        num_triangles += cap_triangles
+
+    # Second, create containers for vertices, normals and triangles
+    va = empty((num_vertices, 3), dtype=float)
+    na = empty((num_vertices, 3), dtype=float)
+    ca = empty((num_vertices, 4), dtype=float)
+    ta = empty((num_triangles, 3), dtype=int)
+
+    # Third, add vertices, normals and triangles for each residue
+    # In the following functions, "i" = [start:end] and
+    # "offset" = [0, end-start]
+    colors = rlist.ribbon_colors
+    vi = 0
+    ti = 0
+    def _make_circle(c, n, bn):
+        nonlocal cos_a, sin_a
+        from numpy import tile, cross
+        from numpy.linalg import norm
+        count = (len(cos_a), 1)
+        normals = (tile(n, count) * cos_a.reshape(count) +
+                   tile(bn, count) * sin_a.reshape(count))
+        circle = normals + c
+        return circle, normals
+    def _make_tangent(n, bn):
+        from numpy import cross
+        return cross(n, bn)
+    def _add_cap(c, n, bn, color, back):
+        nonlocal vi, ti, va, na, ca, ta, num_pts
+        circle, normals = _make_circle(c, n, bn)
+        tangent = _make_tangent(n, bn)
+        if back:
+            tangent = -tangent
+        va[vi:vi+num_pts] = circle
+        na[vi:vi+num_pts] = tangent
+        ca[vi:vi+num_pts] = color
+        if back:
+            ta[ti:ti+cap_triangles,0] = range(vi+2,vi+num_pts)
+            ta[ti:ti+cap_triangles,1] = range(vi+1,vi+num_pts-1)
+            ta[ti:ti+cap_triangles,2] = vi
+        else:
+            ta[ti:ti+cap_triangles,0] = vi
+            ta[ti:ti+cap_triangles,1] = range(vi+1,vi+num_pts-1)
+            ta[ti:ti+cap_triangles,2] = range(vi+2,vi+num_pts)
+        vi += num_pts
+        ti += cap_triangles
+    def _add_band_vertices(circlef, normalsf, color):
+        nonlocal vi, ti, va, na, ca, num_pts
+        save = vi
+        va[vi:vi+num_pts] = circlef
+        na[vi:vi+num_pts] = normalsf
+        ca[vi:vi+num_pts] = color
+        vi += num_pts
+        return save
+    def _add_band_triangles(f, b):
+        nonlocal ti, ta, num_pts
+        ta[ti:ti+num_pts, 0] = range(f, f+num_pts)
+        ta[ti:ti+num_pts, 1] = [f + (n+1) % num_pts for n in range(num_pts)]
+        ta[ti:ti+num_pts, 2] = range(b, b+num_pts)
+        ti += num_pts
+        ta[ti:ti+num_pts, 0] = [f + (n+1) % num_pts for n in range(num_pts)]
+        ta[ti:ti+num_pts, 1] = [b + (n+1) % num_pts for n in range(num_pts)]
+        ta[ti:ti+num_pts, 2] = range(b, b+num_pts)
+        ti += num_pts
+    def add_front_cap(i):
+        nonlocal start, centers, normals, binormals
+        nonlocal icenters, inormals, ibinormals, colors
+        if i == start:
+            # First residue is special
+            offset = 0
+            c = centers[offset]
+            n = normals[offset]
+            bn = binormals[offset]
+        else:
+            offset = (i - 1) - start
+            c = icenters[offset]
+            n = inormals[offset]
+            bn = ibinormals[offset]
+        _add_cap(c, n, bn, colors[i], False)
+    def add_back_cap(i):
+        nonlocal start, end, centers, normals, binormals
+        nonlocal icenters, inormals, ibinormals, colors
+        if i == (end - 1):
+            # Last residue is special
+            offset = -1
+            c = centers[offset]
+            n = normals[offset]
+            bn = binormals[offset]
+        else:
+            offset = i - start
+            c = icenters[offset]
+            n = inormals[offset]
+            bn = ibinormals[offset]
+        _add_cap(c, n, bn, colors[i], True)
+    def add_front_band(i):
+        nonlocal start, centers, normals, binormals
+        nonlocal icenters, inormals, ibinormals, colors
+        offset = i - start
+        cf = icenters[offset-1]
+        nf = inormals[offset-1]
+        bnf = ibinormals[offset-1]
+        circlef, normalsf = _make_circle(cf, nf, bnf)
+        fi = _add_band_vertices(circlef, normalsf, colors[i])
+        cb = centers[offset]
+        nb = normals[offset]
+        bnb = binormals[offset]
+        circleb, normalsb = _make_circle(cb, nb, bnb)
+        bi = _add_band_vertices(circleb, normalsb, colors[i])
+        _add_band_triangles(fi, bi)
+    def add_back_band(i):
+        nonlocal start, centers, normals, binormals
+        nonlocal icenters, inormals, ibinormals, colors
+        offset = i - start
+        cf = centers[offset]
+        nf = normals[offset]
+        bnf = binormals[offset]
+        circlef, normalsf = _make_circle(cf, nf, bnf)
+        fi = _add_band_vertices(circlef, normalsf, colors[i])
+        cb = icenters[offset]
+        nb = inormals[offset]
+        bnb = ibinormals[offset]
+        circleb, normalsb = _make_circle(cb, nb, bnb)
+        bi = _add_band_vertices(circleb, normalsb, colors[i])
+        _add_band_triangles(fi, bi)
+    def add_both_bands(i):
+        nonlocal start, centers, normals, binormals
+        nonlocal icenters, inormals, ibinormals, colors
+        offset = i - start
+        cf = icenters[offset-1]
+        nf = inormals[offset-1]
+        bnf = ibinormals[offset-1]
+        circlef, normalsf = _make_circle(cf, nf, bnf)
+        fi = _add_band_vertices(circlef, normalsf, colors[i])
+        cm = centers[offset]
+        nm = normals[offset]
+        bnm = binormals[offset]
+        circlem, normalsm = _make_circle(cm, nm, bnm)
+        mi = _add_band_vertices(circlem, normalsm, colors[i])
+        cb = icenters[offset]
+        nb = inormals[offset]
+        bnb = ibinormals[offset]
+        circleb, normalsb = _make_circle(cb, nb, bnb)
+        bi = _add_band_vertices(circleb, normalsb, colors[i])
+        _add_band_triangles(fi, mi)
+        _add_band_triangles(mi, bi)
+
+    # Third (still), create the caps and bands
+    t_range = {}
+    if displays[start]:
+        add_front_cap(start)
+        add_back_band(start)
+        t_range[start] = [0, ti, 0, vi]
+    was_displayed = displays[start]
+    for i in range(start+1, end-1):
+        if displays[i]:
+            t_start = ti
+            v_start = vi
+            if not was_displayed:
+                add_front_cap(i)
+            add_both_bands(i)
+            t_range[i] = [t_start, ti, v_start, vi]
+        else:
+            if was_displayed:
+                add_back_cap(i-1)
+                t_range[i-1][1] = ti
+                t_range[i-1][3] = vi
+        was_displayed = displays[i]
+    # last residue
+    if displays[end-1]:
+        t_start = ti
+        v_start = vi
+        if was_displayed:
+            add_front_band(end-1)
+            add_back_cap(end-1)
+        else:
+            add_front_cap(end-1)
+            add_front_band(end-1)
+            add_back_cap(end-1)
+        t_range[end-1] = [t_start, ti, v_start, vi]
+    elif was_displayed:
+        add_back_cap(end-2)
+        t_range[end-2][1] = ti
+        t_range[end-2][3] = vi
+
+    # Fourth, create graphics object of vertices, normals,
+    # colors and triangles
+    name = "helix-%d" % ssids[start]
+    ssp = RibbonDrawing(name)
+    ribbons_drawing.add_drawing(ssp)
+    ssp.set_geometry(va, na, ta)
+    ssp.vertex_colors = ca
+
+    # Finally, update selection data structures
+    tranges = []
+    rtr = ribbons_drawing.residue_triangle_ranges
+    from .ribbon import RibbonTriangleRange
+    for i, r in t_range.items():
+        res = rlist[i]
+        t_start, t_end, v_start, v_end = r
+        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_end, ssp, res)
+        tranges.append(triangle_range)
+        _add_residue_triangle_range(rtr, res, triangle_range)
+    ssp.triangle_ranges = tranges
+
+def _wrap_helix(rlist, coords, guides, ssids, xs_front, xs_back,
+                ribbon_adjusts, start, end, ribbons_drawing):
+    # Only bother if at least one residue is displayed
+    displays = rlist.ribbon_displays
+    from numpy import any
+    if not any(displays[start:end]):
+        return
+
+    from .sse import HelixCylinder
+    hc = HelixCylinder(coords[start:end])
+    directions = hc.cylinder_directions()
+    coords[start:end] = hc.cylinder_surface()
+    guides[start:end] = coords[start:end] + directions
+    if False:
+        # Debugging code to display guides of secondary structure
+        name = ribbons_drawing.structure_name + " helix guide " + str(start)
+        _ss_guide_display(ribbons_drawing, name, coords[start:end], guides[start:end])
+
+
+def _smooth_strand(rlist, coords, guides, xs_front, xs_back,
+                   ribbon_adjusts, start, end, ribbons_drawing):
+    if (end - start + 1) <= 2:
+        # Short strands do not need smoothing
+        return
+    from numpy import zeros, empty, dot, newaxis
+    from numpy.linalg import norm
+    from .ribbon import normalize
+    ss_coords = coords[start:end]
+    if len(ss_coords) < 3:
+        # short strand, no smoothing
+        ideal = ss_coords
+        offsets = zeros(ss_coords.shape, dtype=float)
+    else:
+        # The "ideal" coordinates for a residue is computed by averaging
+        # with the previous and next residues.  The first and last
+        # residues are treated specially by moving in the opposite
+        # direction as their neighbors.
+        ideal = empty(ss_coords.shape, dtype=float)
+        ideal[1:-1] = (ss_coords[1:-1] * 2 + ss_coords[:-2] + ss_coords[2:]) / 4
+        # If there are exactly three residues in the strand, then they
+        # should end up on a line.  We use a 0.99 factor to make sure
+        # that we do not "cross the line" due to floating point round-off.
+        if len(ss_coords) == 3:
+            ideal[0] = ss_coords[0] - 0.99 * (ideal[1] - ss_coords[1])
+            ideal[-1] = ss_coords[-1] - 0.99 * (ideal[-2] - ss_coords[-2])
+        else:
+            ideal[0] = ss_coords[0] - (ideal[1] - ss_coords[1])
+            ideal[-1] = ss_coords[-1] - (ideal[-2] - ss_coords[-2])
+        adjusts = ribbon_adjusts[start:end][:, newaxis]
+        offsets = adjusts * (ideal - ss_coords)
+        new_coords = ss_coords + offsets
+        # Update both control point and guide coordinates
+        if guides is not None:
+            # Compute guide atom position relative to control point atom
+            delta_guides = guides[start:end] - ss_coords
+            guides[start:end] = new_coords + delta_guides
+        coords[start:end] = new_coords
+    if False:
+        # Debugging code to display center of secondary structure
+        sname = ribbons_drawing.structure_name
+        _ss_display(ribbons_drawing, sname + " strand " + str(start), ideal)
+        _ss_guide_display(ribbons_drawing, sname + " strand guide " + str(start),
+                          coords[start:end], guides[start:end])
+
+def _arc_strand(rlist, coords, guides, xs_front, xs_back,
+                ribbon_adjusts, start, end, ribbons_drawing):
+    if (end - start + 1) <= 2:
+        # Short strands do not need to be shown as planks
+        return
+    # Only bother if at least one residue is displayed
+    displays = rlist.ribbon_displays
+    from numpy import any
+    if not any(displays[start:end]):
+        return
+    from .sse import StrandPlank
+    from numpy.linalg import norm
+    atoms = rlist[start:end].atoms
+    oxygens = atoms.filter(atoms.names == 'O')
+    print(len(oxygens), "oxygens of", len(atoms), "atoms in", end - start, "residues")
+    sp = StrandPlank(coords[start:end], oxygens.coords)
+    centers = sp.plank_centers()
+    normals, binormals = sp.plank_normals()
+    if True:
+        # Debugging code to display guides of secondary structure
+        from numpy import newaxis
+        g = sp.tilt_centers + sp.tilt_x[:,newaxis] * normals + sp.tilt_y[:,newaxis] * binormals
+        name = ribbons_drawing.structure_name + " strand guide " + str(start)
+        _ss_guide_display(ribbons_drawing, name, sp.tilt_centers, g)
+    coords[start:end] = centers
+    #delta = guides[start:end] - coords[start:end]
+    #guides[start:end] = coords[start:end] + delta
+    guides[start:end] = coords[start:end] + binormals
+    if True:
+        # Debugging code to display center of secondary structure
+        name = ribbons_drawing.structure_name + " strand " + str(start)
+        _ss_display(ribbons_drawing, name, centers)
+
+def _ss_axes(ss_coords):
+    from numpy import mean, argmax
+    from numpy.linalg import svd
+    centroid = mean(ss_coords, axis=0)
+    rel_coords = ss_coords - centroid
+    ignore, vals, vecs = svd(rel_coords)
+    axes = vecs[argmax(vals)]
+    return axes, centroid, rel_coords
+
+def _ss_display(ribbons_drawing, name, centers):
+    ssp = ribbons_drawing.new_drawing(name)
+    from chimerax import surface
+    va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
+    ssp.set_geometry(va, na, ta)
+    from numpy import empty, float32
+    ss_radii = empty(len(centers) - 1, float32)
+    ss_radii.fill(0.2)
+    ssp.positions = _tether_placements(centers[:-1], centers[1:], ss_radii, TETHER_CYLINDER)
+    ss_colors = empty((len(ss_radii), 4), float32)
+    ss_colors[:] = (0,255,0,255)
+    ssp.colors = ss_colors
+
+def _ss_guide_display(ribbons_drawing, name, centers, guides):
+    ssp = ribbons_drawing.new_drawing(name)
+    from chimerax import surface
+    va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
+    ssp.set_geometry(va, na, ta)
+    from numpy import empty, float32
+    ss_radii = empty(len(centers), float32)
+    ss_radii.fill(0.2)
+    ssp.positions = _tether_placements(centers, guides, ss_radii, TETHER_CYLINDER)
+    ss_colors = empty((len(ss_radii), 4), float32)
+    ss_colors[:] = (255,255,0,255)
+    ssp.colors = ss_colors
+
+def _ss_control_point_display(ribbons_drawing, coords, guides):
+    # Debugging code to display line from control point to guide
+    cp = ribbons_drawing.new_drawing(ribbons_drawing.structure_name + " control points")
+    from chimerax import surface
+    va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=False)
+    cp.set_geometry(va, na, ta)
+    from numpy import empty, float32
+    cp_radii = empty(len(coords), float)
+    cp_radii.fill(0.1)
+    cp.positions = _tether_placements(coords, guides, cp_radii, TETHER_CYLINDER)
+    cp_colors = empty((len(coords), 4), float)
+    cp_colors[:] = (255,0,0,255)
+    cp.colors = cp_colors
+
+def _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2):
+    sp = ribbons_drawing.new_drawing(ribbons_drawing.structure_name + " spine")
+    from chimerax import surface
+    va, na, ta = surface.cylinder_geometry(nc=3, nz=2, caps=True)
+    sp.set_geometry(va, na, ta)
+    from numpy import empty, float32
+    spine_radii = empty(len(spine_colors), float32)
+    spine_radii.fill(0.3)
+    sp.positions = _tether_placements(spine_xyz1, spine_xyz2, spine_radii, TETHER_CYLINDER)
+    sp.colors = spine_colors
+
 
 class Ribbon:
 
@@ -403,6 +1776,8 @@ class Ribbon:
 
     def segment(self, seg, side, divisions, no_twist,
                 flip_mode=FLIP_MINIMIZE, prev_normal=None, last=False):
+        if timing:
+            t0 = time()
         try:
             coords, tangents, normals = self._seg_cache[seg]
         except KeyError:
@@ -453,7 +1828,14 @@ class Ribbon:
                 end = divisions + 1
             else:
                 end = divisions
-        return coords[start:end], tangents[start:end], normals[start:end]
+        seg_coords, seg_tangents, seg_normals = coords[start:end], tangents[start:end], normals[start:end]
+
+        if timing:
+            t1 = time()
+            global rsegtime
+            rsegtime += t1-t0
+            
+        return seg_coords, seg_tangents, seg_normals
 
     def _segment_path(self, coeffs, tmin, tmax, divisions):
         # Compute coordinates by multiplying spline parameter vector
