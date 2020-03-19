@@ -322,7 +322,7 @@ Residue::set_ribbon_color(const Rgba& rgba) {
     if (rgba == _ribbon_rgba)
         return;
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_COLOR);
-    _structure->set_gc_ribbon();
+    _structure->set_gc_color();
     _ribbon_rgba = rgba;
 }
 

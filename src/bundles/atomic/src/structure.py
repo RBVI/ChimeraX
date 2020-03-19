@@ -329,7 +329,7 @@ class Structure(Model, StructureData):
             self._update_chain_trace_graphics(changes)
         for pbg in self.pbg_map.values():
             pbg._update_graphics(changes)
-        self._update_ribbon_graphics()
+        self._update_ribbon_graphics(changes)
 
     def _update_atom_graphics(self, changes = StructureData._ALL_CHANGE):
 
@@ -555,11 +555,14 @@ class Structure(Model, StructureData):
         
         self._graphics_changed |= self._SHAPE_CHANGE
 
-    def _update_ribbon_graphics(self):
+    def _update_ribbon_graphics(self, changes = StructureData._ALL_CHANGE):
         # Ribbon is recomputed when needed by _create_ribbon_graphics()
         # Only selection is updated here.
-        from .ribbon import update_ribbon_selection
-        update_ribbon_selection(self, self._ribbons_drawing)
+        from . import ribbon
+        ribbon.update_ribbon_selection(self, self._ribbons_drawing)
+
+        if changes & self._COLOR_CHANGE and not (changes & self._RIBBON_CHANGE):
+            ribbon.update_ribbon_colors(self, self._ribbons_drawing)
 
     def ribbon_coord(self, a):
         rd = self._ribbons_drawing

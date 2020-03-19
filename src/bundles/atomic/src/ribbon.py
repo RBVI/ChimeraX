@@ -328,7 +328,8 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
                      drawing, spine):
 
     any_ribbon = True
-    v_start = 0         # for tracking starting vertex index for each residue
+    v_start = 0
+    v_offset = 0        # for tracking vertex index offset as triangles added
     t_start = 0         # for tracking starting triangle index for each residue
     vertex_list = []
     normal_list = []
@@ -376,18 +377,19 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
         normals = concatenate((front_n, back_n))
         if spine is not None:
             _ribbon_update_spine(colors[0], centers, normals, spine)
-        s = xs_back[0].extrude(centers, tangents, normals, colors[0], True, capped, v_start)
-        v_start += len(s.vertices)
+        s = xs_back[0].extrude(centers, tangents, normals, colors[0], True, capped, v_offset)
+        v_offset += len(s.vertices)
         t_end = t_start + len(s.triangles)
         vertex_list.append(s.vertices)
         normal_list.append(s.normals)
         triangle_list.append(s.triangles)
         color_list.append(s.colors)
         prev_band = s.back_band if displays[1] and xs_compat else None
-        triangle_range = RibbonTriangleRange(t_start, t_end, drawing, residues[0])
+        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[0])
         tranges.append(triangle_range)
         _add_residue_triangle_range(rtr, residues[0], triangle_range)
         t_start = t_end
+        v_start = v_offset
     else:
         capped = True
         prev_band = None
@@ -417,17 +419,18 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
             xs_compat = xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
             next_cap = displays[i] != displays[i + 1] or not xs_compat
             sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
-                                       capped, mid_cap, v_start)
+                                       capped, mid_cap, v_offset)
             
-            v_start += len(sf.vertices)
+            v_offset += len(sf.vertices)
             t_end += len(sf.triangles)
             vertex_list.append(sf.vertices)
             normal_list.append(sf.normals)
             triangle_list.append(sf.triangles)
             color_list.append(sf.colors)
             if prev_band is not None:
-                triangle_list.append(xs_front[i].blend(prev_band, sf.front_band))
-                t_end += len(triangle_list[-1])
+                tjoin = xs_front[i].blend(prev_band, sf.front_band)
+                triangle_list.append(tjoin)
+                t_end += len(tjoin)
         if is_arc_helix_middle(i, i + 1):
             # Helix is shown separately as a tube, so we do not need to
             # draw anything
@@ -447,23 +450,25 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
                 _ribbon_update_spine(colors[i], back_c, back_n, spine)
 
             sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
-                                       mid_cap, next_cap, v_start)
-            v_start += len(sb.vertices)
+                                       mid_cap, next_cap, v_offset)
+            v_offset += len(sb.vertices)
             t_end += len(sb.triangles)
             vertex_list.append(sb.vertices)
             normal_list.append(sb.normals)
             triangle_list.append(sb.triangles)
             color_list.append(sb.colors)
             if not mid_cap:
-                triangle_list.append(xs_back[i].blend(sf.back_band, sb.front_band))
-                t_end += len(triangle_list[-1])
+                tjoin = xs_back[i].blend(sf.back_band, sb.front_band)
+                triangle_list.append(tjoin)
+                t_end += len(tjoin)
             prev_band = None if next_cap else sb.back_band
         capped = next_cap
         if t_end != t_start:
-            triangle_range = RibbonTriangleRange(t_start, t_end, drawing, residues[i])
+            triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[i])
             tranges.append(triangle_range)
             _add_residue_triangle_range(rtr, residues[i], triangle_range)
             t_start = t_end
+            v_start = v_offset
 
     # Last residue
     if displays[-1] and not is_arc_helix_end(-1):
@@ -478,16 +483,18 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
             _ribbon_update_spine(colors[-1], centers, normals, spine)
 
         s = xs_front[-1].extrude(centers, tangents, normals, colors[-1],
-                            capped, True, v_start)
+                                 capped, True, v_offset)
         t_end = t_start + len(s.triangles)
+        v_offset += len(s.vertices)
         vertex_list.append(s.vertices)
         normal_list.append(s.normals)
         triangle_list.append(s.triangles)
         color_list.append(s.colors)
         if prev_band is not None:
-            triangle_list.append(xs_front[-1].blend(prev_band, s.front_band))
-            t_end += len(triangle_list[-1])
-        triangle_range = RibbonTriangleRange(t_start, t_end, drawing, residues[-1])
+            tjoin = xs_front[-1].blend(prev_band, s.front_band)
+            triangle_list.append(tjoin)
+            t_end += len(tjoin)
+        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[-1])
         tranges.append(triangle_range)
         _add_residue_triangle_range(rtr, residues[-1], triangle_range)
 
@@ -503,6 +510,33 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
 
     return va, na, ta, vc, tranges
 
+def update_ribbon_colors(structure, ribbons_drawing):
+    if ribbons_drawing is None:
+        return
+
+    if timing:
+        t0 = time()
+        
+    vertex_colors = {}	# Map RibbonDrawing to vertex color array
+    res_triangle_ranges = ribbons_drawing.residue_triangle_ranges
+    for r, tranges in res_triangle_ranges.items():
+        color = r.ribbon_color
+        for tr in tranges:
+            d = tr.drawing
+            if d in vertex_colors:
+                vc = vertex_colors[d]
+            else:
+                vertex_colors[d] = vc = d.vertex_colors
+            tri = d.triangles
+            vc[tr.vstart:tr.vend,:] = color
+
+    for d, vc in vertex_colors.items():
+        d.vertex_colors = vc
+
+    if timing:
+        t1 = time()
+        print ('update_ribbon_colors(): %.4g' % (t1-t0))
+        
 def update_ribbon_selection(structure, ribbons_drawing):
     # Set selected ribbons in graphics
 
@@ -575,10 +609,12 @@ def update_ribbon_selection(structure, ribbons_drawing):
 # -----------------------------------------------------------------------------
 #
 class RibbonTriangleRange:
-    __slots__ = ["start", "end", "drawing", "residue"]
-    def __init__(self, start, end, drawing, residue):
+    __slots__ = ["start", "end", "vstart", "vend", "drawing", "residue"]
+    def __init__(self, start, end, vstart, vend, drawing, residue):
         self.start = start
         self.end = end
+        self.vstart = vstart
+        self.vend = vend
         self.drawing = drawing
         self.residue = residue
     def __lt__(self, other): return self.start < other
@@ -1144,23 +1180,26 @@ def _arc_helix(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
     if displays[start]:
         add_front_cap(start)
         add_back_band(start)
-        t_range[start] = [0, ti]
+        t_range[start] = [0, ti, 0, vi]
     was_displayed = displays[start]
     for i in range(start+1, end-1):
         if displays[i]:
             t_start = ti
+            v_start = vi
             if not was_displayed:
                 add_front_cap(i)
             add_both_bands(i)
-            t_range[i] = [t_start, ti]
+            t_range[i] = [t_start, ti, v_start, vi]
         else:
             if was_displayed:
                 add_back_cap(i-1)
                 t_range[i-1][1] = ti
+                t_range[i-1][3] = vi
         was_displayed = displays[i]
     # last residue
     if displays[end-1]:
         t_start = ti
+        v_start = vi
         if was_displayed:
             add_front_band(end-1)
             add_back_cap(end-1)
@@ -1168,10 +1207,11 @@ def _arc_helix(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
             add_front_cap(end-1)
             add_front_band(end-1)
             add_back_cap(end-1)
-        t_range[end-1] = [t_start, ti]
+        t_range[end-1] = [t_start, ti, v_start, vi]
     elif was_displayed:
         add_back_cap(end-2)
         t_range[end-2][1] = ti
+        t_range[end-2][3] = vi
 
     # Fourth, create graphics object of vertices, normals,
     # colors and triangles
@@ -1187,7 +1227,8 @@ def _arc_helix(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
     from .ribbon import RibbonTriangleRange
     for i, r in t_range.items():
         res = rlist[i]
-        triangle_range = RibbonTriangleRange(r[0], r[1], ssp, res)
+        t_start, t_end, v_start, v_end = r
+        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_end, ssp, res)
         tranges.append(triangle_range)
         _add_residue_triangle_range(rtr, res, triangle_range)
     ssp.triangle_ranges = tranges
