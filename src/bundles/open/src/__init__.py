@@ -45,8 +45,8 @@ class _OpenBundleAPI(BundleAPI):
         cmd.register_command(command_name, logger)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, path=None, encoding=None, **kw):
-        from .providers import uncompressed
-        return uncompressed(name, path, encoding)
+    def run_provider(session, name, mgr, *, path=None, **kw):
+        from .providers import handle_compression
+        return handle_compression(name, path, **kw)
 
 bundle_api = _OpenBundleAPI()

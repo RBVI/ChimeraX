@@ -475,12 +475,11 @@ class Alignment(State):
                 self._notify_observers(cur_note, cur_data, viewer_criteria=viewer_criteria)
             self._ob_note_suspended_data = []
 
-    def save(self, path_or_stream, format_name="fasta"):
+    def save(self, output, format_name="fasta"):
         import importlib
-        mod = importlib.import_module(".io.save%s" % format_name.upper(), "chimerax.seqalign")
-        from chimerax.core.io import open_filename
-        stream = open_filename(path_or_stream, "w")
-        with stream:
+        mod = importlib.import_module(".io.save%s" % format_name.upper(),
+            "chimerax.seqalign")
+        with self.session.open_command.open_output(output, 'utf-8') as stream:
             mod.save(self.session, self, stream)
 
     @property

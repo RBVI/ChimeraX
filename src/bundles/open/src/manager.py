@@ -152,15 +152,42 @@ class OpenManager(ProviderManager):
         return provider_open(self.session, [path], return_status=True,
             _add_to_file_history=False, **kw)
 
-    def open_file(self, path, encoding=None):
-        """Open possibly compressed file for reading.
-            If encoding is 'None', open as binary"""
+    def open_input(self, input, encoding=None, *, compression=None):
+        """Open possibly compressed input for reading.
+            'input' can be path or a stream.  If a stream, it is simply returned.
+            If encoding is 'None', open as binary.
+            If 'compression' is None, whether to use compression and what type
+                will be determined off the file name."""
+        if self._is_stream(input):
+            return input
+        mode = 'rt' if encoding else 'rb'
+        compression_info = self._get_compression_info(input, compression)
+        if compression_info:
+            bundle_info, name = compression_info
+            return bundle_info.run_provider(self.session, name, self, path=input,
+                mode=mode, encoding=encoding)
         for suffix, comp_info in self._compression_info.items():
-            if path.endswith(suffix):
+            if input.endswith(suffix):
                 bundle_info, name = comp_info
-                return bundle_info.run_provider(session, name, self, path=path,
-                    encoding=encoding)
-        return open(path, ('r' if encoding else 'rb'), encoding=encoding)
+                return bundle_info.run_provider(self.session, name, self, path=input,
+                    mode=mode, encoding=encoding)
+        return open(input, mode, encoding=encoding)
+
+    def open_output(self, output, encoding=None, *, compression=None):
+        """Open output for (possibly compressed) writing.
+            'output' can be path or a stream.  If a stream, it is simply returned.
+            If encoding is 'None', open as binary
+            If 'compression' is None, whether to use compression and what type
+                will be determined off the file name."""
+        if self._is_stream(output):
+            return output
+        compression_info = self._get_compression_info(output, compression)
+        mode = 'wt' if encoding else 'wb'
+        if compression_info:
+            bundle_info, name = compression_info
+            return bundle_info.run_provider(self.session, name, self, path=output,
+                    mode=mode, encoding=encoding)
+        return open(output, mode, encoding=encoding)
 
     def open_args(self, data_format):
         try:
@@ -183,6 +210,27 @@ class OpenManager(ProviderManager):
                 file_name = file_name[:-len(suffix)]
                 break
         return file_name
+
+    def _get_compression_info(self, file_name, requested_compression):
+        for suffix, comp_info in self._compression_info.items():
+            bundle_info, name = comp_info
+            if requested_compression:
+                if requested_compress == "name":
+                    return comp_info
+            elif file_name.endswith(suffix):
+                return comp_info
+        if requested_compression:
+            raise ValueError("Don't know requested compression type '%s'"
+                % requested_compression)
+        return None
+
+    def _is_stream(self, input):
+        if isinstance(input, str):
+            return False
+        # ensure that 'close' works on the stream...
+        if not hasattr(input, "close") or not callable(input.close):
+            input.close = lambda: False
+        return True
 
 def bool_cvt(val, name, bundle_name, var_name):
     if not isinstance(val, bool):

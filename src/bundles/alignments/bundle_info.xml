@@ -27,6 +27,46 @@
     <Manager name="alignments"/>
   </Managers>
 
+  <Providers manager="data formats">
+    <Provider name="ALN" nicknames="aln,clustal" synopsis="Clustal ALN sequence"
+		category="Sequence" suffixes=".aln,.clustal,.clustalw,.clustalx"
+		encoding="utf-8" />
+    <Provider name="FASTA" synopsis="FASTA sequence" category="Sequence"
+		suffixes=".fa,.fasta,.afasta,.afa"
+		reference_url="https://en.wikipedia.org/wiki/FASTA_format" encoding="utf-8" />
+    <Provider name="HSSP" synopsis="HSSP sequence" category="Sequence"
+		suffixes=".hssp" encoding="utf-8" />
+    <Provider name="MSF" synopsis="GCG MSF sequence" category="Sequence"
+		suffixes=".msf" encoding="utf-8" />
+    <Provider name="Pfam" synopsis="Selex (Pfam) sequence" category="Sequence"
+		suffixes=".selex,.slx,.pfam" encoding="utf-8" />
+    <Provider name="PIR" synopsis="PIR (NBRF) sequence" category="Sequence"
+		reference_url="http://www.bioinformatics.nl/tools/crab_pir.html"
+		suffixes=".ali,.pir" encoding="utf-8" />
+    <Provider name="RSF" synopsis="GCG RSF sequence" category="Sequence"
+		suffixes=".rsf" encoding="utf-8" />
+    <Provider name="Stockholm" synopsis="Stockholm sequence" category="Sequence"
+		reference_url="https://en.wikipedia.org/wiki/Stockholm_format"
+		suffixes=".sth,.sto" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="ALN" />
+    <Provider name="FASTA" />
+    <Provider name="HSSP" />
+    <Provider name="MSF" />
+    <Provider name="Pfam" />
+    <Provider name="PIR" />
+    <Provider name="RSF" />
+    <Provider name="Stockholm" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="ALN" />
+    <Provider name="FASTA" />
+    <Provider name="PIR" />
+  </Providers>
+
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

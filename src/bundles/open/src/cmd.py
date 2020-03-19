@@ -206,7 +206,7 @@ def _get_path(mgr, file_name, check_path, check_compression=True):
 
 def _get_stream(mgr, file_name, encoding):
     path = _get_path(mgr, file_name, True, check_compression=False)
-    return mgr.open_file(path, encoding)
+    return mgr.open_input(path, encoding)
 
 def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []

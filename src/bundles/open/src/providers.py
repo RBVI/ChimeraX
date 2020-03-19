@@ -11,7 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def uncompressed(name, path, encoding):
+def handle_compression(name, path, **kw):
+    print("path:", repr(path))
+    print("compression kw:", kw)
     if name == "gzip":
         from gzip import open as open_compressed
     elif name == "bz2":
@@ -20,7 +22,5 @@ def uncompressed(name, path, encoding):
         from lzma import open as open_compressed
     else:
         raise ValueError("Don't know how to handle compression type '%s'" % name)
-    if encoding:
-        return open_compressed(path, mode='r', encoding=encoding)
-    return open_compressed(path)
+    return open_compressed(path, **kw)
 
