@@ -20,6 +20,15 @@
     <Dependency name="ChimeraX-Geometry" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Mol2" synopsis="Sybyl Mol2" category="Molecular structure"
+		suffixes=".mol2" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="Mol2" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
