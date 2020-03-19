@@ -17,6 +17,16 @@
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
   </Dependencies>
 
+
+  <Providers manager="data formats">
+    <Provider name="STORM" synopsis="Point list for STORM microscopy"
+		category="Generic 3D objects" suffixes=".storm" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="storm" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
