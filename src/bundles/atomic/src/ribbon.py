@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 timing = False
+#timing = True
 if timing:
     from time import time
     rsegtime = 0
@@ -47,7 +48,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         t1 = time()
         poltime = t1-t0
 
-    segtime = tritime = tethertime = 0
+    spltime = geotime = segtime = tritime = tethertime = 0
     global rsegtime, spathtime
     rsegtime = spathtime = 0
     for rlist, ptype in polymers:
@@ -108,12 +109,20 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         orients = structure.ribbon_orients(residues)
         default_helix_mode = (structure.ribbon_mode_helix == structure.RIBBON_MODE_DEFAULT)
         spine = [] if structure.ribbon_show_spine else None
+        if timing:
+            tr = time()
         ribbon = Ribbon(coords, guides, orients, structure._use_spline_normals)
         # _debug_show_normal_spline(ribbons_drawing, coords, ribbon, num_divisions)
+        if timing:
+            spltime += time() - tr
+        if timing:
+            tg = time()
         va,na,ta,vc,tr = _ribbon_geometry(ribbon, num_divisions, residues, displays,
                                           is_helix, is_arc_helix, default_helix_mode,
                                           need_twist, xs_front, xs_back, xs_mgr, ssids,
                                           spine)
+        if timing:
+            geotime += time() - tg
 
         # Create ribbon drawing
         rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons")
@@ -153,8 +162,8 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2)
 
     if timing:
-        print('ribbon times %d polymers %.4g, segments %.4g, triangles %.4g (spline %.4g (path %.4g)), tethers %.4g'
-              % (len(polymers), poltime, segtime, tritime, rsegtime, spathtime, tethertime))
+        print('ribbon times %d polymers %.4g, segments %.4g, triangles %.4g (spline %.4g, geom %.4g (seg spline %.4g (path %.4g))), tethers %.4g'
+              % (len(polymers), poltime, segtime, tritime, spltime, geotime, rsegtime, spathtime, tethertime))
 
 #
 # Assign a residue class to each residue and compute the
@@ -649,6 +658,8 @@ class RibbonsDrawing(Drawing):
         for tr in tranges:
             r = tr.residue
             if r in rtr:
+                # Tube helices result in two triangle ranges for one residue
+                # since a helix end residue is depicted as half cylinder, half strand.
                 rtr[r].append(tr)
             else:
                 rtr[r] = [tr]
@@ -1741,8 +1752,6 @@ class Ribbon:
         else:
             coeffs = self._segment_coefficients(seg)
             coords, tangents = _spline_segment_path(coeffs, 0, 1, divisions)
-            ns = self.normals[seg]
-            ne = self.normals[seg + 1]
             if self.use_spline_normals:
                 from numpy import array, linspace, sum
                 # We _should_ return normals that are orthogonal (O) to the
@@ -1764,11 +1773,16 @@ class Ribbon:
             else:
                 if self.ignore_flip_mode[seg]:
                     flip_mode = FLIP_MINIMIZE
-                normals, flipped = constrained_normals(tangents, ns, ne, flip_mode,
-                                                       self.flipped[seg], self.flipped[seg + 1], no_twist)
+                from ._ribbons import ribbon_constrained_normals as constrained_normals
+                normals, flipped = constrained_normals(tangents,
+                                                       self.normals[seg], self.normals[seg + 1],
+                                                       flip_mode,
+                                                       self.flipped[seg], self.flipped[seg + 1],
+                                                       no_twist)
                 if flipped:
                     self.flipped[seg + 1] = not self.flipped[seg + 1]
-                    self.normals[seg + 1] = -ne
+                    self.normals[seg + 1] = -self.normals[seg + 1]
+
             #normals = curvature_to_normals(curvature, tangents, prev_normal)
             self._seg_cache[seg] = (coords, tangents, normals)
 
@@ -1797,6 +1811,7 @@ class Ribbon:
         step = 0.5 / (divisions + 1)
         coords, tangents = _spline_segment_path(coeffs, -0.3, -step, divisions)
         n = self.normals[0]
+        from ._ribbons import ribbon_constrained_normals as constrained_normals
         normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False, True)
         #normals = curvature_to_normals(curvature, tangents, None)
         return coords, tangents, normals
@@ -1810,6 +1825,7 @@ class Ribbon:
         step = 0.5 / (divisions + 1)
         coords, tangents = _spline_segment_path(coeffs, 1 + step, 1.3, divisions)
         n = self.normals[-1]
+        from ._ribbons import ribbon_constrained_normals as constrained_normals
         normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False, True)
         #normals = curvature_to_normals(curvature, tangents, prev_normal)
         return coords, tangents, normals
@@ -2401,22 +2417,6 @@ def _spline_segment_path_unused(coeffs, tmin, tmax, divisions):
         global spathtime
         spathtime += time()-t0
     return coords, tangents
-
-
-_constrained_normals = None
-def constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist):
-    global _constrained_normals
-    if _constrained_normals is None:
-        from .molobject import c_function
-        import ctypes
-        f = c_function("constrained_normals",
-                       args=(ctypes.py_object, ctypes.py_object, ctypes.py_object,
-                             ctypes.c_int, ctypes.c_bool, ctypes.c_bool, ctypes.c_bool),
-                       ret = ctypes.py_object)
-        _constrained_normals = f
-
-    return _constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist)
-
 
 def curvature_to_normals(curvature, tangents, prev_normal):
     from numpy.linalg import norm
