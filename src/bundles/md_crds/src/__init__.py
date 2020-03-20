@@ -34,18 +34,20 @@ class _MDCrdsBundleAPI(BundleAPI):
         if mgr == session.open_command:
             from chimerax.open import OpenerInfo
             class MDInfo(OpenerInfo):
-                def open(self, session, data, file_name, *, structure_model=None, md_type=name, replace=True,
-                        **kw):
+                def open(self, session, data, file_name, *, structure_model=None,
+                        md_type=name, replace=True, **kw):
                     if structure_model is None:
                         from chimerax.core.errors import UserError
-                        raise UserError("Must specify a structure model to read the coordinates into")
+                        raise UserError("Must specify a structure model to read the"
+                            " coordinates into")
                     from .read_coords import read_coords
-                    num_coords = read_coords(session, data, structure_model, md_type, replace=replace)
+                    num_coords = read_coords(session, data, structure_model, md_type,
+                        replace=replace)
                     if replace:
-                        return [], "Replaced existing frames of %s with  %d new frames" % (structure_model,
-                            num_coords)
+                        return [], "Replaced existing frames of %s with  %d new frames" \
+                            % (structure_model, num_coords)
                     return [], "Added %d frames to %s" % (num_coords, structure_model)
-                
+
                 @property
                 def open_args(self):
                     from chimerax.atomic import StructureArg
