@@ -48,8 +48,8 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr" encoding="utf-8"
-		synopsis="Protein Databank Format (PDB)"
+    <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr"
+		synopsis="Protein Databank Format (PDB)" encoding="utf-8"
 		reference_url="http://www.wwpdb.org/documentation/file-format" />
   </Providers>
 

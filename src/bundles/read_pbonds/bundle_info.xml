@@ -18,6 +18,19 @@
     <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Pseudobonds" category="Generic 3D objects" suffixes=".pb"
+		synopsis="Interatomic pseudobonds" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Pseudobonds" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="Pseudobonds" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

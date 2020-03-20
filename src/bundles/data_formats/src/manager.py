@@ -81,6 +81,7 @@ class FormatsManager(ProviderManager):
 
     def file_name_to_format(self, file_name):
         "Return data format based on file_name's suffix, ignoring compression suffixes"
+        from chimerax.core.errors import UserError
         if '.' in file_name:
             from chimerax import io
             base_name = io.remove_compression_suffix(file_name)

@@ -99,6 +99,8 @@ class OpenManager(ProviderManager):
                 old = old[:-6]
             elif old.endswith(" session"):
                 old = "session"
+            elif old == "Schrodinger Maestro":
+                old = "Maestro"
             try:
                 in_common.append(self.session.data_formats[old])
             except KeyError:
