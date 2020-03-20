@@ -24,7 +24,7 @@
   <Providers manager="data formats">
     <Provider name="Directional FSC" nicknames="fsc"
 		synopsis="Direction dependent resolution values"
-		category="Generic 3D objects" suffixes=".dires" encoding="utf-8" />
+		category="Generic 3D objects" suffixes=".dres" encoding="utf-8" />
   </Providers>
 
   <Providers manager="open command">
