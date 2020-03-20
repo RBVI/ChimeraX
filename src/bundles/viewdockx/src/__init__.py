@@ -55,5 +55,19 @@ class _MyAPI(BundleAPI):
         else:
             return None
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open import OpenerInfo
+        class ViewDockOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, *, _name=name, **kw):
+                if _name == "pdbqt":
+                    from .pdbqt import open_pdbqt
+                    opener = open_pdbqt
+                else:
+                    from .io import open_mol2
+                    opener = open_mol2
+                return opener(session, data, file_name, True, True)
+        return ViewDockOpenerInfo()
+
 
 bundle_api = _MyAPI()
