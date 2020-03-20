@@ -131,7 +131,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     if status:
                         statuses.append(status)
                     if models:
-                        opened_models.append(name_and_group_models(models, name, fi.file_name))
+                        opened_models.append(name_and_group_models(models, name, [fi.file_name]))
     else:
         for fi in file_infos:
             opener_info, provider_name, want_path, check_path, batch = mgr.open_info(
@@ -146,7 +146,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 if status:
                     statuses.append(status)
                 if models:
-                    opened_models.append(name_and_group_models(models, name, fi.file_name))
+                    opened_models.append(name_and_group_models(models, name, [fi.file_name]))
         for ident, database_name, format_name in fetches:
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             if format_name is None:
@@ -284,6 +284,8 @@ def name_and_group_models(models, name_arg, path_info):
         names = set([m.name for m in models])
         if len(names) == 1:
             group_name = names.pop() + " group"
+        elif len(path_info) == 1:
+            group_name = model_name_from_path(path_info[0])
         else:
             group_name = "group"
         group = Model(group_name, models[0].session)
