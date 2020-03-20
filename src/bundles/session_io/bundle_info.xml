@@ -22,7 +22,10 @@
 
   <Providers manager="data formats">
     <Provider name="session" synopsis="ChimeraX session" category="Session"
-		suffixes=".cxs" reference_url="help:user/commands/save.html" />
+		suffixes=".cxs" mime_types="application/x-chimerax-session"
+		reference_url="help:user/commands/save.html" />
+    <Provider name="X3D" category="Generic 3D objects" suffixes=".x3d"
+		mime_types="model/x3d+xml" reference_url="http://www.web3d.org/standards" />
   </Providers>
 
   <Providers manager="open command">
@@ -31,6 +34,7 @@
 
   <Providers manager="save command">
     <Provider name="session" />
+    <Provider name="X3D" />
   </Providers>
 
   <Classifiers>

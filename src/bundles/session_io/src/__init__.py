@@ -19,7 +19,7 @@ class _SessionAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open import OpenerInfo
-            class SessionInfo(OpenerInfo):
+            class Info(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from chimerax.core.session import open as cxs_open
                     return cxs_open(session, data, **kw)
@@ -30,31 +30,45 @@ class _SessionAPI(BundleAPI):
                     return { 'resize_window': BoolArg }
         else:
             from chimerax.save import SaverInfo
-            class SessionInfo(SaverInfo):
-                def save(self, session, path, **kw):
-                    from chimerax.core.session import save as cxs_save
-                    return cxs_save(session, path, **kw)
+            if name == "session":
+                class Info(SaverInfo):
+                    def save(self, session, path, **kw):
+                        from chimerax.core.session import save as cxs_save
+                        return cxs_save(session, path, **kw)
 
-                @property
-                def save_args(self):
-                    from chimerax.core.commands import BoolArg, IntArg
-                    return {
-                        'include_maps': BoolArg,
-                        'uncompressed': BoolArg,
-                        'version': IntArg,
-                    }
+                    @property
+                    def save_args(self):
+                        from chimerax.core.commands import BoolArg, IntArg
+                        return {
+                            'include_maps': BoolArg,
+                            'uncompressed': BoolArg,
+                            'version': IntArg,
+                        }
 
-                @property
-                def hidden_args(self):
-                    return ['uncompressed', 'version']
+                    @property
+                    def hidden_args(self):
+                        return ['uncompressed', 'version']
 
-                def save_args_widget(self, session):
-                    from .gui import SaveOptionsWidget
-                    return SaveOptionsWidget(session)
+                    def save_args_widget(self, session):
+                        from .gui import SaveOptionsWidget
+                        return SaveOptionsWidget(session)
 
-                def save_args_string_from_widget(self, widget):
-                    return widget.options_string()
+                    def save_args_string_from_widget(self, widget):
+                        return widget.options_string()
+            else: # X3D
+                class Info(SaverInfo):
+                    def save(self, session, path, **kw):
+                        from chimerax.core.session import save_x3d
+                        return save_x3d(session, path, **kw)
 
-        return SessionInfo()
+                    @property
+                    def save_args(self):
+                        from chimerax.core.commands import BoolArg
+                        return {
+                            'transparent_background': BoolArg,
+                        }
+
+
+        return Info()
 
 bundle_api = _SessionAPI()
