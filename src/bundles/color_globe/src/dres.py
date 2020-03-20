@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_directional_resolution(session, stream, name, *args, colormap=None):
+def read_directional_resolution(session, stream, *args, colormap=None):
     """Show directional resolution on a colored sphere."""
 
     lines = stream.readlines()
