@@ -22,8 +22,24 @@ StereoLithography (STL) files.</Description>
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
     <Dependency name="ChimeraX-Geometry" version=">=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version=">=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version=">=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="STL" synopsis="Stereolithography" category="Generic 3D objects"
+		suffixes=".stl"
+		reference_url="http://en.wikipedia.org/wiki/STL_(file_format)#Binary_STL" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="STL" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="STL" />
+  </Providers>
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

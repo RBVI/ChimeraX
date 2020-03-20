@@ -36,4 +36,25 @@ class _STLAPI(BundleAPI):
         from . import stl
         stl.write_stl(session, path, models)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        if mgr == session.open_command:
+            from chimerax.open import OpenerInfo
+            class STLInfo(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import stl
+                    return stl.read_stl(session, data, file_name)
+        else:
+            from chimerax.save import SaverInfo
+            class STLInfo(SaverInfo):
+                def save(self, session, path, models=None):
+                    from . import stl
+                    stl.write_stl(session, path, models)
+
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import ModelsArg
+                    return { 'models': ModelsArg }
+
+        return STLInfo()
 bundle_api = _STLAPI()

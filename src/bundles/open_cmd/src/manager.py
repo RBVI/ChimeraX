@@ -99,6 +99,8 @@ class OpenManager(ProviderManager):
                 old = old[:-6]
             elif old.endswith(" session"):
                 old = "session"
+            elif old == "StereoLithography":
+                old = "STL"
             elif old == "Schrodinger Maestro":
                 old = "Maestro"
             try:
