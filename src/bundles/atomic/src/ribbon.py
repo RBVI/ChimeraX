@@ -93,6 +93,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Perform any smoothing (e.g., strand smoothing
         # to remove lasagna sheets, pipes and planks
         # display as cylinders and planes, etc.)
+        # This also creates a new ribbon drawing for each tube helix if they are enabled.
+        # TODO: Would be clearer if tube helices made in _ribbon_geometry()
+        #    and were included in single ribbon drawing.
         _smooth_ribbon(residues, coords, guides, atoms, ssids,
                        xs_front, xs_back, xs_mgr, ribbons_drawing,
                        helix_ranges, sheet_ranges,
@@ -959,11 +962,38 @@ def _smooth_helix(rlist, coords, guides, xs_front, xs_back,
 
 def _arc_helix(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
                ribbon_adjusts, start, end, ribbons_drawing):
+    '''Creates a new RibbonDrawing for one tube helix.'''
     # Only bother if at least one residue is displayed
     displays = rlist.ribbon_displays
     from numpy import any
     if not any(displays[start:end]):
         return
+
+    va, na, ca, ta, t_range = _arc_helix_geometry(rlist, coords, guides, ssids,
+                                                  xs_front, xs_back, xs_mgr,
+                                                  ribbon_adjusts, start, end, displays)
+    
+    # Create triangle range selection data structures
+    tranges = []
+    for i, r in t_range.items():
+        res = rlist[i]
+        t_start, t_end, v_start, v_end = r
+        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_end, res)
+        tranges.append(triangle_range)
+
+    # Fourth, create graphics drawing with vertices, normals, colors and triangles
+    name = "helix-%d" % ssids[start]
+    ssp = RibbonDrawing(name)
+    ribbons_drawing.add_drawing(ssp)
+    ssp.set_geometry(va, na, ta)
+    ssp.vertex_colors = ca
+
+    ssp.triangle_ranges = tranges
+    ribbons_drawing.add_residue_triangle_ranges(tranges, ssp)
+
+def _arc_helix_geometry(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
+                        ribbon_adjusts, start, end, displays):
+    '''Compute triangulation for one tube helix.'''
 
     from .sse import HelixCylinder
     from numpy import linspace, cos, sin
@@ -1222,23 +1252,7 @@ def _arc_helix(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
         t_range[end-2][1] = ti
         t_range[end-2][3] = vi
 
-    # Create triangle range selection data structures
-    tranges = []
-    for i, r in t_range.items():
-        res = rlist[i]
-        t_start, t_end, v_start, v_end = r
-        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_end, res)
-        tranges.append(triangle_range)
-
-    # Fourth, create graphics drawing with vertices, normals, colors and triangles
-    name = "helix-%d" % ssids[start]
-    ssp = RibbonDrawing(name)
-    ribbons_drawing.add_drawing(ssp)
-    ssp.set_geometry(va, na, ta)
-    ssp.vertex_colors = ca
-
-    ssp.triangle_ranges = tranges
-    ribbons_drawing.add_residue_triangle_ranges(tranges, ssp)
+    return va, na, ca, ta, t_range
         
 def _wrap_helix(rlist, coords, guides, ssids, xs_front, xs_back,
                 ribbon_adjusts, start, end, ribbons_drawing):
