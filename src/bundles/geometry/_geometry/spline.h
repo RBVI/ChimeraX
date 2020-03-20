@@ -24,6 +24,8 @@ extern "C"
 {
   PyObject *natural_cubic_spline(PyObject *s, PyObject *args, PyObject *keywds);
   extern const char *natural_cubic_spline_doc;
+  PyObject *cubic_path(PyObject *s, PyObject *args, PyObject *keywds);
+  extern const char *cubic_path_doc;
 }
 
 #endif

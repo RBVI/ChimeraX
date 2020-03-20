@@ -15,6 +15,7 @@ timing = False
 if timing:
     from time import time
     rsegtime = 0
+    spathtime = 0
 
 EPSILON = 1e-6
 
@@ -47,8 +48,8 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         poltime = t1-t0
 
     segtime = tritime = tethertime = 0
-    global rsegtime
-    rsegtime = 0
+    global rsegtime, spathtime
+    rsegtime = spathtime = 0
     for rlist, ptype in polymers:
         if timing:
             t0 = time()
@@ -96,12 +97,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
                        helix_ranges, sheet_ranges,
                        structure.ribbon_mode_helix, structure.ribbon_mode_strand)
 
-        # from .ribbon import _ss_control_point_display
         # _ss_control_point_display(ribbons_drawing, coords, guides)
-
-        # Create ribbon drawing
-        rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons")
-        ribbons_drawing.add_drawing(rp)
 
         if timing:
             t1 = time()
@@ -117,8 +113,13 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         va,na,ta,vc,tr = _ribbon_geometry(ribbon, num_divisions, residues, displays,
                                           is_helix, is_arc_helix, default_helix_mode,
                                           need_twist, xs_front, xs_back, xs_mgr, ssids,
-                                          rp, spine)
+                                          spine)
+
+        # Create ribbon drawing
+        rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons")
+        ribbons_drawing.add_drawing(rp)
         rp.triangle_ranges = tr     # Save triangle ranges for picking
+        ribbons_drawing.add_residue_triangle_ranges(tr, rp)
 
         # Set drawing geometry
         if va is None:
@@ -152,8 +153,8 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2)
 
     if timing:
-        print('ribbon times %d polymers %.4g, segments %.4g, triangles %.4g (spline %.4g), tethers %.4g'
-              % (len(polymers), poltime, segtime, tritime, rsegtime, tethertime))
+        print('ribbon times %d polymers %.4g, segments %.4g, triangles %.4g (spline %.4g (path %.4g)), tethers %.4g'
+              % (len(polymers), poltime, segtime, tritime, rsegtime, spathtime, tethertime))
 
 #
 # Assign a residue class to each residue and compute the
@@ -325,31 +326,18 @@ def _need_twist(rc0, rc1):
 def _ribbon_geometry(ribbon, num_divisions, residues, displays,
                      is_helix, is_arc_helix, default_helix_mode,
                      need_twist, xs_front, xs_back, xs_mgr, ssids,
-                     drawing, spine):
+                     spine):
 
     any_ribbon = True
-    v_start = 0
-    v_offset = 0        # for tracking vertex index offset as triangles added
-    t_start = 0         # for tracking starting triangle index for each residue
-    vertex_list = []
-    normal_list = []
-    color_list = []
-    triangle_list = []
     colors = residues.ribbon_colors
-    tranges = []
-    rtr = drawing.parent.residue_triangle_ranges
+    geometry = TriangleAccumulator()
     
     # Odd number of segments gets blending, even has sharp edge
-    rd = num_divisions
-    if rd % 2 == 1:
-        seg_blend = rd
-        seg_cap = seg_blend + 1
-    else:
-        seg_cap = rd
-        seg_blend = seg_cap + 1
+    nd = num_divisions
+    seg_blend, seg_cap = (nd,nd+1) if nd % 2 == 1 else (nd+1,nd)
 
-    def is_arc_helix_end(i):
-        return is_arc_helix[i]
+    is_arc_helix_end = is_arc_helix
+    
     def is_arc_helix_middle(i, j):
         if not is_arc_helix[i] or not is_arc_helix[j]:
             return False
@@ -359,14 +347,10 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
     # are each only a single half segment, while the middle
     # residues are each two half segments.
 
-    #import sys
-
     from numpy import concatenate
     
     # First residues
-    from .ribbon import FLIP_MINIMIZE, FLIP_PREVENT, FLIP_FORCE
-    if displays[0] and not is_arc_helix_end(0):
-        # print(residues[0], file=sys.__stderr__); sys.__stderr__.flush()
+    if displays[0] and not is_arc_helix_end[0]:
         xs_compat = xs_mgr.is_compatible(xs_back[0], xs_front[1])
         capped = displays[0] != displays[1] or not xs_compat
         seg = capped and seg_cap or seg_blend
@@ -377,29 +361,19 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
         normals = concatenate((front_n, back_n))
         if spine is not None:
             _ribbon_update_spine(colors[0], centers, normals, spine)
-        s = xs_back[0].extrude(centers, tangents, normals, colors[0], True, capped, v_offset)
-        v_offset += len(s.vertices)
-        t_end = t_start + len(s.triangles)
-        vertex_list.append(s.vertices)
-        normal_list.append(s.normals)
-        triangle_list.append(s.triangles)
-        color_list.append(s.colors)
+        s = xs_back[0].extrude(centers, tangents, normals, colors[0], True, capped, geometry.v_offset)
+        geometry.add_extrusion(s)
+        geometry.add_range(residues[0])
         prev_band = s.back_band if displays[1] and xs_compat else None
-        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[0])
-        tranges.append(triangle_range)
-        _add_residue_triangle_range(rtr, residues[0], triangle_range)
-        t_start = t_end
-        v_start = v_offset
     else:
         capped = True
         prev_band = None
 
     # Middle residues
     for i in range(1, len(residues) - 1):
-        # print(residues[i], file=sys.__stderr__); sys.__stderr__.flush()
         if not displays[i]:
             continue
-        t_end = t_start
+
         if is_arc_helix_middle(i, i - 1):
             # Helix is shown separately as a tube, so we do not need to
             # draw anything
@@ -419,18 +393,12 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
             xs_compat = xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
             next_cap = displays[i] != displays[i + 1] or not xs_compat
             sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
-                                       capped, mid_cap, v_offset)
-            
-            v_offset += len(sf.vertices)
-            t_end += len(sf.triangles)
-            vertex_list.append(sf.vertices)
-            normal_list.append(sf.normals)
-            triangle_list.append(sf.triangles)
-            color_list.append(sf.colors)
+                                       capped, mid_cap, geometry.v_offset)
+            geometry.add_extrusion(sf)
             if prev_band is not None:
                 tjoin = xs_front[i].blend(prev_band, sf.front_band)
-                triangle_list.append(tjoin)
-                t_end += len(tjoin)
+                geometry.add_triangles(tjoin)
+                
         if is_arc_helix_middle(i, i + 1):
             # Helix is shown separately as a tube, so we do not need to
             # draw anything
@@ -450,29 +418,18 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
                 _ribbon_update_spine(colors[i], back_c, back_n, spine)
 
             sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
-                                       mid_cap, next_cap, v_offset)
-            v_offset += len(sb.vertices)
-            t_end += len(sb.triangles)
-            vertex_list.append(sb.vertices)
-            normal_list.append(sb.normals)
-            triangle_list.append(sb.triangles)
-            color_list.append(sb.colors)
+                                       mid_cap, next_cap, geometry.v_offset)
+            geometry.add_extrusion(sb)
             if not mid_cap:
                 tjoin = xs_back[i].blend(sf.back_band, sb.front_band)
-                triangle_list.append(tjoin)
-                t_end += len(tjoin)
+                geometry.add_triangles(tjoin)
             prev_band = None if next_cap else sb.back_band
+
         capped = next_cap
-        if t_end != t_start:
-            triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[i])
-            tranges.append(triangle_range)
-            _add_residue_triangle_range(rtr, residues[i], triangle_range)
-            t_start = t_end
-            v_start = v_offset
+        geometry.add_range(residues[i])
 
     # Last residue
-    if displays[-1] and not is_arc_helix_end(-1):
-        # print(residues[-1], file=sys.__stderr__); sys.__stderr__.flush()
+    if displays[-1] and not is_arc_helix_end[-1]:
         seg = capped and seg_cap or seg_blend
         front_c, front_t, front_n = ribbon.segment(ribbon.num_segments - 1, ribbon.BACK, seg, True)
         back_c, back_t, back_n = ribbon.trail_segment(seg_cap // 2)
@@ -483,33 +440,73 @@ def _ribbon_geometry(ribbon, num_divisions, residues, displays,
             _ribbon_update_spine(colors[-1], centers, normals, spine)
 
         s = xs_front[-1].extrude(centers, tangents, normals, colors[-1],
-                                 capped, True, v_offset)
-        t_end = t_start + len(s.triangles)
-        v_offset += len(s.vertices)
-        vertex_list.append(s.vertices)
-        normal_list.append(s.normals)
-        triangle_list.append(s.triangles)
-        color_list.append(s.colors)
+                                 capped, True, geometry.v_offset)
+        geometry.add_extrusion(s)
         if prev_band is not None:
             tjoin = xs_front[-1].blend(prev_band, s.front_band)
-            triangle_list.append(tjoin)
-            t_end += len(tjoin)
-        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_offset, drawing, residues[-1])
-        tranges.append(triangle_range)
-        _add_residue_triangle_range(rtr, residues[-1], triangle_range)
+            geometry.add_triangles(tjoin)
+        geometry.add_range(residues[-1])
 
-    if vertex_list:
-        va = concatenate(vertex_list)
-        na = concatenate(normal_list)
-        from .ribbon import normalize_vector_array_inplace
-        normalize_vector_array_inplace(na)
-        ta = concatenate(triangle_list)
-        vc = concatenate(color_list)
-    else:
-        va = na = ta = vc = None
+    va, na, vc, ta = geometry.vertex_normal_color_triangle_arrays()
 
-    return va, na, ta, vc, tranges
+    return va, na, ta, vc, geometry.triangle_ranges
 
+class TriangleAccumulator:
+    '''Accumulate triangles from segments of a ribbon.'''
+    def __init__(self):
+        self._v_start = 0         # for tracking starting vertex index for each residue
+        self._v_end = 0
+        self._t_start = 0         # for tracking starting triangle index for each residue
+        self._t_end = 0
+        self._vertex_list = []
+        self._normal_list = []
+        self._color_list = []
+        self._triangle_list = []
+        self._triangle_ranges = []
+
+    @property
+    def v_offset(self):
+        return self._v_end
+    
+    def add_extrusion(self, extrusion):
+        e = extrusion
+        self._v_end += len(e.vertices)
+        self._t_end += len(e.triangles)
+        self._vertex_list.append(e.vertices)
+        self._normal_list.append(e.normals)
+        self._triangle_list.append(e.triangles)
+        self._color_list.append(e.colors)
+
+    def add_triangles(self, triangles):
+        self._triangle_list.append(triangles)
+        self._t_end += len(triangles)
+
+    def add_range(self, residue):
+        ts,te,vs,ve = self._t_start, self._t_end, self._v_start, self._v_end
+        if te == ts and ve == vs:
+            return
+        triangle_range = RibbonTriangleRange(ts, te, vs, ve, residue)
+        self._triangle_ranges.append(triangle_range)
+        self._t_start = te
+        self._v_start = ve
+
+    def vertex_normal_color_triangle_arrays(self):
+        if self._vertex_list:
+            from numpy import concatenate
+            va = concatenate(self._vertex_list)
+            na = concatenate(self._normal_list)
+            from chimerax.geometry import normalize_vectors
+            normalize_vectors(na)
+            ta = concatenate(self._triangle_list)
+            vc = concatenate(self._color_list)
+        else:
+            va = na = ta = vc = None
+        return va, na, vc, ta
+
+    @property
+    def triangle_ranges(self):
+        return self._triangle_ranges
+    
 def update_ribbon_colors(structure, ribbons_drawing):
     if ribbons_drawing is None:
         return
@@ -610,27 +607,19 @@ def update_ribbon_selection(structure, ribbons_drawing):
 #
 class RibbonTriangleRange:
     __slots__ = ["start", "end", "vstart", "vend", "drawing", "residue"]
-    def __init__(self, start, end, vstart, vend, drawing, residue):
+    def __init__(self, start, end, vstart, vend, residue):
         self.start = start
         self.end = end
         self.vstart = vstart
         self.vend = vend
-        self.drawing = drawing
         self.residue = residue
+        self.drawing = None
     def __lt__(self, other): return self.start < other
     def __le__(self, other): return self.start <= other
     def __eq__(self, other): return self.start == other
     def __ne__(self, other): return self.start != other
     def __gt__(self, other): return self.start > other
     def __gt__(self, other): return self.start >= other
-
-def _add_residue_triangle_range(rtr, r, tr):
-    try:
-        ranges = rtr[r]
-    except KeyError:
-        rtr[r] = [tr]
-    else:
-        ranges.append(tr)
 
 from chimerax.graphics import Drawing
 class RibbonsDrawing(Drawing):
@@ -654,6 +643,16 @@ class RibbonsDrawing(Drawing):
         if timing:
             t1 = time()
             print ('compute_ribbons(): %.4g' % (t1-t0))
+
+    def add_residue_triangle_ranges(self, tranges, ribbon_drawing):
+        rtr = self.residue_triangle_ranges
+        for tr in tranges:
+            r = tr.residue
+            if r in rtr:
+                rtr[r].append(tr)
+            else:
+                rtr[r] = [tr]
+            tr.drawing = ribbon_drawing
 
     def update_tethers(self, structure):
         if timing:
@@ -914,7 +913,6 @@ def _smooth_helix(rlist, coords, guides, xs_front, xs_back,
     # Try to fix up the ribbon orientation so that it is parallel to the helical axis
     from numpy import dot, newaxis, mean
     from numpy.linalg import norm
-    from .ribbon import normalize_vector_array
     # We only "optimize" longer helices because short
     # ones do not contain enough information to do
     # things intelligently
@@ -1213,26 +1211,24 @@ def _arc_helix(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
         t_range[end-2][1] = ti
         t_range[end-2][3] = vi
 
-    # Fourth, create graphics object of vertices, normals,
-    # colors and triangles
+    # Create triangle range selection data structures
+    tranges = []
+    for i, r in t_range.items():
+        res = rlist[i]
+        t_start, t_end, v_start, v_end = r
+        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_end, res)
+        tranges.append(triangle_range)
+
+    # Fourth, create graphics drawing with vertices, normals, colors and triangles
     name = "helix-%d" % ssids[start]
     ssp = RibbonDrawing(name)
     ribbons_drawing.add_drawing(ssp)
     ssp.set_geometry(va, na, ta)
     ssp.vertex_colors = ca
 
-    # Finally, update selection data structures
-    tranges = []
-    rtr = ribbons_drawing.residue_triangle_ranges
-    from .ribbon import RibbonTriangleRange
-    for i, r in t_range.items():
-        res = rlist[i]
-        t_start, t_end, v_start, v_end = r
-        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_end, ssp, res)
-        tranges.append(triangle_range)
-        _add_residue_triangle_range(rtr, res, triangle_range)
     ssp.triangle_ranges = tranges
-
+    ribbons_drawing.add_residue_triangle_ranges(tranges, ssp)
+        
 def _wrap_helix(rlist, coords, guides, ssids, xs_front, xs_back,
                 ribbon_adjusts, start, end, ribbons_drawing):
     # Only bother if at least one residue is displayed
@@ -1259,7 +1255,6 @@ def _smooth_strand(rlist, coords, guides, xs_front, xs_back,
         return
     from numpy import zeros, empty, dot, newaxis
     from numpy.linalg import norm
-    from .ribbon import normalize
     ss_coords = coords[start:end]
     if len(ss_coords) < 3:
         # short strand, no smoothing
@@ -1408,9 +1403,9 @@ class Ribbon:
         c[0] = coords[0] + (coords[0] - coords[1])
         c[1:-1] = coords
         c[-1] = coords[-1] + (coords[-1] - coords[-2])
-        self.coefficients = []
-        for i in range(3):
-            self._compute_coefficients(c, i)
+        coeff = [self._compute_coefficients(c, i) for i in range(3)]
+        from numpy import transpose, float64
+        self._coeff = transpose(coeff, axes = (1,0,2)).astype(float64)
         self.flipped = zeros(len(coords), bool)
         atom_normals = None
         atom_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
@@ -1497,14 +1492,13 @@ class Ribbon:
         from numpy.linalg import norm
         tangents = self.get_tangents()
         raw_normals = empty(coords.shape, float)
-        xcv = self.coefficients[0]
-        ycv = self.coefficients[1]
-        zcv = self.coefficients[2]
+        c = self._coeff
+        xcv,ycv,zcv = c[:,0,:], c[:,1,:], c[:,2,:] 
         # Curvature for the N-1 points are at the start of a segment
         # but the last one is at the end of the last segment and has
         # to be treated specially
         for seg in range(len(raw_normals) - 1):
-            curvature = array((xcv[seg][2], ycv[seg][2], zcv[seg][2]))
+            curvature = array((xcv[seg,2], ycv[seg,2], zcv[seg,2]))
             raw_normals[seg] = cross(curvature, tangents[seg])
         xc = xcv[-1]
         yc = ycv[-1]
@@ -1677,7 +1671,11 @@ class Ribbon:
         c_c = 3 * delta - 2 * D[:-1] - D[1:]
         c_d = 2 * -delta + D[:-1] + D[1:]
         tcoeffs = array([c_a, c_b, c_c, c_d]).transpose()
-        self.coefficients.append(tcoeffs[1:-1])
+        coef = tcoeffs[1:-1]
+        return coef
+
+    def _segment_coefficients(self, seg):
+        return self._coeff[seg]
 
     def _flip_normals(self, coords):
         from numpy import cross, sqrt, dot
@@ -1718,51 +1716,14 @@ class Ribbon:
 
     @property
     def num_segments(self):
-        return len(self.coefficients[0])
-
-    @property
-    def has_normals(self):
-        return hasattr(self, "normals")
-
-    def coordinate(self, n):
-        from numpy import array
-        xc = self.coefficients[0][n]
-        yc = self.coefficients[1][n]
-        zc = self.coefficients[2][n]
-        return array((xc[0], yc[0], zc[0]))
-
-    @property
-    def coordinates(self):
-        from numpy import array
-        xcv = self.coefficients[0]
-        ycv = self.coefficients[1]
-        zcv = self.coefficients[2]
-        return array([[xcv[n], ycv[n], zcv[n]]
-                      for n in range(self.num_segments)])
-
-    def tangent(self, n):
-        from numpy import array
-        xc = self.coefficients[0][n]
-        yc = self.coefficients[1][n]
-        zc = self.coefficients[2][n]
-        return normalize(array((xc[1], yc[1], zc[1])))
-
-    def last_tangent(self):
-        from numpy import array
-        xc = self.coefficients[0][-1]
-        yc = self.coefficients[1][-1]
-        zc = self.coefficients[2][-1]
-        return normalize(array((xc[1] + 2 * xc[2] + 3 * xc[3],
-                                yc[1] + 2 * yc[2] + 3 * yc[3],
-                                zc[1] + 2 * zc[2] + 3 * zc[3])))
+        return len(self._coeff)
 
     def get_tangents(self):
-        xcv = self.coefficients[0]
-        ycv = self.coefficients[1]
-        zcv = self.coefficients[2]
+        c = self._coeff
+        xcv,ycv,zcv = c[:,0,:], c[:,1,:], c[:,2,:] 
         nc = len(xcv)
         from numpy import array
-        t = [[xcv[n][1], ycv[n][1], zcv[n][1]] for n in range(nc)]
+        t = [[xcv[n,1], ycv[n,1], zcv[n,1]] for n in range(nc)]
         xc = xcv[-1]
         yc = ycv[-1]
         zc = zcv[-1]
@@ -1771,25 +1732,17 @@ class Ribbon:
                    zc[1] + 2 * zc[2] + 3 * zc[3]))
         return normalize_vector_array(array(t))
 
-    def normal(self, n):
-        return self.normals[n]
-
     def segment(self, seg, side, divisions, no_twist,
                 flip_mode=FLIP_MINIMIZE, prev_normal=None, last=False):
         if timing:
             t0 = time()
-        try:
+        if seg in self._seg_cache:
             coords, tangents, normals = self._seg_cache[seg]
-        except KeyError:
-            coeffs = [self.coefficients[0][seg],
-                      self.coefficients[1][seg],
-                      self.coefficients[2][seg]]
-            coords, tangents = self._segment_path(coeffs, 0, 1, divisions)
-            tangents = normalize_vector_array(tangents)
+        else:
+            coeffs = self._segment_coefficients(seg)
+            coords, tangents = _spline_segment_path(coeffs, 0, 1, divisions)
             ns = self.normals[seg]
             ne = self.normals[seg + 1]
-            # import sys
-            # print("ns, ne", ns, ne, file=sys.__stderr__); sys.__stderr__.flush()
             if self.use_spline_normals:
                 from numpy import array, linspace, sum
                 # We _should_ return normals that are orthogonal (O) to the
@@ -1818,78 +1771,44 @@ class Ribbon:
                     self.normals[seg + 1] = -ne
             #normals = curvature_to_normals(curvature, tangents, prev_normal)
             self._seg_cache[seg] = (coords, tangents, normals)
+
         # divisions = number of segments = number of vertices + 1
         if side is self.FRONT:
             start = 0
             end = (divisions // 2) + 1
         else:
             start = (divisions + 1) // 2
-            if last:
-                end = divisions + 1
-            else:
-                end = divisions
+            end = divisions + 1 if last else divisions
+            
         seg_coords, seg_tangents, seg_normals = coords[start:end], tangents[start:end], normals[start:end]
 
         if timing:
-            t1 = time()
             global rsegtime
-            rsegtime += t1-t0
+            rsegtime += time()-t0
             
         return seg_coords, seg_tangents, seg_normals
 
-    def _segment_path(self, coeffs, tmin, tmax, divisions):
-        # Compute coordinates by multiplying spline parameter vector
-        # (1, t, t**2, t**3) by the spline coefficients, and
-        # compute tangents by multiplying spline parameter vector
-        # (0, 1, 2*t, 3*t**2) by the same spline coefficients
-        from numpy import array, zeros, ones, linspace, dot
-        spline = array(coeffs).transpose()
-        nc = divisions + 1
-        t = linspace(tmin, tmax, nc)
-        t2 = t * t
-        st = ones((nc, 4), float)    # spline multiplier matrix
-        # st[:,0] is 1.0        # 1
-        st[:,1] = t             # t
-        st[:,2] = t2            # t^2
-        st[:,3] = t * t2        # t^3
-        coords = dot(st, spline)
-        # st[:,0] stays at 1.0  # 1
-        st[:,1] *= 2.0          # 2t
-        st[:,2] *= 3.0          # 3t^2
-        tangents = dot(st[:,:-1], spline[1:])
-        #st[:,0] = 2.0           # 2
-        #st[:,1] *= 3.0;         # 6t
-        #curvature = dot(st[:,:-2], spline[2:])
-        #return coords, tangents, curvature
-        return coords, tangents
-
     def lead_segment(self, divisions):
-        coeffs = [self.coefficients[0][0],
-                  self.coefficients[1][0],
-                  self.coefficients[2][0]]
+        coeffs = self._segment_coefficients(0)
         # We do not want to go from -0.5 to 0 because the
         # first residue will already have the "0" coordinates
         # as part of its ribbon.  We want to connect to that
         # coordinate smoothly.
         step = 0.5 / (divisions + 1)
-        coords, tangents = self._segment_path(coeffs, -0.3, -step, divisions)
-        tangents = normalize_vector_array(tangents)
+        coords, tangents = _spline_segment_path(coeffs, -0.3, -step, divisions)
         n = self.normals[0]
         normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False, True)
         #normals = curvature_to_normals(curvature, tangents, None)
         return coords, tangents, normals
 
     def trail_segment(self, divisions, prev_normal=None):
-        coeffs = [self.coefficients[0][-1],
-                  self.coefficients[1][-1],
-                  self.coefficients[2][-1]]
+        coeffs = self._segment_coefficients(-1)
         # We do not want to go from 1 to 1.5 because the
         # last residue will already have the "1" coordinates
         # as part of its ribbon.  We want to connect to that
         # coordinate smoothly.
         step = 0.5 / (divisions + 1)
-        coords, tangents = self._segment_path(coeffs, 1 + step, 1.3, divisions)
-        tangents = normalize_vector_array(tangents)
+        coords, tangents = _spline_segment_path(coeffs, 1 + step, 1.3, divisions)
         n = self.normals[-1]
         normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False, True)
         #normals = curvature_to_normals(curvature, tangents, prev_normal)
@@ -1898,9 +1817,7 @@ class Ribbon:
     def position(self, seg, t):
         # Compute coordinates for segment seg with parameter t
         from numpy import array, dot
-        coeffs = [self.coefficients[0][seg],
-                  self.coefficients[1][seg],
-                  self.coefficients[2][seg]]
+        coeffs = self._segment_coefficients(seg)
         st = array([1.0, t, t*t, t*t*t])
         return array([dot(st, coeffs[0]), dot(st, coeffs[1]), dot(st, coeffs[2])])
 
@@ -2423,15 +2340,6 @@ def normalize_vector_array(a):
     return n
 
 
-def normalize_vector_array_inplace(a):
-    from numpy.linalg import norm
-    import numpy
-    d = norm(a, axis=1)
-    d[d < EPSILON] = 1
-    a /= d[:, numpy.newaxis]
-    return a
-
-
 def tridiagonal(a, b, c, d):
     '''
     TDMA solver, a b c d can be NumPy array type or Python list type.
@@ -2458,15 +2366,56 @@ def get_orthogonal_component(v, ref):
     ref_len = norm(ref)
     return v + ref * (-d / ref_len)
 
+from chimerax.geometry import cubic_path as _spline_segment_path
 
+def _spline_segment_path_unused(coeffs, tmin, tmax, divisions):
+    if timing:
+        t0 = time()
+    # coeffs is a 3x4 array of float.
+    # Compute coordinates by multiplying spline parameter vector
+    # (1, t, t**2, t**3) by the spline coefficients, and
+    # compute tangents by multiplying spline parameter vector
+    # (0, 1, 2*t, 3*t**2) by the same spline coefficients
+    from numpy import array, zeros, ones, linspace, dot
+    spline = array(coeffs).transpose()
+    nc = divisions + 1
+    t = linspace(tmin, tmax, nc)
+    t2 = t * t
+    st = ones((nc, 4), float)    # spline multiplier matrix
+    # st[:,0] is 1.0        # 1
+    st[:,1] = t             # t
+    st[:,2] = t2            # t^2
+    st[:,3] = t * t2        # t^3
+    coords = dot(st, spline)
+    # st[:,0] stays at 1.0  # 1
+    st[:,1] *= 2.0          # 2t
+    st[:,2] *= 3.0          # 3t^2
+    tangents = dot(st[:,:-1], spline[1:])
+    tangents = normalize_vector_array(tangents)
+    #st[:,0] = 2.0           # 2
+    #st[:,1] *= 3.0;         # 6t
+    #curvature = dot(st[:,:-2], spline[2:])
+    #return coords, tangents, curvature
+
+    if timing:
+        global spathtime
+        spathtime += time()-t0
+    return coords, tangents
+
+
+_constrained_normals = None
 def constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist):
-    from .molobject import c_function
-    import ctypes
-    f = c_function("constrained_normals",
-                   args=(ctypes.py_object, ctypes.py_object, ctypes.py_object,
-                         ctypes.c_int, ctypes.c_bool, ctypes.c_bool, ctypes.c_bool),
-                   ret = ctypes.py_object)
-    return f(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist)
+    global _constrained_normals
+    if _constrained_normals is None:
+        from .molobject import c_function
+        import ctypes
+        f = c_function("constrained_normals",
+                       args=(ctypes.py_object, ctypes.py_object, ctypes.py_object,
+                             ctypes.c_int, ctypes.c_bool, ctypes.c_bool, ctypes.c_bool),
+                       ret = ctypes.py_object)
+        _constrained_normals = f
+
+    return _constrained_normals(tangents, n_start, n_end, flip_mode, s_flipped, e_flipped, no_twist)
 
 
 def curvature_to_normals(curvature, tangents, prev_normal):
