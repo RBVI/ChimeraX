@@ -11,6 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+class NoFormatError(ValueError):
+    pass
+
 from chimerax.core.toolshed import ProviderManager
 class FormatsManager(ProviderManager):
     """Manager for data formats"""
@@ -81,23 +84,22 @@ class FormatsManager(ProviderManager):
             suffix = suffix[:suffix.index('#')]
         return self._suffix_to_format.get(suffix, None)
 
-    def file_name_to_format(self, file_name):
+    def format_from_file_name(self, file_name):
         "Return data format based on file_name's suffix, ignoring compression suffixes"
-        from chimerax.core.errors import UserError
         if '.' in file_name:
             from chimerax import io
             base_name = io.remove_compression_suffix(file_name)
             try:
                 dot_pos = base_name.rindex('.')
             except ValueError:
-                raise UserError("'%s' has only compression suffix; cannot determine"
+                raise NoFormatError("'%s' has only compression suffix; cannot determine"
                     " format from suffix" % file_name)
             data_format = self.format_from_suffix(base_name[dot_pos:])
             if not data_format:
-                raise UserError("No known data format for file suffix '%s'"
+                raise NoFormatError("No known data format for file suffix '%s'"
                     % base_name[dot_pos:])
         else:
-            raise UserError("Cannot determine format for '%s'" % file_name)
+            raise NoFormatError("Cannot determine format for '%s'" % file_name)
         return data_format
 
     @property

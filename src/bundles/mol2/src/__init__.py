@@ -30,7 +30,7 @@ class _Mol2BundleAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr):
-        from chimerax.save import SaverInfo
+        from chimerax.save_cmd import SaverInfo
         class Info(SaverInfo):
             def save(self, session, path, **kw):
                 from .io import write_mol2

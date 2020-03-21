@@ -11,6 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .manager import NoFormatError
+
 from chimerax.core.toolshed import BundleAPI
 
 class _FormatsBundleAPI(BundleAPI):

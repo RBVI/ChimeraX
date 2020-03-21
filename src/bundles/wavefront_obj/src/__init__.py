@@ -39,13 +39,13 @@ class _WavefrontOBJBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            from chimerax.open import OpenerInfo
+            from chimerax.open_cmd import OpenerInfo
             class ObjInfo(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from . import obj
                     return obj.read_obj(session, data, file_name)
         else:
-            from chimerax.save import SaverInfo
+            from chimerax.save_cmd import SaverInfo
             class ObjInfo(SaverInfo):
                 def save(self, session, path, *, models=None, **kw):
                     from . import obj

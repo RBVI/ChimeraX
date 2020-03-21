@@ -32,13 +32,13 @@ class _ReadPBondsBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
-            from chimerax.open import OpenerInfo
+            from chimerax.open_cmd import OpenerInfo
             class PBInfo(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from . import readpbonds
                     return readpbonds.read_pseudobond_file(session, data, file_name)
         else:
-            from chimerax.save import SaverInfo
+            from chimerax.save_cmd import SaverInfo
             class PBInfo(SaverInfo):
                 def save(self, session, path, **kw):
                     from . import readpbonds

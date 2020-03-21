@@ -32,7 +32,7 @@ class _MDCrdsBundleAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
-            from chimerax.open import OpenerInfo
+            from chimerax.open_cmd import OpenerInfo
             class MDInfo(OpenerInfo):
                 def open(self, session, data, file_name, *, structure_model=None,
                         md_type=name, replace=True, **kw):
@@ -57,7 +57,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                         'replace': BoolArg
                     }
         else:
-            from chimerax.save import SaverInfo
+            from chimerax.save_cmd import SaverInfo
             class MDInfo(SaverInfo):
                 def save(self, session, path, *, models=None, **kw):
                     from chimerax import atomic

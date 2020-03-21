@@ -29,11 +29,16 @@
 		reference_url="help:user/commands/usageconventions.html" />
     <Provider name="X3D" category="Generic 3D objects" suffixes=".x3d"
 		mime_types="model/x3d+xml" reference_url="http://www.web3d.org/standards" />
+    <Provider name="web fetch" category="I/O" />
   </Providers>
+
 
   <Providers manager="open command">
     <Provider name="session" want_path="true" />
     <Provider name="commands" want_path="true" />
+    <Provider name="http" type="fetch" format_name="web fetch" />
+    <Provider name="https" type="fetch" format_name="web fetch" />
+    <Provider name="ftp" type="fetch" format_name="web fetch" />
   </Providers>
 
   <Providers manager="save command">

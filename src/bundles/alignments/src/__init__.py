@@ -75,7 +75,7 @@ class _AlignmentsBundleAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
-            from chimerax.open import OpenerInfo
+            from chimerax.open_cmd import OpenerInfo
             class SeqInfo(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from .parse import open_file
@@ -91,7 +91,7 @@ class _AlignmentsBundleAPI(BundleAPI):
                         'ident': StringArg,
                     }
         else:
-            from chimerax.save import SaverInfo
+            from chimerax.save_cmd import SaverInfo
             class SeqInfo(SaverInfo):
                 def save(self, session, path, *, alignment=None, **kw):
                     if not alignment:

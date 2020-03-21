@@ -18,7 +18,7 @@ class _SessionAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
-            from chimerax.open import OpenerInfo
+            from chimerax.open_cmd import OpenerInfo
             if name == "session":
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
@@ -29,7 +29,7 @@ class _SessionAPI(BundleAPI):
                     def open_args(self):
                         from chimerax.core.commands import BoolArg
                         return { 'resize_window': BoolArg }
-            else: # ChimeraX commands
+            elif name == "commands":
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from chimerax.core.scripting import open_command_script
@@ -39,8 +39,25 @@ class _SessionAPI(BundleAPI):
                     def open_args(self):
                         from chimerax.core.commands import BoolArg
                         return { 'resize_window': BoolArg }
+            else: # web fetch
+                from chimerax.open_cmd import FetcherInfo
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                            _protocol=name, **kw):
+                        from .web_fetch import fetch_web
+                        return fetch_web(session, _protocol + ':' + ident,
+                            ignore_cache=ignore_cache, **kw)
+
+                    @property
+                    def fetch_args(self):
+                        from chimerax.core.commands import BoolArg, EnumOf
+                        return {
+                            'new_tab': BoolArg,
+                            'mime_format': EnumOf([fmt.name
+                                for fmt in session.data_formats.formats]),
+                        }
         else:
-            from chimerax.save import SaverInfo
+            from chimerax.save_cmd import SaverInfo
             if name == "session":
                 class Info(SaverInfo):
                     def save(self, session, path, **kw):

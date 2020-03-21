@@ -57,7 +57,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from chimerax.open import OpenerInfo
+        from chimerax.open_cmd import OpenerInfo
         class ViewDockOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, *, _name=name, **kw):
                 if _name == "pdbqt":

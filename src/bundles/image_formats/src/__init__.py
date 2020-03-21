@@ -17,7 +17,7 @@ class _ImageFormatsBundleAPI(BundleAPI):
     
     @staticmethod
     def run_provider(session, name, mgr):
-        from chimerax.save import SaverInfo
+        from chimerax.save_cmd import SaverInfo
         class ImageInfo(SaverInfo):
             def save(self, session, path, format_name=name, **kw):
                 from .save import save_image

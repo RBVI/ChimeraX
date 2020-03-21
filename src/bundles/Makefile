@@ -24,7 +24,8 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
 	  cellpack chem_group clashes cmd_line \
-	  color_globe connect_structure core_io crosslinks crystal data_formats \
+	  color_globe connect_structure core_formats \
+	  crosslinks crystal data_formats \
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
 	  gltf hbonds help_viewer ihm image_formats \
 	  interfaces io label list_info log \

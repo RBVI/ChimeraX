@@ -46,7 +46,7 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr):
         if name == "mmtf":
-            from chimerax.open import OpenerInfo
+            from chimerax.open_cmd import OpenerInfo
             class Info(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from . import mmtf
@@ -60,7 +60,7 @@ class _MyAPI(BundleAPI):
                         'coordsets': BoolArg
                     }
         else:
-            from chimerax.open import FetcherInfo
+            from chimerax.open_cmd import FetcherInfo
             class Info(FetcherInfo):
                 def fetch(self, session, ident, format_name, ignore_cache, **kw):
                     from . import mmtf

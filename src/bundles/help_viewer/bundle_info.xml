@@ -30,6 +30,9 @@
   </Providers>
 
   <Providers manager="open command">
+    <Provider name="help" type="fetch" format_name="HTML" />
+    <Provider name="http" type="fetch" format_name="HTML" is_default="false" />
+    <Provider name="https" type="fetch" format_name="HTML" is_default="false" />
     <Provider name="HTML" want_path="true" />
   </Providers>
 
