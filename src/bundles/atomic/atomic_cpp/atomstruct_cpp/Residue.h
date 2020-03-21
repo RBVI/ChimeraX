@@ -176,6 +176,7 @@ public:
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
     bool  ribbon_display() const { return _ribbon_display; }
     bool  ribbon_hide_backbone() const { return _ribbon_hide_backbone; }
+    bool  selected() const;  // True if any atom selected
     bool  ribbon_selected() const { return _ribbon_selected; }
     void  set_ribbon_adjust(float a);
     void  set_ribbon_color(const Rgba& rgba);
@@ -434,6 +435,14 @@ Residue::ribbon_clear_hide() {
         for (auto bond: atom->bonds())
             bond->set_hide(bond->hide() & ~Atom::HIDE_RIBBON);
     }
+}
+    
+inline bool
+Residue::selected() const {
+    for (auto atom: atoms())
+      if (atom->selected())
+	return true;
+    return false;
 }
 
 }  // namespace atomstruct

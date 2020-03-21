@@ -2782,6 +2782,12 @@ extern "C" EXPORT size_t residue_ribbon_num_selected(void *residues, size_t n)
     }
 }
 
+extern "C" EXPORT void residue_selected(void *residues, size_t n, npy_bool *sel)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    error_wrap_array_get<Residue, bool, npy_bool>(r, n, &Residue::selected, sel);
+}
+
 extern "C" EXPORT void residue_structure(void *residues, size_t n, pyobject_t *molp)
 {
     Residue **r = static_cast<Residue **>(residues);

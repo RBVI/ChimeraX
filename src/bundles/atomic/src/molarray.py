@@ -1125,6 +1125,8 @@ class Residues(Collection):
     has a unique integer id.  The ids depend on the collection of residues on the fly and are
     not persistent. Read only.
     ''')
+    selected = cvec_property('residue_selected', npy_bool, read_only = True,
+        doc="numpy bool array whether any Atom in each Residue is selected. Read only.")
     ss_ids = cvec_property('residue_ss_id', int32, doc =
     '''
     A :mod:`numpy` array of integer secondary structure IDs, determined by the input file.
