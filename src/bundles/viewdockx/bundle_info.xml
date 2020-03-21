@@ -60,7 +60,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
 
   <Providers manager="open command">
     <Provider name="pdbqt" want_path="true" />
-    <Provider name="Mol2" want_path="true" />
+    <Provider name="Sybyl Mol2" want_path="true" />
   </Providers>
 
   <Classifiers>

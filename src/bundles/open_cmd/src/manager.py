@@ -91,31 +91,32 @@ class OpenManager(ProviderManager):
         self.triggers.activate_trigger("open command changed", self)
         if True:
             return
-        in_common = []
-        old_only = []
-        from chimerax.core.io import _file_formats
-        for old in _file_formats.keys():
-            if old.endswith(" image"):
-                old = old[:-6]
-            elif old.startswith("ChimeraX "):
-                old = old[9:]
-            elif old == "StereoLithography":
-                old = "STL"
-            elif old == "Schrodinger Maestro":
-                old = "Maestro"
-            try:
-                in_common.append(self.session.data_formats[old])
-            except KeyError:
-                #print("old only:", old)
-                old_only.append(old)
-        #for df in self.session.data_formats.formats:
-        #    print("new:", df.name)
-        print("%d data formats in common, %d new only, %d old only" %(len(in_common),
-            len(self.session.data_formats) - len(in_common), len(old_only)))
-        if len(in_common) != len(self.session.data_formats):
-            return
-        from random import choice
-        print("Port format", choice(list(old_only)+['http']))
+        # volume formats register during bundle initialization, so delay checking
+        def check_fmts(*args, self=self):
+            in_common = []
+            old_only = []
+            from chimerax.core.io import _file_formats
+            for old in _file_formats.keys():
+                if old.endswith(" image"):
+                    old = old[:-6]
+                elif old == "StereoLithography":
+                    old = "STL"
+                elif old == "Schrodinger Maestro":
+                    old = "Maestro"
+                try:
+                    in_common.append(self.session.data_formats[old])
+                except KeyError:
+                    #print("old only:", old)
+                    old_only.append(old)
+            #for df in self.session.data_formats.formats:
+            #    print("new:", df.name)
+            print("%d data formats in common, %d new only, %d old only" %(len(in_common),
+                len(self.session.data_formats) - len(in_common), len(old_only)))
+            if len(in_common) != len(self.session.data_formats):
+                return
+            from random import choice
+            print("Port format", choice(list(old_only)+['http']))
+        self.session.ui.triggers.add_handler('ready', check_fmts)
 
     def fetch_args(self, database_name, *, format_name=None):
         try:

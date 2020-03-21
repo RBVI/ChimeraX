@@ -19,7 +19,7 @@ class _SessionAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_cmd import OpenerInfo
-            if name == "session":
+            if name == "ChimeraX session":
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from chimerax.core.session import open as cxs_open
@@ -29,7 +29,7 @@ class _SessionAPI(BundleAPI):
                     def open_args(self):
                         from chimerax.core.commands import BoolArg
                         return { 'resize_window': BoolArg }
-            elif name == "commands":
+            elif name == "ChimeraX commands":
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from chimerax.core.scripting import open_command_script
@@ -58,7 +58,7 @@ class _SessionAPI(BundleAPI):
                         }
         else:
             from chimerax.save_cmd import SaverInfo
-            if name == "session":
+            if name == "ChimeraX session":
                 class Info(SaverInfo):
                     def save(self, session, path, **kw):
                         from chimerax.core.session import save as cxs_save
