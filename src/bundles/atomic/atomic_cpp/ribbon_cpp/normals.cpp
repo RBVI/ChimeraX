@@ -12,6 +12,9 @@
  * or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
+
+// Need _USE_MATH_DEFINES on Windows to get M_PI from cmath
+#define _USE_MATH_DEFINES
 #include <cmath>			// use std:isnan()
 
 #include <arrays/pythonarray.h>		// use parse_uint8_n_array()
