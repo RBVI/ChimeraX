@@ -33,9 +33,6 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
     
     ribbons_drawing.clear()
 
-    # Mark all residues to indicate the ribbon is not highlighted.
-    structure.residues.ribbon_selected = False
-            
     if structure.ribbon_display_count == 0:
         return
 
