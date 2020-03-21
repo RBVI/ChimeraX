@@ -142,7 +142,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
         # Create ribbon drawing
         if va is not None:
-            rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons")
+            rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons", len(residues))
             ribbons_drawing.add_drawing(rp)
             rp.triangle_ranges = tr     # Save triangle ranges for picking
             ribbons_drawing.add_residue_triangle_ranges(tr, rp)
@@ -158,13 +158,13 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Cache position of backbone atoms on ribbon.
         # Get list of tethered atoms, and create tether cone drawing.
         min_tether_offset = structure.bond_radius
-        tether, positions = _ribbon_tethers(ribbon, residues, ribbons_drawing,
-                                            min_tether_offset,
-                                            structure.ribbon_tether_scale,
-                                            structure.ribbon_tether_sides,
-                                            structure.ribbon_tether_shape)
-        ribbons_drawing.ribbon_tethers.append(tether)
-        ribbons_drawing.ribbon_spline_backbone.update(positions)
+        tether_atoms, tether_positions, tethers_drawing = \
+            _ribbon_tethers(ribbon, residues, ribbons_drawing,
+                            min_tether_offset,
+                            structure.ribbon_tether_scale,
+                            structure.ribbon_tether_sides,
+                            structure.ribbon_tether_shape)
+        ribbons_drawing.add_tethers(tether_atoms, tether_positions, tethers_drawing)
 
         if timing:
             tethertime += time()-t0
@@ -514,102 +514,6 @@ class TriangleAccumulator:
     @property
     def triangle_ranges(self):
         return self._triangle_ranges
-    
-def update_ribbon_colors(structure, ribbons_drawing):
-    if ribbons_drawing is None:
-        return
-
-    if timing:
-        t0 = time()
-        
-    vertex_colors = {}	# Map RibbonDrawing to vertex color array
-    res_triangle_ranges = ribbons_drawing.residue_triangle_ranges
-    for r, tranges in res_triangle_ranges.items():
-        color = r.ribbon_color
-        for tr in tranges:
-            d = tr.drawing
-            if d in vertex_colors:
-                vc = vertex_colors[d]
-            else:
-                vertex_colors[d] = vc = d.vertex_colors
-            tri = d.triangles
-            vc[tr.vstart:tr.vend,:] = color
-
-    for d, vc in vertex_colors.items():
-        d.vertex_colors = vc
-
-    if timing:
-        t1 = time()
-        print ('update_ribbon_colors(): %.4g' % (t1-t0))
-        
-def update_ribbon_selection(structure, ribbons_drawing):
-    # Set selected ribbons in graphics
-
-    # Find residues that should be shown selected and are in ribbon drawing.
-    rsel = None
-    res_triangle_ranges = None
-    if ribbons_drawing:
-        res_triangle_ranges = ribbons_drawing.residue_triangle_ranges
-        atoms = structure.atoms
-        if atoms.num_selected > 0:
-            residues = atoms.filter(atoms.selected).unique_residues
-            from numpy import array
-            mask = array([r in res_triangle_ranges for r in residues], dtype=bool)
-            rsel = residues.filter(mask)
-
-    # Update the Residue.ribbon_selected flags
-    residues = structure.residues
-    selected_residues = residues.filter(residues.ribbon_selected)
-    if rsel is None:
-        hide = selected_residues
-        from .molarray import Residues
-        keep = show = Residues()
-    elif len(selected_residues) == 0:
-        from .molarray import Residues
-        hide = keep = Residues()
-        show = rsel
-    else:
-        hide = selected_residues - rsel
-        keep = selected_residues & rsel
-        show = rsel - selected_residues
-    hide.ribbon_selected = False
-    show.ribbon_selected = True
-
-    if not res_triangle_ranges:
-        return
-
-    # Figure out triangle ranges that need highlighting changed.
-    da = {}     # Map ribbon drawing to 3-tuple of triangle ranges - 0=hide, 1=keep, 2=show
-    residues = [hide, keep, show]
-    # Partition by drawing
-    for i in range(len(residues)):
-        for r in residues[i]:
-            try:
-                tr_list = res_triangle_ranges[r]
-            except KeyError:
-                continue
-            for tr in tr_list:
-                try:
-                    a = da[tr.drawing]
-                except KeyError:
-                    a = da[tr.drawing] = ([], [], [])
-                a[i].append((tr.start, tr.end))
-
-    # Update highlighted ribbon triangles
-    for p, residues in da.items():
-        if not residues[1] and not residues[2]:
-            # No residues being kept or added
-            p.highlighted_triangles_mask = None
-        else:
-            m = p.highlighted_triangles_mask
-            if m is None:
-                import numpy
-                m = numpy.zeros((p.number_of_triangles(),), bool)
-            for start, end in residues[0]:
-                m[start:end] = False
-            for start, end in residues[2]:
-                m[start:end] = True
-            p.highlighted_triangles_mask = m
 
 # -----------------------------------------------------------------------------
 #
@@ -634,15 +538,17 @@ class RibbonsDrawing(Drawing):
     def __init__(self, name, structure_name):
         Drawing.__init__(self, name)
         self.structure_name = structure_name
-        self.residue_triangle_ranges = {}         # map residue to list of RibbonTriangleRanges
-        self.ribbon_spline_backbone = {}          # backbone atom positions on ribbon
-        self.ribbon_tethers = []                  # ribbon tethers from ribbon to floating atoms
+        self._residue_triangle_ranges = {}       # map residue to list of RibbonTriangleRanges
+        self._atom_tether_base = {}             # Map atom to tether position on ribbon
+        self._tether_atoms = []                 # List of collections of all backbone atoms
+        self._tether_drawings = []		# List of TethersDrawing
 
     def clear(self):
         self.remove_all_drawings()
-        self.residue_triangle_ranges.clear()
-        self.ribbon_spline_backbone.clear()
-        self.ribbon_tethers.clear()
+        self._residue_triangle_ranges.clear()
+        self._tether_atoms.clear()
+        self._atom_tether_base.clear()
+        self._tether_drawings.clear()
 
     def compute_ribbons(self, structure):
         if timing:
@@ -651,9 +557,73 @@ class RibbonsDrawing(Drawing):
         if timing:
             t1 = time()
             print ('compute_ribbons(): %.4g' % (t1-t0))
+    
+    def update_ribbon_colors(self, structure):
+        if timing:
+            t0 = time()
+
+        vertex_colors = {}	# Map RibbonDrawing to vertex color array
+        for r, tranges in self._residue_triangle_ranges.items():
+            color = r.ribbon_color
+            for tr in tranges:
+                d = tr.drawing
+                if d in vertex_colors:
+                    vc = vertex_colors[d]
+                else:
+                    vertex_colors[d] = vc = d.vertex_colors
+                tri = d.triangles
+                vc[tr.vstart:tr.vend,:] = color
+
+        for d, vc in vertex_colors.items():
+            d.vertex_colors = vc
+
+        if timing:
+            t1 = time()
+            print ('update_ribbon_colors(): %.4g' % (t1-t0))
+        
+    def update_ribbon_highlight(self, structure):
+
+        # Find residues to highlight by RibbonDrawing
+        res = structure.residues
+        rsel = res[res.selected]
+        res_triangle_ranges = self._residue_triangle_ranges
+        dres = {}	# Map ribbon drawing to list of selected residues
+        for r in rsel:
+            tranges = res_triangle_ranges.get(r)
+            if tranges:
+                for tr in tranges:
+                    d = tr.drawing
+                    if d in dres:
+                        dres[d].append(r)
+                    else:
+                        dres[d] = [r]
+
+        # Set highlights for all RibbonDrawing
+        for d in self.child_drawings():
+            if isinstance(d, RibbonDrawing):
+                if d in dres:
+                    tmask = d.highlighted_triangles_mask
+                    if tmask is None:
+                        from numpy import zeros, bool
+                        tmask = zeros((d.number_of_triangles(),), bool)
+                    else:
+                        tmask[:] = False
+                    rlist = dres[d]
+                    if len(rlist) == d.num_residues:
+                        if tmask.all():
+                            continue	# Already all highlighted
+                        tmask[:] = True
+                    else:
+                        for r in rlist:
+                            for trange in res_triangle_ranges[r]:
+                                if trange.drawing is d:
+                                    tmask[trange.start:trange.end] = True
+                    d.highlighted_triangles_mask = tmask
+                elif d.highlighted_triangles_mask is not None:
+                    d.highlighted_triangles_mask = None
 
     def add_residue_triangle_ranges(self, tranges, ribbon_drawing):
-        rtr = self.residue_triangle_ranges
+        rtr = self._residue_triangle_ranges
         for tr in tranges:
             r = tr.residue
             if r in rtr:
@@ -664,25 +634,61 @@ class RibbonsDrawing(Drawing):
                 rtr[r] = [tr]
             tr.drawing = ribbon_drawing
 
+    def ribbon_spline_position(self, atom):
+        return self._atom_tether_base[atom]
+    
+    def add_tethers(self, tether_atoms, tether_positions, tether_drawing):
+        self._tether_atoms.append(tether_atoms)
+        self._atom_tether_base.update(tether_positions)
+        if tether_drawing is not None:
+            self._tether_drawings.append(tether_drawing)
+        
     def update_tethers(self, structure):
         if timing:
             t0 = time()
 
-        from numpy import around
-        for all_atoms, tp, xyz1, tether_atoms, shape, scale in self.ribbon_tethers:
-            all_atoms.update_ribbon_visibility()
-            if tp:
-                xyz2 = tether_atoms.coords
-                radii = structure._atom_display_radii(tether_atoms) * scale
-                tp.positions = _tether_placements(xyz1, xyz2, radii, shape)
-                tp.display_positions = tether_atoms.visibles & tether_atoms.residues.ribbon_displays
-                colors = tether_atoms.colors
-                colors[:,3] = around(colors[:,3] * structure.ribbon_tether_opacity).astype(int)
-                tp.colors = colors
+        for ta in self._tether_atoms:
+            ta.update_ribbon_visibility()
+
+        for td in self._tether_drawings:
+            td.update_tethers(structure)
 
         if timing:
             t1 = time()
             print ('update_tethers(): %.4g' % (t1-t0))
+
+class TethersDrawing(Drawing):
+    def __init__(self, name, tethered_atoms, spline_coords,
+                 tether_shape, tether_scale, tether_sides):
+
+        self._tethered_atoms = tethered_atoms
+        self._spline_coords = spline_coords     # Tether attachment points on ribbon
+        self._tether_shape = tether_shape
+        self._tether_scale = tether_scale
+        
+        Drawing.__init__(self, name)
+        self.skip_bounds = True   # Don't include in bounds calculation. Optimization.
+        self.no_cofr = True	# Don't use for finding center of rotation. Optimization.
+        self.pickable = False	# Don't allow mouse picking.
+        from chimerax import surface
+        if tether_shape == TETHER_CYLINDER:
+            va, na, ta = surface.cylinder_geometry(nc=tether_sides, nz=2, caps=False)
+        else:
+            # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
+            va, na, ta = surface.cone_geometry(nc=tether_sides, caps=False, points_up=False)
+        self.set_geometry(va, na, ta)
+
+    def update_tethers(self, structure):
+        tatoms = self._tethered_atoms
+        xyz1 = self._spline_coords
+        xyz2 = tatoms.coords
+        radii = structure._atom_display_radii(tatoms) * self._tether_scale
+        self.positions = _tether_placements(xyz1, xyz2, radii, self._tether_shape)
+        self.display_positions = tatoms.visibles & tatoms.residues.ribbon_displays
+        colors = tatoms.colors
+        from numpy import around
+        colors[:,3] = around(colors[:,3] * structure.ribbon_tether_opacity).astype(int)
+        self.colors = colors
 
 # -----------------------------------------------------------------------------
 #
@@ -693,8 +699,9 @@ def _tether_placements(xyz0, xyz1, radius, shape):
     return _bond_cylinder_placements(c0, c1, radius)
                         
 class RibbonDrawing(Drawing):
-    def __init__(self, name):
+    def __init__(self, name, num_residues):
         Drawing.__init__(self, name)
+        self.num_residues = num_residues
         self.triangle_ranges = []         # List of RibbonTriangleRange, used for picking
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
@@ -770,25 +777,14 @@ def _ribbon_tethers(ribbon, residues, drawing,
     # Create tethers if necessary
     from numpy import any
     if tether_scale > 0 and any(tethered):
-        tp = drawing.new_drawing(drawing.structure_name + " ribbon_tethers")
-        tp.skip_bounds = True   # Don't include in bounds calculation. Optimization.
-        tp.no_cofr = True	# Don't use for finding center of rotation. Optimization.
-        tp.pickable = False	# Don't allow mouse picking.
-        from chimerax import surface
-        if tether_shape == TETHER_CYLINDER:
-            va, na, ta = surface.cylinder_geometry(nc=tether_sides, nz=2, caps=False)
-        else:
-            # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
-            va, na, ta = surface.cone_geometry(nc=tether_sides, caps=False, points_up=False)
-        tp.set_geometry(va, na, ta)
-        tether = (tether_atoms, tp,
-                  spline_coords[tethered],
-                  tether_atoms.filter(tethered),
-                  tether_shape, tether_scale)
+        name = drawing.structure_name + " ribbon tethers"
+        tdrawing = TethersDrawing(name, tether_atoms.filter(tethered), spline_coords[tethered],
+                                  tether_shape, tether_scale, tether_sides)
+        drawing.add_drawing(tdrawing)
     else:
-        tether = (tether_atoms, None, None, None, None, None)
+        tdrawing = None
 
-    return tether, spositions
+    return tether_atoms, spositions, tdrawing
 
 # Position of atoms on ribbon in spline parameter units.
 # These should correspond to the "minimum" backbone atoms
@@ -971,7 +967,7 @@ def _make_arc_helix_drawing(rlist, coords, guides, ssids, xs_front, xs_back, xs_
 
     # Fourth, create graphics drawing with vertices, normals, colors and triangles
     name = "helix-%d" % ssids[start]
-    ssp = RibbonDrawing(name)
+    ssp = RibbonDrawing(name, len(rlist))
     ribbons_drawing.add_drawing(ssp)
     ssp.set_geometry(va, na, ta)
     ssp.vertex_colors = ca
