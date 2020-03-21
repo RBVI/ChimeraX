@@ -94,6 +94,27 @@ class _MyAPI(toolshed.BundleAPI):
             return tool.HelpUI
         return None
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open import OpenerInfo
+        class HelpViewerOpenerInfo(OpenerInfo):
+            def open(self, session, path, file_name, **kw):
+                import os
+                base, ext = os.path.splitext(path)
+                ext, *fragment = ext.split('#')
+                if not fragment:
+                    fragment = ''
+                else:
+                    fragment = fragment[0]
+                    path = path[:-(len(fragment) + 1)]
+                path = os.path.abspath(path)
+                from urllib.parse import urlunparse
+                from urllib.request import pathname2url
+                url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
+                show_url(session, url, new_tab=False)
+                return [], "Opened %s" % file_name
+        return HelpViewerOpenerInfo()
+
 
 def show_url(session, url, *, new_tab=False, html=None):
     if session.ui.is_gui:

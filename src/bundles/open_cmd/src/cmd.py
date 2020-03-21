@@ -94,8 +94,9 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
     databases = set([f[1:] for f in fetches])
     homogeneous = len(formats) +  len(databases) == 1
     if provider_kw and not homogeneous:
-        raise UserError("Cannot provide format/database-specific keywords when opening multiple different"
-            " formats or databases; use several 'open' commands instead.")
+        raise UserError("Cannot provide format/database-specific keywords when opening"
+            " multiple different formats or databases; use several 'open' commands"
+            " instead.")
     opened_models = []
     statuses = []
     if homogeneous:
@@ -106,13 +107,15 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             for ident, database_name, format_name in fetches:
                 if format_name is None:
                     format_name = default_format_name
-                models, status = fetcher_info.fetch(session, ident, format_name, ignore_cache, **provider_kw)
+                models, status = fetcher_info.fetch(session, ident, format_name,
+                    ignore_cache, **provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
                     opened_models.append(name_and_group_models(models, name, [ident]))
         else:
-            opener_info, provider_name, want_path, check_path, batch = mgr.open_info(data_format)
+            opener_info, provider_name, want_path, check_path, batch = mgr.open_info(
+                data_format)
             if batch:
                 paths = [_get_path(mgr, fi.file_name, check_path) for fi in file_infos]
                 models, status = opener_info.open(session, paths, name, **provider_kw)
@@ -131,7 +134,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     if status:
                         statuses.append(status)
                     if models:
-                        opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+                        opened_models.append(name_and_group_models(models, name,
+                            [fi.file_name]))
     else:
         for fi in file_infos:
             opener_info, provider_name, want_path, check_path, batch = mgr.open_info(
@@ -201,7 +205,8 @@ def _fetch_info(mgr, database_name, default_format_name):
 def _get_path(mgr, file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists
     expanded = expanduser(expandvars(file_name))
-    if check_path and not exists(expanded):
+    from chimerax.io import file_system_file_name
+    if check_path and not exists(file_system_file_name(expanded)):
         raise UserError("No such file/path: %s" % file_name)
 
     if check_compression:

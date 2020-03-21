@@ -97,8 +97,8 @@ class OpenManager(ProviderManager):
         for old in _file_formats.keys():
             if old.endswith(" image"):
                 old = old[:-6]
-            elif old.endswith(" session"):
-                old = "session"
+            elif old.startswith("ChimeraX "):
+                old = old[9:]
             elif old == "StereoLithography":
                 old = "STL"
             elif old == "Schrodinger Maestro":

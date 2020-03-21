@@ -77,6 +77,8 @@ class FormatsManager(ProviderManager):
             allow_directory=allow_directory, raise_trigger=False)
 
     def format_from_suffix(self, suffix):
+        if '#' in suffix:
+            suffix = suffix[:suffix.index('#')]
         return self._suffix_to_format.get(suffix, None)
 
     def file_name_to_format(self, file_name):

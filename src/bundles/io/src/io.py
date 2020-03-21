@@ -20,10 +20,12 @@ def open_input(source, encoding=None, *, compression=None):
 	if _is_stream(source):
 		return source
 	mode = 'rt' if encoding else 'rb'
-	compression_type = get_compression_type(source, compression)
+	fs_source = file_system_file_name(source)
+	compression_type = get_compression_type(fs_source, compression)
 	if compression_type:
-		return handle_compression(compression_type, source, mode=mode, encoding=encoding)
-	return open(source, mode, encoding=encoding)
+		return handle_compression(compression_type, fs_source,
+			mode=mode, encoding=encoding)
+	return open(fs_source, mode, encoding=encoding)
 
 def open_output(output, encoding=None, *, compression=None):
 	"""Open output for (possibly compressed) writing.
@@ -33,11 +35,25 @@ def open_output(output, encoding=None, *, compression=None):
 			will be determined off the file name."""
 	if _is_stream(output):
 		return output
-	compression_type = get_compression_type(output, compression)
+	fs_output = file_system_file_name(output)
+	compression_type = get_compression_type(fs_output, compression)
 	mode = 'wt' if encoding else 'wb'
 	if compression_type:
-		return handle_compression(compression_type, output, mode=mode, encoding=encoding)
-	return open(output, mode, encoding=encoding)
+		return handle_compression(compression_type, fs_output,
+			mode=mode, encoding=encoding)
+	return open(fs_output, mode, encoding=encoding)
+
+def file_system_file_name(file_name):
+	try:
+		hash_pos = file_name.rindex('#')
+		dot_pos = file_name.rindex('.')
+	except ValueError:
+		return file_name
+
+	# get real file name for file.html#anchor
+	if dot_pos < hash_pos:
+		return file_name[:hash_pos]
+	return file_name
 
 def _is_stream(source):
 	if isinstance(source, str):

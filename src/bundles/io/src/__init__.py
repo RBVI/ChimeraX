@@ -10,4 +10,4 @@
 # === UCSF ChimeraX Copyright ===
 
 from .compression import remove_compression_suffix, UnwantedCompressionError
-from .io import open_input, open_output
+from .io import open_input, open_output, file_system_file_name
