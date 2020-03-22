@@ -27,6 +27,8 @@ class FetcherInfo:
     def fetch_args(self):
         return {}
 
+from .manager import NoOpenerError
+
 from chimerax.core.toolshed import BundleAPI
 
 class _OpenBundleAPI(BundleAPI):

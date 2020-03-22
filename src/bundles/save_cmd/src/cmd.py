@@ -101,9 +101,9 @@ def file_format(session, file_name, format_name):
         except KeyError:
             raise UserError("Unknown data format: '%s'" % format_name)
 
-    from chimera.data_formats import NoFormatError
+    from chimerax.data_formats import NoFormatError
     try:
-        return session.data_formats.file_name_to_format(file_name)
+        return session.data_formats.save_format_from_file_name(file_name)
     except NoFormatError as e:
         raise UserError(str(e))
 

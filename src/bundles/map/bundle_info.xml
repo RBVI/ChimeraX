@@ -50,7 +50,57 @@
     <Dependency name="ChimeraX-MapData" version=">=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version=">=1.0"/>
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version=">=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version=">=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version=">=1.0"/>
   </Dependencies>
+
+  <Providers manager="open command">
+    <Provider name="Amira mesh" want_path="true" />
+    <Provider name="APBS potential" want_path="true" />
+    <Provider name="BRIX density map" want_path="true" />
+    <Provider name="CCP4 density map" want_path="true" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="BRIX density map" />
+  </Providers>
+<!--
+  def __init__(self, description, name, prefixes, suffixes, *,
+               writable = False, writer_options = (), batch = False, allow_directory = False,
+               check_path = True):
+  MapFileFormat('Amira mesh', 'amira', ['amira'], ['am']),
+  MapFileFormat('APBS potential', 'apbs', ['apbs'], ['dx']),
+  MapFileFormat('BRIX density map', 'dsn6', ['dsn6'], ['brix'], writable = True),
+  MapFileFormat('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map']),
+  MapFileFormat('Chimera map', 'cmap', ['cmap'], ['cmap', 'cmp'], writable = True,
+                writer_options = ('subsamples', 'chunk_shapes', 'append',
+                                  'compress', 'compress_method', 'compress_level', 'compress_shuffle',
+                                  'multigrid')),
+  MapFileFormat('CNS or XPLOR density map', 'xplor', ['xplor'], ['cns','xplor']),
+  MapFileFormat('DelPhi or GRASP potential', 'delphi', ['delphi'], ['phi']),
+  MapFileFormat('DeltaVision map', 'deltavision', ['dv'], ['dv']),
+  MapFileFormat('DSN6 density map', 'dsn6', ['dsn6'], ['omap']),
+  MapFileFormat('DOCK scoring grid', 'dock', ['dock'], ['bmp','cnt','nrg']),
+  MapFileFormat('EMAN HDF map', 'emanhdf', ['emanhdf'], ['hdf', 'hdf5', 'h5']),
+  MapFileFormat('Gaussian cube grid', 'gaussian', ['cube'], ['cube','cub']),
+  MapFileFormat('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt']),
+  MapFileFormat('HDF map', 'hdf', ['hdf'], []),
+  MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True, check_path = False),
+  MapFileFormat('IMAGIC density map', 'imagic', ['imagic'], ['hed', 'img'], writable = True),
+  MapFileFormat('Imaris map', 'ims', ['ims'], ['ims']),
+  MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),
+  MapFileFormat('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp']),
+  MapFileFormat('MRC density map', 'mrc', ['mrc'], ['mrc'], writable = True),
+  MapFileFormat('NetCDF generic array', 'netcdf', ['netcdf'], ['nc']),
+  MapFileFormat('Priism microscope image', 'priism', ['priism'], ['xyzw', 'xyzt']),
+  MapFileFormat('PROFEC free energy grid', 'profec', ['profec'], ['profec']),
+  MapFileFormat('Purdue image format', 'pif', ['pif'], ['pif']),
+  MapFileFormat('SITUS map file', 'situs', ['situs'], ['sit','situs']),
+  MapFileFormat('SPIDER volume data', 'spider', ['spider'], ['spi','vol']),
+  MapFileFormat('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em']),
+  MapFileFormat('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd']),
+-->
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

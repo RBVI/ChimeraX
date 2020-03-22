@@ -23,7 +23,7 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, mime_format=None,
     from chimerax.data_formats import NoFormatError
     use_html = False
     try:
-        nominal_format = session.data_formats.format_from_file_name(basename)
+        nominal_format = session.data_formats.open_format_from_file_name(basename)
     except NoFormatError:
         use_html = True
     else:

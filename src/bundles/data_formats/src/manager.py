@@ -24,7 +24,7 @@ class FormatsManager(ProviderManager):
     def __init__(self, session):
         self.session = session
         self._formats = {}
-        self._suffix_to_format = {}
+        self._suffix_to_formats = {}
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("data formats changed")
@@ -53,12 +53,7 @@ class FormatsManager(ProviderManager):
         data_format = DataFormat(name, category, suffixes, nicknames, mime_types,
             reference_url, insecure, encoding, synopsis, allow_directory)
         for suffix in suffixes:
-            if suffix in self._suffix_to_format:
-                other_name = self._suffix_to_format[suffix].name
-                if name != other_name:
-                    logger.warning("File suffix '%s' for data format %s being replaced by format"
-                        " %s" % (suffix, other_name, name))
-            self._suffix_to_format[suffix] = data_format
+            self._suffix_to_formats.setdefault(suffix, []).append(data_format)
         self._formats[name] = (bundle_info, data_format)
         if raise_trigger:
             self.triggers.activate_trigger("data formats changed", self)
@@ -79,28 +74,23 @@ class FormatsManager(ProviderManager):
             insecure=insecure, encoding=encoding, synopsis=synopsis,
             allow_directory=allow_directory, raise_trigger=False)
 
-    def format_from_suffix(self, suffix):
-        if '#' in suffix:
-            suffix = suffix[:suffix.index('#')]
-        return self._suffix_to_format.get(suffix, None)
+    def open_format_from_suffix(self, suffix):
+        from chimerax.open_cmd import NoOpenerError
+        return self._format_from_suffix(self.session.open_command.open_info,
+            NoOpenerError, suffix)
 
-    def format_from_file_name(self, file_name):
+    def open_format_from_file_name(self, file_name):
         "Return data format based on file_name's suffix, ignoring compression suffixes"
-        if '.' in file_name:
-            from chimerax import io
-            base_name = io.remove_compression_suffix(file_name)
-            try:
-                dot_pos = base_name.rindex('.')
-            except ValueError:
-                raise NoFormatError("'%s' has only compression suffix; cannot determine"
-                    " format from suffix" % file_name)
-            data_format = self.format_from_suffix(base_name[dot_pos:])
-            if not data_format:
-                raise NoFormatError("No known data format for file suffix '%s'"
-                    % base_name[dot_pos:])
-        else:
-            raise NoFormatError("Cannot determine format for '%s'" % file_name)
-        return data_format
+        return self._format_from_filename(self.open_format_from_suffix, file_name)
+
+    def save_format_from_suffix(self, suffix):
+        from chimerax.save_cmd import NoSaverError
+        return self._format_from_suffix(self.session.save_command.save_info,
+            NoSaverError, suffix)
+
+    def save_format_from_file_name(self, file_name):
+        "Return data format based on file_name's suffix, ignoring compression suffixes"
+        return self._format_from_filename(self.save_format_from_suffix, file_name)
 
     @property
     def formats(self):
@@ -121,3 +111,37 @@ class FormatsManager(ProviderManager):
 
     def __len__(self):
         return len(self._formats)
+
+    def _format_from_filename(self, suffix_func, file_name):
+        if '.' in file_name:
+            from chimerax import io
+            base_name = io.remove_compression_suffix(file_name)
+            try:
+                dot_pos = base_name.rindex('.')
+            except ValueError:
+                raise NoFormatError("'%s' has only compression suffix; cannot determine"
+                    " format from suffix" % file_name)
+            data_format = suffix_func(base_name[dot_pos:])
+            if not data_format:
+                raise NoFormatError("No known data format for file suffix '%s'"
+                    % base_name[dot_pos:])
+        else:
+            raise NoFormatError("Cannot determine format for '%s'" % file_name)
+        return data_format
+
+    def _format_from_suffix(self, info_func, error_type, suffix):
+        if '#' in suffix:
+            suffix = suffix[:suffix.index('#')]
+        try:
+            formats = self._suffix_to_formats[suffix]
+        except KeyError:
+            return None
+
+        for fmt in formats:
+            try:
+                info_func(fmt)
+            except error_type:
+                pass
+            else:
+                return fmt
+        return None
