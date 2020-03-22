@@ -128,11 +128,11 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             
         # Compute ribbon triangles
         num_divisions = structure._level_of_detail.ribbon_divisions
-        default_helix_mode = (structure.ribbon_mode_helix == structure.RIBBON_MODE_DEFAULT)
+        flip_modes = _ribbon_flip_modes(structure, is_helix)
         spine = [] if structure.ribbon_show_spine else None
         va,na,ta,vc,tr = _ribbon_geometry(ribbon, num_divisions, residues, non_tube_ranges,
-                                          displays, is_helix, default_helix_mode, need_twist,
-                                          xs_front, xs_back, xs_mgr, spine)
+                                          displays, flip_modes, need_twist,
+                                          xs_front, xs_back, spine)
         if timing:
             geotime += time() - t0
             t0 = time()
@@ -175,6 +175,20 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         print('ribbon times %d polymers %.4g, ranges %.4g, xsect %.4g, smooth %.4g, tube %.4g, spline %.4g, triangles %.4g (segspline %.4g (path %.4g))), makedrawing %.4g, tethers %.4g'
               % (len(polymers), poltime, rangestime, xstime, smootime, tubetime,
                  spltime, geotime, rsegtime, spathtime,  drtime, tethertime))
+
+def _ribbon_flip_modes(structure, is_helix):
+    nres = len(is_helix)
+    if structure.ribbon_mode_helix == structure.RIBBON_MODE_DEFAULT:
+        last = nres - 1
+        flip_modes = [(FLIP_PREVENT if is_helix[i] and (i == last or is_helix[i + 1]) else FLIP_MINIMIZE)
+                      for i in range(nres)]
+        # strands generally flip normals at every residue but
+        # beta bulges violate this rule so we cannot always flip
+        # elif is_strand[i] and is_strand[i + 1]:
+        #     flip_mode = FLIP_FORCE
+    else:
+        flip_modes = [FLIP_MINIMIZE] * nres
+    return flip_modes
 
 #
 # Assign a residue class to each residue and compute the
@@ -347,110 +361,72 @@ def _need_twist(rc0, rc1):
 # Only certain ranges of residues are considered, since tube helix
 # geometry is created by other code.
 def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
-                     is_helix, default_helix_mode,
-                     need_twist, xs_front, xs_back, xs_mgr, spine):
+                     flip_modes, need_twist, xs_front, xs_back, spine):
 
     colors = residues.ribbon_colors
     geometry = TriangleAccumulator()
+    nr = len(residues)
     
     # Odd number of segments gets blending, even has sharp edge
-    nd = num_divisions
-    seg_blend, seg_cap = (nd,nd+1) if nd % 2 == 1 else (nd+1,nd)
+    ndiv = num_divisions
+    ndiv_blend, ndiv_cap = (ndiv,ndiv+1) if ndiv % 2 == 1 else (ndiv+1,ndiv)
 
-    # Draw first and last residue differently because they
-    # are each only a single half segment, while the middle
-    # residues are each two half segments.
+    # Each residue has front and back half with the residue centered in the middle.
+    # The two halfs can have different crosssections, e.g. turn and helix.
+    # At the ends of the polymer the spline is extended to make the first residue
+    # have a front half and the last residue have a back half.
+    # If an interior range is shown only half segments are shown at the ends
+    # since other code (e.g. tube cylinders) will render the other halfs.
     for r0,r1 in ranges:
 
-        # First residue
-        if displays[r0]:
-            xs_compat = xs_mgr.is_compatible(xs_back[r0], xs_front[r0+1])
-            capped = displays[r0] != displays[r0+1] or not xs_compat
-            seg = capped and seg_cap or seg_blend
-            centers, tangents, normals = ribbon.segment(r0, ribbon.FRONT, seg, not need_twist[r0])
-            if r0 == 0:
-                front_c, front_t, front_n = ribbon.lead_segment(seg_cap // 2)
-                from numpy import concatenate
-                centers = concatenate((front_c, centers))
-                tangents = concatenate((front_t, tangents))
-                normals = concatenate((front_n, normals))
-            if spine is not None:
-                _ribbon_update_spine(colors[r0], centers, normals, spine)
-            s = xs_back[r0].extrude(centers, tangents, normals, colors[r0], True, capped, geometry.v_offset)
-            geometry.add_extrusion(s)
-            geometry.add_range(residues[r0])
-            prev_band = s.back_band if displays[r0+1] and xs_compat else None
-        else:
-            capped = True
-            prev_band = None
-
-        # Middle residues
-        for i in range(r0+1, r1):
+        capped = True
+        prev_band = None
+        
+        for i in range(r0, r1+1):
             if not displays[i]:
                 continue
 
             # Back half
-            seg = capped and seg_cap or seg_blend
-            mid_cap = not xs_mgr.is_compatible(xs_front[i], xs_back[i])
-            front_c, front_t, front_n = ribbon.segment(i - 1, ribbon.BACK, seg,
-                                                       mid_cap or not need_twist[i], last=mid_cap)
-            if spine is not None:
-                _ribbon_update_spine(colors[i], front_c, front_n, spine)
+            if i > r0 or i == 0:
+                div = ndiv_cap if capped else ndiv_blend
+                mid_cap = (xs_front[i] != xs_back[i])
+                front_c, front_t, front_n = ribbon.segment(i - 1, Ribbon.BACK, div,
+                                                           mid_cap or not need_twist[i], last=mid_cap)
+                if spine is not None:
+                    _ribbon_update_spine(colors[i], front_c, front_n, spine)
 
-            xs_compat = xs_mgr.is_compatible(xs_back[i], xs_front[i + 1])
-            next_cap = displays[i] != displays[i + 1] or not xs_compat
-            sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
-                                       capped, mid_cap, geometry.v_offset)
-            geometry.add_extrusion(sf)
-            if prev_band is not None:
-                tjoin = xs_front[i].blend(prev_band, sf.front_band)
-                geometry.add_triangles(tjoin)
+                sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
+                                         capped, mid_cap, geometry.v_offset)
+                geometry.add_extrusion(sf)
+
+                if prev_band is not None:
+                    tjoin = xs_front[i].blend(prev_band, sf.front_band)
+                    geometry.add_triangles(tjoin)
 
             # Front half
-            seg = next_cap and seg_cap or seg_blend
-            flip_mode = FLIP_MINIMIZE
-            if default_helix_mode and is_helix[i] and is_helix[i + 1]:
-                flip_mode = FLIP_PREVENT
-            # strands generally flip normals at every residue but
-            # beta bulges violate this rule so we cannot always flip
-            # elif is_strand[i] and is_strand[i + 1]:
-            #     flip_mode = FLIP_FORCE
-            back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, seg, not need_twist[i],
-                                                    flip_mode=flip_mode)
-            if spine is not None:
-                _ribbon_update_spine(colors[i], back_c, back_n, spine)
+            if i < r1 or i == nr-1:
+                if i == nr-1:
+                    next_cap = True
+                else:
+                    next_cap = (displays[i] != displays[i + 1] or xs_back[i] != xs_front[i + 1])
+                div = ndiv_cap if next_cap else ndiv_blend
+                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, div, not need_twist[i],
+                                                        flip_mode=flip_modes[i])
+                if spine is not None:
+                    _ribbon_update_spine(colors[i], back_c, back_n, spine)
 
-            sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
-                                       mid_cap, next_cap, geometry.v_offset)
-            geometry.add_extrusion(sb)
-            if not mid_cap:
-                tjoin = xs_back[i].blend(sf.back_band, sb.front_band)
-                geometry.add_triangles(tjoin)
-            prev_band = None if next_cap else sb.back_band
+                sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
+                                        mid_cap, next_cap, geometry.v_offset)
+                geometry.add_extrusion(sb)
 
-            capped = next_cap
+                if not mid_cap:
+                    tjoin = xs_back[i].blend(sf.back_band, sb.front_band)
+                    geometry.add_triangles(tjoin)
+
+                prev_band = None if next_cap else sb.back_band
+                capped = next_cap
+
             geometry.add_range(residues[i])
-
-        # Last residue
-        if displays[r1]:
-            seg = capped and seg_cap or seg_blend
-            centers, tangents, normals = ribbon.segment(r1 - 1, ribbon.BACK, seg, True)
-            if r1 == len(residues)-1:
-                back_c, back_t, back_n = ribbon.trail_segment(seg_cap // 2)
-                from numpy import concatenate
-                centers = concatenate((centers, back_c))
-                tangents = concatenate((tangents, back_t))
-                normals = concatenate((normals, back_n))
-            if spine is not None:
-                _ribbon_update_spine(colors[r1], centers, normals, spine)
-
-            s = xs_front[r1].extrude(centers, tangents, normals, colors[r1],
-                                     capped, True, geometry.v_offset)
-            geometry.add_extrusion(s)
-            if prev_band is not None:
-                tjoin = xs_front[r1].blend(prev_band, s.front_band)
-                geometry.add_triangles(tjoin)
-            geometry.add_range(residues[r1])
 
     va, na, vc, ta = geometry.vertex_normal_color_triangle_arrays()
 
@@ -1739,6 +1715,12 @@ class Ribbon:
                 flip_mode=FLIP_MINIMIZE, prev_normal=None, last=False):
         if timing:
             t0 = time()
+
+        if seg == -1 and side == Ribbon.BACK:
+            return self.lead_segment(divisions // 2)
+        elif seg == self.num_segments and side == Ribbon.FRONT:
+            return self.trail_segment(divisions // 2)
+
         if seg in self._seg_cache:
             coords, tangents, normals = self._seg_cache[seg]
         else:
