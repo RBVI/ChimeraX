@@ -194,7 +194,7 @@ Residue::session_restore(int version, int** ints, float** floats)
             _ss_type = SS_STRAND;
         _ribbon_display = int_ptr[5];
         _ribbon_hide_backbone = int_ptr[6];
-        _ribbon_selected = int_ptr[7];
+	// int_ptr[7] unused ribbon selected
         _ss_id = int_ptr[8];
         num_atoms = int_ptr[9];
     } else if (version < 10) {
@@ -202,7 +202,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         // was is_het
         _ribbon_display = int_ptr[3];
         _ribbon_hide_backbone = int_ptr[4];
-        _ribbon_selected = int_ptr[5];
+        // int_ptr[5] unused ribbon selected
         _ss_id = int_ptr[6];
         _ss_type = (SSType)int_ptr[7];
         num_atoms = int_ptr[8];
@@ -211,7 +211,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         // was is_het
         _ribbon_display = int_ptr[2];
         _ribbon_hide_backbone = int_ptr[3];
-        _ribbon_selected = int_ptr[4];
+        // int_ptr[4] unused ribbon selected
         _ss_id = int_ptr[5];
         _ss_type = (SSType)int_ptr[6];
         num_atoms = int_ptr[7];
@@ -219,7 +219,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         _alt_loc = int_ptr[0];
         _ribbon_display = int_ptr[1];
         _ribbon_hide_backbone = int_ptr[2];
-        _ribbon_selected = int_ptr[3];
+        // int_ptr[3] unused ribbon selected
         _ss_id = int_ptr[4];
         _ss_type = (SSType)int_ptr[5];
         num_atoms = int_ptr[6];
@@ -227,7 +227,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         _alt_loc = int_ptr[0];
         _ribbon_display = int_ptr[1];
         _ribbon_hide_backbone = int_ptr[2];
-        _ribbon_selected = int_ptr[3];
+        // int_ptr[3] unused ribbon selected
         _ss_id = int_ptr[4];
         _ss_type = (SSType)int_ptr[5];
         _ring_display = int_ptr[6];
@@ -257,7 +257,7 @@ Residue::session_save(int** ints, float** floats) const
     int_ptr[0] = (int)_alt_loc;
     int_ptr[1] = (int)_ribbon_display;
     int_ptr[2] = (int)_ribbon_hide_backbone;
-    int_ptr[3] = (int)_ribbon_selected;
+    int_ptr[3] = 0; // Unused, former ribbon selected
     int_ptr[4] = (int)_ss_id;
     int_ptr[5] = (int)_ss_type;
     int_ptr[6] = (int)_ring_display;
@@ -411,16 +411,6 @@ Residue::template_assign(void (Atom::*assign_func)(const char*),
         }
     }
     return assigned;
-}
-
-void
-Residue::set_ribbon_selected(bool s)
-{
-    if (s == _ribbon_selected)
-        return;
-    _structure->set_gc_select();
-    change_tracker()->add_modified(_structure, this, ChangeTracker::REASON_SELECTED);
-    _ribbon_selected = s;
 }
 
 }  // namespace atomstruct

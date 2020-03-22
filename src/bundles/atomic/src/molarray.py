@@ -1226,16 +1226,6 @@ class Residues(Collection):
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
-    @property
-    def ribbon_num_selected(self):
-        "Number of selected residue ribbons."
-        f = c_function('residue_ribbon_num_selected',
-                       args = [ctypes.c_void_p, ctypes.c_size_t],
-                       ret = ctypes.c_size_t)
-        return f(self._c_pointers, len(self))
-    ribbon_selected = cvec_property('residue_ribbon_selected', npy_bool,
-        doc="numpy bool array whether each Residue ribbon is selected.")
-
     def set_alt_locs(self, loc):
         if isinstance(loc, str):
             loc = loc.encode('utf-8')
