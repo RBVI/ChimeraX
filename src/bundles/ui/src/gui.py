@@ -116,7 +116,10 @@ class UI(QApplication):
         import PyQt5.QtWebEngineWidgets
 
         import sys
-        QApplication.__init__(self, [sys.argv[0]])
+        app_name = sys.argv[0]
+        if app_name.endswith("_main.py"):
+            app_name = app_name[:-len("_main.py")]
+        QApplication.__init__(self, [app_name])
 
         # Improve toolbar icon quality on retina displays
         from PyQt5.QtCore import Qt
