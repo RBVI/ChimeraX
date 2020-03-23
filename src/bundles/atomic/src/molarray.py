@@ -1125,6 +1125,8 @@ class Residues(Collection):
     has a unique integer id.  The ids depend on the collection of residues on the fly and are
     not persistent. Read only.
     ''')
+    selected = cvec_property('residue_selected', npy_bool, read_only = True,
+        doc="numpy bool array whether any Atom in each Residue is selected. Read only.")
     ss_ids = cvec_property('residue_ss_id', int32, doc =
     '''
     A :mod:`numpy` array of integer secondary structure IDs, determined by the input file.
@@ -1223,16 +1225,6 @@ class Residues(Collection):
         f = c_function('residue_ribbon_clear_hide',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
-
-    @property
-    def ribbon_num_selected(self):
-        "Number of selected residue ribbons."
-        f = c_function('residue_ribbon_num_selected',
-                       args = [ctypes.c_void_p, ctypes.c_size_t],
-                       ret = ctypes.c_size_t)
-        return f(self._c_pointers, len(self))
-    ribbon_selected = cvec_property('residue_ribbon_selected', npy_bool,
-        doc="numpy bool array whether each Residue ribbon is selected.")
 
     def set_alt_locs(self, loc):
         if isinstance(loc, str):

@@ -1335,6 +1335,12 @@ cdef class CyResidue:
         self.cpp_res.set_ring_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
+    def selected(self):
+        "Supported API. Whether any atom in the residue is selected."
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        return self.cpp_res.selected()
+
+    @property
     def standard_aa_name(self):
         '''If this is a standard amino acid or modified amino acid, return the 3-letter
         name of the corresponding standard amino acid.  Otherwise return None.  The

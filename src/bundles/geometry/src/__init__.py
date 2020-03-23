@@ -21,7 +21,7 @@ from .vector import clip_segment
 from .matrix import linear_combination
 from .bounds import sphere_bounds, union_bounds, Bounds, point_bounds
 from .bounds import copies_bounding_box, copy_tree_bounds, clip_bounds
-from ._geometry import natural_cubic_spline
+from ._geometry import natural_cubic_spline, cubic_path
 from ._geometry import sphere_axes_bounds, spheres_in_bounds, bounds_overlap
 from ._geometry import find_close_points, find_closest_points, find_close_points_sets
 from ._geometry import closest_sphere_intercept, closest_cylinder_intercept, closest_triangle_intercept

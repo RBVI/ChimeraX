@@ -12,7 +12,7 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp
+SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp ribbon_cpp
 
 include $(TOP)/mk/subdir.make
 
