@@ -20,8 +20,6 @@
 #include <arrays/pythonarray.h>		// use parse_uint8_n_array()
 #include <arrays/rcarray.h>		// use CArray
 
-#define DEBUG_CONSTRAINED_NORMALS   0
-
 #define FLIP_MINIMIZE   0
 #define FLIP_PREVENT    1
 #define FLIP_FORCE      2
@@ -110,158 +108,76 @@ inline float delta_to_angle(float twist, float f)
     return (1.0 / (1 + exp(-8.0 * (f - 0.5)))) * twist;
 }
 
-#if DEBUG_CONSTRAINED_NORMALS > 0
-inline float rad2deg(float r)
+static void smooth_twist(float *tangents, int num_pts, float *normals, float *n_end)
 {
-    return 180.0 / M_PI * r;
-}
-#endif
-
-static void constrained_normals(float *tangents, int num_pts, float *n_start, float *n_end,
-				int flip_mode, bool start_flipped, bool end_flipped, bool no_twist,
-				float *normals, bool *return_need_flip)
-{
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "constrained_normals\n";
-#endif
-    // Convert Python objects to arrays and pointers
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "n_start" << ' ' << n_start[0] << ' ' << n_start[1] << ' ' << n_start[2] << '\n';
-    std::cerr << "n_end" << ' ' << n_end[0] << ' ' << n_end[1] << ' ' << n_end[2] << '\n';
-    std::cerr << "start inner: " << inner(n_start, tangents)
-        << " end inner: " << inner(n_end, tangents + num_pts * 3) << '\n';
-#if DEBUG_CONSTRAINED_NORMALS > 1
-    std::cerr << "tangents\n";
-    for (int i = 0; i != num_pts; ++i) {
-        float *tp = tangents + i * 3;
-        std::cerr << "  " << i << ' ' << tp[0] << ' ' << tp[1] << ' ' << tp[2] << '\n';
-    }
-#endif
-#endif
-    _parallel_transport_normals(num_pts, tangents, n_start, normals);
-#if DEBUG_CONSTRAINED_NORMALS > 1
-    std::cerr << "returned from _parallel_transport_normals\n";
-    for (int i = 0; i != num_pts; ++i) {
-        float *np = normals + i * 3;
-        std::cerr << "  " << i << ' ' << np[0] << ' ' << np[1] << ' ' << np[2] << '\n';
-    }
-#endif
-    // Then figure out what twist is needed to make the
+    // Figure out what twist is needed to make the
     // ribbon end up with the desired ending normal
     float* n = normals + (num_pts - 1) * 3;
-    float other_end[3] = { n_end[0], n_end[1], n_end[2] };
-    float twist = 0;
-    bool need_flip = false;
-    if (!no_twist) {
-        twist = acos(inner(n, n_end));
-        if (std::isnan(twist))
-            twist = 0;
-#if DEBUG_CONSTRAINED_NORMALS > 0
-        std::cerr << "initial twist " << rad2deg(twist) << " degrees, sqlen(n): "
-            << inner(n, n) << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
-#endif
-        // Now we figure out whether to flip the ribbon or not
-        if (flip_mode == FLIP_MINIMIZE) {
-            // If twist is greater than 90 degrees, turn the opposite
-            // direction.  (Assumes that ribbons are symmetric.)
-            if (twist > 0.6 * M_PI)
-            // if (twist > M_PI / 2)
-                need_flip = true;
-        } else if (flip_mode == FLIP_PREVENT) {
-            // Make end_flip the same as start_flip
-            if (end_flipped != start_flipped)
-                need_flip = true;
-        } else if (flip_mode == FLIP_FORCE) {
-            // Make end_flip the opposite of start_flip
-            if (end_flipped == start_flipped)
-                need_flip = true;
-        }
-#if DEBUG_CONSTRAINED_NORMALS > 0
-        std::cerr << "flip_mode: " << flip_mode << " start_flipped: " << start_flipped
-                  << " end_flipped: " << end_flipped << " need_flip: " << need_flip << '\n';
-#endif
-        if (need_flip) {
-#if DEBUG_CONSTRAINED_NORMALS > 0
-            std::cerr << "flipped twist " << rad2deg(twist) << " degrees, sqlen(n): " << inner(n, n)
-                      << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
-#endif
-            for (int i = 0; i != 3; ++i)
-                other_end[i] = -n_end[i];
-            twist = acos(inner(n, other_end));
-        }
-        // Figure out direction of twist (right-hand rule)
-        float *last_tangent = tangents + (num_pts - 1) * 3;
-        float tmp[3];
-        if (inner(cross(n, other_end, tmp), last_tangent) < 0)
-            twist = -twist;
-    }
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "final twist " << rad2deg(twist) << " degrees, need_flip " << need_flip << "\n";
-#endif
+    float twist = acos(inner(n, n_end));
+    if (std::isnan(twist))
+      twist = 0;
+    
+    // Figure out direction of twist (right-hand rule)
+    float *last_tangent = tangents + (num_pts - 1) * 3;
+    float tmp[3];
+    if (inner(cross(n, n_end, tmp), last_tangent) < 0)
+      twist = -twist;
+
     // Compute fraction per step
     float delta = 1.0 / (num_pts - 1);
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "per step delta " << delta << "\n";
-#endif
+
     // Apply twist to each normal along path
     for (int i = 1; i != num_pts; ++i) {
         int offset = i * 3;
         float angle = delta_to_angle(twist, i * delta);
         float c = cos(angle);
         float s = sin(angle);
-#if DEBUG_CONSTRAINED_NORMALS > 1
-        float before = inner(tangents + offset, normals + offset);
-        std::cerr << "twist " << i << " angle " << angle << " -> ";
-#endif
         _rotate_around(tangents + offset, c, s, normals + offset);
-#if DEBUG_CONSTRAINED_NORMALS > 1
-        float after = inner(tangents + offset, normals + offset);
-        float* n = normals + offset;
-        std::cerr << n[0] << ' ' << n[1] << ' ' << n[2]
-            << " before/after: " << before << ' ' << after << '\n';
-#endif
     }
-#if DEBUG_CONSTRAINED_NORMALS > 1
-    float *last_n = normals + (num_pts - 1) * 3;
-    std::cerr << "check: last n: " << last_n[0] << ' ' << last_n[1] << ' ' << last_n[2]
-            << " other_end: " << other_end[0] << ' ' << other_end[1] << ' ' << other_end[2]
-            << " dot: " << inner(last_n, other_end) << '\n';
-#endif
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    if (fabs(inner(normals + (num_pts - 1) * 3, other_end)) < (1 - 1e-2))
-        std::cerr << "***** WRONG ROTATION *****\n";
-#endif
-
-    *return_need_flip = need_flip;
 }
 
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-ribbon_constrained_normals(PyObject *, PyObject *args, PyObject *keywds)
+smooth_twist(PyObject *, PyObject *args, PyObject *keywds)
 {
-  FArray tangents;
-  float start_normal[3], end_normal[3];
-  int flip_mode;
-  int start_flipped, end_flipped, no_twist; // bool values
-  const char *kwlist[] = {"tangents", "start_normal", "end_normal",
-			  "flip_mode", "start_flipped", "end_flipped", "no_twist", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&ippp"),
+  FArray tangents, normals;
+  float end_normal[3];
+  const char *kwlist[] = {"tangents", "normals", "end_normal", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
 				   (char **)kwlist,
 				   parse_float_n3_array, &tangents,
-				   parse_float_3_array, &start_normal[0],
-				   parse_float_3_array, &end_normal[0],
-				   &flip_mode, &start_flipped, &end_flipped, &no_twist))
+				   parse_writable_float_n3_array, &normals,
+				   parse_float_3_array, &end_normal[0]))
+
     return NULL;
 
   FArray tang = tangents.contiguous_array();
-  bool need_flip = false;
+  int num_pts = tang.size(0);
+  smooth_twist(tang.values(), num_pts, normals.values(), &end_normal[0]);
+
+  return python_none();
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+parallel_transport(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray tangents;
+  float start_normal[3];
+  const char *kwlist[] = {"tangents", "start_normal", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &tangents,
+				   parse_float_3_array, &start_normal[0]))
+    return NULL;
+
+  FArray tang = tangents.contiguous_array();
   float *normals = NULL;
   int num_pts = tang.size(0);
   PyObject *py_normals = python_float_array(num_pts, 3, &normals);
-  constrained_normals(tang.values(), num_pts, &start_normal[0], &end_normal[0],
-		      flip_mode, start_flipped, end_flipped, no_twist,
-		      normals, &need_flip);
+  _parallel_transport_normals(num_pts, tang.values(), start_normal, normals);
 
-  return python_tuple(py_normals, python_bool(need_flip));
+  return py_normals;
 }

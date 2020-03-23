@@ -22,7 +22,9 @@
 static struct PyMethodDef ribbons_cpp_methods[] =
 {
   /* normals.h */
-  {const_cast<char*>("ribbon_constrained_normals"), (PyCFunction)ribbon_constrained_normals,
+  {const_cast<char*>("parallel_transport"), (PyCFunction)parallel_transport,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("smooth_twist"), (PyCFunction)smooth_twist,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}

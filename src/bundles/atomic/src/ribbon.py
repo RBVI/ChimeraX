@@ -87,7 +87,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
         # Assign front and back cross sections for each residue.
         xs_mgr = structure.ribbon_xs_mgr
-        xs_front, xs_back, need_twist = \
+        xs_front, xs_back, smooth_twist = \
             _ribbon_crosssections(res_class, xs_mgr, is_helix, arc_helix)
 
         if timing:
@@ -131,7 +131,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         flip_modes = _ribbon_flip_modes(structure, is_helix)
         spine = [] if structure.ribbon_show_spine else None
         va,na,ta,vc,tr = _ribbon_geometry(ribbon, num_divisions, residues, non_tube_ranges,
-                                          displays, flip_modes, need_twist,
+                                          displays, flip_modes, smooth_twist,
                                           xs_front, xs_back, spine)
         if timing:
             geotime += time() - t0
@@ -319,7 +319,7 @@ def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix):
     # odd when it is only for half a residue
     xs_front = []
     xs_back = []
-    need_twist = []
+    smooth_twist = []
     rc0 = XSectionManager.RC_COIL
     nr = len(res_class)
     for i in range(nr):
@@ -331,7 +331,7 @@ def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix):
         f, b = ribbon_xs_mgr.assign(rc0, rc1, rc2)
         xs_front.append(f)
         xs_back.append(b)
-        need_twist.append(_need_twist(rc1, rc2))
+        smooth_twist.append(_smooth_twist(rc1, rc2))
         rc0 = rc1
     if arc_helix:
         for i in range(nr):
@@ -342,11 +342,12 @@ def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix):
                 xs_front[i] = ribbon_xs_mgr.xs_coil
             elif rc == XSectionManager.RC_HELIX_END:
                 xs_back[i] = ribbon_xs_mgr.xs_coil
-    need_twist[-1] = False
-    return xs_front, xs_back, need_twist
+    smooth_twist[-1] = False
+    return xs_front, xs_back, smooth_twist
 
-def _need_twist(rc0, rc1):
-    # Determine if we need to twist ribbon smoothly from rc0 to rc1
+def _smooth_twist(rc0, rc1):
+    # Determine if we need to twist ribbon smoothly from crosssection rc0 to rc1.
+    # Twist smoothly within helices or sheets.
     if rc0 == rc1:
         return True
     if rc0 in XSectionManager.RC_ANY_SHEET and rc1 in XSectionManager.RC_ANY_SHEET:
@@ -361,7 +362,7 @@ def _need_twist(rc0, rc1):
 # Only certain ranges of residues are considered, since tube helix
 # geometry is created by other code.
 def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
-                     flip_modes, need_twist, xs_front, xs_back, spine):
+                     flip_modes, smooth_twist, xs_front, xs_back, spine):
 
     colors = residues.ribbon_colors
     geometry = TriangleAccumulator()
@@ -371,10 +372,11 @@ def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
     ndiv = num_divisions
     ndiv_blend, ndiv_cap = (ndiv,ndiv+1) if ndiv % 2 == 1 else (ndiv+1,ndiv)
 
-    # Each residue has front and back half with the residue centered in the middle.
+    # Each residue has left and right half (also called front and back)
+    # with the residue centered in the middle.
     # The two halfs can have different crosssections, e.g. turn and helix.
     # At the ends of the polymer the spline is extended to make the first residue
-    # have a front half and the last residue have a back half.
+    # have a left half and the last residue have a right half.
     # If an interior range is shown only half segments are shown at the ends
     # since other code (e.g. tube cylinders) will render the other halfs.
     for r0,r1 in ranges:
@@ -386,12 +388,12 @@ def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
             if not displays[i]:
                 continue
 
-            # Back half
+            # Left half
             if i > r0 or i == 0:
                 div = ndiv_cap if capped else ndiv_blend
                 mid_cap = (xs_front[i] != xs_back[i])
-                front_c, front_t, front_n = ribbon.segment(i - 1, Ribbon.BACK, div,
-                                                           mid_cap or not need_twist[i], last=mid_cap)
+                front_c, front_t, front_n = ribbon.segment(i - 1, Ribbon.SECOND_HALF, div,
+                                                           not mid_cap and smooth_twist[i], last=mid_cap)
                 if spine is not None:
                     _ribbon_update_spine(colors[i], front_c, front_n, spine)
 
@@ -403,15 +405,15 @@ def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
                     tjoin = xs_front[i].blend(prev_band, sf.front_band)
                     geometry.add_triangles(tjoin)
 
-            # Front half
+            # Right half
             if i < r1 or i == nr-1:
                 if i == nr-1:
                     next_cap = True
                 else:
                     next_cap = (displays[i] != displays[i + 1] or xs_back[i] != xs_front[i + 1])
                 div = ndiv_cap if next_cap else ndiv_blend
-                back_c, back_t, back_n = ribbon.segment(i, ribbon.FRONT, div, not need_twist[i],
-                                                        flip_mode=flip_modes[i])
+                back_c, back_t, back_n = ribbon.segment(i, Ribbon.FIRST_HALF, div,
+                                                        smooth_twist[i], flip_mode=flip_modes[i])
                 if spine is not None:
                     _ribbon_update_spine(colors[i], back_c, back_n, spine)
 
@@ -1367,8 +1369,8 @@ def _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2):
 
 class Ribbon:
 
-    FRONT = 1
-    BACK = 2
+    FIRST_HALF = 1
+    SECOND_HALF = 2
 
     def __init__(self, coords, guides, orients, use_spline_normals):
         # Extend the coordinates at start and end to make sure the
@@ -1711,14 +1713,14 @@ class Ribbon:
                    zc[1] + 2 * zc[2] + 3 * zc[3]))
         return normalize_vector_array(array(t))
 
-    def segment(self, seg, side, divisions, no_twist,
+    def segment(self, seg, side, divisions, smooth_twist,
                 flip_mode=FLIP_MINIMIZE, prev_normal=None, last=False):
         if timing:
             t0 = time()
 
-        if seg == -1 and side == Ribbon.BACK:
+        if seg == -1 and side == Ribbon.SECOND_HALF:
             return self.lead_segment(divisions // 2)
-        elif seg == self.num_segments and side == Ribbon.FRONT:
+        elif seg == self.num_segments and side == Ribbon.FIRST_HALF:
             return self.trail_segment(divisions // 2)
 
         if seg in self._seg_cache:
@@ -1745,23 +1747,25 @@ class Ribbon:
                 normals = normalize_vector_array(xyz - coords)
                 #NO
             else:
-                if self.ignore_flip_mode[seg]:
-                    flip_mode = FLIP_MINIMIZE
-                from ._ribbons import ribbon_constrained_normals as constrained_normals
-                normals, flipped = constrained_normals(tangents,
-                                                       self.normals[seg], self.normals[seg + 1],
-                                                       flip_mode,
-                                                       self.flipped[seg], self.flipped[seg + 1],
-                                                       no_twist)
-                if flipped:
-                    self.flipped[seg + 1] = not self.flipped[seg + 1]
-                    self.normals[seg + 1] = -self.normals[seg + 1]
+                from ._ribbons import parallel_transport
+                normals = parallel_transport(tangents, self.normals[seg])
+                if smooth_twist:
+                    if self.ignore_flip_mode[seg]:
+                        flip_mode = FLIP_MINIMIZE
+                    end_normal = self.normals[seg + 1]
+                    flip = _flip_end_normal(normals[-1], end_normal,
+                                            flip_mode, self.flipped[seg], self.flipped[seg + 1])
+                    if flip:
+                        self.normals[seg + 1] = end_normal = -self.normals[seg + 1]
+                        self.flipped[seg + 1] = not self.flipped[seg + 1]
+                    from ._ribbons import smooth_twist as twist_normals
+                    twist_normals(tangents, normals, end_normal)
 
             #normals = curvature_to_normals(curvature, tangents, prev_normal)
             self._seg_cache[seg] = (coords, tangents, normals)
 
         # divisions = number of segments = number of vertices + 1
-        if side is self.FRONT:
+        if side is self.FIRST_HALF:
             start = 0
             end = (divisions // 2) + 1
         else:
@@ -1785,8 +1789,8 @@ class Ribbon:
         step = 0.5 / (divisions + 1)
         coords, tangents = _spline_segment_path(coeffs, -0.3, -step, divisions)
         n = self.normals[0]
-        from ._ribbons import ribbon_constrained_normals as constrained_normals
-        normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False, True)
+        from ._ribbons import parallel_transport
+        normals = parallel_transport(tangents, n)
         #normals = curvature_to_normals(curvature, tangents, None)
         return coords, tangents, normals
 
@@ -1799,8 +1803,8 @@ class Ribbon:
         step = 0.5 / (divisions + 1)
         coords, tangents = _spline_segment_path(coeffs, 1 + step, 1.3, divisions)
         n = self.normals[-1]
-        from ._ribbons import ribbon_constrained_normals as constrained_normals
-        normals, flipped = constrained_normals(tangents, n, n, FLIP_MINIMIZE, False, False, True)
+        from ._ribbons import parallel_transport
+        normals = parallel_transport(tangents, n)
         #normals = curvature_to_normals(curvature, tangents, prev_normal)
         return coords, tangents, normals
 
@@ -1811,6 +1815,27 @@ class Ribbon:
         st = array([1.0, t, t*t, t*t*t])
         return array([dot(st, coeffs[0]), dot(st, coeffs[1]), dot(st, coeffs[2])])
 
+# Decide whether to flip the spline segment end normal so that it aligns better with
+# the parallel transported normal.
+def _flip_end_normal(transported_normal, end_normal, flip_mode, start_flipped, end_flipped):
+
+    if flip_mode == FLIP_MINIMIZE:
+        # If twist is greater than 90 degrees, turn the opposite
+        # direction.  (Assumes that ribbons are symmetric.)
+        from chimerax.geometry import angle
+        a = angle(transported_normal, end_normal)
+        # flip = (a > 90)
+        flip = (a > 108)	# Not sure why this is not 90.
+    elif flip_mode == FLIP_PREVENT:
+        # Make end_flip the same as start_flip
+        flip = (end_flipped != start_flipped)
+    elif flip_mode == FLIP_FORCE:
+        # Make end_flip the opposite of start_flip
+        flip = (end_flipped == start_flipped)
+    else:
+        flip = False
+
+    return flip
 
 from chimerax.core.state import State
 
