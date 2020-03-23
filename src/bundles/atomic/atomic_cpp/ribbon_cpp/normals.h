@@ -22,12 +22,19 @@
 
 extern "C"
 {
+//
+// Modify array of normals by rotating around tangents along path so that
+// final normal aligns with end_normal.
+//  
+// smooth_twist(tangents, normals, end_normal)
+//
+PyObject *smooth_twist(PyObject *s, PyObject *args, PyObject *keywds);
 
-// ribbon_constrained_normals(tangents, start_normal, end_normal,
-//                            flip_mode, start_flipped, end_flipped, no_twist)
-//   -> (normals, need_flip)
-PyObject *ribbon_constrained_normals(PyObject *s, PyObject *args, PyObject *keywds);
+// parallel_transport(tangents, normal) -> normals
+PyObject *parallel_transport(PyObject *s, PyObject *args, PyObject *keywds);  
 
+// dihedral_angle(u, v, t) -> angle in radians
+PyObject *dihedral_angle(PyObject *s, PyObject *args, PyObject *keywds);  
 }
 
 #endif

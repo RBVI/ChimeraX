@@ -78,6 +78,7 @@ cdef extern from "<atomstruct/Residue.h>" namespace "atomstruct":
         bool ribbon_hide_backbone()
         const Rgba&  ring_color()
         bool  ring_display()
+        bool selected()
         bool  thin_rings()
         void set_alt_loc(char) except +
         void set_insertion_code(char)

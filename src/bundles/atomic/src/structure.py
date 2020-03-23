@@ -557,18 +557,23 @@ class Structure(Model, StructureData):
 
     def _update_ribbon_graphics(self, changes = StructureData._ALL_CHANGE):
         # Ribbon is recomputed when needed by _create_ribbon_graphics()
-        # Only selection is updated here.
-        from . import ribbon
-        ribbon.update_ribbon_selection(self, self._ribbons_drawing)
+        # Only selection and color is updated here.
+
+        rd = self._ribbons_drawing
+        if rd is None:
+            return
+        
+        if changes & (self._SELECT_CHANGE | self._RIBBON_CHANGE):
+            rd.update_ribbon_highlight(self)
 
         if changes & self._COLOR_CHANGE and not (changes & self._RIBBON_CHANGE):
-            ribbon.update_ribbon_colors(self, self._ribbons_drawing)
+            rd.update_ribbon_colors(self)
 
     def ribbon_coord(self, a):
         rd = self._ribbons_drawing
         if rd is None:
             raise KeyError(str(a))
-        return rd.ribbon_spline_backbone[a]
+        return rd.ribbon_spline_position(a)
 
     def _update_ribbon_tethers(self):
         rd = self._ribbons_drawing
@@ -706,7 +711,6 @@ class Structure(Model, StructureData):
         self.selected = False
         self.atoms.selected = False
         self.bonds.selected = False
-        self.residues.ribbon_selected = False
         super().clear_selection()
 
     def selection_promotion(self):
