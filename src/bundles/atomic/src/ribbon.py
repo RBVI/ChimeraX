@@ -1372,7 +1372,6 @@ class Ribbon:
         # coefficients for each axis.  Then throw away the
         # coefficients for the fake ends.
 
-        self._flip_modes = flip_modes
         self._smooth_twist = smooth_twist
         self._segment_divisions = segment_divisions
         self._use_spline_normals = use_spline_normals
@@ -1454,9 +1453,16 @@ class Ribbon:
             #3 self.other_normal_spline = CubicSpline(x, y2)
             #3
         else:
-            self.ignore_flip_mode = ones(len(self.normals))
+            # Only use flip_modes where guides are missing.
+            # Currently flip modes other than FLIP_MINIMIZE is
+            # used only for nucleic acids missing guide atoms.
             if guide_normals is not None and not guide_flip:
-                self.ignore_flip_mode[guide_mask] = False
+                fmodes = [(fmode if g else FLIP_MINIMIZE)
+                          for fmode,g in zip(flip_modes, guide_mask)]
+            else:
+                fmodes = [FLIP_MINIMIZE] * len(flip_modes)
+            self._flip_modes = fmodes
+
         # Initialize segment cache
         self._seg_cache = {}
 
@@ -1758,12 +1764,9 @@ class Ribbon:
                 from ._ribbons import parallel_transport
                 normals = parallel_transport(tangents, self.normals[seg])
                 if self._smooth_twist[seg]:
-                    # Currently always ignore flip mode except with nucleic a acids missing guide atoms.
-                    # So flip mode is almost always flip minimize for all residues.
-                    flip_mode = FLIP_MINIMIZE if self.ignore_flip_mode[seg] else self._flip_mode[seg]
                     end_normal = self.normals[seg + 1]
                     flip = _flip_end_normal(normals[-1], end_normal, tangents[-1],
-                                            flip_mode, self.flipped[seg], self.flipped[seg + 1])
+                                            self._flip_modes[seg], self.flipped[seg], self.flipped[seg + 1])
                     if flip:
                         self.normals[seg + 1] = end_normal = -self.normals[seg + 1]
                         self.flipped[seg + 1] = not self.flipped[seg + 1]
