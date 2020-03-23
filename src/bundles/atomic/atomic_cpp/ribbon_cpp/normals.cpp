@@ -16,6 +16,7 @@
 // Need _USE_MATH_DEFINES on Windows to get M_PI from cmath
 #define _USE_MATH_DEFINES
 #include <cmath>			// use std:isnan()
+#include <iostream>
 
 #include <arrays/pythonarray.h>		// use parse_uint8_n_array()
 #include <arrays/rcarray.h>		// use CArray
@@ -29,12 +30,28 @@ inline float inner(const float* u, const float* v)
     return u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
 }
 
+inline float norm(const float* u)
+{
+    return sqrtf(inner(u,u));
+}
+
 inline float* cross(const float* u, const float* v, float* result)
 {
     result[0] = u[1]*v[2] - u[2]*v[1];
     result[1] = u[2]*v[0] - u[0]*v[2];
     result[2] = u[0]*v[1] - u[1]*v[0];
     return result;
+}
+
+inline float dihedral_angle(const float *u, const float *v, const float *t)
+{
+  float txu[3], txv[3], txtxu[3];
+  cross(t, u, txu);
+  cross(t, txu, txtxu);
+  cross(t, v, txv);
+  float x = inner(txu, txv) * norm(t), y = inner(txtxu, txv);
+  float a = atan2(y,x);
+  return a;
 }
 
 // -------------------------------------------------------------------------
@@ -112,16 +129,9 @@ static void smooth_twist(float *tangents, int num_pts, float *normals, float *n_
 {
     // Figure out what twist is needed to make the
     // ribbon end up with the desired ending normal
-    float* n = normals + (num_pts - 1) * 3;
-    float twist = acos(inner(n, n_end));
-    if (std::isnan(twist))
-      twist = 0;
-    
-    // Figure out direction of twist (right-hand rule)
-    float *last_tangent = tangents + (num_pts - 1) * 3;
-    float tmp[3];
-    if (inner(cross(n, n_end, tmp), last_tangent) < 0)
-      twist = -twist;
+    float *n = normals + (num_pts - 1) * 3;
+    float *t = tangents + (num_pts - 1) * 3;
+    float twist = dihedral_angle(n, n_end, t);
 
     // Compute fraction per step
     float delta = 1.0 / (num_pts - 1);
@@ -180,4 +190,23 @@ parallel_transport(PyObject *, PyObject *args, PyObject *keywds)
   _parallel_transport_normals(num_pts, tang.values(), start_normal, normals);
 
   return py_normals;
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+dihedral_angle(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray tangents;
+  float u[3], v[3], t[4];
+  const char *kwlist[] = {"u", "v", "t", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
+				   (char **)kwlist,
+				   parse_float_3_array, &u[0],
+      				   parse_float_3_array, &v[0],
+				   parse_float_3_array, &t[0]))
+    return NULL;
+
+  float a = dihedral_angle(u,v,t);
+  return PyFloat_FromDouble(a);
 }

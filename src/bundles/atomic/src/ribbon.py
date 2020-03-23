@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 timing = False
-#timing = True
+timing = True
 if timing:
     from time import time
     rsegtime = 0
@@ -1388,6 +1388,8 @@ class Ribbon:
         from numpy import transpose, float64
         self._coeff = transpose(coeff, axes = (1,0,2)).astype(float64)
         self.flipped = zeros(len(coords), bool)
+        # Currently Structure::ribbon_orient() defines the orientation method as
+        # ATOMS for helices, PEPTIDE for strands, and GUIDES for nucleic acids.
         atom_normals = None
         atom_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
         curvature_normals = None
@@ -1422,6 +1424,7 @@ class Ribbon:
                 self.normals = guide_normals
             else:
                 self.normals[guide_mask] = guide_normals[guide_mask]
+        # Currently Structure._use_spline_normals = False.
         if use_spline_normals:
             self._flip_normals(coords)
             num_coords = len(coords)
@@ -1751,9 +1754,11 @@ class Ribbon:
                 normals = parallel_transport(tangents, self.normals[seg])
                 if smooth_twist:
                     if self.ignore_flip_mode[seg]:
+                        # Currently always ignore except with nucleic a acids missing guide atoms.
+                        # So flip mode is almost always flip minimize for all residues.
                         flip_mode = FLIP_MINIMIZE
                     end_normal = self.normals[seg + 1]
-                    flip = _flip_end_normal(normals[-1], end_normal,
+                    flip = _flip_end_normal(normals[-1], end_normal, tangents[-1],
                                             flip_mode, self.flipped[seg], self.flipped[seg + 1])
                     if flip:
                         self.normals[seg + 1] = end_normal = -self.normals[seg + 1]
@@ -1817,15 +1822,17 @@ class Ribbon:
 
 # Decide whether to flip the spline segment end normal so that it aligns better with
 # the parallel transported normal.
-def _flip_end_normal(transported_normal, end_normal, flip_mode, start_flipped, end_flipped):
+def _flip_end_normal(transported_normal, end_normal, tangent,
+                     flip_mode, start_flipped, end_flipped):
 
     if flip_mode == FLIP_MINIMIZE:
         # If twist is greater than 90 degrees, turn the opposite
         # direction.  (Assumes that ribbons are symmetric.)
-        from chimerax.geometry import angle
-        a = angle(transported_normal, end_normal)
-        # flip = (a > 90)
-        flip = (a > 108)	# Not sure why this is not 90.
+        from ._ribbons import dihedral_angle
+        a = dihedral_angle(transported_normal, end_normal, tangent)
+        from math import pi
+        # flip = (abs(a) > 0.5 * pi)
+        flip = (abs(a) > 0.6 * pi)	# Not sure why this is not pi / 2.
     elif flip_mode == FLIP_PREVENT:
         # Make end_flip the same as start_flip
         flip = (end_flipped != start_flipped)

@@ -26,6 +26,8 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("smooth_twist"), (PyCFunction)smooth_twist,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("dihedral_angle"), (PyCFunction)dihedral_angle,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}
 };

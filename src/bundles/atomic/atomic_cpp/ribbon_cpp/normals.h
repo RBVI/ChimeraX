@@ -32,6 +32,9 @@ PyObject *smooth_twist(PyObject *s, PyObject *args, PyObject *keywds);
 
 // parallel_transport(tangents, normal) -> normals
 PyObject *parallel_transport(PyObject *s, PyObject *args, PyObject *keywds);  
+
+// dihedral_angle(u, v, t) -> angle in radians
+PyObject *dihedral_angle(PyObject *s, PyObject *args, PyObject *keywds);  
 }
 
 #endif
