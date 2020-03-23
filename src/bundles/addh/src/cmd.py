@@ -18,7 +18,7 @@ from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic.colors import element_color
 from chimerax.atomic.bond_geom import linear
 
-def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.6, template=False,
+def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3.95, template=False,
     use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True, use_cys_name=True):
 
     if structures is None:
@@ -808,7 +808,8 @@ def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
         # non-sp1 carbons, et al, can't coordinate metals
         return False
     from chimerax.geometry import distance, angle
-    if distance(metal_pos, parent_pos) > _metal_dist:
+    if distance(metal_pos, pos) > 2.7:
+        # "_metal_dist" is 2.7 + putative S-H bond length of 1.25
         return False
     # 135.0 is not strict enough (see :1004.a in 1nyr)
     if angle(parent_pos, pos, metal_pos) > 120.0:
