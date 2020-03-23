@@ -809,7 +809,8 @@ def metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
         return False
     from chimerax.geometry import distance, angle
     if distance(metal_pos, pos) > 2.7:
-        # "_metal_dist" is 2.7 + putative S-H bond length of 1.25
+        # "_metal_dist" is 2.7 + putative S-H bond length of 1.25;
+        # see nitrogen stripping in CYS 77 and 120 in 3r24
         return False
     # 135.0 is not strict enough (see :1004.a in 1nyr)
     if angle(parent_pos, pos, metal_pos) > 120.0:
