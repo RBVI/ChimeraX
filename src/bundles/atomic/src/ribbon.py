@@ -119,7 +119,10 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
         # Create spline path
         orients = structure.ribbon_orients(residues)
-        ribbon = Ribbon(coords, guides, orients, structure._use_spline_normals)
+        segment_divisions = structure._level_of_detail.ribbon_divisions
+        flip_modes = _ribbon_flip_modes(structure, is_helix)
+        ribbon = Ribbon(coords, guides, orients, flip_modes, smooth_twist, segment_divisions,
+                        structure.spline_normals)
         # _debug_show_normal_spline(ribbons_drawing, coords, ribbon, num_divisions)
 
         if timing:
@@ -127,24 +130,26 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             t0 = time()
             
         # Compute ribbon triangles
-        num_divisions = structure._level_of_detail.ribbon_divisions
-        flip_modes = _ribbon_flip_modes(structure, is_helix)
-        spine = [] if structure.ribbon_show_spine else None
-        va,na,ta,vc,tr = _ribbon_geometry(ribbon, num_divisions, residues, non_tube_ranges,
-                                          displays, flip_modes, smooth_twist,
-                                          xs_front, xs_back, spine)
+        colors = residues.ribbon_colors
+        geometry = TriangleAccumulator()
+        _ribbon_geometry(ribbon, non_tube_ranges, displays, colors, xs_front, xs_back,
+                         geometry)
         if timing:
             geotime += time() - t0
             t0 = time()
 
         # Create ribbon drawing
-        if va is not None:
+        if not geometry.empty():
             rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons", len(residues))
             ribbons_drawing.add_drawing(rp)
-            rp.triangle_ranges = tr     # Save triangle ranges for picking
-            ribbons_drawing.add_residue_triangle_ranges(tr, rp)
+
+            triangle_ranges = [RibbonTriangleRange(ts, te, vs, ve, residues[i])
+                               for i,ts,te,vs,ve in geometry.triangle_ranges]
+            rp.triangle_ranges = triangle_ranges     # Save triangle ranges for picking
+            ribbons_drawing.add_residue_triangle_ranges(triangle_ranges, rp)
 
             # Set drawing geometry
+            va, na, vc, ta = geometry.vertex_normal_color_triangle_arrays()
             rp.set_geometry(va, na, ta)
             rp.vertex_colors = vc
 
@@ -167,13 +172,14 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             tethertime += time()-t0
         
         # Create spine if necessary
-        if structure.ribbon_show_spine:
-            spine_colors, spine_xyz1, spine_xyz2 = spine
-            _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2)
+#        if structure.ribbon_show_spine:
+#            spine_colors, spine_xyz1, spine_xyz2 = spine
+#            _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2)
 
     if timing:
-        print('ribbon times %d polymers %.4g, ranges %.4g, xsect %.4g, smooth %.4g, tube %.4g, spline %.4g, triangles %.4g (segspline %.4g (path %.4g))), makedrawing %.4g, tethers %.4g'
-              % (len(polymers), poltime, rangestime, xstime, smootime, tubetime,
+        print('ribbon times %d polymers, %d residues, polymers %.4g, ranges %.4g, xsect %.4g, smooth %.4g, tube %.4g, spline %.4g, triangles %.4g (segspline %.4g (path %.4g))), makedrawing %.4g, tethers %.4g'
+              % (len(polymers), len(ribbons_drawing._residue_triangle_ranges),
+                 poltime, rangestime, xstime, smootime, tubetime,
                  spltime, geotime, rsegtime, spathtime,  drtime, tethertime))
 
 def _ribbon_flip_modes(structure, is_helix):
@@ -347,7 +353,8 @@ def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix):
 
 def _smooth_twist(rc0, rc1):
     # Determine if we need to twist ribbon smoothly from crosssection rc0 to rc1.
-    # Twist smoothly within helices or sheets.
+    # Twist smoothly if cross-section does not change and also within helices and
+    # sheets including cross-section changes for arrows.
     if rc0 == rc1:
         return True
     if rc0 in XSectionManager.RC_ANY_SHEET and rc1 in XSectionManager.RC_ANY_SHEET:
@@ -361,17 +368,15 @@ def _smooth_twist(rc0, rc1):
 # Compute triangle geometry for ribbon.
 # Only certain ranges of residues are considered, since tube helix
 # geometry is created by other code.
-def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
-                     flip_modes, smooth_twist, xs_front, xs_back, spine):
+# TODO: This routine is taking half the ribbon compute time.  Probably a
+#  big contributor is that 17 numpy arrays are being made per residue.
+#  Might want to put TriangleAccumulator into C++ to get rid of half of those
+#  and have extrude() and blend() put results directly into it.
+#  Maybe Ribbon spline coords, tangents, normals could use recycled numpy arrays.
+def _ribbon_geometry(ribbon, ranges, displays, colors, xs_front, xs_back, geometry):
 
-    colors = residues.ribbon_colors
-    geometry = TriangleAccumulator()
-    nr = len(residues)
+    nr = len(displays)
     
-    # Odd number of segments gets blending, even has sharp edge
-    ndiv = num_divisions
-    ndiv_blend, ndiv_cap = (ndiv,ndiv+1) if ndiv % 2 == 1 else (ndiv+1,ndiv)
-
     # Each residue has left and right half (also called front and back)
     # with the residue centered in the middle.
     # The two halfs can have different crosssections, e.g. turn and helix.
@@ -390,13 +395,8 @@ def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
 
             # Left half
             if i > r0 or i == 0:
-                div = ndiv_cap if capped else ndiv_blend
                 mid_cap = (xs_front[i] != xs_back[i])
-                front_c, front_t, front_n = ribbon.segment(i - 1, Ribbon.SECOND_HALF, div,
-                                                           not mid_cap and smooth_twist[i], last=mid_cap)
-                if spine is not None:
-                    _ribbon_update_spine(colors[i], front_c, front_n, spine)
-
+                front_c, front_t, front_n = ribbon.segment(i - 1, Ribbon.SECOND_HALF, mid_cap)
                 sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
                                          capped, mid_cap, geometry.v_offset)
                 geometry.add_extrusion(sf)
@@ -411,12 +411,7 @@ def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
                     next_cap = True
                 else:
                     next_cap = (displays[i] != displays[i + 1] or xs_back[i] != xs_front[i + 1])
-                div = ndiv_cap if next_cap else ndiv_blend
-                back_c, back_t, back_n = ribbon.segment(i, Ribbon.FIRST_HALF, div,
-                                                        smooth_twist[i], flip_mode=flip_modes[i])
-                if spine is not None:
-                    _ribbon_update_spine(colors[i], back_c, back_n, spine)
-
+                back_c, back_t, back_n = ribbon.segment(i, Ribbon.FIRST_HALF, next_cap)
                 sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
                                         mid_cap, next_cap, geometry.v_offset)
                 geometry.add_extrusion(sb)
@@ -428,11 +423,7 @@ def _ribbon_geometry(ribbon, num_divisions, residues, ranges, displays,
                 prev_band = None if next_cap else sb.back_band
                 capped = next_cap
 
-            geometry.add_range(residues[i])
-
-    va, na, vc, ta = geometry.vertex_normal_color_triangle_arrays()
-
-    return va, na, ta, vc, geometry.triangle_ranges
+            geometry.add_range(i)
 
 class TriangleAccumulator:
     '''Accumulate triangles from segments of a ribbon.'''
@@ -445,8 +436,11 @@ class TriangleAccumulator:
         self._normal_list = []
         self._color_list = []
         self._triangle_list = []
-        self._triangle_ranges = []
+        self._triangle_ranges = []	# List of 5-tuples (residue_index, tstart, tend, vstart, vend)
 
+    def empty(self):
+        return len(self._triangle_list) == 0
+    
     @property
     def v_offset(self):
         return self._v_end
@@ -464,12 +458,11 @@ class TriangleAccumulator:
         self._triangle_list.append(triangles)
         self._t_end += len(triangles)
 
-    def add_range(self, residue):
+    def add_range(self, residue_index):
         ts,te,vs,ve = self._t_start, self._t_end, self._v_start, self._v_end
         if te == ts and ve == vs:
             return
-        triangle_range = RibbonTriangleRange(ts, te, vs, ve, residue)
-        self._triangle_ranges.append(triangle_range)
+        self._triangle_ranges.append((residue_index, ts, te, vs, ve))
         self._t_start = te
         self._v_start = ve
 
@@ -1372,14 +1365,19 @@ class Ribbon:
     FIRST_HALF = 1
     SECOND_HALF = 2
 
-    def __init__(self, coords, guides, orients, use_spline_normals):
+    def __init__(self, coords, guides, orients, flip_modes, smooth_twist, segment_divisions,
+                 use_spline_normals):
         # Extend the coordinates at start and end to make sure the
         # ribbon is straight on either end.  Compute the spline
         # coefficients for each axis.  Then throw away the
         # coefficients for the fake ends.
-        from .structure import Structure
+
+        self._flip_modes = flip_modes
+        self._smooth_twist = smooth_twist
+        self._segment_divisions = segment_divisions
+        self._use_spline_normals = use_spline_normals
+        
         from numpy import empty, zeros, ones
-        self.use_spline_normals = use_spline_normals
         c = empty((len(coords) + 2, 3), float)
         c[0] = coords[0] + (coords[0] - coords[1])
         c[1:-1] = coords
@@ -1391,6 +1389,7 @@ class Ribbon:
         # Currently Structure::ribbon_orient() defines the orientation method as
         # ATOMS for helices, PEPTIDE for strands, and GUIDES for nucleic acids.
         atom_normals = None
+        from .structure import Structure
         atom_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
         curvature_normals = None
         curvature_mask = (orients == Structure.RIBBON_ORIENT_CURVATURE)
@@ -1716,22 +1715,28 @@ class Ribbon:
                    zc[1] + 2 * zc[2] + 3 * zc[3]))
         return normalize_vector_array(array(t))
 
-    def segment(self, seg, side, divisions, smooth_twist,
-                flip_mode=FLIP_MINIMIZE, prev_normal=None, last=False):
+    def segment(self, seg, side, include_end):
         if timing:
             t0 = time()
 
+        divisions = self._segment_divisions
         if seg == -1 and side == Ribbon.SECOND_HALF:
             return self.lead_segment(divisions // 2)
         elif seg == self.num_segments and side == Ribbon.FIRST_HALF:
             return self.trail_segment(divisions // 2)
 
         if seg in self._seg_cache:
+            # TODO: We only calc the segments in order so it might be much faster
+            #  to reuse one coords, tangents, normals array for all segments.
+            #  Also could avoid making new numpy views by computing 4 fixed views
+            #  for the two sides and include_end true/false for each array and
+            #  always reuse those views.  Maybe the views are not too expensive.
+            #  I index into normals and tangents that create views.
             coords, tangents, normals = self._seg_cache[seg]
         else:
             coeffs = self._segment_coefficients(seg)
             coords, tangents = _spline_segment_path(coeffs, 0, 1, divisions)
-            if self.use_spline_normals:
+            if self._use_spline_normals:
                 from numpy import array, linspace, sum
                 # We _should_ return normals that are orthogonal (O) to the
                 # tangents, but it does not look as good as if we use
@@ -1752,11 +1757,10 @@ class Ribbon:
             else:
                 from ._ribbons import parallel_transport
                 normals = parallel_transport(tangents, self.normals[seg])
-                if smooth_twist:
-                    if self.ignore_flip_mode[seg]:
-                        # Currently always ignore except with nucleic a acids missing guide atoms.
-                        # So flip mode is almost always flip minimize for all residues.
-                        flip_mode = FLIP_MINIMIZE
+                if self._smooth_twist[seg]:
+                    # Currently always ignore flip mode except with nucleic a acids missing guide atoms.
+                    # So flip mode is almost always flip minimize for all residues.
+                    flip_mode = FLIP_MINIMIZE if self.ignore_flip_mode[seg] else self._flip_mode[seg]
                     end_normal = self.normals[seg + 1]
                     flip = _flip_end_normal(normals[-1], end_normal, tangents[-1],
                                             flip_mode, self.flipped[seg], self.flipped[seg + 1])
@@ -1770,12 +1774,13 @@ class Ribbon:
             self._seg_cache[seg] = (coords, tangents, normals)
 
         # divisions = number of segments = number of vertices + 1
+        middle = divisions // 2
         if side is self.FIRST_HALF:
             start = 0
-            end = (divisions // 2) + 1
+            end = middle + 1 if include_end else middle
         else:
-            start = (divisions + 1) // 2
-            end = divisions + 1 if last else divisions
+            start = middle
+            end = divisions + 2 if include_end else divisions + 1
             
         seg_coords, seg_tangents, seg_normals = coords[start:end], tangents[start:end], normals[start:end]
 
