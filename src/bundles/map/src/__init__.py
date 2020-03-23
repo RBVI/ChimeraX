@@ -162,27 +162,28 @@ class _MapBundle(BundleAPI):
                     save_map(session, path, _name, **kw)
 
                 @property
-                def save_args(self):
+                def save_args(self, _name=name):
                     from .mapargs import MapRegionArg, Int1or3Arg
                     from chimerax.core.commands import BoolArg, ModelsArg, EnumOf, \
                         RepeatOf, IntArg, ListOf
-                    return {
-                        'append': BoolArg,
-                        'base_index': IntArg,
-                        'chunk_shapes': ListOf(EnumOf(
-                            ('zyx','zxy','yxz','yzx','xzy','xyz'))),
-                        'compress': BoolArg,
-                        'compress_method': EnumOf(('zlib', 'lzo', 'bzip2', 'blosc',
-                            'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy',
-                            'blosc:zlib', 'blosc:zstd')),
-                        'compress_shuffle': BoolArg,
-                        'mask_zone': BoolArg,
-                        'models': ModelsArg,
-                        'region': MapRegionArg,
-                        'subsamples': RepeatOf(Int1or3Arg),
-                        'step': Int1or3Arg,
-                    }
-
+                    args = { 'models': ModelsArg }
+                    if _name == "cmap":
+                        args.update({
+                            'append': BoolArg,
+                            'base_index': IntArg,
+                            'chunk_shapes': ListOf(EnumOf(
+                                ('zyx','zxy','yxz','yzx','xzy','xyz'))),
+                            'compress': BoolArg,
+                            'compress_method': EnumOf(('zlib', 'lzo', 'bzip2', 'blosc',
+                                'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc',
+                                'blosc:snappy', 'blosc:zlib', 'blosc:zstd')),
+                            'compress_shuffle': BoolArg,
+                            'mask_zone': BoolArg,
+                            'region': MapRegionArg,
+                            'subsamples': RepeatOf(Int1or3Arg),
+                            'step': Int1or3Arg,
+                        })
+                    return args
         return Info()
 
 bundle_api = _MapBundle()

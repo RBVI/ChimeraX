@@ -56,14 +56,41 @@
   </Dependencies>
 
   <Providers manager="open command">
-    <Provider name="Amira mesh" want_path="true" />
-    <Provider name="APBS potential" want_path="true" />
-    <Provider name="BRIX density map" want_path="true" />
-    <Provider name="CCP4 density map" want_path="true" />
+    <Provider name="amira" want_path="true" />
+    <Provider name="apbs" want_path="true" />
+    <Provider name="brix" want_path="true" />
+    <Provider name="ccp4" want_path="true" />
+    <Provider name="cmap" want_path="true" />
+    <Provider name="xplor" want_path="true" />
+    <Provider name="delphi" want_path="true" />
+    <Provider name="deltavision" want_path="true" />
+    <Provider name="dns6" want_path="true" />
+    <Provider name="dock" want_path="true" />
+    <Provider name="emanhdf" want_path="true" />
+    <Provider name="cube" want_path="true" />
+    <Provider name="gopenmol" want_path="true" />
+    <Provider name="hdf" want_path="true" />
+    <Provider name="images" want_path="true" batch="true" check_path="false" />
+    <Provider name="imagic" want_path="true" />
+    <Provider name="ims" want_path="true" />
+    <Provider name="imodmap" want_path="true" />
+    <Provider name="macmolplt" want_path="true" />
+    <Provider name="mrc" want_path="true" />
+    <Provider name="netcdf" want_path="true" />
+    <Provider name="priism" want_path="true" />
+    <Provider name="profec" want_path="true" />
+    <Provider name="pif" want_path="true" />
+    <Provider name="situs" want_path="true" />
+    <Provider name="spider" want_path="true" />
+    <Provider name="tom_em" want_path="true" />
+    <Provider name="uhbd" want_path="true" />
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="BRIX density map" />
+    <Provider name="brix" />
+    <Provider name="cmap" />
+    <Provider name="imagic" />
+    <Provider name="mrc" />
   </Providers>
 <!--
   def __init__(self, description, name, prefixes, suffixes, *,
