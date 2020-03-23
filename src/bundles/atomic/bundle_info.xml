@@ -22,6 +22,7 @@
     <DataFile>cymol.*</DataFile>
     <DataFile>cytmpl.*</DataFile>
     <DataFile>lib*.*</DataFile>
+    <DataFile>_ribbons.*</DataFile>
   </DataFiles>
 
   <Categories>

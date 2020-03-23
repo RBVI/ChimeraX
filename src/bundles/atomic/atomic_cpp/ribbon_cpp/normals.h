@@ -15,17 +15,26 @@
 
 // ----------------------------------------------------------------------------
 //
-#ifndef SPLINE_HEADER_INCLUDED
-#define SPLINE_HEADER_INCLUDED
+#ifndef NORMALS_HEADER_INCLUDED
+#define NORMALS_HEADER_INCLUDED
 
 #include <Python.h>			// use PyObject
 
 extern "C"
 {
-  PyObject *natural_cubic_spline(PyObject *s, PyObject *args, PyObject *keywds);
-  extern const char *natural_cubic_spline_doc;
-  PyObject *cubic_path(PyObject *s, PyObject *args, PyObject *keywds);
-  extern const char *cubic_path_doc;
+//
+// Modify array of normals by rotating around tangents along path so that
+// final normal aligns with end_normal.
+//  
+// smooth_twist(tangents, normals, end_normal)
+//
+PyObject *smooth_twist(PyObject *s, PyObject *args, PyObject *keywds);
+
+// parallel_transport(tangents, normal) -> normals
+PyObject *parallel_transport(PyObject *s, PyObject *args, PyObject *keywds);  
+
+// dihedral_angle(u, v, t) -> angle in radians
+PyObject *dihedral_angle(PyObject *s, PyObject *args, PyObject *keywds);  
 }
 
 #endif
