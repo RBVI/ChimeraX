@@ -15,7 +15,7 @@ def fetch_ihm(session, id, ignore_cache=False, **kw):
   '''
   Fetch IHM models from PDB-Dev.
 
-  https://pdb-dev.wwpdb.org/static/cif/PDBDEV_00000012.cif
+  https://pdb-dev.wwpdb.org/cif/PDBDEV_00000012.cif
   '''
 
   url_pattern = 'https://pdb-dev.wwpdb.org/static/cif/%s'
