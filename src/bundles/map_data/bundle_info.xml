@@ -34,9 +34,9 @@
 		suffixes=".cns,.xplor" />
     <Provider name="delphi" synopsis="DelPhi or GRASP potential" category="Volume data"
 		suffixes=".phi" />
-    <Provider name="deltavision" synopsis="DeltaVision map" category="Volume data"
+    <Provider name="dv" synopsis="DeltaVision map" category="Volume data"
 		suffixes=".dv" />
-    <Provider name="dns6" synopsis="DSN6 density map" category="Volume data"
+    <Provider name="dsn6" synopsis="DSN6 density map" category="Volume data"
 		suffixes=".omap" />
     <Provider name="dock" synopsis="DOCK scoring grid" category="Volume data"
 		suffixes=".bmp,.cnt,.nrg" />

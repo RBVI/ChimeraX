@@ -98,21 +98,36 @@ class OpenManager(ProviderManager):
             from chimerax.core.io import _file_formats
             for old in _file_formats.keys():
                 if old.endswith(" image"):
-                    old = old[:-6]
+                    key = old[:-6]
                 elif old == "StereoLithography":
-                    old = "STL"
+                    key = "STL"
                 elif old == "Schrodinger Maestro":
-                    old = "Maestro"
+                    key = "Maestro"
+                else:
+                    key = old
                 try:
-                    in_common.append(self.session.data_formats[old])
+                    in_common.append(self.session.data_formats[key])
                 except KeyError:
-                    #print("old only:", old)
-                    old_only.append(old)
-            #for df in self.session.data_formats.formats:
+                    for nick in _file_formats[old].nicknames:
+                        try:
+                            in_common.append(self.session.data_formats[nick])
+                        except KeyError:
+                            continue
+                        else:
+                            break
+                    else:
+                        print("old only:", old)
+                        old_only.append(old)
+                        if old.endswith(" map"):
+                            fmt = _file_formats[old]
+                            print("  ", fmt.name, fmt.synopsis, fmt.nicknames)
+            #for df in self.session.data_formats:
             #    print("new:", df.name)
             print("%d data formats in common, %d new only, %d old only" %(len(in_common),
                 len(self.session.data_formats) - len(in_common), len(old_only)))
             if len(in_common) != len(self.session.data_formats):
+                print("new only:", ", ".join([fmt.name for fmt in
+                    self.session.data_formats if fmt not in in_common]))
                 return
             from random import choice
             print("Port format", choice(list(old_only)+['http']))
@@ -152,6 +167,10 @@ class OpenManager(ProviderManager):
         from .cmd import provider_open
         return provider_open(self.session, [path], return_status=True,
             _add_to_file_history=False, **kw)
+
+    @property
+    def open_data_formats(self):
+        return list(self._openers.keys())
 
     def open_args(self, data_format):
         try:

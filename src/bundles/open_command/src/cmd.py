@@ -59,9 +59,9 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         for fn in file_names] + tokens)
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
-    def format_names(formats=session.data_formats.formats):
+    def format_names(ses=session):
         names = set()
-        for f in formats:
+        for f in ses.open_command.open_data_formats:
             names.update(f.nicknames)
         return names
 

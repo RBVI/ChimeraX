@@ -18,7 +18,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from chimerax.open_cmd import OpenerInfo
+        from chimerax.open_command import OpenerInfo
         class MaestroOpenerInfo(OpenerInfo):
             def open(self, session, path, file_name, **kw):
                 from .io import open_mae

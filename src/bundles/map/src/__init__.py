@@ -133,13 +133,13 @@ class _MapBundle(BundleAPI):
                     'edsdiff': eds_fetch.fetch_edsdiff_map,
                     'emdb': emdb_fetch.fetch_emdb
                 }[name]
-                from chimerax.open_cmd import FetcherInfo
+                from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
                             fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
             else:
-                from chimerax.open_cmd import OpenerInfo
+                from chimerax.open_command import OpenerInfo
                 class Info(OpenerInfo):
                     def open(self, session, path, file_name,
                             _name=session.data_formats[name].nicknames[0], **kw):
@@ -156,7 +156,7 @@ class _MapBundle(BundleAPI):
                             'vseries': BoolArg,
                         }
         else:
-            from chimerax.save_cmd import SaverInfo
+            from chimerax.save_command import SaverInfo
             class Info(SaverInfo):
                 def save(self, session, path, _name=name, **kw):
                     from .volume import save_map

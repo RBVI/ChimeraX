@@ -50,9 +50,9 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, mime_format=None,
             from chimera.core.errors import UserError
             raise UserError("Unknown mime format '%s'; legal values are: %s"
                 % (mime_format, ", ".join([fmt.name
-                    for fmt in session.data_formats.formats])))
+                    for fmt in session.data_formats])))
     if mime_format is None:
-        for mime_format in session.data_formats.formats:
+        for mime_format in session.data_formats:
             if content_type in mime_format.mime_types:
                 break
         else:

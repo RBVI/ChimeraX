@@ -63,8 +63,8 @@
     <Provider name="cmap" want_path="true" />
     <Provider name="xplor" want_path="true" />
     <Provider name="delphi" want_path="true" />
-    <Provider name="deltavision" want_path="true" />
-    <Provider name="dns6" want_path="true" />
+    <Provider name="dv" want_path="true" />
+    <Provider name="dsn6" want_path="true" />
     <Provider name="dock" want_path="true" />
     <Provider name="emanhdf" want_path="true" />
     <Provider name="cube" want_path="true" />

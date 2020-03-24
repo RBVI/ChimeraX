@@ -45,7 +45,7 @@ class _PDBioAPI(BundleAPI):
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
             if name == "PDB":
-                from chimerax.open_cmd import OpenerInfo
+                from chimerax.open_command import OpenerInfo
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from . import pdb
@@ -65,7 +65,7 @@ class _PDBioAPI(BundleAPI):
                             'structure_factors': BoolArg,
                         }
             else:
-                from chimerax.open_cmd import FetcherInfo
+                from chimerax.open_command import FetcherInfo
                 from . import pdb
                 fetcher = {
                     'pdb': pdb.fetch_pdb,
@@ -76,7 +76,7 @@ class _PDBioAPI(BundleAPI):
                     def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
         else:
-            from chimerax.save_cmd import SaverInfo
+            from chimerax.save_command import SaverInfo
             class Info(SaverInfo):
                 def save(self, session, path, **kw):
                     from . import pdb

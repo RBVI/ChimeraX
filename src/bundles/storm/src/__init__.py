@@ -24,7 +24,7 @@ class _StormAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from chimerax.open_cmd import OpenerInfo
+        from chimerax.open_command import OpenerInfo
         class StormOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, **kw):
                 from . import storm

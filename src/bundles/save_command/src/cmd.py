@@ -40,9 +40,9 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
     provider_cmd_text = "save " + " ".join([FileNameArg.unparse(file_name)] + tokens)
     # register a private 'save' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
-    def format_names(formats=session.data_formats.formats):
+    def format_names(ses=session):
         names = set()
-        for f in formats:
+        for f in ses.save_command.save_data_formats:
             names.update(f.nicknames)
         return names
 

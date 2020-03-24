@@ -97,7 +97,7 @@ class _MyAPI(toolshed.BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         if name == "HTML":
-            from chimerax.open_cmd import OpenerInfo
+            from chimerax.open_command import OpenerInfo
             class HelpViewerInfo(OpenerInfo):
                 def open(self, session, path, file_name, *, new_tab=False):
                     import os
@@ -120,7 +120,7 @@ class _MyAPI(toolshed.BundleAPI):
                     from chimerax.core.commands import BoolArg
                     return { 'new_tab': BoolArg }
         else: # help: / http: / https:
-            from chimerax.open_cmd import FetcherInfo
+            from chimerax.open_command import FetcherInfo
             class HelpViewerInfo(FetcherInfo):
                 def fetch(self, session, ident, format_name, ignore_cache,
                         _protocol=name, **kw):

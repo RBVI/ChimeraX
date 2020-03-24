@@ -23,7 +23,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, *, widget_info=None, **kw):
-        from chimerax.open_cmd import FetcherInfo
+        from chimerax.open_command import FetcherInfo
         class CellpackFetcherInfo(FetcherInfo):
             def fetch(self, session, ident, format_name, ignore_cache, **kw):
                 from .fetch_cellpack import fetch_cellpack

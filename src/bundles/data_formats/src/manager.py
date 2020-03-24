@@ -75,7 +75,7 @@ class FormatsManager(ProviderManager):
             allow_directory=allow_directory, raise_trigger=False)
 
     def open_format_from_suffix(self, suffix):
-        from chimerax.open_cmd import NoOpenerError
+        from chimerax.open_command import NoOpenerError
         return self._format_from_suffix(self.session.open_command.open_info,
             NoOpenerError, suffix)
 
@@ -84,7 +84,7 @@ class FormatsManager(ProviderManager):
         return self._format_from_filename(self.open_format_from_suffix, file_name)
 
     def save_format_from_suffix(self, suffix):
-        from chimerax.save_cmd import NoSaverError
+        from chimerax.save_command import NoSaverError
         return self._format_from_suffix(self.session.save_command.save_info,
             NoSaverError, suffix)
 
@@ -111,6 +111,10 @@ class FormatsManager(ProviderManager):
 
     def __len__(self):
         return len(self._formats)
+
+    def __iter__(self):
+        '''iterator over models'''
+        return iter(self.formats)
 
     def _format_from_filename(self, suffix_func, file_name):
         if '.' in file_name:

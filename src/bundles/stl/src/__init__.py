@@ -39,13 +39,13 @@ class _STLAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
-            from chimerax.open_cmd import OpenerInfo
+            from chimerax.open_command import OpenerInfo
             class STLInfo(OpenerInfo):
                 def open(self, session, data, file_name, **kw):
                     from . import stl
                     return stl.read_stl(session, data, file_name)
         else:
-            from chimerax.save_cmd import SaverInfo
+            from chimerax.save_command import SaverInfo
             class STLInfo(SaverInfo):
                 def save(self, session, path, models=None):
                     from . import stl

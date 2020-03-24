@@ -18,7 +18,7 @@ class _SessionAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
-            from chimerax.open_cmd import OpenerInfo
+            from chimerax.open_command import OpenerInfo
             if name == "ChimeraX session":
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
@@ -40,7 +40,7 @@ class _SessionAPI(BundleAPI):
                         from chimerax.core.commands import BoolArg
                         return { 'resize_window': BoolArg }
             else: # web fetch
-                from chimerax.open_cmd import FetcherInfo
+                from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
                             _protocol=name, **kw):
@@ -54,10 +54,10 @@ class _SessionAPI(BundleAPI):
                         return {
                             'new_tab': BoolArg,
                             'mime_format': EnumOf([fmt.name
-                                for fmt in session.data_formats.formats]),
+                                for fmt in session.data_formats]),
                         }
         else:
-            from chimerax.save_cmd import SaverInfo
+            from chimerax.save_command import SaverInfo
             if name == "ChimeraX session":
                 class Info(SaverInfo):
                     def save(self, session, path, **kw):

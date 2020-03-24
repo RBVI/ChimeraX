@@ -23,7 +23,7 @@ class _SDF_API(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):
-        from chimerax.open_cmd import OpenerInfo
+        from chimerax.open_command import OpenerInfo
         class SdfOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, **kw):
                 return read_sdf(session, data, file_name)
