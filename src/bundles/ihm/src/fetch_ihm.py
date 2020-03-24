@@ -18,7 +18,7 @@ def fetch_ihm(session, id, ignore_cache=False, **kw):
   https://pdb-dev.wwpdb.org/cif/PDBDEV_00000012.cif
   '''
 
-  url_pattern = 'https://pdb-dev.wwpdb.org/static/cif/%s'
+  url_pattern = 'https://pdb-dev.wwpdb.org/cif/%s'
   
   if len(id) < 8:
       zero_pad = '0'*(8-len(id))
