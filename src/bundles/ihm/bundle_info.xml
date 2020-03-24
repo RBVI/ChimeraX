@@ -20,6 +20,17 @@
     <Dependency name="ChimeraX-Map" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="IHM" category="Higher-order structure" suffixes=".ihm"
+		reference_url="https://pdb-dev.wwpdb.org/about/"
+		synopsis="Integrative Hybrid Models" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="IHM" want_path="true" />
+    <Provider name="pdbdev" type="fetch" format_name="IHM" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
