@@ -65,7 +65,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
         if len(atoms) < 2:
             continue
-        
+
         displays = residues.ribbon_displays
         if displays.sum() == 0:
             continue
@@ -78,8 +78,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         is_helix = residues.is_helix
         ssids = residues.secondary_structure_ids
         arc_helix = (structure.ribbon_mode_helix == structure.RIBBON_MODE_ARC)
-        res_class, helix_ranges, sheet_ranges, non_tube_ranges = \
-            _ribbon_ranges(is_helix, residues.is_strand, ssids, residues.polymer_types, arc_helix)
+        res_class, helix_ranges, sheet_ranges, display_ranges = \
+            _ribbon_ranges(is_helix, residues.is_strand, ssids, displays,
+                           residues.polymer_types, arc_helix)
 
         if timing:
             rangestime += time()-t0
@@ -109,7 +110,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             ribbon_adjusts = residues.ribbon_adjusts
             for start, end in helix_ranges:
                 _make_arc_helix_drawing(residues, coords, guides, ssids, xs_front, xs_back, xs_mgr,
-                                        ribbon_adjusts, start, end, ribbons_drawing)
+                                        ribbon_adjusts, displays, start, end, ribbons_drawing)
 
         if timing:
             tubetime += time()-t0
@@ -132,8 +133,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Compute ribbon triangles
         colors = residues.ribbon_colors
         geometry = TriangleAccumulator()
-        _ribbon_geometry(ribbon, non_tube_ranges, displays, colors, xs_front, xs_back,
-                         geometry)
+        _ribbon_geometry(ribbon, display_ranges, colors, xs_front, xs_back, geometry)
         if timing:
             geotime += time() - t0
             t0 = time()
@@ -200,9 +200,9 @@ def _ribbon_flip_modes(structure, is_helix):
 # Assign a residue class to each residue and compute the
 # ranges of secondary structures.
 # Returned helix and strand ranges (r0,r1) start with residue index r0 and end with index r1-1.
-# Returned non_tube_ranges (r0,r1) start with residue r0 and end with residue r1.
+# Returned display_ranges (r0,r1) start with residue r0 and end with residue r1.
 #
-def _ribbon_ranges(is_helix, is_strand, ssids, polymer_type, arc_helix):
+def _ribbon_ranges(is_helix, is_strand, ssids, displays, polymer_type, arc_helix):
     res_class = []
     helix_ranges = []
     sheet_ranges = []
@@ -280,19 +280,38 @@ def _ribbon_ranges(is_helix, is_strand, ssids, polymer_type, arc_helix):
     # from two points.
     if arc_helix:
         helix_ranges = [r for r in helix_ranges if r[1] - r[0] > 2]
-        non_tube_ranges = []
+        ranges = []
         s = 0
         for r0,r1 in helix_ranges:
             if r0 > 0:
-                non_tube_ranges.append((s,r0))
+                ranges.append((s,r0))
             s = r1-1
         if s < nr-1:
-            non_tube_ranges.append((s,nr-1))
+            ranges.append((s,nr-1))
     else:
-        non_tube_ranges = [(0,nr-1)]
-        
-    return res_class, helix_ranges, sheet_ranges, non_tube_ranges
+        ranges = [(0,nr-1)]
 
+    display_ranges = []
+    for r0,r1 in ranges:
+        display_ranges.extend(_displayed_subranges(r0, r1, displays))
+
+    return res_class, helix_ranges, sheet_ranges, display_ranges
+
+def _displayed_subranges(r0, r1, displays):
+    sranges = []
+    s = e = None
+    for r in range(r0,r1+1):
+        if displays[r]:
+            if s is None:
+                s = r
+            e = r
+        elif s is not None:
+            sranges.append((s,e))
+            s = e = None
+    if s is not None:
+        sranges.append((s,e))
+    return sranges
+                
 def _end_strand(res_class, ss_ranges, end):
     if res_class[-1] == XSectionManager.RC_SHEET_START:
         # Single-residue strands are coils
@@ -344,10 +363,8 @@ def _ribbon_crosssections(res_class, ribbon_xs_mgr, is_helix, arc_helix):
             if not is_helix[i]:
                 continue
             rc = res_class[i]
-            if rc == XSectionManager.RC_HELIX_START:
-                xs_front[i] = ribbon_xs_mgr.xs_coil
-            elif rc == XSectionManager.RC_HELIX_END:
-                xs_back[i] = ribbon_xs_mgr.xs_coil
+            if rc == XSectionManager.RC_HELIX_START or rc == XSectionManager.RC_HELIX_END:
+                xs_front[i] = xs_back[i] = ribbon_xs_mgr.xs_coil
     smooth_twist[-1] = False
     return xs_front, xs_back, smooth_twist
 
@@ -373,9 +390,9 @@ def _smooth_twist(rc0, rc1):
 #  Might want to put TriangleAccumulator into C++ to get rid of half of those
 #  and have extrude() and blend() put results directly into it.
 #  Maybe Ribbon spline coords, tangents, normals could use recycled numpy arrays.
-def _ribbon_geometry(ribbon, ranges, displays, colors, xs_front, xs_back, geometry):
+def _ribbon_geometry(ribbon, ranges, colors, xs_front, xs_back, geometry):
 
-    nr = len(displays)
+    nr = len(colors)
     
     # Each residue has left and right half (also called front and back)
     # with the residue centered in the middle.
@@ -390,38 +407,30 @@ def _ribbon_geometry(ribbon, ranges, displays, colors, xs_front, xs_back, geomet
         prev_band = None
         
         for i in range(r0, r1+1):
-            if not displays[i]:
-                continue
-
             # Left half
-            if i > r0 or i == 0:
-                mid_cap = (xs_front[i] != xs_back[i])
-                front_c, front_t, front_n = ribbon.segment(i - 1, Ribbon.SECOND_HALF, mid_cap)
-                sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
-                                         capped, mid_cap, geometry.v_offset)
-                geometry.add_extrusion(sf)
+            mid_cap = (xs_front[i] != xs_back[i])
+            front_c, front_t, front_n = ribbon.segment(i - 1, Ribbon.SECOND_HALF, mid_cap)
+            sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
+                                     capped, mid_cap, geometry.v_offset)
+            geometry.add_extrusion(sf)
 
-                if prev_band is not None:
-                    tjoin = xs_front[i].blend(prev_band, sf.front_band)
-                    geometry.add_triangles(tjoin)
+            if prev_band is not None:
+                tjoin = xs_front[i].blend(prev_band, sf.front_band)
+                geometry.add_triangles(tjoin)
 
             # Right half
-            if i < r1 or i == nr-1:
-                if i == nr-1:
-                    next_cap = True
-                else:
-                    next_cap = (displays[i] != displays[i + 1] or xs_back[i] != xs_front[i + 1])
-                back_c, back_t, back_n = ribbon.segment(i, Ribbon.FIRST_HALF, next_cap)
-                sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
-                                        mid_cap, next_cap, geometry.v_offset)
-                geometry.add_extrusion(sb)
+            next_cap = True if i == r1 else (xs_back[i] != xs_front[i + 1])
+            back_c, back_t, back_n = ribbon.segment(i, Ribbon.FIRST_HALF, next_cap)
+            sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
+                                    mid_cap, next_cap, geometry.v_offset)
+            geometry.add_extrusion(sb)
 
-                if not mid_cap:
-                    tjoin = xs_back[i].blend(sf.back_band, sb.front_band)
-                    geometry.add_triangles(tjoin)
+            if not mid_cap:
+                tjoin = xs_back[i].blend(sf.back_band, sb.front_band)
+                geometry.add_triangles(tjoin)
 
-                prev_band = None if next_cap else sb.back_band
-                capped = next_cap
+            prev_band = None if next_cap else sb.back_band
+            capped = next_cap
 
             geometry.add_range(i)
 
@@ -913,10 +922,9 @@ def _smooth_helix(rlist, coords, guides, ribbon_adjusts, start, end):
     #   guides[start:end] = new_coords + delta_guides
 
 def _make_arc_helix_drawing(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
-                            ribbon_adjusts, start, end, ribbons_drawing):
+                            ribbon_adjusts, displays, start, end, ribbons_drawing):
     '''Creates a new RibbonDrawing for one tube helix.'''
     # Only bother if at least one residue is displayed
-    displays = rlist.ribbon_displays
     from numpy import any
     if not any(displays[start:end]):
         return
