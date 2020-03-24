@@ -48,7 +48,7 @@ class MapFileFormat:
 file_formats = [
   MapFileFormat('Amira mesh', 'amira', ['amira'], ['am']),
   MapFileFormat('APBS potential', 'apbs', ['apbs'], ['dx']),
-  MapFileFormat('BRIX density map', 'dsn6', ['dsn6'], ['brix'], writable = True),
+  MapFileFormat('BRIX density map', 'brix', ['brix'], ['brix'], writable = True),
   MapFileFormat('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map']),
   MapFileFormat('Chimera map', 'cmap', ['cmap'], ['cmap', 'cmp'], writable = True,
                 writer_options = ('subsamples', 'chunk_shapes', 'append',

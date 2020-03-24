@@ -12,7 +12,7 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	= amira apbs ccp4 cmap delphi deltavision dock dsn6 emanhdf gaussian \
+SUBDIRS	= amira apbs brix ccp4 cmap delphi deltavision dock dsn6 emanhdf gaussian \
 	  gopenmol hdf imagestack imagic imod ims macmolplt mrc priism profec \
 	  pif situs spider tom_em uhbd xplor
 
