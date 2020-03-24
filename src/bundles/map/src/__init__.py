@@ -185,6 +185,14 @@ class _MapBundle(BundleAPI):
                             'step': Int1or3Arg,
                         })
                     return args
+
+                def save_args_widget(self, session):
+                    from .gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
+
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
+
         return Info()
 
 bundle_api = _MapBundle()

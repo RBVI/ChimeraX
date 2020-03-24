@@ -117,7 +117,7 @@ class DataFormat:
         self.mime_types = mime_types
         self.insecure = insecure
         self.encoding = encoding
-        self.synopsis = synopsis
+        self.synopsis = synopsis if synopsis else format_name
         self.allow_directory = allow_directory
 
         if reference_url:
