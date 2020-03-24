@@ -116,11 +116,8 @@ class OpenManager(ProviderManager):
                         else:
                             break
                     else:
-                        print("old only:", old)
+                        #print("old only:", old)
                         old_only.append(old)
-                        if old.endswith(" map"):
-                            fmt = _file_formats[old]
-                            print("  ", fmt.name, fmt.synopsis, fmt.nicknames)
             #for df in self.session.data_formats:
             #    print("new:", df.name)
             print("%d data formats in common, %d new only, %d old only" %(len(in_common),

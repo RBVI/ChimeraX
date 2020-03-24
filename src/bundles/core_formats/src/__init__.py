@@ -29,6 +29,7 @@ class _SessionAPI(BundleAPI):
                     def open_args(self):
                         from chimerax.core.commands import BoolArg
                         return { 'resize_window': BoolArg }
+
             elif name == "ChimeraX commands":
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
@@ -39,6 +40,19 @@ class _SessionAPI(BundleAPI):
                     def open_args(self):
                         from chimerax.core.commands import BoolArg
                         return { 'resize_window': BoolArg }
+
+            elif name == "Python":
+                class Info(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        from chimerax.core.scripting import open_python_script
+                        return open_python_script(session, data, file_name)
+
+            elif name == "compiled Python":
+                class Info(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        from chimerax.core.scripting import open_compiled_python_script
+                        return open_compiled_python_script(session, data, file_name)
+
             else: # web fetch
                 from chimerax.open_command import FetcherInfo
                 class Info(FetcherInfo):

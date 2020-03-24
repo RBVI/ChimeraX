@@ -27,6 +27,12 @@
     <Provider name="ChimeraX commands" category="Command script"
 		suffixes=".cxc" nicknames="cmd" mime_types="application/x-chimerax-code"
 		reference_url="help:user/commands/usageconventions.html" />
+    <Provider name="Python" category="Command script" suffixes=".py"
+		synopsis="Python code" mime_types="text/x-python"
+		reference_url="http://www.python.org" />
+    <Provider name="compiled Python" category="Command script" suffixes=".pyc,.pyo"
+		synopsis="compiled Python code" mime_types="application/x-python-code"
+		reference_url="http://www.python.org" />
     <Provider name="X3D" category="Generic 3D objects" suffixes=".x3d"
 		mime_types="model/x3d+xml" reference_url="http://www.web3d.org/standards" />
     <Provider name="web fetch" category="I/O" />
@@ -36,6 +42,8 @@
   <Providers manager="open command">
     <Provider name="ChimeraX session" want_path="true" />
     <Provider name="ChimeraX commands" want_path="true" />
+    <Provider name="Python" />
+    <Provider name="compiled Python" />
     <Provider name="http" type="fetch" format_name="web fetch" />
     <Provider name="https" type="fetch" format_name="web fetch" />
     <Provider name="ftp" type="fetch" format_name="web fetch" />
