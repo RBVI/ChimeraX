@@ -1980,57 +1980,6 @@ from .cymol import Element
 
 # -----------------------------------------------------------------------------
 #
-from collections import namedtuple
-ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals",
-                                           "triangles", "colors",
-                                           "front_band", "back_band"])
-
-class RibbonXSection:
-    '''
-    A cross section that can extrude ribbons when given the
-    required control points, tangents, normals and colors.
-    '''
-    def __init__(self, coords=None, coords2=None, normals=None, normals2=None,
-                 faceted=False, tess=None, xs_pointer=None):
-        if xs_pointer is None:
-            kw = {name:value for name,value in (('coords',coords), ('coords2', coords2),
-                                                ('normals',normals), ('normals2',normals2),
-                                                ('faceted',faceted), ('tess',tess))
-                  if value is not None}
-            from ._ribbons import rxsection_new
-            xs_pointer = rxsection_new(**kw)
-        self._xs_pointer = xs_pointer
-
-    def extrude(self, centers, tangents, normals, color,
-                cap_front, cap_back, offset):
-        '''Return the points, normals and triangles for a ribbon.'''
-        from ._ribbons import rxsection_extrude
-        t = rxsection_extrude(self._xs_pointer, centers, tangents, normals, color,
-                              cap_front, cap_back, offset)
-        if t is not None:
-            t = ExtrudeValue(*t)
-        return t
-
-    def blend(self, back_band, front_band):
-        '''Return the triangles blending front and back halves of ribbon.'''
-        from ._ribbons import rxsection_blend
-        t = rxsection_blend(self._xs_pointer, back_band, front_band)
-        return t
-
-    def scale(self, scale):
-        '''Return new cross section scaled by 2-tuple scale.'''
-        from ._ribbons import rxsection_scale
-        p = rxsection_scale(self._xs_pointer, scale[0], scale[1])
-        return RibbonXSection(xs_pointer=p)
-
-    def arrow(self, scales):
-        '''Return new arrow cross section scaled by 2x2-tuple scale.'''
-        from ._ribbons import rxsection_arrow
-        p = rxsection_arrow(self._xs_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
-        return RibbonXSection(xs_pointer=p)
-
-# -----------------------------------------------------------------------------
-#
 
 # SeqMatchMaps are returned by C++ functions, but unlike most other classes in this file,
 # they have no persistence in the C++ layer

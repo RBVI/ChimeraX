@@ -2205,7 +2205,6 @@ class XSectionManager(State):
 
     def _make_xs_round(self, scale):
         from numpy import array
-        from .molobject import RibbonXSection as XSection
         coords = []
         normals = []
         param = self.params[self.STYLE_ROUND]
@@ -2218,21 +2217,19 @@ class XSectionManager(State):
         circle = stack((ca, sa), axis=1)
         coords = circle * array(scale)
         if param["faceted"]:
-            return XSection(coords, faceted=True)
+            return RibbonXSection(coords, faceted=True)
         else:
             normals = circle * array((scale[1], scale[0]))
-            return XSection(coords, normals=normals, faceted=False)
+            return RibbonXSection(coords, normals=normals, faceted=False)
 
     def _make_xs_square(self, scale):
         from numpy import array
-        from .molobject import RibbonXSection as XSection
         coords = array(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0))) * array(scale)
-        return XSection(coords, faceted=True)
+        return RibbonXSection(coords, faceted=True)
 
     def _make_xs_piping(self, scale):
         from numpy import array
         from math import pi, cos, sin, asin
-        from .molobject import RibbonXSection as XSection
         if scale[0] > scale[1]:
             flipped = False
             delta = scale[0] - scale[1]
@@ -2269,7 +2266,7 @@ class XSectionManager(State):
                 [(0, i, i+1) for i in range(1, sides)] +                # first piping
                 [(sides+1, i, i+1) for i in range(sides+2, 2*sides+1)]) # second piping
         if param["faceted"]:
-            return XSection(coords, faceted=True, tess=tess)
+            return RibbonXSection(coords, faceted=True, tess=tess)
         else:
             if flipped:
                 normals[0] = normals[-1] = (1, 0)
@@ -2278,7 +2275,7 @@ class XSectionManager(State):
                 normals[0] = normals[-1] = (0, -1)
                 normals[sides] = normals[sides + 1] = (0, 1)
             normals = array(normals)
-            return XSection(coords, normals=normals, faceted=False, tess=tess)
+            return RibbonXSection(coords, normals=normals, faceted=False, tess=tess)
 
     def _xs_ribbon(self, r):
         if r is self.RIBBON_HELIX:
@@ -2347,6 +2344,58 @@ class XSectionManager(State):
                 # Older sessions may not have all the current parameters
                 pass
 
+# -----------------------------------------------------------------------------
+#
+from collections import namedtuple
+ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals",
+                                           "triangles", "colors",
+                                           "front_band", "back_band"])
+
+# Cross section coordinates are 2D and counterclockwise
+# Use C++ version of RibbonXSection instead of Python version
+class RibbonXSection:
+    '''
+    A cross section that can extrude ribbons when given the
+    required control points, tangents, normals and colors.
+    '''
+    def __init__(self, coords=None, coords2=None, normals=None, normals2=None,
+                 faceted=False, tess=None, xs_pointer=None):
+        if xs_pointer is None:
+            kw = {name:value for name,value in (('coords',coords), ('coords2', coords2),
+                                                ('normals',normals), ('normals2',normals2),
+                                                ('faceted',faceted), ('tess',tess))
+                  if value is not None}
+            from ._ribbons import rxsection_new
+            xs_pointer = rxsection_new(**kw)
+        self._xs_pointer = xs_pointer
+
+    def extrude(self, centers, tangents, normals, color,
+                cap_front, cap_back, offset):
+        '''Return the points, normals and triangles for a ribbon.'''
+        from ._ribbons import rxsection_extrude
+        t = rxsection_extrude(self._xs_pointer, centers, tangents, normals, color,
+                              cap_front, cap_back, offset)
+        if t is not None:
+            t = ExtrudeValue(*t)
+        return t
+
+    def blend(self, back_band, front_band):
+        '''Return the triangles blending front and back halves of ribbon.'''
+        from ._ribbons import rxsection_blend
+        t = rxsection_blend(self._xs_pointer, back_band, front_band)
+        return t
+
+    def scale(self, scale):
+        '''Return new cross section scaled by 2-tuple scale.'''
+        from ._ribbons import rxsection_scale
+        p = rxsection_scale(self._xs_pointer, scale[0], scale[1])
+        return RibbonXSection(xs_pointer=p)
+
+    def arrow(self, scales):
+        '''Return new arrow cross section scaled by 2x2-tuple scale.'''
+        from ._ribbons import rxsection_arrow
+        p = rxsection_arrow(self._xs_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
+        return RibbonXSection(xs_pointer=p)
 
 def normalize(v):
     # normalize a single vector
