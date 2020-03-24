@@ -289,7 +289,8 @@ class Chimera_HDF_Image:
         va = group._v_attrs
         if 'symmetries' in va:
             from chimerax.geometry import Places
-            sym = Places(place_array = va.symmetries)
+            from numpy import array, float64
+            sym = Places(place_array = array(va.symmetries, float64))
         else:
             sym = None
         return sym
