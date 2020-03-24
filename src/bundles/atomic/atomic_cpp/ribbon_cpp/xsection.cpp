@@ -13,15 +13,58 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h>
+
+#include <arrays/pythonarray.h>
+
 #include <iostream>
 #include <algorithm>
 
-#define ATOMSTRUCT_EXPORT
-#define PYINSTANCE_EXPORT
-#include "RibbonXSection.h"
+#include "xsection.h"
 
-namespace atomstruct {
+class RibbonXSection {
+private:
+    void _generate_normals();
+    PyObject* _extrude_smooth(const FArray& centers, const FArray& tangents,
+                              const FArray& normals, const CArray& color,
+                              bool cap_front, bool cap_back, int offset) const;
+    PyObject* _extrude_faceted(const FArray& centers, const FArray& tangents,
+                               const FArray& normals, const CArray& color,
+                               bool cap_front, bool cap_back, int offset) const;
+    PyObject* _blend_smooth(const IArray& back_band,
+                            const IArray& front_band) const;
+    PyObject* _blend_faceted(const IArray& back_band,
+                             const IArray& front_band) const;
+    void _normalize_normals(FArray& v) const;
+    void _tessellate();
 
+    FArray xs_coords;
+    FArray xs_normals;
+    FArray xs_coords2;
+    FArray xs_normals2;
+    IArray tessellation;
+    bool is_arrow;
+    bool is_faceted;
+
+public:
+    RibbonXSection(FArray* coords,
+                   FArray* coords2 = NULL,
+                   FArray* normals = NULL,
+                   FArray* normals2 = NULL,
+                   bool faceted = false,
+                   const IArray* tess = NULL);
+    virtual ~RibbonXSection();
+
+    PyObject* extrude(const FArray& centers, const FArray& tangents,
+                      const FArray& normals, const CArray& color,
+                      bool cap_front, bool cap_back, int offset) const;
+    PyObject* blend(const IArray& back_band, const IArray& front_band) const;
+    RibbonXSection* scale(float x_scale, float y_scale) const;
+    RibbonXSection* arrow(float x1_scale, float y1_scale, float x2_scale, float y2_scale) const;
+};
+
+/*
 static void
 dump_farray(const char *label, const FArray& v, int nc)
 {
@@ -37,31 +80,7 @@ dump_farray(const char *label, const FArray& v, int nc)
         std::cerr << '\n';
     }
 }
-
-static void
-dump_farray_addresses(const char *label, const FArray& v)
-{
-    const float *data = v.values();
-    const float *end_data = data + v.size();
-    std::cerr << label << ' ' << &v << ' ' << data << ' ' << end_data << '\n';
-}
-
-static void
-dump_pyarray_addresses(const char *label, PyObject* o)
-{
-    std::cerr << label << ' ' << o << std::flush;
-    if (!PyArray_Check(o)) {
-        std::cerr << " not an array object\n";
-        return;
-    }
-    std::cerr << " checked";
-    PyArrayObject* a = (PyArrayObject*) o;
-    std::cerr << " casted";
-    const char* data = PyArray_BYTES(a);
-    std::cerr << ' ' << (void*) data << std::flush;
-    const char* end_data = data + PyArray_SIZE(a) * PyArray_ITEMSIZE(a);
-    std::cerr << ' ' << (void*) end_data << '\n';
-}
+*/
 
 RibbonXSection::RibbonXSection(FArray* coords, FArray* coords2,
                                FArray* normals, FArray* normals2,
@@ -131,7 +150,7 @@ RibbonXSection::RibbonXSection(FArray* coords, FArray* coords2,
 // dump_farray("xs_coords2", xs_coords2, 2);
 // if (xs_normals2.dimension() != 0)
 // dump_farray("xs_normals2", xs_normals2, 2);
-    if (tess)
+    if (tess && tess->dimension() != 0)
         tessellation = *tess;
     else
         _tessellate();
@@ -164,7 +183,7 @@ RibbonXSection::blend(const IArray& back_band, const IArray& front_band) const
         return _blend_smooth(back_band, front_band);
 }
 
-void*
+RibbonXSection*
 RibbonXSection::scale(float x_scale, float y_scale) const
 {
     FArray coords = FArray(xs_coords.dimension(), xs_coords.sizes());
@@ -198,7 +217,7 @@ RibbonXSection::scale(float x_scale, float y_scale) const
     return new RibbonXSection(&coords, NULL, &normals, &normals2, is_faceted, &tessellation);
 }
 
-void*
+RibbonXSection*
 RibbonXSection::arrow(float x1_scale, float y1_scale, float x2_scale, float y2_scale) const
 {
     FArray coords = FArray(xs_coords.dimension(), xs_coords.sizes());
@@ -825,4 +844,128 @@ RibbonXSection::_tessellate()
     }
 }
 
-}  // namespace atomstruct
+// -------------------------------------------------------------------------
+// ribbon xsection functions
+
+extern "C" int parse_rxsection_pointer(PyObject *arg, RibbonXSection **pointer)
+{
+  void *p;
+  int success = parse_voidp(arg, &p);
+  if (success)
+    *pointer = static_cast<RibbonXSection *>(p);
+  return success;
+}
+
+
+extern "C" PyObject *
+rxsection_new(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray coords, coords2, normals, normals2;
+  IArray tess;
+  int faceted = 0;
+  const char *kwlist[] = {"coords", "coords2", "normals", "normals2", "faceted", "tess", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("|O&O&O&O&pO&"),
+				   (char **)kwlist,
+				   parse_float_n2_array, &coords,
+				   parse_float_n2_array, &coords2,
+				   parse_float_n2_array, &normals,
+				   parse_float_n2_array, &normals2,
+				   &faceted,
+				   parse_int_n3_array, &tess))
+    return NULL;
+
+  RibbonXSection *xs = new RibbonXSection(&coords, &coords2, &normals, &normals2, faceted, &tess);
+  
+  return python_voidp(xs);
+}
+
+extern "C" PyObject *
+rxsection_delete(PyObject *, PyObject *args, PyObject *keywds)
+{
+  RibbonXSection *xs;
+  const char *kwlist[] = {"xsection", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				   (char **)kwlist,
+				   parse_rxsection_pointer, &xs))
+    return NULL;
+
+  delete xs;
+  
+  return python_none();
+}
+
+extern "C" PyObject *
+rxsection_extrude(PyObject *, PyObject *args, PyObject *keywds)
+{
+  RibbonXSection *xs;
+  FArray centers, tangents, normals;
+  CArray colors;
+  int cap_front, cap_back, offset;
+  const char *kwlist[] = {"xsection", "centers", "tangents", "normals", "colors", "cap_front",
+			  "cap_back", "offset", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&ppi"),
+				   (char **)kwlist,
+				   parse_rxsection_pointer, &xs,
+				   parse_float_n3_array, &centers,
+				   parse_float_n3_array, &tangents,
+				   parse_float_n3_array, &normals,
+				   parse_uint8_n_array, &colors,
+				   &cap_front, &cap_back, &offset))
+    return NULL;
+
+  PyObject *r = xs->extrude(centers, tangents, normals, colors, cap_front, cap_back, offset);
+  
+  return r;
+}
+
+extern "C" PyObject *
+rxsection_blend(PyObject *, PyObject *args, PyObject *keywds)
+{
+  RibbonXSection *xs;
+  IArray back_band, front_band;
+  const char *kwlist[] = {"xsection", "back_band", "front_band", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
+				   (char **)kwlist,
+				   parse_rxsection_pointer, &xs,
+				   parse_int_n_array, &back_band,
+				   parse_int_n_array, &front_band))
+
+    return NULL;
+
+  PyObject *r = xs->blend(back_band, front_band);
+
+  return r;
+}
+
+extern "C" PyObject *
+rxsection_scale(PyObject *, PyObject *args, PyObject *keywds)
+{
+  RibbonXSection *xs;
+  float x_scale, y_scale;
+  const char *kwlist[] = {"xsection", "x_scale", "y_scale", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ff"),
+				   (char **)kwlist,
+				   parse_rxsection_pointer, &xs,
+				   &x_scale, &y_scale))
+    return NULL;
+
+  RibbonXSection *r = xs->scale(x_scale, y_scale);
+  return python_voidp(r);
+}
+
+extern "C" PyObject *
+rxsection_arrow(PyObject *, PyObject *args, PyObject *keywds)
+{
+  RibbonXSection *xs;
+  float x1_scale, y1_scale, x2_scale, y2_scale;
+  const char *kwlist[] = {"xsection", "x1_scale", "y1_scale", "x2_scale", "y2_scale", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&ffff"),
+				   (char **)kwlist,
+				   parse_rxsection_pointer, &xs,
+				   &x1_scale, &y1_scale, &x2_scale, &y2_scale))
+    return NULL;
+
+  RibbonXSection *r = xs->arrow(x1_scale, y1_scale, x2_scale, y2_scale);
+  return python_voidp(r);
+}
+ 

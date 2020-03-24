@@ -16,6 +16,7 @@
 #include <Python.h>			// use PyObject
 
 #include "normals.h"			// use ribbon_constrained_normals
+#include "xsection.h"			// use rxsection_*
 
 // ----------------------------------------------------------------------------
 //
@@ -27,6 +28,20 @@ static struct PyMethodDef ribbons_cpp_methods[] =
   {const_cast<char*>("smooth_twist"), (PyCFunction)smooth_twist,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("dihedral_angle"), (PyCFunction)dihedral_angle,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* xsection.h */
+  {const_cast<char*>("rxsection_new"), (PyCFunction)rxsection_new,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("rxsection_delete"), (PyCFunction)rxsection_delete,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("rxsection_extrude"), (PyCFunction)rxsection_extrude,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("rxsection_blend"), (PyCFunction)rxsection_blend,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("rxsection_scale"), (PyCFunction)rxsection_scale,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("rxsection_arrow"), (PyCFunction)rxsection_arrow,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}

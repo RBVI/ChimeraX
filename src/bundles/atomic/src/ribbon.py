@@ -1725,23 +1725,17 @@ class Ribbon:
         if timing:
             t0 = time()
 
-        divisions = self._segment_divisions
         if seg == -1 and side == Ribbon.SECOND_HALF:
-            return self.lead_segment(divisions // 2)
+            return self._lead_segment()
         elif seg == self.num_segments and side == Ribbon.FIRST_HALF:
-            return self.trail_segment(divisions // 2)
+            return self._trail_segment()
 
+        divisions = self._segment_divisions
         if seg in self._seg_cache:
-            # TODO: We only calc the segments in order so it might be much faster
-            #  to reuse one coords, tangents, normals array for all segments.
-            #  Also could avoid making new numpy views by computing 4 fixed views
-            #  for the two sides and include_end true/false for each array and
-            #  always reuse those views.  Maybe the views are not too expensive.
-            #  I index into normals and tangents that create views.
             coords, tangents, normals = self._seg_cache[seg]
         else:
             coeffs = self._segment_coefficients(seg)
-            coords, tangents = _spline_segment_path(coeffs, 0, 1, divisions)
+            coords, tangents = _spline_segment_path(coeffs, 0, 1, divisions+1)
             if self._use_spline_normals:
                 from numpy import array, linspace, sum
                 # We _should_ return normals that are orthogonal (O) to the
@@ -1793,31 +1787,35 @@ class Ribbon:
             
         return seg_coords, seg_tangents, seg_normals
 
-    def lead_segment(self, divisions):
+    def _lead_segment(self):
         coeffs = self._segment_coefficients(0)
         # We do not want to go from -0.5 to 0 because the
         # first residue will already have the "0" coordinates
         # as part of its ribbon.  We want to connect to that
         # coordinate smoothly.
-        step = 0.5 / (divisions + 1)
-        coords, tangents = _spline_segment_path(coeffs, -0.3, -step, divisions)
-        n = self.normals[0]
+        divisions = self._segment_divisions // 2
+        n = divisions + 1
+        step = 0.5 / n
+        coords, tangents = _spline_segment_path(coeffs, -0.3, -step, n)
+        n_start = self.normals[0]
         from ._ribbons import parallel_transport
-        normals = parallel_transport(tangents, n)
+        normals = parallel_transport(tangents, n_start)
         #normals = curvature_to_normals(curvature, tangents, None)
         return coords, tangents, normals
 
-    def trail_segment(self, divisions, prev_normal=None):
+    def _trail_segment(self):
         coeffs = self._segment_coefficients(-1)
         # We do not want to go from 1 to 1.5 because the
         # last residue will already have the "1" coordinates
         # as part of its ribbon.  We want to connect to that
         # coordinate smoothly.
-        step = 0.5 / (divisions + 1)
-        coords, tangents = _spline_segment_path(coeffs, 1 + step, 1.3, divisions)
-        n = self.normals[-1]
+        divisions = self._segment_divisions // 2
+        n = divisions + 1
+        step = 0.5 / n
+        coords, tangents = _spline_segment_path(coeffs, 1 + step, 1.3, n)
+        n_end = self.normals[-1]
         from ._ribbons import parallel_transport
-        normals = parallel_transport(tangents, n)
+        normals = parallel_transport(tangents, n_end)
         #normals = curvature_to_normals(curvature, tangents, prev_normal)
         return coords, tangents, normals
 
@@ -2398,7 +2396,7 @@ def get_orthogonal_component(v, ref):
 
 from chimerax.geometry import cubic_path as _spline_segment_path
 
-def _spline_segment_path_unused(coeffs, tmin, tmax, divisions):
+def _spline_segment_path_unused(coeffs, tmin, tmax, num_points):
     if timing:
         t0 = time()
     # coeffs is a 3x4 array of float.
@@ -2406,12 +2404,11 @@ def _spline_segment_path_unused(coeffs, tmin, tmax, divisions):
     # (1, t, t**2, t**3) by the spline coefficients, and
     # compute tangents by multiplying spline parameter vector
     # (0, 1, 2*t, 3*t**2) by the same spline coefficients
-    from numpy import array, zeros, ones, linspace, dot
+    from numpy import array, ones, linspace, dot
     spline = array(coeffs).transpose()
-    nc = divisions + 1
-    t = linspace(tmin, tmax, nc)
+    t = linspace(tmin, tmax, num_points)
     t2 = t * t
-    st = ones((nc, 4), float)    # spline multiplier matrix
+    st = ones((num_points, 4), float)    # spline multiplier matrix
     # st[:,0] is 1.0        # 1
     st[:,1] = t             # t
     st[:,2] = t2            # t^2

@@ -1993,79 +1993,40 @@ class RibbonXSection:
     def __init__(self, coords=None, coords2=None, normals=None, normals2=None,
                  faceted=False, tess=None, xs_pointer=None):
         if xs_pointer is None:
-            f = c_function('rxsection_new',
-                           args = (ctypes.py_object,        # coords
-                                   ctypes.py_object,        # coords2
-                                   ctypes.py_object,        # normals
-                                   ctypes.py_object,        # normals2
-                                   ctypes.c_bool,           # faceted
-                                   ctypes.py_object),       # tess
-                                   ret = ctypes.c_void_p)   # pointer to C++ instance
-            xs_pointer = f(coords, coords2, normals, normals2, faceted, tess)
-        set_c_pointer(self, xs_pointer)
-
-    # cpp_pointer and deleted are "base class" methods, though for performance reasons
-    # we are placing them directly in each class rather than using a base class,
-    # and for readability by most programmers we avoid using metaclasses
-    @property
-    def cpp_pointer(self):
-        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
-        return self._c_pointer.value
-
-    @property
-    def deleted(self):
-        '''Has the C++ side been deleted?'''
-        return not hasattr(self, '_c_pointer')
+            kw = {name:value for name,value in (('coords',coords), ('coords2', coords2),
+                                                ('normals',normals), ('normals2',normals2),
+                                                ('faceted',faceted), ('tess',tess))
+                  if value is not None}
+            from ._ribbons import rxsection_new
+            xs_pointer = rxsection_new(**kw)
+        self._xs_pointer = xs_pointer
 
     def extrude(self, centers, tangents, normals, color,
                 cap_front, cap_back, offset):
         '''Return the points, normals and triangles for a ribbon.'''
-        f = c_function('rxsection_extrude',
-                       args = (ctypes.c_void_p,     # self
-                               ctypes.py_object,    # centers
-                               ctypes.py_object,    # tangents
-                               ctypes.py_object,    # normals
-                               ctypes.py_object,    # color
-                               ctypes.c_bool,       # cap_front
-                               ctypes.c_bool,       # cap_back
-                               ctypes.c_int),       # offset
-                       ret = ctypes.py_object)      # tuple
-        t = f(self._c_pointer, centers, tangents, normals, color,
-              cap_front, cap_back, offset)
+        from ._ribbons import rxsection_extrude
+        t = rxsection_extrude(self._xs_pointer, centers, tangents, normals, color,
+                              cap_front, cap_back, offset)
         if t is not None:
             t = ExtrudeValue(*t)
         return t
 
     def blend(self, back_band, front_band):
         '''Return the triangles blending front and back halves of ribbon.'''
-        f = c_function('rxsection_blend',
-                       args = (ctypes.c_void_p,     # self
-                               ctypes.py_object,    # back_band
-                               ctypes.py_object),    # front_band
-                       ret = ctypes.py_object)      # tuple
-        t = f(self._c_pointer, back_band, front_band)
+        from ._ribbons import rxsection_blend
+        t = rxsection_blend(self._xs_pointer, back_band, front_band)
         return t
 
     def scale(self, scale):
         '''Return new cross section scaled by 2-tuple scale.'''
-        f = c_function('rxsection_scale',
-                       args = (ctypes.c_void_p,     # self
-                               ctypes.c_float,      # x scale
-                               ctypes.c_float),     # y scale
-                       ret = ctypes.c_void_p)       # pointer to C++ instance
-        p = f(self._c_pointer, scale[0], scale[1])
+        from ._ribbons import rxsection_scale
+        p = rxsection_scale(self._xs_pointer, scale[0], scale[1])
         return RibbonXSection(xs_pointer=p)
 
     def arrow(self, scales):
         '''Return new arrow cross section scaled by 2x2-tuple scale.'''
-        f = c_function('rxsection_arrow',
-                       args = (ctypes.c_void_p,     # self
-                               ctypes.c_float,      # wide x scale
-                               ctypes.c_float,      # wide y scale
-                               ctypes.c_float,      # narrow x scale
-                               ctypes.c_float),     # narrow y scale
-                       ret = ctypes.c_void_p)       # pointer to C++ instance
-        p = f(self._c_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
+        from ._ribbons import rxsection_arrow
+        p = rxsection_arrow(self._xs_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
         return RibbonXSection(xs_pointer=p)
 
 # -----------------------------------------------------------------------------
