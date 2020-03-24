@@ -220,6 +220,7 @@ def make_desktop(info, localized_app_name={}):
                            "Education", "Science", "Biology", "Chemistry",
                            "Graphics", "2DGraphics", "DataVisualization"])
         desktop_stringlist(f, "MimeType", mime_types)
+        desktop_string(f, "StartupWMClass", info.app_name)
         if '=' in sys.executable:
             raise RuntimeError("warning: '=' found in path to ChimeraX")
         else:
