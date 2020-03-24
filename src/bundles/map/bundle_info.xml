@@ -84,6 +84,10 @@
     <Provider name="spider" want_path="true" />
     <Provider name="tom_em" want_path="true" />
     <Provider name="uhbd" want_path="true" />
+
+    <Provider name="eds" type="fetch" format_name="ccp4"/>
+    <Provider name="edsdiff" type="fetch" format_name="ccp4"/>
+    <Provider name="emdb" type="fetch" format_name="ccp4"/>
   </Providers>
 
   <Providers manager="save command">

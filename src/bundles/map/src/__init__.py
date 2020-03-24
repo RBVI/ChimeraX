@@ -127,15 +127,16 @@ class _MapBundle(BundleAPI):
         if mgr == session.open_command:
             fetches = ['eds', 'edsdiff', 'emdb']
             if name in fetches:
-                from chimerax.open_cmd import FetcherInfo
-                from . import pdb
+                from . import eds_fetch, emdb_fetch
                 fetcher = {
-                    'pdb': pdb.fetch_pdb,
-                    'pdbe': pdb.fetch_pdb_pdbe,
-                    'pdbj': pdb.fetch_pdb_pdbj
+                    'eds': eds_fetch.fetch_eds_map,
+                    'edsdiff': eds_fetch.fetch_edsdiff_map,
+                    'emdb': emdb_fetch.fetch_emdb
                 }[name]
+                from chimerax.open_cmd import FetcherInfo
                 class Info(FetcherInfo):
-                    def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                            fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
             else:
                 from chimerax.open_cmd import OpenerInfo
