@@ -18,6 +18,15 @@
     <Dependency name="ChimeraX-Geometry" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="DICOM" synopsis="DICOM medical imaging" category="Volume data"
+		suffixes=".dcm" allow_directory="true" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="DICOM" batch="true" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
