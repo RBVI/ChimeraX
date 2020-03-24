@@ -23,6 +23,15 @@
     <Provider name="smiles" ui_name="SMILES string" new_model_only="true"/>
   </Providers>
 
+  <Providers manager="data formats">
+    <Provider name="SMILES" synopsis="SMILES string" category="Molecular structure" 
+		reference_url="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="smiles" type="fetch" format_name="SMILES"/>
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

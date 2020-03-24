@@ -22,7 +22,7 @@ class _MyAPI(BundleAPI):
         return fetch_cellpack(session, identifier, ignore_cache=ignore_cache)
 
     @staticmethod
-    def run_provider(session, name, mgr, *, widget_info=None, **kw):
+    def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import FetcherInfo
         class CellpackFetcherInfo(FetcherInfo):
             def fetch(self, session, ident, format_name, ignore_cache, **kw):
