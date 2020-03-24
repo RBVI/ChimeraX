@@ -103,6 +103,10 @@ class OpenManager(ProviderManager):
                     key = "STL"
                 elif old == "Schrodinger Maestro":
                     key = "Maestro"
+                elif "Python" in old:
+                    key = old[:-5]
+                    if key.startswith("Compiled"):
+                        key = 'c' + key[1:]
                 else:
                     key = old
                 try:

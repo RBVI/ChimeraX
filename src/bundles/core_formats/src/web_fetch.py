@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def fetch_web(session, url, ignore_cache=False, new_tab=False, mime_format=None, **kw):
+def fetch_web(session, url, ignore_cache=False, new_tab=False, data_format=None, **kw):
     # TODO: deal with content encoding for text formats
     # TODO: how would "ignore_cache" work?
     import os
@@ -22,13 +22,18 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, mime_format=None,
     basename = os.path.basename(path)
     from chimerax.data_formats import NoFormatError
     use_html = False
-    try:
-        nominal_format = session.data_formats.open_format_from_file_name(basename)
-    except NoFormatError:
-        use_html = True
+    if data_format is None:
+        try:
+            nominal_format = session.data_formats.open_format_from_file_name(basename)
+        except NoFormatError:
+            use_html = True
+            nomimal_format = None
+        else:
+            use_html = nominal_format.name == 'HTML'
     else:
+        nominal_format = session.data_formats[data_format]
         use_html = nominal_format.name == 'HTML'
-    if use_html and not url.startswith('ftp;'):
+    if use_html and not url.startswith('ftp:'):
         return session.open_command.open_data(url, format='HTML',
             ignore_cache=ignore_cache, new_tab=new_tab, **kw)
     base, ext = os.path.splitext(basename)
@@ -42,30 +47,21 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, mime_format=None,
     content_type = retrieve_url(url, filename, logger=session.logger,
         uncompress=uncompress)
     session.logger.info('Downloaded %s to %s' % (basename, filename))
-    mime_format = None
-    if mime_format:
-        try:
-            mime_format = session.data_formats[mime_format]
-        except KeyError:
-            from chimera.core.errors import UserError
-            raise UserError("Unknown mime format '%s'; legal values are: %s"
-                % (mime_format, ", ".join([fmt.name
-                    for fmt in session.data_formats])))
-    if mime_format is None:
-        for mime_format in session.data_formats:
-            if content_type in mime_format.mime_types:
+    if data_format is None:
+        for fmt in session.open_command.open_data_formats:
+            if content_type in fmt.mime_types:
+                nominal_format = fmt
                 break
         else:
             if content_type and content_type != 'application/octet-stream':
                 session.logger.info('Unrecognized mime type: %s' % content_type)
-            mime_format = nominal_format
-    if mime_format is None:
-        from chimerax.core.errors import UserError
-        raise UserError('Unable to deduce format of %s' % url)
-    if mime_format != nominal_format:
+            if nominal_format is None:
+                from chimerax.core.errors import UserError
+                raise UserError('Unable to deduce format of %s' % url)
+    if ext not in nominal_format.suffixes:
         session.logger.info('mime type (%s), does not match file name extension (%s)'
             % (content_type, ext))
-        new_ext = mime_format.extensions[0]
+        new_ext = nominal_format.suffixes[0]
         new_filename = os.path.join(cache_dir, '%s%s' % (base, new_ext))
         count = 0
         while os.path.exists(new_filename):
@@ -73,7 +69,6 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, mime_format=None,
             new_filename = os.path.join(cache_dir, '%s(%d)%s' % (base, count, new_ext))
         session.logger.info('renaming "%s" to "%s"' % (filename, new_filename))
         os.rename(filename, new_filename)
-        nominal_format = mime_format
         filename = new_filename
     return session.open_command.open_data(filename, format=nominal_format.name, **kw)
 

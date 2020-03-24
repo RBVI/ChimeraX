@@ -18,6 +18,20 @@
     <Dependency name="ChimeraX-Geometry" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="glTF" category="Generic 3D objects" suffixes=".glb"
+		synopsis="GL Transmission Format"
+		reference_url="https://github.com/KhronosGroup/glTF" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="glTF" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="glTF" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
