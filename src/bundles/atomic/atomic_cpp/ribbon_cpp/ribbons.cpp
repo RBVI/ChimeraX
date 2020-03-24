@@ -16,6 +16,7 @@
 #include <Python.h>			// use PyObject
 
 #include "normals.h"			// use ribbon_constrained_normals
+#include "spline.h"			// use cubic_path
 #include "xsection.h"			// use rxsection_*
 
 // ----------------------------------------------------------------------------
@@ -29,6 +30,10 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("dihedral_angle"), (PyCFunction)dihedral_angle,
    METH_VARARGS|METH_KEYWORDS, NULL},
+
+  /* spline.h */
+  {const_cast<char*>("cubic_path"), (PyCFunction)cubic_path,
+   METH_VARARGS|METH_KEYWORDS, cubic_path_doc},
 
   /* xsection.h */
   {const_cast<char*>("rxsection_new"), (PyCFunction)rxsection_new,

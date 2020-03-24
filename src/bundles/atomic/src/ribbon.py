@@ -2394,7 +2394,7 @@ def get_orthogonal_component(v, ref):
     ref_len = norm(ref)
     return v + ref * (-d / ref_len)
 
-from chimerax.geometry import cubic_path as _spline_segment_path
+from ._ribbons import cubic_path as _spline_segment_path
 
 def _spline_segment_path_unused(coeffs, tmin, tmax, num_points):
     if timing:
