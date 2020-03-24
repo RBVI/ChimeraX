@@ -115,11 +115,8 @@ class UI(QApplication):
         # QtCoreApplication is created...
         import PyQt5.QtWebEngineWidgets
 
-        import sys
-        app_name = sys.argv[0]
-        if app_name.endswith("_main.py"):
-            app_name = app_name[:-len("_main.py")]
-        QApplication.__init__(self, [app_name])
+        from chimerax import app_dirs as ad
+        QApplication.__init__(self, [ad.appname])
 
         # Improve toolbar icon quality on retina displays
         from PyQt5.QtCore import Qt
