@@ -62,7 +62,7 @@ class AvailableBundleCache(list):
         self._build_bundles(data)
 
     def _build_bundles(self, data):
-        from distutils.version import LooseVersion as Version
+        from distlib.version import LegacyVersion as Version
         import chimerax.core
         my_version = Version(chimerax.core.version)
         for d in data:
@@ -75,7 +75,7 @@ class AvailableBundleCache(list):
                 self.uninstallable.append(b)
 
     def _installable(self, b, my_version):
-        from distutils.version import LooseVersion as Version
+        from distlib.version import LegacyVersion as Version
         installable = False
         for pkg, op, v in b.requires:
             if pkg != "ChimeraX-Core":
