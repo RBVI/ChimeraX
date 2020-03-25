@@ -21,10 +21,6 @@
 #include <arrays/pythonarray.h>		// use parse_uint8_n_array()
 #include <arrays/rcarray.h>		// use CArray
 
-#define FLIP_MINIMIZE   0
-#define FLIP_PREVENT    1
-#define FLIP_FORCE      2
-
 inline float inner(const float* u, const float* v)
 {
     return u[0]*v[0] + u[1]*v[1] + u[2]*v[2];
