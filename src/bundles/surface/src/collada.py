@@ -87,9 +87,12 @@ def geometry_node_surfaces(primitives, place, color, materials, colors, session)
 
         # Collada allows different normals on the same vertex in different triangles,
         # but Hydra only allows one normal per vertex.
-        from numpy import empty
-        vn = empty(v.shape, n.dtype)
-        vn[t.ravel(),:] = n[ni.ravel(),:]
+        if n is None:
+            vn = None
+        else:
+            from numpy import empty
+            vn = empty(v.shape, n.dtype)
+            vn[t.ravel(),:] = n[ni.ravel(),:]
 
         vcolors = vertex_colors(p, t, len(v), colors)
         c = material_color(materials.get(p.material), color)
