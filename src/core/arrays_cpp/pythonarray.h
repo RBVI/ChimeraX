@@ -107,6 +107,7 @@ ARRAYS_IMEX int parse_writable_2d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_writable_3d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_writable_4d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_string_array(PyObject *arg, void *carray);
+ARRAYS_IMEX int parse_voidp(PyObject *arg, void **p);
 }
 
 ARRAYS_IMEX bool check_array_size(FArray &a, int64_t n, int64_t m, bool require_contiguous = false);
@@ -165,7 +166,8 @@ ARRAYS_IMEX PyObject *resized_2d_array(PyObject *array, int64_t size0, int64_t s
 
 ARRAYS_IMEX PyObject *python_none();
 ARRAYS_IMEX PyObject *python_bool(bool b);
-
+ARRAYS_IMEX PyObject *python_voidp(void *p);
+  
 ARRAYS_IMEX PyObject *python_tuple(PyObject *o1, PyObject *o2);
 ARRAYS_IMEX PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3);
 ARRAYS_IMEX PyObject *python_tuple(PyObject *o1, PyObject *o2, PyObject *o3, PyObject *a4);

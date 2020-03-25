@@ -15,15 +15,15 @@
 
 // ----------------------------------------------------------------------------
 //
-#ifndef SPLINE_HEADER_INCLUDED
-#define SPLINE_HEADER_INCLUDED
+#ifndef RSPLINE_HEADER_INCLUDED
+#define RSPLINE_HEADER_INCLUDED
 
 #include <Python.h>			// use PyObject
 
 extern "C"
 {
-  PyObject *natural_cubic_spline(PyObject *s, PyObject *args, PyObject *keywds);
-  extern const char *natural_cubic_spline_doc;
+  PyObject *cubic_path(PyObject *s, PyObject *args, PyObject *keywds);
+  extern const char *cubic_path_doc;
 }
 
 #endif

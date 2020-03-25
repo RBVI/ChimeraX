@@ -28,9 +28,6 @@ class Structure(Model, StructureData):
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True):
-        # Cross section coordinates are 2D and counterclockwise
-        # Use C++ version of XSection instead of Python version
-        from .molobject import RibbonXSection as XSection
         from .molarray import Residues
         from numpy import array
         from .ribbon import XSectionManager

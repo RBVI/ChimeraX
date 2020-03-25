@@ -1407,6 +1407,15 @@ extern "C" int parse_string_array(PyObject *array, void *carray)
 
 // ----------------------------------------------------------------------------
 //
+extern "C" int parse_voidp(PyObject *arg, void **p)
+{
+  *p = PyLong_AsVoidPtr(arg);
+  return (PyErr_Occurred() == NULL) ? 1 : 0;
+}
+
+
+// ----------------------------------------------------------------------------
+//
 PyObject *python_tuple(PyObject *o1, PyObject *o2)
 {
   PyObject *pair = PyTuple_New(2);
@@ -1466,6 +1475,13 @@ PyObject *python_bool(bool b)
   PyObject *bpy = (b ? Py_True : Py_False);
   Py_INCREF(bpy);
   return bpy;
+}
+
+// ----------------------------------------------------------------------------
+//
+PyObject *python_voidp(void *p)
+{
+  return PyLong_FromVoidPtr(p);
 }
 
 // ----------------------------------------------------------------------------
