@@ -29,6 +29,17 @@
     <Dependency name="ChimeraX-Surface" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="UCSF Chimera BILD" synopsis="Chimera BILD object" nicknames="bild"
+		category="Generic 3D objects"
+		reference_url="help:user/formats/bild.html"
+		suffixes=".bild,.bld" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="UCSF Chimera BILD" />
+  </Providers>
+
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

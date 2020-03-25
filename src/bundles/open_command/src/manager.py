@@ -100,6 +100,7 @@ class OpenManager(ProviderManager):
         def check_fmts(*args, self=self):
             in_common = []
             old_only = []
+            toolshed_only = ["RMF"]
             from chimerax.core.io import _file_formats
             for old in _file_formats.keys():
                 if old.endswith(" image"):
@@ -112,6 +113,8 @@ class OpenManager(ProviderManager):
                     key = old[:-5]
                     if key.startswith("Compiled"):
                         key = 'c' + key[1:]
+                elif old in toolshed_only:
+                    continue
                 else:
                     key = old
                 try:
@@ -129,8 +132,9 @@ class OpenManager(ProviderManager):
                         old_only.append(old)
             #for df in self.session.data_formats:
             #    print("new:", df.name)
-            print("%d data formats in common, %d new only, %d old only" %(len(in_common),
-                len(self.session.data_formats) - len(in_common), len(old_only)))
+            print("%d data formats in common, %d new only, %d old only, %d toolshed only"
+                %(len(in_common), len(self.session.data_formats) - len(in_common),
+                len(old_only), len(toolshed_only)))
             if len(in_common) != len(self.session.data_formats):
                 print("new only:", ", ".join([fmt.name for fmt in
                     self.session.data_formats if fmt not in in_common]))
