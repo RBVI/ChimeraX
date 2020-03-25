@@ -18,6 +18,16 @@
     <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="UniProt" synopsis="UniProt sequence" category="Sequence"
+		reference_url="https://www.uniprot.org" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="uniprot" type="fetch" format_name="uniprot"
+		example_ids="P01138,NGF_HUMAN" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

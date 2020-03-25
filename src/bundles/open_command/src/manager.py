@@ -28,7 +28,7 @@ class OpenManager(ProviderManager):
 
     def add_provider(self, bundle_info, name, *, type="open", want_path=False,
             check_path=True, batch=False, format_name=None,
-            is_default=True, **kw):
+            is_default=True, example_ids=None, **kw):
         logger = self.session.logger
 
         bundle_name = _readable_bundle_name(bundle_info)
@@ -68,7 +68,12 @@ class OpenManager(ProviderManager):
                     " with that from %s bundle" % (name, format_name,
                     _readable_bundle_name(self._fetchers[name][format_name][0]),
                     bundle_name))
-            self._fetchers.setdefault(name, {})[format_name] = (bundle_info, is_default)
+            if example_ids:
+                example_ids = ",".split(example_ids)
+            else:
+                example_ids = []
+            self._fetchers.setdefault(name, {})[format_name] = (bundle_info,
+                is_default, example_ids)
             if is_default and len([fmt for fmt, info in self._fetchers[name].items()
                     if info[1]]) > 1:
                 logger.warning("Multiple default formats declared for database fetch"
@@ -141,14 +146,14 @@ class OpenManager(ProviderManager):
             raise NoOpenerError("No such database '%s'" % database_name)
         if format_name:
             try:
-                bundle_info, is_default = db_formats[format_name]
+                bundle_info, is_default, example_ids = db_formats[format_name]
             except KeyError:
                 raise NoOpenerError("Format '%s' not supported for database '%s'."
                     "  Supported formats are: %s" % (format_name, database_name,
                     ", ".join(dbf for dbf in db_formats)))
         else:
             for format_name, info in db_formats.items():
-                bundle_info, is_default = info
+                bundle_info, is_default, example_ids = info
                 if is_default:
                     break
             else:

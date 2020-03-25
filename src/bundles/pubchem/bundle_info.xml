@@ -21,7 +21,7 @@
   </Dependencies>
 
   <Providers manager="open command">
-    <Provider name="pubchem" type="fetch" format_name="sdf"/>
+    <Provider name="pubchem" type="fetch" format_name="sdf" example_ids="12123" />
   </Providers>
 
   <Providers manager="start structure">

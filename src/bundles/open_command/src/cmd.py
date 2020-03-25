@@ -187,14 +187,14 @@ def _fetch_info(mgr, database_name, default_format_name):
     db_info = mgr.database_info(database_name)
     if default_format_name:
         try:
-            bundle_info, is_default = db_info[default_format_name]
+            bundle_info, is_default, example_ids = db_info[default_format_name]
         except KeyError:
             raise UserError("Format '%s' not available for database '%s'.  Available"
                 " formats are: %s" % (default_format_name, database_name,
                 ", ".join(db_info.keys())))
     else:
         for default_format_name, fmt_info in db_info.items():
-            bundle_info, is_default = fmt_info
+            bundle_info, is_default, example_ids = fmt_info
             if is_default:
                 break
         else:
