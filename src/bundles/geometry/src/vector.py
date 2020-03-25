@@ -26,6 +26,7 @@ __all__ = [
     'normalize_vectors',
     'normalize_vector',
     'cross_product',
+    'cross_products',
     'norm',
     'vector_angle',
     'inner_product_64',
@@ -37,7 +38,7 @@ __all__ = [
 from .matrix import vector_sum
 from .matrix import normalize_vectors
 from .matrix import normalize_vector
-from .matrix import cross_product
+from .matrix import cross_product, cross_products
 from .matrix import norm
 from .matrix import vector_angle_radians as vector_angle
 
