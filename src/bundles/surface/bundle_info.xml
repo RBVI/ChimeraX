@@ -51,7 +51,7 @@
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="collada" />
+    <Provider name="collada" want_path="true" />
   </Providers>
 
   <Classifiers>
