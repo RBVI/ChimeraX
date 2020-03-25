@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 timing = False
-timing = True
+#timing = True
 if timing:
     from time import time
 
