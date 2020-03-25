@@ -31,7 +31,6 @@
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Residue.h>
-#include <atomstruct/RibbonXSection.h>
 #include <atomstruct/Ring.h>
 #include <atomstruct/seq_assoc.h>
 #include <atomstruct/Sequence.h>
