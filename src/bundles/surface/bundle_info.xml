@@ -44,6 +44,16 @@
     <Dependency name="ChimeraX-Std_Commands" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="COLLADA" category="Generic 3D objects"
+		reference_url="https://www.khronos.org/collada"
+		suffixes=".dae" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="collada" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
