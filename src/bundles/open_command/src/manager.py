@@ -131,7 +131,7 @@ class OpenManager(ProviderManager):
                     self.session.data_formats if fmt not in in_common]))
                 return
             from random import choice
-            print("Port format", choice(list(old_only)+['http']))
+            print("Port format", choice(list(old_only)))
         self.session.ui.triggers.add_handler('ready', check_fmts)
 
     def fetch_args(self, database_name, *, format_name=None):

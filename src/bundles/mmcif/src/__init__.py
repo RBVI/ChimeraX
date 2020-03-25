@@ -61,5 +61,66 @@ class _mmCIFioAPI(BundleAPI):
         from . import mmcif_write
         return mmcif_write.write_mmcif(session, path, models=models, rel_model=rel_model, selected_only=selected_only, displayed_only=displayed_only)
 
+    @staticmethod
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            if name == "mmCIF":
+                from chimerax.open_command import OpenerInfo
+                class Info(OpenerInfo):
+                    def open(self, session, data, file_name, **kw):
+                        from . import mmcif
+                        return mmcif.open_mmcif(session, data, file_name, **kw)
+
+                    @property
+                    def open_args(self):
+                        from chimerax.core.commands import BoolArg, IntArg
+                        return {
+                            'atomic': BoolArg,
+                            'auto_style': BoolArg,
+                            'combine_sym_atoms': BoolArg,
+                            'coordsets': BoolArg,
+                            'log_info': BoolArg,
+                            'max_models': IntArg,
+                        }
+            else:
+                from . import mmcif
+                fetcher = {
+                    "pdb": mmcif.fetch_mmcif,
+                    "pdbe": mmcif.fetch_mmcif_pdbe,
+                    "pdbe_updated": mmcif.fetch_mmcif_pdbe_updated,
+                    "pdbj": mmcif.fetch_mmcif_pdbj,
+                }[name]
+                from chimerax.open_command import FetcherInfo
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                            fetcher=fetcher, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+
+                    @property
+                    def fetch_args(self):
+                        from chimerax.core.commands import BoolArg, FloatArg
+                        return {
+                            'oversampling': FloatArg,
+                            'structure_factors': BoolArg,
+                        }
+        else:
+            from chimerax.save_command import SaverInfo
+            class Info(SaverInfo):
+                def save(self, session, path, **kw):
+                    from . import mmcif_write
+                    mmcif_write.write_mmcif(session, path, **kw)
+
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import BoolArg, ModelsArg, ModelArg, EnumOf
+                    return {
+                        'displayed_only': BoolArg,
+                        'models': ModelsArg,
+                        'rel_model': ModelArg,
+                        'selected_only': BoolArg,
+                    }
+                    
+        return Info()
+
 
 bundle_api = _mmCIFioAPI()
