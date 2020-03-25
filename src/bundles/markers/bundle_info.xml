@@ -25,6 +25,20 @@
     <Dependency name="ChimeraX-UI" version=">=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Marker model" category="Generic 3D objects"
+		reference_url="http://rbvi.ucsf.edu/chimerax/docs/user/markers.html#markerfiles"
+		nicknames="markers" suffixes=".cmm" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Marker model" want_path="true" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="Marker model" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>

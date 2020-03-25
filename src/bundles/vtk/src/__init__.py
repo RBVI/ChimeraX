@@ -49,4 +49,5 @@ class _VTKBundleAPI(BundleAPI):
                     from chimerax.core.commands import ModelsArg
                     return { 'models': ModelsArg }
         return VtkInfo()
+
 bundle_api = _VTKBundleAPI()

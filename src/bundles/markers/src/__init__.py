@@ -54,6 +54,27 @@ class _MarkersAPI(BundleAPI):
             return MarkerSet
         return None
 
+    @staticmethod
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            class MarkerInfo(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import cmmfiles
+                    return cmmfiles.read_cmm(session, data)
+        else:
+            from chimerax.save_command import SaverInfo
+            class MarkerInfo(SaverInfo):
+                def save(self, session, path, *, models=None, **kw):
+                    from . import cmmfiles
+                    return cmmfiles.write_cmm(session, path, models)
+
+                @property
+                def save_args(self):
+                    from chimerax.core.commands import ModelsArg
+                    return { 'models': ModelsArg }
+        return MarkerInfo()
+
 bundle_api = _MarkersAPI()
 
 from .markers import MarkerSet, create_link, selected_markers, selected_links
