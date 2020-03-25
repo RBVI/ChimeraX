@@ -20,13 +20,14 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="SDF" synopsis="MDL MOL/SDF" category="Molecular structure"
+    <Provider name="MDL MOL/SDF" synopsis="MOL/SDF", nicknames="sdf"
+		category="Molecular structure"
 		reference_url="https://en.wikipedia.org/wiki/Chemical_table_file"
 		suffixes=".sdf,.mol" encoding="utf-8" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="sdf" />
+    <Provider name="MDL MOL/SDF" />
   </Providers>
 
   <Classifiers>
