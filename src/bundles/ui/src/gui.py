@@ -647,9 +647,6 @@ class MainWindow(QMainWindow, PlainTextLog):
     def folder_open_cb(self, session):
         self._open_folder.display(session)
 
-    def file_save_cb(self, session):
-        self.save_dialog.display(self, session)
-
     def file_close_cb(self, session):
         from chimerax.core.commands import run
         run(session, 'close session')
@@ -1423,7 +1420,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         If 'insertion_point is specified, then the entry will be inserted before it.
         'insertion_point' can be a QAction, a string (menu item text with navigation markup removed)
-        or an integer indicating a particular separator (top to bottom, numbering starting at 1).
+        an integer indicating a particular separator (top to bottom, numbering starting at 1),
+        or False indicating that the entry should be placed at the top of the menu.
         '''
         menu = self._get_target_menu(self.menuBar(), menu_names)
         from PyQt5.QtWidgets import QAction
@@ -1435,6 +1433,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.setShortcut(shortcut)
         if insertion_point is None:
             menu.addAction(action)
+        elif insertion_point is False:
+            existing_actions = menu.actions()
+            if not existing_actions:
+                menu.addAction(action)
+            else:
+                menu.insertAction(existing_actions[0], action)
         else:
             menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action

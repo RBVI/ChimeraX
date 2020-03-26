@@ -162,21 +162,22 @@ class OpenManager(ProviderManager):
             db_formats = self._fetchers[database_name]
         except KeyError:
             raise NoOpenerError("No such database '%s'" % database_name)
+        from chimerax.core.commands import commas
         if format_name:
             try:
                 provider_info = db_formats[format_name]
             except KeyError:
                 raise NoOpenerError("Format '%s' not supported for database '%s'."
                     "  Supported formats are: %s" % (format_name, database_name,
-                    ", ".join(dbf for dbf in db_formats)))
+                    commas([dbf for dbf in db_formats])))
         else:
             for format_name, provider_info in db_formats.items():
                 if provider_info.is_default:
                     break
             else:
                 raise NoOpenerError("No default format for database '%s'."
-                    "  Possible formats are: %s" % (database_name, ", ".join(dbf
-                    for dbf in db_formats)))
+                    "  Possible formats are: %s" % (database_name, commas([dbf
+                    for dbf in db_formats])))
         try:
             args = self.open_args(self.session.data_formats[format_name])
         except NoOpenerError:

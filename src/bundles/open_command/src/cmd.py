@@ -184,20 +184,21 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
 
 def _fetch_info(mgr, database_name, default_format_name):
     db_info = mgr.database_info(database_name)
+    from chimerax.core.commands import commas
     if default_format_name:
         try:
             provider_info = db_info[default_format_name]
         except KeyError:
             raise UserError("Format '%s' not available for database '%s'.  Available"
                 " formats are: %s" % (default_format_name, database_name,
-                ", ".join(db_info.keys())))
+                commas(db_info.keys())))
     else:
         for default_format_name, provider_info in db_info.items():
             if provider_info.is_default:
                 break
         else:
             raise UserError("No default format for database '%s'.  Possible formats are:"
-                " %s" % (database_name, ", ".join(db_info.keys())))
+                " %s" % (database_name, commas(db_info.keys())))
     return (provider_info.bundle_info.run_provider(mgr.session, database_name, mgr),
         default_format_name)
 
@@ -268,8 +269,10 @@ def fetch_info(mgr, file_arg, format_name, database_name):
     except NoOpenerError as e:
         raise LimitationError(str(e))
     if format_name and format_name not in [dbf for dbf in db_formats]:
-        raise UserError("Format '%s' not supported for database '%s'.  Supported formats are: %s"
-            % (format_name, db_name, ", ".join([dbf for dbf in db_formats])))
+        from chimerax.core.commands import commas
+        raise UserError("Format '%s' not supported for database '%s'.  Supported"
+            " formats are: %s" % (format_name, db_name,
+            commas([dbf for dbf in db_formats])))
     return (ident, db_name, format_name)
 
 def name_and_group_models(models, name_arg, path_info):

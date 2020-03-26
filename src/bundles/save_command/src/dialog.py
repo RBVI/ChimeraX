@@ -43,8 +43,10 @@ class MainSaveDialog:
         options_panel = dialog.custom_area
         saveable_formats = [fmt for fmt in session.save_command.save_data_formats
             if fmt.suffixes]
-        file_filters = ["%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes)) for fmt in saveable_formats]
-        self._fmt_name2filter = dict(zip([fmt.name for fmt in saveable_formats], file_filters))
+        file_filters = ["%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes))
+            for fmt in saveable_formats]
+        self._fmt_name2filter = dict(zip([fmt.name for fmt in saveable_formats],
+            file_filters))
         self._filter2fmt = dict(zip(file_filters, saveable_formats))
         file_filters.sort(key=lambda f: f.lower())
         dialog.setNameFilters(file_filters)
@@ -56,11 +58,13 @@ class MainSaveDialog:
             else:
                 dialog.selectNameFilter(file_filter)
         from PyQt5.QtWidgets import QHBoxLayout, QLabel
-        self._current_option = self._no_options_label = QLabel("No user-settable options")
+        self._current_option = self._no_options_label = QLabel(
+            "No user-settable options")
         self._options_layout = QHBoxLayout()
         self._options_layout.addWidget(self._no_options_label)
         dialog.custom_area.setLayout(self._options_layout)
-        dialog.filterSelected.connect(lambda *args, ses=session, dlg=dialog: self._format_selected(ses, dlg))
+        dialog.filterSelected.connect(
+            lambda *args, ses=session, dlg=dialog: self._format_selected(ses, dlg))
         self._format_selected(session, dialog)
 
     def _format_selected(self, session, dialog):
@@ -81,11 +85,17 @@ class SaveDialogSettings(Settings):
         'format_name': 'ChimeraX session'
     }
 
-def create_dialog(session):
-    global _settings
-    if not _settings:
-        _settings = SaveDialogSettings(session, "main save dialog")
-    dlg = MainSaveDialog(settings=_settings)
+def create_menu_entry(session):
     session.ui.main_window.add_menu_entry(["File"], "&Save...",
-        lambda *args, dlg=dlg, ses=session: dlg.display(ses, ses.ui.main_window),
-        tool_tip="Save output file", shortcut="Ctrl+S", insertion_point="Close Session")
+        lambda *args, ses=session: show_save_dialog(ses), tool_tip="Save output file",
+            shortcut="Ctrl+S", insertion_point="Close Session")
+
+_dlg = None
+def show_save_dialog(session):
+    global _dlg
+    if _dlg is None:
+        global _settings
+        if not _settings:
+            _settings = SaveDialogSettings(session, "main save dialog")
+        _dlg = MainSaveDialog(settings=_settings)
+    _dlg.display(session, session.ui.main_window)

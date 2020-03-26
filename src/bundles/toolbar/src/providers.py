@@ -22,7 +22,8 @@ def _file_recent(session):
 
 
 def _file_save(session):
-    session.ui.main_window.file_save_cb(session)
+    from chimerax.save_command import show_save_dialog
+    show_save_dialog(session)
 
 
 _providers = {
