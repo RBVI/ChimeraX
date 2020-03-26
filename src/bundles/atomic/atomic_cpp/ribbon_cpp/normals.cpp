@@ -16,7 +16,6 @@
 // Need _USE_MATH_DEFINES on Windows to get M_PI from cmath
 #define _USE_MATH_DEFINES
 #include <cmath>			// use std:isnan()
-#include <iostream>
 
 #include <arrays/pythonarray.h>		// use parse_uint8_n_array()
 #include <arrays/rcarray.h>		// use CArray
@@ -39,7 +38,7 @@ inline float* cross(const float* u, const float* v, float* result)
     return result;
 }
 
-inline float dihedral_angle(const float *u, const float *v, const float *t)
+float dihedral_angle(const float *u, const float *v, const float *t)
 {
   float txu[3], txv[3], txtxu[3];
   cross(t, u, txu);
@@ -53,7 +52,7 @@ inline float dihedral_angle(const float *u, const float *v, const float *t)
 // -------------------------------------------------------------------------
 // ribbon functions
 
-static void _rotate_around(float* n, float c, float s, float* v)
+static void _rotate_around(const float* n, float c, float s, float* v)
 {
     float c1 = 1 - c;
     float m00 = c + n[0] * n[0] * c1;
@@ -74,21 +73,26 @@ static void _rotate_around(float* n, float c, float s, float* v)
     v[2] = z;
 }
 
-static void _parallel_transport_normals(int num_pts, float* tangents, float* n0, float* normals)
+void parallel_transport(int num_pts, const float* tangents, const float* n0,
+			float* normals, bool backwards = false)
 {
-    // First normal is same as given normal
-    normals[0] = n0[0];
-    normals[1] = n0[1];
-    normals[2] = n0[2];
     // n: normal updated at each step
     // b: binormal defined by cross product of two consecutive tangents
     // b_hat: normalized b
     float n[3] = { n0[0], n0[1], n0[2] };
     float b[3];
     float b_hat[3];
-    for (int i = 1; i != num_pts; ++i) {
-        float *ti1 = tangents + (i - 1) * 3;
-        float *ti = ti1 + 3;
+    int istart = 0, iend = num_pts, istep = 1;
+    if (backwards)
+      { istart = num_pts-1; iend = -1; istep = -1; }
+    // First normal is same as given normal
+    float *ni = normals + istart * 3;
+    ni[0] = n0[0];
+    ni[1] = n0[1];
+    ni[2] = n0[2];
+    for (int i = istart+istep; i != iend; i += istep) {
+        const float *ti1 = tangents + (i - istep) * 3;
+        const float *ti = ti1 + 3 * istep;
         cross(ti1, ti, b);
         float b_len = sqrtf(inner(b, b));
         if (!std::isnan(b_len) && b_len > 0) {
@@ -102,7 +106,7 @@ static void _parallel_transport_normals(int num_pts, float* tangents, float* n0,
                     _rotate_around(b_hat, c, s, n);
             }
         }
-        float *ni = normals + i * 3;
+        ni = normals + i * 3;
         ni[0] = n[0];
         ni[1] = n[1];
         ni[2] = n[2];
@@ -121,12 +125,12 @@ inline float delta_to_angle(float twist, float f)
     return (1.0 / (1 + exp(-8.0 * (f - 0.5)))) * twist;
 }
 
-static void smooth_twist(float *tangents, int num_pts, float *normals, float *n_end)
+void smooth_twist(const float *tangents, int num_pts, float *normals, const float *n_end)
 {
     // Figure out what twist is needed to make the
     // ribbon end up with the desired ending normal
     float *n = normals + (num_pts - 1) * 3;
-    float *t = tangents + (num_pts - 1) * 3;
+    const float *t = tangents + (num_pts - 1) * 3;
     float twist = dihedral_angle(n, n_end, t);
 
     // Compute fraction per step
@@ -145,7 +149,7 @@ static void smooth_twist(float *tangents, int num_pts, float *normals, float *n_
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-smooth_twist(PyObject *, PyObject *args, PyObject *keywds)
+smooth_twist_py(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray tangents, normals;
   float end_normal[3];
@@ -168,7 +172,7 @@ smooth_twist(PyObject *, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-parallel_transport(PyObject *, PyObject *args, PyObject *keywds)
+parallel_transport_py(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray tangents;
   float start_normal[3];
@@ -183,7 +187,7 @@ parallel_transport(PyObject *, PyObject *args, PyObject *keywds)
   float *normals = NULL;
   int num_pts = tang.size(0);
   PyObject *py_normals = python_float_array(num_pts, 3, &normals);
-  _parallel_transport_normals(num_pts, tang.values(), start_normal, normals);
+  parallel_transport(num_pts, tang.values(), start_normal, normals);
 
   return py_normals;
 }
@@ -191,7 +195,7 @@ parallel_transport(PyObject *, PyObject *args, PyObject *keywds)
 // ----------------------------------------------------------------------------
 //
 extern "C" PyObject *
-dihedral_angle(PyObject *, PyObject *args, PyObject *keywds)
+dihedral_angle_py(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray tangents;
   float u[3], v[3], t[4];

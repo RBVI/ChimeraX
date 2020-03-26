@@ -28,13 +28,18 @@ extern "C"
 //  
 // smooth_twist(tangents, normals, end_normal)
 //
-PyObject *smooth_twist(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *smooth_twist_py(PyObject *s, PyObject *args, PyObject *keywds);
 
 // parallel_transport(tangents, normal) -> normals
-PyObject *parallel_transport(PyObject *s, PyObject *args, PyObject *keywds);  
+PyObject *parallel_transport_py(PyObject *s, PyObject *args, PyObject *keywds);  
 
 // dihedral_angle(u, v, t) -> angle in radians
-PyObject *dihedral_angle(PyObject *s, PyObject *args, PyObject *keywds);  
+PyObject *dihedral_angle_py(PyObject *s, PyObject *args, PyObject *keywds);  
 }
+
+void smooth_twist(const float *tangents, int num_pts, float *normals, const float *n_end);
+void parallel_transport(int num_pts, const float* tangents, const float* n0, float* normals,
+			bool backwards = false);
+float dihedral_angle(const float *u, const float *v, const float *t);
 
 #endif

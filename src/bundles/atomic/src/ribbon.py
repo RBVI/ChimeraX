@@ -1145,7 +1145,7 @@ class Ribbon:
         c[-1] = coords[-1] + (coords[-1] - coords[-2])
         coeff = [self._compute_coefficients(c, i) for i in range(3)]
         from numpy import transpose, float64
-        self._coeff = transpose(coeff, axes = (1,0,2)).astype(float64)
+        self._coeff = transpose(coeff, axes = (1,0,2)).astype(float64, order='C') # make contiguous
 
         # Currently Structure::ribbon_orient() defines the orientation method as
         # ATOMS for helices, PEPTIDE for strands, and GUIDES for nucleic acids.
@@ -1496,7 +1496,8 @@ class Ribbon:
         st = array([1.0, t, t*t, t*t*t])
         return array([dot(st, coeffs[0]), dot(st, coeffs[1]), dot(st, coeffs[2])])
 
-def _spline_path(coeffs, start_normals, flip_normals, twist, ndiv):
+from ._ribbons import spline_path as _spline_path
+def _spline_path_unused(coeffs, start_normals, flip_normals, twist, ndiv):
     lead = _spline_path_lead_segment(coeffs[0], start_normals[0], ndiv//2)
     geom = [ lead ]
 
@@ -1515,7 +1516,7 @@ def _spline_path(coeffs, start_normals, flip_normals, twist, ndiv):
         spath = (coords[:-1], tangents[:-1], normals[:-1])
         geom.append(spath)
 
-    trail = _spline_path_trail_segment(coeffs[-1], normals[-1], (ndiv + 1)//2)
+    trail = _spline_path_trail_segment(coeffs[-1], end_normal, (ndiv + 1)//2)
     geom.append(trail)
 
     npp = (nseg + 1) * ndiv
@@ -1536,19 +1537,6 @@ def _spline_path_trail_segment(coeffs, normal, n):
     normals = parallel_transport(tangents, normal)
     return coords, tangents, normals
 
-def _concatenate_paths(paths, num_pts):
-    # Concatenate segment paths
-    from numpy import empty, float32
-    coords, tangents, normals = [empty((num_pts,3),float32) for i in range(3)]
-    o = 0
-    for c,t,n in paths:
-        nsp = len(c)
-        coords[o:o+nsp] = c
-        tangents[o:o+nsp] = t
-        normals[o:o+nsp] = n
-        o += nsp
-    return coords, tangents, normals
-
 # Decide whether to flip the spline segment end normal so that it aligns better with
 # the parallel transported normal.
 def _need_normal_flip(transported_normal, end_normal, tangent):
@@ -1561,6 +1549,19 @@ def _need_normal_flip(transported_normal, end_normal, tangent):
     # flip = (abs(a) > 0.5 * pi)
     flip = (abs(a) > 0.6 * pi)	# Not sure why this is not pi / 2.
     return flip
+
+def _concatenate_paths(paths, num_pts):
+    # Concatenate segment paths
+    from numpy import empty, float32
+    coords, tangents, normals = [empty((num_pts,3),float32) for i in range(3)]
+    o = 0
+    for c,t,n in paths:
+        nsp = len(c)
+        coords[o:o+nsp] = c
+        tangents[o:o+nsp] = t
+        normals[o:o+nsp] = n
+        o += nsp
+    return coords, tangents, normals
 
 from chimerax.core.state import State
 
