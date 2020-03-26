@@ -14,6 +14,12 @@
 class NoSaverError(ValueError):
     pass
 
+class ProviderInfo:
+    def __init__(self, bundle_info, format_name, compression_okay):
+        self.bundle_info = bundle_info
+        self.format_name = format_name
+        self.compression_okay = compression_okay
+
 from chimerax.core.toolshed import ProviderManager
 class SaveManager(ProviderManager):
     """Manager for save command"""
@@ -40,9 +46,9 @@ class SaveManager(ProviderManager):
             return
         if data_format in self._savers:
             logger.warning("Replacing file-saver for '%s' from %s bundle with that from"
-                " %s bundle" % (data_format.name,
-                _readable_bundle_name(self._savers[data_format][0]), bundle_name))
-        self._savers[data_format] = (bundle_info, format_name,
+                " %s bundle" % (data_format.name, _readable_bundle_name(
+                self._savers[data_format].bundle_info), bundle_name))
+        self._savers[data_format] = ProviderInfo(bundle_info, format_name,
             bool_cvt(compression_okay, format_name, bundle_name, "compression_okay"))
 
     def end_providers(self):
@@ -50,37 +56,39 @@ class SaveManager(ProviderManager):
 
     def save_args(self, data_format):
         try:
-            bundle_info, format_name, *args = self._savers[data_format]
+            provider_info = self._savers[data_format]
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
-        return bundle_info.run_provider(self.session, format_name, self).save_args
+        return provider_info.bundle_info.run_provider(self.session,
+            provider_info.format_name, self).save_args
 
     def hidden_args(self, data_format):
         try:
-            bundle_info, format_name, *args = self._savers[data_format]
+            provider_info = self._savers[data_format]
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
-        return bundle_info.run_provider(self.session, format_name, self).hidden_args
+        return provider_info.bundle_info.run_provider(self.session,
+            provider_info.format_name, self).hidden_args
 
     def save_args_widget(self, data_format):
         try:
-            bundle_info, format_name, *args = self._savers[data_format]
+            provider_info = self._savers[data_format]
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
-        return bundle_info.run_provider(self.session, format_name, self
-            ).save_args_widget(self.session)
+        return provider_info.bundle_info.run_provider(self.session,
+            provider_info.format_name, self).save_args_widget(self.session)
 
     def save_args_string_from_widget(self, data_format, widget):
         try:
-            bundle_info, format_name, *args = self._savers[data_format]
+            provider_info = self._savers[data_format]
         except KeyError:
             raise NoSaverError("No file-saver registered for format '%s'"
                 % data_format.name)
-        return bundle_info.run_provider(self.session, format_name, self
-            ).save_args_string_from_widget(widget)
+        return provider_info.bundle_info.run_provider(self.session,
+            provider_info.format_name, self).save_args_string_from_widget(widget)
 
     @property
     def save_data_formats(self):

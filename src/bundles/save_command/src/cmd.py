@@ -56,21 +56,21 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
         keywords[keyword] = annotation
     desc = CmdDesc(required=[('file_name', SaveFileNameArg)], keyword=keywords.items(),
         hidden=mgr.hidden_args(data_format), synopsis="unnecessary")
-    register("save", desc, provider_save, registry=registry)
+    register("save2", desc, provider_save, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_save(session, file_name, format=None, **provider_kw):
     mgr = session.save_command
     data_format = file_format(session, file_name, format)
-    bundle_info, provider_name, compression_okay = mgr.save_info(data_format)
-    path = _get_path(file_name, compression_okay)
+    provider_info = mgr.save_info(data_format)
+    path = _get_path(file_name, provider_info.compression_okay)
 
     # TODO: The following line does a graphics update so that if the save command is
     # exporting data in a script (e.g. scene export) the graphics is up to date.  Does
     # not seem like the ideal solution to put this update here.
     session.update_loop.update_graphics_now()
-    bundle_info.run_provider(session, provider_name, mgr).save(session, path,
-        **provider_kw)
+    provider_info.bundle_info.run_provider(session, provider_info.format_name,
+        mgr).save(session, path, **provider_kw)
 
     # remember in file history if appropriate
     try:
@@ -90,8 +90,8 @@ def _get_path(file_name, compression_okay):
     if not compression_okay:
         from chimerax import io
         if io.remove_compression_suffix(expanded) != expanded:
-            raise UserError("File reader requires uncompressed file; '%s' is compressed"
-                % file_name)
+            raise UserError("File saver requires uncompressed output file;"
+                " '%s' would be compressed" % file_name)
     return expanded
 
 def file_format(session, file_name, format_name):

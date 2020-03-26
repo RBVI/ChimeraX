@@ -120,15 +120,14 @@ class FormatsManager(ProviderManager):
         if '.' in file_name:
             from chimerax import io
             base_name = io.remove_compression_suffix(file_name)
-            try:
-                dot_pos = base_name.rindex('.')
-            except ValueError:
+            from os.path import splitext
+            root, ext = splitext(base_name)
+            if not ext:
                 raise NoFormatError("'%s' has only compression suffix; cannot determine"
                     " format from suffix" % file_name)
-            data_format = suffix_func(base_name[dot_pos:])
+            data_format = suffix_func(ext)
             if not data_format:
-                raise NoFormatError("No known data format for file suffix '%s'"
-                    % base_name[dot_pos:])
+                raise NoFormatError("No known data format for file suffix '%s'" % ext)
         else:
             raise NoFormatError("Cannot determine format for '%s'" % file_name)
         return data_format

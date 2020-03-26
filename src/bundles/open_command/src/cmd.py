@@ -50,20 +50,21 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
             raise LimitationError(str(e))
     else:
         data_format = file_format(session, files[0], format_name)
-        try:
-            provider_args = mgr.open_args(data_format)
-        except NoOpenerError as e:
-            raise LimitationError(str(e))
+        if data_format is None:
+            # let provider_open raise the error, which will show the command
+            provider_args = {}
+        else:
+            try:
+                provider_args = mgr.open_args(data_format)
+            except NoOpenerError as e:
+                raise LimitationError(str(e))
 
     provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn)
         for fn in file_names] + tokens)
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(ses=session):
-        names = set()
-        for f in ses.open_command.open_data_formats:
-            names.update(f.nicknames)
-        return names
+        return [ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ]
 
     def database_names(mgr=mgr):
         return mgr.database_names
@@ -81,11 +82,11 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         keywords[keyword] = annotation
     desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
         synopsis="unnecessary")
-    register("open", desc, provider_open, registry=registry)
+    register("open2", desc, provider_open, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
-def provider_open(session, names, format=None, from_database=None, ignore_cache=False, name=None,
-        return_status=False, _add_to_file_history=True, **provider_kw):
+def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
+        name=None, return_status=False, _add_to_file_history=True, **provider_kw):
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
     fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
@@ -114,10 +115,10 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 if models:
                     opened_models.append(name_and_group_models(models, name, [ident]))
         else:
-            opener_info, provider_name, want_path, check_path, batch = mgr.open_info(
-                data_format)
-            if batch:
-                paths = [_get_path(mgr, fi.file_name, check_path) for fi in file_infos]
+            opener_info, provider_info = mgr.open_info(data_format)
+            if provider_info.batch:
+                paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
+                    for fi in file_infos]
                 models, status = opener_info.open(session, paths, name, **provider_kw)
                 if status:
                     statuses.append(status)
@@ -125,8 +126,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                     opened_models.append(name_and_group_models(models, name, paths))
             else:
                 for fi in file_infos:
-                    if want_path:
-                        data = _get_path(mgr, fi.file_name, check_path)
+                    if provider_info.want_path:
+                        data = _get_path(mgr, fi.file_name, provider_info.check_path)
                     else:
                         data = _get_stream(mgr, fi.file_name, data_format.encoding)
                     models, status = opener_info.open(session, data,
@@ -138,19 +139,17 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                             [fi.file_name]))
     else:
         for fi in file_infos:
-            opener_info, provider_name, want_path, check_path, batch = mgr.open_info(
-                fi.data_format)
-            for fi in file_infos:
-                if want_path:
-                    data = _get_path(mgr, fi.file_name, check_path)
-                else:
-                    data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
-                models, status = opener_info.open(session, data,
-                    name or model_name_from_path(fi.file_name), **provider_kw)
-                if status:
-                    statuses.append(status)
-                if models:
-                    opened_models.append(name_and_group_models(models, name, [fi.file_name]))
+            opener_info, provider_info = mgr.open_info(fi.data_format)
+            if provider_info.want_path:
+                data = _get_path(mgr, fi.file_name, provider_info.check_path)
+            else:
+                data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
+            models, status = opener_info.open(session, data,
+                name or model_name_from_path(fi.file_name), **provider_kw)
+            if status:
+                statuses.append(status)
+            if models:
+                opened_models.append(name_and_group_models(models, name, [fi.file_name]))
         for ident, database_name, format_name in fetches:
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             if format_name is None:
@@ -317,18 +316,25 @@ def file_format(session, file_name, format_name):
         try:
             return session.data_formats[format_name]
         except KeyError:
-            raise UserError("Unknown data format: '%s'" % format_name)
+            return None
 
     from chimerax.data_formats import NoFormatError
     try:
         return session.data_formats.open_format_from_file_name(file_name)
     except NoFormatError as e:
-        raise UserError(str(e))
+        return None
 
 class FileInfo:
     def __init__(self, session, file_name, format_name):
         self.file_name = file_name
         self.data_format = file_format(session, file_name, format_name)
+        if self.data_format is None:
+            from os.path import splitext
+            from chimerax import io
+            ext = splitext(io.remove_compression_suffix(file_name))[1]
+            if ext:
+                raise UserError("Unrecognized file suffix '%s'" % ext)
+            raise UserError("'%s' has no suffix" % file_name)
 
 
 def register_command(command_name, logger):
