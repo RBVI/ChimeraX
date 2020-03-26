@@ -46,7 +46,7 @@ def _qurl2text(qurl):
 class _HelpWebView(ChimeraXHtmlView):
 
     def __init__(self, session, tool, profile):
-        super().__init__(session, tool.tabs, size_hint=(800, 800), profile=profile)
+        super().__init__(session, tool.tabs, size_hint=(840, 800), profile=profile)
         self.help_tool = tool
 
     def createWindow(self, win_type):  # noqa

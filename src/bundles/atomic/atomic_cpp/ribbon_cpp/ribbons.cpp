@@ -15,7 +15,7 @@
 
 #include <Python.h>			// use PyObject
 
-#include "normals.h"			// use ribbon_constrained_normals
+#include "normals.h"			// use parallel_transport
 #include "spline.h"			// use cubic_path
 #include "xsection.h"			// use rxsection_*
 
@@ -24,16 +24,18 @@
 static struct PyMethodDef ribbons_cpp_methods[] =
 {
   /* normals.h */
-  {const_cast<char*>("parallel_transport"), (PyCFunction)parallel_transport,
+  {const_cast<char*>("parallel_transport"), (PyCFunction)parallel_transport_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("smooth_twist"), (PyCFunction)smooth_twist,
+  {const_cast<char*>("smooth_twist"), (PyCFunction)smooth_twist_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("dihedral_angle"), (PyCFunction)dihedral_angle,
+  {const_cast<char*>("dihedral_angle"), (PyCFunction)dihedral_angle_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
   {const_cast<char*>("cubic_path"), (PyCFunction)cubic_path,
    METH_VARARGS|METH_KEYWORDS, cubic_path_doc},
+  {const_cast<char*>("spline_path"), (PyCFunction)spline_path,
+   METH_VARARGS|METH_KEYWORDS, spline_path_doc},
 
   /* xsection.h */
   {const_cast<char*>("rxsection_new"), (PyCFunction)rxsection_new,

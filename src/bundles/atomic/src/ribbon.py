@@ -97,11 +97,15 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             t0 = time()
 
         # Create tube helices, one new RibbonDrawing for each helix.
+        geometry = TriangleAccumulator()
+        colors = residues.ribbon_colors
         if arc_helix:
             ribbon_adjusts = residues.ribbon_adjusts
+            xsection = xs_mgr.xs_helix_tube
             for start, end in helix_ranges:
-                _make_arc_helix_drawing(residues, coords, guides, ssids, xs_front, xs_back, xs_mgr,
-                                        ribbon_adjusts, displays, start, end, ribbons_drawing)
+                if displays[start:end].any():
+                    centers = _arc_helix_geometry(coords, xsection, displays, colors, start, end, geometry)
+                    coords[start:end] = centers
 
         if timing:
             tubetime += time()-t0
@@ -123,9 +127,8 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             t0 = time()
             
         # Compute ribbon triangles
-        colors = residues.ribbon_colors
-        geometry = TriangleAccumulator()
         _ribbon_geometry(path, display_ranges, colors, xs_front, xs_back, geometry)
+
         if timing:
             geotime += time() - t0
             t0 = time()
@@ -133,6 +136,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Create ribbon drawing
         if not geometry.empty():
             rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons", len(residues))
+#            rp.display_style = rp.Mesh
             ribbons_drawing.add_drawing(rp)
 
             triangle_ranges = [RibbonTriangleRange(ts, te, vs, ve, residues[i])
@@ -403,8 +407,8 @@ def _ribbon_geometry(path, ranges, colors, xs_front, xs_back, geometry):
             s = i * nsp
             e = s + (nlp+1 if mid_cap else nlp)
             front_c, front_t, front_n = coords[s:e], tangents[s:e], normals[s:e]
-            sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i],
-                                     capped, mid_cap, geometry.v_offset)
+            sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i], capped, mid_cap,
+                                     geometry.v_offset)
             geometry.add_extrusion(sf)
 
             if prev_band is not None:
@@ -416,8 +420,8 @@ def _ribbon_geometry(path, ranges, colors, xs_front, xs_back, geometry):
             s = i * nsp + nlp
             e = s + (nrp+1 if next_cap else nrp)
             back_c, back_t, back_n = coords[s:e], tangents[s:e], normals[s:e]
-            sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i],
-                                    mid_cap, next_cap, geometry.v_offset)
+            sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i], mid_cap, next_cap,
+                                    geometry.v_offset)
             geometry.add_extrusion(sb)
 
             if not mid_cap:
@@ -449,16 +453,23 @@ class TriangleAccumulator:
     def v_offset(self):
         return self._v_end
     
-    def add_extrusion(self, extrusion):
+    def add_extrusion(self, extrusion, offset = False):
         e = extrusion
-        self._v_end += len(e.vertices)
-        self._t_end += len(e.triangles)
-        self._vertex_list.append(e.vertices)
-        self._normal_list.append(e.normals)
-        self._triangle_list.append(e.triangles)
-        self._color_list.append(e.colors)
+        self.add_geometry(e.vertices, e.normals, e.colors, e.triangles, offset=offset)
+    
+    def add_geometry(self, vertices, normals, colors, triangles, offset = True):
+        if offset:
+            triangles += self._v_end
+        self._v_end += len(vertices)
+        self._t_end += len(triangles)
+        self._vertex_list.append(vertices)
+        self._normal_list.append(normals)
+        self._triangle_list.append(triangles)
+        self._color_list.append(colors)
 
-    def add_triangles(self, triangles):
+    def add_triangles(self, triangles, offset = False):
+        if offset:
+            triangles += self._v_end
         self._triangle_list.append(triangles)
         self._t_end += len(triangles)
 
@@ -469,6 +480,14 @@ class TriangleAccumulator:
         self._triangle_ranges.append((residue_index, ts, te, vs, ve))
         self._t_start = te
         self._v_start = ve
+
+    def add_ranges(self, ranges):
+        tranges = self._triangle_ranges
+        for residue_index, (ts, te, vs, ve) in ranges.items():
+            if te > ts and ve > vs:
+                tranges.append((residue_index, ts, te, vs, ve))
+        self._t_start = self._t_end
+        self._v_start = self._v_end
 
     def vertex_normal_color_triangle_arrays(self):
         if self._vertex_list:
@@ -916,298 +935,41 @@ def _smooth_helix(rlist, coords, guides, ribbon_adjusts, start, end):
     # the same relative place as before
     #   guides[start:end] = new_coords + delta_guides
 
-def _make_arc_helix_drawing(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
-                            ribbon_adjusts, displays, start, end, ribbons_drawing):
-    '''Creates a new RibbonDrawing for one tube helix.'''
-    # Only bother if at least one residue is displayed
-    from numpy import any
-    if not any(displays[start:end]):
-        return
-
-    va, na, ca, ta, t_range = _arc_helix_geometry(rlist, coords, guides, ssids,
-                                                  xs_front, xs_back, xs_mgr,
-                                                  ribbon_adjusts, start, end, displays)
-    
-    # Create triangle range selection data structures
-    tranges = []
-    for i, r in t_range.items():
-        res = rlist[i]
-        t_start, t_end, v_start, v_end = r
-        triangle_range = RibbonTriangleRange(t_start, t_end, v_start, v_end, res)
-        tranges.append(triangle_range)
-
-    # Fourth, create graphics drawing with vertices, normals, colors and triangles
-    name = "helix-%d" % ssids[start]
-    ssp = RibbonDrawing(name, len(rlist))
-    ribbons_drawing.add_drawing(ssp)
-    ssp.set_geometry(va, na, ta)
-    ssp.vertex_colors = ca
-
-    ssp.triangle_ranges = tranges
-    ribbons_drawing.add_residue_triangle_ranges(tranges, ssp)
-
-def _arc_helix_geometry(rlist, coords, guides, ssids, xs_front, xs_back, xs_mgr,
-                        ribbon_adjusts, start, end, displays):
+def _arc_helix_geometry(coords, xsection, displays, colors, start, end, geometry):
     '''Compute triangulation for one tube helix.'''
 
     from .sse import HelixCylinder
-    from numpy import linspace, cos, sin
-    from math import pi
-    from numpy import empty, tile
-
-    hc = HelixCylinder(coords[start:end], radius=xs_mgr.tube_radius)
+    hc = HelixCylinder(coords[start:end])
     centers = hc.cylinder_centers()
     radius = hc.cylinder_radius()
     normals, binormals = hc.cylinder_normals()
+    from chimerax.geometry import cross_products
+    tangents = cross_products(normals, binormals)
     icenters, inormals, ibinormals = hc.cylinder_intermediates()
-    coords[start:end] = centers
+    itangents = cross_products(inormals, ibinormals)
 
-    # Compute unit circle in 2D
-    num_pts = xs_mgr.params[xs_mgr.STYLE_ROUND]["sides"]
-    angles = linspace(0.0, pi * 2, num=num_pts, endpoint=False)
-    cos_a = radius * cos(angles)
-    sin_a = radius * sin(angles)
+    c = _interleave_vectors(centers, icenters)
+    t = _interleave_vectors(tangents, itangents)
+    n = _interleave_vectors(normals, inormals)
+    np = len(c)
+    
+    for r in range(start, end):
+        if displays[r]:
+            i = 2*(r-start)
+            s,e = max(0, i-1), min(np, i+2)
+            e = xsection.extrude(c[s:e], t[s:e], n[s:e], colors[r],
+                                 cap_front = (r == start), cap_back = (r == end-1))
+            geometry.add_extrusion(e, offset=True)
+            geometry.add_range(r)
 
-    # Generate the cylinders and caps for displayed residues
-    # Each middle residue consists of three points:
-    #   intermediate point (i-1,i)
-    #   point i
-    #   intermediate point (i,i+1)
-    # The first and last residues only have two points.
-    # This means there are two bands of triangles for middle
-    # residues but only one for the end residues.
-    #
-    # Note that even though two adjacent residues share
-    # a single intermediate point, the intermediate point
-    # is duplicated for each residue since they may be
-    # colored differently.  XXX: Possible optimization
-    # is reusing intermediate points that have the same
-    # color instead of duplicating them.
+    return centers
 
-    # First we count up how many caps and bands are displayed
-    num_vertices = 0
-    num_triangles = 0
-    cap_triangles = num_pts - 2
-    band_triangles = 2 * num_pts
-    # First and last residues are special
-    if displays[start]:
-        # 3 = 1 for cap, 2 for tube
-        num_vertices += 3 * num_pts
-        num_triangles += cap_triangles + band_triangles
-    was_displayed = displays[start]
-    for i in range(start+1, end-1):
-        # Middle residues
-        if displays[i]:
-            if not was_displayed:
-                # front cap
-                num_vertices += num_pts
-                num_triangles += cap_triangles
-            # 3 for tube: (i-1,i),i,(i,i+1)
-            num_vertices += 3 * num_pts
-            num_triangles += 2 * band_triangles
-        else:
-            if was_displayed:
-                # back cap
-                num_vertices += num_pts
-                num_triangles += cap_triangles
-        was_displayed = displays[i]
-    # last residue
-    if displays[end-1]:
-        if was_displayed:
-            # 3 = 1 for back cap, 2 for tube
-            num_vertices += 3 * num_pts
-            num_triangles += cap_triangles + band_triangles
-        else:
-            # 4 = 2 for caps, 2 for tube
-            num_vertices += 4 * num_pts
-            num_triangles += 2 * cap_triangles + band_triangles
-    elif was_displayed:
-        # back cap
-        num_vertices += num_pts
-        num_triangles += cap_triangles
-
-    # Second, create containers for vertices, normals and triangles
-    va = empty((num_vertices, 3), dtype=float)
-    na = empty((num_vertices, 3), dtype=float)
-    ca = empty((num_vertices, 4), dtype=float)
-    ta = empty((num_triangles, 3), dtype=int)
-
-    # Third, add vertices, normals and triangles for each residue
-    # In the following functions, "i" = [start:end] and
-    # "offset" = [0, end-start]
-    colors = rlist.ribbon_colors
-    vi = 0
-    ti = 0
-    def _make_circle(c, n, bn):
-        nonlocal cos_a, sin_a
-        from numpy import tile, cross
-        from numpy.linalg import norm
-        count = (len(cos_a), 1)
-        normals = (tile(n, count) * cos_a.reshape(count) +
-                   tile(bn, count) * sin_a.reshape(count))
-        circle = normals + c
-        return circle, normals
-    def _make_tangent(n, bn):
-        from numpy import cross
-        return cross(n, bn)
-    def _add_cap(c, n, bn, color, back):
-        nonlocal vi, ti, va, na, ca, ta, num_pts
-        circle, normals = _make_circle(c, n, bn)
-        tangent = _make_tangent(n, bn)
-        if back:
-            tangent = -tangent
-        va[vi:vi+num_pts] = circle
-        na[vi:vi+num_pts] = tangent
-        ca[vi:vi+num_pts] = color
-        if back:
-            ta[ti:ti+cap_triangles,0] = range(vi+2,vi+num_pts)
-            ta[ti:ti+cap_triangles,1] = range(vi+1,vi+num_pts-1)
-            ta[ti:ti+cap_triangles,2] = vi
-        else:
-            ta[ti:ti+cap_triangles,0] = vi
-            ta[ti:ti+cap_triangles,1] = range(vi+1,vi+num_pts-1)
-            ta[ti:ti+cap_triangles,2] = range(vi+2,vi+num_pts)
-        vi += num_pts
-        ti += cap_triangles
-    def _add_band_vertices(circlef, normalsf, color):
-        nonlocal vi, ti, va, na, ca, num_pts
-        save = vi
-        va[vi:vi+num_pts] = circlef
-        na[vi:vi+num_pts] = normalsf
-        ca[vi:vi+num_pts] = color
-        vi += num_pts
-        return save
-    def _add_band_triangles(f, b):
-        nonlocal ti, ta, num_pts
-        ta[ti:ti+num_pts, 0] = range(f, f+num_pts)
-        ta[ti:ti+num_pts, 1] = [f + (n+1) % num_pts for n in range(num_pts)]
-        ta[ti:ti+num_pts, 2] = range(b, b+num_pts)
-        ti += num_pts
-        ta[ti:ti+num_pts, 0] = [f + (n+1) % num_pts for n in range(num_pts)]
-        ta[ti:ti+num_pts, 1] = [b + (n+1) % num_pts for n in range(num_pts)]
-        ta[ti:ti+num_pts, 2] = range(b, b+num_pts)
-        ti += num_pts
-    def add_front_cap(i):
-        nonlocal start, centers, normals, binormals
-        nonlocal icenters, inormals, ibinormals, colors
-        if i == start:
-            # First residue is special
-            offset = 0
-            c = centers[offset]
-            n = normals[offset]
-            bn = binormals[offset]
-        else:
-            offset = (i - 1) - start
-            c = icenters[offset]
-            n = inormals[offset]
-            bn = ibinormals[offset]
-        _add_cap(c, n, bn, colors[i], False)
-    def add_back_cap(i):
-        nonlocal start, end, centers, normals, binormals
-        nonlocal icenters, inormals, ibinormals, colors
-        if i == (end - 1):
-            # Last residue is special
-            offset = -1
-            c = centers[offset]
-            n = normals[offset]
-            bn = binormals[offset]
-        else:
-            offset = i - start
-            c = icenters[offset]
-            n = inormals[offset]
-            bn = ibinormals[offset]
-        _add_cap(c, n, bn, colors[i], True)
-    def add_front_band(i):
-        nonlocal start, centers, normals, binormals
-        nonlocal icenters, inormals, ibinormals, colors
-        offset = i - start
-        cf = icenters[offset-1]
-        nf = inormals[offset-1]
-        bnf = ibinormals[offset-1]
-        circlef, normalsf = _make_circle(cf, nf, bnf)
-        fi = _add_band_vertices(circlef, normalsf, colors[i])
-        cb = centers[offset]
-        nb = normals[offset]
-        bnb = binormals[offset]
-        circleb, normalsb = _make_circle(cb, nb, bnb)
-        bi = _add_band_vertices(circleb, normalsb, colors[i])
-        _add_band_triangles(fi, bi)
-    def add_back_band(i):
-        nonlocal start, centers, normals, binormals
-        nonlocal icenters, inormals, ibinormals, colors
-        offset = i - start
-        cf = centers[offset]
-        nf = normals[offset]
-        bnf = binormals[offset]
-        circlef, normalsf = _make_circle(cf, nf, bnf)
-        fi = _add_band_vertices(circlef, normalsf, colors[i])
-        cb = icenters[offset]
-        nb = inormals[offset]
-        bnb = ibinormals[offset]
-        circleb, normalsb = _make_circle(cb, nb, bnb)
-        bi = _add_band_vertices(circleb, normalsb, colors[i])
-        _add_band_triangles(fi, bi)
-    def add_both_bands(i):
-        nonlocal start, centers, normals, binormals
-        nonlocal icenters, inormals, ibinormals, colors
-        offset = i - start
-        cf = icenters[offset-1]
-        nf = inormals[offset-1]
-        bnf = ibinormals[offset-1]
-        circlef, normalsf = _make_circle(cf, nf, bnf)
-        fi = _add_band_vertices(circlef, normalsf, colors[i])
-        cm = centers[offset]
-        nm = normals[offset]
-        bnm = binormals[offset]
-        circlem, normalsm = _make_circle(cm, nm, bnm)
-        mi = _add_band_vertices(circlem, normalsm, colors[i])
-        cb = icenters[offset]
-        nb = inormals[offset]
-        bnb = ibinormals[offset]
-        circleb, normalsb = _make_circle(cb, nb, bnb)
-        bi = _add_band_vertices(circleb, normalsb, colors[i])
-        _add_band_triangles(fi, mi)
-        _add_band_triangles(mi, bi)
-
-    # Third (still), create the caps and bands
-    t_range = {}
-    if displays[start]:
-        add_front_cap(start)
-        add_back_band(start)
-        t_range[start] = [0, ti, 0, vi]
-    was_displayed = displays[start]
-    for i in range(start+1, end-1):
-        if displays[i]:
-            t_start = ti
-            v_start = vi
-            if not was_displayed:
-                add_front_cap(i)
-            add_both_bands(i)
-            t_range[i] = [t_start, ti, v_start, vi]
-        else:
-            if was_displayed:
-                add_back_cap(i-1)
-                t_range[i-1][1] = ti
-                t_range[i-1][3] = vi
-        was_displayed = displays[i]
-    # last residue
-    if displays[end-1]:
-        t_start = ti
-        v_start = vi
-        if was_displayed:
-            add_front_band(end-1)
-            add_back_cap(end-1)
-        else:
-            add_front_cap(end-1)
-            add_front_band(end-1)
-            add_back_cap(end-1)
-        t_range[end-1] = [t_start, ti, v_start, vi]
-    elif was_displayed:
-        add_back_cap(end-2)
-        t_range[end-2][1] = ti
-        t_range[end-2][3] = vi
-
-    return va, na, ca, ta, t_range
+def _interleave_vectors(u, v):
+    from numpy import empty
+    uv = empty((len(u)+len(v),3), u.dtype)
+    uv[::2] = u
+    uv[1::2] = v
+    return uv
         
 def _wrap_helix(rlist, coords, guides, start, end):
     # Only bother if at least one residue is displayed
@@ -1383,7 +1145,7 @@ class Ribbon:
         c[-1] = coords[-1] + (coords[-1] - coords[-2])
         coeff = [self._compute_coefficients(c, i) for i in range(3)]
         from numpy import transpose, float64
-        self._coeff = transpose(coeff, axes = (1,0,2)).astype(float64)
+        self._coeff = transpose(coeff, axes = (1,0,2)).astype(float64, order='C') # make contiguous
 
         # Currently Structure::ribbon_orient() defines the orientation method as
         # ATOMS for helices, PEPTIDE for strands, and GUIDES for nucleic acids.
@@ -1550,6 +1312,8 @@ class Ribbon:
         return normals
 
     def _compute_normals_from_control_points(self, coords):
+        # TODO: This code produces end normals that are not perpendicular to tangent vectors.
+        #
         # This version ignores the guide atom positions and computes normals
         # at each control point by making it perpendicular to the vectors pointing
         # to control points on either side.  The two ends and any collinear control
@@ -1626,7 +1390,7 @@ class Ribbon:
                     rn = dv * f + prev_normal
                     d = norm(rn)
                     int_n = rn / d
-                    normals[prev_index+j] = int_n
+                    normals[prev_index+1+j] = int_n
                 # Finally, we assign normal for this control point
                 normals[i+1] = n
                 prev_normal = n
@@ -1721,13 +1485,8 @@ class Ribbon:
         return normalize_vector_array(array(t))
 
     def path(self):
-        coeffs = self._coeff
-        ndiv = self._segment_divisions
-        start_normals = self._normals
-        flip_normals = self._flip_normals
-        twist = self._smooth_twist
-
-        coords, tangents, normals = _spline_path(coeffs, start_normals, flip_normals, twist, ndiv)
+        coords, tangents, normals = _spline_path(self._coeff, self._normals, self._flip_normals,
+                                                 self._smooth_twist, self._segment_divisions)
         return coords, tangents, normals
 
     def position(self, seg, t):
@@ -1737,7 +1496,8 @@ class Ribbon:
         st = array([1.0, t, t*t, t*t*t])
         return array([dot(st, coeffs[0]), dot(st, coeffs[1]), dot(st, coeffs[2])])
 
-def _spline_path(coeffs, start_normals, flip_normals, twist, ndiv):
+from ._ribbons import spline_path as _spline_path
+def _spline_path_unused(coeffs, start_normals, flip_normals, twist, ndiv):
     lead = _spline_path_lead_segment(coeffs[0], start_normals[0], ndiv//2)
     geom = [ lead ]
 
@@ -1756,7 +1516,7 @@ def _spline_path(coeffs, start_normals, flip_normals, twist, ndiv):
         spath = (coords[:-1], tangents[:-1], normals[:-1])
         geom.append(spath)
 
-    trail = _spline_path_trail_segment(coeffs[-1], start_normals[-1], (ndiv + 1)//2)
+    trail = _spline_path_trail_segment(coeffs[-1], end_normal, (ndiv + 1)//2)
     geom.append(trail)
 
     npp = (nseg + 1) * ndiv
@@ -1777,19 +1537,6 @@ def _spline_path_trail_segment(coeffs, normal, n):
     normals = parallel_transport(tangents, normal)
     return coords, tangents, normals
 
-def _concatenate_paths(paths, num_pts):
-    # Concatenate segment paths
-    from numpy import empty, float32
-    coords, tangents, normals = [empty((num_pts,3),float32) for i in range(3)]
-    o = 0
-    for c,t,n in paths:
-        nsp = len(c)
-        coords[o:o+nsp] = c
-        tangents[o:o+nsp] = t
-        normals[o:o+nsp] = n
-        o += nsp
-    return coords, tangents, normals
-
 # Decide whether to flip the spline segment end normal so that it aligns better with
 # the parallel transported normal.
 def _need_normal_flip(transported_normal, end_normal, tangent):
@@ -1802,6 +1549,19 @@ def _need_normal_flip(transported_normal, end_normal, tangent):
     # flip = (abs(a) > 0.5 * pi)
     flip = (abs(a) > 0.6 * pi)	# Not sure why this is not pi / 2.
     return flip
+
+def _concatenate_paths(paths, num_pts):
+    # Concatenate segment paths
+    from numpy import empty, float32
+    coords, tangents, normals = [empty((num_pts,3),float32) for i in range(3)]
+    o = 0
+    for c,t,n in paths:
+        nsp = len(c)
+        coords[o:o+nsp] = c
+        tangents[o:o+nsp] = t
+        normals[o:o+nsp] = n
+        o += nsp
+    return coords, tangents, normals
 
 from chimerax.core.state import State
 
@@ -1927,6 +1687,7 @@ class XSectionManager(State):
 
         self._xs_helix = None
         self._xs_helix_arrow = None
+        self._xs_helix_tube = None
         self._xs_sheet = None
         self._xs_sheet_arrow = None
         self._xs_coil = None
@@ -2075,6 +1836,7 @@ class XSectionManager(State):
     def set_tube_radius(self, r):
         if self.tube_radius != r:
             self.tube_radius = r
+            self._xs_helix_tube = None
             self._set_gc_ribbon()
 
     def set_params(self, style, **kw):
@@ -2092,6 +1854,7 @@ class XSectionManager(State):
             if self.style_helix == style:
                 self._xs_helix = None
                 self._xs_helix_arrow = None
+                self._xs_helix_tube = None
             if self.style_sheet == style:
                 self._xs_sheet = None
                 self._xs_sheet_arrow = None
@@ -2116,6 +1879,14 @@ class XSectionManager(State):
             base = self._make_xs(style, (1.0, 1.0))
             self._xs_helix_arrow = base.arrow(self.scale_helix_arrow)
         return self._xs_helix_arrow
+
+    @property
+    def xs_helix_tube(self):
+        if self._xs_helix_tube is None:
+            r = self.tube_radius
+            scale = (r,r)
+            self._xs_helix_tube = self._make_xs(self.STYLE_ROUND, scale)
+        return self._xs_helix_tube
 
     @property
     def xs_sheet(self):
@@ -2148,87 +1919,15 @@ class XSectionManager(State):
 
     def _make_xs(self, style, scale):
         if style is self.STYLE_ROUND:
-            return self._make_xs_round(scale)
+            param = self.params[self.STYLE_ROUND]
+            return _xsection_round(scale, param['sides'], param['faceted'])
         elif style is self.STYLE_SQUARE:
-            return self._make_xs_square(scale)
+            return _xsection_square(scale)
         elif style is self.STYLE_PIPING:
-            return self._make_xs_piping(scale)
+            param = self.params[self.STYLE_PIPING]
+            return _xsection_piping(scale, param['sides'], param['ratio'], param['faceted'])
         else:
             raise ValueError("unknown style %s" % style)
-
-    def _make_xs_round(self, scale):
-        from numpy import array
-        coords = []
-        normals = []
-        param = self.params[self.STYLE_ROUND]
-        sides = param["sides"]
-        from numpy import linspace, cos, sin, stack
-        from math import pi
-        angles = linspace(0, 2 * pi, sides, endpoint=False)
-        ca = cos(angles)
-        sa = sin(angles)
-        circle = stack((ca, sa), axis=1)
-        coords = circle * array(scale)
-        if param["faceted"]:
-            return RibbonXSection(coords, faceted=True)
-        else:
-            normals = circle * array((scale[1], scale[0]))
-            return RibbonXSection(coords, normals=normals, faceted=False)
-
-    def _make_xs_square(self, scale):
-        from numpy import array
-        coords = array(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0))) * array(scale)
-        return RibbonXSection(coords, faceted=True)
-
-    def _make_xs_piping(self, scale):
-        from numpy import array
-        from math import pi, cos, sin, asin
-        if scale[0] > scale[1]:
-            flipped = False
-            delta = scale[0] - scale[1]
-            radius = scale[1]
-        else:
-            flipped = True
-            delta = scale[1] - scale[0]
-            radius = scale[0]
-        coords = []
-        normals = []
-        param = self.params[self.STYLE_PIPING]
-        # The total number of sides is param["sides"]
-        # We subtract the two connectors and then divide
-        # by two while rounding up
-        sides = (param["sides"] - 1) // 2
-        ratio = param["ratio"]
-        theta = asin(ratio)
-        side_angle = 2.0 * (pi - theta) / sides
-        # Generate the vertices for the two piping on either side.
-        # The first and last points are used to connect the two.
-        for start_angle, offset in ((theta - pi, delta), (theta, -delta)):
-            for i in range(sides + 1):
-                angle = start_angle + i * side_angle
-                x = cos(angle) * radius
-                y = sin(angle) * radius
-                if flipped:
-                    normals.append((-y, x))
-                    coords.append((-y, x + offset))
-                else:
-                    normals.append((x, y))
-                    coords.append((x + offset, y))
-        coords = array(coords)
-        tess = ([(0, sides, sides+1),(0, sides+1, 2*sides+1)] +         # connecting rectangle
-                [(0, i, i+1) for i in range(1, sides)] +                # first piping
-                [(sides+1, i, i+1) for i in range(sides+2, 2*sides+1)]) # second piping
-        if param["faceted"]:
-            return RibbonXSection(coords, faceted=True, tess=tess)
-        else:
-            if flipped:
-                normals[0] = normals[-1] = (1, 0)
-                normals[sides] = normals[sides + 1] = (-1, 0)
-            else:
-                normals[0] = normals[-1] = (0, -1)
-                normals[sides] = normals[sides + 1] = (0, 1)
-            normals = array(normals)
-            return RibbonXSection(coords, normals=normals, faceted=False, tess=tess)
 
     def _xs_ribbon(self, r):
         if r is self.RIBBON_HELIX:
@@ -2323,11 +2022,11 @@ class RibbonXSection:
         self._xs_pointer = xs_pointer
 
     def extrude(self, centers, tangents, normals, color,
-                cap_front, cap_back, offset):
+                cap_front, cap_back, vertex_offset = 0):
         '''Return the points, normals and triangles for a ribbon.'''
         from ._ribbons import rxsection_extrude
         t = rxsection_extrude(self._xs_pointer, centers, tangents, normals, color,
-                              cap_front, cap_back, offset)
+                              cap_front, cap_back, vertex_offset)
         if t is not None:
             t = ExtrudeValue(*t)
         return t
@@ -2349,6 +2048,78 @@ class RibbonXSection:
         from ._ribbons import rxsection_arrow
         p = rxsection_arrow(self._xs_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
         return RibbonXSection(xs_pointer=p)
+
+def _xsection_round(scale, sides, faceted = False):
+    from numpy import array
+    coords = []
+    normals = []
+    from numpy import linspace, cos, sin, stack
+    from math import pi
+    angles = linspace(0, 2 * pi, sides, endpoint=False)
+    ca = cos(angles)
+    sa = sin(angles)
+    circle = stack((ca, sa), axis=1)
+    coords = circle * array(scale)
+    if faceted:
+        xs = RibbonXSection(coords, faceted=True)
+    else:
+        normals = circle * array((scale[1], scale[0]))
+        xs = RibbonXSection(coords, normals=normals, faceted=False)
+    return xs
+
+def _xsection_square(scale):
+    from numpy import array
+    coords = array(((1.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (1.0, -1.0))) * array(scale)
+    return RibbonXSection(coords, faceted=True)
+
+def _xsection_piping(scale, sides, ratio, faceted=False):
+    from numpy import array
+    from math import pi, cos, sin, asin
+    if scale[0] > scale[1]:
+        flipped = False
+        delta = scale[0] - scale[1]
+        radius = scale[1]
+    else:
+        flipped = True
+        delta = scale[1] - scale[0]
+        radius = scale[0]
+    coords = []
+    normals = []
+    # The total number of sides is sides.
+    # We subtract the two connectors and then divide
+    # by two while rounding up
+    sides = (sides - 1) // 2
+    theta = asin(ratio)
+    side_angle = 2.0 * (pi - theta) / sides
+    # Generate the vertices for the two piping on either side.
+    # The first and last points are used to connect the two.
+    for start_angle, offset in ((theta - pi, delta), (theta, -delta)):
+        for i in range(sides + 1):
+            angle = start_angle + i * side_angle
+            x = cos(angle) * radius
+            y = sin(angle) * radius
+            if flipped:
+                normals.append((-y, x))
+                coords.append((-y, x + offset))
+            else:
+                normals.append((x, y))
+                coords.append((x + offset, y))
+    coords = array(coords)
+    tess = ([(0, sides, sides+1),(0, sides+1, 2*sides+1)] +         # connecting rectangle
+            [(0, i, i+1) for i in range(1, sides)] +                # first piping
+            [(sides+1, i, i+1) for i in range(sides+2, 2*sides+1)]) # second piping
+    if faceted:
+        xs = RibbonXSection(coords, faceted=True, tess=tess)
+    else:
+        if flipped:
+            normals[0] = normals[-1] = (1, 0)
+            normals[sides] = normals[sides + 1] = (-1, 0)
+        else:
+            normals[0] = normals[-1] = (0, -1)
+            normals[sides] = normals[sides + 1] = (0, 1)
+        normals = array(normals)
+        xs = RibbonXSection(coords, normals=normals, faceted=False, tess=tess)
+    return xs
 
 def normalize(v):
     # normalize a single vector

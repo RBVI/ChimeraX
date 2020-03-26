@@ -23,7 +23,10 @@
 extern "C"
 {
   PyObject *cubic_path(PyObject *s, PyObject *args, PyObject *keywds);
-  extern const char *cubic_path_doc;
+  const char *cubic_path_doc;
+
+  PyObject *spline_path(PyObject *s, PyObject *args, PyObject *keywds);
+  const char *spline_path_doc;
 }
 
 #endif
