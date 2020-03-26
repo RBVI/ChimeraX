@@ -186,20 +186,20 @@ def _fetch_info(mgr, database_name, default_format_name):
     db_info = mgr.database_info(database_name)
     if default_format_name:
         try:
-            bundle_info, is_default, example_ids = db_info[default_format_name]
+            provider_info = db_info[default_format_name]
         except KeyError:
             raise UserError("Format '%s' not available for database '%s'.  Available"
                 " formats are: %s" % (default_format_name, database_name,
                 ", ".join(db_info.keys())))
     else:
-        for default_format_name, fmt_info in db_info.items():
-            bundle_info, is_default, example_ids = fmt_info
-            if is_default:
+        for default_format_name, provider_info in db_info.items():
+            if provider_info.is_default:
                 break
         else:
             raise UserError("No default format for database '%s'.  Possible formats are:"
                 " %s" % (database_name, ", ".join(db_info.keys())))
-    return bundle_info.run_provider(mgr.session, database_name, mgr), default_format_name
+    return (provider_info.bundle_info.run_provider(mgr.session, database_name, mgr),
+        default_format_name)
 
 def _get_path(mgr, file_name, check_path, check_compression=True):
     from os.path import expanduser, expandvars, exists

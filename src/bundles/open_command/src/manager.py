@@ -14,13 +14,19 @@
 class NoOpenerError(ValueError):
     pass
 
-class ProviderInfo:
+class OpenerProviderInfo:
     def __init__(self, bundle_info, name, want_path, check_path, batch):
         self.bundle_info = bundle_info
         self.name = name
         self.want_path = want_path
         self.check_path = check_path
         self.batch = batch
+
+class FetcherProviderInfo:
+    def __init__(self, bundle_info, is_default, example_ids):
+        self.bundle_info = bundle_info
+        self.is_default = is_default
+        self.example_ids = example_ids
 
 from chimerax.core.toolshed import ProviderManager
 class OpenManager(ProviderManager):
@@ -60,7 +66,7 @@ class OpenManager(ProviderManager):
                 logger.warning("Replacing opener for '%s' from %s bundle with that from"
                     " %s bundle" % (data_format.name, _readable_bundle_name(
                     self._openers[data_format].bundle_info), bundle_name))
-            self._openers[data_format] = ProviderInfo(bundle_info, name, want_path,
+            self._openers[data_format] = OpenerProviderInfo(bundle_info, name, want_path,
                 check_path, batch)
         elif type == "fetch":
             if format_name is None:
@@ -74,16 +80,16 @@ class OpenManager(ProviderManager):
             if name in self._fetchers and format_name in self._fetchers[name]:
                 logger.warning("Replacing fetcher for '%s' and format %s from %s bundle"
                     " with that from %s bundle" % (name, format_name,
-                    _readable_bundle_name(self._fetchers[name][format_name][0]),
+                    _readable_bundle_name(self._fetchers[name][format_name].bundle_info),
                     bundle_name))
             if example_ids:
                 example_ids = ",".split(example_ids)
             else:
                 example_ids = []
-            self._fetchers.setdefault(name, {})[format_name] = (bundle_info,
-                is_default, example_ids)
+            self._fetchers.setdefault(name, {})[format_name] = FetcherProviderInfo(
+                bundle_info, is_default, example_ids)
             if is_default and len([fmt for fmt, info in self._fetchers[name].items()
-                    if info[1]]) > 1:
+                    if info.is_default]) > 1:
                 logger.warning("Multiple default formats declared for database fetch"
                     " '%s'" % name)
         else:
@@ -158,15 +164,14 @@ class OpenManager(ProviderManager):
             raise NoOpenerError("No such database '%s'" % database_name)
         if format_name:
             try:
-                bundle_info, is_default, example_ids = db_formats[format_name]
+                provider_info = db_formats[format_name]
             except KeyError:
                 raise NoOpenerError("Format '%s' not supported for database '%s'."
                     "  Supported formats are: %s" % (format_name, database_name,
                     ", ".join(dbf for dbf in db_formats)))
         else:
-            for format_name, info in db_formats.items():
-                bundle_info, is_default, example_ids = info
-                if is_default:
+            for format_name, provider_info in db_formats.items():
+                if provider_info.is_default:
                     break
             else:
                 raise NoOpenerError("No default format for database '%s'."
@@ -177,7 +182,7 @@ class OpenManager(ProviderManager):
         except NoOpenerError:
             # fetch-only type (e.g. cellPACK)
             args = {}
-        args.update(bundle_info.run_provider(self.session,
+        args.update(provider_info.bundle_info.run_provider(self.session,
             database_name, self).fetch_args)
         return args
 
