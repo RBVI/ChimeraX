@@ -53,13 +53,13 @@ UCSF DOCK output in PDB and mol2 formats are supported.
   </Providers>
 
   <Providers manager="data formats">
-    <Provider name="pdbqt" category="Molecular structure"
+    <Provider name="AutoDock PDBQT" nicknames="pdbqt" category="Molecular structure"
 		suffixes=".pdbqt" encoding="utf-8" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="pdbqt" want_path="true" />
-    <Provider name="Mol2" want_path="true" />
+    <Provider name="AutoDock PDBQT" want_path="true" />
+    <Provider name="Sybyl Mol2" want_path="true" />
   </Providers>
 
   <Classifiers>

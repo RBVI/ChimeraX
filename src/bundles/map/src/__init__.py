@@ -168,7 +168,7 @@ class _MapBundle(BundleAPI):
                     from chimerax.core.commands import BoolArg, ModelsArg, EnumOf, \
                         RepeatOf, IntArg, ListOf
                     args = { 'models': ModelsArg }
-                    if _name == "cmap":
+                    if _name == "Chimera map":
                         args.update({
                             'append': BoolArg,
                             'base_index': IntArg,

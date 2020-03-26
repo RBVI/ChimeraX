@@ -21,12 +21,12 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="Maestro" synopsis="Schrodinger Maestro"
+    <Provider name="Schrodinger Maestro" synopsis="Maestro"
 		category="Molecular structure" suffixes=".mae,.maegz" encoding="utf-8" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="Maestro" want_path="true" />
+    <Provider name="Schrodinger Maestro" want_path="true" />
   </Providers>
 
   <Classifiers>

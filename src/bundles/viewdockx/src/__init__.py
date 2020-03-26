@@ -60,7 +60,7 @@ class _MyAPI(BundleAPI):
         from chimerax.open_command import OpenerInfo
         class ViewDockOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, *, _name=name, **kw):
-                if _name == "pdbqt":
+                if _name == "AutoDock PDBQT":
                     from .pdbqt import open_pdbqt
                     opener = open_pdbqt
                 else:

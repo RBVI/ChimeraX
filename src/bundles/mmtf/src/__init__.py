@@ -45,7 +45,7 @@ class _MyAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr):
-        if name == "mmtf":
+        if name == "Macromolecular Transmission":
             from chimerax.open_command import OpenerInfo
             class Info(OpenerInfo):
                 def open(self, session, data, file_name, **kw):

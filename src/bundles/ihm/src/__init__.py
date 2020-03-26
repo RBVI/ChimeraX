@@ -38,7 +38,7 @@ class _IHMAPI(BundleAPI):
 
     @staticmethod
     def run_provider(session, name, mgr):
-        if name == "IHM":
+        if name == "Integrative/Hybrid Models":
             from chimerax.open_command import OpenerInfo
             class Info(OpenerInfo):
                 def open(self, session, data, file_name, **kw):

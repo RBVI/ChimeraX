@@ -33,7 +33,7 @@ class _ImageFormatsBundleAPI(BundleAPI):
                     'transparent_background': BoolArg,
                     'width': PositiveIntArg,
                 }
-                if _name == "JPEG":
+                if _name == "JPEG image":
                     args['quality'] = Bounded(IntArg, min=0, max=100)
                 return args
 

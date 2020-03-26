@@ -19,7 +19,7 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="ChimeraX session" category="Session"
+    <Provider name="ChimeraX session" category="Session" nicknames="session"
 		suffixes=".cxs" mime_types="application/x-chimerax-session"
 		reference_url="help:user/commands/save.html" />
     <Provider name="ChimeraX commands" category="Command script"
@@ -28,7 +28,7 @@
     <Provider name="Python" category="Command script" suffixes=".py"
 		synopsis="Python code" mime_types="text/x-python"
 		reference_url="http://www.python.org" />
-    <Provider name="compiled Python" category="Command script" suffixes=".pyc,.pyo"
+    <Provider name="Compiled Python" category="Command script" suffixes=".pyc,.pyo"
 		synopsis="compiled Python code" mime_types="application/x-python-code"
 		reference_url="http://www.python.org" />
     <Provider name="X3D" category="Generic 3D objects" suffixes=".x3d"
@@ -41,7 +41,7 @@
     <Provider name="ChimeraX session" want_path="true" />
     <Provider name="ChimeraX commands" want_path="true" />
     <Provider name="Python" />
-    <Provider name="compiled Python" />
+    <Provider name="Compiled Python" />
     <Provider name="http" type="fetch" format_name="web fetch" />
     <Provider name="https" type="fetch" format_name="web fetch" />
     <Provider name="ftp" type="fetch" format_name="web fetch" />

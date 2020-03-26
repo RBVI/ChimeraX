@@ -33,12 +33,12 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="MMTF" category="Molecular structure" suffixes=".mmtf"
-		reference_url="http://mmtf.rcsb.org/" synopsis="Macromolecular Transmission Format (MMTF)" />
+    <Provider name="Macromolecular Transmission" category="Molecular structure"
+		nicknames="mmtf" suffixes=".mmtf" reference_url="http://mmtf.rcsb.org/" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="mmtf" />
+    <Provider name="Macromolecular Transmission" />
     <Provider name="pdb" type="fetch" format_name="mmtf" is_default="false" />
   </Providers>
 

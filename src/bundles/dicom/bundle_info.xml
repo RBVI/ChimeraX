@@ -20,12 +20,12 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="DICOM" synopsis="DICOM medical imaging" category="Volume data"
+    <Provider name="DICOM medical imaging" category="Volume data" nicknames="dicom"
 		suffixes=".dcm" allow_directory="true" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="DICOM" batch="true" />
+    <Provider name="DICOM medical imaging" batch="true" />
   </Providers>
 
   <Classifiers>

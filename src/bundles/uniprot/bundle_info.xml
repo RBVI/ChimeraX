@@ -20,12 +20,12 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="UniProt" synopsis="UniProt sequence" category="Sequence"
+    <Provider name="UniProt sequence" nicknames="uniprot" category="Sequence"
 		reference_url="https://www.uniprot.org" encoding="utf-8" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="uniprot" type="fetch" format_name="uniprot"
+    <Provider name="uniprot" type="fetch" format_name="UniProt sequence"
 		example_ids="P01138,NGF_HUMAN" />
   </Providers>
 

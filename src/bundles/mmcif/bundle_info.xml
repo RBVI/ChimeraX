@@ -43,8 +43,7 @@
 
   <Providers manager="data formats">
     <Provider name="mmCIF" category="Molecular structure" suffixes=".cif,.mmcif"
-		synopsis="Macromolecular CIF" encoding="utf-8"
-		mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
+		encoding="utf-8" mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
   </Providers>
 
   <Providers manager="open command">

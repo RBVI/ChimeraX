@@ -19,27 +19,27 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="BMP" synopsis="BMP image" category="Image" suffixes=".bmp"
+    <Provider name="BMP image" category="Image" suffixes=".bmp"
 		reference_url="https://en.wikipedia.org/wiki/BMP_file_format" />
-    <Provider name="GIF" synopsis="GIF image" category="Image" suffixes=".gif"
+    <Provider name="GIF image" category="Image" suffixes=".gif"
 		reference_url="https://en.wikipedia.org/wiki/GIF" />
-    <Provider name="JPEG" synopsis="JPEG image" category="Image" suffixes=".jpg,.jpeg"
+    <Provider name="JPEG image" category="Image" suffixes=".jpg,.jpeg"
 		reference_url="https://en.wikipedia.org/wiki/JPEG" />
-    <Provider name="PNG" synopsis="PNG image" category="Image" suffixes=".png"
+    <Provider name="PNG image" category="Image" suffixes=".png"
 		reference_url="https://en.wikipedia.org/wiki/Portable_Network_Graphics" />
-    <Provider name="PPM" synopsis="PPM image" category="Image" suffixes=".ppm"
+    <Provider name="PPM image" category="Image" suffixes=".ppm"
 		reference_url="https://en.wikipedia.org/wiki/Netpbm" />
-    <Provider name="TIFF" synopsis="TIFF image" category="Image" suffixes=".tif,.tiff"
+    <Provider name="TIFF image" category="Image" suffixes=".tif,.tiff"
 		reference_url="https://en.wikipedia.org/wiki/TIFF" />
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="BMP" />
-    <Provider name="GIF" />
-    <Provider name="JPEG" />
-    <Provider name="PNG" />
-    <Provider name="PPM" />
-    <Provider name="TIFF" />
+    <Provider name="BMP image" />
+    <Provider name="GIF image" />
+    <Provider name="JPEG image" />
+    <Provider name="PNG image" />
+    <Provider name="PPM image" />
+    <Provider name="TIFF image" />
   </Providers>
 
   <Classifiers>

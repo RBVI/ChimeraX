@@ -20,12 +20,12 @@
 
 
   <Providers manager="data formats">
-    <Provider name="STORM" synopsis="Point list for STORM microscopy"
+    <Provider name="STORM microscopy" nicknames="storm"
 		category="Generic 3D objects" suffixes=".storm" />
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="storm" />
+    <Provider name="STORM microscopy" />
   </Providers>
 
   <Classifiers>

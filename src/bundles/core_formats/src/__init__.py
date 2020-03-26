@@ -47,7 +47,7 @@ class _SessionAPI(BundleAPI):
                         from chimerax.core.scripting import open_python_script
                         return open_python_script(session, data, file_name)
 
-            elif name == "compiled Python":
+            elif name == "Compiled Python":
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from chimerax.core.scripting import open_compiled_python_script
