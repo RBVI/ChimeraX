@@ -51,6 +51,7 @@ static void cubic_path(double *c, double tmin, double tmax, int n, float *coords
 
 // -----------------------------------------------------------------------------
 //
+extern "C"
 const char *cubic_path_doc =
   "cubic_path(coeffs, tmin, tmax, num_points) -> coords, tangents\n"
   "\n"
