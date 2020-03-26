@@ -18,7 +18,6 @@
     <Dependency name="ChimeraX-Geometry" version=">=1.0"/>
     <Dependency name="ChimeraX-Graphics" version=">=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version=">=1.0"/>
-    <Dependency name="ChimeraX-OpenCommand" version=">=1.0"/>
   </Dependencies>
 
   <Providers manager="data formats">
