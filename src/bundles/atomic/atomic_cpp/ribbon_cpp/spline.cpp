@@ -57,7 +57,8 @@ static void cubic_path(const double *c, double tmin, double tmax, int n, float *
 
 // -----------------------------------------------------------------------------
 //
-extern "C" const char *cubic_path_doc =
+extern "C"
+const char *cubic_path_doc =
   "cubic_path(coeffs, tmin, tmax, num_points) -> coords, tangents\n"
   "\n"
   "Compute a path in 3D using x,y,z cubic polynomials.\n"
