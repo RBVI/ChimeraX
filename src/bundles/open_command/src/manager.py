@@ -189,8 +189,8 @@ class OpenManager(ProviderManager):
 
     def open_data(self, path, **kw):
         from .cmd import provider_open
-        return provider_open(self.session, [path], return_status=True,
-            _add_to_file_history=False, **kw)
+        return provider_open(self.session, [path], _return_status=True,
+            _add_models=False, **kw)
 
     @property
     def open_data_formats(self):

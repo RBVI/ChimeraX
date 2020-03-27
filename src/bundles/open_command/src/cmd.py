@@ -86,7 +86,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
-        name=None, return_status=False, _add_to_file_history=True, **provider_kw):
+        name=None, _return_status=False, _add_models=True, **provider_kw):
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
     fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
@@ -160,9 +160,9 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 statuses.append(status)
             if models:
                 opened_models.append(name_and_group_models(models, name, [ident]))
-    if opened_models:
+    if opened_models and _add_models:
         session.models.add(opened_models)
-    if _add_to_file_history and len(names) == 1:
+    if _add_models and len(names) == 1:
         # TODO: Handle lists of file names in history
         from chimerax.core.filehistory import remember_file
         if fetches:
@@ -177,7 +177,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 opened_models or 'all models', open_options=provider_kw)
 
     status ='\n'.join(statuses) if statuses else ""
-    if return_status:
+    if _return_status:
         return opened_models, status
     elif status:
         session.logger.status(status, log=True)
