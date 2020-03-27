@@ -169,10 +169,11 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             # Files opened in the help browser are done asynchronously and might have
             # been misspelled and can't be deleted from file history.  So skip them.
             if not statuses or not statuses[-1].endswith(" in browser"):
-                remember_file(session, names[0], format_name, opened_models or
-                    'all models', database=database_name, open_options=provider_kw)
+                remember_file(session, names[0], session.data_formats[format_name].nicknames[0],
+                    opened_models or 'all models', database=database_name,
+                    open_options=provider_kw)
         else:
-            remember_file(session, names[0], file_infos[0].data_format.name,
+            remember_file(session, names[0], file_infos[0].data_format.nicknames[0],
                 opened_models or 'all models', open_options=provider_kw)
 
     status ='\n'.join(statuses) if statuses else ""

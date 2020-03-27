@@ -28,6 +28,7 @@ class FetcherInfo:
         return {}
 
 from .manager import NoOpenerError
+from .dialog import show_open_file_dialog, set_use_native_open_file_dialog, show_open_folder_dialog
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -36,6 +37,10 @@ class _OpenBundleAPI(BundleAPI):
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):
         """Initialize open-command manager"""
+        if session.ui.is_gui:
+            from . import dialog
+            session.ui.triggers.add_handler('ready',
+                lambda *args, ses=session: dialog.create_menu_entry(ses))
         if name == "open command":
             from . import manager
             session.open_command = manager.OpenManager(session)

@@ -335,7 +335,8 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
     session.main_view.camera = c
 
     # VR gui cannot display a native file dialog.
-    session.ui.main_window.use_native_open_dialog = False
+	from chimerax.open_command import set_use_native_open_file_dialog
+	set_use_native_open_file_dialog(False)
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)

@@ -442,15 +442,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
 
-        self.use_native_open_dialog = True
-        
-        from .open_folder import OpenFolderDialog
-        self._open_folder = OpenFolderDialog(self, session)
-
-        from .save_dialog import MainSaveDialog, register_save_dialog_options
-        self.save_dialog = MainSaveDialog()
-        register_save_dialog_options(self.save_dialog)
-
         self._hide_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
@@ -608,44 +599,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         # handle requests to execute GUI functions from threads
         func, args, kw = event.func_info
         func(*args, **kw)
-
-    def file_open_cb(self, session):
-        self.show_file_open_dialog(session)
-
-    def show_file_open_dialog(self, session, initial_directory = None,
-                              format_name = None):
-        if initial_directory is None:
-            initial_directory = ''
-        from PyQt5.QtWidgets import QFileDialog
-        from .open_save import open_file_filter
-        filters = open_file_filter(all=True, format_name=format_name)
-        if self.use_native_open_dialog:
-            from PyQt5.QtWidgets import QFileDialog
-            paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
-                                                           directory=initial_directory)
-            paths, types = paths_and_types
-        else:
-            from .open_save import OpenDialog
-            d = OpenDialog(parent = self, starting_directory = initial_directory,
-                           filter = filters)
-            paths = d.get_paths()
-
-        if not paths:
-            return
-
-        def _qt_safe(session=session, paths=paths):
-            from chimerax.core.commands import run, FileNameArg
-            run(session, "open " + " ".join([FileNameArg.unparse(p) for p in paths]))
-        # Opening the model directly adversely affects Qt interfaces that show
-        # as a result.  In particular, Multalign Viewer no longer gets hover
-        # events correctly, nor tool tips.
-        #
-        # Using session.ui.thread_safe() doesn't help either(!)
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, _qt_safe)
-
-    def folder_open_cb(self, session):
-        self._open_folder.display(session)
 
     def file_close_cb(self, session):
         from chimerax.core.commands import run
@@ -917,15 +870,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
         file_menu.setObjectName("File")
-        open_action = QAction("&Open...", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.setToolTip("Open input file")
-        open_action.triggered.connect(lambda arg, s=self, sess=session: s.file_open_cb(sess))
-        file_menu.addAction(open_action)
-        open_folder_action = QAction("Open DICOM Folder...", self)
-        open_folder_action.setToolTip("Open data in folder")
-        open_folder_action.triggered.connect(lambda arg, s=self, sess=session: s.folder_open_cb(sess))
-        file_menu.addAction(open_folder_action)
         close_action = QAction("&Close Session", self)
         close_action.setToolTip("Close session")
         close_action.triggered.connect(lambda arg, s=self, sess=session: s.file_close_cb(sess))

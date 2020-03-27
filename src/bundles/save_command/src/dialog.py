@@ -87,11 +87,11 @@ class SaveDialogSettings(Settings):
 
 def create_menu_entry(session):
     session.ui.main_window.add_menu_entry(["File"], "&Save...",
-        lambda *args, ses=session: show_save_dialog(ses), tool_tip="Save output file",
+        lambda *args, ses=session: show_save_file_dialog(ses), tool_tip="Save output file",
             shortcut="Ctrl+S", insertion_point="Close Session")
 
 _dlg = None
-def show_save_dialog(session):
+def show_save_file_dialog(session):
     global _dlg
     if _dlg is None:
         global _settings

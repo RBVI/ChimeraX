@@ -29,7 +29,7 @@
 		synopsis="Python code" mime_types="text/x-python"
 		reference_url="http://www.python.org" />
     <Provider name="Compiled Python" category="Command script" suffixes=".pyc,.pyo"
-		synopsis="compiled Python code" mime_types="application/x-python-code"
+		synopsis="Compiled Python code" mime_types="application/x-python-code"
 		reference_url="http://www.python.org" />
     <Provider name="X3D" category="Generic 3D objects" suffixes=".x3d"
 		mime_types="model/x3d+xml" reference_url="http://www.web3d.org/standards" />

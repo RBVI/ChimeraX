@@ -30,7 +30,7 @@ class SaverInfo:
         raise NotImplementedError("Saver did not implement 'save_args_string_from_widget' method")
 
 from .manager import NoSaverError
-from .dialog import show_save_dialog
+from .dialog import show_save_file_dialog
 
 from chimerax.core.toolshed import BundleAPI
 class _OpenBundleAPI(BundleAPI):

@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -18,7 +20,7 @@ class FileHistory:
     def __init__(self, session):
 
         self.session = session
-        self.version = 1		# In case cache file changes format.
+        self.version = 1        # In case cache file changes format.
         self.max_files = 200
 
         self._save_files = False
@@ -27,7 +29,7 @@ class FileHistory:
 
         from .history import ObjectHistory
         self._file_cache = ObjectHistory('file_history')
-        self._files = self.load_history()	# Map (file path, database) to FileSpec
+        self._files = self.load_history()    # Map (file path, database) to FileSpec
         
         session.triggers.add_trigger('file history changed')
 
@@ -141,13 +143,13 @@ def _supported_option_value_types(open_options):
 class FileSpec:
     def __init__(self, path, format, database = None, open_options = {}):
         self.path = path
-        self.format = format	# Can be None
+        self.format = format    # Can be None
         self.database = database
         self.access_time = None
-        self.image = None	# JPEG encoded as base64 string
+        self.image = None    # JPEG encoded as base64 string
         self.open_options = {}
         self.set_access_time()
-        self.set_open_options(open_options)	# Dictionary of open command keyword to value.
+        self.set_open_options(open_options)    # Dictionary of open command keyword to value.
 
     def set_open_options(self, open_options):
         opt = {k:str(v) for k,v in open_options.items()
@@ -210,7 +212,7 @@ def file_history(session):
 def remember_file(session, filename, format, models, database = None, file_saved = False,
                   open_options = {}):
     if session.in_script:
-        return		# Don't remember files opened by scripts
+        return        # Don't remember files opened by scripts
     h = file_history(session)
     h.remember_file(filename, format, models, database = database, file_saved = file_saved,
                     open_options = open_options)
