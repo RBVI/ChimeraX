@@ -464,9 +464,9 @@ class Render:
 
         return False
 
-    def use_shared_context(self, window, width, height):
+    def use_shared_context(self, window):
         '''
-        Switch opengl context to use the specified target window.
+        Switch opengl context to use the specified target QWindow.
         Multiple Render instances can share the same opengl context
         using this method.
         '''
@@ -474,7 +474,8 @@ class Render:
         prev_win = oc.window
         oc.window = window
         self.make_current()
-        self.set_viewport(0,0,width,height)
+        s = oc.pixel_scale()
+        self.set_viewport(0,0,int(s*window.width()),int(s*window.height()))
         return prev_win
 
     @property
