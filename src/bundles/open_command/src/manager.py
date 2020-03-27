@@ -188,12 +188,19 @@ class OpenManager(ProviderManager):
         return args
 
     def open_data(self, path, **kw):
+        """
+        Given a file path and possibly format-specific keywords, return a (models, status message)
+            tuple.  The models will not have been opened in the session.
+        """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,
             _add_models=False, **kw)
 
     @property
     def open_data_formats(self):
+        """
+        The names of data formats for which an opener function has been registered.
+        """
         return list(self._openers.keys())
 
     def open_args(self, data_format):

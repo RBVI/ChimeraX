@@ -61,8 +61,6 @@ class _PDBioAPI(BundleAPI):
                             'coordsets': BoolArg,
                             'log_info': BoolArg,
                             'max_models': IntArg,
-                            'oversampling': FloatArg,
-                            'structure_factors': BoolArg,
                         }
             else:
                 from chimerax.open_command import FetcherInfo
@@ -75,6 +73,14 @@ class _PDBioAPI(BundleAPI):
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache, fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+
+                    @property
+                    def fetch_args(self):
+                        from chimerax.core.commands import BoolArg, IntArg, FloatArg
+                        return {
+                            'oversampling': FloatArg,
+                            'structure_factors': BoolArg,
+                        }
         else:
             from chimerax.save_command import SaverInfo
             class Info(SaverInfo):
