@@ -27,7 +27,7 @@ from numpy.linalg import norm
 
 def _make_ribbon_graphics(structure, ribbons_drawing):
     '''Update ribbons drawing.'''
-    
+
     ribbons_drawing.clear()
 
     if structure.ribbon_display_count == 0:
@@ -1231,7 +1231,7 @@ class Ribbon:
         n = guides - coords
         normals = zeros((len(coords), 3), float)
         for i in range(len(coords)):
-            normals[i,:] = get_orthogonal_component(n[i], t[i])
+            normals[i,:] = _orthogonal_component(n[i], t[i])
         return normalize_vector_array(normals)
 
     def _compute_normals_from_curvature(self, coords):
@@ -1424,93 +1424,164 @@ def tridiagonal(a, b, c, d):
     return xc
 
 def _path_plane_normals(coords, tangents):
-    # TODO: This code produces end normals that are not perpendicular to tangent vectors.
-    #
-    # This version ignores the guide atom positions and computes normals
-    # at each control point by making it perpendicular to the vectors pointing
-    # to control points on either side.  The two ends and any collinear control
-    # points are handled afterwards.  We also assume that ribbon cross sections
-    # are symmetric in both x- and y-axis so that a twist by more than 90 degrees
-    # is equvalent to an opposite twist of (180 - original_twist) degrees.
-
+    '''
+    Compute normal vectors to a path perpendicular to tangent vectors.
+    The normal at a path point is obtained by taking the vector perpendicular
+    to the segments to the preceeding and next points and taking its orthogonal
+    component to the tangent vector.  If a normal at a point points opposite
+    the normal of the preceding point (inner product < 0) then it is flipped.
+    If a normal vector is zero for example due to 3 colinear path points
+    then the normal is interpolated from the preceeding and following
+    non-zero normals and orthogonal component to the tangent is taken.
+    For leading or trailing zero normals the nearest non-zero normal is used
+    and orthogonalized against the tangents.  If the whole path is straight
+    or all normals are zero then arbitrary normals perpendicular to the
+    tangents are used.
+    '''
     #
     # Compute normals by cross-product of vectors to prev and next control points.
-    # Normals are for range [1:-1] since 0 and -1 are missing prev and next
-    # control points.  Normal index is therefore off by one.
-    dv = coords[:-1] - coords[1:]
-    raw_normals = cross(dv[:-1], -dv[1:])
-    for i in range(len(raw_normals)):
-        raw_normals[i] = get_orthogonal_component(raw_normals[i], tangents[i+1])
+    # End points are same as second from end-points.
     #
-    # Assign normal for first control point.  If there are collinear control points
-    # at the beginning, assign same normal for all of them.  If there is no usable
-    # normal across the entire "spline" (all control points collinear), just pick
-    # a random vector normal to the line.
     normals = empty(coords.shape, float)
-    lengths = norm(raw_normals, axis=1)
-    for i in range(len(raw_normals)):
-        if lengths[i] > EPSILON:
-            # Normal for this control point is propagated to all previous ones
-            prev_normal = raw_normals[i] / lengths[i]
-            prev_index = i
-            # Use i+2 because we need to assign one normal for the first control point
-            # which has no corresponding raw_normal and (i + 1) for all the control
-            # points up to and including this one.
-            normals[:i+2] = prev_normal
-            break
-    else:
-        # All control points collinear
-        for i in range(3):
-            v = [0.0, 0.0, 0.0]
-            v[i] = 1.0
-            rn = cross(array(v), tangents[0])
-            d = norm(rn)
-            if d > EPSILON:
-                n = rn / d
-                normals[:] = n
-                return normals
-        # Really, we only need range(2) for i since the spline line can only be
-        # collinear with one of the axis, but we put 3 for esthetics.
-        # If we try all three and fail, something is seriously wrong.
-        raise RuntimeError("spline normal computation for straight line")
-    #
-    # Now we have at least one normal assigned.  This is the anchor and we
-    # look for the next control point that has a non-zero raw normal.
-    # If we do not find one, then this is the last anchor and we just assign
-    # the normal to the remainder of the control points.  Otherwise, we
-    # have two normals (perpendicular to the same straight line) for 2 or
-    # more control points.  The first normal is from the previous control
-    # point whose normal we already set, and the second normal is for the
-    # last control point in our range of 2 or more.  If there are more than
-    # 2 control points, we interpolate the two normals to get the intermediate
-    # normals.
-    while i < len(raw_normals):
-        if lengths[i] > EPSILON:
-            # Our control points run from prev_index to i
-            n = raw_normals[i] / lengths[i]
-            # First we check whether we should flip it due to too much twist
-            if dot(n, prev_normal) < 0:
-                n = -n
-            # Now we compute normals for intermediate control points (if any)
-            # Instead of slerp, we just use linear interpolation for simplicity
-            ncp = i - prev_index
-            dv = n - prev_normal
-            for j in range(1, ncp):
-                f = j / ncp
-                rn = dv * f + prev_normal
-                d = norm(rn)
-                int_n = rn / d
-                normals[prev_index+1+j] = int_n
-            # Finally, we assign normal for this control point
-            normals[i+1] = n
+    step = coords[:-1] - coords[1:]
+    normals[1:-1] = cross(step[:-1], -step[1:])
+    normals[0] = normals[1]
+    normals[-1] = normals[-2]
+
+    # Take component perpendicular to tangent vectors and make it unit length.
+    num_zero = 0
+    prev_normal = None
+    num_pts = len(coords)
+    for i in range(num_pts):
+        n = _orthogonal_component(normals[i], tangents[i])
+        d = norm(n)
+        if d > 0:
+            if prev_normal is not None and dot(n, prev_normal) < 0:
+                d = -d   # Flip this normal to align better with previous one.
+            n /= d
+            normals[i] = n
             prev_normal = n
-            prev_index = i
-        i += 1
-    # This is the last part of the spline, so assign the remainder of
-    # the normals.
-    normals[prev_index+1:] = prev_normal
+        else:
+            normals[i] = (0,0,0)
+            num_zero += 1
+
+    if num_zero > 0:
+        _replace_zero_normals(normals, tangents)
+
     return normals
 
+def _replace_zero_normals(normals, tangents):
+    # Some normal vector has zero length.  Replace it using nearby non-zero normals.
+    s = 0
+    num_pts = len(normals)
+    while True:
+        s = _next_zero_vector(s, normals)
+        if s == num_pts:
+            break
+        e = _next_nonzero_vector(s+1, normals)
+        if s == 0 and e < num_pts:
+            # Set leading 0 normals to first non-zero normal.
+            normals[:e] = normals[e]
+        elif s > 0 and e < num_pts:
+            # Linearly interpolate between non-zero normals.
+            n0, n1 = normals[s-1], normals[e]
+            for i in range(s,e):
+                f = (i - (s-1)) / (e - (s-1))
+                normals[i] = (1-f)*n0 + f*n1
+        elif s > 0 and e == num_pts:
+            # Set trailing 0 normals to last non-zero normal.
+            normals[s:] = normals[s-1]
+        elif s == 0 and e == num_pts:
+            # All normals have zero length, possibly straight line path.
+            for i in range(num_pts):
+                normals[i] = _normal_vector(tangents[i])
+        # Make new normals orthogonal to tangents and unit length.
+        for i in range(s, e):
+            n = _orthogonal_component(normals[i], tangents[i])
+            d = norm(n)
+            if d > 0:
+                normals[i] = n / d
+            else:
+                n = _normal_vector(tangents[i])
+                normals[i] = n / norm(n)
+        s = e+1
+
+def _next_zero_vector(start, normals):
+    for i in range(start, len(normals)):
+        if normals[i,0] == 0 and normals[i,1] == 0 and normals[i,2] == 0:
+            return i
+    return len(normals)
+
+def _next_nonzero_vector(start, normals):
+    for i in range(start, len(normals)):
+        if not (normals[i,0] == 0 and normals[i,1] == 0 and normals[i,2] == 0):
+            return i
+    return len(normals)
+
+def _orthogonal_component(v, ref):
+    d = inner(v, ref)
+    ref_len = norm(ref)
+    return v + ref * (-d / ref_len)
+
+def _normal_vector(v):
+    if v[0] != 0 or v[1] != 0:
+        n = (-v[1], v[0], v[2])
+    else:
+        n = (-v[2], v[1], v[0])
+    return n
+
+def _path_plane_tests():
+
+    n = 7
+    straight = zeros((n,3),float32)
+    for i in range(n):
+        straight[i,2] = i
+    tangents = zeros((n,3),float32)
+    tangents[:,2] = 1
+
+    def _print_results(descrip):
+        normals = _path_plane_normals(coords, tangents)
+        print (descrip)
+        print ('coords\n', coords)
+        print ('tangents\n', tangents)
+        print ('normals\n', normals)
+
+    # All coords 0
+    coords = zeros((n,3), float32)
+    _print_results('All 0 path')
+
+    # Straight path
+    coords = straight
+    _print_results('Straight path')
+
+    # Straight leading and trailing segments
+    coords = straight.copy()
+    coords[3] = (1,.5,3)
+    _print_results('Leading and trailing straight')
+
+    # Straight trailing segment
+    coords = straight.copy()
+    coords[0] = (1,1,0)
+    _print_results('Trailing straight')
+
+    # Straight leading segment
+    coords = straight.copy()
+    coords[n-1] = (1,-1,n-1)
+    _print_results('Leading straight')
+    
+    # Straight middle segment
+    coords = straight.copy()
+    coords[0] = (1,0,0)
+    coords[n-1] = (0,1,n-1)
+    _print_results('Straight middle')
+    
+    # All curved
+    coords = straight.copy()
+    from math import sin, cos
+    for i in range(n):
+        coords[i] = (cos(i), sin(i), i)
+    _print_results('All curved')
+    
 from ._ribbons import spline_path as _spline_path
 def _spline_path_unused(coeffs, start_normals, flip_normals, twist, ndiv):
     lead = _spline_path_lead_segment(coeffs[0], start_normals[0], ndiv//2)
@@ -2148,12 +2219,6 @@ def normalize_vector_array(a):
     d[d < EPSILON] = 1
     n = a / d[:, numpy.newaxis]
     return n
-
-
-def get_orthogonal_component(v, ref):
-    d = inner(v, ref)
-    ref_len = norm(ref)
-    return v + ref * (-d / ref_len)
 
 from ._ribbons import cubic_path as _spline_segment_path
 
