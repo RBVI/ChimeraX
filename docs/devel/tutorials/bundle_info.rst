@@ -416,6 +416,8 @@ of ``mac``.
     - **name**: name of Python package to be added.
     - **folder**: folder containing source files in package.
 
+.. _Providers:
+
 - **Providers**
 
   - List of providers that bundle provides
@@ -426,6 +428,8 @@ of ``mac``.
   - Child elements:
 
     - **Provider** (one or more)
+
+.. _Provider:
 
 - **Provider**
 
@@ -560,7 +564,11 @@ data formats, and selectors.
     - Bundles may provide more than one command.
 
 
-*Data Format Metadata*  **DEPRECATED**
+*Data Format Metadata*
+    The old ``DataFormat``, ``Open``, and ``Save`` tags have been replaced with
+    a manager/provider mechanism, as described in the `Opening/Saving/Fetching Files`_
+    section below.
+
     **The Data Format Metadata tags below will be withdrawn in a future version of ChimeraX in favor of the more flexible and generic Manager/Provider mechanism documented above.**  Details of the manager/provider API will be provided as they become finialized.  A changeover date will be pre-announced on the chimerax-users mailing list.
 
     ``DataFormat`` :: *format_name* :: *nicknames* :: *category* :: *suffixes* :: *mime_types* :: *url* :: *dangerous* :: *icon* :: *synopsis* :: *encoding*
@@ -653,21 +661,100 @@ data formats, and selectors.
       names carefully."
 
 
-*Manager Metadata*
+.. _Opening/Saving/Fetching Files:
 
-    ``Manager`` :: *name* [:: *keyword:value*]*
+Opening/Saving/Fetching Files
+-----------------------------
 
-    - *name* is a string and may have spaces in it.
-    - *keyword:value* pairs are zero-or more manager-specific options,
-      separated by ``::``.
+For a bundle to hook into the ``open`` or ``save`` commands
+it must have a `Providers`_ section in its **bundle_info.xml**
+to provide the relevant information to the "open command" or
+"save command" manager via `Provider`_ tags.
+The bundle also typically defines the file/data format via a
+`Provider`_ tag for the "data formats" manager, though in
+some cases the data format is defined in another bundle.
 
-    For example::
-    
-      Manager :: http_scheme :: guiOnly:true
+As per normal XML, `Provider`_ attributes are strings
+(*e.g.* ``name="Chimera BILD object"``)
+and for attributes that can accept multiple values, those
+values are comma separated
+(*e.g.* ``suffixes=".bld,.bild"``).
 
-    Notes:
+Defining a File/Data Format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    - Bundles may provide more than one manager.
-    - The toolshed reserved the following keywords:
-      - **guiOnly**, if present and set to ``true``, means the manager
-        should only be created if the graphical user interface is in use.
+To define a data(/file) format, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` of the tag or section should be "data formats".  The
+information supplied by the `Provider`_ tag will be all that is
+required for the format definition -- *i.e.* the data-formats manager
+will never call the ``BundleAPI``'s ``run_provider`` method, so that
+method does not need to be customized for this manager.
+
+These are the possible `Provider`_ attributes:
+
+- **Mandatory** Attributes
+
+    *name*
+        The full official name of the format, typically omitting the word "format"
+        though, since all such names are formats.  The *name* attribute must be
+        unique across all format definitions.
+
+- **Frequently-Used** Attributes
+
+    *category*
+        The general kind of information that the format provides, used to organize
+        formats in some interfaces.  Commonly used categories are: Generic 3D objects,
+        Molecular structure, Molecular trajectory, Volume data, Image, Higher-order
+        structure, Sequence, and Command script.  The default is the catchall category
+        "General".
+
+    *encoding*
+        If the format is textual, the encoding for that text.  Binary formats should
+        omit this attribute.  The most common encoding for text formats is "utf-8".
+
+    *nicknames*
+        A short, easy-to-type name for the format, typically used in conjunction with
+        the ``format`` keyword of the ``open``/``save`` commands.  Still needs to be verbose
+        enough to not easily conflict with nicknames of other formats.  Also typically
+        all lower case.  Default is an all-lower-case version of *name*.
+
+    *reference_url*
+        If there is a web page describing the format, the URL to that page.
+
+    *suffixes*
+        The file-name suffixes (starting with a '.') that are used by files in this
+        format.  If no suffixes are specified, then files in this format will only be
+        able to be opened/saved by supplying the ``format`` keyword to the ``open``/``save``
+        commands.  Also, formats that can only be fetched from the web frequently don't
+        specify suffixes.
+
+    *synopsis*
+        The description of the format used by user-interface widgets that list formats
+        (*e.g.* the Open-File dialog), so typically shorter than *name* but more verbose 
+        than the *nicknames*.  The first word should be capitalized unless that word is
+        mixed case (*e.g.* mmCIF).  Like *name*, *synopsis* should typically omit the
+        word "format".  Defaults to *name*.
+
+- **Infrequently-Used** Attributes
+
+    *allow_directory*
+        If this is specified as "true", then the data for this format can be organized as
+        a folder rather than a single file.  Regardless of the value of *suffixes*, such
+        folder can only be opened/saved by providing the ``format`` keyword to the corresponding
+        command.  Specifying *allow_directory* as "true" does not preclude also possibly
+        opening this format from individual files (in which case *suffixes* would matter).
+        The default is "false".
+
+    *insecure*
+        If opening this format's data could cause arbitrary code to execute, then *insecure*
+        should be specified as "true".  Formats in the "Command script" *category* default
+        to "true" and others to "false".
+
+    *mime_types*
+        If the data for this format may be obtained by the user providing an URL to the
+        ``open`` command, and the URL might not end in one of the *suffixes* (*e.g.* it's
+        a CGI script), but the web server does provide a format-specific Content-Type header
+        for the data, then mime_types lists Content-Type header values that the server
+        or servers could possibly provide.  Only relevant to the user providing an URL, not
+        to the "fetching" of database identifiers outlined in the `Fetching Data`_ section.
