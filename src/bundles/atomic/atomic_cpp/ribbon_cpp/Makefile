@@ -48,7 +48,7 @@ ifdef WIN32
 	rm -f $(PYMOD_NAME).{lib,exp,pdb} vc*.pdb
 endif
 
-ribbon.o: normals.h spline.h xsection.h
+ribbons.o: normals.h spline.h xsection.h
 normals.o: normals.h
 spline.o: spline.h normals.h
 xsection.o: xsection.h

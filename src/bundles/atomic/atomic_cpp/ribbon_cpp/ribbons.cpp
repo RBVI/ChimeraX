@@ -30,6 +30,8 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("dihedral_angle"), (PyCFunction)dihedral_angle_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("path_plane_normals"), (PyCFunction)path_plane_normals,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* spline.h */
   {const_cast<char*>("cubic_path"), (PyCFunction)cubic_path,

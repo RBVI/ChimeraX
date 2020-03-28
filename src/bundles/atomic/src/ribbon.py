@@ -1423,7 +1423,9 @@ def tridiagonal(a, b, c, d):
         xc[i] = (d[i] - c[i] * xc[i + 1]) / b[i]
     return xc
 
-def _path_plane_normals(coords, tangents):
+from ._ribbons import path_plane_normals as _path_plane_normals
+
+def _path_plane_normals_unused(coords, tangents):
     '''
     Compute normal vectors to a path perpendicular to tangent vectors.
     The normal at a path point is obtained by taking the vector perpendicular

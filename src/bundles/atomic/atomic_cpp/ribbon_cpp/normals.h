@@ -35,6 +35,9 @@ PyObject *parallel_transport_py(PyObject *s, PyObject *args, PyObject *keywds);
 
 // dihedral_angle(u, v, t) -> angle in radians
 PyObject *dihedral_angle_py(PyObject *s, PyObject *args, PyObject *keywds);  
+
+// path_plane_normals(path, tangents) -> normals
+PyObject *path_plane_normals(PyObject *s, PyObject *args, PyObject *keywds);  
 }
 
 void smooth_twist(const float *tangents, int num_pts, float *normals, const float *n_end);
