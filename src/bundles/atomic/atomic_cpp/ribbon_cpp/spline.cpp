@@ -252,3 +252,108 @@ PyObject *spline_path(PyObject *, PyObject *args, PyObject *keywds)
   PyObject *ctn = python_tuple(pcoords, ptangents, pnormals);
   return ctn;
 }
+
+// -----------------------------------------------------------------------------
+//
+static void tridiagonal(int n, double *a, double *b, const double *c, double *d)
+{
+  /*
+    TDMA solver, a b c d can be NumPy array type or Python list type.
+    refer to http://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
+    Hacked source from
+    http://ofan666.blogspot.com/2012/02/tridiagonal-matrix-algorithm-solver-in.html
+  */
+
+  for (int i = 1 ; i < n ; ++i)
+    {
+      double mc = a[i] / b[i - 1];
+      b[i] = b[i] - mc * c[i - 1];
+      d[i] = d[i] - mc * d[i - 1];
+    }
+
+  a[n-1] = d[n-1] / b[n-1];
+  for (int i = n-2 ; i >= 0 ; --i)
+    a[i] = (d[i] - c[i] * a[i + 1]) / b[i];
+}
+
+// -----------------------------------------------------------------------------
+//
+static void cubic_spline(const float *coords, int num_pts, double *coef)
+{
+  // Extend ends
+  int ne = num_pts + 2;
+  double *temp = new double[ne*7];
+
+  double *x = temp, *y = temp + ne, *z = temp + 2*ne;
+  double *xyz[3] = {x, y, z};
+  const float *c0 = coords, *c1 = coords+3;
+  for (int axis = 0 ; axis < 3 ; ++axis)
+    xyz[axis][0] = c0[axis] - (c1[axis] - c0[axis]);
+  for (int i = 0 ; i < num_pts ; ++i)
+    { x[i+1] = coords[3*i]; y[i+1] = coords[3*i+1]; z[i+1] = coords[3*i+2]; }
+  const float *e0 = coords+3*(num_pts-1), *e1 = coords+3*(num_pts-2);
+  for (int axis = 0 ; axis < 3 ; ++axis)
+    xyz[axis][ne-1] = e0[axis] + (e0[axis] - e1[axis]);
+
+  double *a = temp + 3*ne, *b = temp + 4*ne, *c = temp + 5*ne, *d = temp + 6*ne;
+  for (int axis = 0 ; axis < 3 ; ++axis)
+    {
+      // 1D cubic spline from http://mathworld.wolfram.com/CubicSpline.html
+      // Set b[0] and b[-1] to 1 to match TomG code in VolumePath
+      double *values = xyz[axis];
+      for (int i = 0 ; i < ne ; ++i)
+	{ a[i] = 1; b[i] = 4; c[i] = 1; }
+      b[0] = b[ne-1] = 2;
+      // b[0] = b[ne-1] = 1;
+      d[0] = values[1] - values[0];
+      for (int i = 1 ; i < ne-1 ; ++i)
+	d[i] = 3 * (values[i+1] - values[i-1]);
+      d[ne-1] = 3 * (values[ne-1] - values[ne-2]);
+      tridiagonal(ne, a, b, c, d); // Result returned in a.
+      for (int i = 0 ; i < num_pts-1 ; ++i)
+	{
+	  double *cf = coef + 12*i + 4*axis;
+	  cf[0] = values[i+1];
+	  cf[1] = a[i+1];
+	  double delta = values[i+2] - values[i+1];
+	  cf[2] = 3 * delta - 2 * a[i+1] - a[i+2];
+	  cf[3] = 2 * -delta + a[i+1] + a[i+2];
+	}
+    }
+  delete [] temp;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *cubic_spline(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray xyz;
+  const char *kwlist[] = {"xyz", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &xyz))
+    return NULL;
+
+  if (!xyz.is_contiguous())
+    {
+      PyErr_Format(PyExc_TypeError,
+		   "cubic_spline(): xyz array must be contiguous");
+      return NULL;
+    }
+
+  int n = xyz.size(0);
+  if (n < 2)
+    {
+      PyErr_Format(PyExc_TypeError,
+		   "cubic_spline(): Must have 2 or more coordinates, got %d", n);
+      return NULL;
+    }
+
+  double *coefficients;
+  PyObject *coef = python_double_array(n-1, 3, 4, &coefficients);
+  cubic_spline(xyz.values(), n, coefficients);
+
+  return coef;
+}

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 timing = False
-timing = True
+#timing = True
 if timing:
     from time import time
     coeftime = normaltime = 0
@@ -42,8 +42,8 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         poltime = time()-t0
 
     rangestime = xstime = smootime = tubetime = pathtime = spltime = interptime = geotime = drtime = tethertime = 0
-    global coeftime, atomntime
-    coeftime = atomntime = 0
+    global coeftime, normaltime
+    coeftime = normal = 0
     for rlist, ptype in polymers:
         # Always call get_polymer_spline to make sure hide bits are
         # properly set when ribbons are completely undisplayed
@@ -1363,38 +1363,42 @@ class Ribbon:
         # Compute coordinates for segment seg with parameter t
         return dot(self._coeff[seg], (1.0, t, t*t, t*t*t))
 
-def _natural_cubic_spline_coefficients(coords):
+from ._ribbons import cubic_spline as _natural_cubic_spline_coefficients
+def _natural_cubic_spline_coefficients_unused(coords):
     # Extend ends
-    c = empty((len(coords) + 2, 3), float)
-    c[0] = coords[0] - (coords[1] - coords[0])
-    c[1:-1] = coords
-    c[-1] = coords[-1] + (coords[-1] - coords[-2])
-    coeff = [_natural_cubic_spline_coefficients_1d(c[:,axis]) for axis in range(3)]
-    from numpy import transpose
-    coeff = transpose(coeff, axes = (1,0,2)).astype(float64, order='C') # make contiguous
-    return coeff
+    ne = len(coords) + 2
+    ce = empty((ne, 3), float)
+    ce[0] = coords[0] - (coords[1] - coords[0])
+    ce[1:-1] = coords
+    ce[-1] = coords[-1] + (coords[-1] - coords[-2])
 
-def _natural_cubic_spline_coefficients_1d(coords):
-    # Matrix from http://mathworld.wolfram.com/CubicSpline.html
-    # Set b[0] and b[-1] to 1 to match TomG code in VolumePath
-    size = len(coords)
-    a = ones((size,), float)
-    b = ones((size,), float) * 4
-    b[0] = b[-1] = 2
-    #b[0] = b[-1] = 1
-    c = ones((size,), float)
-    d = zeros((size,), float)
-    d[0] = coords[1] - coords[0]
-    d[1:-1] = 3 * (coords[2:] - coords[:-2])
-    d[-1] = 3 * (coords[-1] - coords[-2])
-    D = tridiagonal(a, b, c, d)
-    c_a = coords[:-1]
-    c_b = D[:-1]
-    delta = coords[1:] - coords[:-1]
-    c_c = 3 * delta - 2 * D[:-1] - D[1:]
-    c_d = 2 * -delta + D[:-1] + D[1:]
-    tcoeffs = array([c_a, c_b, c_c, c_d]).transpose()
-    coef = tcoeffs[1:-1]
+    a = empty((ne,), float)
+    b = empty((ne,), float)
+    c = empty((ne,), float)
+    d = empty((ne,), float)
+
+    coef = empty((len(coords)-1,3,4), float64)
+    for axis in range(3):
+        values = ce[:,axis]
+        # Cubic spline from http://mathworld.wolfram.com/CubicSpline.html
+        # Set b[0] and b[-1] to 1 to match TomG code in VolumePath
+        a[:] = 1
+        b[:] = 4
+        b[0] = b[-1] = 2
+        #b[0] = b[-1] = 1
+        c[:] = 1
+        d[:] = 0
+        d[0] = values[1] - values[0]
+        d[1:-1] = 3 * (values[2:] - values[:-2])
+        d[-1] = 3 * (values[-1] - values[-2])
+        D = tridiagonal(a, b, c, d)
+
+        delta = values[2:-1] - values[1:-2]
+        coef[:,axis,0] = values[1:-2]
+        coef[:,axis,1] = D[1:-2]
+        coef[:,axis,2] = 3 * delta - 2 * D[1:-2] - D[2:-1]
+        coef[:,axis,3] = 2 * -delta + D[1:-2] + D[2:-1]
+    
     return coef
 
 def tridiagonal(a, b, c, d):

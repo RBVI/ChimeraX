@@ -40,6 +40,8 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, cubic_path_doc},
   {const_cast<char*>("spline_path"), (PyCFunction)spline_path,
    METH_VARARGS|METH_KEYWORDS, spline_path_doc},
+  {const_cast<char*>("cubic_spline"), (PyCFunction)cubic_spline,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* xsection.h */
   {const_cast<char*>("rxsection_new"), (PyCFunction)rxsection_new,
