@@ -22,7 +22,7 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="Sybyl Mol2" synopsis="Mol2" category="Molecular structure"
+    <Provider name="Sybyl Mol2" synopsis="Mol2" nicknames="mol2" category="Molecular structure"
 		suffixes=".mol2" encoding="utf-8" />
   </Providers>
 

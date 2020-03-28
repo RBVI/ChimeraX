@@ -758,3 +758,17 @@ These are the possible `Provider`_ attributes:
         for the data, then mime_types lists Content-Type header values that the server
         or servers could possibly provide.  Only relevant to the user providing an URL, not
         to the "fetching" of database identifiers outlined in the `Fetching Data`_ section.
+
+For example::
+
+    <Providers manager="data formats">
+        <Provider name="Sybyl Mol2" suffixes=".mol2" nicknames="mol2"
+            category="Molecular structure" synopsis="Mol2" encoding="utf-8" />
+    </Providers>
+  
+Opening Files
+^^^^^^^^^^^^^
+
+For your bundle to open a file, it needs to provide information to the "open command" manager
+about what data format it can open, what arguments it needs, what function to call, *etc.*.
+
