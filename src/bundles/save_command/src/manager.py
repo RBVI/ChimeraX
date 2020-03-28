@@ -92,6 +92,9 @@ class SaveManager(ProviderManager):
 
     @property
     def save_data_formats(self):
+        """
+        The names of data formats for which an saver function has been registered.
+        """
         return list(self._savers.keys())
 
     def save_info(self, data_format):
