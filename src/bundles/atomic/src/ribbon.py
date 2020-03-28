@@ -12,10 +12,10 @@
 # === UCSF ChimeraX Copyright ===
 
 timing = False
-#timing = True
+timing = True
 if timing:
     from time import time
-    coeftime = atomntime = 0
+    coeftime = normaltime = 0
 
 EPSILON = 1e-6
 
@@ -41,7 +41,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
     if timing:
         poltime = time()-t0
 
-    rangestime = xstime = smootime = tubetime = spltime = normaltime = pathtime = geotime = drtime = tethertime = 0
+    rangestime = xstime = smootime = tubetime = pathtime = spltime = interptime = geotime = drtime = tethertime = 0
     global coeftime, atomntime
     coeftime = atomntime = 0
     for rlist, ptype in polymers:
@@ -129,17 +129,17 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         ribbon = Ribbon(coords, guides, orients, flip_normals, smooth_twist, segment_divisions,
                         structure.spline_normals)
         if timing:
-            normaltime += time()-t1
+            spltime += time()-t1
 
         if timing:
             t1 = time()
         path = ribbon.path()
         # _debug_show_normal_spline(ribbons_drawing, coords, ribbon, num_divisions)
         if timing:
-            pathtime += time()-t1
+            interptime += time()-t1
 
         if timing:
-            spltime += time() - t0
+            pathtime += time() - t0
             t0 = time()
             
         # Compute ribbon triangles
@@ -189,10 +189,10 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 #            _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2)
 
     if timing:
-        print('ribbon times %d polymers, %d residues, polymers %.4g, ranges %.4g, xsect %.4g, smooth %.4g, tube %.4g, spline %.4g (normals %.4g (coef %.4g, atom-normals %.4g), path %.4g) , triangles %.4g, makedrawing %.4g, tethers %.4g'
+        print('ribbon times %d polymers, %d residues, polymers %.4g, ranges %.4g, xsect %.4g, smooth %.4g, tube %.4g, path %.4g (spline %.4g (coef %.4g, normals %.4g), interpolate %.4g) , triangles %.4g, makedrawing %.4g, tethers %.4g'
               % (len(polymers), len(ribbons_drawing._residue_triangle_ranges),
                  poltime, rangestime, xstime, smootime, tubetime,
-                 spltime, normaltime, coeftime, atomntime, pathtime, geotime, drtime, tethertime))
+                 pathtime, spltime, coeftime, normaltime, interptime, geotime, drtime, tethertime))
 
 def _ribbon_flip_normals(structure, is_helix):
     nres = len(is_helix)
@@ -1140,6 +1140,9 @@ class Ribbon:
         if timing:
             global coeftime
             coeftime += time() - t0
+
+        if timing:
+            t0 = time()
         # Currently Structure::ribbon_orient() defines the orientation method as
         # ATOMS for helices, PEPTIDE for strands, and GUIDES for nucleic acids.
         atom_normals = None
@@ -1150,27 +1153,24 @@ class Ribbon:
         guide_normals = None
         guide_mask = ((orients == Structure.RIBBON_ORIENT_GUIDES) |
                        (orients == Structure.RIBBON_ORIENT_PEPTIDE))
+        tangents = self.get_tangents()
         if atom_mask.any():
-            if timing:
-                t0 = time()
-            tangents = self.get_tangents()
             atom_normals = _path_plane_normals(coords, tangents)
-            if timing:
-                global atomntime
-                atomntime += time() - t0
         if curvature_mask.any():
             curvature_normals = self._compute_normals_from_curvature(coords)
         if guide_mask.any():
             if guides is None or len(coords) != len(guides):
                 if atom_normals is None:
-                    tangents = self.get_tangents()
                     guide_normals = _path_plane_normals(coords, tangents)
                 else:
                     guide_normals = atom_normals
                 guide_flip = False
             else:
-                guide_normals = self._compute_normals_from_guides(coords, guides)
+                guide_normals = _compute_normals_from_guides(coords, guides, tangents)
                 guide_flip = True
+        if timing:
+            global normaltime
+            normaltime += time() - t0
 
         normals = None
         if atom_normals is not None:
@@ -1225,14 +1225,6 @@ class Ribbon:
             else:
                 fnormals = [True] * len(flip_normals)
             self._flip_normals = fnormals
-
-    def _compute_normals_from_guides(self, coords, guides):
-        t = self.get_tangents()
-        n = guides - coords
-        normals = zeros((len(coords), 3), float)
-        for i in range(len(coords)):
-            normals[i,:] = _orthogonal_component(n[i], t[i])
-        return normalize_vector_array(normals)
 
     def _compute_normals_from_curvature(self, coords):
         tangents = self.get_tangents()
@@ -1519,6 +1511,14 @@ def _next_nonzero_vector(start, normals):
         if not (normals[i,0] == 0 and normals[i,1] == 0 and normals[i,2] == 0):
             return i
     return len(normals)
+
+from ._ribbons import path_guide_normals as _compute_normals_from_guides
+def _compute_normals_from_guides_unused(coords, guides, tangents):
+    n = guides - coords
+    normals = zeros((len(coords), 3), float)
+    for i in range(len(coords)):
+        normals[i,:] = _orthogonal_component(n[i], tangents[i])
+    return normalize_vector_array(normals)
 
 def _orthogonal_component(v, ref):
     d = inner(v, ref)

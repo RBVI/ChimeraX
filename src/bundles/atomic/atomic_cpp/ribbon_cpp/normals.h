@@ -38,6 +38,9 @@ PyObject *dihedral_angle_py(PyObject *s, PyObject *args, PyObject *keywds);
 
 // path_plane_normals(path, tangents) -> normals
 PyObject *path_plane_normals(PyObject *s, PyObject *args, PyObject *keywds);  
+
+// path_guide_normals(path, guides, tangents) -> normals
+PyObject *path_guide_normals(PyObject *s, PyObject *args, PyObject *keywds);  
 }
 
 void smooth_twist(const float *tangents, int num_pts, float *normals, const float *n_end);

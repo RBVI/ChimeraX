@@ -30,6 +30,20 @@ inline float norm(const float* u)
     return sqrtf(inner(u,u));
 }
 
+inline void scale_vector(float *v, float s)
+{
+  v[0] *= s;
+  v[1] *= s;
+  v[2] *= s;
+}
+
+inline void normalize_vector(float* u)
+{
+  float d = norm(u);
+  if (d > 0)
+    scale_vector(u, 1/d);
+}
+
 inline float* cross(const float* u, const float* v, float* result)
 {
     result[0] = u[1]*v[2] - u[2]*v[1];
@@ -50,13 +64,6 @@ inline void zero_vector(float *v)
   v[0] = 0;
   v[1] = 0;
   v[2] = 0;
-}
-
-inline void scale_vector(float *v, float s)
-{
-  v[0] *= s;
-  v[1] *= s;
-  v[2] *= s;
 }
 
 inline void subtract_vectors(const float *u, const float *v, float *umv)
@@ -407,12 +414,59 @@ path_plane_normals(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_float_n3_array, &tangents))
     return NULL;
 
-  FArray pathc = path.contiguous_array();
-  FArray tang = tangents.contiguous_array();
+  if (!path.is_contiguous() || !tangents.is_contiguous())
+    {
+      PyErr_Format(PyExc_TypeError, "path_plane_normals(): Array arguments must be contiguous.");
+      return NULL;
+    }
   int num_pts = path.size(0);
   float *normals = NULL;
   PyObject *py_normals = python_float_array(num_pts, 3, &normals);
-  path_plane_normals(pathc.values(), num_pts, tang.values(), normals);
+  path_plane_normals(path.values(), num_pts, tangents.values(), normals);
+
+  return py_normals;
+}
+
+// ----------------------------------------------------------------------------
+//
+static void path_guide_normals(const float *coords, int num_pts,
+			       const float *guides, const float *tangents,
+			       float *normals)
+{
+  for (int i = 0 ; i < num_pts ; ++i)
+    {
+      const float *g = guides + 3*i, *c = coords + 3*i, *t = tangents + 3*i;
+      float *n = normals + 3*i;
+      subtract_vectors(g, c, n);
+      orthogonal_component(n, t, n);
+      normalize_vector(n);
+    }
+}
+
+// ----------------------------------------------------------------------------
+//
+extern "C" PyObject *
+path_guide_normals(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray path, guides, tangents;
+  const char *kwlist[] = {"path", "tangents", "guides", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &path,
+				   parse_float_n3_array, &guides,
+				   parse_float_n3_array, &tangents))
+    return NULL;
+
+  if (!path.is_contiguous() || !guides.is_contiguous() || !tangents.is_contiguous())
+    {
+      PyErr_Format(PyExc_TypeError, "path_guide_normals(): Array arguments must be contiguous.");
+      return NULL;
+    }
+
+  int num_pts = path.size(0);
+  float *normals = NULL;
+  PyObject *py_normals = python_float_array(num_pts, 3, &normals);
+  path_guide_normals(path.values(), num_pts, guides.values(), tangents.values(), normals);
 
   return py_normals;
 }
