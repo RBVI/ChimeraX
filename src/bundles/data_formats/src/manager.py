@@ -16,7 +16,10 @@ class NoFormatError(ValueError):
 
 from chimerax.core.toolshed import ProviderManager
 class FormatsManager(ProviderManager):
-    """Manager for data formats"""
+    """
+    Manager for data formats.
+        Manager can also be used as if it were a { format-name -> data format } dictionary.
+    """
 
     CAT_SCRIPT = "Command script"
     CAT_GENERAL = "General"
@@ -75,25 +78,42 @@ class FormatsManager(ProviderManager):
             allow_directory=allow_directory, raise_trigger=False)
 
     def open_format_from_suffix(self, suffix):
+        """
+        Given a file suffix (starting with a '.'), return the corresponding openable data format.
+            Returns None if there is no such format.
+        """
         from chimerax.open_command import NoOpenerError
         return self._format_from_suffix(self.session.open_command.open_info,
             NoOpenerError, suffix)
 
     def open_format_from_file_name(self, file_name):
+        """
+        Given a file name, return the corresponding openable data format.
+            Raises NoFormatError if there is no such format.
+        """
         "Return data format based on file_name's suffix, ignoring compression suffixes"
         return self._format_from_filename(self.open_format_from_suffix, file_name)
 
     def save_format_from_suffix(self, suffix):
+        """
+        Given a file suffix (starting with a '.'), return the corresponding savable data format.
+            Returns None if there is no such format.
+        """
         from chimerax.save_command import NoSaverError
         return self._format_from_suffix(self.session.save_command.save_info,
             NoSaverError, suffix)
 
     def save_format_from_file_name(self, file_name):
+        """
+        Given a file name, return the corresponding saveable data format.
+            Raises NoFormatError if there is no such format.
+        """
         "Return data format based on file_name's suffix, ignoring compression suffixes"
         return self._format_from_filename(self.save_format_from_suffix, file_name)
 
     @property
     def formats(self):
+        """ Returns a list of all known data formats """
         return [info[1] for info in self._formats.values()]
 
     def end_providers(self):
