@@ -680,6 +680,8 @@ and for attributes that can accept multiple values, those
 values are comma separated
 (*e.g.* ``suffixes=".bld,.bild"``).
 
+.. _data format:
+
 Defining a File/Data Format
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -694,6 +696,8 @@ method does not need to be customized for this manager.
 These are the possible `Provider`_ attributes:
 
 - **Mandatory** Attributes
+
+.. _name:
 
     *name*
         The full official name of the format, typically omitting the word "format"
@@ -712,6 +716,8 @@ These are the possible `Provider`_ attributes:
     *encoding*
         If the format is textual, the encoding for that text.  Binary formats should
         omit this attribute.  The most common encoding for text formats is "utf-8".
+
+.. _nicknames:
 
     *nicknames*
         A short, easy-to-type name for the format, typically used in conjunction with
@@ -771,4 +777,19 @@ Opening Files
 
 For your bundle to open a file, it needs to provide information to the "open command" manager
 about what data format it can open, what arguments it needs, what function to call, *etc.*.
+Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
+provided when the open-command manager calls your bundle's ``BundleAPI.run_provider`` method.
+That call will only occur when ChimeraX tries to open the kind of data that your `Provider`_
+tag says you can open.
+
+To specify that your bundle can open a data format, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` attribute in the tag or section should be "open command".
+The other possible `Provider`_ attributes are:
+
+- **Mandatory** Attributes
+
+    *name*
+        The `name`_ of the `data format`_ you can open.  Can also be one of the format's
+        `nicknames`_ instead.
 
