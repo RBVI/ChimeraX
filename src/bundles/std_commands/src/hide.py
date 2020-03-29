@@ -36,7 +36,7 @@ def hide(session, objects=None, what=None, target=None):
         atoms = objects.atoms
         undo_state.add(atoms, "displays", atoms.displays, False)
         atoms.displays = False
-        atoms.update_ribbon_visibility()
+        atoms.update_ribbon_backbone_atom_visibility()
     if 'bonds' in what_to_hide:
         bonds = objects.bonds
         undo_state.add(bonds, "displays", bonds.displays, False)

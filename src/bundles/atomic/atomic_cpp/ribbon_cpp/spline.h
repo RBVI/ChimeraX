@@ -29,6 +29,8 @@ extern "C"
   extern const char *spline_path_doc;
 
   PyObject *cubic_spline(PyObject *s, PyObject *args, PyObject *keywds);
+
+  PyObject *atom_spline_positions(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 #endif

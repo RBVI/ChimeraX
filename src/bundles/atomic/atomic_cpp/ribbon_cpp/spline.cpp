@@ -17,10 +17,20 @@
 #define _USE_MATH_DEFINES
 #include <cmath>			// use std:isnan()
 #include <iostream>
+#include <map>				// use std::map
+#include <vector>			// use std::vector
 
 #include <Python.h>			// use PyObject
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
+
 #include <arrays/pythonarray.h>		// use python_float_array
+#include <atomstruct/Atom.h>		// use Atom
+using atomstruct::Atom;
+#include <atomstruct/Residue.h>		// use Residue
+using atomstruct::Residue;
+
 #include "normals.h"			// use parallel_transport_normals, dihedral_angle
 
 // -----------------------------------------------------------------------------
@@ -356,4 +366,194 @@ PyObject *cubic_spline(PyObject *, PyObject *args, PyObject *keywds)
   cubic_spline(xyz.values(), n, coefficients);
 
   return coef;
+}
+
+// -----------------------------------------------------------------------------
+//
+class Residues
+{
+public:
+  int count;
+  Residue **pointers;
+};
+
+// -----------------------------------------------------------------------------
+//
+static void atom_spline_positions(const Residues &residues,
+				  const std::map<std::string, float> &atom_offset_map,
+				  std::vector<Atom *> &atoms, std::vector<float> &offsets)
+{
+  int nr = residues.count;
+  for (int ri = 0 ; ri < nr ; ++ri)
+    {
+      /*
+      Residue *r = residues.pointers[ri];
+      for (auto a = atom_offset_map.begin() ; a != atom_offset_map.end() ; ++a)
+	{
+	  Atom *atom = r->find_atom(a->first.c_str());
+	  if (atom)
+	    {
+	      atoms.push_back(atom);
+	      offsets.push_back(ri + a->second);
+	    }
+	}
+      */
+
+      const Residue::Atoms &ratoms = residues.pointers[ri]->atoms();
+      for (auto a = ratoms.begin() ; a != ratoms.end() ; ++a)
+	{
+	  Atom *atom = *a;
+	  if (atom->is_backbone(atomstruct::BackboneExtent::BBE_RIBBON))
+	    {
+	      auto ai = atom_offset_map.find(atom->name().c_str());
+	      if (ai != atom_offset_map.end())
+		{
+		  atoms.push_back(atom);
+		  offsets.push_back(ri + ai->second);
+		}
+	    }
+	}
+    }
+}
+
+// -----------------------------------------------------------------------------
+//
+static void spline_positions(const std::vector<float> &offsets,
+			     const double *coef, int num_pts,
+			     double *positions)
+{
+  int n = offsets.size();
+  for (int i = 0 ; i < n ; ++i)
+    {
+      float offset = offsets[i];
+      int seg = int(offset);
+      float t = offset - seg;
+      if (seg < 0)
+	{
+	  t += seg;
+	  seg = 0;
+	}
+      else if (seg > num_pts-1)
+	{
+	  t += seg - (num_pts-1);
+	  seg = num_pts-1;
+	}
+      const double *c = coef + 12*seg;
+      double x = c[0] + t*(c[1] + t*(c[2] + t*c[3]));
+      double y = c[4] + t*(c[5] + t*(c[6] + t*c[7]));
+      double z = c[8] + t*(c[9] + t*(c[10] + t*c[11]));
+      positions[3*i] = x;
+      positions[3*i+1] = y;
+      positions[3*i+2] = z;
+    }
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C" int parse_residues(PyObject *arg, void *res)
+{
+  import_array(); // Initialize numpy.
+    
+  if (!PyArray_Check(arg))
+    {
+      PyErr_SetString(PyExc_TypeError, "residues argument is not a numpy array");
+      return 0;
+    }
+
+  PyArrayObject *a = static_cast<PyArrayObject *>(static_cast<void *>(arg));
+  if (PyArray_TYPE(a) != NPY_UINTP)
+    {
+      PyErr_SetString(PyExc_TypeError, "residues argument numpy array is not of type uintp");
+      return 0;
+    }
+
+  if (PyArray_NDIM(a) != 1)
+    {
+      PyErr_SetString(PyExc_TypeError, "residues argument numpy array is not 1 dimensional");
+      return 0;
+    }
+
+  // Check if array is contiguous.
+  if (PyArray_STRIDE(a,0) != static_cast<int>(sizeof(void *)))
+    {
+      PyErr_SetString(PyExc_TypeError, "residues argument numpy array is not contiguous");
+      return 0;
+    }
+
+  Residues *r = static_cast<Residues *>(res);
+  r->count = PyArray_DIM(a,0);
+  r->pointers = static_cast<Residue **>(PyArray_DATA(a));
+
+  return 1;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C" int parse_string_float_map(PyObject *arg, void *sf)
+{
+  if (!PyDict_Check(arg))
+    {
+      PyErr_SetString(PyExc_TypeError, "argument is not a dictionary");
+      return 0;
+    }
+
+  std::map<std::string, float> *sfmap = static_cast<std::map<std::string, float> *>(sf);
+  Py_ssize_t index = 0;
+  PyObject *key;
+  PyObject *value;
+  while (PyDict_Next(arg, &index, &key, &value))
+    {
+      if (!PyUnicode_Check(key))
+	{
+	  PyErr_SetString(PyExc_TypeError, "dictionary argument key is not a string");
+	  return 0;
+	}
+      if (!PyFloat_Check(value))
+	{
+	  PyErr_SetString(PyExc_TypeError, "dictionary argument value is not a float");
+	  return 0;
+	}
+      (*sfmap)[PyUnicode_AsUTF8AndSize(key,NULL)] = PyFloat_AsDouble(value);
+    }
+  return 1;
+}
+
+// -----------------------------------------------------------------------------
+//
+static PyObject *python_atom_pointers(const std::vector<Atom *> &atoms)
+{
+  void **data;
+  size_t n = atoms.size();
+  PyObject *a = python_voidp_array(n, &data);
+  for (size_t i = 0 ; i < n ; ++i)
+    data[i] = atoms[i];
+  return a;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *atom_spline_positions(PyObject *, PyObject *args, PyObject *keywds)
+{
+  Residues residues;
+  std::map<std::string, float> atom_offsets;
+  DArray coef;
+  const char *kwlist[] = {"residues", "atom_offsets", "spline_coef", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
+				   (char **)kwlist,
+				   parse_residues, &residues,
+				   parse_string_float_map, &atom_offsets,
+				   parse_contiguous_double_n34_array, &coef))
+    return NULL;
+
+
+  std::vector<Atom *> atoms;
+  std::vector<float> offsets;
+  atom_spline_positions(residues, atom_offsets,	atoms, offsets);
+  double *positions;
+  PyObject *xyz = python_double_array(offsets.size(), 3, &positions);
+  spline_positions(offsets,  coef.values(), coef.size(0), positions);
+  
+  return python_tuple(python_atom_pointers(atoms), xyz);
 }

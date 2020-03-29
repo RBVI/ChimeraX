@@ -452,7 +452,24 @@ cdef class CyAtom:
 
     @property
     def ribbon_coord(self):
-        return self.structure.ribbon_coord(self)
+        "Atom ribbon coordinate in the structure coordinate system"
+        " for displaying pseudobonds or tethers to the ribbon when"
+        " the atom is hidden.  Value is None for non-backbone atoms."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        crd = self.cpp_atom.ribbon_coord()
+        if crd:
+            c = dereference(crd)
+            return array((c[0], c[1], c[2]))
+        return None
+
+    @ribbon_coord.setter
+    def ribbon_coord(self, xyz):
+        "Set the ribbon coordinate.  Can be None."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if xyz:
+            self.cpp_atom.set_ribbon_coord(cydecl.cycoord.Point(xyz[0], xyz[1], xyz[2]))
+        else:
+            self.cpp_atom.clear_ribbon_coord()
 
     @property
     def scene_coord(self):

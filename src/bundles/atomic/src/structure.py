@@ -566,12 +566,6 @@ class Structure(Model, StructureData):
         if changes & self._COLOR_CHANGE and not (changes & self._RIBBON_CHANGE):
             rd.update_ribbon_colors(self)
 
-    def ribbon_coord(self, a):
-        rd = self._ribbons_drawing
-        if rd is None:
-            raise KeyError(str(a))
-        return rd.ribbon_spline_position(a)
-
     def _update_ribbon_tethers(self):
         rd = self._ribbons_drawing
         if rd:

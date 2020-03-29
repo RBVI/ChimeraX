@@ -58,7 +58,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
         # Always update all atom visibility so that undisplaying ribbon
         # will bring back previously hidden backbone atoms
-        residues.atoms.update_ribbon_visibility()
+        residues.atoms.update_ribbon_backbone_atom_visibility()
 
         if len(atoms) < 2:
             continue
@@ -172,13 +172,13 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Cache position of backbone atoms on ribbon.
         # Get list of tethered atoms, and create tether cone drawing.
         min_tether_offset = structure.bond_radius
-        tether_atoms, tether_positions, tethers_drawing = \
+        tethers_drawing, backbone_atoms = \
             _ribbon_tethers(ribbon, residues, ribbons_drawing,
                             min_tether_offset,
                             structure.ribbon_tether_scale,
                             structure.ribbon_tether_sides,
                             structure.ribbon_tether_shape)
-        ribbons_drawing.add_tethers(tether_atoms, tether_positions, tethers_drawing)
+        ribbons_drawing.add_tethers(tethers_drawing, backbone_atoms)
 
         if timing:
             tethertime += time()-t0
@@ -544,16 +544,14 @@ class RibbonsDrawing(Drawing):
     def __init__(self, name, structure_name):
         Drawing.__init__(self, name)
         self.structure_name = structure_name
-        self._residue_triangle_ranges = {}       # map residue to list of RibbonTriangleRanges
-        self._atom_tether_base = {}             # Map atom to tether position on ribbon
-        self._tether_atoms = []                 # List of collections of all backbone atoms
+        self._residue_triangle_ranges = {}      # Map residue to list of RibbonTriangleRanges
+        self._backbone_atoms = []               # List of Atoms for updating hidden state
         self._tether_drawings = []		# List of TethersDrawing
 
     def clear(self):
         self.remove_all_drawings()
         self._residue_triangle_ranges.clear()
-        self._tether_atoms.clear()
-        self._atom_tether_base.clear()
+        self._backbone_atoms.clear()
         self._tether_drawings.clear()
 
     def compute_ribbons(self, structure):
@@ -640,21 +638,17 @@ class RibbonsDrawing(Drawing):
                 rtr[r] = [tr]
             tr.drawing = ribbon_drawing
 
-    def ribbon_spline_position(self, atom):
-        return self._atom_tether_base[atom]
-    
-    def add_tethers(self, tether_atoms, tether_positions, tether_drawing):
-        self._tether_atoms.append(tether_atoms)
-        self._atom_tether_base.update(tether_positions)
+    def add_tethers(self, tether_drawing, backbone_atoms):
         if tether_drawing is not None:
             self._tether_drawings.append(tether_drawing)
+        self._backbone_atoms.append(backbone_atoms)
         
     def update_tethers(self, structure):
         if timing:
             t0 = time()
 
-        for ta in self._tether_atoms:
-            ta.update_ribbon_visibility()
+        for ba in self._backbone_atoms:
+            ba.update_ribbon_backbone_atom_visibility()
 
         for td in self._tether_drawings:
             td.update_tethers(structure)
@@ -760,32 +754,66 @@ def _ribbon_update_spine(c, centers, normals, spine):
 
 def _ribbon_tethers(ribbon, residues, drawing,
                     min_tether_offset, tether_scale, tether_sides, tether_shape):
-    # Cache position of backbone atoms on ribbon
-    # and get list of tethered atoms
-    spositions = {}
-    positions = _ribbon_spline_position(ribbon, residues, _NonTetherPositions)
-    spositions.update(positions)
-    positions = _ribbon_spline_position(ribbon, residues, _TetherPositions)
-    from .molarray import Atoms
-    tether_atoms = Atoms(tuple(positions.keys()))
-    spline_coords = array(tuple(positions.values()))
-    spositions.update(positions)
-    if len(spline_coords) == 0:
-        spline_coords = spline_coords.reshape((0,3))
-    atom_coords = tether_atoms.coords
-    offsets = atom_coords - spline_coords
-    tethered = norm(offsets, axis=1) > min_tether_offset
 
-    # Create tethers if necessary
-    if tether_scale > 0 and any(tethered):
-        name = drawing.structure_name + " ribbon tethers"
-        tdrawing = TethersDrawing(name, tether_atoms.filter(tethered), spline_coords[tethered],
-                                  tether_shape, tether_scale, tether_sides)
-        drawing.add_drawing(tdrawing)
-    else:
-        tdrawing = None
+    # Find position of backbone atoms on ribbon for drawing tethers
+    # TODO: Move _TetherPositions to C++ since parsing it in C++ for every chain
+    #   probably takes half the time to compute spline positions.
+    coef = ribbon.segment_coefficients
+    nt_atoms, nt_positions = _atom_spline_positions(residues, _NonTetherPositions, coef)
+    nt_atoms.ribbon_coords = nt_positions
+    t_atoms, t_positions = _atom_spline_positions(residues, _TetherPositions, coef)
+    t_atoms.ribbon_coords = t_positions
+    
+    # Create tether drawing
+    tether_drawing = None
+    if tether_scale > 0:
+        offsets = t_atoms.coords - t_positions
+        tethered = norm(offsets, axis=1) > min_tether_offset
+        if any(tethered):
+            name = drawing.structure_name + " ribbon tethers"
+            tethered_atoms = t_atoms.filter(tethered)
+            tethered_positions = t_positions[tethered]
+            tether_drawing = TethersDrawing(name, tethered_atoms, tethered_positions,
+                                            tether_shape, tether_scale, tether_sides)
+            drawing.add_drawing(tether_drawing)
 
-    return tether_atoms, spositions, tdrawing
+    return tether_drawing, t_atoms
+
+def _atom_spline_positions(residues, atom_offset_map, spline_coef):
+    from ._ribbons import atom_spline_positions
+    atom_pointers, positions = atom_spline_positions(residues.pointers, atom_offset_map, spline_coef)
+    from . import Atoms
+    atoms = Atoms(atom_pointers)
+    return atoms, positions
+
+def _atom_spline_positions_unused(residues, atom_offset_map, spline_coef):
+    alist = []
+    tlist = []
+    for ri, r in enumerate(residues):
+        for atom_name, offset in atom_offset_map.items():
+            a = r.find_atom(atom_name)
+            if a is not None and a.is_backbone():
+                alist.append(a)
+                tlist.append(ri + offset)
+    positions = _spline_positions(tlist, spline_coef)
+    from . import Atoms
+    atoms = Atoms(alist)
+    return atoms, positions
+
+def _spline_positions(tlist, coef):
+    xyz = empty((len(tlist),3), float64)
+    n = len(coef)
+    for i,s in enumerate(tlist):
+        seg = int(s)
+        t = s-seg
+        if seg < 0:
+            t += seg
+            seg = 0
+        elif seg > n-1:
+            t += seg - (n-1)
+            seg = n-1
+        xyz[i,:] = dot(coef[seg], (1.0, t, t*t, t*t*t))
+    return xyz
 
 # Position of atoms on ribbon in spline parameter units.
 # These should correspond to the "minimum" backbone atoms
@@ -826,24 +854,6 @@ _NonTetherPositions = {
     "C1'":  1.5/6.,
     "O3'":  2/6.,
 }
-
-def _ribbon_spline_position(ribbon, residues, pos_map):
-    positions = {}
-    for n, r in enumerate(residues):
-        first = (r == residues[0])
-        last = (r == residues[-1])
-        for atom_name, position in pos_map.items():
-            a = r.find_atom(atom_name)
-            if a is None or not a.is_backbone():
-                continue
-            if last:
-                p = ribbon.position(n - 1, 1 + position)
-            elif position >= 0 or first:
-                p = ribbon.position(n, position)
-            else:
-                p = ribbon.position(n - 1, 1 + position)
-            positions[a] = p
-    return positions
 
 def _debug_show_normal_spline(ribbons_drawing, coords, ribbon):
     # Normal spline can be shown as spheres on either side (S)
@@ -1298,8 +1308,9 @@ class Ribbon:
                 normals[j] = last_normal
         return normals
 
-    def _segment_coefficients(self, seg):
-        return self._coeff[seg]
+    @property
+    def segment_coefficients(self):
+        return self._coeff
 
     def _flip_path_normals(self, coords):
         from numpy import sqrt
@@ -1363,6 +1374,12 @@ class Ribbon:
         # Compute coordinates for segment seg with parameter t
         return dot(self._coeff[seg], (1.0, t, t*t, t*t*t))
 
+    def positions(self, tlist):
+        # Compute coordinates on path for position t.
+        # The integer part indicates the segment number,
+        # and fractional part the position in the segment.
+        return _spline_positions(tlist, self.coeff)
+    
 from ._ribbons import cubic_spline as _natural_cubic_spline_coefficients
 def _natural_cubic_spline_coefficients_unused(coords):
     # Extend ends

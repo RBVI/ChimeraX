@@ -88,7 +88,7 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
         structures = residues.unique_structures
         undo_state.add(structures, "ribbon_show_spines", structures.ribbon_show_spines, spine)
         structures.ribbon_show_spines = spine
-    residues.atoms.update_ribbon_visibility()
+    residues.atoms.update_ribbon_backbone_atom_visibility()
     session.undo.register(undo_state)
 
 
