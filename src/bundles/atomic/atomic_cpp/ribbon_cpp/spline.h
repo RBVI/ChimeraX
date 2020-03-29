@@ -31,6 +31,8 @@ extern "C"
   PyObject *cubic_spline(PyObject *s, PyObject *args, PyObject *keywds);
 
   PyObject *atom_spline_positions(PyObject *s, PyObject *args, PyObject *keywds);
+
+  PyObject *atom_tether_positions(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 #endif

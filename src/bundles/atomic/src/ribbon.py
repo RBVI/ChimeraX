@@ -756,13 +756,7 @@ def _ribbon_tethers(ribbon, residues, drawing,
                     min_tether_offset, tether_scale, tether_sides, tether_shape):
 
     # Find position of backbone atoms on ribbon for drawing tethers
-    # TODO: Move _TetherPositions to C++ since parsing it in C++ for every chain
-    #   probably takes half the time to compute spline positions.
-    coef = ribbon.segment_coefficients
-    nt_atoms, nt_positions = _atom_spline_positions(residues, _NonTetherPositions, coef)
-    nt_atoms.ribbon_coords = nt_positions
-    t_atoms, t_positions = _atom_spline_positions(residues, _TetherPositions, coef)
-    t_atoms.ribbon_coords = t_positions
+    t_atoms, t_positions = _tether_positions(residues, ribbon.segment_coefficients)
     
     # Create tether drawing
     tether_drawing = None
@@ -778,6 +772,20 @@ def _ribbon_tethers(ribbon, residues, drawing,
             drawing.add_drawing(tether_drawing)
 
     return tether_drawing, t_atoms
+
+def _tether_positions(residues, coef):
+    from ._ribbons import atom_tether_positions
+    atom_pointers, positions = atom_tether_positions(residues.pointers, coef)
+    from . import Atoms
+    atoms = Atoms(atom_pointers)
+    return atoms, positions
+
+def _tether_positions_unused(residues, coef):
+    nt_atoms, nt_positions = _atom_spline_positions(residues, _NonTetherPositions, coef)
+    nt_atoms.ribbon_coords = nt_positions
+    t_atoms, t_positions = _atom_spline_positions(residues, _TetherPositions, coef)
+    t_atoms.ribbon_coords = t_positions
+    return t_atoms, t_positions
 
 def _atom_spline_positions(residues, atom_offset_map, spline_coef):
     from ._ribbons import atom_spline_positions
