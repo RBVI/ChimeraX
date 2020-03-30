@@ -83,7 +83,7 @@ molc.$(OBJ_EXT): include/atomstruct/Atom.h include/atomstruct/AtomicStructure.h 
 	include/atomstruct/ChangeTracker.h include/atomstruct/destruct.h \
 	include/atomstruct/PBGroup.h include/atomstruct/PBManager.h \
 	include/atomstruct/Pseudobond.h include/atomstruct/Residue.h \
-	include/atomstruct/RibbonXSection.h include/atomstruct/Sequence.h \
+	include/atomstruct/Sequence.h \
 	include/element/Element.h include/pyinstance/PythonInstance.declare.h \
 	include/pyinstance/PythonInstance.instantiate.h
 
@@ -97,7 +97,6 @@ include/atomstruct/PBGroup.h: atomstruct_cpp.install
 include/atomstruct/PBManager.h: atomstruct_cpp.install
 include/atomstruct/Pseudobond.h: atomstruct_cpp.install
 include/atomstruct/Residue.h: atomstruct_cpp.install
-include/atomstruct/RibbonXSection.h: atomstruct_cpp.install
 include/atomstruct/Sequence.h: atomstruct_cpp.install
 include/element/Element.h: element_cpp.install
 include/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install

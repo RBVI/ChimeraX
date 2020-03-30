@@ -97,8 +97,6 @@ static struct PyMethodDef geometry_cpp_methods[] =
   /* spline.h */
   {const_cast<char*>("natural_cubic_spline"), (PyCFunction)natural_cubic_spline,
    METH_VARARGS|METH_KEYWORDS, natural_cubic_spline_doc},
-  {const_cast<char*>("cubic_path"), (PyCFunction)cubic_path,
-   METH_VARARGS|METH_KEYWORDS, cubic_path_doc},
 
   /* transform.h */
   {const_cast<char*>("scale_and_shift_vertices"), scale_and_shift_vertices, METH_VARARGS, NULL},

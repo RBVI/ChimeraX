@@ -139,7 +139,7 @@ class SideViewCanvas(QWindow):
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
-        mvwin = self.view.render.use_shared_context(self, width, height)
+        mvwin = self.view.render.use_shared_context(self)
         try:
             # TODO: This stuff should be in graphics/opengl.py
             # from OpenGL.GL.GREMEDY import string_marker
@@ -279,7 +279,7 @@ class SideViewCanvas(QWindow):
             #     string_marker.glStringMarkerGREMEDY(len(text), text)
         finally:
             # Target opengl context back to main graphics window.
-            self.main_view.render.use_shared_context(mvwin, ww, wh)
+            self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
 
     def mousePressEvent(self, event):  # noqa

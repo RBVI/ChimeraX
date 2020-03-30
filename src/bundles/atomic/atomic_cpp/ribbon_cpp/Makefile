@@ -17,10 +17,11 @@ APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/atomic
 INSTALL_MOD = ../../src
 
 PYMOD_NAME = _ribbons
-SRCS	= normals.cpp ribbons.cpp
+SRCS	= normals.cpp ribbons.cpp spline.cpp xsection.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS	+= $(PYDEF)
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+#OPT = -g -Wall -Wextra
 
 ifdef WIN32
 LIBS	+= libarrays.lib $(PYTHON_LIB)
@@ -46,3 +47,8 @@ clean:
 ifdef WIN32
 	rm -f $(PYMOD_NAME).{lib,exp,pdb} vc*.pdb
 endif
+
+ribbon.o: normals.h spline.h xsection.h
+normals.o: normals.h
+spline.o: spline.h normals.h
+xsection.o: xsection.h

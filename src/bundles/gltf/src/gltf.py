@@ -215,15 +215,25 @@ def buffer_arrays(accessors, buffer_views, binc):
     balist = []
     from numpy import float32, uint32, uint16, int16, uint8, frombuffer
     value_type = {5126:float32, 5125:uint32, 5123:uint16, 5122:int16, 5121:uint8}
+    atype_size = {'VEC3':3, 'VEC4':4, 'SCALAR':1}
     for a in accessors:
         ibv = a['bufferView']	# index into buffer_views
         bv = buffer_views[ibv]
         bo = bv['byteOffset']	# int
         bl = bv['byteLength']	# int
+        bv = binc[bo:bo+bl]
         ct = a['componentType']	# 5123 = uint16, 5126 = float32, 5120 = uint8
         dtype = value_type[ct]
-        ba = frombuffer(binc[bo:bo+bl], dtype)
         atype = a['type']		# "VEC3", "SCALAR"
+        av = bv
+        if 'byteOffset' in a:
+            ao = a['byteOffset']
+            av = av[ao:]
+        if 'count' in a:
+            ac = a['count']
+            nb = ac*dtype().itemsize*atype_size[atype]
+            av = av[:nb]
+        ba = frombuffer(av, dtype)
         if atype == 'VEC3':
             ba = ba.reshape((len(ba)//3, 3))
         elif atype == 'VEC4':
