@@ -20,8 +20,8 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.92"/>
-    <Dependency name="ChimeraX-Geometry" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=0.92"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

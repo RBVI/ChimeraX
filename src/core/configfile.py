@@ -257,13 +257,11 @@ class ConfigFile:
 
     def __init__(self, session, tool_name, version="1"):
         import configparser
-        from distlib.version import Version, NormalizedVersion
+        from packaging.version import Version
         import os
-        if isinstance(version, Version):
-            epoch, ver, *_ = version.parse(str(version))
-        else:
-            epoch, ver, *_ = NormalizedVersion("1").parse(version)
-        major_version = ver[0]
+        if not isinstance(version, Version):
+            version = Version(version)
+        major_version = version.major
         self._session = session
         self._on_disk = False
         # affirm that properties don't conflict with methods
@@ -278,7 +276,8 @@ class ConfigFile:
         # don't want all tools forgetting their settings when core version number changes,
         # so use unversioned appdirs
         from chimerax import app_dirs_unversioned
-        self._filename = os.path.join(app_dirs_unversioned.user_config_dir,
+        self._filename = os.path.join(
+            app_dirs_unversioned.user_config_dir,
             '%s-%s' % (tool_name, major_version) if version else tool_name)
         self._config = configparser.ConfigParser(
             comment_prefixes=(),
@@ -489,6 +488,7 @@ class Value:
         if new_value != value:
             raise ValueError('value changed while saving it')
         return str_value
+
 
 if __name__ == '__main__':
     # simple test
