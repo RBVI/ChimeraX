@@ -392,7 +392,7 @@ def _smooth_twist(rc0, rc1):
 # TODO: This routine is taking half the ribbon compute time.  Probably a
 #  big contributor is that 17 numpy arrays are being made per residue.
 #  Might want to put TriangleAccumulator into C++ to get rid of half of those
-#  and have extrude() and blend() put results directly into it.
+#  and have extrude() put results directly into it.
 #  Maybe Ribbon spline coords, tangents, normals could use recycled numpy arrays.
 def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):
 
@@ -2055,8 +2055,7 @@ class XSectionManager(State):
 # -----------------------------------------------------------------------------
 #
 from collections import namedtuple
-ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals",
-                                           "triangles", "front_band", "back_band"])
+ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals", "triangles"])
 
 # Cross section coordinates are 2D and counterclockwise
 # Use C++ version of RibbonXSection instead of Python version
@@ -2084,12 +2083,6 @@ class RibbonXSection:
                               cap_front, cap_back, vertex_offset)
         if t is not None:
             t = ExtrudeValue(*t)
-        return t
-
-    def blend(self, back_band, front_band):
-        '''Return the triangles blending front and back halves of ribbon.'''
-        from ._ribbons import rxsection_blend
-        t = rxsection_blend(self._xs_pointer, back_band, front_band)
         return t
 
     def scale(self, scale):

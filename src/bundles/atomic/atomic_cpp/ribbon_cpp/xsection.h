@@ -45,13 +45,6 @@ PyObject *rxsection_delete(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *rxsection_extrude(PyObject *s, PyObject *args, PyObject *keywds);
 
 //
-// Stitch together two extrusions with a band of triangles.
-//  
-// rxsection_blend(xs, front_band, back_band) -> triangles
-//
-PyObject *rxsection_blend(PyObject *s, PyObject *args, PyObject *keywds);
-
-//
 // Make a scaled cross-section.
 //  
 // rxsection_scale(xs, x_scale, y_scale) -> RibbonsXSection pointer

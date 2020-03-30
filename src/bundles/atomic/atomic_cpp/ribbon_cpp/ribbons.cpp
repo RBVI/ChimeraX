@@ -54,8 +54,6 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("rxsection_extrude"), (PyCFunction)rxsection_extrude,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("rxsection_blend"), (PyCFunction)rxsection_blend,
-   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("rxsection_scale"), (PyCFunction)rxsection_scale,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("rxsection_arrow"), (PyCFunction)rxsection_arrow,

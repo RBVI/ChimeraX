@@ -32,10 +32,6 @@ private:
     PyObject* _extrude_faceted(const FArray& centers, const FArray& tangents,
                                const FArray& normals,
                                bool cap_front, bool cap_back, int offset) const;
-    PyObject* _blend_smooth(const IArray& back_band,
-                            const IArray& front_band) const;
-    PyObject* _blend_faceted(const IArray& back_band,
-                             const IArray& front_band) const;
     void _normalize_normals(FArray& v) const;
     void _tessellate();
 
@@ -59,7 +55,6 @@ public:
     PyObject* extrude(const FArray& centers, const FArray& tangents,
                       const FArray& normals,
                       bool cap_front, bool cap_back, int offset) const;
-    PyObject* blend(const IArray& back_band, const IArray& front_band) const;
     RibbonXSection* scale(float x_scale, float y_scale) const;
     RibbonXSection* arrow(float x1_scale, float y1_scale, float x2_scale, float y2_scale) const;
 };
@@ -172,15 +167,6 @@ RibbonXSection::extrude(const FArray& centers, const FArray& tangents,
     else
         return _extrude_smooth(centers, tangents, normals,
                                cap_front, cap_back, offset);
-}
-
-PyObject*
-RibbonXSection::blend(const IArray& back_band, const IArray& front_band) const
-{
-    if (is_faceted)
-        return _blend_faceted(back_band, front_band);
-    else
-        return _blend_smooth(back_band, front_band);
 }
 
 RibbonXSection*
@@ -338,15 +324,12 @@ RibbonXSection::_generate_normals()
 }
 
 static PyObject*
-extrude_values(PyObject* vertices, PyObject* normals, PyObject* triangles,
-               PyObject* front_band, PyObject* back_band)
+extrude_values(PyObject* vertices, PyObject* normals, PyObject* triangles)
 {
-    PyObject* answer = PyTuple_New(5);
+    PyObject* answer = PyTuple_New(3);
     PyTuple_SetItem(answer, 0, vertices);
     PyTuple_SetItem(answer, 1, normals);
     PyTuple_SetItem(answer, 2, triangles);
-    PyTuple_SetItem(answer, 3, front_band);
-    PyTuple_SetItem(answer, 4, back_band);
     return answer;
 }
 
@@ -457,19 +440,10 @@ RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
     PyObject* ta = python_int_array(num_triangles, 3, &ta_data);
     if (!ta)
         return NULL;
-    // Allocate space for front and back bands
-    int *front_band_data;
-    int *back_band_data;
-    PyObject* front_band = python_int_array(num_splines, &front_band_data);
-    PyObject* back_band = python_int_array(num_splines, &back_band_data);
-    if (!front_band || !back_band)
-        return NULL;
     int tindex = 0;
     // Create triangles
     for (int s = 0; s != num_splines; ++s) {
         int i_start = s * num_pts_per_spline + offset;
-        front_band_data[s] = i_start;
-        back_band_data[s] = i_start + num_pts_per_spline - 1;
         int j = (s + 1) % num_splines;
         int j_start = j * num_pts_per_spline + offset;
         for (int k = 0; k != num_pts_per_spline - 1; ++k) {
@@ -534,7 +508,7 @@ RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
         offset += num_splines;
         vindex += num_splines;
     }
-    return extrude_values(va, na, ta, front_band, back_band);
+    return extrude_values(va, na, ta);
 }
 
 PyObject*
@@ -647,21 +621,10 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
     PyObject* ta = python_int_array(num_triangles, 3, &ta_data);
     if (!ta)
         return NULL;
-    // Allocate space for front and back bands
-    int *front_band_data;
-    int *back_band_data;
-    PyObject* front_band = python_int_array(num_splines * 2, &front_band_data);
-    PyObject* back_band = python_int_array(num_splines * 2, &back_band_data);
-    if (!front_band || !back_band)
-        return NULL;
     int tindex = 0;
     // Create triangles
     for (int s = 0; s != num_splines; ++s) {
         int i_start = (s * 2) * num_pts_per_spline + offset;
-        front_band_data[s * 2] = i_start;
-        front_band_data[s * 2 + 1] = i_start + num_pts_per_spline;
-        back_band_data[s * 2] = i_start + num_pts_per_spline - 1;
-        back_band_data[s * 2 + 1] = i_start + 2 * num_pts_per_spline - 1;
         int j = (s + 1) % num_splines;
         int j_start = (j * 2 + 1) * num_pts_per_spline + offset;
         for (int k = 0; k != num_pts_per_spline - 1; ++k) {
@@ -726,63 +689,7 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
         offset += num_splines;
         vindex += num_splines;
     }
-    return extrude_values(va, na, ta, front_band, back_band);
-}
-
-PyObject*
-RibbonXSection::_blend_smooth(const IArray& back_band,
-                              const IArray& front_band) const
-{
-    int size = back_band.size();
-    if (front_band.size() != size)
-        throw std::logic_error("blending non-identical cross sections");
-    int *ta_data = NULL;
-    PyObject* ta = python_int_array(size * 2, 3, &ta_data);
-    if (!ta)
-        return NULL;
-    int *back = back_band.values();
-    int *front = front_band.values();
-    for (int i = 0; i != size; ++i) {
-        int j = (i + 1) % size;
-        int *t = ta_data + (i * 2) * 3;
-        t[0] = back[i];
-        t[1] = back[j];
-        t[2] = front[i];
-        t += 3;
-        t[0] = front[i];
-        t[1] = back[j];
-        t[2] = front[j];
-    }
-    return ta;
-}
-
-PyObject*
-RibbonXSection::_blend_faceted(const IArray& back_band,
-                               const IArray& front_band) const
-{
-    int size = back_band.size();
-    if (front_band.size() != size)
-        throw std::logic_error("blending non-identical cross sections");
-    int num_vertices = size / 2;
-    int *ta_data = NULL;
-    PyObject* ta = python_int_array(num_vertices * 2, 3, &ta_data);
-    if (!ta)
-        return NULL;
-    int *back = back_band.values();
-    int *front = front_band.values();
-    for (int n = 0; n != num_vertices; ++n) {
-        int i = n * 2;
-        int j = (i + 3) % size;
-        int *t = ta_data + (n * 2) * 3;
-        t[0] = back[i];
-        t[1] = back[j];
-        t[2] = front[i];
-        t += 3;
-        t[0] = front[i];
-        t[1] = back[j];
-        t[2] = front[j];
-    }
-    return ta;
+    return extrude_values(va, na, ta);
 }
 
 void
@@ -888,25 +795,6 @@ rxsection_extrude(PyObject *, PyObject *args, PyObject *keywds)
 
   PyObject *r = xs->extrude(centers, tangents, normals, cap_front, cap_back, offset);
   
-  return r;
-}
-
-extern "C" PyObject *
-rxsection_blend(PyObject *, PyObject *args, PyObject *keywds)
-{
-  RibbonXSection *xs;
-  IArray back_band, front_band;
-  const char *kwlist[] = {"xsection", "back_band", "front_band", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
-				   (char **)kwlist,
-				   parse_rxsection_pointer, &xs,
-				   parse_int_n_array, &back_band,
-				   parse_int_n_array, &front_band))
-
-    return NULL;
-
-  PyObject *r = xs->blend(back_band, front_band);
-
   return r;
 }
 
