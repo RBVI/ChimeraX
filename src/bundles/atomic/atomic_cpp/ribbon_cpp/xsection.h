@@ -39,8 +39,8 @@ PyObject *rxsection_delete(PyObject *s, PyObject *args, PyObject *keywds);
 //
 // Triangulate an extruded cross-section.
 //  
-// rxsection_extrude(xs, centers, tangents, normals, colors, cap_front, cap_back, offset)
-//    -> vertices, normals, triangles, colors, front_band, back_band
+// rxsection_extrude(xs, centers, tangents, normals, cap_front, cap_back, offset)
+//    -> vertices, normals, triangles, front_band, back_band
 //
 PyObject *rxsection_extrude(PyObject *s, PyObject *args, PyObject *keywds);
 

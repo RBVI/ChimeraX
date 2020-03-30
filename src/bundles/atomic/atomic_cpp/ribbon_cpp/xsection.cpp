@@ -27,10 +27,10 @@ class RibbonXSection {
 private:
     void _generate_normals();
     PyObject* _extrude_smooth(const FArray& centers, const FArray& tangents,
-                              const FArray& normals, const CArray& color,
+                              const FArray& normals,
                               bool cap_front, bool cap_back, int offset) const;
     PyObject* _extrude_faceted(const FArray& centers, const FArray& tangents,
-                               const FArray& normals, const CArray& color,
+                               const FArray& normals,
                                bool cap_front, bool cap_back, int offset) const;
     PyObject* _blend_smooth(const IArray& back_band,
                             const IArray& front_band) const;
@@ -57,7 +57,7 @@ public:
     virtual ~RibbonXSection();
 
     PyObject* extrude(const FArray& centers, const FArray& tangents,
-                      const FArray& normals, const CArray& color,
+                      const FArray& normals,
                       bool cap_front, bool cap_back, int offset) const;
     PyObject* blend(const IArray& back_band, const IArray& front_band) const;
     RibbonXSection* scale(float x_scale, float y_scale) const;
@@ -163,14 +163,14 @@ RibbonXSection::~RibbonXSection()
 
 PyObject*
 RibbonXSection::extrude(const FArray& centers, const FArray& tangents,
-                        const FArray& normals, const CArray& color,
+                        const FArray& normals,
                         bool cap_front, bool cap_back, int offset) const
 {
     if (is_faceted)
-        return _extrude_faceted(centers, tangents, normals, color,
+        return _extrude_faceted(centers, tangents, normals,
                                 cap_front, cap_back, offset);
     else
-        return _extrude_smooth(centers, tangents, normals, color,
+        return _extrude_smooth(centers, tangents, normals,
                                cap_front, cap_back, offset);
 }
 
@@ -339,21 +339,20 @@ RibbonXSection::_generate_normals()
 
 static PyObject*
 extrude_values(PyObject* vertices, PyObject* normals, PyObject* triangles,
-               PyObject* colors, PyObject* front_band, PyObject* back_band)
+               PyObject* front_band, PyObject* back_band)
 {
-    PyObject* answer = PyTuple_New(6);
+    PyObject* answer = PyTuple_New(5);
     PyTuple_SetItem(answer, 0, vertices);
     PyTuple_SetItem(answer, 1, normals);
     PyTuple_SetItem(answer, 2, triangles);
-    PyTuple_SetItem(answer, 3, colors);
-    PyTuple_SetItem(answer, 4, front_band);
-    PyTuple_SetItem(answer, 5, back_band);
+    PyTuple_SetItem(answer, 3, front_band);
+    PyTuple_SetItem(answer, 4, back_band);
     return answer;
 }
 
 PyObject*
 RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
-                                const FArray& normals, const CArray& color,
+                                const FArray& normals,
                                 bool cap_front, bool cap_back, int offset) const
 {
 // std::cerr << "extrude_smooth " << xs_coords2.dimension() << "\n";
@@ -368,18 +367,6 @@ RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
         num_vertices += num_splines;
     if (cap_back)
         num_vertices += num_splines;
-    // Allocate space for colors
-    unsigned char *ca_data = NULL;
-    PyObject* ca = python_uint8_array(num_vertices, 4, &ca_data);
-    if (!ca)
-        return NULL;
-    // Repeat color for all vertices
-    unsigned char *cp = (unsigned char *) color.values();
-    for (int i = 0; i != num_vertices; ++i) {
-        unsigned char *cai = ca_data + i * 4;
-        for (int j = 0; j != 4; ++j)
-            cai[j] = cp[j];
-    }
     // Allocate space for vertices and normals
     float *va_data = NULL;
     PyObject *va = python_float_array(num_vertices, 3, &va_data);
@@ -547,12 +534,12 @@ RibbonXSection::_extrude_smooth(const FArray& centers, const FArray& tangents,
         offset += num_splines;
         vindex += num_splines;
     }
-    return extrude_values(va, na, ta, ca, front_band, back_band);
+    return extrude_values(va, na, ta, front_band, back_band);
 }
 
 PyObject*
 RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
-                                 const FArray& normals, const CArray& color,
+                                 const FArray& normals,
                                  bool cap_front, bool cap_back, int offset) const
 {
 // std::cerr << "extrude_faceted " << xs_coords2.dimension() << "\n";
@@ -573,18 +560,6 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
         num_vertices += num_splines;
     if (cap_back)
         num_vertices += num_splines;
-    // Allocate space for colors
-    unsigned char *ca_data = NULL;
-    PyObject* ca = python_uint8_array(num_vertices, 4, &ca_data);
-    if (!ca)
-        return NULL;
-    // Repeat color for all vertices
-    unsigned char *cp = (unsigned char *) color.values();
-    for (int i = 0; i != num_vertices; ++i) {
-        unsigned char *cai = ca_data + i * 4;
-        for (int j = 0; j != 4; ++j)
-            cai[j] = cp[j];
-    }
     // Allocate space for vertices and normals
     float *va_data = NULL;
     PyObject *va = python_float_array(num_vertices, 3, &va_data);
@@ -751,7 +726,7 @@ RibbonXSection::_extrude_faceted(const FArray& centers, const FArray& tangents,
         offset += num_splines;
         vindex += num_splines;
     }
-    return extrude_values(va, na, ta, ca, front_band, back_band);
+    return extrude_values(va, na, ta, front_band, back_band);
 }
 
 PyObject*
@@ -899,21 +874,19 @@ rxsection_extrude(PyObject *, PyObject *args, PyObject *keywds)
 {
   RibbonXSection *xs;
   FArray centers, tangents, normals;
-  CArray colors;
   int cap_front, cap_back, offset;
-  const char *kwlist[] = {"xsection", "centers", "tangents", "normals", "colors", "cap_front",
+  const char *kwlist[] = {"xsection", "centers", "tangents", "normals", "cap_front",
 			  "cap_back", "offset", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&O&ppi"),
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&ppi"),
 				   (char **)kwlist,
 				   parse_rxsection_pointer, &xs,
 				   parse_float_n3_array, &centers,
 				   parse_float_n3_array, &tangents,
 				   parse_float_n3_array, &normals,
-				   parse_uint8_n_array, &colors,
 				   &cap_front, &cap_back, &offset))
     return NULL;
 
-  PyObject *r = xs->extrude(centers, tangents, normals, colors, cap_front, cap_back, offset);
+  PyObject *r = xs->extrude(centers, tangents, normals, cap_front, cap_back, offset);
   
   return r;
 }

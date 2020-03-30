@@ -104,13 +104,12 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
         # Create tube helices, one new RibbonDrawing for each helix.
         geometry = TriangleAccumulator()
-        colors = residues.ribbon_colors
         if arc_helix:
             ribbon_adjusts = residues.ribbon_adjusts
             xsection = xs_mgr.xs_helix_tube
             for start, end in helix_ranges:
                 if displays[start:end].any():
-                    centers = _arc_helix_geometry(coords, xsection, displays, colors, start, end, geometry)
+                    centers = _arc_helix_geometry(coords, xsection, displays, start, end, geometry)
                     # Adjust coords so non-tube half of helix ends joins center of cylinder
                     coords[start:end] = centers
 
@@ -143,7 +142,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             t0 = time()
             
         # Compute ribbon triangles
-        _ribbon_geometry(path, display_ranges, colors, xs_front, xs_back, geometry)
+        _ribbon_geometry(path, display_ranges, len(residues), xs_front, xs_back, geometry)
 
         if timing:
             geotime += time() - t0
@@ -157,9 +156,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             ribbons_drawing.add_ribbon_drawing(rp)
 
             # Set drawing geometry
-            va, na, vc, ta = geometry.vertex_normal_color_triangle_arrays()
+            va, na, ta = geometry.vertex_normal_triangle_arrays()
             rp.set_geometry(va, na, ta)
-            rp.vertex_colors = vc
+            rp.update_colors()
 
         if timing:
             drtime += time() - t0
@@ -395,11 +394,10 @@ def _smooth_twist(rc0, rc1):
 #  Might want to put TriangleAccumulator into C++ to get rid of half of those
 #  and have extrude() and blend() put results directly into it.
 #  Maybe Ribbon spline coords, tangents, normals could use recycled numpy arrays.
-def _ribbon_geometry(path, ranges, colors, xs_front, xs_back, geometry):
+def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):
 
-    nr = len(colors)
     coords, tangents, normals = path
-    nsp = len(coords) // nr  # Path points per residue
+    nsp = len(coords) // num_res  # Path points per residue
     nlp, nrp = nsp // 2, (nsp + 1) // 2
     
     # Each residue has left and right half (also called front and back)
@@ -419,7 +417,7 @@ def _ribbon_geometry(path, ranges, colors, xs_front, xs_back, geometry):
             s = i * nsp
             e = s + nlp + 1
             front_c, front_t, front_n = coords[s:e], tangents[s:e], normals[s:e]
-            sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i], capped, mid_cap,
+            sf = xs_front[i].extrude(front_c, front_t, front_n, capped, mid_cap,
                                      geometry.v_offset)
             geometry.add_extrusion(sf)
 
@@ -428,7 +426,7 @@ def _ribbon_geometry(path, ranges, colors, xs_front, xs_back, geometry):
             s = i * nsp + nlp
             e = s + nrp + 1
             back_c, back_t, back_n = coords[s:e], tangents[s:e], normals[s:e]
-            sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i], mid_cap, next_cap,
+            sb = xs_back[i].extrude(back_c, back_t, back_n, mid_cap, next_cap,
                                     geometry.v_offset)
             geometry.add_extrusion(sb)
 
@@ -444,7 +442,6 @@ class TriangleAccumulator:
         self._t_end = 0
         self._vertex_list = []
         self._normal_list = []
-        self._color_list = []
         self._triangle_list = []
         self._triangle_ranges = []	# List of 5-tuples (residue_index, tstart, tend, vstart, vend)
 
@@ -457,9 +454,9 @@ class TriangleAccumulator:
     
     def add_extrusion(self, extrusion, offset = False):
         e = extrusion
-        self.add_geometry(e.vertices, e.normals, e.colors, e.triangles, offset=offset)
+        self.add_geometry(e.vertices, e.normals, e.triangles, offset=offset)
     
-    def add_geometry(self, vertices, normals, colors, triangles, offset = True):
+    def add_geometry(self, vertices, normals, triangles, offset = True):
         if offset:
             triangles += self._v_end
         self._v_end += len(vertices)
@@ -467,7 +464,6 @@ class TriangleAccumulator:
         self._vertex_list.append(vertices)
         self._normal_list.append(normals)
         self._triangle_list.append(triangles)
-        self._color_list.append(colors)
 
     def add_triangles(self, triangles, offset = False):
         if offset:
@@ -491,17 +487,16 @@ class TriangleAccumulator:
         self._t_start = self._t_end
         self._v_start = self._v_end
 
-    def vertex_normal_color_triangle_arrays(self):
+    def vertex_normal_triangle_arrays(self):
         if self._vertex_list:
             va = concatenate(self._vertex_list)
             na = concatenate(self._normal_list)
             from chimerax.geometry import normalize_vectors
             normalize_vectors(na)
             ta = concatenate(self._triangle_list)
-            vc = concatenate(self._color_list)
         else:
-            va = na = ta = vc = None
-        return va, na, vc, ta
+            va = na = ta = None
+        return va, na, ta
 
     @property
     def triangle_ranges(self):
@@ -624,7 +619,7 @@ class RibbonDrawing(Drawing):
         return len(self._residues)
 
     def update_colors(self):
-        vc = self.vertex_colors
+        vc = self.get_vertex_colors(create = True)
         rcolor = self._residues.ribbon_colors
         for i,ts,te,vs,ve in self._triangle_ranges:
             vc[vs:ve,:] = rcolor[i]
@@ -905,7 +900,7 @@ def _smooth_helix(rlist, coords, guides, ribbon_adjusts, start, end):
     # the same relative place as before
     #   guides[start:end] = new_coords + delta_guides
 
-def _arc_helix_geometry(coords, xsection, displays, colors, start, end, geometry):
+def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
     '''Compute triangulation for one tube helix.'''
 
     from .sse import HelixCylinder
@@ -927,7 +922,7 @@ def _arc_helix_geometry(coords, xsection, displays, colors, start, end, geometry
         if displays[r]:
             i = 2*(r-start)
             s,e = max(0, i-1), min(np, i+2)
-            e = xsection.extrude(c[s:e], t[s:e], n[s:e], colors[r],
+            e = xsection.extrude(c[s:e], t[s:e], n[s:e],
                                  cap_front = (r == start), cap_back = (r == end-1))
             geometry.add_extrusion(e, offset=True)
             geometry.add_range(r)
@@ -2061,8 +2056,7 @@ class XSectionManager(State):
 #
 from collections import namedtuple
 ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals",
-                                           "triangles", "colors",
-                                           "front_band", "back_band"])
+                                           "triangles", "front_band", "back_band"])
 
 # Cross section coordinates are 2D and counterclockwise
 # Use C++ version of RibbonXSection instead of Python version
@@ -2082,11 +2076,11 @@ class RibbonXSection:
             xs_pointer = rxsection_new(**kw)
         self._xs_pointer = xs_pointer
 
-    def extrude(self, centers, tangents, normals, color,
+    def extrude(self, centers, tangents, normals,
                 cap_front, cap_back, vertex_offset = 0):
         '''Return the points, normals and triangles for a ribbon.'''
         from ._ribbons import rxsection_extrude
-        t = rxsection_extrude(self._xs_pointer, centers, tangents, normals, color,
+        t = rxsection_extrude(self._xs_pointer, centers, tangents, normals,
                               cap_front, cap_back, vertex_offset)
         if t is not None:
             t = ExtrudeValue(*t)
