@@ -415,38 +415,27 @@ def _ribbon_geometry(path, ranges, colors, xs_front, xs_back, geometry):
     for r0,r1 in ranges:
 
         capped = True
-        prev_band = None
         
         for i in range(r0, r1+1):
             # Left half
             mid_cap = (xs_front[i] != xs_back[i])
             s = i * nsp
-            e = s + (nlp+1 if mid_cap else nlp)
+            e = s + nlp + 1
             front_c, front_t, front_n = coords[s:e], tangents[s:e], normals[s:e]
             sf = xs_front[i].extrude(front_c, front_t, front_n, colors[i], capped, mid_cap,
                                      geometry.v_offset)
             geometry.add_extrusion(sf)
 
-            if prev_band is not None:
-                tjoin = xs_front[i].blend(prev_band, sf.front_band)
-                geometry.add_triangles(tjoin)
-
             # Right half
             next_cap = True if i == r1 else (xs_back[i] != xs_front[i + 1])
             s = i * nsp + nlp
-            e = s + (nrp+1 if next_cap else nrp)
+            e = s + nrp + 1
             back_c, back_t, back_n = coords[s:e], tangents[s:e], normals[s:e]
             sb = xs_back[i].extrude(back_c, back_t, back_n, colors[i], mid_cap, next_cap,
                                     geometry.v_offset)
             geometry.add_extrusion(sb)
 
-            if not mid_cap:
-                tjoin = xs_back[i].blend(sf.back_band, sb.front_band)
-                geometry.add_triangles(tjoin)
-
-            prev_band = None if next_cap else sb.back_band
             capped = next_cap
-
             geometry.add_range(i)
 
 class TriangleAccumulator:
