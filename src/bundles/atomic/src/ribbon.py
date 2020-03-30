@@ -151,14 +151,10 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
         # Create ribbon drawing
         if not geometry.empty():
-            rp = RibbonDrawing(structure.name + " " + str(residues[0]) + " ribbons", len(residues))
+            name = structure.name + " " + str(residues[0]) + " ribbons"
+            rp = RibbonDrawing(name, residues, geometry.triangle_ranges)
 #            rp.display_style = rp.Mesh
-            ribbons_drawing.add_drawing(rp)
-
-            triangle_ranges = [RibbonTriangleRange(ts, te, vs, ve, residues[i])
-                               for i,ts,te,vs,ve in geometry.triangle_ranges]
-            rp.triangle_ranges = triangle_ranges     # Save triangle ranges for picking
-            ribbons_drawing.add_residue_triangle_ranges(triangle_ranges, rp)
+            ribbons_drawing.add_ribbon_drawing(rp)
 
             # Set drawing geometry
             va, na, vc, ta = geometry.vertex_normal_color_triangle_arrays()
@@ -189,8 +185,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 #            _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2)
 
     if timing:
+        nres = sum(structure.residues.ribbon_displays)
         print('ribbon times %d polymers, %d residues, polymers %.4g, ranges %.4g, xsect %.4g, smooth %.4g, tube %.4g, path %.4g (spline %.4g (coef %.4g, normals %.4g), interpolate %.4g) , triangles %.4g, makedrawing %.4g, tethers %.4g'
-              % (len(polymers), len(ribbons_drawing._residue_triangle_ranges),
+              % (len(polymers), nres,
                  poltime, rangestime, xstime, smootime, tubetime,
                  pathtime, spltime, coeftime, normaltime, interptime, geotime, drtime, tethertime))
 
@@ -512,35 +509,19 @@ class TriangleAccumulator:
 
 # -----------------------------------------------------------------------------
 #
-class RibbonTriangleRange:
-    __slots__ = ["start", "end", "vstart", "vend", "drawing", "residue"]
-    def __init__(self, start, end, vstart, vend, residue):
-        self.start = start
-        self.end = end
-        self.vstart = vstart
-        self.vend = vend
-        self.residue = residue
-        self.drawing = None
-    def __lt__(self, other): return self.start < other
-    def __le__(self, other): return self.start <= other
-    def __eq__(self, other): return self.start == other
-    def __ne__(self, other): return self.start != other
-    def __gt__(self, other): return self.start > other
-    def __gt__(self, other): return self.start >= other
-
 from chimerax.graphics import Drawing
 class RibbonsDrawing(Drawing):
     def __init__(self, name, structure_name):
         Drawing.__init__(self, name)
         self.structure_name = structure_name
-        self._residue_triangle_ranges = {}      # Map residue to list of RibbonTriangleRanges
-        self._backbone_atoms = []               # List of Atoms for updating hidden state
+        self._backbone_atoms = []               # List of Atoms for updating atom hide state
+        self._ribbon_drawings = []		# List of RibbonDrawing
         self._tether_drawings = []		# List of TethersDrawing
 
     def clear(self):
         self.remove_all_drawings()
-        self._residue_triangle_ranges.clear()
         self._backbone_atoms.clear()
+        self._ribbon_drawings.clear()
         self._tether_drawings.clear()
 
     def compute_ribbons(self, structure):
@@ -555,78 +536,21 @@ class RibbonsDrawing(Drawing):
         if timing:
             t0 = time()
 
-        vertex_colors = {}	# Map RibbonDrawing to vertex color array
-        for r, tranges in self._residue_triangle_ranges.items():
-            color = r.ribbon_color
-            for tr in tranges:
-                d = tr.drawing
-                if d in vertex_colors:
-                    vc = vertex_colors[d]
-                else:
-                    vertex_colors[d] = vc = d.vertex_colors
-                tri = d.triangles
-                vc[tr.vstart:tr.vend,:] = color
-
-        for d, vc in vertex_colors.items():
-            d.vertex_colors = vc
+        for d in self._ribbon_drawings:
+            d.update_colors()
 
         if timing:
             t1 = time()
             print ('update_ribbon_colors(): %.4g' % (t1-t0))
         
     def update_ribbon_highlight(self, structure):
+        for d in self._ribbon_drawings:
+            d.update_selection_highlight()
 
-        # Find residues to highlight by RibbonDrawing
-        res = structure.residues
-        rsel = res[res.selected]
-        res_triangle_ranges = self._residue_triangle_ranges
-        dres = {}	# Map ribbon drawing to list of selected residues
-        for r in rsel:
-            tranges = res_triangle_ranges.get(r)
-            if tranges:
-                for tr in tranges:
-                    d = tr.drawing
-                    if d in dres:
-                        dres[d].append(r)
-                    else:
-                        dres[d] = [r]
-
-        # Set highlights for all RibbonDrawing
-        for d in self.child_drawings():
-            if isinstance(d, RibbonDrawing):
-                if d in dres:
-                    tmask = d.highlighted_triangles_mask
-                    if tmask is None:
-                        from numpy import bool
-                        tmask = zeros((d.number_of_triangles(),), bool)
-                    else:
-                        tmask[:] = False
-                    rlist = dres[d]
-                    if len(rlist) == d.num_residues:
-                        if tmask.all():
-                            continue	# Already all highlighted
-                        tmask[:] = True
-                    else:
-                        for r in rlist:
-                            for trange in res_triangle_ranges[r]:
-                                if trange.drawing is d:
-                                    tmask[trange.start:trange.end] = True
-                    d.highlighted_triangles_mask = tmask
-                elif d.highlighted_triangles_mask is not None:
-                    d.highlighted_triangles_mask = None
-
-    def add_residue_triangle_ranges(self, tranges, ribbon_drawing):
-        rtr = self._residue_triangle_ranges
-        for tr in tranges:
-            r = tr.residue
-            if r in rtr:
-                # Tube helices result in two triangle ranges for one residue
-                # since a helix end residue is depicted as half cylinder, half strand.
-                rtr[r].append(tr)
-            else:
-                rtr[r] = [tr]
-            tr.drawing = ribbon_drawing
-
+    def add_ribbon_drawing(self, ribbon_drawing):
+        self._ribbon_drawings.append(ribbon_drawing)
+        self.add_drawing(ribbon_drawing)
+        
     def add_tethers(self, tether_drawing, backbone_atoms):
         if tether_drawing is not None:
             self._tether_drawings.append(tether_drawing)
@@ -688,10 +612,39 @@ def _tether_placements(xyz0, xyz1, radius, shape):
     return _bond_cylinder_placements(c0, c1, radius)
                         
 class RibbonDrawing(Drawing):
-    def __init__(self, name, num_residues):
+    def __init__(self, name, residues, triangle_ranges):
         Drawing.__init__(self, name)
-        self.num_residues = num_residues
-        self.triangle_ranges = []         # List of RibbonTriangleRange, used for picking
+        self._residues = residues
+        # List of (i,ts,te,ve,vs) triangle an vertex ranges for residue i.
+        self._triangle_ranges = triangle_ranges
+        self._t_start = None	# Sorted range triangle starts used for first_intercept() calc
+
+    @property
+    def num_residues(self):
+        return len(self._residues)
+
+    def update_colors(self):
+        vc = self.vertex_colors
+        rcolor = self._residues.ribbon_colors
+        for i,ts,te,vs,ve in self._triangle_ranges:
+            vc[vs:ve,:] = rcolor[i]
+        self.vertex_colors = vc
+
+    def update_selection_highlight(self):
+        rsel = self._residues.selected
+        sel_tranges = [(ts,te) for i,ts,te,vs,ve in self._triangle_ranges if rsel[i]]
+        if sel_tranges:
+            tmask = self.highlighted_triangles_mask
+            if tmask is None:
+                from numpy import bool
+                tmask = zeros((self.number_of_triangles(),), bool)
+            else:
+                tmask[:] = False
+            for s,e in sel_tranges:
+                tmask[s:e] = True
+        else:
+            tmask = None
+        self.highlighted_triangles_mask = tmask
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
         if not self.display or (exclude and exclude(self)):
@@ -699,13 +652,17 @@ class RibbonDrawing(Drawing):
         p = super().first_intercept(mxyz1, mxyz2)
         if p is None:
             return None
-        tranges = self.triangle_ranges
+        tranges = self._triangle_ranges
+        if self._t_start is None:
+            # Sort by triangle start for bisect_right() search
+            tranges.sort(key = lambda tr: tr[1])
+            self._t_start = tuple(tr[1] for tr in tranges)
         from bisect import bisect_right
-        n = bisect_right(tranges, p.triangle_number)
+        n = bisect_right(self._t_start, p.triangle_number)
         if n > 0:
-            triangle_range = tranges[n - 1]
+            r = self._residues[tranges[n-1][0]]
             from .structure import PickedResidue
-            return PickedResidue(triangle_range.residue, p.distance)
+            return PickedResidue(r, p.distance)
         return None
 
     def planes_pick(self, planes, exclude=None):
@@ -713,7 +670,7 @@ class RibbonDrawing(Drawing):
             return []
         if exclude is not None and exclude(self):
             return []
-        tranges = self.triangle_ranges
+        tranges = self._triangle_ranges
         picks = []
         rp = super().planes_pick(planes)
         from chimerax.graphics import PickedTriangles
@@ -721,10 +678,9 @@ class RibbonDrawing(Drawing):
         for p in rp:
             if isinstance(p, PickedTriangles) and p.drawing() is self:
                 tmask = p._triangles_mask
-                res = [rtr.residue for rtr in tranges if tmask[rtr.start:rtr.end].sum() > 0]
-                if res:
-                    from .molarray import Residues
-                    rc = Residues(res)
+                ires = [i for i,ts,te,vs,ve in tranges if tmask[ts:te].sum() > 0]
+                if ires:
+                    rc = self._residues.filter(ires)
                     picks.append(PickedResidues(rc))
         return picks
 
