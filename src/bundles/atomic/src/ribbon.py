@@ -942,9 +942,9 @@ def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
         if displays[r]:
             i = 2*(r-start)
             s,e = max(0, i-1), min(np, i+2)
-            xsection.extrude(c[s:e], t[s:e], n[s:e],
-                             cap_front = (r == start), cap_back = (r == end-1),
-                             geometry = geometry)
+            cap_front = (r == start or not displays[r-1])
+            cap_back = (r == end-1 or not displays[r+1])
+            xsection.extrude(c[s:e], t[s:e], n[s:e], cap_front, cap_back, geometry)
             geometry.add_range(r)
 
     return centers
