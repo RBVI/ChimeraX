@@ -2047,6 +2047,14 @@ def all_atoms(session, atomic_only=False):
     '''All atoms in all structures as an :class:`.Atoms` collection.'''
     func = all_atomic_structures if atomic_only else all_structures
     return structure_atoms(func(session))
+# -----------------------------------------------------------------------------
+#
+def all_residues(session, atomic_only=False):
+    '''All residues in all structures as a :class:`.Residues` collection.'''
+    structures = all_atomic_structures(session) if atomic_only else all_structures(session)
+    from .molarray import concatenate, Residues
+    residues = concatenate([m.residues for m in structures], Residues)
+    return residues
 
 # -----------------------------------------------------------------------------
 #
