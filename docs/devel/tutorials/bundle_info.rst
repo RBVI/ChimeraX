@@ -868,3 +868,29 @@ The other possible `Provider`_ attributes are:
         *compression_okay* as "false" will prevent the ``save`` command from allowing this
         format to be automatically compressed (which happens when the output file name also has
         a compression suffix, *e.g.* "my_structure.pdb.gz").
+
+The remainder of the information the bundle provides about how to save a file comes from the
+return value of the bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
+an instance of the
+:py:class:`chimerax.save_command.SaverInfo` class.
+The doc strings of that class discuss its methods in detail, but briefly:
+
+* You must override the :py:meth:`~chimerax.save_command.SaverInfo.save` method to take
+  the input provided and save the file.
+
+* If your format has format-specific keywords that the ``save`` command should accept,
+  you must override the :py:meth:`~chimerax.save_command.SaverInfo.save_args` property
+  to return a dictionary that maps **Python** keywords of your saver-function to corresponding
+  :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
+  corresponding Python values).
+
+* If you have format-specific options and wish to show a user interface to some or all of those
+  options in the ChimeraX Save dialog, you must override the
+  :py:meth:`~chimerax.save_command.SaverInfo.save_args_widget` method and return a widget
+  containing your interface (typically a subclass of
+  `QFrame <https://doc.qt.io/qt-5/qframe.html>`_).
+  Conversely, you must also override
+  :py:meth:`~chimerax.save_command.SaverInfo.save_args_string_from_widget`
+  that takes your widget and returns a string containing the corresponding options and
+  values that could be added to a ``save`` command.
