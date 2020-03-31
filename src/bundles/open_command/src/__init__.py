@@ -14,20 +14,20 @@
 class OpenerInfo:
     """
     Bundles that can open files must implement a subclass of this class, and return it
-    as the value of the bundle's BundleAPI.run_provider method.  The subclass must
-    override the :py:meth:`open` method of this class.
+    as the value of the bundle's :py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
+    The subclass must override the :py:meth:`open` method of this class.
     """
 
     def open(self, session, data, file_name, **kw):
         """
         Return a (models, status message) tuple based on the input *data*.  *Data* will
         be an opened stream unless the ``want_path="true"`` attribute was specified in this
-        provider's :ref:`<Provider> <Provider>` tag, in which case it will be a path name instead.  The
-        *file_name* arg can be used in either case in error/status messages to identify the
+        provider's :ref:`<Provider> <Provider>` tag, in which case it will be a path name instead.
+        The *file_name* arg can be used in either case in error/status messages to identify the
         input source.
 
         The *kw* dictionary will contain keywords specific to your type of open function.
-        Their names and types are specified by the :py:meth:`open_args` method below.
+        Their names and types are specified by the :py:meth:`open_args` property below.
 
         The returned models should not be added to the session by this function; that will
         occur later.  The status message typically gives information about the models
