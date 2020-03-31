@@ -264,6 +264,7 @@ class ConfigFile:
         major_version = version.major
         self._session = session
         self._on_disk = False
+        self._tool_name = tool_name
         # affirm that properties don't conflict with methods
         for method in dir(self):
             assert(method not in self.PROPERTY_INFO)
@@ -329,8 +330,8 @@ class ConfigFile:
                     self._session, self._config['DEFAULT'][name])
             except ValueError as e:
                 self._session.logger.warning(
-                    "Invalid %s.%s value, using default: %s" %
-                    (self._name, name, e))
+                    "Invalid %s '%s' attrbute value, using default: %s" %
+                    (self._tool_name, name, e))
                 value = self.PROPERTY_INFO[name].default
         return value
 
@@ -357,8 +358,8 @@ class ConfigFile:
                 str_value = self.PROPERTY_INFO[name].convert_to_string(
                     self._session, value)
             except ValueError:
-                raise UserError("Illegal %s.%s value, unchanged" %
-                                (self._name, name))
+                raise UserError("Illegal %s '%s' attribute value, unchanged" %
+                                (self._tool_name, name))
             self._config['DEFAULT'][name] = str_value
         if call_save:
             ConfigFile.save(self)
