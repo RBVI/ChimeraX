@@ -986,6 +986,9 @@ is only available for this format. See also:
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>URL</i>&nbsp;
+<!--
+[&nbsp;<b>dataFormat</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
+-->
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#vseries"><b>vseries</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -1002,6 +1005,7 @@ File types and command options are the same as described
 <a href="#local">above</a> for local files.
 The file type can be indicated
 by <a href="#file-table">suffix</a> or by MIME type.
+<!-- ...suffix, MIME type, or the <b>dataFormat</b> option. -->
 </p><p>
 Web-fetched data other than those handled by the
 <a href="../tools/helpviewer.html">ChimeraX browser</a>
@@ -1133,8 +1137,8 @@ target="_blank">PDB-Dev</a></td>
 <td align="center" class="text">integrative hybrid model;
 <br>
 leading zeroes can be omitted from the identifier, for example, 
-accession code PDBDEV_00000010 can be opened with command:
-<br><b>open pdbdev:10</b>
+accession code PDBDEV_00000001 can be opened with command:
+<br><b>open pdbdev:1</b>
 </td>
 <td align="center"><b>ihm</b></td>
 </tr><tr>

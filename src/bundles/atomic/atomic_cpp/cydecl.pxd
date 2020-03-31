@@ -132,6 +132,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         Bonds bonds()
         void clear_aniso_u()
         void clear_hide_bits(int)
+        void clear_ribbon_coord()
         const Rgba& color()
         bool connects_to(Atom*)
         cycoord.Coord coord() except +
@@ -159,6 +160,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         object py_instance(bool)
         float radius()
         Residue* residue()
+        const cycoord.Coord* ribbon_coord()
         const Rings& rings(bool, int)
         cycoord.Coord scene_coord()
         cycoord.Coord scene_coord(char)
@@ -183,6 +185,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_name(const char*)
         void set_occupancy(float)
         void set_radius(float) except +
+        void set_ribbon_coord(const cycoord.Point&)
         void set_selected(bool)
         void set_serial_number(int)
         Structure* structure()
