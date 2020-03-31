@@ -58,6 +58,20 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("rxsection_arrow"), (PyCFunction)rxsection_arrow,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("ribbon_extrusions"), (PyCFunction)ribbon_extrusions,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("geometry_new"), (PyCFunction)geometry_new,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("geometry_delete"), (PyCFunction)geometry_delete,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("geometry_add_range"), (PyCFunction)geometry_add_range,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("geometry_ranges"), (PyCFunction)geometry_ranges,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("geometry_empty"), (PyCFunction)geometry_empty,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("geometry_arrays"), (PyCFunction)geometry_arrays,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}
 };

@@ -43,7 +43,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
     rangestime = xstime = smootime = tubetime = pathtime = spltime = interptime = geotime = drtime = tethertime = 0
     global coeftime, normaltime
-    coeftime = normal = 0
+    coeftime = normaltime = 0
     for rlist, ptype in polymers:
         # Always call get_polymer_spline to make sure hide bits are
         # properly set when ribbons are completely undisplayed
@@ -188,7 +188,8 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         print('ribbon times %d polymers, %d residues, polymers %.4g, ranges %.4g, xsect %.4g, smooth %.4g, tube %.4g, path %.4g (spline %.4g (coef %.4g, normals %.4g), interpolate %.4g) , triangles %.4g, makedrawing %.4g, tethers %.4g'
               % (len(polymers), nres,
                  poltime, rangestime, xstime, smootime, tubetime,
-                 pathtime, spltime, coeftime, normaltime, interptime, geotime, drtime, tethertime))
+                 pathtime, spltime, coeftime, normaltime, interptime,
+                 geotime, drtime, tethertime))
 
 def _ribbon_flip_normals(structure, is_helix):
     nres = len(is_helix)
@@ -385,7 +386,14 @@ def _smooth_twist(rc0, rc1):
     if rc0 is XSectionManager.RC_HELIX_END or rc0 is XSectionManager.RC_SHEET_END:
         return True
     return False
-        
+
+def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):        
+    centers, tangents, normals = path
+    xsf = [xs._xs_pointer for xs in xs_front]
+    xsb = [xs._xs_pointer for xs in xs_back]
+    from ._ribbons import ribbon_extrusions
+    ribbon_extrusions(centers, tangents, normals, ranges, num_res, xsf, xsb, geometry._geom_cpp)
+    
 # Compute triangle geometry for ribbon.
 # Only certain ranges of residues are considered, since not all
 # residues need be displayed and also tube helix geometry is created by other code.
@@ -394,7 +402,7 @@ def _smooth_twist(rc0, rc1):
 #  Might want to put TriangleAccumulator into C++ to get rid of half of those
 #  and have extrude() put results directly into it.
 #  Maybe Ribbon spline coords, tangents, normals could use recycled numpy arrays.
-def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):
+def _ribbon_geometry_unused(path, ranges, num_res, xs_front, xs_back, geometry):
 
     coords, tangents, normals = path
     nsp = len(coords) // num_res  # Path points per residue
@@ -417,23 +425,47 @@ def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):
             s = i * nsp
             e = s + nlp + 1
             front_c, front_t, front_n = coords[s:e], tangents[s:e], normals[s:e]
-            sf = xs_front[i].extrude(front_c, front_t, front_n, capped, mid_cap,
-                                     geometry.v_offset)
-            geometry.add_extrusion(sf)
+            xs_front[i].extrude(front_c, front_t, front_n, capped, mid_cap, geometry)
 
             # Right half
             next_cap = True if i == r1 else (xs_back[i] != xs_front[i + 1])
             s = i * nsp + nlp
             e = s + nrp + 1
             back_c, back_t, back_n = coords[s:e], tangents[s:e], normals[s:e]
-            sb = xs_back[i].extrude(back_c, back_t, back_n, mid_cap, next_cap,
-                                    geometry.v_offset)
-            geometry.add_extrusion(sb)
+            xs_back[i].extrude(back_c, back_t, back_n, mid_cap, next_cap, geometry)
 
             capped = next_cap
             geometry.add_range(i)
 
 class TriangleAccumulator:
+    '''Accumulate triangles from segments of a ribbon.'''
+    def __init__(self):
+        from ._ribbons import geometry_new
+        self._geom_cpp = geometry_new()
+
+    def __del__(self):
+        from ._ribbons import geometry_delete
+        geometry_delete(self._geom_cpp)
+        self._geom_cpp = None
+            
+    def empty(self):
+        from ._ribbons import geometry_empty
+        return geometry_empty(self._geom_cpp)
+
+    def add_range(self, residue_index):
+        from ._ribbons import geometry_add_range
+        geometry_add_range(self._geom_cpp, residue_index)
+
+    def vertex_normal_triangle_arrays(self):
+        from ._ribbons import geometry_arrays
+        return geometry_arrays(self._geom_cpp)
+
+    @property
+    def triangle_ranges(self):
+        from ._ribbons import geometry_ranges
+        return geometry_ranges(self._geom_cpp)
+
+class TriangleAccumulator1:
     '''Accumulate triangles from segments of a ribbon.'''
     def __init__(self):
         self._v_start = 0         # for tracking starting vertex index for each residue
@@ -454,9 +486,9 @@ class TriangleAccumulator:
     
     def add_extrusion(self, extrusion, offset = False):
         e = extrusion
-        self.add_geometry(e.vertices, e.normals, e.triangles, offset=offset)
+        self._add_geometry(e.vertices, e.normals, e.triangles, offset=offset)
     
-    def add_geometry(self, vertices, normals, triangles, offset = True):
+    def _add_geometry(self, vertices, normals, triangles, offset = True):
         if offset:
             triangles += self._v_end
         self._v_end += len(vertices)
@@ -465,12 +497,6 @@ class TriangleAccumulator:
         self._normal_list.append(normals)
         self._triangle_list.append(triangles)
 
-    def add_triangles(self, triangles, offset = False):
-        if offset:
-            triangles += self._v_end
-        self._triangle_list.append(triangles)
-        self._t_end += len(triangles)
-
     def add_range(self, residue_index):
         ts,te,vs,ve = self._t_start, self._t_end, self._v_start, self._v_end
         if te == ts and ve == vs:
@@ -478,14 +504,6 @@ class TriangleAccumulator:
         self._triangle_ranges.append((residue_index, ts, te, vs, ve))
         self._t_start = te
         self._v_start = ve
-
-    def add_ranges(self, ranges):
-        tranges = self._triangle_ranges
-        for residue_index, (ts, te, vs, ve) in ranges.items():
-            if te > ts and ve > vs:
-                tranges.append((residue_index, ts, te, vs, ve))
-        self._t_start = self._t_end
-        self._v_start = self._v_end
 
     def vertex_normal_triangle_arrays(self):
         if self._vertex_list:
@@ -650,8 +668,10 @@ class RibbonDrawing(Drawing):
         tranges = self._triangle_ranges
         if self._t_start is None:
             # Sort by triangle start for bisect_right() search
-            tranges.sort(key = lambda tr: tr[1])
-            self._t_start = tuple(tr[1] for tr in tranges)
+            from numpy import argsort
+            order = argsort(tranges[:,1])
+            tranges[:] = tranges[order]
+            self._t_start = tranges[:,1]
         from bisect import bisect_right
         n = bisect_right(self._t_start, p.triangle_number)
         if n > 0:
@@ -922,9 +942,9 @@ def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
         if displays[r]:
             i = 2*(r-start)
             s,e = max(0, i-1), min(np, i+2)
-            e = xsection.extrude(c[s:e], t[s:e], n[s:e],
-                                 cap_front = (r == start), cap_back = (r == end-1))
-            geometry.add_extrusion(e, offset=True)
+            xsection.extrude(c[s:e], t[s:e], n[s:e],
+                             cap_front = (r == start), cap_back = (r == end-1),
+                             geometry = geometry)
             geometry.add_range(r)
 
     return centers
@@ -2076,14 +2096,11 @@ class RibbonXSection:
         self._xs_pointer = xs_pointer
 
     def extrude(self, centers, tangents, normals,
-                cap_front, cap_back, vertex_offset = 0):
+                cap_front, cap_back, geometry):
         '''Return the points, normals and triangles for a ribbon.'''
         from ._ribbons import rxsection_extrude
-        t = rxsection_extrude(self._xs_pointer, centers, tangents, normals,
-                              cap_front, cap_back, vertex_offset)
-        if t is not None:
-            t = ExtrudeValue(*t)
-        return t
+        rxsection_extrude(self._xs_pointer, centers, tangents, normals,
+                          cap_front, cap_back, geometry._geom_cpp)
 
     def scale(self, scale):
         '''Return new cross section scaled by 2-tuple scale.'''

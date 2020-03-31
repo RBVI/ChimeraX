@@ -23,17 +23,12 @@
 extern "C"
 {
 //
-// Create a RibbonXSection.
+// Create or delete RibbonXSection.
 //  
 // rxsection_new(coords, coords2, normals, norals2, faceted, test) -> RibbonXSection pointer
-//
-PyObject *rxsection_new(PyObject *s, PyObject *args, PyObject *keywds);
-
-//
-// Delete a RibbonXSection.
-//  
 // rxsection_delete(xs)
 //
+PyObject *rxsection_new(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *rxsection_delete(PyObject *s, PyObject *args, PyObject *keywds);
 
 //
@@ -45,19 +40,31 @@ PyObject *rxsection_delete(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *rxsection_extrude(PyObject *s, PyObject *args, PyObject *keywds);
 
 //
-// Make a scaled cross-section.
+// Make a scaled or tapering cross-section.
 //  
 // rxsection_scale(xs, x_scale, y_scale) -> RibbonsXSection pointer
+// rxsection_arrow(xs, x1_scale, y1_scale, x2_scale, y2_scale) -> RibbonsXSection pointer
 //
 PyObject *rxsection_scale(PyObject *s, PyObject *args, PyObject *keywds);
-
-//
-// Make a tapering cross-section.
-//  
-// rxsection_scale(xs, x1_scale, y1_scale, x2_scale, y2_scale) -> RibbonsXSection pointer
-//
 PyObject *rxsection_arrow(PyObject *s, PyObject *args, PyObject *keywds);
 
+// Compute ribbon extrusions for a spline path with varying cross-sections adding them
+// to geometry.
+//  
+//  ribbon_extrusions(center, tangents, normals, ranges, num_res, xs_front, xs_back, geometry)
+//
+PyObject *ribbon_extrusions(PyObject *s, PyObject *args, PyObject *keywds);
+
+//
+// Accumulate triangles from multiple extrusions.
+// Also keeps track of triangle and vertex ranges for each residue.
+//
+PyObject *geometry_new(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *geometry_delete(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *geometry_add_range(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *geometry_ranges(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *geometry_empty(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *geometry_arrays(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 #endif
