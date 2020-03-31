@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -335,8 +337,8 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
     session.main_view.camera = c
 
     # VR gui cannot display a native file dialog.
-	from chimerax.open_command import set_use_native_open_file_dialog
-	set_use_native_open_file_dialog(False)
+    from chimerax.open_command import set_use_native_open_file_dialog
+    set_use_native_open_file_dialog(False)
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)

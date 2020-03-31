@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-CoreIO" version="1.0"
-	    package="chimerax.core_io"
+<BundleInfo name="ChimeraX-CoreFormats" version="1.0"
+	    package="chimerax.core_formats"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

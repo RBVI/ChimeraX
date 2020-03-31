@@ -690,8 +690,10 @@ To define a data(/file) format, you supply a `Provider`_ tag in the
 the ``manager`` of the tag or section should be "data formats".  The
 information supplied by the `Provider`_ tag will be all that is
 required for the format definition -- *i.e.* the data-formats manager
-will never call the ``BundleAPI``'s ``run_provider`` method, so that
-method does not need to be customized for this manager.
+will never call the :py:class:`~chimerax.core.toolshed.BundleAPI`'s
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider`
+method, so that method does not need to be customized
+for this manager.
 
 These are the possible `Provider`_ attributes:
 
@@ -778,7 +780,8 @@ Opening Files
 For your bundle to open a file, it needs to provide information to the "open command" manager
 about what data format it can open, what arguments it needs, what function to call, *etc.*.
 Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
-provided when the open-command manager calls your bundle's ``BundleAPI.run_provider`` method.
+provided when the open-command manager calls your bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
 That call will only occur when ChimeraX tries to open the kind of data that your `Provider`_
 tag says you can open.
 
@@ -793,3 +796,75 @@ The other possible `Provider`_ attributes are:
         The `name`_ of the `data format`_ you can open.  Can also be one of the format's
         `nicknames`_ instead.
 
+- **Infrequently-Used** Attributes
+
+    *batch*
+        If your provider can open multiple files of its format as one combined model, then
+        it should specify *batch* as "true" and it will be called with a list of path names
+        instead of an open file stream.
+
+    *check_path*
+        If the user can type something other than an existing file name, and your provider
+        will expand that into a real file name or names (*e.g.* there is some kind of substitution
+        the provider does with the text), then specify *check_path* as "true" (which implies
+        *want_path*\="true", you don't have to explicitly specify that).
+
+    *type*
+        If you are providing information about opening a file rather than fetching from a
+        database, *type* should be "open", and otherwise "fetch".  Since the default value
+        for *type* is "open", providers that open files typically skip specifying *type*.
+
+    *want_path*
+        The provider is typically called with an open file stream rather than a file name,
+        which allows ChimeraX to handle compressed files automatically for you.  If your
+        file reader must be able to open/read the file itself instead, then specify *want_path*
+        as "true" and you will receive a file path instead of a stream, and attempting
+        to open a compressed version of your file type will result in an error before your
+        provider is even called.
+
+The remainder of the information the bundle provides about how to open a file comes from the
+return value of the bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
+an instance of the
+:py:class:`chimerax.open_command.OpenerInfo` class.
+The doc strings of that class discuss its methods in detail, but briefly:
+
+* You must override the :py:meth:`~chimerax.open_command.OpenerInfo.open` method to take
+  the input provided and return a (models, status message) tuple.
+
+* If your format has format-specific keywords that the ``open`` command should accept,
+  you must override the :py:meth:`~chimerax.open_command.OpenerInfo.open_args` property
+  to return a dictionary that maps **Python** keywords of your opener-function to corresponding
+  :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
+  corresponding Python values).
+  
+Saving Files
+^^^^^^^^^^^^
+
+For your bundle to save a file, it needs to provide information to the "save command" manager
+about what data format it can save, what arguments it needs, what function to call, *etc.*.
+Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
+provided when the save-command manager calls your bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
+That call will only occur when ChimeraX tries to save the kind of data that your `Provider`_
+tag says you can save.
+
+To specify that your bundle can save a data format, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` attribute in the tag or section should be "save command".
+The other possible `Provider`_ attributes are:
+
+- **Mandatory** Attributes
+
+    *name*
+        The `name`_ of the `data format`_ you can save.  Can also be one of the format's
+        `nicknames`_ instead.
+
+- **Infrequently-Used** Attributes
+
+    *compression_okay*
+        If the data you are writing out is *already* compressed and therefore it would probably
+        be bad to compress it again (likely slower with no space savings), specifying
+        *compression_okay* as "false" will prevent the ``save`` command from allowing this
+        format to be automatically compressed (which happens when the output file name also has
+        a compression suffix, *e.g.* "my_structure.pdb.gz").

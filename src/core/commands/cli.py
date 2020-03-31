@@ -90,6 +90,8 @@ as built from the command line and the command description.
 The initial ``session`` argument to a command function
 is not part of the command description.
 
+.. _Type Annotations:
+
 Type Annotations
 ----------------
 
