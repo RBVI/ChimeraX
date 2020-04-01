@@ -22,7 +22,7 @@
 
   <Providers manager="data formats">
     <Provider name="GL Transmission" category="Generic 3D objects" suffixes=".glb"
-		synopsis="glTF" reference_url="https://github.com/KhronosGroup/glTF" />
+		synopsis="glTF" nicknames="gltf" reference_url="https://github.com/KhronosGroup/glTF" />
   </Providers>
 
   <Providers manager="open command">
