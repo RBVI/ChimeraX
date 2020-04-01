@@ -2037,7 +2037,7 @@ def all_atomic_structures(session):
 
 # -----------------------------------------------------------------------------
 #
-def all_structures(session):
+def all_structures(session, atomic_only=False):
     '''List of all :class:`.Structure` objects.'''
     return [m for m in session.models.list() if isinstance(m,Structure)]
 
@@ -2045,13 +2045,25 @@ def all_structures(session):
 #
 def all_atoms(session, atomic_only=False):
     '''All atoms in all structures as an :class:`.Atoms` collection.'''
-    func = all_atomic_structures if atomic_only else all_structures
-    return structure_atoms(func(session))
+    structures = all_structures(session, atomic_only=atomic_only)
+    from .molarray import concatenate, Atoms
+    atoms = concatenate([m.atoms for m in structures], Atoms)
+    return atoms
+
+# -----------------------------------------------------------------------------
+#
+def all_bonds(session, atomic_only=False):
+    '''All bonds in all structures as an :class:`.Bonds` collection.'''
+    structures = all_structures(session, atomic_only=atomic_only)
+    from .molarray import concatenate, Bonds
+    bonds = concatenate([m.bonds for m in structures], Bonds)
+    return bonds
+
 # -----------------------------------------------------------------------------
 #
 def all_residues(session, atomic_only=False):
     '''All residues in all structures as a :class:`.Residues` collection.'''
-    structures = all_atomic_structures(session) if atomic_only else all_structures(session)
+    structures = all_structures(session, atomic_only=atomic_only)
     from .molarray import concatenate, Residues
     residues = concatenate([m.residues for m in structures], Residues)
     return residues

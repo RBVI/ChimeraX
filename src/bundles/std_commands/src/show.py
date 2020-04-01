@@ -27,8 +27,8 @@ def show(session, objects=None, what=None, target=None, only=False):
         Show only the specified atoms/bonds/residues in each specified molecule.
         If what is models then hide models that are not specified.
     '''
-    if objects is None and (what != ['cartoons'] and what != ['ribbons']):
-        from chimerax.core.commands import all_objects
+    if objects is None:
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
 
     what_to_show = what_objects(target, what, objects)
@@ -120,8 +120,7 @@ def show_cartoons(session, objects, only, undo_state):
         from chimerax.atomic import all_residues
         res = all_residues(session)
     else:
-        atoms = objects.atoms
-        res = atoms.unique_residues
+        res = objects.residues
     undo_state.add(res, "ribbon_displays", res.ribbon_displays, True)
     res.ribbon_displays = True
     if only:

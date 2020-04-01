@@ -358,6 +358,15 @@ def all_pseudobond_groups(session):
 
 # -----------------------------------------------------------------------------
 #
+def all_pseudobonds(session):
+    '''All pseudobonds in a :class:`.Pseudobonds` collection.'''
+    pbgroups = all_pseudobond_groups(session)
+    from .molarray import concatenate, Pseudobonds
+    pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups], Pseudobonds)
+    return pbonds
+
+# -----------------------------------------------------------------------------
+#
 def interatom_pseudobonds(atoms, group_name = None):
     structures = atoms.unique_structures
     if len(structures) == 0:

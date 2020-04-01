@@ -23,8 +23,8 @@ def hide(session, objects=None, what=None, target=None):
     target : set of "what" values, or None
         Alternative to the "what" option for specifying what to hide.
     '''
-    if objects is None and (what != ['cartoons'] and what != ['ribbons']):
-        from chimerax.core.commands import all_objects
+    if objects is None:
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
 
     from .show import what_objects
@@ -47,8 +47,7 @@ def hide(session, objects=None, what=None, target=None):
         undo_state.add(pbonds, "displays", pbonds.displays, False)
         pbonds.displays = False
     if 'cartoons' in what_to_hide or 'ribbons' in what_to_hide:
-        from chimerax.atomic import all_residues
-        res = objects.atoms.unique_residues if objects else all_residues(session)
+        res = objects.residues
         undo_state.add(res, "ribbon_displays", res.ribbon_displays, False)
         res.ribbon_displays = False
     if 'surfaces' in what_to_hide:
