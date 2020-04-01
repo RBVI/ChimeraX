@@ -778,7 +778,7 @@ def standard_metadata(previous_metadata={}):
     return metadata
 
 
-def save(session, path, version=3, uncompressed=False, include_maps=False):
+def save(session, path, version=3, uncompressed=True, include_maps=False):
     """command line version of saving a session"""
     my_open = None
     if hasattr(path, 'write'):
