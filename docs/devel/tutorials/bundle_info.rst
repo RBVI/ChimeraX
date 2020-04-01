@@ -748,7 +748,7 @@ These are the possible `Provider`_ attributes:
 
     *allow_directory*
         If this is specified as "true", then the data for this format can be organized as
-        a folder rather than a single file.  Regardless of the value of *suffixes*, such
+        a folder rather than a single file.  Regardless of the value of *suffixes*, such a
         folder can only be opened/saved by providing the ``format`` keyword to the corresponding
         command.  Specifying *allow_directory* as "true" does not preclude also possibly
         opening this format from individual files (in which case *suffixes* would matter).
@@ -765,7 +765,7 @@ These are the possible `Provider`_ attributes:
         a CGI script), but the web server does provide a format-specific Content-Type header
         for the data, then mime_types lists Content-Type header values that the server
         or servers could possibly provide.  Only relevant to the user providing an URL, not
-        to the "fetching" of database identifiers outlined in the `Fetching Data`_ section.
+        to the "fetching" of database identifiers outlined in the `Fetching Files`_ section.
 
 For example::
 
@@ -806,7 +806,7 @@ The other possible `Provider`_ attributes are:
     *check_path*
         If the user can type something other than an existing file name, and your provider
         will expand that into a real file name or names (*e.g.* there is some kind of substitution
-        the provider does with the text), then specify *check_path* as "true" (which implies
+        the provider does with the text), then specify *check_path* as "false" (which implies
         *want_path*\="true", you don't have to explicitly specify that).
 
     *type*
@@ -815,12 +815,19 @@ The other possible `Provider`_ attributes are:
         for *type* is "open", providers that open files typically skip specifying *type*.
 
     *want_path*
-        The provider is typically called with an open file stream rather than a file name,
+        The provider is normally called with an open file stream rather than a file name,
         which allows ChimeraX to handle compressed files automatically for you.  If your
         file reader must be able to open/read the file itself instead, then specify *want_path*
         as "true" and you will receive a file path instead of a stream, and attempting
         to open a compressed version of your file type will result in an error before your
         provider is even called.
+  
+For example::
+
+  <Providers manager="open command">
+    <Provider name="AutoDock PDBQT" want_path="true" />
+    <Provider name="Sybyl Mol2" want_path="true" />
+  </Providers>
 
 The remainder of the information the bundle provides about how to open a file comes from the
 return value of the bundle's
@@ -837,13 +844,6 @@ The doc strings of that class discuss its methods in detail, but briefly:
   to return a dictionary that maps **Python** keywords of your opener-function to corresponding
   :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
   corresponding Python values).
-  
-For example::
-
-  <Providers manager="open command">
-    <Provider name="AutoDock PDBQT" want_path="true" />
-    <Provider name="Sybyl Mol2" want_path="true" />
-  </Providers>
 
 Saving Files
 ^^^^^^^^^^^^
@@ -876,6 +876,12 @@ The other possible `Provider`_ attributes are:
         format to be automatically compressed (which happens when the output file name also has
         a compression suffix, *e.g.* "my_structure.pdb.gz").
 
+For example::
+
+  <Providers manager="save command">
+    <Provider name="Sybyl Mol2" />
+  </Providers>
+
 The remainder of the information the bundle provides about how to save a file comes from the
 return value of the bundle's
 :py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
@@ -901,12 +907,6 @@ The doc strings of that class discuss its methods in detail, but briefly:
   :py:meth:`~chimerax.save_command.SaverInfo.save_args_string_from_widget`
   that takes your widget and returns a string containing the corresponding options and
   values that could be added to a ``save`` command.
-
-For example::
-
-  <Providers manager="save command">
-    <Provider name="Sybyl Mol2" />
-  </Providers>
   
 Fetching Files
 ^^^^^^^^^^^^^^
@@ -956,6 +956,12 @@ The other possible `Provider`_ attributes are:
         as "true", and the others should have it as "false".  *is_default* defaults to "true",
         so since most databases only have one format this attribute is in most cases omitted.
 
+For example::
+
+  <Providers manager="open command">
+    <Provider name="pubchem" type="fetch" format_name="sdf" example_ids="12123" />
+  </Providers>
+
 The remainder of the information the bundle provides about how to fetch from a database comes
 from the return value of the bundle's
 :py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
@@ -976,9 +982,3 @@ The doc strings of that class discuss its methods in detail, but briefly:
   an "open command" `Provider`_ with *type*\="open"), then 
   :py:meth:`~chimerax.open_command.FetcherInfo.fetch_args` should only return keywords applicable
   just to fetching.  The "opening" keywords will be automatically combined with those.
-
-For example::
-
-  <Providers manager="open command">
-    <Provider name="pubchem" type="fetch" format_name="sdf" example_ids="12123" />
-  </Providers>
