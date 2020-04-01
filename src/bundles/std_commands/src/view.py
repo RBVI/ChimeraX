@@ -224,7 +224,9 @@ class NamedView(State):
     ]
     def take_snapshot(self, session, flags):
         self.remove_deleted_models()
-        data = {'view attrs': {a:getattr(self,a) for a in self.save_attrs},
+        vattrs = {a:getattr(self,a) for a in self.save_attrs}
+        vattrs['positions'] = {m:p for m,p in self.positions.items() if m.SESSION_SAVE}
+        data = {'view attrs': vattrs,
                 'version': self.version}
         return data
 
