@@ -106,6 +106,7 @@ molobject.py: cymol.$(PYMOD_EXT)
 
 atomstruct_cpp.install: element_cpp.install pyinstance_cpp.install
 dssp_cpp.install: atomstruct_cpp.install
+ribbon_cpp.install: atomstruct_cpp.install
 element_cpp.install: pyinstance_cpp.install
 mmcif_cpp.install: readcif_cpp.install atomstruct_cpp.install
 pdbio.install: atomstruct_cpp.install pdb_cpp.install
