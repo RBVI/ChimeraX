@@ -38,7 +38,26 @@
     <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-PDB" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="mmCIF" category="Molecular structure" suffixes=".cif,.mmcif"
+		encoding="utf-8" mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="mmCIF" want_path="true" />
+    <Provider name="pdb" type="fetch" format_name="mmcif" />
+    <Provider name="pdbe" type="fetch" format_name="mmcif" />
+    <Provider name="pdbj" type="fetch" format_name="mmcif" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="mmCIF" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

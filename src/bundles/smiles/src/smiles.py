@@ -39,8 +39,9 @@ def fetch_smiles(session, smiles_string, **kw):
             pass
         else:
             from chimerax.atomic.sdf import read_sdf
-            from chimerax.core.io import open_filename
-            structures, status = read_sdf(session, open_filename(path, url_encoding='utf=8'), path)
+            from chimerax import io
+            structures, status = read_sdf(session, io.open_input(path, encoding='utf=8'),
+                path)
             if structures:
                 for s in structures:
                     s.name = "smiles:" + smiles_string

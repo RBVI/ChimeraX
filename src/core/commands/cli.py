@@ -90,6 +90,8 @@ as built from the command line and the command description.
 The initial ``session`` argument to a command function
 is not part of the command description.
 
+.. _Type Annotations:
+
 Type Annotations
 ----------------
 
@@ -1985,12 +1987,12 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        '_hidden', 'url', 'synopsis'
+        '_hidden', 'url', 'synopsis', 'self_logging'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
                  postconditions=(), required_arguments=(),
-                 non_keyword=(), hidden=(), url=None, synopsis=None):
+                 non_keyword=(), hidden=(), url=None, synopsis=None, self_logging=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = dict(keyword)
@@ -2009,6 +2011,7 @@ class CmdDesc:
         self._required_arguments = required_arguments
         self.url = url
         self.synopsis = synopsis
+        self.self_logging = self_logging
         self._function = None
 
     @property
@@ -2619,14 +2622,14 @@ class Command:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % kw_name
+                        arg_name = '"%s"' % _user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 if kw_name in self._ci._required:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % kw_name
+                        arg_name = '"%s"' % _user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 # optional and wrong type, try as keyword
@@ -2835,7 +2838,7 @@ class Command:
 
             ci = self._ci
             kw_args = self._kw_args
-            really_log = log and _used_aliases is None
+            really_log = log and _used_aliases is None and not self._ci.self_logging
             if really_log:
                 self.log()
             cmd_text = self.current_text[self.start:self.amount_parsed]

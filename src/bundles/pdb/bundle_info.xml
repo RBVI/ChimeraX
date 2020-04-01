@@ -45,7 +45,26 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr"
+		encoding="utf-8" reference_url="http://www.wwpdb.org/documentation/file-format" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="PDB" />
+    <Provider name="pdb" type="fetch" format_name="pdb" is_default="false" />
+    <Provider name="pdbe" type="fetch" format_name="pdb" is_default="false" />
+    <Provider name="pdbj" type="fetch" format_name="pdb" is_default="false" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="PDB" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

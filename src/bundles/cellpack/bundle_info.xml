@@ -18,7 +18,18 @@ for more information.</Description>
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="cellPACK" category="Molecular structure" 
+		reference_url="http://www.cellpack.org" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="cellPACK" type="fetch" format_name="cellpack"/>
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

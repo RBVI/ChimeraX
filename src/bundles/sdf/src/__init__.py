@@ -21,4 +21,12 @@ class _SDF_API(BundleAPI):
     def open_file(session, stream, file_name):
         return read_sdf(session, stream, file_name)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class SdfOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                return read_sdf(session, data, file_name)
+        return SdfOpenerInfo()
+
 bundle_api = _SDF_API()

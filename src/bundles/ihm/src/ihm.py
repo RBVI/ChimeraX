@@ -1498,9 +1498,10 @@ class SequenceAlignmentModel(Model):
         if a is None:
             fi = self.alignment_file_info
             astream = fi.stream(self.session)
-            from chimerax.core.io import deduce_format
-            fmt = deduce_format(fi.file_name, no_raise=True)[0]
-            if fmt is None:
+            from chimerax.data_formats import NoFormatError
+            try:
+                fmt = session.data_formats.format_from_file_name(fi.file_name)
+            except NoFormatError:
                 print ('Unknown alignment file suffix', fi.file_name)
                 return None
             from chimerax.seqalign.parse import open_file

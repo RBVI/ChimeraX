@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 """
-pub_chem: PubChem fetch support
+pubchem: PubChem fetch support
 """
 
 def fetch_pubchem(session, pubchem_id, *, ignore_cache=False, **kw):
@@ -24,10 +24,9 @@ def fetch_pubchem(session, pubchem_id, *, ignore_cache=False, **kw):
     url = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/%s/SDF?record_type=3d" % pubchem_id
     pubchem_name = "%s.sdf" % pubchem_id
     from chimerax.core.fetch import fetch_file
-    filename = fetch_file(session, url, 'PubChem %s' % pubchem_id, pubchem_name, 'PubChem',
-                          ignore_cache=ignore_cache)
+    filename = fetch_file(session, url, 'PubChem %s' % pubchem_id, pubchem_name,
+        'PubChem', ignore_cache=ignore_cache)
 
     session.logger.status("Opening PubChem %s" % (pubchem_id,))
-    from chimerax.core import io
-    models, status = io.open_data(session, filename, format='sdf', name="pubchem:" + pubchem_id, **kw)
-    return models, status
+    return session.open_command.open_data(filename, format='sdf',
+        name="pubchem:" + pubchem_id, **kw)

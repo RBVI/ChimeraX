@@ -279,10 +279,8 @@ class BundleBuilder:
                     raise ValueError("Missing manager from Provider at line %d" % e.sourceline)
                 name = keywords.pop("name", None)
                 if name is None:
-                    raise ValueError("Missing name from Provider at line %d" % e.sourceline)
-                if name in self.providers:
-                    raise ValueError("Duplicate name used by Provider at line %d" % e.sourceline)
-                self.providers[name] = (manager, keywords)
+                    raise ValueError("Missing Provider's name at line %d" % e.sourceline)
+                self.providers[(manager, name)] = keywords
 
     def _get_dependencies(self, bi):
         self.dependencies = []
@@ -437,9 +435,7 @@ class BundleBuilder:
             args = [m] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
                 "ChimeraX :: Manager :: " + " :: ".join(args))
-        for p, values in self.providers.items():
-            mgr = values[0]
-            kw = values[1]
+        for (mgr, p), kw in self.providers.items():
             args = [p, mgr] + ["%s:%s" % (k, quote_if_necessary(v)) for k, v in kw.items()]
             self.chimerax_classifiers.append(
                 "ChimeraX :: Provider :: " + " :: ".join(args))

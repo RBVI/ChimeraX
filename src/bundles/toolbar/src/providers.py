@@ -13,7 +13,8 @@
 
 
 def _file_open(session):
-    session.ui.main_window.file_open_cb(session)
+    from chimerax.open_command import show_open_file_dialog
+    show_open_file_dialog(session)
 
 
 def _file_recent(session):
@@ -22,7 +23,8 @@ def _file_recent(session):
 
 
 def _file_save(session):
-    session.ui.main_window.file_save_cb(session)
+    from chimerax.save_command import show_save_file_dialog
+    show_save_file_dialog(session)
 
 
 _providers = {

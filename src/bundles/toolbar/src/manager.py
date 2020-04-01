@@ -91,14 +91,11 @@ class ToolbarManager(ProviderManager):
             if bi is None:
                 self.session.logger.warning('Uninstalled bundle %s' % where())
                 return
-            pi = bi.providers.get(provider, None)
+            pi = bi.providers.get('toolbar/' + provider, None)
             if pi is None:
                 self.session.logger.warning('Unable to find linked button %s' % where())
                 return
-            pi_manager, pi_kw = pi
-            if pi_manager != 'toolbar':  # double check that is a toolbar entry
-                self.session.logger.warning('Linked button is not managed by "toolbar" %s' % where())
-                return
+            pi_kw = pi
             if 'mouse_mode' in pi_kw:
                 self.session.logger.warning('Can not link to mouse mode buttons %s' % where())
                 return

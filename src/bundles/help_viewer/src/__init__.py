@@ -94,6 +94,47 @@ class _MyAPI(toolshed.BundleAPI):
             return tool.HelpUI
         return None
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        if name == "HTML":
+            from chimerax.open_command import OpenerInfo
+            class HelpViewerInfo(OpenerInfo):
+                def open(self, session, path, file_name, *, new_tab=False):
+                    import os
+                    base, ext = os.path.splitext(path)
+                    ext, *fragment = ext.split('#')
+                    if not fragment:
+                        fragment = ''
+                    else:
+                        fragment = fragment[0]
+                        path = path[:-(len(fragment) + 1)]
+                    path = os.path.abspath(path)
+                    from urllib.parse import urlunparse
+                    from urllib.request import pathname2url
+                    url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
+                    show_url(session, url, new_tab=new_tab)
+                    return [], "Opened %s" % file_name
+
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import BoolArg
+                    return { 'new_tab': BoolArg }
+        else: # help: / http: / https:
+            from chimerax.open_command import FetcherInfo
+            class HelpViewerInfo(FetcherInfo):
+                def fetch(self, session, ident, format_name, ignore_cache,
+                        _protocol=name, **kw):
+                    url = _protocol + ':' + ident
+                    show_url(session, url, **kw)
+                    return [], "Opened %s" % url
+
+                @property
+                def fetch_args(self):
+                    from chimerax.core.commands import BoolArg
+                    return { 'new_tab': BoolArg }
+
+        return HelpViewerInfo()
+
 
 def show_url(session, url, *, new_tab=False, html=None):
     if session.ui.is_gui:
