@@ -699,7 +699,7 @@ These are the possible `Provider`_ attributes:
 
 - **Mandatory** Attributes
 
-.. _name:
+    .. _name:
 
     *name*
         The full official name of the format, typically omitting the word "format"
@@ -719,7 +719,7 @@ These are the possible `Provider`_ attributes:
         If the format is textual, the encoding for that text.  Binary formats should
         omit this attribute.  The most common encoding for text formats is "utf-8".
 
-.. _nicknames:
+    .. _nicknames:
 
     *nicknames*
         A short, easy-to-type name for the format, typically used in conjunction with
