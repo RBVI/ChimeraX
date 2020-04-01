@@ -838,6 +838,13 @@ The doc strings of that class discuss its methods in detail, but briefly:
   :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
   corresponding Python values).
   
+For example::
+
+  <Providers manager="open command">
+    <Provider name="AutoDock PDBQT" want_path="true" />
+    <Provider name="Sybyl Mol2" want_path="true" />
+  </Providers>
+
 Saving Files
 ^^^^^^^^^^^^
 
@@ -894,3 +901,84 @@ The doc strings of that class discuss its methods in detail, but briefly:
   :py:meth:`~chimerax.save_command.SaverInfo.save_args_string_from_widget`
   that takes your widget and returns a string containing the corresponding options and
   values that could be added to a ``save`` command.
+
+For example::
+
+  <Providers manager="save command">
+    <Provider name="Sybyl Mol2" />
+  </Providers>
+  
+Fetching Files
+^^^^^^^^^^^^^^
+
+For your bundle to fetch a file from a web database, it needs to provide information to the
+"open command" manager about what data format it can open, what arguments it needs,
+what function to call, *etc.*.
+Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
+provided when the open-command manager calls your bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
+That call will only occur when ChimeraX tries to fetch the kind of data that your `Provider`_
+tag says you can fetch.
+
+To specify that your bundle can fetch from a database, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` attribute in the tag or section should be "open command".
+The other possible `Provider`_ attributes are:
+
+- **Mandatory** Attributes
+
+    *format_name*
+        The `name`_ of the `data format`_ for the data that is fetched.  Can also be one of
+        the format's `nicknames`_ instead.
+
+    *name*
+        The name of the database that the data is fetched from, typically an easily typed
+        lowercase string, since this name will be used directly in the ``open`` command
+        as either the value for the ``fromDatabase`` keyword or as the prefix in the
+        *from_database:identifier* form of fetch arguments.  So "pdb" is better then
+        "Protein Databank".
+        
+    *type*
+        *type* should be "fetch" to indicate that your bundle fetches data
+        from the web (as opposed to opening local files).  The default is "open".
+
+- **Frequently-Used** Attributes
+
+    *example_ids*
+        A list of one or more valid example identifiers for your database.  For use in
+        graphical user interfaces.
+
+- **Infrequently-Used** Attributes
+
+    *is_default*
+        If a database can be fetched from using different `data format`_\s, the one that
+        should be used when the user omits the ``format`` keyword should have *is_default*
+        as "true", and the others should have it as "false".  *is_default* defaults to "true",
+        so since most databases only have one format this attribute is in most cases omitted.
+
+The remainder of the information the bundle provides about how to fetch from a database comes
+from the return value of the bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
+an instance of the
+:py:class:`chimerax.open_command.FetcherInfo` class.
+The doc strings of that class discuss its methods in detail, but briefly:
+
+* You must override the :py:meth:`~chimerax.open_command.FetcherInfo.fetch` method to take
+  the input provided and return a (models, status message) tuple.
+
+* If your format has database-specific keywords that the ``open`` command should accept,
+  you must override the :py:meth:`~chimerax.open_command.FetcherInfo.fetch_args` property
+  to return a dictionary that maps **Python** keywords of your fetcher-function to corresponding
+  :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
+  corresponding Python values).  
+
+  If the `data format`_ being fetched can also be opened directly from a file (*i.e.* there's
+  an "open command" `Provider`_ with *type*\="open"), then 
+  :py:meth:`~chimerax.open_command.FetcherInfo.fetch_args` should only return keywords applicable
+  just to fetching.  The "opening" keywords will be automatically combined with those.
+
+For example::
+
+  <Providers manager="open command">
+    <Provider name="pubchem" type="fetch" format_name="sdf" example_ids="12123" />
+  </Providers>

@@ -19,3 +19,6 @@
 
 .. autoclass:: chimerax.open_command.FetcherInfo
     :members:
+
+.. autoclass:: chimerax.open_command.manager.OpenManager
+    :members:

@@ -190,7 +190,7 @@ class OpenManager(ProviderManager):
     def open_data(self, path, **kw):
         """
         Given a file path and possibly format-specific keywords, return a (models, status message)
-            tuple.  The models will not have been opened in the session.
+        tuple.  The models will not have been opened in the session.
         """
         from .cmd import provider_open
         return provider_open(self.session, [path], _return_status=True,
