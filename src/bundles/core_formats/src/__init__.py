@@ -67,7 +67,7 @@ class _SessionAPI(BundleAPI):
                         from chimerax.core.commands import BoolArg, EnumOf
                         return {
                             'new_tab': BoolArg,
-                            'data_format': EnumOf([fmt.name
+                            'data_format': EnumOf([fmt.nicknames[0]
                                 for fmt in session.open_command.open_data_formats]),
                         }
         else:

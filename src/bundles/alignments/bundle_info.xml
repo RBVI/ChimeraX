@@ -54,20 +54,22 @@
   </Providers>
 
   <Providers manager="open command">
-    <Provider name="Clustal ALN" />
-    <Provider name="FASTA" />
-    <Provider name="HSSP" />
-    <Provider name="GCG Multiple Sequence File" />
-    <Provider name="Pfam" />
-    <Provider name="NBRF/PIR" />
-    <Provider name="GCG Rich Sequence" />
-    <Provider name="Stockholm" />
+	<!-- Using nicknames for the provider names since the parser function is based on that -->
+    <Provider name="aln" />
+    <Provider name="fasta" />
+    <Provider name="hssp" />
+    <Provider name="msf" />
+    <Provider name="pfam" />
+    <Provider name="pir" />
+    <Provider name="rsf" />
+    <Provider name="stockholm" />
   </Providers>
 
   <Providers manager="save command">
-    <Provider name="Clustal ALN" />
-    <Provider name="FASTA" />
-    <Provider name="NBRF/PIR" />
+	<!-- Using nicknames for the provider names since the saver function is based on that -->
+    <Provider name="rsf" />
+    <Provider name="fasta" />
+    <Provider name="pir" />
   </Providers>
 
   <Classifiers>
