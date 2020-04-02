@@ -57,12 +57,13 @@ class HBondsGUI(QWidget):
         arg_names, var_args, var_kw, frame_dict = getargvalues(currentframe())
         settings_defaults = {}
         self.__show_values = {}
-        from chimerax.core.configfile import Value
-        from chimerax.core.commands import ColorArg
+        from chimerax.core.colors import ColorValue
         for arg_name in arg_names:
+            if arg_name in ['self', 'session', 'settings_name']:
+                continue
             if not arg_name.startswith('show_') or 'show_' + arg_name in arg_names:
                 if arg_name.endswith('color'):
-                    value = Value(frame_dict[arg_name], ColorArg, ColorArg)
+                    value = ColorValue(frame_dict[arg_name])
                 else:
                     value = frame_dict[arg_name]
                 settings_defaults[arg_name] = value
