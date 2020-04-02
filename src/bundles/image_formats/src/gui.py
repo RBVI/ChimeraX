@@ -103,6 +103,19 @@ class SaveOptionsWidget(QFrame):
             if h > 0 and ih is not None:
                 self._width.setText('%.0f' % ((ih/h) * w))
 
+    def _sizes(self):
+        gw = self._session.ui.main_window.graphics_window
+        w, h = gw.width(), gw.height()
+        try:
+            iw = int(self._width.text())
+        except ValueError:
+            iw = None
+        try:
+            ih = int(self._height.text())
+        except ValueError:
+            ih = None
+        return w, h, iw, ih
+
     def _aspect_changed(self, state):
         if self._keep_aspect.isChecked():
             w,h,iw,ih = self._sizes()
