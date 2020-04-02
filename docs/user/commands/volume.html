@@ -1413,8 +1413,8 @@ and/or above a specified maximum
 &ndash; show the full extent of a map previously limited to a zone with
 <a href="#zone"><b>volume zone</b></a>
 <li><a href="#zone"><b>volume zone</b></a>
-&ndash; zero the values at grid points within or beyond a cutoff distance from
-specified atoms, or limit the display to a zone without making a new map
+&ndash; limit the display to a zone around specified atoms,
+or make a new map with values of zero at grid points within or beyond the zone
 </ul>
 <a href="#vop" class="nounder">&bull;</a>
 <a name="add"><b>volume add</b></a> &nbsp;<i>volume-spec</i>&nbsp;
@@ -2363,32 +2363,32 @@ Show the full extent of a map that was previously limited to a zone using
 <a href="#vop" class="nounder">&bull;</a>
 <a name="zone"><b>volume zone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-<b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;
+[&nbsp;<b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>minimalBounds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>newMap</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>newMap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-If <b>newMap</b> is <b>true</b> (default), create a new map in which the
-values of grid points farther than <i>r</i> &Aring; from any atom in
-<a href="atomspec.html"><i>atom-spec</i></a> (those beyond the zone) 
-is set to zero, or if <b>invert</b> is true, set the values of grid points
-within the zone to zero.
+If <b>newMap</b> is <b>false</b> (default),
+limit the surface display to a zone within <b>range</b> <i>r</i> 
+(default <b>3.0</b> &Aring;) of any atom in 
+<a href="atomspec.html"><i>atom-spec</i></a> and restrict the
+<a href="#dimensions">current display region</a> of the map
+to the box containing the zoned surface. 
+The full extent of the map can be restored with
+<a href="#unzone"><b>volume unzone</b></a>.
+The <b>invert</b> option is not available with <b>newMap false</b>.
+<p>
+If <b>newMap</b> is <b>true</b>, create a new map in which the
+values of grid points beyond the zone are set to zero, 
+or if <b>invert</b> is true, with values within the zone set to zero.
 If <b>minimalBounds</b> is true, make the resulting map
 as small as possible while enclosing the zone; otherwise, the
 dimensions will be the same as for the input map.
 If <b>bondPointSpacing</b> is specified, use points
 spaced <i>s</i> &Aring; apart along bonds
 in addition to the atoms to define the zone.
-<p>
-If <b>newMap</b> is false, instead of creating a new map,
-zone the surface display and restrict the
-<a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface. 
-The full extent of the map can be restored with
-<a href="#unzone"><b>volume unzone</b></a>.
-The <b>invert</b> option is not available with <b>newMap false</b>.
 See also:
 <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,
