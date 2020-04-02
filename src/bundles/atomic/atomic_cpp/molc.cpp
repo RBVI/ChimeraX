@@ -1072,6 +1072,40 @@ extern "C" EXPORT PyObject *atom_residue_sums(void *atoms, size_t n, double *ato
     return result;
 }
 
+extern "C" EXPORT void atom_ribbon_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Coord *c = a[i]->ribbon_coord();
+	    if (c == NULL) {
+	      PyErr_SetString(PyExc_ValueError, "Atom does not hae ribbon coordinate");
+	      break;
+	    }
+            *xyz++ = (*c)[0];
+            *xyz++ = (*c)[1];
+            *xyz++ = (*c)[2];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_atom_ribbon_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+      Coord coord;
+      for (size_t i = 0; i != n; ++i, xyz += 3) {
+	  float64_t x = xyz[0], y = xyz[1], z = xyz[2];
+	  coord.set_xyz(x, y, z);
+	  a[i]->set_ribbon_coord(coord);
+      }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_size_threshold)
 {
     Atom *a = static_cast<Atom *>(atom);
@@ -1297,7 +1331,7 @@ extern "C" EXPORT void atom_transform(void* atom, size_t n, double* tf)
     }
 }
 
-extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
+extern "C" EXPORT void atom_update_ribbon_backbone_atom_visibility(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {

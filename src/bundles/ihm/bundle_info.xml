@@ -18,7 +18,19 @@
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Map" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Integrative/Hybrid Models" category="Higher-order structure" suffixes=".ihm"
+		nicknames="ihm" reference_url="https://pdb-dev.wwpdb.org/about/" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Integrative/Hybrid Models" want_path="true" />
+    <Provider name="pdbdev" type="fetch" format_name="Integrative/Hybrid Models" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

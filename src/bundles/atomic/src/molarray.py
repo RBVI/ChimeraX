@@ -563,6 +563,10 @@ class Atoms(Collection):
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True,
         doc="Returns a :class:`Residues` whose data items correspond in a 1-to-1 fashion with the "
         "items in the Atoms.  Read only.")
+    ribbon_coords = cvec_property('atom_ribbon_coord', float64, 3, doc =
+        '''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Raises error if any atom does nt have a ribbon coordinate.
+        Can be set.''')
     @property
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
@@ -667,10 +671,10 @@ class Atoms(Collection):
         c_function('atom_delete',
             args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
-    def update_ribbon_visibility(self):
-        '''Update the 'hide' status for ribbon control point atoms, which
+    def update_ribbon_backbone_atom_visibility(self):
+        '''Update the 'hide' status for ribbon backbone atoms, which
             are hidden unless any of its neighbors are visible.'''
-        f = c_function('atom_update_ribbon_visibility',
+        f = c_function('atom_update_ribbon_backbone_atom_visibility',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 

@@ -13,9 +13,9 @@
 
 def time(session, command):
     '''Time a command.'''
+    from chimerax.core.commands import run
     from time import time
     t0 = time()
-    from chimerax.core.commands import run
     run(session, command)
     t1 = time()
 

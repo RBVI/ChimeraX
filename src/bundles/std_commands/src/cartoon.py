@@ -48,7 +48,7 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
 
     Parameters
     ----------
-    atoms : atom specifier
+    atoms : Atoms
         Show ribbons for the specified residues. If no atom specifier is given then ribbons are shown
         for all residues.  Residues that are already shown as ribbons remain shown as ribbons.
     smooth : floating point number
@@ -66,10 +66,10 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
         sets it for the entire structure.
     '''
     if atoms is None:
-        from chimerax.core.commands import atomspec
-        atoms = atomspec.everything(session)
-    results = atoms.evaluate(session)
-    residues = results.atoms.residues
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
+    else:
+        residues = atoms.unique_residues
     from chimerax.core.undo import UndoState
     undo_state = UndoState("cartoon")
     undo_state.add(residues, "ribbon_displays", residues.ribbon_displays, True)
@@ -88,16 +88,14 @@ def cartoon(session, atoms=None, smooth=None, suppress_backbone_display=None, sp
         structures = residues.unique_structures
         undo_state.add(structures, "ribbon_show_spines", structures.ribbon_show_spines, spine)
         structures.ribbon_show_spines = spine
-    residues.atoms.update_ribbon_visibility()
     session.undo.register(undo_state)
 
 
 def _get_structures(session, structures):
     if structures is None or structures is True:
         # True is the NoArg case
-        from chimerax.core.commands import atomspec
-        results = atomspec.everything(session).evaluate(session)
-        structures = results.atoms.unique_structures
+        from chimerax.atomic import all_structures
+        structures = all_structures(session)
     return structures
 
 
@@ -164,9 +162,9 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
 
     Parameters
     ----------
-    atoms : atom specifier
+    atoms : Atoms
         Set style for all secondary structure types that include the specified residues.
-        If no atom specifier is given then style is set for all secondary structure types.
+        If no atoms are given then style is set for all secondary structure types.
     width : floating point number
         Width of ribbons in angstroms.
     thickness : floating point number
@@ -200,10 +198,12 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         Radius of helices as cylinders
     '''
     if atoms is None:
-        from chimerax.core.commands import atomspec
-        atoms = atomspec.everything(session)
-    results = atoms.evaluate(session)
-    structures = results.atoms.unique_structures
+        from chimerax.atomic import all_residues, all_structures
+        residues = all_residues(session)
+        structures = all_structures(session)
+    else:
+        residues = atoms.unique_residues
+        structures = residues.unique_structures
     import inspect
     argvalues = inspect.getargvalues(inspect.currentframe())
     for name in argvalues.args:
@@ -259,7 +259,6 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   "sides=%d" % param["sides"],
                   "scale=%.2g" % param["ratio"])
         return
-    residues = results.atoms.residues
     is_helix = residues.is_helix
     is_strand = residues.is_strand
     polymer_types = residues.polymer_types
@@ -559,20 +558,19 @@ def uncartoon(session, atoms=None):
 
     Parameters
     ----------
-    atoms : atom specifier
-        Hide ribbons for the specified residues. If no atom specifier is given then all ribbons are hidden.
+    atoms : Atoms
+        Hide ribbons for the specified residues. If no atoms are given then all ribbons are hidden.
     '''
     if atoms is None:
-        from chimerax.core.commands import atomspec
-        atoms = atomspec.everything(session)
-    results = atoms.evaluate(session)
-    residues = results.atoms.residues
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
+    else:
+        residues = atoms.unique_residues
     from chimerax.core.undo import UndoState
     undo_state = UndoState("cartoon hide")
     undo_state.add(residues, "ribbon_displays", residues.ribbon_displays, False)
     residues.ribbon_displays = False
     session.undo.register(undo_state)
-
 
 # -----------------------------------------------------------------------------
 #
@@ -594,10 +592,10 @@ class EvenIntArg(Annotation):
 # -----------------------------------------------------------------------------
 #
 def register_command(logger):
-    from chimerax.core.commands import register, Or, CmdDesc, AtomSpecArg
+    from chimerax.core.commands import register, Or, CmdDesc
     from chimerax.core.commands import Bounded, FloatArg, EnumOf, BoolArg, IntArg, TupleOf, NoArg
-    from chimerax.atomic import AtomicStructuresArg
-    desc = CmdDesc(optional=[("atoms", AtomSpecArg)],
+    from chimerax.atomic import AtomsArg, AtomicStructuresArg
+    desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
                                           EnumOf(["default"]))),
                             ("suppress_backbone_display", BoolArg),
@@ -616,7 +614,7 @@ def register_command(logger):
                    synopsis='set cartoon tether options for specified structures')
     register("cartoon tether", desc, cartoon_tether, logger=logger)
 
-    desc = CmdDesc(optional=[("atoms", AtomSpecArg)],
+    desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    keyword=[("width", FloatArg),
                             ("thickness", FloatArg),
                             ("arrows", BoolArg),
@@ -636,7 +634,7 @@ def register_command(logger):
                    hidden=["ss_ends", "mode_strand", "spline_normals"],
                    synopsis='set cartoon style for secondary structures in specified models')
     register("cartoon style", desc, cartoon_style, logger=logger)
-    desc = CmdDesc(optional=[("atoms", AtomSpecArg)],
+    desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    synopsis='undisplay cartoon for specified residues')
     register("cartoon hide", desc, uncartoon, logger=logger)
     from chimerax.core.commands import create_alias

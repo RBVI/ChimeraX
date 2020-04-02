@@ -32,4 +32,13 @@ class _DICOMBundle(BundleAPI):
         return models, msg
     '''
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class DicomOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import dicom
+                return dicom.open_dicom(session, data)
+        return DicomOpenerInfo()
+
 bundle_api = _DICOMBundle()

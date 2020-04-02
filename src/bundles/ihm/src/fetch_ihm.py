@@ -37,8 +37,8 @@ def fetch_ihm(session, id, ignore_cache=False, **kw):
                         ignore_cache=ignore_cache)
 
   log.status('Opening %s' % name)
-  from chimerax.core import io
-  models, status = io.open_data(session, filename, format = 'ihm', name = name, **kw)
+  models, status = session.open_command.open_data(filename, format = 'ihm',
+  	name = name, **kw)
     
   return models, status
 

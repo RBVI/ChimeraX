@@ -16,7 +16,18 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Signal time series" nicknames="signal" suffixes=".npz"
+		category="Generic 3D objects" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Signal time series" want_path="true" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

@@ -1904,13 +1904,10 @@ class ChangeTracker:
                 self.total_deleted = total_deleted
         def process_changes(data):
             final_changes = {}
+            from . import molarray
             for k, v in data.items():
                 created_ptrs, mod_ptrs, reasons, tot_del = v
-                temp_ns = {}
-                # can't effectively use locals() as the third argument as per the
-                # Python 3 documentation for exec() and locals()
-                exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
-                collection = temp_ns['collection']
+                collection = getattr(molarray, k + 's')
                 fc_key = k[:-4] if k.endswith("Data") else k
                 final_changes[fc_key] = Changes(collection(created_ptrs),
                     collection(mod_ptrs), reasons, tot_del)

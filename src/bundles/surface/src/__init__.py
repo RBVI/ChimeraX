@@ -96,4 +96,13 @@ class _SurfaceBundle(BundleAPI):
         }
         return ct.get(class_name)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class ColladaOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import collada
+                return collada.read_collada_surfaces(session, data, file_name)
+        return ColladaOpenerInfo()
+
 bundle_api = _SurfaceBundle()

@@ -36,4 +36,13 @@ class _SignalViewerBundle(BundleAPI):
         from . import signals
         signals.register_signal_command(logger)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class SignalOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import signals
+                return signals.read_signals(session, data)
+        return SignalOpenerInfo()
+
 bundle_api = _SignalViewerBundle()

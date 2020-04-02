@@ -45,7 +45,7 @@ def select_zone(session, near, range, find = None, extend = False, residues = Fa
         raise UserError('No atoms or surfaces specified')
 
     if find is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         find = all_objects(session)
 
     fa = find.atoms

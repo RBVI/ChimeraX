@@ -1,5 +1,5 @@
 <BundleInfo name="ChimeraX-PubChem" version="1.0"
-	    package="chimerax.atomic.pub_chem"
+	    package="chimerax.atomic.pubchem"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -17,7 +17,12 @@
     <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-SDF" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="open command">
+    <Provider name="pubchem" type="fetch" format_name="sdf" example_ids="12123" />
+  </Providers>
 
   <Providers manager="start structure">
     <Provider name="pubchem" ui_name="PubChem CID" new_model_only="true"/>

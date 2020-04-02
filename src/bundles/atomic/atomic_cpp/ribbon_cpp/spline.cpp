@@ -17,10 +17,20 @@
 #define _USE_MATH_DEFINES
 #include <cmath>			// use std:isnan()
 #include <iostream>
+#include <map>				// use std::map
+#include <vector>			// use std::vector
 
 #include <Python.h>			// use PyObject
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/arrayobject.h>      // use PyArray_*(), NPY_*
+
 #include <arrays/pythonarray.h>		// use python_float_array
+#include <atomstruct/Atom.h>		// use Atom
+using atomstruct::Atom;
+#include <atomstruct/Residue.h>		// use Residue
+using atomstruct::Residue;
+
 #include "normals.h"			// use parallel_transport_normals, dihedral_angle
 
 // -----------------------------------------------------------------------------
@@ -251,4 +261,402 @@ PyObject *spline_path(PyObject *, PyObject *args, PyObject *keywds)
 
   PyObject *ctn = python_tuple(pcoords, ptangents, pnormals);
   return ctn;
+}
+
+// -----------------------------------------------------------------------------
+//
+static void tridiagonal(int n, double *a, double *b, const double *c, double *d)
+{
+  /*
+    TDMA solver, a b c d can be NumPy array type or Python list type.
+    refer to http://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
+    Hacked source from
+    http://ofan666.blogspot.com/2012/02/tridiagonal-matrix-algorithm-solver-in.html
+  */
+
+  for (int i = 1 ; i < n ; ++i)
+    {
+      double mc = a[i] / b[i - 1];
+      b[i] = b[i] - mc * c[i - 1];
+      d[i] = d[i] - mc * d[i - 1];
+    }
+
+  a[n-1] = d[n-1] / b[n-1];
+  for (int i = n-2 ; i >= 0 ; --i)
+    a[i] = (d[i] - c[i] * a[i + 1]) / b[i];
+}
+
+// -----------------------------------------------------------------------------
+//
+static void cubic_spline(const float *coords, int num_pts, double *coef)
+{
+  // Extend ends
+  int ne = num_pts + 2;
+  double *temp = new double[ne*7];
+
+  double *x = temp, *y = temp + ne, *z = temp + 2*ne;
+  double *xyz[3] = {x, y, z};
+  const float *c0 = coords, *c1 = coords+3;
+  for (int axis = 0 ; axis < 3 ; ++axis)
+    xyz[axis][0] = c0[axis] - (c1[axis] - c0[axis]);
+  for (int i = 0 ; i < num_pts ; ++i)
+    { x[i+1] = coords[3*i]; y[i+1] = coords[3*i+1]; z[i+1] = coords[3*i+2]; }
+  const float *e0 = coords+3*(num_pts-1), *e1 = coords+3*(num_pts-2);
+  for (int axis = 0 ; axis < 3 ; ++axis)
+    xyz[axis][ne-1] = e0[axis] + (e0[axis] - e1[axis]);
+
+  double *a = temp + 3*ne, *b = temp + 4*ne, *c = temp + 5*ne, *d = temp + 6*ne;
+  for (int axis = 0 ; axis < 3 ; ++axis)
+    {
+      // 1D cubic spline from http://mathworld.wolfram.com/CubicSpline.html
+      // Set b[0] and b[-1] to 1 to match TomG code in VolumePath
+      double *values = xyz[axis];
+      for (int i = 0 ; i < ne ; ++i)
+	{ a[i] = 1; b[i] = 4; c[i] = 1; }
+      b[0] = b[ne-1] = 2;
+      // b[0] = b[ne-1] = 1;
+      d[0] = values[1] - values[0];
+      for (int i = 1 ; i < ne-1 ; ++i)
+	d[i] = 3 * (values[i+1] - values[i-1]);
+      d[ne-1] = 3 * (values[ne-1] - values[ne-2]);
+      tridiagonal(ne, a, b, c, d); // Result returned in a.
+      for (int i = 0 ; i < num_pts-1 ; ++i)
+	{
+	  double *cf = coef + 12*i + 4*axis;
+	  cf[0] = values[i+1];
+	  cf[1] = a[i+1];
+	  double delta = values[i+2] - values[i+1];
+	  cf[2] = 3 * delta - 2 * a[i+1] - a[i+2];
+	  cf[3] = 2 * -delta + a[i+1] + a[i+2];
+	}
+    }
+  delete [] temp;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *cubic_spline(PyObject *, PyObject *args, PyObject *keywds)
+{
+  FArray xyz;
+  const char *kwlist[] = {"xyz", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				   (char **)kwlist,
+				   parse_float_n3_array, &xyz))
+    return NULL;
+
+  if (!xyz.is_contiguous())
+    {
+      PyErr_Format(PyExc_TypeError,
+		   "cubic_spline(): xyz array must be contiguous");
+      return NULL;
+    }
+
+  int n = xyz.size(0);
+  if (n < 2)
+    {
+      PyErr_Format(PyExc_TypeError,
+		   "cubic_spline(): Must have 2 or more coordinates, got %d", n);
+      return NULL;
+    }
+
+  double *coefficients;
+  PyObject *coef = python_double_array(n-1, 3, 4, &coefficients);
+  cubic_spline(xyz.values(), n, coefficients);
+
+  return coef;
+}
+
+// -----------------------------------------------------------------------------
+//
+class Residues
+{
+public:
+  int count;
+  Residue **pointers;
+};
+
+// -----------------------------------------------------------------------------
+//
+static void atom_spline_positions(const Residues &residues,
+				  const std::map<std::string, float> &atom_offset_map,
+				  std::vector<Atom *> &atoms, std::vector<float> &offsets)
+{
+  int nr = residues.count;
+  for (int ri = 0 ; ri < nr ; ++ri)
+    {
+      /*
+      Residue *r = residues.pointers[ri];
+      for (auto a = atom_offset_map.begin() ; a != atom_offset_map.end() ; ++a)
+	{
+	  Atom *atom = r->find_atom(a->first.c_str());
+	  if (atom)
+	    {
+	      atoms.push_back(atom);
+	      offsets.push_back(ri + a->second);
+	    }
+	}
+      */
+
+      const Residue::Atoms &ratoms = residues.pointers[ri]->atoms();
+      for (auto a = ratoms.begin() ; a != ratoms.end() ; ++a)
+	{
+	  Atom *atom = *a;
+	  if (atom->is_backbone(atomstruct::BackboneExtent::BBE_RIBBON))
+	    {
+	      auto ai = atom_offset_map.find(atom->name().c_str());
+	      if (ai != atom_offset_map.end())
+		{
+		  atoms.push_back(atom);
+		  offsets.push_back(ri + ai->second);
+		}
+	    }
+	}
+    }
+}
+// -----------------------------------------------------------------------------
+//
+inline void spline_position(float offset,const double *coef, int num_pts, double *xyz)
+{
+  int seg = int(offset);
+  float t = offset - seg;
+  if (seg < 0)
+    {
+      t += seg;
+      seg = 0;
+    }
+  else if (seg > num_pts-1)
+    {
+      t += seg - (num_pts-1);
+      seg = num_pts-1;
+    }
+  const double *c = coef + 12*seg;
+  xyz[0] = c[0] + t*(c[1] + t*(c[2] + t*c[3]));
+  xyz[1] = c[4] + t*(c[5] + t*(c[6] + t*c[7]));
+  xyz[2] = c[8] + t*(c[9] + t*(c[10] + t*c[11]));
+}
+
+// -----------------------------------------------------------------------------
+//
+static void spline_positions(const std::vector<float> &offsets,
+			     const double *coef, int num_pts,
+			     double *positions)
+{
+  int n = offsets.size();
+  for (int i = 0 ; i < n ; ++i, positions +=3)
+    spline_position(offsets[i], coef, num_pts, positions);
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C" int parse_residues(PyObject *arg, void *res)
+{
+  import_array(); // Initialize numpy.
+    
+  if (!PyArray_Check(arg))
+    {
+      PyErr_SetString(PyExc_TypeError, "residues argument is not a numpy array");
+      return 0;
+    }
+
+  PyArrayObject *a = static_cast<PyArrayObject *>(static_cast<void *>(arg));
+  if (PyArray_TYPE(a) != NPY_UINTP)
+    {
+      PyErr_SetString(PyExc_TypeError, "residues argument numpy array is not of type uintp");
+      return 0;
+    }
+
+  if (PyArray_NDIM(a) != 1)
+    {
+      PyErr_SetString(PyExc_TypeError, "residues argument numpy array is not 1 dimensional");
+      return 0;
+    }
+
+  // Check if array is contiguous.
+  if (PyArray_STRIDE(a,0) != static_cast<int>(sizeof(void *)))
+    {
+      PyErr_SetString(PyExc_TypeError, "residues argument numpy array is not contiguous");
+      return 0;
+    }
+
+  Residues *r = static_cast<Residues *>(res);
+  r->count = PyArray_DIM(a,0);
+  r->pointers = static_cast<Residue **>(PyArray_DATA(a));
+
+  return 1;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C" int parse_string_float_map(PyObject *arg, void *sf)
+{
+  if (!PyDict_Check(arg))
+    {
+      PyErr_SetString(PyExc_TypeError, "argument is not a dictionary");
+      return 0;
+    }
+
+  std::map<std::string, float> *sfmap = static_cast<std::map<std::string, float> *>(sf);
+  Py_ssize_t index = 0;
+  PyObject *key;
+  PyObject *value;
+  while (PyDict_Next(arg, &index, &key, &value))
+    {
+      if (!PyUnicode_Check(key))
+	{
+	  PyErr_SetString(PyExc_TypeError, "dictionary argument key is not a string");
+	  return 0;
+	}
+      if (!PyFloat_Check(value))
+	{
+	  PyErr_SetString(PyExc_TypeError, "dictionary argument value is not a float");
+	  return 0;
+	}
+      (*sfmap)[PyUnicode_AsUTF8AndSize(key,NULL)] = PyFloat_AsDouble(value);
+    }
+  return 1;
+}
+
+// -----------------------------------------------------------------------------
+//
+static PyObject *python_atom_pointers(const std::vector<Atom *> &atoms)
+{
+  void **data;
+  size_t n = atoms.size();
+  PyObject *a = python_voidp_array(n, &data);
+  for (size_t i = 0 ; i < n ; ++i)
+    data[i] = atoms[i];
+  return a;
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *atom_spline_positions(PyObject *, PyObject *args, PyObject *keywds)
+{
+  Residues residues;
+  std::map<std::string, float> atom_offsets;
+  DArray coef;
+  const char *kwlist[] = {"residues", "atom_offsets", "spline_coef", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
+				   (char **)kwlist,
+				   parse_residues, &residues,
+				   parse_string_float_map, &atom_offsets,
+				   parse_contiguous_double_n34_array, &coef))
+    return NULL;
+  
+  std::vector<Atom *> atoms;
+  std::vector<float> offsets;
+  atom_spline_positions(residues, atom_offsets,	atoms, offsets);
+  double *positions;
+  PyObject *xyz = python_double_array(offsets.size(), 3, &positions);
+  spline_positions(offsets,  coef.values(), coef.size(0), positions);
+  
+  return python_tuple(python_atom_pointers(atoms), xyz);
+}
+
+//
+// Position of atoms on ribbon in spline parameter units.
+// These should correspond to the "minimum" backbone atoms
+// listed in atomstruct/Residue.cpp.
+// Negative means on the spline between previous residue
+// and this one; positive between this and next.
+// These are copied from Chimera.  May want to do a survey
+// of closest spline parameters across many structures instead.
+//
+static std::map<std::string, float> _tether_positions = {
+   // Amino acid
+   {"N", -1/3.},
+   {"CA", 0.},
+   {"C",    1/3.},
+   // Nucleotide
+   {"P",    -2/6.},
+   {"O5'",  -1/6.},
+   {"C5'",   0.},
+   {"C4'",   1/6.},
+   {"C3'",   2/6.},
+   {"O3'",   3/6.}
+};
+
+static std::map<std::string, float> _non_tether_positions = {
+    // Amino acid
+    {"O",    1/3.},
+    {"OXT",  1/3.},
+    {"OT1",  1/3.},
+    {"OT2",  1/3.},
+    // Nucleotide
+    {"OP1", -2/6.},
+    {"O1P", -2/6.},
+    {"OP2", -2/6.},
+    {"O2P", -2/6.},
+    {"OP3", -2/6.},
+    {"O3P", -2/6.},
+    {"O2'", -1/6.},
+    {"C2'",  2/6.},
+    {"O4'",  1/6.},
+    {"C1'",  1.5/6.},
+    {"O3'",  2/6.},
+};
+
+// -----------------------------------------------------------------------------
+//
+static void set_atom_ribbon_positions(const Residues &residues,
+				      const std::map<std::string, float> &atom_offset_map,
+				      const double *coef, int num_pts,
+				      std::vector<Atom *> *atoms = NULL)
+{
+  int nr = residues.count;
+  atomstruct::Coord c;
+  double xyz[3];
+  for (int ri = 0 ; ri < nr ; ++ri)
+    {
+      const Residue::Atoms &ratoms = residues.pointers[ri]->atoms();
+      for (auto a = ratoms.begin() ; a != ratoms.end() ; ++a)
+	{
+	  Atom *atom = *a;
+	  if (atom->is_backbone(atomstruct::BackboneExtent::BBE_RIBBON))
+	    {
+	      auto ai = atom_offset_map.find(atom->name().c_str());
+	      if (ai != atom_offset_map.end())
+		{
+		  if (atoms)
+		    atoms->push_back(atom);
+		  spline_position(ri + ai->second, coef, num_pts, xyz);
+		  c.set_xyz(xyz[0], xyz[1], xyz[2]);
+		  atom->set_ribbon_coord(c);
+		}
+	    }
+	}
+    }
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *atom_tether_positions(PyObject *, PyObject *args, PyObject *keywds)
+{
+  Residues residues;
+  DArray coef;
+  const char *kwlist[] = {"residues", "spline_coef", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
+				   (char **)kwlist,
+				   parse_residues, &residues,
+				   parse_contiguous_double_n34_array, &coef))
+    return NULL;
+  
+  set_atom_ribbon_positions(residues, _non_tether_positions, coef.values(), coef.size(0));
+  std::vector<Atom *> atoms;
+  set_atom_ribbon_positions(residues, _tether_positions, coef.values(), coef.size(0), &atoms);
+  double *positions;
+  PyObject *xyz = python_double_array(atoms.size(), 3, &positions);
+  for (auto ai = atoms.begin() ; ai != atoms.end() ; ++ai)
+    {
+      const atomstruct::Coord *c = (*ai)->ribbon_coord();
+      *positions++ = (*c)[0];
+      *positions++ = (*c)[1];
+      *positions++ = (*c)[2];
+    }
+  
+  return python_tuple(python_atom_pointers(atoms), xyz);
 }

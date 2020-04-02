@@ -20,7 +20,23 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="HTML" category="Documentation"
+		suffixes=".html,.htm,.xhtml,.xht,.xml" encoding="utf-8"
+		reference_url="http://en.wikipedia.org/wiki/Html "
+		mime_types="text/html,application/xhtml+xml" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="help" type="fetch" format_name="HTML" />
+    <Provider name="http" type="fetch" format_name="HTML" is_default="false" />
+    <Provider name="https" type="fetch" format_name="HTML" is_default="false" />
+    <Provider name="HTML" want_path="true" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

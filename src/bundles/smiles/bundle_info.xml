@@ -16,11 +16,22 @@
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-SDF" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
 
   <Providers manager="start structure">
     <Provider name="smiles" ui_name="SMILES string" new_model_only="true"/>
+  </Providers>
+
+  <Providers manager="data formats">
+    <Provider name="SMILES" synopsis="SMILES string" category="Molecular structure" 
+		reference_url="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="smiles" type="fetch" format_name="SMILES"/>
   </Providers>
 
   <Classifiers>
