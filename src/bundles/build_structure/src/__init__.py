@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .mod import modify_atom
-from .start import place_helium
+from .start import place_helium, place_peptide, PeptideError
 
 from chimerax.core.toolshed import BundleAPI
 

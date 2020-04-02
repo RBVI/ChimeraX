@@ -11,8 +11,8 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from PyQt5.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget, QHBoxLayout
-from PyQt5.QtWidgets import QCheckBox, QSizePolicy
+from PyQt5.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget
+from PyQt5.QtWidgets import QCheckBox, QSizePolicy, QHBoxLayout, QTextEdit
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
 from chimerax.core.errors import UserError
@@ -43,8 +43,11 @@ def fill_widget(name, widget):
             button_layout.addWidget(coord_entry, 1, 2*(i+1), alignment=Qt.AlignLeft)
         tip = QLabel("Use 'Modify Structure' section to change element type and add bonded atoms")
         tip.setWordWrap(True)
-        tip.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
-        layout.addWidget(tip, alignment=Qt.AlignCenter)
+        # specify alignment within the label itself (instead of the layout) so that the label
+        # is given the full width of the layout to work with, otherwise you get unneeded line
+        # wrapping
+        tip.setAlignment(Qt.AlignCenter)
+        layout.addWidget(tip)
         res_name_area = QWidget()
         layout.addWidget(res_name_area, alignment=Qt.AlignCenter)
         res_name_layout = QHBoxLayout()
@@ -60,6 +63,23 @@ def fill_widget(name, widget):
         check_box.setObjectName("select atom")
         layout.addWidget(check_box, alignment=Qt.AlignCenter)
         layout.addStretch(1)
+    elif name == "peptide":
+        layout = QVBoxLayout()
+        layout.setContentsMargins(3,0,3,5)
+        layout.setSpacing(0)
+        widget.setLayout(layout)
+        layout.addWidget(QLabel("Peptide Sequence", alignment=Qt.AlignCenter))
+        peptide_seq = QTextEdit()
+        peptide_seq.setObjectName("peptide sequence")
+        layout.addWidget(peptide_seq, stretch=1)
+        tip = QLabel("'Apply' button will bring up dialog for setting"
+            "\N{GREEK CAPITAL LETTER PHI}/\N{GREEK CAPITAL LETTER PSI} angles")
+        tip.setWordWrap(True)
+        # specify alignment within the label itself (instead of the layout) so that the label
+        # is given the full width of the layout to work with, otherwise you get unneeded line
+        # wrapping
+        tip.setAlignment(Qt.AlignCenter)
+        layout.addWidget(tip)
 
 def process_widget(name, widget):
     from chimerax.core.commands import StringArg
@@ -99,7 +119,8 @@ def process_command(session, name, structure, substring):
                 command_registries[name] = registry = RegisteredCommandInfo()
                 from chimerax.core.commands import Float3Arg, StringArg, BoolArg
                 register(name, CmdDesc(keyword=[("position", Float3Arg), ("res_name", StringArg),
-                    ("select", BoolArg)], synopsis="place helium atom"), shim_place_atom, registry=registry)
+                    ("select", BoolArg)], synopsis="place helium atom"), shim_place_atom,
+                    registry=registry)
             registry = command_registries[name]
         cmd = Command(session, registry=registry)
         cmd.run(name + ' ' + substring, log=False)
