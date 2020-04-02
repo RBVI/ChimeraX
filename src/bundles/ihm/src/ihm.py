@@ -1235,10 +1235,12 @@ class DatabaseDataSet(DataSet):
 #
 class Crosslink:
     def __init__(self, asym1, seq1, atom1, asym2, seq2, atom2, dist, dist_low = None):
-        self.asym1 = asym1	# Chain id
+        # mmCIF asym IDs read by IHM module can be strings or ints, but ChimeraX always
+        # uses strings, so coerce to str so that comparisons work
+        self.asym1 = str(asym1)	# Chain id
         self.seq1 = seq1	# Residue number, integer
         self.atom1 = atom1 	# Atom name, can be None
-        self.asym2 = asym2
+        self.asym2 = str(asym2)
         self.seq2 = seq2
         self.atom2 = atom2
         self.distance_upper = dist	# Upper bound, can be None
@@ -1716,7 +1718,10 @@ def atom_lookup(models):
             res = a.residue
             amap[(res.chain_id, res.number, a.name)] = a
         for r in m.residues:
-            amap[(r.chain_id, r.number, None)] = r.principal_atom
+            # If multiple residues with same chain ID and number, pick the
+            # last one that has a defined principal atom
+            if r.principal_atom is not None:
+                amap[(r.chain_id, r.number, None)] = r.principal_atom
     def lookup(asym_id, res_num, atom_name, amap=amap):
         return amap.get((asym_id, res_num, atom_name))
     return lookup

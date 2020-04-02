@@ -1685,6 +1685,7 @@ class XSectionManager(State):
         self.scale_sheet_arrow = ((2.0, 0.2), (0.2, 0.2))
         self.scale_coil = (0.2, 0.2)
         self.scale_nucleic = (0.2, 1.0)
+        self.tube_radius = 2.0
         self.style_helix = self.STYLE_ROUND
         self.style_sheet = self.STYLE_SQUARE
         self.style_coil = self.STYLE_ROUND
@@ -1759,7 +1760,6 @@ class XSectionManager(State):
             (self.RC_HELIX_MIDDLE, self.RC_HELIX_END, self.RC_SHEET_START):
                 (self.RIBBON_HELIX_ARROW, self.RIBBON_COIL),
         }
-        self.tube_radius = None
 
         self._xs_helix = None
         self._xs_helix_arrow = None
