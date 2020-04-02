@@ -286,7 +286,7 @@ def register_volume_filtering_subcommands(logger):
                                    ('minimal_bounds', BoolArg),
                                    ('new_map', BoolArg),
                                    ('invert', BoolArg)] + ssm_kw,
-                        required_arguments=('near_atoms', 'range'),
+                        required_arguments=('near_atoms',),
                         synopsis = 'Zero map values beyond a distance range from atoms')
     register('volume zone', zone_desc, volume_zone, logger=logger)
 
@@ -986,8 +986,8 @@ def submatrix_center(v, xyz_center, index_center, subregion, step):
 
 # -----------------------------------------------------------------------------
 #
-def volume_zone(session, volumes, near_atoms = None, range = None, bond_point_spacing = None,
-                minimal_bounds = False, new_map = True, invert = False,
+def volume_zone(session, volumes, near_atoms, range = 3, bond_point_spacing = None,
+                minimal_bounds = False, new_map = False, invert = False,
                 subregion = 'all', step = 1, model_id = None):
 
     '''Mask a map keeping only parts close to specified atoms.'''
