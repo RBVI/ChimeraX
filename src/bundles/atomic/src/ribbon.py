@@ -385,6 +385,8 @@ def _smooth_twist(rc0, rc1):
         return True
     if rc0 is XSectionManager.RC_HELIX_END or rc0 is XSectionManager.RC_SHEET_END:
         return True
+    if rc1 is XSectionManager.RC_HELIX_START or rc1 is XSectionManager.RC_SHEET_START:
+        return True
     return False
 
 def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):        
@@ -1122,7 +1124,7 @@ class Ribbon:
         if timing:
             t0 = time()
         # Currently Structure::ribbon_orient() defines the orientation method as
-        # ATOMS for helices, PEPTIDE for strands, and GUIDES for nucleic acids.
+        # ATOMS for helices and coils, PEPTIDE for strands, and GUIDES for nucleic acids.
         atom_normals = None
         from .structure import Structure
         atom_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
