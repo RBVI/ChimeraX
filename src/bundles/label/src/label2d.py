@@ -583,7 +583,7 @@ class LabelModel(Model):
         l = self.label
         xpad = (0 if l.background is None else int(.2 * l.size)) + l.margin
         ypad = l.margin
-        from chimerax.core.graphics import text_image_rgba
+        from chimerax.graphics import text_image_rgba
         rgba = text_image_rgba(l.text, self.label_color, l.size, l.font,
                                background_color = l.background, xpad = xpad,
                                ypad = ypad, bold = l.bold, italic = l.italic,
@@ -602,7 +602,7 @@ class LabelModel(Model):
         th, tw = rgba.shape[:2]
         self.texture_size = (tw,th)
         uw,uh = 2*tw/w, 2*th/h
-        from chimerax.core.graphics.drawing import rgba_drawing
+        from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
 
     @property
@@ -621,7 +621,7 @@ class LabelModel(Model):
             tw,th = self.texture_size
             uw,uh = 2*tw/w, 2*th/h
             x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
-            from chimerax.core.graphics.drawing import position_rgba_drawing
+            from chimerax.graphics.drawing import position_rgba_drawing
             position_rgba_drawing(self, (x,y), (uw,uh))
 
     def x3d_needs(self, x3d_scene):

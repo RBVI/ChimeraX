@@ -65,7 +65,7 @@ class UpdateLoop:
             changed = view.check_for_drawing_change()
             self.last_drawing_change_time = time() - t0
             if changed:
-                from .graphics import OpenGLError, OpenGLVersionError
+                from chimerax.graphics import OpenGLError, OpenGLVersionError
                 try:
                     if ((session.ui.is_gui and session.ui.main_window.graphics_window.is_drawable)
                         or getattr(view.camera, 'always_draw', False)):

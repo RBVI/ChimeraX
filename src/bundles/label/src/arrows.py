@@ -102,7 +102,8 @@ def arrow_change(session, arrows, *, color=None, weight=None,
         'head_style': head_style,
         'frames': frames
     }
-    return [_update_arrow(session, a, **kw) for a in arrows]
+    for a in arrows:
+        _update_arrow(session, a, **kw)
 
 
 def _update_arrow(session, a, *, color=None, weight=None,
@@ -509,7 +510,7 @@ class ArrowModel(Model):
         return min(xs), max(xs), min(ys), max(ys)
 
     def arrow_image_rgba(self):
-    #TODO: same techniques as chimerax.core.graphics.text_image_rgba, but using QPainter's arc drawing
+    #TODO: same techniques as chimerax.graphics.text_image_rgba, but using QPainter's arc drawing
     # plus: remainder of this file
 
         w, h = self.arrow.session.main_view.window_size
@@ -596,7 +597,7 @@ class ArrowModel(Model):
                 p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in poly_points])
 
             # Convert to numpy rgba array.
-            from chimerax.core.graphics import qimage_to_numpy
+            from chimerax.graphics import qimage_to_numpy
             rgba = qimage_to_numpy(image)
 
         return rgba
@@ -608,7 +609,7 @@ class ArrowModel(Model):
         th, tw = rgba.shape[:2]
         self.texture_size = (tw,th)
         uw,uh = 2*tw/w, 2*th/h
-        from chimerax.core.graphics.drawing import rgba_drawing
+        from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
 
     @property

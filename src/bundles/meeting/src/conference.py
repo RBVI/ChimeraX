@@ -20,10 +20,10 @@ from . import mux
 
 class _ConferenceSettings(Settings):
     AUTO_SAVE = {
-        "conf_name": True,
-        "user_name": True,
-        "host_name": True,
-        "port": True,
+        "conf_name": "",
+        "user_name": "",
+        "host_name": "",
+        "port": "",
     }
 
 

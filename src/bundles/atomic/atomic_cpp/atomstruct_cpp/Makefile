@@ -79,7 +79,6 @@ Pseudobond.o: Atom.h ChangeTracker.h Connection.h PBGroup.h PBManager.h Pseudobo
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
 Residue.o: Atom.h Bond.h ChangeTracker.h destruct.h Residue.h session.h tmpl/TemplateCache.h \
 	../pyinstance_cpp/PythonInstance.declare.h ../pyinstance_cpp/PythonInstance.instantiate.h
-RibbonXSection.o: RibbonXSection.h
 Ring.o: Atom.h Bond.h Coord.h Real.h Ring.h ../pyinstance_cpp/PythonInstance.declare.h \
 	../pyinstance_cpp/PythonInstance.instantiate.h
 RingCalc.o: Bond.h Structure.h Residue.h

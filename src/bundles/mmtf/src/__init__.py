@@ -28,7 +28,7 @@ class _MyAPI(BundleAPI):
         # 'fetch_from_database' is called by session code to fetch data with give identifier
         # returns (list of models, status message)
         from . import mmtf
-        return mmtf.fetch_mmtf(session, identifier, ignore_cache, **kw)
+        return mmtf.fetch_mmtf(session, identifier, ignore_cache)
 
     @staticmethod
     def open_file(session, stream, file_name):
@@ -42,5 +42,29 @@ class _MyAPI(BundleAPI):
     #     # 'save_file' is called by session code to save a file
     #     from . import mmtf
     #     return mmtf.write_mmtf(session, name, models)
+
+    @staticmethod
+    def run_provider(session, name, mgr):
+        if name == "Macromolecular Transmission":
+            from chimerax.open_command import OpenerInfo
+            class Info(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import mmtf
+                    return mmtf.open_mmtf(session, data, file_name, **kw)
+
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import BoolArg
+                    return {
+                        'auto_style': BoolArg,
+                        'coordsets': BoolArg
+                    }
+        else:
+            from chimerax.open_command import FetcherInfo
+            class Info(FetcherInfo):
+                def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                    from . import mmtf
+                    return mmtf.fetch_mmtf(session, ident, ignore_cache, **kw)
+        return Info()
 
 bundle_api = _MyAPI()

@@ -563,11 +563,15 @@ class Atoms(Collection):
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True,
         doc="Returns a :class:`Residues` whose data items correspond in a 1-to-1 fashion with the "
         "items in the Atoms.  Read only.")
+    ribbon_coords = cvec_property('atom_ribbon_coord', float64, 3, doc =
+        '''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Raises error if any atom does nt have a ribbon coordinate.
+        Can be set.''')
     @property
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
         blist = []
-        from chimerax.core.geometry import sphere_bounds, copy_tree_bounds, union_bounds
+        from chimerax.geometry import sphere_bounds, copy_tree_bounds, union_bounds
         for m, a in self.by_structure:
             ba = sphere_bounds(a.coords, a.radii)
             ib = copy_tree_bounds(ba,
@@ -667,10 +671,10 @@ class Atoms(Collection):
         c_function('atom_delete',
             args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
-    def update_ribbon_visibility(self):
-        '''Update the 'hide' status for ribbon control point atoms, which
+    def update_ribbon_backbone_atom_visibility(self):
+        '''Update the 'hide' status for ribbon backbone atoms, which
             are hidden unless any of its neighbors are visible.'''
-        f = c_function('atom_update_ribbon_visibility',
+        f = c_function('atom_update_ribbon_backbone_atom_visibility',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
@@ -865,7 +869,7 @@ class Bonds(Collection):
         f = c_function('bond_halfbond_cylinder_placements',
                        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
         f(self._c_pointers, n, pointer(opengl_array))
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         return Places(opengl_array = opengl_array)
         
     @classmethod
@@ -1125,6 +1129,8 @@ class Residues(Collection):
     has a unique integer id.  The ids depend on the collection of residues on the fly and are
     not persistent. Read only.
     ''')
+    selected = cvec_property('residue_selected', npy_bool, read_only = True,
+        doc="numpy bool array whether any Atom in each Residue is selected. Read only.")
     ss_ids = cvec_property('residue_ss_id', int32, doc =
     '''
     A :mod:`numpy` array of integer secondary structure IDs, determined by the input file.
@@ -1223,16 +1229,6 @@ class Residues(Collection):
         f = c_function('residue_ribbon_clear_hide',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
-
-    @property
-    def ribbon_num_selected(self):
-        "Number of selected residue ribbons."
-        f = c_function('residue_ribbon_num_selected',
-                       args = [ctypes.c_void_p, ctypes.c_size_t],
-                       ret = ctypes.c_size_t)
-        return f(self._c_pointers, len(self))
-    ribbon_selected = cvec_property('residue_ribbon_selected', npy_bool,
-        doc="numpy bool array whether each Residue ribbon is selected.")
 
     def set_alt_locs(self, loc):
         if isinstance(loc, str):

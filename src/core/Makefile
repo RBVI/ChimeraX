@@ -15,7 +15,6 @@ include $(TOP)/mk/config.make
 NO_SUBDIR_TEST=1
 SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp \
 	   chutil_cpp commands \
-	   geometry graphics \
 	   ioutil_cpp logger_cpp \
 	   pysupport_cpp toolshed
 
@@ -26,7 +25,7 @@ endif
 include $(TOP)/mk/subdir.make
 
 BUNDLE_NAME = ChimeraX-Core
-BUNDLE_VERSION = 0.92
+BUNDLE_VERSION = 0.93
 PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
@@ -110,6 +109,3 @@ _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
 
 _appdirs.install: appdirs_cpp.install
-geometry.install: arrays_cpp.install
-graphics.install: arrays_cpp.install
-surface.install: arrays_cpp.install

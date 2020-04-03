@@ -43,7 +43,7 @@ def points_and_colors(atoms, bonds, bond_point_spacing = None):
 def color_surface(surf, points, point_colors, distance, far_color = None):
 
     varray = surf.vertices
-    from chimerax.core.geometry import find_closest_points
+    from chimerax.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
     from numpy import empty, uint8
@@ -127,7 +127,7 @@ def color_zone_sharp_edges(surface, points, colors, distance, far_color = None,
         if varray is va_sh and narray is na_sh and tarray is ta_sh:
             varray, narray, tarray = va_us, na_us, ta_us
         
-    from chimerax.core.geometry import find_closest_points
+    from chimerax.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
     ec = _edge_cuts(varray, tarray, i1, n1, points, colors, distance)
@@ -186,7 +186,7 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
         dx = x2-x1
         dp = points[p2]-points[p1]
         px = 0.5*(points[p2]+points[p1]) - x1
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         f = inner_product(px, dp) / inner_product(dx, dp)
         if f <= -0.1 or f >= 1.1:
             raise ValueError('Cut fraction %.5g is out of range (0,1)' % f)
@@ -199,7 +199,7 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
 # -----------------------------------------------------------------------------
 #
 def _cut_at_range(x1, x2, p, distance):
-    from chimerax.core.geometry import distance as dist
+    from chimerax.geometry import distance as dist
     d1 = dist(x1, p)
     d2 = dist(x2, p)
     f = (d1-distance)/(d1-d2)
@@ -213,7 +213,7 @@ def _cut_triangles(edge_cuts, varray, narray, tarray, carray):
     nae = []
     cae = []
     nv = len(varray)
-    from chimerax.core.geometry import normalize_vector
+    from chimerax.geometry import normalize_vector
     for v1, v2, f in edge_cuts:
         p = (1-f)*varray[v1] + f*varray[v2]
         n = normalize_vector((1-f)*narray[v1] + f*narray[v2])

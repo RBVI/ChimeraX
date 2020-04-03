@@ -178,7 +178,7 @@ class GridData:
   #
   def update_transform(self):
 
-    from chimerax.core.geometry import place
+    from chimerax.geometry import place
     saxes = place.skew_axes(self.cell_angles).axes()
     from numpy import transpose
     r = place.Place(axes = transpose(self.rotation))
@@ -491,7 +491,7 @@ def transformation_and_inverse(origin, step, axes):
   d0, d1, d2 = step
   ax, ay, az = axes
 
-  from chimerax.core.geometry import Place
+  from chimerax.geometry import Place
   tf = Place(((d0*ax[0], d1*ay[0], d2*az[0], ox),
               (d0*ax[1], d1*ay[1], d2*az[1], oy),
               (d0*ax[2], d1*ay[2], d2*az[2], oz)))
@@ -504,7 +504,7 @@ def transformation_and_inverse(origin, step, axes):
 #
 def scale_and_skew(ijk, step, cell_angles):
 
-  from chimerax.core.geometry import place
+  from chimerax.geometry import place
   import numpy
   xyz = place.skew_axes(cell_angles) * (numpy.array(step) * ijk)
   return xyz

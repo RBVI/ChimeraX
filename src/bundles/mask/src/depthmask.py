@@ -147,7 +147,7 @@ def surface_projection_coordinates(surfaces, projection_axis, volume):
 
   # Determine transform from vertex coordinates to depth array indices
   # Rotate projection axis to z.
-  from chimerax.core.geometry import orthonormal_frame, scale, translation
+  from chimerax.geometry import orthonormal_frame, scale, translation
   tfrs = orthonormal_frame(projection_axis).inverse() * scale([1/s for s in grid_spacing])
 
   # Transform vertices to depth array coordinates.
@@ -204,7 +204,7 @@ def volume_mask(volume, surfaces, full, tf):
   vol = g.matrix(ijk_min, ijk_size)
   from numpy import zeros
   mvol = zeros(vol.shape, vol.dtype)
-  from chimerax.core.geometry import translation
+  from chimerax.geometry import translation
   mijk_to_dijk = tf * g.ijk_to_xyz_transform * translation(ijk_min)
   return vol, mvol, ijk_min, mijk_to_dijk
 

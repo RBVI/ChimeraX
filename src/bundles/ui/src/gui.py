@@ -115,8 +115,8 @@ class UI(QApplication):
         # QtCoreApplication is created...
         import PyQt5.QtWebEngineWidgets
 
-        import sys
-        QApplication.__init__(self, [sys.argv[0]])
+        from chimerax import app_dirs as ad
+        QApplication.__init__(self, [ad.appname])
 
         # Improve toolbar icon quality on retina displays
         from PyQt5.QtCore import Qt
@@ -398,7 +398,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .graphics import GraphicsWindow
         stereo = getattr(ui, 'stereo', False)
         if stereo:
-            from chimerax.core.graphics import StereoCamera
+            from chimerax.graphics import StereoCamera
             session.main_view.camera = StereoCamera()
         self.graphics_window = g = GraphicsWindow(self._stack, ui, stereo)
         self._stack.addWidget(g.widget)
@@ -441,15 +441,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
-
-        self.use_native_open_dialog = True
-        
-        from .open_folder import OpenFolderDialog
-        self._open_folder = OpenFolderDialog(self, session)
-
-        from .save_dialog import MainSaveDialog, register_save_dialog_options
-        self.save_dialog = MainSaveDialog()
-        register_save_dialog_options(self.save_dialog)
 
         self._hide_tools = False
         self.tool_instance_to_windows = {}
@@ -608,47 +599,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         # handle requests to execute GUI functions from threads
         func, args, kw = event.func_info
         func(*args, **kw)
-
-    def file_open_cb(self, session):
-        self.show_file_open_dialog(session)
-
-    def show_file_open_dialog(self, session, initial_directory = None,
-                              format_name = None):
-        if initial_directory is None:
-            initial_directory = ''
-        from PyQt5.QtWidgets import QFileDialog
-        from .open_save import open_file_filter
-        filters = open_file_filter(all=True, format_name=format_name)
-        if self.use_native_open_dialog:
-            from PyQt5.QtWidgets import QFileDialog
-            paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
-                                                           directory=initial_directory)
-            paths, types = paths_and_types
-        else:
-            from .open_save import OpenDialog
-            d = OpenDialog(parent = self, starting_directory = initial_directory,
-                           filter = filters)
-            paths = d.get_paths()
-
-        if not paths:
-            return
-
-        def _qt_safe(session=session, paths=paths):
-            from chimerax.core.commands import run, FileNameArg
-            run(session, "open " + " ".join([FileNameArg.unparse(p) for p in paths]))
-        # Opening the model directly adversely affects Qt interfaces that show
-        # as a result.  In particular, Multalign Viewer no longer gets hover
-        # events correctly, nor tool tips.
-        #
-        # Using session.ui.thread_safe() doesn't help either(!)
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, _qt_safe)
-
-    def folder_open_cb(self, session):
-        self._open_folder.display(session)
-
-    def file_save_cb(self, session):
-        self.save_dialog.display(self, session)
 
     def file_close_cb(self, session):
         from chimerax.core.commands import run
@@ -920,20 +870,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
         file_menu.setObjectName("File")
-        open_action = QAction("&Open...", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.setToolTip("Open input file")
-        open_action.triggered.connect(lambda arg, s=self, sess=session: s.file_open_cb(sess))
-        file_menu.addAction(open_action)
-        open_folder_action = QAction("Open DICOM Folder...", self)
-        open_folder_action.setToolTip("Open data in folder")
-        open_folder_action.triggered.connect(lambda arg, s=self, sess=session: s.folder_open_cb(sess))
-        file_menu.addAction(open_folder_action)
-        save_action = QAction("&Save...", self)
-        save_action.setShortcut("Ctrl+S")
-        save_action.setToolTip("Save output file")
-        save_action.triggered.connect(lambda arg, s=self, sess=session: s.file_save_cb(sess))
-        file_menu.addAction(save_action)
         close_action = QAction("&Close Session", self)
         close_action.setToolTip("Close session")
         close_action.triggered.connect(lambda arg, s=self, sess=session: s.file_close_cb(sess))
@@ -1020,7 +956,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         preset_info = session.presets.presets_by_category
         self._presets_menu_needs_update = False
        
+        from PyQt5.QtWidgets import QAction
+        help_action = QAction("Add A Preset...", self)
+        from chimerax.core.commands import run
+        help_action.triggered.connect(lambda arg, run=run, ses=session: run(ses,
+            "open http://rbvi.ucsf.edu/chimerax/docs/user/preferences.html#startup"))
         if not preset_info:
+            self.presets_menu.addAction(help_action)
             return
         
         if len(preset_info) == 1:
@@ -1029,6 +971,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._inline_categorized_preset_menu(session, preset_info)
         else:
             self._rollover_categorized_preset_menu(session, preset_info)
+        self.presets_menu.addSeparator()
+        self.presets_menu.addAction(help_action)
     
     def _uncategorized_preset_menu(self, session, preset_info):
         for category, preset_names in preset_info.items():
@@ -1407,7 +1351,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None):
+    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None, 
+            shortcut=None):
         '''Supported API.
         Add a main menu entry.  Adding entries to the Select menu should normally be done via
         the add_select_submenu method instead.  For details, see the doc string for that method.
@@ -1419,7 +1364,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         If 'insertion_point is specified, then the entry will be inserted before it.
         'insertion_point' can be a QAction, a string (menu item text with navigation markup removed)
-        or an integer indicating a particular separator (top to bottom, numbering starting at 1).
+        an integer indicating a particular separator (top to bottom, numbering starting at 1),
+        or False indicating that the entry should be placed at the top of the menu.
         '''
         menu = self._get_target_menu(self.menuBar(), menu_names)
         from PyQt5.QtWidgets import QAction
@@ -1427,8 +1373,16 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda arg, cb = callback: cb())
         if tool_tip is not None:
             action.setToolTip(tool_tip)
+        if shortcut is not None:
+            action.setShortcut(shortcut)
         if insertion_point is None:
             menu.addAction(action)
+        elif insertion_point is False:
+            existing_actions = menu.actions()
+            if not existing_actions:
+                menu.addAction(action)
+            else:
+                menu.insertAction(existing_actions[0], action)
         else:
             menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action

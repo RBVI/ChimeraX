@@ -94,7 +94,7 @@ def compute_cap(drawing, plane, offset):
     else:
         dp = d.scene_position.inverse()
         pnormal = dp.transform_vector(plane.normal)
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         poffset = inner_product(pnormal, dp*plane.plane_point) + offset + getattr(d, 'clip_offset', 0)
         from . import compute_cap
         varray, tarray = compute_cap(pnormal, poffset, d.vertices, t)
@@ -124,7 +124,7 @@ def compute_instances_cap(drawing, triangles, plane, offset):
     for pos in ipos:
         pinv = pos.inverse()
         pnormal = pinv.transform_vector(normal)
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         poffset = inner_product(pnormal, pinv*point) + doffset
         from . import compute_cap
         ivarray, itarray = compute_cap(pnormal, poffset, d.vertices, triangles)

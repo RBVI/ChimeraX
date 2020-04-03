@@ -353,7 +353,7 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
 
     line = (xyz_in, xyz_out)	# Scene coords
     hits = []
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for v in vlist:
         if not v.shown():
             continue
@@ -385,7 +385,7 @@ def volume_plane_intercept(xyz_in, xyz_out, vlist):
 
     line = (xyz_in, xyz_out) # Scene coords
     hits = []
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     for v in vlist:
         if not v.shown():
             continue

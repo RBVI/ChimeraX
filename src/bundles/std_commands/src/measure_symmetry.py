@@ -135,7 +135,7 @@ def centers_and_points(v, maximum_points = 10000):
 #
 def point_symmetry(v, center, xyz, w, minimum_correlation = 0.99, nmax = 8):
 
-    from chimerax.core import geometry
+    from chimerax import geometry
 
     # Look for icosahedral symmetry.
     csname = icosahedral_symmetry(v, center, xyz, w, minimum_correlation)
@@ -192,7 +192,7 @@ def point_symmetry(v, center, xyz, w, minimum_correlation = 0.99, nmax = 8):
 #
 def icosahedral_symmetry(v, center, xyz, w, minimum_correlation):
 
-    from chimerax.core import geometry
+    from chimerax import geometry
     a23, a25, a35 = geometry.icosahedron_angles()
     from math import sin, cos
     a2 = (0,0,1)
@@ -240,7 +240,7 @@ def cyclic_symmetry(nmax, v, axis, center, xyz, w, minimum_correlation):
 #
 def correlation(v, xyz, w, axis, angle, center, rise = None):
 
-    from chimerax.core.geometry import rotation, translation
+    from chimerax.geometry import rotation, translation
     tf = rotation(axis, angle, center)
     if not rise is None:
         shift = translation([x*rise for x in axis])
@@ -285,7 +285,7 @@ def find_helix_symmetry(v, rise, angle, n = None, optimize = False, nmax = 8,
     for center in centers:
         c, cm = correlation(v, xyz, w, axis, angle, center, rise)
         if c >= minimum_correlation:
-            from chimerax.core.geometry import helical_symmetry_matrices
+            from chimerax.geometry import helical_symmetry_matrices
             syms = helical_symmetry_matrices(rise, angle, axis, center, n)
             break
 
@@ -297,7 +297,7 @@ def find_helix_symmetry(v, rise, angle, n = None, optimize = False, nmax = 8,
     Cn = cyclic_symmetry(nmax, v, (0,0,1), center, xyz, w,
                          minimum_correlation)
     if not Cn is None:
-        from chimerax.core.geometry import cyclic_symmetry_matrices
+        from chimerax.geometry import cyclic_symmetry_matrices
         csyms = cyclic_symmetry_matrices(Cn, center)
         syms = syms * csyms
 
@@ -319,7 +319,7 @@ def optimize_helix_paramters(v, xyz, w, axis, rise, angle, center):
     optimize_translation = optimize_rotation = True
     metric = 'correlation'
 
-    from chimerax.core.geometry import helical_symmetry_matrix
+    from chimerax.geometry import helical_symmetry_matrix
     htf = helical_symmetry_matrix(rise, angle, axis, center)
     tf = xyz_to_ijk_transform * htf
 
@@ -331,7 +331,7 @@ def optimize_helix_paramters(v, xyz, w, axis, rise, angle, center):
 
     ohtf = htf * move_tf
     oaxis, ocenter, oangle, orise = ohtf.axis_center_angle_shift()
-    from chimerax.core.geometry import inner_product
+    from chimerax.geometry import inner_product
     if inner_product(axis,oaxis) < 0:
         orise = -orise
         oangle = -oangle

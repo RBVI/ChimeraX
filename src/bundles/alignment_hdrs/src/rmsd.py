@@ -52,7 +52,7 @@ class RMSD(DynamicStructureHeaderSequence):
     def evaluate(self, pos):
         sum = 0.0
         n = 0
-        from chimerax.core.geometry import distance_squared
+        from chimerax.geometry import distance_squared
         for coords in self._gather_coords(pos):
             for i, crd1 in enumerate(coords):
                 for crd2 in coords[i+1:]:

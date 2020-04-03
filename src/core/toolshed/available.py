@@ -62,7 +62,7 @@ class AvailableBundleCache(list):
         self._build_bundles(data)
 
     def _build_bundles(self, data):
-        from distutils.version import LooseVersion as Version
+        from packaging.version import Version
         import chimerax.core
         my_version = Version(chimerax.core.version)
         for d in data:
@@ -75,22 +75,15 @@ class AvailableBundleCache(list):
                 self.uninstallable.append(b)
 
     def _installable(self, b, my_version):
-        from distutils.version import LooseVersion as Version
         installable = False
-        for pkg, op, v in b.requires:
-            if pkg != "ChimeraX-Core":
+        for require in b.requires:
+            if require.name != "ChimeraX-Core":
                 continue
-            req_version = Version(v)
-            if op == ">=":
-                installable = my_version >= req_version
-            elif op == "==":
-                installable = my_version == req_version
-            elif op == "<=":
-                installable = my_version <= req_version
-            elif op == ">":
-                installable = my_version > req_version
-            elif op == "<":
-                installable = my_version < req_version
+            if require.marker is None:
+                okay = True
+            else:
+                okay = require.marker.evaluate()
+            installable = okay and require.specifier.contains(my_version, prereleases=True)
             break
         return installable
 
@@ -338,12 +331,10 @@ def _parse_session_versions(sv):
     return range(lo, hi + 1)
 
 
-_REReq = re.compile(r"""(?P<bundle>\S+)\s*\((?P<op>[<>=]+)(?P<version>\S+)\)""")
-
-
 def _parse_requires(r):
-    # Only handle requirements of form "bundle (op version)" for now
-    m = _REReq.match(r)
-    if m is None:
+    from packaging.requirements import Requirement, InvalidRequirement
+    try:
+        require = Requirement(r)
+    except InvalidRequirement:
         return None
-    return (m.group("bundle"), m.group("op"), m.group("version"))
+    return require

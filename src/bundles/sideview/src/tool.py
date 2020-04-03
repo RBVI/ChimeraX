@@ -19,8 +19,8 @@
 #
 from PyQt5.QtGui import QWindow, QSurface
 from chimerax.core.tools import ToolInstance
-from chimerax.core.geometry import Place
-from chimerax.core.graphics import View, Camera, Drawing
+from chimerax.geometry import Place
+from chimerax.graphics import View, Camera, Drawing
 
 
 class _PixelLocations:
@@ -52,7 +52,7 @@ class OrthoCamera(Camera):
         w = self.field_width
         h = w * aspect
         left, right, bot, top = -0.5 * w, 0.5 * w, -0.5 * h, 0.5 * h
-        from chimerax.core.graphics.camera import ortho
+        from chimerax.graphics.camera import ortho
         pm = ortho(left, right, bot, top, near, far)
         return pm
 
@@ -139,7 +139,7 @@ class SideViewCanvas(QWindow):
         from math import tan, atan, radians
         from numpy import array, float32, uint8, int32
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
-        mvwin = self.view.render.use_shared_context(self, width, height)
+        mvwin = self.view.render.use_shared_context(self)
         try:
             # TODO: This stuff should be in graphics/opengl.py
             # from OpenGL.GL.GREMEDY import string_marker
@@ -279,7 +279,7 @@ class SideViewCanvas(QWindow):
             #     string_marker.glStringMarkerGREMEDY(len(text), text)
         finally:
             # Target opengl context back to main graphics window.
-            self.main_view.render.use_shared_context(mvwin, ww, wh)
+            self.main_view.render.use_shared_context(mvwin)
         self.view.render.done_current()
 
     def mousePressEvent(self, event):  # noqa
@@ -383,7 +383,7 @@ class SideViewUI(ToolInstance):
         from PyQt5.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QCheckBox, QStackedWidget
         self.view = v = View(session.models.scene_root_model, window_size=(0, 0))
         v.initialize_rendering(session.main_view.render.opengl_context)
-        # TODO: from chimerax.core.graphics.camera import OrthographicCamera
+        # TODO: from chimerax.graphics.camera import OrthographicCamera
         v.camera = OrthoCamera()
         if self.display_name.startswith('Top'):
             side = SideViewCanvas.TOP_SIDE
@@ -477,7 +477,7 @@ class OrthoOverlay(Drawing):
     def draw(self, renderer, draw_pass):
         r = renderer
         ww, wh = r.render_size()
-        from chimerax.core.graphics.camera import ortho
+        from chimerax.graphics.camera import ortho
         projection = ortho(0, ww, 0, wh, -1, 1)
         r.set_projection_matrix(projection)
         Drawing.draw(self, renderer, draw_pass)

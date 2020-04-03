@@ -70,7 +70,7 @@ def cmd_torsion(session, atoms, value=None, *, move="small"):
         raise UserError("Must specify exactly 4 atoms for 'torsion' command; you specified %d"
             % len(atoms))
     a1, a2, a3, a4 = atoms
-    from chimerax.core.geometry import dihedral
+    from chimerax.geometry import dihedral
     cur_torsion = dihedral(*[a.scene_coord for a in atoms])
     if value is None:
         session.logger.info("Torsion angle for atoms %s %s %s %s is %g\N{DEGREE SIGN}"

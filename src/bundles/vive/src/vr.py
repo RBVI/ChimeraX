@@ -1,3 +1,5 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -335,7 +337,8 @@ def start_vr(session, multishadow_allowed = False, simplify_graphics = True, lab
     session.main_view.camera = c
 
     # VR gui cannot display a native file dialog.
-    session.ui.main_window.use_native_open_dialog = False
+    from chimerax.open_command import set_use_native_open_file_dialog
+    set_use_native_open_file_dialog(False)
     
     # Set redraw timer to redraw as soon as Qt events processsed to minimize dropped frames.
     session.update_loop.set_redraw_interval(0)
@@ -364,7 +367,7 @@ def stop_vr(session, simplify_graphics = True):
 
     c.close()
     
-    from chimerax.core.graphics import MonoCamera
+    from chimerax.graphics import MonoCamera
     v = session.main_view
     v.camera = MonoCamera()
     session.update_loop.set_redraw_interval(10)
@@ -385,7 +388,7 @@ def wait_for_vsync(session, wait):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Camera
+from chimerax.graphics import Camera
 from chimerax.core.state import StateManager	# For session saving
 class SteamVRCamera(Camera, StateManager):
 
@@ -413,7 +416,7 @@ class SteamVRCamera(Camera, StateManager):
         self._mirror = True		# Whether to render to desktop graphics window.
         self._room_camera = None	# RoomCamera, fixed view camera independent of VR headset
 
-        from chimerax.core.geometry import Place
+        from chimerax.geometry import Place
         self.room_position = Place()	# ChimeraX camera coordinates to room coordinates
         self._room_to_scene = None	# Maps room coordinates to scene coordinates
         self._z_near = 0.1		# Meters, near clip plane distance
@@ -576,7 +579,7 @@ class SteamVRCamera(Camera, StateManager):
             else:
                 # Need to exclude UI from bounds.
                 top_models = self._session.models.scene_root_model.child_models()
-                from chimerax.core.geometry import union_bounds
+                from chimerax.geometry import union_bounds
                 b = union_bounds(m.bounds() for m in top_models
                                  if m.display and m.id[0] != g.id[0] and
                                  not getattr(m, 'skip_bounds', False))
@@ -588,7 +591,7 @@ class SteamVRCamera(Camera, StateManager):
             from numpy import zeros, float32
             scene_center = zeros((3,), float32)
         # First apply scene shift then scene scale to get room coords
-        from chimerax.core.geometry import translation, scale
+        from chimerax.geometry import translation, scale
         from numpy import array, float32
         self.room_to_scene = (translation(scene_center) *
                               scale(scene_size/room_scene_size) *
@@ -700,7 +703,7 @@ class SteamVRCamera(Camera, StateManager):
         H = hmd34_to_position(hmd_pose0.mDeviceToAbsoluteTracking) # head to room coordinates.
         
         # Compute camera scene position from HMD position in room
-        from chimerax.core.geometry import scale
+        from chimerax.geometry import scale
         S = scale(self.scene_scale)
         self.room_position = rp = H * S	# ChimeraX camera coordinates to room coordinates
         Cnew = self.room_to_scene * rp
@@ -797,12 +800,12 @@ class SteamVRCamera(Camera, StateManager):
 
     def view_width(self, point):
         fov = 100	# Effective field of view, degrees
-        from chimerax.core.graphics.camera import perspective_view_width
+        from chimerax.graphics.camera import perspective_view_width
         return perspective_view_width(point, self.position.origin(), fov)
 
     def view_all(self, bounds, window_size = None, pad = 0):
         fov = 100	# Effective field of view, degrees
-        from chimerax.core.graphics.camera import perspective_view_all
+        from chimerax.graphics.camera import perspective_view_all
         p = perspective_view_all(bounds, self.position, fov, window_size, pad)
         self._move_camera_in_room(p)
         self.fit_scene_to_room(bounds)
@@ -871,7 +874,7 @@ class SteamVRCamera(Camera, StateManager):
         if self.mirror:
             # Render right eye to ChimeraX window.
             drawing = self._desktop_drawing()
-            from chimerax.core.graphics.drawing import draw_overlays
+            from chimerax.graphics.drawing import draw_overlays
             draw_overlays([drawing], render)
 
         rc = self._room_camera
@@ -886,7 +889,7 @@ class SteamVRCamera(Camera, StateManager):
         fbs = self._framebuffers
         if not fbs or fbs[0].width != tw or fbs[0].height != th:
             self._delete_framebuffers()
-            from chimerax.core.graphics import Texture, opengl
+            from chimerax.graphics import Texture, opengl
             for eye in ('left', 'right'):
                 t = Texture()
                 t.initialize_rgba((tw,th))
@@ -911,13 +914,13 @@ class SteamVRCamera(Camera, StateManager):
         td = self._texture_drawing
         if td is None:
             # Drawing object for rendering to ChimeraX window
-            from chimerax.core.graphics.drawing import _texture_drawing
+            from chimerax.graphics.drawing import _texture_drawing
             self._texture_drawing = td = _texture_drawing(texture)
             td.opaque_texture = True
         else:
             td.texture = texture
         window_size = self.render.render_size()
-        from chimerax.core.graphics.drawing import match_aspect_ratio
+        from chimerax.graphics.drawing import match_aspect_ratio
         match_aspect_ratio(td, window_size)
         return td
 
@@ -1070,7 +1073,7 @@ class RoomCamera:
     def camera_position(self):
         cm = self._camera_model
         if cm is None or cm.deleted:
-            from chimerax.core.geometry import Place
+            from chimerax.geometry import Place
             p = Place()
         else:
             p = cm.position
@@ -1088,7 +1091,7 @@ class RoomCamera:
     def projection_matrix(self, near_far_clip, view_num, window_size):
         pixel_shift = (0,0)
         fov = self._field_of_view
-        from chimerax.core.graphics.camera import perspective_projection_matrix
+        from chimerax.graphics.camera import perspective_projection_matrix
         return perspective_projection_matrix(fov, window_size, near_far_clip, pixel_shift)
     
     def _create_camera_model(self, parent, room_to_scene, texture):
@@ -1099,7 +1102,7 @@ class RoomCamera:
     
     def _initial_room_position(self):
         s = self._saved_settings()
-        from chimerax.core.geometry import Place
+        from chimerax.geometry import Place
         p = Place(s.independent_camera_position)
         return p
 
@@ -1122,13 +1125,13 @@ class RoomCamera:
 
     def _tracker_transform(self):
         s = self._saved_settings()
-        from chimerax.core.geometry import Place
+        from chimerax.geometry import Place
         p = Place(s.tracker_transform)
         return p
 
     def _saved_settings(self):
         if self._settings is None:
-            from chimerax.core.geometry import translation
+            from chimerax.geometry import translation
             # Centered 1.5 meters off floor, 2 meters from center
             default_position = translation((0, 1.5, 2))
             m = tuple(tuple(row) for row in default_position.matrix)
@@ -1190,7 +1193,7 @@ class RoomCamera:
         fb = self._framebuffer
         if fb is None or fb.width != tw or fb.height != th:
             self._delete_framebuffer(render)
-            from chimerax.core.graphics import Texture, opengl
+            from chimerax.graphics import Texture, opengl
             t = Texture()
             t.initialize_rgba((tw,th))
             fb = opengl.Framebuffer('VR desktop', render.opengl_context, color_texture = t)
@@ -1286,7 +1289,7 @@ class RoomCameraModel(Model):
         move = new_rts * old_rts.inverse()
         mpos = move * self.position
         # Need to remove scale factor.
-        from chimerax.core.geometry import norm, Place
+        from chimerax.geometry import norm, Place
         s = norm(move.matrix[:,0])
         m = mpos.matrix
         m[:3,:3] *= 1/s
@@ -1763,7 +1766,7 @@ class UserInterface:
         rp = hand_room_position
         # Orient horizontally and facing camera.
         view_axis = camera_position.origin() - rp.origin()
-        from chimerax.core.geometry import orthonormal_frame, translation
+        from chimerax.geometry import orthonormal_frame, translation
         p = orthonormal_frame(view_axis, (0,1,0), origin = rp.origin())
         # Offset vertically
         # p = translation(0.5 * width * p.axes()[1]) * p
@@ -1818,7 +1821,7 @@ class Panel:
         return w
 
     def _create_panel_drawing(self, drawing_parent):
-        from chimerax.core.graphics import Drawing
+        from chimerax.graphics import Drawing
         d = Drawing('VR UI panel')
         d.color = (255,255,255,255)
         d.use_lighting = False
@@ -1833,7 +1836,7 @@ class Panel:
     def _set_center(self, center):
         pd = self._panel_drawing
         if pd:
-            from chimerax.core.geometry import translation
+            from chimerax.geometry import translation
             pd.position = translation(center)
     center = property(_get_center, _set_center)
 
@@ -1844,7 +1847,7 @@ class Panel:
     @property
     def position(self):
         pd = self._panel_drawing
-        from chimerax.core.geometry import Place
+        from chimerax.geometry import Place
         return pd.position if pd else Place()
     
     def delete(self, parent):
@@ -1904,7 +1907,7 @@ class Panel:
         if center is not None:
             pd = self._panel_drawing
             shift = (scale_factor-1) * (pd.position.origin() - center)
-            from chimerax.core.geometry import translation
+            from chimerax.geometry import translation
             pd.position = translation(shift) * pd.position
             
     def _panel_click_position(self, room_point):
@@ -1943,7 +1946,7 @@ class Panel:
         if d.texture is not None:
             d.texture.reload_texture(rgba)
         else:
-            from chimerax.core.graphics import Texture
+            from chimerax.graphics import Texture
             d.texture = Texture(rgba)
 
         return True
@@ -2017,7 +2020,7 @@ class Panel:
         if size.width() == 0 or size.height() == 0:
             return None
         im = pixmap.toImage()
-        from chimerax.core.graphics.drawing import qimage_to_numpy
+        from chimerax.graphics.drawing import qimage_to_numpy
         rgba = qimage_to_numpy(im)
         trgba = self._add_titlebar(rgba)
         return trgba
@@ -2042,7 +2045,7 @@ class Panel:
         # Add title text
         title = self.name
         if title:
-            from chimerax.core.graphics import text_image_rgba
+            from chimerax.graphics import text_image_rgba
             title_rgba = text_image_rgba(title, title_color, th, 'Arial',
                                          background_color = background_color,
                                          xpad = 8, ypad = 4, pixels = True)
@@ -2061,7 +2064,7 @@ class Panel:
         attr = '_%s_icon_rgba' % name
         icon_rgba = getattr(self, attr, None)
         if icon_rgba is None:
-            from chimerax.core.graphics import text_image_rgba
+            from chimerax.graphics import text_image_rgba
             icon_rgba = text_image_rgba(character, color, height, 'Arial',
                                      background_color = background_color,
                                      xpad = xpad, pixels = True)
@@ -2278,7 +2281,7 @@ class Panel:
         sw,sh = self._size
         offset = (ppos.x()*ps + sw/2 - pw/2, -(y*ps + sh/2 - ph/2), .01)
         pd = self._panel_drawing
-        from chimerax.core.geometry import translation
+        from chimerax.geometry import translation
         pd.position = p._panel_drawing.position * translation(offset)
         
     def _parent_panel(self, panels):
@@ -2676,7 +2679,7 @@ class HandModel(Model):
                  controller_type = 'htc vive'):
         Model.__init__(self, name, session)
 
-        from chimerax.core.geometry import Place
+        from chimerax.geometry import Place
         self.room_position = Place()	# Hand controller position in room coordinates.
 
         self._cone_color = color
@@ -2705,7 +2708,7 @@ class HandModel(Model):
 
         self._buttons = b = HandButtons(self._controller_type)
         geom.extend(b.geometry(length, radius))
-        from chimerax.core.graphics import concatenate_geometry
+        from chimerax.graphics import concatenate_geometry
         va, na, tc, ta = concatenate_geometry(geom)
         
         self._cone_vertices = va
@@ -2768,7 +2771,7 @@ class HandButtons:
         self._button_rgba = rgba = empty((tex_size, tex_size*(nb + 1),4), uint8)
         rgba[:,0:tex_size,:] = cone_color
         rgba[:,tex_size:,:] = button_color
-        from chimerax.core.graphics import Texture
+        from chimerax.graphics import Texture
         self._texture = t = Texture(rgba)
         return t
 
@@ -2894,7 +2897,7 @@ class ButtonGeometry:
             s = image_size
             if qi.width() != s or qi.height() != s:
                 qi = qi.scaled(s,s)
-            from chimerax.core.graphics import qimage_to_numpy
+            from chimerax.graphics import qimage_to_numpy
             rgba = qimage_to_numpy(qi)
             # TODO: Need to alpha blend with button background.
             transp = (rgba[:,:,3] == 0)
@@ -3230,7 +3233,7 @@ class MoveSceneMode(HandMode):
         camera = e.camera
         center = _choose_zoom_center(camera)
         (vx,vy,vz) = center - camera.room_position.origin()
-        from chimerax.core.geometry import normalize_vector, rotation
+        from chimerax.geometry import normalize_vector, rotation
         horz_dir = normalize_vector((vz,0,-vx))
         from numpy import array, float32
         vert_dir = array((0,1,0),float32)  # y-axis is up in room coordinates
@@ -3239,7 +3242,7 @@ class MoveSceneMode(HandMode):
         camera.move_scene(move)
 
 def _pinch_scale(prev_pos, pos, other_pos):
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     d, dp = distance(pos,other_pos), distance(prev_pos,other_pos)
     if dp > 0:
         s = d / dp
@@ -3301,7 +3304,7 @@ def _choose_zoom_center(camera, center = None):
     return center
 
 def _pinch_zoom(camera, scale_factor, center):
-    from chimerax.core.geometry import distance, translation, scale
+    from chimerax.geometry import distance, translation, scale
     scale = translation(center) * scale(scale_factor) * translation(-center)
     camera.move_scene(scale)
 
@@ -3410,7 +3413,7 @@ def hmd44_to_opengl44(hm44):
     return m44
 
 def hmd34_to_position(hmat34):
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     from numpy import array, float32
     p = Place(array(hmat34.m, float32))
     return p

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 import numpy
-from chimerax.core.graphics import Drawing, Pick
+from chimerax.graphics import Drawing, Pick
 from chimerax.core.state import State
 
 
@@ -33,7 +33,7 @@ class AtomicShapeDrawing(Drawing, State):
         self._selection_handler = None
 
     def take_snapshot(self, session, flags):
-        from chimerax.core.graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         data = {}
         data['version'] = AtomicShapeDrawing.SESSION_VERSION
         data['drawing'] = DrawingState.take_snapshot(self, session, flags)
@@ -46,7 +46,7 @@ class AtomicShapeDrawing(Drawing, State):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        from chimerax.core.graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         d = AtomicShapeDrawing('')
         DrawingState.set_state_from_snapshot(d, session, data['drawing'])
         d._shapes = [_AtomicShape(*args) for args in data['shapes']]
@@ -90,7 +90,7 @@ class AtomicShapeDrawing(Drawing, State):
 
         picks = []
         all_picks = super().planes_pick(planes, exclude)
-        from chimerax.core.graphics import PickedTriangles
+        from chimerax.graphics import PickedTriangles
         for p in all_picks:
             if not isinstance(p, PickedTriangles) or p.drawing() is not self:
                 picks.append(p)

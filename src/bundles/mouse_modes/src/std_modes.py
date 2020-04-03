@@ -324,7 +324,7 @@ class MoveMouseMode(MouseMode):
         # Convert axis from camera to scene coordinates
         saxis = self.camera_position.transform_vector(axis)
         if self._moving_atoms:
-            from chimerax.core.geometry import rotation
+            from chimerax.geometry import rotation
             self._move_atoms(rotation(saxis, angle, center = self._atoms_center()))
         else:
             self.view.rotate(saxis, angle, self.models())
@@ -367,7 +367,7 @@ class MoveMouseMode(MouseMode):
         s = tuple(dx*psize for dx in shift)     # Scene units
         step = self.camera_position.transform_vector(s)    # Scene coord system
         if self._moving_atoms:
-            from chimerax.core.geometry import translation
+            from chimerax.geometry import translation
             self._move_atoms(translation(step))
         else:
             self.view.translate(step, self.models())
@@ -389,7 +389,7 @@ class MoveMouseMode(MouseMode):
         else:
             scene_axis = models[0].position.transform_vector(raxis)
         axis = self.camera_position.inverse().transform_vector(scene_axis)	# Camera coords
-        from chimerax.core.geometry import normalize_vector, inner_product
+        from chimerax.geometry import normalize_vector, inner_product
         axis = normalize_vector(axis)
         rshift = -inner_product(axis, shift) * axis + shift
         return rshift
@@ -727,7 +727,7 @@ class ClipMouseMode(MouseMode):
         if pf is None and pb is None:
             return
 
-        from chimerax.core.graphics import SceneClipPlane, CameraClipPlane
+        from chimerax.graphics import SceneClipPlane, CameraClipPlane
         p = pf or pb
         if delta is not None:
             d = delta
@@ -741,7 +741,7 @@ class ClipMouseMode(MouseMode):
         # Check if slab thickness becomes less than zero.
         dt = -d*(front_shift+back_shift)
         if pf and pb and dt < 0:
-            from chimerax.core.geometry import inner_product
+            from chimerax.geometry import inner_product
             sep = inner_product(pb.plane_point - pf.plane_point, pf.normal)
             if sep + dt <= 0:
                 # Would make slab thickness less than zero.
@@ -856,7 +856,7 @@ class ClipRotateMouseMode(MouseMode):
     def clip_rotate(self, axis, angle):
         v = self.view
         scene_axis = v.camera.position.transform_vector(axis)
-        from chimerax.core.geometry import rotation
+        from chimerax.geometry import rotation
         r = rotation(scene_axis, angle, v.center_of_rotation)
         for p in self._planes():
             p.normal = r.transform_vector(p.normal)
@@ -865,7 +865,7 @@ class ClipRotateMouseMode(MouseMode):
     def _planes(self):
         v = self.view
         cp = v.clip_planes
-        from chimerax.core.graphics import SceneClipPlane
+        from chimerax.graphics import SceneClipPlane
         rplanes = [p for p in cp.planes() if isinstance(p, SceneClipPlane)]
         if len(rplanes) == 0:
             from chimerax.std_commands.clip import adjust_plane

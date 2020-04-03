@@ -1413,8 +1413,8 @@ and/or above a specified maximum
 &ndash; show the full extent of a map previously limited to a zone with
 <a href="#zone"><b>volume zone</b></a>
 <li><a href="#zone"><b>volume zone</b></a>
-&ndash; zero the values at grid points within or beyond a cutoff distance from
-specified atoms, or limit the display to a zone without making a new map
+&ndash; limit the display to a zone around specified atoms,
+or make a new map with values of zero at grid points within or beyond the zone
 </ul>
 <a href="#vop" class="nounder">&bull;</a>
 <a name="add"><b>volume add</b></a> &nbsp;<i>volume-spec</i>&nbsp;
@@ -1774,7 +1774,7 @@ the first map.
 <a href="#vop" class="nounder">&bull;</a>
 <a name="mask"><b>volume mask</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>surfaces</b> &nbsp;<i>surface-spec</i>&nbsp;
-[&nbsp;<b>fullmap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
+[&nbsp;<b>fullMap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>pad</b> &nbsp;<i>distance</i>&nbsp;]
 [&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
@@ -1785,7 +1785,7 @@ the first map.
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <blockquote>
 Mask a map to a surface (<a href="#masking">details...</a>). 
-The <b>fullmap</b> option indicates making the new
+The <b>fullMap</b> option indicates making the new
 map dimensions the same as the full dimensions of the original map, even if 
 only a subregion is being displayed; otherwise (default), the new map
 will be made as small as possible to enclose the surface.
@@ -2025,6 +2025,7 @@ Erase values outside the positive octant. Options are as described for
 <a href="#vop" class="nounder">&bull;</a>
 <a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>surface-spec</i>&nbsp;
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>fullMap</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>border</b>&nbsp;&nbsp;<i>B</i>&nbsp;]
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
@@ -2040,7 +2041,10 @@ Erase values outside the positive octant. Options are as described for
 Create a map with values of 1 bounded by a surface 
 (<a href="#masking">details...</a>).
 The <b>onGrid</b> option allows creating the new map on the grid
-of another map, <i>gridmap</i>, specified by model number.
+of another map specified by model number, <i>gridmap</i>, using either
+its full extents (<b>fullMap true</b>, default) or the smallest 
+needed to enclose the surface (<b>fullMap false</b>).
+<p>
 Alternatively (if <b>onGrid</b> is not used): 
 <ul>
 <li>the <b>border</b> option indicates how far out from the bounding surface 
@@ -2359,32 +2363,32 @@ Show the full extent of a map that was previously limited to a zone using
 <a href="#vop" class="nounder">&bull;</a>
 <a name="zone"><b>volume zone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-<b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;
+[&nbsp;<b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>minimalBounds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>newMap</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>newMap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-If <b>newMap</b> is <b>true</b> (default), create a new map in which the
-values of grid points farther than <i>r</i> &Aring; from any atom in
-<a href="atomspec.html"><i>atom-spec</i></a> (those beyond the zone) 
-is set to zero, or if <b>invert</b> is true, set the values of grid points
-within the zone to zero.
+If <b>newMap</b> is <b>false</b> (default),
+limit the surface display to a zone within <b>range</b> <i>r</i> 
+(default <b>3.0</b> &Aring;) of any atom in 
+<a href="atomspec.html"><i>atom-spec</i></a> and restrict the
+<a href="#dimensions">current display region</a> of the map
+to the box containing the zoned surface. 
+The full extent of the map can be restored with
+<a href="#unzone"><b>volume unzone</b></a>.
+The <b>invert</b> option is not available with <b>newMap false</b>.
+<p>
+If <b>newMap</b> is <b>true</b>, create a new map in which the
+values of grid points beyond the zone are set to zero, 
+or if <b>invert</b> is true, with values within the zone set to zero.
 If <b>minimalBounds</b> is true, make the resulting map
 as small as possible while enclosing the zone; otherwise, the
 dimensions will be the same as for the input map.
 If <b>bondPointSpacing</b> is specified, use points
 spaced <i>s</i> &Aring; apart along bonds
 in addition to the atoms to define the zone.
-<p>
-If <b>newMap</b> is false, instead of creating a new map,
-zone the surface display and restrict the
-<a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface. 
-The full extent of the map can be restored with
-<a href="#unzone"><b>volume unzone</b></a>.
-The <b>invert</b> option is not available with <b>newMap false</b>.
 See also:
 <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,
@@ -2566,5 +2570,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2020</address>
+March 2020</address>
 </body></html>

@@ -30,12 +30,12 @@ namespace Map_Cpp
 //
 static void copy_la_to_rgba(const CArray &la, float color[4], const CArray &rgba)
 {
-  long n = rgba.size(0);
+  int64_t n = rgba.size(0);
   unsigned char *l = (unsigned char *)la.values(), *r = (unsigned char *)rgba.values();
-  long ls0 = la.stride(0), ls1 = la.stride(1);
-  long rs0 = rgba.stride(0), rs1 = rgba.stride(1);
+  int64_t ls0 = la.stride(0), ls1 = la.stride(1);
+  int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   float c0 = color[0], c1 = color[1], c2 = color[2];
-  for (long i = 0 ; i < n ; ++i, r += rs0, l += ls0)
+  for (int64_t i = 0 ; i < n ; ++i, r += rs0, l += ls0)
     {
       unsigned int l0 = l[0], m = 255;
       r[0] = std::min(m, (unsigned int)(c0*l0));
@@ -76,12 +76,12 @@ copy_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 //
 static void blend_la_to_rgba(const CArray &la, float color[4], const CArray &rgba)
 {
-  long n = rgba.size(0);
+  int64_t n = rgba.size(0);
   unsigned char *l = (unsigned char *)la.values(), *r = (unsigned char *)rgba.values();
-  long ls0 = la.stride(0), ls1 = la.stride(1);
-  long rs0 = rgba.stride(0), rs1 = rgba.stride(1);
+  int64_t ls0 = la.stride(0), ls1 = la.stride(1);
+  int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   float c0 = color[0], c1 = color[1], c2 = color[2];
-  for (long i = 0 ; i < n ; ++i, r += rs0, l += ls0)
+  for (int64_t i = 0 ; i < n ; ++i, r += rs0, l += ls0)
     {
       unsigned int l0 = l[0], l1 = l[ls1], r3 = r[3*rs1];
       unsigned int r0 = r[0], r1 = r[rs1], r2 = r[2*rs1], m = 255;
@@ -124,12 +124,12 @@ blend_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 //
 static void copy_l_to_rgba(const CArray &l, float color[4], const CArray &rgba)
 {
-  long n = rgba.size(0);
+  int64_t n = rgba.size(0);
   unsigned char *lv = (unsigned char *)l.values(), *r = (unsigned char *)rgba.values();
-  long ls0 = l.stride(0);
-  long rs0 = rgba.stride(0), rs1 = rgba.stride(1);
+  int64_t ls0 = l.stride(0);
+  int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   float c0 = color[0], c1 = color[1], c2 = color[2];
-  for (long i = 0 ; i < n ; ++i, r += rs0, lv += ls0)
+  for (int64_t i = 0 ; i < n ; ++i, r += rs0, lv += ls0)
     {
       unsigned int l0 = lv[0], m = 255;
       r[0] = std::min(m, (unsigned int)(c0*l0));
@@ -170,12 +170,12 @@ copy_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 //
 static void blend_l_to_rgba(const CArray &l, float color[4], const CArray &rgba)
 {
-  long n = rgba.size(0);
+  int64_t n = rgba.size(0);
   unsigned char *lv = (unsigned char *)l.values(), *r = (unsigned char *)rgba.values();
-  long ls0 = l.stride(0);
-  long rs0 = rgba.stride(0), rs1 = rgba.stride(1);
+  int64_t ls0 = l.stride(0);
+  int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   float c0 = color[0], c1 = color[1], c2 = color[2];
-  for (long i = 0 ; i < n ; ++i, r += rs0, lv += ls0)
+  for (int64_t i = 0 ; i < n ; ++i, r += rs0, lv += ls0)
     {
       unsigned int l0 = lv[0];
       unsigned int r0 = r[0], r1 = r[rs1], r2 = r[2*rs1], m = 255;
@@ -218,11 +218,11 @@ blend_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 //
 static void blend_rgb_to_rgba(const CArray &rgb, const CArray &rgba)
 {
-  long n = rgba.size(0);
+  int64_t n = rgba.size(0);
   unsigned char *ro = (unsigned char *)rgb.values(), *r = (unsigned char *)rgba.values();
-  long ros0 = rgb.stride(0), ros1 = rgb.stride(1);
-  long rs0 = rgba.stride(0), rs1 = rgba.stride(1);
-  for (long i = 0 ; i < n ; ++i, r += rs0, ro += ros0)
+  int64_t ros0 = rgb.stride(0), ros1 = rgb.stride(1);
+  int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
+  for (int64_t i = 0 ; i < n ; ++i, r += rs0, ro += ros0)
     {
       unsigned int ro0 = ro[0], ro1 = ro[ros1], ro2 = ro[2*ros1];
       unsigned int r0 = r[0], r1 = r[rs1], r2 = r[2*rs1], m = 255;
@@ -263,12 +263,12 @@ blend_rgb_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 //
 static void blend_rgba(const CArray &rgba1, const CArray &rgba2)
 {
-  long n = rgba1.size(0);
+  int64_t n = rgba1.size(0);
   unsigned char *q = (unsigned char *)rgba1.values(), *r = (unsigned char *)rgba2.values();
-  long qs0 = rgba1.stride(0), qs1 = rgba1.stride(1);
-  long rs0 = rgba2.stride(0), rs1 = rgba2.stride(1);
+  int64_t qs0 = rgba1.stride(0), qs1 = rgba1.stride(1);
+  int64_t rs0 = rgba2.stride(0), rs1 = rgba2.stride(1);
   int m = 255;
-  for (long i = 0 ; i < n ; ++i, q += qs0, r += rs0)
+  for (int64_t i = 0 ; i < n ; ++i, q += qs0, r += rs0)
     {
       r[0] = std::min(m, (int)r[0]+(int)q[0]);
       r[rs1] = std::min(m, (int)r[rs1]+(int)q[qs1]);

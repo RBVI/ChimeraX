@@ -47,7 +47,7 @@ class="clRight" title="User Guide Index"/></a>
 <br><b>conference</b> &nbsp;<b>close</b>
 </h3>
 <p>
-The <b>conference</b> command shares a scene between
+The <b>conference</b> command shares a session between
 two or more ChimeraX instances running on different computers.
 Its main purpose is to allow multi-person
 <a href="../vr.html">virtual reality</a> (VR) sessions in ChimeraX, 
@@ -55,8 +55,10 @@ although it can also be used without VR.
 Each participant is represented by an image and 
 hand-controller pointers (or if not using VR, the mouse pointer)
 so that participants can see each other pointing at objects in the scene.
+It is also implemented as the
+<a href="../tools/conferencecall.html"><b>Conference Call</b></a> tool.
 </p><p>
-The <b>conference</b> command allows using a publicly accessible address/port 
+A &ldquo;conference call&rdquo; allows using a publicly accessible address/port 
 to run the hub server, whereas the related command
 <a href="meeting.html"><b>meeting</b></a> only allows running the hub
 server on the initiator's local host, which may not be reachable through
@@ -65,8 +67,8 @@ Other <a href="meeting.html#limitations">limitations</a>, however,
 may be similar. 
 See also: <a href="device.html#vr"><b>vr</b></a>
 </p><p>
-The <i>location</i> specifies the IP address, port number, and 
-conference-call name in the form <i>host:port/conference_call_name</i>.
+The <i>location</i> specifies the host (hostname or IP address), port number, 
+and conference-call name in the form <i>host:port/conference_call_name</i>.
 If the port is omitted (no colon), then port <b>443</b> will be used.
 If the conference call name is omitted (no slash), then <b>unnamed</b>
 will be used. The hub server hosted by the
@@ -77,10 +79,10 @@ The <i>action</i> can be:
 </p>
 <ul>
 <li><b>start</b> &ndash; start a conference call on the hub server;
-<i>location</i> must include the IP address and a name for the conference call
-<li><b>join</b> &ndash; join a conference call on a hub server;
-<i>location</i> must include the IP address, and unless 
-the hub server was started with the <b>host</b> action (below), 
+<i>location</i> must specify the host and a name for the conference call
+<li><b>join</b> &ndash; join a conference call;
+<i>location</i> must specify the host, and unless 
+the hub server was started locally with the <b>host</b> action (below), 
 the name of the conference call
 <li><b>host</b> &ndash; start a hub server on the local host
 (equivalent to using <a href="meeting.html"><b>meeting start</b></a>);
@@ -170,5 +172,5 @@ the position is only displayed to others when it hovers over an atom.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2020</address>
+March 2020</address>
 </body></html>

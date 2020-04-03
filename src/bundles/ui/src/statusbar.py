@@ -89,11 +89,11 @@ class _StatusBarOpenGL:
         
         # Create opengl context
         w = self._window
-        from chimerax.core.graphics import OpenGLContext, OpenGLVersionError, OpenGLError
+        from chimerax.graphics import OpenGLContext, OpenGLVersionError, OpenGLError
         self._opengl_context = c = OpenGLContext(w, self.session.ui.primaryScreen())
         
         # Create texture drawing to render status messages
-        from chimerax.core.graphics import Drawing, Render
+        from chimerax.graphics import Drawing, Render
         self._drawing = Drawing('statusbar')
         self._drawing2 = Drawing('secondary statusbar')
         self._renderer = r = Render(c)
@@ -125,7 +125,7 @@ class _StatusBarOpenGL:
         # Need to preserve OpenGL context across processing events, otherwise
         # a status message during the graphics draw, causes an OpenGL error because
         # Qt changed the current context.
-        from chimerax.core.graphics import remember_current_opengl_context, restore_current_opengl_context
+        from chimerax.graphics import remember_current_opengl_context, restore_current_opengl_context
         cc = remember_current_opengl_context()
 
         if self._opengl_context is None:
@@ -150,7 +150,7 @@ class _StatusBarOpenGL:
         self._update_texture(msg, color, secondary)
         dlist = self._drawings()
         if dlist:
-            from chimerax.core.graphics.drawing import draw_overlays
+            from chimerax.graphics.drawing import draw_overlays
             draw_overlays(dlist, self._renderer)
 
     def _drawings(self):
@@ -170,7 +170,7 @@ class _StatusBarOpenGL:
         tcolor = BuiltinColors[color].uint8x4() if color in BuiltinColors else self.text_color
         image_height = lh
         ixpad, iypad = max(1, int(xpad*lh)), max(1, int(ypad*lh))
-        from chimerax.core.graphics import text_image_rgba
+        from chimerax.graphics import text_image_rgba
         rgba = text_image_rgba(msg, tcolor, image_height, self.font,
                                xpad=ixpad, ypad=iypad, pixels=True)
         th, tw = rgba.shape[:2]
@@ -181,7 +181,7 @@ class _StatusBarOpenGL:
         x = (1-uw) if secondary else -1
         y = -1
 
-        from chimerax.core.graphics.drawing import rgba_drawing, draw_overlays
+        from chimerax.graphics.drawing import rgba_drawing, draw_overlays
         rgba_drawing(d, rgba, (x, y), (uw, uh), opaque = False)
 
 #
@@ -240,7 +240,7 @@ class _StatusBarQt:
         # Need to preserve OpenGL context across processing events, otherwise
         # a status message during the graphics draw, causes an OpenGL error because
         # Qt changed the current context.
-        from chimerax.core.graphics import remember_current_opengl_context, restore_current_opengl_context
+        from chimerax.graphics import remember_current_opengl_context, restore_current_opengl_context
         cc = remember_current_opengl_context()
 
         s = self.session

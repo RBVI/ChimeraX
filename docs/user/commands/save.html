@@ -128,32 +128,36 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr id="mapformats">
-<td align="center" rowspan="3"><a href="#map"><b>map</b></a></td>
+<td align="center" rowspan="4"><a href="#map"><b>map</b></a></td>
+<td align="center"><b>brix</b></td>
+<td align="center">.brix</td>
+<td align="center">BRIX density map</td>
+</tr><tr>
 <td align="center"><b>cmap</b></td>
 <td align="center">.cmp<br>.cmap</td>
 <td align="center"><a href="#chimap">Chimera map</a>
 <br>(may contain multiple models)</td>
 </tr><tr>
-<td align="center"><b>dsn6</b></td>
-<td align="center">.brix</td>
-<td align="center">BRIX density map</td>
+<td align="center"><b>imagic</b></td>
+<td align="center">.hed<br>.img</td>
+<td align="center"><a href="https://www.imagescience.de/formats.html"
+target="_blank">IMAGIC map</a>
+<br>(the format consists of two files, <i>filename</i>.hed with 
+header information and <i>filename</i>.img with the map values; 
+both files will be saved if <b>format imagic</b> or either 
+suffix is used in the <b>save</b> command; IMAGIC support
+courtesy of Ralf Schmidt and Michael Schatz, Image Science Software)</td>
 </tr><tr>
 <td align="center"><b>mrc</b></td>
 <td align="center">.mrc</td>
 <td align="center">MRC density map</td>
 </tr><tr>
-<td align="center" valign="top" rowspan="14">&nbsp;<br>(none)</td>
+<td align="center" valign="top" rowspan="15">&nbsp;<br>(none)</td>
 <td align="center"><b>pdb</b></td>
 <td align="center">.pdb</td>
 <td align="center">
 atomic coordinates,<br>PDB<br>
 (see <a href="#pdb"><b>Save PDB</b></a>)</td>
-</tr><tr>
-<td align="center"><b>pseudobonds</b></td>
-<td align="center">.pb</td>
-<td align="center">list of atom pairs to connect with 
-<a href="../pseudobonds.html">pseudobonds</a><br>
-(see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
 </tr><tr>
 <td align="center"><b>mmcif</b></td>
 <td align="center">.cif</td>
@@ -180,6 +184,12 @@ coordinates,<br>DCD (binary)</td>
 <br>(analogous to atoms and bonds)</td>
 </td>
 </tr><tr>
+<td align="center"><b>pseudobonds</b></td>
+<td align="center">.pb</td>
+<td align="center">list of atom pairs to connect with 
+<a href="../pseudobonds.html">pseudobonds</a><br>
+(see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
+</tr><tr>
 <td align="center"><b>gltf</b></td>
 <td align="center">.glb</td>
 <td align="center" class="text">3D objects, <a href="https://www.khronos.org/gltf"
@@ -202,20 +212,28 @@ target="_blank">Wavefront OBJ</a>
 <td align="center">.x3d</td>
 <td align="center">3D objects, <a href="http://www.web3d.org/x3d/"
 target="_blank">X3D</a></td>
+</tr><tr>
+<td align="center"><b>vtk</b></td>
+<td align="center">.vtk</td>
+<td align="center">
+<a href="http://vtk.org/" target="_blank">Visualization ToolKit</a>
+PolyData 
+<br>(molecular structures and surfaces as points, lines, and mesh;
+<a href="../formats/vtk.html">details...</a>)</td>
 </tr><tr id="seqformats">
 <td align="center"><b>aln</b></td>
 <td align="center" class="text">.aln, .clustal<br>.clustalw, .clustalx</td>
-<td align="center">biopolymer sequence or sequence alignment,
+<td align="center">biopolymer <a href="#sequence">sequence</a>,
 <br>Clustal ALN</td>
 </tr><tr>
 <td align="center"><b>fasta</b></td>
 <td align="center">.fasta, .fa<br>.afasta, .afa</td>
-<td align="center">biopolymer sequence or sequence alignment,
+<td align="center">biopolymer <a href="#sequence">sequence</a>,
 <br>FASTA</td>
 </tr><tr>
 <td align="center"><b>pir</b></td>
 <td align="center">.pir, .ali</td>
-<td align="center">biopolymer sequence or sequence alignment,
+<td align="center">biopolymer <a href="#sequence">sequence</a>,
 <br>PIR (NBRF)</td>
 </tr><tr>
 <td align="center"><b>mtz</b></td>
@@ -344,6 +362,7 @@ selection highlighting <a href="graphics.html#selections">color and width</a>
 <li><a href="../tools/segment.html">segmentation results</a>
 <li><a href="../vr.html">virtual reality</a> status including
 model positions in the room and hand-controller button assignments
+<li><a href="../tools/log.html"><b>Log</b></a> contents
 </ul>
 Saving and later opening a session file 
 restores the session and allows resuming work in ChimeraX.
@@ -354,6 +373,10 @@ is set in the
 <a href="../preferences.html#window"><b>Window</b> preferences</a>
 or can be specified with the <a href="open.html"><b>open</b></a> command
 <a href="open.html#resizeWindow"><b>resizeWindow</b></a> option.
+Whether to clear pre-existing 
+<a href="../tools/log.html"><b>Log</b></a> contents
+before restoring those from the session is set in the
+<a href="../preferences.html#log"><b>Log</b> preferences</a>.
 See also: 
 <a href="usageconventions.html#cxc-files">ChimeraX command files</a>,
 <a href="../preferences.html">ChimeraX preferences</a>
@@ -717,15 +740,17 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 <!--
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#seqformats"><i>format-name</i></a>&nbsp;]
 -->
-[&nbsp;<b>format</b>&nbsp;&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;aln&nbsp;|&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<i>alignment-id</i></a>&nbsp;]
 </blockquote>
 <p>
-Only the contents of a single
+An individual sequence or multiple sequence alignment open in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> 
+can be saved to a file. Only the contents of a single
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
-can be saved to a file at a time. When more than sequence window is present,
-the <b>alignment</b> option is needed to specify the window of interest,
-using the <i>alignment-id</i> shown in the title bar of the window.
+can be saved at a time. When more than sequence window is present,
+which one to save is indicated with the <b>alignment</b> option, 
+using the <i>alignment-id</i> shown in the window's title bar.
 Example:
 </p>
 <blockquote>
@@ -783,5 +808,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+March 2020</address>
 </body></html>

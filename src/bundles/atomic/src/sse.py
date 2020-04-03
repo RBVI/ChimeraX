@@ -270,30 +270,34 @@ class HelixCylinder:
         Normals and binormals are relative to the cylinder center."""
         if self._normals is not None:
             return self._normals
-        from numpy import tile, dot, cross
-        from numpy.linalg import norm
-        tile_shape = [len(self.coords), 1]
-        centers = self.cylinder_centers()
         if self.curved:
+            tile_shape = [len(self.coords), 1]
+            from numpy import tile
             normals = tile(self.axis, tile_shape)
+            centers = self.cylinder_centers()
             in_plane = centers - self.center
             binormals = _normalize_vector_array(in_plane)
             self._normals = (normals, binormals)
         else:
-            d = self.coords[1] - self.centroid
-            # We do not use:
-            #   normal = self.coords[1] - centers[1]
-            # because the order of the centers MAY not
-            # match the orders of the coords if the coords
-            # projection are out of order, i.e., they
-            # double back on themselves, which would
-            # result in bad rendering of cylinders.
-            normal = d - dot(d, self.axis) * self.axis
-            normal = normal / norm(normal)
-            binormal = cross(self.axis, normal)
-            self._normals = (tile(normal, tile_shape),
-                             tile(binormal, tile_shape))
+            self._normals = self._straight_cylinder_normals(len(self.coords))
         return self._normals
+
+    def _straight_cylinder_normals(self, n):
+        d = self.coords[1] - self.centroid
+        # We do not use:
+        #   normal = self.coords[1] - centers[1]
+        # because the order of the centers MAY not
+        # match the orders of the coords if the coords
+        # projection are out of order, i.e., they
+        # double back on themselves, which would
+        # result in bad rendering of cylinders.
+        from numpy import tile, dot, cross
+        normal = d - dot(d, self.axis) * self.axis
+        from numpy.linalg import norm
+        normal = normal / norm(normal)
+        binormal = cross(self.axis, normal)
+        return (tile(normal, (n,1)),
+                tile(binormal, (n,1)))
 
     def cylinder_surface(self):
         """Return array of points on cylinder surface.
@@ -311,7 +315,7 @@ class HelixCylinder:
             self._surface = centers + uv * self.radius
         return self._surface
 
-    def cylinder_intermediates(self):
+    def cylinder_intermediates(self, extend = 0.3):
         """Return three arrays (points, normals, binormals) for intermediates.
 
         Intermediate points are points half way between points returned
@@ -320,6 +324,7 @@ class HelixCylinder:
         and colored with sharp boundaries."""
         from numpy import tile
         centers = self.cylinder_centers()
+        centers = self._extend_ends(centers, frac = 2*extend)
         if self.curved:
             v = centers - self.center
             t = v[:-1] + v[1:]
@@ -327,12 +332,27 @@ class HelixCylinder:
             binormals = _normalize_vector_array(t)
             ipoints = binormals * self.major_radius + self.center
         else:
-            normals, binormals = self.cylinder_normals()
-            normals = normals[:-1]
-            binormals = binormals[:-1]
             ipoints = (centers[:-1] + centers[1:]) / 2
+            normals, binormals = self._straight_cylinder_normals(len(ipoints))
         return ipoints, normals, binormals
 
+    def _extend_ends(self, centers, frac):
+        if self.curved:
+            r = centers - self.center  # radial vectors from center of torus.
+            from chimerax.geometry import angle, rotation
+            c0 = self.center + rotation(self.axis, -frac * angle(r[0], r[1])) * r[0]
+            c1 = self.center + rotation(self.axis, frac * angle(r[-1], r[-2])) * r[-1]
+        else:
+            c0 = centers[0] + frac * (centers[0] - centers[1])
+            c1 = centers[-1] + frac * (centers[-1] - centers[-2])
+        n = len(centers)
+        from numpy import empty
+        ecenters = empty((n+2,3), centers.dtype)
+        ecenters[1:-1] = centers
+        ecenters[0] = c0
+        ecenters[-1] = c1
+        return ecenters
+    
     def _try_curved(self):
         from numpy import mean, cross, sum, vdot
         from math import sqrt
@@ -398,7 +418,7 @@ class HelixCylinder:
             ignore, vals, vecs = svd(rel_coords)
             axis = vecs[argmax(vals)]
         else:
-            from chimerax.core.geometry import align_points
+            from chimerax.geometry import align_points
             num_pts = len(self.coords)
             tf, rmsd = align_points(self.IDEAL_COORDS[:num_pts], self.coords)
             centroid = tf * self.IDEAL_PARAMS[0]

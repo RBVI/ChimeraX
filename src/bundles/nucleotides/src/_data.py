@@ -20,7 +20,7 @@ import math
 import re
 import weakref
 import numpy
-from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
+from chimerax.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.state import State, StateManager, RestoreError
 from chimerax.atomic import Residues, Atoms, Sequence, Pseudobonds
@@ -944,12 +944,12 @@ def draw_tube(nd, residue, name, params):
     c4p = residue.find_atom("C4'")
     if not c4p:
         return False
-    try:
-        c3p_coord = c3p.ribbon_coord
-        c4p_coord = c4p.ribbon_coord
-        ep1 = (c3p_coord + c4p_coord) / 2
-    except KeyError:
+    c3p_coord = c3p.ribbon_coord
+    c4p_coord = c4p.ribbon_coord
+    if c3p_coord is None or c4p_coord is None:
         ep1 = (c3p.coord + c4p.coord) / 2
+    else:
+        ep1 = (c3p_coord + c4p_coord) / 2
 
     description = '%s ribose' % residue
 

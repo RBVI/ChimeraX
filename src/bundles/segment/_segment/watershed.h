@@ -15,7 +15,7 @@ namespace Segment_Map
 // Calculates region map and returns number of regions found.
 //
 template <class T>
-Index watershed_regions(const T *data, const int *data_size,
+Index watershed_regions(const T *data, const int64_t *data_size,
 			float threshold, Index *region_map);
 
 //
@@ -24,7 +24,7 @@ Index watershed_regions(const T *data, const int *data_size,
 // the index positions of the maxima.
 //
 template <class T>
-void find_local_maxima(const T *data, const int *data_size,
+void find_local_maxima(const T *data, const int64_t *data_size,
 		       int *start_positions, int nstart);
 
 } // end of namespace Segment_Map

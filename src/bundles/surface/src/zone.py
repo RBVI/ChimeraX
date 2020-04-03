@@ -60,7 +60,7 @@ class ZoneMask(State):
         if t is None:
             return
 
-        from chimerax.core.geometry import find_close_points
+        from chimerax.geometry import find_close_points
         i1, i2 = find_close_points(v, self.points, self.distance)
 
         nv = len(v)

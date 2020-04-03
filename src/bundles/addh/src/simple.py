@@ -86,7 +86,7 @@ def _alt_loc_add_hydrogens(atom, alt_loc_atom, bonding_info, naming_schema, tota
         else:
             toward = None
         from chimerax.atomic.bond_geom import bond_positions
-        from chimerax.core.geometry import distance_squared
+        from chimerax.geometry import distance_squared
         positions = bond_positions(at_pos, geom, bond_with_H_length(atom, geom),
             bonded_pos, toward=toward, coplanar=planar, away=away, away2=away2)
         if coordinations:

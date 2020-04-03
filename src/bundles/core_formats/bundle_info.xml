@@ -1,0 +1,62 @@
+<BundleInfo name="ChimeraX-CoreFormats" version="1.0"
+	    package="chimerax.core_formats"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>ChimeraX session support</Synopsis>
+  <Description>ChimeraX session support</Description>
+
+  <Categories>
+    <Category name="Atomic Data"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
+    <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="ChimeraX session" category="Session" nicknames="session"
+		suffixes=".cxs" mime_types="application/x-chimerax-session"
+		reference_url="help:user/commands/save.html" />
+    <Provider name="ChimeraX commands" category="Command script"
+		suffixes=".cxc" nicknames="cmd" mime_types="application/x-chimerax-code"
+		reference_url="help:user/commands/usageconventions.html" />
+    <Provider name="Python" category="Command script" suffixes=".py"
+		synopsis="Python code" mime_types="text/x-python"
+		reference_url="http://www.python.org" />
+    <Provider name="Compiled Python" category="Command script" suffixes=".pyc,.pyo"
+		synopsis="Compiled Python code" mime_types="application/x-python-code"
+		reference_url="http://www.python.org" />
+    <Provider name="X3D" category="Generic 3D objects" suffixes=".x3d"
+		mime_types="model/x3d+xml" reference_url="http://www.web3d.org/standards" />
+    <Provider name="web fetch" category="I/O" />
+  </Providers>
+
+
+  <Providers manager="open command">
+    <Provider name="ChimeraX session" want_path="true" />
+    <Provider name="ChimeraX commands" want_path="true" />
+    <Provider name="Python" />
+    <Provider name="Compiled Python" />
+    <Provider name="http" type="fetch" format_name="web fetch" />
+    <Provider name="https" type="fetch" format_name="web fetch" />
+    <Provider name="ftp" type="fetch" format_name="web fetch" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="ChimeraX session" />
+    <Provider name="X3D" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>

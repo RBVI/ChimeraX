@@ -1,0 +1,1315 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="description"        content="Image Science: IMAGIC Formats and Conventions" />
+	<meta name="keywords"           content="Image Science: IMAGIC Formats and Conventions" />
+	<meta name="author"             content="Image Science: Michael Schatz" />
+	<link rel="stylesheet" type="text/css" href="layout.css" media="screen,projection" />
+	<title>Image Science - IMAGIC Formats and Conventions</title>
+</head>
+
+<body>
+
+			<h2>IMAGIC Formats and Conventions</h2>
+
+            <a href="#imagic"               > IMAGIC image       </a> <br>
+            <a href="#head"                 > Header file        </a> <br>
+            <a href="#image"                > Image density file </a> <br>
+            <a href="#coord"                > Co-ordinate system </a> <br>
+            <a href="#euler"                > Euler angles       </a>
+
+            <br><br>
+            <a name="imagic"></a>
+			<h3>IMAGIC Image</h3>
+
+            <p>An IMAGIC image actually consists of two files:</p>
+
+            <ul>
+              <li>a header file with the extension ".hed", which contains information for each image</li>
+              <li>an image file with extension ".img", which contains the image densities.</li>
+            </ul>
+ 
+            <p>Note: One never has to specify the extensions ".hed" or ".img". Within IMAGIC the image
+               name is always the one without extension.</p>
+
+            <img src="./img/imagic_image_file2.gif" width="180">
+            <br><br>
+
+            <br>
+            <a name="head"></a>
+			<h3>IMAGIC header file format</h3>
+
+            <p>The header file has the extension ".hed" and contains information for each image <p>
+        
+            <p>The header file contains NBLOCKS (defined in IDAT1(4)) records per image stored.
+               The first header record for each image consists of 256 REAL/float (called DAT1)
+               or INTEGER/int values (called IDAT1). If NBLOCK is > 1 there are additional
+               (NBLOCKS-1) header records (each of length 256 REAL/float), which are used by
+               some IMAGIC commands to store specific data.<p>
+
+            <p>The values that must be set are shown with a blue background.</p>
+
+            <font face="ariel" size="3">
+            <table border="1" cellpadding="5">
+
+   <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(1)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IMN
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Image location number (1,2,3,...)
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(2)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IFOL
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of all  1D/2D images/sections following (0,1...).<BR>
+      Only of importance in the first location, else set to 0.<BR>
+      Note that the value in IFOL + 1 is the total number of<BR>
+      1D/2D images/2D sections in n the file
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(3)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IERROR
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Error code for this image during IMAGIC run
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(4)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NBLOCKS
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of header blocks (each block containing<BR>
+      256 REAL/INTEGER values).<BR>
+      For a usual header: NBLOCKS = 1
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(5)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NMONTH
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Creation month
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(6) 
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NDAY
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Creation day
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(7) 
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NYEAR
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Creation year
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(8) 
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NHOUR
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Creation hour
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(9) 
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NMINUT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Creation minute
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(10) 
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NSEC
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Creation second
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(11) 
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      RSIZE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Image size in BYTES as seen from the program
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(12) 
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IZOLD
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Top left Z coordinate before THREED-CUT
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(13) 
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IXLP
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of lines per image (for 1D data IXLP=1)
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(14)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IYLP
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of pixels per line
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(15)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      TYPE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      4 coded characters determining the image type:                            <BR>
+      REAL : Each image pixel is represented by a 32-bit real/float number      <BR>
+      LONG : Each image pixel is represented by a 32-bit (signed) integer number<BR>
+      INTG : Each image pixel is represented by a 16-bit (signed) integer number<BR>
+      PACK : Each image pixel is represented by one (unsigned) byte number      <BR>
+      COMP : Each complex image pixel is represented by two REAL values 
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(16)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IXOLD
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Top left X coordinate before CUT-IMAGE
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(17)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IYOLD
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Top left Y coordinate before CUT-IMAGE
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(18)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      AVDENS
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Average density in image
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(19)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      SIGMA
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Sigma of image densities
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(20)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      USER1
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      At user's own disposal
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(21)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      USER2
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      At user's own disposal
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(22)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DENSMAX
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Highest density in image
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(23)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DENSMIN
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Minimal density in image
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(24)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      COMPLEX
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Label indicating that data is always complex
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(25)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DEFOCUS1
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Defocus value 1 (Angstrom)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(26)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DEFOCUS2
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Defocus value 2 (Angstrom)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(27)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DEFANGLE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+     Defocus angle (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(28)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      SINOSTRT<br>
+      WAVEMAX
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Start angle if image is a sinogram<BR>
+      Maximal wave number if image is a spectra
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(29)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      SINOEND<BR>
+      WAVESTEP
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      End angle if image is a sinogram<BR>
+      Step size of wave numbers if image is a spectra
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(30)<BR>
+      &nbsp;&nbsp;&nbsp; -<BR>
+      IDAT1(49)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NAME
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Coded NAME/TITLE of the image (80 characters)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(50)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      CCC3D
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      3D simularity criteria
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(51)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      REF3D
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+     3D membership
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(52)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      MIDENT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+     Micrograph identification number
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(53)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      EZSHIFT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+     Equivalent shift in Z direction
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(54)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      EALPHA 
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+     Equivalent Euler angle alpha (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(55)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      EBETA
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+     Equivalent Euler angle beta (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(56)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      EGAMMA
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Equivalent Euler angle gamma (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(57)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      REF3DOLD
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Old 3D membership<BR>
+      before last ANG-RECONST/ANCHORSET (EACH_TO_BEST)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(58)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      ACTIVE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Image is active or not (EXLUSIVE-COPY and HEADERS):<BR>
+      ACTIVE > 0 : image is set active<BR>
+      ACTIVE < 0 : image is set inactive<BR>
+      ACTIVE = 0 : not set (treated as being set active)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(59)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NALISUM
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of images summed<BR>
+      (used in SUM-ALIGNED-IMAGES)        
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(60)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      PGROUP
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Point-group symmetry in international notation<BR>
+      (622, for example)     
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(61)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IZLP
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of 2D planes in 3D data<BR>
+      (for 1D/2D: IZLP1=1)
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(62)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      I4LP
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of "objects" in file:<BR>
+      1D (IXLP=1): number of 1D spectra<BR>
+      2D (IZLP=1): number of 2D images<BR>
+      3D (IZLP>1): number of 3D volumes
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(63)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      I5LP
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      &nbsp;
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(64)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      I6LP
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      &nbsp;
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(65)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      ALPHA
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Euler angle alpha (3D and angular reconstitution) (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(66)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      BETA
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Euler angle beta (3D and angular reconstitution) (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(67)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      GAMMA
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Euler angle gamma (3D and angular reconstitution) (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(68)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IMAVERS
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      IMAGIC version, which created the file (yyyymmdd)
+    </TD>
+  </TR>
+  <TR>
+    <TD BGCOLOR="#E0E0F2" WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(69)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      REALTYPE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Floating point type / machine stamp:                   <BR>
+      16777216: VAX/VMS                                      <BR>
+      33686018: Linux, Unix, Mac OSX, MS Windows, OSF, ULTRIX<BR>
+      67372036: SiliconGraphics, SUN, HP, IBM       
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(70)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      LOCMICRO
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Location of the picked particle in the original micrograph
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(71)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IXMICRO
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Central X coordinate of the picked particle in the original micrograph
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(72)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IYMICRO
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Central Y coordinate of the picked particle in the original micrograph
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(73)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      LOCORIG
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Location of the picked particle in the "original" file <BR>
+      (usually the file created by PICK-PARTICLE or CUT-IMAGE/APERIODIC)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(74)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NUMFRAME
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      If file contains a movie or the like: number of frames in each movie<BR>
+      If file does not contain a movie or the like: 0
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(75)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      PUPSIZE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Typical upper size of particle(s) in the image (in pixels)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(76)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      PLOWSIZE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Typical lower size of particle(s) in the image (in pixels)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(77)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      PICKEDGX
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Minimal X distance from edge (PICK-PARTICLES)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(78)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      PICKEDGY
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Minimal Y distance from edge (PICK-PARTICLES)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(79)<BR>
+      &nbsp;&nbsp;&nbsp;-<BR>
+      IDAT1(93)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      BUFFCTRL
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Old I/O parameters, which are no more used
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(94)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      READIM
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      I/O parameter during IMAGIC run: Image is read in from file or not<BR>
+      (No meaning in a closed file)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(95)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      WRITIM
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      I/O buffering parameter during IMAGIC run: Image is dumped to file or not<BR>
+      (No meaning in a closed file)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(96)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NUM
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      I/O parameter during IMAGIC run: file number of image file<BR>
+      (No meaning in a closed file)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(97)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NUMHEAD
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      I/O parameter during IMAGIC run: file number of header file<BR>
+      (No meaning in a closed file)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(98)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      LBUF
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      I/O parameter during IMAGIC run: old READIM/WRITIM parameter<BR>
+      0: buffer whole image -1: read/write line by line<BR>
+      (No meaning in a closed file)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(99)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      READONLY
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      I/O parameter during IMAGIC run: open file action mode<BR>
+      1: open read only 0: open read/write<BR>
+      (No meaning in a closed file)
+    </TD>
+  </TR>
+ <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(100)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      ANGLE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Last rotation angle (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(101)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      VOLTAGE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Acceleration voltage (Volt)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(102)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      SPABERR
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Spherical aberration (mm)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(103)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      FOCDIST
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Focal distance of objective (mm)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(104)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      CCC
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Cross correlation peak height 
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(105)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      ERRAR
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Error in angular reconstitution <BR>
+      if -1.0: the file is a special file (FABOSA)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(106)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      ERR3D
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Error in 3D reconstruction
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(107)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      REF
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      (Multi-) reference number
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(108)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      CLASSNO
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Class number in MSA classification
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(109)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      LOCOLD
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Location number before CUT-IMAGE or before
+      copying the output images in ANG-REC/NEW
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(110)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      REPQUAL
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Representation quality<BR>
+      Used in MSA-RUN and MSA (eigen) filtering
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(111)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      ZSHIFT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Last shift in Z direction
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(112)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      XSHIFT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Last shift in X direction
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(113)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      YSHIFT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Last shift in Y direction
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(114)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NUMCLS
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of members in the class specified
+      in CLASSNO, if this image represents a 
+      class average (class-sum image)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(115)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      OVQUAL
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Overall quality of the class in CLASSNO
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(116)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      EANGLE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Equivalent angle (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(117)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      EXSHIFT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Equivalent shift in X direction
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(118)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      EYSHIFT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Equivalent shift in Y direction
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(119)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      CMTOTVAR
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Total variance in data matrix relative to
+      centre of mass (MSA calculations)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(120)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      INFORMAT
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Gauss norm / real*FT space information of
+      the data set
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(121)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NUMEIGEN
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of eigenvalues/eigenimages in MSA
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(122)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NIACTIVE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Number of active images in MSA calculations
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(123)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      PIXSIZE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Pixel/Voxel size (Angstrom)<BR>
+      If DAT1(105) = -1.0 (FABOSA): mm per pixel
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(124)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+     APERTURE
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Aperture in the back focal plane of
+      the objective lens (in micrometer)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(125)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      CTFQUAL
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      CTF quality
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(126)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      ALPHA2
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Euler angle alpha (from projection matching) (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(127)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      BETA2
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Euler angle beta (from projection matching) (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(128)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      GAMMA2
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Euler angle gamma (from projection matching) (degree)
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(126)<BR>
+      &nbsp;&nbsp;&nbsp;-<BR>
+      DAT1(128)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      &nbsp;
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Specific FABOSA variables if DAT1(105) = -1.0
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(129)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      NMETRIC
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Metric used in MSA calculations
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(130)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      ACTMSA
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      A flag indicating whether the "image" is/was
+      active or not during MSA calculations
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(131)<BR>
+      &nbsp;&nbsp;&nbsp;-<BR>
+      DAT1(199)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      COOSMSA
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      MSA coordinates of the "image" along factorial axes (1 through 69).<BR>
+      If more than 69 eigenimages were used
+      all MSA coordinates are stored<BR>
+      in an additional header block
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      DAT1(150)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      EIGVAL
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Eigenvalue if the "image" represents an eigenimage
+    </TD>
+  </TR>
+  <TR>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      IDAT1(200)<BR>
+      -<BR>
+      IDAT1(256)
+    </TD>
+    <TD WIDTH="10%" VALIGN="CENTER" ALIGN="LEFT">
+      HISTORY
+    </TD>
+    <TD WIDTH="70%" VALIGN="CENTER" ALIGN="LEFT">
+      Coded history of image (228 characters)
+      <BR>
+    </TD>
+  </TR>
+
+            </table></font>
+
+            <table border="1" cellpadding="5" align="left">
+              <tr>
+            </table>
+            <br><br>
+            <a name="image"></a>
+			<h3>IMAGIC image density file format</h3>
+
+            <p>The image density file has the extension ".img" and contains the image densities.
+               This file contains only the raw data.</p>
+
+            <p>The raw sata can be stored in the following internal IMAGIC formats (see header index DAT1(15) - TYPE):<BR>
+               &nbsp;&nbsp; REAL : Each image pixel is represented by a 32-bit real/float number      <BR>
+               &nbsp;&nbsp; LONG : Each image pixel is represented by a 32-bit (signed) integer number<BR>
+               &nbsp;&nbsp; INTG : Each image pixel is represented by a 16-bit (signed) integer number<BR>
+               &nbsp;&nbsp; PACK : Each image pixel is represented by one (unsigned) byte number      <BR>
+               &nbsp;&nbsp; COMP : Each complex image pixel is represented by 2 REAL values
+            </p>
+
+            <p>The first pixel stored is the upper left one. The data is stored line by line,
+               section by section, volume by volume. Please also refer to the definition
+               of the <a href="#coord">IMAGIC coordinate system</a>.</p>
+
+            <br>
+            <a name="coord"></a>
+			<h3>IMAGIC coordinate system</h3>
+
+            <p>The IMAGIC coordinate system is defined as follows:</p>
+
+            <p>The IMAGIC coordinate system is a right-handed system with its (1,1) origin 
+               in the top-left corner of the image. The length of the lines is NY and the 
+               number of lines is NX:
+               <br>
+               <img src="./img/coord.jpg">
+               <br>
+               The centre of the image, for almost all operations on the image, is given by:
+               <br><br>
+               ( IXMID , IYMID ) = ( NX/2 + 1 , NY/2 + 1 ).
+               <br>
+               This point is also the default centre of rotational symmetric masks and the 
+               like.</p>
+
+            <p>In three dimensions:
+               <br>
+               <img src="./img/volume.jpg">
+               <br>
+            </p>
+
+            <br>
+            <a name="euler"></a>
+			<h3>IMAGIC Euler angles</h3>
+
+            <p>In IMAGIC the Euler angles alpha, beta, gamma are defined as three subsequent 
+               rotations. The first rotation angle 
+               ALPHA describes a rotation around the Z-axis. We then rotate along the new 
+               Y-axis over the angle BETA. Finally, the rotation GAMMY is a rotation around 
+               the new Z-axis. All rotations are counter clockwise.</p>
+
+            <p>Note that these are Euler angles as seen from the object.<p>
+
+            <p>Normally a user does not think in this way but tries to imagine how the 
+               particle would look like "in his hands":
+               <br>
+               <img src="./img/euler_outside.jpg"></center>
+               <br>
+               a) look at the particle along the Z-axis ("north pole")<br>
+               b) rotate the particle clockwise by GAMMA<br>
+               c) rotate the particle into the plane clockwise by BETA<br>
+               d) rotate the particle clockwise by ALPHA</p>
+
+            <p>PLEASE NOTE:<br>
+               The important angles to define a 3-D orientation are gamma and beta. Alpha is 
+               only the final in-plane rotation.</p>
+
+            <br>
+            <center>
+              <font face="Arial" size=1>
+               Responsible/Verantwortlich - &copy Copyright: <br>
+               Image Science Software GmbH - Gillweg3  - 14193 Berlin - Germany <br>
+               info(at)ImageScience.de</font></a>
+            </center>
+
+</body>
+</html>

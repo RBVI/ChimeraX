@@ -48,7 +48,7 @@ class MapFileFormat:
 file_formats = [
   MapFileFormat('Amira mesh', 'amira', ['amira'], ['am']),
   MapFileFormat('APBS potential', 'apbs', ['apbs'], ['dx']),
-  MapFileFormat('BRIX density map', 'dsn6', ['dsn6'], ['brix'], writable = True),
+  MapFileFormat('BRIX density map', 'brix', ['brix'], ['brix'], writable = True),
   MapFileFormat('CCP4 density map', 'ccp4', ['ccp4'], ['ccp4','map']),
   MapFileFormat('Chimera map', 'cmap', ['cmap'], ['cmap', 'cmp'], writable = True,
                 writer_options = ('subsamples', 'chunk_shapes', 'append',
@@ -64,6 +64,7 @@ file_formats = [
   MapFileFormat('gOpenMol grid', 'gopenmol', ['gopenmol'], ['plt']),
   MapFileFormat('HDF map', 'hdf', ['hdf'], []),
   MapFileFormat('Image stack', 'imagestack', ['images'], ['tif', 'tiff', 'png', 'pgm'], batch = True, check_path = False),
+  MapFileFormat('IMAGIC density map', 'imagic', ['imagic'], ['hed', 'img'], writable = True),
   MapFileFormat('Imaris map', 'ims', ['ims'], ['ims']),
   MapFileFormat('IMOD map', 'imod', ['imodmap'], ['rec']),
   MapFileFormat('MacMolPlt grid', 'macmolplt', ['macmolplt'], ['mmp']),
@@ -196,7 +197,7 @@ def file_type_from_colon_specifier(path):
 #
 def file_format_by_name(name):
   for ff in file_formats:
-    if ff.name == name:
+    if ff.name == name or name in ff.suffixes:
       return ff
   raise ValueError('Unknown map file format %s' % name)
 
@@ -234,7 +235,7 @@ def file_writer(path, format = None):
           return ff
   else:
     for ff in file_formats:
-      if format == ff.name or format == ff.description:
+      if format == ff.name or format == ff.description or format in ff.suffixes:
         return ff
   return None
   

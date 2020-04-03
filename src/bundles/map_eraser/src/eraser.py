@@ -300,7 +300,7 @@ class MapEraserSettings(ToolInstance):
     def move_sphere(self, delta_xyz):
         sm = self.sphere_model
         dxyz = sm.scene_position.inverse().transform_vector(delta_xyz)	# Transform to sphere local coords.
-        from chimerax.core.geometry import translation
+        from chimerax.geometry import translation
         sm.position = sm.position * translation(dxyz)
 
     def _show_eraser_cb(self, show):
@@ -355,7 +355,7 @@ class SphereModel(Model):
         self._unit_vertices = va
         self.set_geometry(radius*va, na, ta)
         self.color = color
-        from chimerax.core.geometry import translation
+        from chimerax.geometry import translation
         self.position = translation(center)
         self._radius = radius
         session.models.add([self])

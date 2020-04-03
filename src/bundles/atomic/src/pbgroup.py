@@ -266,7 +266,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             return []
 
         picks = []
-        from chimerax.core.geometry import transform_planes
+        from chimerax.geometry import transform_planes
         for p in self.positions:
             pplanes = transform_planes(p, planes)
             picks.extend(self._pseudobonds_planes_pick(pplanes))
@@ -355,6 +355,15 @@ class PromotePseudobondSelection(SelectionPromotion):
 def all_pseudobond_groups(session):
     from . import PseudobondGroups
     return PseudobondGroups([m for m in session.models.list() if isinstance(m, PseudobondGroup)])
+
+# -----------------------------------------------------------------------------
+#
+def all_pseudobonds(session):
+    '''All pseudobonds in a :class:`.Pseudobonds` collection.'''
+    pbgroups = all_pseudobond_groups(session)
+    from .molarray import concatenate, Pseudobonds
+    pbonds = concatenate([pbg.pseudobonds for pbg in pbgroups], Pseudobonds)
+    return pbonds
 
 # -----------------------------------------------------------------------------
 #

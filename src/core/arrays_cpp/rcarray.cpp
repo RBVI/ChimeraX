@@ -16,6 +16,7 @@
 // ----------------------------------------------------------------------------
 //
 #include <string.h>     // use memcpy()
+#include <sstream>	// use std::ostringstream
 
 #define ARRAYS_EXPORT
 #include "rcarray.h"        // use Untyped_Array, Numeric_Array
@@ -27,26 +28,26 @@ namespace Reference_Counted_Array
 //
 Untyped_Array::Untyped_Array()
 {
-  initialize(0, 0, (int *) 0, false);
+  initialize(0, 0, (int64_t *) 0, false);
 }
 
 // ----------------------------------------------------------------------------
 //
-Untyped_Array::Untyped_Array(int element_size, int dim, const int *size)
+Untyped_Array::Untyped_Array(int element_size, int dim, const int64_t *size)
 {
   initialize(element_size, dim, size, true);
 }
 
 // ----------------------------------------------------------------------------
 //
-void Untyped_Array::initialize(int element_size, int dim, const int *size,
+void Untyped_Array::initialize(int element_size, int dim, const int64_t *size,
                    bool allocate)
 {
   if (allocate && dim > 0)
     {
-      long length = 1;
+      int64_t length = 1;
       for (int a = 0 ; a < dim ; ++a)
-    length *= size[a];
+	length *= size[a];
       char *d = new char[length * element_size];
       this->data = (void *) d;
       this->release_data = new Delete_Data<char>(d);
@@ -61,30 +62,30 @@ void Untyped_Array::initialize(int element_size, int dim, const int *size,
   this->element_siz = element_size;
   this->dim = dim;
 
-  this->siz = (dim > 0 ? new int[dim] : (int *) 0);
+  this->siz = (dim > 0 ? new int64_t[dim] : (int64_t *) 0);
   for (int a = 0 ; a < dim ; ++a)
     this->siz[a] = size[a];
 
-  this->stride_size = (dim > 0 ? new long[dim] : (long *) 0);
-  long stride = 1;
+  this->stride_size = (dim > 0 ? new int64_t[dim] : (int64_t *) 0);
+  int64_t stride = 1;
   for (int a = dim-1 ; a >= 0 ; stride *= size[a], --a)
     this->stride_size[a] = stride;
 }
 
 // ----------------------------------------------------------------------------
 //
-Untyped_Array::Untyped_Array(int element_size, int dim, const int *size,
+Untyped_Array::Untyped_Array(int element_size, int dim, const int64_t *size,
                  const void *values)
 {
   initialize(element_size, dim, size, true);
 
-  long length = this->size() * element_size;
+  int64_t length = this->size() * element_size;
   memcpy(data, values, length);
 }
 
 // ----------------------------------------------------------------------------
 //
-Untyped_Array::Untyped_Array(int element_size, int dim, const int *size,
+Untyped_Array::Untyped_Array(int element_size, int dim, const int64_t *size,
                  void *values, Release_Data *release)
 {
   initialize(element_size, dim, size, false);
@@ -96,7 +97,7 @@ Untyped_Array::Untyped_Array(int element_size, int dim, const int *size,
 // ----------------------------------------------------------------------------
 //
 Untyped_Array::Untyped_Array(int element_size, int dim,
-                 const int *sizes, const long *strides,
+                 const int64_t *sizes, const int64_t *strides,
                  void *data, Release_Data *release)
 {
   initialize(element_size, dim, sizes, false);
@@ -112,7 +113,7 @@ Untyped_Array::Untyped_Array(int element_size, int dim,
 //
 Untyped_Array::Untyped_Array(const Untyped_Array &a)
 {
-  initialize(0, 0, (int *) 0, false);
+  initialize(0, 0, (int64_t *) 0, false);
   *this = a;
 }
 
@@ -134,8 +135,8 @@ const Untyped_Array &Untyped_Array::operator=(const Untyped_Array &array)
   this->start = array.start;
   this->element_siz = array.element_size();
   this->dim = array.dim;
-  this->stride_size = new long[dim];
-  this->siz = new int[dim];
+  this->stride_size = new int64_t[dim];
+  this->siz = new int64_t[dim];
   for (int a = 0 ; a < dim ; ++a)
     {
       this->siz[a] = array.siz[a];
@@ -153,9 +154,9 @@ Untyped_Array::~Untyped_Array()
   data = (void *)0;
   release_data = (Release_Data *)0;
   delete [] stride_size;
-  stride_size = (long *)0;
+  stride_size = (int64_t *)0;
   delete [] siz;
-  siz = (int *)0;
+  siz = (int64_t *)0;
 }
 
 // ----------------------------------------------------------------------------
@@ -184,19 +185,19 @@ int Untyped_Array::dimension() const
 
 // ----------------------------------------------------------------------------
 //
-int Untyped_Array::size(int axis) const
+int64_t Untyped_Array::size(int axis) const
 {
   return siz[axis];
 }
 
 // ----------------------------------------------------------------------------
 //
-long Untyped_Array::size() const
+int64_t Untyped_Array::size() const
 {
   if (dim == 0)
     return 0;
 
-  long s = 1;
+  int64_t s = 1;
   for (int a = 0 ; a < dim ; ++a)
     s *= size(a);
 
@@ -205,21 +206,44 @@ long Untyped_Array::size() const
 
 // ----------------------------------------------------------------------------
 //
-const int *Untyped_Array::sizes() const
+const int64_t *Untyped_Array::sizes() const
 {
   return siz;
 }
 
 // ----------------------------------------------------------------------------
 //
-long Untyped_Array::stride(int axis) const
+std::string Untyped_Array::size_string() const
+{
+  std::ostringstream string;
+  for (int a = 0 ; a < dim ; ++a)
+    {
+      string << siz[a];
+      if (a+1 < dim)
+	string << ", ";
+    }
+  return string.str();
+}
+
+// ----------------------------------------------------------------------------
+//
+std::string Untyped_Array::size_string(int axis) const
+{
+  std::ostringstream string;
+  string << siz[axis];
+  return string.str();
+}
+
+// ----------------------------------------------------------------------------
+//
+int64_t Untyped_Array::stride(int axis) const
 {
   return stride_size[axis];
 }
 
 // ----------------------------------------------------------------------------
 //
-const long *Untyped_Array::strides() const
+const int64_t *Untyped_Array::strides() const
 {
   return stride_size;
 }
@@ -233,7 +257,7 @@ void *Untyped_Array::values() const
 
 // ----------------------------------------------------------------------------
 //
-Untyped_Array Untyped_Array::slice(int axis, int index) const
+Untyped_Array Untyped_Array::slice(int axis, int64_t index) const
 {
   Untyped_Array s(*this);
   s.start = s.start + index * stride_size[axis];
@@ -248,7 +272,7 @@ Untyped_Array Untyped_Array::slice(int axis, int index) const
 
 // ----------------------------------------------------------------------------
 //
-Untyped_Array Untyped_Array::subarray(int axis, int i_min, int i_max)
+Untyped_Array Untyped_Array::subarray(int axis, int64_t i_min, int64_t i_max)
 {
   Untyped_Array s(*this);
 
@@ -262,7 +286,7 @@ Untyped_Array Untyped_Array::subarray(int axis, int i_min, int i_max)
 //
 bool Untyped_Array::is_contiguous() const
 {
-  long contig_stride = 1;
+  int64_t contig_stride = 1;
   for (int a = dim-1 ; a >= 0 ; contig_stride *= size(a), --a)
     if (stride_size[a] != contig_stride)
       return false;
@@ -300,7 +324,7 @@ Numeric_Array::Numeric_Array()
 
 // ----------------------------------------------------------------------------
 //
-Numeric_Array::Numeric_Array(Value_Type type, int dim, const int *sizes) :
+Numeric_Array::Numeric_Array(Value_Type type, int dim, const int64_t *sizes) :
   Untyped_Array(size_of_type(type), dim, sizes)
 {
   this->type = type;
@@ -309,7 +333,7 @@ Numeric_Array::Numeric_Array(Value_Type type, int dim, const int *sizes) :
 // ----------------------------------------------------------------------------
 //
 Numeric_Array::Numeric_Array(Value_Type type, int dim,
-                 const int *sizes, const long *strides,
+                 const int64_t *sizes, const int64_t *strides,
                  void *data, Release_Data *release) :
   Untyped_Array(size_of_type(type), dim, sizes, strides, data, release)
 {
@@ -370,7 +394,7 @@ Numeric_Array::Value_Type Numeric_Array::value_type() const
 
 // ----------------------------------------------------------------------------
 //
-Numeric_Array Numeric_Array::slice(int axis, int index) const
+Numeric_Array Numeric_Array::slice(int axis, int64_t index) const
 {
   return Numeric_Array(value_type(), Untyped_Array::slice(axis, index));
 }

@@ -29,9 +29,9 @@ static void lin_combine(float f1, const Reference_Counted_Array::Array<T> &m1,
 			const Reference_Counted_Array::Array<T> &m)
 			   
 {
-  int n = m.size();
+  int64_t n = m.size();
   T *v1 = m1.values(), *v2 = m2.values(), *v = m.values();
-  for (int k = 0 ; k < n ; ++k)
+  for (int64_t k = 0 ; k < n ; ++k)
 	 v[k] = static_cast<T>(f1*v1[k]+f2*v2[k]);
 }
 

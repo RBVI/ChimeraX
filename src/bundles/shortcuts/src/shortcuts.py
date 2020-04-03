@@ -744,7 +744,7 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
@@ -784,7 +784,7 @@ def toggle_surface_transparency(session):
 
 def show_surface_transparent(session, alpha = 0.5):
     from chimerax.map import Volume
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
         if not m.display:
@@ -1004,7 +1004,7 @@ def leap_quit(session):
     c2leap.quit_leap(session)
 
 def motion_blur(viewer):
-    from chimerax.core.graphics import MotionBlur
+    from chimerax.graphics import MotionBlur
     mb = [o for o in viewer.overlays() if isinstance(o, MotionBlur)]
     if mb:
         viewer.remove_overlays(mb)
@@ -1012,10 +1012,10 @@ def motion_blur(viewer):
         MotionBlur(viewer)
 
 def mono_mode(viewer):
-    from chimerax.core import graphics
+    from chimerax import graphics
     viewer.camera.mode = graphics.mono_camera_mode
 def stereo_mode(viewer):
-    from chimerax.core import graphics
+    from chimerax import graphics
     viewer.camera.mode = graphics.stereo_camera_mode
 
 def start_oculus(session):

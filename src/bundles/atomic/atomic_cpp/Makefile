@@ -12,7 +12,7 @@
 TOP = ../../../..
 include $(TOP)/mk/config.make
 
-SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp
+SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp ribbon_cpp
 
 include $(TOP)/mk/subdir.make
 
@@ -83,7 +83,7 @@ molc.$(OBJ_EXT): include/atomstruct/Atom.h include/atomstruct/AtomicStructure.h 
 	include/atomstruct/ChangeTracker.h include/atomstruct/destruct.h \
 	include/atomstruct/PBGroup.h include/atomstruct/PBManager.h \
 	include/atomstruct/Pseudobond.h include/atomstruct/Residue.h \
-	include/atomstruct/RibbonXSection.h include/atomstruct/Sequence.h \
+	include/atomstruct/Sequence.h \
 	include/element/Element.h include/pyinstance/PythonInstance.declare.h \
 	include/pyinstance/PythonInstance.instantiate.h
 
@@ -97,7 +97,6 @@ include/atomstruct/PBGroup.h: atomstruct_cpp.install
 include/atomstruct/PBManager.h: atomstruct_cpp.install
 include/atomstruct/Pseudobond.h: atomstruct_cpp.install
 include/atomstruct/Residue.h: atomstruct_cpp.install
-include/atomstruct/RibbonXSection.h: atomstruct_cpp.install
 include/atomstruct/Sequence.h: atomstruct_cpp.install
 include/element/Element.h: element_cpp.install
 include/pyinstance/PythonInstance.declare.h: pyinstance_cpp.install
@@ -107,6 +106,7 @@ molobject.py: cymol.$(PYMOD_EXT)
 
 atomstruct_cpp.install: element_cpp.install pyinstance_cpp.install
 dssp_cpp.install: atomstruct_cpp.install
+ribbon_cpp.install: atomstruct_cpp.install
 element_cpp.install: pyinstance_cpp.install
 mmcif_cpp.install: readcif_cpp.install atomstruct_cpp.install
 pdbio.install: atomstruct_cpp.install pdb_cpp.install

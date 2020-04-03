@@ -65,3 +65,7 @@ Atomic data classes
 .. automodule:: chimerax.atomic.molsurf
     :members:
     :show-inheritance:
+
+.. automodule:: chimerax.atomic.args
+    :members:
+    :show-inheritance:
