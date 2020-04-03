@@ -59,6 +59,8 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     *chain_id* is the desired chain ID for the peptide.  If None, earliest alphabetical chain ID
     not already in use in the structure will be used (upper case taking precedence over lower
     case).
+
+    returns a Residues collection of the added residues
     """
 
     if not sequence:
@@ -96,7 +98,8 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
 
     prev = [None] * 3
     pos = 1
-    from chimerax.atomic.struct_edit import DIST_N_C, DIST_CA_N, DIST_C_CA, DIST_C_O, find_pt
+    from chimerax.atomic.struct_edit import DIST_N_C, DIST_CA_N, DIST_C_CA, DIST_C_O, \
+        find_pt, add_atom, add_dihedral_atom
     serial_number = None
     residues = []
     prev_psi = 0
@@ -131,7 +134,44 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
                     dist, angle, 0.0)
             else:
                 pt = find_pt(prev[0].coord, prev[1].coord, prev[2].coord, dist, angle, dihed)
-            #TODO
+            a = add_atom(backbone, backbone[0], r, pt,
+                serial_number=serial_number, bonded_to=prev[0] 
+            serial_number = a.serial_number + 1
+            prev = [a] + prev[:2]
+        o = add_dihedral_atom("O", "O", prev[0], prev[1], prev[2], DIST_C_O, 120.4, 180 + psi,
+            bonded=True)
+        prev_psi = psi
+    # C terminus O/OXT at different angle than mainchain O
+    structure.delete_atom(o)
+    add_dihedral_atom("O", "O", prev[0], prev[1], prev[2], DIST_C_O, 117.0, 180 + psi, bonded=True)
+    add_dihedral_atom("OXT", "O", prev[0], prev[1], prev[2], DIST_C_O, 117.0, psi, bonded=True)
+
+    from chimerax.atomic import Residues
+    residues = Residues(residues)
+
+    from chimerax.atomic.swap_res import swap_aa
+    # swap_aa is capable of swapping all residues in one call, but need to process one by one
+    # since side-chain clashes are only calculated against pre-existing side chains
+    kw = {}
+    if rot_lib:
+        kw['lib'] = rot_lib
+    for r in residues:
+        swap_aa(session, [r], "same", criteria="cp", log=False, **kw)
+
+    # find peptide center
+    atoms = residues.atoms
+    coords = atoms.coords
+    center = coords.mean(0)
+    correction = position - center
+    atoms.coords = coords - correction
+
+    from chimerax.atomic.dssp import compute_ss
+    compute_ss(structure)
+
+    if need_focus:
+        from chimerax.commands import run
+        run(session, "view")
+    return residues
 
 def _gen_chain_id(existing_ids, cur_id, legal_chars, rem_length):
     for c in legal_characters:

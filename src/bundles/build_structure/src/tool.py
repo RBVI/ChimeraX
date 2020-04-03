@@ -203,6 +203,7 @@ class BuildStructureTool(ToolInstance):
         ui_names = list(self.ss_u_to_p_names.keys())
         ui_names.sort(key=lambda x: x.lower())
         provider_layout = QGridLayout()
+        provider_layout.setVerticalSpacing(5)
         layout.addLayout(provider_layout)
         provider_layout.addWidget(QLabel("Add "), 0, 0, len(ui_names)+2, 1)
 
