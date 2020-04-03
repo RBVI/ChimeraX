@@ -358,8 +358,8 @@ class ConfigFile:
                 str_value = self.PROPERTY_INFO[name].convert_to_string(
                     self._session, value)
             except ValueError:
-                raise UserError("Illegal %s '%s' attribute value, unchanged" %
-                                (self._tool_name, name))
+                raise UserError("Illegal %s '%s' attribute value (%s), leaving attribute unchanged"
+                    % (self._tool_name, name, repr(value)))
             self._config['DEFAULT'][name] = str_value
         if call_save:
             ConfigFile.save(self)
@@ -453,12 +453,11 @@ class Value:
         and returns a value of the right type, or a cli
         :py:class:`~chimerax.core.commands.cli.Annotation`.
         Defaults to py:func:`ast.literal_eval`.
-    to_str : function returning a string, optional
+    to_str : function or Annotation, optional
+        can be either a function that takes a value
+        and returns a string representation of the value, or a cli
+        :py:class:`~chimerax.core.commands.cli.Annotation`.
         Defaults to :py:func:`repr`.
-
-    Attributes
-    ----------
-    section : :py:class:`Section` instance
 
     """
 
@@ -482,7 +481,10 @@ class Value:
             return self.from_str(str_value)
 
     def convert_to_string(self, session, value):
-        str_value = self.to_str(value)
+        if hasattr(self.to_str, 'unparse'):
+            str_value = self.to_str.unparse(value, session)
+        else:
+            str_value = self.to_str(value)
         # confirm that value can be restored from disk,
         # by converting to a string and back
         new_value = self.convert_from_string(session, str_value)
