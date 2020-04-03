@@ -94,4 +94,53 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     if position is None:
         position = session.main_view.center_of_rotation
 
-    #TODO: actually add the peptide
+    prev = [None] * 3
+    pos = 1
+    from chimerax.atomic.struct_edit import DIST_N_C, DIST_CA_N, DIST_C_CA, DIST_C_O, find_pt
+    serial_number = None
+    residues = []
+    prev_psi = 0
+    if chain_id is None:
+        from string import ascii_uppercase as uppercase, ascii_lowercase as lowercase, digits
+        existing_ids = set([chain.chain_id for chain in structure.chains])
+        for chain_characters in [uppercase, uppercase + digits + lowercase]:
+            for id_length in range(1, 5):
+                chain_id = _gen_chain_id(existing_ids, "", chain_characters, id_length-1)
+                if chain_id:
+                    break
+            else:
+                continue
+            break
+        if chain_id is None:
+            raise PeptideError("Could not find unused legal chain ID for peptide!")
+    from numpy import array
+    for c, phi_psi in zip(sequence, phi_psis):
+        phi, psi = phi_psi
+        while structure.find_residue(chain_id, pos):
+            pos += 1
+        r = structure.new_residue(Sequence.protein1to3[c], chain_id, pos)
+        residue.append(r)
+        for backbone, dist, angle, dihed in [('N', DIST_N_C, 116.6, prev_psi),
+                ('CA', DIST_CA_N, 121.9, 180.0), ('C', DIST_C_CA, 110.1, phi)]:
+            if prev[0] is None:
+                pt = array([0.0, 0.0, 0.0])
+            elif prev[1] is None:
+                pt = array([dist, 0.0, 0.0])
+            elif prev[2] is None:
+                pt = find_pt(prev[0].coord, prev[1].coord, array([0.0, 1.0, 0.0]),
+                    dist, angle, 0.0)
+            else:
+                pt = find_pt(prev[0].coord, prev[1].coord, prev[2].coord, dist, angle, dihed)
+            #TODO
+
+def _gen_chain_id(existing_ids, cur_id, legal_chars, rem_length):
+    for c in legal_characters:
+        next_id = cur_id + c
+        if rem_length > 0:
+            chain_id = _gen_chain_id(existing_ids, next_id, legal_chars, rem_length-1)
+            if chain_id:
+                return chain_id
+        else:
+            if next_id not in existing_ids:
+                return next_id
+    return None
