@@ -22,12 +22,17 @@ def place_helium(structure, res_name, position=None):
     res = structure.new_residue(res_name, "het", max_existing+1)
     if position is None:
         if len(structure.session.models) == 0:
-            from numpy import array
-            position = array([0.0,0.0,0.0])
+            position = (0.0, 0.0 ,0.0)
         else:
-            view = structure.session.view
-            n, f = view.near_far_distances(view.camera, None)
-            position = view.camera.position.origin() + (n+f) * view.camera.view_direction() / 2
+            #view = structure.session.view
+            #n, f = view.near_far_distances(view.camera, None)
+            #position = view.camera.position.origin() + (n+f) * view.camera.view_direction() / 2
+
+            # apparently the commented-out code above is equivalent to...
+            position = structure.session.main_view.center_of_rotation
+
+    from numpy import array
+    position = array(position)
     from chimerax.atomic.struct_edit import add_atom
     helium = Element.get_element("He")
     a = add_atom("He", helium, res, position)
@@ -49,8 +54,8 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
 
     *phi_psis* is a list of phi/psi tuples, one per residue.
 
-    *position* is either a numpy xyz array or None.  If None, the peptide is positioned at the
-    center of the view.
+    *position* is either an array or sequence specifying an xyz world coordinate position or None.
+    If None, the peptide is positioned at the center of the view.
 
     *rot_lib* is the name of the rotamer library to use to position the side chains.
     session.rotamers.library_names lists installed rotamer library names.  If None, a default
@@ -95,6 +100,8 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
 
     if position is None:
         position = session.main_view.center_of_rotation
+    from numpy import array
+    position = array(position)
 
     prev = [None] * 3
     pos = 1
@@ -122,7 +129,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
         while structure.find_residue(chain_id, pos):
             pos += 1
         r = structure.new_residue(Sequence.protein1to3[c], chain_id, pos)
-        residue.append(r)
+        residues.append(r)
         for backbone, dist, angle, dihed in [('N', DIST_N_C, 116.6, prev_psi),
                 ('CA', DIST_CA_N, 121.9, 180.0), ('C', DIST_C_CA, 110.1, phi)]:
             if prev[0] is None:
@@ -135,7 +142,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
             else:
                 pt = find_pt(prev[0].coord, prev[1].coord, prev[2].coord, dist, angle, dihed)
             a = add_atom(backbone, backbone[0], r, pt,
-                serial_number=serial_number, bonded_to=prev[0] 
+                serial_number=serial_number, bonded_to=prev[0])
             serial_number = a.serial_number + 1
             prev = [a] + prev[:2]
         o = add_dihedral_atom("O", "O", prev[0], prev[1], prev[2], DIST_C_O, 120.4, 180 + psi,
@@ -169,12 +176,12 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     compute_ss(structure)
 
     if need_focus:
-        from chimerax.commands import run
+        from chimerax.core.commands import run
         run(session, "view")
     return residues
 
 def _gen_chain_id(existing_ids, cur_id, legal_chars, rem_length):
-    for c in legal_characters:
+    for c in legal_chars:
         next_id = cur_id + c
         if rem_length > 0:
             chain_id = _gen_chain_id(existing_ids, next_id, legal_chars, rem_length-1)

@@ -2788,9 +2788,9 @@ class Command:
         while True:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
+                save_error = self._error
                 if self.registry == _command_info:
                     # See if this command is available in the toolshed
-                    save_error = self._error
                     self._error = ""
                     _compute_available_commands(session)
                     self._find_command_name(final, used_aliases=_used_aliases,

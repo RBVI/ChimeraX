@@ -106,23 +106,45 @@ def process_widget(name, widget):
     return " ".join(args)
 
 from chimerax.core.commands import register, CmdDesc, Command
-from chimerax.core.commands.cli import RegisteredCommandInfo
-command_registries = {}
+command_registry = None
 def process_command(session, name, structure, substring):
-    # all the commands use the trick that the structure arg is temporarily made available in the global
-    # namespace as '_structure'
-    global _structure
+    # all the commands use the trick that the structure arg is temporarily made available in the
+    # global namespace as '_structure'
+    global _structure, command_registry
     _structure = structure
     try:
-        if name == "atom":
-            if 'name' not in command_registries:
-                command_registries[name] = registry = RegisteredCommandInfo()
-                from chimerax.core.commands import Float3Arg, StringArg, BoolArg
-                register(name, CmdDesc(keyword=[("position", Float3Arg), ("res_name", StringArg),
-                    ("select", BoolArg)], synopsis="place helium atom"), shim_place_atom,
-                    registry=registry)
-            registry = command_registries[name]
-        cmd = Command(session, registry=registry)
+        if command_registry is None:
+            # register commands to private registry
+            from chimerax.core.commands.cli import RegisteredCommandInfo
+            command_registry = RegisteredCommandInfo()
+
+            from chimerax.core.commands import Float3Arg, StringArg, BoolArg, \
+                Float2Arg, DynamicEnum
+
+            # atom
+            register("atom",
+                CmdDesc(
+                    keyword=[("position", Float3Arg), ("res_name", StringArg),
+                        ("select", BoolArg)],
+                    synopsis="place helium atom"
+                ), shim_place_atom, registry=command_registry)
+
+            # peptide
+            from chimerax.core.commands import Annotation
+            class RepeatableFloat2Arg(Annotation):
+                allow_repeat = True
+                parse = Float2Arg.parse
+                unparse = Float2Arg.unparse
+
+            register("peptide",
+                CmdDesc(
+                    required=[("sequence", StringArg), ("phi_psis", RepeatableFloat2Arg)],
+                    keyword=[("position", Float3Arg), ("chain_id", StringArg),
+                        ("rot_lib", DynamicEnum(session.rotamers.library_names))],
+                    synopsis="construct peptide from sequence"
+                ), shim_place_peptide, registry=command_registry)
+
+        cmd = Command(session, registry=command_registry)
         cmd.run(name + ' ' + substring, log=False)
     finally:
         _structure = None
@@ -133,3 +155,8 @@ def shim_place_atom(session, position=None, res_name="UNL", select=True):
     if select:
         session.selection.clear()
         a.selected = True
+    return a
+
+def shim_place_peptide(session, sequence, phi_psis, **kw):
+    from .start import place_peptide
+    return place_peptide(_structure, sequence, phi_psis, **kw)
