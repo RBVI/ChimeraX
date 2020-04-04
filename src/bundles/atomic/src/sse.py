@@ -337,20 +337,21 @@ class HelixCylinder:
         return ipoints, normals, binormals
 
     def _extend_ends(self, centers, frac):
-        if self.curved:
-            r = centers - self.center  # radial vectors from center of torus.
-            from chimerax.geometry import angle, rotation
-            c0 = self.center + rotation(self.axis, -frac * angle(r[0], r[1])) * r[0]
-            c1 = self.center + rotation(self.axis, frac * angle(r[-1], r[-2])) * r[-1]
-        else:
-            c0 = centers[0] + frac * (centers[0] - centers[1])
-            c1 = centers[-1] + frac * (centers[-1] - centers[-2])
         n = len(centers)
-        from numpy import empty
-        ecenters = empty((n+2,3), centers.dtype)
-        ecenters[1:-1] = centers
-        ecenters[0] = c0
-        ecenters[-1] = c1
+        if self.curved:
+            tc = self.center  # Torus center
+            r0,r1 = centers[0] - tc, centers[-1] - tc # radial vectors from center of torus.
+            from chimerax.geometry import angle, rotation
+            a = frac * angle(r0,r1) / (n-1)
+            c0 = tc + rotation(self.axis, -a) * r0
+            c1 = tc + rotation(self.axis, a) * r1
+        else:
+            e = frac/(n-1) * (centers[-1] - centers[0])
+            c0 = centers[0] - e
+            c1 = centers[-1] + e
+        n = len(centers)
+        from numpy import concatenate
+        ecenters = concatenate((c0.reshape(1,3), centers, c1.reshape(1,3)))
         return ecenters
     
     def _try_curved(self):
