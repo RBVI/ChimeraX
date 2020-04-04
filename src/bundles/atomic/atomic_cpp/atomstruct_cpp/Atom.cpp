@@ -1306,7 +1306,9 @@ Atom::set_color(const Rgba& rgba)
     if (rgba == _rgba)
         return;
     graphics_changes()->set_gc_color();
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COLOR);
+    // Don't include color change in modified list for speed with large structures, ticket #3000.
+    change_tracker()->add_modified(structure(), static_cast<Atom*>(nullptr),
+                                   ChangeTracker::REASON_COLOR);
     _rgba = rgba;
 }
 
@@ -1360,7 +1362,9 @@ Atom::set_display(bool d)
     graphics_changes()->set_gc_shape();
     graphics_changes()->set_gc_display();
     graphics_changes()->set_gc_ring();
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_DISPLAY);
+    // Don't include display change in modified list for speed with large structures, ticket #3000.
+    change_tracker()->add_modified(structure(), static_cast<Atom*>(nullptr),
+                                   ChangeTracker::REASON_DISPLAY);
     _display = d;
 }
 
