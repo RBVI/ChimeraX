@@ -1388,7 +1388,7 @@ ExtractMolecule::parse_atom_site()
             }
             cur_entity_id = entity_id;
             cur_seq_id = position;
-            cur_auth_seq_id = user_position;
+            cur_auth_seq_id = auth_position;
             cur_chain_id = chain_id;
             cur_comp_id = residue_name;
             if (has_poly_seq.find(entity_id) == has_poly_seq.end()) {
