@@ -71,6 +71,17 @@ class FitMapDialog(ToolInstance):
 
   # ---------------------------------------------------------------------------
   #
+  def delete(self):
+    
+    mmh = self._model_move_handler
+    if mmh:
+      self.session.triggers.remove_handler(mmh)
+      self._model_move_handler = None
+
+    ToolInstance.delete(self)
+    
+  # ---------------------------------------------------------------------------
+  #
   def _create_mol_map_menu(self, parent):
 
     from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel

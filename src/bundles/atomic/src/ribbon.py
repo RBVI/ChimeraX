@@ -385,6 +385,8 @@ def _smooth_twist(rc0, rc1):
         return True
     if rc0 is XSectionManager.RC_HELIX_END or rc0 is XSectionManager.RC_SHEET_END:
         return True
+    if rc1 is XSectionManager.RC_HELIX_START or rc1 is XSectionManager.RC_SHEET_START:
+        return True
     return False
 
 def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):        
@@ -933,15 +935,15 @@ def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
     icenters, inormals, ibinormals = hc.cylinder_intermediates()
     itangents = cross_products(inormals, ibinormals)
 
-    c = _interleave_vectors(centers, icenters)
-    t = _interleave_vectors(tangents, itangents)
-    n = _interleave_vectors(normals, inormals)
+    c = _interleave_vectors(icenters, centers)
+    t = _interleave_vectors(itangents, tangents)
+    n = _interleave_vectors(inormals, normals)
     np = len(c)
     
     for r in range(start, end):
         if displays[r]:
             i = 2*(r-start)
-            s,e = max(0, i-1), min(np, i+2)
+            s,e = i,i+3
             cap_front = (r == start or not displays[r-1])
             cap_back = (r == end-1 or not displays[r+1])
             xsection.extrude(c[s:e], t[s:e], n[s:e], cap_front, cap_back, geometry)
@@ -1122,7 +1124,7 @@ class Ribbon:
         if timing:
             t0 = time()
         # Currently Structure::ribbon_orient() defines the orientation method as
-        # ATOMS for helices, PEPTIDE for strands, and GUIDES for nucleic acids.
+        # ATOMS for helices and coils, PEPTIDE for strands, and GUIDES for nucleic acids.
         atom_normals = None
         from .structure import Structure
         atom_mask = (orients == Structure.RIBBON_ORIENT_ATOMS)
