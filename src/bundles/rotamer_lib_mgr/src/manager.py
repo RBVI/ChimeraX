@@ -46,6 +46,23 @@ class RotamerLibManager(ProviderManager):
                 lib_names.append(name)
         return lib_names
 
+    def library_name_option(self, *, installed_only=False):
+        pass
+    @property
+    def default_command_library_name(self):
+        available_libs = self.library_names()
+        for lib_name in available_libs:
+            if "Dunbrack" in lib_name:
+                lib = lib_name
+                break
+        else:
+            if available_libs:
+                lib = list(available_libs)[0]
+            else:
+                from chimerax.core.errors import LimitationError
+                raise LimitationError("No rotamer libraries installed")
+        return lib
+
     def add_provider(self, bundle_info, name, **kw):
         self._library_info[name] = bundle_info
 
