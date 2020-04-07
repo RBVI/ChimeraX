@@ -331,7 +331,8 @@ def file_format(session, file_name, format_name):
         return None
 
 def collated_open(session, is_fetch, data, data_format, func, func_args, func_kw):
-    collation_okay = is_fetch or data_format.category != session.data_formats.CAT_SCRIPT
+    is_script = data_format.category == session.data_formats.CAT_SCRIPT
+    collation_okay = is_fetch and not is_script
     if collation_okay:
         from chimerax.core.logger import Collator
         if is_fetch:
@@ -341,6 +342,9 @@ def collated_open(session, is_fetch, data, data_format, func, func_args, func_kw
             description = "Summary of feedback from opening %s" % (
                 "files" if len(data) > 1 else data[0])
         with Collator(session.logger, description, True):
+            return func(*func_args, **func_kw)
+    if is_script:
+        with session.in_script:
             return func(*func_args, **func_kw)
     return func(*func_args, **func_kw)
 
