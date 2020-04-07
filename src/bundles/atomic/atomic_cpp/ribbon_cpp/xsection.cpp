@@ -54,7 +54,7 @@ public:
 class Geometry
 {
 public:
-  Geometry() : v_start(0), v_end(0), t_start(0), t_end(0) {}
+  Geometry() : v_start(0), v_end(0), t_start(0), t_end(0), residue_offset(0) {}
   ~Geometry()
   {
     for (auto mi = meshes.begin() ; mi != meshes.end() ; ++mi)
@@ -71,13 +71,17 @@ public:
   {
     if (t_end == t_start && v_end == v_start)
       return;
-    triangle_ranges.push_back(residue_index);
+    triangle_ranges.push_back(residue_offset + residue_index);
     triangle_ranges.push_back(t_start);
     triangle_ranges.push_back(t_end);
     triangle_ranges.push_back(v_start);
     triangle_ranges.push_back(v_end);
     t_start = t_end;
     v_start = v_end;
+  }
+  void set_range_offset(int residue_offset)
+  {
+    this->residue_offset = residue_offset;
   }
   int num_ranges() const
     { return triangle_ranges.size()/5; }
@@ -113,6 +117,7 @@ private:
   int t_start, t_end;         // for tracking triangle range for each residue
   std::vector<Mesh *> meshes;   // vertices, normals, and triangles
   std::vector<int> triangle_ranges;  // Ranges for each residue (res_index, ts, te, vs, ve)
+  int residue_offset;		// Base residue index when adding a range.
 };
 
 class RibbonXSection {
@@ -959,6 +964,22 @@ geometry_add_range(PyObject *, PyObject *args, PyObject *keywds)
     return NULL;
 
   g->add_range(residue_index);
+  return python_none();
+}
+
+extern "C" PyObject *
+geometry_set_range_offset(PyObject *, PyObject *args, PyObject *keywds)
+{
+  Geometry *g;
+  int residue_base;
+  const char *kwlist[] = {"geometry", "residue_base", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&i"),
+				   (char **)kwlist,
+				   parse_geometry_pointer, &g,
+				   &residue_base))
+    return NULL;
+
+  g->set_range_offset(residue_base);
   return python_none();
 }
 

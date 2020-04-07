@@ -62,6 +62,7 @@ PyObject *ribbon_extrusions(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_new(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_delete(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_add_range(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *geometry_set_range_offset(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_ranges(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_empty(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_arrays(PyObject *s, PyObject *args, PyObject *keywds);

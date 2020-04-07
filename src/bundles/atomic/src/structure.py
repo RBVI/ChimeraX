@@ -561,10 +561,10 @@ class Structure(Model, StructureData):
             return
         
         if changes & (self._SELECT_CHANGE | self._RIBBON_CHANGE):
-            rd.update_ribbon_highlight(self)
+            rd.update_ribbon_highlight()
 
         if changes & self._COLOR_CHANGE and not (changes & self._RIBBON_CHANGE):
-            rd.update_ribbon_colors(self)
+            rd.update_ribbon_colors()
 
     def _update_ribbon_tethers(self):
         rd = self._ribbons_drawing
