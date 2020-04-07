@@ -22,8 +22,11 @@ EPSILON = 1e-6
 from .molobject import StructureData
 TETHER_CYLINDER = StructureData.TETHER_CYLINDER
 
-from numpy import array, zeros, ones, empty, float32, float64, dot, concatenate, any, linspace, newaxis, inner, cross, mean
+from numpy import array, zeros, ones, empty, float32, float64, uint8
+from numpy import dot, concatenate, any, linspace, newaxis, inner, cross, mean
 from numpy.linalg import norm
+
+from . import _ribbons
 
 def _make_ribbon_graphics(structure, ribbons_drawing):
     '''Update ribbons drawing.'''
@@ -412,8 +415,8 @@ def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):
     centers, tangents, normals = path
     xsf = [xs._xs_pointer for xs in xs_front]
     xsb = [xs._xs_pointer for xs in xs_back]
-    from ._ribbons import ribbon_extrusions
-    ribbon_extrusions(centers, tangents, normals, ranges, num_res, xsf, xsb, geometry._geom_cpp)
+    _ribbons.ribbon_extrusions(centers, tangents, normals, ranges,
+                               num_res, xsf, xsb, geometry._geom_cpp)
     
 # Compute triangle geometry for ribbon.
 # Only certain ranges of residues are considered, since not all
@@ -461,34 +464,27 @@ def _ribbon_geometry_unused(path, ranges, num_res, xs_front, xs_back, geometry):
 class TriangleAccumulator:
     '''Accumulate triangles from segments of a ribbon.'''
     def __init__(self):
-        from ._ribbons import geometry_new
-        self._geom_cpp = geometry_new()
+        self._geom_cpp = _ribbons.geometry_new()
 
     def __del__(self):
-        from ._ribbons import geometry_delete
-        geometry_delete(self._geom_cpp)
+        _ribbons.geometry_delete(self._geom_cpp)
         self._geom_cpp = None
             
     def empty(self):
-        from ._ribbons import geometry_empty
-        return geometry_empty(self._geom_cpp)
+        return _ribbons.geometry_empty(self._geom_cpp)
 
     def add_range(self, residue_index):
-        from ._ribbons import geometry_add_range
-        geometry_add_range(self._geom_cpp, residue_index)
+        _ribbons.geometry_add_range(self._geom_cpp, residue_index)
 
     def set_range_offset(self, roffset):
-        from ._ribbons import geometry_set_range_offset
-        geometry_set_range_offset(self._geom_cpp, roffset)
+        _ribbons.geometry_set_range_offset(self._geom_cpp, roffset)
 
     def vertex_normal_triangle_arrays(self):
-        from ._ribbons import geometry_arrays
-        return geometry_arrays(self._geom_cpp)
+        return _ribbons.geometry_arrays(self._geom_cpp)
 
     @property
     def triangle_ranges(self):
-        from ._ribbons import geometry_ranges
-        return geometry_ranges(self._geom_cpp)
+        return _ribbons.geometry_ranges(self._geom_cpp)
         
 class TriangleAccumulator1:
     '''Accumulate triangles from segments of a ribbon.'''
@@ -581,16 +577,22 @@ class RibbonsDrawing(Drawing):
         self._triangle_ranges = triangle_ranges
         
     def update_ribbon_colors(self):
-        if timing:
-            t0 = time()
-
         res = self._residues
         if res is None:
             return
-        vc = self.get_vertex_colors(create = True)
-        rcolor = res.ribbon_colors
-        for i,ts,te,vs,ve in self._triangle_ranges:
-            vc[vs:ve,:] = rcolor[i]
+
+        if timing:
+            t0 = time()
+            
+        vc = self.vertex_colors
+        if vc is None:
+            vc = empty((len(self.vertices),4), uint8)
+
+        _ribbons.ribbon_vertex_colors(res.pointers, self._triangle_ranges, vc)
+#        rcolor = res.ribbon_colors
+#        for i,ts,te,vs,ve in self._triangle_ranges:
+#            vc[vs:ve,:] = rcolor[i]
+
         self.vertex_colors = vc
 
         if timing:
@@ -756,8 +758,7 @@ def _ribbon_tethers(ribbon, residues, min_tether_offset):
     return tethered_atoms, tethered_positions, t_atoms
 
 def _tether_positions(residues, coef):
-    from ._ribbons import atom_tether_positions
-    atom_pointers, positions = atom_tether_positions(residues.pointers, coef)
+    atom_pointers, positions = _ribbons.atom_tether_positions(residues.pointers, coef)
     from . import Atoms
     atoms = Atoms(atom_pointers)
     return atoms, positions
@@ -770,8 +771,7 @@ def _tether_positions_unused(residues, coef):
     return t_atoms, t_positions
 
 def _atom_spline_positions(residues, atom_offset_map, spline_coef):
-    from ._ribbons import atom_spline_positions
-    atom_pointers, positions = atom_spline_positions(residues.pointers, atom_offset_map, spline_coef)
+    atom_pointers, positions = _ribbons.atom_spline_positions(residues.pointers, atom_offset_map, spline_coef)
     from . import Atoms
     atoms = Atoms(atom_pointers)
     return atoms, positions
@@ -1370,7 +1370,7 @@ class Ribbon:
         # and fractional part the position in the segment.
         return _spline_positions(tlist, self.coeff)
     
-from ._ribbons import cubic_spline as _natural_cubic_spline_coefficients
+_natural_cubic_spline_coefficients = _ribbons.cubic_spline
 def _natural_cubic_spline_coefficients_unused(coords):
     # Extend ends
     ne = len(coords) + 2
@@ -1426,7 +1426,7 @@ def tridiagonal(a, b, c, d):
         xc[i] = (d[i] - c[i] * xc[i + 1]) / b[i]
     return xc
 
-from ._ribbons import path_plane_normals as _path_plane_normals
+_path_plane_normals = _ribbons.path_plane_normals
 
 def _path_plane_normals_unused(coords, tangents):
     '''
@@ -1523,7 +1523,7 @@ def _next_nonzero_vector(start, normals):
             return i
     return len(normals)
 
-from ._ribbons import path_guide_normals as _compute_normals_from_guides
+_compute_normals_from_guides = _ribbons.path_guide_normals
 def _compute_normals_from_guides_unused(coords, guides, tangents):
     n = guides - coords
     normals = zeros((len(coords), 3), float)
@@ -1595,23 +1595,22 @@ def _path_plane_tests():
         coords[i] = (cos(i), sin(i), i)
     _print_results('All curved')
     
-from ._ribbons import spline_path as _spline_path
+_spline_path = _ribbons.spline_path
 def _spline_path_unused(coeffs, start_normals, flip_normals, twist, ndiv):
     lead = _spline_path_lead_segment(coeffs[0], start_normals[0], ndiv//2)
     geom = [ lead ]
 
     nseg = len(coeffs)
     end_normal = None
-    from ._ribbons import parallel_transport, smooth_twist
     for seg in range(nseg):
         coords, tangents = _spline_segment_path(coeffs[seg], 0, 1, ndiv+1)
         start_normal = start_normals[seg] if end_normal is None else end_normal
-        normals = parallel_transport(tangents, start_normal)
+        normals = _ribbons.parallel_transport(tangents, start_normal)
         if twist[seg]:
             end_normal = start_normals[seg + 1]
             if flip_normals[seg] and _need_normal_flip(normals[-1], end_normal, tangents[-1]):
                 end_normal = -end_normal
-            smooth_twist(tangents, normals, end_normal)
+            _ribbons.smooth_twist(tangents, normals, end_normal)
         spath = (coords[:-1], tangents[:-1], normals[:-1])
         geom.append(spath)
 
@@ -1625,15 +1624,13 @@ def _spline_path_unused(coeffs, start_normals, flip_normals, twist, ndiv):
 def _spline_path_lead_segment(coeffs, normal, n):
     coords, tangents = _spline_segment_path(coeffs, -0.3, 0, n+1)
     # Parallel transport normal backwards
-    from ._ribbons import parallel_transport
-    normals = parallel_transport(tangents[::-1], normal)[::-1]
+    normals = _ribbons.parallel_transport(tangents[::-1], normal)[::-1]
     # Don't include right end point.
     return coords[:-1], tangents[:-1], normals[:-1]
 
 def _spline_path_trail_segment(coeffs, normal, n):
     coords, tangents = _spline_segment_path(coeffs, 1, 1.3, n)
-    from ._ribbons import parallel_transport
-    normals = parallel_transport(tangents, normal)
+    normals = _ribbons.parallel_transport(tangents, normal)
     return coords, tangents, normals
 
 # Decide whether to flip the spline segment end normal so that it aligns better with
@@ -1642,8 +1639,7 @@ def _need_normal_flip(transported_normal, end_normal, tangent):
 
     # If twist is greater than 90 degrees, turn the opposite
     # direction.  (Assumes that ribbons are symmetric.)
-    from ._ribbons import dihedral_angle
-    a = dihedral_angle(transported_normal, end_normal, tangent)
+    a = _ribbons.dihedral_angle(transported_normal, end_normal, tangent)
     from math import pi
     # flip = (abs(a) > 0.5 * pi)
     flip = (abs(a) > 0.6 * pi)	# Not sure why this is not pi / 2.
@@ -2113,27 +2109,24 @@ class RibbonXSection:
                                                 ('normals',normals), ('normals2',normals2),
                                                 ('faceted',faceted), ('tess',tess))
                   if value is not None}
-            from ._ribbons import rxsection_new
-            xs_pointer = rxsection_new(**kw)
+            xs_pointer = _ribbons.rxsection_new(**kw)
         self._xs_pointer = xs_pointer
 
     def extrude(self, centers, tangents, normals,
                 cap_front, cap_back, geometry):
         '''Return the points, normals and triangles for a ribbon.'''
-        from ._ribbons import rxsection_extrude
-        rxsection_extrude(self._xs_pointer, centers, tangents, normals,
-                          cap_front, cap_back, geometry._geom_cpp)
+        _ribbons.rxsection_extrude(self._xs_pointer, centers, tangents, normals,
+                                   cap_front, cap_back, geometry._geom_cpp)
 
     def scale(self, scale):
         '''Return new cross section scaled by 2-tuple scale.'''
-        from ._ribbons import rxsection_scale
-        p = rxsection_scale(self._xs_pointer, scale[0], scale[1])
+        p = _ribbons.rxsection_scale(self._xs_pointer, scale[0], scale[1])
         return RibbonXSection(xs_pointer=p)
 
     def arrow(self, scales):
         '''Return new arrow cross section scaled by 2x2-tuple scale.'''
-        from ._ribbons import rxsection_arrow
-        p = rxsection_arrow(self._xs_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
+        p = _ribbons.rxsection_arrow(self._xs_pointer, scales[0][0], scales[0][1],
+                                     scales[1][0], scales[1][1])
         return RibbonXSection(xs_pointer=p)
 
 def _xsection_round(scale, sides, faceted = False):
@@ -2222,7 +2215,7 @@ def normalize_vector_array(a):
     n = a / d[:, numpy.newaxis]
     return n
 
-from ._ribbons import cubic_path as _spline_segment_path
+_spline_segment_path = _ribbons.cubic_path
 
 def _spline_segment_path_unused(coeffs, tmin, tmax, num_points):
     # coeffs is a 3x4 array of float.

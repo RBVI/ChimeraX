@@ -66,6 +66,9 @@ PyObject *geometry_set_range_offset(PyObject *s, PyObject *args, PyObject *keywd
 PyObject *geometry_ranges(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_empty(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_arrays(PyObject *s, PyObject *args, PyObject *keywds);
+
+// Color vertices according to residue ribbon colors.
+PyObject *ribbon_vertex_colors(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 #endif

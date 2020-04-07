@@ -21,6 +21,7 @@
 #include <iostream>
 #include <algorithm>
 
+#include "parse.h"		// Use parse_residues()
 #include "xsection.h"
 
 class Mesh
@@ -1155,6 +1156,64 @@ ribbon_extrusions(PyObject *, PyObject *args, PyObject *keywds)
 
   ribbon_extrusions(centers.values(), tangents.values(), normals.values(), centers.size(0),
 		    ranges.values(), ranges.size(0), num_res, xs_front, xs_back, *g);
+  
+  return python_none();
+}
+
+static bool ribbon_vertex_colors(Residue **residues, int nres, int *triangle_ranges, int nranges,
+                                 unsigned char *colors, int ncolors)
+{
+  for (int i = 0 ; i < nranges ; ++i, triangle_ranges += 5)
+    {
+      int ri = triangle_ranges[0], v_start = triangle_ranges[3], v_end = triangle_ranges[4];
+      if (ri >= nres)
+        {
+          PyErr_Format(PyExc_ValueError,
+                       "ribbon_vertex_colors(): Residue number %d out of range (%d)", ri, nres);
+          return false;
+        }
+      if (v_end > ncolors)
+        {
+          PyErr_Format(PyExc_ValueError,
+                       "ribbon_vertex_colors(): Vertex number %d out of range (%d)", v_end, ncolors);
+          return false;
+        }
+      const atomstruct::Rgba &rgba = residues[ri]->ribbon_color();
+      unsigned char r = rgba.r, g = rgba.g, b = rgba.b, a = rgba.a;
+      for (int v = v_start ; v < v_end ; ++v)
+        {
+          unsigned char *c = colors + 4*v;
+          c[0] = r; c[1] = g; c[2] = b; c[3] = a;
+        }
+    }
+  return true;
+}
+
+extern "C" PyObject *
+ribbon_vertex_colors(PyObject *, PyObject *args, PyObject *keywds)
+{
+  Residues res;
+  IArray triangle_ranges;
+  Reference_Counted_Array::Array<unsigned char> colors;
+  const char *kwlist[] = {"residues", "triangle_ranges", "colors", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
+				   (char **)kwlist,
+				   parse_residues, &res,
+				   parse_int_2d_array, &triangle_ranges,
+				   parse_uint8_n4_array, &colors))
+    return NULL;
+
+  if (!triangle_ranges.is_contiguous() || !colors.is_contiguous())
+    {
+      PyErr_SetString(PyExc_TypeError,
+		      "ribbon_vertex_colors(): Ranges and color arrays must be contiguous");
+      return NULL;
+    }
+
+  if (!ribbon_vertex_colors(res.pointers, res.count,
+                            triangle_ranges.values(), triangle_ranges.size(0),
+                            colors.values(), colors.size(0)))
+    return NULL;	// Range error
   
   return python_none();
 }

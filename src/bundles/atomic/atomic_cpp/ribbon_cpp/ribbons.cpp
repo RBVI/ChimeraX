@@ -74,6 +74,8 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("geometry_arrays"), (PyCFunction)geometry_arrays,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("ribbon_vertex_colors"), (PyCFunction)ribbon_vertex_colors,
+   METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}
 };
