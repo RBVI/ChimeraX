@@ -12,9 +12,11 @@
 # === UCSF ChimeraX Copyright ===
 
 from PyQt5.QtWidgets import QVBoxLayout, QLabel, QGridLayout, QRadioButton, QLineEdit, QWidget
-from PyQt5.QtWidgets import QCheckBox, QSizePolicy, QHBoxLayout, QTextEdit
+from PyQt5.QtWidgets import QCheckBox, QSizePolicy, QHBoxLayout, QTextEdit, QDialog, QTableWidget
+from PyQt5.QtWidgets import QTableWidgetItem, QPushButton
 from PyQt5.QtGui import QDoubleValidator, QIntValidator
 from PyQt5.QtCore import Qt
+from chimerax.ui.options import SymbolicEnumOption, OptionsPanel
 from chimerax.core.errors import UserError
 
 def fill_widget(name, widget):
@@ -82,7 +84,7 @@ def fill_widget(name, widget):
         layout.addWidget(tip)
 
 def process_widget(name, widget):
-    from chimerax.core.commands import StringArg
+    from chimerax.core.commands import StringArg, Float2Arg
     args = []
     if name == "atom":
         button = widget.findChild(QRadioButton, "atom centered")
@@ -103,7 +105,120 @@ def process_widget(name, widget):
         check_box = widget.findChild(QCheckBox, "select atom")
         if not check_box.isChecked():
             args.append("select false")
+    elif name == "peptide":
+        seq_edit = widget.findChild(QTextEdit, "peptide sequence")
+        seq = seq_edit.toPlainText().strip().upper()
+        if not seq:
+            raise UserError("No peptide sequence entered")
+        param_dialog = PeptideParamDialog(widget, seq)
+        if not param_dialog.exec():
+            from chimerax.core.errors import CancelOperation
+            raise CancelOperation("peptide building cancelled")
+        args.append(StringArg.unparse(seq))
+        args.append(" ".join([Float2Arg.unparse(pp) for pp in param_dialog.phi_psis]))
+        args.append("rotLib %s" % StringArg.unparse(param_dialog.rot_lib))
+        args.append("chainId %s" % StringArg.unparse(param_dialog.chain_id))
+
     return " ".join(args)
+
+class PeptideParamDialog(QDialog):
+    def __init__(self, parent, seq):
+        super().__init__(parent)
+        self.setSizeGripEnabled(True)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
+        self.setLayout(layout)
+
+        self.table = QTableWidget(len(seq), 3)
+        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.table.setHorizontalHeaderLabels(["Res", "\N{GREEK CAPITAL LETTER PHI}",
+            "\N{GREEK CAPITAL LETTER PSI}"])
+        self.table.verticalHeader().hide()
+        self.table.setSelectionBehavior(QTableWidget.SelectRows)
+        for i, c in enumerate(seq):
+            item = QTableWidgetItem(c)
+            item.setTextAlignment(Qt.AlignCenter)
+            self.table.setItem(i, 0, item)
+            self.table.setItem(i, 1, QTableWidgetItem(""))
+            self.table.setItem(i, 2, QTableWidgetItem(""))
+        layout.addWidget(self.table, stretch=1)
+
+        phi_psi_layout = QHBoxLayout()
+        phi_psi_layout.setContentsMargins(0,0,0,0)
+        phi_psi_layout.setSpacing(2)
+        set_button = QPushButton("Set")
+        set_button.setDefault(False)
+        set_button.clicked.connect(self._set_table)
+        phi_psi_layout.addWidget(set_button, alignment=Qt.AlignRight)
+        angle_range = QDoubleValidator(-180.0, 180.0, 1)
+        phi_psi_layout.addWidget(QLabel("selected rows to \N{GREEK CAPITAL LETTER PHI}:"),
+            alignment=Qt.AlignRight)
+        self.phi_entry = QLineEdit()
+        self.phi_entry.setMaximumWidth(45)
+        self.phi_entry.setValidator(angle_range)
+        phi_psi_layout.addWidget(self.phi_entry, alignment=Qt.AlignLeft)
+        phi_psi_layout.addWidget(QLabel("\N{GREEK CAPITAL LETTER PSI}:"), alignment=Qt.AlignRight)
+        self.psi_entry = QLineEdit()
+        self.psi_entry.setMaximumWidth(45)
+        self.psi_entry.setValidator(angle_range)
+        phi_psi_layout.addWidget(self.psi_entry, alignment=Qt.AlignLeft)
+        container = QWidget()
+        container.setLayout(phi_psi_layout)
+        layout.addWidget(container, alignment=Qt.AlignCenter)
+
+        seed_option = PhiPsiOption("Seed above \N{GREEK CAPITAL LETTER PHI}/"
+            "\N{GREEK CAPITAL LETTER PHI} with values for:",
+            PhiPsiOption.values[0], self._seed_phi_psi)
+        seed_widget = OptionsPanel(scrolled=False)
+        seed_widget.add_option(seed_option)
+        layout.addWidget(seed_widget)
+
+        self._seed_phi_psi(seed_option)
+        self._set_table()
+
+
+    @property
+    def phi_psis(self):
+        phi_psis = []
+        for i in range(self.table.rowCount()):
+            phi_psis.append([float(self.table.item(i, col).text()) for col in [1,2]])
+        return phi_psis
+
+    def _seed_phi_psi(self, option):
+        phi, psi = option.value
+        self.phi_entry.setText("%g" % phi)
+        self.psi_entry.setText("%g" % psi)
+
+    def _set_table(self, *args):
+        if not self.phi_entry.hasAcceptableInput():
+            raise UserError("\N{GREEK CAPITAL LETTER PHI} must be in the range -180 to 180")
+        if not self.psi_entry.hasAcceptableInput():
+            raise UserError("\N{GREEK CAPITAL LETTER PSI} must be in the range -180 to 180")
+        phi = self.phi_entry.text().strip()
+        psi = self.psi_entry.text().strip()
+        row_indices = self.table.selectionModel().selectedRows()
+        if row_indices:
+            rows = [ri.row() for ri in row_indices]
+        else:
+            rows = range(self.table.rowCount())
+        for row in rows:
+            self.table.item(row, 1).setText(phi)
+            self.table.item(row, 2).setText(psi)
+        self.table.resizeColumnsToContents()
+
+class PhiPsiOption(SymbolicEnumOption):
+    values = [(-57, -47), (-139, 135), (-119, 113), (-49, -26), (-57, -70)]
+    labels = [
+        "\N{GREEK SMALL LETTER ALPHA} helix",
+        "antiparallel \N{GREEK SMALL LETTER BETA} strand",
+        "parallel \N{GREEK SMALL LETTER BETA} strand",
+        "3\N{SUBSCRIPT ONE}\N{SUBSCRIPT ZERO} helix",
+        "\N{GREEK SMALL LETTER PI} helix"
+    ]
+
+
 
 from chimerax.core.commands import register, CmdDesc, Command
 command_registry = None

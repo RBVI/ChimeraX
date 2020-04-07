@@ -357,8 +357,12 @@ class BuildStructureTool(ToolInstance):
         ui_name = self.ss_button_group.checkedButton().text()
         provider_name = self.ss_u_to_p_names[ui_name]
 
+        from chimerax.core.errors import CancelOperation
         from .manager import manager
-        subcmd_string = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
+        try:
+            subcmd_string = manager.get_command_substring(provider_name, self.ss_widgets[ui_name])
+        except CancelOperation:
+            return
         if manager.new_model_only(provider_name):
             # provider needs to provide its own command in this case
             run(self.session, subcmd_string)
