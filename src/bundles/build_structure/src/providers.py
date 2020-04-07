@@ -83,7 +83,7 @@ def fill_widget(name, widget):
         tip.setAlignment(Qt.AlignCenter)
         layout.addWidget(tip)
 
-def process_widget(name, widget):
+def process_widget(session, name, widget):
     from chimerax.core.commands import StringArg, Float2Arg
     args = []
     if name == "atom":
@@ -110,19 +110,21 @@ def process_widget(name, widget):
         seq = seq_edit.toPlainText().strip().upper()
         if not seq:
             raise UserError("No peptide sequence entered")
-        param_dialog = PeptideParamDialog(widget, seq)
+        param_dialog = PeptideParamDialog(session, widget, seq)
         if not param_dialog.exec():
             from chimerax.core.errors import CancelOperation
             raise CancelOperation("peptide building cancelled")
         args.append(StringArg.unparse(seq))
         args.append(" ".join([Float2Arg.unparse(pp) for pp in param_dialog.phi_psis]))
         args.append("rotLib %s" % StringArg.unparse(param_dialog.rot_lib))
-        args.append("chainId %s" % StringArg.unparse(param_dialog.chain_id))
+        chain_id = param_dialog.chain_id
+        if chain_id:
+            args.append("chainId %s" % StringArg.unparse(chain_id))
 
     return " ".join(args)
 
 class PeptideParamDialog(QDialog):
-    def __init__(self, parent, seq):
+    def __init__(self, session, parent, seq):
         super().__init__(parent)
         self.setSizeGripEnabled(True)
 
@@ -171,13 +173,37 @@ class PeptideParamDialog(QDialog):
         seed_option = PhiPsiOption("Seed above \N{GREEK CAPITAL LETTER PHI}/"
             "\N{GREEK CAPITAL LETTER PHI} with values for:",
             PhiPsiOption.values[0], self._seed_phi_psi)
-        seed_widget = OptionsPanel(scrolled=False)
+        seed_widget = OptionsPanel(scrolled=False, contents_margins=(1,2,1,2))
         seed_widget.add_option(seed_option)
         layout.addWidget(seed_widget)
+
+        lib_chain_layout = QHBoxLayout()
+        lib_chain_layout.setContentsMargins(0,0,0,0)
+        lib_chain_layout.setSpacing(2)
+        lib_chain_layout.addWidget(QLabel("Rotamer library:"), alignment=Qt.AlignRight)
+        self.rot_lib_button = session.rotamers.library_name_menu()
+        lib_chain_layout.addWidget(self.rot_lib_button, alignment=Qt.AlignLeft)
+        lib_chain_layout.addWidget(QLabel("chain ID:"), alignment=Qt.AlignRight)
+        self.chain_entry = QLineEdit()
+        self.chain_entry.setPlaceholderText("auto")
+        self.chain_entry.setMaximumWidth(35)
+        lib_chain_layout.addWidget(self.chain_entry, alignment=Qt.AlignLeft)
+        container = QWidget()
+        container.setLayout(lib_chain_layout)
+        layout.addWidget(container, alignment=Qt.AlignCenter)
+
+        from PyQt5.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok | qbbox.Cancel)
+        bbox.accepted.connect(self.accept)
+        bbox.rejected.connect(self.reject)
+        layout.addWidget(bbox)
 
         self._seed_phi_psi(seed_option)
         self._set_table()
 
+    @property
+    def chain_id(self):
+        return self.chain_entry.text()
 
     @property
     def phi_psis(self):
@@ -185,6 +211,10 @@ class PeptideParamDialog(QDialog):
         for i in range(self.table.rowCount()):
             phi_psis.append([float(self.table.item(i, col).text()) for col in [1,2]])
         return phi_psis
+
+    @property
+    def rot_lib(self):
+        return self.rot_lib_button.text()
 
     def _seed_phi_psi(self, option):
         phi, psi = option.value

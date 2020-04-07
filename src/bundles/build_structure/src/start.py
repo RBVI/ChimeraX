@@ -111,18 +111,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     residues = []
     prev_psi = 0
     if chain_id is None:
-        from string import ascii_uppercase as uppercase, ascii_lowercase as lowercase, digits
-        existing_ids = set([chain.chain_id for chain in structure.chains])
-        for chain_characters in [uppercase, uppercase + digits + lowercase]:
-            for id_length in range(1, 5):
-                chain_id = _gen_chain_id(existing_ids, "", chain_characters, id_length-1)
-                if chain_id:
-                    break
-            else:
-                continue
-            break
-        if chain_id is None:
-            raise PeptideError("Could not find unused legal chain ID for peptide!")
+        chain_id = unused_chain_id(structure)
     from numpy import array
     for c, phi_psi in zip(sequence, phi_psis):
         phi, psi = phi_psi
@@ -172,13 +161,29 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     correction = position - center
     atoms.coords = coords - correction
 
-    from chimerax.atomic.dssp import compute_ss
-    compute_ss(structure)
+    from chimerax.std_commands.dssp import compute_ss
+    compute_ss(session, structure)
 
     if need_focus:
         from chimerax.core.commands import run
         run(session, "view")
     return residues
+
+def unused_chain_id(structure):
+    from string import ascii_uppercase as uppercase, ascii_lowercase as lowercase, digits
+    existing_ids = set([chain.chain_id for chain in structure.chains])
+    for chain_characters in [uppercase, uppercase + digits + lowercase]:
+        for id_length in range(1, 5):
+            chain_id = _gen_chain_id(existing_ids, "", chain_characters, id_length-1)
+            if chain_id:
+                break
+        else:
+            continue
+        break
+    if chain_id is None:
+        from chimerax.core.errors import LimitationError
+        raise LimitationError("Could not find unused legal chain ID for peptide!")
+    return chain_id
 
 def _gen_chain_id(existing_ids, cur_id, legal_chars, rem_length):
     for c in legal_chars:

@@ -11,8 +11,16 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.errors import LimitationError
+
 class NoRotamerLibraryError(ValueError):
     pass
+
+from chimerax.core.settings import Settings
+class _RotamerManagerSettings(Settings):
+    AUTO_SAVE = {
+        'gui_lib_name': "Dunbrack"
+    }
 
 from chimerax.core.toolshed import ProviderManager
 class RotamerLibManager(ProviderManager):
@@ -25,6 +33,7 @@ class RotamerLibManager(ProviderManager):
         self.triggers = TriggerSet()
         self.triggers.add_trigger("rotamer libs changed")
         self._library_info = {}
+        self.settings = _RotamerManagerSettings(session, "rotamer lib manager")
 
     def library(self, name):
         try:
@@ -46,8 +55,25 @@ class RotamerLibManager(ProviderManager):
                 lib_names.append(name)
         return lib_names
 
+    def library_name_menu(self, *, installed_only=False):
+        from PyQt5.QtWidgets import QPushButton, QMenu
+        menu_button = QPushButton()
+        lib_name = self.settings.gui_lib_name
+        if lib_name not in self.library_names(installed_only=installed_only):
+            lib_name = self.default_command_library_name
+        menu_button.setText(lib_name)
+        menu = QMenu()
+        menu_button.setMenu(menu)
+        menu.aboutToShow.connect(lambda menu=menu, installed=installed_only:
+            self._menu_show_cb(menu, installed))
+        menu.triggered.connect(lambda action, button=menu_button, settings=self.settings:
+            (button.setText(action.text()), setattr(settings, 'gui_lib_name', action.text())))
+        return menu_button
+
     def library_name_option(self, *, installed_only=False):
+        #TODO
         pass
+
     @property
     def default_command_library_name(self):
         available_libs = self.library_names()
@@ -59,7 +85,6 @@ class RotamerLibManager(ProviderManager):
             if available_libs:
                 lib = list(available_libs)[0]
             else:
-                from chimerax.core.errors import LimitationError
                 raise LimitationError("No rotamer libraries installed")
         return lib
 
@@ -68,3 +93,14 @@ class RotamerLibManager(ProviderManager):
 
     def end_providers(self):
         self.triggers.activate_trigger("rotamer libs changed", self)
+
+    def _menu_show_cb(self, menu, installed_only):
+        menu.clear()
+        names = self.library_names(installed_only=installed_only)
+        if not names:
+            raise LimitationError("No rotamer libraries %s!"
+                % ("installed" if installed_only else "available"))
+        names.sort()
+        for name in names:
+            menu.addAction(name)
+
