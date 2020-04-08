@@ -171,7 +171,7 @@ class PeptideParamDialog(QDialog):
         layout.addWidget(container, alignment=Qt.AlignCenter)
 
         seed_option = PhiPsiOption("Seed above \N{GREEK CAPITAL LETTER PHI}/"
-            "\N{GREEK CAPITAL LETTER PHI} with values for:",
+            "\N{GREEK CAPITAL LETTER PSI} with values for:",
             PhiPsiOption.values[0], self._seed_phi_psi)
         seed_widget = OptionsPanel(scrolled=False, contents_margins=(1,2,1,2))
         seed_widget.add_option(seed_option)
