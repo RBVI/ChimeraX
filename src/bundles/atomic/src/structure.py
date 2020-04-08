@@ -1569,9 +1569,9 @@ class StructureGraphicsChangeManager:
             self._structures_array = sa = StructureDatas(object_pointers(self._structures))
         return sa
 
-    def set_subdivision(self, subdivision):
+    def set_quality(self, quality):
         lod = self.level_of_detail
-        lod.quality = subdivision
+        lod.quality = quality
         lod.atom_fixed_triangles = None
         lod.bond_fixed_triangles = None
         self.update_level_of_detail()

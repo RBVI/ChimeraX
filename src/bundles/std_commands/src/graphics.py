@@ -71,7 +71,7 @@ def graphics_rate(session, report_frame_rate = None,
         msg = ('Maximum framerate %.3g' % rate)
         session.logger.status(msg, log = True)
 
-def graphics_quality(session, subdivision = None,
+def graphics_quality(session, quality = None, subdivision = None,
                      atom_triangles = None, bond_triangles = None,
                      total_atom_triangles = None, total_bond_triangles = None,
                      ribbon_divisions = None, ribbon_sides = None, color_depth = None):
@@ -80,9 +80,12 @@ def graphics_quality(session, subdivision = None,
 
     Parameters
     ----------
-    subdivision : float
+    quality : float
         Controls the rendering quality of spheres and cylinders for drawing atoms and bonds.
-        Default value is 1, higher values give smoother spheres and cylinders.
+        Default value is 1, higher values give smoother spheres and cylinders by increasing
+        the maximum number of triangles rendered by the quality factor.
+    subdivision : float
+        Deprecated.  Same as quality.
     atom_triangles : integer
         Number of triangles for drawing an atom sphere, minimum 4.
         If 0, then automatically compute number of triangles.
@@ -110,8 +113,10 @@ def graphics_quality(session, subdivision = None,
     change = False
     from chimerax.core.errors import UserError
     if subdivision is not None:
+        quality = subdivision
+    if quality is not None:
         from chimerax import atomic
-        atomic.structure_graphics_updater(session).set_subdivision(subdivision)
+        atomic.structure_graphics_updater(session).set_quality(quality)
         change = True
     if atom_triangles is not None:
         if atom_triangles != 0 and atom_triangles < 4:
@@ -155,7 +160,7 @@ def graphics_quality(session, subdivision = None,
         gu.update_level_of_detail()
     else:
         na = gu.num_atoms_shown
-        msg = ('Subdivision %.3g, atom triangles %d, bond triangles %d, ribbon divisions %d' %
+        msg = ('Quality %.3g, atom triangles %d, bond triangles %d, ribbon divisions %d' %
                (lod.quality, lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions))
         session.logger.status(msg, log = True)
 
@@ -259,6 +264,7 @@ def register_command(logger):
     register('graphics rate', desc, graphics_rate, logger=logger)
 
     desc = CmdDesc(
+        optional = [('quality', FloatArg)],
         keyword=[('subdivision', FloatArg),
                  ('atom_triangles', IntArg),
                  ('bond_triangles', IntArg),
@@ -268,6 +274,7 @@ def register_command(logger):
                  ('ribbon_sides', IntArg),
                  ('color_depth', IntArg),
                  ],
+        hidden = ['subdivision'], # Deprecated in favor of quality
         synopsis='Set graphics quality parameters'
     )
     register('graphics quality', desc, graphics_quality, logger=logger)
