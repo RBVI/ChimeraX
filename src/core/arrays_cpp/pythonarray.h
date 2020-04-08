@@ -30,65 +30,73 @@
 using std::int64_t;
 
 using Reference_Counted_Array::Numeric_Array;
-using Reference_Counted_Array::Untyped_Array;
 
 //
 // Return false if python object is not an array of specified dimension.
 //
 ARRAYS_IMEX bool array_from_python(PyObject *array, int dim, Numeric_Array *na,
-               bool allow_data_copy = true);
+                                   bool allow_data_copy = true);
 
 //
 // Return false if python object is not an array of specified
 // dimension or does not have the specified value type.
 //
 ARRAYS_IMEX bool array_from_python(PyObject *array, int dim,
-               Numeric_Array::Value_Type required_type,
-               Numeric_Array *na,
-               bool allow_data_copy = true);
+                                   Numeric_Array::Value_Type required_type,
+                                   Numeric_Array *na,
+                                   bool allow_data_copy = true);
 
 //
 // Recover numpy Python array used to create a C++ array.
 // Returns NULL if there is no Python array.
 //
-ARRAYS_IMEX PyObject *array_python_source(const Untyped_Array &a, bool incref = true);
+ARRAYS_IMEX PyObject *array_python_source(const Reference_Counted_Array::Untyped_Array &a,
+                                          bool incref = true);
 
 //
 // Routines for parsing array arguments with PyArg_ParseTuple().
 //
 extern "C" {
-ARRAYS_IMEX int parse_bool(PyObject *arg, void *b);
-ARRAYS_IMEX int parse_float_n2_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_float_n3_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_writable_float_n3_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_double_n3_array(PyObject *arg, void *darray);
-ARRAYS_IMEX int parse_writable_double_n3_array(PyObject *arg, void *darray);
-ARRAYS_IMEX int parse_uint8_n_array(PyObject *arg, void *barray);
-ARRAYS_IMEX int parse_writable_uint8_n_array(PyObject *arg, void *barray);
-ARRAYS_IMEX int parse_uint8_n2_array(PyObject *arg, void *barray);
-ARRAYS_IMEX int parse_uint8_n3_array(PyObject *arg, void *barray);
-ARRAYS_IMEX int parse_uint8_n4_array(PyObject *arg, void *barray);
-ARRAYS_IMEX int parse_float_n4_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_writable_float_n4_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_writable_float_n9_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_float_n_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_writable_float_n_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_double_n_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_writable_double_n_array(PyObject *arg, void *farray);
-ARRAYS_IMEX int parse_int_3_array(PyObject *arg, void *i3);
+
+// float [] value
 ARRAYS_IMEX int parse_float_3_array(PyObject *arg, void *f3);
-ARRAYS_IMEX int parse_double_3_array(PyObject *arg, void *f3);
 ARRAYS_IMEX int parse_float_4_array(PyObject *arg, void *f4);
 ARRAYS_IMEX int parse_float_3x3_array(PyObject *arg, void *f3x3);
-ARRAYS_IMEX int parse_double_3x3_array(PyObject *arg, void *d3x3);
 ARRAYS_IMEX int parse_float_3x4_array(PyObject *arg, void *f3x4);
-ARRAYS_IMEX int parse_contiguous_float_4x4_array(PyObject *arg, void *darray);
-ARRAYS_IMEX int parse_contiguous_float_n44_array(PyObject *arg, void *darray);
-ARRAYS_IMEX int parse_double_3x4_array(PyObject *arg, void *d3x4);
-ARRAYS_IMEX int parse_contiguous_double_3x4_array(PyObject *arg, void *darray);
-ARRAYS_IMEX int parse_contiguous_double_n34_array(PyObject *arg, void *darray);
+
+// FArray value
+ARRAYS_IMEX int parse_float_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_float_n_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_float_n2_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_float_n3_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_float_n4_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_float_2d_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_contiguous_float_4x4_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_contiguous_float_n44_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_writable_float_n_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_writable_float_n3_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_writable_float_n4_array(PyObject *arg, void *farray);
+ARRAYS_IMEX int parse_writable_float_n9_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_writable_float_2d_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_writable_float_3d_array(PyObject *arg, void *farray);
+
+// double [] value
+ARRAYS_IMEX int parse_double_3_array(PyObject *arg, void *d3);
+ARRAYS_IMEX int parse_double_3x3_array(PyObject *arg, void *d3x3);
+ARRAYS_IMEX int parse_double_3x4_array(PyObject *arg, void *d3x4);
+
+// DArray value
+ARRAYS_IMEX int parse_double_n_array(PyObject *arg, void *darray);
+ARRAYS_IMEX int parse_double_n3_array(PyObject *arg, void *darray);
+ARRAYS_IMEX int parse_contiguous_double_3x4_array(PyObject *arg, void *darray);
+ARRAYS_IMEX int parse_contiguous_double_n34_array(PyObject *arg, void *darray);
+ARRAYS_IMEX int parse_writable_double_n_array(PyObject *arg, void *darray);
+ARRAYS_IMEX int parse_writable_double_n3_array(PyObject *arg, void *darray);
+
+// int [] value
+ARRAYS_IMEX int parse_int_3_array(PyObject *arg, void *i3);
+
+// IArray value
 ARRAYS_IMEX int parse_int_n_array(PyObject *arg, void *iarray);
 ARRAYS_IMEX int parse_int_n2_array(PyObject *arg, void *iarray);
 ARRAYS_IMEX int parse_int_n3_array(PyObject *arg, void *iarray);
@@ -96,17 +104,31 @@ ARRAYS_IMEX int parse_int_2d_array(PyObject *arg, void *iarray);
 ARRAYS_IMEX int parse_writable_int_n_array(PyObject *arg, void *iarray);
 ARRAYS_IMEX int parse_writable_int_n3_array(PyObject *arg, void *iarray);
 ARRAYS_IMEX int parse_writable_int_2d_array(PyObject *arg, void *iarray);
+
+// BArray value (unsigned char)
+ARRAYS_IMEX int parse_uint8_n_array(PyObject *arg, void *barray);
+ARRAYS_IMEX int parse_uint8_n2_array(PyObject *arg, void *barray);
+ARRAYS_IMEX int parse_uint8_n3_array(PyObject *arg, void *barray);
+ARRAYS_IMEX int parse_uint8_n4_array(PyObject *arg, void *barray);
+ARRAYS_IMEX int parse_writable_uint8_n_array(PyObject *arg, void *barray);
+
+// Numeric_Array value, any numeric type
+ARRAYS_IMEX int parse_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_1d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_2d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_3d_array(PyObject *arg, void *array);
-ARRAYS_IMEX int parse_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_writable_array(PyObject *arg, void *array);
-ARRAYS_IMEX int parse_float_array(PyObject *arg, void *array);
-ARRAYS_IMEX int parse_float_2d_array(PyObject *arg, void *farray);
 ARRAYS_IMEX int parse_writable_2d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_writable_3d_array(PyObject *arg, void *array);
 ARRAYS_IMEX int parse_writable_4d_array(PyObject *arg, void *array);
+
+// single bool value
+ARRAYS_IMEX int parse_bool(PyObject *arg, void *b);
+
+// Array<char> value
 ARRAYS_IMEX int parse_string_array(PyObject *arg, void *carray);
+
+// single void * value from Python long
 ARRAYS_IMEX int parse_voidp(PyObject *arg, void **p);
 }
 
