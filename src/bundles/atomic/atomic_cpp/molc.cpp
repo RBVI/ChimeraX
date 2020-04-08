@@ -4399,6 +4399,12 @@ extern "C" EXPORT void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
     }
 }
 
+extern "C" EXPORT void structure_num_ribbon_residues(void *mols, size_t n, size_t *nres)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::num_ribbon_residues, nres);
+}
+
 extern "C" EXPORT void structure_num_residues(void *mols, size_t n, size_t *nres)
 {
     Structure **m = static_cast<Structure **>(mols);
