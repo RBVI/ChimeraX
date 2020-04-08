@@ -84,51 +84,26 @@ see :doc:`tutorial_hello`, :doc:`tutorial_command` and
 .. literalinclude:: ../../../src/examples/tutorials/tut_read/bundle_info.xml
     :language: xml
     :linenos:
-    :emphasize-lines: 8-10,17-24,41-43
+    :emphasize-lines: 8-10,17-24,36-45
 
 The ``BundleInfo``, ``Synopsis`` and ``Description`` tags are
 changed to reflect the new bundle name and documentation
 (lines 8-10 and 17-24).
 
-The ``ChimeraXClassifier`` tags on lines 41-43 informs ChimeraX that
-this bundle supports reading a data format named **XYZ**.
+The ``Providers`` sections on lines 36 through 45 use the
+:ref:`Manager <Manager>`/:ref:`Provider <Provider>` protocol to inform
+the "data formats" manager about the XYZ format, and the "open command"
+manager that this bundle can open XYZ files.
 
-**WARNING: the DataFormat classifier is deprecated and will be replaced
-by the more flexible Manager/Provider bundle_info mechanism in the
-future.  This example will be updated when implementation is complete.**
+The attributes usable with the "data formats" manager are described in
+detail in :ref:`data format`.  Note that most formats have a longer
+official name than "XYZ" and therefore most formats will also specify
+``nicknames`` and ``synopsis`` attributes, whereas they are unneeded
+in this example.
 
-The **DataFormat** classifier consists of several fields after
-the format name:
-
-- an optional comma-separated list of alternative names for the format
-  (none in this example).
-- the category of data stored in this format (**Molecular structure**).
-- a comma-separated list of suffixes that files in this format may use
-  (**.xyz**).
-- the MIME types associated with the format (none in this example).
-- the URL to the format specifications
-  (**https://en.wikipedia.org/wiki/XYZ_file_format**).
-- whether the format potentially contains dangerous data, *e.g.*,
-  an executable script (not in this example).  If the format
-  supports script, this field should be set to **true** and users
-  would be asked whether to try to open a file of this format.
-- the path to an icon for files in this format (none in this example).
-- the description for the format to show to users (**XYZ format**).
-- the encoding for the file contents (**utf-8**).
-
-**WARNING: the Open classifier is deprecated and will be replaced
-by the more flexible Manager/Provider bundle_info mechanism in the
-future.  This example will be updated when implementation is complete.**
-
-The **Open** classifier fields are:
-
-- the name of the data format (in this example, **XYZ**),
-- a (currently unused) tag name (**XYZ**), and
-- a boolean value for whether this bundle should be the default handler
-  for the named data format (none, defaulting to **false**).  Bundles
-  that provide the canonical format reader for a format should set this
-  value to **true**.
-
+Similarly, the "open command" attributes are described in detail in
+:ref:`open command`.  It *is* typical that the only attribute
+specified is ``name``.
 
 ``src``
 -------
