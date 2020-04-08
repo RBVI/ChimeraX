@@ -1874,7 +1874,7 @@ class _Qt:
             # already destroyed
             return
         from PyQt5.QtCore import Qt
-        auto_close = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
+        auto_delete = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()
         self.main_window._tool_window_destroyed(self.tool_window)
         self.main_window.removeDockWidget(self.dock_widget)
@@ -1883,10 +1883,10 @@ class _Qt:
         self.main_window = None
         sbar = self.status_bar
         if sbar is not None:
-            # apparently needs to be explicitly destroyed even if auto_close is True
+            # apparently needs to be explicitly destroyed even if auto_delete is True
             sbar.destroy()
             self.status_bar = None
-        if not auto_close:
+        if not auto_delete:
             # horrible hack to try to work around two different crashes, in 5.12:
             # 1) destroying floating window closed with red-X with immediate destroy() 
             # 2) resize event to dead window if deleteLater() used
