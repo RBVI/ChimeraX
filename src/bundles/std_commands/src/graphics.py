@@ -86,10 +86,10 @@ def graphics_quality(session, quality = None, subdivision = None,
         the maximum number of triangles rendered by the quality factor.
     subdivision : float
         Deprecated.  Same as quality.
-    atom_triangles : integer
+    atom_triangles : integer or "default"
         Number of triangles for drawing an atom sphere, minimum 4.
         If 0, then automatically compute number of triangles.
-    bond_triangles : integer
+    bond_triangles : integer or "default"
         Number of triangles for drawing an atom sphere, minimum 12.
         If 0, then automatically compute number of triangles.
     total_atom_triangles : integer
@@ -119,14 +119,14 @@ def graphics_quality(session, quality = None, subdivision = None,
         atomic.structure_graphics_updater(session).set_quality(quality)
         change = True
     if atom_triangles is not None:
-        if atom_triangles != 0 and atom_triangles < 4:
+        if isinstance(atom_triangles, int) and atom_triangles != 0 and atom_triangles < 4:
             raise UserError('Minimum number of atom triangles is 4')
-        lod.atom_fixed_triangles = atom_triangles if atom_triangles > 0 else None
+        lod.atom_fixed_triangles =  None if atom_triangles in ('default', 0) else atom_triangles
         change = True
     if bond_triangles is not None:
-        if bond_triangles != 0 and bond_triangles < 12:
+        if isinstance(bond_triangles, int) and bond_triangles != 0 and bond_triangles < 12:
             raise UserError('Minimum number of bond triangles is 12')
-        lod.bond_fixed_triangles = bond_triangles if bond_triangles > 0 else None
+        lod.bond_fixed_triangles = None if bond_triangles in ('default', 0) else bond_triangles
         change = True
     if total_atom_triangles is not None:
         lod.total_atom_triangles = total_atom_triangles
@@ -244,7 +244,7 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, ColorArg, TopModelsArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, ColorArg, TopModelsArg, Or, EnumOf
 
     desc = CmdDesc(
         keyword=[('background_color', ColorArg),
@@ -263,11 +263,12 @@ def register_command(logger):
     )
     register('graphics rate', desc, graphics_rate, logger=logger)
 
+    IntOrDefaultArg = Or(EnumOf(['default']), IntArg)
     desc = CmdDesc(
         optional = [('quality', FloatArg)],
         keyword=[('subdivision', FloatArg),
-                 ('atom_triangles', IntArg),
-                 ('bond_triangles', IntArg),
+                 ('atom_triangles', IntOrDefaultArg),
+                 ('bond_triangles', IntOrDefaultArg),
                  ('total_atom_triangles', IntArg),
                  ('total_bond_triangles', IntArg),
                  ('ribbon_divisions', IntArg),
