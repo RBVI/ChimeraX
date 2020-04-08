@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-TapeMeasure" version="1.0" package="chimerax.atomic.tape_measure"
+<BundleInfo name="ChimeraX-TapeMeasure" version="1.0" package="chimerax.tape_measure"
   	    customInit="true" minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -22,11 +22,13 @@
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-Core" version="~=0.9"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-Map" version="~=1.0"/>
+    <Dependency name="ChimeraX-Markers" version="~=1.0"/>
     <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>
