@@ -48,6 +48,13 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
     global coeftime, normaltime
     coeftime = normaltime = 0
 
+    # Ribbon quality. Number of band per residue.
+    lod = structure._level_of_detail
+    segment_divisions = lod.ribbon_fixed_divisions
+    if segment_divisions is None:
+        nres = structure.num_ribbon_residues
+        segment_divisions = lod.ribbon_divisions(nres)
+
     # Accumulate ribbon information for all polymer chains.
     geometry = TriangleAccumulator()
     polyres = []
@@ -134,7 +141,6 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         if timing:
             t1 = time()
         orients = structure.ribbon_orients(residues)
-        segment_divisions = structure._level_of_detail.ribbon_divisions
         flip_normals = _ribbon_flip_normals(structure, is_helix)
         ribbon = Ribbon(coords, guides, orients, flip_normals, smooth_twist, segment_divisions,
                         structure.spline_normals)

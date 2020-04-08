@@ -250,7 +250,7 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   "height=%.2g" % (mgr.scale_nucleic[1] * 2))
             from chimerax.atomic.structure import structure_graphics_updater
             lod = structure_graphics_updater(session).level_of_detail
-            print(indent, "divisions=%d" % lod.ribbon_divisions)
+            print(indent, "divisions=%d" % lod.ribbon_divisions(m.num_ribbon_residues))
             param = mgr.params[XSectionManager.STYLE_ROUND]
             print(indent, "oval parameters:",
                   "sides=%d" % param["sides"])
@@ -523,10 +523,9 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
     if divisions is not None:
         from chimerax.atomic.structure import structure_graphics_updater
         gu = structure_graphics_updater(session)
-        lod = gu.level_of_detail
-        undo_state.add(lod, "ribbon_divisions", lod.ribbon_divisions, divisions)
-        lod.ribbon_divisions = divisions
-        gu.update_level_of_detail()
+        prev_divisions = gu.level_of_detail.ribbon_fixed_divisions
+        undo_state.add(gu, "set_ribbon_divisions", prev_divisions, divisions, option = 'M')
+        gu.set_ribbon_divisions(divisions)
     # process modes
     if mode_helix is not None:
         mode = _ModeHelixMap.get(mode_helix, None)

@@ -1502,7 +1502,6 @@ class StructureGraphicsChangeManager:
         self._structures_array = None		# StructureDatas object
         self.num_atoms_shown = 0
         self.level_of_detail = LevelOfDetail()
-        self._last_ribbon_divisions = 20
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
         self._model_display_change = False
@@ -1511,6 +1510,10 @@ class StructureGraphicsChangeManager:
         self.session.triggers.remove_handler(self._handler)
         self.session.triggers.remove_handler(self._display_handler)
 
+    @property
+    def structures(self):
+        return self._structures
+    
     def add_structure(self, s):
         self._structures.add(s)
         self._structures_array = None
@@ -1550,17 +1553,17 @@ class StructureGraphicsChangeManager:
 
     def update_level_of_detail(self):
         n = self.num_atoms_shown
-
-        lod = self.level_of_detail
-        ribbon_changed = (lod.ribbon_divisions != self._last_ribbon_divisions)
-        if ribbon_changed:
-            self._last_ribbon_divisions = lod.ribbon_divisions
-
         for m in self._structures:
             if m.display:
                 m._update_level_of_detail(n)
-                if ribbon_changed:
-                    m._graphics_changed |= m._RIBBON_CHANGE
+
+    def set_ribbon_divisions(self, divisions):
+        self.level_of_detail.ribbon_fixed_divisions = divisions
+        self._update_ribbons()
+
+    def _update_ribbons(self):
+        for m in self._structures:
+            m._graphics_changed |= m._RIBBON_CHANGE
 
     def _array(self):
         sa = self._structures_array
@@ -1574,7 +1577,9 @@ class StructureGraphicsChangeManager:
         lod.quality = quality
         lod.atom_fixed_triangles = None
         lod.bond_fixed_triangles = None
+        lod.ribbon_fixed_divisions = None
         self.update_level_of_detail()
+        self._update_ribbons()
 
 # -----------------------------------------------------------------------------
 #
@@ -1600,6 +1605,7 @@ class LevelOfDetail(State):
         # else:
         self.quality = 1
 
+        # Number of triangles used for an atom sphere.
         self._atom_min_triangles = 10
         self._atom_max_triangles = 2000
         self._atom_default_triangles = 200
@@ -1608,6 +1614,7 @@ class LevelOfDetail(State):
         self.atom_fixed_triangles = None	# If not None use fixed number of triangles
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
 
+        # Number of triangles used for a bond cylinder.
         self._bond_min_triangles = 24
         self._bond_max_triangles = 160
         self._bond_default_triangles = 60
@@ -1615,8 +1622,12 @@ class LevelOfDetail(State):
         self.bond_fixed_triangles = None	# If not None use fixed number of triangles
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
-        self.ribbon_divisions = 20
-
+        # Number of bands between two residues along the length of a ribbon.
+        self._ribbon_min_divisions = 2
+        self._ribbon_max_divisions = 20
+        self._ribbon_residue_count_best = 20000	# Use max divisions for fewer residues
+        self.ribbon_fixed_divisions = None
+        
     def take_snapshot(self, session, flags):
         return {'quality': self.quality,
                 'version': 1}
@@ -1712,6 +1723,19 @@ class LevelOfDetail(State):
         ntri = 4*(ntri//4)	# Require multiple of 4
         return ntri
 
+    def ribbon_divisions(self, num_residues):
+        div = self.ribbon_fixed_divisions
+        if div is not None:
+            return div
+        f = num_residues / self._ribbon_residue_count_best
+        dmin, dmax = self._ribbon_min_divisions, self._ribbon_max_divisions
+        div = int(self.quality * (dmax if f <= 1 else dmax / f))
+        if div < dmin:
+            div = dmin
+        elif div > dmax:
+            div = dmax
+        return div
+    
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.selection import SelectionPromotion
