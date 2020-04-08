@@ -303,7 +303,6 @@ class Structure(Model, StructureData):
 
         # Update graphics
         self._graphics_changed = 0
-        self._graphics_updater.need_update()
         s = (gc & self._SHAPE_CHANGE)
         if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
             self._update_ribbon_tethers()
@@ -1506,7 +1505,7 @@ class StructureGraphicsChangeManager:
         self._last_ribbon_divisions = 20
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
-        self._need_update = False
+        self._model_display_change = False
 
     def __del__(self):
         self.session.triggers.remove_handler(self._handler)
@@ -1521,27 +1520,29 @@ class StructureGraphicsChangeManager:
         self._structures.remove(s)
         self._structures_array = None
 
-    def need_update(self):
-        self._need_update = True
-
     def _model_display_changed(self, tname, model):
         if isinstance(model, Structure) or _has_structure_descendant(model):
-            self._need_update = True
+            self._model_display_change = True
 
     def _update_graphics_if_needed(self, *_):
         s = self._array()
         gc = s._graphics_changeds	# Includes pseudobond group changes.
-        if gc.any() or self._need_update:
+        if self._model_display_change or gc.any():
+            # Update graphics for each changed structure
             for i in gc.nonzero()[0]:
                 s[i]._update_graphics_if_needed()
 
-            # Update level of detail
-            n = sum(m.num_atoms_visible * m.num_displayed_positions
-                    for m in s if m.visible)
-            if n > 0 and n != self.num_atoms_shown:
-                self.num_atoms_shown = n
-                self.update_level_of_detail()
-            self._need_update = False
+            # Update level of detail if number of atoms shown changed.
+            if self._model_display_change or (gc & StructureData._SHAPE_CHANGE).any():
+                n = sum(m.num_atoms_visible * m.num_displayed_positions
+                        for m in s if m.visible)
+                if n > 0 and n != self.num_atoms_shown:
+                    self.num_atoms_shown = n
+                    self.update_level_of_detail()
+
+            self._model_display_change = False
+
+            # Fire selection changed trigger.
             if (gc & StructureData._SELECT_CHANGE).any():
                 from chimerax.core.selection import SELECTION_CHANGED
                 self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
