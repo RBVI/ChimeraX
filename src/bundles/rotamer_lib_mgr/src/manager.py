@@ -34,6 +34,7 @@ class RotamerLibManager(ProviderManager):
         self.triggers.add_trigger("rotamer libs changed")
         self._library_info = {}
         self.settings = _RotamerManagerSettings(session, "rotamer lib manager")
+        self._uninstalled_suffix = " [not installed]"
 
     def library(self, name):
         try:
@@ -55,10 +56,13 @@ class RotamerLibManager(ProviderManager):
                 lib_names.append(name)
         return lib_names
 
-    def library_name_menu(self, *, installed_only=False):
+    def library_name_menu(self, *, initial_lib=None, installed_only=False, callback=None):
         from PyQt5.QtWidgets import QPushButton, QMenu
         menu_button = QPushButton()
-        lib_name = self.settings.gui_lib_name
+        if initial_lib is None:
+            lib_name = self.settings.gui_lib_name
+        else:
+            lib_name = initial_lib
         if lib_name not in self.library_names(installed_only=installed_only):
             lib_name = self.default_command_library_name
         menu_button.setText(lib_name)
@@ -66,13 +70,29 @@ class RotamerLibManager(ProviderManager):
         menu_button.setMenu(menu)
         menu.aboutToShow.connect(lambda menu=menu, installed=installed_only:
             self._menu_show_cb(menu, installed))
-        menu.triggered.connect(lambda action, button=menu_button, settings=self.settings:
-            (button.setText(action.text()), setattr(settings, 'gui_lib_name', action.text())))
+        menu.triggered.connect(lambda action, button=menu_button, cb=callback:
+            self._menu_choose_cb(action, button, cb))
         return menu_button
 
     def library_name_option(self, *, installed_only=False):
-        #TODO
-        pass
+        from chimerax.ui.options import Option
+        class RotLibOption(Option):
+            def _make_widget(self, *, mgr=self, installed_only=installed_only, **kw):
+                self.widget = mgr.library_name_menu(initial_lib=self.default, installed_only=installed_only,
+                    callback=self.make_callback)
+
+            def get_value(self):
+                return self.widget.text()
+
+            def set_value(self, val):
+                self.widget.setText(val)
+
+            value = property(get_value, set_value)
+
+            def set_multiple(self):
+                self.widget.setText(self.multiple_value)
+
+        return RotLibOption
 
     @property
     def default_command_library_name(self):
@@ -94,6 +114,17 @@ class RotamerLibManager(ProviderManager):
     def end_providers(self):
         self.triggers.activate_trigger("rotamer libs changed", self)
 
+    def _menu_choose_cb(self, action, button, callback):
+        menu_text = action.text()
+        if menu_text.endswith(self._uninstalled_suffix):
+            lib_name = menu_text[:-len(self._uninstalled_suffix)]
+        else:
+            lib_name = menu_text
+        button.setText(lib_name)
+        self.settings.gui_lib_name = lib_name
+        if callback:
+            callback()
+
     def _menu_show_cb(self, menu, installed_only):
         menu.clear()
         names = self.library_names(installed_only=installed_only)
@@ -101,6 +132,10 @@ class RotamerLibManager(ProviderManager):
             raise LimitationError("No rotamer libraries %s!"
                 % ("installed" if installed_only else "available"))
         names.sort()
+        installed = set(self.library_names(installed_only=True))
         for name in names:
-            menu.addAction(name)
+            if name in installed:
+                menu.addAction(name)
+            else:
+                menu.addAction(name + self._uninstalled_suffix)
 

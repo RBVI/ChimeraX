@@ -40,24 +40,10 @@ class PrepRotamersDialog(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(QLabel("Show rotamers for selected residues..."), alignment=Qt.AlignCenter)
 
-        installed_lib_names = set(session.rotamers.library_names(installed_only=True))
-        all_lib_names = session.rotamers.library_names(installed_only=False)
-        all_lib_names.sort()
-        if not all_lib_names:
-            raise AssertionError("No rotamers libraries available?!?")
-        from chimerax.ui.options import SymbolicEnumOption, EnumOption, OptionsPanel
-        class RotLibOption(SymbolicEnumOption):
-            labels = [(session.rotamers.library(lib_name).display_name if lib_name in installed_lib_names
-                else "%s [not installed]" % lib_name) for lib_name in all_lib_names]
-            values = all_lib_names
-        from .settings import get_settings
-        settings = get_settings(session)
-        if settings.library in all_lib_names:
-            def_lib = settings.library
-        else:
-            def_lib = installed_lib_names[0] if installed_lib_names else all_lib_names[0]
-        self.rot_lib_option = RotLibOption("Rotamer library", def_lib, self._lib_change_cb)
+        self.rot_lib_option = session.rotamers.library_name_option()("Rotamer library", None,
+            self._lib_change_cb)
 
+        from chimerax.ui.options import EnumOption, OptionsPanel
         self.rot_lib = session.rotamers.library(self.rot_lib_option.value)
         res_name_list = self.lib_res_list()
         class ResTypeOption(EnumOption):
@@ -83,7 +69,8 @@ class PrepRotamersDialog(ToolInstance):
         self._update_rot_description()
 
         self.citation_widgets = {}
-        cw = self.citation_widgets[def_lib] = self.citation_widgets['showing'] = self._make_citation_widget()
+        cw = self.citation_widgets[self.rot_lib_option.value] = self.citation_widgets['showing'] \
+            = self._make_citation_widget()
         if cw:
             layout.addWidget(cw, alignment=Qt.AlignCenter)
 
@@ -117,13 +104,12 @@ class PrepRotamersDialog(ToolInstance):
             if confirm == "no":
                 return
         res_type = self.res_type_option.value
-        from chimerax.core.commands import run, quote_if_necessary as quote
+        from chimerax.core.commands import run, StringArg
         from chimerax.atomic.rotamers import NoResidueRotamersError
+        lib_name = StringArg.unparse(self.rot_lib_option.value)
         try:
-            run(self.session, "swapaa interactive sel %s lib %s" % (res_type,
-                quote(self.rot_lib.display_name)))
+            run(self.session, "swapaa interactive sel %s lib %s" % (res_type, lib_name))
         except NoResidueRotamersError:
-            lib_name = self.rot_lib_option.value
             run(self.session, "swapaa sel %s lib %s" % (res_type, lib_name))
 
     def lib_res_list(self):
