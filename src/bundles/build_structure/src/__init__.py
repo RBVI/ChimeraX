@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from .mod import modify_atom
-from .start import place_helium
+from .start import place_helium, place_peptide, PeptideError
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -46,7 +46,7 @@ class BuildStructureAPI(BundleAPI):
                 # should be the _entire_ command for opening the model, not a substring of the
                 # 'build' command
                 from .providers import process_widget
-                return process_widget(name, widget)
+                return process_widget(session, name, widget)
         else:
             # add atoms to structure (process provider command string)
             structure, substring = command_info

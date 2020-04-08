@@ -58,11 +58,11 @@ def fetch_smiles(session, smiles_string, **kw):
 
 def _cactus_fetch(session, smiles, web_smiles):
     cactus_site = "cactus.nci.nih.gov"
-    from chimerax.core.io import open_filename
+    from chimerax.io import open_input
     from urllib.error import URLError
     try:
-        reply = open_filename("http://%s/cgi-bin/translate.tcl?smiles=%s&format=sdf&astyle=kekule"
-            "&dim=3D&file=" % (cactus_site, web_smiles))
+        reply = open_input("http://%s/cgi-bin/translate.tcl?smiles=%s&format=sdf&astyle=kekule"
+            "&dim=3D&file=" % (cactus_site, web_smiles), session.data_formats['sdf'].encoding)
     except URLError as e:
         pass
     else:
