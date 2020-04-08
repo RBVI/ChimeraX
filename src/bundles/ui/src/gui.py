@@ -1589,7 +1589,7 @@ class ToolWindow(StatusLogger):
         self.close_destroys = close_destroys
         ui = tool_instance.session.ui
         mw = ui.main_window
-        self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw)
+        self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw, close_destroys)
         self.ui_area = self.__toolkit.ui_area
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
@@ -1833,7 +1833,7 @@ class ChildToolWindow(ToolWindow):
         super().__init__(tool_instance, title, **kw)
 
 class _Qt:
-    def __init__(self, tool_window, title, has_statusbar, hide_title_bar, main_window):
+    def __init__(self, tool_window, title, has_statusbar, hide_title_bar, main_window, close_destroys):
         self.tool_window = tool_window
         self.title = title
         self.hide_title_bar = hide_title_bar
@@ -1845,6 +1845,9 @@ class _Qt:
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+        if close_destroys:
+            from PyQt5.QtCore import Qt
+            dw.setAttribute(Qt.WA_DeleteOnClose)
         dw.topLevelChanged.connect(self.float_changed)
         if hide_title_bar:
             self.dock_widget.setTitleBarWidget(QWidget())
@@ -1870,6 +1873,8 @@ class _Qt:
         if not self.tool_window:
             # already destroyed
             return
+        from PyQt5.QtCore import Qt
+        auto_close = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()
         self.main_window._tool_window_destroyed(self.tool_window)
         self.main_window.removeDockWidget(self.dock_widget)
@@ -1878,15 +1883,17 @@ class _Qt:
         self.main_window = None
         sbar = self.status_bar
         if sbar is not None:
+            # apparently needs to be explicitly destroyed even if auto_close is True
             sbar.destroy()
             self.status_bar = None
-        # horrible hack to try to work around two different crashes, in 5.12:
-        # 1) destroying floating window closed with red-X with immediate destroy() 
-        # 2) resize event to dead window if deleteLater() used
-        if is_floating:
-            self.dock_widget.deleteLater()
-        else:
-            self.dock_widget.destroy()
+        if not auto_close:
+            # horrible hack to try to work around two different crashes, in 5.12:
+            # 1) destroying floating window closed with red-X with immediate destroy() 
+            # 2) resize event to dead window if deleteLater() used
+            if is_floating:
+                self.dock_widget.deleteLater()
+            else:
+                self.dock_widget.destroy()
 
     @property
     def dockable(self):
