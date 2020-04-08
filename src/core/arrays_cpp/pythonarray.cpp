@@ -1224,58 +1224,58 @@ extern "C" int parse_writable_int_2d_array(PyObject *arg, void *iarray)
 
 // ----------------------------------------------------------------------------
 //
-extern "C" int parse_uint8_n_array(PyObject *arg, void *carray)
+extern "C" int parse_uint8_n_array(PyObject *arg, void *barray)
 {
   Numeric_Array v;
   bool allow_copy = true;
   if (!array_from_python(arg, 1, Numeric_Array::Unsigned_Char, &v, allow_copy))
     return 0;
-  *static_cast<CArray*>(carray) = static_cast<CArray>(v);
+  *static_cast<BArray*>(barray) = static_cast<BArray>(v);
   return 1;
 }
 
 // ----------------------------------------------------------------------------
 //
-extern "C" int parse_writable_uint8_n_array(PyObject *arg, void *carray)
+extern "C" int parse_writable_uint8_n_array(PyObject *arg, void *barray)
 {
   Numeric_Array v;
   bool allow_copy = false;
   if (!array_from_python(arg, 1, Numeric_Array::Unsigned_Char, &v, allow_copy))
     return 0;
-  *static_cast<CArray*>(carray) = static_cast<CArray>(v);
+  *static_cast<BArray*>(barray) = static_cast<BArray>(v);
   return 1;
 }
 
 // ----------------------------------------------------------------------------
 //
-extern "C" int parse_uint8_n2_array(PyObject *arg, void *carray)
+extern "C" int parse_uint8_n2_array(PyObject *arg, void *barray)
 {
   Numeric_Array v;
   int s = parse_nm_array(arg, Numeric_Array::Unsigned_Char, 2, false, v);
   if (s)
-    *static_cast<CArray*>(carray) = static_cast<CArray>(v);
+    *static_cast<BArray*>(barray) = static_cast<BArray>(v);
   return s;
 }
 
 // ----------------------------------------------------------------------------
 //
-extern "C" int parse_uint8_n3_array(PyObject *arg, void *carray)
+extern "C" int parse_uint8_n3_array(PyObject *arg, void *barray)
 {
   Numeric_Array v;
   int s = parse_nm_array(arg, Numeric_Array::Unsigned_Char, 3, false, v);
   if (s)
-    *static_cast<CArray*>(carray) = static_cast<CArray>(v);
+    *static_cast<BArray*>(barray) = static_cast<BArray>(v);
   return s;
 }
 
 // ----------------------------------------------------------------------------
 //
-extern "C" int parse_uint8_n4_array(PyObject *arg, void *carray)
+extern "C" int parse_uint8_n4_array(PyObject *arg, void *barray)
 {
   Numeric_Array v;
   int s = parse_nm_array(arg, Numeric_Array::Unsigned_Char, 4, false, v);
   if (s)
-    *static_cast<CArray*>(carray) = static_cast<CArray>(v);
+    *static_cast<BArray*>(barray) = static_cast<BArray>(v);
   return s;
 }
 

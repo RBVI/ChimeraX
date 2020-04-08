@@ -620,6 +620,6 @@ Array<T> Array<T>::copy() const
 typedef Reference_Counted_Array::Array<float> FArray;
 typedef Reference_Counted_Array::Array<double> DArray;
 typedef Reference_Counted_Array::Array<int> IArray;
-typedef Reference_Counted_Array::Array<char> CArray;
+typedef Reference_Counted_Array::Array<unsigned char> BArray;
 
 #endif
