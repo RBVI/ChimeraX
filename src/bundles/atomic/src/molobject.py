@@ -1340,9 +1340,11 @@ class StructureData:
     num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True,
         doc = "Supported API. Number of coordinate sets in structure. Read only.")
     num_chains = c_property('structure_num_chains', size_t, read_only = True,
-        doc = "Supported API. Number of chains structure. Read only.")
+        doc = "Supported API. Number of chains in structure. Read only.")
+    num_ribbon_residues = c_property('structure_num_ribbon_residues', size_t, read_only = True,
+        doc = "Supported API. Number of residues in structure shown as ribbon. Read only.")
     num_residues = c_property('structure_num_residues', size_t, read_only = True,
-        doc = "Supported API. Number of residues structure. Read only.")
+        doc = "Supported API. Number of residues in structure. Read only.")
     residues = c_property('structure_residues', cptr, 'num_residues', astype = convert.residues,
         read_only = True, doc = "Supported API. :class:`.Residues` collection containing the"
         " residues of this structure. Read only.")
