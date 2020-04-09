@@ -107,7 +107,7 @@ def process_widget(session, name, widget):
             args.append("select false")
     elif name == "peptide":
         seq_edit = widget.findChild(QTextEdit, "peptide sequence")
-        seq = seq_edit.toPlainText().strip().upper()
+        seq = "".join(seq_edit.toPlainText().split()).upper()
         if not seq:
             raise UserError("No peptide sequence entered")
         param_dialog = PeptideParamDialog(session, widget, seq)
@@ -303,5 +303,8 @@ def shim_place_atom(session, position=None, res_name="UNL", select=True):
     return a
 
 def shim_place_peptide(session, sequence, phi_psis, **kw):
-    from .start import place_peptide
-    return place_peptide(_structure, sequence, phi_psis, **kw)
+    from .start import place_peptide, PeptideError
+    try:
+        return place_peptide(_structure, sequence, phi_psis, **kw)
+    except PeptideError as e:
+        raise UserError(str(e))
