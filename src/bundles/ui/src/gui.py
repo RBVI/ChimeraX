@@ -1149,6 +1149,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         surface_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="surface hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        surface_menu.addSeparator()
+        for style in ["solid", "mesh", "dot"]:
+            action = QAction(style.capitalize(), self)
+            surface_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="surface style %%s %s" % style: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        surface_menu.addSeparator()
+        transparency_menu = surface_menu.addMenu("Transparency")
+        for percent in range(0, 101, 10):
+            action = QAction("%d%%" % percent, self)
+            transparency_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="transparency %%s %d" % percent: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction

@@ -383,13 +383,19 @@ class BuildStructureTool(ToolInstance):
         self.parameter_widgets.setCurrentWidget(self.ss_widgets[ui_name])
         from .manager import manager
         provider_name = self.ss_u_to_p_names[ui_name]
-        hidden = manager.new_model_only(provider_name)
+        hide_model_choice = manager.new_model_only(provider_name)
         if manager.is_indirect(provider_name):
             self.ss_apply_button.setHidden(True)
-            hidden = True
+            hide_model_choice = True
         else:
             self.ss_apply_button.setHidden(False)
-        for widget in self.ss_struct_widgets:
+        # hincky code to avoid flashing up widgets that end up hidden
+        num_widgets = len(self.ss_struct_widgets)
+        hiddens = [hide_model_choice] * num_widgets
+        if not hide_model_choice and self.ss_struct_menu.value != "new model":
+            hiddens[2:] = [True] * (num_widgets - 2)
+
+        for widget, hidden in zip(self.ss_struct_widgets, hiddens):
             widget.setHidden(hidden)
 
     def _ss_struct_changed(self):
