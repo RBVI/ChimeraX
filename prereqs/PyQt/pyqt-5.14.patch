@@ -1,5 +1,5 @@
 diff --git a/prereqs/PyQt/Makefile b/prereqs/PyQt/Makefile
-index 7cb921220..ed86b2018 100644
+index 7cb921220..c48771e6b 100644
 --- a/prereqs/PyQt/Makefile
 +++ b/prereqs/PyQt/Makefile
 @@ -3,16 +3,17 @@ TOP	= ../..
@@ -14,11 +14,11 @@ index 7cb921220..ed86b2018 100644
  
 -VERSION = 5.12
 -PYQT_MINOR_VERSION = 3
--QT_MINOR_VERSION = 5
+-QT_MINOR_VERSION = 7
 +VERSION = 5.14
++QT_MINOR_VERSION = 1
 +PYQT_MINOR_VERSION = 1
 +PYQTWE_MINOR_VERSION = 0
-+QT_MINOR_VERSION = 0
  
 -MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
 +MAKE_ARGS = -f Makefile.$(METHOD) VERSION=$(VERSION) PYQT_MINOR_VERSION=$(PYQT_MINOR_VERSION) PYQTWE_MINOR_VERSION=$(PYQTWE_MINOR_VERSION) QT_MINOR_VERSION=$(QT_MINOR_VERSION) PYQT_LICENSE=$(PYQT_LICENSE)
@@ -26,7 +26,7 @@ index 7cb921220..ed86b2018 100644
  all:
  
 diff --git a/prereqs/PyQt/Makefile.wheel b/prereqs/PyQt/Makefile.wheel
-index decb6fc2e..22954dd36 100644
+index decb6fc2e..3ee353c72 100644
 --- a/prereqs/PyQt/Makefile.wheel
 +++ b/prereqs/PyQt/Makefile.wheel
 @@ -3,16 +3,22 @@ TOP	= ../..
@@ -46,11 +46,11 @@ index decb6fc2e..22954dd36 100644
  
  # VERSION is overriden by Makefile
 -VERSION = 5.12
--QT_MINOR_VERSION = 5
+-QT_MINOR_VERSION = 7
 -PYQT_MINOR_VERSION = 3
 -PYQTWE_MINOR_VERSION = 1
 +VERSION = 5.14
-+QT_MINOR_VERSION = 0
++QT_MINOR_VERSION = 1
 +PYQT_MINOR_VERSION = 1
 +PYQTWE_MINOR_VERSION = 0
  QT_VERSION = $(VERSION).$(QT_MINOR_VERSION)
@@ -64,7 +64,7 @@ index decb6fc2e..22954dd36 100644
 -# to a Windows path when installing
 +# Versions of Riverbank Computing Limited packages/programs from when
 +# unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
-+SIP_VERSION = 5.1.0
++SIP_VERSION = 5.1.1
 +BUILDER_VERSION = 1.2.0
 +
 +PYQT_LICENSE_VERSION = 2.0.1
@@ -75,7 +75,7 @@ index decb6fc2e..22954dd36 100644
 -# Explicitly choose sip version that works -- depends how unlicensed wheel
 -# from Riverbank Computing Limited was built and presumably matches the gpl
 -# wheel in PyPI.
--SIP_VERSION = 4.19.18
+-SIP_VERSION = 4.19.19
  
 -PYQT_LICENSE_VERSION = 1.17
  PYTHON_TAGS = cp35.cp36.cp37.cp38

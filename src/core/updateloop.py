@@ -23,7 +23,7 @@ class UpdateLoop:
         self.last_clip_time = 0
 
         # TODO: perhaps redraw interval should be 10 to reduce frame drops at 60 frames/sec
-        self.redraw_interval = 16.667  # milliseconds, 60 frames per second
+        self.redraw_interval = 16.667  # milliseconds, 60 frames per second, can be 0.
 
         self._minimum_event_processing_ratio = 0.1 # Event processing time as a fraction
                                                    # of time since start of last drawing
@@ -65,7 +65,7 @@ class UpdateLoop:
             changed = view.check_for_drawing_change()
             self.last_drawing_change_time = time() - t0
             if changed:
-                from .graphics import OpenGLError, OpenGLVersionError
+                from chimerax.graphics import OpenGLError, OpenGLVersionError
                 try:
                     if ((session.ui.is_gui and session.ui.main_window.graphics_window.is_drawable)
                         or getattr(view.camera, 'always_draw', False)):
@@ -104,6 +104,10 @@ class UpdateLoop:
         return self._block_redraw_count > 0
         
     def set_redraw_interval(self, msec):
+        '''
+        A redraw interval of 0 is allowed and means redraw will
+        occur as soon as all Qt events have been processed.
+        '''
         self.redraw_interval = msec  # milliseconds
         t = self._timer
         if t is not None:
@@ -127,7 +131,8 @@ class UpdateLoop:
         time_since_last_timer = t - self._last_timer_start_time
         after_timer_interval = t - self._last_timer_finish_time
         self._last_timer_start_time = t
-        if  after_timer_interval >= self._minimum_event_processing_ratio * time_since_last_timer:
+        if  (self.redraw_interval == 0 or
+             after_timer_interval >= self._minimum_event_processing_ratio * time_since_last_timer):
             # Redraw only if enough time has elapsed since last frame to process some events.
             # This keeps the user interface responsive even during slow rendering
             drew = self.draw_new_frame()

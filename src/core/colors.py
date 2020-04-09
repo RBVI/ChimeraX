@@ -191,7 +191,7 @@ class Color(State):
         return self.rgba[3] >= 1.0
 
     def __repr__(self):
-        return '%s' % self.rgba
+        return '%s(%s)' % (self.__class__.__name__, repr(list(self.rgba)))
 
     def uint8x4(self):
         """Return uint8x4 version color"""
@@ -953,7 +953,29 @@ def luminance(rgba):
     luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
     return luminance
 
+from . import configfile
+class ColorValue(configfile.Value):
+    """Class to use in settings when the setting is a Color"""
 
+    def convert_from_string(self, session, str_value):
+        from chimerax.core.commands import ColorArg
+        value, consumed, rest = ColorArg.parse(str_value, session)
+        return value
+
+    def convert_to_string(self, session, value):
+        if not isinstance(value, Color):
+            try:
+                value = Color(value)
+            except Exception as e:
+                raise ValueError("Cannot convert %s to Color instance: %s" % (repr(value), str(e)))
+        from chimerax.core.commands import ColorArg
+        str_value = ColorArg.unparse(value, session)
+        # confirm that value can be restored from disk,
+        # by converting to a string and back
+        new_value = self.convert_from_string(session, str_value)
+        if new_value != value:
+            raise ValueError('value changed while saving it')
+        return str_value
 
 def _init():
     for name in BuiltinColors:

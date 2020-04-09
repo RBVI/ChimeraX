@@ -16,7 +16,7 @@ from chimerax.atomic import Atom, idatm, Ring
 from .cmd import new_hydrogen, find_nearest, roomiest, _tree_dist, vdw_radius, \
                 find_rotamer_nearest, h_rad, add_altloc_hyds
 from .util import bond_with_H_length, N_H
-from chimerax.core.geometry import distance_squared, angle, dihedral, distance, normalize_vector
+from chimerax.geometry import distance_squared, angle, dihedral, distance, normalize_vector
 
 c_rad = 1.7
 _near_dist = _room_dist = _tree_dist + h_rad + c_rad

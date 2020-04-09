@@ -31,7 +31,6 @@
 #include <atomstruct/Pseudobond.h>
 #include <atomstruct/PBGroup.h>
 #include <atomstruct/Residue.h>
-#include <atomstruct/RibbonXSection.h>
 #include <atomstruct/Ring.h>
 #include <atomstruct/seq_assoc.h>
 #include <atomstruct/Sequence.h>
@@ -1073,6 +1072,40 @@ extern "C" EXPORT PyObject *atom_residue_sums(void *atoms, size_t n, double *ato
     return result;
 }
 
+extern "C" EXPORT void atom_ribbon_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            const Coord *c = a[i]->ribbon_coord();
+	    if (c == NULL) {
+	      PyErr_SetString(PyExc_ValueError, "Atom does not hae ribbon coordinate");
+	      break;
+	    }
+            *xyz++ = (*c)[0];
+            *xyz++ = (*c)[1];
+            *xyz++ = (*c)[2];
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_atom_ribbon_coord(void *atoms, size_t n, float64_t *xyz)
+{
+    Atom **a = static_cast<Atom **>(atoms);
+    try {
+      Coord coord;
+      for (size_t i = 0; i != n; ++i, xyz += 3) {
+	  float64_t x = xyz[0], y = xyz[1], z = xyz[2];
+	  coord.set_xyz(x, y, z);
+	  a[i]->set_ribbon_coord(coord);
+      }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT PyObject *atom_rings(void *atom, bool cross_residue, int all_size_threshold)
 {
     Atom *a = static_cast<Atom *>(atom);
@@ -1298,7 +1331,7 @@ extern "C" EXPORT void atom_transform(void* atom, size_t n, double* tf)
     }
 }
 
-extern "C" EXPORT void atom_update_ribbon_visibility(void *atoms, size_t n)
+extern "C" EXPORT void atom_update_ribbon_backbone_atom_visibility(void *atoms, size_t n)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -1688,53 +1721,52 @@ extern "C" EXPORT void bond_halfbond_cylinder_placements(void *bonds, size_t n, 
     try {
       float32_t *m44b = m44 + 16*n;
       for (size_t i = 0; i != n; ++i) {
-    Bond *bd = b[i];
-    Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
-    const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
-    float r = bd->radius();
+	Bond *bd = b[i];
+	Atom *a0 = bd->atoms()[0], *a1 = bd->atoms()[1];
+	const Coord &xyz0 = a0->coord(), &xyz1 = a1->coord();
+	float r = bd->radius();
 
-    float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
-    float vx = x1-x0, vy = y1-y0, vz = z1-z0;
-    float d = sqrtf(vx*vx + vy*vy + vz*vz);
-    if (d == 0)
-      { vx = vy = 0 ; vz = 1; }
-    else
-      { vx /= d; vy /= d; vz /= d; }
+	float x0 = xyz0[0], y0 = xyz0[1], z0 = xyz0[2], x1 = xyz1[0], y1 = xyz1[1], z1 = xyz1[2];
+	float vx = x1-x0, vy = y1-y0, vz = z1-z0;
+	float h = sqrtf(vx*vx + vy*vy + vz*vz);
+	if (h == 0)
+	  { vx = vy = 0 ; vz = 1; }
+	else
+	  { vx /= h; vy /= h; vz /= h; }
 
-    float c = vz, c1;
-    if (c <= -1)
-      c1 = 0;       // Degenerate -z axis case.
-    else
-      c1 = 1.0/(1+c);
+	float sx = r, sy = r, sz = h;	// Scale factors
 
-    float wx = -vy, wy = vx;
-    float cx = c1*wx, cy = c1*wy;
-    float h = d;
+	// Avoid degenerate vz = -1 case.
+	if (vz < 0)
+	  { vx = -vx; vy = -vy; vz = -vz; sx = -r; sz = -h; }
+    
+	float c1 = 1.0/(1+vz);
+	float vxx = c1*vx*vx, vyy = c1*vy*vy, vxy = c1*vx*vy;
+      
+	*m44++ = *m44b++ = sx*(vyy + vz);
+	*m44++ = *m44b++ = -sx*vxy;
+	*m44++ = *m44b++ = -sx*vx;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = r*(cx*wx + c);
-    *m44++ = *m44b++ = r*cy*wx;
-    *m44++ = *m44b++ = -r*wy;
-    *m44++ = *m44b++ = 0;
+	*m44++ = *m44b++ = -sy*vxy;
+	*m44++ = *m44b++ = sy*(vxx + vz);
+	*m44++ = *m44b++ = -sy*vy;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = r*cx*wy;
-    *m44++ = *m44b++ = r*(cy*wy + c);
-    *m44++ = *m44b++ = r*wx;
-    *m44++ = *m44b++ = 0;
+	*m44++ = *m44b++ = sz*vx;
+	*m44++ = *m44b++ = sz*vy;
+	*m44++ = *m44b++ = sz*vz;
+	*m44++ = *m44b++ = 0;
 
-    *m44++ = *m44b++ = h*wy;
-    *m44++ = *m44b++ = -h*wx;
-    *m44++ = *m44b++ = h*c;
-    *m44++ = *m44b++ = 0;
+	*m44++ = .75*x0 + .25*x1;
+	*m44++ = .75*y0 + .25*y1;
+	*m44++ = .75*z0 + .25*z1;
+	*m44++ = 1;
 
-    *m44++ = .75*x0 + .25*x1;
-    *m44++ = .75*y0 + .25*y1;
-    *m44++ = .75*z0 + .25*z1;
-    *m44++ = 1;
-
-    *m44b++ = .25*x0 + .75*x1;
-    *m44b++ = .25*y0 + .75*y1;
-    *m44b++ = .25*z0 + .75*z1;
-    *m44b++ = 1;
+	*m44b++ = .25*x0 + .75*x1;
+	*m44b++ = .25*y0 + .75*y1;
+	*m44b++ = .25*z0 + .75*z1;
+	*m44b++ = 1;
       }
     } catch (...) {
         molc_error();
@@ -2756,31 +2788,10 @@ extern "C" EXPORT void set_residue_ribbon_adjust(void *residues, size_t n, float
     error_wrap_array_set(r, n, &Residue::set_ribbon_adjust, ribbon_adjust);
 }
 
-extern "C" EXPORT void residue_ribbon_selected(void *residues, size_t n, npy_bool *sel)
+extern "C" EXPORT void residue_selected(void *residues, size_t n, npy_bool *sel)
 {
     Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_get<Residue, bool, npy_bool>(r, n, &Residue::ribbon_selected, sel);
-}
-
-extern "C" EXPORT void set_residue_ribbon_selected(void *residues, size_t n, npy_bool *sel)
-{
-    Residue **r = static_cast<Residue **>(residues);
-    error_wrap_array_set<Residue, bool, npy_bool>(r, n, &Residue::set_ribbon_selected, sel);
-}
-
-extern "C" EXPORT size_t residue_ribbon_num_selected(void *residues, size_t n)
-{
-    Residue **r = static_cast<Residue **>(residues);
-    size_t s = 0;
-    try {
-        for (size_t i = 0; i != n; ++i)
-            if (r[i]->ribbon_selected())
-                s += 1;
-        return s;
-    } catch (...) {
-        molc_error();
-        return 0;
-    }
+    error_wrap_array_get<Residue, bool, npy_bool>(r, n, &Residue::selected, sel);
 }
 
 extern "C" EXPORT void residue_structure(void *residues, size_t n, pyobject_t *molp)
@@ -4388,6 +4399,12 @@ extern "C" EXPORT void structure_bonds(void *mols, size_t n, pyobject_t *bonds)
     }
 }
 
+extern "C" EXPORT void structure_num_ribbon_residues(void *mols, size_t n, size_t *nres)
+{
+    Structure **m = static_cast<Structure **>(mols);
+    error_wrap_array_get(m, n, &Structure::num_ribbon_residues, nres);
+}
+
 extern "C" EXPORT void structure_num_residues(void *mols, size_t n, size_t *nres)
 {
     Structure **m = static_cast<Structure **>(mols);
@@ -5601,365 +5618,6 @@ extern "C" EXPORT void pointer_array_freed(void *numpy_array)
     }
 }
 
-
-// -------------------------------------------------------------------------
-// ribbon xsection functions
-static FArray* _numpy_floats2(PyObject *a, FArray *farray)
-{
-    if (a == Py_None)
-        return NULL;
-    if (parse_float_n2_array(a, farray))
-        return farray;
-    throw std::invalid_argument("not a float[2] array");
-}
-
-static FArray* _numpy_floats3(PyObject *a, FArray *farray)
-{
-    if (a == Py_None)
-        return NULL;
-    if (parse_float_n3_array(a, farray))
-        return farray;
-    throw std::invalid_argument("not a float[3] array");
-}
-
-static FArray* _numpy_float3(PyObject *a, FArray *farray)
-{
-    if (a == Py_None)
-        return NULL;
-    if (parse_float_array(a, farray))
-        return farray;
-    throw std::invalid_argument("not a float array");
-}
-
-static IArray* _numpy_ints3(PyObject *a, IArray *iarray)
-{
-    if (a == Py_None)
-        return NULL;
-    if (parse_int_n3_array(a, iarray))
-        return iarray;
-    throw std::invalid_argument("not an int[3] array");
-}
-
-static CArray* _numpy_uint8s(PyObject *a, CArray *carray)
-{
-    if (a == Py_None)
-        return NULL;
-    if (parse_uint8_n_array(a, carray))
-        return carray;
-    throw std::invalid_argument("not a unsigned char array");
-}
-
-extern "C" EXPORT void *rxsection_new(PyObject* coords, PyObject* coords2,
-                               PyObject* normals, PyObject* normals2,
-                               bool faceted, PyObject* tess)
-{
-    FArray fa_coords, fa_coords2, fa_normals, fa_normals2;
-    IArray ia_tess;
-    try {
-        FArray *c = _numpy_floats2(coords, &fa_coords);
-        FArray *c2 = _numpy_floats2(coords2, &fa_coords2);
-        FArray *n = _numpy_floats2(normals, &fa_normals);
-        FArray *n2 = _numpy_floats2(normals2, &fa_normals2);
-        IArray *t = _numpy_ints3(tess, &ia_tess);
-        RibbonXSection *xs = new RibbonXSection(c, c2, n, n2, faceted, t);
-        return xs;
-    } catch (...) {
-        molc_error();
-        return nullptr;
-    }
-}
-
-extern "C" EXPORT void rxsection_delete(void *p)
-{
-    auto *xs = static_cast<RibbonXSection *>(p);
-    try {
-        delete xs;
-    } catch (...) {
-        molc_error();
-    }
-}
-
-extern "C" EXPORT PyObject *rxsection_extrude(void *p, PyObject *centers,
-                                       PyObject *tangents, PyObject *normals,
-                                       PyObject *colors, bool cap_front,
-                                       bool cap_back, int offset)
-{
-    auto *xs = static_cast<RibbonXSection *>(p);
-    FArray fa_centers, fa_tangents, fa_normals;
-    CArray ca_colors;
-    try {
-        FArray* c = _numpy_floats3(centers, &fa_centers);
-        FArray* t = _numpy_floats3(tangents, &fa_tangents);
-        FArray* n = _numpy_floats3(normals, &fa_normals);
-        CArray* co = _numpy_uint8s(colors, &ca_colors);
-        PyObject *r = xs->extrude(*c, *t, *n, *co, cap_front, cap_back, offset);
-        return r;
-    } catch (...) {
-        molc_error();
-        return NULL;
-    }
-}
-
-extern "C" EXPORT PyObject *rxsection_blend(void *p, PyObject *back_band, PyObject *front_band)
-{
-    auto *xs = static_cast<RibbonXSection *>(p);
-    IArray back, front;
-    try {
-        if (!parse_int_n_array(back_band, &back) || !parse_int_n_array(front_band, &front))
-            return NULL;
-        PyObject *r = xs->blend(back, front);
-        return r;
-    } catch (...) {
-        molc_error();
-        return NULL;
-    }
-}
-
-extern "C" EXPORT void* rxsection_scale(void *p, float x_scale, float y_scale)
-{
-    auto *xs = static_cast<RibbonXSection *>(p);
-    try {
-        void* r = xs->scale(x_scale, y_scale);
-        return r;
-    } catch (...) {
-        molc_error();
-        return NULL;
-    }
-}
-
-extern "C" EXPORT void* rxsection_arrow(void *p, float x1_scale, float y1_scale,
-                                     float x2_scale, float y2_scale)
-{
-    auto *xs = static_cast<RibbonXSection *>(p);
-    try {
-        void* r = xs->arrow(x1_scale, y1_scale, x2_scale, y2_scale);
-        return r;
-    } catch (...) {
-        molc_error();
-        return NULL;
-    }
-}
-
-// -------------------------------------------------------------------------
-// ribbon functions
-
-static void _rotate_around(float* n, float c, float s, float* v)
-{
-    float c1 = 1 - c;
-    float m00 = c + n[0] * n[0] * c1;
-    float m01 = n[0] * n[1] * c1 - s * n[2];
-    float m02 = n[2] * n[0] * c1 + s * n[1];
-    float m10 = n[0] * n[1] * c1 + s * n[2];
-    float m11 = c + n[1] * n[1] * c1;
-    float m12 = n[2] * n[1] * c1 - s * n[0];
-    float m20 = n[0] * n[2] * c1 - s * n[1];
-    float m21 = n[1] * n[2] * c1 + s * n[0];
-    float m22 = c + n[2] * n[2] * c1;
-    // Use temporary so that v[0] does not get set too soon
-    float x = m00 * v[0] + m01 * v[1] + m02 * v[2];
-    float y = m10 * v[0] + m11 * v[1] + m12 * v[2];
-    float z = m20 * v[0] + m21 * v[1] + m22 * v[2];
-    v[0] = x;
-    v[1] = y;
-    v[2] = z;
-}
-
-static void _parallel_transport_normals(int num_pts, float* tangents, float* n0, float* normals)
-{
-    // First normal is same as given normal
-    normals[0] = n0[0];
-    normals[1] = n0[1];
-    normals[2] = n0[2];
-    // n: normal updated at each step
-    // b: binormal defined by cross product of two consecutive tangents
-    // b_hat: normalized b
-    float n[3] = { n0[0], n0[1], n0[2] };
-    float b[3];
-    float b_hat[3];
-    for (int i = 1; i != num_pts; ++i) {
-        float *ti1 = tangents + (i - 1) * 3;
-        float *ti = ti1 + 3;
-        cross(ti1, ti, b);
-        float b_len = sqrtf(inner(b, b));
-        if (!std::isnan(b_len) && b_len > 0) {
-            b_hat[0] = b[0] / b_len;
-            b_hat[1] = b[1] / b_len;
-            b_hat[2] = b[2] / b_len;
-            float c = inner(ti1, ti);
-            if (!std::isnan(c)) {
-                float s = sqrtf(1 - c*c);
-                if (!std::isnan(s))
-                    _rotate_around(b_hat, c, s, n);
-            }
-        }
-        float *ni = normals + i * 3;
-        ni[0] = n[0];
-        ni[1] = n[1];
-        ni[2] = n[2];
-    }
-}
-
-#define DEBUG_CONSTRAINED_NORMALS   0
-
-#define FLIP_MINIMIZE   0
-#define FLIP_PREVENT    1
-#define FLIP_FORCE      2
-
-inline float delta_to_angle(float twist, float f)
-{
-    // twist is total twist
-    // f is between 0 and 1
-    // linear interpolation - show cusp artifact
-    // return twist * f;
-    // cosine interpolation - second degree continuity
-    // return (1 - cos(f * M_PI)) / 2 * twist;
-    // sigmoidal interpolation - second degree continuity
-    return (1.0 / (1 + exp(-8.0 * (f - 0.5)))) * twist;
-}
-
-#if DEBUG_CONSTRAINED_NORMALS > 0
-inline float rad2deg(float r)
-{
-    return 180.0 / M_PI * r;
-}
-#endif
-
-extern "C" EXPORT PyObject *constrained_normals(PyObject* py_tangents, PyObject* py_start, PyObject* py_end,
-                                         int flip_mode, bool start_flipped, bool end_flipped,
-                                         bool no_twist)
-{
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "constrained_normals\n";
-#endif
-    // Convert Python objects to arrays and pointers
-    FArray ta;
-    (void) _numpy_floats3(py_tangents, &ta);
-    float *tangents = ta.values();
-    FArray starta;
-    (void) _numpy_float3(py_start, &starta);
-    float *n_start = starta.values();
-    FArray enda;
-    (void) _numpy_float3(py_end, &enda);
-    float *n_end = enda.values();
-    // First get the "natural" normals
-    int num_pts = ta.size(0);
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "n_start" << ' ' << n_start[0] << ' ' << n_start[1] << ' ' << n_start[2] << '\n';
-    std::cerr << "n_end" << ' ' << n_end[0] << ' ' << n_end[1] << ' ' << n_end[2] << '\n';
-    std::cerr << "start inner: " << inner(n_start, tangents)
-        << " end inner: " << inner(n_end, tangents + num_pts * 3) << '\n';
-#if DEBUG_CONSTRAINED_NORMALS > 1
-    std::cerr << "tangents\n";
-    for (int i = 0; i != num_pts; ++i) {
-        float *tp = tangents + i * 3;
-        std::cerr << "  " << i << ' ' << tp[0] << ' ' << tp[1] << ' ' << tp[2] << '\n';
-    }
-#endif
-#endif
-    float* normals = NULL;
-    PyObject *py_normals = python_float_array(num_pts, 3, &normals);
-    _parallel_transport_normals(num_pts, tangents, n_start, normals);
-#if DEBUG_CONSTRAINED_NORMALS > 1
-    std::cerr << "returned from _parallel_transport_normals\n";
-    for (int i = 0; i != num_pts; ++i) {
-        float *np = normals + i * 3;
-        std::cerr << "  " << i << ' ' << np[0] << ' ' << np[1] << ' ' << np[2] << '\n';
-    }
-#endif
-    // Then figure out what twist is needed to make the
-    // ribbon end up with the desired ending normal
-    float* n = normals + (num_pts - 1) * 3;
-    float other_end[3] = { n_end[0], n_end[1], n_end[2] };
-    float twist = 0;
-    bool need_flip = false;
-    if (!no_twist) {
-        twist = acos(inner(n, n_end));
-        if (std::isnan(twist))
-            twist = 0;
-#if DEBUG_CONSTRAINED_NORMALS > 0
-        std::cerr << "initial twist " << rad2deg(twist) << " degrees, sqlen(n): "
-            << inner(n, n) << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
-#endif
-        // Now we figure out whether to flip the ribbon or not
-        if (flip_mode == FLIP_MINIMIZE) {
-            // If twist is greater than 90 degrees, turn the opposite
-            // direction.  (Assumes that ribbons are symmetric.)
-            if (twist > 0.6 * M_PI)
-            // if (twist > M_PI / 2)
-                need_flip = true;
-        } else if (flip_mode == FLIP_PREVENT) {
-            // Make end_flip the same as start_flip
-            if (end_flipped != start_flipped)
-                need_flip = true;
-        } else if (flip_mode == FLIP_FORCE) {
-            // Make end_flip the opposite of start_flip
-            if (end_flipped == start_flipped)
-                need_flip = true;
-        }
-#if DEBUG_CONSTRAINED_NORMALS > 0
-        std::cerr << "flip_mode: " << flip_mode << " start_flipped: " << start_flipped
-                  << " end_flipped: " << end_flipped << " need_flip: " << need_flip << '\n';
-#endif
-        if (need_flip) {
-#if DEBUG_CONSTRAINED_NORMALS > 0
-            std::cerr << "flipped twist " << rad2deg(twist) << " degrees, sqlen(n): " << inner(n, n)
-                      << " sqlen(other_end): " << inner(other_end, other_end) << "\n";
-#endif
-            for (int i = 0; i != 3; ++i)
-                other_end[i] = -n_end[i];
-            twist = acos(inner(n, other_end));
-        }
-        // Figure out direction of twist (right-hand rule)
-        float *last_tangent = tangents + (num_pts - 1) * 3;
-        float tmp[3];
-        if (inner(cross(n, other_end, tmp), last_tangent) < 0)
-            twist = -twist;
-    }
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "final twist " << rad2deg(twist) << " degrees, need_flip " << need_flip << "\n";
-#endif
-    // Compute fraction per step
-    float delta = 1.0 / (num_pts - 1);
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    std::cerr << "per step delta " << delta << "\n";
-#endif
-    // Apply twist to each normal along path
-    for (int i = 1; i != num_pts; ++i) {
-        int offset = i * 3;
-        float angle = delta_to_angle(twist, i * delta);
-        float c = cos(angle);
-        float s = sin(angle);
-#if DEBUG_CONSTRAINED_NORMALS > 1
-        float before = inner(tangents + offset, normals + offset);
-        std::cerr << "twist " << i << " angle " << angle << " -> ";
-#endif
-        _rotate_around(tangents + offset, c, s, normals + offset);
-#if DEBUG_CONSTRAINED_NORMALS > 1
-        float after = inner(tangents + offset, normals + offset);
-        float* n = normals + offset;
-        std::cerr << n[0] << ' ' << n[1] << ' ' << n[2]
-            << " before/after: " << before << ' ' << after << '\n';
-#endif
-    }
-#if DEBUG_CONSTRAINED_NORMALS > 1
-    float *last_n = normals + (num_pts - 1) * 3;
-    std::cerr << "check: last n: " << last_n[0] << ' ' << last_n[1] << ' ' << last_n[2]
-            << " other_end: " << other_end[0] << ' ' << other_end[1] << ' ' << other_end[2]
-            << " dot: " << inner(last_n, other_end) << '\n';
-#endif
-#if DEBUG_CONSTRAINED_NORMALS > 0
-    if (fabs(inner(normals + (num_pts - 1) * 3, other_end)) < (1 - 1e-2))
-        std::cerr << "***** WRONG ROTATION *****\n";
-#endif
-    // Return both computed normals and whether normal ends up
-    // 180 degrees from targeted end normal.
-    PyObject *o = PyTuple_New(2);
-    PyTuple_SetItem(o, 0, py_normals);
-    PyObject *f = need_flip ? Py_True : Py_False;
-    Py_INCREF(f);
-    PyTuple_SetItem(o, 1, f);
-    return o;
-}
 
 // -------------------------------------------------------------------------
 // pointer array functions

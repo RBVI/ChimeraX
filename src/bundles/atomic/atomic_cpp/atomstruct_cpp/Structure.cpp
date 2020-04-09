@@ -389,6 +389,9 @@ void Structure::_copy(Structure* s) const
             }
             a->set_alt_loc(aloc);	// Restore original alt loc.
             ca->set_alt_loc(aloc);
+        } else {
+            ca->set_bfactor(a->bfactor());
+            ca->set_occupancy(a->occupancy());
         }
         ca->set_draw_mode(a->draw_mode());
         ca->set_radius(a->radius());
@@ -2058,6 +2061,15 @@ Structure::ribbon_orient(const Residue *r) const
     if (r->is_strand())
         return Structure::RIBBON_ORIENT_PEPTIDE;
     return Structure::RIBBON_ORIENT_ATOMS;
+}
+
+size_t Structure::num_ribbon_residues() const
+{
+    size_t count = 0;
+    for (auto r: _residues)
+        if (r->ribbon_display())
+            count += 1;
+    return count;
 }
 
 } //  namespace atomstruct

@@ -11,7 +11,7 @@ CHIMERAX_APP = $(wildcard ../../../ChimeraX*.app)
 # For Windows, we assume Cygwin is being used.
 OS = $(patsubst CYGWIN_NT%,CYGWIN_NT,$(shell uname -s))
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
 endif
 ifeq ($(OS),Darwin)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX

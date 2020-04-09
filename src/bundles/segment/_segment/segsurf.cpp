@@ -588,13 +588,10 @@ int cap_triangle_table[6][16][10] = {
 // Returned vertex and triangle arrays should be freed with free_surface().
 //
 
-typedef unsigned int Index; // grid and edge indices, and surface vertex indices
+#include <cstdint>		// Use std::int64_t
+typedef unsigned int Index;	// grid and edge indices, and surface vertex indices
 
-#ifdef _WIN32
-typedef long long Stride;   // Use long long for 64-bit integer on Windows.
-#else
-typedef long Stride;	    // Array strides and pointer offsets, signed
-#endif
+typedef std::int64_t Stride;	// Array strides and pointer offsets, signed
 
 typedef int Region_Id;
 

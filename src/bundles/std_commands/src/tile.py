@@ -36,7 +36,7 @@ def tile(session, models=None, columns=None, spacing_factor=1.3, view_all=True):
         # Simultaneously ove model toward anchor in scene coordinate system
         # and toward final target position in screen coordinate system
         import math, numpy
-        from chimerax.core.geometry import norm
+        from chimerax.geometry import norm
         if columns is None:
             columns = int(round(math.sqrt(len(models))))
         commands = []

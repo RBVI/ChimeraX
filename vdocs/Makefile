@@ -5,8 +5,9 @@ SCRIPT = _vdoc.py
 VERBOSE = -v
 
 all install build:	check
+	rm -f user/index.html
 	$(APP_EXE) --nogui --silent --exit --script '$(SCRIPT) build'
-	$(MAKE) -C $(TOP)/docs/user/tools DOCDIR=$$(pwd)/user/tools RSYNC="ln -s" install-icons
+	$(MAKE) -C $(TOP)/docs/user/tools DOCDIR=$$(pwd)/user/tools RSYNC="ln -fs" install-icons
 
 ifneq (,$(wildcard $(PYTHON_EXE)))
 check:

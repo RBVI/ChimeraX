@@ -46,7 +46,7 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
     tf = grid.ijk_to_xyz_transform
     tf.transform_points(va, in_place = True)
     tf.transform_normals(na, in_place = True)
-    from chimerax.core.geometry import vector
+    from chimerax.geometry import vector
     vector.normalize_vectors(na)
 
     return va, na, ta, level

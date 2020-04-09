@@ -47,9 +47,9 @@ Data
 .. toctree::
     :maxdepth: 1
 
-    core/geometry/geometry.rst
+    bundles/geometry/src/geometry.rst
 
-    core/graphics/graphics.rst
+    bundles/graphics/src/graphics.rst
 
     core/models.rst
 

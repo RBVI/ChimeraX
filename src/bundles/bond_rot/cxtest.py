@@ -11,7 +11,7 @@ for r in session.models[0].residues:
 		dist_atoms.append(nh1)
 	elif r.number == 24:
 		oe1 = r.find_atom('OE1')
-from chimerax.core.geometry import distance
+from chimerax.geometry import distance
 d = distance(nh1.coord, oe1.coord)
 if d < 9.87 or d > 9.88:
 	raise SystemExit("Distance between %s and %s not initially 9.871!" % (nh1, oe1))

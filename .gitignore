@@ -54,6 +54,7 @@ src/bundles/atom_search/src/ast.pyx
 src/bundles/chem_group/bundle_info.xml
 src/bundles/chem_group/src/__init__.py
 src/bundles/md_crds/gromacs/xdrfile-1.1b/
+src/bundles/meeting/src/server.pem
 src/bundles/mmcif/mmcif_cpp/include/
 src/bundles/mmtf/.eggs/
 src/bundles/mmtf/mmtf-cpp-master/

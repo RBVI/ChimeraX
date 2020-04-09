@@ -34,7 +34,7 @@ extern "C" PyObject *smooth_vertex_positions(PyObject *, PyObject *args, PyObjec
 static void smooth_vertices(FArray &varray, const IArray &tarray,
 			    float smoothing_factor, int smoothing_iterations)
 {
-  int n = varray.size(0);
+  int64_t n = varray.size(0);
   IArray counts(1, &n);
   counts.set(0);
   int *c = counts.values();

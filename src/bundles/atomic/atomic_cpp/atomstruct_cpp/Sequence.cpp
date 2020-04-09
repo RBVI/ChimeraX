@@ -163,7 +163,8 @@ void
 Sequence::push_front(char c)
 {
     _clear_cache();
-    Contents pushed(_contents.size()+1);
+    Contents pushed;
+    pushed.reserve(_contents.size()+1);
     pushed.push_back(c);
     pushed.insert(pushed.end(), _contents.begin(), _contents.end());
     pushed.swap(_contents);

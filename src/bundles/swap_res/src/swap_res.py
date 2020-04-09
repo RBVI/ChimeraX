@@ -239,7 +239,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     else:
         res_match_atoms, tmpl_match_atoms = [match_atoms[x]
             for x in ("N", "CA", "C")], [tmpl_N, tmpl_CA, tmpl_C]
-    from chimerax.core.geometry import align_points
+    from chimerax.geometry import align_points
     from numpy import array
     xform, rmsd = align_points(array([fa.coord for fa in tmpl_match_atoms]),
         array([ta.coord for ta in res_match_atoms]))
@@ -288,7 +288,7 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
             add_atom(tnnb.name, tnnb.element, r, tnnb_coord, bonded_to=rot_N)
 
         # fill out bonds and remaining heavy atoms
-        from chimerax.core.geometry import distance, align_points
+        from chimerax.geometry import distance, align_points
         done = set([rot_N, rot_CA])
         while todo:
             a = todo.pop(0)
@@ -382,7 +382,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             a4 = res.find_atom(prev_name)
             if a4 and a3 in a4.neighbors:
                 p4 = a4.coord
-                from chimerax.core.geometry import dihedral
+                from chimerax.geometry import dihedral
                 preserve_dihed = dihedral(p1, p2, p3, p4)
             else:
                 preserve_dihed = None
@@ -475,7 +475,7 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
                 placed_positions.append(na.coord)
                 tmpl_positions.append(tmpl_res.find_atom(na.name).coord)
             import numpy
-            from chimerax.core.geometry import align_points
+            from chimerax.geometry import align_points
             xf = align_points(numpy.array(tmpl_positions),
                 numpy.array(placed_positions))[0]
 
@@ -551,7 +551,7 @@ def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
 
     xyz = a.coord
     blen = b.length
-    from chimerax.core.geometry import angle, dihedral
+    from chimerax.geometry import angle, dihedral
     ang = angle(xyz, xyz0, xyz1)
     if dihed is None:
         dihed = dihedral(xyz, xyz0, xyz1, xyz2)
@@ -854,7 +854,7 @@ def bfactor_for_res(res, bfactor):
     return bfactor
 
 def _len_angle(new, n1, n2, template, bond_cache, angle_cache):
-    from chimerax.core.geometry import distance, angle
+    from chimerax.geometry import distance, angle
     bond_key = (n1, new)
     angle_key = (n2, n1, new)
     try:

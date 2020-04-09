@@ -18,20 +18,20 @@ Provides a Windows ribbon-style toolbar interface
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.1"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
-    <Dependency name="ChimeraX-Shortcuts" version=">=1.0"/>
-    <Dependency name="ChimeraX-MouseModes" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=0.1"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-Shortcuts" version="~=1.0"/>
+    <Dependency name="ChimeraX-MouseModes" version="~=1.0"/>
     <!-- depend on everything that registers a mousemode for now,
 	 so they'll exist when toolbar is made -->
-    <Dependency name="ChimeraX-BondRot" version=">=1.0"/>
-    <Dependency name="ChimeraX-Dist_UI" version=">=1.0"/>
-    <Dependency name="ChimeraX-Label" version=">=1.0"/>
-    <Dependency name="ChimeraX-Map" version=">=1.0"/>
-    <Dependency name="ChimeraX-Markers" version=">=1.0"/>
-    <Dependency name="ChimeraX-Label" version=">=1.0"/>
-    <Dependency name="ChimeraX-Tug" version=">=1.0"/>
-    <Dependency name="ChimeraX-Zone" version=">=1.0"/>
+    <Dependency name="ChimeraX-BondRot" version="~=1.0"/>
+    <Dependency name="ChimeraX-Dist_UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-Label" version="~=1.0"/>
+    <Dependency name="ChimeraX-Map" version="~=1.0"/>
+    <Dependency name="ChimeraX-Markers" version="~=1.0"/>
+    <Dependency name="ChimeraX-Label" version="~=1.0"/>
+    <Dependency name="ChimeraX-Tug" version="~=1.0"/>
+    <Dependency name="ChimeraX-Zone" version="~=1.0"/>
   </Dependencies>
 
   <Managers>
@@ -99,7 +99,7 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Map" section="Calculations"
       name="layout-map-calculations" after="Subregions"/>
     <Provider tab="Map" section="Image Display"
-      name="layout-map-calculations" after="Calculations"/>
+      name="layout-map-image-display" after="Calculations"/>
 
 
     <!-- Markers tab -->
@@ -145,10 +145,14 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Movement" name="mm4"
       mouse_mode="zoom" display_name="Zoom" description="Zoom view"/>
     <Provider tab="Right Mouse" section="Movement" name="mm5"
-      mouse_mode="translate selected models" display_name="Translate Selected" description="Translate selected models"/>
+      mouse_mode="translate selected models" display_name="Move model" description="Translate selected models, hold shift key to rotate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm6"
-      mouse_mode="rotate selected models" display_name="Rotate Selected" description="Rotate selected models"/>
+      mouse_mode="rotate selected models" display_name="Rotate model" description="Rotate selected models, hold shift key to translate"/>
     <Provider tab="Right Mouse" section="Movement" name="mm7"
+      mouse_mode="translate selected atoms" display_name="Move atoms" description="Translate selected atoms, hold shift key to rotate"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm8" hidden="true"
+      mouse_mode="rotate selected atoms" display_name="Rotate atoms" description="Rotate selected atoms, hold shift key to translate"/>
+    <Provider tab="Right Mouse" section="Movement" name="mm9"
       mouse_mode="pivot" display_name="Pivot" description="Set center of rotation at atom"/>
 
     <Provider tab="Right Mouse" section="Annotation"
@@ -177,7 +181,7 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Map" name="mM2"
       mouse_mode="move planes" display_name="Move planes" description="Move plane or slab along its axis to show a different section"/>
     <Provider tab="Right Mouse" section="Map" name="mM3"
-      mouse_mode="rotate slab" display_name="Rotate slab" description="Tilt volume planes"/>
+      mouse_mode="rotate slab" display_name="Rotate slab" description="Tilt volume planes, hold shift key to translate"/>
     <Provider tab="Right Mouse" section="Map" name="mM4"
       mouse_mode="crop volume" display_name="Crop" description="Crop volume data dragging any face of box outline"/>
     <Provider tab="Right Mouse" section="Map" name="mM5"
@@ -198,8 +202,10 @@ Provides a Windows ribbon-style toolbar interface
     <Provider tab="Right Mouse" section="Structure Modification" name="ms2"
       mouse_mode="swapaa" display_name="Swapaa" description="Mutate and label residue"/>
     <Provider tab="Right Mouse" section="Structure Modification" name="ms3"
-      mouse_mode="tug" display_name="Tug" description="Drag atom while applying dynamics"/>
+      mouse_mode="play coordinates" display_name="Play coords" description="Play trajectory"/>
     <Provider tab="Right Mouse" section="Structure Modification" name="ms4"
+      mouse_mode="tug" display_name="Tug" description="Drag atom while applying dynamics"/>
+    <Provider tab="Right Mouse" section="Structure Modification" name="ms5"
       mouse_mode="minimize" display_name="Minimize" description="Jiggle residue and its neighbors"/>
 
     <Provider tab="Right Mouse" section="Other"

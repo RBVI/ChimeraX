@@ -21,4 +21,13 @@ class _MyAPI(BundleAPI):
         from .fetch_cellpack import fetch_cellpack
         return fetch_cellpack(session, identifier, ignore_cache=ignore_cache)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import FetcherInfo
+        class CellpackFetcherInfo(FetcherInfo):
+            def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                from .fetch_cellpack import fetch_cellpack
+                return fetch_cellpack(session, ident, ignore_cache=ignore_cache)
+        return CellpackFetcherInfo()
+
 bundle_api = _MyAPI()

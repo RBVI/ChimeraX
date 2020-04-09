@@ -452,7 +452,24 @@ cdef class CyAtom:
 
     @property
     def ribbon_coord(self):
-        return self.structure.ribbon_coord(self)
+        "Atom ribbon coordinate in the structure coordinate system"
+        " for displaying pseudobonds or tethers to the ribbon when"
+        " the atom is hidden.  Value is None for non-backbone atoms."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        crd = self.cpp_atom.ribbon_coord()
+        if crd:
+            c = dereference(crd)
+            return array((c[0], c[1], c[2]))
+        return None
+
+    @ribbon_coord.setter
+    def ribbon_coord(self, xyz):
+        "Set the ribbon coordinate.  Can be None."
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if xyz:
+            self.cpp_atom.set_ribbon_coord(cydecl.cycoord.Point(xyz[0], xyz[1], xyz[2]))
+        else:
+            self.cpp_atom.clear_ribbon_coord()
 
     @property
     def scene_coord(self):
@@ -1136,7 +1153,7 @@ cdef class CyResidue:
         prev_ca = prev_c.residue.find_atom("CA")
         if prev_ca is None:
             return None
-        from chimerax.core.geometry import dihedral
+        from chimerax.geometry import dihedral
         return dihedral(prev_ca.coord, prev_c.coord, n.coord, ca.coord)
 
     @omega.setter
@@ -1180,7 +1197,7 @@ cdef class CyResidue:
                 break
         else:
             return None
-        from chimerax.core.geometry import dihedral
+        from chimerax.geometry import dihedral
         return dihedral(prev_c.coord, n.coord, ca.coord, c.coord)
 
     @phi.setter
@@ -1217,7 +1234,7 @@ cdef class CyResidue:
                 break
         else:
             return None
-        from chimerax.core.geometry import dihedral
+        from chimerax.geometry import dihedral
         return dihedral(n.coord, ca.coord, c.coord, next_n.coord)
 
     @psi.setter
@@ -1335,6 +1352,12 @@ cdef class CyResidue:
         self.cpp_res.set_ring_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
+    def selected(self):
+        "Supported API. Whether any atom in the residue is selected."
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        return self.cpp_res.selected()
+
+    @property
     def standard_aa_name(self):
         '''If this is a standard amino acid or modified amino acid, return the 3-letter
         name of the corresponding standard amino acid.  Otherwise return None.  The
@@ -1439,7 +1462,7 @@ cdef class CyResidue:
         chi_atoms = self.get_chi_atoms(std_name, chi_num)
         if chi_atoms is None:
             return None
-        from chimerax.core.geometry import dihedral
+        from chimerax.geometry import dihedral
         chi = dihedral(*[a.coord for a in chi_atoms])
         if account_for_symmetry:
             if (std_name, chi_num) in self.chi_sym_info:

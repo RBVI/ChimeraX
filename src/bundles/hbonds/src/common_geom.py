@@ -2,7 +2,7 @@
 
 
 from numpy import zeros, dot
-from chimerax.core.geometry import angle, cross_product, normalize_vector
+from chimerax.geometry import angle, cross_product, normalize_vector
 from .hydpos import hyd_positions
 from . import hbond
 

@@ -256,6 +256,9 @@ def register_format(format_name, category, extensions, nicknames=None,
     .. todo::
         possibly break up in to multiple functions
     """
+    new_kw = { 'suffixes': extensions, 'nicknames': nicknames, 'mime_types': mime,
+        'reference_url': reference, 'insecure': dangerous, 'encoding': encoding, 'synopsis': synopsis,
+        'allow_directory': allow_directory }
     if dangerous is None:
         # scripts are inherently dangerous
         dangerous = category == SCRIPT
@@ -345,6 +348,7 @@ def deduce_format(filename, has_format=None, open=True, save=False, no_raise=Fal
                 return None, filename, compression
             from .errors import UserError
             raise UserError("Missing filename suffix %s" % filename)
+        ext = ext.split('#', 1)[0]  # allow for .html#tag to match .html
         ext = ext.casefold()
         fmt = None
         for f in _file_formats.values():

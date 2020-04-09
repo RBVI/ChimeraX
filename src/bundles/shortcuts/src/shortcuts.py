@@ -115,21 +115,23 @@ def standard_shortcuts(session):
 
         ('fl', if_sel_maps('volume sel style surface'), 'Show map or surface in filled style', mapcat, sesarg, mmenu),
         ('me', if_sel_maps('volume sel style mesh'), 'Show map or surface as mesh', mapcat, sesarg, mmenu),
-        ('gs', if_sel_maps('volume sel style solid'), 'Show map as grayscale', mapcat, sesarg, mmenu, sep),
+        ('gs', if_sel_maps('volume sel style image'), 'Show map as grayscale', mapcat, sesarg, mmenu, sep),
 
         ('s1', if_sel_maps('volume sel step 1'), 'Show map at step 1', mapcat, sesarg, mmenu, sep),
         ('s2', if_sel_maps('volume sel step 2'), 'Show map at step 2', mapcat, sesarg, mmenu, sep),
         ('s4', if_sel_maps('volume sel step 4'), 'Show map at step 4', mapcat, sesarg, mmenu, sep),
 
-        ('pl', if_sel_maps('volume sel plane z orthoplanes off style solid'), 'Show one plane', mapcat, sesarg, mmenu),
-        ('pa', if_sel_maps('volume sel region all orthoplanes off'), 'Show all planes', mapcat, sesarg, mmenu),
+        ('pl', if_sel_maps('volume sel plane z style image imageMode full ; mousemode right "move planes"'), 'Show one plane', mapcat, sesarg, mmenu),
+        ('pa', if_sel_maps('volume sel region all imageMode full ; mousemode right "crop volume"'), 'Show all planes', mapcat, sesarg, mmenu),
         ('o3', show_orthoplanes, 'Show 3 orthogonal planes', mapcat, maparg, mmenu),
         ('bx', toggle_box_faces, 'Show box faces', mapcat, maparg, mmenu),
+        ('is', show_slab, 'Show slab', mapcat, maparg, mmenu),
         ('mc', mark_map_surface_center, 'Mark map surface center', mapcat, maparg, mmenu),
 
-        ('aw', if_sel_maps('volume sel appearance "Airways II"'), 'Airways preset', mapcat, sesarg, mmenu),
+        ('aw', if_sel_maps('volume sel appearance airways'), 'Airways CT scan coloring', mapcat, sesarg, mmenu),
         ('as', if_sel_maps('volume sel appearance CT_Skin'), 'Skin preset', mapcat, sesarg, mmenu),
-        ('ch', if_sel_maps('volume sel appearance chest'), 'Chest preset', mapcat, sesarg, mmenu),
+        ('bc', if_sel_maps('volume sel appearance brain'), 'Brain CT scan coloring', mapcat, sesarg, mmenu),
+        ('ch', if_sel_maps('volume sel appearance chest'), 'Chest CT scan coloring', mapcat, sesarg, mmenu),
         ('dc', if_sel_maps('volume sel appearance initial'), 'Default volume curve', mapcat, sesarg, mmenu),
         ('zs', if_sel_maps('volume sel projectionMode 2d-xyz'), 'Volume xyz slices', mapcat, sesarg, mmenu),
         ('ps', if_sel_maps('volume sel projectionMode 3d'), 'Volume perpendicular slices', mapcat, sesarg, mmenu),
@@ -553,7 +555,21 @@ def show_all_planes(m):
 def show_orthoplanes(m):
   p = tuple(s//2 for s in m.data.size)
   cmd = ('volume #%s ' % m.id_string +
-         'orthoplanes xyz positionPlanes %d,%d,%d style solid region all' % p)
+         'orthoplanes xyz positionPlanes %d,%d,%d style image region all' % p)
+  cmd += ' ; mousemode right "move planes"'
+  run(m.session, cmd)
+
+def show_slab(m):
+  d = m.data
+  spacing = min(d.step)
+  ijk_center = tuple(s/2 for s in d.size)
+  center = d.ijk_to_xyz(ijk_center)
+  offset = center[2]
+  plane_count = 10
+  cmd = ('volume #%s ' % m.id_string +
+         ' style image region all imageMode "tilted slab"' +
+         ' tiltedSlabAxis 0,0,1 tiltedSlabOffset %.4g tiltedSlabSpacing %.4g tiltedSlabPlaneCount %d' % (offset, spacing, plane_count))
+  cmd += ' ; mousemode right "rotate slab"'
   run(m.session, cmd)
 
 def toggle_box_faces(m):
@@ -588,20 +604,20 @@ def enable_map_series_mouse_mode(mouse_modes, button = 'right'):
     m.bind_mouse_mode(button, series.PlaySeriesMouseMode(m.session))
 
 def enable_move_selected_mouse_mode(mouse_modes):
-    from chimerax.mouse_modes import RotateSelectedMouseMode, TranslateSelectedMouseMode
+    from chimerax.mouse_modes import RotateSelectedModelsMouseMode, TranslateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode('left', RotateSelectedMouseMode(m.session))
-    m.bind_mouse_mode('middle', TranslateSelectedMouseMode(m.session))
+    m.bind_mouse_mode('left', RotateSelectedModelsMouseMode(m.session))
+    m.bind_mouse_mode('middle', TranslateSelectedMOdelsMouseMode(m.session))
 
 def enable_translate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.mouse_modes import TranslateSelectedMouseMode
+    from chimerax.mouse_modes import TranslateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, TranslateSelectedMouseMode(m.session))
+    m.bind_mouse_mode(button, TranslateSelectedModelsMouseMode(m.session))
 
 def enable_rotate_selected_mouse_mode(mouse_modes, button = 'right'):
-    from chimerax.mouse_modes import RotateSelectedMouseMode
+    from chimerax.mouse_modes import RotateSelectedModelsMouseMode
     m = mouse_modes
-    m.bind_mouse_mode(button, RotateSelectedMouseMode(m.session))
+    m.bind_mouse_mode(button, RotateSelectedModelsMouseMode(m.session))
 
 def enable_move_mouse_mode(mouse_modes):
     from chimerax.mouse_modes import RotateMouseMode, TranslateMouseMode
@@ -728,7 +744,7 @@ def show_biological_unit(m, session):
 def show_asymmetric_unit(m, session):
 
     if len(m.positions) > 1:
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         m.positions = Places([m.positions[0]])
 
 def display_surface(session):
@@ -768,7 +784,7 @@ def toggle_surface_transparency(session):
 
 def show_surface_transparent(session, alpha = 0.5):
     from chimerax.map import Volume
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     a = int(255*alpha)
     for m in shortcut_surfaces_and_maps(session):
         if not m.display:
@@ -988,7 +1004,7 @@ def leap_quit(session):
     c2leap.quit_leap(session)
 
 def motion_blur(viewer):
-    from chimerax.core.graphics import MotionBlur
+    from chimerax.graphics import MotionBlur
     mb = [o for o in viewer.overlays() if isinstance(o, MotionBlur)]
     if mb:
         viewer.remove_overlays(mb)
@@ -996,10 +1012,10 @@ def motion_blur(viewer):
         MotionBlur(viewer)
 
 def mono_mode(viewer):
-    from chimerax.core import graphics
+    from chimerax import graphics
     viewer.camera.mode = graphics.mono_camera_mode
 def stereo_mode(viewer):
-    from chimerax.core import graphics
+    from chimerax import graphics
     viewer.camera.mode = graphics.stereo_camera_mode
 
 def start_oculus(session):

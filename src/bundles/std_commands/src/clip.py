@@ -122,11 +122,11 @@ def adjust_plane(name, offset, origin, normal, planes, view = None, camera_norma
             origin = plane_origin(view)
         plane_point = origin + offset * n
         if camera_normal is None or view is None:
-            from chimerax.core.graphics import SceneClipPlane
+            from chimerax.graphics import SceneClipPlane
             p = SceneClipPlane(name, n, plane_point)
         else:
             camera_plane_point = cpos.inverse() * plane_point
-            from chimerax.core.graphics import CameraClipPlane
+            from chimerax.graphics import CameraClipPlane
             p = CameraClipPlane(name, camera_normal, camera_plane_point, view)
         planes.add_plane(p)
     else:

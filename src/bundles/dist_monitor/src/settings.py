@@ -11,13 +11,12 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from chimerax.core.colors import Color, BuiltinColors
-from chimerax.core import configfile, commands
+from chimerax.core.colors import ColorValue, BuiltinColors
 from chimerax.core.settings import Settings
 
 class _DistanceSettings(Settings):
     EXPLICIT_SAVE = {
-        'color': configfile.Value(BuiltinColors['gold'], commands.ColorArg, Color.hex_with_alpha),
+        'color': ColorValue(BuiltinColors['gold']),
         'dashes': 9,
         'decimal_places': 3,
         'radius': 0.1,

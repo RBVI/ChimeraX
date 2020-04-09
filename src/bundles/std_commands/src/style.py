@@ -26,9 +26,8 @@ def style(session, objects=None, atom_style=None, dashes=None, ring_fill=None):
     ring_fill : Optional "thick", "thin", or "off".
     '''
     if objects is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
-    atoms = objects.atoms
 
     from chimerax.core.commands import plural_form
     from chimerax.core.undo import UndoState
@@ -41,6 +40,7 @@ def style(session, objects=None, atom_style=None, dashes=None, ring_fill=None):
             'ball': Atom.BALL_STYLE,
             'stick': Atom.STICK_STYLE,
         }[atom_style.lower()]
+        atoms = objects.atoms
         undo_state.add(atoms, "draw_modes", atoms.draw_modes, s)
         atoms.draw_modes = s
         what.append('%d %s' % (len(atoms), plural_form(atoms, 'atom style')))
@@ -53,8 +53,7 @@ def style(session, objects=None, atom_style=None, dashes=None, ring_fill=None):
         what.append('%d %s' % (len(pbgs), plural_form(pbgs, 'pseudobond dash')))
 
     if ring_fill is not None:
-        atoms = objects.atoms
-        res = atoms.unique_residues
+        res = objects.residues
         if ring_fill == 'on':
             undo_state.add(res, "ring_displays", res.ring_displays, True)
             res.ring_displays = True

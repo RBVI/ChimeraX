@@ -81,7 +81,7 @@ def parse_symop(line):
         raise SyntaxError('Bad symmetry operator format: ' + line)
 
     tf = [parse_symop_axis(fields[k]) for k in range(3)]
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     p = Place(tf)
 
     return p

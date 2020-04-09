@@ -79,7 +79,7 @@ class ToolbarTool(ToolInstance):
     SESSION_SAVE = False
     PLACEMENT = "top"
     CUSTOM_SCHEME = "toolbar"
-    help = "help:user/tools/Toolbar.html"  # Let ChimeraX know about our help page
+    help = "help:user/tools/toolbar.html"  # Let ChimeraX know about our help page
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
@@ -253,10 +253,10 @@ def _home_layout(session, home_tab):
             bi = session.toolshed.find_bundle(bundle_name, session.logger, installed=True)
             if not bi:
                 continue
-            pi = bi.providers.get(name, None)
+            pi = bi.providers.get('toolbar/' + name, None)
             if not pi:
                 continue
-            pi_manager, pi_kw = pi
+            pi_kw = pi
             if display_name is None:
                 display_name = pi_kw.get("display_name", None)
                 if display_name is None:
@@ -405,17 +405,27 @@ class _HomeTab(QTreeWidget):
 
     def dropEvent(self, event):
         source = event.source()
+        # from dragEnterEvent, we know there is at least one selected item
+        original = source.selectedItems()[0]
+        original_type = original.data(0, ITEM_TYPE_ROLE)
         if source == self:
             copy_subtree = False
         else:
-            # from dragEnterEvent, we know there is at least one selected item
-            original = source.selectedItems()[0]
-            original_type = original.data(0, ITEM_TYPE_ROLE)
             copy_subtree = original_type == SECTION_TYPE
-        super().dropEvent(event)
+        result = super().dropEvent(event)
         if copy_subtree:
             # find where it was copied to
             new_section = self.itemAt(event.pos())
+            if new_section is None:
+                # assume dropped below bottom
+                new_section = self.topLevelItem(self.topLevelItemCount() - 1)
+            parent = new_section.parent()
+            if parent is None:
+                parent = self.invisibleRootItem()
+            if new_section.childCount() != 0:
+                i = parent.indexOfChild(new_section)
+                new_section = parent.child(i + 1)
+                # assert new_section.childCount() == 0
             new_section.setFlags(SECTION_FLAGS)
             self.expandItem(new_section)
             for i in range(original.childCount()):
@@ -426,8 +436,8 @@ class _HomeTab(QTreeWidget):
             from collections import Counter
             section_name = original.text(0)
             current_section_names = []
-            for i in range(self.topLevelItemCount()):
-                item_name = self.topLevelItem(i).text(0)
+            for i in range(parent.childCount()):
+                item_name = parent.child(i).text(0)
                 current_section_names.append(item_name)
             current_sections = Counter(current_section_names)
             if current_sections[section_name] > 1:
@@ -437,15 +447,19 @@ class _HomeTab(QTreeWidget):
                     if new_name not in current_sections:
                         new_section.setText(0, new_name)
                         break
-        elif source != self:
+        elif source == self:
+            if original_type == SECTION_TYPE:
+                self.expandItem(original)
+        else:
             new_button = self.itemAt(event.pos())
             new_button.setFlags(BUTTON_FLAGS)
         self.childDraggedAndDropped.emit()
+        return result
 
 
 class ToolbarSettingsTool:
 
-    # help = "help:user/tools/Toolbar.html#customize"  # Let ChimeraX know about our help page
+    help_url = "help:user/tools/toolbar.html#settings"
 
     def __init__(self, session, toolbar, tool_window):
         self.session = session
@@ -505,8 +519,7 @@ class ToolbarSettingsTool:
         bottom_layout.addWidget(restore)
         help = QPushButton("Help", parent)
         help.setToolTip("Show Help")
-        help.setEnabled(False)
-        # TODO: help.clicked.connect(self.help)
+        help.clicked.connect(self.help)
         bottom_layout.addWidget(help)
 
         # widget contents/customization:
@@ -549,7 +562,8 @@ class ToolbarSettingsTool:
                 section_item = QTreeWidgetItem(tab_item, [section])
                 section_item.setData(0, ITEM_TYPE_ROLE, SECTION_TYPE)
                 section_item.setFlags(other_flags)
-                section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
+                # Treat all available section as not compact
+                # section_item.setCheckState(0, Qt.Checked if compact else Qt.Unchecked)
                 self.other.expandItem(section_item)
             item = QTreeWidgetItem(section_item, [f"{display_name}"])
             item.setData(0, ITEM_TYPE_ROLE, BUTTON_TYPE)
@@ -594,6 +608,30 @@ class ToolbarSettingsTool:
             self.home.itemChanged.connect(self.update)
 
     def update(self, *args):
+        # check if text of current section item is a duplicate
+        if args:
+            item, column = args
+        else:
+            item = None
+        if item and item.data(0, ITEM_TYPE_ROLE) == SECTION_TYPE:
+            # make sure section name is unique
+            from collections import Counter
+            section_name = item.text(0)
+            parent = item.parent()
+            if parent is None:
+                parent = self.home.invisibleRootItem()
+            current_section_names = []
+            for i in range(parent.childCount()):
+                item_name = parent.child(i).text(0)
+                current_section_names.append(item_name)
+            current_sections = Counter(current_section_names)
+            if current_sections[section_name] > 1:
+                from itertools import chain, count
+                for suffix in chain(("",), count(2)):
+                    new_name = f"new {section_name}{suffix}"
+                    if new_name not in current_sections:
+                        item.setText(0, new_name)
+                        break
         # propagate user changes to home tab
         from PyQt5.QtWidgets import QTreeWidgetItemIterator
         home_tab = []
@@ -671,6 +709,10 @@ class ToolbarSettingsTool:
         # restore current configuration from saved preferences
         _settings.restore()
         self.update_from_settings()
+
+    def help(self):
+        from chimerax.help_viewer import show_url
+        show_url(self.session, self.help_url)
 
 # Adapted QHLine from
 # https://stackoverflow.com/questions/5671354/how-to-programmatically-make-a-horizontal-line-in-qt

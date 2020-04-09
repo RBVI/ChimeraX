@@ -48,8 +48,8 @@ def segmentation_colors(session, segmentations, color = None,
         seg = segmentations[0]
         if tuple(map.data.size) != tuple(seg.data.size):
             from chimerax.core.errors import UserError
-            raise UserError('segmentation colors: Volume size %s' % tuple(map.data.size) +
-                            ' does not match segmentation size %s' % tuple(seg.data.size))
+            raise UserError('segmentation colors: Volume size %d,%d,%d' % tuple(map.data.size) +
+                            ' does not match segmentation size %d,%d,%d' % tuple(seg.data.size))
 
         _color_map(map, seg, by_attribute, color, outside_color)
 
@@ -247,21 +247,26 @@ def _which_segments(segmentation, conditions):
             logical_and(mask, group, mask)
             group[:] = 0
             group[mask] = value
+        elif condition == 'segment':
+            pass
         else:
             try:
+                seg_id = int(condition)
+            except ValueError:
+                seg_id = None
+            if seg_id is not None:
                 # One specific segment ("5")
                 attribute_name = 'segment'
-                seg_id = int(condition)
                 if group[seg_id]:
                     group[:] = 0
                     group[seg_id] = seg_id
                 else:
                     group[:] = 0
-            except:
+            else:
                 # All segments with non-zero attribute value ("neuron_id").
                 attribute_name = condition
-                mask = (group != 0)
                 av = _attribute_values(segmentation, attribute_name)
+                mask = (group != 0)
                 group[mask] = av[mask]
 
     return group, attribute_name
@@ -334,10 +339,11 @@ def calculate_segmentation_surfaces(seg, where = None, each = None,
         
     # Create one or more surface models
     from chimerax.core.models import Surface
+    from chimerax.surface import combine_geometry_xvnt
     segsurfs = []
     if each is None and len(geom) > 1:
         # Combine multiple surfaces into one.
-        va, na, ta = _combine_geometry([g[1:] for g in geom])
+        va, na, ta = combine_geometry_xvnt(geom)
         name = '%s %d %ss' % (seg.name, len(geom), attribute_name)
         s = Surface(name, seg.session)
         s.clip_cap = True  # Cap surface when clipped
@@ -359,25 +365,6 @@ def calculate_segmentation_surfaces(seg, where = None, each = None,
             segsurfs.append(s)
 
     return segsurfs
-
-# -----------------------------------------------------------------------------
-#
-def _combine_geometry(surfs):
-    nv = sum(len(va) for va, na, ta in surfs)
-    from numpy import empty, float32, uint8, concatenate
-    cva = empty((nv,3), float32)
-    cna = empty((nv,3), float32)
-    voffset = 0
-    tlist = []
-    for va, na, ta in surfs:
-        snv = len(va)
-        cva[voffset:voffset+snv,:] = va
-        cna[voffset:voffset+snv,:] = na
-        ta += voffset
-        tlist.append(ta)
-        voffset += snv
-    cta = concatenate(tlist)
-    return cva, cna, cta
 
 # -----------------------------------------------------------------------------
 #

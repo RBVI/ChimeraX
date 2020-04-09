@@ -28,38 +28,41 @@ def fetch_smiles(session, smiles_string, **kw):
             printables.append(char)
     diff = len(smiles_string) - len(printables)
     if diff > 0:
-        session.logger.warning("Removed %d blank/non-printable characters from SMILES string" % diff)
+        session.logger.warning("Removed %d blank/non-printable characters from SMILES string"
+            % diff)
         smiles_string = "".join(printables)
-    # triple-bond characters (#) get mangled by the http protocol, so switch to http-friendly equivalent
-    web_smiles = smiles_string.replace('#', "%23")
+    # triple-bond characters (#) and the '/' stereo-chemistry indicator get mangled by the
+    # http protocol, so switch to http-friendly equivalent
+    web_smiles = smiles_string.replace('#', "%23").replace('/', "%2F")
     for fetcher, moniker, ack_name, info_url in fetcher_info:
         try:
-            path = fetcher(session, web_smiles)
+            path = fetcher(session, smiles_string, web_smiles)
         except SmilesTranslationError:
             pass
         else:
             from chimerax.atomic.sdf import read_sdf
-            from chimerax.core.io import open_filename
-            structures, status = read_sdf(session, open_filename(path, url_encoding='utf=8'), path)
+            from chimerax import io
+            structures, status = read_sdf(session, io.open_input(path, encoding='utf=8'), path)
             if structures:
                 for s in structures:
                     s.name = "smiles:" + smiles_string
                 break
-        session.logger.info("Failed to translate SMILES to 3D structure via %s wen service (SMILES: %s)"
-            % (moniker, smiles_string))
+        session.logger.info("Failed to translate SMILES to 3D structure via %s web service"
+            "(SMILES: %s)" % (moniker, smiles_string))
     else:
-        raise SmilesTranslationError("Web services failed to translate SMILES string to 3D structure.")
+        raise SmilesTranslationError(
+            "Web services failed to translate SMILES string to 3D structure.")
     translation_info = "Translated SMILES to 3D structure via %s web service (SMILES: %s)" % (
         moniker, smiles_string)
     return structures, translation_info
 
-def _cactus_fetch(session, smiles):
+def _cactus_fetch(session, smiles, web_smiles):
     cactus_site = "cactus.nci.nih.gov"
-    from chimerax.core.io import open_filename
+    from chimerax.io import open_input
     from urllib.error import URLError
     try:
-        reply = open_filename("http://%s/cgi-bin/translate.tcl?smiles=%s&format=sdf&astyle=kekule&dim=3D"
-            "&file=" % (cactus_site, smiles))
+        reply = open_input("http://%s/cgi-bin/translate.tcl?smiles=%s&format=sdf&astyle=kekule"
+            "&dim=3D&file=" % (cactus_site, web_smiles), session.data_formats['sdf'].encoding)
     except URLError as e:
         pass
     else:
@@ -69,10 +72,11 @@ def _cactus_fetch(session, smiles):
                 return "http://%s%s" % (cactus_site, url)
     raise SmilesTranslationError("Cactus could not translate %s" % smiles)
 
-def _indiana_fetch(session, smiles):
+def _indiana_fetch(session, smiles, web_smiles):
     from chimerax.core.fetch import fetch_file
-    filename = fetch_file(session, "http://cheminfov.informatics.indiana.edu/rest/thread/d3.py/SMILES/%s"
-        % smiles, 'SMILES %s' % smiles, smiles, None)
+    import os
+    filename = fetch_file(session, "http://cheminfov.informatics.indiana.edu/rest/thread/d3.py/"
+        "SMILES/%s" % smiles, 'SMILES %s' % smiles, web_smiles, None)
     return filename
 
 fetcher_info = [

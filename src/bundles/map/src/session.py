@@ -586,7 +586,7 @@ def set_map_state(s, volume, notify = True):
       style = 'image'
     v.set_display_style(style)
       
-  from chimerax.core.geometry import Place
+  from chimerax.geometry import Place
   v.position = Place(s['place'])
 
   v.new_region(*s['region'], adjust_step = False)
@@ -677,6 +677,7 @@ rendering_options_attributes = (
   'tilted_slab_spacing',
   'tilted_slab_plane_count',
   'image_mode',
+  'backing_color',
 )
 
 # ---------------------------------------------------------------------------

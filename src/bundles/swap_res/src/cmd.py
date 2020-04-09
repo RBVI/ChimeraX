@@ -29,7 +29,7 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
         raise UserError("'preserve' not compatible with Nth-most-probable criteria")
 
     if lib is None:
-        lib = _get_lib(session)
+        lib = session.rotamers.default_command_library_name
 
     if log:
         session.logger.info("Using %s library" % lib)
@@ -102,7 +102,7 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
     residues = _check_residues(residues)
 
     if lib is None:
-        lib = _get_lib(session)
+        lib = session.rotamers.default_command_library_name
 
     ret_val = []
     from . import swap_res
@@ -121,8 +121,11 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
                 "%s Side-Chain Rotamers" % r, mgr, res_type, session.rotamers.library(lib).display_name)
         ret_val.append(mgr)
         rot_structs = AtomicStructures(rotamers)
+        rot_objects = Objects(atoms=rot_structs.atoms, bonds=rot_structs.bonds)
         from chimerax.std_commands.color import color
-        color(session, Objects(atoms=rot_structs.atoms), color="byelement")
+        color(session, rot_objects, color="byelement")
+        from chimerax.std_commands.size import size
+        size(session, rot_objects, stick_radius=0.1)
     return ret_val
 
 def _check_residues(residues):
@@ -130,19 +133,6 @@ def _check_residues(residues):
     if not residues:
         raise UserError("No amino acid residues specified for swapping")
     return residues
-
-def _get_lib(session):
-    available_libs = session.rotamers.library_names()
-    for lib_name in available_libs:
-        if "Dunbrack" in lib_name:
-            lib = lib_name
-            break
-    else:
-        if available_libs:
-            lib = list(available_libs)[0]
-        else:
-            raise UserError("No rotamer libraries installed!")
-    return lib
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, NonNegativeIntArg, Or

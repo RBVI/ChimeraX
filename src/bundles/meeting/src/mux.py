@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -25,13 +26,11 @@ try:
 except ImportError:
     import pickle
 
+#
+# Logging code
+#
 
-logging.basicConfig()
-#logging.basicConfig(filename="conference.log")
 logger = logging.getLogger()
-logger.setLevel("WARNING")
-#logger.setLevel("DEBUG")
-
 
 #
 # SSL and connection code
@@ -46,7 +45,13 @@ def get_ctx_hub():
     global _ctx_hub
     if _ctx_hub is None:
         cert = os.path.join(os.path.dirname(__file__), "server.pem")
+        if not os.path.exists(cert):
+            cert = "/usr/local/etc/cxconference.pem"
+            if not os.path.exists(cert):
+                logger.error("no SSL certificate file found")
+                raise SystemExit(1)
         _ctx_hub = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        _ctx_hub.options |= (ssl.OP_NO_TLSv1|ssl.OP_NO_TLSv1_1)
         _ctx_hub.load_cert_chain(cert)
     return _ctx_hub
 
@@ -131,7 +136,7 @@ class Req(Enum):
     Enum.define("CreateConference")
     Enum.define("JoinConference")
     Enum.define("GetConferenceInfo")
-    Enum.define("GetIdentities")
+    Enum.define("GetParticipants")
     Enum.define("Message")
 
 
@@ -182,9 +187,9 @@ class _Connection:
                 # If data is not text, assume it is not HTTP protocol
                 pass
             else:
-                if s.startswith("get") or s.startswith("post"):
-                    self._send(b"HTTP/2.0 418 I'm a teapot\n\n")
-                    self.close()
+                if (s.startswith("get") or s.startswith("post") or
+                    s.startswith("head") or s.startswith("put")):
+                    self._send_http_error()
                     return None, None, None
             ptype, serial, count = struct.unpack(self.HeaderFormat, header_data)
             sdata = bytes()
@@ -200,6 +205,14 @@ class _Connection:
         except (OSError, ConnectionError):
             self.close()
             return None, None, None
+
+    def _send_http_error(self):
+        self._send(b"HTTP/1.1 418 I'm a teapot\r\n")
+        self._send(b"Content-Type: text/plain; charset=utf-8\r\n")
+        self._send(b"Connection: close\r\n")
+        self._send(b"\r\n")
+        self._send(b"I'm a teapot\r\n")
+        self.close()
 
     def put(self, ptype, serial, data):
         # Serialization code copied from ActiveState recipe
@@ -305,9 +318,9 @@ class _Endpoint(threading.Thread):
 
     def get_participants(self, callback=None):
         if callback is None:
-            return self.sync_request(Req.GetIdentities, None)
+            return self.sync_request(Req.GetParticipants, None)
         else:
-            self.send_request(Req.GetIdentities, None, callback)
+            self.send_request(Req.GetParticipants, None, callback)
 
     def get_conferences(self, admin_word, callback=None):
         if callback is None:
@@ -507,6 +520,7 @@ class LoopbackNode(_Endpoint):
         self._mux_hub = Hub("", 0, "chimeraxmux")
         self._mux_hub.start()
         self._mux_handler = _LoopbackHandler(self, self._mux_hub)
+        self._closed = False
 
     def __str__(self):
         return "%s/%s" % (self.conf_name, self.identity)
@@ -520,7 +534,7 @@ class LoopbackNode(_Endpoint):
 
     def run(self):
         while True:
-            if self._queue is None:
+            if self._closed or self._queue is None:
                 break
             ptype, serial, packet = self._queue.get()
             logger.debug("loopback run received: %s %s %s", PacketType.name(ptype), serial, packet)
@@ -542,6 +556,10 @@ class LoopbackNode(_Endpoint):
         logger.debug("send_response: [via: %s] %s %s %s", self, Resp.name(status), data, serial)
         self._mux_handler._queue.put((PacketType.Resp, serial, (status, data)))
 
+    def close(self):
+        self._closed = True
+        self._mux_handler._closed = True
+
 
 class _LoopbackHandler(_BaseHandler, _Endpoint):
 
@@ -549,6 +567,7 @@ class _LoopbackHandler(_BaseHandler, _Endpoint):
         super().__init__()
         self._node = node
         self.set_hub(hub)
+        self._closed = False
 
     def __str__(self):
         return "LoopbackHandler-" + super().__str__()
@@ -561,7 +580,7 @@ class _LoopbackHandler(_BaseHandler, _Endpoint):
         # No need to run read-loop since we will get called
         # directly by node when there is data available
         while True:
-            if self._queue is None:
+            if self._closed or self._queue is None:
                 break
             ptype, serial, packet = self._queue.get()
             logger.debug("run received: [%s] %s %s %s", self, PacketType.name(ptype), serial, packet)
@@ -749,7 +768,7 @@ class Hub(threading.Thread):
                 return Resp.Failure, "no such conference: %s" % conf_name
             else:
                 if identity in conf:
-                    return Resp.Failure, "identity in use: %s" % identity
+                    identity = self._make_unique_identity(identity, conf)
                 handler.set_conference_identity(conf_name, identity)
                 conf[handler.identity] = handler
         self.notify(handler, Req.Joined)
@@ -761,11 +780,30 @@ class Hub(threading.Thread):
         else:
             return handler.make_identity()
 
+    def _make_unique_identity(self, identity, conf):
+        parts = identity.rsplit('_', 1)
+        if len(parts) == 1:
+            base = identity
+        else:
+            try:
+                num = int(parts[1])
+            except ValueError:
+                # There is an _ but we did not put it there
+                base = identity
+            else:
+                base = parts[0]
+        num = 2
+        while True:
+            identity = base + '_' + str(num)
+            if identity not in conf:
+                return identity
+            num += 1
+
     def process_req(self, handler, req, data):
         logger.debug("hub process_req [handler %s]: %s", str(handler), Req.name(req))
         if req == Req.Message:
             return self.handle_msg(data, handler)
-        elif req == Req.GetIdentities:
+        elif req == Req.GetParticipants:
             return self.get_participants(data, handler)
         elif req == Req.GetConferenceInfo:
             return self.get_conference_info(data, handler)
@@ -838,15 +876,24 @@ class Hub(threading.Thread):
 #
 
 
-def serve(hostname, port, admin_word, finished):
+def serve(hostname, port, admin_word, pid_file=None):
     # Main program to act as hub
+    # Make sure SSL cert is in place first
+    get_ctx_hub()
+    if pid_file:
+        import os
+        pid = os.fork()
+        if pid > 0:
+            logger.info("Forked PID: %d" % pid)
+            with open(pid_file, "wt") as f:
+                print(pid, file=f)
+            raise SystemExit(0)
     hub = Hub(hostname, port, admin_word)
     logger.info("Starting hub on %s:%s" % (hostname, port))
     hub.start()
     logger.info("Waiting for hub to finish")
     hub.join()
     logger.info("Exiting")
-    finished.set()
 
 
 #
@@ -1048,12 +1095,14 @@ if __name__ == "__main__":
 
     def main():
         import sys, getopt
-        opts, args = getopt.getopt(sys.argv[1:], "h:p:l:a:T:")
+        opts, args = getopt.getopt(sys.argv[1:], "h:p:l:L:a:P:T:")
         hostname = "localhost"
         port = 8443
         admin_word = "chimeraxmux"
-        run = "serve"
+        run = None
+        log_name = None
         log_level = "INFO"
+        pid_file = None
         for opt, val in opts:
             if opt == "-h":
                 hostname = val
@@ -1061,20 +1110,26 @@ if __name__ == "__main__":
                 port = int(val)
             elif opt == "-l":
                 log_level = val
+            elif opt == "-L":
+                log_name = val
             elif opt == "-a":
                 admin_word = val
+            elif opt == "-P":
+                pid_file = val
             elif opt == "-T":
                 run = val
-        logger.setLevel(log_level)
-        run_map = {
-            "serve": serve,
-            "basic": lambda *args: test_basic(*args),
-            "conference": lambda *args: test_conference(*args),
-            "loopback": lambda *args: test_loopback(*args),
-        }
-        if run not in run_map:
-            print("-T value must be one of %s" % ", ".join(run_map.keys()))
-            raise SystemExit(1)
-        run_main(run_map[run], hostname, port, admin_word)
+        logging.basicConfig(filename=log_name, level=log_level)
+        if run is None:
+            serve(hostname, port, admin_word, pid_file)
+        else:
+            run_map = {
+                "basic": lambda *args: test_basic(*args),
+                "conference": lambda *args: test_conference(*args),
+                "loopback": lambda *args: test_loopback(*args),
+            }
+            if run not in run_map:
+                print("-T value must be one of %s" % ", ".join(run_map.keys()))
+                raise SystemExit(1)
+            run_main(run_map[run], hostname, port, admin_word)
 
     main()

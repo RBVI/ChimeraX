@@ -26,25 +26,25 @@ namespace Map_Cpp
 template<class T>
 static void local_corr(const Reference_Counted_Array::Array<T> &m1,
 		       const Reference_Counted_Array::Array<T> &m2,
-		       int window_size, bool subtract_mean, FArray &mc)
+		       int64_t window_size, bool subtract_mean, FArray &mc)
 {
-  int w = window_size;
-  int n = w*w*w;
-  int s0 = m1.size(0), s1 = m1.size(1), s2 = m1.size(2);
-  int st0 = m1.stride(0), st1 = m1.stride(1), st2 = m1.stride(2);
+  int64_t w = window_size;
+  int64_t n = w*w*w;
+  int64_t s0 = m1.size(0), s1 = m1.size(1), s2 = m1.size(2);
+  int64_t st0 = m1.stride(0), st1 = m1.stride(1), st2 = m1.stride(2);
   T *v1 = m1.values(), *v2 = m2.values();
   float *vc = mc.values();
-  int cs0 = mc.stride(0), cs1 = mc.stride(1), cs2 = mc.stride(2);
-  for (int i0 = 0 ; i0 < s0-w+1 ; ++i0)
-    for (int i1 = 0 ; i1 < s1-w+1 ; ++i1)
-      for (int i2 = 0 ; i2 < s2-w+1 ; ++i2)
+  int64_t cs0 = mc.stride(0), cs1 = mc.stride(1), cs2 = mc.stride(2);
+  for (int64_t i0 = 0 ; i0 < s0-w+1 ; ++i0)
+    for (int64_t i1 = 0 ; i1 < s1-w+1 ; ++i1)
+      for (int64_t i2 = 0 ; i2 < s2-w+1 ; ++i2)
 	{
-	  int i = i2*st2 + i1*st1 + i0*st0;
+	  int64_t i = i2*st2 + i1*st1 + i0*st0;
 	  double v1v1 = 0, v2v2 = 0, v1v2 = 0, v1sum = 0, v2sum = 0;
-	  for (int o0 = 0 ; o0 < w ; ++o0)
-	    for (int o1 = 0 ; o1 < w ; ++o1) {
-	      int j = i + o1*st1 + o0*st0;
-	      for (int o2 = 0 ; o2 < w ; ++o2, j += st2) {
+	  for (int64_t o0 = 0 ; o0 < w ; ++o0)
+	    for (int64_t o1 = 0 ; o1 < w ; ++o1) {
+	      int64_t j = i + o1*st1 + o0*st0;
+	      for (int64_t o2 = 0 ; o2 < w ; ++o2, j += st2) {
 		double v1j = static_cast<double> (v1[j]);
 		double v2j = static_cast<double> (v2[j]);
 		v1sum += v1j;
@@ -66,7 +66,7 @@ static void local_corr(const Reference_Counted_Array::Array<T> &m1,
 	      vn = sqrt(v1v1*v2v2);
 	      vip = v1v2;
 	    }
-	  int k = i2*cs2 + i1*cs1 + i0*cs0;
+	  int64_t k = i2*cs2 + i1*cs1 + i0*cs0;
 	  vc[k] = (vn > 0 ? vip / vn : 0);
 	}
 }

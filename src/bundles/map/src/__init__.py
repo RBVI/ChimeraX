@@ -122,4 +122,77 @@ class _MapBundle(BundleAPI):
         }
         return ct.get(class_name)
 
+    @staticmethod
+    def run_provider(session, name, mgr):
+        if mgr == session.open_command:
+            fetches = ['eds', 'edsdiff', 'emdb']
+            if name in fetches:
+                from . import eds_fetch, emdb_fetch
+                fetcher = {
+                    'eds': eds_fetch.fetch_eds_map,
+                    'edsdiff': eds_fetch.fetch_edsdiff_map,
+                    'emdb': emdb_fetch.fetch_emdb
+                }[name]
+                from chimerax.open_command import FetcherInfo
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                            fetcher=fetcher, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
+            else:
+                from chimerax.open_command import OpenerInfo
+                class Info(OpenerInfo):
+                    def open(self, session, path, file_name,
+                            _name=session.data_formats[name].nicknames[0], **kw):
+                        from .volume import open_map
+                        return open_map(session, path, format=_name, **kw)
+
+                    @property
+                    def open_args(self):
+                        from chimerax.core.commands import BoolArg, IntArg, StringArg
+                        return {
+                            'array_name': StringArg,
+                            'channel': IntArg,
+                            'verbose': BoolArg,
+                            'vseries': BoolArg,
+                        }
+        else:
+            from chimerax.save_command import SaverInfo
+            class Info(SaverInfo):
+                def save(self, session, path, _name=name, **kw):
+                    from .volume import save_map
+                    save_map(session, path, _name, **kw)
+
+                @property
+                def save_args(self, _name=name):
+                    from .mapargs import MapRegionArg, Int1or3Arg
+                    from chimerax.core.commands import BoolArg, ModelsArg, EnumOf, \
+                        RepeatOf, IntArg, ListOf
+                    args = { 'models': ModelsArg }
+                    if _name == "Chimera map":
+                        args.update({
+                            'append': BoolArg,
+                            'base_index': IntArg,
+                            'chunk_shapes': ListOf(EnumOf(
+                                ('zyx','zxy','yxz','yzx','xzy','xyz'))),
+                            'compress': BoolArg,
+                            'compress_method': EnumOf(('zlib', 'lzo', 'bzip2', 'blosc',
+                                'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc',
+                                'blosc:snappy', 'blosc:zlib', 'blosc:zstd')),
+                            'compress_shuffle': BoolArg,
+                            'mask_zone': BoolArg,
+                            'region': MapRegionArg,
+                            'subsamples': RepeatOf(Int1or3Arg),
+                            'step': Int1or3Arg,
+                        })
+                    return args
+
+                def save_args_widget(self, session):
+                    from .gui import SaveOptionsWidget
+                    return SaveOptionsWidget(session)
+
+                def save_args_string_from_widget(self, widget):
+                    return widget.options_string()
+
+        return Info()
+
 bundle_api = _MapBundle()

@@ -17,7 +17,7 @@ def read_collada_surfaces(session, path, name = None, color = (200,200,200,255),
     if name is None:
         from os.path import basename
         name = basename(path)
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     splist = surfaces_from_nodes(c.scene.nodes, color, Place(), {}, session)
     if len(splist) > 1:
         from chimerax.core.models import Model
@@ -41,7 +41,7 @@ def read_collada_surfaces(session, path, name = None, color = (200,200,200,255),
 def surfaces_from_nodes(nodes, color, place, instances, session):
 
     from collada.scene import GeometryNode, Node
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     from chimerax.core.models import Surface
     splist = []
     for n in nodes:
@@ -87,9 +87,12 @@ def geometry_node_surfaces(primitives, place, color, materials, colors, session)
 
         # Collada allows different normals on the same vertex in different triangles,
         # but Hydra only allows one normal per vertex.
-        from numpy import empty
-        vn = empty(v.shape, n.dtype)
-        vn[t.ravel(),:] = n[ni.ravel(),:]
+        if n is None:
+            vn = None
+        else:
+            from numpy import empty
+            vn = empty(v.shape, n.dtype)
+            vn[t.ravel(),:] = n[ni.ravel(),:]
 
         vcolors = vertex_colors(p, t, len(v), colors)
         c = material_color(materials.get(p.material), color)
@@ -145,7 +148,7 @@ def vertex_colors(triangle_set, tarray, nv, colors):
 
 # For drawings with multiple instances make colors a numpy uint8 array.
 def set_instance_positions_and_colors(drawings):
-    from chimerax.core.geometry import Places
+    from chimerax.geometry import Places
     for d in drawings:
         if hasattr(d, 'position_list') and hasattr(d, 'color_list'):
             clist = d.color_list

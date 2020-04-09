@@ -60,6 +60,8 @@ def help(session, topic=None, *, option=None):
                 if new_path is not None:
                     path = new_path
         url = urlunparse(('file', '', pathname2url(path), '', '', fragment))
+    elif topic.startswith('https:') or topic.startswith('http:'):
+        url = topic
     else:
         cmd_name = topic
         found = False

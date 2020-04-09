@@ -268,7 +268,7 @@ class ContactPlot(Graph):
                 la.append((x,y,0))
         if len(gc) < 2:
             return
-        from chimerax.core.geometry import align_points, translation
+        from chimerax.geometry import align_points, translation
         from numpy import array, mean
         p, rms = align_points(array(gc), array(la))
         ra = p.zero_translation()

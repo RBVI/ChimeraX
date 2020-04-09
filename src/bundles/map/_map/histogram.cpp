@@ -34,7 +34,7 @@ template<class T>
 static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
 			double *min, double *max, double ignore_pad_value)
 {
-  int n = seq.size();
+  int64_t n = seq.size();
   if (n == 0)
     { *min = *max = 0; return; }
 
@@ -43,8 +43,8 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
   double maximum = -DBL_MAX;
 
   int dim = seq.dimension();
-  int m0 = 1, m1 = 1, m2 = 1;
-  long s0 = 0, s1 = 0, s2 = 0;
+  int64_t m0 = 1, m1 = 1, m2 = 1;
+  int64_t s0 = 0, s1 = 0, s2 = 0;
   if (dim == 1)
     { m2 = seq.size(0); s2 = seq.stride(0); }
   else if (dim == 2)
@@ -56,10 +56,10 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
 
   if (ignore_pad_value == NO_PAD_VALUE)
     {
-      long i = 0;
-      for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
-        for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
-          for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+      int64_t i = 0;
+      for (int64_t i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int64_t i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int64_t i2 = 0 ; i2 < m2 ; ++i2, i += s2)
             {
               double v = static_cast<double> (data[i]);
               if (v > maximum)
@@ -70,10 +70,10 @@ static void min_and_max(const Reference_Counted_Array::Array<T> &seq,
     }
   else
     {
-      long i = 0;
-      for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
-        for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
-          for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+      int64_t i = 0;
+      for (int64_t i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int64_t i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int64_t i2 = 0 ; i2 < m2 ; ++i2, i += s2)
             {
               double v = static_cast<double> (data[i]);
               if (v == ignore_pad_value)
@@ -125,7 +125,7 @@ template<class T>
 static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
 		       float min, float max, IArray &counts, double ignore_pad_value)
 {
-  int bins = counts.size();
+  int64_t bins = counts.size();
   int *c = counts.values();
 
   float range = max - min;
@@ -136,8 +136,8 @@ static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
   float scale = bins / range;
 
   int dim = seq.dimension();
-  int m0 = 1, m1 = 1, m2 = 1;
-  long s0 = 0, s1 = 0, s2 = 0;
+  int64_t m0 = 1, m1 = 1, m2 = 1;
+  int64_t s0 = 0, s1 = 0, s2 = 0;
   if (dim == 1)
     { m2 = seq.size(0); s2 = seq.stride(0); }
   else if (dim == 2)
@@ -149,27 +149,27 @@ static void bin_counts(const Reference_Counted_Array::Array<T> &seq,
 
   if (ignore_pad_value == NO_PAD_VALUE)
     {
-      long i = 0;
-      for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
-        for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
-          for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+      int64_t i = 0;
+      for (int64_t i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int64_t i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int64_t i2 = 0 ; i2 < m2 ; ++i2, i += s2)
             {
-              int b = static_cast<int> (scale * (data[i] - min));
+              int64_t b = static_cast<int> (scale * (data[i] - min));
               if (b >= 0 && b < bins)
                 c[b] += 1;
             }
     }
   else
     {
-      long i = 0;
-      for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
-        for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
-          for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+      int64_t i = 0;
+      for (int64_t i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+        for (int64_t i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+          for (int64_t i2 = 0 ; i2 < m2 ; ++i2, i += s2)
             {
               double v = static_cast<double> (data[i]);
               if (v == NO_PAD_VALUE)
                 continue;
-              int b = static_cast<int> (scale * (v - min));
+              int64_t b = static_cast<int> (scale * (v - min));
               if (b >= 0 && b < bins)
                 c[b] += 1;
             }
@@ -220,15 +220,15 @@ bin_counts(PyObject *, PyObject *args, PyObject *keywds)
 //
 template<class T>
 static void high_count(const Reference_Counted_Array::Array<T> &d,
-		       float level, int *n)
+		       float level, int64_t *n)
 {
   T *data = d.values();
-  long s0 = d.stride(0), s1 = d.stride(1), s2 = d.stride(2);
-  int m0 = d.size(0), m1 = d.size(1), m2 = d.size(2);
-  long i = 0, c = 0;
-  for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
-    for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
-      for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+  int64_t s0 = d.stride(0), s1 = d.stride(1), s2 = d.stride(2);
+  int64_t m0 = d.size(0), m1 = d.size(1), m2 = d.size(2);
+  int64_t i = 0, c = 0;
+  for (int64_t i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+    for (int64_t i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+      for (int64_t i2 = 0 ; i2 < m2 ; ++i2, i += s2)
 	if (data[i] >= level)
 	  c += 1;
   *n = c;
@@ -250,7 +250,7 @@ high_count_py(PyObject *, PyObject *args, PyObject *keywds)
 				   &level))
     return NULL;
 
-  int n = 0;
+  int64_t n = 0;
   call_template_function(high_count, d.value_type(), (d, level, &n));
   return PyLong_FromLong(n);
 }
@@ -262,12 +262,12 @@ static void high_indices(const Reference_Counted_Array::Array<T> &d,
 			 float level, int *ijk)
 {
   T *data = d.values();
-  long s0 = d.stride(0), s1 = d.stride(1), s2 = d.stride(2);
-  int m0 = d.size(0), m1 = d.size(1), m2 = d.size(2);
-  long i = 0, c = 0;
-  for (int i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
-    for (int i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
-      for (int i2 = 0 ; i2 < m2 ; ++i2, i += s2)
+  int64_t s0 = d.stride(0), s1 = d.stride(1), s2 = d.stride(2);
+  int64_t m0 = d.size(0), m1 = d.size(1), m2 = d.size(2);
+  int64_t i = 0, c = 0;
+  for (int64_t i0 = 0 ; i0 < m0 ; ++i0, i += s0 - m1*s1)
+    for (int64_t i1 = 0 ; i1 < m1 ; ++i1, i += s1 - m2*s2)
+      for (int64_t i2 = 0 ; i2 < m2 ; ++i2, i += s2)
 	if (data[i] >= level)
 	  { ijk[c] = i2; ijk[c+1] = i1; ijk[c+2] = i0; c += 3; }
 }
@@ -288,7 +288,7 @@ high_indices_py(PyObject *, PyObject *args, PyObject *keywds)
 				   &level))
     return NULL;
 
-  int n = 0;
+  int64_t n = 0;
   call_template_function(high_count, d.value_type(), (d, level, &n));
   int *ijk;
   PyObject *indices = python_int_array(n, 3, &ijk);

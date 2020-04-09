@@ -27,7 +27,7 @@ def tube_through_points(path, tangents, radius = 1.0, circle_subdivisions = 15):
 #
 def tube_spline(path, radius = 1.0, segment_subdivisions = 10, circle_subdivisions = 15):
 
-    from chimerax.core.geometry import natural_cubic_spline
+    from chimerax.geometry import natural_cubic_spline
     spath, stan = natural_cubic_spline(path, segment_subdivisions)
     return tube_through_points(spath, stan, radius, circle_subdivisions)
 
@@ -152,7 +152,7 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
     if len(xyz_path) <= 1:
         return None             # No path
 
-    from chimerax.core.geometry import natural_cubic_spline
+    from chimerax.geometry import natural_cubic_spline
     spath, stan = natural_cubic_spline(xyz_path, segment_subdivisions)
 
     pcolors = band_colors(spath, point_colors, segment_colors,
@@ -170,7 +170,7 @@ def banded_extrusion(xyz_path, point_colors, segment_colors,
 #
 def extrusion_transforms(path, tangents, yaxis = None):
 
-    from chimerax.core.geometry import identity, vector_rotation, translation
+    from chimerax.geometry import identity, vector_rotation, translation
     tflist = []
     if yaxis is None:
         # Make xy planes for coordinate frames at each path point not rotate
@@ -206,7 +206,7 @@ def band_colors(plist, point_colors, segment_colors,
   pcolors = []
   for k in range(n-1):
     j = k * (segment_subdivisions + 1)
-    from chimerax.core.geometry import spline
+    from chimerax.geometry import spline
     arcs = spline.arc_lengths(plist[j:j+segment_subdivisions+2])
     bp0, mp, bp1 = band_points(arcs, band_length)
     scolors = ([point_colors[k]]*bp0 +

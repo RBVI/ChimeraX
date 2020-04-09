@@ -324,8 +324,8 @@ def fetch_mmcif(
                 raise UserError("Invalid mmCIF identifier")
 
     session.logger.status("Opening mmCIF %s" % (pdb_id,))
-    from chimerax.core import io
-    models, status = io.open_data(session, filename, format='mmcif', name=pdb_id, **kw)
+    models, status = session.open_command.open_data(filename, format='mmcif',
+        name=pdb_id, **kw)
     if structure_factors:
         sf_file = fetch_cif.fetch_structure_factors(
             session, pdb_id, fetch_source=fetch_source, ignore_cache=ignore_cache)

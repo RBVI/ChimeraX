@@ -113,7 +113,7 @@ class HistoryWindow(ChimeraXHtmlView):
         cm = getattr(self, 'context_menu', None)
         if cm is None:
             from PyQt5.QtWidgets import QMenu
-            cm = self.context_menu = QMenu()
+            cm = self.context_menu = QMenu(self)
             cm.addAction("Remove deleted files", self.remove_missing_files)
         cm.popup(event.globalPos())
 

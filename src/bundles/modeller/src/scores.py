@@ -75,14 +75,14 @@ class ModellerScoringJob(Job):
         pdb_buffer = StringIO()
         save_pdb(session, pdb_buffer, models=[structure])
         fields = [
-            ("name", None, "chimerax-Modeller_Comparitive"),
+            ("name", None, "chimerax-Modeller_Comparative"),
             ("modkey", None, license_key),
             # Sequence identity info will be taken from PDB header for Modeller models,
             # and since we don't know the info otherwise -- skip it
             ("model_file", structure.name.replace(' ', '_') + '.pdb', pdb_buffer.getvalue())
         ]
         from chimerax.webservices.post_form import post_multipart
-        submission = post_multipart(modeller_host, "/modeval/job", fields)
+        submission = post_multipart(modeller_host, "/modeval/job", fields, accept_type="application/xml")
         from xml.dom.minidom import parseString
         sub_dom = parseString(submission)
         top = sub_dom.getElementsByTagName('saliweb')[0]

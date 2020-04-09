@@ -73,6 +73,7 @@ class HtmlToolInstance(ToolInstance):
 
         # GUI (Qt) setup
         layout = QGridLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
         self.html_view = HtmlView(parent, **kw)
         layout.addWidget(self.html_view, 0, 0)
         parent.setLayout(layout)

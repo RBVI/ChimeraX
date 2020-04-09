@@ -115,7 +115,7 @@ class UI:
             self.has_graphics = self.initialize_offscreen_rendering(session)
 
     def initialize_offscreen_rendering(self, session):
-        from . import graphics
+        from chimerax import graphics
         try:
             c = graphics.OffScreenRenderingContext()
         except Exception as e:

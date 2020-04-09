@@ -80,7 +80,7 @@ class VolumeDefaultSettings:
         'outline_box_linewidth': 1.0,
         'color_mode': 'auto8',
         'colormap_on_gpu': False,
-        'colormap_size': 256,
+        'colormap_size': 2048,
         'colormap_extend_left': False,
         'colormap_extend_right': True,
         'blend_on_gpu': False,
@@ -111,7 +111,8 @@ class VolumeDefaultSettings:
         'tilted_slab_offset': 0,
         'tilted_slab_spacing': 1,
         'tilted_slab_plane_count': 1,
-        'image_mode': 'full region'
+        'image_mode': 'full region',
+        'backing_color': None,
     }
 
     try:
@@ -166,6 +167,7 @@ class VolumeDefaultSettings:
             'tilted_slab_spacing',
             'tilted_slab_plane_count',
             'image_mode',
+            'backing_color',
             )
 
   # ---------------------------------------------------------------------------

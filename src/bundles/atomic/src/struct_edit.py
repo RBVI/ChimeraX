@@ -12,11 +12,19 @@
 # === UCSF ChimeraX Copyright ===
 
 """
-mol_edit: molecular editing utilities
-===============================
+struct_edit: molecular editing utilities
+=====================================
 
-TODO
+Utilities routines and constants useful for editing structures.  Higher level than
+the basic methods offered by Structure, etc. and therefore less likely to result in
+catastrophic error. :-)
 """
+
+# ideal peptide backbone heavy-atom distances
+DIST_N_C = 1.335
+DIST_CA_N = 1.449
+DIST_C_CA = 1.522
+DIST_C_O = 1.229
 
 from math import pi, cos, sin
 
@@ -234,7 +242,7 @@ def find_pt(n1, n2, n3, dist, angle, dihed):
     x = normalize(cross(v13, v12))
     y = normalize(cross(v12, x))
 
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     xform = Place([(x[i], y[i], v12[i], n1[i]) for i in range(3)])
 
     rad_angle = pi * angle / 180.0
@@ -249,7 +257,7 @@ def gen_atom_name(element, residue):
     n = 1
     while True:
         name = "%s%d" % (str(element).upper(), n)
-        if name not in residue.atomsMap:
+        if not residue.find_atom(name):
             break
         n += 1
     return name

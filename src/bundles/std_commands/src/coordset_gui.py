@@ -74,3 +74,83 @@ class CoordinateSetSlider(Slider):
 
         super().delete()
         self.structure = None
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.mouse_modes import MouseMode
+class PlayCoordinatesMouseMode(MouseMode):
+
+    name = 'play coordinates'
+    icon_file = 'coordset.png'
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        self._wrap = False
+        self._vr_full_range = 0.5	# Meters.  Motion to play full coordset.
+
+    def mouse_drag(self, event):
+
+        dx,dy = self.mouse_motion(event)
+        w,h = self.session.main_view.window_size
+        delta = (-dy/h) if abs(dy) >= abs(dx) else (dx/w)
+        self._take_step(fraction = delta)
+    
+    def wheel(self, event):
+        d = event.wheel_value()
+        self._take_step(step = d)
+
+    def _take_step(self, fraction = None, step = None):
+        if fraction is None and step is None:
+            return
+        from chimerax.atomic import Structure
+        mlist = [m for m in self.session.models.list(type = Structure)
+                 if m.num_coordsets > 1 and m.visible]
+        for m in mlist:
+            ids = m.coordset_ids
+            nc = len(ids)
+            if fraction is not None:
+                step = fraction * nc
+            s = step + getattr(m, '_play_coordinates_accum_step', 0)
+            from math import floor, ceil
+            si = int(floor(s) if s >= 0 else ceil(s))
+            if s != si:
+                m._play_coordinates_accum_step = s-si  # Remember fractional step.
+            if si != 0:
+                id = m.active_coordset_id
+                p = _sequence_position(id, ids)
+                np = p + si
+                if self._wrap:
+                    np = np % nc
+                elif np >= nc:
+                    np = nc-1
+                elif np < 0:
+                    np = 0
+                nid = ids[np]
+                m.active_coordset_id = nid
+
+    def vr_motion(self, event):
+        # Virtual reality hand controller motion.
+        f = event.room_vertical_motion / self._vr_full_range
+        self._take_step(fraction = f)
+
+    def vr_thumbstick(self, event):
+        # Virtual reality hand controller thumbstick tilt.
+        step = event.thumbstick_step()
+        if step != 0:
+            self._take_step(step = step)
+
+# -----------------------------------------------------------------------------
+#
+def _sequence_position(value, seq):
+    if isinstance(seq, (tuple, list)):
+        return seq.index(value)
+    else:
+        from numpy import ndarray, where
+        if isinstance(seq, ndarray) and seq.ndim == 1:
+            return where(seq == value)[0][0]
+    raise RuntimeError('_sequence_position() called with non-sequence %s' % str(type(seq)))
+        
+# -----------------------------------------------------------------------------
+#
+def register_mousemode(session):
+    mm = session.ui.mouse_modes
+    mm.add_mode(PlayCoordinatesMouseMode(session))

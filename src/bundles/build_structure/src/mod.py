@@ -86,7 +86,7 @@ def modify_atom(atom, element, num_bonds, *, geometry=None, name=None, connect_b
     else:
         test_atoms = []
 
-    from chimerax.core.geometry import distance_squared, angle
+    from chimerax.geometry import distance_squared, angle
     from chimerax.atomic.struct_edit import add_bond, gen_atom_name, add_atom
     h_num = 1
     for pos in positions:

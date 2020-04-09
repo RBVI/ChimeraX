@@ -26,7 +26,7 @@
 FArray calculate_vertex_normals(const FArray &vertices, const IArray &triangles)
 {
   int n = vertices.size(0);
-  int sizes[2] = {n, 3};
+  int64_t sizes[2] = {n, 3};
   FArray normals(2, sizes);
   float *narray = normals.values();
   int n3 = n * 3;

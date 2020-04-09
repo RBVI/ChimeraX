@@ -13,8 +13,49 @@
 
 
 from chimerax.core.errors import UserError
+from chimerax.core.settings import Settings
 from .tracking import MouseTracking, VRTracking
 from . import mux
+
+
+class _ConferenceSettings(Settings):
+    AUTO_SAVE = {
+        "conf_name": "",
+        "user_name": "",
+        "host_name": "",
+        "port": "",
+    }
+
+
+_settings = None
+
+
+def settings(session):
+    global _settings
+    if _settings is None:
+        _settings = _ConferenceSettings(session, "Conference")
+    return _settings
+
+
+TRIGGER_CONNECTED = "connected to conference"
+TRIGGER_DISCONNECTED = "disconnected from conference"
+TRIGGER_JOINED = "participant joined conference"
+TRIGGER_DEPARTED = "participant left conference"
+TRIGGER_BEFORE_RESTORE = "before restoring conference session"
+TRIGGER_AFTER_RESTORE = "after restoring conference session"
+
+
+def setup_triggers(session):
+    try:
+        session.triggers.add_trigger(TRIGGER_CONNECTED)
+        session.triggers.add_trigger(TRIGGER_DISCONNECTED)
+        session.triggers.add_trigger(TRIGGER_JOINED)
+        session.triggers.add_trigger(TRIGGER_DEPARTED)
+        session.triggers.add_trigger(TRIGGER_BEFORE_RESTORE)
+        session.triggers.add_trigger(TRIGGER_AFTER_RESTORE)
+    except KeyError:
+        # someone must have added them already
+        pass
 
 
 def conference(session, action, location=None, name=None, **kw):
@@ -102,7 +143,8 @@ def conference_set(session, color=None, face_image=None, copy_scene=None,
             log.warning(msg)
         log.status(msg, color="red")
     if announce or not acted:
-        log.status("Conference location: %s" % conference.location(), log=True)
+        log.status("In conference %s as \"%s\"" % (conference.location(),
+                                                   conference.name), log=True)
 
 
 def conference_close(session):
@@ -139,6 +181,7 @@ class ConferenceServer:
     # related to connections.
 
     def __init__(self, session):
+        setup_triggers(session)
         self._session = session
         self._name = 'Remote'
         self._color = (0,255,0,255)	# Tracking model color
@@ -159,6 +202,10 @@ class ConferenceServer:
         self._mux_node = None
         self._mux_addresses = None
 
+    @property
+    def name(self):
+        return self._name
+
     #
     # Connection stuff
     #
@@ -173,12 +220,20 @@ class ConferenceServer:
             self.close()
             raise RuntimeError("conference connection failed: %s" % data)
         conf_name, identity, addrs = data
+        self._name = identity
         self._mux_node.set_identity(identity)
         self._mux_addresses = addrs
+        self._parameters = None
         conference_set(self._session, announce=True, **self._setup_kw)
+        self._session.triggers.activate_trigger(TRIGGER_CONNECTED, self)
         del self._setup_kw
 
     def connect(self, action, location, identity, **kw):
+        prefs = settings(self._session)
+        if identity is None:
+            identity = prefs.user_name
+        else:
+            prefs.user_name = identity
         if action == "start":
             if location is None:
                 raise("conference location must be specified for \"start\"")
@@ -214,24 +269,47 @@ class ConferenceServer:
             self._mux_node.start(callback=self._setup_cb)
         else:
             raise UserError("unknown conference mode: \"%s\"" % action)
+        # Cache parameters for GUI
+        self._parameters = (host, port, conf_name, self._name)
         self.relay_commands()
 
     def _parse_location(self, location, need_name):
+        prefs = settings(self._session)
         try:
             parts = location.split('/', 1)
             if len(parts) == 1:
                 if need_name:
-                    raise UserError("conference name missing from location")
-                addr = location
-                conf_name = "unnamed"
+                    if prefs.conf_name is None:
+                        raise UserError("conference name missing from location")
+                    else:
+                        addr = location
+                        conf_name = prefs.conf_name
+                else:
+                    addr = location
+                    conf_name = "unnamed"
             else:
                 addr, conf_name = parts
+                prefs.conf_name = conf_name
             parts = addr.split(':', 1)
             if len(parts) != 2:
-                host = addr
-                port = 443
+                host = addr.strip()
+                if not host:
+                    if prefs.host_name is None:
+                        raise UserError("host name is missing")
+                    else:
+                        host = prefs.host_name
+                if prefs.port is None:
+                    port = 443
+                else:
+                    port = prefs.port
             else:
-                host, port = parts
+                host = parts[0]
+                try:
+                    port = int(parts[1])
+                except ValueError:
+                    raise UserError("port number must be an integer")
+                prefs.host_name = host
+                prefs.port = port
         except ValueError:
             raise UserError("bad conference location: %s" % location)
         return host, port, conf_name
@@ -249,6 +327,10 @@ class ConferenceServer:
         mux.logger.debug("conference.location: loc %s", loc)
         return loc
 
+    def parameters(self):
+        # custom method for GUI
+        return self._parameters
+
     def close(self):
         # Have to override because we both delete trackers
         # and close connections
@@ -256,9 +338,11 @@ class ConferenceServer:
             for t in self._trackers:
                 t.delete()
             self._trackers = []
+        self.relay_commands(False)
         if self._mux_node:
             self._mux_node.close()
             self._mux_node = None
+            self._session.triggers.activate_trigger(TRIGGER_DISCONNECTED, self)
         if self._session._conference_server is self:
             del self._session._conference_server
 
@@ -296,7 +380,9 @@ class ConferenceServer:
         from io import BytesIO
         stream = BytesIO(sbytes)
         restore_camera = (ses.main_view.camera.name != 'vr')
+        self._session.triggers.activate_trigger(TRIGGER_BEFORE_RESTORE, self)
         ses.restore(stream, resize_window=False, restore_camera=restore_camera)
+        self._session.triggers.activate_trigger(TRIGGER_AFTER_RESTORE, self)
         t2 = time()
         ses.logger.status('Opened scene %.1f Mbytes, %.1f seconds'
                           % (len(sbytes)/2**20, (t2-t1)))
@@ -368,20 +454,28 @@ class ConferenceServer:
     # Callbacks from hub
     #
 
-    def add_client(self, identity):
-        # "identity" is a 2-tuple of (name, source)
+    def add_participant(self, identity):
+        # "identity" is a 2-tuple of (name, address)
         logger = self._session.logger
         logger.info("\"%s\" [%s] joined conference" % identity)
         self._initiate_tracking()
+        name = identity[0]
         if self._copy_scene:
-            logger.info("copying scene to \"%s\" [%s]" % identity)
-            self.send_scene([identity[0]])
-        self._send_room_coords([identity])
+            logger.info("copying scene to \"%s\"" % name)
+            self.send_scene([name])
+        self._send_room_coords([name])
+        self._session.triggers.activate_trigger(TRIGGER_JOINED, identity)
 
-    def drop_client(self, identity):
+    def drop_participant(self, identity):
         # The hub handles all that for us, so we do not need to do anything
+        # "identity" is a 2-tuple of (name, address) but address
+        # is typically uninformative since the participant already left
         logger = self._session.logger
-        logger.info("\"%s\" [%s] left conference" % identity)
+        logger.info("\"%s\" left conference" % identity[0])
+        self._session.triggers.activate_trigger(TRIGGER_DEPARTED, identity)
+
+    def get_participants(self, cb):
+        self._mux_node.get_participants(callback=cb)
 
     def _send_message(self, msg, identities=None):
         self._mux_node.send(msg, receivers=identities)
@@ -401,11 +495,11 @@ class ConferenceServer:
 
     def _notification_execute(self, q, ntype, data):
         if ntype == mux.Notify.Joined:
-            # data is just the name of the client that joined
-            self.add_client(data)
+            # data is just the name of the participant that joined
+            self.add_participant(data)
         elif ntype == mux.Notify.Departed:
-            # data is just the name of the client that joined
-            self.drop_client(data)
+            # data is just the name of the participant that joined
+            self.drop_participant(data)
         else:
             raise RuntimeError("unsupported mux notification: %s" % ntype)
         q.put((mux.Resp.Success, None))

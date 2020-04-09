@@ -47,6 +47,10 @@ def make_dependencies(dir_path, output_name):
     # Report any bundle dependencies that is not found
     missing.discard("ChimeraX-Core")
     missing.discard("qtconsole")
+    missing.discard("PyAudio")
+    missing.discard("SpeechRecognition")
+    missing.discard("netifaces")
+    missing.discard("pyrealsense2")
     if missing:
         print("Missing bundles:")
         for dep in sorted(missing):

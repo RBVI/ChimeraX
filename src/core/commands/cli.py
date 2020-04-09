@@ -90,6 +90,8 @@ as built from the command line and the command description.
 The initial ``session`` argument to a command function
 is not part of the command description.
 
+.. _Type Annotations:
+
 Type Annotations
 ----------------
 
@@ -753,7 +755,7 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None, case_sensitive = False):
         from collections.abc import Iterable
         if isinstance(values, Iterable):
             values = list(values)
@@ -786,17 +788,21 @@ class EnumOf(Annotation):
         if abbreviations is not None:
             self.allow_truncated = abbreviations
 
+        self._case_sensitive = case_sensitive
+        
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text, convert=True)
-        folded = token.casefold()
+        case = self._case_sensitive
+        word = token if case  else token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
-            if ident.casefold() == folded:
+            id = ident if case else ident.casefold()
+            if id == word:
                 return self.values[i], quote_if_necessary(ident), rest
             elif self.allow_truncated:
-                if ident.casefold().startswith(folded):
+                if id.startswith(word):
                     matches.append((i, ident))
         if len(matches) == 1:
             i, ident = matches[0]
@@ -814,24 +820,28 @@ class EnumOf(Annotation):
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
 
-    def __init__(self, values_func, name=None, url=None, html_name=None):
+    def __init__(self, values_func, name=None, url=None, html_name=None,
+                 case_sensitive=False):
         Annotation.__init__(self, url=url)
         self.__name = name
         self.__html_name = html_name
+        self._case_sensitive = case_sensitive
         self.values_func = values_func
 
     def parse(self, text, session):
-        return EnumOf(self.values_func()).parse(text, session)
+        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        return e.parse(text, session)
 
     def unparse(self, value, session=None):
-        return EnumOf(self.values_func()).unparse(value, session)
+        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        return e.unparse(value, session)
 
     @property
     def name(self):
         if self.__name is not None:
             return self.__name
         return 'one of ' + commas(["'%s'" % str(v)
-                                  for v in sorted(self.values_func())])
+              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
 
     @property
     def _html_name(self):
@@ -842,7 +852,7 @@ class DynamicEnum(Annotation):
             name = self.__name
         else:
             name = 'one of ' + commas(["<b>%s</b>" % escape(str(v))
-                                      for v in sorted(self.values_func())])
+              for v in sorted(self.values_func(), key=lambda k: (k.lower(), k))])
         if self.url is None:
             return name
         return '<a href="%s">%s</a>' % (escape(self.url), name)
@@ -1977,12 +1987,12 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        '_hidden', 'url', 'synopsis'
+        '_hidden', 'url', 'synopsis', 'self_logging'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
                  postconditions=(), required_arguments=(),
-                 non_keyword=(), hidden=(), url=None, synopsis=None):
+                 non_keyword=(), hidden=(), url=None, synopsis=None, self_logging=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = dict(keyword)
@@ -2001,6 +2011,7 @@ class CmdDesc:
         self._required_arguments = required_arguments
         self.url = url
         self.synopsis = synopsis
+        self.self_logging = self_logging
         self._function = None
 
     @property
@@ -2611,14 +2622,14 @@ class Command:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % kw_name
+                        arg_name = '"%s"' % _user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 if kw_name in self._ci._required:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % kw_name
+                        arg_name = '"%s"' % _user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 # optional and wrong type, try as keyword
@@ -2777,9 +2788,9 @@ class Command:
         while True:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
+                save_error = self._error
                 if self.registry == _command_info:
                     # See if this command is available in the toolshed
-                    save_error = self._error
                     self._error = ""
                     _compute_available_commands(session)
                     self._find_command_name(final, used_aliases=_used_aliases,
@@ -2827,7 +2838,7 @@ class Command:
 
             ci = self._ci
             kw_args = self._kw_args
-            really_log = log and _used_aliases is None
+            really_log = log and _used_aliases is None and not self._ci.self_logging
             if really_log:
                 self.log()
             cmd_text = self.current_text[self.start:self.amount_parsed]
