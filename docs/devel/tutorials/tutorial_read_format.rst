@@ -125,35 +125,36 @@ overridden for registering commands, tools, etc.
     :language: python
     :linenos:
 
-The :py:meth:`open_file` method is called by ChimeraX to read a file,
-and return a list of models and a status message.  Unlike standard
-Python methods, the parameter names are significant because ChimeraX
-introspects the method definition to construct the arguments that
-are passed to the method.
+The :py:meth:`run_provider` method is called by a ChimeraX manager
+when it needs additional information from a provider or it needs a
+provider to execute a task.
+The *session* argument is a :py:class:`~chimerax.core.session.Session` instance,
+the *name* argument is the same as the ``name`` attribute in your Provider
+tag, and the *mgr* argument is the manager instance.
+These arguments can be used to decide what to do when your bundle offers
+several Provider tags (to possibly several managers), but since the "data
+formats" manager never calls :py:meth:`run_provider`, we can customize the
+routine specifically for the "open command" manager and don't need to check
+the :py:meth:`run_provider` arguments.
 
-1. The first argument must be named **session**,
-   and corresponds to a :py:class:`chimerax.core.session.Session` instance.
-2. The second argument must be named either **path** or **stream**.
-   If **path**, the argument corresponds to the path to the input file;
-   if **stream**, it corresponds to a file-like object.
-3. The third argument must be named **format_name**, and corresponds
-   to a string with the full name of the format that is either specified
-   by the user, *e.g.*, via an argument to the **open** command, or
-   deduced by ChimeraX from the file suffix.
-4. An optional fourth argument, **file_name** may be supplied when
-   both the file path and file-like object are needed.
+When called by the "open command" manager, :py:meth:`run_provider` must return
+an instance of a subclass of :py:class:`chimerax.open_command.OpenerInfo`.
+The methods of the class are thoroughly documented if you click the preceding
+link, but briefly:
 
-If the :py:meth:`open_file` method expects a file-like stream, ChimeraX
-takes care of decompressing files with **.gz** suffix, as well as
-opening the file in either text or binary mode, matching the format
-specification in ``bundle_info.xml``.
-
-In this example, the file path is not required, so the three arguments
-given are **session**, **stream**, and **format_name**.
-If the bundle supported multiple formats, **format_name** may
-be used to select the appropriate reader function.
-In this example, only one format is supported, so
-``io.open_xyz`` is called directly.
+1. The :py:meth:`open` method is called to actually open/read the file and
+   should return a (models, status message) tuple.  The method's *data*
+   argument is normally an opened stream encoded as per the format's ``encoding``
+   attribute (binary if omitted), but it can be a file path if certain
+   Provider attributes were specified (most often, ``want_path="true"``).
+2. If there are format-specific keyword arguments that the ``open`` command should
+   handle, then an :py:meth:`open_args` property should be implemented, which
+   returns a dictionary mapping **Python** keyword names to :ref:`Annotation <Type Annotations>`
+   subclasses.  Such keywords will be passed to your :py:meth:`open` method.
+3. So long as your :py:meth:`open` method accepts a stream, opening compressed
+   files of your format (e.g. with additional suffixes such as .gz, .bz2) will
+   be handled automatically.  For path-based openers, such files will result in an
+   error before your opener is called.
 
 
 ``src/io.py``
@@ -202,23 +203,21 @@ structure in several steps:
    concept of residues, a *dummy* one is created anyway.
 #. skip the comment line (lines 61-63).
 #. loop over the expected number of atoms and add them to the structure
-   (lines 66-94).  The construction of a
+   (lines 68-95).  The construction of a
    :py:class:`chimerax.atomic.molobject.Atom`
-   instance is somewhat elaborate (lines 80-94).  First, the atom
+   instance is somewhat elaborate (lines 83-95).  First, the atom
    parameters are prepared: the atomic coordinates are extracted from
-   the input (line 84), and the atom name is constructed from the
-   element type and an element-specific running index (lines 85-88).
-   The **Atom** instance is created on line 92; the newly created atom
-   is part of the structure being built through the use of the
-   :py:meth:`~chimerax.atomic.molobject.StructureData.new_atom`
-   method of the structure.  The atomic coordinates are set on line 93.
-   Finally, the atom is added to the dummy residue on line 94.
+   the input (line 87), and the atom name is constructed from the
+   element type and an element-specific running index (lines 88-91).
+   The **Atom** instance is created on line 95, using the convenience
+   function :py:func:`chimerax.atomic.struct_edit.add_atom` which
+   also adds it to the residue, and sets its coordinates.
 #. XYZ format files do not have connectivity information, so no bonds
    are created while processing input lines.  Instead, the
    :py:meth:`~chimerax.atomic.molobject.StructureData.connect_structure`
    method of the structure is called to deduce connectivity from
-   interatomic distances (line 97).
-#. Return success or failure to read a structure to ``open_xyz`` (line 100).
+   interatomic distances (line 98).
+#. Return success or failure to read a structure to ``open_xyz`` (line 101).
 
 
 .. include:: build_test_distribute.rst

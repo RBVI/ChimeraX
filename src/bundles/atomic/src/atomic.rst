@@ -69,3 +69,7 @@ Atomic data classes
 .. automodule:: chimerax.atomic.args
     :members:
     :show-inheritance:
+
+.. automodule:: chimerax.atomic.struct_edit
+    :members:
+    :show-inheritance:
