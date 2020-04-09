@@ -1195,6 +1195,12 @@ class MainWindow(QMainWindow, PlainTextLog):
         surface_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="surface hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        surface_menu.addSeparator()
+        for style in ["solid", "mesh", "dot"]:
+            action = QAction(style.capitalize(), self)
+            surface_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="surface style %%s %s" % style: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
