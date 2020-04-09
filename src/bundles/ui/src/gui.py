@@ -1163,6 +1163,24 @@ class MainWindow(QMainWindow, PlainTextLog):
             action.triggered.connect(lambda *args, run=run, ses=self.session,
                 cmd="transparency %%s %d" % percent: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
 
+        #
+        # Color...
+        #
+        color_menu = actions_menu.addMenu("Color")
+        from PyQt5.QtGui import QColor, QPixmap, QIcon
+        for spaced_name in [ "red", "orange red", "orange", "yellow", "lime", "forest green", "cyan",
+                "light sea green", "blue", "cornflower blue", "medium blue", "purple", "hot pink",
+                "magenta", "white", "light gray", "gray", "dark gray", "dim gray", "black"]:
+            svg_name = "".join(spaced_name.split())
+            color = QColor(svg_name)
+            pixmap = QPixmap(16, 16)
+            pixmap.fill(color)
+            icon = QIcon(pixmap)
+            action = QAction(icon, spaced_name.title(), self)
+            color_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="color %%s %s" % svg_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
         sel_seq_action = QAction("Sequence...", self)
