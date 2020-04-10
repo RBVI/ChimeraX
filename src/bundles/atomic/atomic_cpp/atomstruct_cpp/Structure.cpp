@@ -2063,4 +2063,13 @@ Structure::ribbon_orient(const Residue *r) const
     return Structure::RIBBON_ORIENT_ATOMS;
 }
 
+size_t Structure::num_ribbon_residues() const
+{
+    size_t count = 0;
+    for (auto r: _residues)
+        if (r->ribbon_display())
+            count += 1;
+    return count;
+}
+
 } //  namespace atomstruct

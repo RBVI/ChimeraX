@@ -674,6 +674,11 @@ class Volume(Model):
     if vm is None:
       s._volume_update_manager = vm = VolumeUpdateManager(s)
     vm.add(self)
+    if s.in_script:
+      # In scripts update volume drawings immediately.
+      # Script commands often depend on volume surfaces being computed immediately.
+      # For examnple, set surface level, then run volume dust.
+      self.update_drawings()
 
   # ---------------------------------------------------------------------------
   #

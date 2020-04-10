@@ -21,17 +21,17 @@
 // #include <iostream>			// use std::cerr for debugging
 
 #include <arrays/pythonarray.h>		// use parse_uint8_n4_array(), ...
-#include <arrays/rcarray.h>		// use CArray
+#include <arrays/rcarray.h>		// use BArray
 
 namespace Map_Cpp
 {
 
 // ----------------------------------------------------------------------------
 //
-static void copy_la_to_rgba(const CArray &la, float color[4], const CArray &rgba)
+static void copy_la_to_rgba(const BArray &la, float color[4], const BArray &rgba)
 {
   int64_t n = rgba.size(0);
-  unsigned char *l = (unsigned char *)la.values(), *r = (unsigned char *)rgba.values();
+  unsigned char *l = la.values(), *r = rgba.values();
   int64_t ls0 = la.stride(0), ls1 = la.stride(1);
   int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   float c0 = color[0], c1 = color[1], c2 = color[2];
@@ -50,7 +50,7 @@ static void copy_la_to_rgba(const CArray &la, float color[4], const CArray &rgba
 extern "C" PyObject *
 copy_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
-  CArray la, rgba;
+  BArray la, rgba;
   float color[4];
   const char *kwlist[] = {"la", "color", "rgba", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
@@ -74,10 +74,10 @@ copy_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-static void blend_la_to_rgba(const CArray &la, float color[4], const CArray &rgba)
+static void blend_la_to_rgba(const BArray &la, float color[4], const BArray &rgba)
 {
   int64_t n = rgba.size(0);
-  unsigned char *l = (unsigned char *)la.values(), *r = (unsigned char *)rgba.values();
+  unsigned char *l = la.values(), *r = rgba.values();
   int64_t ls0 = la.stride(0), ls1 = la.stride(1);
   int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   float c0 = color[0], c1 = color[1], c2 = color[2];
@@ -98,7 +98,7 @@ static void blend_la_to_rgba(const CArray &la, float color[4], const CArray &rgb
 extern "C" PyObject *
 blend_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
-  CArray la, rgba;
+  BArray la, rgba;
   float color[4];
   const char *kwlist[] = {"la", "color", "rgba", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
@@ -122,10 +122,10 @@ blend_la_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-static void copy_l_to_rgba(const CArray &l, float color[4], const CArray &rgba)
+static void copy_l_to_rgba(const BArray &l, float color[4], const BArray &rgba)
 {
   int64_t n = rgba.size(0);
-  unsigned char *lv = (unsigned char *)l.values(), *r = (unsigned char *)rgba.values();
+  unsigned char *lv = l.values(), *r = rgba.values();
   int64_t ls0 = l.stride(0);
   int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   float c0 = color[0], c1 = color[1], c2 = color[2];
@@ -144,7 +144,7 @@ static void copy_l_to_rgba(const CArray &l, float color[4], const CArray &rgba)
 extern "C" PyObject *
 copy_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
-  CArray l, rgba;
+  BArray l, rgba;
   float color[4];
   const char *kwlist[] = {"l", "color", "rgba", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
@@ -168,10 +168,10 @@ copy_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-static void blend_l_to_rgba(const CArray &l, float color[4], const CArray &rgba)
+static void blend_l_to_rgba(const BArray &l, float color[4], const BArray &rgba)
 {
   int64_t n = rgba.size(0);
-  unsigned char *lv = (unsigned char *)l.values(), *r = (unsigned char *)rgba.values();
+  unsigned char *lv = l.values(), *r = rgba.values();
   int64_t ls0 = l.stride(0);
   int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   float c0 = color[0], c1 = color[1], c2 = color[2];
@@ -192,7 +192,7 @@ static void blend_l_to_rgba(const CArray &l, float color[4], const CArray &rgba)
 extern "C" PyObject *
 blend_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
-  CArray l, rgba;
+  BArray l, rgba;
   float color[4];
   const char *kwlist[] = {"l", "color", "rgba", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&"),
@@ -216,10 +216,10 @@ blend_l_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-static void blend_rgb_to_rgba(const CArray &rgb, const CArray &rgba)
+static void blend_rgb_to_rgba(const BArray &rgb, const BArray &rgba)
 {
   int64_t n = rgba.size(0);
-  unsigned char *ro = (unsigned char *)rgb.values(), *r = (unsigned char *)rgba.values();
+  unsigned char *ro = rgb.values(), *r = rgba.values();
   int64_t ros0 = rgb.stride(0), ros1 = rgb.stride(1);
   int64_t rs0 = rgba.stride(0), rs1 = rgba.stride(1);
   for (int64_t i = 0 ; i < n ; ++i, r += rs0, ro += ros0)
@@ -239,7 +239,7 @@ static void blend_rgb_to_rgba(const CArray &rgb, const CArray &rgba)
 extern "C" PyObject *
 blend_rgb_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
-  CArray rgb, rgba;
+  BArray rgb, rgba;
   const char *kwlist[] = {"rgb", "rgba", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
 				   (char **)kwlist,
@@ -261,10 +261,10 @@ blend_rgb_to_rgba(PyObject *, PyObject *args, PyObject *keywds)
 
 // ----------------------------------------------------------------------------
 //
-static void blend_rgba(const CArray &rgba1, const CArray &rgba2)
+static void blend_rgba(const BArray &rgba1, const BArray &rgba2)
 {
   int64_t n = rgba1.size(0);
-  unsigned char *q = (unsigned char *)rgba1.values(), *r = (unsigned char *)rgba2.values();
+  unsigned char *q = rgba1.values(), *r = rgba2.values();
   int64_t qs0 = rgba1.stride(0), qs1 = rgba1.stride(1);
   int64_t rs0 = rgba2.stride(0), rs1 = rgba2.stride(1);
   int m = 255;
@@ -283,7 +283,7 @@ static void blend_rgba(const CArray &rgba1, const CArray &rgba2)
 extern "C" PyObject *
 blend_rgba(PyObject *, PyObject *args, PyObject *keywds)
 {
-  CArray rgba1, rgba2;
+  BArray rgba1, rgba2;
   const char *kwlist[] = {"rgba1", "rgba2", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&"),
 				   (char **)kwlist,

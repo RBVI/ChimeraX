@@ -18,7 +18,7 @@
 #include <cmath>			// use std:isnan()
 
 #include <arrays/pythonarray.h>		// use parse_uint8_n_array()
-#include <arrays/rcarray.h>		// use CArray
+#include <arrays/rcarray.h>		// use FArray
 
 inline float inner(const float* u, const float* v)
 {

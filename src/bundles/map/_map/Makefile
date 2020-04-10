@@ -19,7 +19,7 @@ SRCS	= boxcut.cpp colors.cpp combine.cpp contourdata.cpp contourpy.cpp \
 	  distgrid.cpp extendmap.cpp fitting.cpp fittingpy.cpp  \
 	  gaussian.cpp  histogram.cpp interpolate.cpp interpolatepy.cpp \
 	  localcorr.cpp module.cpp moments.cpp occupancy.cpp \
-	  segsurf.cpp squaremesh.cpp transfer.cpp
+	  squaremesh.cpp transfer.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS	+= $(PYDEF)
 INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)

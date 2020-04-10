@@ -62,6 +62,9 @@ def _read_block(session, stream, line_number):
     s.comment = stream.readline().strip()
     line_number += 1
 
+    # import convenience function for adding atoms
+    from chimerax.atomic.struct_edit import add_atom
+
     # There should be "count" lines of atoms.
     for n in range(count):
         atom_line = stream.readline()
@@ -89,9 +92,7 @@ def _read_block(session, stream, line_number):
 
         # Create atom in AtomicStructure instance 's',
         # set its coordinates, and add to residue
-        atom = s.new_atom(name, element)
-        atom.coord = array(xyz, dtype=float64)
-        residue.add_atom(atom)
+        atom = add_atom(name, element, residue, array(xyz, dtype=float64))
 
     # Use AtomicStructure method to add bonds based on interatomic distances
     s.connect_structure()

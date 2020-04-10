@@ -33,6 +33,7 @@
 
   <Providers manager="start structure">
     <Provider name="atom"/>
+    <Provider name="peptide"/>
   </Providers>
 
   <Classifiers>
