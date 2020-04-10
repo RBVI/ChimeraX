@@ -14,8 +14,13 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/atomic
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/atomic
-ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
 INSTALL_MOD = ../../src
+
+ifdef WIN32
+ARRAYS_DIR = '$(shell cygpath -m '$(APP_PYSITEDIR)/chimerax/arrays')'
+else
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
+endif
 
 PYMOD_NAME = _ribbons
 SRCS	= normals.cpp parse.cpp ribbons.cpp spline.cpp xsection.cpp

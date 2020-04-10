@@ -19,7 +19,11 @@ LIBNAME = atomstruct
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
+ifdef WIN32
+ARRAYS_DIR = '$(shell cygpath -m '$(APP_PYSITEDIR)/chimerax/arrays')'
+else
 ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
+endif
 
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))

@@ -16,7 +16,11 @@ SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp ribbon_cpp
 
 include $(TOP)/mk/subdir.make
 
+ifdef WIN32
+ARRAYS_DIR = '$(shell cygpath -m '$(APP_PYSITEDIR)/chimerax/arrays')'
+else
 ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
+endif
 
 LIBNAME = molc
 
