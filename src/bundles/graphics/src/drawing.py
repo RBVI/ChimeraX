@@ -1675,6 +1675,8 @@ class _DrawShape:
                     self._edge_mask, self._tri_mask = edge_mask, tmask
                 ta = me
         elif style == Drawing.Dot:
+            if tmask is not None:
+                ta = ta[tmask,:]
             from numpy import unique
             ta = unique(ta)
         return ta
