@@ -49,7 +49,7 @@ $(SHLIB): imex.h $(OBJS)
 	$(SHLIB_LINK)
 
 clean:
-	rm -f $(SHLIB) $(OBJS) imex.h
+	rm -f $(SHLIB) $(OBJS)
 ifdef WIN32
 	rm -f lib$(LIBNAME).{lib,exp,pdb} vc*.pdb
 endif
