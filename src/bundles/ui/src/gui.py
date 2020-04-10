@@ -1180,6 +1180,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             color_menu.addAction(action)
             action.triggered.connect(lambda *args, run=run, ses=self.session,
                 cmd="color %%s %s" % svg_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        color_menu.addSeparator()
+        for menu_text, cmd_arg in [("By Heteroatom", "byhet"), ("By Element", "byelement")]:
+            action = QAction(menu_text, self)
+            color_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="color %%s %s" % cmd_arg: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
