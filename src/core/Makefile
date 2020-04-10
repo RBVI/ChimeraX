@@ -25,7 +25,6 @@ endif
 include $(TOP)/mk/subdir.make
 
 BUNDLE_NAME = ChimeraX-Core
-BUNDLE_VERSION = 0.94
 PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
@@ -39,6 +38,9 @@ shlibdir := $(shell cygpath -m '$(shlibdir)' | sed 's,/,\\\\\\\\,g')
 datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
+
+BUNDLE_VERSION = 0.94
+BUNDLE_VERSION := $(shell $(PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
 
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
@@ -103,7 +105,7 @@ pylint:
 .PHONY: buildinfo.py
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
-	$(PYTHON_EXE) mkbuildinfo $(BUILD_TOP) $(BUNDLE_VERSION) > buildinfo.py || (rm buildinfo.py ; exit 1)
+	$(PYTHON_EXE) mkbuildinfo -b $(BUILD_TOP) $(BUNDLE_VERSION) || (rm buildinfo.py ; exit 1)
 
 _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx
