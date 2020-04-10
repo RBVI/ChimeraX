@@ -13,6 +13,8 @@ blacklist = set([
     "chimerax.seqalign.align_algs.libalign_algs",  # non-importable dynamic lib
     "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests",  # test code
     "chimerax.dicom.scan_dicoms",  # development script
+    "chimerax.modeller.script_head", # fragment of a Modeller script
+    "chimerax.modeller.script_tail", # fragment of a Modeller script
 ])
 
 failed = 0
