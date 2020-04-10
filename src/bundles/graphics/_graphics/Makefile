@@ -14,6 +14,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/graphics
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/graphics
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
 
 PYMOD_NAME = _graphics
 SRCS	= blend_rgba.cpp count.cpp graphics.cpp \
@@ -21,16 +22,16 @@ SRCS	= blend_rgba.cpp count.cpp graphics.cpp \
 	  mesh_edges.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS	+= $(PYDEF)
-INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(ARRAYS_DIR)/include
 
 ifdef WIN32
-LIBS	+= libarrays.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib $(PYTHON_LIB)
 else
 ifeq ($(OS),Darwin)
-LIBS	+= -larrays $(PYTHON_LIB) -framework OpenGL
+LIBS	+= -L$(ARRAYS_DIR)/lib -larrays $(PYTHON_LIB) -framework OpenGL
 else
 ifeq ($(OS),Linux)
-LIBS	+= -larrays $(PYTHON_LIB) -lGL
+LIBS	+= -L$(ARRAYS_DIR)/lib -larrays $(PYTHON_LIB) -lGL
 else
 LIBS	+= -larrays $(PYTHON_LIB)
 endif

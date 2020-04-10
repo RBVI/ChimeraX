@@ -18,7 +18,7 @@ include $(TOP)/mk/config.make
 # Because core.models depends on graphics and geometry those are
 # installed first to test other bundles.
 #
-FIRST_SUBDIRS = bundle_builder geometry graphics
+FIRST_SUBDIRS = bundle_builder arrays geometry graphics
 
 REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter build_structure \

@@ -19,18 +19,20 @@ LIBNAME = atomstruct
 DIRNAME = $(shell basename `pwd`)
 DIRNAME := $(DIRNAME:_cpp=)
 
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
+
 SRCS	= $(wildcard *.cpp)
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 EXPANDED_INCS := $(INCS)
-INCS	= -I../include $(EXPANDED_INCS) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS	= -I../include $(EXPANDED_INCS) $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(ARRAYS_DIR)/include
 ifeq ($(OS),Darwin)
 CXXFLAGS	+= -Wno-logical-op-parentheses
 endif
 LIBS	+= tmpl/*.$(OBJ_EXT)
 ifeq ($(WIN32),msvc)
-LIBS	+= /LIBPATH:../lib libelement.lib libpyinstance.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib libarrays.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:../lib libelement.lib libpyinstance.lib libioutil.lib libchutil.lib libappdirs.lib liblogger.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib $(PYTHON_LIB)
 else
-LIBS	+= -L../lib -lelement -lpyinstance -lioutil -lchutil -lappdirs -llogger -larrays $(PYTHON_LIB)
+LIBS	+= -L../lib -lelement -lpyinstance -lioutil -lchutil -lappdirs -llogger -L$(ARRAYS_DIR)/lib -larrays $(PYTHON_LIB)
 endif
 
 $(SHLIB): imex.h $(OBJS) $(SUBDIR_INSTALL)

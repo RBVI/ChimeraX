@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-TOP	= ../../..
+TOP	= ../../../..
 include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/core

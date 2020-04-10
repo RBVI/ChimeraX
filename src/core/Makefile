@@ -13,7 +13,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 NO_SUBDIR_TEST=1
-SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp \
+SUBDIRS	+= appdirs_cpp _appdirs \
 	   chutil_cpp commands \
 	   ioutil_cpp logger_cpp \
 	   pysupport_cpp toolshed

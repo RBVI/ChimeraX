@@ -16,16 +16,18 @@ SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp ribbon_cpp
 
 include $(TOP)/mk/subdir.make
 
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
+
 LIBNAME = molc
 
 SRCS	= molc.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 HDRS 	= 
-INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -Iinclude
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -Iinclude -I$(ARRAYS_DIR)/include
 ifeq ($(WIN32),msvc)
-LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
 else
-LIBS	+= -Llib -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
+LIBS	+= -Llib -latomstruct -lelement -lpyinstance -L$(ARRAYS_DIR)/lib -larrays -llogger -lappdirs $(PYTHON_LIB)
 ifeq ($(OS),Linux)
 LDFLAGS += -Wl,-rpath,\$${ORIGIN}/lib:\$${ORIGIN}/../../../.. -Wl,--as-needed
 endif
