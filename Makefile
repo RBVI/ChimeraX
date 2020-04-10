@@ -46,6 +46,7 @@ endif
 	@echo 'Finished install at' `date`
 
 test src.test:
+	$(APP_PYTHON_EXE) cxtestimports.py
 	$(MAKE) -C src test
 
 sync:
