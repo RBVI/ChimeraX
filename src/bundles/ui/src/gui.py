@@ -1198,8 +1198,9 @@ class MainWindow(QMainWindow, PlainTextLog):
             cd.setOption(cd.NoButtons, True)
             cd.setOption(cd.ShowAlphaChannel, True)
             from chimerax.core.commands import run, sel_or_all
-            cd.currentColorChanged.connect(lambda clr, *, run=run, ses=self.session, sel_or_all=sel_or_all:
-                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']), clr.name())))
+            cd.currentColorChanged.connect(lambda clr, *, ses=self.session:
+                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
+                clr.name() + clr.name(clr.HexArgb)[1:3])))
             cd.destroyed.connect(lambda s=self: setattr(s, '_color_dialog', None))
         else:
             cd = self._color_dialog
