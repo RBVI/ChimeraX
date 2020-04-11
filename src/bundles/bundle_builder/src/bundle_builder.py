@@ -81,7 +81,7 @@ class BundleBuilder:
         else:
             print("Distribution is in %s" % self.wheel_path)
 
-    def make_install(self, session, test=True, debug=False, user=None):
+    def make_install(self, session, test=False, debug=False, user=None):
         self.make_wheel(test=test, debug=debug)
         from chimerax.core.commands import run
         cmd = "toolshed install %r" % self.wheel_path
