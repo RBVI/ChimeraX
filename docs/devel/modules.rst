@@ -96,6 +96,15 @@ Utility
 
     core/utils.rst
 
+Generic I/O
+-----------
+
+.. toctree::
+    :maxdepth: 1
+
+    bundles/io/src/io.rst
+
+    
 Surfaces
 --------
 

@@ -10,7 +10,7 @@ class _MyAPI(BundleAPI):
 
     api_version = 1
 
-    # Override method for opening file
+    # Implement provider method for opening file
     @staticmethod
     def run_provider(session, name, mgr):
         # 'run_provider' is called by a manager to invoke the 

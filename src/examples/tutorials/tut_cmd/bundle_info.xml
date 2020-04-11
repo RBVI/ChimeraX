@@ -5,7 +5,7 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ChimeraX-Tutorial_Command"
+<BundleInfo name="ChimeraX-TutorialCommand"
 	    version="0.1" package="chimerax.tut_cmd"
   	    minSessionVersion="1" maxSessionVersion="1">
 
