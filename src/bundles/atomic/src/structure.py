@@ -600,9 +600,8 @@ class Structure(Model, StructureData):
         when there are multiple positions.  Includes atoms and ribbons.
         '''
         ad = self._atoms_drawing
-        drawings = [ad]
-        from .ribbon import RibbonDrawing
-        drawings.extend(rd for rd in self.child_drawings() if isinstance(rd, RibbonDrawing))
+        rd = self._ribbons_drawing
+        drawings = [ad, rd]
         from chimerax.geometry import union_bounds
         b = union_bounds([d.bounds() for d in drawings if d is not None])
         return b
