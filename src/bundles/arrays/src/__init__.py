@@ -30,9 +30,5 @@ def load_libarrays():
     '''
     global _libarrays
     if _libarrays is None:
-        import sys
-        suffix = {'darwin':'.dylib', 'win32':'.dll', 'linux':'.so'}[sys.platform]
-        from os.path import dirname, join
-        path = join(dirname(__file__), 'lib', 'libarrays' + suffix)
-        from ctypes import cdll
-        _libarrays = cdll.LoadLibrary(path)
+        from . import _arrays
+        _libarrays = True
