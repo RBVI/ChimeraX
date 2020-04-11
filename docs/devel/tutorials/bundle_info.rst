@@ -783,6 +783,8 @@ The doc strings of that class discuss its methods in detail, but briefly:
   :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
   corresponding Python values).
 
+.. _save command:
+
 Saving Files
 ^^^^^^^^^^^^
 
