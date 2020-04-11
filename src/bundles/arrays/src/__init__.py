@@ -34,5 +34,5 @@ def load_libarrays():
         suffix = {'darwin':'.dylib', 'win32':'.dll', 'linux':'.so'}[sys.platform]
         from os.path import dirname, join
         path = join(dirname(__file__), 'lib', 'libarrays' + suffix)
-        from ctypes import cdll
-        _libarrays = cdll.LoadLibrary(path)
+        from ctypes import CDLL, RTLD_GLOBAL
+        _libarrays = CDLL(path, RTLD_GLOBAL)
