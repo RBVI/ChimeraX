@@ -51,7 +51,7 @@ class BundleBuilder:
         self._make_paths()
         self._make_setup_arguments()
 
-    def make_wheel(self, test=False, debug=False):
+    def make_wheel(self, debug=False):
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
@@ -72,8 +72,6 @@ class BundleBuilder:
         setup_args = ["--no-user-cfg", "build"]
         if debug:
             setup_args.append("--debug")
-        if test:
-            setup_args.append("test")
         setup_args.extend(["bdist_wheel"])
         built = self._run_setup(setup_args)
         if not built or not os.path.exists(self.wheel_path):
@@ -81,8 +79,8 @@ class BundleBuilder:
         else:
             print("Distribution is in %s" % self.wheel_path)
 
-    def make_install(self, session, test=False, debug=False, user=None):
-        self.make_wheel(test=test, debug=debug)
+    def make_install(self, session, debug=False, user=None):
+        self.make_wheel(debug=debug)
         from chimerax.core.commands import run
         cmd = "toolshed install %r" % self.wheel_path
         if user is not None:
