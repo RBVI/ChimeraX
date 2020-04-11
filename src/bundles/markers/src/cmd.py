@@ -25,6 +25,10 @@ def _create_marker_set(session, marker_set):
     if isinstance(marker_set, tuple):
         # Model id for creating a new marker set.
         model_id = marker_set
+        if session.models.list(model_id = model_id):
+            from chimerax.core.errors import UserError
+            raise UserError('Cannot create a marker set #%s with same model id as another model'
+                             % ','.join('%d'%i for i in model_id))
         from . import MarkerSet
         marker_set = MarkerSet(session)
         marker_set.id = model_id
