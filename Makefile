@@ -45,8 +45,15 @@ endif
 	$(APP_PYTHON_EXE) clean_app.py
 	@echo 'Finished install at' `date`
 
-test src.test:
+test src.test: testimports
 	$(MAKE) -C src test
+
+testimports:
+ifeq ($(OS),Windows)
+	$(subst .exe,-console.exe,$(APP_EXE)) --exit --nogui --silent cxtestimports.py
+else
+	$(APP_EXE) --exit --nogui --silent cxtestimports.py
+endif
 
 sync:
 	mkdir -p $(build_prefix)/sync/{python-only,binary}

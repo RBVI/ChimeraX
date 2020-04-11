@@ -80,18 +80,22 @@ devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
 
-def devel_build(session, path, test=True, debug=False, exit=False):
+def devel_build(session, path, test=None, debug=False, exit=False):
     '''Build a wheel in for the source code in bundle path.
 
     Parameters
     ----------
     path : string
       Path to folder containing bundle source code or bundle alias.
-    test : bool
-      Whether to run test after building wheel
+    debug : bool
+        Create a debug version.
+    exit : bool
+        Exit after finishing build.
     '''
+    if test is not None:
+        session.logger.warning("The test option has been removed")
     from chimerax.bundle_builder import BundleBuilder
-    _run(path, session.logger, exit, BundleBuilder.make_wheel, test=test, debug=debug)
+    _run(path, session.logger, exit, BundleBuilder.make_wheel, debug=debug)
 
 
 devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
@@ -101,19 +105,23 @@ devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path, test=True, user=None, debug=False, exit=False):
+def devel_install(session, path, test=None, user=None, debug=False, exit=False):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
     ----------
     path : string
       Path to folder containing bundle source code or bundle alias.
-    test : bool
-      Whether to run test after building wheel
+    debug : bool
+        Create a debug version.
+    exit : bool
+        Exit after finishing install.
     '''
+    if test is not None:
+        session.logger.warning("The test option has been removed")
     from chimerax.bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_install,
-         session, test=test, debug=debug, user=user)
+         session, debug=debug, user=user)
 
 
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg)],

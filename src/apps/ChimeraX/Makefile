@@ -178,12 +178,11 @@ ChimeraX-icon16.png:
 YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
 VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
 PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
-ifeq (,$(wildcard $(TOP)/last-commit))
+RELEASE =  $(shell $(PYTHON_EXE) geticoninfo.py -r)
+ifeq ($(RELEASE),prerelease)
 FLAGS = VS_FF_PRERELEASE
-else ifeq (master,$(shell awk '$$1 == "branch:" { print $$2; }' $(TOP)/last-commit))
-FLAGS = 0
 else
-FLAGS = VS_FF_PRERELEASE
+FLAGS = 0
 endif
 
 $(APP_NAME).ico: $(APP_NAME)-icon512.png

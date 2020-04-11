@@ -13,17 +13,18 @@ TOP = ../../../..
 include $(TOP)/mk/config.make
 
 PKG_DIR		= $(PYSITEDIR)/chimerax/chem_group
+ARRAYS_DIR	= $(APP_PYSITEDIR)/chimerax/arrays
 
 PYMOD_NAME	= _chem_group
 SRCS		= cg.cpp
 OBJS		= $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS		+= $(PYDEF)
-INCS 		+= $(PYTHON_INCLUDE_DIRS)
+INCS 		+= $(PYTHON_INCLUDE_DIRS) -I$(ARRAYS_DIR)/include
 LIBS		+= $(PYTHON_LIB)
 ifeq ($(WIN32),msvc)
-LIBS		+= libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib
+LIBS		+= libatomstruct.lib libelement.lib libpyinstance.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib
 else
-LIBS		+= -latomstruct -lelement -lpyinstance -larrays
+LIBS		+= -latomstruct -lelement -lpyinstance -L$(ARRAYS_DIR)/lib -larrays
 endif
 
 all: $(PYMOD)

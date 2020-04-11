@@ -13,6 +13,7 @@ TOP	= ../../../..
 include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/map
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
 
 PYMOD_NAME = _map
 SRCS	= boxcut.cpp colors.cpp combine.cpp contourdata.cpp contourpy.cpp \
@@ -22,11 +23,11 @@ SRCS	= boxcut.cpp colors.cpp combine.cpp contourdata.cpp contourpy.cpp \
 	  squaremesh.cpp transfer.cpp
 OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 DEFS	+= $(PYDEF)
-INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC)
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -I$(ARRAYS_DIR)/include
 ifdef WIN32
-LIBS	+= libarrays.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib $(PYTHON_LIB)
 else
-LIBS	+= -larrays $(PYTHON_LIB)
+LIBS	+= -L$(ARRAYS_DIR)/lib -larrays $(PYTHON_LIB)
 endif
 
 all: $(PYMOD)

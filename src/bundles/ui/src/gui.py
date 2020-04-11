@@ -450,6 +450,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
         self._is_quitting = False
+        self._color_dialog = None
 
         self._build_status()
         self._populate_menus(session)
@@ -1186,6 +1187,31 @@ class MainWindow(QMainWindow, PlainTextLog):
             color_menu.addAction(action)
             action.triggered.connect(lambda *args, run=run, ses=self.session,
                 cmd="color %%s %s" % cmd_arg: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action = QAction("From Editor", self)
+        color_menu.addAction(action)
+        action.triggered.connect(self._color_by_editor)
+
+    def _color_by_editor(self, *args):
+        if not self._color_dialog:
+            from PyQt5.QtWidgets import QColorDialog
+            self._color_dialog = cd = QColorDialog(self)
+            cd.setOption(cd.NoButtons, True)
+            cd.setOption(cd.ShowAlphaChannel, True)
+            from chimerax.core.commands import run, sel_or_all
+            cd.currentColorChanged.connect(lambda clr, *, ses=self.session:
+                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
+                clr.name() + clr.name(clr.HexArgb)[1:3])))
+            cd.destroyed.connect(lambda s=self: setattr(s, '_color_dialog', None))
+        else:
+            cd = self._color_dialog
+            # On Mac, Qt doesn't realize when the color dialog has been hidden by the red 'X' button, so
+            # "hide" it now so that Qt doesn't believe that the later show() is a no op.  Whereas on Windows
+            # doing a hide followed by a show causes the dialog to jump back to it's original screen
+            # position, so do the hide _only_ on Mac.
+            import sys
+            if sys.platform == "darwin":
+                cd.hide()
+        cd.show()
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction

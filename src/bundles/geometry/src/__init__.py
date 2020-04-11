@@ -11,6 +11,13 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# Load libarrays shared library needed by _geometry and
+# other C++ modules to parse numpy arrays.  This code loads
+# the library into the ChimeraX process so it does not need
+# to be on the runtime loader search path.
+from chimerax.arrays import load_libarrays
+load_libarrays()
+
 from .place import Place, Places, identity, rotation, vector_rotation, translation, scale, z_align
 from .place import product, orthonormal_frame, interpolate_rotation, transform_planes, look_at
 from .place import multiply_transforms
