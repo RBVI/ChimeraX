@@ -138,11 +138,12 @@ def register_marker_command(logger):
     from chimerax.core.commands import CmdDesc, register, FloatArg, ColorArg, BoolArg, StringArg
     from chimerax.core.commands import CenterArg, CoordSysArg, ModelIdArg, Or, EnumOf
     desc = CmdDesc(
-        required = [('marker_set', Or(MarkerSetArg, ModelIdArg)),
-                    ('position', CenterArg)],
-        keyword = [('radius', FloatArg),
+        required = [('marker_set', Or(MarkerSetArg, ModelIdArg))],
+        keyword = [('position', CenterArg),
+                   ('radius', FloatArg),
                    ('color', ColorArg),
                    ('coordinate_system', CoordSysArg)],
+        required_arguments = ['position'],
         synopsis = 'Place a marker'
     )
     register('marker', desc, marker, logger=logger)
@@ -175,16 +176,16 @@ def register_marker_command(logger):
     register('marker link', desc, marker_link, logger=logger)
 
     desc = CmdDesc(
-        required = [('marker_set', Or(MarkerSetArg, ModelIdArg)),
-                    ('position', CenterArg)],
-        keyword = [('to_position', CenterArg),
+        required = [('marker_set', Or(MarkerSetArg, ModelIdArg))],
+        keyword = [('position', CenterArg),
+                   ('to_position', CenterArg),
                    ('radius', FloatArg),
                    ('color', ColorArg),
                    ('coordinate_system', CoordSysArg),
                    ('label', StringArg),
                    ('label_height', FloatArg),
                    ('label_color', Or(EnumOf(['default']),ColorArg))],
-        required_arguments = ['to_position'],
+        required_arguments = ['position', 'to_position'],
         synopsis = 'Create two markers and a link between them'
     )
     register('marker segment', desc, marker_segment, logger=logger)

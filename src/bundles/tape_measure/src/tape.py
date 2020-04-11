@@ -110,7 +110,7 @@ class TapeMeasureMouseMode(MouseMode):
         p2 = '%.4g,%.4g,%.4g' % tuple(m2.scene_coord)
         from chimerax.core.colors import color_name
         cname = color_name(self._color)
-        cmd = ('marker segment %s %s to %s color %s radius %.4g label %s labelHeight %.4g labelColor %s'
+        cmd = ('marker segment %s position %s toPosition %s color %s radius %.4g label %s labelHeight %.4g labelColor %s'
                % (mset.atomspec, p1, p2, cname, self._radius, label, h, cname))
         from chimerax.core.commands import log_equivalent_command
         log_equivalent_command(mset.session, cmd)

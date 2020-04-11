@@ -499,7 +499,7 @@ def _mouse_place_marker(session, center, link_to_selected = False, select = True
 def _log_place_marker(mset, center, color, radius):
     c = '%.4g,%.4g,%.4g' % tuple(center)
     from chimerax.core.colors import color_name
-    cmd = 'marker %s %s color %s radius %.4g' % (mset.atomspec, c, color_name(color), radius)
+    cmd = 'marker %s position %s color %s radius %.4g' % (mset.atomspec, c, color_name(color), radius)
     from chimerax.core.commands import log_equivalent_command
     log_equivalent_command(mset.session, cmd)
 
