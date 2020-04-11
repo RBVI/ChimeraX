@@ -51,7 +51,7 @@ class BundleBuilder:
         self._make_paths()
         self._make_setup_arguments()
 
-    def make_wheel(self, test=True, debug=False):
+    def make_wheel(self, test=False, debug=False):
         # HACK: distutils uses a cache to track created directories
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
