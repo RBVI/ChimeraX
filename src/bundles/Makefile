@@ -27,7 +27,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  color_globe connect_structure core_formats \
 	  crosslinks crystal data_formats \
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
-	  gltf hbonds help_viewer ihm image_formats \
+	  gltf hbonds help_viewer hkcage ihm image_formats \
 	  interfaces io label list_info log \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
