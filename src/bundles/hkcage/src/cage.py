@@ -7,15 +7,65 @@
 #       http://viperdb.scripps.edu/icos_server.php?icspage=paradigm
 #
 def show_hk_lattice(session, h, k, radius, orientation = '222',
-                    color = (255,255,255,255),
-                    sphere_factor = 0, replace = True):
+                    color = (255,255,255,255), sphere_factor = 0,
+                    edge_radius = None, mesh = False, replace = True):
 
     varray, tarray, hex_edges = hk_icosahedron_lattice(h,k,radius,orientation)
     interpolate_with_sphere(varray, radius, sphere_factor)
 
+    name = 'Icosahedron h = %d, k = %d' % (h,k)
+    
+    if mesh:
+        model = sm = _cage_surface(session, name, replace)
+        sm.set_geometry(varray, None, tarray)
+        sm.color = color
+        sm.display_style = sm.Mesh
+        sm.edge_mask = hex_edges    # Hide spokes of hexagons.
+        if sm.id is None:
+            session.models.add([sm])
+    else:
+        # Make cage from markers.
+        from chimerax.core.models import Surface
+        sm = Surface(name, session)
+        sm.set_geometry(varray, None, tarray)
+        sm.color = color
+        sm.display_style = sm.Mesh
+        sm.edge_mask = hex_edges    # Hide spokes of hexagons.
+        if edge_radius is None:
+            edge_radius = .01 * radius
+        mset = _cage_markers(session, name) if replace else None
+        from chimerax.markers.cmd import markers_from_mesh
+        model = markers_from_mesh(session, [sm], color = color,
+                                  edge_radius = edge_radius, markers = mset)
+        model.name = name
+        if mset:
+            mset._prev_markers.delete()
+
+    model.hkcage = True
+
+    return model
+
+# -----------------------------------------------------------------------------
+#
+def _cage_markers(session, name):
+    
+    from chimerax.markers import MarkerSet
+    mlist = [m for m in session.models.list(type = MarkerSet)
+             if hasattr(m, 'hkcage')]
+    if mlist:
+        mset = mlist[0]
+        mset._prev_markers = mset.atoms
+        mset.name = name
+        mset.hkcage = True
+        return mset
+    return None
+
+# -----------------------------------------------------------------------------
+#
+def _cage_surface(session, name, replace):
+    
     # Make new surface model or find an existing one.
     sm = None
-    name = 'Icosahedron h = %d, k = %d' % (h,k)
     from chimerax.core.models import Surface
     if replace:
         mlist = [m for m in session.models.list(type = Surface)
@@ -23,21 +73,9 @@ def show_hk_lattice(session, h, k, radius, orientation = '222',
         if mlist:
             sm = mlist[0]
             sm.name = name
-
-    new_model = (sm is None)
-    if new_model:
+    if sm is None:
         sm = Surface(name, session)
-        sm.hkcage = True
-
-    sm.set_geometry(varray, None, tarray)
-    sm.color = color
-    sm.display_style = sm.Mesh
-    sm.edge_mask = hex_edges    # Hide spokes of hexagons.
-
-    if new_model:
-        # Open after setting geometry so initial bounds are correct
-        session.models.add([sm])
-
+    sm.hkcage = True
     return sm
 
 # -----------------------------------------------------------------------------

@@ -14,14 +14,15 @@
 # -----------------------------------------------------------------------------
 #
 def hkcage(session, h, k, radius = 100.0, orientation = '222', color = (255,255,255,255),
-           sphere_factor = 0.0, replace = True):
+           sphere_factor = 0.0, edge_radius = None, mesh = False, replace = True):
 
     if h == 0 and k == 0:
         from chimerax.core.errors import UserError
         raise UserError('h and k must be positive, got %d %d' % (h,k))
 
     from .cage import show_hk_lattice
-    show_hk_lattice(session, h, k, radius, orientation, color, sphere_factor, replace)
+    show_hk_lattice(session, h, k, radius, orientation, color, sphere_factor,
+                    edge_radius, mesh, replace)
 
 # -----------------------------------------------------------------------------
 #
@@ -37,6 +38,8 @@ def register_hkcage_command(logger):
                    ('orientation', EnumOf(coordinate_system_names)),
                    ('color', Color8Arg),
                    ('sphere_factor', FloatArg),
+                   ('edge_radius', FloatArg),
+                   ('mesh', BoolArg),
                    ('replace', BoolArg)],
         synopsis = 'Create icosahedron mesh of hexagons and pentagons'
     )
