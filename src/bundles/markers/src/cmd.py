@@ -121,7 +121,6 @@ def markers_from_mesh(session, surfaces, edge_radius = 1, color = None,
     if markers is None:
         from . import MarkerSet
         markers = MarkerSet(session, 'Mesh ' + surfaces[0].name)
-        session.models.add([markers])
 
     for s in surfaces:
         varray = s.vertices
@@ -147,7 +146,10 @@ def markers_from_mesh(session, surfaces, edge_radius = 1, color = None,
             m1 = vmarker[v1]
             m2 = vmarker[v2]
             create_link(m1, m2, rgba=ecolor, radius=edge_radius)
-      
+
+    if markers.id is None:
+        session.models.add([markers])
+        
     return markers
 
 def _masked_edges(surface):
