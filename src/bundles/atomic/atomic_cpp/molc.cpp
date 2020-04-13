@@ -5385,7 +5385,7 @@ extern "C" EXPORT void metadata(void *mols, size_t n, pyobject_t *headers)
     }
 }
 
-extern "C" EXPORT void set_metadata_entry(void** mols, size_t n, PyObject* key, PyObject* values)
+extern "C" EXPORT void set_metadata_entry(void* mols, size_t n, PyObject* key, PyObject* values)
 {
     if (!PyUnicode_Check(key)) {
         PyErr_Format(PyExc_ValueError, "Expected key to be a string");
@@ -5405,12 +5405,11 @@ extern "C" EXPORT void set_metadata_entry(void** mols, size_t n, PyObject* key, 
             cpp_values.push_back(string_from_unicode(fast_array[i]));
         }
         std::string cpp_key = string_from_unicode(key);
-        //Structure **m = static_cast<Structure **>(mols);
+        Structure **m = static_cast<Structure **>(mols);
         for (size_t i = 0; i < n; ++i) {
-            Structure* m = dynamic_cast<Structure*>(mols[i]);
             if (m == nullptr)
                 continue;
-            auto& metadata = m->metadata;
+            auto& metadata = m[i]->metadata;
             metadata[cpp_key] = cpp_values;
         }
     } catch (...) {
