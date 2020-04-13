@@ -368,6 +368,11 @@ class StructureDatas(Collection):
     '''Returns an array of shapes for ribbon tethers.'''
     metadata = cvec_property('metadata', pyobject, read_only = True)
     '''Return a list of dictionaries with metadata. Read only.'''
+    def set_metadata_entry(self, key, values):
+        """Set metadata dictionary entry"""
+        n = len(self)
+        f = c_array_function('set_metadata_entry', args=(pyobject, pyobject), per_object=False)
+        f(self._c_pointers, n, key, values)
     ribbon_tether_opacities = cvec_property('structure_ribbon_tether_opacity', float32)
     '''Returns an array of opacity scale factor for ribbon tethers.'''
     ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)

@@ -108,9 +108,9 @@ class PrepRotamersDialog(ToolInstance):
         from chimerax.atomic.rotamers import NoResidueRotamersError
         lib_name = StringArg.unparse(self.rot_lib_option.value)
         try:
-            run(self.session, "swapaa interactive sel %s lib %s" % (res_type, lib_name))
+            run(self.session, "swapaa interactive sel %s rotLib %s" % (res_type, lib_name))
         except NoResidueRotamersError:
-            run(self.session, "swapaa sel %s lib %s" % (res_type, lib_name))
+            run(self.session, "swapaa sel %s rotLib %s" % (res_type, lib_name))
 
     def lib_res_list(self):
         res_name_list = list(self.rot_lib.residue_names) + ["ALA", "GLY"]
@@ -183,10 +183,10 @@ class RotamerDialog(ToolInstance):
             # being called directly rather than during session restore
             self.finalize_init(*args)
 
-    def finalize_init(self, mgr, res_type, lib_display_name, *, table_info=None):
+    def finalize_init(self, mgr, res_type, rot_lib, *, table_info=None):
         self.mgr = mgr
         self.res_type = res_type
-        self.lib_display_name = lib_display_name
+        self.rot_lib = rot_lib
 
         self.subdialogs = {}
         from collections import OrderedDict
@@ -210,6 +210,7 @@ class RotamerDialog(ToolInstance):
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
+        lib_display_name = self.session.rotamers.library(rot_lib).display_name
         layout.addWidget(QLabel("%s %s rotamers" % (lib_display_name, res_type)))
         column_disp_widget = QWidget()
         class RotamerTable(ItemTable):
@@ -296,18 +297,24 @@ class RotamerDialog(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst.finalize_init(data['mgr'], data['res_type'], data['lib_display_name'],
-            table_info=data['table info'])
+        lib_display_name = data['lib_display_name']
+        for lib_name in session.rotamers.library_names(installed_only=True):
+            lib = session.rotamers.library(lib_name)
+            if lib.display_name == lib_display_name:
+                break
+        else:
+            raise RuntimeError("Cannot restore Rotamers tool because %s rotamer library is not installed"
+                % lib_display_name)
+        inst.finalize_init(data['mgr'], data['res_type'], lib_name, table_info=data['table info'])
         return inst
 
     def take_snapshot(self, session, flags):
         import sys
-        print("take_snapshot for", self, file=sys.__stderr__)
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'mgr': self.mgr,
             'res_type': self.res_type,
-            'lib_display_name': self.lib_display_name,
+            'lib_display_name': session.rotamers.library(self.rot_lib).display_name,
             'table info': (self.table.session_info(), [(col_type, c.title, c.data_fetch, c.display_format)
                 for col_type, c in self.opt_columns.items()])
         }
@@ -323,10 +330,11 @@ class RotamerDialog(ToolInstance):
                     " add a column to the table.")
         rot_nums = [r.id[-1] for r in rots]
         from chimerax.core.commands import run
-        cmd = "swapaa %s %s criteria %s" % (
+        cmd = "swapaa %s %s criteria %s rotLib %s" % (
             self.mgr.base_residue.string(style="command"),
             self.res_type,
             ",".join(["%d" % rn for rn in rot_nums]),
+            self.rot_lib,
         )
         if self.retain_side_chain:
             cmd += " retain %s" % str(self.retain_side_chain.isChecked()).lower()

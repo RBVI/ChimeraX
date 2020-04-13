@@ -1,7 +1,5 @@
 include ../Makefile.bundle
 
-DEVEL_ARGS = test false
-
 CSRCS = $(wildcard _mmtf/*.cpp)
 HEADERS = $(MMTF_CPP_SOURCE) $(MSGPACK_SOURCE)
 

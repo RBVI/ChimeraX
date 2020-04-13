@@ -21,7 +21,7 @@ from .settings import defaults
 def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=None,
         clash_score_method="sum", clash_overlap_cutoff=None, criteria=default_criteria, density=None,
         hbond_angle_slop=None, hbond_dist_slop=None, hbond_relax=True, ignore_other_models=False,
-        lib=defaults['library'], log=True, preserve=None, retain=False):
+        rot_lib=defaults['library'], log=True, preserve=None, retain=False):
     """backend implementation of "swapaa" command."""
     rotamers = {}
     destroy_list = []
@@ -39,9 +39,9 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
             for alt_loc in alt_locs:
                 CA.alt_loc = alt_loc
                 try:
-                    rots = get_rotamers(session, res, res_type=r_type, lib=lib, log=log)
+                    rots = get_rotamers(session, res, res_type=r_type, rot_lib=rot_lib, log=log)
                 except UnsupportedResTypeError:
-                    raise LimitationError("%s rotamer library does not support %s" %(lib, r_type))
+                    raise LimitationError("%s rotamer library does not support %s" %(rot_lib, r_type))
                 except NoResidueRotamersError:
                     if log:
                         session.logger.info("Swapping %s to %s\n" % (res, r_type))
@@ -51,7 +51,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
                         raise UserError(str(e))
                     continue
                 except NoRotamerLibraryError:
-                    raise UserError("No rotamer library named '%s'" % lib)
+                    raise UserError("No rotamer library named '%s'" % rot_lib)
                 if preserve is not None:
                     rots = prune_by_chis(session, rots, res, preserve, log=log)
                 by_alt_loc[alt_loc] = rots
@@ -184,7 +184,7 @@ def swap_aa(session, residues, res_type, *, bfactor=None, clash_hbond_allowance=
     for rot in destroy_list:
         rot.delete()
 
-def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib="Dunbrack", log=False):
+def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, rot_lib="Dunbrack", log=False):
     """Takes a Residue instance and optionally phi/psi angles (if different from the Residue), residue
        type (e.g. "TYR"), and/or rotamer library name.  Returns a list of AtomicStructure instances (sublass of
        AtomicStructure).  The AtomicStructure are each a single residue (a rotamer) and are in descending
@@ -195,8 +195,8 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
     if res_type == "ALA" or res_type == "GLY":
         raise NoResidueRotamersError("No rotamers for %s" % res_type)
 
-    if not isinstance(lib, RotamerLibrary):
-        lib = session.rotamers.library(lib)
+    if not isinstance(rot_lib, RotamerLibrary):
+        rot_lib = session.rotamers.library(rot_lib)
 
     # check that the residue has the n/c/ca atoms needed to position the rotamer
     # and to ensure that it is an amino acid
@@ -222,13 +222,13 @@ def get_rotamers(session, res, phi=None, psi=None, cis=False, res_type=None, lib
                 al_info = ""
             session.logger.info("%s%s: phi %s, psi %s %s" % (res, al_info, _info(phi), _info(psi),
                 "cis" if cis else "trans"))
-    session.logger.status("Retrieving rotamers from %s library" % lib.display_name)
-    res_template_func = lib.res_template_func
-    params = lib.rotamer_params(res_type, phi, psi, cis=cis)
-    session.logger.status("Rotamers retrieved from %s library" % lib.display_name)
+    session.logger.status("Retrieving rotamers from %s library" % rot_lib.display_name)
+    res_template_func = rot_lib.res_template_func
+    params = rot_lib.rotamer_params(res_type, phi, psi, cis=cis)
+    session.logger.status("Rotamers retrieved from %s library" % rot_lib.display_name)
 
-    mapped_res_type = lib.res_name_mapping.get(res_type, res_type)
-    template = lib.res_template_func(mapped_res_type)
+    mapped_res_type = rot_lib.res_name_mapping.get(res_type, res_type)
+    template = rot_lib.res_template_func(mapped_res_type)
     tmpl_N = template.find_atom("N")
     tmpl_CA = template.find_atom("CA")
     tmpl_C = template.find_atom("C")
