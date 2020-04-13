@@ -2,7 +2,6 @@ include ../Makefile.bundle
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-DEVEL_ARGS = test false
 CSRCS = connect_cpp/imex.h connect_cpp/connect.cpp connect_cpp/connect.h \
 	pdbio_cpp/PDBio.cpp
 CLEAN_ALWAYS =	src/lib src/include src/*.$(PYMOD_EXT) \
