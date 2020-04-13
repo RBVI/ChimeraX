@@ -103,7 +103,7 @@ def standard_shortcuts(session):
         ('nt', show_triangle_count, 'Show scene triangle count', gcat, sesarg, smenu),
 
         # Maps
-        ('sM', if_sel_maps('volume sel show'), 'Show map', mapcat, sesarg, mmenu),
+        ('sM', if_sel_maps('volume sel show', hidden=True), 'Show map', mapcat, sesarg, mmenu),
         ('hM', if_sel_maps('volume sel hide'), 'Hide map', mapcat, sesarg, mmenu),
         ('ft', fit_molecule_in_map, 'Fit molecule in map', mapcat, sesarg, mmenu),
         ('fT', fit_map_in_map, 'Fit map in map', mapcat, sesarg, mmenu),
@@ -491,19 +491,24 @@ def if_sel_atoms(sel_cmd, all_cmd = None):
         run(session, cmd)
     return sel_or_all
   
-def if_sel_maps(sel_cmd, all_cmd = None):
+def if_sel_maps(sel_cmd, all_cmd = None, hidden = False):
     from chimerax.map import Volume
-    return if_sel_models(sel_cmd, all_cmd, model_class = Volume)
+    return if_sel_models(sel_cmd, all_cmd, model_class = Volume, hidden = hidden)
   
-def if_sel_models(sel_cmd, all_cmd = None, model_class = None):
+def if_sel_models(sel_cmd, all_cmd = None, model_class = None, hidden = False):
     if all_cmd is None:
         all_cmd = sel_cmd.replace(' sel', '')
     def sel_or_all(session):
         msel = [m for m in session.models.list(type = model_class) if m.selected]
-        mspec = shown_models_spec(session, model_class)
         if msel:
             cmd = sel_cmd
         else:
+            mspec = shown_models_spec(session, model_class)
+            if mspec == '':
+                if hidden:
+                    mspec = 'all'
+                else:
+                    return	# No models shown
             cmd = all_cmd if mspec == 'all' else sel_cmd.replace(' sel', ' ' + mspec)
         run(session, cmd)
     return sel_or_all
@@ -513,6 +518,8 @@ def shown_models_spec(session, model_class = None):
     mshown = [m for m in mlist if m.visible]
     if len(mlist) == len(mshown):
         spec = 'all' if mshown else ''
+    elif len(mshown) == 0:
+        spec = ''
     else:
         from chimerax.core.commands import concise_model_spec
         spec = concise_model_spec(session, mshown)
