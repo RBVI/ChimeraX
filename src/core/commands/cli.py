@@ -590,8 +590,8 @@ class Aggregate(Annotation):
         return result, used, rest
 
     def unparse(self, value, session=None):
-        conj = '%s ' % self.separator
-        return conj.join(self.annotation.unparse(v) for v in value)
+        # consecutive tuples are easier to "visually parse" if no internal spaces
+        return self.separator.join(self.annotation.unparse(v) for v in value)
 
 
 class ListOf(Aggregate):
