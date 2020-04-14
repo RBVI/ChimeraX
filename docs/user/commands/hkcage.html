@@ -39,6 +39,7 @@ class="clRight" title="User Guide Index"/></a>
 The <b>hkcage</b> command creates a cage of hexagons and pentagons to
 represent the arrangement of proteins in an icosahedral virus capsid.
 See also: 
+<a href="marker.html"><b>marker</b></a>,
 <a href="../tools/cagebuilder.html"><b>Cage Builder</b></a>
 </p><p>
 The arrangement of subunits in an icosahedral capsid can be described
@@ -63,7 +64,7 @@ Johnson JE, Speir JA.
 The arguments <i>h</i> and <i>k</i> are required;
 each can be a positive integer or zero, but not both zero at the same time.
 </p><p>
-The new cage model is centered at (0,0,0).
+The cage is centered at (0,0,0).
 It is created as a <a href="../markers.html">marker model</a> 
 unless <a href="#mesh"><b>mesh true</b></a>
 is used to specify a surface model instead.
@@ -131,7 +132,7 @@ Whether to create a wire-mesh surface model instead of a
 If a surface model is created, a
 <a href="../markers.html">marker model</a> can be generated 
 from it later with the command 
-<a href="marker.html#fromMesh"><b>marker fromMesh</b></a>.
+<a href="marker.html#create"><b>marker fromMesh</b></a>.
 </blockquote>
 <blockquote>
   <b>replace</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false

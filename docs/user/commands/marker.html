@@ -150,8 +150,9 @@ See also: <a href="label.html"><b>label</b></a>
 The <b>marker fromMesh</b> command creates markers and links (shown as sticks)
 from a surface mesh, which can only be shown as lines.
 The <b>edgeRadius</b> option sets stick radius (default <b>1.0</b> 
-in physical distance units). The <b>color</b> default is to match
-the color of the surface model (in single-color mode).
+in physical distance units). The <b>color</b> default is the same as
+the surface model, where each marker gets the corresponding vertex color
+and each link (stick) is assigned the average color of its two endpoints.
 The <b>markers</b> option allows adding the new markers and links 
 to an existing marker model.
 See also: <a href="hkcage.html"><b>hkcage</b></a>,
