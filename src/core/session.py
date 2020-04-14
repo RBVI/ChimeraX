@@ -462,8 +462,10 @@ class Session:
         """Reset session to data-less state"""
         self.metadata.clear()
         self.session_file_path = None
-        for tag in self._state_containers:
-            container = self._state_containers[tag]
+        for tag in list(self._state_containers):
+            container = self._state_containers.get(tag, None)
+            if container is None:
+                continue
             sm = self.snapshot_methods(container, base_type=StateManager)
             if sm:
                 sm.reset_state(container, self)
@@ -672,13 +674,15 @@ class Session:
             self.restore_options.clear()
             mgr.cleanup()
 
+
 def _have_graphics():
     # During build process ChimeraX is run before graphics module is installed.
     try:
-        import chimerax.graphics
+        import chimerax.graphics  # noqa
     except ImportError:
         return False
     return True
+
 
 class InScriptFlag:
 
@@ -1052,7 +1056,7 @@ def common_startup(sess):
     _register_core_database_fetch()
 
     if not _have_graphics():
-        # During build process ChimeraX is run before graphics module is installed.        
+        # During build process ChimeraX is run before graphics module is installed.
         return
 
     from .selection import Selection

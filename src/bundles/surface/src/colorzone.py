@@ -9,7 +9,30 @@
 #
 def color_zone(surface, points, point_colors, distance,
                sharp_edges = False, far_color = None, auto_update = True):
+    '''
+    Color a surface according to the nearest of specified points, with a color
+    associated with each point.  Surface vertices are colored if they are within
+    the specified distance of some point.  Surface vertices farther away are colored
+    by far_color or retain their original color if no far_color is specified.
 
+    surface : Surface model
+      Surface to color.
+    points : N x 3 array of float
+      Point positions in scene coordinates.
+    point_colors : N x 4 array of uint8 RGBA values
+      RGBA color for each point.
+    distance : float
+      Maximum distance of surface to point for coloring.
+    sharp_edges : bool
+      Whether to divide surface triangles so that the boundaries between
+      surface patches near different points show sharp color transitions
+      and the boundary curves are less jagged.
+    far_color : RGBA 4-tuple 0-255 range or None
+      Color for surface vertices further than distance from all points
+    auto_update : bool
+      Whether to automatically update the surface coloring when the surface shape changes.
+    '''
+    
     zc = ZoneColor(surface, points, point_colors, distance, sharp_edges,
                    far_color = far_color)
     zc.set_vertex_colors()

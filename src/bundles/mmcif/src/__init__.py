@@ -12,12 +12,13 @@
 # === UCSF ChimeraX Copyright ===
 
 # get PDB shared lib loaded...
-import chimerax.atomic.pdb
-from .mmcif import (
+import chimerax.atomic.pdb  # noqa
+from .mmcif import (  # noqa
     get_cif_tables, get_mmcif_tables, get_mmcif_tables_from_metadata,
     open_mmcif, fetch_mmcif, citations,
     TableMissingFieldsError, CIFTable,
-    find_template_residue, load_mmCIF_templates
+    find_template_residue, load_mmCIF_templates,
+    add_citation, add_software,
 )
 
 from chimerax.core.toolshed import BundleAPI
@@ -66,6 +67,7 @@ class _mmCIFioAPI(BundleAPI):
         if mgr == session.open_command:
             if name == "mmCIF":
                 from chimerax.open_command import OpenerInfo
+
                 class Info(OpenerInfo):
                     def open(self, session, data, file_name, **kw):
                         from . import mmcif
@@ -91,9 +93,10 @@ class _mmCIFioAPI(BundleAPI):
                     "pdbj": mmcif.fetch_mmcif_pdbj,
                 }[name]
                 from chimerax.open_command import FetcherInfo
+
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
-                            fetcher=fetcher, **kw):
+                              fetcher=fetcher, **kw):
                         return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
 
                     @property
@@ -105,6 +108,7 @@ class _mmCIFioAPI(BundleAPI):
                         }
         else:
             from chimerax.save_command import SaverInfo
+
             class Info(SaverInfo):
                 def save(self, session, path, **kw):
                     from . import mmcif_write
@@ -112,14 +116,14 @@ class _mmCIFioAPI(BundleAPI):
 
                 @property
                 def save_args(self):
-                    from chimerax.core.commands import BoolArg, ModelsArg, ModelArg, EnumOf
+                    from chimerax.core.commands import BoolArg, ModelsArg, ModelArg
                     return {
                         'displayed_only': BoolArg,
                         'models': ModelsArg,
                         'rel_model': ModelArg,
                         'selected_only': BoolArg,
                     }
-                    
+
         return Info()
 
 

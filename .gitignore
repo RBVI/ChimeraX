@@ -11,6 +11,7 @@
 *.orig
 *.rej
 # python generated
+*.lprof
 *.pyc
 *.pyo
 # OS generated

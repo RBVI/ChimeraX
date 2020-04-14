@@ -11,12 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-#
-def color_sample(session, surfaces, map, palette = None, range = None,
-                 offset = 0, transparency = None, update = True):
-    '''
-    Color surfaces using a palette and interpolated map value at each surface vertex.
+_color_map_args_doc = '''
 
     surfaces : list of models
       Surfaces to color.
@@ -30,25 +25,48 @@ def color_sample(session, surfaces, map, palette = None, range = None,
       Displacement distance along surface normals for sampling map when using map option.  Default 0.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
-    '''
+    update : bool
+      Whether to automatically update the surface coloring when the surface shape changes.
+'''
 
+# -----------------------------------------------------------------------------
+#
+def color_sample(session, surfaces, map, palette = None, range = None,
+                 offset = 0, transparency = None, update = True):
+    '''
+    Color surfaces using an interpolated map value at each surface vertex
+    with values mapped to colors by a color palette.
+    '''
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color sample')
+
+color_sample.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_electrostatic(session, surfaces, map, palette = None, range = None,
                         offset = 1.4, transparency = None, update = True):
+    '''
+    Color surfaces using an interpolated electrostatic potential map value
+    at each surface vertex with values mapped to colors by a color palette.
+    '''
+    
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color electrostatic')
     
+color_electrostatic.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_gradient(session, surfaces, map = None, palette = None, range = None,
                    offset = 0, transparency = None, update = True):
+    '''
+    Color surfaces using an map gradient norm value at each surface vertex
+    with values mapped to colors by a color palette.
+    '''
+
     if map is None:
         from chimerax.map import VolumeSurface
         if len(surfaces) != 1 or not isinstance(surfaces[0], VolumeSurface):
@@ -59,6 +77,8 @@ def color_gradient(session, surfaces, map = None, palette = None, range = None,
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
                         offset = offset, transparency = transparency, gradient = True,
                         auto_update = update, undo_name = 'color gradient')
+
+color_gradient.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
