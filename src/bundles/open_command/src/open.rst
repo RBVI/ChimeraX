@@ -12,6 +12,9 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+Open Command
+============
+
 .. module:: chimerax.open_command
 
 .. autoclass:: chimerax.open_command.OpenerInfo

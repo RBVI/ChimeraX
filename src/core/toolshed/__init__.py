@@ -89,7 +89,7 @@ Bundles that provide selectors need:
     A short description of the selector.  It is here for uninstalled selectors,
     so that users can get more than just a name for deciding whether
     they want the selector or not.
-4: ``atomic`` : str
+4. ``atomic`` : str
     An optional boolean specifying whether the selector applies to
     atoms and bonds.  Defaults to 'true' and should be set to
     'false' if selector should not appear in Basic Actions tool,
@@ -320,7 +320,9 @@ class Toolshed:
         # Insert directories to sys.path to take precedence over
         # installed distribution.  addsitedir checks and does not
         # add the directory a second time.
-        import site, os, sys
+        import site
+        import os
+        import sys
         self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
         os.makedirs(self._site_dir, exist_ok=True)
@@ -470,7 +472,7 @@ class Toolshed:
         from sortedcontainers import SortedDict
         available = SortedDict()
         for bi in self._get_available_bundles(logger):
-            #bi.register_available_commands(logger)
+            # bi.register_available_commands(logger)
             for ci in bi.commands:
                 a = available.get(ci.name, None)
                 if a is None:
@@ -486,6 +488,7 @@ class Toolshed:
             cd = CmdDesc(
                 optional=[('unknown_arguments', WholeRestOfLine)],
                 synopsis=synopsis)
+
             def cb(session, s=self, n=name, b=bundles, l=logger, unknown_arguments=None):
                 s._available_cmd(n, b, l)
             try:
@@ -622,7 +625,7 @@ class Toolshed:
         else:
             return []
 
-    def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None):
+    def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None, no_deps=False):
         """Supported API. Install the bundle by retrieving it from the remote shed.
 
         Parameters
@@ -688,11 +691,13 @@ class Toolshed:
                 args.append("--user")
             if reinstall:
                 args.append("--force-reinstall")
+            if no_deps:
+                args.append("--no-deps")
             self._add_restart_action("install", bundle_name, args, logger)
             return
         try:
             results = self._pip_install(bundle_name, logger,
-                                        per_user=per_user, reinstall=reinstall)
+                                        per_user=per_user, reinstall=reinstall, no_deps=no_deps)
         except PermissionError:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
@@ -887,9 +892,8 @@ class Toolshed:
         for bi in self._installed_bundle_info:
             for tool in bi.tools:
                 tname = tool.name.casefold()
-                if (tname == lc_name or
-                    (prefix_okay and tname.startswith(lc_name))):
-                        tools.append((bi, tool.name))
+                if tname == lc_name or (prefix_okay and tname.startswith(lc_name)):
+                    tools.append((bi, tool.name))
         return tools
 
     def find_bundle_for_command(self, cmd):
@@ -1012,7 +1016,7 @@ class Toolshed:
                     logger = session.logger
                     if logger:
                         logger.error("Manager initialization for %r failed to return the manager instance"
-                            % mgr)
+                                     % mgr)
                     continue
                 for pbi in all_bundles:
                     for name, kw in pbi.providers.items():
@@ -1139,7 +1143,7 @@ class Toolshed:
         import os.path
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
-    def _pip_install(self, bundle_name, logger, per_user=True, reinstall=False):
+    def _pip_install(self, bundle_name, logger, per_user=True, reinstall=False, no_deps=False):
         # Run "pip" with our standard arguments (index location, update
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
@@ -1147,11 +1151,12 @@ class Toolshed:
         command = ["install", "--upgrade",
                    "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
-                   "--no-warn-conflict",  # TODO: make optional
                    # "--only-binary", ":all:"   # msgpack-python is not binary
                    ]
         if per_user:
             command.append("--user")
+        if no_deps:
+            command.append("--no-deps")
         if reinstall:
             # XXX: Not sure how this interacts with "only-if-needed"
             command.append("--force-reinstall")
@@ -1219,7 +1224,7 @@ class Toolshed:
         # remove pip installed scripts since they have hardcoded paths to
         # python and thus don't work when ChimeraX is installed elsewhere
         from chimerax import app_bin_dir
-        import os, os.path
+        import os
         import sys
         if sys.platform.startswith('win'):
             # Windows
@@ -1272,6 +1277,8 @@ class Toolshed:
 
 
 import abc
+
+
 class ProviderManager(metaclass=abc.ABCMeta):
     """API for managers created by bundles
 
@@ -1754,7 +1761,8 @@ def default_toolshed_url():
 
 
 def restart_action_info():
-    import chimerax, os.path
+    import chimerax
+    import os
     inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
     restart_file = os.path.join(inst_dir, "on_restart")
     return inst_dir, restart_file
