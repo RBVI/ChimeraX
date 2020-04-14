@@ -23,18 +23,10 @@ commands: Register user commands
     :members:
     :show-inheritance:
 
-.. automodule:: chimerax.core.commands.symarg
-    :members:
-    :show-inheritance:
-
 .. automodule:: chimerax.core.commands.run
     :members:
     :show-inheritance:
 
 .. automodule:: chimerax.core.commands.runscript
-    :members:
-    :show-inheritance:
-
-.. automodule:: chimerax.core.commands.selectors
     :members:
     :show-inheritance:
