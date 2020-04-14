@@ -24,4 +24,4 @@ image data 3d arrays can have any scalar type supported by numpy (int8, uint8, i
 uint16, int32, uint32, int64, uint64, float32, float64).
 
 .. automodule:: chimerax.segment._segment
-    :members: watershed_regions, region_index_lists, region_contacts, region_bounds, region_point_count, region_points, region_maxima, interface_values, find_local_maxima, crosssection_midpoints, segment_surface, segment_surfaces, segment_group_surfaces
+    :members: watershed_regions, region_index_lists, region_contacts, region_bounds, region_point_count, region_points, region_maxima, interface_values, find_local_maxima, crosssection_midpoints, segmentation_surface, segmentation_surfaces
