@@ -43,6 +43,7 @@ ifndef WIN32
 	$(MAKE) -C vdocs install
 endif
 	$(APP_PYTHON_EXE) clean_app.py
+	$(APP_PYTHON_EXE) -m pip check
 	@echo 'Finished install at' `date`
 
 test src.test: testimports

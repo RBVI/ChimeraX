@@ -1147,6 +1147,7 @@ class Toolshed:
         command = ["install", "--upgrade",
                    "--extra-index-url", self.remote_url + "/pypi/",
                    "--upgrade-strategy", "only-if-needed",
+                   "--no-warn-conflict",  # TODO: make optional
                    # "--only-binary", ":all:"   # msgpack-python is not binary
                    ]
         if per_user:
