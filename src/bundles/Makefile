@@ -11,6 +11,7 @@
 
 TOP = ../..
 SUBDIR_SYNC = 1
+DEVEL_ARGS = noDeps true
 include $(TOP)/mk/config.make
 
 #
