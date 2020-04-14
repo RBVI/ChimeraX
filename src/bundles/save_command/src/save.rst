@@ -12,6 +12,9 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+Save Command
+============
+
 .. module:: chimerax.save_command
 
 .. autoclass:: chimerax.save_command.SaverInfo

@@ -411,7 +411,9 @@ turn
 ui
 ==
 .. autofunction:: chimerax.ui.cmd.ui_autostart
+  :noindex:
 .. autofunction:: chimerax.ui.cmd.ui_dockable
+  :noindex:                  
 .. autofunction:: chimerax.mouse_modes.cmd.ui_mousemode
 
 

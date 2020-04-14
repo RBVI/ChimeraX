@@ -179,7 +179,7 @@ link, but briefly:
 .. literalinclude:: ../../../src/examples/tutorials/tut_save/src/io.py
     :language: python
     :linenos:
-    :emphasize-lines: 109-153
+    :emphasize-lines: 109-147
 
 The ``open_xyz`` and ``_read_block`` functions are described in
 detail in :doc:`tutorial_read_format`.

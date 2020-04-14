@@ -89,7 +89,7 @@ Bundles that provide selectors need:
     A short description of the selector.  It is here for uninstalled selectors,
     so that users can get more than just a name for deciding whether
     they want the selector or not.
-4: ``atomic`` : str
+4. ``atomic`` : str
     An optional boolean specifying whether the selector applies to
     atoms and bonds.  Defaults to 'true' and should be set to
     'false' if selector should not appear in Basic Actions tool,
