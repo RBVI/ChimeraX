@@ -101,7 +101,6 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
     :returns: None if an existing file, otherwise the content type
     :raises urllib.request.URLError or EOFError if unsuccessful
 
-
     If 'update' and the filename already exists, fetch the HTTP headers for
     the URL and check the last modified date to see if there is a newer
     version or not.  If there isn't a newer version, return the filename.

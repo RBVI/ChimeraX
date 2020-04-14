@@ -20,6 +20,8 @@ from . import ctypes_support as convert
 # -------------------------------------------------------------------------------
 # Access functions from libmolc C library.
 #
+from chimerax.arrays import load_libarrays
+load_libarrays() 	# Load libarrrays shared library before importing libmolc.
 _atomic_c_functions = CFunctions('libmolc')
 c_property = _atomic_c_functions.c_property
 cvec_property = _atomic_c_functions.cvec_property
@@ -1353,6 +1355,11 @@ class StructureData:
         " :class:`.PseudobondGroup` for pseudobond groups belonging to this structure. Read only.")
     metadata = c_property('metadata', pyobject, read_only = True,
         doc = "Supported API. Dictionary with metadata. Read only.")
+    def set_metadata_entry(self, key, values):
+        """Set metadata dictionary entry"""
+        f = c_array_function('set_metadata_entry', args=(pyobject, pyobject), per_object=False)
+        s_ref = ctypes.byref(self._c_pointer)
+        f(s_ref, 1, key, values)
     pdb_version = c_property('pdb_version', int32, doc = "If this structure came from a PDB file,"
         " the major PDB version number of that file (2 or 3). Read only.")
     ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32,

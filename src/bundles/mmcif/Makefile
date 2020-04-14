@@ -1,7 +1,5 @@
 include ../Makefile.bundle
 
-DEVEL_ARGS = test false
-
 wheel install app-install:	lib
 clean: lib-clean
 

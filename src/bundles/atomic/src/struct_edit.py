@@ -13,7 +13,7 @@
 
 """
 struct_edit: molecular editing utilities
-=====================================
+========================================
 
 Utilities routines and constants useful for editing structures.  Higher level than
 the basic methods offered by Structure, etc. and therefore less likely to result in

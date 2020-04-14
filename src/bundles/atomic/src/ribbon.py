@@ -121,7 +121,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             smootime += time()-t0
             t0 = time()
 
-        # Create tube helices, one new RibbonDrawing for each helix.
+        # Create tube helices.
         if arc_helix:
             ribbon_adjusts = residues.ribbon_adjusts
             xsection = xs_mgr.xs_helix_tube

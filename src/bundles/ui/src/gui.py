@@ -1144,25 +1144,23 @@ class MainWindow(QMainWindow, PlainTextLog):
         surface_menu = actions_menu.addMenu("Surface")
         action = QAction("Show", self)
         surface_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="surface %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action.triggered.connect(lambda *args, run=self._run_surf_command, cmd="surface %s": run(cmd))
         action = QAction("Hide", self)
         surface_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="surface hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action.triggered.connect(lambda *args, run=self._run_surf_command, cmd="surface hide %s": run(cmd))
         surface_menu.addSeparator()
         for style in ["solid", "mesh", "dot"]:
             action = QAction(style.capitalize(), self)
             surface_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="surface style %%s %s" % style: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+            action.triggered.connect(lambda *args, run=self._run_surf_command,
+                cmd="surface style %%s %s" % style: run(cmd))
         surface_menu.addSeparator()
         transparency_menu = surface_menu.addMenu("Transparency")
         for percent in range(0, 101, 10):
             action = QAction("%d%%" % percent, self)
             transparency_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="transparency %%s %d" % percent: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+            action.triggered.connect(lambda *args, run=self._run_surf_command,
+                cmd="transparency %%s %d" % percent: run(cmd))
 
         #
         # Color...
@@ -1179,8 +1177,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             icon = QIcon(pixmap)
             action = QAction(icon, spaced_name.title(), self)
             color_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="color %%s %s" % svg_name: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+            action.triggered.connect(lambda *args, run=self._run_surf_command,
+                cmd="color %%s %s" % svg_name: run(cmd))
         color_menu.addSeparator()
         for menu_text, cmd_arg in [("By Heteroatom", "byhet"), ("By Element", "byelement")]:
             action = QAction(menu_text, self)
@@ -1212,6 +1210,23 @@ class MainWindow(QMainWindow, PlainTextLog):
             if sys.platform == "darwin":
                 cd.hide()
         cd.show()
+
+    def _run_surf_command(self, cmd):
+        from chimerax.core.commands import run, sel_or_all, NoneSelectedError
+        if self.session.selection.empty():
+            selector = ""
+        else:
+            try:
+                sel_or_all(self.session, ['atoms', 'bonds'])
+            except NoneSelectedError:
+                from chimerax.core.models import Surface
+                try:
+                    sel_or_all(self.session, Surface)
+                except NoneSelectedError:
+                    from chimerax.core.errors import UserError
+                    raise UserError("No atoms, bonds, or surfaces selected")
+            selector = "sel"
+        run(self.session, cmd % selector)
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction

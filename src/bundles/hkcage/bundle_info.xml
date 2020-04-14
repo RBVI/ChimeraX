@@ -1,0 +1,28 @@
+<BundleInfo name="ChimeraX-HKCage" version="1.0"
+	    package="chimerax.hkcage"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Create icosahedral mesh of hexagons and pentagons</Synopsis>
+  <Description>Create icosahedral mesh of hexagons and pentagons using h and k lattice parameters.</Description>
+
+  <Categories>
+    <Category name="Higher-Order Structure"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Markers" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: hkcage :: Higher-Order Structure :: Create icosahedral cage</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

@@ -15,7 +15,7 @@ from chimerax.core.errors import UserError
 
 default_criteria = "dchp"
 def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, criteria=default_criteria,
-    density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=False, lib=None, log=True,
+    density=None, dist_slop=None, hbond_allowance=None, ignore_other_models=False, rot_lib=None, log=True,
     preserve=None, relax=True, retain=False, score_method="num", overlap_cutoff=None):
     ''' Command to swap amino acid side chains '''
 
@@ -28,17 +28,17 @@ def swap_aa(session, residues, res_type, *, angle_slop=None, bfactor=None, crite
     elif preserve is not None:
         raise UserError("'preserve' not compatible with Nth-most-probable criteria")
 
-    if lib is None:
-        lib = session.rotamers.default_command_library_name
+    if rot_lib is None:
+        rot_lib = session.rotamers.default_command_library_name
 
     if log:
-        session.logger.info("Using %s library" % lib)
+        session.logger.info("Using %s library" % rot_lib)
 
     from . import swap_res
     swap_res.swap_aa(session, residues, res_type, bfactor=bfactor, clash_hbond_allowance=hbond_allowance,
         clash_score_method=score_method, clash_overlap_cutoff=overlap_cutoff,
         criteria=criteria, density=density, hbond_angle_slop=angle_slop,
-        hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, lib=lib, log=log,
+        hbond_dist_slop=dist_slop, ignore_other_models=ignore_other_models, rot_lib=rot_lib, log=log,
         preserve=preserve, hbond_relax=relax, retain=retain)
 
 from chimerax.core.state import StateManager
@@ -96,13 +96,13 @@ class _RotamerStateManager(StateManager):
                 self.triggers.activate_trigger('self destroyed', self)
                 self.destroy()
 
-def rotamers(session, residues, res_type, *, lib=None, log=True):
+def rotamers(session, residues, res_type, *, rot_lib=None, log=True):
     ''' Command to display possible side-chain rotamers '''
 
     residues = _check_residues(residues)
 
-    if lib is None:
-        lib = session.rotamers.default_command_library_name
+    if rot_lib is None:
+        rot_lib = session.rotamers.default_command_library_name
 
     ret_val = []
     from . import swap_res
@@ -113,12 +113,11 @@ def rotamers(session, residues, res_type, *, lib=None, log=True):
             r_type = r.name
         else:
             r_type = res_type.upper()
-        rotamers = swap_res.get_rotamers(session, r, res_type=r_type, lib=lib, log=log)
+        rotamers = swap_res.get_rotamers(session, r, res_type=r_type, rot_lib=rot_lib, log=log)
         mgr = _RotamerStateManager(session, r, rotamers)
         if session.ui.is_gui:
             from .tool import RotamerDialog
-            RotamerDialog(session,
-                "%s Side-Chain Rotamers" % r, mgr, res_type, session.rotamers.library(lib).display_name)
+            RotamerDialog(session, "%s Side-Chain Rotamers" % r, mgr, res_type, rot_lib)
         ret_val.append(mgr)
         rot_structs = AtomicStructures(rotamers)
         rot_objects = Objects(atoms=rot_structs.atoms, bonds=rot_structs.bonds)
@@ -149,7 +148,7 @@ def register_command(command_name, logger):
             ('dist_slop', FloatArg),
             ('hbond_allowance', FloatArg),
             ('ignore_other_models', BoolArg),
-            ('lib', DynamicEnum(logger.session.rotamers.library_names)),
+            ('rot_lib', DynamicEnum(logger.session.rotamers.library_names)),
             ('log', BoolArg),
             ('preserve', NonNegativeFloatArg),
             ('relax', BoolArg),
@@ -164,7 +163,7 @@ def register_command(command_name, logger):
     desc = CmdDesc(
         required = [('residues', ResiduesArg), ('res_type', StringArg)],
         keyword = [
-            ('lib', DynamicEnum(logger.session.rotamers.library_names)),
+            ('rot_lib', DynamicEnum(logger.session.rotamers.library_names)),
             ('log', BoolArg),
         ],
         synopsis = 'Show possible side-chain rotamers'
