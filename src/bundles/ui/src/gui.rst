@@ -43,8 +43,10 @@
 
 .. automodule:: chimerax.ui.options.containers
     :members:
+    :exclude-members: sizeHint
     :show-inheritance:
 
 .. automodule:: chimerax.ui.options.options
     :members:
+    :exclude-members: pyqtSignal
     :show-inheritance:
