@@ -50,6 +50,7 @@ Atomic data classes
 
 .. automodule:: chimerax.atomic.cymol
     :members:
+    :exclude-members: contextmanager, suppress_alt_loc_change_notifications
     :show-inheritance:
 
 .. automodule:: chimerax.atomic.molarray
