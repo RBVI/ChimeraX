@@ -8,6 +8,8 @@ mechanishm in bundle_info.xml.
 
 To register a URL scheme, add a provider in a bundle's bundle_info.xml:
 
+::
+   
   <Providers>
     <Provider name="help" manager="url_schemes" syntax="Path"/>
   </Providers>
