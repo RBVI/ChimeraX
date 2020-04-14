@@ -20,11 +20,14 @@ Standard Bundles and Python Modules
 Atomic Structures
 -----------------
 
-* :doc:`bundles/atomic/src/atomic`
+.. toctree::
+   :maxdepth: 1
+              
+   bundles/atomic/src/atomic.rst
 
-  * :doc:`bundles/mmcif/src/mmcif`
+   bundles/mmcif/src/mmcif.rst
 
-  * :doc:`bundles/atomic/src/pdbio`
+   bundles/atomic/src/pdbio.rst
 
 ChimeraX Core
 -------------
@@ -46,10 +49,6 @@ Data
   
 .. toctree::
     :maxdepth: 1
-
-    bundles/geometry/src/geometry.rst
-
-    bundles/graphics/src/graphics.rst
 
     core/models.rst
 
@@ -104,7 +103,34 @@ Generic I/O
 
     bundles/io/src/io.rst
 
+Geometry
+--------
+  
+.. toctree::
+    :maxdepth: 1
+
+    bundles/geometry/src/geometry.rst
+
+
+Graphics
+--------
+  
+.. toctree::
+    :maxdepth: 1
+
+    bundles/graphics/src/graphics.rst
+
+Open and Save
+-------------
+
+.. toctree::
+    :maxdepth: 1
+
+    bundles/open_command/src/open.rst
+
+    bundles/save_command/src/save.rst
     
+
 Surfaces
 --------
 
@@ -122,6 +148,10 @@ User Interface
 
     bundles/ui/src/gui.rst
 
+    bundles/scheme_mgr/scheme_mgr.rst
+
+    bundles/toolbar/toolbar.rst
+    
 Volume Data
 -----------
 

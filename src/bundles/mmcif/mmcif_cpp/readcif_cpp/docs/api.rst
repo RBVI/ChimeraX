@@ -218,7 +218,7 @@ C++ API
             A null callback function, removes the category.
             Dependencies must be registered first.
             A category callback function can find out which category
-            it is processing with :cpp:func:`category`.
+            it is processing with :cpp:func:`CIFFile::category`.
 
         .. cpp:function:: void set_unregistered_callback(ParseCategory callback)
 
