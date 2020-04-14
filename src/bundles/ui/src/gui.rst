@@ -17,6 +17,7 @@
 .. automodule:: chimerax.ui.gui
     :show-inheritance:
     :members:
+    :exclude-members: closeEvent, customEvent, dragEnterEvent, dropEvent, keyPressEvent, moveEvent, resizeEvent, event, quit
 
 .. automodule:: chimerax.ui.htmltool
     :show-inheritance:
