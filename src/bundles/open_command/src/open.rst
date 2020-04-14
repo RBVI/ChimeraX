@@ -12,6 +12,9 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
+open_command: Register file openers and database fetch
+======================================================
+
 .. module:: chimerax.open_command
 
 .. autoclass:: chimerax.open_command.OpenerInfo
