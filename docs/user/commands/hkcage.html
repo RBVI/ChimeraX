@@ -1,0 +1,146 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: hkcage</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: hkcage</h3>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>hkcage</b>&nbsp;&nbsp;<i>h</i>&nbsp;&nbsp;<i>k</i>
+[&nbsp;<b>radius</b>&nbsp;&nbsp;<i>cage-radius</i>&nbsp;]
+[&nbsp;<b>edgeRadius</b>&nbsp;&nbsp;<i>stick-radius</i>&nbsp;]
+[&nbsp;<b>orientation</b>&nbsp;&nbsp;<i>type</i>&nbsp;]
+[&nbsp;<b>sphereFactor</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>mesh</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<p>
+The <b>hkcage</b> command creates a cage of hexagons and pentagons to
+represent the arrangement of proteins in an icosahedral virus capsid.
+See also: 
+<a href="../tools/cagebuilder.html"><b>Cage Builder</b></a>
+</p><p>
+The arrangement of subunits in an icosahedral capsid can be described
+as a sheet of hexagons in which curvature is introduced by replacing
+certain hexagons with pentagons, as in a geodesic dome.
+The pentagons occupy the points of the icosahedron, while
+the indices <i>h</i> and <i>k</i> refer to the number and arrangement
+of hexagons in each face.  A virus T number
+(T = <i>h</i><sup>2</sup> + <i>hk</i> + <i>k</i><sup>2</sup>)
+is proportional to the number of subunits in the capsid.
+<a href="http://viperdb.scripps.edu/" target="_blank">VIPERdb</a>
+includes viruses with T = 1, 3, 4, 7, 13, and in a few cases, even higher.
+For more details, see the
+<a href="http://viperdb.scripps.edu/icos_server.php?icspage=paradigm"
+target="_blank">VIPERdb description</a> and the following reference:
+<blockquote>
+<a href="http://www.ncbi.nlm.nih.gov/pubmed/9223631" target="_blank">
+Quasi-equivalent viruses: a paradigm for protein assemblies.</a>
+Johnson JE, Speir JA.
+<i>J Mol Biol.</i> 1997 Jun 27;269(5):665-75.
+</blockquote>
+The arguments <i>h</i> and <i>k</i> are required;
+each can be a positive integer or zero, but not both zero at the same time.
+</p><p>
+The new cage model is centered at (0,0,0).
+It is created as a <a href="../markers.html">marker model</a> 
+unless <a href="#mesh"><b>mesh true</b></a>
+is used to specify a surface model instead.
+Hexagons are bent where they cross from one triangular face
+of the icosahedron to another, so that certain &ldquo;hexagon&rdquo; edges
+are formed by two straight segments rather than one.
+</p>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: hkcage</a>]
+</p>
+<h4>Options</h4>
+</a>
+<blockquote>
+  <b>radius</b> &nbsp;<i>cage-radius</i>
+  <br>
+Set cage size, where <i>cage-radius</i> is the distance from the 
+center of the icosahedron to a 5-fold vertex (default <b>100.0</b>
+in physical distance units).
+</blockquote>
+<blockquote>
+  <b>edgeRadius</b> &nbsp;<i>stick-radius</i>
+  <br>
+Set <a href="../markers.html">marker model</a>
+<i>stick-radius</i> (default 1% of the <i>cage-radius</i>).
+See also: <a href="size.html"><b>size</b></a>
+</blockquote>
+<blockquote>
+  <b>orientation</b> &nbsp;<i>type</i>
+  <br>
+The <i>type</i> of icosahedral orientation can be:
+  <ul>
+  <li><b>222</b> (default)
+   &ndash; with two-fold symmetry axes along the X, Y, and Z axes
+  <li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
+  <li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
+  <li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
+  <li>222r &ndash; same as 222 except rotated 90&deg; about Z
+  <li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
+  <li>n25r &ndash; same as n25 except rotated 180&deg; about X
+  <li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
+  </ul>
+</blockquote>
+<blockquote>
+  <b>sphereFactor</b> &nbsp;<i>f</i>
+  <br>
+Specify the the weight of the sphere component in an interpolation between 
+an icosahedron and a sphere of equal radius. The sphere factor <i>f</i> 
+ranges from <b>0.0</b> (default, icosahedron) to 1.0 (sphere).
+The interpolation only involves vertex positions and will not generate
+curved mesh lines.
+</blockquote>
+<blockquote>
+  <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
+<br>
+Specify a color for the cage model (default <b>white</b>).
+</blockquote>
+<blockquote>
+<a name="mesh"></a>
+  <b>mesh</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to create a wire-mesh surface model instead of a
+<a href="../markers.html">marker model</a>.
+If a surface model is created, a
+<a href="../markers.html">marker model</a> can be generated 
+from it later with the command 
+<a href="marker.html#fromMesh"><b>marker fromMesh</b></a>.
+</blockquote>
+<blockquote>
+  <b>replace</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <br>
+Whether to replace an existing <b>hkcage</b> model with
+the new one rather than opening an additional model.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+April 2020</address>
+</body></html>

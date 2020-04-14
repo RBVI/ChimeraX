@@ -72,9 +72,11 @@ The <i>factor</i> controls the balance between smoothing peptide &beta;-strands
 versus following the exact positions of the &alpha;-carbons
 (initial default <b>1.0</b> maximally smoothed, ranging to 0.0 for unsmoothed).
 Specifying <b>default</b> instead of a numerical value sets the value to 1.0. 
-Smoothing applies only to peptide strands, not to helices, coil, or nucleic acids.
+Smoothing applies only to peptide strands, not to helices, coil, or 
+nucleic acids.
 Lower values may be desired for strand residues with sidechains displayed,
-to preclude showing <a href="#tether">tethers</a>.
+to preclude showing <a href="#tether">tethers</a>. See also:
+<a href="graphics.html#quality"><b>graphics quality</b></a>
 </blockquote>
 <blockquote>
 <a name="suppress"></a>
@@ -94,9 +96,9 @@ control per-model settings:
 </p>
 <ul>
 <li><a href="#style"><b>cartoon style</b></a>
-- width, thickness, and shape; protein secondary structure representations
+&ndash; width, thickness, and shape; protein secondary structure representations
 <li><a href="#tether"><b>cartoon tether</b></a>
-- appearance of connectors between cartoon and offset backbone atoms
+&ndash; appearance of connectors between cartoon and offset backbone atoms
 </ul>
 <p>
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
@@ -106,14 +108,14 @@ The transverse orientation of a residue's ribbon segment is set
 according to the type of secondary structure and/or polymer:
 </p>
 <ul>
-<li>nucleic acid - at C5' by the C5'&rarr;C1' vector
-<li>peptide helix - at CA by a vector perpendicular to
+<li>nucleic acid &ndash; at C5' by the C5'&rarr;C1' vector
+<li>peptide helix &ndash; at CA by a vector perpendicular to
 both the CA<sub>i-1</sub>&rarr;CA and CA&rarr;CA<sub>i+1</sub> vectors
 <br>
 (default mode; however, peptide helices can be shown as 
 <a href="#hmode">tubes</a> or as ribbons that <a href="#hmode">wrap</a>
 around the computed tubes instead)
-<li>peptide strand - at CA by a vector parallel to 
+<li>peptide strand &ndash; at CA by a vector parallel to 
 both the preceding and following peptide planes 
 (like their line of intersection)
 </ul>
@@ -275,7 +277,7 @@ the circumference of a <a href="#hmode">tube</a>, with higher numbers
 corresponding to finer subdivisions (initial default <b>12</b>).
 Shading is used to give a smooth, rounded appearance despite
 this approximation of the shape.
-See also: <a href="graphics.html"><b>graphics</b></a>
+See also: <a href="graphics.html#quality"><b>graphics quality</b></a>
   </blockquote><blockquote>
 <b>arrows</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>Whether to show arrowheads at the 
@@ -293,7 +295,7 @@ is multiplied by the width of helix or strand to give the arrowhead width.
 <b>divisions</b>&nbsp;&nbsp;<i>N</i>
 <br>The number of divisions per residue along the path of the ribbon
 (initial default <b>20</b>).
-See also: <a href="graphics.html"><b>graphics</b></a>
+See also: <a href="graphics.html#quality"><b>graphics quality</b></a>
   </blockquote><blockquote>
 <b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>
 <br>The number of straight-line segments
@@ -349,9 +351,9 @@ amino acid N, C, and nucleotide P, O3', and O5'
 Tether <b>shape</b> can be:
  <ul>
  <li><b>cone</b> (initial default) 
- - cone with base at the &alpha;-carbon, point at the cartoon
+ &ndash; cone with base at the &alpha;-carbon, point at the cartoon
  <li><b>steeple</b>
- - cone with base at the cartoon, point at the &alpha;-carbon
+ &ndash; cone with base at the cartoon, point at the &alpha;-carbon
  <li><b>cylinder</b>
  </ul>
 The <b>sides</b> option controls the number of planar facets used to draw
@@ -369,5 +371,5 @@ Tethers can be hidden using <b>opacity 0</b>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2020</address>
+April 2020</address>
 </body></html>

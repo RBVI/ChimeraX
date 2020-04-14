@@ -96,56 +96,67 @@ in terse (default) or verbose fashion.
 <a href="#top" class="nounder">&bull;</a>
 <a name="quality"></a>
 <b>graphics quality</b>
-[&nbsp;<b>subdivision</b>&nbsp;&nbsp;<i>level</i>&nbsp;]
-[&nbsp;<b>atomTriangles</b>&nbsp;&nbsp;<i>N<sub>a</sub></i>&nbsp;]
-[&nbsp;<b>bondTriangles</b>&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;]
+[&nbsp;<i>quality</i>&nbsp;]
+[&nbsp;<b>atomTriangles</b>&nbsp;&nbsp;<i>N<sub>a</sub></i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
+[&nbsp;<b>bondTriangles</b>&nbsp;&nbsp;<i>N<sub>b</sub></i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
 [&nbsp;<b>totalAtomTriangles</b>&nbsp;&nbsp;<i>max<sub>a</sub></i>&nbsp;]
 [&nbsp;<b>totalBondTriangles</b>&nbsp;&nbsp;<i>max<sub>b</sub></i>&nbsp;]
-[&nbsp;<b>ribbonDivisions</b>&nbsp;&nbsp;<i>divisions</i>&nbsp;]
+[&nbsp;<b>ribbonDivisions</b>&nbsp;&nbsp;<i>divisions</i>&nbsp;|&nbsp;<b>default</b>&nbsp;]
 [&nbsp;<b>ribbonSides</b>&nbsp;&nbsp;<i>sides</i>&nbsp;]
 [&nbsp;<b>colorDepth</b>&nbsp;&nbsp;8&nbsp;|&nbsp;16&nbsp;]
 <blockquote>
-Control triangulation fineness and bits per color.
-Normally, the fineness of atom and bond triangulation is adjusted automatically 
-depending on the display contents (<i>e.g.</i>, the number of atoms displayed),
+Control triangulation fineness and bits per color. 
+Higher numbers of atom and bond triangles increase the smoothness of 
+<a href="style.html">atomic displays</a>,
+whereas higher numbers of ribbon divisions and sides increase the smoothness
+of <a href="cartoon.html">ribbons</a> (cartoons).
+The tradeoff for smoother displays is potentially 
+slower rendering of very large structures.
+</p><p>
+By default, triangulation fineness is adjusted automatically depending 
+on how many atoms and bonds are displayed,
 within the ranges of 10-2000 triangles per atom and 24-160 per bond,
 up to maximum totals for atoms and bonds set with
 <b>totalAtomTriangles</b> and <b>totalBondTriangles</b>, respectively
 (initial default five million each, <b>5000000</b>).
-By default, <a href="device.html#vr"><b>vr</b></a>
-temporarily lowers the limits on total triangles for faster rendering. 
+The <a href="device.html#vr"><b>vr</b></a> command temporarily lowers
+these limits on total triangles for faster rendering. 
+Ribbon divisions per residue along the path of the ribbon are 
+automatically set per structure within the range 2-20,
+using 20 for structures with &lt;20,000 residues.
+(Ribbon sides are not adjusted automatically.)
 </p><p>
-Automatic adjustment can be tuned in either direction with
-the <b>subdivision</b> parameter (initial default <b>1</b>),
-where higher values increase the apparent smoothness
-of stick, ball-and-stick, and sphere <a href="style.html">display styles</a>
-by increasing the number of triangles used to draw them.
-At a given subdivision level, the fineness of triangulation
-is adjusted automatically depending on the display contents
-(<i>e.g.</i>, the number of atoms displayed), within the range
-of 10-2000 triangles per atom and 24-160 per bond.
-Subdivision level can also be controlled with the command
+Automatic adjustment can be tuned in either direction by changing the
+<i>quality</i> value, a scale factor applied to the individual parameters
+(initial default <b>1</b>).
+For example, a <i>quality</i> setting of 2 gives twice as many
+atom triangles as <i>quality</i> 1, providing the total number
+does not exceed the limit.
+The <i>quality</i> can also be controlled with the command
 <a href="set.html#subdivision"><b>set subdivision</b></a>.
 </p><p>
-As an alternative to automatic adjustment,
-the <b>graphics</b> command allows using fixed numbers of triangles
-per atom and bond:
+Fixed values can be specified with the individual options:
 </p>
 <ul>
 <li><b>atomTriangles</b> <i>N<sub>a</sub></i> &ndash; triangles per atom
-(minimum 4, except that 0 specifies going back to automatic adjustment)
+(minimum 4; specifying 0 or <b>default</b> returns to automatic adjustment)
 <li><b>bondTriangles</b> <i>N<sub>b</sub></i> &ndash; triangles per bond
-(minimum 12, except that 0 specifies going back to automatic adjustment)
+(minimum 12; specifying 0 or <b>default</b> returns to automatic adjustment)
 <li><b>ribbonDivisions</b> <i>N<sub>d</sub></i> &ndash; divisions per residue 
-lengthwise along the cartoon (initial default <b>20</b>, minimum 2)
+lengthwise along the cartoon (initial default <b>20</b>, minimum 2;
+specifying <b>default</b> returns to automatic adjustment)
 <li><b>ribbonSides</b> <i>N<sub>s</sub></i>
-&ndash; number of sides used to approximate an oval or round cartoon cross-section
-(initial default <b>12</b>, minimum 4)
+&ndash; number of sides used to approximate an oval or round 
+cartoon cross-section (initial default <b>12</b>, minimum 4; not adjusted
+automatically)
 </ul>
-Subsequent use of the <b>subdivision</b> option
-returns to automatic adjustment, overriding any fixed values.
-Given without options, <b>graphics quality</b> reports the current subdivision
-level, triangles per atom and bond, and ribbon divisions per residue
+<p>
+Specifying a <i>quality</i> value returns to the automatic adjustment 
+of atom triangles, bond triangles, and ribbon divisions.
+Fixed values can be specified subsequently, or even in the same command.
+</p><p>
+Given without options, <b>graphics quality</b> reports the current settings
+for quality, atom triangles, bond triangles, and ribbon divisions
 in the <a href="../tools/log.html"><b>Log</b></a>.
 Total numbers of triangles per model 
 can be reported with <a href="#triangles"><b>graphics triangles</b></a>.
@@ -154,7 +165,7 @@ The number of ribbon sides and divisions can also be set or reported with
 For molecular surface subdivisions, see the
 <a href="surface.html#parameters"><b>gridSpacing</b></a>
 option of <a href="surface.html"><b>surface</b></a>.
-<p>
+</p><p>
 The <b>colorDepth</b> option sets the number of bits used per color component
 (red, green, blue, and alpha) in offscreen framebuffers, with
 initial default <b>8</b>. Switching to 16 bits causes all rendering to
@@ -265,5 +276,5 @@ Triangulation fineness can be controlled with
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2019</address>
+April 2020</address>
 </body></html>
