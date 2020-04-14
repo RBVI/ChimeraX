@@ -145,6 +145,8 @@ def markers_from_mesh(session, surfaces, edge_radius = 1, color = None,
         for v1,v2 in edges:
             m1 = vmarker[v1]
             m2 = vmarker[v2]
+            if color is None and vcolors is not None:
+                ecolor = tuple((c1+c2)//2 for c1,c2 in zip(m1.color, m2.color))
             create_link(m1, m2, rgba=ecolor, radius=edge_radius)
 
     if markers.id is None:
