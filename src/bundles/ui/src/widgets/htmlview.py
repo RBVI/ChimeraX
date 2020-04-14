@@ -268,7 +268,7 @@ class HtmlView(QWebEngineView):
         ----------
         script :    a string containing URL to new content.
         args :      additional arguments supported by
-                    :py:method:`PyQt5.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
+                    :py:meth:`PyQt5.QtWebEngineWidgets.QWebEnginePage.runJavaScript`.
         """
         self.page().runJavaScript(script, *args)
 
