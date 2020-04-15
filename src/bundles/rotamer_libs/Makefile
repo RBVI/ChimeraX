@@ -5,4 +5,4 @@ SUBDIR_SYNC = $(SUBDIRS:=.sync)
 .PHONY: $(SUBDIR_SYNC)
 sync: $(SUBDIR_SYNC)
 $(SUBDIR_SYNC):
-	$(MAKE) -C $(subst .install,,$@) sync
+	$(MAKE) -C $(subst .sync,,$@) sync
