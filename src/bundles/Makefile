@@ -11,7 +11,6 @@
 
 TOP = ../..
 SUBDIR_SYNC = 1
-DEVEL_ARGS = noDeps true
 include $(TOP)/mk/config.make
 
 #
@@ -45,6 +44,8 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
 
 SUBDIRS = $(FIRST_SUBDIRS) $(REST_SUBDIRS)
+
+NODEPS_INSTALL_FIRST = 1
 
 include $(TOP)/mk/subdir.make
 
