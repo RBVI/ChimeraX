@@ -150,7 +150,7 @@ def place_peptide(structure, sequence, phi_psis, *, position=None, rot_lib=None,
     # since side-chain clashes are only calculated against pre-existing side chains
     kw = {}
     if rot_lib:
-        kw['lib'] = rot_lib
+        kw['rot_lib'] = rot_lib
     for r in residues:
         swap_aa(session, [r], "same", criteria="cp", log=False, **kw)
 
