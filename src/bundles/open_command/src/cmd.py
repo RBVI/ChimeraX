@@ -108,8 +108,9 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             for ident, database_name, format_name in fetches:
                 if format_name is None:
                     format_name = default_format_name
-                models, status = collated_open(session, True, ident, database_name,
-                    fetcher_info.fetch, (session, ident, format_name, ignore_cache), provider_kw)
+                models, status = collated_open(session, database_name, ident,
+                    session.data_formats[format_name], _add_models, fetcher_info.fetch,
+                    (session, ident, format_name, ignore_cache), provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
@@ -119,8 +120,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             if provider_info.batch:
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
                     for fi in file_infos]
-                models, status = collated_open(session, False, paths, data_format,
-                    opener_info.open, (session, paths, name), provider_kw)
+                models, status = collated_open(session, None, paths, data_format, _add_models,
+                opener_info.open, (session, paths, name), provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
@@ -131,7 +132,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         data = _get_path(mgr, fi.file_name, provider_info.check_path)
                     else:
                         data = _get_stream(mgr, fi.file_name, data_format.encoding)
-                    models, status = collated_open(session, False, [data], data_format,
+                    models, status = collated_open(session, None, [data], data_format, _add_models,
                         opener_info.open, (session, data,
                         name or model_name_from_path(fi.file_name)), provider_kw)
                     if status:
@@ -146,8 +147,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 data = _get_path(mgr, fi.file_name, provider_info.check_path)
             else:
                 data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
-            models, status = collated_open(session, False, [data], data_format, opener_info.open,
-                (session, data, name or model_name_from_path(fi.file_name)), provider_kw)
+            models, status = collated_open(session, None, [data], data_format, _add_models,
+                opener_info.open, (session, data, name or model_name_from_path(fi.file_name)), provider_kw)
             if status:
                 statuses.append(status)
             if models:
@@ -156,8 +157,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             if format_name is None:
                 format_name = default_format_name
-            models, status = collated_open(session, True, ident, database_name,
-                fetcher_info.fetch, (session, ident, format_name, ignore_cache), provider_kw)
+            models, status = collated_open(session, database_name, ident, session.data_formats[format_name],
+                _add_models, fetcher_info.fetch, (session, ident, format_name, ignore_cache), provider_kw)
             if status:
                 statuses.append(status)
             if models:
@@ -330,21 +331,27 @@ def file_format(session, file_name, format_name):
     except NoFormatError as e:
         return None
 
-def collated_open(session, is_fetch, data, data_format, func, func_args, func_kw):
+def collated_open(session, database_name, data, data_format, main_opener, func, func_args, func_kw):
     is_script = data_format.category == session.data_formats.CAT_SCRIPT
-    collation_okay = is_fetch and not is_script
-    if collation_okay:
-        from chimerax.core.logger import Collator
-        if is_fetch:
-            description = "Summary of feedback from opening %s fetched from %s" % (data,
-                data_format)
-        else:
-            description = "Summary of feedback from opening %s" % (
-                "files" if len(data) > 1 else data[0])
-        with Collator(session.logger, description, True):
-            return func(*func_args, **func_kw)
     if is_script:
         with session.in_script:
+            return func(*func_args, **func_kw)
+    from chimerax.core.logger import Collator
+    if database_name:
+        description = "Summary of feedback from opening %s fetched from %s" % (data, database_name)
+    else:
+        if len(data) > 1:
+            opened_text = "files"
+        else:
+            if isinstance(data[0], str):
+                opened_text = data[0]
+            elif hasattr(data[0], 'name'):
+                opened_text = data[0].name
+            else:
+                opened_text = "input"
+        description = "Summary of feedback from opening %s" % opened_text
+    if main_opener:
+        with Collator(session.logger, description, True):
             return func(*func_args, **func_kw)
     return func(*func_args, **func_kw)
 
