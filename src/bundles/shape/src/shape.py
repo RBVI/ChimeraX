@@ -262,7 +262,7 @@ def shape_rectangle(session, width = 10.0, height = 10.0,
 
     s = _show_surface(session, varray, tarray, color, mesh,
                       center, rotation, qrotation, coordinate_system,
-                      slab, model_id, name)
+                      slab, model_id, name, sharp_slab = True)
     return s
 
 # -----------------------------------------------------------------------------
