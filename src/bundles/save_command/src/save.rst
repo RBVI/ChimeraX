@@ -12,8 +12,8 @@
     or derivations thereof.
     === UCSF ChimeraX Copyright ===
 
-Save Command
-============
+save_command: Register file saving
+==================================
 
 .. module:: chimerax.save_command
 

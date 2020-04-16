@@ -422,6 +422,24 @@ def rotation(axis, angle, center=(0, 0, 0)):
     return Place(m34.rotation_transform(axis, angle, center))
 
 
+def quaternion_rotation(q, center=(0, 0, 0)):
+    '''
+    Supported API.
+
+    Return a transform which is a rotation about the specified center
+    using quaternion (q0, q1, q2, q3) which need not be normalized.
+    '''
+    a,b,c,d = q
+    a2,b2,c2,d2 = a*a,b*b,c*c,d*d
+    bc,da,bd,ca,cd,ba = b*c,d*a,b*d,c*a,c*d,b*a
+    from math import sqrt
+    s2 = 2 / sqrt(a2+b2+c2+d2)
+    m = ((1 - s2*(c2 + d2), s2*(bc - da), s2*(bd + ca), center[0]),
+         (s2*(bc + da), 1 - s2*(b2 + d2), s2*(cd - ba), center[1]),
+         (s2*(bd - ca), s2*(cd + ba), 1 - s2*(b2 + c2), center[2]))
+    return Place(m)
+
+
 def vector_rotation(u, v):
     '''
     Supported API. 

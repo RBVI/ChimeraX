@@ -50,10 +50,6 @@ Data
 .. toctree::
     :maxdepth: 1
 
-    bundles/geometry/src/geometry.rst
-
-    bundles/graphics/src/graphics.rst
-
     core/models.rst
 
     core/objects.rst
@@ -65,8 +61,6 @@ Files
 .. toctree::
     :maxdepth: 1
 
-    bundles/open_command/src/open.rst
-    
     core/fetch.rst
 
     core/history.rst
@@ -75,8 +69,6 @@ Files
 
     core/safesave.rst
 
-    bundles/save_command/src/save.rst
-    
     core/serialize.rst
 
     core/settings.rst
@@ -111,7 +103,34 @@ Generic I/O
 
     bundles/io/src/io.rst
 
+Geometry
+--------
+  
+.. toctree::
+    :maxdepth: 1
+
+    bundles/geometry/src/geometry.rst
+
+
+Graphics
+--------
+  
+.. toctree::
+    :maxdepth: 1
+
+    bundles/graphics/src/graphics.rst
+
+Open and Save
+-------------
+
+.. toctree::
+    :maxdepth: 1
+
+    bundles/open_command/src/open.rst
+
+    bundles/save_command/src/save.rst
     
+
 Surfaces
 --------
 
