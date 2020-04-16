@@ -185,19 +185,26 @@ def _calculate_surface(surf):
 def surface_show(session, objects = None):
     '''
     Show surface patches for atoms of existing surfaces.
+    For non-molecular surfaces show the entire model.
+    For volume surfaces show the volume model too.
 
     Parameters
     ----------
     objects : Objects
       Show atom patches for existing specified molecular surfaces or for specified atoms.
     '''
-    from chimerax.atomic import all_atoms, molsurf
-    atoms = objects.atoms if objects else all_atoms(session)
+    atoms = _surface_atoms(session, objects)
+
+    from chimerax.atomic import molsurf
     sma = molsurf.show_surface_atom_patches(atoms)
-    sm = _molecular_surfaces(session, objects)
+    
+    sm = _surfaces(session, objects)
+    from chimerax.map import VolumeSurface
     for s in sm:
+        if isinstance(s, VolumeSurface):
+            s.volume.display = True
         s.display = True
-#    molsurf.show_surface_patches(sm)
+
     return sma + sm
 
 # -------------------------------------------------------------------------------------
@@ -205,25 +212,30 @@ def surface_show(session, objects = None):
 def surface_hide(session, objects = None):
     '''
     Hide patches of existing surfaces for specified atoms.
+    For non-molecular surfaces hide the entire model.
+    For shown volume surfaces hide the volume model instead of the surface.
 
     Parameters
     ----------
     objects : Objects
       Hide atom patches for specified molecular surfaces or for specified atoms.
     '''
-    from chimerax.atomic import all_atoms, molsurf
-    atoms = objects.atoms if objects else all_atoms(session)
+    atoms = _surface_atoms(session, objects)
+
+    from chimerax.atomic import molsurf
     sma = molsurf.hide_surface_atom_patches(atoms)
 
     # Hide surfaces not associated with atoms.
     atom_surfs = set(sma)
-    sm = _molecular_surfaces(session, objects)
+    sm = [s for s in _surfaces(session, objects) if s not in atom_surfs]
+    from chimerax.map import VolumeSurface
     for s in sm:
-        if s not in atom_surfs:
+        if isinstance(s, VolumeSurface):
+            if s.display:
+                s.volume.display = False
+        else:
             s.display = False
             
-#    molsurf.hide_surface_patches(sm)
-
     return sma + sm
 
 # -------------------------------------------------------------------------------------
@@ -243,6 +255,31 @@ def surface_close(session, objects = None):
     if objects:
         close_surfaces(objects.atoms)
         
+# -------------------------------------------------------------------------------------
+#
+def _surface_atoms(session, objects):
+    if objects is None:
+        from chimerax.atomic import all_atoms
+        atoms = all_atoms(session)
+    else:
+        atoms = objects.atoms
+        from chimerax.atomic import MolecularSurface
+        satoms = [s.atoms for s in objects.models if isinstance(s, MolecularSurface)]
+        if satoms:
+            from chimerax.atomic import concatenate, Atoms
+            atoms = concatenate([atoms] + satoms, Atoms, remove_duplicates = True)
+    return atoms
+        
+# -------------------------------------------------------------------------------------
+#
+def _surfaces(session, objects):
+    from chimerax.core.models import Surface
+    if objects is None:
+        sm = session.models.list(type = Surface)
+    else:
+        sm = [s for s in objects.models if isinstance(s, Surface)]
+    return sm
+ 
 # -------------------------------------------------------------------------------------
 #
 def _molecular_surfaces(session, objects):
