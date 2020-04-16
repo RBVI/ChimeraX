@@ -57,6 +57,7 @@ class Model(State, Drawing):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
+    SESSION_SAVE_DRAWING = False
     SESSION_WARN = False
 
     def __init__(self, name, session):
@@ -328,6 +329,9 @@ class Model(State, Drawing):
             'accept_multishadow': self.accept_multishadow,
             'version': CORE_STATE_VERSION,
         }
+        if self.SESSION_SAVE_DRAWING:
+            from chimerax.graphics.gsession import DrawingState
+            data['drawing state'] = DrawingState.take_snapshot(self, session, flags)
         return data
 
     @classmethod
@@ -360,6 +364,11 @@ class Model(State, Drawing):
                 if attr in data:
                     setattr(d, attr, data[attr])
 
+        if 'drawing state' in data:
+            from chimerax.graphics.gsession import DrawingState
+            DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
+            self.SESSION_SAVE_DRAWING = True
+            
     def save_geometry(self, session, flags):
         '''
         Return state for saving Model and Drawing geometry that can be restored
@@ -376,7 +385,7 @@ class Model(State, Drawing):
         '''
         Restore model and drawing state saved with save_geometry().
         '''
-        from chimerax.graphics.gsession import DrawingState            
+        from chimerax.graphics.gsession import DrawingState
         Model.set_state_from_snapshot(self, session, data['model state'])
         DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
         return self

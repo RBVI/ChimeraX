@@ -432,6 +432,7 @@ def _surface_model(session, model_id, shape_name, position = None):
             s.id = model_id
         if position is not None:
             s.position = position
+        s.SESSION_SAVE_DRAWING = True
         s.clip_cap = True			# Cap surface when clipped
     return s
 
