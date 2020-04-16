@@ -23,6 +23,7 @@ from chimerax.core.state import State, CORE_STATE_VERSION
 from chimerax.core.models import Surface
 class STLModel(Surface):
     clip_cap = True
+    SESSION_SAVE_DRAWING = True
 
     @property
     def num_triangles(self):
