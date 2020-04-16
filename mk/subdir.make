@@ -18,20 +18,20 @@
 ifdef NO_SUBDIR_INSTALL
 install:
 else
-ifdef NODEPS_INSTALL_FIRST
+ifdef TWO_PASS_INSTALL
 DEPS_SUBDIR_INSTALL = $(SUBDIRS:=.dep-install)
-.PHONY: $(SUBDIR_INSTALL)
-NO_DEPS_SUBDIR_INSTALL = $(SUBDIRS:=.install)
+.PHONY: $(DEPS_SUBDIR_INSTALL)
+NO_DEPS_SUBDIR_INSTALL = $(SUBDIRS:=.nodep-install)
 .PHONY: $(NO_DEPS_SUBDIR_INSTALL)
 nodeps-install: $(NO_DEPS_SUBDIR_INSTALL)
 $(NO_DEPS_SUBDIR_INSTALL):
-	$(MAKE) -C $(subst .install,,$@) DEVEL_ARGS="noDeps true" install
+	$(MAKE) -C $(subst .nodep-install,,$@) DEVEL_ARGS="noDeps true" install
 deps-install: $(DEPS_SUBDIR_INSTALL)
 $(DEPS_SUBDIR_INSTALL):
 	$(MAKE) -C $(subst .dep-install,,$@) install
 install:
 	$(MAKE) nodeps-install
-	$(MAKE) deps-install
+	$(MAKE) -j 1 deps-install
 else
 SUBDIR_INSTALL = $(SUBDIRS:=.install)
 .PHONY: $(SUBDIR_INSTALL)

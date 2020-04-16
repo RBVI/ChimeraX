@@ -10,7 +10,8 @@ def make_dependencies(dir_path, output_name):
 
     # Construct mappings from directory name to bundle dependencies
     # and bundle name to directory name
-    dependencies = {}
+    build_dependencies = {}
+    install_dependencies = {}
     bundle2dirname = {}
     for dir_name in os.listdir(dir_path):
         p = os.path.join(dir_path, dir_name, "bundle_info.xml")
@@ -26,26 +27,40 @@ def make_dependencies(dir_path, output_name):
             continue
         bundle_name = bundle_tags[0].getAttribute("name")
         bundle2dirname[bundle_name] = dir_name
-        dependencies[dir_name] = deps = []
+        build_dependencies[dir_name] = build_deps = []
+        install_dependencies[dir_name] = install_deps = []
         for e in doc.getElementsByTagName("Dependency"):
-            build_dep = e.getAttribute("build")
-            if not build_dep or build_dep.lower() == "false":
-                continue
             dep_name = e.getAttribute("name")
-            deps.append(dep_name)
+            build_attr = e.getAttribute("build")
+            if build_attr:
+                if build_attr == "true":
+                    build_deps.append(dep_name)
+                    install_deps.append(dep_name)
+                elif build_attr == "false":
+                    # this is how to avoid Makefile circular dependencies
+                    pass
+                else:
+                    print("'build' Dependency attribute is neither 'true' nor 'false'")
+            else:
+                install_deps.append(dep_name)
 
     # Loop over all directories and emit one dependency line each
     missing = set()
     with open(os.path.join(dir_path, output_name), "w") as f:
-        for dir_name in sorted(dependencies.keys()):
+        for dir_name in sorted(install_dependencies.keys()):
             dep_dirs = []
-            for dep in dependencies[dir_name]:
+            nodep_dirs = []
+            for dep in install_dependencies[dir_name]:
                 try:
-                    dep_dirs.append(bundle2dirname[dep] + ".install")
+                    dep_dirs.append(bundle2dirname[dep] + ".dep-install")
+                    if dep in build_dependencies[dir_name]:
+                        nodep_dirs.append(bundle2dirname[dep] + ".nodep-install")
                 except KeyError:
                     missing.add(dep)
             if dep_dirs:
-                print("%s.install: %s" % (dir_name, ' '.join(dep_dirs)), file=f)
+                print("%s.dep-install: %s" % (dir_name, ' '.join(dep_dirs)), file=f)
+                if nodep_dirs:
+                    print("%s.nodep-install: %s" % (dir_name, ' '.join(nodep_dirs)), file=f)
 
     # Report any bundle dependencies that is not found
     missing.discard("ChimeraX-Core")

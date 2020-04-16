@@ -18,7 +18,9 @@ include $(TOP)/mk/config.make
 # Because core.models depends on graphics and geometry those are
 # installed first to test other bundles.
 #
-FIRST_SUBDIRS = bundle_builder arrays geometry graphics
+BUNDLE_BUILDER_SUBDIR = bundle_builder
+
+FIRST_SUBDIRS = arrays geometry graphics
 
 REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter build_structure \
@@ -43,9 +45,9 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  tape_measure test texture toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
 
-SUBDIRS = $(FIRST_SUBDIRS) $(REST_SUBDIRS)
+SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(FIRST_SUBDIRS) $(REST_SUBDIRS)
 
-NODEPS_INSTALL_FIRST = 1
+TWO_PASS_INSTALL = 1
 
 include $(TOP)/mk/subdir.make
 
@@ -57,10 +59,12 @@ dir:	Makefile.dependencies
 $(SUBDIR_INSTALL): dir
 
 # Make sure bundle_builder is installed before all others.
-$(SUBDIR_INSTALL): bundle_builder.install
+$(FIRST_SUBDIRS:=.nodep-install): bundle_builder.nodep-install
+$(FIRST_SUBDIRS:=.dep-install): bundle_builder.dep-install
 
-# Make sure first subidirectories are built before others.
-$(REST_SUBDIRS:=.install): $(FIRST_SUBDIRS:=.install)
+# Make sure first subidirectories are built before the remainder.
+$(REST_SUBDIRS:=.nodep-install): $(FIRST_SUBDIRS:=.nodep-install)
+$(REST_SUBDIRS:=.dep-install): $(FIRST_SUBDIRS:=.dep-install)
 
 lint:
 ifneq (,$(PYSRCS))
@@ -76,9 +80,11 @@ ifneq ($(MAKECMDGOALS),clean)
 
 # Add any custom dependencies that are not captured in bundle_info.xml files
 # Segger bundle_info.xml is hidden in a tar file so Make_dependencies.py does not see it.
-segger.install: geometry.install graphics.install ui.install
+segger.nodep-install: geometry.nodep-install graphics.nodep-install ui.nodep-install
+segger.dep-install: geometry.dep-install graphics.dep-install ui.dep-install
 
-rotamer_libs.install: rotamer_lib_mgr.install
+rotamer_libs.nodep-install: rotamer_lib_mgr.nodep-install
+rotamer_libs.dep-install: rotamer_lib_mgr.dep-install
 
 include Makefile.dependencies
 endif
