@@ -50,7 +50,10 @@ class BundleBuilder:
         info_file = os.path.join(bundle_path, "bundle_info.xml")
         if not os.path.exists(info_file):
             raise IOError("Bundle info file %s is missing" % repr(info_file))
-        self._read_bundle_info(info_file)
+        try:
+            self._read_bundle_info(info_file)
+        except ValueError as err:
+            raise ValueError("%s: %s" % (info_file, err))
         self._make_paths()
         self._make_setup_arguments()
 
@@ -165,12 +168,17 @@ class BundleBuilder:
         self._check_unused_elements(bi)
 
     def _get_identifiers(self, bi):
+        from packaging.version import Version, InvalidVersion
         self.name = bi.get("name", '')
         if '_' in self.name:
             self.name = self.name.replace('_', '-')
             self.logger.warning("Bundle renamed to %r after replacing "
                                 "underscores with hyphens." % self.name)
         self.version = bi.get("version", '')
+        try:
+            Version(self.version)
+        except InvalidVersion as err:
+            raise ValueError("%s line %d" % (err, bi.sourceline))
         self.package = bi.get("package", '')
         self.min_session = bi.get("minSessionVersion", '')
         self.max_session = bi.get("maxSessionVersion", '')
