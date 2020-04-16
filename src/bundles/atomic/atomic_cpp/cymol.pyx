@@ -231,10 +231,9 @@ cdef class CyAtom:
         " displayed as a cartoon, return coordinates on the cartoon.  Otherwise,"
         " return the actual atomic coordinates."
         if not self.visible and self.residue.ribbon_display:
-            try:
-                return self.ribbon_coord
-            except KeyError:
-                pass
+            c = self.ribbon_coord
+            if c is not None:
+                return c
         return self.coord
 
     @property
