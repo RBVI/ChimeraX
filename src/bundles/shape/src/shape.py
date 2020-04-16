@@ -614,11 +614,12 @@ def register_shape_command(logger):
     from chimerax.map import Float1or3Arg
     from chimerax.atomic import AtomsArg
 
-    basic_args = [('divisions', PositiveIntArg),
-                  ('color', Color8Arg),
-                  ('mesh', BoolArg),
-                  ('name', StringArg),
-                  ('model_id', ModelIdArg)]
+    base_args = [('color', Color8Arg),
+                 ('mesh', BoolArg),
+                 ('name', StringArg),
+                 ('model_id', ModelIdArg)]
+
+    basic_args = [('divisions', PositiveIntArg)] + base_args
 
     position_args = [('center', CenterArg),
                      ('rotation', AxisAngleArg),
@@ -633,7 +634,7 @@ def register_shape_command(logger):
                            keyword = [('width', FloatArg),
                                       ('twist', FloatArg),
                                       ('report_cuts', BoolArg),
-                                      ('cut_scale', FloatArg)] + common_args,
+                                      ('cut_scale', FloatArg)] + base_args,
                            synopsis = 'create a box beam model')
     register('shape boxPath', boxpath_desc, shape_box_path, logger=logger)
 
