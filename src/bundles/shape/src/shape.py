@@ -446,12 +446,13 @@ def _find_surface_model(session, model_id):
 
 # -----------------------------------------------------------------------------
 #
-def shape_triangle(session, atoms = None, points = None,
+def shape_triangle(session, atoms = None, point = None,
                    color = (190,190,190,255), mesh = False,
                    center = None, rotation = None, qrotation = None, coordinate_system = None,
                    divisions = 1,
                    slab = None, name = 'triangle', model_id = None):
 
+    points = point  # List of points.  Name is point so user command repeated option name is "point"
     if atoms is not None:
         if len(atoms) != 3:
             raise CommandError('shape triangle: Must specify 3 atoms, got %d' % len(atoms))
@@ -647,7 +648,7 @@ def register_shape_command(logger):
     
     # Triangle
     triangle_desc = CmdDesc(optional = [('atoms', AtomsArg)],
-                            keyword = [('points', RepeatOf(CenterArg))] + common_args,
+                            keyword = [('point', RepeatOf(CenterArg))] + common_args,
                             synopsis = 'create a triangle model')
     register('shape triangle', triangle_desc, shape_triangle, logger=logger)
 
