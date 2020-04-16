@@ -813,8 +813,13 @@ class Structure(Model, StructureData):
         import numpy
         for attr in attrs:
             choose = attr.attr_matcher()
-            s = numpy.vectorize(choose)(objects)
-            selected = numpy.logical_and(selected, s)
+            if len(objects) == 1:
+                # numpy.vectorize produces the wrong size in this case
+                selected = numpy.array(selected)
+                selected[0] = selected[0] and choose(objects[0])
+            else:
+                s = numpy.vectorize(choose)(objects)
+                selected = numpy.logical_and(selected, s)
         return selected
 
 
