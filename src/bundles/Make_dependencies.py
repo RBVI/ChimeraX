@@ -28,6 +28,9 @@ def make_dependencies(dir_path, output_name):
         bundle2dirname[bundle_name] = dir_name
         dependencies[dir_name] = deps = []
         for e in doc.getElementsByTagName("Dependency"):
+            build_dep = e.getAttribute("build")
+            if not build_dep or build_dep.lower() == "false":
+                continue
             dep_name = e.getAttribute("name")
             deps.append(dep_name)
 
@@ -51,6 +54,7 @@ def make_dependencies(dir_path, output_name):
     missing.discard("SpeechRecognition")
     missing.discard("netifaces")
     missing.discard("pyrealsense2")
+    missing.discard("sfftk-rw")
     if missing:
         print("Missing bundles:")
         for dep in sorted(missing):

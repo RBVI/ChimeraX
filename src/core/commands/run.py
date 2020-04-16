@@ -113,31 +113,57 @@ def sel_or_all(session, sel_type_info, sel="sel", restriction=None):
         type_models = [m for m in session.models.list(type=sel_type_info)]
         if not type_models:
             raise NoneSelectedError("No %s models open" % sel_type_info.__name__)
-        msel = [m for m in type_models if m.selected]
+        msel = [m for m in type_models if m.selected and m.visible]
         if msel:
+            concise_spec = concise_model_spec(session, msel)
             if restriction:
-                return '(%s & %s)' % (concise_model_spec(session, msel), restriction)
-            return concise_model_spec(session, msel)
-        if session.selection.empty():
-            mshown = [m for m in type_models if m.visible]
-            if mshown and mshown != type_models:
-                if restriction:
-                    return '(%s & %s)' % (concise_model_spec(session, mshown), restriction)
-                return concise_model_spec(session, mshown)
-            if restriction:
-                return '(%s & %s)' % (concise_model_spec(session, type_models), restriction)
-            return concise_model_spec(session, type_models)
-        raise NoneSelectedError("No %s models selected" % sel_type_info.__name__)
+                if concise_spec:
+                    return '(%s & %s)' % (concise_spec, restriction)
+                return restriction
+            return concise_spec
+        shown_sel_models = [m for m in session.selection.models() if m.visible]
+        if shown_sel_models:
+            raise NoneSelectedError("No visible %s models selected" % sel_type_info.__name__)
+        mshown = [m for m in type_models if m.visible]
+        if not mshown:
+            raise NoneSelectedError("No visible %s models" % sel_type_info.__name__)
+        concise_spec = concise_model_spec(session, mshown)
+        if restriction:
+            if concise_spec:
+                return '(%s & %s)' % (concise_spec, restriction)
+            return restriction
+        return concise_spec
 
     # specific types rather than a Model subclass
-    for sel_type in sel_type_info:
-        if session.selection.items(sel_type):
-            if restriction:
-                return '(%s & %s)' % (sel, restriction)
-            return sel
-    if session.selection.empty():
-        return ""
-    raise NoneSelectedError("No %s selected" % " or ".join(sel_type_info))
+    #
+    # need to ask just _visible_ models for selected items, so can't use session.selection.selected_items()
+    from . import commas
+    from chimerax.core.models import Model
+    sel_models = [m for m in session.selection.models() if m.__class__ != Model] # exclude grouping models
+    shown_sel_models = [m for m in sel_models if m.visible]
+    if shown_sel_models:
+        relevant_sel_models = set()
+        for sel_type in sel_type_info:
+            for m in shown_sel_models:
+                if m.selected_items(sel_type):
+                    relevant_sel_models.add(m)
+        if relevant_sel_models:
+            if len(sel_models) == len(relevant_sel_models):
+                if restriction:
+                    return '(%s & %s)' % (sel, restriction)
+                return sel
+            else:
+                concise_spec = concise_model_spec(session, relevant_sel_models)
+                if restriction:
+                    return '(%s & %s & %s)' % (concise_spec, sel, restriction)
+                return '(%s & %s)' % (concise_spec, sel)
+        raise NoneSelectedError("No visible %s selected" % commas(sel_type_info))
+    concise_spec = concise_model_spec(session, [m for m in session.models if m.visible])
+    if restriction:
+        if concise_spec:
+            return '(%s & %s)' % (concise_spec, restriction)
+        return restriction
+    return concise_spec
 
 def _make_id_tree(models):
     tree = {}

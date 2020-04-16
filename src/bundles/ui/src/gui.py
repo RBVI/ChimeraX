@@ -1213,19 +1213,25 @@ class MainWindow(QMainWindow, PlainTextLog):
 
     def _run_surf_command(self, cmd):
         from chimerax.core.commands import run, sel_or_all, NoneSelectedError
-        if self.session.selection.empty():
-            selector = ""
-        else:
+        from chimerax.core.models import Surface
+        try:
+            selector = sel_or_all(self.session, ['atoms', 'bonds'])
+        except NoneSelectedError:
             try:
-                sel_or_all(self.session, ['atoms', 'bonds'])
+                selector = sel_or_all(self.session, Surface)
             except NoneSelectedError:
-                from chimerax.core.models import Surface
+                from chimerax.core.errors import UserError
+                raise UserError("No atoms, bonds, or surfaces selected")
+        else:
+            if "sel" not in selector:
+                # no visible atoms/bonds selected, see if any surfaces are
                 try:
-                    sel_or_all(self.session, Surface)
+                    surf_selector = sel_or_all(self.session, Surface)
                 except NoneSelectedError:
-                    from chimerax.core.errors import UserError
-                    raise UserError("No atoms, bonds, or surfaces selected")
-            selector = "sel"
+                    pass
+                else:
+                    if "sel" in surf_selector:
+                        selector = surf_selector
         run(self.session, cmd % selector)
 
     def _populate_select_menu(self, select_menu):

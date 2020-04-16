@@ -45,6 +45,8 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 
 SUBDIRS = $(FIRST_SUBDIRS) $(REST_SUBDIRS)
 
+NODEPS_INSTALL_FIRST = 1
+
 include $(TOP)/mk/subdir.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax
