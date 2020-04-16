@@ -964,12 +964,12 @@ def _c3pos(residue):
     c3p = residue.find_atom("C3'")
     if not c3p or not c3p.display:
         return None
-    try:
-        if residue.ribbon_display:
-            coord = c3p.ribbon_coord
+
+    if residue.ribbon_display:
+        coord = c3p.ribbon_coord
+        if coord is not None:
             return c3p, coord
-    except KeyError:
-        pass
+
     return c3p, c3p.coord
 
 
