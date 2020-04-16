@@ -50,7 +50,10 @@ class BundleBuilder:
         info_file = os.path.join(bundle_path, "bundle_info.xml")
         if not os.path.exists(info_file):
             raise IOError("Bundle info file %s is missing" % repr(info_file))
-        self._read_bundle_info(info_file)
+        try:
+            self._read_bundle_info(info_file)
+        except ValueError as err:
+            raise ValueError("%s: %s" % (info_file, err))
         self._make_paths()
         self._make_setup_arguments()
 
