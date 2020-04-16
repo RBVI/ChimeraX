@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 
 # Using OpenMM builds from https://anaconda.org/omnia/openmm/files
 PYVER = py37_cuda101_rc_1
-VERSION = 7.4.0
+VERSION = 7.4.1
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 endif
