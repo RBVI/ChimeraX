@@ -83,6 +83,58 @@ def icosahedron_geometry(orientation = '2n5'):
     return vertices, triangles
 
 # -----------------------------------------------------------------------------
+#
+def icosahedron_triangulation(radius = 1, subdivision_levels = 0,
+                              sphere_factor = 0, orientation = '222',
+                              return_radii = False):
+
+    vlist, tlist = icosahedron_geometry(orientation)
+    from numpy import array, single as floatc, intc
+    varray = array(vlist, floatc)
+    tarray = array(tlist, intc)
+    for level in range(subdivision_levels):
+        from chimerax.surface import subdivide_triangles
+        varray, tarray = subdivide_triangles(varray, tarray)
+    icosahedral_radii = _radii(varray)
+    if sphere_factor != 0:
+        _interpolate_radii(varray, icosahedral_radii, 1, sphere_factor)
+    _scale_radii(varray, radius)
+
+    if return_radii:
+        return varray, tarray, icosahedral_radii
+
+    return varray, tarray
+
+# -----------------------------------------------------------------------------
+#
+def _radii(points):
+
+    from numpy import sqrt
+    r = sqrt(points[:,0]*points[:,0] +
+             points[:,1]*points[:,1] +
+             points[:,2]*points[:,2])
+    return r
+
+# -----------------------------------------------------------------------------
+#
+def _interpolate_radii(varray, radii_0, radii_1, f):
+
+    rarray = _radii(varray)
+    scale = radii_0 * (1-f) + radii_1 * f
+    from numpy import divide, multiply
+    divide(scale, rarray, scale)
+    for a in range(3):
+        multiply(varray[:,a], scale, varray[:,a])
+
+# -----------------------------------------------------------------------------
+#
+def _scale_radii(varray, scale):
+
+    from numpy import multiply
+    for a in range(3):
+        multiply(varray[:,a], scale, varray[:,a])
+
+# -----------------------------------------------------------------------------
 # 60 icosahedral symmetry matrices.
 #
 def icosahedral_symmetry_matrices(orientation = '222', center = (0,0,0)):

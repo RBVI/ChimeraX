@@ -18,7 +18,8 @@
 from chimerax.arrays import load_libarrays
 load_libarrays()
 
-from .place import Place, Places, identity, rotation, vector_rotation, translation, scale, z_align
+from .place import Place, Places, identity
+from .place import rotation, quaternion_rotation, vector_rotation, translation, scale, z_align
 from .place import product, orthonormal_frame, interpolate_rotation, transform_planes, look_at
 from .place import multiply_transforms
 from .vector import interpolate_points, inner_product, normalize_vector, normalize_vectors, ray_segment
