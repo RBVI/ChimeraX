@@ -202,27 +202,27 @@ class _NucleicUndo(UndoAction):
 
 
 def run_provider(session, name, display_name):
-    from chimerax.shortcuts.shortcuts import if_sel_atoms
+    from chimerax.shortcuts.shortcuts import run_on_atoms
     if display_name == "Plain":
-        if_sel_atoms("nucleotides sel atoms; style nucleic & sel stick",
+        run_on_atoms("nucleotides %s atoms; style nucleic & %s stick",
                      "nucleotides atoms; style nucleic stick")(session)
     elif display_name == "Filled":
-        if_sel_atoms("nucleotides sel fill; style nucleic & sel stick",
+        run_on_atoms("nucleotides %s fill; style nucleic & %s stick",
                      "nucleotides fill; style nucleic stick")(session)
     elif display_name == "Slab":
-        if_sel_atoms("nucleotides sel slab; style nucleic & sel stick",
+        run_on_atoms("nucleotides %s slab; style nucleic & %s stick",
                      "nucleotides slab; style nucleic stick")(session)
     elif display_name == "Tube/\nSlab":
-        if_sel_atoms("nucleotides sel tube/slab shape box")(session)
+        run_on_atoms("nucleotides %s tube/slab shape box")(session)
     elif display_name == "Tube/\nEllipsoid":
-        if_sel_atoms("nucleotides sel tube/slab shape ellipsoid")(session)
+        run_on_atoms("nucleotides %s tube/slab shape ellipsoid")(session)
     elif display_name == "Tube/\nMuffler":
-        if_sel_atoms("nucleotides sel tube/slab shape muffler")(session)
+        run_on_atoms("nucleotides %s tube/slab shape muffler")(session)
     elif display_name == "Ladder":
-        if_sel_atoms("nucleotides sel ladder")(session)
+        run_on_atoms("nucleotides %s ladder")(session)
     elif display_name == "Stubs":
-        if_sel_atoms("nucleotides sel stubs")(session)
+        run_on_atoms("nucleotides %s stubs")(session)
     elif display_name == "nucleotide":
-        if_sel_atoms("color sel bynuc")(session)
+        run_on_atoms("color %s bynuc")(session)
     else:
         session.logger.warning("Unknown nucleotides provider: %r" % name)
