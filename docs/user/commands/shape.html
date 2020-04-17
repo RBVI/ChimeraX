@@ -85,13 +85,23 @@ See also: <a href="measure.html#inertia"><b>measure inertia</b></a>
   [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
   [&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
   [&nbsp;<b>caps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>fromPoint</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>toPoint</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
   <a href="#options"><i>general-options</i></a>
 <blockquote>
 The default <b>radius</b> <i>r</i> and <b>height</b> <i>h</i> are
 both <b>1.0</b>. The default orientation is with the axis of symmetry
 (<b>height</b> dimension) along the Z axis.
 The <b>caps</b> option indicates whether to cap the cylinder or
-leave it open-ended.
+leave it open-ended. Some options are mutually exclusive: 
+<ul>
+<li>the orientation can be given with the <b>axis</b> option
+instead of rotation values (in <a href="#options">general options</a>)
+<li>the endpoints can be specified directly with
+<b>fromPoint</b> and <b>toPoint</b> instead of with 
+height, center, and rotation values
+<ul>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -100,6 +110,9 @@ leave it open-ended.
   [&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
   [&nbsp;<b>topRadius</b>&nbsp;&nbsp;<i>rtop</i>&nbsp;]
   [&nbsp;<b>caps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
+[&nbsp;<b>fromPoint</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>toPoint</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
   <a href="#options"><i>general-options</i></a>
 <blockquote>
 The default <b>radius</b> <i>rbase</i> and
@@ -109,7 +122,14 @@ The default orientation is with the axis of symmetry
 The <b>topRadius</b> <i>rtop</i> defaults to <b>0.0</b>, giving a pointed cone,
 but values &gt;&nbsp;0 can be used to produce a truncated cone.
 The <b>caps</b> option indicates whether to cap the end(s) of the cone or
-leave them open.
+leave them open. Some options are mutually exclusive: 
+<ul>
+<li>the orientation can be given with the <b>axis</b> option
+instead of rotation values (in <a href="#options">general options</a>)
+<li>the endpoints can be specified directly with
+<b>fromPoint</b> (base) and <b>toPoint</b> (tip) instead of with 
+height, center, and rotation values
+<ul>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
