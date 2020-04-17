@@ -65,6 +65,7 @@ $(SUBDIR_BUILD): dir
 install:
 	$(MAKE) build
 	cd $(SYNC_DIR) && $(APP_PYTHON_EXE) -m pip install --upgrade --upgrade-strategy only-if-needed */*.whl
+	$(APP_EXE) --exit --nogui --silent --cmd "toolshed reload installed"
 
 lint:
 ifneq (,$(PYSRCS))

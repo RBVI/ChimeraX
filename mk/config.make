@@ -106,7 +106,7 @@ PYTHON_LIBRARY_DIR = $(bindir)/Lib
 APP_PYTHON_LIBRARY_DIR = $(app_bindir)/Lib
 PYTHON_EXE = $(bindir)/python.exe
 APP_PYTHON_EXE = $(app_bindir)/python.exe
-APP_EXE = $(app_bindir)/$(APP_NAME).exe
+APP_EXE = $(app_bindir)/$(APP_NAME)-console.exe
 CYTHON_EXE = $(bindir)/Scripts/cython.exe
 else ifdef USE_MAC_FRAMEWORKS
 PYTHON_INCLUDE_DIRS = $(shell $(bindir)/python$(PYTHON_VERSION)$(PYTHON_ABI)-config --includes)
