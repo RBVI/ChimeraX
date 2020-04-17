@@ -1,0 +1,398 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: shape</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: shape</h3>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>shape</b> &nbsp;<i>shape</i> &nbsp;<i>options</i></h3>
+<p>
+The <b>shape</b> command creates a surface model of the specified shape.
+See also:
+<a href="volume.html#mask"><b>volume mask</b></a>,
+<a href="marker.html#fromMesh"><b>marker fromMesh</b>,
+<a href="cartoon.html"><b>cartoon</b>,
+<a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
+<a href="open.html#object">3D object formats</a>,
+<a href="surface.html#sop">surface operations</a>
+</p><p>
+The <i>shape</i> can be:
+</p>
+<ul>
+<li><a href="#sphere"><b>sphere</b></a>
+<li><a href="#ellipsoid"><b>ellipsoid</b></a>
+<li><a href="#cylinder"><b>cylinder</b></a>
+<li><a href="#cone"><b>cone</b></a>
+<li><a href="#icosahedron"><b>icosahedron</b></a>
+<li><a href="#triangle"><b>triangle</b></a>
+<li><a href="#rectangle"><b>rectangle</b></a>
+<li><a href="#ribbon"><b>ribbon</b></a>
+&ndash; a ribbon connecting a series of atoms or 
+<a href="../markers.html">markers</a>
+<li><a href="#tube"><b>tube</b></a>
+&ndash; a tube connecting a series of atoms or
+<a href="../markers.html">markers</a>
+<li><a href="#boxPath"><b>boxPath</b></a>
+&ndash; zigzag &ldquo;beams&rdquo; connecting a series of atoms or
+<a href="../markers.html">markers</a>
+</ul>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="sphere"><b>shape sphere</b></a>
+  [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+  <a href="#options"><i>general-options</i></a>
+<blockquote>
+The default <b>radius</b> <i>r</i> is <b>1.0</b> in units of physical distance
+(typically &Aring;).
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="ellipsoid"><b>shape ellipsoid</b></a>
+  [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<i>rx,ry,rz</i>&nbsp;]
+  <a href="#options"><i>general-options</i></a>
+<blockquote>
+The default <b>radius</b> <i>r</i> is <b>1.0</b> along each axis.
+If a single value is specified, the result is a sphere.
+Specifying three values (<i>rx,ry,rz</i>) sets ellipsoid radii
+along the X, Y, and Z axes, respectively.
+See also: <a href="measure.html#inertia"><b>measure inertia</b></a>
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="cylinder"><b>shape cylinder</b></a>
+  [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+  [&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+  [&nbsp;<b>caps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+  <a href="#options"><i>general-options</i></a>
+<blockquote>
+The default <b>radius</b> <i>r</i> and <b>height</b> <i>h</i> are
+both <b>1.0</b>. The default orientation is with the axis of symmetry
+(<b>height</b> dimension) along the Z axis.
+The <b>caps</b> option indicates whether to cap the cylinder or
+leave it open-ended.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="cone"><b>shape cone</b></a>
+  [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>rbase</i>&nbsp;]
+  [&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+  [&nbsp;<b>topRadius</b>&nbsp;&nbsp;<i>rtop</i>&nbsp;]
+  [&nbsp;<b>caps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+  <a href="#options"><i>general-options</i></a>
+<blockquote>
+The default <b>radius</b> <i>rbase</i> and
+<b>height</b> <i>h</i> are both <b>1.0</b>.
+The default orientation is with the axis of symmetry
+(<b>height</b> dimension) along the Z axis and top towards +Z.
+The <b>topRadius</b> <i>rtop</i> defaults to <b>0.0</b>, giving a pointed cone,
+but values &gt;&nbsp;0 can be used to produce a truncated cone.
+The <b>caps</b> option indicates whether to cap the end(s) of the cone or
+leave them open.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="icosahedron"><b>shape icosahedron</b></a>
+  [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
+  [&nbsp;<b>orientation</b>&nbsp;&nbsp;<i>type</i>&nbsp;]
+  [&nbsp;<b>sphereFactor</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
+  [&nbsp;<b>lattice</b>&nbsp;&nbsp;<i>h,k</i>&nbsp;]
+  <a href="#options"><i>general-options</i></a>
+<blockquote>
+The <b>radius</b> <i>r</i> is the distance from the center
+to a 5-fold vertex (default <b>1.0</b>).
+The <b>orientation</b> <i>type</i> can be:
+  <ul>
+  <li><b>222</b> (default)
+   &ndash; with two-fold symmetry axes along the X, Y, and Z axes
+  <li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
+  <li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
+  <li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
+  <li>222r &ndash; same as 222 except rotated 90&deg; about Z
+  <li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
+  <li>n25r &ndash; same as n25 except rotated 180&deg; about X
+  <li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
+  </ul>
+The <b>sphereFactor</b> option allows generating a shape that is an
+interpolation between an icosahedron and a sphere of equal radius.
+The factor <i>f</i> is the weight of the sphere component in the
+interpolation and can range from <b>0.0</b> (default, icosahedron) 
+to 1.0 (sphere).
+The interpolation only affects vertex positions and will not generate
+curved mesh lines or curved surface triangles.
+The <b>lattice</b> option allows showing the icosahedron surface
+with hexagons and pentagons instead of triangles.
+A shape with icosahedral symmetry (like many virus capsids)
+can be idealized as a sheet of hexagons in which curvature is introduced
+by replacing certain hexagons with pentagons, as in a geodesic dome.
+The pentagons occupy the points of the icosahedron, while
+the indices <i>h</i> and <i>k</i> refer to the number and arrangement
+of hexagons in each face (<a href="hkcage.html">details...</a>).
+Hexagons are bent where they cross from one triangular face
+to another.  The indices <i>h</i> and <i>k</i>
+can each be zero (but not both zero) or a positive integer.
+Surface generation can be slow if large values are used.
+See also:
+<a href="hkcage.html"><b>hkcage</b></a>,
+<a href="../tools/cagebuilder.html"><b>Cage Builder</b></a>
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="triangle"><b>shape triangle</b></a>
+  [&nbsp;<b>atoms</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>point</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
+  <a href="#options"><i>general-options</i></a><sup>*</sup>
+<blockquote>
+The vertices of the triangle can be supplied as a
+<a href="atomspec.html">specification</a> of three atoms
+or with three separate uses of the <b>point</b> option.
+If neither of those are used, an equilateral triangle of side length 1
+will be created.
+<p>
+<sup>*</sup>The <a href="#options">general options</a>
+<b>center</b>, <b>rotation</b>, <b>qrotation</b>, and <b>coordinateSystem</b>
+do not apply if the <b>atoms</b> option is used.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="rectangle"><b>shape rectangle</b></a>
+  [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
+  [&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+  [&nbsp;<b>widthDivisions</b>&nbsp;&nbsp;<i>dw</i>&nbsp;]
+  [&nbsp;<b>heightDivisions</b>&nbsp;&nbsp;<i>dh</i>&nbsp;]
+  <a href="#options"><i>general-options</i></a>
+<blockquote>
+The <b>width</b> <i>w</i> and <b>height</b> <i>h</i> are
+the X and Y dimensions of the rectangle (both default to <b>1.0</b>).
+The number of surface points in the rectangle
+along the X dimension will equal 1 + <i>dw</i> and
+along the Y dimension will equal 1 + <i>dh</i>.
+Both the <b>widthDivisions</b> <i>dw</i> and
+<b>heightDivisions</b> <i>dh</i> default to <b>10</b>,
+and these settings override the <b>divisions</b>
+<a href="#options">general option</a>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="ribbon"><b>shape ribbon</b></a>
+  &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+  [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
+  [&nbsp;<b>height</b>&nbsp;&nbsp;&nbsp;<i>h</i>&nbsp;]
+  [&nbsp;<b>yaxis</b>&nbsp;&nbsp;<i>axis</i>&nbsp;]
+  [&nbsp;<b>twist</b>&nbsp;&nbsp;<i>t</i>&nbsp;]
+  [&nbsp;<b>segmentSubdivisions</b>&nbsp;&nbsp;<i>divisions</i>&nbsp;]
+  [&nbsp;<b>bandLength</b>&nbsp;&nbsp;<i>length</i>&nbsp;]
+  [&nbsp;<b>followBonds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+  <a href="#options"><i>general-options</i></a><sup>*</sup>
+<blockquote>
+A <b>ribbon</b> is a smooth path with rectangular cross-section
+connecting a series of atoms or <a href="../markers.html">markers</a>.
+The default <b>width</b> <i>w</i> and <b>height</b> <i>h</i>
+of the cross-section are <b>1.0</b> and <b>0.1</b>, respectively.
+The <b>yaxis</b> <i>axis</i> (default none) and <b>twist</b> <i>t</i>
+control ribbon orientation and how it varies along the path.
+If neither is specified, the ribbon normal varies along the path so that
+there is no local twist.  If an <i>axis</i> is given, the ribbon normal
+is aligned with that axis as closely as possible within the constraints
+of the path. A constant <b>twist</b> <i>t</i> to be applied at each point
+along the path can also be specified (default <b>0</b>&deg;).
+The <i>axis</i> can be given as:
+<ul>
+<li><b>x</b> &ndash; X-axis
+<li><b>y</b> &ndash; Y-axis
+<li><b>z</b> &ndash; Z-axis
+<li><i>x,y,z</i>
+(three values separated by commas only) &ndash; an arbitrary vector
+<li>an <a href="atomspec.html"><i>atom-spec</i></a> of
+exactly two atoms (not necessarily bonded or in the same model) or one bond.
+A bond can only be specified by <a href="../selection.html">selecting</a>
+it and using the word <b>selected</b>, <b>sel</b>, or <b>picked</b>;
+any atoms also selected at the time will be ignored.
+</ul>
+Coordinate specifications of <i>axis</i> are interpreted in the system
+of the model containing the first atom in the path.
+The <b>segmentSubdivisions</b> setting controls how many straight segments
+are used to form the curve between a consecutive pair of atoms;
+higher values give smoother curves.
+The number of straight segments forming the curve between a pair of atoms
+will equal <i>divisions</i> + 1 (default <b>10</b> + 1 = 11).
+The <b>bandLength</b> option specifies what <i>length</i> of ribbon
+centered on an atom should be colored to match that atom (default <b>0.0</b>).
+The <b>followBonds</b> option indicates whether the ribbon should
+follow the directions of the bonds connecting the atoms;
+the option should be set to false for atoms that are not bonded.
+<p>
+<sup>*</sup>The <a href="#options">general options</a>
+<b>center</b>, <b>rotation</b>, <b>qrotation</b>, <b>coordinateSystem</b>,
+and <b>slab</b> do not apply to <b>ribbon</b> shapes.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="tube"><b>shape tube</b></a>
+  &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+  [&nbsp;<b>radius</b>&nbsp;<i>r</i>&nbsp;]
+  [&nbsp;<b>segmentSubdivisions</b>&nbsp;<i>divisions</i>&nbsp;]
+  [&nbsp;<b>bandLength</b>&nbsp;<i>length</i>&nbsp;]
+  [&nbsp;<b>followBonds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+  <a href="#options"><i>general-options</i></a><sup>*</sup>
+<blockquote>
+A <b>tube</b> is a smooth path with circular cross-section
+connecting a series of atoms or <a href="../markers.html">markers</a>.
+The default <b>radius</b> <i>r</i> is <b>1.0</b>.
+The <b>segmentSubdivisions</b> setting controls how many straight segments
+are used to form the curve between a consecutive pair of atoms;
+higher values give smoother curves.
+The number of straight segments forming the curve between a pair of atoms
+will equal <i>divisions</i> + 1 (default <b>10</b> + 1 = 11).
+The <b>bandLength</b> option specifies what <i>length</i> of tube
+centered on an atom should be colored to match that atom (default <b>0.0</b>).
+The <b>followBonds</b> option indicates whether the tube should
+follow the directions of the bonds connecting the atoms;
+the option should be set to false for atoms that are not bonded.
+<p>
+<sup>*</sup>The <a href="#options">general options</a>
+<b>center</b>, <b>rotation</b>, <b>qrotation</b>, <b>coordinateSystem</b>,
+and <b>slab</b> do not apply to <b>tube</b> shapes.
+</p>
+</blockquote>
+
+
+<a href="#top" class="nounder">&bull;</a>
+  <a name="boxPath"><b>shape boxPath</b></a>
+  &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
+  [&nbsp;<b>width</b>&nbsp;<i>w</i>&nbsp;]
+  [&nbsp;<b>twist</b>&nbsp;<i>t</i>&nbsp;]
+  [&nbsp;<b>reportCuts</b>&nbsp;true|<b>false</b>&nbsp;]
+  [&nbsp;<b>cutScale</b>&nbsp;<i>s</i>&nbsp;]
+  <a href="#options"><i>general-options</i></a><sup>*</sup>
+<blockquote>
+A <b>boxPath</b> is a 3D zigzag of &ldquo;beam&rdquo; segments
+connecting a series of atoms or <a href="../markers.html">markers</a>.
+The beam has a square cross-section of
+<b>width</b> <i>w</i> (default <b>1.0</b>),
+and the <b>twist</b> <i>t</i> (default <b>0.0</b>&deg;)
+sets the rotational orientation of the segments about their long axes.
+To make a physical replica of the boxpath
+(see the <a href="http://www.depauw.edu/news-media/latest-news/details/27825/"
+target="_blank">sculpture at DePauw</a>),
+the segments could be generated by angled cuts along a single straight beam.
+Setting <b>reportCuts</b> to <b>true</b> gives the locations
+of such cuts along the four edges of a hypothetical beam;
+the <b>cutScale</b> <i>s</i> (default <b>1.0</b>)
+is a factor for converting these distances
+from &Aring; to the appropriate physical units.
+<p>
+<sup>*</sup>The <a href="#options">general options</a>
+<b>center</b>, <b>rotation</b>, <b>qrotation</b>, <b>coordinateSystem</b>,
+<b>divisions</b>, and <b>slab</b> do not apply to <b>boxPath</b> shapes.
+</p>
+</blockquote>
+
+<a name="options">
+<h3>General Options</h3>
+</a>
+<blockquote>
+  <a name="center"><b>center</b></a>
+  &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;|&nbsp;<i>x,y,z</i>
+  <br>
+The <b>center</b> can be set to the center of specified atom(s) or
+to a point (<i>x,y,z</i>). The default center is (<b>0,0,0</b>).
+</blockquote>
+<blockquote>
+  <a name="rotation"><b>rotation</b>&nbsp;&nbsp;<i>ax,ay,az,angle</i></a>
+  <br>Rotate the shape <i>angle</i> degrees
+  around the specified axis (<i>ax,ay,az</i>). The default is no rotation.
+</blockquote>
+<blockquote>
+  <a name="qrotation"><b>qrotation</b>&nbsp;&nbsp;<i>qx,qy,qz,qw</i></a>
+  <br>Apply the rotation specified as a quaternion.
+  The default is no rotation.
+</blockquote>
+<blockquote>
+  <a name="coordinateSystem"><b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-number</i></a>
+  <br>
+Specify a coordinate system for the shape surface model (default is its
+own coordinate system, but a different reference model can be specified).
+A model's coordinate system defines the X, Y, and Z directions and 
+the position of the origin, and is generally aligned with the 
+<a href="view.html#scenecoords">scene coordinates</a> unless the model
+has been moved separately.
+</blockquote>
+<blockquote>
+  <b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>
+  <br>Specify the color of the surface (default <b>#bebebe</b>
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td bgcolor="#bebebe" width="10px" title="#bebebe"></td></tr></table>).
+</blockquote>
+<blockquote>
+  <b>name</b>&nbsp;&nbsp;<i>model-name</i>
+  <br>
+Specify a name for the surface model. If no name is specified, 
+a generic shape name will be used (for example, &ldquo;sphere&rdquo;).
+</blockquote>
+<blockquote>
+  <a name="modelId"><b>modelId</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-number</i></a>
+  <br>
+Specify an ID number for the surface model. The default is the lowest 
+unused number. If the specified model already exists, it will be replaced.
+</blockquote>
+<blockquote>
+  <b>divisions</b>&nbsp;&nbsp;<i>d</i>
+  <br>Set the fineness of surface triangulation; <i>d</i> is the number of
+  square mesh cells around the circumference (default <b>72</b>).
+  The number of triangles around the circumference is roughly 2-4 times
+  higher, depending on the shape and on the value of <i>d</i>.
+  This setting does not apply to an
+  <a href="#icosahedron"><b>icosahedron</b></a> with
+  <b>lattice</b> specified, as it will be shown with
+  the indicated numbers of hexagons and pentagons rather than with triangles.
+</blockquote>
+<blockquote>
+  <b>mesh</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+  <br>
+  Whether to display the surface as a mesh or as a solid surface.
+  The default is <b>false</b> except for an
+  <a href="#icosahedron"><b>icosahedron</b></a> with
+  <b>lattice</b> specified.
+</blockquote>
+<blockquote>
+  <b>slab</b>&nbsp;&nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>
+  <br>The <b>slab</b> option indicates that a shell or slab of finite thickness
+should be created instead of a single layer of surface.
+If a single value (<i>width</i>) is supplied,
+the inner and outer layers of the slab will be offset
+from the nominal radius <i>r</i> by &plusmn;&frac12;(<i>width</i>).
+Alternatively, two values separated by a comma but no spaces can be used
+to specify the offsets of the two layers independently.
+Offsets can be positive (outward) or negative (inward).
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+April 2020</address>
+</body></html>

@@ -47,8 +47,6 @@ PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
 
-.FORCE: wheel
-
 all: $(PYOBJS)
 
 install: dir all
@@ -60,6 +58,7 @@ install: dir all
 app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
 
+.PHONY: wheel
 wheel: setup.py
 	rm -f $(WHEEL)
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
@@ -88,6 +87,7 @@ SETUP_SED_ARGS += -e 's,\# WINDEBUG,,'
 endif
 endif
 
+.PHONY: setup.py
 setup.py: setup.py.in _serialize.cpp Makefile
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
