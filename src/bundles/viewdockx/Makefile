@@ -3,7 +3,7 @@ include ../Makefile.bundle
 LIBS = src/lib/flot
 CLEAN_ALWAYS += src/lib/flot src/lib/rateyo src/lib/jquery.multiselect.*
 
-wheel install app-install:	$(LIBS)
+build wheel install app-install:	$(LIBS)
 
 # From http://www.flotcharts.org/
 src/lib/flot:	flot-0.8.3.zip

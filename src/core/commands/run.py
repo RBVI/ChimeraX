@@ -158,7 +158,11 @@ def sel_or_all(session, sel_type_info, sel="sel", restriction=None):
                     return '(%s & %s & %s)' % (concise_spec, sel, restriction)
                 return '(%s & %s)' % (concise_spec, sel)
         raise NoneSelectedError("No visible %s selected" % commas(sel_type_info))
-    concise_spec = concise_model_spec(session, [m for m in session.models if m.visible])
+    shown_models = [m for m in session.models if m.visible]
+    if shown_models:
+        concise_spec = concise_model_spec(session, shown_models)
+    else:
+        raise NoneSelectedError("No visible models!")
     if restriction:
         if concise_spec:
             return '(%s & %s)' % (concise_spec, restriction)

@@ -1221,7 +1221,10 @@ class MainWindow(QMainWindow, PlainTextLog):
                 selector = sel_or_all(self.session, Surface)
             except NoneSelectedError:
                 from chimerax.core.errors import UserError
-                raise UserError("No atoms, bonds, or surfaces selected")
+                if self.session.selection.empty():
+                    raise UserError("No atoms, bonds, or surfaces visible")
+                else:
+                    raise UserError("No visible atoms, bonds, or surfaces selected")
         else:
             if "sel" not in selector:
                 # no visible atoms/bonds selected, see if any surfaces are
