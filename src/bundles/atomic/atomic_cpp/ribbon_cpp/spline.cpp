@@ -25,8 +25,14 @@
 #include <arrays/pythonarray.h>		// use python_float_array
 #include <atomstruct/Atom.h>		// use Atom
 using atomstruct::Atom;
+#include <atomstruct/Coord.h>		// use Coord
+using atomstruct::Coord;
 #include <atomstruct/Residue.h>		// use Residue
 using atomstruct::Residue;
+using atomstruct::BackboneExtent::BBE_RIBBON;
+#include <atomstruct/Structure.h>	// use Structure
+using atomstruct::Structure;
+
 
 #include "normals.h"			// use parallel_transport_normals, dihedral_angle
 #include "parse.h"			// use parse_residues(), parse_string_float_map()
@@ -392,7 +398,7 @@ static void atom_spline_positions(const Residues &residues,
       for (auto a = ratoms.begin() ; a != ratoms.end() ; ++a)
 	{
 	  Atom *atom = *a;
-	  if (atom->is_backbone(atomstruct::BackboneExtent::BBE_RIBBON))
+	  if (atom->is_backbone(BBE_RIBBON))
 	    {
 	      auto ai = atom_offset_map.find(atom->name().c_str());
 	      if (ai != atom_offset_map.end())
@@ -534,7 +540,7 @@ static void set_atom_ribbon_positions(const Residues &residues,
       for (auto a = ratoms.begin() ; a != ratoms.end() ; ++a)
 	{
 	  Atom *atom = *a;
-	  if (atom->is_backbone(atomstruct::BackboneExtent::BBE_RIBBON))
+	  if (atom->is_backbone(BBE_RIBBON))
 	    {
 	      auto ai = atom_offset_map.find(atom->name().c_str());
 	      if (ai != atom_offset_map.end())
@@ -569,4 +575,284 @@ PyObject *set_atom_tether_positions(PyObject *, PyObject *args, PyObject *keywds
   set_atom_ribbon_positions(residues, _tether_positions, coef.values(), coef.size(0), &atoms);
   
   return python_atom_pointers(atoms);
+}
+
+static void residue_update_hide(Residue *r, Atom *anchor)
+{
+    if (r->ribbon_display() && r->ribbon_hide_backbone()) {
+        // Ribbon is shown and hides backbone, so hide backbone atoms and bonds
+        for (auto atom: r->atoms())
+            if ((atom->hide() & Atom::HIDE_RIBBON) == 0
+                    && atom->is_backbone(BBE_RIBBON) && atom != anchor)
+                atom->set_hide_bits(Atom::HIDE_RIBBON);
+    }
+    else {
+        // Ribbon is not shown or does not hide backbone
+        // so unhide backbone atoms and bonds
+        for (auto atom: r->atoms())
+            if ((atom->hide() & Atom::HIDE_RIBBON) != 0
+                    && atom->is_backbone(BBE_RIBBON) && atom != anchor)
+                atom->clear_hide_bits(Atom::HIDE_RIBBON);
+    }
+}
+
+// -------------------------------------------------------------------------
+// geometry functions
+//
+inline float* atom_vector(const Atom* f, const Atom* t, float* result)
+{
+    const Coord &fc = f->coord();
+    const Coord &tc = t->coord();
+    result[0] = tc[0] - fc[0];
+    result[1] = tc[1] - fc[1];
+    result[2] = tc[2] - fc[2];
+    return result;
+}
+
+inline float* cross(const float* u, const float* v, float* result)
+{
+    result[0] = u[1]*v[2] - u[2]*v[1];
+    result[1] = u[2]*v[0] - u[0]*v[2];
+    result[2] = u[0]*v[1] - u[1]*v[0];
+    return result;
+}
+
+inline bool normalize(float *v)
+{
+    try {
+        float length = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+        if (length > 0) {
+            v[0] /= length;
+            v[1] /= length;
+            v[2] /= length;
+            return true;
+        }
+        return false;
+    } catch (std::domain_error &) {
+        return false;
+    }
+}
+
+// -----------------------------------------------------------------------------
+//
+extern "C"
+PyObject *get_polymer_spline(PyObject *, PyObject *args, PyObject *keywds)
+{
+    Residues residues;
+    const char *kwlist[] = {"residues", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+				     (char **)kwlist,
+				     parse_residues, &residues))
+        return NULL;
+
+    bool want_peptide = true;
+    bool want_guides = true;
+    Residue **res_array = residues.pointers;
+    size_t n = residues.count;
+
+    // If no ribbon is displayed for any residue, return Nones
+    bool any_display = false;
+    for (size_t i = 0; i != n; ++i)
+        if (res_array[i]->ribbon_display())
+            any_display = true;
+    if (!any_display) {
+	    return python_tuple(python_bool(false), python_none(), python_none(), python_none());
+    }
+
+    // Find all the ribbon-relevant atoms
+    struct PeptidePlane {
+        float normal[3];
+    };
+    std::vector<Atom *> centers;
+    std::vector<Atom *> guides;
+    std::unordered_map<int, PeptidePlane> peptide_planes;
+    bool has_guides = want_guides;
+    Atom *prev_c = NULL;
+    Atom *prev_o = NULL;
+    for (size_t i = 0; i != n; ++i) {
+        Residue* r = res_array[i];
+        for (auto atom: r->atoms())
+            atom->set_in_ribbon(false);
+        Atom *ca = r->find_atom("CA");
+        if (ca != NULL) {
+            // Case 1: amino acid
+            centers.push_back(ca);
+            if (!want_guides) {
+                residue_update_hide(r, ca);
+                continue;
+            }
+            Atom *o = r->find_atom("O");
+            if (want_guides) {
+                if (o != NULL)
+                    guides.push_back(o);
+                else
+                    want_peptide = has_guides = false;
+            }
+            if (want_peptide && o != NULL) {
+                Atom *n = r->find_atom("N");
+                Atom *c = r->find_atom("C");
+                if (n == NULL || c == NULL) {
+                    want_peptide = false;
+                    residue_update_hide(r, ca);
+                    continue;
+                }
+                if (prev_c != NULL) {
+                    float co[3], cn[3];
+                    PeptidePlane peptide;
+                    atom_vector(prev_c, prev_o, co);
+                    atom_vector(prev_c, n, cn);
+                    cross(co, cn, peptide.normal);
+                    // NB: do not bother normalizing now since we will
+                    // use them in a cross product later and will
+                    // have to normalize that result
+                    peptide_planes[i] = peptide;
+                }
+                prev_c = c;
+                prev_o = o;
+            }
+            residue_update_hide(r, ca);
+        }
+        else {
+            prev_c = NULL;
+            // Look for nucleotide
+            Atom *a = r->find_atom("C5'");
+            Atom *anchor = a;
+            if (a == NULL) {
+                a = r->find_atom("P");
+                if (a == NULL) {
+                    // Case 2: not a nucleotide
+                    r->set_ribbon_display(false);
+                    residue_update_hide(r, NULL);
+                    continue;
+                }
+            }
+            // Case 3: Nucleotide
+            centers.push_back(a);
+            if (want_guides) {
+                Atom *c1p = r->find_atom("C1'");
+                if (c1p)
+                    guides.push_back(c1p);
+                else
+                    has_guides = false;
+            }
+            residue_update_hide(r, anchor);
+        }
+    }
+
+    // Create Python return value: tuple of (atoms, control points, guide points)
+    void **adata;
+    PyObject *alist = python_voidp_array(centers.size(), &adata);
+    for (auto atom : centers)
+        *adata++ = atom;
+
+    float *data;
+    float *cdata;
+    PyObject *ca = python_float_array(centers.size(), 3, &cdata);
+    data = cdata;
+    for (auto atom : centers) {
+        const Coord &c = atom->coord();
+        *data++ = c[0];
+        *data++ = c[1];
+        *data++ = c[2];
+        atom->set_in_ribbon(true);
+    }
+
+    PyObject *ga;
+    if (!has_guides || centers.size() < 2) {
+        ga = python_none();
+    }
+    else {
+        float *gdata;
+        ga = python_float_array(centers.size(), 3, &gdata);
+        size_t last = centers.size() - 1;
+        //
+        // For all but the first and last residues, compute the orientation.
+        // First and last are different if they use peptide orientation
+        //
+        for (size_t i = 1; i != last; ++i) {
+            Residue* r = res_array[i];
+            float* center = cdata + i*3;
+            float* guide = gdata + i*3;
+            if (want_peptide
+		&& r->polymer_type() == atomstruct::PT_AMINO
+		&& r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                // "peptide_planes" are relative to the previous
+                // residue, so the i'th element is the peptide
+                // plane between centers[i-1] and centers[i].
+                // We want to average (i-1,i) and (i,i+1).
+                const float* prev_pp = peptide_planes[i].normal;
+                const float* this_pp = peptide_planes[i+1].normal;
+                cross(prev_pp, this_pp, guide);
+                if (normalize(guide)) {
+                    guide[0] += center[0];
+                    guide[1] += center[1];
+                    guide[2] += center[2];
+                    continue;
+                }
+                std::cerr << "normalization error " << i
+                          << ' ' << r->str() << '\n';
+                std::cerr << "prev: " << prev_pp[0] << ' '
+                          << prev_pp[1] << ' ' << prev_pp[2] << '\n';
+                std::cerr << "this: " << this_pp[0] << ' '
+                          << this_pp[1] << ' ' << this_pp[2] << '\n';
+                std::cerr << "guide: " << guide[0] << ' '
+                          << guide[1] << ' ' << guide[2] << '\n';
+            }
+            // Either peptide calculation failed or we want guides
+            const Coord &c = guides[i]->coord();
+            guide[0] = c[0];
+            guide[1] = c[1];
+            guide[2] = c[2];
+            guides[i]->set_in_ribbon(true);
+        }
+        //
+        // Handle first residue
+        //
+        {
+            Residue* r = res_array[0];
+            float* guide = gdata;
+            float* source;
+            if (want_peptide
+		&& r->polymer_type() == atomstruct::PT_AMINO
+		&& r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                // Want peptide.  Copy from second residue.
+                source = gdata + 3;
+                guide[0] = source[0];
+                guide[1] = source[1];
+                guide[2] = source[2];
+            }
+            else {
+                const Coord &c = guides[0]->coord();
+                guide[0] = c[0];
+                guide[1] = c[1];
+                guide[2] = c[2];
+                guides[0]->set_in_ribbon(true);
+            }
+        }
+        //
+        // Handle last residue
+        //
+        {
+            Residue* r = res_array[last];
+            float* guide = gdata + last*3;
+            float* source;
+            if (want_peptide
+		&& r->polymer_type() == atomstruct::PT_AMINO
+		&& r->structure()->ribbon_orient(r) == Structure::RIBBON_ORIENT_PEPTIDE) {
+                // Want peptide.  Copy from next to last residue.
+                source = gdata + (last-1)*3;
+                guide[0] = source[0];
+                guide[1] = source[1];
+                guide[2] = source[2];
+            }
+            else {
+                const Coord &c = guides[last]->coord();
+                guide[0] = c[0];
+                guide[1] = c[1];
+                guide[2] = c[2];
+                guides[last]->set_in_ribbon(true);
+            }
+        }
+    }
+    return python_tuple(python_bool(true), alist, ca, ga);
 }

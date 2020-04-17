@@ -33,6 +33,8 @@ extern "C"
   PyObject *atom_spline_positions(PyObject *s, PyObject *args, PyObject *keywds);
 
   PyObject *set_atom_tether_positions(PyObject *s, PyObject *args, PyObject *keywds);
+
+  PyObject *get_polymer_spline(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 #endif

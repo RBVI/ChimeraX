@@ -65,7 +65,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
     for rlist, ptype in polymers:
         # Always call get_polymer_spline to make sure hide bits are
         # properly unset when ribbons are completely undisplayed
-        any_display, atoms, coords, guides = rlist.get_polymer_spline()
+        any_display, atoms, coords, guides = _get_polymer_spline(rlist)
         if not any_display:
             continue
 
@@ -217,6 +217,19 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
                  pathtime, spltime, coeftime, normaltime, interptime,
                  geotime, drtime, tethertime))
 
+
+def _get_polymer_spline(residues):
+    '''Return a tuple of spline center and guide coordinates for a
+    polymer chain.  Residues in the chain that do not have a center
+    atom will have their display bit turned off.  Center coordinates
+    are returned as a numpy array.  Guide coordinates are only returned
+    if all spline atoms have matching guide atoms; otherwise, None is
+    returned for guide coordinates.'''
+    any_display, atom_pointers, centers, guides = _ribbons.get_polymer_spline(residues.pointers)
+    from chimerax.atomic import Atoms
+    atoms = None if atom_pointers is None else Atoms(atom_pointers)
+    return any_display, atoms, centers, guides
+    
 def _ribbon_flip_normals(structure, is_helix):
     nres = len(is_helix)
     if structure.ribbon_mode_helix == structure.RIBBON_MODE_DEFAULT:
