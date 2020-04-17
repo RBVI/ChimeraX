@@ -74,13 +74,18 @@ def shape_box_path(session, atoms, width = 1.0, twist = 0.0, color = (190,190,19
 
 # -----------------------------------------------------------------------------
 #
-def shape_cone(session, radius = 10.0, top_radius = 0.0, height = 40.0,
+def shape_cone(session, radius = 1.0, top_radius = 0.0, height = 1.0,
+               from_point = None, to_point = None, axis = None,
                center = None, rotation = None, qrotation = None,
                coordinate_system = None,
                divisions = 72, color = (190,190,190,255),
                mesh = False,
                caps = True, slab = None,
                name = 'cone', model_id = None):
+
+    hcr = _line_orientation(from_point, to_point, axis, height)
+    if hcr is not None:
+        height, center, rotation = hcr
 
     r = max(radius, top_radius)
     nz, nc = _cylinder_divisions(r, height, divisions)
@@ -102,7 +107,8 @@ def shape_cone(session, radius = 10.0, top_radius = 0.0, height = 40.0,
 
 # -----------------------------------------------------------------------------
 #
-def shape_cylinder(session, radius = 10.0, height = 40.0,
+def shape_cylinder(session, radius = 1.0, height = 1.0,
+                   from_point = None, to_point = None, axis = None,
                    center = None, rotation = None, qrotation = None,
                    coordinate_system = None,
                    divisions = 72, color = (190,190,190,255),
@@ -110,12 +116,51 @@ def shape_cylinder(session, radius = 10.0, height = 40.0,
                    caps = True, slab = None,
                    name = 'cylinder', model_id = None):
 
+    hcr = _line_orientation(from_point, to_point, axis, height)
+    if hcr is not None:
+        height, center, rotation = hcr
+        
     nz, nc = _cylinder_divisions(radius, height, divisions)
     varray, tarray = cylinder_geometry(radius, height, nz, nc, caps)
 
     s = _show_surface(session, varray, tarray, color, mesh,
                       center, rotation, qrotation, coordinate_system,
                       slab, model_id, name)
+
+# -----------------------------------------------------------------------------
+#
+def _line_orientation(from_point, to_point, axis, height):
+    if from_point is None and to_point is None and axis is None:
+        return None
+
+    c,h,r = None, height, None
+
+    from chimerax.core.commands import Axis, Center
+    if isinstance(axis, Axis):
+        axis = axis.scene_coordinates()
+    if isinstance(from_point, Center):
+        from_point = from_point.scene_coordinates()
+    if isinstance(to_point, Center):
+        to_point = to_point.scene_coordinates()
+        
+    from chimerax.geometry import vector_rotation, norm
+    if axis is not None:
+        r = vector_rotation((0,0,1), axis)
+    else:
+        from numpy import array, float32
+        axis = array((0,0,1), float32)
+        
+    if from_point is not None and to_point is not None:
+        c = 0.5 * (from_point + to_point)
+        v = to_point - from_point
+        r = vector_rotation((0,0,1), v)
+        h = norm(v)
+    elif from_point is not None and to_point is None:
+        c = from_point + 0.5*height*axis
+    elif from_point is None and to_point is not None:
+        c = to_point - 0.5*height*axis
+        
+    return h, c, r
 
 # -----------------------------------------------------------------------------
 #
@@ -188,7 +233,7 @@ def tube_geometry(nz, nc):
 
 # -----------------------------------------------------------------------------
 #
-def shape_icosahedron(session, radius = 10.0, center = None, rotation = None,
+def shape_icosahedron(session, radius = 1.0, center = None, rotation = None,
                       qrotation = None, coordinate_system = None,
                       divisions = 72,
                       color = (190,190,190,255), mesh = None,
@@ -241,7 +286,7 @@ def hk_icosahedral_geometry(radius, hk, sphere_factor = 0, orientation = '222'):
 
 # -----------------------------------------------------------------------------
 #
-def shape_rectangle(session, width = 10.0, height = 10.0,
+def shape_rectangle(session, width = 1.0, height = 1.0,
                     center = None, rotation = None, qrotation = None,
                     coordinate_system = None,
                     width_divisions = None, height_divisions = None,
@@ -262,7 +307,7 @@ def shape_rectangle(session, width = 10.0, height = 10.0,
 
     s = _show_surface(session, varray, tarray, color, mesh,
                       center, rotation, qrotation, coordinate_system,
-                      slab, model_id, name)
+                      slab, model_id, name, sharp_slab = True)
     return s
 
 # -----------------------------------------------------------------------------
@@ -335,7 +380,7 @@ def shape_ribbon(session, atoms, follow_bonds = False,
 # -----------------------------------------------------------------------------
 # Makes sphere or ellipsoid if radius is given as 3 values.
 #
-def shape_sphere(session, radius = 10.0, center = None, rotation = None,
+def shape_sphere(session, radius = 1.0, center = None, rotation = None,
                  qrotation = None, coordinate_system = None,
                  divisions = 72,
                  color = (190,190,190,255), mesh = False,
@@ -432,6 +477,7 @@ def _surface_model(session, model_id, shape_name, position = None):
             s.id = model_id
         if position is not None:
             s.position = position
+        s.SESSION_SAVE_DRAWING = True
         s.clip_cap = True			# Cap surface when clipped
     return s
 
@@ -445,12 +491,13 @@ def _find_surface_model(session, model_id):
 
 # -----------------------------------------------------------------------------
 #
-def shape_triangle(session, atoms = None, points = None,
+def shape_triangle(session, atoms = None, point = None,
                    color = (190,190,190,255), mesh = False,
                    center = None, rotation = None, qrotation = None, coordinate_system = None,
                    divisions = 1,
                    slab = None, name = 'triangle', model_id = None):
 
+    points = point  # List of points.  Name is point so user command repeated option name is "point"
     if atoms is not None:
         if len(atoms) != 3:
             raise CommandError('shape triangle: Must specify 3 atoms, got %d' % len(atoms))
@@ -563,15 +610,16 @@ def register_shape_command(logger):
     from chimerax.core.commands import CmdDesc, register, EnumOf, RepeatOf
     from chimerax.core.commands import Color8Arg, BoolArg, StringArg
     from chimerax.core.commands import PositiveIntArg, Int2Arg, FloatArg, Float3Arg
-    from chimerax.core.commands import CenterArg, CoordSysArg, ModelIdArg
+    from chimerax.core.commands import CenterArg, AxisArg, CoordSysArg, ModelIdArg
     from chimerax.map import Float1or3Arg
     from chimerax.atomic import AtomsArg
 
-    basic_args = [('divisions', PositiveIntArg),
-                  ('color', Color8Arg),
-                  ('mesh', BoolArg),
-                  ('name', StringArg),
-                  ('model_id', ModelIdArg)]
+    base_args = [('color', Color8Arg),
+                 ('mesh', BoolArg),
+                 ('name', StringArg),
+                 ('model_id', ModelIdArg)]
+
+    basic_args = [('divisions', PositiveIntArg)] + base_args
 
     position_args = [('center', CenterArg),
                      ('rotation', AxisAngleArg),
@@ -586,7 +634,7 @@ def register_shape_command(logger):
                            keyword = [('width', FloatArg),
                                       ('twist', FloatArg),
                                       ('report_cuts', BoolArg),
-                                      ('cut_scale', FloatArg)] + common_args,
+                                      ('cut_scale', FloatArg)] + base_args,
                            synopsis = 'create a box beam model')
     register('shape boxPath', boxpath_desc, shape_box_path, logger=logger)
 
@@ -594,6 +642,9 @@ def register_shape_command(logger):
     cone_desc = CmdDesc(keyword = [('radius', FloatArg),
                                    ('top_radius', FloatArg),
                                    ('height', FloatArg),
+                                   ('from_point', CenterArg),
+                                   ('to_point', CenterArg),
+                                   ('axis', AxisArg),
                                    ('caps', BoolArg)] + common_args,
                         synopsis = 'create a cone model')
     register('shape cone', cone_desc, shape_cone, logger=logger)
@@ -601,6 +652,9 @@ def register_shape_command(logger):
     # Cylinder
     cylinder_desc = CmdDesc(keyword = [('radius', FloatArg),
                                        ('height', FloatArg),
+                                       ('from_point', CenterArg),
+                                       ('to_point', CenterArg),
+                                       ('axis', AxisArg),
                                        ('caps', BoolArg)] + common_args,
                             synopsis = 'create a cylinder model')
     register('shape cylinder', cylinder_desc, shape_cylinder, logger=logger)
@@ -646,7 +700,7 @@ def register_shape_command(logger):
     
     # Triangle
     triangle_desc = CmdDesc(optional = [('atoms', AtomsArg)],
-                            keyword = [('points', RepeatOf(CenterArg))] + common_args,
+                            keyword = [('point', RepeatOf(CenterArg))] + common_args,
                             synopsis = 'create a triangle model')
     register('shape triangle', triangle_desc, shape_triangle, logger=logger)
 
