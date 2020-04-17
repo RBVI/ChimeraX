@@ -32,7 +32,7 @@ extern "C"
 
   PyObject *atom_spline_positions(PyObject *s, PyObject *args, PyObject *keywds);
 
-  PyObject *atom_tether_positions(PyObject *s, PyObject *args, PyObject *keywds);
+  PyObject *set_atom_tether_positions(PyObject *s, PyObject *args, PyObject *keywds);
 }
 
 #endif

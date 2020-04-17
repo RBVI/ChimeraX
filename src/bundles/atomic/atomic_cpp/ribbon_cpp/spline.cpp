@@ -553,7 +553,7 @@ static void set_atom_ribbon_positions(const Residues &residues,
 // -----------------------------------------------------------------------------
 //
 extern "C"
-PyObject *atom_tether_positions(PyObject *, PyObject *args, PyObject *keywds)
+PyObject *set_atom_tether_positions(PyObject *, PyObject *args, PyObject *keywds)
 {
   Residues residues;
   DArray coef;
@@ -567,15 +567,6 @@ PyObject *atom_tether_positions(PyObject *, PyObject *args, PyObject *keywds)
   set_atom_ribbon_positions(residues, _non_tether_positions, coef.values(), coef.size(0));
   std::vector<Atom *> atoms;
   set_atom_ribbon_positions(residues, _tether_positions, coef.values(), coef.size(0), &atoms);
-  double *positions;
-  PyObject *xyz = python_double_array(atoms.size(), 3, &positions);
-  for (auto ai = atoms.begin() ; ai != atoms.end() ; ++ai)
-    {
-      const atomstruct::Coord *c = (*ai)->ribbon_coord();
-      *positions++ = (*c)[0];
-      *positions++ = (*c)[1];
-      *positions++ = (*c)[2];
-    }
   
-  return python_tuple(python_atom_pointers(atoms), xyz);
+  return python_atom_pointers(atoms);
 }
