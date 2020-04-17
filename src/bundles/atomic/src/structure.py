@@ -2131,12 +2131,21 @@ def selected_atoms(session):
 
 # -----------------------------------------------------------------------------
 #
-def selected_bonds(session):
+def selected_bonds(session, *, intra_residue=True, inter_residue=True):
     '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
     blist = []
     for m in session.models.list(type = Structure):
         for b in m.selected_items('bonds'):
-            blist.append(b)
+            if inter_residue and intra_residue:
+                blist.append(b)
+                continue
+            import numpy
+            atoms1, atoms2 = b.atoms
+            is_intra = numpy.equal(atoms1.residues, atoms2.residues)
+            if intra_residue:
+                blist.append(b.filter(is_intra))
+            if inter_residue:
+                blist.append(b.filter(numpy.logical_not(is_intra)))
     from .molarray import concatenate, Bonds
     bonds = concatenate(blist, Bonds)
     return bonds
@@ -2146,7 +2155,8 @@ def selected_bonds(session):
 def selected_residues(session):
     '''All selected residues in all structures as an :class:`.Residues` collection.'''
     from .molarray import concatenate, Atoms
-    sel_atoms = concatenate((selected_atoms(session),) + selected_bonds(session).atoms, Atoms)
+    sel_atoms = concatenate((selected_atoms(session),)
+        + selected_bonds(session, inter_residue=False).atoms, Atoms)
     return sel_atoms.residues.unique()
 
 # -----------------------------------------------------------------------------
