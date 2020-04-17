@@ -38,7 +38,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  nucleotides open_command pdb pick_blobs preset_mgr pubchem read_pbonds \
 	  registration remote_control rest_server \
 	  residue_fit rotamer_lib_mgr rotamer_libs save_command scheme_mgr \
-	  sdf segger segment seq_view shape \
+	  sdf segger segment seq_view sequences shape \
 	  shell shortcuts show_attr sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
