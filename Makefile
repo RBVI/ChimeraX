@@ -76,8 +76,8 @@ vdocs.install:
 
 
 build-dirs:
-	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(webdir) $(wheelhouse)
+	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
+		$(webdir) $(wheelhouse) $(build_prefix)/sync/{python-only,binary}
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
 endif
@@ -102,6 +102,9 @@ distclean: clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
 	$(MAKE) -C prereqs/PyQt distclean
 	$(MAKE) -C docs clean
+
+clean:
+	rm -f $(build_prefix)/sync
 
 build-from-scratch:
 	$(MAKE) distclean
