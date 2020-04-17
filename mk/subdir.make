@@ -18,27 +18,11 @@
 ifdef NO_SUBDIR_INSTALL
 install:
 else
-ifdef TWO_PASS_INSTALL
-DEPS_SUBDIR_INSTALL = $(SUBDIRS:=.dep-install)
-.PHONY: $(DEPS_SUBDIR_INSTALL)
-NO_DEPS_SUBDIR_INSTALL = $(SUBDIRS:=.nodep-install)
-.PHONY: $(NO_DEPS_SUBDIR_INSTALL)
-nodeps-install: $(NO_DEPS_SUBDIR_INSTALL)
-$(NO_DEPS_SUBDIR_INSTALL):
-	$(MAKE) -C $(subst .nodep-install,,$@) DEVEL_ARGS="noDeps true" install
-deps-install: $(DEPS_SUBDIR_INSTALL)
-$(DEPS_SUBDIR_INSTALL):
-	$(MAKE) -C $(subst .dep-install,,$@) install
-install:
-	$(MAKE) nodeps-install
-	$(MAKE) -j 1 deps-install
-else
 SUBDIR_INSTALL = $(SUBDIRS:=.install)
 .PHONY: $(SUBDIR_INSTALL)
 install: $(SUBDIR_INSTALL)
 $(SUBDIR_INSTALL):
 	$(MAKE) -C $(subst .install,,$@) install
-endif
 endif
 
 ifdef NO_SUBDIR_CLEAN
@@ -69,4 +53,14 @@ $(SUBDIR_SYNC):
 	$(MAKE) -C $(subst .sync,,$@) sync
 else
 sync:
+endif
+
+ifdef SUBDIR_BUILD
+SUBDIR_BUILD = $(SUBDIRS:=.build)
+.PHONY: $(SUBDIR_BUILD)
+build: $(SUBDIR_BUILD)
+$(SUBDIR_BUILD):
+	$(MAKE) -C $(subst .build,,$@) build
+else
+build:
 endif
