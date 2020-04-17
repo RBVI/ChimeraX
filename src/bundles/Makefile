@@ -11,7 +11,10 @@
 
 TOP = ../..
 SUBDIR_SYNC = 1
+SUBDIR_BUILD = 1
 include $(TOP)/mk/config.make
+
+SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 #
 # The FIRST_SUBDIRS subdirectories are built before REST_SUBDIRS.
@@ -20,6 +23,7 @@ include $(TOP)/mk/config.make
 #
 BUNDLE_BUILDER_SUBDIR = bundle_builder
 
+# all FIRST_SUBDIRS should have BUILD_AND_INSTALL=1
 FIRST_SUBDIRS = arrays geometry graphics
 
 REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
@@ -47,7 +51,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 
 SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(FIRST_SUBDIRS) $(REST_SUBDIRS)
 
-TWO_PASS_INSTALL = 1
+NO_SUBDIR_INSTALL = 1
 
 include $(TOP)/mk/subdir.make
 
@@ -56,15 +60,11 @@ PKG_DIR = $(PYSITEDIR)/chimerax
 dir:	Makefile.dependencies
 	if [ ! -d "$(PKG_DIR)" ]; then mkdir -p $(PKG_DIR); fi
 
-$(SUBDIR_INSTALL): dir
+$(SUBDIR_BUILD): dir
 
-# Make sure bundle_builder is installed before all others.
-$(FIRST_SUBDIRS:=.nodep-install): bundle_builder.nodep-install
-$(FIRST_SUBDIRS:=.dep-install): bundle_builder.dep-install
-
-# Make sure first subidirectories are built before the remainder.
-$(REST_SUBDIRS:=.nodep-install): $(FIRST_SUBDIRS:=.nodep-install)
-$(REST_SUBDIRS:=.dep-install): $(FIRST_SUBDIRS:=.dep-install)
+install:
+	$(MAKE) build
+	cd $(SYNC_DIR) && $(APP_PYTHON_EXE) -m pip install --upgrade --upgrade-strategy only-if-needed */*.whl
 
 lint:
 ifneq (,$(PYSRCS))
@@ -78,13 +78,16 @@ Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
+#
 # Add any custom dependencies that are not captured in bundle_info.xml files
-# Segger bundle_info.xml is hidden in a tar file so Make_dependencies.py does not see it.
-segger.nodep-install: geometry.nodep-install graphics.nodep-install ui.nodep-install
-segger.dep-install: geometry.dep-install graphics.dep-install ui.dep-install
+#
 
-rotamer_libs.nodep-install: rotamer_lib_mgr.nodep-install
-rotamer_libs.dep-install: rotamer_lib_mgr.dep-install
+# Make sure bundle_builder is installed before all others.
+$(FIRST_SUBDIRS:=.build): bundle_builder.build
+$(REST_SUBDIRS:=.build): bundle_builder.build
+
+# Make sure first subdirectories are built before others.
+$(REST_SUBDIRS:=.build): $(FIRST_SUBDIRS:=.build)
 
 include Makefile.dependencies
 endif

@@ -12,10 +12,13 @@ tarball:
 	gzip seggerx.tar
 	mv seggerx.tar.gz seggerx_$(shell date +"%Y_%m_%d").tar.gz
 
-sync:
+build: seggerx
+	$(MAKE) -C seggerx/Segger build
+
+sync: seggerx
 	$(MAKE) -C seggerx/Segger sync
 
-test:
+test: seggerx
 	$(MAKE) -C seggerx/Segger test
 
 clean:

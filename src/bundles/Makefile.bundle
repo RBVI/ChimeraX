@@ -1,6 +1,8 @@
 # The "make" targets are:
 # 	wheel: build a Python wheel in "dist" directory.
 # 	install: build wheel (if needed) and install in ChimeraX.
+# 	sync: squirrel away wheel
+# 	build: make wheel and sync
 # 	test: run ChimeraX
 # 	debug: run ChimeraX with debugging flag set
 # 	clean: remove files used in building wheel
@@ -36,12 +38,12 @@ endif
 RUN = $(CHIMERAX_EXE) --nogui --safemode --exit --cmd
 
 PYSRCS = $(wildcard src/*.py)
-
-wheel:	bundle_info.xml $(PYSRCS)
-	$(RUN) "devel build . exit true $(DEBUG_ARG) $(DEVEL_ARGS)"
-
 # Some bundles (e.g. chem_group) need to add to PYSRCS
 .SECONDEXPANSION:
+
+wheel:	bundle_info.xml $$(PYSRCS)
+	$(RUN) "devel build . exit true $(DEBUG_ARG) $(DEVEL_ARGS)"
+
 install app-install:	bundle_info.xml $$(PYSRCS)
 	$(RUN) "devel install . user false exit true $(DEBUG_ARG) $(DEVEL_ARGS)"
 
@@ -51,6 +53,14 @@ ifneq (,$(wildcard dist/*-py3-none-any.whl))
 else
 	rsync -av dist/*.whl $(SYNC_DIR)/binary
 endif
+
+ifdef BUILD_AND_INSTALL
+DEVEL_ARGS = noDeps true
+build: install
+else
+build: wheel
+endif
+	$(MAKE) sync
 
 test:
 	for t in $(wildcard cxtest*.cxc) $(wildcard cxtest*.py);\

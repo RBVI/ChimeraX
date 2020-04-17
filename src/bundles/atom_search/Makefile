@@ -1,3 +1,5 @@
+# need to install C++ headers for subsequent builds
+BUILD_AND_INSTALL = 1
 include ../Makefile.bundle
 TOP = ../../..
 include $(TOP)/mk/config.make
