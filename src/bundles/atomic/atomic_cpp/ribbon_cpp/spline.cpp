@@ -29,7 +29,7 @@ using atomstruct::Atom;
 using atomstruct::Coord;
 #include <atomstruct/Residue.h>		// use Residue
 using atomstruct::Residue;
-using atomstruct::BackboneExtent::BBE_RIBBON;
+using atomstruct::BBE_RIBBON;
 #include <atomstruct/Structure.h>	// use Structure
 using atomstruct::Structure;
 
