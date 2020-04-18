@@ -415,12 +415,12 @@ class MolecularSurface(Surface):
             # Subset of atoms are being colored.
             vcolors = self.get_vertex_colors(create = True, copy = True)
             if color is not None:
-                vcolors[v] = color
+                vcolors[v,:3] = color[:3]
             elif vertex_colors is not None:
-                vcolors[v] = vertex_colors[v]
+                vcolors[v,:3] = vertex_colors[v,:3]
             else:
                 atom_colors, vc = self._per_atom_colors(atoms, per_atom_colors)
-                vcolors[v] = vc[v]
+                vcolors[v,:3] = vc[v,:3]
             if opacity is not None:
                 vcolors[v,3] = opacity
             self.vertex_colors = vcolors

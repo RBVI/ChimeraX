@@ -84,7 +84,7 @@ def color(session, objects, color=None, what=None, target=None,
     opacity = None
     if transparency is not None:
         opacity = min(255, max(0, int(2.56 * (100 - transparency))))
-    if getattr(color, 'explicit_transparency', False):
+    elif getattr(color, 'explicit_transparency', False):
         opacity = color.uint8x4()[3]
 
     if halfbond is not None:
