@@ -5315,6 +5315,72 @@ extern "C" EXPORT void pointer_intersects_each(void *pointer_arrays, size_t na, 
     }
 }
 
+typedef std::map<void *, int> PointerTable;
+extern "C" EXPORT void *pointer_table_create(void *pointer_array, size_t n)
+{
+    void **pa = static_cast<void **>(pointer_array);
+    PointerTable *t = new PointerTable;
+    try {
+      for (int i = n-1; i >= 0; --i)
+	(*t)[pa[i]] = i;
+    } catch (...) {
+        molc_error();
+    }
+    return t;
+}
+
+extern "C" EXPORT void pointer_table_delete(void *pointer_table)
+{
+    PointerTable *t = static_cast<PointerTable *>(pointer_table);
+    try {
+        delete t;
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT bool pointer_table_includes_any(void *pointer_table, void *pointer_array, size_t n)
+{
+    PointerTable *t = static_cast<PointerTable *>(pointer_table);
+    void **pa = static_cast<void **>(pointer_array);
+    try {
+        for (size_t i = 0; i < n; ++i)
+	  if (t->find(pa[i]) != t->end())
+	    return true;
+    } catch (...) {
+        molc_error();
+    }
+    return false;
+}
+
+extern "C" EXPORT void pointer_table_includes_each(void *pointer_table, void *pointer_array, size_t n,
+						   unsigned char *mask)
+{
+    PointerTable *t = static_cast<PointerTable *>(pointer_table);
+    void **pa = static_cast<void **>(pointer_array);
+    try {
+        for (size_t i = 0; i < n; ++i)
+	  mask[i] = (t->find(pa[i]) != t->end() ? 1 : 0);
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void pointer_table_indices(void *pointer_table, void *pointer_array, size_t n,
+					     int *indices)
+{
+    PointerTable *t = static_cast<PointerTable *>(pointer_table);
+    void **pa = static_cast<void **>(pointer_array);
+    try {
+      for (size_t i = 0; i < n; ++i) {
+	PointerTable::iterator ti = t->find(pa[i]);
+	indices[i] = (ti == t->end() ? -1 : ti->second);
+      }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 // inform C++ about relevant class objects
 //
 #include <atomic/ctypes_pyinst.h>
