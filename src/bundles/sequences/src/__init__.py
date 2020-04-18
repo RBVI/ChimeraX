@@ -17,8 +17,8 @@ class _SequencesAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
-        from .tool import sequences
-        return sequences(session, tool_name)
+        from .tool import Sequences
+        return Sequences(session, tool_name)
 
     @staticmethod
     def get_class(class_name):

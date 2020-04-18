@@ -69,7 +69,7 @@ class ChainListWidget(ItemListWidget):
     @property
     def value(self):
         if self.group_identical:
-            return [chain for chains in super().value for chain in chains]
+            return [chain for chains in self.get_value() for chain in chains]
         return self.get_value()
 
     @value.setter
@@ -78,6 +78,15 @@ class ChainListWidget(ItemListWidget):
             from chimerax.core.errors import LimitationError
             raise LimitationError("Cannot set grouped Chain list")
         self.set_value(val)
+
+    @property
+    def grouped_value(self):
+        if self.group_identical:
+            return self.get_value()
+        chains = self.get_value()
+        if not chains:
+            return chains
+        return [[chain] for chain in chains]
 
     def _list_func(self):
         simple_list = self._raw_list_func()
@@ -88,7 +97,8 @@ class ChainListWidget(ItemListWidget):
             groups.setdefault(chain.characters, []).append(chain)
         grouped_list = list(groups.values())
         grouped_list.sort(key=lambda x: x[0])
-        return grouped_list
+        # since the returned values will be used as dictionary keys, need to return tuples
+        return [tuple(chains) for chains in grouped_list]
 
     def _item_text_func(self, item):
         if self._requested_item_text_func:
