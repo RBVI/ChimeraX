@@ -385,13 +385,18 @@ class Log(ToolInstance, HtmlLog):
         import lxml.html
         html = lxml.html.fromstring(self.page_source)
         for node in html.find_class("cxcmd"):
+            cxcmd_as_doc = False
             for child in node:
-                if (child.tag != 'div' or child.attrib.get('class', None)
-                        not in (None, 'cxcmd_as_cmd')):
+                cls = child.attrib.get('class', None)
+                if cls == 'cxcmd_as_doc':
+                    cxcmd_as_doc = True
                     node.remove(child)
                     continue
-                child.text = '> '
-                break
+                if cls == 'cxcmd_as_cmd':
+                    child.text = '> '
+                    break
+            if not cxcmd_as_doc:
+                node.text = '> '
         src = lxml.html.tostring(html, encoding='unicode')
         return h.handle(src)
 
