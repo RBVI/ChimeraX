@@ -344,15 +344,15 @@ def _set_ring_colors(residues, color, opacity, bgcolor, undo_state):
 def _set_surface_colors(session, atoms, color, opacity, bgcolor=None, undo_state=None):
     if color in _SpecialColors:
         if color == 'fromatoms':
-            ns = color_surfaces_at_atoms(atoms, opacity=opacity, undo_state=undo_state)
+            ns = _color_surfaces_at_atoms(atoms, opacity=opacity, undo_state=undo_state)
         else:
             # Surface colored different from atoms
             c = _computed_atom_colors(atoms, color, opacity, bgcolor)
-            ns = color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors=c,
-                                         undo_state=undo_state)
+            ns = _color_surfaces_at_atoms(atoms, per_atom_colors=c, opacity=opacity,
+                                          undo_state=undo_state)
     else:
-        ns = color_surfaces_at_atoms(atoms, color, opacity=opacity,
-                                     undo_state=undo_state)
+        ns = _color_surfaces_at_atoms(atoms, color.uint8x4(), opacity=opacity,
+                                      undo_state=undo_state)
     return ns
 
 def _set_model_colors(session, model_list, color, opacity, undo_state):
@@ -508,8 +508,8 @@ def _set_sequential_residue(session, objects, cmap, opacity, target, undo_state)
                     undo_state.add(r, "ribbon_color", r.ribbon_color, rgba)
                     r.ribbon_color = rgba
             if 's' in target:
-                color_surfaces_at_residues(residues, colors, opacity,
-                                           undo_state = undo_state)
+                _color_surfaces_at_residues(residues, colors, opacity=opacity,
+                                            undo_state = undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -538,7 +538,7 @@ def _set_sequential_structures(session, objects, cmap, opacity, target, undo_sta
         if 'f' in target:
             _set_ring_colors(m.residues, c, opacity, None, undo_state)
         if 's' in target:
-            color_surfaces_at_atoms(m.atoms, c, undo_state=undo_state)
+            _color_surfaces_at_atoms(m.atoms, color, opacity=opacity, undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #
@@ -1232,8 +1232,8 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
         # TODO: msg.append('%d residues' % len(residues))
 
     if 's' in target:
-        ns = color_surfaces_at_atoms(atoms, opacity = opacity, per_atom_colors = acolors,
-                                     undo_state=undo_state)
+        ns = _color_surfaces_at_atoms(atoms, per_atom_colors = acolors, opacity = opacity,
+                                      undo_state=undo_state)
         if ns > 0:
             msg.append('%d surfaces' % ns)
 
@@ -1245,25 +1245,25 @@ def color_by_attr(session, attr_name, atoms=None, what=None, target=None, averag
 
 # -----------------------------------------------------------------------------
 #
-def color_surfaces_at_atoms(atoms = None, color = None, opacity = None, per_atom_colors = None,
-                            undo_state = None):
+def _color_surfaces_at_atoms(atoms = None, color = None, per_atom_colors = None,
+                             opacity = None, undo_state = None):
     from chimerax import atomic
     surfs = atomic.surfaces_with_atoms(atoms)
     for s in surfs:
         if undo_state and hasattr(s, 'color_undo_state'):
             colors_before = s.color_undo_state
-            s.color_atom_patches(atoms, color, opacity, per_atom_colors)
+            s.color_atom_patches(atoms, color, per_atom_colors, opacity = opacity)
             undo_state.add(s, 'color_undo_state', colors_before, s.color_undo_state)
         else:
-            s.color_atom_patches(atoms, color, opacity, per_atom_colors)
+            s.color_atom_patches(atoms, color, per_atom_colors, opacity = opacity)
     return len(surfs)
 
 # -----------------------------------------------------------------------------
 #
-def color_surfaces_at_residues(residues, colors, opacity = None, undo_state = None):
+def _color_surfaces_at_residues(residues, colors, opacity = None, undo_state = None):
     atoms, acolors = _residue_atoms_and_colors(residues, colors)
-    color_surfaces_at_atoms(atoms, opacity=opacity, per_atom_colors = acolors,
-                            undo_state=undo_state)
+    _color_surfaces_at_atoms(atoms, per_atom_colors = acolors, opacity=opacity,
+                             undo_state=undo_state)
 
 # -----------------------------------------------------------------------------
 #

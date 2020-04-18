@@ -284,7 +284,7 @@ class MolecularSurface(Surface):
             self._vertex_to_atom = None
         return self._vertex_to_atom
 
-    def vertices_for_atoms(self, atoms):
+    def _vertices_for_atoms(self, atoms):
         if atoms is None:
             nv = len(self.vertices)
             v = slice(nv)
@@ -377,22 +377,86 @@ class MolecularSurface(Surface):
         acolor = csum.astype(uint8)
         return acolor
 
-    def color_atom_patches(self, atoms, color = None, opacity = None, per_atom_colors = None):
-        v, all_atoms = self.vertices_for_atoms(atoms)
+    def color_atom_patches(self, atoms = None,
+                           color = None, per_atom_colors = None, vertex_colors = None,
+                           opacity = None):
+        '''
+        Set surface patch colors for specified atoms.  The atoms collection may include atoms that
+        are not included in the surface. If atoms is None then all atom patches are colored.
+        Colors can be specified in one of four ways.
+        A single color can be specified.  Or an array of colors for the specified atoms
+        per_atom_colors can be given.  Or an array of whole surface vertex colors can be given.
+        If none of those color arguments are given, then the colors of the atoms are used.
+        Transparency is set if opacity is given, otherwise transparency remains the same as the
+        current surface transparency.  Return value is True if atom patches were colored but
+        can be False if no coloring was done because this surface has no atom to vertex mapping
+        and coloring was requested for only a subset of atoms.
+        '''
+        v, all_atoms = self._vertices_for_atoms(atoms)
         if v is None:
-            return	# Some atoms colored but no vertex to atom mapping
-        if all_atoms and color is not None:
-            self.set_color_and_opacity(color, opacity)
-        else:
-            c = self._surface_vertex_colors_from_atoms(v, atoms, per_atom_colors) if color is None else color.uint8x4()
-            vcolors = self.get_vertex_colors(create = True, copy = True)
-            vcolors[v] = c
-            self.set_vertex_colors_and_opacities(v, vcolors, opacity)
-            self._update_atom_patch_colors(atoms, color, per_atom_colors)
+            # No atom to vertex mapping and only some atoms are being colored.
+            return False
 
-    def _update_atom_patch_colors(self, atoms, color, per_atom_colors):
+        if all_atoms:
+            # Optimize the common case of all atoms being colored.
+            if color is not None:
+                self._set_color_and_opacity(color, opacity)
+            elif vertex_colors is not None:
+                if opacity is not None:
+                    vertex_colors[:,3] = opacity
+                self.vertex_colors = vertex_colors
+                self._clear_atom_patch_colors()
+            else:
+                atom_colors, vertex_colors = self._per_atom_colors(atoms, per_atom_colors,
+                                                                   opacity=opacity)
+                self.vertex_colors = vertex_colors
+                self._remember_atom_patch_colors(atom_colors)
+        else:
+            # Subset of atoms are being colored.
+            vcolors = self.get_vertex_colors(create = True, copy = True)
+            if color is not None:
+                vcolors[v] = color
+            elif vertex_colors is not None:
+                vcolors[v] = vertex_colors[v]
+            else:
+                atom_colors, vc = self._per_atom_colors(atoms, per_atom_colors)
+                vcolors[v] = vc[v]
+            if opacity is not None:
+                vcolors[v,3] = opacity
+            self.vertex_colors = vcolors
+            self._update_atom_patch_colors(atoms, color, per_atom_colors, vertex_colors)
+
+        return True
+    
+    def _per_atom_colors(self, atoms, per_atom_colors, opacity = None):
+        if per_atom_colors is None:
+            atom_colors = self.atoms.colors
+        else:
+            atom_colors = per_atom_colors[atoms.indices(self.atoms),:]
+        if opacity is not None:
+            atom_colors[:,3] = opacity
+        v2a = self.vertex_to_atom_map()
+        if v2a is None:
+            from chimerax.core.errors import UserError
+            raise UserError('Surface #%s does not have atom patches, cannot color by atom'
+                            % self.id_string)
+        vertex_colors = atom_colors[v2a,:]
+        return atom_colors, vertex_colors
+
+    def _remember_atom_patch_colors(self, atom_colors):
+        self._atom_patch_colors = atom_colors
+        from numpy import ones, bool
+        self._atom_patch_color_mask = ones((len(atom_colors),), bool)
+
+    def _update_atom_patch_colors(self, atoms, color, per_atom_colors, vertex_colors):
+        if vertex_colors is not None:
+            m = self._atom_patch_color_mask
+            if m is not None and len(m) == len(self.atoms):
+                from numpy import putmask
+                putmask(m, self.atoms.mask(atom), 0)
+            return
         if color is not None:
-            acolors = color.uint8x4()
+            acolors = color
         elif per_atom_colors is not None:
             acolors = per_atom_colors[atoms.mask(self.atoms)]
         else:
@@ -410,6 +474,10 @@ class MolecularSurface(Surface):
             m = self._atom_patch_color_mask
             from numpy import logical_or
             logical_or(m, ai, m)
+    
+    def _clear_atom_patch_colors(self):
+        self._atom_patch_colors = None
+        self._atom_patch_color_mask = None
 
     def _show_atom_patch_colors(self):
         apc = self._atom_patch_colors
@@ -418,33 +486,12 @@ class MolecularSurface(Surface):
         m = self._atom_patch_color_mask
         self.color_atom_patches(self.atoms.filter(m), per_atom_colors = apc[m])
             
-    def set_color_and_opacity(self, color = None, opacity = None):
-        c8 = self.color if color is None else color.uint8x4()
-        if opacity is not None and opacity != 'computed':
-            c8[3] = opacity
+    def _set_color_and_opacity(self, color = None, opacity = None):
+        c8 = self.color if color is None else color
+        if opacity is not None:
+            c8 = (c8[0], c8[1], c8[2], opacity)
         self.single_color = c8
-
-    def _surface_vertex_colors_from_atoms(self, vmask, atoms, per_atom_colors):
-        v2a = self.vertex_to_atom_map()
-        if v2a is None:
-            from chimerax.core.errors import UserError
-            raise UserError('Surface #%s does not have atom patches, cannot color by atom'
-                            % self.id_string)
-        if per_atom_colors is None:
-            c = self.atoms.colors[v2a[vmask],:]
-        else:
-            sa2a = atoms.indices(self.atoms)
-            c = per_atom_colors[sa2a[v2a[vmask]],:]
-        return c
-
-    def set_vertex_colors_and_opacities(self, vmask, vcolors, opacity = None):
-        if opacity is None:
-            # Preserve current transparency
-            cvc = self.vertex_colors
-            vcolors[vmask,3] = cvc[vmask,3] if cvc is not None else self.color[3]
-        elif opacity != 'computed':
-            vcolors[vmask,3] = opacity
-        self.vertex_colors = vcolors
+        self._clear_atom_patch_colors()
 
     # Handle undo of color changes
     _color_attributes = ('color', 'vertex_colors',
@@ -588,7 +635,7 @@ def surfaces_with_atoms(atoms):
     for m in list(atoms.unique_structures) + [top_drawing]:
         for s in m.child_drawings():
             if isinstance(s, MolecularSurface):
-                if len(atoms.intersect(s.atoms)) > 0:
+                if s.atoms.intersects(atoms):
                     surfs.append(s)
     return surfs
 

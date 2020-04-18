@@ -91,16 +91,13 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
         return 0
     
     for s in surfs:
-        v, all_atoms = s.vertices_for_atoms(atoms)
-        if v is not None:
-            if undo_state:
-                cprev = s.color_undo_state
-            cs = VolumeColor(s, map, palette, range, offset = offset)
-            vcolors = s.get_vertex_colors(create = True, copy = True)
-            vcolors[v] = cs.vertex_colors()[v]
-            s.set_vertex_colors_and_opacities(v, vcolors, opacity)
-            if undo_state:
-                undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
+        if undo_state:
+            cprev = s.color_undo_state
+        cs = VolumeColor(s, map, palette, range, offset = offset)
+        satoms = s.atoms if atoms is None else atoms
+        colored = s.color_atom_patches(satoms, vertex_colors = cs.vertex_colors(), opacity = opacity)
+        if undo_state and colored:
+            undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
 
     return len(surfs)
 
