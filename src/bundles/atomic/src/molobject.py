@@ -1240,7 +1240,8 @@ class Chain(StructureSeq):
     def string(self, style=None):
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1 \
+        or not chain_str:
             struct_string = self.structure.string(style=style)
         else:
             struct_string = ""
