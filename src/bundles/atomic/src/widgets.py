@@ -61,10 +61,25 @@ class ChainListWidget(ItemListWidget):
         return self._group_identical
 
     @group_identical.setter
-    def group_identical(self, val):
-        if val != self._group_identical:
-            self._group_identical = val
+    def group_identical(self, group):
+        if group != self._group_identical:
+            self._group_identical = group
+            prev_sel = self.get_value()
             self.refresh()
+            if group:
+                # was individual chains
+                next_sel = set()
+                for chain in prev_sel:
+                    for chains in self.value_map.keys():
+                        if chain in chains:
+                            next_sel.add(tuple(chains))
+                            break
+            else:
+                # was groups of chains
+                next_sel = []
+                for chains in prev_sel:
+                    next_sel.extend(chains)
+            self.set_value(next_sel)
 
     @property
     def value(self):

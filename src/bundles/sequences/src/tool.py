@@ -30,7 +30,9 @@ class Sequences(ToolInstance):
         layout = QVBoxLayout()
         parent.setLayout(layout)
         from chimerax.atomic.widgets import ChainListWidget
-        self.chain_list = ChainListWidget(session, group_identical=self.settings.grouping)
+        self.chain_list = ChainListWidget(session, group_identical=self.settings.grouping,
+            autoselect="first")
+        self.chain_list.value_changed.connect(self._update_show_button)
         layout.addWidget(self.chain_list, stretch=1)
 
         self.grouping_button = QCheckBox("Group identical sequences")
@@ -40,7 +42,7 @@ class Sequences(ToolInstance):
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox()
-        bbox.addButton("Show", qbbox.AcceptRole)
+        self._show_button = bbox.addButton("Show", qbbox.AcceptRole)
         bbox.addButton(qbbox.Cancel)
         #bbox.addButton(qbbox.Help)
         bbox.accepted.connect(self.show_seqs)
@@ -49,6 +51,8 @@ class Sequences(ToolInstance):
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda run=run, ses=session: run(ses, "help " + self.help))
         layout.addWidget(bbox)
+
+        self._update_show_button()
 
         tw.manage(placement=None)
 
@@ -62,6 +66,9 @@ class Sequences(ToolInstance):
     def _grouping_change(self, grouping):
         self.settings.grouping = grouping
         self.chain_list.group_identical = grouping
+
+    def _update_show_button(self):
+        self._show_button.setEnabled(bool(self.chain_list.value))
 
 from chimerax.core.settings import Settings
 class SequencesSettings(Settings):

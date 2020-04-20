@@ -147,6 +147,8 @@ class ItemListWidget(ItemsGenerator, ItemsUpdater, QListWidget):
         if self.autoselect and not filtered_sel:
             if (self.autoselect == "single" and len(item_names) == 1) or self.autoselect == "all":
                 filtered_sel = item_names
+            elif self.autoselect == "first" and len(item_names) > 0:
+                filtered_sel = item_names[:1]
         preblocked = self.signalsBlocked()
         if not preblocked:
             self.blockSignals(True)
@@ -209,7 +211,8 @@ class ModelListWidget(ItemListWidget):
 
        'autoselect' keyword controls what happens when nothing would be selected.  If 'single', then if
        there is exactly one item it will be selected and otherwise the selection remains empty.  If 'all'
-       then all items will become selected.  If None, the selection remains empty.  Default: 'all'.
+       then all items will become selected.  If 'first' the first item will be selected.  If None, the
+       selection remains empty.  Default: 'all'.
 
        'selection_mode' controls how items are selected in the list widget.  Possible values are:
        'single', 'extended', and 'multi' (default 'extended') which correspond to QAbstractItemView::
