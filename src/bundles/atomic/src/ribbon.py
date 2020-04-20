@@ -123,10 +123,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Create tube helices.
         if arc_helix:
             ribbon_adjusts = residues.ribbon_adjusts
-            xsection = xs_mgr.xs_helix_tube
             for start, end in helix_ranges:
                 if displays[start:end].any():
-                    centers = _arc_helix_geometry(coords, xsection, displays, start, end, geometry)
+                    centers = _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry)
                     # Adjust coords so non-tube half of helix ends joins center of cylinder
                     coords[start:end] = centers
 
@@ -950,7 +949,7 @@ def _smooth_helix(rlist, coords, guides, ribbon_adjusts, start, end):
     # the same relative place as before
     #   guides[start:end] = new_coords + delta_guides
 
-def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
+def _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry):
     '''Compute triangulation for one tube helix.'''
 
     from .sse import HelixCylinder
@@ -968,6 +967,7 @@ def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
     n = _interleave_vectors(inormals, normals)
     np = len(c)
     
+    xsection = xs_mgr.xs_helix_tube(radius)
     for r in range(start, end):
         if displays[r]:
             i = 2*(r-start)
@@ -1711,7 +1711,7 @@ class XSectionManager(State):
         self.scale_sheet_arrow = ((2.0, 0.2), (0.2, 0.2))
         self.scale_coil = (0.2, 0.2)
         self.scale_nucleic = (0.2, 1.0)
-        self.tube_radius = 2.0
+        self.tube_radius = None		# If None each helix calculates its own radius
         self.style_helix = self.STYLE_ROUND
         self.style_sheet = self.STYLE_SQUARE
         self.style_coil = self.STYLE_ROUND
@@ -1982,13 +1982,16 @@ class XSectionManager(State):
             self._xs_helix_arrow = base.arrow(self.scale_helix_arrow)
         return self._xs_helix_arrow
 
-    @property
-    def xs_helix_tube(self):
-        if self._xs_helix_tube is None:
-            r = self.tube_radius
+    def xs_helix_tube(self, radius):
+        r = self.tube_radius
+        if r is None:
+            r = radius
+        xs = self._xs_helix_tube
+        if xs is None or xs.radius != r:
             scale = (r,r)
-            self._xs_helix_tube = self._make_xs(self.STYLE_ROUND, scale)
-        return self._xs_helix_tube
+            self._xs_helix_tube = xs = self._make_xs(self.STYLE_ROUND, scale)
+            xs.radius = r
+        return xs
 
     @property
     def xs_sheet(self):
@@ -2120,6 +2123,10 @@ class RibbonXSection:
             xs_pointer = _ribbons.rxsection_new(**kw)
         self._xs_pointer = xs_pointer
 
+    def __del__(self):
+        _ribbons.rxsection_delete(self._xs_pointer)
+        self._xs_pointer = None
+    
     def extrude(self, centers, tangents, normals,
                 cap_front, cap_back, geometry):
         '''Return the points, normals and triangles for a ribbon.'''
