@@ -60,13 +60,12 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
     polyres = []
     roffset = 0
     tethered_atoms = []
-    tethered_positions = []
     backbone_atoms = []
 
     for rlist, ptype in polymers:
         # Always call get_polymer_spline to make sure hide bits are
         # properly unset when ribbons are completely undisplayed
-        any_display, atoms, coords, guides = rlist.get_polymer_spline()
+        any_display, atoms, coords, guides = _get_polymer_spline(rlist)
         if not any_display:
             continue
 
@@ -124,10 +123,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Create tube helices.
         if arc_helix:
             ribbon_adjusts = residues.ribbon_adjusts
-            xsection = xs_mgr.xs_helix_tube
             for start, end in helix_ranges:
                 if displays[start:end].any():
-                    centers = _arc_helix_geometry(coords, xsection, displays, start, end, geometry)
+                    centers = _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry)
                     # Adjust coords so non-tube half of helix ends joins center of cylinder
                     coords[start:end] = centers
 
@@ -168,10 +166,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Get list of tethered atoms and attachment position to ribbon.
         if structure.ribbon_tether_scale > 0:
             min_tether_offset = structure.bond_radius
-            t_atoms, t_positions, b_atoms = _ribbon_tethers(ribbon, residues, min_tether_offset)
+            t_atoms, b_atoms = _ribbon_tethers(ribbon, residues, min_tether_offset)
             if t_atoms:
                 tethered_atoms.append(t_atoms)
-                tethered_positions.append(t_positions)
             if b_atoms:
                 backbone_atoms.append(b_atoms)
                 
@@ -202,7 +199,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         ribbons_drawing.update_ribbon_colors()
 
         # Make tethers
-        ribbons_drawing.set_tethers(tethered_atoms, tethered_positions, backbone_atoms,
+        ribbons_drawing.set_tethers(tethered_atoms, backbone_atoms,
                                     structure.ribbon_tether_shape,
                                     structure.ribbon_tether_scale,
                                     structure.ribbon_tether_sides)
@@ -219,6 +216,19 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
                  pathtime, spltime, coeftime, normaltime, interptime,
                  geotime, drtime, tethertime))
 
+
+def _get_polymer_spline(residues):
+    '''Return a tuple of spline center and guide coordinates for a
+    polymer chain.  Residues in the chain that do not have a center
+    atom will have their display bit turned off.  Center coordinates
+    are returned as a numpy array.  Guide coordinates are only returned
+    if all spline atoms have matching guide atoms; otherwise, None is
+    returned for guide coordinates.'''
+    any_display, atom_pointers, centers, guides = _ribbons.get_polymer_spline(residues.pointers)
+    from chimerax.atomic import Atoms
+    atoms = None if atom_pointers is None else Atoms(atom_pointers)
+    return any_display, atoms, centers, guides
+    
 def _ribbon_flip_normals(structure, is_helix):
     nres = len(is_helix)
     if structure.ribbon_mode_helix == structure.RIBBON_MODE_DEFAULT:
@@ -627,7 +637,7 @@ class RibbonsDrawing(Drawing):
             tmask = None
         self.highlighted_triangles_mask = tmask
         
-    def set_tethers(self, tethered_atoms, tethered_positions, backbone_atoms,
+    def set_tethers(self, tethered_atoms, backbone_atoms,
                     tether_shape, tether_scale, tether_sides):
         if len(tethered_atoms) == 0:
             return
@@ -636,10 +646,8 @@ class RibbonsDrawing(Drawing):
         from . import concatenate, Atoms
         t_atoms = concatenate(tethered_atoms, Atoms)
         b_atoms = concatenate(backbone_atoms, Atoms)
-        import numpy
-        t_positions = numpy.concatenate(tethered_positions)
             
-        tether_drawing = TethersDrawing(name, t_atoms, t_positions, b_atoms,
+        tether_drawing = TethersDrawing(name, t_atoms, b_atoms,
                                         tether_shape, tether_scale, tether_sides)
         self.add_drawing(tether_drawing)
         self._tethers_drawing = tether_drawing
@@ -697,11 +705,10 @@ class RibbonsDrawing(Drawing):
         return picks
 
 class TethersDrawing(Drawing):
-    def __init__(self, name, tethered_atoms, tethered_positions, backbone_atoms,
+    def __init__(self, name, tethered_atoms, backbone_atoms,
                  tether_shape, tether_scale, tether_sides):
 
         self._tethered_atoms = tethered_atoms
-        self._tethered_positions = tethered_positions     # Tether attachment points on ribbon
         self._backbone_atoms = backbone_atoms
 
         self._tether_shape = tether_shape
@@ -730,7 +737,7 @@ class TethersDrawing(Drawing):
 
         # Set tether graphics for currently shown tether atoms.
         tatoms = self._tethered_atoms
-        xyz1 = self._tethered_positions
+        xyz1 = tatoms.ribbon_coords
         xyz2 = tatoms.coords
         radii = structure._atom_display_radii(tatoms) * self._tether_scale
         self.positions = _tether_placements(xyz1, xyz2, radii, self._tether_shape)
@@ -749,32 +756,26 @@ def _tether_placements(xyz0, xyz1, radius, shape):
     return _bond_cylinder_placements(c0, c1, radius)
 
 def _ribbon_tethers(ribbon, residues, min_tether_offset):
-
     # Find position of backbone atoms on ribbon for drawing tethers
-    t_atoms, t_positions = _tether_positions(residues, ribbon.segment_coefficients)
-    
-    offsets = t_atoms.coords - t_positions
+    t_atoms = _set_tether_positions(residues, ribbon.segment_coefficients)
+    offsets = t_atoms.coords - t_atoms.ribbon_coords
     tethered = norm(offsets, axis=1) > min_tether_offset
-    if any(tethered):
-        tethered_atoms = t_atoms.filter(tethered)
-        tethered_positions = t_positions[tethered]
-    else:
-        tethered_atoms = tethered_positions = None
+    tethered_atoms = t_atoms.filter(tethered) if any(tethered) else None
+    return tethered_atoms, t_atoms
 
-    return tethered_atoms, tethered_positions, t_atoms
-
-def _tether_positions(residues, coef):
-    atom_pointers, positions = _ribbons.atom_tether_positions(residues.pointers, coef)
+def _set_tether_positions(residues, coef):
+    # This _ribbons call sets atom.ribbon_coord to the position for each tethered atom.
+    atom_pointers = _ribbons.set_atom_tether_positions(residues.pointers, coef)
     from . import Atoms
     atoms = Atoms(atom_pointers)
-    return atoms, positions
+    return atoms
 
-def _tether_positions_unused(residues, coef):
+def _set_tether_positions_unused(residues, coef):
     nt_atoms, nt_positions = _atom_spline_positions(residues, _NonTetherPositions, coef)
     nt_atoms.ribbon_coords = nt_positions
     t_atoms, t_positions = _atom_spline_positions(residues, _TetherPositions, coef)
     t_atoms.ribbon_coords = t_positions
-    return t_atoms, t_positions
+    return t_atoms
 
 def _atom_spline_positions(residues, atom_offset_map, spline_coef):
     atom_pointers, positions = _ribbons.atom_spline_positions(residues.pointers, atom_offset_map, spline_coef)
@@ -948,7 +949,7 @@ def _smooth_helix(rlist, coords, guides, ribbon_adjusts, start, end):
     # the same relative place as before
     #   guides[start:end] = new_coords + delta_guides
 
-def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
+def _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry):
     '''Compute triangulation for one tube helix.'''
 
     from .sse import HelixCylinder
@@ -966,6 +967,7 @@ def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
     n = _interleave_vectors(inormals, normals)
     np = len(c)
     
+    xsection = xs_mgr.xs_helix_tube(radius)
     for r in range(start, end):
         if displays[r]:
             i = 2*(r-start)
@@ -1709,7 +1711,7 @@ class XSectionManager(State):
         self.scale_sheet_arrow = ((2.0, 0.2), (0.2, 0.2))
         self.scale_coil = (0.2, 0.2)
         self.scale_nucleic = (0.2, 1.0)
-        self.tube_radius = 2.0
+        self.tube_radius = None		# If None each helix calculates its own radius
         self.style_helix = self.STYLE_ROUND
         self.style_sheet = self.STYLE_SQUARE
         self.style_coil = self.STYLE_ROUND
@@ -1980,13 +1982,16 @@ class XSectionManager(State):
             self._xs_helix_arrow = base.arrow(self.scale_helix_arrow)
         return self._xs_helix_arrow
 
-    @property
-    def xs_helix_tube(self):
-        if self._xs_helix_tube is None:
-            r = self.tube_radius
+    def xs_helix_tube(self, radius):
+        r = self.tube_radius
+        if r is None:
+            r = radius
+        xs = self._xs_helix_tube
+        if xs is None or xs.radius != r:
             scale = (r,r)
-            self._xs_helix_tube = self._make_xs(self.STYLE_ROUND, scale)
-        return self._xs_helix_tube
+            self._xs_helix_tube = xs = self._make_xs(self.STYLE_ROUND, scale)
+            xs.radius = r
+        return xs
 
     @property
     def xs_sheet(self):
@@ -2118,6 +2123,10 @@ class RibbonXSection:
             xs_pointer = _ribbons.rxsection_new(**kw)
         self._xs_pointer = xs_pointer
 
+    def __del__(self):
+        _ribbons.rxsection_delete(self._xs_pointer)
+        self._xs_pointer = None
+    
     def extrude(self, centers, tangents, normals,
                 cap_front, cap_back, geometry):
         '''Return the points, normals and triangles for a ribbon.'''

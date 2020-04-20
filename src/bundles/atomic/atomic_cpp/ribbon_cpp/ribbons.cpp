@@ -44,7 +44,9 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("atom_spline_positions"), (PyCFunction)atom_spline_positions,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("atom_tether_positions"), (PyCFunction)atom_tether_positions,
+  {const_cast<char*>("set_atom_tether_positions"), (PyCFunction)set_atom_tether_positions,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("get_polymer_spline"), (PyCFunction)get_polymer_spline,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* xsection.h */

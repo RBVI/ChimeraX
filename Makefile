@@ -50,11 +50,7 @@ test src.test: testimports
 	$(MAKE) -C src test
 
 testimports:
-ifeq ($(OS),Windows)
-	$(subst .exe,-console.exe,$(APP_EXE)) --exit --nogui --silent cxtestimports.py
-else
 	$(APP_EXE) --exit --nogui --silent cxtestimports.py
-endif
 
 sync:
 	mkdir -p $(build_prefix)/sync/{python-only,binary}
@@ -104,7 +100,7 @@ distclean: clean
 	$(MAKE) -C docs clean
 
 clean:
-	rm -f $(build_prefix)/sync
+	rm -rf $(build_prefix)/sync
 
 build-from-scratch:
 	$(MAKE) distclean
