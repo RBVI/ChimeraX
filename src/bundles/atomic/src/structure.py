@@ -838,8 +838,12 @@ class Structure(Model, StructureData):
                 choose_id = part.res_id_matcher()
                 if choose_id:
                     s = numpy.vectorize(choose_id)(res_numbers, res_ics)
-                    selected = numpy.logical_or(selected, s)
-                else:
+                    if s.any():
+                        selected = numpy.logical_or(selected, s)
+                    else:
+                        choose_id = None
+                        # Try using input as name instead of number
+                if not choose_id:
                     choose_type = part.string_matcher(False)
                     s = numpy.vectorize(choose_type)(res_names)
                     selected = numpy.logical_or(selected, s)
