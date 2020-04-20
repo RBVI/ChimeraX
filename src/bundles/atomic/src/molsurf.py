@@ -90,11 +90,9 @@ class MolecularSurface(Surface):
         self.sharp_boundaries = sharp_boundaries
         self._joined_triangles = None
         self._refinement_steps = 1	# Used for fixing sharp edge problems near 3 atom junctions.
-        self._auto_update = update
-        if update:
-            from chimerax.atomic import get_triggers
-            t = get_triggers()
-            t.add_handler('changes', self._atoms_changed)
+
+        self._auto_update_handler = None
+        self.auto_update = update
 
         self._vertex_to_atom = None
         self._vertex_to_atom_count = None	# Used to check if atoms deleted
@@ -144,6 +142,21 @@ class MolecularSurface(Surface):
         self._vertex_to_atom = None
         self._max_radius = None
         self._joined_triangles = None
+
+    def _get_auto_update(self):
+        return self._auto_update_handler is not None
+    def _set_auto_update(self, enable):
+        h = self._auto_update_handler
+        if enable and h is None:
+            from chimerax.atomic import get_triggers
+            t = get_triggers()
+            self._auto_update_handler = t.add_handler('changes', self._atoms_changed)
+        elif not enable and h:
+            from chimerax.atomic import get_triggers
+            t = get_triggers()
+            t.remove_handler(h)
+            self._auto_update_handler = None
+    auto_update = property(_get_auto_update, _set_auto_update)
 
     def _atoms_changed(self, trigger_name, changes):
         if self.deleted:

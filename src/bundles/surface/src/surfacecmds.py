@@ -16,7 +16,7 @@
 def surface(session, atoms = None, enclose = None, include = None,
             probe_radius = None, grid_spacing = None, resolution = None, level = None,
             color = None, transparency = None, visible_patches = None,
-            sharp_boundaries = None, nthread = None, replace = True):
+            sharp_boundaries = None, nthread = None, replace = True, auto_update = True):
     '''
     Compute and display solvent excluded molecular surfaces.
 
@@ -59,6 +59,8 @@ def surface(session, atoms = None, enclose = None, include = None,
       Number of CPU threads to use in computing surfaces.
     replace : bool
       Whether to replace an existing surface for the same atoms or make a copy.
+    auto_update : bool
+      Whether to automatically recompute the surface when atom positions change.  Default True.
     '''
 
     if resolution is not None and probe_radius is not None:
@@ -168,6 +170,10 @@ def surface(session, atoms = None, enclose = None, include = None,
     # Make sure replaced surfaces are displayed.
     for s in surfs:
         s.display = True
+
+    # Set automatic updating.
+    for s in surfs:
+        s.auto_update = auto_update
 
     return surfs
 
@@ -388,7 +394,8 @@ def register_command(logger):
                    ('visible_patches', IntArg),
                    ('sharp_boundaries', BoolArg),
                    ('nthread', IntArg),
-                   ('replace', BoolArg)],
+                   ('replace', BoolArg),
+                   ('auto_update', BoolArg)],
         synopsis = 'create molecular surface')
     register('surface', surface_desc, surface, logger=logger)
 
