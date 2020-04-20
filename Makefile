@@ -100,7 +100,7 @@ distclean: clean
 	$(MAKE) -C docs clean
 
 clean:
-	rm -f $(build_prefix)/sync
+	rm -rf $(build_prefix)/sync
 
 build-from-scratch:
 	$(MAKE) distclean
