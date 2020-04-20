@@ -99,6 +99,10 @@ class MolecularSurface(Surface):
         self._max_radius = None
         self.clip_cap = True
 
+    def delete(self):
+        self.auto_update = False  # Remove auto update handler
+        Surface.delete(self)
+        
     def new_parameters(self, show_atoms, probe_radius = None, grid_spacing = None,
                        resolution = None, level = None, visible_patches = None, sharp_boundaries = None,
                        color = None, transparency = None):
@@ -151,6 +155,8 @@ class MolecularSurface(Surface):
             from chimerax.atomic import get_triggers
             t = get_triggers()
             self._auto_update_handler = t.add_handler('changes', self._atoms_changed)
+            if self.vertices is not None:
+                self._recompute_shape()
         elif not enable and h:
             from chimerax.atomic import get_triggers
             t = get_triggers()
