@@ -60,7 +60,7 @@ std::map<ResName, std::map<AtomName, char>>  Residue::ideal_chirality;
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _mmcif_chain_id(chain), _name(name), _number(num), _polymer_type(PT_NONE),
+    _mmcif_chain_id(chain), _name(name), _number(num),
     _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
     _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as),
     _ring_display(false), _rings_are_thin(false)
