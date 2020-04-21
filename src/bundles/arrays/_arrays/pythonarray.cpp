@@ -1289,7 +1289,7 @@ static int parse_int_nm(PyObject *arg, int64_t m, void *iarray, bool allow_copy)
 
   if (v.dimension() == 1 && v.size() == 0)
     {
-      int64_t size[2] = {0,3};
+      int64_t size[2] = {0,m};
       v = Numeric_Array(Numeric_Array::Int, 2, size);
     }
   if (v.dimension() != 2)
