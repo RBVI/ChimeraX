@@ -160,6 +160,7 @@ Surface display style (solid, mesh, or dot) can be adjusted with
 [&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
 [&nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;[&nbsp;<b>level</b>&nbsp;<i>l</i>&nbsp;]]
 [&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>sharpBoundaries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>visiblePatches</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
@@ -235,6 +236,10 @@ for an SES, <b>0.1<i>r</i></b> (one-tenth the resolution)
 for a Gaussian surface.
 A smaller spacing gives a smoother, more finely triangulated surface,
 but uses more memory.
+<li>The <b>update</b> option (default <b>true</b>) indicates
+whether to update the surface automatically when its shape changes,
+such as from atom movements during
+<a href="../trajectories.html">trajectory</a> playback.
 </ul>
 <p>
 The default values apply to the initial creation of a surface,

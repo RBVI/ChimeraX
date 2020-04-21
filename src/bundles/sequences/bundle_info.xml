@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ChainSequences" version="1.0" package="chimerax.chain_sequences"
+<BundleInfo name="ChimeraX-ShowSequences" version="1.0" package="chimerax.show_sequences"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -28,7 +28,7 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Sequences :: Sequence :: show chain sequences</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Show Sequence Viewer :: Sequence :: show chain sequences</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
