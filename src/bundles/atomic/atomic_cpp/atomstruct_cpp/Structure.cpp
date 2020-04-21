@@ -588,7 +588,8 @@ Structure::delete_atom(Atom* a)
 
 static Atom*
 _find_attachment_atom(Residue* r, const std::set<Atom*>& atoms, std::set<Atom*>& bond_losers,
-    std::set<Atom*>& begin_missing_structure_atoms, std::set<Atom*>& end_missing_structure_atoms)
+    std::set<Atom*>& begin_missing_structure_atoms, std::set<Atom*>& end_missing_structure_atoms,
+    bool left_side)
 {
     // if old missing-structure atom is still there, use it
     for (auto a: begin_missing_structure_atoms) {
@@ -607,7 +608,35 @@ _find_attachment_atom(Residue* r, const std::set<Atom*>& atoms, std::set<Atom*>&
     for (auto a: bond_losers)
         if (a->residue() == r)
             return a;
-    throw std::logic_error("No atom in newly disconnected residue lost any bonds!");
+
+    // in some weird situations where the residue is internally decimated, the formerly
+    // connecting atom may not have been bonded to any other atom of the residue so...
+    auto backbone_names = r->ordered_min_backbone_atom_names();
+    if (backbone_names == nullptr)
+        throw std::logic_error("Missing-structure adjacent residue is not polymeric!?!");
+    if (left_side) {
+        // we're on the "left side" of the gap, so need to look through backbone names
+        // in reverse order
+        auto reversed_names = *backbone_names;
+        std::reverse(reversed_names.begin(), reversed_names.end());
+        for (auto bb_name: reversed_names) {
+            Atom *a = r->find_atom(bb_name);
+            if (a != nullptr)
+                return a;
+        }
+    } else {
+        // we're on the "right side" of the gap, so backbone names in normal order
+        for (auto bb_name: *backbone_names) {
+            Atom *a = r->find_atom(bb_name);
+            if (a != nullptr)
+                return a;
+        }
+    }
+
+    // Okay, no main backbone atoms exist -- use any atom!
+    for (auto a: r->atoms())
+        return a;
+    throw std::logic_error("Residue has no atoms!?!");
 }
 
 void
@@ -739,9 +768,9 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         auto pbg = _pb_mgr.get_group(PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NORMAL);
         pbg->new_pseudobond(
             _find_attachment_atom(r, atoms, bond_losers,
-                begin_left_missing_structure_atoms, end_left_missing_structure_atoms),
+                begin_left_missing_structure_atoms, end_left_missing_structure_atoms, true),
             _find_attachment_atom(end_next, atoms, bond_losers,
-                begin_right_missing_structure_atoms, end_right_missing_structure_atoms)
+                begin_right_missing_structure_atoms, end_right_missing_structure_atoms, false)
         );
     }
 
