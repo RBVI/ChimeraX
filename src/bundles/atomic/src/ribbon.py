@@ -591,6 +591,7 @@ class RibbonsDrawing(Drawing):
     def set_triangle_ranges(self, residues, triangle_ranges):
         self._residues = residues
         self._triangle_ranges = triangle_ranges
+        self._triangle_ranges_sorted = None
         
     def update_ribbon_colors(self):
         res = self._residues
