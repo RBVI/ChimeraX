@@ -70,8 +70,8 @@
     <ChimeraXClassifier>Command :: color height :: Surfaces :: color surface by distance from a plane</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface :: Surfaces :: create/modify surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~surface :: Surfaces :: delete surface</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: surface show :: Surfaces :: show atom surface patches for existing surfaces</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: surface hide :: Surfaces :: hide patches of existing surfaces for specified atoms</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface showPatches :: Surfaces :: show atom surface patches for existing surfaces</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: surface hidePatches :: Surfaces :: hide patches of existing surfaces for specified atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface close :: Surfaces :: close surfaces for specified atoms</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface style :: Surfaces :: set surface mesh, solid, or dot display style</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface cap :: Surfaces :: control surface caps when clipping</ChimeraXClassifier>

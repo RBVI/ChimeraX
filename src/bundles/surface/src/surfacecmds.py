@@ -188,11 +188,9 @@ def _calculate_surface(surf):
 
 # -------------------------------------------------------------------------------------
 #
-def surface_show(session, objects = None):
+def surface_show_patches(session, objects = None):
     '''
     Show surface patches for atoms of existing surfaces.
-    For non-molecular surfaces show the entire model.
-    For volume surfaces show the volume model too.
 
     Parameters
     ----------
@@ -202,24 +200,23 @@ def surface_show(session, objects = None):
     atoms = _surface_atoms(session, objects)
 
     from chimerax.atomic import molsurf
-    sma = molsurf.show_surface_atom_patches(atoms)
+    surfs = molsurf.show_surface_atom_patches(atoms)
+    sset = set(surfs)
     
-    sm = _surfaces(session, objects)
-    from chimerax.map import VolumeSurface
+    # Include molecular surfaces specified by model id.
+    sm = _molecular_surfaces(session, objects)
     for s in sm:
-        if isinstance(s, VolumeSurface):
-            s.volume.display = True
-        s.display = True
+        if s not in sset:
+            s.show(s.atoms)
+            surfs.append(s)
 
-    return sma + sm
+    return surfs
 
 # -------------------------------------------------------------------------------------
 #
-def surface_hide(session, objects = None):
+def surface_hide_patches(session, objects = None):
     '''
     Hide patches of existing surfaces for specified atoms.
-    For non-molecular surfaces hide the entire model.
-    For shown volume surfaces hide the volume model instead of the surface.
 
     Parameters
     ----------
@@ -229,20 +226,18 @@ def surface_hide(session, objects = None):
     atoms = _surface_atoms(session, objects)
 
     from chimerax.atomic import molsurf
-    sma = molsurf.hide_surface_atom_patches(atoms)
-
-    # Hide surfaces not associated with atoms.
-    atom_surfs = set(sma)
-    sm = [s for s in _surfaces(session, objects) if s not in atom_surfs]
-    from chimerax.map import VolumeSurface
+    surfs = molsurf.hide_surface_atom_patches(atoms)
+    sset = set(surfs)
+    
+    # Hide surfaces specified by model id.
+    sm = _molecular_surfaces(session, objects)
     for s in sm:
-        if isinstance(s, VolumeSurface):
-            if s.display:
-                s.volume.display = False
-        else:
-            s.display = False
+        if s not in sset:
+            from chimerax.atomic import Atoms
+            s.show(Atoms())
+            surfs.append(s)
             
-    return sma + sm
+    return surfs
 
 # -------------------------------------------------------------------------------------
 #
@@ -288,13 +283,14 @@ def _surfaces(session, objects):
  
 # -------------------------------------------------------------------------------------
 #
-def _molecular_surfaces(session, objects):
+def _molecular_surfaces(session, objects, from_atoms = False):
     from chimerax.atomic import MolecularSurface, surfaces_with_atoms
     if objects is None:
         surfs = session.models.list(type = MolecularSurface)
     else:
-        surfs = ([s for s in objects.models if isinstance(s, MolecularSurface)]
-                 + list(surfaces_with_atoms(objects.atoms)))
+        surfs = [s for s in objects.models if isinstance(s, MolecularSurface)]
+        if from_atoms:
+            surfs.extend(surfaces_with_atoms(objects.atoms))
     return surfs
 
 # -------------------------------------------------------------------------------------
@@ -402,13 +398,13 @@ def register_command(logger):
     show_desc = CmdDesc(
         optional = [('objects', ObjectsArg)],
         synopsis = 'Show patches of molecular surfaces')
-    register('surface show', show_desc, surface_show, logger=logger)
+    register('surface showPatches', show_desc, surface_show_patches, logger=logger)
 
     hide_desc = CmdDesc(
         optional = [('objects', ObjectsArg)],
         synopsis = 'Hide patches of molecular surfaces')
-    register('surface hide', hide_desc, surface_hide, logger=logger)
-    create_alias('~surface', 'surface hide $*', logger=logger)
+    register('surface hidePatches', hide_desc, surface_hide_patches, logger=logger)
+    create_alias('~surface', 'surface hidePatches $*', logger=logger)
 
     close_desc = CmdDesc(
         optional = [('objects', ObjectsArg)],

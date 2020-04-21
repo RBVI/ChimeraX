@@ -300,11 +300,11 @@ class Assembly:
         included_atoms, excluded_atoms = self._partition_atoms(m.atoms, self._chain_ids())
         if new_model:
             excluded_atoms.delete()
-        from chimerax.surface import surface, surface_hide
+        from chimerax.surface import surface, surface_hide_patches
         surfs = surface(session, included_atoms, grid_spacing = grid_spacing, resolution = res)
         if not new_model and len(excluded_atoms) > 0:
             from chimerax.core.objects import Objects
-            surface_hide(session, Objects(atoms = excluded_atoms))
+            surface_hide_patches(session, Objects(atoms = excluded_atoms))
         for s in surfs:
             mmcif_cid = mmcif_chain_ids(s.atoms[:1], self.from_mmcif)[0]
             s.positions = self._chain_operators(mmcif_cid)

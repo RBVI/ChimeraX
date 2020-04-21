@@ -197,7 +197,7 @@ def file_type_from_colon_specifier(path):
 #
 def file_format_by_name(name):
   for ff in file_formats:
-    if ff.name == name or name in ff.suffixes:
+    if ff.name == name or name in ff.suffixes or name in ff.prefixes:
       return ff
   raise ValueError('Unknown map file format %s' % name)
 
