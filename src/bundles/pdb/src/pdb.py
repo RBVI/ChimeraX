@@ -268,8 +268,10 @@ def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
                     process_chem_name(name))
                 if syns:
                     text += " (%s)" % process_chem_name(syns)
-            else:
+            elif syns:
                 text += process_chem_name(syns)
+            else:
+                text += "(no full residue name provided)"
             return text
         if standalone:
             from chimerax.core.logger import html_table_params
