@@ -23,6 +23,7 @@
 #include "Atom.h"
 #include "Bond.h"
 #include "destruct.h"
+#include "PBGroup.h"
 #include "Residue.h"
 #include "tmpl/TemplateCache.h"
 
@@ -60,7 +61,7 @@ std::map<ResName, std::map<AtomName, char>>  Residue::ideal_chirality;
 
 Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int num, char insert):
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert),
-    _mmcif_chain_id(chain), _name(name), _number(num), _polymer_type(PT_NONE),
+    _mmcif_chain_id(chain), _name(name), _number(num),
     _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
     _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as),
     _ring_display(false), _rings_are_thin(false)
@@ -81,6 +82,36 @@ Residue::add_atom(Atom* a)
 {
     a->_residue = this;
     _atoms.push_back(a);
+
+    // if this is the first atom of a residue being introduced into a chain gap,
+    // possibly adjust missing-structure pseudobonds; try to do this work only if
+    // we are not in initial structure creation
+    if (!structure()->_polymers_computed)
+        return;
+    if (structure()->residues().back() == this || structure()->residues()[0] == this || _atoms.size() > 1)
+        return;
+    auto pbg = structure()->pb_mgr().get_group(Structure::PBG_MISSING_STRUCTURE, AS_PBManager::GRP_NONE);
+    if (pbg == nullptr)
+        return;
+    // Okay, make residue-index map so that we can see if missing-structure bonds "cross" our residue
+    std::map<Residue*, Structure::Residues::size_type> res_map;
+    Structure::Residues::size_type i = 0;
+    for (auto r: structure()->residues()) {
+        res_map[r] = i++;
+    }
+    auto my_index = res_map[this];
+    for (auto pb: pbg->pseudobonds()) {
+        auto a1 = pb->atoms()[0];
+        auto a2 = pb->atoms()[1];
+        auto i1 = res_map[a1->residue()];
+        auto i2 = res_map[a2->residue()];
+        if ((i1 < my_index && i2 > my_index) || (i2 < my_index && i1 > my_index)) {
+            pbg->delete_pseudobond(pb);
+            pbg->new_pseudobond(a1, a);
+            pbg->new_pseudobond(a, a2);
+            break;
+        }
+    }
 }
 
 Residue::AtomsMap

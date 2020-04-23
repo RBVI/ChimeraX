@@ -7,8 +7,7 @@ _URL = ("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
         "&retmode=text")
 
 
-def fetch_homologene(session, ident, ignore_cache=True,
-                     format_name="FASTA", **kw):
+def fetch_homologene(session, ident, ignore_cache=True, **kw):
     """Fetch and display sequence alignment for 'ident' from HomoloGene.
 
     Use Python library to download the FASTA file and use ChimeraX
@@ -19,12 +18,9 @@ def fetch_homologene(session, ident, ignore_cache=True,
     session.logger.status("Fetching HomoloGene %s" % ident)
     save_name = "%s.fa" % ident
     from chimerax.core.fetch import fetch_file
-    filename = fetch_file(session, url, "HomoloGene %s" % ident,
-                          save_name, format_name,
-                          ignore_cache=ignore_cache, uncompress=True)
+    filename = fetch_file(session, url, "HomoloGene %s" % ident, save_name,
+                "HomoloGene", ignore_cache=ignore_cache, uncompress=True)
 
     session.logger.status("Opening HomoloGene %s" % ident)
-    from chimerax.core import io
-    models, status = io.open_data(session, filename, alignment=False,
-                                  format=format_name, name=ident)
+    models, status = session.open_command.open_data(filename, alignment=False, name=ident)
     return models, status

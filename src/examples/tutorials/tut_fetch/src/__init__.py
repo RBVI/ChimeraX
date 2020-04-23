@@ -10,20 +10,26 @@ class _MyAPI(BundleAPI):
 
     api_version = 1
 
-    # Override method for fetching from database
     @staticmethod
-    def fetch_from_database(session, identifier, **kw):
-        # 'fetch_from_database' is called by session code to fetch
-        # an entry from a network resource.
-        # returns (list of models created, status message).
+    def run_provider(session, name, mgr):
+        # 'run_provider' is called by a manager to invoke the 
+        # functionality of the provider.  Since we only provide
+        # single provider to a single manager, we know this method
+        # will only be called by the "open command" manager to
+        # fetch HomoloGene data, and customize this routine accordingly.
         #
-        # 'session' is an instance of chimerax.core.session.Session
-        # 'identifier' is a string for the database entry name
-        # Additional keywords may include:
-        # 'format_name' (string) name of the preferred download format
-        # 'ignore_cache' (boolean): whether cached copy of the data may be used
-        from .fetch import fetch_homologene
-        return fetch_homologene(session, identifier, **kw)
+        # The 'name' arg will be the same as the 'name' attribute
+        # of your Provider tag, and mgr will be the corresponding
+        # Manager instance
+        #
+        # For the "open command" manager with type="fetch", this method
+        # must return a chimerax.open_command.FetcherInfo subclass instance.
+        from chimerax.open_command import FetcherInfo
+        class HomoloGeneFetcherInfo(FetcherInfo):
+            def fetch(self, session, identifier, format_name, ignore_cache, **kw):
+                from .fetch import fetch_homologene
+                return fetch_homologene(session, identifier, ignore_cache=ignore_cache, **kw)
+        return HomoloGeneFetcherInfo()
 
 
 # Create the ``bundle_api`` object that ChimeraX expects.

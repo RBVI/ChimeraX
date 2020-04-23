@@ -73,7 +73,6 @@ private:
     ChainID  _mmcif_chain_id;
     ResName  _name;
     int  _number;
-    PolymerType  _polymer_type;
     float  _ribbon_adjust;
     bool  _ribbon_display;
     bool  _ribbon_hide_backbone;
