@@ -552,7 +552,7 @@ def _add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=
 
     citation_id = str(citation_id)
 
-    if citation.field_has('id', citation_id):
+    if citation is not None and citation.field_has('id', citation_id):
         return None, None, None
 
     # construct new table entries
@@ -657,7 +657,7 @@ def _add_software(model, name, info, *, metadata=None):
     # and don't update metadata
     software, = get_mmcif_tables_from_metadata(model, ['software'], metadata=metadata)
 
-    if software.field_has('name', name):
+    if software is not None and software.field_has('name', name):
         return None
 
     # construct new table entries
@@ -667,8 +667,11 @@ def _add_software(model, name, info, *, metadata=None):
     ]
     software_items = ['name']
     software_data = [name]
-    ordinals = software.fields(['pdbx_ordinal'])
-    max_ordinal = max(0, *(int(x[0]) if x[0].isdigit() else 0 for x in ordinals))
+    if software is None:
+        max_ordinal = 0
+    else:
+        ordinals = software.fields(['pdbx_ordinal'])
+        max_ordinal = max(0, *(int(x[0]) if x[0].isdigit() else 0 for x in ordinals))
     cinfo = {k.casefold(): (k, v) for k, v in info.items()}
     if 'name' in cinfo:
         del cinfo['name']
