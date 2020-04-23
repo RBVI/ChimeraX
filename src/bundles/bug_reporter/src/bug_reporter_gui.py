@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -54,9 +54,9 @@ class BugReporter(ToolInstance):
         intro = '''
         <center><h1>Report a Bug</h1></center>
         <p>Thank you for using our feedback system.
-	  Feedback is greatly appreciated and plays a crucial role
-	  in the development of ChimeraX.</p>
-	  <p><b>Note</b>:
+      Feedback is greatly appreciated and plays a crucial role
+      in the development of ChimeraX.</p>
+      <p><b>Note</b>:
           We do not automatically collect any personal information or the data
           you were working with when the problem occurred.  Providing your e-mail address is optional,
           but will allow us to inform you of a fix or to ask questions, if needed.
@@ -114,6 +114,8 @@ class BugReporter(ToolInstance):
             info += _win32_info()
         elif sys.platform == 'linux':
             info += _linux_info()
+        elif sys.platform == 'darwin':
+            info += _darwin_info()
         gi.setText(info)
         layout.addWidget(gi, row, 2)
         row += 1
@@ -203,7 +205,7 @@ class BugReporter(ToolInstance):
 
         entry_values = self.entry_values()
 
-	# Include log contents in description
+        # Include log contents in description
         if self.include_log.isChecked():
             from chimerax.log.cmd import get_singleton
             log = get_singleton(self._ses)
@@ -435,4 +437,26 @@ Graphics:
 """
         return info
     except Exception as e:
+        return ""
+
+
+def _darwin_info():
+    import subprocess
+    try:
+        output = subprocess.check_output([
+                "system_profiler",
+                "-detailLevel", "mini",
+                "SPHardwareDataType",
+                "SPSoftwareDataType",
+                "SPDisplaysDataType",
+            ],
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            encoding="UTF-8",
+            env={
+                "LANG": "en_US.UTF-8",
+                "PATH": "/sbin:/usr/sbin:/bin:/usr/bin",
+            })
+        return output
+    except Exception:
         return ""
