@@ -2095,6 +2095,8 @@ class Histogram_Pane:
 
     v = self.volume
     if v:
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(v.session, 'close #%s' % v.id_string)
         self.dialog.session.models.close([v])
 
   # ---------------------------------------------------------------------------
