@@ -848,6 +848,8 @@ The doc strings of that class discuss its methods in detail, but briefly:
   that takes your widget and returns a string containing the corresponding options and
   values that could be added to a ``save`` command.
   
+.. _fetch command:
+
 Fetching Files
 ^^^^^^^^^^^^^^
 

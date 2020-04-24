@@ -712,7 +712,8 @@ class Toolshed:
         changes = self.reload(logger, rebuild_cache=True, report=True)
 
         if not self._safe_mode:
-            # Initialize managers and call custom init
+            # Initialize managers, notify other managers about newly 
+            # installed providers, and call custom init.
             # There /may/ be a problem with the order in which we call
             # these if multiple bundles were installed, but we hope for
             # the best.  We do /not/ call initialization functions for
@@ -723,6 +724,7 @@ class Toolshed:
             except KeyError:
                 pass
             else:
+                # managers
                 failed = []
                 done = set()
                 initializing = set()
@@ -733,6 +735,15 @@ class Toolshed:
                                                   initializing, failed)
                 for name in failed:
                     logger.warning("%s: manager initialization failed" % name)
+
+                # providers
+                for name, version in new_bundles.items():
+                    bi = self.find_bundle(name, logger, version=version)
+                    if bi:
+                        #TODO
+                        pass
+
+                # custom inits
                 failed = []
                 done = set()
                 initializing = set()
