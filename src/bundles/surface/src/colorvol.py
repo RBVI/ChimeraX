@@ -167,10 +167,7 @@ class VolumeColor(State):
 
         self.set_colormap(palette, range)
         
-        if auto_recolor:
-            arv = lambda self=self: self.set_vertex_colors(report_stats = False)
-        else:
-            arv = None
+        arv = self._auto_recolor if auto_recolor else None
         surface.auto_recolor_vertices = arv
 
         if auto_recolor:
@@ -246,6 +243,15 @@ class VolumeColor(State):
         s.vertex_colors = self.vertex_colors(report_stats)
         if arv:
             s.auto_recolor_vertices = arv
+
+    # -------------------------------------------------------------------------
+    #
+    def _auto_recolor(self):
+        if self.volume.data is None:
+            # Volume has been deleted.
+            self.surface.auto_recolor_vertices = None
+            return
+        self.set_vertex_colors(report_stats = False)
         
     # -------------------------------------------------------------------------
     #
