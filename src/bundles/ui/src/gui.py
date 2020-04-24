@@ -1084,8 +1084,31 @@ class MainWindow(QMainWindow, PlainTextLog):
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
                 restriction="((protein&@ca)|(nucleic&@p))"))))
 
-        # Cartoon submenu...
-        cartoon_menu = atoms_bonds_menu.addMenu("Cartoon")
+        # Nucleotide Style submenu...
+        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Style")
+        nuc_info = [("Ladder", "ladder"), ("Stubs", "stubs"), ("Slab Base, Ribose Tube", "tube/slab"),
+            ("Slab Base, Ribose Atoms", "slab"), ("Atoms (Filled Rings)", "fill"),
+            ("Atoms (No Ring Fill)", "atoms")]
+        for menu_entry, nuc_style in nuc_info:
+            action = QAction(menu_entry, self)
+            nuc_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="nucleotides %%s %s" % nuc_style:
+                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Nucleotide Style submenu
+
+        atoms_bonds_menu.addSeparator()
+
+        action = QAction("Delete", self)
+        atoms_bonds_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="delete atoms %s; delete bonds %s":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+
+        #
+        # Cartoon...
+        #
+        cartoon_menu = actions_menu.addMenu("Cartoon")
         action = QAction("Show", self)
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
@@ -1115,28 +1138,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="cartoon style %s modeHelix tube sides 20":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
-        # end Cartoon submenu
-
-        # Nucleotide Style submenu...
-        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Style")
-        nuc_info = [("Ladder", "ladder"), ("Stubs", "stubs"), ("Slab Base, Ribose Tube", "tube/slab"),
-            ("Slab Base, Ribose Atoms", "slab"), ("Atoms (Filled Rings)", "fill"),
-            ("Atoms (No Ring Fill)", "atoms")]
-        for menu_entry, nuc_style in nuc_info:
-            action = QAction(menu_entry, self)
-            nuc_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="nucleotides %%s %s" % nuc_style:
-                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        # end Nucleotide Style submenu
-
-        atoms_bonds_menu.addSeparator()
-
-        action = QAction("Delete", self)
-        atoms_bonds_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="delete atoms %s; delete bonds %s":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
 
         #
         # Surface...
@@ -1188,6 +1189,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("From Editor", self)
         color_menu.addAction(action)
         action.triggered.connect(self._color_by_editor)
+
+        """
+        #
+        # Label...
+        #
+        label_menu = actions_menu.addMenu("Label")
+        """
 
     def _color_by_editor(self, *args):
         if not self._color_dialog:
