@@ -293,7 +293,9 @@ mseries
 
 open
 ====
-.. autofunction:: chimerax.core.commands.open.open
+Function defined in *chimerax.open_command.cmd*
+
+.. autofunction:: chimerax.open_command.cmd.provider_open
 
 pdbimages
 =========
@@ -330,7 +332,9 @@ run
 
 save
 ====
-.. autofunction:: chimerax.core.commands.save.save
+Function defined in *chimerax.save_command.cmd*
+
+.. autofunction:: chimerax.save_command.cmd.provider_save
 
 select
 ======
