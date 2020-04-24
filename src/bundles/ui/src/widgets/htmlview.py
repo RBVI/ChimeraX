@@ -53,8 +53,7 @@ def create_profile(parent, schemes=None, interceptor=None, download=None):
     def _intercept(request_info, *args, interceptor=interceptor):
         import os
         qurl = request_info.requestUrl()
-        scheme = qurl.scheme()
-        if scheme == 'file':
+        if qurl.isLocalFile():
             # If path exists or references html files included
             # in chimerax.ui, intercept and return
             import sys
@@ -70,9 +69,8 @@ def create_profile(parent, schemes=None, interceptor=None, download=None):
                     path = full_path = qurl.path()
             else:
                 path = full_path = qurl.path()
-            if os.path.exists(os.path.normpath(full_path)):
-                return
-            if path.startswith("/chimerax/ui/html/"):
+            if (not os.path.exists(os.path.normpath(full_path))
+                    and path.startswith("/chimerax/ui/html/")):
                 from chimerax import ui
                 ui_dir = os.path.dirname(ui.__file__).replace(os.path.sep, '/')
                 full_path = ui_dir + path[len("/chimerax/ui"):]
@@ -372,17 +370,14 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
         raise ValueError("session and view must be set")
     import os
     qurl = request_info.requestUrl()
-    scheme = qurl.scheme()
-    if scheme == 'file':
+    if qurl.isLocalFile():
         # Paths to existing and chimerax.ui have already been intercepted.
         # Treat all directories with help documentation as equivalent
         # to integrate bundle help with the main help.  That is, so
         # relative hrefs will find files in other help directories.
         import sys
         from chimerax.core import toolshed
-        path = os.path.normpath(qurl.path())
-        if sys.platform == "win32" and path[0] == os.path.sep:
-            path = path[1:]
+        path = original_path = os.path.normpath(qurl.toLocalFile())
         help_directories = toolshed.get_help_directories()
         for hd in help_directories:
             if path.startswith(hd):
@@ -396,14 +391,12 @@ def chimerax_intercept(request_info, *args, session=None, view=None):
                 break
         else:
             return  # not in another help directory
-        path = os.path.sep + path
-        if sys.platform == "win32":
-            path = path.replace(os.path.sep, '/')
-            if os.path.isabs(path):
-                path = '/' + path
-        qurl.setPath(path)
-        request_info.redirect(qurl)  # set requested url to good location
+        if path != original_path:
+            new_qurl = qurl.fromLocalFile(path)
+            qurl.setPath(new_qurl.path())
+            request_info.redirect(qurl)  # set requested url to good location
         return
+    scheme = qurl.scheme()
     if scheme in ('cxcmd', 'help'):
         # originating_url = request_info.firstPartyUrl()  # doesn't work
         if callable(view):
