@@ -665,6 +665,7 @@ class Toolshed:
         if isinstance(bundle, str):
             # If the name ends with .whl, it must be a path.
             if bundle.endswith(".whl"):
+                bundle = os.path.expanduser(bundle)
                 basename = os.path.split(bundle)[1]
                 name = basename.split('-')[0]
             else:
