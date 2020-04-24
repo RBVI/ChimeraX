@@ -16,24 +16,17 @@ include $(TOP)/mk/config.make
 
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
-#
-# The FIRST_SUBDIRS subdirectories are built before REST_SUBDIRS.
-# Because core.models depends on graphics and geometry those are
-# installed first to test other bundles.
-#
 BUNDLE_BUILDER_SUBDIR = bundle_builder
 
-# all FIRST_SUBDIRS should have BUILD_AND_INSTALL=1
-FIRST_SUBDIRS = arrays geometry graphics
-
-REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
+REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
 	  cellpack chem_group clashes cmd_line \
 	  color_globe connect_structure core_formats \
 	  crosslinks crystal data_formats \
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
-	  gltf hbonds help_viewer hkcage ihm image_formats \
+	  geometry gltf graphics \
+	  hbonds help_viewer hkcage ihm image_formats \
 	  interfaces io label list_info log \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
@@ -49,7 +42,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments atom_search atomic \
 	  tape_measure test texture toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
 
-SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(FIRST_SUBDIRS) $(REST_SUBDIRS)
+SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(REST_SUBDIRS)
 
 NO_SUBDIR_INSTALL = 1
 
@@ -75,20 +68,32 @@ endif
 clean:
 	rm -rf __pycache__ Makefile.dependencies
 
+#
+# Build Time Dependencies
+# -----------------------
+#
+# Most bundles have no build time dependencies, since only the wheel is
+# built, and the declared dependencies are resolved later during a "pip
+# install" of all of the wheels.  This allows for circular installation
+# dependencies.
+#
+# But some bundles need other bundles built and installed before they can be
+# built (usually for including C++ header files and linking).  Two things have
+# to be done for that to work: (1) the bundle needs to declare the build
+# dependency by adding build="true" to the Dependency tag on that other bundle
+# in their bundle_info.xml file.  And (2), the other bundle needs to put
+# BUILD_AND_INSTALL=1 in their Makefile before including ../Makefile.bundle.
+#
+# The build time dependencies are automatically updated by scanning the bundle
+# bundle_info.xml files, and are placed in to the Makefile.dependencies file.
+#
+
 Makefile.dependencies: */bundle_info.xml* Make_dependencies.py
 ifneq ($(MAKECMDGOALS),clean)
 	$(APP_PYTHON_EXE) Make_dependencies.py
 
-#
-# Add any custom dependencies that are not captured in bundle_info.xml files
-#
-
-# Make sure bundle_builder is installed before all others.
-$(FIRST_SUBDIRS:=.build): bundle_builder.build
-$(REST_SUBDIRS:=.build): bundle_builder.build
-
-# Make sure first subdirectories are built before others.
-$(REST_SUBDIRS:=.build): $(FIRST_SUBDIRS:=.build)
+# Make sure bundle_builder bundle is installed before all others.
+$(REST_SUBDIRS:=.build): $(BUNDLE_BUILDER_SUBDIR).build
 
 include Makefile.dependencies
 endif

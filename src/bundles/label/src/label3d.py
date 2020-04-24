@@ -646,6 +646,9 @@ class ObjectLabel:
         base_text = self.default_text() if self._text is None else self._text
         try:
             final_text = base_text.format(self.object)
+        except AttributeError:
+            # don't label objects missing the requested attribute(s)
+            final_text = ""
         except:
             final_text = base_text
         return final_text
