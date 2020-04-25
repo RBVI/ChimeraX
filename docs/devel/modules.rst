@@ -65,8 +65,6 @@ Files
 
     core/history.rst
 
-    core/io.rst
-
     core/safesave.rst
 
     core/serialize.rst

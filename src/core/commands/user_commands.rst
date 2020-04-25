@@ -377,8 +377,8 @@ surface
 =======
 .. autofunction:: chimerax.surface.surfacecmds.surface
 .. autofunction:: chimerax.surface.surfacecmds.surface_close
-.. autofunction:: chimerax.surface.surfacecmds.surface_hide
-.. autofunction:: chimerax.surface.surfacecmds.surface_show
+.. autofunction:: chimerax.surface.surfacecmds.surface_hide_patches
+.. autofunction:: chimerax.surface.surfacecmds.surface_show_patches
 .. autofunction:: chimerax.surface.surfacecmds.surface_style
 .. autofunction:: chimerax.surface.surfacecmds.surface_cap
 .. autofunction:: chimerax.surface.sop.surface_dust
