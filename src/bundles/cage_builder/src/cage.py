@@ -135,7 +135,7 @@ class Polygon:
         if self.marker_set is None:
             msets = cage_marker_sets(session)
             if msets:
-                marker_set = msets[0]
+                self.marker_set = msets[0]
             else:
                 initial_view = session.models.empty()
                 self.marker_set = Cage(session)
