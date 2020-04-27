@@ -116,6 +116,7 @@ class Collection(State):
                     t += ' type %s' % str(items.dtype)
                 raise ValueError('Collection items of unrecognized type "%s"' % t)
         self._pointers = pointers
+        self._lookup = None		# LookupTable for optimized intersections
         self._object_class = object_class
         self._objects_class = objects_class
         set_cvec_pointer(self, pointers)
@@ -171,11 +172,7 @@ class Collection(State):
     def indices(self, objects):
         '''Return int32 array indicating for each element in objects its index of the
         first occurence in the collection, or -1 if it does not occur in the collection.'''
-        f = c_function('pointer_indices', args = [ctypes.c_void_p, ctypes.c_size_t,
-                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
-        ind = empty((len(objects),), int32)
-        f(objects._c_pointers, len(objects), self._c_pointers, len(self), pointer(ind))
-        return ind
+        return self._lookup_table.indices(objects)
 
     @property
     def object_class(self):
@@ -187,6 +184,12 @@ class Collection(State):
     def pointers(self):
         return self._pointers
 
+    @property
+    def _lookup_table(self):
+        if self._lookup is None:
+            self._lookup = LookupTable(self)
+        return self._lookup
+    
     def __or__(self, objects):
         '''The or operator | takes the union of two collections removing duplicates.'''
         return self.merge(objects)
@@ -204,14 +207,12 @@ class Collection(State):
 
     def intersect(self, objects):
         '''Return a new collection that is the intersection with the *objects* :class:`.Collection`.'''
-        import numpy
-        return self._objects_class(numpy.intersect1d(self._pointers, objects._pointers))
+        pointers = self.pointers[self.mask(objects)]
+        return self._objects_class(pointers)
     def intersects(self, objects):
-        '''Whether this collection has any element in common with the *objects* :class:`.Collection`. Returns bool.'''
-        f = c_function('pointer_intersects',
-                       args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p, ctypes.c_size_t],
-                       ret = ctypes.c_bool)
-        return f(self._c_pointers, len(self), objects._c_pointers, len(objects))
+        '''Whether this collection has any element in common
+        with the *objects* :class:`.Collection`. Returns bool.'''
+        return objects._lookup_table.includes_any(self)
     def intersects_each(self, objects_list):
         '''Check if each of serveral pointer arrays intersects this array.
         Return a boolean array of length equal to the length of objects_list.
@@ -238,11 +239,7 @@ class Collection(State):
     def mask(self, objects):
         '''Return bool array indicating for each object in current set whether that
         object appears in the argument objects.'''
-        f = c_function('pointer_mask', args = [ctypes.c_void_p, ctypes.c_size_t,
-                                               ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
-        mask = empty((len(self),), npy_bool)
-        f(self._c_pointers, len(self), objects._c_pointers, len(objects), pointer(mask))
-        return mask
+        return objects._lookup_table.includes_each(self)
     def merge(self, objects):
         '''Return a new collection combining this one with the *objects* :class:`.Collection`.
         All duplicates are removed.'''
@@ -282,6 +279,58 @@ class Collection(State):
         raise NotImplementedError(
             self.__class__.__name__ + " has not implemented session_save_pointers")
 
+class LookupTable:
+    '''C++ set of pointers for fast lookup.'''
+    def __init__(self, collection):
+        self._collection = collection
+        self._cpp_table = None		# Pointer to C++ set
+        self._size = None		# Size of C++ set
+
+    def __del__(self):
+        self._delete_table()
+
+    def _delete_table(self):
+        if self._cpp_table:
+            delete_table = c_function('pointer_table_delete',
+                                      args = [ctypes.c_void_p])
+            delete_table(self._cpp_table)
+            self._cpp_table = None
+            self._size = None
+
+    @property
+    def _cpp_table_pointer(self):
+        if self._cpp_table is None or len(self._collection) != self._size:
+            self._delete_table()
+            create_table = c_function('pointer_table_create',
+                                      args = [ctypes.c_void_p, ctypes.c_size_t],
+                                      ret = ctypes.c_void_p)
+            c = self._collection
+            self._size = s = len(c)
+            self._cpp_table = create_table(c._c_pointers, s)
+        return self._cpp_table
+    
+    def includes_any(self, collection):
+        incl_any = c_function('pointer_table_includes_any',
+                              args = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t],
+                              ret = ctypes.c_bool)
+        return incl_any(self._cpp_table_pointer, collection._c_pointers, len(collection))
+    
+    def includes_each(self, collection):
+        incl_each = c_function('pointer_table_includes_each',
+                               args = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        n = len(collection)
+        mask = empty((n,), npy_bool)
+        incl_each(self._cpp_table_pointer, collection._c_pointers, n, pointer(mask))
+        return mask
+
+    def indices(self, collection):
+        indices = c_function('pointer_table_indices',
+                             args = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
+        n = len(collection)
+        ind = empty((n,), int32)
+        indices(self._cpp_table_pointer, collection._c_pointers, n, pointer(ind))
+        return ind
+    
 def concatenate(collections, object_class = None, remove_duplicates = False):
     '''Concatenate any number of collections returning a new collection.
     All collections must have the same type.
@@ -368,6 +417,11 @@ class StructureDatas(Collection):
     '''Returns an array of shapes for ribbon tethers.'''
     metadata = cvec_property('metadata', pyobject, read_only = True)
     '''Return a list of dictionaries with metadata. Read only.'''
+    def set_metadata_entry(self, key, values):
+        """Set metadata dictionary entry"""
+        n = len(self)
+        f = c_array_function('set_metadata_entry', args=(pyobject, pyobject), per_object=False)
+        f(self._c_pointers, n, key, values)
     ribbon_tether_opacities = cvec_property('structure_ribbon_tether_opacity', float32)
     '''Returns an array of opacity scale factor for ribbon tethers.'''
     ribbon_show_spines = cvec_property('structure_ribbon_show_spine', npy_bool)
@@ -563,11 +617,15 @@ class Atoms(Collection):
     residues = cvec_property('atom_residue', cptr, astype = _residues, read_only = True,
         doc="Returns a :class:`Residues` whose data items correspond in a 1-to-1 fashion with the "
         "items in the Atoms.  Read only.")
+    ribbon_coords = cvec_property('atom_ribbon_coord', float64, 3, doc =
+        '''Returns a :mod:`numpy` Nx3 array of XYZ values.
+        Raises error if any atom does nt have a ribbon coordinate.
+        Can be set.''')
     @property
     def scene_bounds(self):
         "Return scene bounds of atoms including instances of all parent models."
         blist = []
-        from chimerax.core.geometry import sphere_bounds, copy_tree_bounds, union_bounds
+        from chimerax.geometry import sphere_bounds, copy_tree_bounds, union_bounds
         for m, a in self.by_structure:
             ba = sphere_bounds(a.coords, a.radii)
             ib = copy_tree_bounds(ba,
@@ -667,10 +725,10 @@ class Atoms(Collection):
         c_function('atom_delete',
             args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
 
-    def update_ribbon_visibility(self):
-        '''Update the 'hide' status for ribbon control point atoms, which
+    def update_ribbon_backbone_atom_visibility(self):
+        '''Update the 'hide' status for ribbon backbone atoms, which
             are hidden unless any of its neighbors are visible.'''
-        f = c_function('atom_update_ribbon_visibility',
+        f = c_function('atom_update_ribbon_backbone_atom_visibility',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
 
@@ -865,7 +923,7 @@ class Bonds(Collection):
         f = c_function('bond_halfbond_cylinder_placements',
                        args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_void_p])
         f(self._c_pointers, n, pointer(opengl_array))
-        from chimerax.core.geometry import Places
+        from chimerax.geometry import Places
         return Places(opengl_array = opengl_array)
         
     @classmethod
@@ -1125,6 +1183,8 @@ class Residues(Collection):
     has a unique integer id.  The ids depend on the collection of residues on the fly and are
     not persistent. Read only.
     ''')
+    selected = cvec_property('residue_selected', npy_bool, read_only = True,
+        doc="numpy bool array whether any Atom in each Residue is selected. Read only.")
     ss_ids = cvec_property('residue_ss_id', int32, doc =
     '''
     A :mod:`numpy` array of integer secondary structure IDs, determined by the input file.
@@ -1219,38 +1279,11 @@ class Residues(Collection):
         seqs = f(self._c_pointers, len(self), pointer(seq_ids))
         return seqs, seq_ids
 
-    def get_polymer_spline(self):
-        '''Return a tuple of spline center and guide coordinates for a
-        polymer chain.  Residues in the chain that do not have a center
-        atom will have their display bit turned off.  Center coordinates
-        are returned as a numpy array.  Guide coordinates are only returned
-        if all spline atoms have matching guide atoms; otherwise, None is
-        returned for guide coordinates.'''
-        f = c_function('residue_polymer_spline',
-                       args = [ctypes.c_void_p, ctypes.c_size_t],
-                       ret = ctypes.py_object)
-        any_display, atom_pointers, centers, guides = f(self._c_pointers, len(self))
-        if atom_pointers is None:
-            atoms = None
-        else:
-            atoms = Atoms(atom_pointers)
-        return any_display, atoms, centers, guides
-
     def ribbon_clear_hides(self):
         '''Clear the hide bit for all atoms in given residues.'''
         f = c_function('residue_ribbon_clear_hide',
                        args = [ctypes.c_void_p, ctypes.c_size_t])
         f(self._c_pointers, len(self))
-
-    @property
-    def ribbon_num_selected(self):
-        "Number of selected residue ribbons."
-        f = c_function('residue_ribbon_num_selected',
-                       args = [ctypes.c_void_p, ctypes.c_size_t],
-                       ret = ctypes.c_size_t)
-        return f(self._c_pointers, len(self))
-    ribbon_selected = cvec_property('residue_ribbon_selected', npy_bool,
-        doc="numpy bool array whether each Residue ribbon is selected.")
 
     def set_alt_locs(self, loc):
         if isinstance(loc, str):

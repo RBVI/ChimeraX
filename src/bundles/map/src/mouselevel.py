@@ -17,6 +17,7 @@ class ContourLevelMouseMode(MouseMode):
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self._maps = []
+        self.speed = 1		# Sensitivity of mouse motions.
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -50,7 +51,7 @@ class ContourLevelMouseMode(MouseMode):
     def mouse_drag(self, event):
 
         dx, dy = self.mouse_motion(event)
-        f = -0.001*dy
+        f = -0.001*self.speed*dy
 
         adjust_threshold_levels(self._maps, f)
 
@@ -59,7 +60,7 @@ class ContourLevelMouseMode(MouseMode):
     
     def wheel(self, event):
         d = event.wheel_value()
-        f = d/30
+        f = self.speed * d/30
         maps = self._picked_maps(event)
         adjust_threshold_levels(maps, f)
 
@@ -91,7 +92,7 @@ class ContourLevelMouseMode(MouseMode):
         if step != 0:
             xyz1, xyz2 = event.picking_segment()
             maps = self._picked_maps_on_segment(xyz1, xyz2)
-            adjust_threshold_levels(maps, 0.001*step)
+            adjust_threshold_levels(maps, 0.001*self.speed*step)
 
     def log_volume_command(self):
         for v in self._maps:

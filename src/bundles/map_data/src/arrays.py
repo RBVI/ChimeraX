@@ -282,7 +282,7 @@ def zone_mask(grid_data, zone_points, zone_radius,
       mask_value = 1
 
   from . import grid_indices
-  from chimerax.core.geometry import find_closest_points
+  from chimerax.geometry import find_closest_points
 
   size_limit = 2 ** 22          # 4 Mvoxels
   if mask_3d.size > size_limit:

@@ -67,28 +67,61 @@ same as clicking bottom right icons
 </tr><tr>
 <td align="center"><img src="shortcut-icons/plane.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">single Z-plane at the center</td>
+<td align="center">single Z-plane at the center of the
+<a href="../commands/volume.html#dimensions">current region</a>;
+assign right mouse button to
+<b>move&nbsp;planes</b> <a href="mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="mouse-icons/moveplanes.png"></a></td>
 <td align="center">
-<b><a href="../commands/volume.html#planes">volume</a>
-planes z orthoplanes off <a href="../commands/volume.html#general">style</a> image</b>
+<b><a href="../commands/volume.html">volume</a>
+<a href="../commands/volume.html#planes">planes</a> z
+<a href="../commands/volume.html#general">style</a> image
+<a href="../commands/volume.html#dispsolid">imageMode</a> "full region"</b>
+<br>+<br>
+<b><a href="../commands/ui.html#mousemode">mousemode</a> right "move planes"</b>
+</td>
+</tr><tr>
+<td align="center"><img src="shortcut-icons/slab.png" width="35px">
+<br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
+<td align="center"><a href="../commands/volume.html#tiltedslab">tilted-slab</a>
+image display, with initial slab in the middle of the data,
+10 planes thick and perpendicular to the data Z axis;
+assign right mouse button to
+<b>rotate slab</b> <a href="mousemodes.html#rotateslab"
+title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="mouse-icons/rotateslab.png"></a></td>
+<td align="center">
+<b><a href="../commands/volume.html#dispsolid">volume</a></b>
+with <b><a href="../commands/volume.html#general">style</a>&nbsp;image</b>
+and <b><a href="../commands/volume.html#dispsolid">imageMode</a> "tilted slab"</b>
+<br>(exact command depends on the data) +<br>
+<b><a href="../commands/ui.html#mousemode">mousemode</a> right "rotate slab"</b>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/orthoplanes.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">orthoplanes</td>
+<td align="center">XYZ orthoplanes at the center of the full data;
+assign right mouse button to
+<b>move&nbsp;planes</b> <a href="mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="mouse-icons/moveplanes.png"></a></td>
 <td align="center">
-exact command depends on the data; uses
 <b><a href="../commands/volume.html#planes">volume</a></b>
-to set orthoplanes at the center of the full data, with
+to set orthoplanes with
 <b><a href="../commands/volume.html#general">style</a>&nbsp;image&nbsp;<a href="../commands/volume.html#dimensions">region</a>&nbsp;all</b>
+<br>(exact command depends on the data) +<br>
+<b><a href="../commands/ui.html#mousemode">mousemode</a> right "move planes"</b>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/fullvolume.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
-<td align="center">full region</td>
+<td align="center">full region; assign right mouse button to
+<b>crop&nbsp;volume</b> <a href="mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="mouse-icons/crop.png"></a></td>
 <td align="center">
-<b><a href="../commands/volume.html#dimensions">volume</a>
-region all orthoplanes off</b>
+<b><a href="../commands/volume.html#dimensions">volume</a> region all
+<a href="../commands/volume.html#dispsolid">imageMode</a> "full region"</b>
+<br>+<br>
+<b><a href="../commands/ui.html#mousemode">mousemode</a> right "crop volume"</b>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/outlinebox.png" width="35px">
@@ -100,12 +133,11 @@ region all orthoplanes off</b>
 </td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/airways.png" width="35px"></td>
-<td align="center">Airways II 
-<a href="../dicom-quickref.html#presets">preset</a> for image display, 
-typically used for thick sections</td>
+<td align="center">airways
+<a href="../dicom-quickref.html#presets">preset</a> for image display</td>
 <td align="center">
 <b><a href="../commands/volume.html#dispsolid">volume</a>
-<a href="../commands/volume.html#appearance">appearance</a> "Airways II"</b></td>
+<a href="../commands/volume.html#appearance">appearance</a> airways</b></td>
 </tr><tr>
 <td align="center"><img src="shortcut-icons/chest.png" width="35px"></td>
 <td align="center">chest
@@ -114,6 +146,15 @@ typically used for thick sections</td>
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/volume.html#appearance">appearance</a> chest</b></td>
 </tr><tr>
+<td align="center"><img src="shortcut-icons/brain.png" width="35px"></td>
+<td align="center">brain
+<a href="../dicom-quickref.html#presets">preset</a> for image display</td>
+<td align="center">
+<b><a href="../commands/volume.html#dispsolid">volume</a>
+<a href="../commands/volume.html#appearance">appearance</a> brain</b>
+</td>
+<!--
+</tr><tr>
 <td align="center"><img src="shortcut-icons/ear.png" width="35px"></td>
 <td align="center">CT_Skin
 <a href="../dicom-quickref.html#presets">preset</a> for image display</td>
@@ -121,6 +162,7 @@ typically used for thick sections</td>
 <b><a href="../commands/volume.html#dispsolid">volume</a>
 <a href="../commands/volume.html#appearance">appearance</a> CT_Skin</b>
 </td>
+-->
 </tr><tr>
 <td align="center"><img src="shortcut-icons/initialcurve.png" width="35px">
 <br><font size="-1"><a href="densitymaps.html"><b>Map</b></a></font></td>
@@ -203,11 +245,11 @@ see also <a href="../commands/volume.html"><b>volume</b></a></td>
 <td align="center" class="text">
 show <a href="../commands/volume.html#planes">single plane</a> of clicked
 <a href="volumeviewer.html">volume data</a>
-if full region shown initially, move plane or slab along its axis to show
-a different section; see also
-<a href="../commands/volume.html"><b>volume</b></a></td>
+if full region shown initially; move plane or slab along its axis to show
+a different section</td>
 </tr><tr>
-<td align="center"><img src="mouse-icons/rotateslab.png" width="35px"></td>
+<td align="center"><img src="mouse-icons/rotateslab.png" width="35px">
+<br><font size="-1"><a href="mousemodes.html"><b>Right Mouse</b></a></font></td>
 <td align="center"><b>rotate slab</b></td>
 <td align="center" class="text">
 activate <a href="../commands/volume.html#tiltedslab">tilted slab</a> 
@@ -215,6 +257,7 @@ slicing of <a href="volumeviewer.html">volume data</a> (image style only),
 rotate the slab to adjust the slicing angle;
 the center of rotation from clicking over the slab is the center of the slab,
 and from clicking elsewhere is the center of the volume box;
+<br>assigned button + <b>Shift</b> translates the slab along its axis;
 in <a href="../vr.html">VR</a>, this mode
 both rotates and translates the slab</td>
 </tr><tr>
@@ -234,9 +277,11 @@ to &ldquo;erase&rdquo; (<a href="mousemodes.html#tapemeasure">details...</a>)</t
 thresholds collectively: vertical motion adjusts <b><i>window level</i></b>
 (moves all thresholds in parallel to higher or lower values),
 horizontal motion adjusts <b><i>window width</i></b>
-(moves thresholds symmetrically farther apart or closer together);
-the dominant type of motion wins out, <i>i.e.</i>, a diagonal motion
-will not change both level and width</td>
+(moves thresholds symmetrically farther apart or closer together),
+and the dominant type of motion wins out;
+for adjusting multiple windows within a single histogram,
+see <a href="mousemodes.html#multiwindowing">details</a>
+</td>
 </tr>
 </table>
 <font size="-1"><p>
@@ -246,5 +291,5 @@ for ChimeraX development related to medical image analysis.
 </p></font>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+February 2020</address>
 </body></html>

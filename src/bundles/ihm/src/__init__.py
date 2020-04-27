@@ -36,4 +36,25 @@ class _IHMAPI(BundleAPI):
         from .fetch_ihm import fetch_ihm
         return fetch_ihm(session, identifier, ignore_cache=ignore_cache, **kw)
 
+    @staticmethod
+    def run_provider(session, name, mgr):
+        if name == "Integrative/Hybrid Models":
+            from chimerax.open_command import OpenerInfo
+            class Info(OpenerInfo):
+                def open(self, session, data, file_name, **kw):
+                    from . import ihm
+                    return ihm.read_ihm(session, data, file_name, **kw)
+
+                @property
+                def open_args(self):
+                    from chimerax.core.commands import BoolArg
+                    return { 'ensembles': BoolArg }
+        else:
+            from chimerax.open_command import FetcherInfo
+            class Info(FetcherInfo):
+                def fetch(self, session, ident, format_name, ignore_cache, **kw):
+                    from .fetch_ihm import fetch_ihm
+                    return fetch_ihm(session, ident, ignore_cache, **kw)
+        return Info()
+
 bundle_api = _IHMAPI()

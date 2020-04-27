@@ -1151,6 +1151,7 @@ ExtractMolecule::parse_atom_site()
     double occupancy = DBL_MAX;   // occupancy
     double b_factor = DBL_MAX;    // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
+    long user_position;           // auth_position if given else position
 
     if (guess_fixed_width_categories)
         set_PDBx_fixed_width_columns("atom_site");
@@ -1342,7 +1343,9 @@ ExtractMolecule::parse_atom_site()
         if (missing_position)
             position = auth_position;
         if (auth_position == INT_MAX)
-            auth_position = position;
+            user_position = position;
+        else
+            user_position = auth_position;
 
         if (cur_residue == nullptr
         || cur_entity_id != entity_id
@@ -1380,7 +1383,7 @@ ExtractMolecule::parse_atom_site()
                 }
             }
             if (make_new_residue) {
-                cur_residue = mol->new_residue(rname, cid, auth_position, ins_code);
+                cur_residue = mol->new_residue(rname, cid, user_position, ins_code);
                 cur_residue->set_mmcif_chain_id(chain_id);
             }
             cur_entity_id = entity_id;

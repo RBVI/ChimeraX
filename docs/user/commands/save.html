@@ -26,9 +26,7 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: save</h3>
 
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>save</b> 
-[&nbsp;<a href="#image"><b>image</b></a>&nbsp;|&nbsp;<a href="#session"><b>session</b></a>&nbsp;|&nbsp;<a href="#map"><b>map</b></a>&nbsp;]
-&nbsp;<i>filename</i>
+<br><b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#formats"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 &nbsp;<i>other-options</i>
@@ -56,11 +54,7 @@ See also: <a href="open.html"><b>open</b></a>,
 <a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
 target="_blank">Writing mmCIF Files in ChimeraX</a>
 </p><p>
-An initial
-<b>image</b>, <b>session</b>, or <b>map</b> keyword before the <i>filename</i>
-is optional if the file type is specified with either the 
-<a href="#formats"><i>filename</i> suffix</a> or the <b>format</b> option. 
-Some file types have no preceding keyword and must be specified with the 
+The file type is specified with either the 
 <a href="#formats"><i>filename</i> suffix</a> or the <b>format</b> option. 
 If the format is specified separately, the
 appropriate suffix will be added to <i>filename</i>.
@@ -93,13 +87,13 @@ The command <b>save formats</b> lists the possible output formats in the
 <a href="../tools/log.html"><b>Log</b></a>.
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>
-<th class="shaded">initial keyword</th>
+<th class="shaded">category</th>
 <th class="shaded"><i>format-name</i></th>
 <th class="shaded"><a name="suffix"><i>filename</i> suffix</a></th>
 <th class="shaded">description</th>
 </tr><tr id="imgformats">
-<td align="center" rowspan="6"><a href="#image"><b>image</b></a></td>
-<td align="center"><b>png</b><br>(default for <b>save image</b>)</td>
+<td align="center" rowspan="6" valign="top">&nbsp;<br>&nbsp;<a href="#image">image</a></td>
+<td align="center"><b>png</b></td>
 <td align="center">.png</td>
 <td align="center">Portable Network Graphics</td>
 </tr><tr>
@@ -123,100 +117,34 @@ The command <b>save formats</b> lists the possible output formats in the
 <td align="center">.ppm</td>
 <td align="center">Portable PixMap</td>
 </tr><tr id="sesformat">
-<td align="center"><a href="#session"><b>session</b></a></td>
+<td align="center"><a href="#session">session</a></td>
 <td align="center"><b>session</b></td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session</td>
 </tr><tr id="mapformats">
-<td align="center" rowspan="3"><a href="#map"><b>map</b></a></td>
+<td align="center" rowspan="5" valign="top">&nbsp;<br>&nbsp;<a href="#map">map</a></td>
+<td align="center"><b>brix</b></td>
+<td align="center">.brix</td>
+<td align="center">BRIX density map</td>
+</tr><tr>
 <td align="center"><b>cmap</b></td>
 <td align="center">.cmp<br>.cmap</td>
 <td align="center"><a href="#chimap">Chimera map</a>
 <br>(may contain multiple models)</td>
 </tr><tr>
-<td align="center"><b>dsn6</b></td>
-<td align="center">.brix</td>
-<td align="center">BRIX density map</td>
+<td align="center"><b>imagic</b></td>
+<td align="center">.hed<br>.img</td>
+<td align="center"><a href="https://www.imagescience.de/formats.html"
+target="_blank">IMAGIC map</a>
+<br>(the format consists of two files, <i>filename</i>.hed with 
+header information and <i>filename</i>.img with the map values; 
+both files will be saved if <b>format imagic</b> or either 
+suffix is used in the <b>save</b> command; IMAGIC support
+courtesy of Ralf Schmidt and Michael Schatz, Image Science Software)</td>
 </tr><tr>
 <td align="center"><b>mrc</b></td>
 <td align="center">.mrc</td>
 <td align="center">MRC density map</td>
-</tr><tr>
-<td align="center" valign="top" rowspan="14">&nbsp;<br>(none)</td>
-<td align="center"><b>pdb</b></td>
-<td align="center">.pdb</td>
-<td align="center">
-atomic coordinates,<br>PDB<br>
-(see <a href="#pdb"><b>Save PDB</b></a>)</td>
-</tr><tr>
-<td align="center"><b>pseudobonds</b></td>
-<td align="center">.pb</td>
-<td align="center">list of atom pairs to connect with 
-<a href="../pseudobonds.html">pseudobonds</a><br>
-(see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
-</tr><tr>
-<td align="center"><b>mmcif</b></td>
-<td align="center">.cif</td>
-<td align="center">
-atomic coordinates,<br>
-mmCIF<br>
-(see <a href="#mmcif"><b>Save mmCIF</b></a>)</td>
-</tr><tr>
-<td align="center"><b>mol2</b></td>
-<td align="center">.mol2</td>
-<td align="center">
-atomic coordinates,<br>
-Sybyl Mol2<br>
-(see <a href="#mol2"><b>Save Mol2</b></a>)</td>
-</tr><tr>
-<td align="center"><b>dcd</b></td>
-<td align="center">.dcd</td>
-<td align="center"><a href="../trajectories.html">trajectory</a> 
-coordinates,<br>DCD (binary)</td>
-</tr><tr>
-<td align="center"><b>markers</b></td>
-<td align="center">.cmm</td>
-<td align="center"><a href="../markers.html">markers and links</a>
-<br>(analogous to atoms and bonds)</td>
-</td>
-</tr><tr>
-<td align="center"><b>gltf</b></td>
-<td align="center">.glb</td>
-<td align="center" class="text">3D objects, <a href="https://www.khronos.org/gltf"
-target="_blank">GL Transmission Format</a>
-<br>(see <a href="#gltf">glTF options</a>)</td>
-</tr><tr>
-<td align="center"><b>stl</b></td>
-<td align="center">.stl</td>
-<td align="center">3D objects, STereoLithography</td>
-</tr><tr>
-<td align="center"><b>obj</b></td>
-<td align="center">.obj</td>
-<td align="center" class="text">3D objects,
-<a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
-target="_blank">Wavefront OBJ</a>
-<br>(geometric and texture vertices, vertex normals, faces; no colors)
-</td>
-</tr><tr>
-<td align="center"><b>x3d</b></td>
-<td align="center">.x3d</td>
-<td align="center">3D objects, <a href="http://www.web3d.org/x3d/"
-target="_blank">X3D</a></td>
-</tr><tr id="seqformats">
-<td align="center"><b>aln</b></td>
-<td align="center" class="text">.aln, .clustal<br>.clustalw, .clustalx</td>
-<td align="center">biopolymer sequence or sequence alignment,
-<br>Clustal ALN</td>
-</tr><tr>
-<td align="center"><b>fasta</b></td>
-<td align="center">.fasta, .fa<br>.afasta, .afa</td>
-<td align="center">biopolymer sequence or sequence alignment,
-<br>FASTA</td>
-</tr><tr>
-<td align="center"><b>pir</b></td>
-<td align="center">.pir, .ali</td>
-<td align="center">biopolymer sequence or sequence alignment,
-<br>PIR (NBRF)</td>
 </tr><tr>
 <td align="center"><b>mtz</b></td>
 <td align="center">.mtz</td>
@@ -230,6 +158,87 @@ target="_blank"><b>Clipper</b> bundle</a> from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/"
 target="_blank">ChimeraX Toolshed</a>; 
 see <a href="open.html#clipper">details...</a>
+</tr><tr>
+<td align="center" valign="top" rowspan="6">&nbsp;<br>&nbsp;atomic</td>
+<td align="center"><b>pdb</b></td>
+<td align="center">.pdb</td>
+<td align="center">
+PDB,<br>
+see <a href="#pdb">PDB options</a></td>
+</tr><tr>
+<td align="center"><b>mmcif</b></td>
+<td align="center">.cif</td>
+<td align="center">
+mmCIF,<br>
+see <a href="#mmcif">mmCIF options</a></td>
+</tr><tr>
+<td align="center"><b>mol2</b></td>
+<td align="center">.mol2</td>
+<td align="center">
+Sybyl Mol2,<br>
+see <a href="#mol2">Mol2 options</a></td>
+</tr><tr>
+<td align="center"><b>dcd</b></td>
+<td align="center">.dcd</td>
+<td align="center"><a href="../trajectories.html">trajectory</a>,
+<br>DCD (binary)</td>
+</tr><tr>
+<td align="center"><b>markers</b></td>
+<td align="center">.cmm</td>
+<td align="center"><a href="../markers.html">markers and links</a>
+<br>(analogous to atoms and bonds)</td>
+</td>
+</tr><tr>
+<td align="center"><b>pseudobonds</b></td>
+<td align="center">.pb</td>
+<td align="center">list of atom pairs to connect with 
+<a href="../pseudobonds.html">pseudobonds</a><br>
+(see the <a href="#selectedOnly"><b>selectedOnly</b></a> option)</td>
+</tr><tr id="seqformats">
+<td align="center" rowspan="3">&nbsp;<br>&nbsp;<a href="#sequence">sequence</a></td>
+<td align="center"><b>aln</b></td>
+<td align="center" class="text">.aln, .clustal<br>.clustalw, .clustalx</td>
+<td align="center">Clustal ALN</td>
+</tr><tr>
+<td align="center"><b>fasta</b></td>
+<td align="center">.fasta, .fa<br>.afasta, .afa</td>
+<td align="center">FASTA</td>
+</tr><tr>
+<td align="center"><b>pir</b></td>
+<td align="center">.pir, .ali</td>
+<td align="center">PIR (NBRF)</td>
+</tr><tr>
+<td align="center" valign="top" rowspan="5">&nbsp;<br>&nbsp;3D&nbsp;objects</td>
+<td align="center"><b>gltf</b></td>
+<td align="center">.glb</td>
+<td align="center" class="text"><a href="https://www.khronos.org/gltf"
+target="_blank">GL Transmission Format</a>
+<br>(see <a href="#gltf">glTF options</a>)</td>
+</tr><tr>
+<td align="center"><b>stl</b></td>
+<td align="center">.stl</td>
+<td align="center">STereoLithography</td>
+</tr><tr>
+<td align="center"><b>obj</b></td>
+<td align="center">.obj</td>
+<td align="center" class="text">
+<a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
+target="_blank">Wavefront OBJ</a>
+<br>(geometric and texture vertices, vertex normals, faces; no colors)
+</td>
+</tr><tr>
+<td align="center"><b>x3d</b></td>
+<td align="center">.x3d</td>
+<td align="center"><a href="http://www.web3d.org/x3d/"
+target="_blank">X3D</a></td>
+</tr><tr>
+<td align="center"><b>vtk</b></td>
+<td align="center">.vtk</td>
+<td align="center">
+<a href="http://vtk.org/" target="_blank">Visualization ToolKit</a>
+PolyData 
+<br>(molecular structures and surfaces as points, lines, and mesh;
+<a href="../formats/vtk.html">details...</a>)</td>
 </td>
 </tr></table>
 
@@ -240,7 +249,7 @@ see <a href="open.html#clipper">details...</a>
 <h3>Save Image</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>save</b> [&nbsp;<b>image</b>&nbsp;] &nbsp;<i>filename</i>
+<b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#imgformats"><i>format-name</i></a>&nbsp;]
 [[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp;|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
 [&nbsp;<b>supersample</b>&nbsp;<i>N</i>&nbsp;]
@@ -320,7 +329,7 @@ interpreted correctly by Adobe Photoshop.)
 <h3>Save Session</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>save</b> [&nbsp;<b>session</b>&nbsp;] &nbsp;<i>filename</i>
+<b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#sesformat"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>includeMaps</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </blockquote>
@@ -344,6 +353,7 @@ selection highlighting <a href="graphics.html#selections">color and width</a>
 <li><a href="../tools/segment.html">segmentation results</a>
 <li><a href="../vr.html">virtual reality</a> status including
 model positions in the room and hand-controller button assignments
+<li><a href="../tools/log.html"><b>Log</b></a> contents
 </ul>
 Saving and later opening a session file 
 restores the session and allows resuming work in ChimeraX.
@@ -354,6 +364,10 @@ is set in the
 <a href="../preferences.html#window"><b>Window</b> preferences</a>
 or can be specified with the <a href="open.html"><b>open</b></a> command
 <a href="open.html#resizeWindow"><b>resizeWindow</b></a> option.
+Whether to clear pre-existing 
+<a href="../tools/log.html"><b>Log</b></a> contents
+before restoring those from the session is set in the
+<a href="../preferences.html#log"><b>Log</b> preferences</a>.
 See also: 
 <a href="usageconventions.html#cxc-files">ChimeraX command files</a>,
 <a href="../preferences.html">ChimeraX preferences</a>
@@ -382,7 +396,7 @@ as an absolute path.
 <h3>Save Map</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>save</b> [&nbsp;<b>map</b>&nbsp;] &nbsp;<i>filename</i>
+<b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#mapformats"><i>format-name</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
@@ -717,15 +731,17 @@ GAFF types are not yet computed, so this should be kept <b>false</b>.
 <!--
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#seqformats"><i>format-name</i></a>&nbsp;]
 -->
-[&nbsp;<b>format</b>&nbsp;&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;aln&nbsp;|&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
 [&nbsp;<b>alignment</b>&nbsp;&nbsp;<i>alignment-id</i></a>&nbsp;]
 </blockquote>
 <p>
-Only the contents of a single
+An individual sequence or multiple sequence alignment open in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> 
+can be saved to a file. Only the contents of a single
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
-can be saved to a file at a time. When more than sequence window is present,
-the <b>alignment</b> option is needed to specify the window of interest,
-using the <i>alignment-id</i> shown in the title bar of the window.
+can be saved at a time. When more than sequence window is present,
+which one to save is indicated with the <b>alignment</b> option, 
+using the <i>alignment-id</i> shown in the window's title bar.
 Example:
 </p>
 <blockquote>
@@ -783,5 +799,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+April 2020</address>
 </body></html>

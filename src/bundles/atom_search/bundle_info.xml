@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Atom_Search" version="1.0"
+<BundleInfo name="ChimeraX-AtomSearch" version="1.0"
             package="chimerax.atomic.search" purePython="false"
             installedIncludeDir="include" installedLibraryDir="lib"
             cython="true" cythonInclude="search_cpp"
@@ -34,8 +34,8 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Atomic" build="true" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

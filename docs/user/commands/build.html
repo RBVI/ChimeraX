@@ -50,16 +50,92 @@ Subcommands of <b>build</b> correspond to sections of
 the <a href="../tools/buildstructure.html"><b>Build Structure</b></a> tool:
 </p>
 <ul>
-<li><a href="#modify"><b>build modify</b></a>
-&ndash; change an existing atomic structure
 <li><a href="#start"><b>build start</b></a> 
 &ndash; generate a new molecule not bonded to existing atoms
+<li><a href="#modify"><b>build modify</b></a>
+&ndash; change an existing atomic structure
 </ul>
 See also: 
 <a href="addh.html"><b>addh</b></a>,
 <a href="delete.html"><b>delete</b></a>,
-<a href="swapaa.html"><b>swapaa</b></a>
+<a href="swapaa.html"><b>swapaa</b></a>,
+<a href="open.html"><b>open</b></a>
 </p><p>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="start"></a>
+<b>build start</b> <b>atom</b>
+&nbsp;<i>model</i>&nbsp;
+[&nbsp;<b>position</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
+[&nbsp;<b>select</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<br>
+<a href="#top" class="nounder">&bull;</a>
+<b>build start</b> <b>peptide</b>
+&nbsp;<i>model</i> &nbsp;<i>sequence</i>&nbsp;
+&nbsp;<i>&phi;<sub><font size="-1">1</font></sub>,&psi;<sub><font size="-1">1</font></sub></i>&nbsp;
+&nbsp;<i>&phi;<sub><font size="-1">2</font></sub>,&psi;<sub><font size="-1">2</font></sub></i>&nbsp;
+... &nbsp;<i>&phi;<sub><font size="-1">N</font></sub>,&psi;<sub><font size="-1">N</font></sub></i>&nbsp;
+[&nbsp;<b>position</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>chainId</b>&nbsp;&nbsp;<i>ID</i>&nbsp;]
+[&nbsp;<b>rotLib</b>&nbsp;&nbsp;&nbsp;<i>rotamer-library</i>&nbsp;]
+<blockquote>
+For starting a new molecule with <b>build start</b>, the choices are
+<b>atom</b> or <b>peptide</b>.
+With the <a href="open.html"><b>open</b></a> command, however, a wide variety
+of atomic structures for subsequent <a href="#modify">modification</a> can be 
+<a href="open.html#fetch">fetched from online sources</a> or modeled from a
+<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> string.
+</p><p>
+The <i>model</i> can be given as the
+<a href="atomspec.html#hierarchy">identifier</a> 
+of an existing atomic model (for example, #2)
+or a character-string name for a new model.
+</p><p>
+For <b>peptide</b>, required arguments other than <i>model</i> are the 
+<i>sequence</i> as a string of single-letter amino acid codes 
+(upper- or lowercase)
+and a list of comma-separated pairs of <i>&phi;,&psi;</i> values,
+one pair for each residue, in the same order as in the sequence.
+Even though the terminal residues lack <i>&phi;</i> or <i>&psi;</i>,
+a pair of values is required for each residue. 
+The &ldquo;extra&rdquo; values for the terminal residues will be ignored.
+Example:
+</p>
+<blockquote>
+<b>build start peptide "custom built" ADKLL -57,-47 -57,-47 -57,-47 -57,-47 -57,-47 rotLib Dunbrack</b>
+</blockquote>
+<p>
+The <b>position</b> of the new atom or peptide geometric center
+defaults to the current center of view, but can be given as
+<i>x,y,z</i> coordinates separated by commas only.
+</p><p>
+Options for <b>atom</b> only:
+</p>
+<ul>
+<li><b>resName</b> &ndash; a name for the new residue (default <b>UNL</b>)
+<li><b>select</b> &ndash; whether to 
+<a href="../selection.html">select</a> the new atom (default <b>true</b>),
+as may be convenient for subsequent <a href="#modify">modification</a>
+</ul>
+<p>
+Options for <b>peptide</b> only:
+</p>
+<ul>
+<li><b>chainId</b> &ndash; an existing or new chain ID
+(default the &ldquo;lowest&rdquo; unused ID)
+<li><b>rotLib</b> &ndash; which amino acid sidechain rotamer library to use
+(see <a href="swapaa.html#rotLib"><b>swapaa</b></a> for details
+and literature citations):
+  <ul>
+  <li><b>Dunbrack</b> (default)
+  <li><b>Dynameomics</b>
+  <li><b>Richardson.common</b>
+  <li><b>Richardson.mode</b>
+  </ul>
+</ul>
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="modify"></a>
@@ -126,35 +202,7 @@ instead of changing the name of the existing residue
 </ul>
 </blockquote>
 
-<a href="#top" class="nounder">&bull;</a>
-<a name="start"></a>
-<b>build start</b> <b>atom</b>
-&nbsp;<i>model</i>&nbsp;
-[&nbsp;<b>position</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
-[&nbsp;<b>resName</b>&nbsp;&nbsp;<i>resname</i>&nbsp;]
-[&nbsp;<b>select</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-<blockquote>
-Currently the only choice in for starting a molecule 
-with <b>build start</b> is a single <b>atom</b>. 
-(However, atomic structures to use as starting points for 
-modification can be obtained from many sources or modeled from a
-<a href="http://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string
-using the <a href="open.html#fetch"><b>open</b></a> command.)
-The <i>model</i> can be given as the
-<a href="atomspec.html#hierarchy">identifier</a> (number, for example #2)
-of an existing model, or a character-string name for a new model.
-The <b>position</b> is given as <i>x,y,z</i> coordinates separated by
-commas only, and defaults to the current center of view.
-The <b>resName</b> option specifies
-a name for the new residue (default <b>UNL</b>).
-The <b>select</b> option indicates whether to 
-<a href="../selection.html">select</a> the new atom (default <b>true</b>),
-which may be convenient for subsequent <a href="#modify">modification</a>.
-</p><p>
-Small molecules can be generated from SMILES strings or by PubChem
-</blockquote>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2020</address>
+April 2020</address>
 </body></html>

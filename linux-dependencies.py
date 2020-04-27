@@ -67,33 +67,33 @@ def get_dependencies(filename, pkg_type, env=False, start_dir=None):
     # get list of libraries binary is actually linked against
     try:
         output = subprocess.check_output(
-            ['/usr/bin/readelf', '-d', filename], stderr=subprocess.DEVNULL)
+            ['/usr/bin/readelf', '-d', filename], stderr=subprocess.DEVNULL, encoding='utf-8')
     except subprocess.CalledProcessError:
         return
-    lines = [x.strip() for x in output.split(b'\n')]
+    lines = [x.strip() for x in output.split('\n')]
     for line in lines:
         tokens = line.split()
-        if len(tokens) < 5 or tokens[1] != b'(NEEDED)':
+        if len(tokens) < 5 or tokens[1] != '(NEEDED)':
             continue
         lib = tokens[4][1:-1]
         needed.add(lib)
     # see which libraries are used
     try:
         output = subprocess.check_output(
-            ['/usr/bin/ldd', filename], env=env, stderr=subprocess.DEVNULL)
+            ['/usr/bin/ldd', filename], env=env, stderr=subprocess.DEVNULL, encoding='utf-8')
     except subprocess.CalledProcessError:
         return
     libname = os.path.split(filename)[1]
     print(f'working on {repr(libname)}', file=sys.stderr)  # DEBUG
     seen.add(libname)
-    lines = [x.strip() for x in output.split(b'\n')]
+    lines = [x.strip() for x in output.split('\n')]
     for line in lines:
         tokens = line.split()
-        if len(tokens) < 3 or tokens[1] != b'=>' or tokens[0] not in needed:
+        if len(tokens) < 3 or tokens[1] != '=>' or tokens[0] not in needed:
             continue
-        lib = tokens[2].decode()
+        lib = tokens[2]
         if lib == 'not':
-            not_found.append((tokens[0].decode(), filename))
+            not_found.append((tokens[0], filename))
             continue
         if lib in libraries:
             # skip libraries we've already seen
@@ -107,10 +107,12 @@ def get_dependencies(filename, pkg_type, env=False, start_dir=None):
 
 
 def scan_dir(start_dir, pkg_type):
+    # look for shared libraries, error on the side of checking too many files
     if start_dir.endswith('/'):
         start_dir = start_dir[:-1]
     env = {
-        'LD_LIBRARY_PATH': f'{start_dir}/lib:{start_dir}/lib/python3.6/site-packages/PyQt5'
+        #'LD_LIBRARY_PATH': f'{start_dir}/lib:{start_dir}/lib/python3.7/site-packages/PyQt5'
+        'LD_LIBRARY_PATH': f'{start_dir}/lib'
     }
     for dirpath, dirnames, filenames in os.walk(start_dir):
         if dirpath == 'build':
@@ -136,8 +138,8 @@ def get_package_versions(packages, pkg_type):
         try:
             output = subprocess.check_output(
                 ['/usr/bin/dpkg-query', '--show', '--showformat=${Package} ${Version}\\n']
-                + list(packages), stderr=subprocess.DEVNULL)
-            pkg_info = output.decode().split()
+                + list(packages), stderr=subprocess.DEVNULL, encoding='utf-8')
+            pkg_info = output.split()
             return dict(zip(pkg_info[0::2], pkg_info[1::2]))
         except subprocess.CalledProcessError:
             pass
@@ -151,26 +153,49 @@ def get_package_for_lib(lib, pkg_type):
     if pkg_type == 'deb':
         try:
             output = subprocess.check_output(
-                ['/usr/bin/dpkg', '-S', lib], stderr=subprocess.DEVNULL)
+                ['/usr/bin/dpkg', '-S', lib], stderr=subprocess.DEVNULL, encoding='utf-8')
         except subprocess.CalledProcessError:
             return
-        output = output.strip().decode()
+        output = output.strip()
         return output.split(None, 1)[0].split(':', 1)[0]
     if pkg_type == 'rpm':
         # actually returns "package-version-build"
         try:
             output = subprocess.check_output(
-                ['/usr/bin/rpm', '-q', '--whatprovides', lib], stderr=subprocess.DEVNULL)
+                ['/usr/bin/rpm', '-q', '--whatprovides', lib], stderr=subprocess.DEVNULL, encoding='utf-8')
         except subprocess.CalledProcessError:
             return
-        return output.strip().decode()
+        return output.strip()
     raise RuntimeError('{pkg_type} is not supported')
+
+
+def packages_needed_by(packages, pkg_type):
+    # Read package dependency information.
+    # If a depends on b, then b is needed
+    # by a (and doesn't need to be a dependency).
+    # Return { pkg: [ pkg needed by ] }
+    needed_by = {}
+    if pkg_type == 'rpm':
+        for pkg in packages:
+            try:
+                output = subprocess.check_output(
+                    ['/usr/bin/rpm', '-qR', pkg], stderr=subprocess.DEVNULL, encoding='utf-8')
+            except subprocess.CalledProcessError:
+                continue
+            for line in output.split('\n'):
+                line = line.strip()
+                if not line or line.startswith('/') or ' ' in line or '(' in line:
+                    continue
+                needed = needed_by.setdefault(line, [])
+                needed.append(pkg)
+    return needed_by
 
 
 def main(directory, pkg_type):
     scan_dir(directory, pkg_type)
     # pretend we saw CUDA libraries
     seen.update(['libcuda.so.1', 'libcufft.so.9.0', 'libnvrtc.so.9.0'])
+    seen.update(['libcufft.so.10', 'libnvrtc.so.10'])
     # pretend we saw OpenCL libraries
     seen.update(['libOpenCL.so.1'])
 
@@ -179,9 +204,13 @@ def main(directory, pkg_type):
     if not packages:
         print('No packages needed')
     else:
+        import glob
         if pkg_type == 'deb':
-            if 'libosmesa6' not in packages:
-                packages.add('libosmesa6')
+            osmesas = glob.glob("/usr/lib/x86_64-linux-gnu/libOSMesa.so*")
+            if osmesas:
+                pkg = get_package_for_lib(osmesas[0], "deb")
+                if pkg is not None:
+                    packages.add(pkg)
             if 'xdg-utils' not in packages:
                 packages.add('xdg-utils')
             # don't depend on Postgres
@@ -189,11 +218,12 @@ def main(directory, pkg_type):
             # don't depend on Qt multimedia gstreamer tools
             packages.discard('libqgsttools-p1')
         elif pkg_type == 'rpm':
-            pkg = get_package_for_lib("/usr/lib64/libosmesa.so.6", "rpm")
-            if pkg is None:
-                packages.add("mesa-libOSMesa-17.2.3-el7.x86_64")
-            else:
-                packages.add(pkg)
+            osmesas = glob.glob("/usr/lib64/libOSMesa.so*")
+            if osmesas:
+                osmesas.sort(key=len, reverse=True)
+                pkg = get_package_for_lib(osmesas[0], "rpm")
+                if pkg is not None:
+                    packages.add(pkg)
             pkg = get_package_for_lib("/usr/bin/xdg-desktop-menu", "rpm")
             if pkg is None:
                 packages.add("xdg-utils-1.1.0-el7.noarch")
@@ -208,10 +238,22 @@ def main(directory, pkg_type):
                     del package_versions[p]
             packages = list(package_versions.keys())
         packages.sort(key=str.casefold)
-        print('Packages needed:')
-        for name in packages:
-            ver = extract_version(package_versions[name])
-            print(f'   "{name}": "{ver}",')
+    #
+    print('Packages needed:')
+    skipped = []
+    needed_by = packages_needed_by(packages, pkg_type)
+    for name in sorted(packages):
+        if name in needed_by and any(pkg in packages for pkg in needed_by[name]):
+            skipped.append(name)
+            continue
+        ver = extract_version(package_versions[name])
+        print(f'   "{name}": "{ver}",')
+    #
+    if skipped:
+        print("Skipped:")
+        for pkg in sorted(skipped):
+            print(f'   "{pkg}": "{needed_by[pkg]}",')
+    #
     missing = [n for n in not_found if n[0] not in seen]
     if missing:
         missing.sort()
@@ -226,7 +268,7 @@ def main(directory, pkg_type):
         libs.sort()
         for lib in libs:
             package = libraries[lib]
-            print(f'{lib}: {package}')
+            print(f'"{lib}": "{package}"')
     raise SystemExit(0)
 
 

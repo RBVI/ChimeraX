@@ -22,4 +22,13 @@ class _StormAPI(BundleAPI):
         from . import storm
         return storm.read_storm(session, stream, file_name)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class StormOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import storm
+                return storm.read_storm(session, data, file_name)
+        return StormOpenerInfo()
+
 bundle_api = _StormAPI()

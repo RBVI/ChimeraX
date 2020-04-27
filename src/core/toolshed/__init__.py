@@ -89,7 +89,7 @@ Bundles that provide selectors need:
     A short description of the selector.  It is here for uninstalled selectors,
     so that users can get more than just a name for deciding whether
     they want the selector or not.
-4: ``atomic`` : str
+4. ``atomic`` : str
     An optional boolean specifying whether the selector applies to
     atoms and bonds.  Defaults to 'true' and should be set to
     'false' if selector should not appear in Basic Actions tool,
@@ -304,6 +304,9 @@ class Toolshed:
         self._installed_bundle_info = None
         self._available_bundle_info = None
         self._installed_packages = {}   # cache mapping packages to bundles
+        # map from manager name to manager instance
+        from weakref import WeakValueDictionary
+        self._manager_instances = WeakValueDictionary()
 
         # Compute base directories
         import os
@@ -320,7 +323,9 @@ class Toolshed:
         # Insert directories to sys.path to take precedence over
         # installed distribution.  addsitedir checks and does not
         # add the directory a second time.
-        import site, os, sys
+        import site
+        import os
+        import sys
         self._site_dir = site.USER_SITE
         _debug("site dir: %s" % self._site_dir)
         os.makedirs(self._site_dir, exist_ok=True)
@@ -470,7 +475,7 @@ class Toolshed:
         from sortedcontainers import SortedDict
         available = SortedDict()
         for bi in self._get_available_bundles(logger):
-            #bi.register_available_commands(logger)
+            # bi.register_available_commands(logger)
             for ci in bi.commands:
                 a = available.get(ci.name, None)
                 if a is None:
@@ -486,6 +491,7 @@ class Toolshed:
             cd = CmdDesc(
                 optional=[('unknown_arguments', WholeRestOfLine)],
                 synopsis=synopsis)
+
             def cb(session, s=self, n=name, b=bundles, l=logger, unknown_arguments=None):
                 s._available_cmd(n, b, l)
             try:
@@ -622,7 +628,7 @@ class Toolshed:
         else:
             return []
 
-    def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None):
+    def install_bundle(self, bundle, logger, *, per_user=True, reinstall=False, session=None, no_deps=False):
         """Supported API. Install the bundle by retrieving it from the remote shed.
 
         Parameters
@@ -662,6 +668,7 @@ class Toolshed:
         if isinstance(bundle, str):
             # If the name ends with .whl, it must be a path.
             if bundle.endswith(".whl"):
+                bundle = os.path.expanduser(bundle)
                 basename = os.path.split(bundle)[1]
                 name = basename.split('-')[0]
             else:
@@ -688,11 +695,13 @@ class Toolshed:
                 args.append("--user")
             if reinstall:
                 args.append("--force-reinstall")
+            if no_deps:
+                args.append("--no-deps")
             self._add_restart_action("install", bundle_name, args, logger)
             return
         try:
             results = self._pip_install(bundle_name, logger,
-                                        per_user=per_user, reinstall=reinstall)
+                                        per_user=per_user, reinstall=reinstall, no_deps=no_deps)
         except PermissionError:
             who = "everyone" if not per_user else "this account"
             logger.error("You do not have permission to install %s for %s" %
@@ -707,7 +716,8 @@ class Toolshed:
         changes = self.reload(logger, rebuild_cache=True, report=True)
 
         if not self._safe_mode:
-            # Initialize managers and call custom init
+            # Initialize managers, notify other managers about newly 
+            # installed providers, and call custom init.
             # There /may/ be a problem with the order in which we call
             # these if multiple bundles were installed, but we hope for
             # the best.  We do /not/ call initialization functions for
@@ -718,6 +728,7 @@ class Toolshed:
             except KeyError:
                 pass
             else:
+                # managers
                 failed = []
                 done = set()
                 initializing = set()
@@ -728,6 +739,18 @@ class Toolshed:
                                                   initializing, failed)
                 for name in failed:
                     logger.warning("%s: manager initialization failed" % name)
+
+                # providers
+                for name, version in new_bundles.items():
+                    bi = self.find_bundle(name, logger, version=version)
+                    if bi:
+                        for name, kw in bi.providers.items():
+                            mgr_name, pvdr_name = name.split('/', 1)
+                            mgr = self._manager_instances.get(mgr_name, None)
+                            if mgr:
+                                mgr.add_provider(bi, pvdr_name, **kw)
+
+                # custom inits
                 failed = []
                 done = set()
                 initializing = set()
@@ -887,9 +910,8 @@ class Toolshed:
         for bi in self._installed_bundle_info:
             for tool in bi.tools:
                 tname = tool.name.casefold()
-                if (tname == lc_name or
-                    (prefix_okay and tname.startswith(lc_name))):
-                        tools.append((bi, tool.name))
+                if tname == lc_name or (prefix_okay and tname.startswith(lc_name)):
+                    tools.append((bi, tool.name))
         return tools
 
     def find_bundle_for_command(self, cmd):
@@ -1011,11 +1033,13 @@ class Toolshed:
                 if m is None:
                     logger = session.logger
                     if logger:
-                        logger.error("Manager %r failed to initialize" % mgr)
+                        logger.error("Manager initialization for %r failed to return the manager instance"
+                                     % mgr)
                     continue
+                self._manager_instances[mgr] = m
                 for pbi in all_bundles:
-                    for pvdr, params in pbi.providers.items():
-                        p_mgr, kw = params
+                    for name, kw in pbi.providers.items():
+                        p_mgr, pvdr = name.split('/', 1)
                         if p_mgr == mgr:
                             m.add_provider(pbi, pvdr, **kw)
                 m.end_providers()
@@ -1138,7 +1162,7 @@ class Toolshed:
         import os.path
         return os.path.join(self._cache_dir, "bundle_info.cache")
 
-    def _pip_install(self, bundle_name, logger, per_user=True, reinstall=False):
+    def _pip_install(self, bundle_name, logger, per_user=True, reinstall=False, no_deps=False):
         # Run "pip" with our standard arguments (index location, update
         # strategy, etc) plus the given arguments.  Return standard
         # output as string.  If there was an error, raise RuntimeError
@@ -1150,6 +1174,8 @@ class Toolshed:
                    ]
         if per_user:
             command.append("--user")
+        if no_deps:
+            command.append("--no-deps")
         if reinstall:
             # XXX: Not sure how this interacts with "only-if-needed"
             command.append("--force-reinstall")
@@ -1217,7 +1243,7 @@ class Toolshed:
         # remove pip installed scripts since they have hardcoded paths to
         # python and thus don't work when ChimeraX is installed elsewhere
         from chimerax import app_bin_dir
-        import os, os.path
+        import os
         import sys
         if sys.platform.startswith('win'):
             # Windows
@@ -1270,6 +1296,8 @@ class Toolshed:
 
 
 import abc
+
+
 class ProviderManager(metaclass=abc.ABCMeta):
     """API for managers created by bundles
 
@@ -1752,7 +1780,8 @@ def default_toolshed_url():
 
 
 def restart_action_info():
-    import chimerax, os.path
+    import chimerax
+    import os
     inst_dir = os.path.join(chimerax.app_dirs.user_cache_dir, "installers")
     restart_file = os.path.join(inst_dir, "on_restart")
     return inst_dir, restart_file

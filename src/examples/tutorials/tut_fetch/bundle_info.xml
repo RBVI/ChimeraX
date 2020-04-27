@@ -5,7 +5,7 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ChimeraX-Tutorial_Fetch"
+<BundleInfo name="ChimeraX-TutorialFetch"
 	    version="0.1" package="chimerax.tut_fetch"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -30,21 +30,23 @@ from HomoloGene.
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.1"/>
-    <Dependency name="ChimeraX-Alignments" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=0.1"/>
+    <Dependency name="ChimeraX-Alignments" version="~=1.0"/>
   </Dependencies>
+
+  <!-- Register HomoloGene as a fetch source.  The downloaded file
+    will (almost) be in FASTA format and should be displayable
+    using ChimeraX alignment tools.  If we were using a format
+    not supported by ChimeraX, we would need to supply
+    "DataFormat" and "Open" ChimeraXClassifiers as well.  -->
+  <Providers manager="open command">
+    <Provider name="homologene" type="fetch" format_name="fasta" example_ids="87131" />
+  </Providers>
 
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Freeware</PythonClassifier>
-    <!-- ChimeraX classifiers describe supplied functionality -->
-    <!-- Register HomoloGene as a fetch source.  The downloaded file
-	 will (almost) be in FASTA format and should be displayable
-	 using ChimeraX alignment tools.  If we were using a format
-	 not supported by ChimeraX, we would need to supply
-	 "DataFormat" and "Open" ChimeraXClassifiers as well.  -->
-    <ChimeraXClassifier>ChimeraX :: Fetch :: HomoloGene :: FASTA :: homologene :: 87131 ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

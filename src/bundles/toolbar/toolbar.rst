@@ -16,7 +16,7 @@ with the provider's *name*.
 Basic Button
 ============
 
-Example:
+Example::
 
   <Providers manager="toolbar">
     <Provider tab="Graphics" section="Undo"
@@ -40,7 +40,7 @@ but is available for adding for adding to custom tags, *e.g.*, the **Home** tab.
 Mouse Mode
 ==========
 
-Example:
+Example::
 
   <Providers manager="toolbar">
     <Provider tab="Markers" section="Place markers" name="pm1"
@@ -56,7 +56,7 @@ but is normally found with the registered mouse mode.
 Link Button
 ===========
 
-Example:
+Example::
 
   <Providers manager="toolbar">
     <Provider tab="Map" section="Undo"
@@ -76,7 +76,7 @@ Currently, links may not be made to mouse mode buttons.
 Layout
 ======
 
-Example:
+Example::
 
   <Providers manager="toolbar">
     <Provider tab="Graphics" help="help:..."

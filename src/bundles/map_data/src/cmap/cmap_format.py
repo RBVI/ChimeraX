@@ -44,7 +44,7 @@ class Chimera_HDF_Data:
 
         agroups = self.find_arrays(f.root)
         if len(agroups) == 0:
-            raise ValueError('Chimera HDF5 file %s contains no 3d arrays' % path)
+            raise SyntaxError('Chimera HDF5 file %s contains no 3d arrays' % path)
 
         imlist = [Chimera_HDF_Image(g,a) for g,a in agroups]
         imlist.sort(key = lambda i: i.name)
@@ -142,8 +142,11 @@ def copy_hdf5_array(a, ijk_origin, ijk_size, ijk_step, array,
 
     # Read in blocks along axis with smallest chunk size.
     cshape = a._v_chunkshape
-    csmin = min(cshape)
-    axis = cshape.index(csmin)
+    if cshape is None:
+        axis = 0
+    else:
+        csmin = min(cshape)
+        axis = cshape.index(csmin)
     bf = block_size / array.nbytes
     if axis == 0:
         n = ksz // kstep
@@ -273,7 +276,7 @@ class Chimera_HDF_Image:
         if 'rotation_axis' in va and 'rotation_angle' in va:
             axis = va.rotation_axis
             angle = va.rotation_angle
-            from chimerax.core.geometry import matrix
+            from chimerax.geometry import matrix
             r = matrix.rotation_from_axis_angle(axis, angle)
         else:
             r = ((1,0,0),(0,1,0),(0,0,1))
@@ -285,8 +288,9 @@ class Chimera_HDF_Image:
 
         va = group._v_attrs
         if 'symmetries' in va:
-            from chimerax.core.geometry import Places
-            sym = Places(place_array = va.symmetries)
+            from chimerax.geometry import Places
+            from numpy import array, float64
+            sym = Places(place_array = array(va.symmetries, float64))
         else:
             sym = None
         return sym
@@ -354,7 +358,7 @@ class Chimera_HDF_Image:
                            ((a._v_name,) + tuple(a.shape) + (a.atom.dtype.name,))
                            for a in arrays])
         message += sizes
-        raise ValueError(message)
+        raise SyntaxError(message)
 
 # -----------------------------------------------------------------------------
 #

@@ -31,5 +31,14 @@ class _MyAPI(BundleAPI):
         from . import bild
         return bild.read_bild(session, stream, file_name)
 
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class BildOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import bild
+                return bild.read_bild(session, data, file_name)
+        return BildOpenerInfo()
+
 
 bundle_api = _MyAPI()

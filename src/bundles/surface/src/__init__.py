@@ -31,9 +31,10 @@ from .cap import update_clip_caps, remove_clip_caps
 from .topology import check_surface_topology
 from .colorgeom import color_radial, color_cylindrical, color_height
 from .colorvol import color_sample, color_electrostatic, color_gradient, color_surfaces_by_map_value
-from .combine import combine_geometry_vnt, combine_geometry_xvnt, combine_geometry_vtp
+from .combine import combine_geometry_vnt, combine_geometry_vntc
+from .combine import combine_geometry_xvnt, combine_geometry_vtp
 from .combine import combine_geometry_xvntctp, combine_geometry_vte
-from .surfacecmds import surface, surface_hide
+from .surfacecmds import surface, surface_show_patches, surface_hide_patches
 from .sop import surface_zone
 
 from chimerax.core.toolshed import BundleAPI
@@ -95,5 +96,14 @@ class _SurfaceBundle(BundleAPI):
             'ZoneMask': ZoneMask,
         }
         return ct.get(class_name)
+
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class ColladaOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import collada
+                return collada.read_collada_surfaces(session, data, file_name)
+        return ColladaOpenerInfo()
 
 bundle_api = _SurfaceBundle()

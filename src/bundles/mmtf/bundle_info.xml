@@ -26,10 +26,24 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
-    <Dependency name="ChimeraX-PDB" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-PDB" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Macromolecular Transmission" category="Molecular structure"
+		nicknames="mmtf" suffixes=".mmtf" reference_url="http://mmtf.rcsb.org/" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Macromolecular Transmission" />
+    <Provider name="pdb" type="fetch" format_name="mmtf" is_default="false" />
+  </Providers>
+
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>

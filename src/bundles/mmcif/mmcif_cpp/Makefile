@@ -14,6 +14,7 @@ include $(TOP)/mk/config.make
 
 PKG_DIR = $(PYSITEDIR)/chimerax/core/atomic
 APP_PKG_DIR = $(APP_PYSITEDIR)/chimerax/core/atomic
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
 
 HDRS = mmcif.h _mmcif.h
 SRCS = mmcif.cpp template.cpp _mmcif.cpp
@@ -21,11 +22,11 @@ OBJS = $(SRCS:.cpp=.$(OBJ_EXT))
 PYMOD_NAME = _mmcif
 
 DEFS += $(PYDEF)
-INCS += $(PYTHON_INCLUDE_DIRS)
+INCS += $(PYTHON_INCLUDE_DIRS) -I$(ARRAYS_DIR)/include
 ifeq ($(WIN32),msvc)
-LIBS += /LIBPATH:../lib libatomstruct.lib libelement.lib libpyinstance.lib libreadcif.lib liblogger.lib libarrays.lib libappdirs.lib $(PYTHON_LIB)
+LIBS += /LIBPATH:../lib libatomstruct.lib libelement.lib libpyinstance.lib libreadcif.lib liblogger.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib libappdirs.lib $(PYTHON_LIB)
 else
-LIBS += -Llib -latomstruct -lelement -lpyinstance -lreadcif -llogger -larrays -lappdirs $(PYTHON_LIB)
+LIBS += -Llib -latomstruct -lelement -lpyinstance -lreadcif -llogger -L$(ARRAYS_DIR)/lib -larrays -lappdirs $(PYTHON_LIB)
 endif
 
 lib:

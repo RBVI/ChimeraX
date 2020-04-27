@@ -30,15 +30,15 @@ def size(session, objects=None, atom_radius=None,
       Multiplier times atom radius for determining atom size in ball style (default 0.3).
     '''
     if objects is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
-    atoms = objects.atoms
 
     from chimerax.core.undo import UndoState
     undo_state = UndoState("size")
     what = []
 
     if atom_radius is not None:
+        atoms = objects.atoms
         if atom_radius == 'default':
             undo_state.add(atoms, "radii", atoms.radii, atoms.default_radii)
             atoms.radii = atoms.default_radii
@@ -65,7 +65,7 @@ def size(session, objects=None, atom_radius=None,
         what.append('%d pseudobond radii' % len(pb))
 
     if ball_scale is not None:
-        mols = atoms.unique_structures
+        mols = objects.residues.unique_structures
         for s in mols:
             undo_state.add(s, "ball_scale", s.ball_scale, ball_scale)
             s.ball_scale = ball_scale

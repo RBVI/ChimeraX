@@ -80,47 +80,58 @@ devel_unalias_desc = CmdDesc(required=[("name", StringArg)],
                              synopsis='Remove alias for bundle path')
 
 
-def devel_build(session, path, test=True, debug=False, exit=False):
+def devel_build(session, path, test=None, debug=False, exit=False):
     '''Build a wheel in for the source code in bundle path.
 
     Parameters
     ----------
     path : string
       Path to folder containing bundle source code or bundle alias.
-    test : bool
-      Whether to run test after building wheel
+    debug : bool
+        Create a debug version.
+    exit : bool
+        Exit after finishing build.
     '''
+    if test is not None:
+        session.logger.warning("The test option has been removed")
     from chimerax.bundle_builder import BundleBuilder
-    _run(path, session.logger, exit, BundleBuilder.make_wheel, test=test, debug=debug)
+    _run(path, session.logger, exit, BundleBuilder.make_wheel, debug=debug)
 
 
 devel_build_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
-                           optional=[("test", BoolArg),
-                                     ("debug", BoolArg),
-                                     ("exit", BoolArg)],
+                           keyword=[("test", BoolArg),
+                                    ("debug", BoolArg),
+                                    ("exit", BoolArg)],
                            synopsis='Build a wheel for bundle')
 
 
-def devel_install(session, path, test=True, user=None, debug=False, exit=False):
+def devel_install(session, path, test=None, user=None, debug=False, exit=False, no_deps=None):
     '''Build and install a wheel in for the source code in bundle path.
 
     Parameters
     ----------
     path : string
       Path to folder containing bundle source code or bundle alias.
-    test : bool
-      Whether to run test after building wheel
+    debug : bool
+        Create a debug version.
+    no_deps : bool
+        Ignore dependencies when installing.
+    exit : bool
+        Exit after finishing install.
     '''
+    if test is not None:
+        session.logger.warning("The test option has been removed")
     from chimerax.bundle_builder import BundleBuilder
     _run(path, session.logger, exit, BundleBuilder.make_install,
-         session, test=test, debug=debug, user=user)
+         session, debug=debug, user=user, no_deps=no_deps)
 
 
 devel_install_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
-                             optional=[("test", BoolArg),
-                                       ("debug", BoolArg),
-                                       ("user", BoolArg),
-                                       ("exit", BoolArg)],
+                             keyword=[("test", BoolArg),
+                                      ("debug", BoolArg),
+                                      ("no_deps", BoolArg),
+                                      ("user", BoolArg),
+                                      ("exit", BoolArg)],
                              synopsis='Build and install wheel for bundle')
 
 
@@ -137,7 +148,7 @@ def devel_clean(session, path, exit=False):
 
 
 devel_clean_desc = CmdDesc(required=[("path", OpenFolderNameArg)],
-                           optional=[("exit", BoolArg)],
+                           keyword=[("exit", BoolArg)],
                            synopsis='Remove build files from bundle path')
 
 
@@ -149,7 +160,7 @@ def _run(path, logger, exit, unbound_method, *args, **kw):
         with StringPlainTextLog(logger) as log:
             try:
                 unbound_method(bb, *args, **kw)
-            except:
+            except Exception:
                 import traceback
                 logger.bug(traceback.format_exc())
                 exit_status = 1

@@ -99,8 +99,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
     :param update: if true, then existing file is okay if newer than web version
     :param check_certificates: if true
     :returns: None if an existing file, otherwise the content type
-    :raises urllib.request.URLError or EOFError if unsuccessful
-
+    :raises urllib.request.URLError or EOFError: if unsuccessful
 
     If 'update' and the filename already exists, fetch the HTTP headers for
     the URL and check the last modified date to see if there is a newer

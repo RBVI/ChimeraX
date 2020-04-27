@@ -90,8 +90,8 @@ Examples:
 <h3>Input Formats</h3>
 <p>
 The command <b>open formats</b> command lists the possible formats and 
-<a href="#fetch">databases</a> in the <a href="../tools/log.html"><b>Log</b></a>. 
-File types can be categorized as:
+<a href="#fetch">databases</a> in the 
+<a href="../tools/log.html"><b>Log</b></a>. File types can be categorized as:
 </p>
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
@@ -266,7 +266,7 @@ target="_blank"><b>APBS</b></a> tool in
 target="_blank"><b>UCSF Chimera</b></a>)</td>
 </tr><tr>
 <td align="center">BRIX map</td>
-<td align="center"><b>dsn6</b></td>
+<td align="center"><b>brix</b></td>
 <td align="center">.brix</td>
 <td align="center">electron density map</td>
 </tr><tr>
@@ -331,16 +331,17 @@ bump, contact, and energy scoring grids<br>
 </tr><tr>
 <td align="center">DSN6 map</td>
 <td align="center"><b>dsn6</b></td>
-<!-- dsn6 format name is shared, program figures out which variant -->
 <td align="center">.omap</td>
 <td align="center">electron density map</td>
 </tr><tr>
 <td align="center">EMAN HDF map</td>
 <td align="center"><b>emanhdf</b></td>
-<td align="center">.hdf, .h5</td>
+<td align="center">.hdf, .h5, .hdf5</td>
 <td align="center">electron density map
 <br>(based on the hierarchical data format
-<a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>)</td>
+<a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a>;
+if the EMAN HDF file reader fails, a <a href="#generic-hdf">generic HDF
+file reader</a> is tried)</td>
 </tr><tr>
 <td align="center">Gaussian cube grid</td>
 <td align="center"><b>cube</b></td>
@@ -370,6 +371,18 @@ in formats supported by
 <a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>);
 see <a href="#image-wildcards">image stack wildcards</a>
 </td>
+</tr><tr>
+<td align="center">
+<a href="https://www.imagescience.de/formats.html"
+target="_blank">IMAGIC map</a></td>
+<td align="center"><b>imagic</b></td>
+<td align="center">.hed<br>.img</td>
+<td align="center">density map
+<br>(the format consists of two files, <i>filename</i>.hed with
+header information and <i>filename</i>.img with the map values; 
+both are required, but either can be specified in the <b>open</b> command;
+IMAGIC support
+courtesy of Ralf Schmidt and Michael Schatz, Image Science Software)</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.bitplane.com/imaris" target="_blank">Imaris</a> map</td>
@@ -436,6 +449,20 @@ versions 6 and 7)</td>
 <td align="center">.pif</td>
 <td align="center">electron density map</td>
 </tr><tr>
+<td align="center">
+<a href="../tools/segment.html">Segger segmentation</a></td>
+<td align="center"><b>segger</b></td>
+<td align="center">.seg</td>
+<td align="center">segmentation regions</td>
+<!-- via Signal Viewer bundle in Toolshed
+</tr><tr>
+<td align="center">
+Signal 3D time series</td>
+<td align="center"><b>signal</b></td>
+<td align="center">.npz</td>
+<td align="center">3D fluorescence time series</td>
+-->
+</tr><tr>
 <td align="center"><a href="http://situs.biomachina.org/index.html"
 target="_blank">Situs</a> map</td>
 <td align="center"><b>situs</b></td>
@@ -456,9 +483,10 @@ target="_blank">STORM (STochastic Optical Reconstruction Microscopy)</a>
 <td align="center"><b>storm</b></td>
 <td align="center">.storm
 <br><a href="#compressed">+&nbsp;compressed</td>
-<td align="center">super-resolution microscopy data</td>
+<td align="center">super-resolution microscopy data
+(<a href="../formats/storm.html">details...</a>)</td>
 </tr><tr>
-<td align="center"><a href="https://www.biochem.mpg.de/tom"
+<td align="center"><a href="https://www.biochem.mpg.de/6348566/tom_e"
 target="_blank">TOM toolbox</a> map</td>
 <td align="center"><b>tom_em</b></td>
 <td align="center">.em</td>
@@ -522,7 +550,8 @@ PolyData</td>
 <br><a href="#compressed">+&nbsp;compressed</td>
 <td align="center">lines, polygons
 [documentation
-<a href="http://vtk.org/VTK/img/file-formats.pdf" target="_blank">PDF</a>]</td>
+<a href="http://vtk.org/VTK/img/file-formats.pdf" target="_blank">PDF</a>]
+<br>(<a href="../formats/vtk.html">details</a> on ChimeraX VTK export)</td>
 </tr><tr>
 <td align="center">
 <a href="http://www.fileformat.info/format/wavefrontobj/egff.htm"
@@ -603,7 +632,8 @@ target="_blank">Stockholm</a></td>
 <td align="center"><b>session</b></td>
 <td align="center">.cxs</td>
 <td align="center">ChimeraX session; see the
-<a href="../preferences.html#window"><b>Window</b> preferences</a></td>
+<a href="../preferences.html#window"><b>Window</b> preferences</a> and
+<a href="../preferences.html#log"><b>Log</b> preferences</a></td>
 </tr><tr>
 <td align="center"><a href="https://pdb-dev.wwpdb.org/about/"
 target="_blank">IHM (Integrative Hybrid Model)</a>
@@ -894,7 +924,7 @@ A <a href="#trajectory">trajectory coordinate</a> file is
 automatically opened as <a href="../trajectories.html">trajectory</a>,
 but to provide topology information, this option must be used 
 to specify an existing model with the same set of atoms
-(for example: <b>open myfile.trr struct #1</b>).
+(for example: <b>open myfile.trr structureModel #1</b>).
 The coordinates of the existing model will be replaced with the new,
 unless <b>replace false</b> is used to indicate appending the new frames 
 instead. This option is also needed to open local MTZ files
@@ -956,7 +986,9 @@ is only available for this format. See also:
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>URL</i>&nbsp;
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
+<!--
+[&nbsp;<b>dataFormat</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
+-->
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#vseries"><b>vseries</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
@@ -971,7 +1003,9 @@ Uniform Resource Locators (URLs) starting with
 <b>http:</b>, <b>https:</b>, and <b>ftp:</b> are handled.
 File types and command options are the same as described 
 <a href="#local">above</a> for local files.
-The file type can be indicated by suffix, MIME type, or the <b>format</b> option.
+The file type can be indicated
+by <a href="#file-table">suffix</a> or by MIME type.
+<!-- ...suffix, MIME type, or the <b>dataFormat</b> option. -->
 </p><p>
 Web-fetched data other than those handled by the
 <a href="../tools/helpviewer.html">ChimeraX browser</a>
@@ -1103,8 +1137,8 @@ target="_blank">PDB-Dev</a></td>
 <td align="center" class="text">integrative hybrid model;
 <br>
 leading zeroes can be omitted from the identifier, for example, 
-accession code PDBDEV_00000010 can be opened with command:
-<br><b>open pdbdev:10</b>
+accession code PDBDEV_00000001 can be opened with command:
+<br><b>open pdbdev:1</b>
 </td>
 <td align="center"><b>ihm</b></td>
 </tr><tr>
@@ -1331,7 +1365,32 @@ Whether to save the current amplitudes and phases for all maps
 generated by Clipper. If <b>false</b>, just save the experimental data.
 </blockquote>
 
+<a name="generic-hdf"></a>
+<p class="nav">
+[<a href="#top">back to top: open</a>]
+</p>
+<h3>Generic HDF File Reader</h3>
+<p>
+If <a href="#volume">EMAN HDF format</a> is expected, 
+but that file reader fails, a generic HDF file reader is tried instead. 
+This generic reader does not look for any metadata; it simply looks for
+3-dimensional arrays and tries to open them as <a href="../tools/volumeviewer.html">volume models</a> with grid spacing of 1. The following 
+<a href="#local"><b>open</b></a> command option can be used to
+limit which 3D arrays are read:
+</p>
+<blockquote>
+<b>arrayName</b>&nbsp;&nbsp;<i>name</i>
+<br>
+In <a href="http://www.hdfgroup.org/HDF5/" target="_blank">HDF5</a> format,
+each array has a directory path within the file and 
+a <i>name</i> (the last part of the pathname). This option indicates reading
+only arrays with the specified <i>name</i>. Example:
+ <blockquote>
+ <b>open Cam_long_00003.h5 arrayName Data</b>
+ </blockquote>
+</blockquote>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+March 2020</address>
 </body></html>

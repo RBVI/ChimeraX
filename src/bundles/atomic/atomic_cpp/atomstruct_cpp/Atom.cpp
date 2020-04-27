@@ -42,7 +42,7 @@ namespace atomstruct {
 Atom::Atom(Structure* as, const char* name, const Element& e):
     _alt_loc(' '), _aniso_u(nullptr), _coord_index(COORD_UNASSIGNED), _element(&e), _name(name),
     _radius(0.0), // -1 indicates not explicitly set
-    _residue(nullptr), _serial_number(-1), _structure(as),
+    _residue(nullptr), _ribbon_coord(nullptr), _serial_number(-1), _structure(as),
     _structure_category(Atom::StructCat::Unassigned)
 {
     change_tracker()->add_created(structure(), this);
@@ -54,7 +54,11 @@ Atom::~Atom()
     // Delete aniso vector for blank alt loc
     if (_aniso_u) {
         delete _aniso_u;
-        _aniso_u = nullptr;
+         _aniso_u = nullptr;
+    }
+    if (_ribbon_coord) {
+      delete _ribbon_coord;
+      _ribbon_coord = nullptr;
     }
     DestructionUser(this);
     change_tracker()->add_deleted(structure(), this);
@@ -1302,7 +1306,9 @@ Atom::set_color(const Rgba& rgba)
     if (rgba == _rgba)
         return;
     graphics_changes()->set_gc_color();
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_COLOR);
+    // Don't include color change in modified list for speed with large structures, ticket #3000.
+    change_tracker()->add_modified(structure(), static_cast<Atom*>(nullptr),
+                                   ChangeTracker::REASON_COLOR);
     _rgba = rgba;
 }
 
@@ -1356,7 +1362,9 @@ Atom::set_display(bool d)
     graphics_changes()->set_gc_shape();
     graphics_changes()->set_gc_display();
     graphics_changes()->set_gc_ring();
-    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_DISPLAY);
+    // Don't include display change in modified list for speed with large structures, ticket #3000.
+    change_tracker()->add_modified(structure(), static_cast<Atom*>(nullptr),
+                                   ChangeTracker::REASON_DISPLAY);
     _display = d;
 }
 
@@ -1407,6 +1415,23 @@ Atom::set_radius(float r)
     graphics_changes()->set_gc_shape();
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RADIUS);
     _radius = r;
+}
+
+void
+Atom::clear_ribbon_coord() {
+  if (_ribbon_coord) {
+    delete _ribbon_coord;
+    _ribbon_coord = nullptr;
+  }
+}
+
+void
+Atom::set_ribbon_coord(const Point& coord) {
+  Real x = coord[0], y = coord[1], z = coord[2];
+  if (_ribbon_coord)
+    _ribbon_coord->set_xyz(x,y,z);
+  else
+    _ribbon_coord = new Coord(x,y,z);
 }
 
 void

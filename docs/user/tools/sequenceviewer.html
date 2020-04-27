@@ -49,22 +49,24 @@ a specified sequence or sequence pattern, use
 or the <a href="../commands/select.html#new"><b>select</b></a> command.
 See also: <a href="../commands/matchmaker.html"><b>matchmaker</b></a>
 </p><p>
-The sequence of a structure chain in ChimeraX can be shown by:
+Sequences for biopolymer structures in ChimeraX can be shown:
 </p>
 <ul>
+<li>using the menu: <b>Tools... Sequence... Show Sequence Viewer</b>
+and choosing which chain sequence(s) to show
 <li>using the
 <a href="../commands/sequence.html#chain"><b>sequence chain</b></a> command
-<li>clicking the 
+<li>by clicking the 
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
 <img class="iconbar" src="../tools/shortcut-icons/sequence.png"></a>
-<li>clicking the <a href="../modelinfo.html">chain description</a> 
+<li>by clicking the <a href="../modelinfo.html">chain description</a> 
 link that appears in the <a href="log.html"><b>Log</b></a> 
 when a structure is opened 
 </ul>
 <p>
-Sequences and sequence alignments can also be 
-<a href="../commands/open.html#local">opened</a> 
+Independent of structure, sequence alignments and individual sequences 
+can also be <a href="../commands/open.html#local">opened</a> 
 from <a href="../commands/open.html#sequence">files</a>
 or <a href="../commands/open.html#fetch">fetched</a>
 from <a href="http://www.uniprot.org/" target="_blank">UniProt</a>.
@@ -79,18 +81,28 @@ Each <b>Sequence Viewer</b> window has a
 with choices including:
 <p>
 <ul>
-<li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
-[various <a href="../commands/save.html#seqformats">sequence file formats</a>]
-&ndash;
-save to file; see also <a href="../commands/save.html#sequence"><b>save</b></a>
+<li><b>File</b>
+  <ul>
+  <li><b>Save As</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  [various <a href="../commands/save.html#seqformats">sequence file formats</a>]
+  &ndash; save to file; 
+  see also <a href="../commands/save.html#sequence"><b>save</b></a>
+  <li><b>Load Sequence Coloring File...</b> open a
+  <a href="../formats/scf.html">sequence coloring file</a>
+  to create <a href="#regions">regions</a> and color 
+  <a href="#association">associated</a> structure to match
+  </ul>
+<li><b>Structure</b>
+  <ul>
+  <li><b>Associations...</b> show dialog for controlling 
+  <a href="#association">sequence-structure association</a>
+  <li><b>Modeller Comparative Modeling...</b> 
+start <a href="modeller.html"><b>Modeller Comparative Modeling</b></a>
+(requires a structure to be <a href="#association">associated</a> 
+with any sequence in the alignment, for use as a template in modeling)
+  </ul>
 <li><b>Settings...</b> show the <a href="#settings"><b>Sequence Viewer</b>
 preferences</a> to control wrapping, spacing, coloring, <i>etc.</i>
-<li><b>Associations...</b> show dialog for controlling 
-<a href="#association">sequence-structure association</a>
-<li><b>Load Sequence Coloring File...</b> open a
-<a href="../formats/scf.html">sequence coloring file</a>
-to create <a href="#regions">regions</a> and color 
-<a href="#association">associated</a> structure to match
 </ul>
 
 <a name="headers"></a>
@@ -492,5 +504,5 @@ style="display:inline-block; vertical-align:middle"><tr>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2019</address>
+April 2020</address>
 </body></html>

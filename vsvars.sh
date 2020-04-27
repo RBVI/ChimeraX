@@ -122,8 +122,8 @@ export PATH="$VCT/bin/HostX64/x64:\
 $WSD/bin/x64:\
 $VSD/Team Tools/Performance Tools/x64:\
 $VSD/Team Tools/Performance Tools:\
-$WSD/bin/$WindowsSDKVersion/x64;\
-$WSD/bin/x64;\
+$WSD/bin/$WindowsSDKVersion/x64:\
+$WSD/bin/x64:\
 $VSD/Common7/Tools:\
 $PATH"
 

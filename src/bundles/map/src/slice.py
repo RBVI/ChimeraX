@@ -220,7 +220,7 @@ def line_position(xyz, line):
   xyz1, xyz2 = line
   dxyz = xyz - xyz1
   xyz12 = xyz2 - xyz1
-  from chimerax.core.geometry import norm, inner_product
+  from chimerax.geometry import norm, inner_product
   d2 = norm(xyz12)
   f = inner_product(dxyz,xyz12) / d2
   return f
@@ -302,7 +302,7 @@ def volume_index_segment(volume, line, clipping_model = None):
 #
 def slice_data_values(v, xyz_in, xyz_out):
 
-  from chimerax.core.geometry import distance
+  from chimerax.geometry import distance
   d = distance(xyz_in, xyz_out)
   #
   # Sample step of 1/2 voxel size can easily miss single bright voxels.
@@ -327,7 +327,7 @@ def slice_data_values(v, xyz_in, xyz_out):
 def array_slice_values(array, ijk_in, ijk_out,
                        spacing = 0.5, method = 'linear'):
 
-  from chimerax.core.geometry import distance, place
+  from chimerax.geometry import distance, place
   d = distance(ijk_in, ijk_out)
   steps = 1 + max(1, int(d/spacing))
 

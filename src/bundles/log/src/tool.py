@@ -126,6 +126,7 @@ function init_menus() {
 class Log(ToolInstance, HtmlLog):
 
     SESSION_ENDURING = True
+    SESSION_SAVE = True
     help = "help:user/tools/log.html"
 
     def __init__(self, session, tool_name):
@@ -384,13 +385,18 @@ class Log(ToolInstance, HtmlLog):
         import lxml.html
         html = lxml.html.fromstring(self.page_source)
         for node in html.find_class("cxcmd"):
+            cxcmd_as_doc = False
             for child in node:
-                if (child.tag != 'div' or child.attrib.get('class', None)
-                        not in (None, 'cxcmd_as_cmd')):
+                cls = child.attrib.get('class', None)
+                if cls == 'cxcmd_as_doc':
+                    cxcmd_as_doc = True
                     node.remove(child)
                     continue
-                child.text = '> '
-                break
+                if cls == 'cxcmd_as_cmd':
+                    child.text = '> '
+                    break
+            if not cxcmd_as_doc:
+                node.text = '> '
         src = lxml.html.tostring(html, encoding='unicode')
         return h.handle(src)
 
@@ -447,3 +453,42 @@ class Log(ToolInstance, HtmlLog):
     def get_singleton(cls, session):
         from chimerax.core import tools
         return tools.get_singleton(session, Log, 'Log')
+
+    def set_state_from_snapshot(self, session, data):
+        super().set_state_from_snapshot(session, data)
+        log_data = data['log data']
+        prev_ses_html = "<details><summary>Log from %s</summary>%s</details>" % (
+            log_data['date'], log_data['contents'])
+        if self.settings.session_restore_clears:
+            # "retain" version info
+            class FakeLogger:
+                def __init__(self):
+                    self.msgs = []
+                def info(self, msg):
+                    self.msgs.append(msg)
+            fl = FakeLogger()
+            from chimerax.core.logger import log_version
+            log_version(fl)
+            version = "<br>".join(fl.msgs)
+
+            # look for the command that restored the session and include it
+            index = self.page_source.rfind('<div class="cxcmd">')
+            if index == -1:
+                retain = version
+            else:
+                retain = version + '<br>' + self.page_source[index:]
+            self.page_source = retain + prev_ses_html
+        else:
+            self.page_source += prev_ses_html
+        #self.show_page_source()
+
+    def take_snapshot(self, session, flags):
+        from datetime import datetime
+        data = super().take_snapshot(session, flags)
+        data['log data'] = {
+            'version': 1,
+            'date': datetime.now().ctime(),
+            'contents': self.page_source,
+        }
+        return data
+

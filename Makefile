@@ -29,7 +29,11 @@ install:
 endif
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
+ifdef NO_PREBUILT
+	$(MAKE) -C prereqs install
+else
 	$(MAKE) -C prereqs install-prebuilt
+endif
 	$(MAKE) -C prereqs app-install
 	$(MAKE) build-app-dirs
 	$(MAKE) -C src install
@@ -39,12 +43,17 @@ ifndef WIN32
 	$(MAKE) -C vdocs install
 endif
 	$(APP_PYTHON_EXE) clean_app.py
+	$(APP_PYTHON_EXE) -m pip check
 	@echo 'Finished install at' `date`
 
-test src.test:
+test src.test: testimports
 	$(MAKE) -C src test
 
+testimports:
+	$(APP_EXE) --exit --nogui --silent cxtestimports.py
+
 sync:
+	mkdir -p $(build_prefix)/sync/{python-only,binary}
 	$(MAKE) -C src/bundles sync
 
 ifdef WIN32
@@ -63,8 +72,8 @@ vdocs.install:
 
 
 build-dirs:
-	-mkdir $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
-		$(webdir) $(wheelhouse)
+	-mkdir -p $(build_prefix) $(bindir) $(libdir) $(includedir) $(datadir) \
+		$(webdir) $(wheelhouse) $(build_prefix)/sync/{python-only,binary}
 ifndef WIN32
 	-cd $(build_prefix) && ln -nfs lib lib64
 endif
@@ -89,6 +98,9 @@ distclean: clean
 	rm -rf $(build_prefix) $(app_prefix) prereqs/prebuilt-*.tar.bz2
 	$(MAKE) -C prereqs/PyQt distclean
 	$(MAKE) -C docs clean
+
+clean:
+	rm -rf $(build_prefix)/sync
 
 build-from-scratch:
 	$(MAKE) distclean

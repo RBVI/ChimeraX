@@ -2,4 +2,4 @@ include ../Makefile.bundle
 
 CSRCS = spacenav.cpp
 
-wheel install app-install:	$(CSRCS)
+build wheel install app-install:	$(CSRCS)

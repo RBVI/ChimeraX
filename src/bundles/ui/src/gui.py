@@ -115,8 +115,8 @@ class UI(QApplication):
         # QtCoreApplication is created...
         import PyQt5.QtWebEngineWidgets
 
-        import sys
-        QApplication.__init__(self, [sys.argv[0]])
+        from chimerax import app_dirs as ad
+        QApplication.__init__(self, [ad.appname])
 
         # Improve toolbar icon quality on retina displays
         from PyQt5.QtCore import Qt
@@ -131,8 +131,8 @@ class UI(QApplication):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('ready')
-        self.triggers.add_trigger('tool window show or hide')
-
+        self.triggers.add_trigger('tool window show')
+        self.triggers.add_trigger('tool window hide')
 
     @property
     def mouse_modes(self):
@@ -398,7 +398,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .graphics import GraphicsWindow
         stereo = getattr(ui, 'stereo', False)
         if stereo:
-            from chimerax.core.graphics import StereoCamera
+            from chimerax.graphics import StereoCamera
             session.main_view.camera = StereoCamera()
         self.graphics_window = g = GraphicsWindow(self._stack, ui, stereo)
         self._stack.addWidget(g.widget)
@@ -442,15 +442,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.triggers.add_handler(ADD_MODELS, self._check_rapid_access)
         session.triggers.add_handler(REMOVE_MODELS, self._check_rapid_access)
 
-        self.use_native_open_dialog = True
-        
-        from .open_folder import OpenFolderDialog
-        self._open_folder = OpenFolderDialog(self, session)
-
-        from .save_dialog import MainSaveDialog, register_save_dialog_options
-        self.save_dialog = MainSaveDialog()
-        register_save_dialog_options(self.save_dialog)
-
         self._hide_tools = False
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
@@ -459,6 +450,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
         self._is_quitting = False
+        self._color_dialog = None
 
         self._build_status()
         self._populate_menus(session)
@@ -566,28 +558,36 @@ class MainWindow(QMainWindow, PlainTextLog):
         # the MainWindow close button has been clicked
         self._is_quitting = True
         event.accept()
+        sbar = self._status_bar
+        if sbar is not None:
+            sbar.destroy()
+            self._status_bar = None
         self.session.ui.quit()
 
-    def close_request(self, tool_window, close_event):
+    def close_request(self, tool_window, close_event = None):
         # closing a tool window has been requested
         if self._is_quitting:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             return
         tool_instance = tool_window.tool_instance
         all_windows = self.tool_instance_to_windows[tool_instance]
         is_main_window = tool_window is all_windows[0]
         close_destroys = tool_window.close_destroys
         if is_main_window and close_destroys:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             tool_instance.delete()
             return
         if close_destroys:
-            close_event.accept()
+            if close_event:
+                close_event.accept()
             # _destroy will remove window from all_windows indirectly
             # via tw._destroy -> toolkit.destroy -> mw->_tool_window_destroyed
             tool_window._destroy()
         else:
-            close_event.ignore()
+            if close_event:
+                close_event.ignore()
             tool_window.shown = False
 
         if is_main_window:
@@ -600,47 +600,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         # handle requests to execute GUI functions from threads
         func, args, kw = event.func_info
         func(*args, **kw)
-
-    def file_open_cb(self, session):
-        self.show_file_open_dialog(session)
-
-    def show_file_open_dialog(self, session, initial_directory = None,
-                              format_name = None):
-        if initial_directory is None:
-            initial_directory = ''
-        from PyQt5.QtWidgets import QFileDialog
-        from .open_save import open_file_filter
-        filters = open_file_filter(all=True, format_name=format_name)
-        if self.use_native_open_dialog:
-            from PyQt5.QtWidgets import QFileDialog
-            paths_and_types = QFileDialog.getOpenFileNames(filter=filters,
-                                                           directory=initial_directory)
-            paths, types = paths_and_types
-        else:
-            from .open_save import OpenDialog
-            d = OpenDialog(parent = self, starting_directory = initial_directory,
-                           filter = filters)
-            paths = d.get_paths()
-
-        if not paths:
-            return
-
-        def _qt_safe(session=session, paths=paths):
-            from chimerax.core.commands import run, FileNameArg
-            run(session, "open " + " ".join([FileNameArg.unparse(p) for p in paths]))
-        # Opening the model directly adversely affects Qt interfaces that show
-        # as a result.  In particular, Multalign Viewer no longer gets hover
-        # events correctly, nor tool tips.
-        #
-        # Using session.ui.thread_safe() doesn't help either(!)
-        from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, _qt_safe)
-
-    def folder_open_cb(self, session):
-        self._open_folder.display(session)
-
-    def file_save_cb(self, session):
-        self.save_dialog.display(self, session)
 
     def file_close_cb(self, session):
         from chimerax.core.commands import run
@@ -794,7 +753,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         _show_context_menu(event, tool, None, fill_cb, True, tb)
 
     def status(self, msg, color, secondary):
-        self._status_bar.status(msg, color, secondary)
+        sbar = self._status_bar
+        if sbar:
+            sbar.status(msg, color, secondary)
 
     def show_statusbar(self, show):
         self._status_bar.show(show)
@@ -910,20 +871,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         mb = self.menuBar()
         file_menu = mb.addMenu("&File")
         file_menu.setObjectName("File")
-        open_action = QAction("&Open...", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.setToolTip("Open input file")
-        open_action.triggered.connect(lambda arg, s=self, sess=session: s.file_open_cb(sess))
-        file_menu.addAction(open_action)
-        open_folder_action = QAction("Open DICOM Folder...", self)
-        open_folder_action.setToolTip("Open data in folder")
-        open_folder_action.triggered.connect(lambda arg, s=self, sess=session: s.folder_open_cb(sess))
-        file_menu.addAction(open_folder_action)
-        save_action = QAction("&Save...", self)
-        save_action.setShortcut("Ctrl+S")
-        save_action.setToolTip("Save output file")
-        save_action.triggered.connect(lambda arg, s=self, sess=session: s.file_save_cb(sess))
-        file_menu.addAction(save_action)
         close_action = QAction("&Close Session", self)
         close_action.setToolTip("Close session")
         close_action.triggered.connect(lambda arg, s=self, sess=session: s.file_close_cb(sess))
@@ -1010,7 +957,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         preset_info = session.presets.presets_by_category
         self._presets_menu_needs_update = False
        
+        from PyQt5.QtWidgets import QAction
+        help_action = QAction("Add A Preset...", self)
+        from chimerax.core.commands import run
+        help_action.triggered.connect(lambda arg, run=run, ses=session: run(ses,
+            "open http://rbvi.ucsf.edu/chimerax/docs/user/preferences.html#startup"))
         if not preset_info:
+            self.presets_menu.addAction(help_action)
             return
         
         if len(preset_info) == 1:
@@ -1019,6 +972,8 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._inline_categorized_preset_menu(session, preset_info)
         else:
             self._rollover_categorized_preset_menu(session, preset_info)
+        self.presets_menu.addSeparator()
+        self.presets_menu.addAction(help_action)
     
     def _uncategorized_preset_menu(self, session, preset_info):
         for category, preset_names in preset_info.items():
@@ -1129,8 +1084,31 @@ class MainWindow(QMainWindow, PlainTextLog):
             sel_or_all(ses, ['atoms', 'bonds'], sel="sel-residues",
                 restriction="((protein&@ca)|(nucleic&@p))"))))
 
-        # Cartoon submenu...
-        cartoon_menu = atoms_bonds_menu.addMenu("Cartoon")
+        # Nucleotide Style submenu...
+        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Style")
+        nuc_info = [("Ladder", "ladder"), ("Stubs", "stubs"), ("Slab Base, Ribose Tube", "tube/slab"),
+            ("Slab Base, Ribose Atoms", "slab"), ("Atoms (Filled Rings)", "fill"),
+            ("Atoms (No Ring Fill)", "atoms")]
+        for menu_entry, nuc_style in nuc_info:
+            action = QAction(menu_entry, self)
+            nuc_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="nucleotides %%s %s" % nuc_style:
+                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        # end Nucleotide Style submenu
+
+        atoms_bonds_menu.addSeparator()
+
+        action = QAction("Delete", self)
+        atoms_bonds_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            cmd="delete atoms %s; delete bonds %s":
+            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
+
+        #
+        # Cartoon...
+        #
+        cartoon_menu = actions_menu.addMenu("Cartoon")
         action = QAction("Show", self)
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
@@ -1160,28 +1138,6 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="cartoon style %s modeHelix tube sides 20":
             run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']))))
-        # end Cartoon submenu
-
-        # Nucleotide Style submenu...
-        nuc_menu = atoms_bonds_menu.addMenu("Nucleotide Style")
-        nuc_info = [("Ladder", "ladder"), ("Stubs", "stubs"), ("Slab Base, Ribose Tube", "tube/slab"),
-            ("Slab Base, Ribose Atoms", "slab"), ("Atoms (Filled Rings)", "fill"),
-            ("Atoms (No Ring Fill)", "atoms")]
-        for menu_entry, nuc_style in nuc_info:
-            action = QAction(menu_entry, self)
-            nuc_menu.addAction(action)
-            action.triggered.connect(lambda *args, run=run, ses=self.session,
-                cmd="nucleotides %%s %s" % nuc_style:
-                run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
-        # end Nucleotide Style submenu
-
-        atoms_bonds_menu.addSeparator()
-
-        action = QAction("Delete", self)
-        atoms_bonds_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="delete atoms %s; delete bonds %s":
-            run(ses, cmd % (sel_or_all(ses, ['atoms', 'bonds']), sel_or_all(ses, ['atoms', 'bonds']))))
 
         #
         # Surface...
@@ -1189,12 +1145,105 @@ class MainWindow(QMainWindow, PlainTextLog):
         surface_menu = actions_menu.addMenu("Surface")
         action = QAction("Show", self)
         surface_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="surface %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action.triggered.connect(lambda *args, run=self._run_surf_command, cmd="surface %s": run(cmd))
         action = QAction("Hide", self)
         surface_menu.addAction(action)
-        action.triggered.connect(lambda *args, run=run, ses=self.session,
-            cmd="surface hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action.triggered.connect(lambda *args, run=self._run_surf_command, cmd="surface hide %s": run(cmd))
+        surface_menu.addSeparator()
+        for style in ["solid", "mesh", "dot"]:
+            action = QAction(style.capitalize(), self)
+            surface_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=self._run_surf_command,
+                cmd="surface style %%s %s" % style: run(cmd))
+        surface_menu.addSeparator()
+        transparency_menu = surface_menu.addMenu("Transparency")
+        for percent in range(0, 101, 10):
+            action = QAction("%d%%" % percent, self)
+            transparency_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=self._run_surf_command,
+                cmd="transparency %%s %d" % percent: run(cmd))
+
+        #
+        # Color...
+        #
+        color_menu = actions_menu.addMenu("Color")
+        from PyQt5.QtGui import QColor, QPixmap, QIcon
+        for spaced_name in [ "red", "orange red", "orange", "yellow", "lime", "forest green", "cyan",
+                "light sea green", "blue", "cornflower blue", "medium blue", "purple", "hot pink",
+                "magenta", "white", "light gray", "gray", "dark gray", "dim gray", "black"]:
+            svg_name = "".join(spaced_name.split())
+            color = QColor(svg_name)
+            pixmap = QPixmap(16, 16)
+            pixmap.fill(color)
+            icon = QIcon(pixmap)
+            action = QAction(icon, spaced_name.title(), self)
+            color_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=self._run_surf_command,
+                cmd="color %%s %s" % svg_name: run(cmd))
+        color_menu.addSeparator()
+        for menu_text, cmd_arg in [("By Heteroatom", "byhet"), ("By Element", "byelement")]:
+            action = QAction(menu_text, self)
+            color_menu.addAction(action)
+            action.triggered.connect(lambda *args, run=run, ses=self.session,
+                cmd="color %%s %s" % cmd_arg: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        action = QAction("From Editor", self)
+        color_menu.addAction(action)
+        action.triggered.connect(self._color_by_editor)
+
+        """
+        #
+        # Label...
+        #
+        label_menu = actions_menu.addMenu("Label")
+        """
+
+    def _color_by_editor(self, *args):
+        if not self._color_dialog:
+            from PyQt5.QtWidgets import QColorDialog
+            self._color_dialog = cd = QColorDialog(self)
+            cd.setOption(cd.NoButtons, True)
+            cd.setOption(cd.ShowAlphaChannel, True)
+            from chimerax.core.commands import run, sel_or_all
+            cd.currentColorChanged.connect(lambda clr, *, ses=self.session:
+                run(ses, "color %s %s" % (sel_or_all(ses, ['atoms', 'bonds']),
+                clr.name() + clr.name(clr.HexArgb)[1:3])))
+            cd.destroyed.connect(lambda s=self: setattr(s, '_color_dialog', None))
+        else:
+            cd = self._color_dialog
+            # On Mac, Qt doesn't realize when the color dialog has been hidden by the red 'X' button, so
+            # "hide" it now so that Qt doesn't believe that the later show() is a no op.  Whereas on Windows
+            # doing a hide followed by a show causes the dialog to jump back to it's original screen
+            # position, so do the hide _only_ on Mac.
+            import sys
+            if sys.platform == "darwin":
+                cd.hide()
+        cd.show()
+
+    def _run_surf_command(self, cmd):
+        from chimerax.core.commands import run, sel_or_all, NoneSelectedError
+        from chimerax.core.models import Surface
+        try:
+            selector = sel_or_all(self.session, ['atoms', 'bonds'])
+        except NoneSelectedError:
+            try:
+                selector = sel_or_all(self.session, Surface)
+            except NoneSelectedError:
+                from chimerax.core.errors import UserError
+                if self.session.selection.empty():
+                    raise UserError("No atoms, bonds, or surfaces visible")
+                else:
+                    raise UserError("No visible atoms, bonds, or surfaces selected")
+        else:
+            if "sel" not in selector:
+                # no visible atoms/bonds selected, see if any surfaces are
+                try:
+                    surf_selector = sel_or_all(self.session, Surface)
+                except NoneSelectedError:
+                    pass
+                else:
+                    if "sel" in surf_selector:
+                        selector = surf_selector
+        run(self.session, cmd % selector)
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
@@ -1397,7 +1446,8 @@ class MainWindow(QMainWindow, PlainTextLog):
         if toolbar.windowTitle() in self._checkbutton_tools:
             self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
 
-    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None):
+    def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None, 
+            shortcut=None):
         '''Supported API.
         Add a main menu entry.  Adding entries to the Select menu should normally be done via
         the add_select_submenu method instead.  For details, see the doc string for that method.
@@ -1409,7 +1459,8 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         If 'insertion_point is specified, then the entry will be inserted before it.
         'insertion_point' can be a QAction, a string (menu item text with navigation markup removed)
-        or an integer indicating a particular separator (top to bottom, numbering starting at 1).
+        an integer indicating a particular separator (top to bottom, numbering starting at 1),
+        or False indicating that the entry should be placed at the top of the menu.
         '''
         menu = self._get_target_menu(self.menuBar(), menu_names)
         from PyQt5.QtWidgets import QAction
@@ -1417,8 +1468,16 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda arg, cb = callback: cb())
         if tool_tip is not None:
             action.setToolTip(tool_tip)
+        if shortcut is not None:
+            action.setShortcut(shortcut)
         if insertion_point is None:
             menu.addAction(action)
+        elif insertion_point is False:
+            existing_actions = menu.actions()
+            if not existing_actions:
+                menu.addAction(action)
+            else:
+                menu.insertAction(existing_actions[0], action)
         else:
             menu.insertAction(self._get_menu_action(menu, insertion_point), action)
         return action
@@ -1625,7 +1684,7 @@ class ToolWindow(StatusLogger):
         self.close_destroys = close_destroys
         ui = tool_instance.session.ui
         mw = ui.main_window
-        self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw)
+        self.__toolkit = _Qt(self, title, statusbar, hide_title_bar, mw, close_destroys)
         self.ui_area = self.__toolkit.ui_area
         # forward unused keystrokes (to the command line by default)
         self.ui_area.keyPressEvent = self._forward_keystroke
@@ -1657,10 +1716,12 @@ class ToolWindow(StatusLogger):
         and removed from the menu when this method returns."""
         pass
 
-    @property
-    def floating(self):
+    def _get_floating(self):
         return self.__toolkit.dock_widget.isFloating()
-
+    def _set_floating(self, floating):
+        return self.__toolkit.dock_widget.setFloating(floating)
+    floating = property(_get_floating, _set_floating)
+    
     @property
     def hides_title_bar(self):
         return self.__toolkit.hide_title_bar
@@ -1672,7 +1733,8 @@ class ToolWindow(StatusLogger):
         Qt.TopDockWidgetArea: "top",
         Qt.BottomDockWidgetArea: "bottom"
     }
-    def manage(self, placement, fixed_size=False, allowed_areas=Qt.AllDockWidgetAreas):
+    def manage(self, placement, fixed_size=False, allowed_areas=Qt.AllDockWidgetAreas,
+            initially_hidden=False):
         """Supported API. Show this tool window in the interface
 
         Tool will be docked into main window on the side indicated by
@@ -1688,8 +1750,12 @@ class ToolWindow(StatusLogger):
 
         The tool window will be allowed to dock in the allowed_areas, the value
         of which is a bitmask formed from Qt's Qt.DockWidgetAreas flags.
+
+        The tool will be displayed unless 'initially_hidden' is True.  This flag is needed because
+        setting tool.shown to False after manage() will otherwise briefly show the tool.
         """
-        settings =  self.session.ui.settings
+        ui = self.session.ui
+        settings =  ui.settings
         tool_name = self.tool_instance.tool_name
         if tool_name in settings.undockable:
             from PyQt5.QtCore import Qt
@@ -1705,6 +1771,10 @@ class ToolWindow(StatusLogger):
         self.tool_instance.session.ui.main_window._about_to_manage(self,
             placement is None or (isinstance(placement, ToolWindow) and placement.floating))
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
+        if initially_hidden:
+            self.shown = False
+        else:
+            ui.triggers.activate_trigger('tool window show', self)
 
     @property
     def shown(self):
@@ -1715,7 +1785,8 @@ class ToolWindow(StatusLogger):
     def shown(self, shown):
         ui = self.session.ui
         ui.main_window._tool_window_request_shown(self, shown)
-        ui.triggers.activate_trigger('tool window show or hide', self)
+        tname = 'tool window show' if shown else 'tool window hide'
+        ui.triggers.activate_trigger(tname, self)
 
     def shown_changed(self, shown):
         """Supported API. Perform actions when window hidden/shown
@@ -1857,7 +1928,7 @@ class ChildToolWindow(ToolWindow):
         super().__init__(tool_instance, title, **kw)
 
 class _Qt:
-    def __init__(self, tool_window, title, has_statusbar, hide_title_bar, main_window):
+    def __init__(self, tool_window, title, has_statusbar, hide_title_bar, main_window, close_destroys):
         self.tool_window = tool_window
         self.title = title
         self.hide_title_bar = hide_title_bar
@@ -1869,6 +1940,9 @@ class _Qt:
         from PyQt5.QtWidgets import QDockWidget, QWidget, QVBoxLayout
         self.dock_widget = dw = QDockWidget(title, mw)
         dw.closeEvent = lambda e, tw=tool_window, mw=mw: mw.close_request(tw, e)
+        if close_destroys:
+            from PyQt5.QtCore import Qt
+            dw.setAttribute(Qt.WA_DeleteOnClose)
         dw.topLevelChanged.connect(self.float_changed)
         if hide_title_bar:
             self.dock_widget.setTitleBarWidget(QWidget())
@@ -1894,20 +1968,27 @@ class _Qt:
         if not self.tool_window:
             # already destroyed
             return
+        from PyQt5.QtCore import Qt
+        auto_delete = self.dock_widget.testAttribute(Qt.WA_DeleteOnClose)
         is_floating = self.dock_widget.isFloating()
         self.main_window._tool_window_destroyed(self.tool_window)
         self.main_window.removeDockWidget(self.dock_widget)
         # free up references
         self.tool_window = None
         self.main_window = None
-        self.status_bar = None
-        # horrible hack to try to work around two different crashes, in 5.12:
-        # 1) destroying floating window closed with red-X with immediate destroy() 
-        # 2) resize event to dead window if deleteLater() used
-        if is_floating:
-            self.dock_widget.deleteLater()
-        else:
-            self.dock_widget.destroy()
+        sbar = self.status_bar
+        if sbar is not None:
+            # apparently needs to be explicitly destroyed even if auto_delete is True
+            sbar.destroy()
+            self.status_bar = None
+        if not auto_delete:
+            # horrible hack to try to work around two different crashes, in 5.12:
+            # 1) destroying floating window closed with red-X with immediate destroy() 
+            # 2) resize event to dead window if deleteLater() used
+            if is_floating:
+                self.dock_widget.deleteLater()
+            else:
+                self.dock_widget.destroy()
 
     @property
     def dockable(self):
@@ -2151,7 +2232,7 @@ class DefineSelectorDialog(QDialog):
         self.cur_sel_text = "current selection"
         self.atom_spec_text = "target specifier"
         self.push_button = QPushButton(self.cur_sel_text)
-        menu = QMenu()
+        menu = QMenu(self)
         menu.triggered.connect(self._menu_cb)
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
@@ -2376,7 +2457,7 @@ class InitWindowSizeOption(Option):
         from PyQt5.QtWidgets import QPushButton, QMenu
         size_scheme, size_data = self.default
         self.push_button = QPushButton(size_scheme)
-        menu = QMenu()
+        menu = QMenu(self.widget)
         self.push_button.setMenu(menu)
         from PyQt5.QtWidgets import QAction
         menu = self.push_button.menu()

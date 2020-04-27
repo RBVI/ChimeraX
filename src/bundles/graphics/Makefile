@@ -1,0 +1,3 @@
+# needed to get import of chimerax.atomic to work
+BUILD_AND_INSTALL = 1
+include ../Makefile.bundle

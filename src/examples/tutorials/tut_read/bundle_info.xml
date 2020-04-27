@@ -5,7 +5,7 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ChimeraX-Tutorial_Read_Format"
+<BundleInfo name="ChimeraX-TutorialReadFormat"
 	    version="0.1" package="chimerax.tut_read"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -30,17 +30,24 @@ ChimeraX atomic structures.
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.1"/>
+    <Dependency name="ChimeraX-Core" version="~=0.1"/>
   </Dependencies>
+
+    <!-- Register XYZ format as one of the supported input file formats -->
+  <Providers manager="data formats">
+    <Provider name="XYZ" suffixes=".xyz" category="Molecular structure"
+		reference_url="https://en.wikipedia.org/wiki/XYZ_file_format"
+		encoding="utf-8" mime_types="chemical/x-xyz" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="XYZ" />
+  </Providers>
 
   <Classifiers>
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 3 - Alpha</PythonClassifier>
     <PythonClassifier>License :: Freeware</PythonClassifier>
-    <!-- ChimeraX classifiers describe supplied functionality -->
-    <!-- Register XYZ format as one of the supported input file formats -->
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: XYZ :: :: Molecular structure :: .xyz :: :: https://en.wikipedia.org/wiki/XYZ_file_format :: :: :: XYZ format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: XYZ :: XYZ ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

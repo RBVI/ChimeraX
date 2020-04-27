@@ -17,7 +17,7 @@ from .acceptor_geom import acc_syn_anti, acc_phi_psi, acc_theta_tau, acc_generic
 from .donor_geom import don_theta_tau, don_upsilon_tau, don_generic, don_water
 from .common_geom import ConnectivityError, AtomTypeError
 from chimerax.atomic.chem_group import find_group
-from chimerax.core.geometry import distance_squared
+from chimerax.geometry import distance_squared
 from .hydpos import hyd_positions
 from chimerax.atomic.idatm import type_info, tetrahedral, planar, linear, single
 from chimerax.atomic import Element
@@ -661,7 +661,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                             session.logger.info("\t%s satisfies donor criteria" % donor_atom)
                         # ensure hbond isn't precluded by metal-coordination...
                         if acc_atom in metal_coord:
-                            from chimerax.core.geometry import angle
+                            from chimerax.geometry import angle
                             conflict = False
                             for metal in metal_coord[acc_atom]:
                                 if angle(donor_atom._hb_coord, acc_atom._hb_coord,

@@ -28,27 +28,27 @@ namespace Interpolate
 {
 enum  Interpolation_Method {INTERP_LINEAR, INTERP_NEAREST};
 
-void interpolate_volume_data(float vertices[][3], int n,
+void interpolate_volume_data(float vertices[][3], int64_t n,
 			     float vtransform[3][4],
 			     const Reference_Counted_Array::Numeric_Array &data,
 			     Interpolation_Method method,
 			     float *values, std::vector<int> &outside);
 
-void interpolate_volume_gradient(float vertices[][3], int n,
+void interpolate_volume_gradient(float vertices[][3], int64_t n,
 				 float vtransform[3][4],
 				 const Reference_Counted_Array::Numeric_Array &data,
 				 Interpolation_Method method,
 				 float gradients[][3],
 				 std::vector<int> &outside);
 
-void interpolate_colormap(float values[], int n,
+void interpolate_colormap(float values[], int64_t n,
 			  float color_data_values[], int m,
 			  float rgba_colors[][4],
 			  float rgba_above_value_range[4],
 			  float rgba_below_value_range[4],
 			  float rgba[][4]);
 
-void set_outside_volume_colors(int *outside, int n,
+void set_outside_volume_colors(int *outside, int64_t n,
 			       float rgba_outside_volume[4],
 			       float rgba[][4]);
 

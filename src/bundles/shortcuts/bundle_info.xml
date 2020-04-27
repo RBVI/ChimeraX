@@ -18,8 +18,10 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Graphics" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <Providers manager="toolbar">
@@ -117,6 +119,8 @@
     <Provider tab="Map" section="Subregions"
       name="pl" display_name="Z-plane" icon="plane.png" description="Show one plane"/>
     <Provider tab="Map" section="Subregions"
+      name="is" display_name="Slab" icon="slab.png" description="Show rotatable slab"/>
+    <Provider tab="Map" section="Subregions"
       name="o3" display_name="Orthoplanes" icon="orthoplanes.png" description="Show 3 orthogonal planes"/>
     <Provider tab="Map" section="Subregions"
       name="pa" display_name="Full" icon="fullvolume.png" description="Show all planes"/>
@@ -133,11 +137,11 @@
     <Provider tab="Map" section="Image Display"
       name="ps" display_name="Perpendicular slices" icon="perpslice.png" description="Volume perpendicular slices"/>
     <Provider tab="Map" section="Image Display" hidden="true"
-      name="aw" display_name="Airways preset" icon="airways.png" description="Airways preset"/>
+      name="aw" display_name="Airways" icon="airways.png" description="Airways CT scan coloring"/>
     <Provider tab="Map" section="Image Display" hidden="true"
-      name="ch" display_name="Chest preset" icon="chest.png" description="Chest preset"/>
+      name="ch" display_name="Chest CT" icon="chest.png" description="Chest CT scan coloring"/>
     <Provider tab="Map" section="Image Display" hidden="true"
-      name="as" display_name="Skin preset" icon="ear.png" description="Skin preset"/>
+      name="bc" display_name="Brain CT" icon="brain.png" description="Brain CT scan coloring"/>
     <Provider tab="Map" section="Image Display"
       name="dc" display_name="Default thresholds" icon="initialcurve.png" description="Default volume curve"/>
 

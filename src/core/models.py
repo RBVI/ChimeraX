@@ -17,9 +17,6 @@ models: Displayed data
 
 """
 
-import weakref
-from .graphics.drawing import Drawing
-from .state import State, StateManager, CORE_STATE_VERSION
 ADD_MODELS = 'add models'
 REMOVE_MODELS = 'remove models'
 MODEL_DISPLAY_CHANGED = 'model display changed'
@@ -30,7 +27,8 @@ RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
 
-
+from .state import State
+from chimerax.graphics import Drawing
 class Model(State, Drawing):
     """A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
@@ -59,6 +57,7 @@ class Model(State, Drawing):
 
     SESSION_ENDURING = False
     SESSION_SAVE = True
+    SESSION_SAVE_DRAWING = False
     SESSION_WARN = False
 
     def __init__(self, name, session):
@@ -318,6 +317,7 @@ class Model(State, Drawing):
         p = self.parent
         if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
+        from .state import CORE_STATE_VERSION
         data = {
             'name': self.name,
             'id': self.id,
@@ -329,6 +329,9 @@ class Model(State, Drawing):
             'accept_multishadow': self.accept_multishadow,
             'version': CORE_STATE_VERSION,
         }
+        if self.SESSION_SAVE_DRAWING:
+            from chimerax.graphics.gsession import DrawingState
+            data['drawing state'] = DrawingState.take_snapshot(self, session, flags)
         return data
 
     @classmethod
@@ -353,7 +356,7 @@ class Model(State, Drawing):
         if pa.dtype == float32:
             # Fix old sessions that saved array as float32
             pa = pa.astype(float64)
-        from .geometry import Places
+        from chimerax.geometry import Places
         self.positions = Places(place_array=pa)
         self.display_positions = data['display_positions']
         for d in self.all_drawings():
@@ -361,12 +364,17 @@ class Model(State, Drawing):
                 if attr in data:
                     setattr(d, attr, data[attr])
 
+        if 'drawing state' in data:
+            from chimerax.graphics.gsession import DrawingState
+            DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
+            self.SESSION_SAVE_DRAWING = True
+            
     def save_geometry(self, session, flags):
         '''
         Return state for saving Model and Drawing geometry that can be restored
         with restore_geometry().
         '''
-        from chimerax.core.graphics.gsession import DrawingState
+        from chimerax.graphics.gsession import DrawingState
         data = {'model state': Model.take_snapshot(self, session, flags),
                 'drawing state': DrawingState.take_snapshot(self, session, flags),
                 'version': 1
@@ -377,7 +385,7 @@ class Model(State, Drawing):
         '''
         Restore model and drawing state saved with save_geometry().
         '''
-        from chimerax.core.graphics.gsession import DrawingState            
+        from chimerax.graphics.gsession import DrawingState
         Model.set_state_from_snapshot(self, session, data['model state'])
         DrawingState.set_state_from_snapshot(self, session, data['drawing state'])
         return self
@@ -468,9 +476,12 @@ class Surface(Model):
     '''
     pass
 
+    
+from .state import StateManager
 class Models(StateManager):
 
     def __init__(self, session):
+        import weakref
         self._session = weakref.ref(session)
         t = session.triggers
         t.add_trigger(ADD_MODELS)
@@ -497,6 +508,7 @@ class Models(StateManager):
                 not_saved.append(model)
                 continue
             models[id] = model
+        from .state import CORE_STATE_VERSION
         data = {'models': models,
                 'version': CORE_STATE_VERSION}
         if not_saved:

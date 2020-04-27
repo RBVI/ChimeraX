@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Bogus" version="0.1" package="chimerax.bogus"
+<BundleInfo name="ChimeraX-Bogus" version="0.1b3.2" package="chimerax.bogus"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>
@@ -13,7 +13,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=0.9"/>
   </Dependencies>
 
   <Classifiers>

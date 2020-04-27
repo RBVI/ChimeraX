@@ -665,7 +665,7 @@ class Image3d(Model):
     bx *= gs[0]
     by *= gs[1]
     bz *= gs[2]
-    from chimerax.core.geometry import cross_product, inner_product
+    from chimerax.geometry import cross_product, inner_product
     box_face_normals = [cross_product(by,bz), cross_product(bz,bx), cross_product(bx,by)]
     
     pmode = self._p_mode
@@ -712,7 +712,7 @@ class Image3d(Model):
 
     corners = _box_corners(self._region, self._ijk_to_xyz)
     positions = self.get_scene_positions(displayed_only = True)
-    from chimerax.core.geometry import point_bounds
+    from chimerax.geometry import point_bounds
     b = point_bounds(corners, positions)
     return b
 
@@ -747,7 +747,7 @@ class Image3d(Model):
       return
 
     transparent = not self._opaque
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     dopaq = (draw_pass == Drawing.OPAQUE_DRAW_PASS and not transparent)
     dtransp = (draw_pass == Drawing.TRANSPARENT_DRAW_PASS and transparent)
     if not dopaq and not dtransp:
@@ -804,7 +804,7 @@ class Image3d(Model):
     
 # ---------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Drawing
+from chimerax.graphics import Drawing
 class BackingDrawing(Drawing):
   def __init__(self, name, image):
     self._image = image			# Parent Image3D
@@ -836,7 +836,7 @@ class BackingDrawing(Drawing):
       self.color = bcolor
       
     renderer.enable_backface_culling(True)
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     self.draw(renderer, self.OPAQUE_DRAW_PASS)
     renderer.enable_backface_culling(False)
 
@@ -896,7 +896,7 @@ class Colormap:
   
 # ---------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Drawing
+from chimerax.graphics import Drawing
 class PlanesDrawing(Drawing):
   def __init__(self, name, image_render, axis = None):
     Drawing.__init__(self, name)
@@ -925,7 +925,7 @@ class PlanesDrawing(Drawing):
     cmap, cmap_range = ir._color_table(self._axis)
     t = self.colormap
     if t is None:
-      from chimerax.core.graphics import Texture
+      from chimerax.graphics import Texture
       self.colormap = Texture(cmap, dimension = 1, clamp_to_edge = True)
     else:
       t.reload_texture(cmap)
@@ -1038,7 +1038,7 @@ class Texture2dPlanes(PlanesDrawing):
   def _make_plane_texture(self):
     ir = self._image_render
     lo = ir._rendering_options.linear_interpolation
-    from chimerax.core.graphics import Texture
+    from chimerax.graphics import Texture
     t = Texture(linear_interpolation = lo)
     if isinstance(ir, BlendedImage):
       t.initialize_rgba(ir._plane_size)
@@ -1179,7 +1179,7 @@ class Texture3dPlanes(PlanesDrawing):
 
   def _tilted_slab_plane_parameters(self, view_direction, scene_position,
                                      axis, offset, spacing, plane_count):
-    from chimerax.core.geometry import inner_product
+    from chimerax.geometry import inner_product
     if scene_position.is_identity():
       flip = (inner_product(view_direction, axis) > 0)
     else:
@@ -1217,7 +1217,7 @@ class Texture3dPlanes(PlanesDrawing):
     # Create texture but do not fill in texture data values.
     ir = self._image_render
     lo = ir._rendering_options.linear_interpolation
-    from chimerax.core.graphics import Texture
+    from chimerax.graphics import Texture
     t = Texture(dimension = 3, linear_interpolation = lo)
     if isinstance(ir, BlendedImage):
       t.initialize_rgba(ir._region_size)
@@ -1299,7 +1299,7 @@ def _xyz_to_texcoord(ijk_region, ijk_to_xyz):
   ijk_min, ijk_max, ijk_step = ijk_region
   ei,ej,ek = [i1-i0+1 for i0,i1 in zip(ijk_min, ijk_max)]
   i0,j0,k0 = ijk_min
-  from chimerax.core.geometry.place import scale, translation
+  from chimerax.geometry.place import scale, translation
   # Map i0 to texture coord 0.5/ei and i1 to (ei-0.5)/ei, the texel centers.
   v_to_tc = scale((1/ei, 1/ej, 1/ek)) * translation((0.5-i0,0.5-j0,0.5-k0)) * ijk_to_xyz.inverse()
   return v_to_tc

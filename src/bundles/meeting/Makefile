@@ -2,7 +2,7 @@ include ../Makefile.bundle
 
 DATAFILES = src/server.pem
 
-wheel install app-install:	$(DATAFILES)
+build wheel install app-install:	$(DATAFILES)
 
 src/server.pem:	ssl.conf
 	# This creates a self-signed cert

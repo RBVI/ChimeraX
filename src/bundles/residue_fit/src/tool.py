@@ -125,7 +125,7 @@ def show_residue_fit(session, residues, map, range = 2, last_pos = None, motion_
     xyz = ratoms.filter(i).scene_coords
 
     # Align backbone to template backbone coords
-    from chimerax.core.geometry import align_points, Place
+    from chimerax.geometry import align_points, Place
     from numpy import array
     txyz = array([[ 12.83300018,   6.83900023,   6.73799992],
                   [ 12.80800056,   7.87400055,   5.70799971],

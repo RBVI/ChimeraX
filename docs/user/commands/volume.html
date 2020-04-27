@@ -48,8 +48,8 @@ Contour levels can also be changed interactively with the
 <a href="ui.html#mousemode">mouse mode</a> for <b>contour level</b>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
-or <b>windowing</b> 
-<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+or <b>windowing</b> <a href="../tools/mousemodes.html#multiwindowing" 
+title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>.
 </p><p>
 Volume data can be opened with the command
@@ -70,7 +70,9 @@ See also:
 <a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="sym.html"><b>sym</b></a>,
 <a href="smoothlines.html"><b>smoothlines</b></a>,
+<a href="segmentation.html"><b>segmentation</b></a>,
 <a href="../tools/densitymaps.html"><b>Map</b></a> icons,
+<a href="../tools/medicalimage.html"><b>Medical Image</b></a> icons,
 <a href="../measurements.html">measurements</a>,
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
 </p>
@@ -118,6 +120,8 @@ The <b>volume</b> command has many options, here grouped into categories:
 <br><a href="#dispsurf">Surface and Mesh Display Options</a>
 <br><a href="#dispsolid">Image Display Options</a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/slab.png"></a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/xyzslice.png"></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/perpslice.png"></a>
@@ -126,7 +130,7 @@ The <b>volume</b> command has many options, here grouped into categories:
 <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/chest.png"></a>
 <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a>
+<img class="icon" border=1 src="../tools/shortcut-icons/brain.png"></a>
 <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
 <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
 <br><a href="#vop">Volume Operations (Map Editing)</a>
@@ -240,8 +244,8 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   <b>contour level</b>
   <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>
-  or <b>windowing</b> 
-  <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+  or <b>windowing</b> <a href="../tools/mousemodes.html#multiwindowing" 
+  title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/windowing.png"></a>
   in the graphics window.
 </blockquote>
@@ -952,10 +956,14 @@ The <i>mode</i> can be any of the following:
 <ul>
 <li><b>full region</b> &ndash; <a href="#dimensions">full region</a>
 <li><b>orthoplanes</b> &ndash; <a href="#orthoplanes">orthoplanes</a>
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/orthoplanes.png"></a>
 <li><b>box faces</b> &ndash; <a href="#boxfaces">box faces</a>
 <li><a name="tiltedslab"><b>tilted slab</b></a>
-&ndash; a single- or multi-plane slab at any angle relative to the data axes,
-with additional options:
+&ndash; a slab of the data 
+<a href="../tools/densitymaps.html" title="Map Toolbar...">
+<img class="icon" border=1 src="../tools/shortcut-icons/slab.png"></a>
+at any angle relative to the data axes, with additional options:
   <ul>
   <li><b>tiltedSlabAxis</b> 
   &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a> &ndash;
@@ -969,14 +977,14 @@ and the axis vector: <i>d</i> = (<i>p</i>,<i>axis</i>)
   </ul>
 </ul>
 Typically, the graphical interface would be used rather than commands:
+<a href="../tools/densitymaps.html"><b>Map</b></a> icons or
 the <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> 
 display-style menu would be used to switch the image mode, and in
 the <b>tilted slab</b> mode, slab orientation would be adjusted with the
 <b>rotate slab</b> <a href="ui.html#mousemode">mouse mode</a>
-<a href="../tools/medicalimage.html#mousemodes" 
-title="Medical Image Toolbar...">
+<a href="../tools/mousemodes.html#rotateslab" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>,
-slab offset with the 
+slab offset with either the <b>rotate slab</b> button + <b>Shift</b> or the
 <b>move planes</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/moveplanes.png"></a>,
@@ -985,8 +993,7 @@ and slab thickness with the
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>.
 In <a href="../vr.html">virtual reality</a>, the <b>rotate slab</b> mode
-<a href="../tools/medicalimage.html#mousemodes" 
-title="Medical Image Toolbar...">
+<a href="../tools/mousemodes.html#rotateslab" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/rotateslab.png"></a>
 can both rotate the tilted slab and translate it along its axis.
 The initial tilted slab is perpendicular to the line of sight, 
@@ -1122,12 +1129,11 @@ the data values rather than the resulting color values are interpolated.
   <a name="colormapSize"></a>
   <b>colormapSize</b> &nbsp;<i>N</i>
 <br>
-Specify the size of the color lookup table (default <b>256</b>)
-for colormapping on the GPU (any data type) or on the CPU 
-with floating-point data.
-For color mapping on the CPU with 8-bit or 16-bit map data, 
-this value is ignored and sizes 256 and 65536 are used instead
-so that each data value has its own color. 
+Specify the size of the color lookup table (default <b>2048</b>) for 
+colormapping on the GPU (any data type) or on the CPU with floating-point data. 
+For color mapping on the CPU with 8-bit or 16-bit map data, this value 
+is ignored and sizes 256 and 65536 are used instead
+so that each data value has its own color.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -1205,65 +1211,100 @@ Color blending on the GPU is about an order of magnitude faster.
   <a name="appearance"></a>
   <b>appearance</b> &nbsp;<i>preset-name</i>
 <br>
-Apply a
-<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
-target="_blank">Horos 3D preset</a> 
-(with <a href="#dimvox"><b>dimTransparentVoxels</b></a> false) or
-<a href="https://www.mccauslandcenter.sc.edu/mricrogl/home"
-target="_blank">MRIcroGL</a> color lookup table (CLUT)
-(with <a href="#dimvox"><b>dimTransparentVoxels</b></a> true
-and <a href="#transparency"><b>transparency</b></a> 0.05)
-to the image display.
+Apply an image appearance <a href="#nameAppearance">preset</a>,
+a previously defined collection of display settings 
+for maps in the <b>image</b> <a href="#style">display style</a>.
+The <i>preset-name</i> should be enclosed in quotation marks 
+if it contains any spaces. See also:
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
+<p>
+Available presets include:
+</p>
+<ul>
+<li><i>approximate</i> implementations of settings from the
 <a href="https://horosproject.org/about/" target="_blank">Horos</a> 
 and <a href="https://www.mccauslandcenter.sc.edu/mricrogl/home"
-target="_blank">MRIcroGL</a> 
-are programs for medical image analysis and visualization.
-The Horos 3D presets are listed on
-<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
-target="_blank">github</a>, and the available MRIcroGL CLUTs are
-<b>CT_Bones</b>, <b>CT_Kidneys</b>, <b>CT_Liver</b>, <b>CT_Lungs</b>, 
-<b>CT_Muscles</b>, <b>CT_Skin</b>, <b>CT_Soft_Tissue</b>, <b>CT_Vessels</b>,
-and <b>CT_w_Contrast</b>.
-The <i>preset-name</i> should be enclosed in quotation marks if it
-contains any spaces. 
-<p>
-Implementation of these presets in ChimeraX is only approximate, as there 
-may not be a direct correspondence between settings in different programs,
-and parts of the definition files may have been ignored.
-The Horos 3D presets are generally intended for
-3D rendering (not <a href="#planes">planes</a>).
-The <a href="../tools/medicalimage.html"><b>Medical Image</b></a> icons
-<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a> and
-<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/ear.png"></a> apply the
-Horos "<b>Airways II</b>" and MRIcroGL <b>CT_Skin</b> settings, respectively.
-</p><p>
-Two other presets, also available as 
-<a href="../tools/medicalimage.html"><b>Medical Image</b></a> icons,
-are defined in ChimeraX only:
-</p>
-<ul class="none">
-<li>
-<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/chest.png"></a>
-&nbsp;<b>chest</b>
-&ndash; yellow bones, blue airways, and some other tissues in pink
-<li>
-<a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
-&nbsp;<b>initial</b>
-&ndash; (re)set to the <a href="#level">threshold levels</a> and colors
-chosen automatically for the data when first shown as image, with
-<a href="#dimvox"><b>dimTransparentVoxels</b></a> true.
-<a href="../dicom/dicom.html">DICOM</a> data are initially shown 
-as image with thresholds: (&ndash;1000,0),(300,0.9),(3000,1).
+target="_blank">MRIcroGL</a> programs for medical image visualization 
+and analysis:
+<ul>
+  <li><a href="https://horosproject.org/about/" target="_blank">Horos</a> 
+  &ldquo;3D presets&rdquo; as listed on 
+<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS" target="_blank">github</a> 
+  (with <a href="#dimvox"><b>dimTransparentVoxels</b></a> false);
+  these are generally intended for rendering thicker slabs rather than 
+  <a href="#planes">single planes</a>
+<br><br>
+  <li><a href="https://www.mccauslandcenter.sc.edu/mricrogl/home"
+  target="_blank">MRIcroGL</a> color lookup tables (CLUTs):
+  <b>CT_Bones</b>, <b>CT_Kidneys</b>, <b>CT_Liver</b>, <b>CT_Lungs</b>, 
+  <b>CT_Muscles</b>, <b>CT_Skin</b>, <b>CT_Soft_Tissue</b>, <b>CT_Vessels</b>,
+  and <b>CT_w_Contrast</b>
+  (with <a href="#dimvox"><b>dimTransparentVoxels</b></a> true
+  and <a href="#transparency"><b>transparency</b></a> 0.05)
+  </ul>
+<br>
+<li>ChimeraX built-in presets, also available <i>via</i>
+<a href="../tools/medicalimage.html"><b>Medical Image</b></a> icons:
+  <ul class="none">
+  <li>
+  <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+  <img class="icon" border=1 src="../tools/shortcut-icons/airways.png"></a>
+  &nbsp;<b>airways</b>
+  &ndash; blue airways
+  <li>
+  <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+  <img class="icon" border=1 src="../tools/shortcut-icons/chest.png"></a>
+  &nbsp;<b>chest</b>
+  &ndash; yellow bones, blue airways, some other tissues in pink
+  <li>
+  <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+  <img class="icon" border=1 src="../tools/shortcut-icons/brain.png"></a>
+  &nbsp;<b>brain</b>
+  &ndash; yellow for fat and similar soft tissue, white of increasing intensity 
+  for brain on up to bone, blue for compact bone
+  <li>
+  <a href="../tools/medicalimage.html" title="Medical Image Toolbar...">
+  <img class="icon" border=1 src="../tools/shortcut-icons/initialcurve.png"></a>
+  &nbsp;<b>initial</b>
+  &ndash; (re)set to the <a href="#level">threshold levels</a> and colors
+  chosen automatically for the data when first shown as image, with
+  <a href="#dimvox"><b>dimTransparentVoxels</b></a> true, generally useful
+  for <a href="#planes">planes</a> or thin slabs.
+  <a href="../dicom/dicom.html">DICOM</a> data are initially shown 
+  as image with thresholds: (&ndash;1000,0),(300,0.9),(3000,1).
+  </ul>
+<br>
+<li>custom presets defined with the
+<a href="#nameAppearance"><b>nameAppearance</b></a> option
 </ul>
-The <b>initial</b> preset may be useful for viewing 
-<a href="#planes">planes</a> or thin slabs.
-See also:
-<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>
-</p>
+</blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="nameAppearance"></a>
+  <b>nameAppearance</b> &nbsp;<i>preset-name</i>
+  <br>
+  <a href="#top" class="nounder">&bull;</a>
+  <b>nameForget</b> &nbsp;<i>preset-name</i>
+<br>
+Save (or forget a previously saved) preset for
+the <b>image</b> <a href="#style">display style</a>,
+including <a href="#general">threshold</a> levels and colors,
+<a href="#brightness"><b>brightness</b></a>,
+<a href="#transparency"><b>transparency</b></a>, and
+<a href="#dimvox"><b>dimTransparentVoxels</b></a> settings.
+The <b>nameAppearance</b> option requires specifying
+a volume model currently shown in the <b>image</b> style so that its
+settings can be saved, for example: 
+<blockquote>
+<b><a href="#top">volume</a> #1 nameAppearance brain100</b>
+</blockquote>
+Such user-defined presets are stored in the
+<a href="../preferences.html#other">preferences</a> for later application
+with the <a href="#appearance"><b>appearance</b></a> option.
+Built-in presets (including those available <i>via</i> icons,
+see <a href="#appearance">above</a>) can be redefined, but
+&ldquo;forgetting&rdquo; their custom definitions with <b>nameForget</b>
+will revert to their built-in definitions.
 </blockquote>
 
 <a name="vop"></a>
@@ -1372,8 +1413,8 @@ and/or above a specified maximum
 &ndash; show the full extent of a map previously limited to a zone with
 <a href="#zone"><b>volume zone</b></a>
 <li><a href="#zone"><b>volume zone</b></a>
-&ndash; zero the values at grid points within or beyond a cutoff distance from
-specified atoms, or limit the display to a zone without making a new map
+&ndash; limit the display to a zone around specified atoms,
+or make a new map with values of zero at grid points within or beyond the zone
 </ul>
 <a href="#vop" class="nounder">&bull;</a>
 <a name="add"><b>volume add</b></a> &nbsp;<i>volume-spec</i>&nbsp;
@@ -1733,7 +1774,7 @@ the first map.
 <a href="#vop" class="nounder">&bull;</a>
 <a name="mask"><b>volume mask</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>surfaces</b> &nbsp;<i>surface-spec</i>&nbsp;
-[&nbsp;<b>fullmap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>&nbsp;]
+[&nbsp;<b>fullMap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>pad</b> &nbsp;<i>distance</i>&nbsp;]
 [&nbsp;<b>extend</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>slab</b> &nbsp;<i>width</i>&nbsp;|&nbsp;<i>d1,d2</i>&nbsp;]
@@ -1744,7 +1785,7 @@ the first map.
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <blockquote>
 Mask a map to a surface (<a href="#masking">details...</a>). 
-The <b>fullmap</b> option indicates making the new
+The <b>fullMap</b> option indicates making the new
 map dimensions the same as the full dimensions of the original map, even if 
 only a subregion is being displayed; otherwise (default), the new map
 will be made as small as possible to enclose the surface.
@@ -1790,7 +1831,10 @@ only those points in the shell between the two surfaces.
 </p><p>
 The related command <a href="#onesmask"><b>volume onesmask</b></a> 
 creates a new map with values of 1 bounded by a surface.
-See also: <a href="#multiply"><b>volume multiply</b></a>,
+See also: 
+<a href="#multiply"><b>volume multiply</b></a>,
+<a href="shape.html"><b>shape</b></a>,
+<a href="segmentation.html"><b>segmentation</b></a>,
 <a href="../tools/segment.html"><b>Segment Map</b></a>
 </p>
 </blockquote>
@@ -1983,6 +2027,7 @@ Erase values outside the positive octant. Options are as described for
 <a href="#vop" class="nounder">&bull;</a>
 <a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>surface-spec</i>&nbsp;
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
+[&nbsp;<b>fullMap</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>border</b>&nbsp;&nbsp;<i>B</i>&nbsp;]
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
@@ -1998,7 +2043,10 @@ Erase values outside the positive octant. Options are as described for
 Create a map with values of 1 bounded by a surface 
 (<a href="#masking">details...</a>).
 The <b>onGrid</b> option allows creating the new map on the grid
-of another map, <i>gridmap</i>, specified by model number.
+of another map specified by model number, <i>gridmap</i>, using either
+its full extents (<b>fullMap true</b>, default) or the smallest 
+needed to enclose the surface (<b>fullMap false</b>).
+<p>
 Alternatively (if <b>onGrid</b> is not used): 
 <ul>
 <li>the <b>border</b> option indicates how far out from the bounding surface 
@@ -2021,7 +2069,8 @@ the choices are 8-, 16-, or 32-bit signed integer
 or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
 The remaining options are the same as described for 
 <a href="#mask"><b>volume mask</b></a>. See also:
-<a href="#new"><b>volume new</b></a>
+<a href="#new"><b>volume new</b></a>,
+<a href="shape.html"><b>shape</b></a>
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
@@ -2317,32 +2366,32 @@ Show the full extent of a map that was previously limited to a zone using
 <a href="#vop" class="nounder">&bull;</a>
 <a name="zone"><b>volume zone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-<b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;
+[&nbsp;<b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>invert</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>minimalBounds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>newMap</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>newMap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
-If <b>newMap</b> is <b>true</b> (default), create a new map in which the
-values of grid points farther than <i>r</i> &Aring; from any atom in
-<a href="atomspec.html"><i>atom-spec</i></a> (those beyond the zone) 
-is set to zero, or if <b>invert</b> is true, set the values of grid points
-within the zone to zero.
+If <b>newMap</b> is <b>false</b> (default),
+limit the surface display to a zone within <b>range</b> <i>r</i> 
+(default <b>3.0</b> &Aring;) of any atom in 
+<a href="atomspec.html"><i>atom-spec</i></a> and restrict the
+<a href="#dimensions">current display region</a> of the map
+to the box containing the zoned surface. 
+The full extent of the map can be restored with
+<a href="#unzone"><b>volume unzone</b></a>.
+The <b>invert</b> option is not available with <b>newMap false</b>.
+<p>
+If <b>newMap</b> is <b>true</b>, create a new map in which the
+values of grid points beyond the zone are set to zero, 
+or if <b>invert</b> is true, with values within the zone set to zero.
 If <b>minimalBounds</b> is true, make the resulting map
 as small as possible while enclosing the zone; otherwise, the
 dimensions will be the same as for the input map.
 If <b>bondPointSpacing</b> is specified, use points
 spaced <i>s</i> &Aring; apart along bonds
 in addition to the atoms to define the zone.
-<p>
-If <b>newMap</b> is false, instead of creating a new map,
-zone the surface display and restrict the
-<a href="#dimensions">current display region</a> of the map
-to the box containing the zoned surface. 
-The full extent of the map can be restored with
-<a href="#unzone"><b>volume unzone</b></a>.
-The <b>invert</b> option is not available with <b>newMap false</b>.
 See also:
 <a href="surface.html#zone"><b>surface zone</b></a>,
 <a href="zone.html"><b>zone</b></a>,
@@ -2524,5 +2573,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+April 2020</address>
 </body></html>

@@ -497,7 +497,7 @@ class Volume(Model):
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = [-v,v]
-      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      neg_rgba = _negative_color(rgba)
       colors = [neg_rgba,rgba]
     elif binary:
       levels = [0.5]
@@ -674,6 +674,11 @@ class Volume(Model):
     if vm is None:
       s._volume_update_manager = vm = VolumeUpdateManager(s)
     vm.add(self)
+    if s.in_script:
+      # In scripts update volume drawings immediately.
+      # Script commands often depend on volume surfaces being computed immediately.
+      # For examnple, set surface level, then run volume dust.
+      self.update_drawings()
 
   # ---------------------------------------------------------------------------
   #
@@ -951,7 +956,7 @@ class Volume(Model):
   #
   def surface_bounds(self):
     '''Surface bounds in volume coordinate system.'''
-    from chimerax.core.geometry import union_bounds
+    from chimerax.geometry import union_bounds
     return union_bounds([s.geometry_bounds() for s in self.surfaces])
       
   # ---------------------------------------------------------------------------
@@ -1001,7 +1006,7 @@ class Volume(Model):
         xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
         if xyz_in is None or xyz_out is None:
           return None
-        from chimerax.core.geometry import norm
+        from chimerax.geometry import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
         if self.single_plane():
           # Report voxel under mouse and data value.
@@ -1014,7 +1019,7 @@ class Volume(Model):
           detail = ''
         return PickedMap(self, f, detail)
     elif self.surface_shown:
-      from chimerax.core.graphics import Drawing
+      from chimerax.graphics import Drawing
       pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
       if pd:
         d = pd.drawing()
@@ -1122,7 +1127,7 @@ class Volume(Model):
     va = {0:(1,0,0), 1:(0,1,0), 2:(0,0,1)}[axis]
     lv = d.ijk_to_xyz(va) - d.ijk_to_xyz((0,0,0))
     v = self.position * lv
-    from chimerax.core.geometry import normalize_vector
+    from chimerax.geometry import normalize_vector
     vn = normalize_vector(v)
     return vn
 
@@ -1249,7 +1254,7 @@ class Volume(Model):
     xi, yi, zi = data.ijk_to_xyz((io+istep, jo, ko))
     xj, yj, zj = data.ijk_to_xyz((io, jo+jstep, ko))
     xk, yk, zk = data.ijk_to_xyz((io, jo, ko+kstep))
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     tf = Place(((xi-xo, xj-xo, xk-xo, xo),
                 (yi-yo, yj-yo, yk-yo, yo),
                 (zi-zo, zj-zo, zk-zo, zo)))
@@ -1657,7 +1662,7 @@ class Volume(Model):
       return False
     if self.image_shown:
       return 'a' in self._image.color_mode
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     return Drawing.showing_transparent(self)
   
   # ---------------------------------------------------------------------------
@@ -1765,9 +1770,10 @@ class VolumeImage(Image3d):
     v.add([self])
 
     if hasattr(v, 'mask_colors'):
-      s.mask_colors = v.mask_colors
+      self.mask_colors = v.mask_colors
+      self._need_color_update()	# Adjust color mode to rgb
     if hasattr(v, 'segment_colors'):
-      s.segment_colors = v.segment_colors
+      self.segment_colors = v.segment_colors
 
   # ---------------------------------------------------------------------------
   #
@@ -1823,7 +1829,8 @@ class VolumeImage(Image3d):
     if ro.image_mode == 'tilted slab':
       thickness = ro.tilted_slab_spacing * ro.tilted_slab_plane_count
     else:
-      box_size = [x1-x0 for x0,x1 in zip(*v.xyz_bounds())]
+      ijk_min, ijk_max = v.ijk_bounds()
+      box_size = [(i1-i0)*s for i0,i1,s in zip(ijk_min, ijk_max, v.data.step)]
       thickness = min(box_size)
     return v.transparency_depth * thickness
   
@@ -2223,7 +2230,7 @@ def maps_pickable(session, pickable):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Pick
+from chimerax.graphics import Pick
 class PickedMap(Pick):
   def __init__(self, v, distance = None, detail = ''):
     Pick.__init__(self, distance)
@@ -2593,7 +2600,7 @@ class RenderingOptions:
     self.color_mode = 'auto8'         # image rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
     self.colormap_on_gpu = False      # image rendering with colors computed on gpu
-    self.colormap_size = 256	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.colormap_size = 2048	      # image rendering on GPU or other than 8 or 16-bit data types
     self.colormap_extend_left = False
     self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
@@ -2937,7 +2944,7 @@ def maximum_data_diagonal_length(data):
 
     imax, jmax, kmax = [a-1 for a in data.size]
     ijk_to_xyz = data.ijk_to_xyz
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     d = max(distance(ijk_to_xyz((0,0,0)), ijk_to_xyz((imax,jmax,kmax))),
             distance(ijk_to_xyz((0,0,kmax)), ijk_to_xyz((imax,jmax,0))),
             distance(ijk_to_xyz((0,jmax,0)), ijk_to_xyz((imax,0,kmax))),
@@ -3234,6 +3241,17 @@ def set_initial_volume_color(v, session):
 
 # ---------------------------------------------------------------------------
 #
+def _negative_color(rgba):
+  neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+  minc = max(neg_rgba[:3])
+  if minc == 0:
+    neg_rgba = (1,0,0,neg_rgba[3])
+  elif minc < 0.7:
+    neg_rgba = tuple(c/minc for c in neg_rgba[:3]) + (neg_rgba[3],)
+  return neg_rgba
+
+# ---------------------------------------------------------------------------
+#
 def data_already_opened(path, grid_id, session):
 
   if not path:
@@ -3262,8 +3280,7 @@ def open_map(session, path, name = None, format = None, **kw):
       name = basename(path if isinstance(path, str) else path[0])
 
     from . import data
-    grids = data.open_file(path, file_type = format, log = session.logger,
-                           verbose = kw.get('verbose'))
+    grids = data.open_file(path, file_type = format, log = session.logger, **kw)
 
     models = []
     msg_lines = []
@@ -3557,7 +3574,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     else:
       vlist = [m for m in models if isinstance(m, Volume)]
       if len(vlist) == 0:
-          mstring = ' (#%s)' % ','.join(model.id_string for m in models) if models else ''
+          mstring = ' (#%s)' % ','.join(m.id_string for m in models) if models else ''
           from chimerax.core.errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
 
@@ -3691,9 +3708,15 @@ def register_map_file_formats(session):
         register_map_format(session, ff)
 
     # Add keywords to open command for maps
-    from chimerax.core.commands import BoolArg, IntArg, RepeatOf
+    from chimerax.core.commands import BoolArg, IntArg, StringArg, RepeatOf
     from chimerax.core.commands.cli import add_keyword_arguments
-    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg, 'verbose':BoolArg})
+    open_map_args = [
+      ('vseries', BoolArg),
+      ('channel', IntArg),
+      ('verbose', BoolArg),
+      ('array_name', StringArg)
+    ]
+    add_keyword_arguments('open', dict(open_map_args))
 
     # Add keywords to save command for maps
     from chimerax.core.commands import BoolArg, ListOf, EnumOf, IntArg

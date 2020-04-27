@@ -1,0 +1,53 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>VTK PolyData Details</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3>VTK PolyData Details</h3>
+<p>
+The VTK exporter in Chimera and ChimeraX (used by the ChimeraX
+<a href="../commands/save.html"><b>save</b></a> command)
+was contributed by Shawn Waldon as part of the SketchBio project in 2013.
+It exports molecular structures and surfaces, not density maps,
+to an ascii legacy VTK file format [documentation
+<a href="http://vtk.org/VTK/img/file-formats.pdf" target="_blank">PDF</a>].
+For molecular structures,
+it exports points and lines for the atoms and bonds, and for surfaces
+it exports a mesh. At each point (atoms and surface), it exports attributes
+of the associated atom: modelNum, atomNum, resType, resNum, atomType,
+bFactor, occupancy, and chainPosition.
+</p>
+<ul>
+<li>modelNum, atomNum, and resNum are integer indices starting with 0.
+Models are numbered 0,1,2... sequentially
+(not using the ChimeraX model ID), and the atom and residue indices are
+positions in the lists of all atoms and all residues per model, respectively.
+<li>atomType and resType refer to the ChimeraX atom name and residue name,
+<i>e.g.</i>, CA and TRP
+<li>chainPosition is the residue index in a chain (starting with 0)
+divided by the number of residues in that chain
+</ul>
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+March 2020</address>
+</body></html>

@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, nexp=3.0,
-        color=True, palette=None, range=None, map=False):
+        color=True, palette=None, range=None, surfaces=[], map=False):
     '''Display Molecular Lipophilic Potential for a single model.
 
     Parameters
@@ -34,6 +34,8 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
         Default is lipophilicity colormap (orange lipophilic, blue lipophobic).
     range : 2-tuple of float
         Range of lipophilicity values defining ends of color map.  Default is -20,20
+    surfaces : list of Surface models
+        If the color options is true then these surfaces are colored instead of computing surfaces.
     map : bool
         Whether to open a volume model of lipophilicity values
     '''
@@ -59,7 +61,7 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
     if color:
         # Compute surfaces if not already created
         from chimerax.surface import surface
-        surfs = surface(session, patoms)
+        surfs = surface(session, patoms) if len(surfaces) == 0 else surfaces
         from chimerax.core.undo import UndoState
         undo_state = UndoState('mlp')
         for s in surfs:
@@ -76,7 +78,8 @@ def mlp(session, atoms=None, method="fauchere", spacing=1.0, max_distance=5.0, n
             
 
 def register_mlp_command(logger):
-    from chimerax.core.commands import register, CmdDesc, SaveFileNameArg, FloatArg, EnumOf, BoolArg, ColormapArg, ColormapRangeArg
+    from chimerax.core.commands import register, CmdDesc, FloatArg, EnumOf, BoolArg, SurfacesArg
+    from chimerax.core.commands import ColormapArg, ColormapRangeArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(optional=[('atoms', AtomsArg)],
                    keyword=[('spacing', FloatArg),
@@ -86,6 +89,7 @@ def register_mlp_command(logger):
                             ('color', BoolArg),
                             ('palette', ColormapArg),
                             ('range', ColormapRangeArg),
+                            ('surfaces', SurfacesArg),
                             ('map', BoolArg),
                             ],
                    synopsis='display molecular lipophilic potential for selected models')

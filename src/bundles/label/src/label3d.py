@@ -450,7 +450,7 @@ class ObjectLabels(Model):
         if self.texture is not None:
             self.texture.reload_texture(trgba)
         else:
-            from chimerax.core.graphics import Texture
+            from chimerax.graphics import Texture
             self.texture = Texture(trgba)
         self.texture_coordinates = tcoord
         self.opaque_texture = opaque
@@ -643,7 +643,15 @@ class ObjectLabel:
     offset = property(_get_offset, _set_offset)
     
     def _get_text(self):
-        return self.default_text() if self._text is None else self._text
+        base_text = self.default_text() if self._text is None else self._text
+        try:
+            final_text = base_text.format(self.object)
+        except AttributeError:
+            # don't label objects missing the requested attribute(s)
+            final_text = ""
+        except:
+            final_text = base_text
+        return final_text
     def _set_text(self, text):
         self._text = text
     text = property(_get_text, _set_text)
@@ -672,7 +680,7 @@ class ObjectLabel:
         rgba8 = tuple(self.color)
         bg = self.background
         xpad = 0 if bg is None else int(.2*s)
-        from chimerax.core.graphics import text_image_rgba
+        from chimerax.graphics import text_image_rgba
         text = self.text
         rgba = text_image_rgba(text, rgba8, s, self.font, background_color = bg, xpad=xpad)
         if rgba is None:
@@ -788,7 +796,7 @@ def picked_3d_label(session, win_x, win_y):
     if xyz1 is None or xyz2 is None:
         return None
     pick = None
-    from chimerax.core.graphics import PickedTriangle
+    from chimerax.graphics import PickedTriangle
     for m in session.models.list(type = ObjectLabels):
         mtf = m.parent.scene_position.inverse()
         mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2

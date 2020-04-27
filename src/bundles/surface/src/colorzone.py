@@ -8,9 +8,33 @@
 # The points are in model object coordinates.
 #
 def color_zone(surface, points, point_colors, distance,
-               sharp_edges = False, auto_update = True):
+               sharp_edges = False, far_color = None, auto_update = True):
+    '''
+    Color a surface according to the nearest of specified points, with a color
+    associated with each point.  Surface vertices are colored if they are within
+    the specified distance of some point.  Surface vertices farther away are colored
+    by far_color or retain their original color if no far_color is specified.
 
-    zc = ZoneColor(surface, points, point_colors, distance, sharp_edges)
+    surface : Surface model
+      Surface to color.
+    points : N x 3 array of float
+      Point positions in scene coordinates.
+    point_colors : N x 4 array of uint8 RGBA values
+      RGBA color for each point.
+    distance : float
+      Maximum distance of surface to point for coloring.
+    sharp_edges : bool
+      Whether to divide surface triangles so that the boundaries between
+      surface patches near different points show sharp color transitions
+      and the boundary curves are less jagged.
+    far_color : RGBA 4-tuple 0-255 range or None
+      Color for surface vertices further than distance from all points
+    auto_update : bool
+      Whether to automatically update the surface coloring when the surface shape changes.
+    '''
+    
+    zc = ZoneColor(surface, points, point_colors, distance, sharp_edges,
+                   far_color = far_color)
     zc.set_vertex_colors()
     
     if auto_update:
@@ -39,15 +63,15 @@ def points_and_colors(atoms, bonds, bond_point_spacing = None):
 
 # -----------------------------------------------------------------------------
 #
-def color_surface(surf, points, point_colors, distance):
+def color_surface(surf, points, point_colors, distance, far_color = None):
 
     varray = surf.vertices
-    from chimerax.core.geometry import find_closest_points
+    from chimerax.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
     from numpy import empty, uint8
     rgba = empty((len(varray),4), uint8)
-    rgba[:,:] = surf.color
+    rgba[:,:] = (surf.color if far_color is None else far_color)
     for k in range(len(i1)):
         rgba[i1[k],:] = point_colors[n1[k]]
         
@@ -65,23 +89,25 @@ def uncolor_zone(model):
 #
 from chimerax.core.state import State
 class ZoneColor(State):
-    def __init__(self, surface, points, point_colors, distance, sharp_edges):
+    def __init__(self, surface, points, point_colors, distance, sharp_edges, far_color = None):
         self.surface = surface
         self.points = points
         self.point_colors = point_colors
         self.distance = distance
         self.sharp_edges = sharp_edges
-
+        self.far_color = far_color
+        
     def __call__(self):
         self.set_vertex_colors()
 
     def set_vertex_colors(self):
         surf = self.surface
         if surf.vertices is not None:
-            color_surface(surf, self.points, self.point_colors, self.distance)
+            color_surface(surf, self.points, self.point_colors, self.distance,
+                          far_color = self.far_color)
             if self.sharp_edges:
                 color_zone_sharp_edges(surf, self.points, self.point_colors, self.distance,
-                                       replace = True)
+                                       far_color = self.far_color, replace = True)
         surf.auto_recolor_vertices = self
 
     # -------------------------------------------------------------------------
@@ -93,6 +119,7 @@ class ZoneColor(State):
             'point_colors': self.point_colors,
             'distance': self.distance,
             'sharp_edges': self.sharp_edges,
+            'far_color': self.far_color,
             'version': 1,
         }
         return data
@@ -104,14 +131,16 @@ class ZoneColor(State):
         surf = data['surface']
         if surf is None:
             return None		# Surface to color is gone.
-        c = cls(surf, data['points'], data['point_colors'], data['distance'], data['sharp_edges'])
+        c = cls(surf, data['points'], data['point_colors'], data['distance'], data['sharp_edges'],
+                far_color = data.get('far_color'))
         c.set_vertex_colors()
         return c
 
         
 # -----------------------------------------------------------------------------
 #
-def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
+def color_zone_sharp_edges(surface, points, colors, distance, far_color = None,
+                           replace = False):
     # Transform points to surface coordinates
     surface.scene_position.inverse().transform_points(points, in_place = True)
 
@@ -121,14 +150,14 @@ def color_zone_sharp_edges(surface, points, colors, distance, replace = False):
         if varray is va_sh and narray is na_sh and tarray is ta_sh:
             varray, narray, tarray = va_us, na_us, ta_us
         
-    from chimerax.core.geometry import find_closest_points
+    from chimerax.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
     ec = _edge_cuts(varray, tarray, i1, n1, points, colors, distance)
     
     from numpy import empty, uint8
     carray = empty((len(varray),4), uint8)
-    carray[:,:] = surface.color
+    carray[:,:] = (surface.color if far_color is None else far_color)
     for vi,ai in zip(i1, n1):
         carray[vi,:] = colors[ai]
 
@@ -180,7 +209,7 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
         dx = x2-x1
         dp = points[p2]-points[p1]
         px = 0.5*(points[p2]+points[p1]) - x1
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         f = inner_product(px, dp) / inner_product(dx, dp)
         if f <= -0.1 or f >= 1.1:
             raise ValueError('Cut fraction %.5g is out of range (0,1)' % f)
@@ -193,7 +222,7 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
 # -----------------------------------------------------------------------------
 #
 def _cut_at_range(x1, x2, p, distance):
-    from chimerax.core.geometry import distance as dist
+    from chimerax.geometry import distance as dist
     d1 = dist(x1, p)
     d2 = dist(x2, p)
     f = (d1-distance)/(d1-d2)
@@ -207,7 +236,7 @@ def _cut_triangles(edge_cuts, varray, narray, tarray, carray):
     nae = []
     cae = []
     nv = len(varray)
-    from chimerax.core.geometry import normalize_vector
+    from chimerax.geometry import normalize_vector
     for v1, v2, f in edge_cuts:
         p = (1-f)*varray[v1] + f*varray[v2]
         n = normalize_vector((1-f)*narray[v1] + f*narray[v2])

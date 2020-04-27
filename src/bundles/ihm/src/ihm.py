@@ -519,19 +519,30 @@ class IHMModel(Model):
     # Note ensemble models are AtomicStructure models, not SphereModel.
     #
     def load_sphere_model_ensembles(self, smodels):
+        def _all_samples():  # iterate over all ensembles and subsamples
+            for ensemble in self.system.ensembles:
+                mg = ensemble.model_group
+                yield ensemble, mg
+                for subsample in ensemble.subsamples:
+                    yield subsample, subsample.model_group or mg
         emodels = []
-        for ensemble in self.system.ensembles:
-            gid = ensemble.model_group._id
-            finfo = self.file_info(ensemble.file)
+        for sample, model_group in _all_samples():
+            # Can't match without a model group ID
+            if model_group is None:
+                continue
+            gid = model_group._id
+            if sample.file is None:
+                continue
+            finfo = self.file_info(sample.file)
             if finfo is None:
                 continue
             fname = finfo.file_name
-#            print("looked up", ensemble.file, "got", fname)
+#            print("looked up", sample.file, "got", fname)
             if fname.endswith('.dcd'):
                 gsm = [sm for sm in smodels if sm.ihm_group_id == gid]
                 if len(gsm) != 1:
                     continue  # Don't have exactly one sphere model for this group id
-                sm = gsm[0].copy(name = ensemble.name)
+                sm = gsm[0].copy(name = sample.name)
                 dcd_path = finfo.path(self.session)
                 from chimerax.atomic.md_crds.read_coords import read_coords
                 read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
@@ -541,7 +552,7 @@ class IHMModel(Model):
                 if fstream is None:
                     continue
                 from chimerax.atomic.pdb import open_pdb
-                mlist,msg = open_pdb(self.session, fstream, ensemble.name,
+                mlist,msg = open_pdb(self.session, fstream, sample.name,
                                      auto_style = False, coordsets = True)
                 sm = mlist[0]
             sm.ihm_group_id = gid
@@ -809,7 +820,7 @@ class IHMModel(Model):
             for model, fit in r.fits.items():
                 rm = fit.rot_matrix
                 t = fit.tr_vector
-                from chimerax.core.geometry import Place
+                from chimerax.geometry import Place
                 rt.setdefault(r._id,{})[model._id] = Place(((rm[0][0],rm[0][1],rm[0][2],t[0]),(rm[1][0],rm[1][1],rm[1][2],t[1]),(rm[2][0],rm[2][1],rm[2][2],t[2]))).inverse()
             
             d = self.data_set(r.dataset)
@@ -1235,10 +1246,12 @@ class DatabaseDataSet(DataSet):
 #
 class Crosslink:
     def __init__(self, asym1, seq1, atom1, asym2, seq2, atom2, dist, dist_low = None):
-        self.asym1 = asym1	# Chain id
+        # mmCIF asym IDs read by IHM module can be strings or ints, but ChimeraX always
+        # uses strings, so coerce to str so that comparisons work
+        self.asym1 = str(asym1)	# Chain id
         self.seq1 = seq1	# Residue number, integer
         self.atom1 = atom1 	# Atom name, can be None
-        self.asym2 = asym2
+        self.asym2 = str(asym2)
         self.seq2 = seq2
         self.atom2 = atom2
         self.distance_upper = dist	# Upper bound, can be None
@@ -1357,7 +1370,7 @@ def crosslink_colors(xltype):
 #
 def probability_grid(wcc, voxel_size = 5, cutoff_sigmas = 3):
     # Find bounding box for probability distribution
-    from chimerax.core.geometry import Bounds, union_bounds
+    from chimerax.geometry import Bounds, union_bounds
     from math import sqrt, ceil
     bounds = []
     for weight, center, covar in wcc:
@@ -1498,9 +1511,10 @@ class SequenceAlignmentModel(Model):
         if a is None:
             fi = self.alignment_file_info
             astream = fi.stream(self.session)
-            from chimerax.core.io import deduce_format
-            fmt = deduce_format(fi.file_name, no_raise=True)[0]
-            if fmt is None:
+            from chimerax.data_formats import NoFormatError
+            try:
+                fmt = session.data_formats.format_from_file_name(fi.file_name)
+            except NoFormatError:
                 print ('Unknown alignment file suffix', fi.file_name)
                 return None
             from chimerax.seqalign.parse import open_file
@@ -1662,7 +1676,7 @@ def align_starting_models_to_spheres(amodels, smodel):
                 sxyz.append(s.coord)
                 # TODO: For spheres with multiple residues use average residue center
         if len(mxyz) >= 3:
-            from chimerax.core.geometry import align_points
+            from chimerax.geometry import align_points
             from numpy import array, float64
             p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
             m.position = p
@@ -1698,7 +1712,7 @@ def align_starting_models_to_atoms(amodels, refmodel):
                 else:
                     print ('could not find res for alignment', (r.chain_id, r.number))
         if len(mxyz) >= 3:
-            from chimerax.core.geometry import align_points
+            from chimerax.geometry import align_points
             from numpy import array, float64
             p, rms = align_points(array(mxyz,float64), array(sxyz,float64))
             m.position = p
@@ -1715,7 +1729,10 @@ def atom_lookup(models):
             res = a.residue
             amap[(res.chain_id, res.number, a.name)] = a
         for r in m.residues:
-            amap[(r.chain_id, r.number, None)] = r.principal_atom
+            # If multiple residues with same chain ID and number, pick the
+            # last one that has a defined principal atom
+            if r.principal_atom is not None:
+                amap[(r.chain_id, r.number, None)] = r.principal_atom
     def lookup(asym_id, res_num, atom_name, amap=amap):
         return amap.get((asym_id, res_num, atom_name))
     return lookup

@@ -31,24 +31,23 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
       Whether to create the attribute if the object doesn't already have it
     """
     if objects is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
-    atoms = objects.atoms
 
     from chimerax.core.errors import UserError
     if "atoms".startswith(target):
-        items = atoms
+        items = objects.atoms
         target = "atoms"
     elif "residues".startswith(target):
-        items = atoms.unique_residues
+        items = objects.residues
         target = "residues"
     elif "chains".startswith(target):
-        items = atoms.residues.unique_chains
+        items = objects.residues.unique_chains
     elif "structures".startswith(target):
         if "surfaces".startswith(target):
             raise UserError("Must provide enough attribute-target characters to distinguish"
                 " 'structures' from 'surfaces'")
-        items = atoms.unique_structures
+        items = objects.residues.unique_structures
         target = "structures"
     elif "models".startswith(target):
         items = objects.models

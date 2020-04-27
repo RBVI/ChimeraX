@@ -311,7 +311,7 @@ class Region:
 
     def get_rmsd(self):
         num_d = sum_d2 = 0
-        from chimerax.core.geometry import distance_squared
+        from chimerax.geometry import distance_squared
         for block in self.blocks:
             line1, line2, pos1, pos2 = block
             all_seqs = self.seq_canvas.alignment.seqs

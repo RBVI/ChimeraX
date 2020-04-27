@@ -52,6 +52,9 @@ def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=Tr
     models = [m for m in models if m.id is not None]
     if not models:
         return '#'
+    # algorithm only works (namely _make_id_tree) if ids are longest to shortest...
+    universe = sorted(universe, key=lambda m: len(m.id))
+    models = sorted(models, key=lambda m: len(m.id))
     u_id_tree = _make_id_tree(universe)
     m_id_tree = _make_id_tree(models)
 
@@ -97,20 +100,74 @@ def concise_model_spec(session, models, relevant_types=None, allow_empty_spec=Tr
         full_spec += spec
     return full_spec if full_spec else '#'
 
-def sel_or_all(session, sel_types, sel="sel", restriction=None):
-    for sel_type in sel_types:
-        if session.selection.items(sel_type):
+from chimerax.core.errors import UserError
+class NoneSelectedError(UserError):
+    pass
+
+def sel_or_all(session, sel_type_info, sel="sel", restriction=None):
+    # sel_type_info is either a list of strings each of which is appropriate as an arg for
+    # session.selection.items(arg), or a Model subclass
+
+    if type(sel_type_info) == type:
+        # presumably Model subclass
+        type_models = [m for m in session.models.list(type=sel_type_info)]
+        if not type_models:
+            raise NoneSelectedError("No %s models open" % sel_type_info.__name__)
+        msel = [m for m in type_models if m.selected and m.visible]
+        if msel:
+            concise_spec = concise_model_spec(session, msel)
             if restriction:
-                return '(%s & %s)' % (sel, restriction)
-            return sel
-    for m in session.models:
-        if not m.display:
-            if restriction:
-                return "(##display & %s)" % restriction
-            return "##display"
+                if concise_spec:
+                    return '(%s & %s)' % (concise_spec, restriction)
+                return restriction
+            return concise_spec
+        shown_sel_models = [m for m in session.selection.models() if m.visible]
+        if shown_sel_models:
+            raise NoneSelectedError("No visible %s models selected" % sel_type_info.__name__)
+        mshown = [m for m in type_models if m.visible]
+        if not mshown:
+            raise NoneSelectedError("No visible %s models" % sel_type_info.__name__)
+        concise_spec = concise_model_spec(session, mshown)
+        if restriction:
+            if concise_spec:
+                return '(%s & %s)' % (concise_spec, restriction)
+            return restriction
+        return concise_spec
+
+    # specific types rather than a Model subclass
+    #
+    # need to ask just _visible_ models for selected items, so can't use session.selection.selected_items()
+    from . import commas
+    from chimerax.core.models import Model
+    sel_models = [m for m in session.selection.models() if m.__class__ != Model] # exclude grouping models
+    shown_sel_models = [m for m in sel_models if m.visible]
+    if shown_sel_models:
+        relevant_sel_models = set()
+        for sel_type in sel_type_info:
+            for m in shown_sel_models:
+                if m.selected_items(sel_type):
+                    relevant_sel_models.add(m)
+        if relevant_sel_models:
+            if len(sel_models) == len(relevant_sel_models):
+                if restriction:
+                    return '(%s & %s)' % (sel, restriction)
+                return sel
+            else:
+                concise_spec = concise_model_spec(session, relevant_sel_models)
+                if restriction:
+                    return '(%s & %s & %s)' % (concise_spec, sel, restriction)
+                return '(%s & %s)' % (concise_spec, sel)
+        raise NoneSelectedError("No visible %s selected" % commas(sel_type_info))
+    shown_models = [m for m in session.models if m.visible]
+    if shown_models:
+        concise_spec = concise_model_spec(session, shown_models)
+    else:
+        raise NoneSelectedError("No visible models!")
     if restriction:
+        if concise_spec:
+            return '(%s & %s)' % (concise_spec, restriction)
         return restriction
-    return ""
+    return concise_spec
 
 def _make_id_tree(models):
     tree = {}

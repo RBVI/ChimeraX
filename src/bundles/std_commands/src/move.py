@@ -51,7 +51,7 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
         if distance is None:
             distance = 1
         d = -distance if models is None else distance
-        from chimerax.core.geometry import translation
+        from chimerax.geometry import translation
         t = translation(saxis * d)
         if models is not None:
             for m in models:

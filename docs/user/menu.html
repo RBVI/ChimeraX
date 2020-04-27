@@ -90,7 +90,7 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   &ndash; <a href="commands/atomspec.html#hierarchy">residues</a>
   in currently open structures, sorted into nonstandard residues, 
   standard nucleic acids, and standard amino acids
-  <li><b>Structure</b> 
+  <li><b>Structure</b>
     <ul>
     <li><b>Backbone</b> &ndash; biopolymer backbone atoms: peptide N, CA, C, O, 
     nucleic acid phosphoribosyl backbone, and any directly attached hydrogens 
@@ -160,9 +160,14 @@ level in the <a href="selection.html#cascade">selection cascade</a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
 <b>Actions</b>
 <p>
-The <b>Actions</b> menu works on the current
-<a href="selection.html">selection</a>, 
-or if nothing is selected, all applicable items.
+The <b>Actions</b> menu 
+applies to the <a href="hierarchy.html">displayed models</a> only (those with 
+&nbsp;<img class="iconbar" src="tools/ui-icons/shown.png" title="eye icon"
+alt="eye icon">&nbsp; checkboxes in the
+<a href="tools/modelpanel.html"><b>Model Panel</b></a>
+checked for themselves and any parents).
+Within those models, it works on the current
+<a href="selection.html">selection</a>, or if none, all applicable items.
 </p>
 <ul>
 <li><b>Atoms/Bonds</b> &ndash; <a href="commands/show.html"><b>show/hide</b></a>
@@ -196,25 +201,6 @@ nucleic acid base + ribose
 peptide backbone, nucleic acid phosphoribosyl backbone
   <li><b>Chain Trace Only</b>
 &ndash; hide cartoon and show chain-trace atoms: amino acid CA, nucleic acid P
-  <li><b>Cartoon</b></a>
-&ndash; <a href="commands/cartoon.html"><b>cartoon</b></a> settings;
-note showing cartoon hides backbone atoms unless 
-their simultaneous display has been enabled with 
-<a href="commands/cartoon.html#suppress"><b>cartoon suppress false</b></a>
-(see also <a href="commands/show.html"><b>show/hide</b></a>,
-<a href="commands/cartoon.html#style"><b>cartoon style</b></a>)
-    <ul>
-    <li><b>Show</b>
-    <li><b>Hide</b>
-    <li><b>Rounded Edges</b> &ndash; oval cross-section
-(for a round cross-section, use
-<a href="commands/cartoon.html#style"><b>cartoon style</b></a>
-to set width = thickness, for example: <b>cartoon style
-<a href="commands/atomspec.html#builtin">sel</a> width 1.5 thick 1.5</b>)
-    <li><b>Squared Edges</b> &ndash; rectangular cross-section
-    <li><b>Piped Edges</b> &ndash; barbell cross-section
-    <li><b>Tube Helices</b> &ndash; protein &alpha;-helices as curved cylinders
-    </ul>
   <li><b>Nucleotide Style</b>
   &ndash; <a href="commands/nucleotides.html"><b>nucleotides</b></a> settings
     <ul>
@@ -230,13 +216,73 @@ to set width = thickness, for example: <b>cartoon style
 atoms/bonds (<b>caution: irreversible</b>)
   </ul>
 <br>
-<li><b>Surface</b>
-&ndash; <a href="commands/show.html"><b>show</b></a>
-and <a href="commands/show.html"><b>hide</b></a> atomic patches (if any)
-of <a href="commands/surface.html">molecular surface</a>
+<li><b>Cartoon</b></a>
+&ndash; <a href="commands/cartoon.html"><b>cartoon</b></a> segments
+can be shown/hidden for individual residues in a biopolymer chain;
+showing cartoon hides backbone atoms unless 
+their simultaneous display has been enabled with 
+<a href="commands/cartoon.html#suppress"><b>cartoon suppress false</b></a>
   <ul>
   <li><b>Show</b>
   <li><b>Hide</b>
+  </ul>
+<p>
+The <a href="commands/cartoon.html#style"><b>cartoon style</b></a>
+options apply to whole models, except that they can be set separately
+for <a href="#select">nucleic</a> and for protein 
+<a href="#select">helix, strand, and coil</a> within a single model:
+</p>
+  <ul>
+  <li><b>Rounded Edges</b> &ndash; oval cross-section
+(for a round cross-section, use
+<a href="commands/cartoon.html#style"><b>cartoon style</b></a>
+to set width = thickness, for example: <b>cartoon style
+<a href="commands/atomspec.html#builtin">sel</a> width 1.5 thick 1.5</b>)
+  <li><b>Squared Edges</b> &ndash; rectangular cross-section
+  <li><b>Piped Edges</b> &ndash; barbell cross-section
+  <li><b>Tube Helices</b> &ndash; protein &alpha;-helices as curved cylinders
+  </ul>
+<br>
+<li><b>Surface</b>
+&ndash; show/hide <a href="commands/surface.html">molecular surfaces</a>;
+the <a href="commands/surface.html#style"><b>surface style</b></a>
+and <a href="commands/transparency.html"><b>transparency</b></a> options
+also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
+  <ul>
+  <li><b>Show</b>
+  <li><b>Hide</b>
+  <li><b>Solid</b>
+  <li><b>Mesh</b>
+  <li><b>Dot</b>
+  <li><b>Transparency</b>
+     <ul>
+     <li><b>0%</b>
+     <li><b>10%</b>
+     <li><b>20%</b>
+     <li><b>30%</b>
+     <li><b>40%</b>
+     <li><b>50%</b>
+     <li><b>60%</b>
+     <li><b>70%</b>
+     <li><b>80%</b>
+     <li><b>90%</b>
+     <li><b>100%</b>
+     </ul>
+  </ul>
+</ul>
+<ul>
+<li><b>Color</b>
+&ndash; see also <a href="commands/color.html"><b>color</b></a>
+  <ul>
+ <li>[20 of the commonly used 
+<a href="commands/colornames.html#builtin">named colors</a>]
+  <li><b>By Heteroatom</b>
+  &ndash; use a built-in <a href="commands/colortables.html#element">
+  color-by-element scheme</a>, except leaving carbon atoms unchanged
+  <li><b>By Element</b>
+  &ndash; use a built-in <a href="commands/colortables.html#element">
+  color-by-element scheme</a>
+  <li><b>From Editor</b> &ndash; use the system color-editing tool
   </ul>
 </ul>
 
@@ -375,5 +421,5 @@ target="_blank"><b>Tutorials</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2020</address>
+April 2020</address>
 </body></html> 
