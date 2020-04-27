@@ -16,7 +16,7 @@
 #
 def register_mousemode_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, create_alias, NoArg
+    from chimerax.core.commands import CmdDesc, register, create_alias, NoArg, FloatArg
 
     mode_arg = MouseModeArg(logger.session)
     desc = CmdDesc(
@@ -33,13 +33,22 @@ def register_mousemode_command(logger):
         ],
         synopsis='set mouse mode'
     )
-    register('ui mousemode', desc, ui_mousemode, logger=logger)
-    create_alias('mousemode', 'ui mousemode $*', logger=logger,
+    register('mousemode', desc, mousemode, logger=logger)
+    create_alias('ui mousemode', 'mousemode $*', logger=logger,
             url="help:user/commands/ui.html#mousemode")
+
+    desc = CmdDesc(
+        required = [('mode', mode_arg)],
+        keyword=[('speed', FloatArg)],
+        synopsis='set a mouse mode parameter'
+    )
+    register('mousemode setting', desc, mousemode_setting, logger=logger)
+    create_alias('ui mousemode setting', 'mousemode setting $*', logger=logger,
+                 url="help:user/commands/ui.html#mousemode")
 
 # -----------------------------------------------------------------------------
 #
-def ui_mousemode(session, left_mode=None, middle_mode=None, right_mode=None,
+def mousemode(session, left_mode=None, middle_mode=None, right_mode=None,
               wheel_mode=None, pause_mode=None,
               alt=None, command=None, control=None, shift=None):
     '''
@@ -81,6 +90,33 @@ def ui_mousemode(session, left_mode=None, middle_mode=None, right_mode=None,
         lines.append('Available modes: %s' % ', '.join(m.name for m in mm.modes))
         msg = '\n'.join(lines)
         session.logger.info(msg)
+
+# -----------------------------------------------------------------------------
+#
+def mousemode_setting(session, mode, speed = None):
+    '''
+    Set a mouse mode parameter.
+
+    Parameters
+    ----------
+    mode : mode
+       The mouse mode to set parameter.
+    speed : float
+       Sensitivity to mouse motion.  Default 1.  Not all modes support this setting.
+    '''
+    if not session.ui.is_gui:
+        session.logger.info("mouse is not supported in nogui mode")
+        return
+
+    if hasattr(mode, 'speed'):
+        if speed is None:
+            msg = 'Mouse mode %s, speed = %.3g' % (mode.name, mode.speed)
+            session.logger.info(msg)
+        else:
+            mode.speed = speed
+    else:
+            msg = 'Mouse mode %s does not support speed adjustment' % mode.name
+            session.logger.warning(msg)
 
 # -----------------------------------------------------------------------------
 #

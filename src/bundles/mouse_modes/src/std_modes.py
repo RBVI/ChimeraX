@@ -247,6 +247,7 @@ class MoveMouseMode(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
+        self.speed = 1
         self._z_rotate = False
         self._moved = False
 
@@ -323,6 +324,7 @@ class MoveMouseMode(MouseMode):
     def _rotate(self, axis, angle):
         # Convert axis from camera to scene coordinates
         saxis = self.camera_position.transform_vector(axis)
+        angle *= self.speed
         if self._moving_atoms:
             from chimerax.geometry import rotation
             self._move_atoms(rotation(saxis, angle, center = self._atoms_center()))
@@ -348,7 +350,6 @@ class MoveMouseMode(MouseMode):
                 angle = -angle
         else:
             axis = (dy,dx,0)
-            
         return axis, angle
 
     def _restricted_axis(self):
@@ -364,7 +365,7 @@ class MoveMouseMode(MouseMode):
 
     def _translate(self, shift):
         psize = self.pixel_size()
-        s = tuple(dx*psize for dx in shift)     # Scene units
+        s = tuple(dx*psize*self.speed for dx in shift)     # Scene units
         step = self.camera_position.transform_vector(s)    # Scene coord system
         if self._moving_atoms:
             from chimerax.geometry import translation
