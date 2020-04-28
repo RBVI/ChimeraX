@@ -1117,6 +1117,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
             cmd="cartoon hide %s": run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
+        cartoon_menu.addSeparator()
         action = QAction("Rounded Edges", self)
         cartoon_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session,
@@ -1190,12 +1191,47 @@ class MainWindow(QMainWindow, PlainTextLog):
         color_menu.addAction(action)
         action.triggered.connect(self._color_by_editor)
 
-        """
         #
         # Label...
         #
         label_menu = actions_menu.addMenu("Label")
-        """
+        label_atoms_menu = label_menu.addMenu("Atoms")
+        for menu_entry, cmd_arg in [("Name", None), ("Element", "{0.element}"),
+                ("IDATM Type", "{0.idatm_type}")]:
+            action = QAction(menu_entry, self)
+            label_atoms_menu.addAction(action)
+            text = " text %s" % cmd_arg if cmd_arg else ""
+            action.triggered.connect(lambda *args, run=run, ses=self.session, cmd="label %%s atoms%s"
+                % text: run(ses, cmd % sel_or_all(ses, ['atoms'], allow_empty_spec=False)))
+        action = QAction("Custom Text", self)
+        label_atoms_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            fetch_text=self._get_label_text_arg: run(ses, "label %s atoms text %s"
+            % (sel_or_all(ses, ['atoms'], allow_empty_spec=False), fetch_text())))
+        action = QAction("Off", self)
+        label_atoms_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "~label %s atoms" % sel_or_all(ses, ['atoms'], allow_empty_spec=False)))
+        label_residues_menu = label_menu.addMenu("Residues")
+        for menu_entry, cmd_arg in [("Name", "{0.name}"), ("Specifier", "{0.label_specifier}"),
+                ("Name Combo", '"/{0.chain_id} {0.name} {0.number}{0.insertion_code}"'),
+                ("1-Letter Code", "{0.label_one_letter_code}"), ("1-Letter Code Combo",
+                '"/{0.chain_id} {0.label_one_letter_code} {0.number}{0.insertion_code}"')]:
+            action = QAction(menu_entry, self)
+            label_residues_menu.addAction(action)
+            text = " text %s" % cmd_arg if cmd_arg else ""
+            action.triggered.connect(lambda *args, run=run, ses=self.session, cmd="label %%s%s"
+                % text: run(ses, cmd % sel_or_all(ses, ['residues'], allow_empty_spec=False)))
+        action = QAction("Custom Text", self)
+        label_residues_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session,
+            fetch_text=self._get_label_text_arg: run(ses, "label %s text %s"
+            % (sel_or_all(ses, ['atoms'], allow_empty_spec=False), fetch_text())))
+        action = QAction("Off", self)
+        label_residues_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "~label %s residues" % sel_or_all(ses, ['residues'], allow_empty_spec=False)))
+
 
     def _color_by_editor(self, *args):
         if not self._color_dialog:
@@ -1244,6 +1280,15 @@ class MainWindow(QMainWindow, PlainTextLog):
                     if "sel" in surf_selector:
                         selector = surf_selector
         run(self.session, cmd % selector)
+
+    def _get_label_text_arg(self):
+        from PyQt5.QtWidgets import QInputDialog
+        from chimerax.core.commands import StringArg
+        user_text, okay = QInputDialog.getText(self, "Custom Label Text", "Label:")
+        if okay:
+            return StringArg.unparse(user_text)
+        from chimerax.core.errors import CancelOperation
+        return CancelOperation("Custom labeling cancelled")
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction

@@ -694,6 +694,21 @@ class Structure(Model, StructureData):
             bonds = self.bonds
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
+        elif itype == 'residues':
+            from .molarray import concatenate, Atoms
+            atoms, bonds = self.atoms, self.bonds
+            sel_atoms = []
+            if atoms.num_selected > 0:
+                sel_atoms.append(atoms.filter(atoms.selected))
+            if bonds.num_selected > 0:
+                sel_bonds = bonds.filter(bonds.selected)
+                import numpy
+                atoms1, atoms2 = sel_bonds.atoms
+                is_intra = numpy.equal(atoms1.residues, atoms2.residues)
+                sel_atoms.extend(sel_bonds.filter(is_intra).atoms)
+            if sel_atoms:
+                from . import concatenate
+                return [concatenate(sel_atoms, remove_duplicates=True).unique_residues]
         return []
 
     def clear_selection(self):
