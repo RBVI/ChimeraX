@@ -568,18 +568,22 @@ class ZoomMouseMode(MouseMode):
     '''
     name = 'zoom'
     icon_file = 'icons/zoom.png'
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        self.speed = 1
 
     def mouse_drag(self, event):        
 
         dx, dy = self.mouse_motion(event)
         psize = self.pixel_size()
-        delta_z = 3*psize*dy
+        delta_z = 3*psize*dy*self.speed
         self.zoom(delta_z, stereo_scaling = not event.alt_down())
 
     def wheel(self, event):
         d = event.wheel_value()
         psize = self.pixel_size()
-        self.zoom(100*d*psize, stereo_scaling = not event.alt_down())
+        delta_z = 100*d*psize*self.speed
+        self.zoom(delta_z, stereo_scaling = not event.alt_down())
 
     def zoom(self, delta_z, stereo_scaling = False):
         v = self.view
