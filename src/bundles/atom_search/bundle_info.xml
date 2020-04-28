@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Atom_Search" version="1.0"
+<BundleInfo name="ChimeraX-AtomSearch" version="1.0"
             package="chimerax.atomic.search" purePython="false"
             installedIncludeDir="include" installedLibraryDir="lib"
             cython="true" cythonInclude="search_cpp"

@@ -643,7 +643,15 @@ class ObjectLabel:
     offset = property(_get_offset, _set_offset)
     
     def _get_text(self):
-        return self.default_text() if self._text is None else self._text
+        base_text = self.default_text() if self._text is None else self._text
+        try:
+            final_text = base_text.format(self.object)
+        except AttributeError:
+            # don't label objects missing the requested attribute(s)
+            final_text = ""
+        except:
+            final_text = base_text
+        return final_text
     def _set_text(self, text):
         self._text = text
     text = property(_get_text, _set_text)

@@ -1351,14 +1351,13 @@ const char *find_closest_points_doc =
   "Returns\n"
   "-------\n"
   "i1, i2 : numpy int32 array\n"
-  "  Two arrays of indices into the xyz1 and xyz2 arrays\n"
+  "  Two arrays of indices into the xyz1 and xyz2 arrays respectively\n"
   "  for points that are within the maximum distance of some other point\n"
-  "  in the other set.\n"
+  "  in the other array.\n"
   "near1 : numpy int32 array\n"
-  "  A third array is returned that gives the index in set 2\n"
-  "  of the closest for each point in set 1.  This array has length equal to\n"
-  "  the number of points in set 1. If a set 1 point has no point from set 2\n"
-  "  within the distance range then index returned is -1.\n";
+  "  A third array is returned that gives the index in xyz2\n"
+  "  of the closest point for each xyz1 point in the i1 array.\n"
+  "  This array has length equal to the length of array i1.\n";
 
 // ----------------------------------------------------------------------------
 //

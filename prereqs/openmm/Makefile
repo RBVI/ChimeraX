@@ -45,6 +45,9 @@ endif
 app-install: install
 	$(RSYNC) $(OPENMM_LIB_INSTALL)/* $(app_shlibdir)
 	$(RSYNC) $(PYSITEDIR)/simtk $(APP_PYSITEDIR)
+ifeq ($(OS),Windows)
+	cd $(app_shlibdir); mv OpenMM*.lib libs/
+endif
 
 $(SOURCE):
 	-mkdir $(SOURCE)

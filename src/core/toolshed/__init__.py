@@ -304,6 +304,9 @@ class Toolshed:
         self._installed_bundle_info = None
         self._available_bundle_info = None
         self._installed_packages = {}   # cache mapping packages to bundles
+        # map from manager name to manager instance
+        from weakref import WeakValueDictionary
+        self._manager_instances = WeakValueDictionary()
 
         # Compute base directories
         import os
@@ -665,6 +668,7 @@ class Toolshed:
         if isinstance(bundle, str):
             # If the name ends with .whl, it must be a path.
             if bundle.endswith(".whl"):
+                bundle = os.path.expanduser(bundle)
                 basename = os.path.split(bundle)[1]
                 name = basename.split('-')[0]
             else:
@@ -740,8 +744,11 @@ class Toolshed:
                 for name, version in new_bundles.items():
                     bi = self.find_bundle(name, logger, version=version)
                     if bi:
-                        #TODO
-                        pass
+                        for name, kw in bi.providers.items():
+                            mgr_name, pvdr_name = name.split('/', 1)
+                            mgr = self._manager_instances.get(mgr_name, None)
+                            if mgr:
+                                mgr.add_provider(bi, pvdr_name, **kw)
 
                 # custom inits
                 failed = []
@@ -1029,6 +1036,7 @@ class Toolshed:
                         logger.error("Manager initialization for %r failed to return the manager instance"
                                      % mgr)
                     continue
+                self._manager_instances[mgr] = m
                 for pbi in all_bundles:
                     for name, kw in pbi.providers.items():
                         p_mgr, pvdr = name.split('/', 1)

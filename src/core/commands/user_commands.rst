@@ -293,7 +293,9 @@ mseries
 
 open
 ====
-.. autofunction:: chimerax.core.commands.open.open
+Function defined in *chimerax.open_command.cmd*
+
+.. autofunction:: chimerax.open_command.cmd.provider_open
 
 pdbimages
 =========
@@ -330,7 +332,9 @@ run
 
 save
 ====
-.. autofunction:: chimerax.core.commands.save.save
+Function defined in *chimerax.save_command.cmd*
+
+.. autofunction:: chimerax.save_command.cmd.provider_save
 
 select
 ======
@@ -373,8 +377,8 @@ surface
 =======
 .. autofunction:: chimerax.surface.surfacecmds.surface
 .. autofunction:: chimerax.surface.surfacecmds.surface_close
-.. autofunction:: chimerax.surface.surfacecmds.surface_hide
-.. autofunction:: chimerax.surface.surfacecmds.surface_show
+.. autofunction:: chimerax.surface.surfacecmds.surface_hide_patches
+.. autofunction:: chimerax.surface.surfacecmds.surface_show_patches
 .. autofunction:: chimerax.surface.surfacecmds.surface_style
 .. autofunction:: chimerax.surface.surfacecmds.surface_cap
 .. autofunction:: chimerax.surface.sop.surface_dust

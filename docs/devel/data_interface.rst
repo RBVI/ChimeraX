@@ -22,9 +22,12 @@ There are modules with the core data structures for each
 native data type: :doc:`molecular data <bundles/atomic/src/atomic>`,
 sequence data, and volume data.
 
-I/O is managed by the :py:mod:`chimerax.core.io` module.
-Data formats are registered with the io module with information about how
-to recognize files of that type and functions to read and/or write them.
+New data formats are registered with the "data formats" manager,
+and functions to read and/or write formats are registered
+with the "open command" and "save command" managers respectively.
+This is summarized briefly in :ref:`data format`, :ref:`open command`, and
+:ref:`save command`, and in more detail in the :doc:`tutorials/tutorial_read_format`,
+:doc:`tutorials/tutorial_save_format`, and :doc:`tutorials/tutorial_fetch` tutorials.
 
 .. note::
 
@@ -39,8 +42,6 @@ Modules
     core/commands/commands.rst
 
     core/data_events.rst
-
-    core/io.rst
 
     core/objects.rst
 

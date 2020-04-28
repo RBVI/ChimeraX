@@ -104,7 +104,7 @@ from chimerax.core.errors import UserError
 class NoneSelectedError(UserError):
     pass
 
-def sel_or_all(session, sel_type_info, sel="sel", restriction=None):
+def sel_or_all(session, sel_type_info, *, sel="sel", restriction=None, **concise_kw):
     # sel_type_info is either a list of strings each of which is appropriate as an arg for
     # session.selection.items(arg), or a Model subclass
 
@@ -115,7 +115,7 @@ def sel_or_all(session, sel_type_info, sel="sel", restriction=None):
             raise NoneSelectedError("No %s models open" % sel_type_info.__name__)
         msel = [m for m in type_models if m.selected and m.visible]
         if msel:
-            concise_spec = concise_model_spec(session, msel)
+            concise_spec = concise_model_spec(session, msel, **concise_kw)
             if restriction:
                 if concise_spec:
                     return '(%s & %s)' % (concise_spec, restriction)
@@ -127,7 +127,7 @@ def sel_or_all(session, sel_type_info, sel="sel", restriction=None):
         mshown = [m for m in type_models if m.visible]
         if not mshown:
             raise NoneSelectedError("No visible %s models" % sel_type_info.__name__)
-        concise_spec = concise_model_spec(session, mshown)
+        concise_spec = concise_model_spec(session, mshown, **concise_kw)
         if restriction:
             if concise_spec:
                 return '(%s & %s)' % (concise_spec, restriction)
@@ -153,14 +153,14 @@ def sel_or_all(session, sel_type_info, sel="sel", restriction=None):
                     return '(%s & %s)' % (sel, restriction)
                 return sel
             else:
-                concise_spec = concise_model_spec(session, relevant_sel_models)
+                concise_spec = concise_model_spec(session, relevant_sel_models, **concise_kw)
                 if restriction:
                     return '(%s & %s & %s)' % (concise_spec, sel, restriction)
                 return '(%s & %s)' % (concise_spec, sel)
         raise NoneSelectedError("No visible %s selected" % commas(sel_type_info))
     shown_models = [m for m in session.models if m.visible]
     if shown_models:
-        concise_spec = concise_model_spec(session, shown_models)
+        concise_spec = concise_model_spec(session, shown_models, **concise_kw)
     else:
         raise NoneSelectedError("No visible models!")
     if restriction:
