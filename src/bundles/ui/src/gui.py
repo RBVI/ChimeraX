@@ -1288,7 +1288,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         if okay:
             return StringArg.unparse(user_text)
         from chimerax.core.errors import CancelOperation
-        return CancelOperation("Custom labeling cancelled")
+        raise CancelOperation("Custom labeling cancelled")
 
     def _populate_select_menu(self, select_menu):
         from PyQt5.QtWidgets import QAction
