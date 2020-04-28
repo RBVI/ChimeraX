@@ -94,19 +94,22 @@ class MapEraser(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
-        self.settings = None
-        
+
+    @property
+    def settings(self):
+        return map_eraser_panel(self.session)
+    
     def enable(self):
-        self.settings = s = map_eraser_panel(self.session)
-        s.show()
+        self.settings.show()
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
 
     def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
+        settings = self.settings
         # Compute motion in scene coords of sphere center.
-        c = self.settings.sphere_center
+        c = settings.sphere_center
         v = self.session.main_view
         s = v.pixel_size(c)
         if event.shift_down():
@@ -115,15 +118,16 @@ class MapEraser(MouseMode):
             shift = (s*dx, -s*dy, 0)
         
         dxyz = v.camera.position.transform_vector(shift)
-        self.settings.move_sphere(dxyz)
+        settings.move_sphere(dxyz)
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
 
     def vr_motion(self, event):
-        c = self.settings.sphere_center
+        settings = self.settings
+        c = settings.sphere_center
         delta_xyz = event.motion*c - c
-        self.settings.move_sphere(delta_xyz)
+        settings.move_sphere(delta_xyz)
 
 # -----------------------------------------------------------------------------
 # Panel for erasing parts of map in sphere with map eraser mouse mode.
