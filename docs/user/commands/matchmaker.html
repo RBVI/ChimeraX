@@ -105,10 +105,10 @@ of chains (one from model 0 and one from model 1), and using that alignment,
 <a href="#cutoffDistance">iteratively fit</a> the structures with a
 cutoff of 2.0 &Aring;.
 <blockquote>
-<b>mm #1-5 to #6 computeSS false</b>
+<b>mm #1-5 to #6 computeSs false</b>
 </blockquote>
 &ndash; independently superimpose models 1-5 onto model 6 using 
-default settings, except without <a href="#computeSS">recalculating</a> 
+default settings, except without <a href="#computeSs">recalculating</a> 
 secondary structure assignments.
 <blockquote>
 <b>mm #2 to #1/a pair bs alg sw matrix PAM-150 ss false cut 5.0</b>
@@ -331,7 +331,7 @@ a secondary structure term (if protein), and gap penalties.
     similarity term will be given a weight of (1-<i>ssfract</i>). 
 </blockquote>
 <blockquote>
-  <a name="computeSS"><b>computeSS</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+  <a name="computeSs"><b>computeSs</b></a> &nbsp;<b>true</b>&nbsp;|&nbsp;false
     <br>
     When <a href="#ssFraction">secondary structure scoring</a> is used,
     whether to first identify helices and strands with the

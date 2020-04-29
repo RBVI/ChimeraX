@@ -284,8 +284,48 @@ also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
   color-by-element scheme</a>
   <li><b>From Editor</b> &ndash; use the system color-editing tool
   </ul>
+<br>
+<li><b>Label</b>
+&ndash; see also <a href="commands/label.html"><b>label</b></a>
+  <ul>
+  <li><b>Atom</b>
+   <ul>
+   <li><b>Name</b>
+   <li><b>Element</b>
+   <li><b>IDATM Type</b> &ndash; by <a href="atomtypes.html">atom type</a>
+   <li><b>Custom Text</b></a>
+&ndash; arbitrary text and/or values of
+<a href="attributes.html">attributes</a>, as described for the
+<a href="commands/label.html#options"><b>text</b> option of <b>label</b></a>.
+Examples:
+     <ul class="none"><b>
+     <li>hello&nbsp;world
+     <li>{0.bfactor:g}
+     </b></ul>
+    <li><b>Off</b>
+   </ul>
+  <li><b>Residue</b>
+    <ul>
+    <li><b>Name</b>
+    <li><b>Specifier</b></a> &ndash; chain ID and number
+    <li><b>Name Combo</b> &ndash; chain ID, name, and number
+    <li><b>1-Letter Code</b> &ndash; 1-letter code for standard
+    amino acid and nucleic acid residues, name for other residues
+    <li><b>1-Letter Code Combo</b> &ndash; as above plus chain ID and number
+    <li><b>Custom Text</b>
+&ndash; arbitrary text and/or values of
+<a href="attributes.html">attributes</a>, as described for the
+<a href="commands/label.html#options"><b>text</b> option of <b>label</b></a>.
+Examples:
+      <ul class="none"><b>
+      <li>wild type
+      <li>{0.chain_id}
+      <li>{0.phi:.1f},{0.psi:.1f}
+      </b></ul>
+    <li><b>Off</b>
+    </ul>
+  </ul>
 </ul>
-
 <a name="tools"></a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
 <b>Tools</b>
