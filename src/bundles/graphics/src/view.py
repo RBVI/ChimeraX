@@ -437,6 +437,13 @@ class View:
         else:
             c = camera
 
+        # Render labels and other models sized in pixels with same relative size
+        # as they are shown on screen.
+        ew, eh = self.window_size
+        if w*eh != h*ew and w > 0:
+            eh = (ew * h) // w	# Image aspect differs from screen aspect
+        r.effective_window_size = (ew, eh)
+            
         if supersample is None:
             self.draw(c, drawings, swap_buffers = False)
             rgba = r.frame_buffer_image(w, h)
@@ -458,6 +465,8 @@ class View:
         r.pop_framebuffer()
         fb.delete()
 
+        delattr(r, 'effective_window_size')
+        
         ncomp = 4 if transparent_background else 3
         from PIL import Image
         # Flip y-axis since PIL image has row 0 at top,
@@ -499,7 +508,7 @@ class View:
         elif w is not None:
             # Choose height to match window aspect ratio.
             return (w, (vh * w) // vw)
-        elif height is not None:
+        elif h is not None:
             # Choose width to match window aspect ratio.
             return ((vw * h) // vh, h)
         return (vw, vh)
