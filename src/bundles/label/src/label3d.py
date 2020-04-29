@@ -88,11 +88,11 @@ def label(session, objects = None, object_type = None, text = None,
         settings['size'] = size
     if height == 'fixed':
         settings['height'] = None
+    elif height is not None:
+        settings['height'] = height
     if default_height is not None:
         from .settings import settings as prefs
         prefs.label_height = default_height
-    elif height is not None:
-        settings['height'] = height
     if font == 'default':
         settings['font'] = 'Arial'
     elif font is not None:
