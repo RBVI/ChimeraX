@@ -15,7 +15,7 @@
 # -----------------------------------------------------------------------------
 #
 def label(session, objects = None, object_type = None, text = None,
-          offset = None, color = None, bg_color = None,
+          offset = None, color = None, bg_color = None, attribute = None,
           size = None, height = None, default_height = None, font = None, on_top = None):
     '''Create atom labels. The belong to a child model named "labels" of the structure.
 
@@ -35,6 +35,8 @@ def label(session, objects = None, object_type = None, text = None,
       and white is used on dark backgrounds.
     bg_color : Color or "none"
       Draw rectangular label background in this color, or if "none", background is transparent.
+    attribute : string
+      Attribute name whose value to display as text
     size : int or "default"
       Font size in points (1/72 inch). Default 48.
     height : float or "fixed"
@@ -57,6 +59,10 @@ def label(session, objects = None, object_type = None, text = None,
             otypes = ['residues']
     else:
         otypes = [object_type]
+
+    from chimerax.core.errors import UserError
+    if text is not None and attribute is not None:
+        raise UserError("Cannot specify both 'text' and 'attribute' keywords")
 
     settings = {}
     if text == 'default':
@@ -91,6 +97,11 @@ def label(session, objects = None, object_type = None, text = None,
         settings['font'] = 'Arial'
     elif font is not None:
         settings['font'] = font
+    if 'text' in settings:
+        settings['attribute'] = False
+    elif attribute is not None:
+        settings['text'] = False
+        settings['attribute'] = attribute
 
     if objects is None and len(settings) == 0:
         return	# Get this when setting default height.
@@ -108,7 +119,6 @@ def label(session, objects = None, object_type = None, text = None,
             lm.add_labels(mobjects, object_class, view, settings, on_top)
             lcount += len(mobjects)
     if objects is None and lcount == 0 and default_height is None:
-        from chimerax.core.errors import UserError
         raise UserError('Label command requires an atom specifier to create labels.')
 
 # -----------------------------------------------------------------------------
@@ -254,6 +264,7 @@ def register_label_command(logger):
                               ('height', Or(EnumOf(['fixed']), FloatArg)),
                               ('default_height', FloatArg),
                               ('font', StringArg),
+                              ('attribute', StringArg),
                               ('on_top', BoolArg)],
                    synopsis = 'Create atom labels')
     register('label', desc, label, logger=logger)
@@ -602,15 +613,22 @@ def label_class(object):
 class ObjectLabel:
 
     def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None,
+                 color = None, background = None, attribute = None,
                  size = 48, height = 'default', font = 'Arial'):
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
         self._offset = offset
-        self._text = text
+        if text is False:
+            self._text = None
+        else:
+            self._text = text
         self._color = color
         self.background = background
+        if attribute is False:
+            self._attribute = None
+        else:
+            self._attribute = attribute
         self.size = size	# Points (1/72 inch) so high and normal DPI displays look the same.
         if height == 'default':
             from .settings import settings
@@ -643,17 +661,36 @@ class ObjectLabel:
     offset = property(_get_offset, _set_offset)
     
     def _get_text(self):
-        base_text = self.default_text() if self._text is None else self._text
-        try:
-            final_text = base_text.format(self.object)
-        except AttributeError:
-            # don't label objects missing the requested attribute(s)
-            final_text = ""
-        except:
-            final_text = base_text
+        if self._attribute is None:
+            base_text = self.default_text() if self._text is None else self._text
+            try:
+                final_text = base_text.format(self.object)
+            except AttributeError:
+                # don't label objects missing the requested attribute(s)
+                final_text = ""
+            except:
+                final_text = base_text
+        else:
+            attrs = self._attribute.split('.')
+            val = self.object
+            try:
+                for attr in attrs:
+                    val = getattr(val, attr)
+            except AttributeError:
+                final_text = ""
+            else:
+                if isinstance(val, float):
+                    final_text = "%.3g" % val
+                elif val is None:
+                    final_text = ""
+                else:
+                    final_text = str(val)
         return final_text
     def _set_text(self, text):
-        self._text = text
+        if text is False:
+            self._text = None
+        else:
+            self._text = text
     text = property(_get_text, _set_text)
     
     def _get_color(self):
@@ -670,6 +707,16 @@ class ObjectLabel:
     def _set_color(self, color):
         self._color = color
     color = property(_get_color, _set_color)
+    
+    def _get_attribute(self):
+        return self._attribute
+
+    def _set_attribute(self, attribute):
+        if attribute is False:
+            self._attribute = None
+        else:
+            self._attribute = attribute
+    attribute = property(_get_attribute, _set_attribute)
 
     @property
     def object_deleted(self):
@@ -714,12 +761,12 @@ class ObjectLabel:
 #
 class AtomLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None,
+                 color = None, background = None, attribute = None,
                  size = 48, height = 'default', font = 'Arial'):
         self.atom = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                             color=color, background=background,
-                             size=size, height=height, font=font)
+                 color=color, background=background, attribute=attribute,
+                 size=size, height=height, font=font)
     def default_text(self):
         aname = self.atom.name
         return aname if aname else ('%d' % self.atom.residue.number)
@@ -736,12 +783,12 @@ class AtomLabel(ObjectLabel):
 #
 class ResidueLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None,
+                 color = None, background = None, attribute = None,
                  size = 48, height = 'default', font = 'Arial'):
         self.residue = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                             color=color, background=background,
-                             size=size, height=height, font=font)
+                 color=color, background=background, attribute=attribute,
+                 size=size, height=height, font=font)
     def default_text(self):
         r = self.residue
         return '%s %d' % (r.name, r.number)
@@ -756,12 +803,12 @@ class ResidueLabel(ObjectLabel):
 #
 class EdgeLabel(ObjectLabel):
     def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None,
+                 color = None, background = None, attribute = None,
                  size = 48, height = 'default', font = 'Arial'):
         self.pseudobond = object
         ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                             color=color, background=background,
-                             size=size, height=height, font=font)
+                 color=color, background=background, attribute=attribute,
+                 size=size, height=height, font=font)
     def default_text(self):
         dm = self.pseudobond.session.pb_dist_monitor
         return dm.distance_format % self.pseudobond.length
