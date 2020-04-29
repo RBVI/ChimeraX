@@ -446,6 +446,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.tool_instance_to_windows = {}
         self._fill_tb_context_menu_cbs = {}
         self._select_seq_dialog = self._select_zone_dialog = self._define_selector_dialog = None
+        self._set_label_height_dialog = None
         self._presets_menu_needs_update = True
         session.presets.triggers.add_handler("presets changed",
             lambda *args, s=self: setattr(s, '_presets_menu_needs_update', True))
@@ -747,6 +748,12 @@ class MainWindow(QMainWindow, PlainTextLog):
             self._select_zone_dialog = SelZoneDialog(self.session)
         self._select_zone_dialog.show()
         self._select_zone_dialog.raise_()
+
+    def show_set_label_height_dialog(self, *args):
+        if self._set_label_height_dialog is None:
+            self._set_label_height_dialog = LabelHeightDialog(self.session)
+        self._set_label_height_dialog.show()
+        self._set_label_height_dialog.raise_()
 
     def show_tb_context_menu(self, tb, event):
         tool, fill_cb = self._fill_tb_context_menu_cbs[tb]
@@ -1236,7 +1243,9 @@ class MainWindow(QMainWindow, PlainTextLog):
         label_residues_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session:
             run(ses, "~label %s residues" % sel_or_all(ses, ['residues'], allow_empty_spec=False)))
-
+        action = QAction("Set Label Height", self)
+        #label_menu.addAction(action)
+        action.triggered.connect(self.show_set_label_height_dialog)
 
     def _color_by_editor(self, *args):
         if not self._color_dialog:
@@ -2449,6 +2458,71 @@ class SelZoneDialog(QDialog):
     def _update_button_states(self, *args):
         self.bbox.button(self.bbox.Ok).setEnabled(
             self.less_checkbox.isChecked() or self.more_checkbox.isChecked())
+
+
+class LabelHeightDialog(QDialog):
+    def __init__(self, session, *args, **kw):
+        super().__init__(*args, **kw)
+        self.session = session
+        self.setWindowTitle("Set Label Height")
+        from PyQt5.QtWidgets import QVBoxLayout, QDialogButtonBox as qbbox, QLineEdit, QHBoxLayout, QLabel, \
+            QCheckBox, QPushButton, QMenu, QWidget
+        from PyQt5.QtCore import Qt
+        from PyQt5.QtGui import QDoubleValidator
+        layout = QVBoxLayout()
+        height_area = QWidget()
+        layout.addWidget(height_area)
+        height_layout = QHBoxLayout()
+        height_layout.setContentsMargins(0,0,0,0)
+        height_layout.setSpacing(3)
+        height_area.setLayout(height_layout)
+        height_layout.addWidget(QLabel("Set all label heights to"))
+        self.height_entry = QLineEdit()
+        self.height_entry.setMaximumWidth(50)
+        from chimerax.label.settings import settings
+        self.height_entry.setText(str(settings.label_height))
+        height_layout.addWidget(self.height_entry)
+        self.unit_button = QPushButton("\N{ANGSTROM SIGN}")
+        menu = QMenu()
+        menu.triggered.connect(lambda action: self.unit_button.setText(action.text()))
+        menu.addAction("\N{ANGSTROM SIGN}")
+        menu.addAction("pixels")
+        self.unit_button.setMenu(menu)
+        height_layout.addWidget(self.unit_button)
+
+        self.bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        self.bbox.accepted.connect(self.set_height)
+        self.bbox.button(qbbox.Apply).clicked.connect(self.set_height)
+        self.bbox.accepted.connect(self.accept)
+        self.bbox.rejected.connect(self.reject)
+        self.bbox.button(self.bbox.Help).setEnabled(False)
+        #from chimerax.core.commands import run
+        #self.bbox.helpRequested.connect(lambda run=run, ses=session:
+        #    run(ses, "help help:user/menu.html#selectzone"))
+        layout.addWidget(self.bbox)
+        self.setLayout(layout)
+
+    def set_height(self, *args):
+        from chimerax.core.errors import UserError
+        in_pixels = self.unit_button.text() == 'pixels'
+        if in_pixels:
+            try:
+                height = int(self.height_entry.text())
+            except ValueError:
+                raise UserError("Pixels must be an integer")
+        else:
+            try:
+                height = int(self.height_entry.text())
+            except ValueError:
+                raise UserError("Height must be a number")
+        if height <= 0:
+            raise UserError("Height must be a positive number")
+        if in_pixels:
+            command = "label size %g height fixed" % height
+        else:
+            command = "label height %g" % height
+        from chimerax.core.commands import run
+        run(self.session, command)
 
 prepositions = set(["a", "and", "as", "at", "by", "for", "from", "in", "into", "of", "on", "or", "the", "to"])
 def menu_capitalize(text):
