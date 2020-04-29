@@ -102,8 +102,6 @@ def label(session, objects = None, object_type = None, text = None,
     elif attribute is not None:
         settings['text'] = False
         settings['attribute'] = attribute
-    import sys
-    print("settings:", repr(settings), file=sys.__stderr__)
 
     if objects is None and len(settings) == 0:
         return	# Get this when setting default height.
@@ -618,8 +616,6 @@ class ObjectLabel:
                  color = None, background = None, attribute = None,
                  size = 48, height = 'default', font = 'Arial'):
 
-        import sys
-        print("text:", repr(text), " attribute:", repr(attribute), file=sys.__stderr__)
         self.object = object
         self.view = view	# View is used to update label position to face camera
         self._offset = offset
@@ -676,8 +672,6 @@ class ObjectLabel:
                 final_text = base_text
         else:
             attrs = self._attribute.split('.')
-            import sys
-            print("attrs:", repr(attrs), file=sys.__stderr__)
             val = self.object
             try:
                 for attr in attrs:
@@ -691,8 +685,6 @@ class ObjectLabel:
                     final_text = ""
                 else:
                     final_text = str(val)
-        import sys
-        print("final_text:", repr(final_text), file=sys.__stderr__)
         return final_text
     def _set_text(self, text):
         if text is False:
