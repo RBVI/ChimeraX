@@ -541,8 +541,8 @@ class LabelModel(Model):
         name = label.name if label.name else label.text
         Model.__init__(self, name, session)
         self.label = label
-        self.window_size = None
-        self.texture_size = None
+        self._window_size = None	# Texture coordinates currently set for this rendering size
+        self._texture_size = None
         self.needs_update = True
 
     def delete(self):
@@ -550,9 +550,26 @@ class LabelModel(Model):
         self.label.delete()
         
     def draw(self, renderer, draw_pass):
-        if not self.update_drawing():
-            self.resize()
+        window_size = self._render_window_size(renderer)
+        if not self._update_label_image(window_size):
+            self.resize(window_size)
         Model.draw(self, renderer, draw_pass)
+
+    def _render_window_size(self, renderer):
+        '''
+        Texture coordinates for rendering label are adjusted according to maintain
+        the requested label size as the window is resized.  When saving an image
+        the effective window size may differ from the framebuffer render size
+        in order that the image has labels of the same size seen on the screen.
+        '''
+        if hasattr(renderer, 'effective_window_size'):
+            # When saving an image this makes label sizes match their screen sizes
+            # relative to other model sizes.  In other words saving an image twice
+            # as large in pixels as on screen doubles the label size in pixels.
+            return renderer.effective_window_size
+        pscale = renderer.pixel_scale()
+        window_size = tuple(int(w/pscale) for w in renderer.render_size())
+        return window_size
 
     @property
     def label_color(self):
@@ -576,7 +593,7 @@ class LabelModel(Model):
         l.update_drawing()
     single_color = property(_get_single_color, _set_single_color)
 
-    def update_drawing(self):
+    def _update_label_image(self, window_size):
         if not self.needs_update:
             return False
         self.needs_update = False
@@ -591,16 +608,15 @@ class LabelModel(Model):
         if rgba is None:
             l.session.logger.info("Can't find font for label")
             return True
-        self.set_text_image(rgba)
+        self._set_text_image(rgba, window_size)
         return True
         
-    def set_text_image(self, rgba):
+    def _set_text_image(self, rgba, window_size):
         l = self.label
         x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
-        v = l.session.main_view
-        self.window_size = w,h = v.window_size
+        self._window_size = w,h = window_size
         th, tw = rgba.shape[:2]
-        self.texture_size = (tw,th)
+        self._texture_size = (tw,th)
         uw,uh = 2*tw/w, 2*th/h
         from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
@@ -608,21 +624,21 @@ class LabelModel(Model):
     @property
     def size(self):
         '''Label size as fraction of window size (0-1).'''
-        w,h = self.window_size
-        tw,th = self.texture_size
+        w,h = self._window_size
+        tw,th = self._texture_size
         return (tw/w, th/h)
 
-    def resize(self):
+    def resize(self, window_size):
+        if window_size == self._window_size:
+            return
+        # Window has resized so update texture drawing size
+        self._window_size = w,h = window_size
+        tw,th = self._texture_size
+        uw,uh = 2*tw/w, 2*th/h
         l = self.label
-        v = l.session.main_view
-        if v.window_size != self.window_size:
-            # Window has resized so update texture drawing size
-            self.window_size = w,h = v.window_size
-            tw,th = self.texture_size
-            uw,uh = 2*tw/w, 2*th/h
-            x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
-            from chimerax.graphics.drawing import position_rgba_drawing
-            position_rgba_drawing(self, (x,y), (uw,uh))
+        x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
+        from chimerax.graphics.drawing import position_rgba_drawing
+        position_rgba_drawing(self, (x,y), (uw,uh))
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d
