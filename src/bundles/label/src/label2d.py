@@ -498,14 +498,14 @@ class Label:
         else:
             # may already be numpy array if being restored from a session
             self.background = background
-        self.size = size    # Points (1/72 inch) to get similar appearance on high DPI displays
+        self.size = size    	# Logical pixels.  On Mac retina display will render 2x more pixels.
         self.font = font
         self.bold = bold
         self.italic = italic
         self.xpos = xpos
         self.ypos = ypos
         self.visibility = visibility
-        self.margin = margin
+        self.margin = margin	# Logical pixels.
         self.outline_width = outline_width
         self.drawing = d = LabelModel(session, self)
         lb = session_labels(session, create = True)
@@ -541,11 +541,10 @@ class LabelModel(Model):
         name = label.name if label.name else label.text
         Model.__init__(self, name, session)
         self.label = label
-        self._window_size = None	# Texture coordinates currently set for this rendering size
-        self._texture_size = None
-        # Window size and texture size are in logical pixels.
-        # On a Mac retina display the rendered pixels are 2x finer so make texture 2x larger.
-        self._texture_pixel_scale = 1
+        self._window_size = None	# Full window size in render pixels
+        self._texture_size = None	# Label image size in render pixels
+        self._texture_pixel_scale = 1	# Converts label.size from logical pixels to render pixels
+        self._aspect = 1		# Scale y label positioning for image saving at non-screen aspect ratio
         self.needs_update = True
 
     def delete(self):
@@ -564,27 +563,36 @@ class LabelModel(Model):
         window size.  In that case make the label size match its relative size
         seen on screen.
         '''
-        rw, rh = renderer.render_size()
-        if hasattr(renderer, 'effective_window_size'):
-            # When saving an image this makes label sizes match their screen sizes
-            # relative to other model sizes.  In other words saving an image twice
-            # as large in pixels as on screen doubles the label size in pixels.
-            window_size = renderer.effective_window_size
-            pscale = rw / window_size[0]
+        window_size = renderer.render_size()
+
+        # Preserve on screen label size if saving an image of different size.
+        if getattr(renderer, 'image_save', False):
+            # When saving an image match the label's on screen fractional size
+            # even though the image size in pixels may be different from on screen.
+            sw,sh = self.session.main_view.window_size
+            w,h = window_size
+            pscale = (w / sw) if sw > 0 else 1
+            aspect = (w*sh)/(h*sw) if h*sw > 0 else 1
         else:
             pscale = renderer.pixel_scale()
-            window_size = (int(rw/pscale), int(rh/pscale))
-        if pscale != self._texture_pixel_scale:
+            aspect = 1
+        if pscale != self._texture_pixel_scale or aspect != self._aspect:
             self._texture_pixel_scale = pscale
+            self._aspect = aspect
             self.needs_update = True
 
-        if not self._update_label_image(window_size):
-            self._resize(window_size)
+        # Will need to reposition label if window size changes.
+        win_size_changed = (window_size != self._window_size)
+        if win_size_changed:
+            self._window_size = window_size
 
-    def _update_label_image(self, window_size):
-        if not self.needs_update:
-            return False
-        self.needs_update = False
+        if self.needs_update:
+            self.needs_update = False
+            self._update_label_image()
+        elif win_size_changed:
+            self._position_label_image()
+
+    def _update_label_image(self):
         l = self.label
         xpad = (0 if l.background is None else int(.2 * l.size)) + l.margin
         ypad = l.margin
@@ -597,21 +605,34 @@ class LabelModel(Model):
                                outline_width=int(s*l.outline_width))
         if rgba is None:
             l.session.logger.info("Can't find font for label")
-            return True
-        self._set_text_image(rgba, window_size)
-        return True
-        
-    def _set_text_image(self, rgba, window_size):
+        else:
+            ih, iw = rgba.shape[:2]
+            self._texture_size = (iw,ih)
+            (x,y),(w,h) = self._placement
+            from chimerax.graphics.drawing import rgba_drawing
+            rgba_drawing(self, rgba, (x,y), (w,h), opaque = False)
+
+    def _position_label_image(self):
+        # Window has resized so update texture drawing placement
+        (x,y),(w,h) = self._placement
+        from chimerax.graphics.drawing import position_rgba_drawing
+        position_rgba_drawing(self, (x,y), (w,h))
+
+    @property
+    def _placement(self):
         l = self.label
         x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
-        self._window_size = w,h = window_size
-        s = self._texture_pixel_scale
-        th, tw = [int(d/s) for d in rgba.shape[:2]]
-        self._texture_size = (tw,th)
-        uw,uh = 2*tw/w, 2*th/h
-        from chimerax.graphics.drawing import rgba_drawing
-        rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
+        y *= self._aspect
+        w,h = [2*s for s in self.size]		# Convert [0,1] size [-1,1] size.
+        return (x,y), (w,h)
 
+    @property
+    def size(self):
+        '''Label size as fraction of window size (0-1).'''
+        w,h = self._window_size
+        tw,th = self._texture_size
+        return (tw/w, th/h)
+    
     @property
     def label_color(self):
         l = self.label
@@ -633,25 +654,6 @@ class LabelModel(Model):
         l.color = color
         l.update_drawing()
     single_color = property(_get_single_color, _set_single_color)
-
-    @property
-    def size(self):
-        '''Label size as fraction of window size (0-1).'''
-        w,h = self._window_size
-        tw,th = self._texture_size
-        return (tw/w, th/h)
-
-    def _resize(self, window_size):
-        if window_size == self._window_size:
-            return
-        # Window has resized so update texture drawing size
-        self._window_size = w,h = window_size
-        tw,th = self._texture_size
-        uw,uh = 2*tw/w, 2*th/h
-        l = self.label
-        x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
-        from chimerax.graphics.drawing import position_rgba_drawing
-        position_rgba_drawing(self, (x,y), (uw,uh))
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d

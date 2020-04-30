@@ -410,14 +410,54 @@ class ArrowModel(Model):
     def __init__(self, session, arrow):
         Model.__init__(self, arrow.name, session)
         self.arrow = arrow
-        self.window_size = None
-        self.texture_size = None
+        self._window_size = None	# Full window size in render pixels
+        self._texture_size = None	# Arrow image size in render pixels
+        self._aspect = 1		# Scale y positioning for image saving at non-screen aspect ratio
         self.needs_update = True
 
     def draw(self, renderer, draw_pass):
-        if not self.update_drawing():
-            self.resize()
+        self._update_graphics(renderer)
         Model.draw(self, renderer, draw_pass)
+
+    def _update_graphics(self, renderer):
+        '''
+        Recompute the label texture image or update its texture coordinates that
+        position it in the window based on the rendered window size.
+        When saving an image file the rendered size may differ from the on screen
+        window size.  In that case make the label size match its relative size
+        seen on screen.
+        '''
+        window_size = renderer.render_size()
+
+        # Preserve on screen label size if saving an image of different size.
+        if getattr(renderer, 'image_save', False):
+            # When saving an image match the arrow's position on screen
+            # relative to other models when image aspect ratio differs from screen.
+            sw,sh = self.session.main_view.window_size
+            w,h = window_size
+            aspect = (w*sh)/(h*sw) if h*sw > 0 else 1
+        else:
+            aspect = 1
+        if aspect != self._aspect:
+            self._aspect = aspect
+            self.needs_update = True
+
+        # Will need to reposition label if window size changes.
+        win_size_changed = (window_size != self._window_size)
+        if win_size_changed:
+            self._window_size = window_size
+            self.needs_update = True
+
+        if self.needs_update:
+            self.needs_update = False
+            self._update_arrow_image()
+
+    def _update_arrow_image(self):
+        rgba = self._arrow_image_rgba()
+        if rgba is None:
+            self.arrow.session.logger.info("Can't find font for arrow")
+        else:
+            self._set_arrow_image(rgba)
 
     @property
     def arrow_color(self):
@@ -438,19 +478,7 @@ class ArrowModel(Model):
         a.update_drawing()
     single_color = property(_get_single_color, _set_single_color)
 
-    def update_drawing(self):
-        if not self.needs_update:
-            return False
-        self.needs_update = False
-        a = self.arrow
-        rgba = self.arrow_image_rgba()
-        if rgba is None:
-            a.session.logger.info("Can't find font for arrow")
-            return True
-        self.set_arrow_image(rgba)
-        return True
-
-    def arrow_params(self, width, height):
+    def _arrow_params(self, width, height):
         scale_factor = min(width, height)
         sx, sy = self.arrow.start[0] * width, self.arrow.start[1] * height
         ex, ey = self.arrow.end[0] * width, self.arrow.end[1] * height
@@ -509,12 +537,13 @@ class ArrowModel(Model):
         ys = [pt[1] for pt in bounding_pts]
         return min(xs), max(xs), min(ys), max(ys)
 
-    def arrow_image_rgba(self):
+    def _arrow_image_rgba(self):
     #TODO: same techniques as chimerax.graphics.text_image_rgba, but using QPainter's arc drawing
     # plus: remainder of this file
 
-        w, h = self.arrow.session.main_view.window_size
-        shaft_info, head_start = self.arrow_params(w, h)
+        w, h = self._window_size
+        h *= self._aspect
+        shaft_info, head_start = self._arrow_params(w, h)
         if head_start is None:
             # too short to draw
             return None
@@ -531,8 +560,9 @@ class ArrowModel(Model):
 
         from PyQt5.QtGui import QImage, QPainter, QColor, QBrush, QPen
 
-        image = QImage(int((right-left))+2*self.PIXEL_MARGIN, int((top-bottom))+2*self.PIXEL_MARGIN,
-            QImage.Format_ARGB32)
+        iw = int(right-left)+2*self.PIXEL_MARGIN
+        ih = int(top-bottom)+2*self.PIXEL_MARGIN
+        image = QImage(iw, ih, QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
         with QPainter(image) as p:
@@ -602,30 +632,15 @@ class ArrowModel(Model):
 
         return rgba
 
-    def set_arrow_image(self, rgba):
+    def _set_arrow_image(self, rgba):
         x,y = (-1 + 2*self.xpos, -1 + 2*self.ypos)    # Convert 0-1 position to -1 to 1.
-        v = self.arrow.session.main_view
-        self.window_size = w,h = v.window_size
+        y *= self._aspect
+        w,h = self._window_size
         th, tw = rgba.shape[:2]
-        self.texture_size = (tw,th)
+        self._texture_size = (tw,th)
         uw,uh = 2*tw/w, 2*th/h
         from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
-
-    @property
-    def size(self):
-        '''Arrow size as fraction of window size (0-1).'''
-        w,h = self.window_size
-        tw,th = self.texture_size
-        return (tw/w, th/h)
-
-    def resize(self):
-        a = self.arrow
-        v = a.session.main_view
-        if v.window_size != self.window_size:
-            # Window has resized so update texture drawing size
-            self.needs_update = True
-            self.window_size = v.window_size
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d
