@@ -114,4 +114,14 @@ class ColorActions(ToolInstance):
             button.setChecked(False)
 
     def _color(self, color_name):
-        print("color", color_name)
+        from chimerax.core.commands import run, StringArg
+        target = ""
+        for but, targ_char in self.target_button_info:
+            if but.isChecked():
+                target += targ_char
+        commands = []
+        if target:
+            commands.append("color "
+                + ("" if self.session.selection.empty() else "sel ")
+                + StringArg.unparse(color_name)
+                + ("" if target == "acspf" else " target " + target))
