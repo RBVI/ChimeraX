@@ -125,3 +125,12 @@ class ColorActions(ToolInstance):
                 + ("" if self.session.selection.empty() else "sel ")
                 + StringArg.unparse(color_name)
                 + ("" if target == "acspf" else " target " + target))
+
+        for but, cmd in self.global_button_info:
+            if but.isChecked():
+                commands.append(cmd % StringArg.unparse(color_name))
+
+        if commands:
+            run(self.session, " ; ".join(commands))
+        else:
+            raise UserError("No target buttons for the coloring action are checked")
