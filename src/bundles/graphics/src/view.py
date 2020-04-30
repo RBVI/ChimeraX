@@ -437,12 +437,10 @@ class View:
         else:
             c = camera
 
-        # Render labels and other models sized in pixels with same relative size
-        # as they are shown on screen.
-        ew, eh = self.window_size
-        if w*eh != h*ew and w > 0:
-            eh = (ew * h) // w	# Image aspect differs from screen aspect
-        r.effective_window_size = (ew, eh)
+        # Set flag that image save is in progress for Drawing.draw() routines
+        # to adjust sizes of rendered objects with sizes in pixels to preserve
+        # the on-screen sizes.  This is used for 2d label sizing.
+        r.image_save = True
             
         if supersample is None:
             self.draw(c, drawings, swap_buffers = False)
@@ -465,7 +463,7 @@ class View:
         r.pop_framebuffer()
         fb.delete()
 
-        delattr(r, 'effective_window_size')
+        delattr(r, 'image_save')
         
         ncomp = 4 if transparent_background else 3
         from PIL import Image
