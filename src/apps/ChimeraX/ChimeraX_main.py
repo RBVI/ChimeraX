@@ -749,9 +749,17 @@ def init(argv, event_loop=True):
     # the rest of the arguments are data files
     from chimerax.core import errors, commands
     for arg in args:
+        if opts.safe_mode:
+            # 'open' command unavailable; only open Python files
+            if not arg.endswith('.py'):
+                sess.logger.error("Can only open Python scripts in safe mode, not '%s'" % arg)
+                return os.EX_SOFTWARE
+            command_name = 'runscript'
+        else:
+            command_name = 'open'
         try:
-            from chimerax.core.commands import quote_if_necessary
-            commands.run(sess, 'open %s' % quote_if_necessary(arg))
+            from chimerax.core.commands import StringArg
+            commands.run(sess, '%s %s' % (command_name, StringArg.unparse(arg)))
         except (IOError, errors.NotABug) as e:
             sess.logger.error(str(e))
             return os.EX_SOFTWARE
