@@ -14,16 +14,19 @@
 from chimerax.core.tools import ToolInstance
 
 
-class ColoringTool(ToolInstance):
+class ColorActions(ToolInstance):
+
+    SESSION_ENDURING = True
 
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
 
         from chimerax.ui import MainToolWindow
-        self.tool_window = tw = MainToolWindow(self)
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
         parent = tw.ui_area
 
-        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QDialogButtonBox, QWidget, QPushButton, QLabel
+        from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QDialogButtonBox, QWidget, QPushButton, \
+            QLabel, QCheckBox, QFrame
         from PyQt5.QtGui import QColor, QPixmap, QIcon
         from PyQt5.QtCore import Qt
         layout = QVBoxLayout()
@@ -56,13 +59,34 @@ class ColoringTool(ToolInstance):
             fav_color_layout.addWidget(button)
 
         actions_area = QWidget()
-        main_layout.addWidget(actions_area)
+        main_layout.addWidget(actions_area, alignment=Qt.AlignCenter)
         actions_layout = QVBoxLayout()
         actions_area.setLayout(actions_layout)
         header = QLabel("Coloring applies to:")
         header.setWordWrap(True)
         header.setAlignment(Qt.AlignCenter)
-        actions_layout.addWidget(header)
+        actions_layout.addWidget(header, alignment=Qt.AlignBottom | Qt.AlignHCenter)
+        self.target_button_info = []
+        for label, target, initial_on in [("atoms/bonds", 'a', True),  ("cartoons", 'c', True),
+                ("surfaces", 's', True), ("pseudobonds", 'p', True), ("ring fill", 'f', True),
+                ("labels", 'l', False)]:
+            chk = QCheckBox(label)
+            chk.setChecked(initial_on)
+            chk.clicked.connect(self._clear_global_buttons)
+            actions_layout.addWidget(chk)
+            self.target_button_info.append((chk, target))
+
+        sep = QFrame()
+        sep.setFrameStyle(QFrame.HLine)
+        actions_layout.addWidget(sep, stretch=1)
+
+        self.global_button_info = []
+        for label, command in [("background", "set bg %s")]:
+            chk = QCheckBox(label)
+            chk.setChecked(False)
+            chk.clicked.connect(self._clear_targeted_buttons)
+            actions_layout.addWidget(chk)
+            self.global_button_info.append((chk, command))
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
@@ -75,6 +99,19 @@ class ColoringTool(ToolInstance):
         layout.addWidget(bbox)
 
         tw.manage(placement=None)
+
+    @classmethod
+    def get_singleton(cls, session, tool_name):
+        from chimerax.core import tools
+        return tools.get_singleton(session, cls, tool_name)
+
+    def _clear_targeted_buttons(self, *args):
+        for button, *args in self.target_button_info:
+            button.setChecked(False)
+
+    def _clear_global_buttons(self, *args):
+        for button, *args in self.global_button_info:
+            button.setChecked(False)
 
     def _color(self, color_name):
         print("color", color_name)
