@@ -147,7 +147,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 data = _get_path(mgr, fi.file_name, provider_info.check_path)
             else:
                 data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
-            models, status = collated_open(session, None, [data], data_format, _add_models,
+            models, status = collated_open(session, None, [data], fi.data_format, _add_models,
                 opener_info.open, (session, data, name or model_name_from_path(fi.file_name)), provider_kw)
             if status:
                 statuses.append(status)
