@@ -24,7 +24,7 @@ class MainSaveDialog:
         fmt = self._filter2fmt[dialog.selectedNameFilter()]
         from chimerax.core.commands import run, SaveFileNameArg, StringArg
         fname = self._add_missing_file_suffix(dialog.selectedFiles()[0], fmt)
-        cmd = "save2 %s" % SaveFileNameArg.unparse(fname)
+        cmd = "save %s" % SaveFileNameArg.unparse(fname)
         if self._current_option != self._no_options_label:
             cmd += ' ' + session.save_command.save_args_string_from_widget(fmt,
                 self._current_option)
