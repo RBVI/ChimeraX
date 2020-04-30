@@ -92,6 +92,11 @@ def register_volume_filtering_subcommands(logger):
                          synopsis = 'Extract maps for boxes around selected atoms')
     register('volume boxes', boxes_desc, volume_boxes, logger=logger)
 
+    copy_desc = CmdDesc(required = varg,
+                         keyword = [('value_type', ValueTypeArg)] + ssm_kw,
+                         synopsis = 'Copy a map or a map subregio')
+    register('volume copy', copy_desc, volume_copy, logger=logger)
+
     cover_desc = CmdDesc(required = varg,
         keyword = [('atom_box', AtomsArg),
                    ('pad', FloatArg),
@@ -485,6 +490,16 @@ def volume_boxes(session, volumes, centers, size = 0, isize = None, use_marker_s
     from .boxes import boxes
     for v in volumes:
         boxes(session, v, centers, size, isize, use_marker_size, step, subregion, model_id)
+
+# -----------------------------------------------------------------------------
+#
+def volume_copy(session, volumes, value_type = None, subregion = 'all', step = 1, model_id = None):
+    '''Copy a map or map subregion.'''
+    copies = [v.writable_copy(require_copy = True,
+                              subregion = subregion, step = step,
+                              value_type = value_type, model_id = model_id)
+              for v in volumes]
+    return copies
 
 # -----------------------------------------------------------------------------
 #
