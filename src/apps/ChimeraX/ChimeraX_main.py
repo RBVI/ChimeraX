@@ -749,16 +749,32 @@ def init(argv, event_loop=True):
     # the rest of the arguments are data files
     from chimerax.core import errors, commands
     for arg in args:
-        try:
-            from chimerax.core.commands import quote_if_necessary
-            commands.run(sess, 'open %s' % quote_if_necessary(arg))
-        except (IOError, errors.NotABug) as e:
-            sess.logger.error(str(e))
-            return os.EX_SOFTWARE
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return os.EX_SOFTWARE
+        if opts.safe_mode:
+            # 'open' command unavailable; only open Python files
+            if not arg.endswith('.py'):
+                sess.logger.error("Can only open Python scripts in safe mode, not '%s'" % arg)
+                return os.EX_SOFTWARE
+            from chimerax.core.scripting import open_python_script
+            try:
+                open_python_script(sess, open(arg, 'rb'), arg)
+            except (IOError, errors.NotABug) as e:
+                sess.logger.error(str(e))
+                return os.EX_SOFTWARE
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return os.EX_SOFTWARE
+        else:
+            from chimerax.core.commands import StringArg
+            try:
+                commands.run(sess, 'open %s' % StringArg.unparse(arg))
+            except (IOError, errors.NotABug) as e:
+                sess.logger.error(str(e))
+                return os.EX_SOFTWARE
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return os.EX_SOFTWARE
 
     # Open files dropped on application
     if opts.gui:

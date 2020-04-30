@@ -535,6 +535,9 @@ class HelpUI(ToolInstance):
 
 
 def _installable(w, logger):
+    return True
+    # TODO: check if installable to give better error message than
+    #       downstream use of pip.
     import re
     from distutils.version import LooseVersion as Version
     import chimerax.core

@@ -98,7 +98,9 @@ class _MyAPI(toolshed.BundleAPI):
     def run_provider(session, name, mgr, **kw):
         if name == "HTML":
             from chimerax.open_command import OpenerInfo
+
             class HelpViewerInfo(OpenerInfo):
+
                 def open(self, session, path, file_name, *, new_tab=False):
                     import os
                     base, ext = os.path.splitext(path)
@@ -118,12 +120,14 @@ class _MyAPI(toolshed.BundleAPI):
                 @property
                 def open_args(self):
                     from chimerax.core.commands import BoolArg
-                    return { 'new_tab': BoolArg }
-        else: # help: / http: / https:
+                    return {'new_tab': BoolArg}
+        else:  # help: / http: / https:
             from chimerax.open_command import FetcherInfo
+
             class HelpViewerInfo(FetcherInfo):
+
                 def fetch(self, session, ident, format_name, ignore_cache,
-                        _protocol=name, **kw):
+                          _protocol=name, **kw):
                     url = _protocol + ':' + ident
                     show_url(session, url, **kw)
                     return [], "Opened %s" % url
@@ -131,7 +135,7 @@ class _MyAPI(toolshed.BundleAPI):
                 @property
                 def fetch_args(self):
                     from chimerax.core.commands import BoolArg
-                    return { 'new_tab': BoolArg }
+                    return {'new_tab': BoolArg}
 
         return HelpViewerInfo()
 

@@ -82,7 +82,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         keywords[keyword] = annotation
     desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
         synopsis="unnecessary")
-    register("open2", desc, provider_open, registry=registry)
+    register("open", desc, provider_open, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
@@ -369,6 +369,6 @@ class FileInfo:
 
 
 def register_command(command_name, logger):
-    register('open2', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
+    register('open', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
         ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files",
         self_logging=True), cmd_open, logger=logger)

@@ -437,6 +437,11 @@ class View:
         else:
             c = camera
 
+        # Set flag that image save is in progress for Drawing.draw() routines
+        # to adjust sizes of rendered objects with sizes in pixels to preserve
+        # the on-screen sizes.  This is used for 2d label sizing.
+        r.image_save = True
+            
         if supersample is None:
             self.draw(c, drawings, swap_buffers = False)
             rgba = r.frame_buffer_image(w, h)
@@ -458,6 +463,8 @@ class View:
         r.pop_framebuffer()
         fb.delete()
 
+        delattr(r, 'image_save')
+        
         ncomp = 4 if transparent_background else 3
         from PIL import Image
         # Flip y-axis since PIL image has row 0 at top,
@@ -499,7 +506,7 @@ class View:
         elif w is not None:
             # Choose height to match window aspect ratio.
             return (w, (vh * w) // vw)
-        elif height is not None:
+        elif h is not None:
             # Choose width to match window aspect ratio.
             return ((vw * h) // vh, h)
         return (vw, vh)
