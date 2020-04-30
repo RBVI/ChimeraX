@@ -987,7 +987,7 @@ def register_session_format(session):
     register_command(session.logger)
     from .commands import devel as devel_cmd, open as open_cmd, save as save_cmd
     devel_cmd.register_command(session.logger)
-    open_cmd.register_command(session.logger)
+    #open_cmd.register_command(session.logger)
     from . import io, toolshed
     io.register_format(
         "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
@@ -996,7 +996,7 @@ def register_session_format(session):
         open_func=open, export_func=save)
     add_keyword_arguments('open', {'resize_window': BoolArg})
 
-    save_cmd.register_command(session.logger)
+    #save_cmd.register_command(session.logger)
     desc = CmdDesc(
         required=[('filename', SaveFileNameArg)],
         keyword=[('version', IntArg), ('uncompressed', BoolArg)],

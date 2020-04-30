@@ -56,7 +56,7 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
         keywords[keyword] = annotation
     desc = CmdDesc(required=[('file_name', SaveFileNameArg)], keyword=keywords.items(),
         hidden=mgr.hidden_args(data_format), synopsis="unnecessary")
-    register("save2", desc, provider_save, registry=registry)
+    register("save", desc, provider_save, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_save(session, file_name, format=None, **provider_kw):
@@ -109,6 +109,6 @@ def file_format(session, file_name, format_name):
 
 
 def register_command(command_name, logger):
-    register('save2', CmdDesc(
+    register('save', CmdDesc(
         required=[('file_name', SaveFileNameArg), ('rest_of_line', RestOfLine)],
         synopsis="Save file", self_logging=True), cmd_save, logger=logger)

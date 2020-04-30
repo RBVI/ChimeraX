@@ -1244,8 +1244,19 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session:
             run(ses, "~label %s residues" % sel_or_all(ses, ['residues'], allow_empty_spec=False)))
         action = QAction("Set Label Height", self)
-        #label_menu.addAction(action)
+        label_menu.addAction(action)
         action.triggered.connect(self.show_set_label_height_dialog)
+
+        # misc...
+        action = QAction("View", self)
+        actions_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "view" + ("" if ses.selection.empty() else " sel")))
+
+        action = QAction("Set Pivot", self)
+        actions_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+            run(ses, "cofr " + ("frontCenter" if ses.selection.empty() else "sel")))
 
     def _color_by_editor(self, *args):
         if not self._color_dialog:

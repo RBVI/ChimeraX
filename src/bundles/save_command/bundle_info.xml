@@ -36,7 +36,7 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Command :: save2 :: General :: Save data files</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: save :: General :: Save data files</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

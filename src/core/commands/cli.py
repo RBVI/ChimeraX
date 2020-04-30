@@ -2347,6 +2347,7 @@ def add_keyword_arguments(name, kw_info, *, registry=None):
     :param name: the name of the command (must not be an alias)
     :param kw_info: { keyword: annotation }
     """
+    return # this func slated for removal
     if not isinstance(kw_info, dict):
         raise ValueError("kw_info must be a dictionary")
     cmd = Command(None, registry=registry)
