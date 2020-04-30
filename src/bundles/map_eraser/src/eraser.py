@@ -210,13 +210,16 @@ class MapEraserSettings(ToolInstance):
         layout.addWidget(ef)
         elayout = QHBoxLayout(ef)
         elayout.setContentsMargins(0,0,0,0)
-        elayout.setSpacing(50)
+        elayout.setSpacing(30)
         eb = QPushButton('Erase inside sphere', ef)
         eb.clicked.connect(self._erase_in_sphere)
         elayout.addWidget(eb)
         eo = QPushButton('Erase outside sphere', ef)
         eo.clicked.connect(self._erase_outside_sphere)
         elayout.addWidget(eo)
+        rb = QPushButton('Reduce map bounds', ef)
+        rb.clicked.connect(self._crop_map)
+        elayout.addWidget(rb)
         elayout.addStretch(1)    # Extra space at end
 
         layout.addStretch(1)    # Extra space at end
@@ -314,26 +317,47 @@ class MapEraserSettings(ToolInstance):
         self._erase()
 
     def _erase(self, outside = False):
-        from PyQt5.QtCore import Qt
-        if self._show_eraser.checkState() != Qt.Checked:
-            return
-        sm = self.sphere_model
-        center = sm.scene_position.origin()
-
-        v = self._shown_volume()
+        v, center, radius = self._eraser_region()
         if v is None:
-            self.session.logger.warning('Can only have one displayed volume when erasing')
             return
-
         c = '%.5g,%.5g,%.5g' % tuple(center)
-        cmd = 'volume erase #%s center %s radius %.5g' % (v.id_string, c, sm.radius)
+        cmd = 'volume erase #%s center %s radius %.5g' % (v.id_string, c, radius)
         if outside:
             cmd += ' outside true'
         from chimerax.core.commands import run
         run(self.session, cmd)
 
+    def _eraser_region(self):
+        from PyQt5.QtCore import Qt
+        if self._show_eraser.checkState() != Qt.Checked:
+            return None, None, None
+
+        v = self._shown_volume()
+        if v is None:
+            self.session.logger.warning('Can only have one displayed volume when erasing')
+            return None, None, None
+
+        sm = self.sphere_model
+        center = sm.scene_position.origin()
+        radius = sm.radius
+        
+        return v, center, radius
+
     def _erase_outside_sphere(self):
         self._erase(outside = True)
+
+    def _crop_map(self):
+        v, center, radius = self._eraser_region()
+        if v is None:
+            return
+        vcenter = v.scene_position.inverse() * center
+        ijk_min, ijk_max, ijk_step = v.bounding_region([vcenter], radius,
+                                                       step = 1, cubify = True)
+        region = ','.join(['%d,%d,%d' % tuple(ijk_min),
+                           '%d,%d,%d' % tuple(ijk_max)])
+        cmd = 'volume copy #%s subregion %s' % (v.id_string, region)
+        from chimerax.core.commands import run
+        run(self.session, cmd)
         
     def _shown_volume(self):
         ses = self.session
