@@ -114,6 +114,7 @@ class ColorActions(ToolInstance):
             button.setChecked(False)
 
     def _color(self, color_name):
+        from chimerax.core.errors import UserError
         from chimerax.core.commands import run, StringArg
         target = ""
         for but, targ_char in self.target_button_info:
