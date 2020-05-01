@@ -41,9 +41,9 @@ class _IHMAPI(BundleAPI):
         if name == "Integrative/Hybrid Models":
             from chimerax.open_command import OpenerInfo
             class Info(OpenerInfo):
-                def open(self, session, data, file_name, **kw):
+                def open(self, session, data, file_name, ensembles=False, **kw):
                     from . import ihm
-                    return ihm.read_ihm(session, data, file_name, **kw)
+                    return ihm.read_ihm(session, data, file_name, load_ensembles=ensembles, **kw)
 
                 @property
                 def open_args(self):

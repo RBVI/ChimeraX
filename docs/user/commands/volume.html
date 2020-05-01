@@ -1345,6 +1345,8 @@ Several operations are available:
 <li><a href="#boxes"><b>volume boxes</b></a>
 &ndash; extract cubic regions centered on
 <a href="../markers.html">markers</a> or atoms
+<li><a href="#copy"><b>volume copy</b></a>
+&ndash; copy map or subregion
 <li><a href="#cover"><b>volume cover</b></a>
 &ndash; extend map to cover specified atoms or box
 <li><a href="#erase"><b>volume erase</b></a>
@@ -1533,6 +1535,23 @@ If <b>size</b> is used instead, rounding may yield edges
 that differ slightly in grid dimensions.
 Marker/atom size can be changed with the
 <a href="size.html"><b>size</b></a> command.
+</blockquote>
+
+<a href="#vop" class="nounder">&bull;</a>
+<a name="copy"><b>volume copy</b></a> &nbsp;<i>volume-spec</i>&nbsp;
+[&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>subregion</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b></a>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>step</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
+<blockquote>
+Copy all or a subregion of a map to a new map.
+The <i>value-type</i> defaults to the same as the input map
+and can be 8-, 16-, or 32-bit signed integer
+(<b>int8</b>, <b>int16</b>, or <b>int32</b>),
+8-, 16-, or 32-bit unsigned integer
+(<b>uint8</b>, <b>uint16</b>, or <b>uint32</b>),
+or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
+The other options are described <a href="#vop-options">below</a>.
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
