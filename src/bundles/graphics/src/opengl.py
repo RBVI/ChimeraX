@@ -531,6 +531,8 @@ class Render:
         return max_size
 
     def framebuffer_rgba_bits(self):
+        # This is only valid for default framebuffer.
+        # Need to use GL_COLOR_ATTACHMENT0 for offscreen framebuffers.
         return tuple(GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
                                                               GL.GL_BACK_LEFT, attr)
                      for attr in (GL.GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE,
@@ -539,6 +541,8 @@ class Render:
                                   GL.GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE))
 
     def framebuffer_depth_bits(self):
+        # This is only valid for default framebuffer.
+        # Need to use GL_DEPTH_ATTACHMENT for offscreen framebuffers.
         return GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
                                                         GL.GL_DEPTH,
                                                         GL.GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE)
@@ -1042,6 +1046,11 @@ class Render:
                            vendor.startswith((b'AMD', b'ATI')))
 
         #
+        # Outline drawing uses glBlitFramebuffer() to copy the depth buffer and
+        # that fails if the default framebuffer depth attachment is not 24 bits
+        # and the outlining depth is 24 bits.  In this case render offscreen so
+        # both the render and outline framebuffers have 24-bit depth buffers.
+        #
         # On macOS 10.14.5 with Radeon Pro Vega 20 or 16 graphics selection outlines
         # are fragmented if rendering is to the default framebuffer.  The problem
         # appears to be that copying the default framebuffer depth to the offscreen
@@ -1049,8 +1058,9 @@ class Render:
         # in this case.  ChimeraX bug #2216.
         #
         self.outline.offscreen_outline_needed = (
-            sys.platform.startswith('darwin') and
-            self.opengl_renderer().startswith('AMD Radeon Pro Vega'))
+            self.framebuffer_depth_bits() != 24 or
+            (sys.platform.startswith('darwin') and
+             self.opengl_renderer().startswith('AMD Radeon Pro Vega')))
         
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()

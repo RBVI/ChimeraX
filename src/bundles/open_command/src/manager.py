@@ -125,8 +125,7 @@ class OpenManager(ProviderManager):
                 except KeyError:
                     nicks = []
                 else:
-                    nicks = df.nicknames
-                print("nicks:", nicks)
+                    nicks = df.nicknames + df.name
                 for nick in nicks:
                     try:
                         provider_info = db_formats[nick]
