@@ -142,7 +142,7 @@ def show_open_file_dialog(session, initial_directory=None, format_name=None):
 
     def _qt_safe(session=session, paths=paths, data_format=filter2fmt[file_filter]):
         from chimerax.core.commands import run, FileNameArg, StringArg
-        run(session, "open2 " + " ".join([FileNameArg.unparse(p) for p in paths]) + (""
+        run(session, "open " + " ".join([FileNameArg.unparse(p) for p in paths]) + (""
             if data_format is None else " format " + StringArg.unparse(data_format.nicknames[0])))
     # Opening the model directly adversely affects Qt interfaces that show
     # as a result.  In particular, Multalign Viewer no longer gets hover
