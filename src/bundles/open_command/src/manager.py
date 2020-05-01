@@ -119,9 +119,25 @@ class OpenManager(ProviderManager):
             try:
                 provider_info = db_formats[format_name]
             except KeyError:
-                raise NoOpenerError("Format '%s' not supported for database '%s'."
-                    "  Supported formats are: %s" % (format_name, database_name,
-                    commas([dbf for dbf in db_formats])))
+                # for backwards compatibility, try the nicknames of the format
+                try:
+                    df = self.session.data_formats[format_name]
+                except KeyError:
+                    nicks = []
+                else:
+                    nicks = df.nicknames
+                print("nicks:", nicks)
+                for nick in nicks:
+                    try:
+                        provider_info = db_formats[nick]
+                        format_name = nick
+                    except KeyError:
+                        continue
+                    break
+                else:
+                    raise NoOpenerError("Format '%s' not supported for database '%s'."
+                        "  Supported formats are: %s" % (format_name, database_name,
+                        commas([dbf for dbf in db_formats])))
         else:
             for format_name, provider_info in db_formats.items():
                 if provider_info.is_default:

@@ -147,7 +147,7 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 data = _get_path(mgr, fi.file_name, provider_info.check_path)
             else:
                 data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
-            models, status = collated_open(session, None, [data], data_format, _add_models,
+            models, status = collated_open(session, None, [data], fi.data_format, _add_models,
                 opener_info.open, (session, data, name or model_name_from_path(fi.file_name)), provider_kw)
             if status:
                 statuses.append(status)
@@ -272,11 +272,23 @@ def fetch_info(mgr, file_arg, format_name, database_name):
         db_formats = mgr.database_info(db_name).keys()
     except NoOpenerError as e:
         raise LimitationError(str(e))
-    if format_name and format_name not in [dbf for dbf in db_formats]:
-        from chimerax.core.commands import commas
-        raise UserError("Format '%s' not supported for database '%s'.  Supported"
-            " formats are: %s" % (format_name, db_name,
-            commas([dbf for dbf in db_formats])))
+    if format_name and format_name not in db_formats:
+        # for backwards compatibiity, accept formal format name
+        try:
+            df = mgr.session.data_formats[format_name]
+        except KeyError:
+            nicks = []
+        else:
+            nicks = df.nicknames
+        for nick in nicks:
+            if nick in db_formats:
+                format_name = nick
+                break
+            else:
+                from chimerax.core.commands import commas
+                raise UserError("Format '%s' not supported for database '%s'.  Supported"
+                    " formats are: %s" % (format_name, db_name,
+                    commas([dbf for dbf in db_formats])))
     return (ident, db_name, format_name)
 
 def name_and_group_models(models, name_arg, path_info):

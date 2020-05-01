@@ -95,7 +95,7 @@ else:
                 if fmt.synopsis == fmt_synopsis:
                     break
             from chimerax.core.commands import run, FileNameArg
-            cmd = 'open2 %s format %s' % (FileNameArg.unparse(dir), fmt.nicknames[0])
+            cmd = 'open %s format %s' % (FileNameArg.unparse(dir), fmt.nicknames[0])
             run(session, cmd)
 
 def create_menu_entry(session):
