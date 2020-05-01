@@ -109,13 +109,15 @@ Parameters that are not specified retain their current values.
 <a name="text"></a>
 <b>text</b>&nbsp;&nbsp;<i>label-contents</i>&nbsp;|&nbsp;<b>default</b>
 <br>
-Specify text contents of the label, which can be an arbitrary string 
-or <b>default</b> information based on the object type being labeled:
+Specify label contents, which can be an arbitrary string or information 
+on the labeled items. The <b>default</b> information is:
 <ul>
 <li>for <b>atoms</b>, atom name
 <li>for <b>residues</b> (default), residue name and number
 <li>for <b>bonds</b> or <b>pseudobonds</b>, length 
 </ul>
+For other <a href="../attributes.html">attributes</a> of the items,
+see <a href="#attribute">below</a>.
 Arbitrary <i>label-contents</i> can include 
 letters, numbers, symbols from the keyboard; 
 additional <a href="symbols.html">symbols</a> can be copied and pasted
@@ -123,38 +125,48 @@ into the command line, or indicated with
 <a href="http://unicode.org/charts/" target="_blank">unicode</a> 
 character codes or character names.
 (See <a href="2dlabels.html"><b>2dlabels</b></a> for Unicode examples.)
-Spaces and quote marks can be included by enclosing the 
-entire <i>label-contents</i> in single or double quote marks.
+Spaces and quotation marks can be included by enclosing the 
+entire <i>label-contents</i> in single or double quotation marks.
 Carriage returns are indicated with <b>\n</b>. 
-<p>
+</p>
+</blockquote>
+
+<blockquote>
+<a name="attribute"></a>
+<b>attribute</b>&nbsp;&nbsp;<a href="../attributes.html"><i>attribute-name</i></a>
+<br>
 Atoms and residues can be labeled by the values of an
-<a href="../attributes.html">attribute</a> at the same or higher level,
-for example:
+<a href="../attributes.html">attribute</a> at the same or higher level.
+The <b>attribute</b> option shows the values of a single attribute with
+default formatting, whereas the <a href="#text"><b>text</b> option</a> 
+can be used to combine the attribute with arbitrary text, 
+label with more than one attribute at a time, and/or include
+<a href="https://docs.python.org/3/library/string.html#formatstrings"
+target="_blank">python format specifications</a>.
+Examples:
 </p>
  <blockquote><b>
+label ligand atoms attribute idatm_type
+</b>&nbsp;&nbsp;&ndash;&nbsp;same as&nbsp;&ndash;&nbsp;&nbsp;<b>
 label ligand atoms text {0.idatm_type}
 <br>
-label sel atoms text {0.bfactor:g}
+label sel atoms attribute bfactor
+</b>&nbsp;&nbsp;&ndash;&nbsp;same as&nbsp;&ndash;&nbsp;&nbsp;<b>
+label sel atoms text {0.bfactor:.3g}
 <br>
-label @ca residues text {0.number}
-<br>
+label @ca atoms attr residue.number
+</b>&nbsp;&nbsp;&ndash;&nbsp;same as&nbsp;&ndash;&nbsp;&nbsp;<b>
 label @ca atoms text {0.residue.number}
 <br>
-label protein residues text "{0.phi:.1f},{0.psi:.1f}"
+label @ca residues attr number
 <br>
-label :1 residues text {0.chain_id}
+label :1 residues attr chain_id height 4
 <br>
-label /A:1 residues text {0.structure.name} height 5 offset 1,1,1
- </b></blockquote>
+label /A:1 residues attr structure.name height 5 offset 1,1,1
+<br>
+label /A:2-12 residues text "{0.phi:.1f},{0.psi:.1f}"
+</b></blockquote>
 <p>
-The examples with floating-point values
-(<b>bfactor</b>, <b>phi</b>, <b>psi</b>) include 
-<a href="https://docs.python.org/3/library/string.html#formatstrings"
-target="_blank">python format specifications</a>; otherwise, too
-many digits would be displayed.
-In the future, an <b>attribute</b> option will be added to simplify
-labeling by the values of a single attribute.
-</p>
 </blockquote>
 
 <blockquote>
