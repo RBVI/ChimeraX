@@ -102,13 +102,21 @@ class ColorActions(ToolInstance):
         grp_layout.setContentsMargins(0,0,0,0)
         grp_layout.setSpacing(0)
         grp.setLayout(grp_layout)
-        for label, arg in [("heteroatom", "het"), ("element", "element"), ("nucleotide type", "nucleotide"),
-                ("chain", "chain"), ("unique chain", "polymer")]:
+        for label, arg, tooltip in [
+                ("heteroatom", "het", "Color non-carbon atoms by chemical element"),
+                ("element", "element", "Color atoms by chemical element"),
+                ("nucleotide type", "nucleotide", "Color nucleotide residues by the type of their base"),
+                ("chain", "chain", "Give each chain a different color"),
+                ("polymer", "polymer", "Color chains differently, except that chains with the same sequence"
+                    " receive the same color")]:
             but = QPushButton("by " + label)
+            if tooltip:
+                but.setToolTip(tooltip)
             but.clicked.connect(lambda *, run=run, ses=self.session, arg=arg: run(ses,
                 "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg))
             grp_layout.addWidget(but)
         but = QPushButton("from editor")
+        but.setToolTip("Bring up a color editor to choose the color")
         but.clicked.connect(self.session.ui.main_window.color_by_editor)
         grp_layout.addWidget(but)
 
