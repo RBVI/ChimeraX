@@ -1197,6 +1197,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("From Editor", self)
         color_menu.addAction(action)
         action.triggered.connect(self.color_by_editor)
+        color_menu.addSeparator()
+        action = QAction("All Options...", self)
+        color_menu.addAction(action)
+        action.triggered.connect(lambda *args, run=run, ses=self.session:
+                run(ses, "toolshed show 'Color Actions'"))
 
         #
         # Label...
