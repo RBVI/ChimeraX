@@ -21,7 +21,7 @@ BUNDLE_BUILDER_SUBDIR = bundle_builder
 REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atomic \
 	  basic_actions bild blastprotein bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
-	  cellpack chem_group clashes cmd_line \
+	  cellpack chem_group clashes cmd_line color_actions \
 	  color_globe connect_structure core_formats \
 	  crosslinks crystal data_formats \
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \

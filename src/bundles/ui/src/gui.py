@@ -1187,7 +1187,7 @@ class MainWindow(QMainWindow, PlainTextLog):
             action = QAction(icon, spaced_name.title(), self)
             color_menu.addAction(action)
             action.triggered.connect(lambda *args, run=self._run_surf_command,
-                cmd="color %%s %s" % svg_name: run(cmd))
+                cmd="color %%s %s" % spaced_name: run(cmd))
         color_menu.addSeparator()
         for menu_text, cmd_arg in [("By Heteroatom", "byhet"), ("By Element", "byelement")]:
             action = QAction(menu_text, self)
@@ -1196,7 +1196,7 @@ class MainWindow(QMainWindow, PlainTextLog):
                 cmd="color %%s %s" % cmd_arg: run(ses, cmd % sel_or_all(ses, ['atoms', 'bonds'])))
         action = QAction("From Editor", self)
         color_menu.addAction(action)
-        action.triggered.connect(self._color_by_editor)
+        action.triggered.connect(self.color_by_editor)
 
         #
         # Label...
@@ -1258,7 +1258,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         action.triggered.connect(lambda *args, run=run, ses=self.session:
             run(ses, "cofr " + ("frontCenter" if ses.selection.empty() else "sel")))
 
-    def _color_by_editor(self, *args):
+    def color_by_editor(self, *args):
         if not self._color_dialog:
             from PyQt5.QtWidgets import QColorDialog
             self._color_dialog = cd = QColorDialog(self)
@@ -1882,7 +1882,8 @@ class ToolWindow(StatusLogger):
             resize = lambda mw=self.session.ui.main_window, dw=dw, orientation=orientation: \
                 mw.resizeDocks([dw], [1], orientation)
         from PyQt5.QtCore import QTimer
-        QTimer.singleShot(0, resize)
+        # 0 is empirically "too fast", as is 10 and 12, using 25 msec
+        QTimer.singleShot(25, resize)
 
     def status(self, *args, **kw):
         """Supported API.  Show a status message for the tool."""

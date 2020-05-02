@@ -26,7 +26,7 @@ class ColorActions(ToolInstance):
         parent = tw.ui_area
 
         from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QDialogButtonBox, QWidget, QPushButton, \
-            QLabel, QCheckBox, QFrame
+            QLabel, QCheckBox, QFrame, QGroupBox, QGridLayout
         from PyQt5.QtGui import QColor, QPixmap, QIcon
         from PyQt5.QtCore import Qt
         layout = QVBoxLayout()
@@ -37,6 +37,7 @@ class ColorActions(ToolInstance):
         main_dialog_area = QWidget()
         layout.addWidget(main_dialog_area)
         main_layout = QHBoxLayout()
+        main_layout.setContentsMargins(0,7,0,7)
         main_dialog_area.setLayout(main_layout)
 
         fav_color_area = QWidget()
@@ -45,9 +46,10 @@ class ColorActions(ToolInstance):
         fav_color_layout.setContentsMargins(0,0,0,0)
         fav_color_layout.setSpacing(0)
         fav_color_area.setLayout(fav_color_layout)
-        for spaced_name in [ "red", "orange red", "orange", "yellow", "lime", "forest green", "cyan",
+        spaced_names = [ "red", "orange red", "orange", "yellow", "lime", "forest green", "cyan",
                 "light sea green", "blue", "cornflower blue", "medium blue", "purple", "hot pink",
-                "magenta", "white", "light gray", "gray", "dark gray", "dim gray", "black"]:
+                "magenta", "white", "light gray", "gray", "dark gray", "dim gray", "black"]
+        for spaced_name in spaced_names:
             svg_name = "".join(spaced_name.split())
             color = QColor(svg_name)
             pixmap = QPixmap(16, 16)
@@ -59,9 +61,12 @@ class ColorActions(ToolInstance):
             fav_color_layout.addWidget(button)
 
         actions_area = QWidget()
-        main_layout.addWidget(actions_area, alignment=Qt.AlignCenter)
+        main_layout.addWidget(actions_area)
         actions_layout = QVBoxLayout()
         actions_area.setLayout(actions_layout)
+
+        actions_layout.addStretch(1)
+
         header = QLabel("Coloring applies to:")
         header.setWordWrap(True)
         header.setAlignment(Qt.AlignCenter)
@@ -88,11 +93,92 @@ class ColorActions(ToolInstance):
             actions_layout.addWidget(chk)
             self.global_button_info.append((chk, command))
 
+        actions_layout.addStretch(1)
+
+        from chimerax.core.commands import run
+        grp = QGroupBox("Other colorings")
+        actions_layout.addWidget(grp)
+        grp_layout = QVBoxLayout()
+        grp_layout.setContentsMargins(0,0,0,0)
+        grp_layout.setSpacing(0)
+        grp.setLayout(grp_layout)
+        for label, arg in [("heteroatom", "het"), ("element", "element"), ("nucleotide type", "nucleotide"),
+                ("chain", "chain"), ("unique chain", "polymer")]:
+            but = QPushButton("by " + label)
+            but.clicked.connect(lambda *, run=run, ses=self.session, arg=arg: run(ses,
+                "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg))
+            grp_layout.addWidget(but)
+        but = QPushButton("from editor")
+        but.clicked.connect(self.session.ui.main_window.color_by_editor)
+        grp_layout.addWidget(but)
+
+        actions_layout.addStretch(1)
+
+        self.all_colors_check_box = chk = QCheckBox("Show all colors \N{RIGHTWARDS ARROW}")
+        chk.setChecked(False)
+        chk.clicked.connect(self._toggle_all_colors)
+        actions_layout.addWidget(chk, alignment=Qt.AlignRight)
+
+        actions_layout.addStretch(1)
+
+        self.all_colors_area = QWidget()
+        self.all_colors_area.setHidden(True)
+        main_layout.addWidget(self.all_colors_area)
+        from chimerax.core.colors import BuiltinColors
+        # for colors with the exact same RGBA value, only keep one
+        canonical = {}
+        for name, color in BuiltinColors.items():
+            key = tuple(color.rgba)
+            if key[-1] == 0.0:
+                continue
+            try:
+                canonical_name = canonical[key]
+            except KeyError:
+                canonical[key] = name
+                continue
+            if 'grey' in name:
+                continue
+            if 'grey' in canonical_name:
+                canonical[key] = name
+                continue
+            if len(name) > len(canonical_name):
+                # names with spaces in them are longer...
+                canonical[key] = name
+                continue
+            if len(name) == len(canonical_name) and name > canonical_name:
+                # tie breaker for otherwise equal-value names, so that
+                # the set of names is the same between invocations of the tool
+                canonical[key] = name
+        rgbas = list(canonical.keys())
+        rgbas.sort(key=self._rgba_key)
+        color_names = [canonical[rgba] for rgba in rgbas]
+        all_colors_layout = QGridLayout()
+        all_colors_layout.setContentsMargins(0,0,0,0)
+        all_colors_layout.setSpacing(0)
+        self.all_colors_area.setLayout(all_colors_layout)
+        num_rows = len(spaced_names)
+        row = column = 0
+        for spaced_name in color_names:
+            #svg_name = "".join(spaced_name.split())
+            #color = QColor(svg_name)
+            # QColor doesn't know the name "rebeccapurple", so...
+            color = QColor(*[int(c*255+0.5) for c in BuiltinColors[spaced_name].rgba])
+            pixmap = QPixmap(16, 16)
+            pixmap.fill(color)
+            icon = QIcon(pixmap)
+            button = QPushButton(icon, spaced_name.title())
+            button.released.connect(lambda clr=spaced_name: self._color(clr))
+            button.setStyleSheet("QPushButton { text-align: left; }")
+            all_colors_layout.addWidget(button, row, column)
+            row += 1
+            if row >= num_rows:
+                row = 0
+                column += 1
+
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.rejected.connect(self.delete)
         if self.help:
-            from chimerax.core.commands import run
             bbox.helpRequested.connect(lambda run=run, ses=self.session: run(ses, "help " + self.help))
         else:
             bbox.button(qbbox.Help).setEnabled(False)
@@ -115,7 +201,7 @@ class ColorActions(ToolInstance):
 
     def _color(self, color_name):
         from chimerax.core.errors import UserError
-        from chimerax.core.commands import run, StringArg
+        from chimerax.core.commands import run
         target = ""
         for but, targ_char in self.target_button_info:
             if but.isChecked():
@@ -123,15 +209,42 @@ class ColorActions(ToolInstance):
         commands = []
         if target:
             commands.append("color "
-                + ("" if self.session.selection.empty() else "sel ")
-                + StringArg.unparse(color_name)
+                + ("" if self.session.selection.empty() else "sel ") + color_name
                 + ("" if target == "acspf" else " target " + target))
 
         for but, cmd in self.global_button_info:
             if but.isChecked():
-                commands.append(cmd % StringArg.unparse(color_name))
+                commands.append(cmd % color_name)
 
         if commands:
             run(self.session, " ; ".join(commands))
         else:
             raise UserError("No target buttons for the coloring action are checked")
+
+    def _rgba_key(self, rgba):
+        brightness = rgba[0] + rgba[1] + rgba[2]
+        if brightness > 2.2:
+            return (7, rgba)
+        if brightness < 0.5:
+            return (8, rgba)
+        reddish, greenish, bluish = rgba[0] > 0.5, rgba[1] > 0.5, rgba[2] > 0.5
+        if reddish and not greenish and not bluish:
+            return (0, -rgba[0]+rgba[1]+rgba[2])
+        if reddish and greenish and not bluish:
+            return (1, -rgba[0]-rgba[1]+rgba[2])
+        if not reddish and greenish and not bluish:
+            return (2, rgba[0]-rgba[1]+rgba[2])
+        if not reddish and greenish and bluish:
+            return (3, rgba[0]-rgba[1]-rgba[2])
+        if not reddish and not greenish and bluish:
+            return (4, rgba[0]+rgba[1]-rgba[2])
+        if reddish and not greenish and bluish:
+            return (5, -rgba[0]+rgba[1]-rgba[2])
+        return (6, rgba)
+
+    def _toggle_all_colors(self, *args):
+        if self.all_colors_check_box.isChecked():
+            self.all_colors_area.setHidden(False)
+        else:
+            self.all_colors_area.setHidden(True)
+            self.tool_window.shrink_to_fit()
