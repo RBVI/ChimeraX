@@ -37,9 +37,10 @@ and `session.trigger.remove_handler`.
 
 
 # Tools and ToolInstance are session-specific
-from .state import State, StateManager, CORE_STATE_VERSION
+from .state import State, StateManager
 ADD_TOOL_INSTANCE = 'add tool instance'
 REMOVE_TOOL_INSTANCE = 'remove tool instance'
+STATE_VERSION = 2
 
 
 class ToolInstance(State):
@@ -56,14 +57,9 @@ class ToolInstance(State):
         Session in which this tool instance was created.
     bundle_info : a :py:class:`~chimerax.core.toolshed.BundleInfo` instance
         The tool information used to create this tool.
-    id : int, optional
-        See attribute.
 
     Attributes
     ----------
-    id : readonly int
-        `id` is a unique identifier among ToolInstance instances
-        registered with the session state manager.
     display_name : str
         If a different name is desired (e.g. multi-instance tool) make sure
         to set the attribute before creating the first tool window.
@@ -88,30 +84,29 @@ class ToolInstance(State):
         # TODO: track.created(ToolInstance, [self])
         session.tools.add([self])
 
-    @property
-    def id(self):
-        return self._id
-
-    @id.setter
-    def id(self, new_id):
-        session = self._session()   # resolve back reference
-        old_id = self._id
-        self._id = new_id
-        if old_id is None or new_id is None:
-            return
-        tools = getattr(session, 'tools', None)
-        if tools is None:
-            return
-        # id changed, so update tool instance map
-        # (when restoring sessions)
-        del tools._tool_instances[old_id]
-        tools._tool_instances[new_id] = self
+#    @property
+#    def id(self):
+#        return self._id
+#
+#    @id.setter
+#    def id(self, new_id):
+#        session = self._session()   # resolve back reference
+#        old_id = self._id
+#        self._id = new_id
+#        if old_id is None or new_id is None:
+#            return
+#        tools = getattr(session, 'tools', None)
+#        if tools is None:
+#            return
+#        # id changed, so update tool instance map
+#        # (when restoring sessions)
+#        del tools._tool_instances[old_id]
+#        tools._tool_instances[new_id] = self
 
     def take_snapshot(self, session, flags):
         data = {
-            'id': self.id,
             'name': self.display_name,
-            'version': CORE_STATE_VERSION
+            'version': STATE_VERSION
         }
         if hasattr(self, 'tool_window'):
             data['shown'] = self.tool_window.shown
@@ -140,7 +135,7 @@ class ToolInstance(State):
         return ti
 
     def set_state_from_snapshot(self, session, data):
-        self.id = data['id']
+        # self.id = data['id']
         if 'shown' in data:
             self.display(data['shown'])
 
@@ -192,8 +187,8 @@ class ToolInstance(State):
 
         """
         if self.session.ui.is_gui:
-            self.session.ui.thread_safe(lambda s=self, show=b:
-                s.session.ui.set_tool_shown(s, show))
+            self.session.ui.thread_safe(
+                lambda s=self, show=b: s.session.ui.set_tool_shown(s, show))
 
     def display_help(self):
         """Show the help for this tool in the help viewer."""
@@ -244,7 +239,7 @@ class Tools(StateManager):
         if first:
             session.triggers.add_trigger(ADD_TOOL_INSTANCE)
             session.triggers.add_trigger(REMOVE_TOOL_INSTANCE)
-        self._tool_instances = {}
+        self._tool_instances = set()
         import itertools
         self._id_counter = itertools.count(1)
 
@@ -267,15 +262,16 @@ class Tools(StateManager):
             more details.
 
         """
-        tmap = {}
-        for tid, tool_inst in self._tool_instances.items():
+        tmap = []
+        for tool_inst in self._tool_instances:
             assert(isinstance(tool_inst, ToolInstance))
             if not tool_inst.SESSION_SAVE:
                 continue
-            tmap[tid] = tool_inst
-        data = {'tools': tmap,
-                'next id': next(self._id_counter),
-                'version': CORE_STATE_VERSION}
+            tmap.append(tool_inst)
+        data = {
+            'tools': tmap,
+            'version': STATE_VERSION
+        }
         return data
 
     @staticmethod
@@ -305,8 +301,7 @@ class Tools(StateManager):
         tools, all registered tool instances are deleted.
 
         """
-        items = list(self._tool_instances.items())
-        for id, tool_inst in items:
+        for tool_inst in list(self._tool_instances):
             if tool_inst.SESSION_ENDURING:
                 continue
             name = tool_inst.display_name
@@ -323,7 +318,7 @@ class Tools(StateManager):
             List of ToolInstance instances.
 
         """
-        return list(self._tool_instances.values())
+        return list(self._tool_instances)
 
     def add(self, ti_list):
         """Register running tools with state manager.
@@ -335,10 +330,7 @@ class Tools(StateManager):
 
         """
         session = self._session()   # resolve back reference
-        for tool_inst in ti_list:
-            if tool_inst.id is None:
-                tool_inst.id = next(self._id_counter)
-            self._tool_instances[tool_inst.id] = tool_inst
+        self._tool_instances.update(ti_list)
         session.triggers.activate_trigger(ADD_TOOL_INSTANCE, ti_list)
 
     def remove(self, ti_list):
@@ -351,25 +343,19 @@ class Tools(StateManager):
 
         """
         session = self._session()   # resolve back reference
-        for tool_inst in ti_list:
-            tid = tool_inst.id
-            if tid is None:
-                # Not registered in a session
-                continue
-            tool_inst.id = None
-            del self._tool_instances[tid]
+        self._tool_instances -= set(ti_list)
         session.triggers.activate_trigger(REMOVE_TOOL_INSTANCE, ti_list)
 
-    def find_by_id(self, tid):
-        """Return a tool instance with the matching identifier.
-
-        Parameters
-        ----------
-        tid : int
-            Unique per-session identifier for a registered tool.
-
-        """
-        return self._tool_instances.get(tid, None)
+#    def find_by_id(self, tid):
+#        """Return a tool instance with the matching identifier.
+#
+#        Parameters
+#        ----------
+#        tid : int
+#            Unique per-session identifier for a registered tool.
+#
+#        """
+#        return self._tool_instances.get(tid, None)
 
     def find_by_class(self, cls):
         """Return a list of tools of the given class.
@@ -383,15 +369,15 @@ class Tools(StateManager):
             Class object used to match tool instances.
 
         """
-        return [ti for ti in self._tool_instances.values() if isinstance(ti, cls)]
+        return [ti for ti in self._tool_instances if isinstance(ti, cls)]
 
-    def __getitem__(self, i):
-        '''index into tools using square brackets (e.g. session.tools[i])'''
-        return list(self._tool_instances.values())[i]
+#    def __getitem__(self, i):
+#        '''index into tools using square brackets (e.g. session.tools[i])'''
+#        return list(self._tool_instances.values())[i]
 
     def __iter__(self):
         '''iterator over tools'''
-        return iter(self._tool_instances.values())
+        return iter(self._tool_instances)
 
     def __len__(self):
         '''number of tools'''
@@ -408,8 +394,6 @@ class Tools(StateManager):
         # the splash screen, and that disappears before the user can
         # see it.
         session = self._session()   # resolve back reference
-        from .toolshed import ToolshedError
-        from .core_settings import settings
         start_bi = [None] * len(tool_names)
         for bi in session.toolshed.bundle_info(session.logger):
             for ti in bi.tools:
@@ -424,7 +408,6 @@ class Tools(StateManager):
                 continue
             try:
                 bi.start_tool(session, tool_name)
-            # except ToolshedError as e:
-            except Exception as e:
+            except Exception:
                 msg = "Tool \"%s\" failed to start" % tool_name
                 session.logger.report_exception(preface=msg)

@@ -54,4 +54,4 @@ WMI==1.4.9; sys_platform == 'win32'
 #
 # Linux
 #
-distro==1.4.0; sys.platform == 'linux'
+distro==1.5.0; sys_platform == 'linux'

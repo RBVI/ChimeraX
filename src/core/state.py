@@ -13,7 +13,7 @@
 
 import abc
 
-CORE_STATE_VERSION = 1  #: version of core session state data
+CORE_STATE_VERSION = 2  #: version of core session state data
 
 
 class RestoreError(RuntimeError):
