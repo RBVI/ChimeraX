@@ -18,7 +18,9 @@ stl: STL format support
 Read and write little-endian STL binary format.
 """
 
-from chimerax.core.state import State, CORE_STATE_VERSION
+# If STL_STATE_VERSION changes, then bump the bundle's
+# (maximum) session version number.
+STL_STATE_VERSION = 1
 
 from chimerax.core.models import Surface
 class STLModel(Surface):
@@ -61,7 +63,7 @@ class TriangleInfo(State):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        return {'stl model': self._stl, 'triangle index': self._index, 'version':CORE_STATE_VERSION}
+        return {'stl model': self._stl, 'triangle index': self._index, 'version':STL_STATE_VERSION}
 
     @staticmethod
     def restore_snapshot(session, data):
