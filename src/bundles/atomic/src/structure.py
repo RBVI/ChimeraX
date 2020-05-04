@@ -17,6 +17,10 @@ from chimerax.core.state import State
 from .molobject import StructureData
 from chimerax.graphics import Drawing, Pick
 
+# If STRUCTURE_STATE_VERSION changes, then bump the bundle's
+# (maximum) session version number.
+STRUCTURE_STATE_VERSION = 1
+
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
@@ -159,8 +163,7 @@ class Structure(Model, StructureData):
                 'attr-reg manager': session.attr_registration}
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
-        from chimerax.core.state import CORE_STATE_VERSION
-        data['version'] = CORE_STATE_VERSION
+        data['version'] = STRUCTURE_STATE_VERSION
         return data
 
     @staticmethod

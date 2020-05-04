@@ -17,7 +17,7 @@ class ColoringAPI(BundleAPI):
 
     @staticmethod
     def start_tool(session, tool_name):
-        from .tool import ColoringTool
-        return ColoringTool(session, tool_name)
+        from .tool import ColorActions
+        return ColorActions.get_singleton(session, tool_name)
 
 bundle_api = ColoringAPI()

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Coloring" version="1.0" package="chimerax.coloring"
+<BundleInfo name="ChimeraX-ColorActions" version="1.0" package="chimerax.color_actions"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -27,7 +27,7 @@
     <!-- Development Status should be compatible with bundle version number -->
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Coloring :: General :: color items</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Color Actions :: General :: color items</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

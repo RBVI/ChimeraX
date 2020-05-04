@@ -11,6 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# If MAPSERIES_STATE_VERSION changes, then bump the bundle's
+# (maximum) session version number.
+MAPSERIES_STATE_VERSION = 1
+
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.models import Model
@@ -225,11 +229,10 @@ class MapSeries(Model):
 
   # State save/restore in ChimeraX
   def take_snapshot(self, session, flags):
-    from chimerax.core.state import CORE_STATE_VERSION
     data = {'model state': Model.take_snapshot(self, session, flags),
             # Can't reference maps directly because it creates cyclic dependency.
             'map ids': [m.id for m in self.maps],
-            'version': CORE_STATE_VERSION}
+            'version': MAPSERIES_STATE_VERSION}
     return data
 
   @staticmethod
