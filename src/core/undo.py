@@ -17,7 +17,7 @@ functions which may be invoked via GUI, command or programmatically.
 """
 
 import abc
-from .state import StateManager, CORE_STATE_VERSION
+from .state import StateManager
 
 
 class Undo(StateManager):

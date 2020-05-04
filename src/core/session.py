@@ -39,6 +39,10 @@ _builtin_open = open
 #: session file suffix
 SESSION_SUFFIX = ".cxs"
 
+# If any of the *STATE_VERSIONs change, then increase the (maximum) core session
+# number in setup.py.in
+ALIAS_STATE_VERSION = 1
+
 # List of type objects that are in bundle "builtins"
 BUILTIN_TYPES = frozenset((bool, bytearray, bytes, complex, dict, frozenset, int, float, list, range, set, slice, str, tuple))
 
@@ -353,8 +357,6 @@ class _RestoreManager:
 
 class UserAliases(StateManager):
 
-    ALIAS_STATE_VERSION = 1
-
     def reset_state(self, session):
         """Reset state to data-less state"""
         # keep all aliases
@@ -368,7 +370,7 @@ class UserAliases(StateManager):
             aliases[name] = expand_alias(name)
         data = {
             'aliases': aliases,
-            'version': self.ALIAS_STATE_VERSION,
+            'version': ALIAS_STATE_VERSION,
         }
         return data
 
@@ -543,12 +545,12 @@ class Session:
         self.triggers.activate_trigger("begin save session", self)
         try:
             if version == 1:
-                raise UserError("Version 1 session files are no longer supported")
+                raise UserError("Version 1 formatted session files are no longer supported")
             elif version == 2:
-                raise UserError("Version 2 session files are no longer supported")
+                raise UserError("Version 2 formatted session files are no longer supported")
             else:
                 if version != 3:
-                    raise UserError("Only version 3 session files are supported")
+                    raise UserError("Only version 3 formatted session files are supported")
                 stream.write(b'# ChimeraX Session version 3\n')
                 stream = serialize.msgpack_serialize_stream(stream)
                 fserialize = serialize.msgpack_serialize

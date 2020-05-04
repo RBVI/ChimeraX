@@ -27,6 +27,11 @@ RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
 
+# If any of the *STATE_VERSIONs change, then increase the (maximum) core session
+# number in setup.py.in
+MODEL_STATE_VERSION = 1
+MODELS_STATE_VERSION = 1
+
 from .state import State
 from chimerax.graphics import Drawing
 class Model(State, Drawing):
@@ -118,7 +123,7 @@ class Model(State, Drawing):
     def _set_id(self, val):
         if val == self._id:
             return
-        fire_trigger = self._id != None and val != None
+        fire_trigger = self._id is not None and val is not None
         self._id = val
         if fire_trigger:
             self.session.triggers.activate_trigger(MODEL_ID_CHANGED, self)
@@ -158,7 +163,7 @@ class Model(State, Drawing):
         if val == self._name:
             return
         self._name = val
-        if self._id != None:  # model actually open
+        if self._id is not None:  # model actually open
             self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
 
@@ -317,7 +322,6 @@ class Model(State, Drawing):
         p = self.parent
         if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
-        from .state import CORE_STATE_VERSION
         data = {
             'name': self.name,
             'id': self.id,
@@ -327,7 +331,7 @@ class Model(State, Drawing):
             'allow_depth_cue': self.allow_depth_cue,
             'accept_shadow': self.accept_shadow,
             'accept_multishadow': self.accept_multishadow,
-            'version': CORE_STATE_VERSION,
+            'version': MODEL_STATE_VERSION,
         }
         if self.SESSION_SAVE_DRAWING:
             from chimerax.graphics.gsession import DrawingState
@@ -336,7 +340,7 @@ class Model(State, Drawing):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        if cls is Model and data['id'] is ():
+        if cls is Model and data['id'] == ():
             return session.models.scene_root_model
         # TODO: Could call the cls constructor here to handle a derived class,
         #       but that would require the derived constructor have the same args.
@@ -508,9 +512,8 @@ class Models(StateManager):
                 not_saved.append(model)
                 continue
             models[id] = model
-        from .state import CORE_STATE_VERSION
         data = {'models': models,
-                'version': CORE_STATE_VERSION}
+                'version': MODELS_STATE_VERSION}
         if not_saved:
             mwarn = [m for m in not_saved
                      if m.SESSION_WARN and (m.parent is None or m.parent.SESSION_SAVE)]
