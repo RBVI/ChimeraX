@@ -67,6 +67,9 @@ endif
 
 clean:
 	rm -rf __pycache__ Makefile.dependencies
+ifneq (,$(wildcard $(SYNC_DIR)))
+	cd $(SYNC_DIR) && rm */*.whl
+endif
 
 #
 # Build Time Dependencies
