@@ -12,8 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel
-class SaveOptionsWidget(QFrame):
-    def __init__(self, session):
+class SaveModelOptionWidget(QFrame):
+    def __init__(self, session, name, model_type):
         super().__init__()
 
         mlayout = QHBoxLayout()
@@ -21,17 +21,16 @@ class SaveOptionsWidget(QFrame):
         mlayout.setSpacing(10)
         self.setLayout(mlayout)
 
-        sm = QLabel('Map')
+        sm = QLabel(name)
         mlayout.addWidget(sm)
         from chimerax.ui.widgets import ModelMenuButton
-        from chimerax.map import Volume
-        self._map_menu = mm = ModelMenuButton(session, class_filter = Volume)
+        self._model_menu = mm = ModelMenuButton(session, class_filter = model_type)
         mlayout.addWidget(mm)
         mlayout.addStretch(1)    # Extra space at end
 
     def options_string(self):
-        map = self._map_menu.value
-        if map is None:
+        m = self._model_menu.value
+        if m is None:
             from chimerax.core.errors import UserError
-            raise UserError("No map to save")
-        return 'model #%s' % map.id_string
+            raise UserError("No %s to save" % self._name.lower())
+        return 'model #%s' % m.id_string
