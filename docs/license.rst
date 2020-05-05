@@ -117,7 +117,16 @@ executable code, source code, and documentation ("Software").
    all copies, full or partial, of the Software, including any
    modifications or derivative works, and associated documentation.
 
-9. **Governing Law and General Provisions.** This License shall be
+9. **Use of Names and Trademarks.**  Nothing contained in this License
+   will be construed as conferring any right to either party to use in
+   advertising, publicity, or other promotional activities any name, trade
+   name, trademark, or other designation of the other party (including a
+   contraction, abbreviation or simulation of any of the foregoing). The use
+   by the Licensee of the name "The Regents of the University of California"
+   or the name of any campus of the University of California in advertising,
+   publicity or other promotional activities is expressly prohibited.
+
+10. **Governing Law and General Provisions.** This License shall be
    governed by the laws of the State of California, excluding the
    application of its conflicts of law rules. This License shall not
    be governed by the United Nations Convention on Contracts for the
