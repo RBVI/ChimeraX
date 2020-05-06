@@ -64,7 +64,11 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(ses=session):
-        return [ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ]
+        fmt_names = set([ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ])
+        for db_name in ses.open_command.database_names:
+            for fmt_name in ses.open_command.database_info(db_name).keys():
+                fmt_names.add(ses.data_formats[fmt_name].nicknames[0])
+        return fmt_names
 
     def database_names(mgr=mgr):
         return mgr.database_names
