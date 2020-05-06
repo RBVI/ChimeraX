@@ -36,7 +36,7 @@ class STLModel(Surface):
         """Return information about triangle ``n``."""
         return TriangleInfo(self, n)
 
-
+from chimerax.core.state import State
 class TriangleInfo(State):
     """Information about an STL triangle."""
 
