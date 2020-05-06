@@ -1051,3 +1051,32 @@ class CIFTable:
 def get_mmcif_tables(filename, table_names):
     """Deprecated API.  Use get_cif_tables() instead."""
     return get_cif_tables(filename, table_names)
+
+
+def fetch_ccd(session, ccd_id, ignore_cache=False):
+    """Get structure for CCD component"""
+    from .. import AtomicStructure
+    # TODO: support ignore_cache
+    from itertools import chain
+    ccd = find_template_residue(session, ccd_id)
+    ccd_atoms = ccd.atoms
+    ccd_bonds = set()
+    for a in ccd_atoms:
+        ccd_bonds.update(a.bonds)
+
+    new_structure = AtomicStructure(session, name=ccd_id)
+    new_residue = new_structure.new_residue(ccd_id, 'A', 1)
+    new_atoms = {}
+    for a in ccd_atoms:
+        new_atom = new_structure.new_atom(a.name, a.element)
+        new_atom.coord = a.coord
+        new_atoms[a] = new_atom
+        new_residue.add_atom(new_atom)
+
+    for b in ccd_bonds:
+        atoms = b.atoms
+        new_a0 = new_atoms[atoms[0]]
+        new_a1 = new_atoms[atoms[1]]
+        new_structure.new_bond(new_a0, new_a1)
+
+    return [new_structure], f"Opened CCD {ccd_id}"
