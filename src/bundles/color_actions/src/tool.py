@@ -26,9 +26,9 @@ class ColorActions(ToolInstance):
         parent = tw.ui_area
 
         from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QDialogButtonBox, QWidget, QPushButton, \
-            QLabel, QCheckBox, QFrame, QGroupBox, QGridLayout
+            QLabel, QCheckBox, QFrame, QGroupBox, QGridLayout, QScrollArea
         from PyQt5.QtGui import QColor, QPixmap, QIcon
-        from PyQt5.QtCore import Qt
+        from PyQt5.QtCore import Qt, QTimer
         layout = QVBoxLayout()
         layout.setContentsMargins(0,0,0,0)
         layout.setSpacing(0)
@@ -72,9 +72,9 @@ class ColorActions(ToolInstance):
         header.setAlignment(Qt.AlignCenter)
         actions_layout.addWidget(header, alignment=Qt.AlignBottom | Qt.AlignHCenter)
         self.target_button_info = []
-        for label, target, initial_on in [("atoms/bonds", 'a', True),  ("cartoons", 'c', True),
-                ("surfaces", 's', True), ("pseudobonds", 'p', True), ("ring fill", 'f', True),
-                ("labels", 'l', False)]:
+        for label, target, initial_on in [("Atoms/Bonds", 'a', True),  ("Cartoons", 'c', True),
+                ("Surfaces", 's', True), ("Pseudobonds", 'p', True), ("Ring Fill", 'f', True),
+                ("Labels", 'l', False)]:
             chk = QCheckBox(label)
             chk.setChecked(initial_on)
             chk.clicked.connect(self._clear_global_buttons)
@@ -86,7 +86,7 @@ class ColorActions(ToolInstance):
         actions_layout.addWidget(sep, stretch=1)
 
         self.global_button_info = []
-        for label, command in [("background", "set bg %s")]:
+        for label, command in [("Background", "set bg %s")]:
             chk = QCheckBox(label)
             chk.setChecked(False)
             chk.clicked.connect(self._clear_targeted_buttons)
@@ -96,26 +96,26 @@ class ColorActions(ToolInstance):
         actions_layout.addStretch(1)
 
         from chimerax.core.commands import run
-        grp = QGroupBox("Other colorings")
+        grp = QGroupBox("Other colorings:")
         actions_layout.addWidget(grp)
         grp_layout = QVBoxLayout()
         grp_layout.setContentsMargins(0,0,0,0)
         grp_layout.setSpacing(0)
         grp.setLayout(grp_layout)
         for label, arg, tooltip in [
-                ("heteroatom", "het", "Color non-carbon atoms by chemical element"),
-                ("element", "element", "Color atoms by chemical element"),
-                ("nucleotide type", "nucleotide", "Color nucleotide residues by the type of their base"),
-                ("chain", "chain", "Give each chain a different color"),
-                ("polymer", "polymer", "Color chains differently, except that chains with the same sequence"
+                ("Heteroatom", "het", "Color non-carbon atoms by chemical element"),
+                ("Element", "element", "Color atoms by chemical element"),
+                ("Nucleotide Type", "nucleotide", "Color nucleotide residues by the type of their base"),
+                ("Chain", "chain", "Give each chain a different color"),
+                ("Polymer", "polymer", "Color chains differently, except that chains with the same sequence"
                     " receive the same color")]:
-            but = QPushButton("by " + label)
+            but = QPushButton("By " + label)
             if tooltip:
                 but.setToolTip(tooltip)
             but.clicked.connect(lambda *, run=run, ses=self.session, arg=arg: run(ses,
                 "color " + ("" if ses.selection.empty() else "sel ") + "by" + arg))
             grp_layout.addWidget(but)
-        but = QPushButton("from editor")
+        but = QPushButton("From Editor")
         but.setToolTip("Bring up a color editor to choose the color")
         but.clicked.connect(self.session.ui.main_window.color_by_editor)
         grp_layout.addWidget(but)
@@ -129,9 +129,11 @@ class ColorActions(ToolInstance):
 
         actions_layout.addStretch(1)
 
-        self.all_colors_area = QWidget()
+        self.all_colors_area = QScrollArea()
+        # hack to get reasonable initial size; allow smaller resize after show()
+        self.ac_preferred_width = 500
         self.all_colors_area.setHidden(True)
-        main_layout.addWidget(self.all_colors_area)
+        all_colors_widget = QWidget()
         from chimerax.core.colors import BuiltinColors
         # for colors with the exact same RGBA value, only keep one
         canonical = {}
@@ -163,7 +165,7 @@ class ColorActions(ToolInstance):
         all_colors_layout = QGridLayout()
         all_colors_layout.setContentsMargins(0,0,0,0)
         all_colors_layout.setSpacing(0)
-        self.all_colors_area.setLayout(all_colors_layout)
+        all_colors_widget.setLayout(all_colors_layout)
         num_rows = len(spaced_names)
         row = column = 0
         for spaced_name in color_names:
@@ -182,6 +184,8 @@ class ColorActions(ToolInstance):
             if row >= num_rows:
                 row = 0
                 column += 1
+        self.all_colors_area.setWidget(all_colors_widget)
+        main_layout.addWidget(self.all_colors_area)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Close | qbbox.Help)
@@ -252,7 +256,10 @@ class ColorActions(ToolInstance):
 
     def _toggle_all_colors(self, *args):
         if self.all_colors_check_box.isChecked():
+            self.all_colors_area.setMinimumWidth(self.ac_preferred_width)
             self.all_colors_area.setHidden(False)
+            self.all_colors_area.setMinimumWidth(1)
         else:
+            self.ac_preferred_width = self.all_colors_area.width()
             self.all_colors_area.setHidden(True)
             self.tool_window.shrink_to_fit()
