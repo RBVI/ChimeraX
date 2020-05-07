@@ -100,6 +100,11 @@ ifeq ($(OS),Darwin)
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
 		$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns; \
 	fi
+
+reinstall-plist:
+	rm Info.plist
+	$(MAKE) Info.plist
+	$(RSYNC) Info.plist $(app_prefix)/Info.plist
 endif
 endif
 
