@@ -107,8 +107,37 @@ def file_format(session, file_name, format_name):
     except NoFormatError as e:
         raise UserError(str(e))
 
+def cmd_save_formats(session):
+    '''Report file formats and suffixes that the save command knows about.'''
+    if session.ui.is_gui:
+        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
+    else:
+        session.logger.info('File format, Short name(s), Suffixes:')
+    from chimerax.core.commands import commas
+    formats = session.save_command.save_data_formats
+    formats.sort(key = lambda f: f.name)
+    for f in formats:
+        if session.ui.is_gui:
+            from html import escape
+            if f.reference_url:
+                descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
+            else:
+                descrip = escape(f.synopsis)
+            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
+        else:
+            session.logger.info('    %s: %s: %s' % (f.synopsis,
+                commas(f.nicknames), ', '.join(f.suffixes)))
+    if session.ui.is_gui:
+        lines.append('</table>')
+        msg = '\n'.join(lines)
+        session.logger.info(msg, is_html=True)
+
 
 def register_command(command_name, logger):
     register('save', CmdDesc(
         required=[('file_name', SaveFileNameArg), ('rest_of_line', RestOfLine)],
         synopsis="Save file", self_logging=True), cmd_save, logger=logger)
+
+    sf_desc = CmdDesc(synopsis='report formats that can be saved')
+    register('save formats', sf_desc, cmd_save_formats, logger=logger)
