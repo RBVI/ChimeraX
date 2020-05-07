@@ -287,7 +287,7 @@ C++ API
             Return if the current category has fixed width columns.
             See :cpp:func:`set_PDBx_fixed_width_columns`.
 
-        .. cpp:function:: int get_column(const char \*name, bool required=false)
+        .. cpp:function:: int get_column(const char *name, bool required=false)
             
             :param tag: column name to search for
             :param required: true if tag is required
