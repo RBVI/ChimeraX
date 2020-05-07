@@ -54,7 +54,13 @@ def cmd_save(session, file_name, rest_of_line, *, log=True):
             raise ValueError("Save-provider keyword '%s' conflicts with builtin arg"
                 " of same name" % keyword)
         keywords[keyword] = annotation
-    desc = CmdDesc(required=[('file_name', SaveFileNameArg)], keyword=keywords.items(),
+    # for convenience, allow 'models' to be a second positional argument instead of a keyword
+    if 'models' in keywords:
+        optional = [('models', keywords['models'])]
+        del keywords['models']
+    else:
+        optional = []
+    desc = CmdDesc(required=[('file_name', SaveFileNameArg)], optional=optional, keyword=keywords.items(),
         hidden=mgr.hidden_args(data_format), synopsis="unnecessary")
     register("save", desc, provider_save, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
