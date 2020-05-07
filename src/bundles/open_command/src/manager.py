@@ -166,7 +166,7 @@ class OpenManager(ProviderManager):
     @property
     def open_data_formats(self):
         """
-        The names of data formats for which an opener function has been registered.
+        The data formats for which an opener function has been registered.
         """
         return list(self._openers.keys())
 
