@@ -22,8 +22,19 @@ class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
     allow_repeat = False
 
 import os.path
-def likely_pdb_id(text):
-    return not os.path.exists(text) and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+def likely_pdb_id(text, format_name):
+    return not exists_locally(text, format_name) \
+        and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+
+def exists_locally(text, format):
+    # does that name exist on the file system, and if it does but has no suffix, is there a format?
+    # [trying to avoid directories named for PDB ID codes from fouling up "open pdb-code"]
+    import os.path
+    if not os.path.exists(text):
+        return False
+    if '.' in text or format:
+        return True
+    return False
 
 def cmd_open(session, file_names, rest_of_line, *, log=True):
     tokens = []
@@ -232,9 +243,8 @@ def _get_stream(mgr, file_name, encoding):
 def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []
     files = []
-    from os.path import exists
     for name in names:
-        if not database_name and exists(name):
+        if not database_name and exists_locally(name, format_name):
             files.append(name)
         else:
             f = fetch_info(mgr, name, format_name, database_name)
@@ -258,15 +268,14 @@ def expand_path(file_name):
     return file_names
 
 def fetch_info(mgr, file_arg, format_name, database_name):
-    from os.path import exists
-    if not database_name and exists(file_arg):
+    if not database_name and exists_locally(file_arg, format_name):
         return None
     if ':' in file_arg:
         db_name, ident = file_arg.split(':', maxsplit=1)
     elif database_name:
         db_name = database_name
         ident = file_arg
-    elif likely_pdb_id(file_arg):
+    elif likely_pdb_id(file_arg, format_name):
         db_name = "pdb"
         ident = file_arg
     else:
