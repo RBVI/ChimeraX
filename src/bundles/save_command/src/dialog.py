@@ -14,7 +14,6 @@
 class MainSaveDialog:
     def __init__(self, settings=None):
         self._settings = settings
-        self._format_option_widgets = {}
 
     def display(self, session, *, parent=None, format=None, initial_directory=None, initial_file=None):
         if parent is None:
@@ -89,11 +88,7 @@ class MainSaveDialog:
         fmt = self._filter2fmt[dialog.selectedNameFilter()]
         if self._current_option:
             self._current_option.hide()
-        if fmt in self._format_option_widgets:
-            self._current_option = self._format_option_widgets[fmt]
-        else:
-            self._current_option = self._format_option_widgets[fmt] = \
-                session.save_command.save_args_widget(fmt) or self._no_options_label
+        self._current_option = session.save_command.save_args_widget(fmt) or self._no_options_label
         from PyQt5.QtWidgets import QLabel
         self._options_layout.addWidget(self._current_option)
         self._current_option.show()
