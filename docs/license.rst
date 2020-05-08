@@ -127,22 +127,22 @@ executable code, source code, and documentation ("Software").
    publicity or other promotional activities is expressly prohibited.
 
 10. **Governing Law and General Provisions.** This License shall be
-   governed by the laws of the State of California, excluding the
-   application of its conflicts of law rules. This License shall not
-   be governed by the United Nations Convention on Contracts for the
-   International Sale of Goods, the application of which is expressly
-   excluded. If any provisions of this License are held invalid or
-   unenforceable for any reason, the remaining provisions shall remain
-   in full force and effect. This License is binding upon any heirs
-   and assigns of the Licensee. The License granted to Licensee hereunder
-   may not be assigned or transferred to any other person or entity
-   without the express consent of The Regents. This License constitutes
-   the entire agreement between the parties with respect to the use
-   of the Software licensed hereunder and supersedes all other previous
-   or contemporaneous agreements or understandings between the parties,
-   whether verbal or written, concerning the subject matter. Any
-   translation of this License is done for local requirements and in
-   the event of a dispute between the English and any non-English
-   versions, the English version of this License shall govern.
+    governed by the laws of the State of California, excluding the
+    application of its conflicts of law rules. This License shall not
+    be governed by the United Nations Convention on Contracts for the
+    International Sale of Goods, the application of which is expressly
+    excluded. If any provisions of this License are held invalid or
+    unenforceable for any reason, the remaining provisions shall remain
+    in full force and effect. This License is binding upon any heirs
+    and assigns of the Licensee. The License granted to Licensee hereunder
+    may not be assigned or transferred to any other person or entity
+    without the express consent of The Regents. This License constitutes
+    the entire agreement between the parties with respect to the use
+    of the Software licensed hereunder and supersedes all other previous
+    or contemporaneous agreements or understandings between the parties,
+    whether verbal or written, concerning the subject matter. Any
+    translation of this License is done for local requirements and in
+    the event of a dispute between the English and any non-English
+    versions, the English version of this License shall govern.
 
 .. footer:: Revised 5 May 2020
