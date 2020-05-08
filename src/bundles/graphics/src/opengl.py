@@ -734,7 +734,9 @@ class Render:
         if (p is not None and
             not p.capabilities & self.SHADER_TEXTURE_OUTLINE and
             not p.capabilities & self.SHADER_DEPTH_OUTLINE):
-            p.set_matrix('model_view_matrix', mv.opengl_matrix())
+            if (p.capabilities & self.SHADER_LIGHTING or
+                not p.capabilities & self.SHADER_STEREO_360):
+                p.set_matrix('model_view_matrix', mv.opengl_matrix())
 #            if (self.SHADER_CLIP_PLANES | self.SHADER_MULTISHADOW) & p.capabilities:
             if self.SHADER_CLIP_PLANES & p.capabilities:
                 cmm = self.current_model_matrix
