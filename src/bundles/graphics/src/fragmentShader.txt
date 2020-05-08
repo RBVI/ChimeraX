@@ -134,7 +134,9 @@ in vec3 N;
 in vec3 v;
 
 #ifdef USE_STEREO_360
+#ifdef USE_LIGHTING
 in vec3 vshadow;
+#endif
 #endif
 
 #ifdef USE_DEPTH_CUE

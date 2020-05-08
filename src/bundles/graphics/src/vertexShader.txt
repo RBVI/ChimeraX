@@ -94,7 +94,9 @@ uniform float frame_number;
 #endif
 
 #ifdef USE_STEREO_360
+#ifdef USE_LIGHTING
 out vec3 vshadow;
+#endif
 uniform vec4 camera_origin_and_shift;
 uniform vec4 camera_vertical;
 #endif
@@ -129,8 +131,10 @@ void main(void)
                                   camera_vertical.xyz));
   vec4 vsoffset = vec4(vscene_s.xyz - camera_origin_and_shift.w * eye_axis, 1);
   vec4 veye = view_matrix * vsoffset;
+#ifdef USE_LIGHTING
   vshadow = (model_view_matrix * vi).xyz;
   // vshadow = (model_matrix * vi).xyz;
+#endif
 #else
   vec4 veye = model_view_matrix * vi;
 #endif
