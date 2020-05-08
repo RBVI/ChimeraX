@@ -608,13 +608,6 @@ _ResidueReasons = frozenset(['ring color changed', 'ribbon_display changed'])
 def _rebuild_molecule(trigger_name, mol):
     if trigger_name == 'changes':
         mol, changes = mol
-        import sys  ## DEBUG
-        print('CHANGES:', file=sys.__stderr__)  ## DEBUG
-        for c, r in changes._changes.items():
-            try:
-                print(c, r.reasons, file=sys.__stderr__)
-            except:
-                pass
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
         if changes.num_deleted_atoms():
