@@ -136,9 +136,19 @@ def copy_distinfo_file(cmd, basename, filename, binary=''):
             if not cmd.dry_run:
                 with open(filename, 'w' + binary) as fo:
                     fo.write(value)
-    except IOError as e:
+    except IOError:
         # Missing file is okay
         pass
 
+
 def copy_distinfo_binary_file(cmd, basename, filename):
     copy_distinfo_file(cmd, basename, filename, binary='b')
+
+
+def is_daily_build():
+    """Supported API. Return if ChimeraX Core is from a daily build."""
+    # Daily builds are development releases
+    from packaging.version import Version
+    from chimerax import core
+    ver = Version(core.version)
+    return ver.is_devrelease
