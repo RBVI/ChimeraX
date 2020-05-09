@@ -191,16 +191,18 @@ def _update_list(toolshed, node, what, callback, logger):
                     "<a>" if d == doc else "<b>", li.sourceline))
                 continue
             d[name] = li
-    # TODO: only report error in daily (non-production) builds
     if errors:
-        from html import escape
-        logger.info(
-                '<p style="margin-bottom:0">'
-                '<div style="font-size:small">'
-                f'Developer warnings in user {what} index:'
-                '<ul style="margin-top:0">'
-                + ''.join('\n<li>%s' % escape(e) for e in errors) + "</ul></div>",
-                is_html=True)
+        # only report errors if a daily (non-production) build
+        from chimerax.core import is_daily_build
+        if is_daily_build():
+            from html import escape
+            logger.info(
+                    '<p style="margin-bottom:0">'
+                    '<div style="font-size:small">'
+                    f'Developer warnings in user {what} index:'
+                    '<ul style="margin-top:0">'
+                    + ''.join('\n<li>%s' % escape(e) for e in errors) + "</ul></div>",
+                    is_html=True)
     # Currently, don't do anything with undocumented things
     callback(toolshed, doc_ul, doc)
 
