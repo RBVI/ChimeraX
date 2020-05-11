@@ -116,6 +116,7 @@ class BugReporter(ToolInstance):
             info += _linux_info()
         elif sys.platform == 'darwin':
             info += _darwin_info()
+        info += _qt_info(session)
         gi.setText(info)
         layout.addWidget(gi, row, 2)
         row += 1
@@ -493,3 +494,14 @@ def _darwin_info():
         return output
     except Exception:
         return ""
+
+
+def _qt_info(session):
+    if not session.ui.is_gui:
+        return ""
+    from PyQt5 import QtCore as Qt
+    return (
+        f"PyQt version: {Qt.PYQT_VERSION_STR}\n"
+        f"Compiled Qt version: {Qt.QT_VERSION_STR}\n"
+        f"Runtime Qt version: {Qt.qVersion()}\n"
+    )
