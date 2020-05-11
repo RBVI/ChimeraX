@@ -46,7 +46,10 @@
 
   <Providers manager="data formats">
     <Provider name="mmCIF" category="Molecular structure" suffixes=".cif,.mmcif"
-		encoding="utf-8" mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
+	    encoding="utf-8" mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
+    <Provider name="Chemical Component Dictionary" category="Molecular structure"
+	    nicknames="ccd" suffixes=".cif"
+	    encoding="utf-8" reference_url="http://mmcif.wwpdb.org/data/ccd" />
   </Providers>
 
   <Providers manager="open command">
@@ -54,6 +57,7 @@
     <Provider name="pdb" type="fetch" format_name="mmcif" />
     <Provider name="pdbe" type="fetch" format_name="mmcif" />
     <Provider name="pdbj" type="fetch" format_name="mmcif" />
+    <Provider name="ccd" type="fetch" format_name="Chemical Component Dictionary" />
   </Providers>
 
   <Providers manager="save command">

@@ -22,8 +22,19 @@ class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
     allow_repeat = False
 
 import os.path
-def likely_pdb_id(text):
-    return not os.path.exists(text) and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+def likely_pdb_id(text, format_name):
+    return not exists_locally(text, format_name) \
+        and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+
+def exists_locally(text, format):
+    # does that name exist on the file system, and if it does but has no suffix, is there a format?
+    # [trying to avoid directories named for PDB ID codes from fouling up "open pdb-code"]
+    import os.path
+    if not os.path.exists(text):
+        return False
+    if '.' in text or format:
+        return True
+    return False
 
 def cmd_open(session, file_names, rest_of_line, *, log=True):
     tokens = []
@@ -64,7 +75,11 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(ses=session):
-        return [ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ]
+        fmt_names = set([ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ])
+        for db_name in ses.open_command.database_names:
+            for fmt_name in ses.open_command.database_info(db_name).keys():
+                fmt_names.add(ses.data_formats[fmt_name].nicknames[0])
+        return fmt_names
 
     def database_names(mgr=mgr):
         return mgr.database_names
@@ -228,9 +243,8 @@ def _get_stream(mgr, file_name, encoding):
 def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []
     files = []
-    from os.path import exists
     for name in names:
-        if not database_name and exists(name):
+        if not database_name and exists_locally(name, format_name):
             files.append(name)
         else:
             f = fetch_info(mgr, name, format_name, database_name)
@@ -254,15 +268,14 @@ def expand_path(file_name):
     return file_names
 
 def fetch_info(mgr, file_arg, format_name, database_name):
-    from os.path import exists
-    if not database_name and exists(file_arg):
+    if not database_name and exists_locally(file_arg, format_name):
         return None
     if ':' in file_arg:
         db_name, ident = file_arg.split(':', maxsplit=1)
     elif database_name:
         db_name = database_name
         ident = file_arg
-    elif likely_pdb_id(file_arg):
+    elif likely_pdb_id(file_arg, format_name):
         db_name = "pdb"
         ident = file_arg
     else:
@@ -379,8 +392,67 @@ class FileInfo:
                 raise UserError("Unrecognized file suffix '%s'" % ext)
             raise UserError("'%s' has no suffix" % file_name)
 
+def cmd_open_formats(session):
+    '''Report file formats, suffixes and databases that the open command knows about.'''
+    if session.ui.is_gui:
+        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
+    else:
+        session.logger.info('File format, Short name(s), Suffixes:')
+    from chimerax.core.commands import commas
+    formats = session.open_command.open_data_formats
+    formats.sort(key = lambda f: f.name.lower())
+    for f in formats:
+        if session.ui.is_gui:
+            from html import escape
+            if f.reference_url:
+                descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
+            else:
+                descrip = escape(f.synopsis)
+            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
+        else:
+            session.logger.info('    %s: %s: %s' % (f.synopsis,
+                commas(f.nicknames), ', '.join(f.suffixes)))
+    if session.ui.is_gui:
+        lines.append('</table>')
+        lines.append('<p></p>')
+
+    if session.ui.is_gui:
+        lines.extend(['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>Database<th>Formats'])
+    else:
+        session.logger.info('\nDatabase, Formats:')
+    database_names = session.open_command.database_names
+    database_names.sort(key=lambda dbn: dbn.lower())
+    for db_name in database_names:
+        db_info = session.open_command.database_info(db_name)
+        if 'web fetch' in db_info.keys() or db_name == 'help':
+            continue
+        for fmt_name, fetcher_info in db_info.items():
+            if fetcher_info.is_default:
+                default_name = session.data_formats[fmt_name].nicknames[0]
+                break
+        else:
+            continue
+        format_names = [session.data_formats[fmt_name].nicknames[0] for fmt_name in db_info.keys()]
+        format_names.sort()
+        format_names.remove(default_name)
+        format_names.insert(0, default_name)
+        if not session.ui.is_gui:
+            session.logger.info('    %s: %s' % (db_name, ', '.join(format_names)))
+            continue
+        line = '<tr><td>%s<td>%s' % (db_name, ', '.join(format_names))
+        lines.append(line)
+
+    if session.ui.is_gui:
+        lines.append('</table>')
+        msg = '\n'.join(lines)
+        session.logger.info(msg, is_html=True)
+
 
 def register_command(command_name, logger):
     register('open', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
         ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files",
         self_logging=True), cmd_open, logger=logger)
+
+    of_desc = CmdDesc(synopsis='report formats that can be opened')
+    register('open formats', of_desc, cmd_open_formats, logger=logger)

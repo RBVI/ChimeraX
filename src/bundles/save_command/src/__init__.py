@@ -35,6 +35,11 @@ class SaverInfo:
         :py:class:`~chimerax.core.commands.cli.BoolArg` would convert 't' to True.
         Some bundles also provide relevant Annotations, *e.g.*
         :py:class:`chimerax.atomic.AtomsArg <chimerax.atomic.args.AtomsArg>`.
+
+        If your bundle includes a "models" keyword in the returned dictionary, it is handled specially
+        in that the user can not only specify it normally in the `save` command (*e.g.*
+        ``save out.pdb models #1``) but as a convenience it can instead be specified as the second
+        positional argument (*e.g.* ``save out.pdb #1``).
         """
         return {}
 

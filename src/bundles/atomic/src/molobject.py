@@ -1622,11 +1622,16 @@ class StructureData:
         '''Supported API. Get or create a :class:`.PseudobondGroup` belonging to this structure.
            The 'create_type' parameter controls if and how the pseudobond is created, as per:
 
-           0 (also: None) -- if no such group exists, none is created and None is returned
-           1 (also: "normal") -- a "normal" pseudobond group will be created if necessary, one where the
-              pseudobonds apply to all coordinate sets
-           2 (also: "per coordset") -- a "per coordset" pseudobond group will be created if necessary,
-              one where different coordsets can have different pseudobonds
+           0 (also: None)
+             If no such group exists, none is created and None is returned
+
+           1 (also: "normal")
+             A "normal" pseudobond group will be created if necessary, one where the pseudobonds
+             apply to all coordinate sets
+
+           2 (also: "per coordset")
+             A "per coordset" pseudobond group will be created if necessary, one where different
+             coordsets can have different pseudobonds
         '''
         if isinstance(create_type, int):
             create_arg = create_type

@@ -37,6 +37,7 @@ class _mmCIFioAPI(BundleAPI):
             "pdbe": mmcif.fetch_mmcif_pdbe,
             "pdbe_updated": mmcif.fetch_mmcif_pdbe_updated,
             "pdbj": mmcif.fetch_mmcif_pdbj,
+            "ccd": mmcif.fetch_ccd,
         }
         try:
             fetcher = fetchers[database_name]
@@ -84,7 +85,16 @@ class _mmCIFioAPI(BundleAPI):
                             'log_info': BoolArg,
                             'max_models': IntArg,
                         }
+            elif name == "ccd":
+                from chimerax.open_command import FetcherInfo
+                from . import mmcif
+
+                class Info(FetcherInfo):
+                    def fetch(self, session, ident, format_name, ignore_cache,
+                              fetcher=mmcif.fetch_ccd, **kw):
+                        return fetcher(session, ident, ignore_cache=ignore_cache, **kw)
             else:
+                from chimerax.open_command import FetcherInfo
                 from . import mmcif
                 fetcher = {
                     "pdb": mmcif.fetch_mmcif,
@@ -92,7 +102,6 @@ class _mmCIFioAPI(BundleAPI):
                     "pdbe_updated": mmcif.fetch_mmcif_pdbe_updated,
                     "pdbj": mmcif.fetch_mmcif_pdbj,
                 }[name]
-                from chimerax.open_command import FetcherInfo
 
                 class Info(FetcherInfo):
                     def fetch(self, session, ident, format_name, ignore_cache,
