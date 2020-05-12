@@ -375,7 +375,7 @@ def collated_open(session, database_name, data, data_format, main_opener, func, 
             else:
                 opened_text = "input"
         description = "Summary of feedback from opening %s" % opened_text
-    if main_opener:
+    if main_opener and data_format.category != session.data_formats.CAT_SESSION:
         with Collator(session.logger, description, True):
             return func(*func_args, **func_kw)
     return func(*func_args, **func_kw)

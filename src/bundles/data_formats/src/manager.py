@@ -22,6 +22,7 @@ class FormatsManager(ProviderManager):
     """
 
     CAT_SCRIPT = "Command script"
+    CAT_SESSION = "Session"
     CAT_GENERAL = "General"
 
     def __init__(self, session):
