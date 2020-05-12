@@ -857,11 +857,11 @@ class RegionBrowser:
                 else:
                     seq1 -= 1
                     seq2 -= 1
-            except:
+            except Exception:
                 try:
                     pos, seq, r, g, b = [int(x) for x in line.split()]
                     pos1 = pos2 = pos
-                except:
+                except Exception:
                     scf_file.close()
                     raise UserError("Bad format for line %d of %s [not 5 or 7 integers]"
                         % (line_num, path))

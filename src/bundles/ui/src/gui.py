@@ -490,7 +490,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         from .graphics import GraphicsWindow
         try:
             g = GraphicsWindow(self._stack, self.session.ui, stereo, oc)
-        except:
+        except Exception:
             # Failed to create OpenGL context
             return False
 

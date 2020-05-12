@@ -71,7 +71,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
                 raise LimitationError(str(e))
 
     provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn)
-        for fn in file_names] + tokens)
+        for fn in file_names] + [StringArg.unparse(token) for token in tokens])
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(ses=session):
