@@ -499,11 +499,16 @@ const tmpl::Residue*
 ExtractMolecule::find_template_residue(const ResName& name)
 {
     if (my_templates) {
-        tmpl::Residue* tr = my_templates->find_residue(name);
+        auto tr = my_templates->find_residue(name);
         if (tr && tr->atoms_map().size() > 0)
             return tr;
     }
-    return mmcif::find_template_residue(name);
+    auto tr =  mmcif::find_template_residue(name);
+    if (tr == nullptr) {
+        // TODO: skip warning if already given for this molecule
+        logger::warning(_logger,
+            "Unable to fetch template for '", name, "': might have incorrect bonds");
+    }
 }
 
 void
