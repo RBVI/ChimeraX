@@ -32,7 +32,7 @@ Session data, ie., data that is archived, uses the :py:class:`State` and
 """
 
 from .state import RestoreError, State, StateManager, copy_state, dereference_state
-from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas, plural_form
+from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, plural_form
 from .errors import UserError
 
 _builtin_open = open
@@ -322,28 +322,39 @@ class _RestoreManager:
         self.bundle_infos.clear()
 
     def check_bundles(self, session, bundle_infos):
+        from . import BUNDLE_NAME
         missing_bundles = []
         out_of_date_bundles = []
+        need_core_version = None
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
             # put the below kludge in to allow sessions saved before the seq_view
             # bundle name change to restore; remove on or after 1.0 release
             bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
-                missing_bundles.append(bundle_name)
+                missing_bundles.append((bundle_name, bundle_version))
                 continue
             # check if installed bundles can restore data
             if bundle_state_version not in bi.session_versions:
-                out_of_date_bundles.append(bi)
+                if bi.name == BUNDLE_NAME:
+                    need_core_version = bundle_version
+                else:
+                    out_of_date_bundles.append((bundle_name, bundle_version, bi))
+        if need_core_version is not None:
+            DOWNLOAD_URL = "https://www.rbvi.ucsf.edu/chimerax/download.html"
+            session.logger.info(
+                f'<blockquote>Get a new version of ChimeraX from <a href="{DOWNLOAD_URL}">'
+                f'{DOWNLOAD_URL}</a>.</blockquote>',
+                is_html=True)
+            raise UserError(f"your version of ChimeraX is too old, install version {need_core_version} or newer")
         if missing_bundles or out_of_date_bundles:
-            msg = "Unable to restore all of session"
+            msg = ""
             if missing_bundles:
-                msg += "; missing %s: %s" % (
-                    plural_form(missing_bundles, 'bundle'),
-                    commas(missing_bundles, 'and'))
+                msg += "need to install missing " + plural_form(missing_bundles, 'bundle')
             if out_of_date_bundles:
-                msg += "; out of date %s: %s" % (
-                    plural_form(out_of_date_bundles, 'bundle'),
-                    commas(out_of_date_bundles, 'and'))
+                if missing_bundles:
+                    msg += " and "
+                msg += "need to update " + plural_form(out_of_date_bundles, 'bundle')
+            self.log_bundles(session, missing_bundles, out_of_date_bundles)
             raise UserError(msg)
         self.bundle_infos = bundle_infos
 
@@ -353,6 +364,25 @@ class _RestoreManager:
 
     def add_reference(self, name, obj):
         _UniqueName.add(name.uid, obj)
+
+    def log_bundles(self, session, missing_bundles, out_of_date_bundles):
+
+        def bundle_link(toolshed_url, name):
+            app_name = name.casefold().replace('-', '').replace('_', '')
+            if name.startswith("ChimeraX-"):
+                name = name[len("ChimeraX-"):]
+            return f'<a href="{toolshed_url}/apps/{app_name}">{name}</a>'
+
+        remote_url = session.toolshed.remote_url
+        msg = "<blockquote>\n" "To Restore session:<ul>\n"
+        if missing_bundles:
+            for name, version in missing_bundles:
+                msg += f"<li>install {bundle_link(remote_url, name)} bundle version {version} or newer</li>" "\n"
+        if out_of_date_bundles:
+            for name, version, bi in out_of_date_bundles:
+                msg += f"<li>update {bundle_link(remote_url, name)} bundle to version {version} or newer (have {bi.version})</li>" "\n"
+        msg += "</ul></blockquote>\n"
+        session.logger.warning(msg, is_html=True, add_newline=False)
 
 
 class UserAliases(StateManager):
@@ -592,8 +622,8 @@ class Session:
         if use_pickle:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
-                raise UserError('Not a ChimeraX session file')
-            raise UserError("Session file format version 1 detected.  Convert using UCSF ChimeraX 0.8")
+                raise UserError('not a ChimeraX session file')
+            raise UserError("session file format version 1 detected.  Convert using UCSF ChimeraX 0.8")
         else:
             line = stream.readline(256)   # limit line length to avoid DOS
             tokens = line.split()
@@ -601,16 +631,16 @@ class Session:
                 raise RuntimeError('Not a ChimeraX session file')
             version = int(tokens[4])
             if version == 2:
-                raise UserError("Session file format version 2 detected.  DO NOT USE.  Recreate session from scratch, and then save.")
+                raise UserError("session file format version 2 detected.  DO NOT USE.  Recreate session from scratch, and then save.")
             elif version == 3:
                 stream = serialize.msgpack_deserialize_stream(stream)
             else:
                 raise UserError(
-                    "Need newer version of ChimeraX to restore session")
+                    "need newer version of ChimeraX to restore session")
             fdeserialize = serialize.msgpack_deserialize
         metadata = fdeserialize(stream)
         if metadata is None:
-            raise UserError("Corrupt session file (missing metadata)")
+            raise UserError("corrupt session file (missing metadata)")
         metadata['session_version'] = version
         if metadata_only:
             self.metadata.update(metadata)
@@ -912,7 +942,10 @@ def open(session, path, resize_window=None):
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.session_file_path = path
-    session.restore(stream, path=path, resize_window=resize_window)
+    try:
+        session.restore(stream, path=path, resize_window=resize_window)
+    except UserError as ue:
+        raise UserError(f"Unable to restore session: {ue}")
     return [], "opened ChimeraX session"
 
 
