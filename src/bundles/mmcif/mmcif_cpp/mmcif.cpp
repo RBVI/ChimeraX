@@ -509,6 +509,7 @@ ExtractMolecule::find_template_residue(const ResName& name)
         logger::warning(_logger,
             "Unable to fetch template for '", name, "': might have incorrect bonds");
     }
+    return tr;
 }
 
 void
