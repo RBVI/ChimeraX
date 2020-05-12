@@ -229,7 +229,8 @@ class UI(QApplication):
     def event(self, event):
         from PyQt5.QtCore import QEvent
         if event.type() == QEvent.FileOpen:
-            if not hasattr(self, 'toolshed'):
+            from chimerax.core.toolshed import get_toolshed
+            if get_toolshed() is None:
                 # Drop event might have started ChimeraX and it is not yet ready to open a file.
                 # So remember file and startup script will open it when ready.
                 self._files_to_open.append(event.file())
