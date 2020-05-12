@@ -154,7 +154,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
         if logger:
             logger.status('%s fetched' % name, secondary=True, blank_after=5)
         return ct
-    except:
+    except BaseException:
         if os.path.exists(filename):
             os.remove(filename)
         if logger:
