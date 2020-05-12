@@ -325,9 +325,8 @@ class BugReporter(ToolInstance):
         return '\n'.join(lines)
 
     def chimerax_version(self):
-        from chimerax.core import buildinfo
-        from chimerax import app_dirs as ad
-        return '%s (%s)' % (ad.version, buildinfo.date.split()[0])
+        from chimerax.core.buildinfo import version, date
+        return '%s (%s)' % (version, date)
 
     def entry_values(self):
         values = {
