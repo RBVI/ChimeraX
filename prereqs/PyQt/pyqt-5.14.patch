@@ -65,7 +65,7 @@ index decb6fc2e..3ee353c72 100644
 +# Versions of Riverbank Computing Limited packages/programs from when
 +# unlicensed wheels where built and presumably matches the gpl wheel in PyPI.
 +SIP_VERSION = 5.1.2
-+BUILDER_VERSION = 1.3.1
++BUILDER_VERSION = 1.3.2
 +
 +PYQT_LICENSE_VERSION = 2.0.1
 +PYQTLICENSE = pyqtlicense-$(PYQT_LICENSE_VERSION)-$(BIN_PLATFORM)

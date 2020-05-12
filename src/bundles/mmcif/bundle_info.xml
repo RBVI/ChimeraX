@@ -49,7 +49,7 @@
 	    encoding="utf-8" mime_types="chemical/x-mmcif" reference_url="http://mmcif.wwpdb.org/" />
     <Provider name="Chemical Component Dictionary" category="Molecular structure"
 	    nicknames="ccd" suffixes=".cif"
-	    encoding="utf-8" reference_url="http://mmcif.wwpdb.org/data/ccd" />
+	    encoding="utf-8" reference_url="http://www.wwpdb.org/data/ccd" />
   </Providers>
 
   <Providers manager="open command">
