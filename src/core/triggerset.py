@@ -211,7 +211,7 @@ class _Trigger:
                 self._pending_del.add(handler)
             try:
                 ret = handler.invoke(data, self._remove_bad_handlers)
-            except:
+            except Exception:
                 self._locked = locked
                 raise
             if ret == DEREGISTER and handler not in self._pending_del:
