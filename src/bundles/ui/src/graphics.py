@@ -87,7 +87,7 @@ class GraphicsWindow(QWindow):
             ver = r.opengl_version()
             try:
                 build = int(ver.split('.')[-1])
-            except:
+            except Exception:
                 return
             if build > 6708:
                 # This is to work around ChimeraX bug #2537 where the entire

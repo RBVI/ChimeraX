@@ -81,7 +81,7 @@ def provider_save(session, file_name, format=None, **provider_kw):
     # remember in file history if appropriate
     try:
         session.open_command.open_info(data_format)
-    except:
+    except Exception:
         pass
     else:
         from os.path import isfile

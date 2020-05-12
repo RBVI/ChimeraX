@@ -668,7 +668,7 @@ class ObjectLabel:
             except AttributeError:
                 # don't label objects missing the requested attribute(s)
                 final_text = ""
-            except:
+            except Exception:
                 final_text = base_text
         else:
             attrs = self._attribute.split('.')

@@ -174,7 +174,7 @@ def read_sdf(session, stream, file_name):
                         data = []
                     elif data_name == "pubchem_compound_cid":
                         reading_data = "cid"
-    except:
+    except BaseException:
         for s in structures:
             s.delete()
         raise
