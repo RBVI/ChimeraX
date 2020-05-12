@@ -365,9 +365,6 @@ def _get_template(session, name):
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', timeout=15)
     except (UserError, OSError):
-        session.logger.warning(
-            "Unable to fetch template for '%s': might be missing bonds"
-            % name)
         return None
 
 
@@ -1058,7 +1055,11 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
     from .. import AtomicStructure
     # TODO: support ignore_cache
     from itertools import chain
-    ccd = find_template_residue(session, ccd_id)
+    ccd_id = ccd_id.upper()  # all current CCD entries are in uppercase
+    try:
+        ccd = find_template_residue(session, ccd_id)
+    except ValueError:
+        raise UserError("Unknown CCD ligand name")
     ccd_atoms = ccd.atoms
     ccd_bonds = set()
     for a in ccd_atoms:
