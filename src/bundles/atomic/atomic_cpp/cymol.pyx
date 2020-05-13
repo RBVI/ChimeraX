@@ -931,9 +931,14 @@ cdef class CyResidue:
 
     @property
     def chain_id(self):
-        "Supported API. PDB chain identifier. Limited to 4 characters. Read only string."
+        "Supported API. PDB chain identifier. Limited to 4 characters."
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.chain_id().decode()
+
+    @chain_id.setter
+    def chain_id(self, new_chain_id):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_chain_id(new_chain_id.encode())
 
     chi_info = {
         'ARG': [("N", "CA", "CB", "CG"),
