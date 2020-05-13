@@ -105,28 +105,6 @@ canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
     }
 }
 
-std::string
-residue_str(Residue* r, Residue* other = nullptr)
-{
-    std::stringstream pos_string;
-    std::string ret = r->name();
-    ret += " #";
-    pos_string << r->number();
-    ret += pos_string.str();
-    auto insertion_code = r->insertion_code();
-    if (insertion_code != ' ')
-        ret += insertion_code;
-    if (other && other->chain_id() == r->chain_id())
-        return ret;
-    auto chain_id = r->chain_id();
-    if (!chain_id.empty() && chain_id != " ") {
-        ret += ' ';
-        ret += "in chain ";
-        ret += chain_id;
-    }
-    return ret;
-}
-
 Atom* closest_atom_by_template(tmpl::Atom* ta, const tmpl::Residue* tr, const Residue* r)
 {
     // Find closest (in hops) existing (heavy) atom to given atom in template
@@ -577,7 +555,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
             // suppress warning for CA traces and when missing templates
             if (!gap && tr0 && tr1)
                 logger::warning(_logger, "Expected gap or ", conn_type,
-                                residue_str(r0, r1), " and ", residue_str(r1));
+                                r0->str(), " and ", r1->str());
         }
     } else if (a1 == nullptr) {
         a1 = pdb_connect::find_closest(a0, r1, nullptr, true);
@@ -586,25 +564,23 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
             if (!gap && tr0 && tr1)
                 logger::warning(_logger,
                                 "Expected gap or linking atom in ",
-                                residue_str(r1, r0), " for ", residue_str(r0));
+                                r1->str(), " for ", r0->str());
         }
     }
     if (a1 == nullptr) {
-        logger::warning(_logger, "Unable to connect ", residue_str(r0, r1),
-                        " and ", residue_str(r1));
+        logger::warning(_logger, "Unable to connect ", r0->str(), " and ", r1->str());
         return;
     }
 #if 0
     if (gap && reasonable_bond_length(a0, a1)) {
-        logger::warning(_logger, "Eliding gap between ", residue_str(r0, r1), " and ", residue_str(r1));
+        logger::warning(_logger, "Eliding gap between ", r0-str(), " and ", r1->str());
         gap = false;    // bad data
     }
 #endif
     if (same_type && !gap && !reasonable_bond_length(a0, a1) && r0->connects_to(r1)) {
         if (!nstd_okay)
             logger::warning(_logger,
-                "Apparent non-polymeric linkage between ",
-                residue_str(r0, r1), " and ", residue_str(r1));
+                "Apparent non-polymeric linkage between ", r0->str(), " and ", r1->str());
         return;
     }
     if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
@@ -651,8 +627,7 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
             if (!connected) {
                 if (model_num == first_model_num)
                     logger::warning(_logger, "Atom ", a->name(),
-                                    " is not in the residue template for ",
-                                    residue_str(r));
+                                    " is not in the residue template for ", r->str());
                 pdb_connect::connect_residue_by_distance(r);
                 return;
             }
@@ -664,13 +639,21 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     //    connect up like atom in template
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
+        bool found_bond = false;
+        bool has_heavy_neighbors = false;
         for (auto&& tmpl_nb: ta->neighbors()) {
+            has_heavy_neighbors |= tmpl_nb->element().number() > Element::H;
             Atom *b = r->find_atom(tmpl_nb->name());
             if (b == nullptr)
                 continue;
+            found_bond = true;
             if (!a->connects_to(b))
                 (void) a->structure()->new_bond(a, b);
         }
+        if (!found_bond && has_heavy_neighbors)
+            logger::warning(_logger, "Atom ", a->name(),
+                            " has no neighbors to form bonds with according to residue template for ",
+                            r->str());
     }
 }
 
@@ -698,7 +681,7 @@ ExtractMolecule::finished_parse()
             auto tr = find_template_residue(r->name());
             if (tr == nullptr) {
                 if (model_num == first_model_num) {
-                    logger::warning(_logger, "Missing or invalid residue template for ", residue_str(r));
+                    logger::warning(_logger, "Missing or invalid residue template for ", r->str());
                     has_metal = true;   // it's okay to do extra work
                 }
                 pdb_connect::connect_residue_by_distance(r);
@@ -2281,12 +2264,12 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
         Atom* a1 = r1->find_atom(atom_name1); 
         if (a1 == nullptr) {
             logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
-                            atom_name1, " in ", residue_str(r1));
+                            atom_name1, " in ", r1->str());
         }
         Atom* a2 = r2->find_atom(atom_name2); 
         if (a2 == nullptr) {
             logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
-                            atom_name2, " in ", residue_str(r2));
+                            atom_name2, " in ", r2->str());
         }
         if (a1 != nullptr && a2 != nullptr) {
             for (auto& cs: mol->coord_sets()) {
@@ -2343,12 +2326,12 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
                 Atom* a1 = r1->find_atom(atom_names[n1 % 2]);
                 if (a1 == nullptr) {
                     logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
-                                    atom_names[n1 % 2], " in ", residue_str(r1));
+                                    atom_names[n1 % 2], " in ", r1->str());
                 }
                 Atom* a2 = r2->find_atom(atom_names[n2 % 2]);
                 if (a2 == nullptr) {
                     logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
-                                    atom_names[n2 % 2], " in ", residue_str(r2));
+                                    atom_names[n2 % 2], " in ", r2->str());
                 }
                 if (a1 != nullptr && a2 != nullptr) {
                     for (auto& cs: mol->coord_sets()) {
