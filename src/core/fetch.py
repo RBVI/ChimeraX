@@ -169,12 +169,11 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
             logger.status('%s fetched' % name, secondary=True, blank_after=5)
         return ct
     except Exception:
+        if os.path.exists(filename):
+            os.remove(filename)
         if logger:
             logger.status('Error fetching %s' % name, secondary=True, blank_after=15)
         raise
-    finally:
-        if os.path.exists(filename):
-            os.remove(filename)
 
 
 # -----------------------------------------------------------------------------
