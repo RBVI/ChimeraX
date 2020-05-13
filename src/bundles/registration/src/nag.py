@@ -126,20 +126,41 @@ def _get_registration(logger):
 
 
 def _check_expiration(param, logger):
-    from datetime import datetime, timedelta
-    try:
-        expires = datetime.strptime(param["Expires"], TimeFormat)
-    except KeyError:
-        try:
-            signed = param.get("Signed", None)
-        except KeyError:
-            return None
-        expires = datetime.strptime(signed, TimeFormat) + timedelta(year=1)
+    from datetime import datetime
+    expires = _expiration_time(param)
+    if expires is None:
+        return None
     if datetime.now() > expires:
         if logger:
             logger.warning("Registration file %r has expired" % reg_file)
         return None
     return expires
+
+
+def _expiration_time(param):
+    from datetime import datetime, timedelta
+    import locale
+    # Timestamps in registration file come from RBVI web server
+    # which runs with US English locale.  So we temporarily set
+    # the TIME locale when parsing timestamp and then restore it.
+    save = locale.getlocale(locale.LC_TIME)
+    if save is None:
+        # When restoring locale, we must use empty string instead of None
+        save = ''
+    try:
+        locale.setlocale(locale.LC_TIME, "en_US.UTF-8")
+        try:
+            return datetime.strptime(param["Expires"], TimeFormat)
+        except (KeyError, ValueError):
+            pass
+        try:
+            return (datetime.strptime(param["Signed"], TimeFormat) +
+                    timedelta(year=1))
+        except (KeyError, ValueError):
+            pass
+    finally:
+        locale.setlocale(locale.LC_TIME, save)
+    return None
 
 
 def _write_registration(logger, param):
