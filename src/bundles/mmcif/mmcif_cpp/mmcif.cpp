@@ -664,13 +664,21 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     //    connect up like atom in template
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
+        bool found_bond = false;
+        bool has_heavy_neighbors = false;
         for (auto&& tmpl_nb: ta->neighbors()) {
+            has_heavy_neighbors |= tmpl_nb->element().number() > Element::H;
             Atom *b = r->find_atom(tmpl_nb->name());
             if (b == nullptr)
                 continue;
+            found_bond = true;
             if (!a->connects_to(b))
                 (void) a->structure()->new_bond(a, b);
         }
+        if (!found_bond && has_heavy_neighbors)
+            logger::warning(_logger, "Atom ", a->name(),
+                            " has no neighbors to form bonds with according to residue template for ",
+                            residue_str(r));
     }
 }
 
