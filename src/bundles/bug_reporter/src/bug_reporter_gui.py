@@ -116,6 +116,7 @@ class BugReporter(ToolInstance):
             info += _linux_info()
         elif sys.platform == 'darwin':
             info += _darwin_info()
+        info += _qt_info(session)
         gi.setText(info)
         layout.addWidget(gi, row, 2)
         row += 1
@@ -325,9 +326,8 @@ class BugReporter(ToolInstance):
         return '\n'.join(lines)
 
     def chimerax_version(self):
-        from chimerax.core import buildinfo
-        from chimerax import app_dirs as ad
-        return '%s (%s)' % (ad.version, buildinfo.date.split()[0])
+        from chimerax.core.buildinfo import version, date
+        return '%s (%s)' % (version, date)
 
     def entry_values(self):
         values = {
@@ -493,3 +493,14 @@ def _darwin_info():
         return output
     except Exception:
         return ""
+
+
+def _qt_info(session):
+    if not session.ui.is_gui:
+        return ""
+    from PyQt5 import QtCore as Qt
+    return (
+        f"PyQt version: {Qt.PYQT_VERSION_STR}\n"
+        f"Compiled Qt version: {Qt.QT_VERSION_STR}\n"
+        f"Runtime Qt version: {Qt.qVersion()}\n"
+    )

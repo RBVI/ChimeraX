@@ -71,7 +71,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
                 raise LimitationError(str(e))
 
     provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn)
-        for fn in file_names] + tokens)
+        for fn in file_names] + [StringArg.unparse(token) for token in tokens])
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(ses=session):
@@ -375,7 +375,7 @@ def collated_open(session, database_name, data, data_format, main_opener, func, 
             else:
                 opened_text = "input"
         description = "Summary of feedback from opening %s" % opened_text
-    if main_opener:
+    if main_opener and data_format.category != session.data_formats.CAT_SESSION:
         with Collator(session.logger, description, True):
             return func(*func_args, **func_kw)
     return func(*func_args, **func_kw)

@@ -199,7 +199,7 @@ if __name__ == '__main__':
                 f.write('A')
                 f.flush()
                 raise RuntimeError("fail")
-        except:
+        except Exception:
             pass
             # print('successfully failed')
         assert(not os.path.exists(testfile + '.tmp'))

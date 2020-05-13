@@ -738,7 +738,7 @@ class SeqCanvas:
             try:
                 self._clustalCategories, self._clustalColorings\
                         = clustalInfo(prefResColor)
-            except:
+            except Exception:
                 schemes = self.sv.prefs[RC_CUSTOM_SCHEMES]
                 if prefResColor in schemes:
                     schemes.remove(prefResColor)
