@@ -183,7 +183,7 @@ class _Connection:
             # logger.debug("get: %s: received %d bytes", self, len(header_data))
             try:
                 s = header_data.decode().lower()
-            except:
+            except Exception:
                 # If data is not text, assume it is not HTTP protocol
                 pass
             else:
@@ -232,7 +232,7 @@ class _Connection:
                 self._socket.send(*args, **kw)
             except ConnectionError:
                 self.close()
-            except:
+            except Exception:
                 logger.exception("_send: %s", self._socket)
                 raise
 
@@ -399,7 +399,7 @@ class _NetworkEndpoint(_Endpoint):
                 break
             try:
                 self.handle_packet(ptype, serial, packet)
-            except:
+            except Exception:
                 logger.error("message handler failed", exc_info=sys.exc_info())
         logger.info("run terminated: %s", self)
 
@@ -542,7 +542,7 @@ class LoopbackNode(_Endpoint):
                 break
             try:
                 self.handle_packet(ptype, serial, packet)
-            except:
+            except Exception:
                 logger.error("message handler failed", exc_info=sys.exc_info())
         logger.info("run terminated: %s", self)
 
@@ -588,7 +588,7 @@ class _LoopbackHandler(_BaseHandler, _Endpoint):
                 break
             try:
                 self.handle_packet(ptype, serial, packet)
-            except:
+            except Exception:
                 logger.error("message handler failed", exc_info=sys.exc_info())
         self._hub.notify(self, Req.Departed)
 
@@ -684,7 +684,7 @@ class Hub(threading.Thread):
                 logger.info("hub connection:: from %s", addr)
             except socket.timeout:
                 pass
-            except:
+            except Exception:
                 logger.error("hub accept() failed", exc_info=sys.exc_info())
             else:
                 _NetworkHandler(ns, self).start()
