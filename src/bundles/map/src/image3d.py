@@ -27,7 +27,8 @@ class Image3d(Model):
     Model.__init__(self, name, session)
 
     self._data = grid_data
-    self._region = region
+    self._region_unaligned = region
+    self._region = _step_aligned_region(region)
     self._last_ijk_to_xyz_transform = grid_data.ijk_to_xyz_transform
     self._colormap = colormap
     self._rendering_options = rendering_options.copy()
@@ -61,13 +62,16 @@ class Image3d(Model):
   # ---------------------------------------------------------------------------
   #
   def set_region(self, region):
-      if region == self._region and self._data.ijk_to_xyz_transform == self._last_ijk_to_xyz_transform:
+      if (region == self._region_unaligned and
+          self._data.ijk_to_xyz_transform == self._last_ijk_to_xyz_transform):
         return
 
       self._last_ijk_to_xyz_transform = self._data.ijk_to_xyz_transform
+
+      same_step = (region[2] == self._region_unaligned[2])
+      self._region_unaligned = region
+      self._region = _step_aligned_region(region)
       
-      same_step = (region[2] == self._region[2])
-      self._region = region
       if self._rendering_options.full_region_on_gpu and same_step:
         self._update_planes_for_new_region()
       else:
@@ -1577,3 +1581,11 @@ def _value_type_range(numpy_type):
     int16: (-32768, 32767),
     }
   return tsize.get(numpy_type, (None, None))
+
+# -----------------------------------------------------------------------------
+#
+def _step_aligned_region(region):
+  ijk_min, ijk_max, ijk_step = region
+  ijk_min_aligned = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
+  ijk_max_aligned = [max(s*(i//s),min) for i,s,min in zip(ijk_max, ijk_step, ijk_min_aligned)]
+  return ijk_min_aligned, ijk_max_aligned, ijk_step
