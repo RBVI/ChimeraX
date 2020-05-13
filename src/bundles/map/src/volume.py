@@ -1303,12 +1303,17 @@ class Volume(Model):
     return self.step_aligned_region(r)
 
   # ---------------------------------------------------------------------------
-  # Return the origin aligned to a multiple of step and size of the region and step.
+  # Return the origin aligned to a multiple of step, and size and step of the region.
+  # The origin[axis] is the smallest index equal or greater to region ijk_min[axis]
+  # that is a multiple of the step.  The end of the region is the largest index equal
+  # or less than ijk_max[axis] that is a multiple of the step, unless that index is
+  # less than the origin in which case the end equals the origin.  The returned
+  # size is always a multiple of step.
   #
   def step_aligned_region(self, region, clamp = True):
 
     ijk_min, ijk_max, ijk_step = region
-    
+
     # Samples always have indices divisible by step, so increase ijk_min if
     # needed to make it a multiple of ijk_step.
     origin = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
@@ -1318,11 +1323,11 @@ class Volume(Model):
       if origin[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
         origin[a] -= ijk_step[a]
 
-    end = [s*(i+s)//s for i,s in zip(ijk_max, ijk_step)]
+    end = [max(s*(i//s),o) for i,s,o in zip(ijk_max, ijk_step, origin)]
     if clamp:
       origin = [max(i,0) for i in origin]
-      end = [min(i,lim) for i,lim in zip(end, self.data.size)]
-    size = [e-o for e,o in zip(end, origin)]
+      end = [min(i,lim-1) for i,lim in zip(end, self.data.size)]
+    size = [e-o+s for e,o,s in zip(end, origin, ijk_step)]
 
     return tuple(origin), tuple(size), tuple(ijk_step)
 
