@@ -509,7 +509,7 @@ def axis_center_angle_shift(tf):
     a2 = 0.5 * angle * pi / 180         # Half angle in radians
     try:
         ct2 = cos(a2) / sin(a2)
-    except:
+    except Exception:
         ct2 = None    # Identity rotation
     if ct2 is None:
         axis_point = (0, 0, 0)

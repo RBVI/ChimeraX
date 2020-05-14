@@ -3676,7 +3676,7 @@ class VolumeUpdateManager:
 def is_multifile_save(path):
     try:
         path % 0
-    except:
+    except Exception:
         return False
     return True
 

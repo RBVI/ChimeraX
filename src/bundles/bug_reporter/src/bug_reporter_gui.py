@@ -320,7 +320,7 @@ class BugReporter(ToolInstance):
                      'OpenGL renderer: ' + r.opengl_renderer(),
                      'OpenGL vendor: ' + r.opengl_vendor()]
             r.done_current()
-        except:
+        except Exception:
             lines = ['OpenGL version: unknown',
                      'Could not make opengl context current']
         return '\n'.join(lines)

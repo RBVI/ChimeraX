@@ -97,7 +97,7 @@ class PIF_Data:
 
     try:
       ff = float(v['realScaleFactor'])
-    except:
+    except Exception:
       raise SyntaxError('realScaleFactor header value of PIF file %s is not parsable as a float: "%s"' % (file.name, v['realScaleFactor']))
     
     v['imageHeader'] = self.read_image_header(file, ff)
@@ -163,7 +163,7 @@ class PIF_Data:
     self.float_scale = None
     try:
       fscale = float(v['realScaleFactor'])
-    except:
+    except Exception:
       fscale = None
       
     from numpy import int16, int32, float32
