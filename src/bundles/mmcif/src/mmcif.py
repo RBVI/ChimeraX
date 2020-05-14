@@ -1085,4 +1085,7 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
         new_a1 = new_atoms[atoms[1]]
         new_structure.new_bond(new_a0, new_a1)
 
+    from chimerax.atomic.pdb import process_chem_name
+    new_structure.html_title = process_chem_name(ccd.description)
+
     return [new_structure], f"Opened CCD {ccd_id}"
