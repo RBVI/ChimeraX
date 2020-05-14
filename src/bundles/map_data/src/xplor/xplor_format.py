@@ -35,7 +35,7 @@ class XPLOR_Density_Map:
     ntitle_line = f.readline()            # integer number of comment lines
     try:
       ntitle = int(ntitle_line.split()[0])
-    except:
+    except Exception:
       raise SyntaxError('Invalid XPLOR comment line count on line 2: %s'
                         % ntitle_line[:80])
 

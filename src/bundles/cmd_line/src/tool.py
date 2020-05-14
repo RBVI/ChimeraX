@@ -298,7 +298,7 @@ class CommandLine(ToolInstance):
         except UserError as err:
             self.session.logger.status("Error running startup command '%s': %s" % (cmd_text, str(err)),
                 color="crimson", log=True)
-        except:
+        except Exception:
             self._processing_command = False
             raise
         self._processing_command = False

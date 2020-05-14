@@ -191,7 +191,7 @@ class ffmpeg_encoder:
         import os
         try:
             os.remove(self.output_file)
-        except:
+        except Exception:
             pass
 
     def killEncoder(self, pop_obj):

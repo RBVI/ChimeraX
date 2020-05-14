@@ -253,7 +253,7 @@ def pdb_biomolecules(pdb_headers, remark_number = '350',
       i += len(biomol_tag)
       try:
         bm_num = int(line[i:])
-      except:
+      except Exception:
         continue
       tflist = []
       mn = None
@@ -283,7 +283,7 @@ def pdb_biomolecules(pdb_headers, remark_number = '350',
         try:
           mnum = int(rvals[0])
           mrow = tuple(float(x) for x in rvals[1:5])
-        except:
+        except Exception:
           continue
         if mnum != mn:
           m = [(1,0,0,0),(0,1,0,0),(0,0,1,0)]
@@ -339,6 +339,6 @@ def remark_number(line):
 
   try:
     n = int(line[7:10])
-  except:
+  except Exception:
     n = 1000
   return n

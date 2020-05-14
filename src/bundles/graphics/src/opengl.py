@@ -169,7 +169,7 @@ class OpenGLContext:
         # Check if opengl version is adequate.
         try:
             self._check_context_version(qc.format())
-        except:
+        except Exception:
             self._contexts[mode] = False
             raise	# OpenGLVersionError
 
@@ -449,7 +449,7 @@ class Render:
                 i = 1 if wait else 0
                 success = wglSwapIntervalEXT(i)
                 return True if success else False
-            except:
+            except Exception:
                 return False
         elif platform == 'darwin':
             sync = 1 if wait else 0

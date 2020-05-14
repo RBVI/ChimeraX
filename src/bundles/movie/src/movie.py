@@ -118,7 +118,7 @@ class Movie:
         for s in src_img_paths:
             try:
                 os.remove(s)
-            except:
+            except Exception:
                 self.session.logger.info("Error removing file %s" % s)
 
 
