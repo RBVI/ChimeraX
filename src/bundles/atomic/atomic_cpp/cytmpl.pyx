@@ -87,6 +87,10 @@ cdef class TmplResidue:
     def pdbx_ambiguous(self):
         return self.cpp_res.pdbx_ambiguous
 
+    @property
+    def description(self):
+        return self.cpp_res.description().decode()
+
 cytmpl.Residue.set_py_class(TmplResidue)
 
 cdef class TmplAtom:
