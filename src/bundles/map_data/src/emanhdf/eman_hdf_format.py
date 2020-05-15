@@ -74,7 +74,7 @@ class EMAN_HDF_Data:
 
         try:
             i = parent.MDF.images
-        except:
+        except Exception:
             return []
 
         arrays = []

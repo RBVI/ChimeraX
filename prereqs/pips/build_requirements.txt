@@ -1,16 +1,17 @@
 #
 # Application runtime
 #
-appdirs==1.4.3
+appdirs==1.4.4
 colorama==0.4.3
 comtypes==1.1.7
-Cython==0.29.16
+Cython==0.29.17
 distlib==0.3.0
 filelock==3.0.12
-flake8==3.7.9
+flake8==3.8.0
 funcparserlib==0.3.6
 grako==3.16.5
 html2text==2020.1.16
+ipython==7.14.0
 # see ../lineprofiler
 #line_profiler==3.0.2
 lxml==4.5.0
@@ -19,11 +20,12 @@ mccabe==0.6.1
 msgpack==1.0.0
 pep8==1.7.1
 pep8-naming==0.10.0
-Pillow==7.1.1
+Pillow==7.1.2
 pkginfo==1.5.0.1
-pycodestyle==2.5.0
+pycodestyle==2.6.0
 pyflakes==2.2.0
 python-dateutil==2.8.1
+pytz==2020.1
 six==1.14.0
 sortedcontainers==2.1.0
 suds-jurko==0.6
@@ -38,5 +40,5 @@ docutils==0.16
 Jinja2==2.11.2
 numpydoc==0.9.2
 Pygments==2.6.1
-Sphinx==3.0.1
+Sphinx==3.0.3
 sphinxcontrib-blockdiag==2.0.0

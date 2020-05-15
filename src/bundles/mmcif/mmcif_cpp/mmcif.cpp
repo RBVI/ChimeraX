@@ -68,11 +68,11 @@ using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Coord;
 using atomstruct::Real;
-using atomstruct::PolymerType;
 
 using atomstruct::AtomName;
 using atomstruct::ChainID;
 using atomstruct::ResName;
+using atomstruct::PolymerType;
 
 namespace {
 
@@ -508,8 +508,8 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
 
     auto tr0 = find_template_residue(r0name);
     auto tr1 = find_template_residue(r1name);
-    bool same_type = tr0 && tr1 && !tr0->description().empty()
-                     && (tr1->description() == tr0->description());
+    bool same_type = tr0 && tr1 && tr0->polymer_type() != PolymerType::PT_NONE
+                     && (tr1->polymer_type() == tr0->polymer_type());
     if (r0std && r1std && !same_type) {
         // standard residues, but of different types, so there should be an explicit bond
         if (r0->connects_to(r1))
@@ -600,6 +600,8 @@ void
 ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num)
 {
     auto& atoms = r->atoms();
+    if (atoms.size() <= 1)
+        return;
 
     // Confirm all atoms in residue are in template, if not connect by distance
     for (auto&& a: atoms) {
@@ -963,12 +965,12 @@ ExtractMolecule::parse_chem_comp()
         }
         bool is_peptide = type.find("peptide") != string::npos;
         if (is_peptide)
-            tr->description("peptide");
+            tr->polymer_type(PolymerType::PT_AMINO);
         else {
             bool is_nucleotide = type.compare(0, 3, "dna") == 0
                 || type.compare(0, 3, "rna") == 0;
             if (is_nucleotide)
-                tr->description("nucleotide");
+                tr->polymer_type(PolymerType::PT_NUCLEIC);
         }
     }
     StringVector colinfo;
@@ -1033,10 +1035,10 @@ ExtractMolecule::parse_chem_comp_bond()
     // sneak in chief and link atoms
     for (auto& ri: my_templates->residues_map()) {
         tmpl::Residue* tr = ri.second;
-        if (tr->description() == "peptide") {
+        if (tr->polymer_type() == PolymerType::PT_AMINO) {
             tr->chief(tr->find_atom("N"));
             tr->link(tr->find_atom("C"));
-        } else if (tr->description() == "nucleotide") {
+        } else if (tr->polymer_type() == PolymerType::PT_NUCLEIC) {
             tr->chief(tr->find_atom("P"));
             tr->link(tr->find_atom("O3'"));
         }
@@ -1382,7 +1384,7 @@ ExtractMolecule::parse_atom_site()
             cur_comp_id = residue_name;
             if (has_poly_seq.find(entity_id) == has_poly_seq.end()) {
                 auto tr = find_template_residue(residue_name);
-                if (tr && !tr->description().empty()) {
+                if (tr && tr->polymer_type() != PolymerType::PT_NONE) {
                     // only save polymer residues
                     if (missing_position) {
                         if (!missing_seq_id_warning) {

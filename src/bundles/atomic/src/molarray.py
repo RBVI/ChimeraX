@@ -110,7 +110,7 @@ class Collection(State):
             # presume iterable of objects of the object_class
             try:
                 pointers = numpy.array([i._c_pointer.value for i in items], cptr)
-            except:
+            except Exception:
                 t = str(type(items))
                 if isinstance(items, numpy.ndarray):
                     t += ' type %s' % str(items.dtype)

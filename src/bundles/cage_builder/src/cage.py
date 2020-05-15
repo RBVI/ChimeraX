@@ -794,7 +794,7 @@ def parse_placements(name, marker_set):
 
     try:
         n = int(ns)
-    except:
+    except Exception:
         from chimerax.core.errors import UserError
         raise UserError('Symmetry placement must be "p" or "pn" followed by an integer, got "%s"' % name)
 

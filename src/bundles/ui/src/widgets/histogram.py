@@ -737,7 +737,7 @@ class MarkedHistogram(QWidget):
     def _set_value_cb(self):
         try:
             v = eval(self._value_entry.text())
-        except:
+        except Exception:
             raise ValueError("Invalid histogram value")
         if type(self._min_val) != type(v):
             v = type(self._min_val)(v)
