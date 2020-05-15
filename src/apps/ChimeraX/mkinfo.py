@@ -107,7 +107,7 @@ def dump_format(f):
 
 # Initialize ChimeraX to get all registered file types
 if 'session' in locals() or 'session' in globals():
-    formats = session.data_formats.formats
+    formats = session.open_command.open_data_formats
     chimera_types = [f.name for f in formats if f.name.startswith('Chimera')]
 else:
     init([app_name, "--nogui", "--exit"])
