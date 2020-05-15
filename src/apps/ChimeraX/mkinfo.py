@@ -106,9 +106,12 @@ def dump_format(f):
 
 
 # Initialize ChimeraX to get all registered file types
-init([app_name, "--nogui", "--exit"])
-
-chimera_types = [f.name for f in io.formats() if f.name.startswith('Chimera')]
+if 'session' in locals() or 'session' in globals():
+    formats = session.data_formats.formats
+    chimera_types = [f.name for f in formats if f.name.startswith('Chimera')]
+else:
+    init([app_name, "--nogui", "--exit"])
+    formats = []
 
 # create Info.plist
 
@@ -164,7 +167,6 @@ useLSItemContent_types = float(target) >= 10.5
 useLSItemContent_types = False
 
 pl["CFBundleDocumentTypes"] = []
-formats = io.formats()
 formats.sort(key=lambda f: f.name)  # get consistent order
 for f in formats:
     if useLSItemContent_types:
@@ -172,7 +174,7 @@ for f in formats:
         if not id:
             continue
     else:
-        extensions = f.extensions
+        extensions = f.suffixes
         mime_types = f.mime_types
         if not extensions and not mime_types:
             continue
@@ -204,7 +206,7 @@ for f in formats:
             pl["UTExportedTypeDeclarations"] = type_info
 
         type_info = []
-        for f in io.formats():
+        for f in session.data_formats.formats:
             if f.name in chimera_types:
                 continue
             d = dump_format(f)
