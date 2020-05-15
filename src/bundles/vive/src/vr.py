@@ -1494,7 +1494,7 @@ class UserInterface:
         for p in tuple(self._panels):
             try:
                 vis = p._widget.isVisible()
-            except:
+            except Exception:
                 vis = False	# Panel destroyed
             if not vis:
                 self._delete_panel(p)
@@ -1816,7 +1816,7 @@ class Panel:
         w = self._widget
         try:
             w.width()
-        except:
+        except Exception:
             w = None	# Widget was deleted.
         return w
 

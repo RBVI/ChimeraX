@@ -539,7 +539,8 @@ def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=N
             table._set_metadata(model, metadata=metadata)
 
 
-def _add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=None):
+def _add_citation(model, citation_id, info, authors=(), editors=(),
+                  *, metadata=None, return_existing=False):
     # do bulk of add_citation's work, but just return revised tables
     # and don't update metadata
     from chimerax.core.utils import flattened
@@ -550,6 +551,8 @@ def _add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=
     citation_id = str(citation_id)
 
     if citation is not None and citation.field_has('id', citation_id):
+        if return_existing:
+            return citation, citation_author, citation_editor
         return None, None, None
 
     # construct new table entries
@@ -649,12 +652,14 @@ def add_software(model, name, info, *, metadata=None):
         software._set_metadata(model)
 
 
-def _add_software(model, name, info, *, metadata=None):
+def _add_software(model, name, info, *, metadata=None, return_existing=False):
     # do bulk of add_software's work, but just return revised tables
     # and don't update metadata
     software, = get_mmcif_tables_from_metadata(model, ['software'], metadata=metadata)
 
     if software is not None and software.field_has('name', name):
+        if return_existing:
+            return software
         return None
 
     # construct new table entries
@@ -1079,5 +1084,8 @@ def fetch_ccd(session, ccd_id, ignore_cache=False):
         new_a0 = new_atoms[atoms[0]]
         new_a1 = new_atoms[atoms[1]]
         new_structure.new_bond(new_a0, new_a1)
+
+    from chimerax.atomic.pdb import process_chem_name
+    new_structure.html_title = process_chem_name(ccd.description)
 
     return [new_structure], f"Opened CCD {ccd_id}"

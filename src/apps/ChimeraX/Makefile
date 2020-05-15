@@ -103,7 +103,9 @@ ifeq ($(OS),Darwin)
 
 reinstall-plist:
 	rm Info.plist
-	$(MAKE) Info.plist
+# use Chimera executable in this pass so that we pick up registered formats (and 'session' is available)
+#	$(MAKE) Info.plist
+	$(wildcard $(TOP)/ChimeraX*.app)/Contents/bin/ChimeraX --nogui --script "mkinfo.py $(APP_NAME)" --exit || (rm Info.plist ; exit 1)
 	$(RSYNC) Info.plist $(app_prefix)/Info.plist
 endif
 endif

@@ -157,7 +157,7 @@ def read_float_lines(f, array, line_format, progress = None):
             fields = fields[:count-c]
         try:
             values = [float(x) for x in fields]
-        except:
+        except Exception:
             msg = 'Bad number format in %s, line\n%s' % (f.name, line)
             raise SyntaxError(msg)
         for v in values:

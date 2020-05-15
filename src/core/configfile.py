@@ -286,7 +286,7 @@ class ConfigFile:
         )
         if os.path.exists(self._filename):
             self._on_disk = True
-            self._config.read(self._filename)
+            self._config.read(self._filename, encoding='utf-8')
             # check that all values on disk are valid
             for name in self.PROPERTY_INFO:
                 getattr(self, name)

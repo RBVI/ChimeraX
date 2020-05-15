@@ -296,10 +296,10 @@ def save_structure(session, file, models, xforms, used_data_names, selected_only
 
     citation, citation_author, citation_editor = _add_citation(
             best_m, ChimeraX_citation_id, ChimeraX_citation_info,
-            ChimeraX_authors, metadata=best_metadata)
+            ChimeraX_authors, metadata=best_metadata, return_existing=True)
     software = _add_software(
             best_m, ChimeraX_software_info['name'], ChimeraX_software_info,
-            metadata=best_metadata)
+            metadata=best_metadata, return_existing=True)
     citation.print(file, fixed_width=True)
     citation_author.print(file, fixed_width=True)
     if citation_editor is not None:
