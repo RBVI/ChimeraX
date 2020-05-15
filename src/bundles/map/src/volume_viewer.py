@@ -4952,7 +4952,7 @@ def integer_variable_value(v, default = None):
 
   try:
     return int(v.get())
-except Exception:
+  except Exception:
     return default
   
 # -----------------------------------------------------------------------------
@@ -4981,7 +4981,7 @@ def string_to_float(v, default = None):
 
   try:
     return float(v)
-except Exception:
+  except Exception:
     return default
     
 # -----------------------------------------------------------------------------
