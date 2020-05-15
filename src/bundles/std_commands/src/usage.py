@@ -45,7 +45,7 @@ def usage(session, command_name=None, option=None):
                     usage.append(cli.usage(
                         session, name, show_subcommands=0, expand_alias=False,
                         show_hidden=show_hidden))
-                except:
+                except Exception:
                     usage.append('%s -- no documentation' % name)
             info('\n'.join(usage))
             return
@@ -54,7 +54,7 @@ def usage(session, command_name=None, option=None):
                 usage.append(cli.html_usage(
                     session, name, show_subcommands=0, expand_alias=False,
                     show_hidden=show_hidden))
-            except:
+            except Exception:
                 #import traceback
                 #traceback.print_exc()
                 from html import escape

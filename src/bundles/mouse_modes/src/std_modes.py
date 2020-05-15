@@ -230,7 +230,7 @@ def _pick_description(picks):
                 count, name = d.split(maxsplit = 1)
                 c = int(count)
                 item_counts[name] = item_counts.get(name,0) + c
-            except:
+            except Exception:
                 pdesc.append(d)
     pdesc.extend('%d %s' % (count, name) for name, count in item_counts.items())
     desc = ', '.join(pdesc)

@@ -76,7 +76,7 @@ def omit_16bit_lossless_jpeg(series, log):
 def gdcm_library_available():
   try:
     import gdcm
-  except:
+  except Exception:
     return False
   return True
 

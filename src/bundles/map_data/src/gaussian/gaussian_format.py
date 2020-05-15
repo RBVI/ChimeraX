@@ -140,6 +140,6 @@ def read_line_values(line, types, descrip):
   try:
     fields = line.split()[:len(types)]
     values = [t(f) for t,f in zip(types, fields)]
-  except:
+  except Exception:
     raise FileFormatError('Error parsing %s on line:\n %s' % (descrip, line))
   return values

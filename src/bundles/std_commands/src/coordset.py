@@ -280,7 +280,7 @@ class CoordinateSetPlayer:
     try:
       m.active_coordset_id = cs
       compute_ss = self.compute_ss
-    except:
+    except Exception:
       # No such coordset.
       compute_ss = False
     if compute_ss:
