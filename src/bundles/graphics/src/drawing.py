@@ -1119,7 +1119,11 @@ class Drawing:
         self.was_deleted = True
         c = self._opengl_context
         if c:
-            c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
+            from . import OpenGLError
+            try:
+                c.make_current()	# Make OpenGL context current for deleting OpenGL resources.
+            except OpenGLError as e:
+                raise RuntimeError('OpenGL context make_current() raised an error during Drawing.delete()  for drawing "%s"' % self.name) from e
         else:
             # Drawing was never drawn so opengl context was not set.
             t = self.texture
