@@ -19,11 +19,18 @@
     <Dependency name="sfftk-rw" version="~=0.6.1.dev0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="EMDB SFF" nicknames="sff" category="Volume data" suffixes=".sff,.hff"
+		reference_url="https://sfftk.readthedocs.io/en/latest/toolkit.html" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="EMDB SFF" want_path="true" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: EMDB SFF :: sff :: Volume data :: .sff,.hff :: :: https://sfftk.readthedocs.io/en/latest/toolkit.html :: :: :: EMDB SFF</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: EMDB SFF :: sff ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

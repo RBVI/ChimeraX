@@ -17,10 +17,12 @@ from chimerax.core.toolshed import BundleAPI
 class _SFFBundleAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, path):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import sff
-        return sff.read_sff(session, path)
+    def run_provider(session, name, mgr):
+        from chimerax.open_command import OpenerInfo
+        class Info(OpenerInfo):
+            def open(self, session, path, file_name):
+                from . import sff
+                return sff.read_sff(session, path)
+        return Info()
 
 bundle_api = _SFFBundleAPI()
