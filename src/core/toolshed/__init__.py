@@ -492,8 +492,8 @@ class Toolshed:
                 optional=[('unknown_arguments', WholeRestOfLine)],
                 synopsis=synopsis)
 
-            def cb(session, s=self, n=name, b=bundles, l=logger, unknown_arguments=None):
-                s._available_cmd(n, b, l)
+            def cb(session, s=self, name=name, bundles=bundles, logger=logger, unknown_arguments=None):
+                s._available_cmd(name, bundles, logger)
             try:
                 cli.register_available(name, cd, function=cb, logger=logger)
             except Exception as e:
@@ -597,6 +597,13 @@ class Toolshed:
     def set_install_timestamp(self, per_user=False):
         _debug("set_install_timestamp")
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
+
+    def bundle_link(self, bundle_name):
+        from html import escape
+        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
+        if bundle_name.startswith("ChimeraX-"):
+            bundle_name = bundle_name[len("ChimeraX-"):]
+        return f'<a href="{self.remote_url}/apps/{app_name}">{escape(bundle_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):
         """Supported API. Return list of bundle info.
@@ -716,7 +723,7 @@ class Toolshed:
         changes = self.reload(logger, rebuild_cache=True, report=True)
 
         if not self._safe_mode:
-            # Initialize managers, notify other managers about newly 
+            # Initialize managers, notify other managers about newly
             # installed providers, and call custom init.
             # There /may/ be a problem with the order in which we call
             # these if multiple bundles were installed, but we hope for

@@ -17,7 +17,14 @@ _bundle_types = EnumOf(["all", "installed", "user", "available"])
 _reload_types = EnumOf(["all", "cache", "installed", "available"])
 
 
-def _display_bundles(bi_list, logger, use_html=False, full=True):
+def _reSt_to_html(source):
+    # from https://wiki.python.org/moin/reStructuredText
+    from docutils import core
+    parts = core.publish_parts(source=source, writer_name='html')
+    return parts['body_pre_docinfo']+parts['fragment']
+
+
+def _display_bundles(bi_list, toolshed, logger, use_html=False, full=True):
     def bundle_key(bi):
         return bi.name
     info = ""
@@ -35,20 +42,22 @@ th.bundle {
 }
 </style>
         """
-        info += "<dl>\n"
+        info += "<ul>\n"
         for bi in sorted(bi_list, key=bundle_key):
             name = bi.name
-            if name.startswith('ChimeraX-'):
-                name = name[len('ChimeraX-'):]
-            info += "<dt><b>%s</b> (%s): <i>%s</i>\n" % (
-                name, bi.version, escape(bi.synopsis))
+            if full:
+                info += "<p>\n"
+            info += "<li>\n"
+            if full:
+                info += "<dt>\n"
+            info += "<b>%s</b> (%s): <i>%s</i>\n" % (
+                toolshed.bundle_link(name), bi.version, escape(bi.synopsis))
             if full:
                 info += "<dd>\n"
                 info += "%s: %s<p>" % (
                     plural_form(bi.categories, "Category"),
                     commas(bi.categories, 'and'))
-                # TODO: convert description's rst text to HTML
-                info += escape(bi.description).replace('\n\n', '<p>\n')
+                info += _reSt_to_html(bi.description)
                 if bi.tools or bi.commands or bi.formats:
                     info += "<table class='bundle' border='1'>\n"
                 if bi.tools:
@@ -72,7 +81,9 @@ th.bundle {
                         f.name, f.category, can_open, can_save)
                 if bi.tools or bi.commands or bi.formats:
                     info += "</table>\n"
-        info += "</dl>\n"
+                info += "</dl>\n"
+            info += "</li>\n"
+        info += "</ul>\n"
     else:
         for bi in sorted(bi_list, key=bundle_key):
             name = bi.name
@@ -133,7 +144,7 @@ def toolshed_list(session, bundle_type="installed",
         bi_list = ts.bundle_info(logger, installed=True, available=False)
         if bi_list:
             logger.info("List of installed bundles:")
-            _display_bundles(bi_list, logger, use_html, full)
+            _display_bundles(bi_list, ts, logger, use_html, full)
         else:
             logger.info("No installed bundles found.")
     if bundle_type in ("available", "all"):
@@ -142,7 +153,7 @@ def toolshed_list(session, bundle_type="installed",
             logger.info("List of available bundles:")
             if newest:
                 bi_list = _newest_by_name(bi_list)
-            _display_bundles(bi_list, logger, use_html, full)
+            _display_bundles(bi_list, ts, logger, use_html, full)
         else:
             logger.info("No available bundles found.")
 
@@ -393,7 +404,7 @@ def toolshed_show(session, tool_name, _show=True):
         elif len(tools) > 1:
             from chimerax.core.errors import UserError
             raise UserError('Multiple installed tools found: %s' %
-                commas((repr(t[1]) for t in tools), 'and'))
+                            commas((repr(t[1]) for t in tools), 'and'))
         return
 
     from chimerax.core.errors import UserError
