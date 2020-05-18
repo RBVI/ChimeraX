@@ -1009,51 +1009,16 @@ def save_x3d(session, path, transparent_background=False):
         x3d_scene.write_footer(stream, 0)
 
 
-def register_session_format(session):
-    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
-    from .commands.cli import add_keyword_arguments
+def register_misc_commands(session):
     from .commands.toolshed import register_command
     register_command(session.logger)
-    from .commands import devel as devel_cmd, open as open_cmd, save as save_cmd
+    from .commands import devel as devel_cmd
     devel_cmd.register_command(session.logger)
-    #open_cmd.register_command(session.logger)
-    from . import io, toolshed
-    io.register_format(
-        "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
-        mime="application/x-chimerax-session",
-        reference="help:user/commands/save.html",
-        open_func=open, export_func=save)
-    add_keyword_arguments('open', {'resize_window': BoolArg})
-
-    #save_cmd.register_command(session.logger)
-    desc = CmdDesc(
-        required=[('filename', SaveFileNameArg)],
-        keyword=[('version', IntArg), ('uncompressed', BoolArg)],
-        hidden=['version', 'uncompressed'],
-        synopsis='save session'
-    )
-    add_keyword_arguments('save', {'include_maps': BoolArg})
-
-    def save_session(session, filename, **kw):
-        kw['format'] = 'session'
-        from .commands.save import save
-        save(session, filename, **kw)
-    register('save session', desc, save_session, logger=session.logger)
-    add_keyword_arguments('save session', {'include_maps': BoolArg})
 
     import sys
     if sys.platform.startswith('linux'):
         from .commands.linux import register_command
         register_command(session.logger)
-
-
-def register_x3d_format():
-    from . import io, toolshed
-    io.register_format(
-        "X3D", toolshed.GENERIC3D, ".x3d", "x3d",
-        mime="model/x3d+xml",
-        reference="http://www.web3d.org/standards",
-        export_func=save_x3d)
 
 
 def common_startup(sess):
@@ -1081,8 +1046,7 @@ def common_startup(sess):
         logger=sess.logger
     )
 
-    _register_core_file_formats(sess)
-    _register_core_database_fetch()
+    register_misc_commands(sess)
 
     if not _have_graphics():
         # During build process ChimeraX is run before graphics module is installed.
@@ -1153,16 +1117,3 @@ def register_session_save_options_gui(save_dialog):
 
     save_dialog.add_options_gui(SessionSaveOptionsGUI())
 
-
-def _register_core_file_formats(session):
-    register_session_format(session)
-    from . import scripting
-    scripting.register()
-    from . import image
-    image.register_image_save(session)
-    register_x3d_format()
-
-
-def _register_core_database_fetch():
-    from . import fetch
-    fetch.register_web_fetch()

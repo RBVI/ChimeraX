@@ -53,7 +53,8 @@
 
   <Providers manager="data formats">
     <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr"
-		encoding="utf-8" reference_url="http://www.wwpdb.org/documentation/file-format" />
+        mime_types="chemical/x-pdb,chemical/x-spdbv" encoding="utf-8"
+		reference_url="http://www.wwpdb.org/documentation/file-format" />
   </Providers>
 
   <Providers manager="open command">
