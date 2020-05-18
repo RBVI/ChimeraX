@@ -367,20 +367,14 @@ class _RestoreManager:
 
     def log_bundles(self, session, missing_bundles, out_of_date_bundles):
 
-        def bundle_link(toolshed_url, name):
-            app_name = name.casefold().replace('-', '').replace('_', '')
-            if name.startswith("ChimeraX-"):
-                name = name[len("ChimeraX-"):]
-            return f'<a href="{toolshed_url}/apps/{app_name}">{name}</a>'
-
-        remote_url = session.toolshed.remote_url
+        bundle_link = session.toolshed.bundle_link
         msg = "<blockquote>\n" "To Restore session:<ul>\n"
         if missing_bundles:
             for name, version in missing_bundles:
-                msg += f"<li>install {bundle_link(remote_url, name)} bundle version {version} or newer</li>" "\n"
+                msg += f"<li>install {bundle_link(name)} bundle version {version} or newer</li>" "\n"
         if out_of_date_bundles:
             for name, version, bi in out_of_date_bundles:
-                msg += f"<li>update {bundle_link(remote_url, name)} bundle to version {version} or newer (have {bi.version})</li>" "\n"
+                msg += f"<li>update {bundle_link(name)} bundle to version {version} or newer (have {bi.version})</li>" "\n"
         msg += "</ul></blockquote>\n"
         session.logger.warning(msg, is_html=True, add_newline=False)
 
