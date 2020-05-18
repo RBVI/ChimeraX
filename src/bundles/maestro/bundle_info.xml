@@ -33,8 +33,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: Schrodinger Maestro :: mae :: Molecular structure :: .mae,.maegz :: :: :: :: :: Schrodinger Maestro format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: Schrodinger Maestro :: mae ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

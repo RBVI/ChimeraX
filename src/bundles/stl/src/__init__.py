@@ -24,19 +24,6 @@ class _STLAPI(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import stl
-        return stl.read_stl(session, stream, file_name)
-
-    @staticmethod
-    def save_file(session, path, models=None):
-        # 'save_file' is called by session code to save a file
-        from . import stl
-        stl.write_stl(session, path, models)
-
-    @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo

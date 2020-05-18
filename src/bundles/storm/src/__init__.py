@@ -16,13 +16,6 @@ from chimerax.core.toolshed import BundleAPI
 class _StormAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import storm
-        return storm.read_storm(session, stream, file_name)
-
-    @staticmethod
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
         class StormOpenerInfo(OpenerInfo):

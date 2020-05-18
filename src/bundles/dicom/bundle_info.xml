@@ -32,12 +32,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-
-    <!--
-    <ChimeraXClassifier>DataFormat :: DICOM :: :: Volume Data :: .dcm :: :: :: :: :: Medical imaging data</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: DICOM :: :: true</ChimeraXClassifier>
-    -->
-    
   </Classifiers>
 
 </BundleInfo>

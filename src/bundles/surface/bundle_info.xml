@@ -60,8 +60,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: Collada :: collada :: Generic 3D objects :: .dae :: :: https://www.khronos.org/collada :: :: :: 3D scene format</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: Collada :: ::</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: color electrostatic :: Surfaces :: color surface by electrostatic potential map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: color sample :: Surfaces :: color surface by map value</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: color gradient :: Surfaces :: color surface by map gradient norm</ChimeraXClassifier>
