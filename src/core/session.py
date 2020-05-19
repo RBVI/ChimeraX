@@ -327,8 +327,6 @@ class _RestoreManager:
         out_of_date_bundles = []
         need_core_version = None
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
-            # put the below kludge in to allow sessions saved before the seq_view
-            # bundle name change to restore; remove on or after 1.0 release
             bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
                 missing_bundles.append((bundle_name, bundle_version))
