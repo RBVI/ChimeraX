@@ -218,11 +218,10 @@ def _debug(*args, file=None, flush=True, **kw):
 # Package constants
 
 
-# Default URL of remote toolshed
-# If testing, use
-# _RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
-# But BE SURE TO CHANGE IT BACK BEFORE COMMITTING !!!
-_RemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
+# URL of remote toolshed
+_DefaultRemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
+# URL of experimental remote toolshed
+_PreviewRemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _ToolshedFolder = "toolshed"
 # Defaults names for installed ChimeraX bundles
@@ -296,7 +295,7 @@ class Toolshed:
         # Initialize with defaults
         _debug("__init__", rebuild_cache, check_remote, remote_url)
         if remote_url is None:
-            self.remote_url = _RemoteURL
+            self.remote_url = _DefaultRemoteURL
         else:
             self.remote_url = remote_url
         self._safe_mode = None
@@ -1728,7 +1727,11 @@ def get_help_directories():
 
 
 def default_toolshed_url():
-    return _RemoteURL
+    return _DefaultRemoteURL
+
+
+def preview_toolshed_url():
+    return _PreviewRemoteURL
 
 
 def restart_action_info():

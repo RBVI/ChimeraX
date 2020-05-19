@@ -524,7 +524,7 @@ class SequenceViewer(ToolInstance):
         structure_menu.addAction(assoc_action)
         comp_model_action = QAction("Modeller Comparative Modeling...", structure_menu)
         comp_model_action.triggered.connect(lambda arg: run(self.session,
-            "toolshed show 'Modeller Comparative'"))
+            "ui tool show 'Modeller Comparative'"))
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
         structure_menu.addAction(comp_model_action)
