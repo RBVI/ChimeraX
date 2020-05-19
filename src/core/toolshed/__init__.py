@@ -808,6 +808,13 @@ class Toolshed:
         else:
             container = self._get_available_bundles(logger)
         from pkg_resources import parse_version
+        # put the below kludge in to allow sessions saved before some
+        # bundles got renamed to restore
+        name = {
+            "ChimeraX-SEQ-VIEW": "ChimeraX-SeqView",
+            "ChimeraX-Std-Commands": "ChimeraX-StdCommands",
+            "ChimeraX-Atom-Search": "ChimeraX-AtomSearch",
+        }.get(name, name)
         lc_name = name.casefold().replace('_', '-')
         lc_names = [lc_name]
         if not lc_name.startswith("chimerax-"):
