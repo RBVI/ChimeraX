@@ -95,6 +95,13 @@ class FormatsManager(ProviderManager):
         "Return data format based on file_name's suffix, ignoring compression suffixes"
         return self._format_from_filename(self.open_format_from_suffix, file_name)
 
+    def qt_file_filter(self, fmt):
+        """
+        Given a data format 'fmt', return a string usable as a member of the list argument
+        used with the setNameFilters() method of a Qt file dialog.
+        """
+        return "%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes))
+
     def save_format_from_suffix(self, suffix):
         """
         Given a file suffix (starting with a '.'), return the corresponding savable data format.
