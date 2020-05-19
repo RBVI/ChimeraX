@@ -310,7 +310,13 @@ def toolshed_url(session, url=None, wait=False):
     if url is None:
         logger.info("Toolshed URL: %s" % ts.remote_url)
     else:
-        ts.remote_url = url
+        from chimerax.core import toolshed
+        if url == 'default':
+            ts.remote_url = toolshed.default_toolshed_url()
+        elif url == 'preview':
+            ts.remote_url = toolshed.preview_toolshed_url()
+        else:
+            ts.remote_url = url
         logger.info("Toolshed URL set to %s" % ts.remote_url)
         if wait:
             ts.reload_available(logger)
