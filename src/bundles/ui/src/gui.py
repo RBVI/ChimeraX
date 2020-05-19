@@ -1202,7 +1202,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         action = QAction("All Options...", self)
         color_menu.addAction(action)
         action.triggered.connect(lambda *args, run=run, ses=self.session:
-                run(ses, "toolshed show 'Color Actions'"))
+                run(ses, "ui tool show 'Color Actions'"))
 
         #
         # Label...
@@ -1415,7 +1415,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         for fave in session.ui.settings.favorites:
             fave_action = QAction(fave, self)
             fave_action.triggered.connect(lambda arg, ses=session, run=run, fave=fave:
-                run(ses, "toolshed show %s" % (StringArg.unparse(fave))))
+                run(ses, "ui tool show %s" % (StringArg.unparse(fave))))
             if prev_actions:
                 self.favorites_menu.insertAction(separator, fave_action)
             else:
@@ -1459,13 +1459,13 @@ class MainWindow(QMainWindow, PlainTextLog):
                     tool_action.setChecked(tool_name in active_tool_names)
                     tool_action.triggered.connect(
                         lambda arg, ses=session, run=run, tool_name=tool_name:
-                        run(ses, "toolshed %s %s" % (("show" if arg else "hide"),
+                        run(ses, "ui tool %s %s" % (("show" if arg else "hide"),
                         StringArg.unparse(tool_name))))
                     self._checkbutton_tools[tool_name] = tool_action
                 else:
                     tool_action.triggered.connect(
                         lambda arg, ses=session, run=run, tool_name=tool_name:
-                        run(ses, "toolshed show %s" % StringArg.unparse(tool_name)))
+                        run(ses, "ui tool show %s" % StringArg.unparse(tool_name)))
                 cat_menu.addAction(tool_action)
         def _show_toolshed(arg):
             from chimerax.help_viewer import show_url
