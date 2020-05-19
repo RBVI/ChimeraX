@@ -1421,9 +1421,11 @@ def opaque_count(rgba):
     return _graphics.count_value(rgba[:,3], 255)
 
 def draw_opaque(renderer, drawings):
+    '''Draws the specified drawings but not their children.'''
     _draw_multiple(drawings, renderer, Drawing.OPAQUE_DRAW_PASS)
 
 def draw_transparent(renderer, drawings):
+    '''Draws the specified drawings but not their children.'''
     r = renderer
     r.draw_transparent(
         lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
@@ -1431,11 +1433,15 @@ def draw_transparent(renderer, drawings):
 
 
 def _draw_multiple(drawings, renderer, draw_pass):
+    '''Draws the specified drawings but not their children.'''
     for d in drawings:
         d.draw(renderer, draw_pass)
 
 def draw_depth(renderer, drawings, opaque_only = True):
-    '''Render only the depth buffer (not colors).'''
+    '''
+    Render only the depth buffer (not colors).
+    Draws the specified drawings but not their children.
+    '''
     r = renderer
     dc = r.disable_capabilities
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOW | r.SHADER_MULTISHADOW |
@@ -1447,8 +1453,10 @@ def draw_depth(renderer, drawings, opaque_only = True):
 
 
 def draw_overlays(drawings, renderer, scale = (1,1)):
-    '''Render drawings using an identity projection matrix with no
-    depth test.'''
+    '''
+    Render drawings using an identity projection matrix with no depth test.
+    Draws the specified drawings but not their children.
+    '''
     r = renderer
     r.disable_shader_capabilities(r.SHADER_STEREO_360 |	# Avoid geometry shift
                                   r.SHADER_DEPTH_CUE |
@@ -1477,7 +1485,10 @@ def draw_overlays(drawings, renderer, scale = (1,1)):
 
 
 def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
-    '''Draw the outlines of highlighted parts of the specified drawings.'''
+    '''
+    Draw the outlines of highlighted parts of the specified drawings.
+    Draws the specified drawings but not their children.
+    '''
     r = renderer
     r.outline.start_rendering_outline()
     _draw_multiple(drawings, r, Drawing.HIGHLIGHT_DRAW_PASS)
@@ -1485,6 +1496,7 @@ def draw_highlight_outline(renderer, drawings, color=(0,1,0,1), pixel_width=1):
 
     
 def draw_on_top(renderer, drawings):
+    '''Draws the specified drawings but not their children.'''
     renderer.enable_depth_test(False)
     renderer.enable_blending(True)	# Handle transparent background
     _draw_multiple(drawings, renderer, Drawing.LAST_DRAW_PASS)
