@@ -154,6 +154,8 @@ def open_command_script(session, path, file_name):
 
 
 def register():
+    import traceback, sys
+    traceback.print_stack(file=sys.__stderr__)
     from . import io, toolshed
     io.register_format(
         "Python code", toolshed.SCRIPT, (".py",), ("py",),

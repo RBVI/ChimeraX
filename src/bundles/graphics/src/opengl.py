@@ -1310,6 +1310,10 @@ class Shadow:
             self._shadow_map_framebuffer = None
     
     def use_shadow_map(self, camera, drawings, shadow_bounds):
+        '''
+        Compute shadow map textures for specified drawings.
+        Does not include child drawings.
+        '''
         r = self._render
         lp = r.lighting
         if not lp.shadows:
@@ -1323,6 +1327,8 @@ class Shadow:
             light_direction = camera.position.transform_vector(kl)
 
         # Compute drawing bounds so shadow map can cover all drawings.
+        # TODO: Shadow bounds should exclude completely transparent drawings
+        #       if transparent do not cast shadows.
         center, radius, sdrawings = shadow_bounds(drawings)
         if center is None or radius == 0:
             return False

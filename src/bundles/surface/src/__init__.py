@@ -69,13 +69,6 @@ class _SurfaceBundle(BundleAPI):
             check.register_command(logger)
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import collada
-        return collada.read_collada_surfaces(session, stream, file_name)
-
-    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         from .colorgeom import CylinderColor, HeightColor, RadialColor

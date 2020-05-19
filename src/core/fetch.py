@@ -347,25 +347,6 @@ def fetch_web(session, url, ignore_cache=False, new_tab=False, **kw):
     return io.open_data(session, filename, format=nominal_format.name, **kw)
 
 
-# -----------------------------------------------------------------------------
-#
-def register_web_fetch():
-    from .commands import BoolArg
-    from .commands.cli import add_keyword_arguments
-    add_keyword_arguments("open", {'new_tab': BoolArg})
-
-    def fetch_http(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'http:' + scheme_specific_part, **kw)
-    register_fetch('http', fetch_http, None, prefixes=['http'])
-
-    def fetch_https(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'https:' + scheme_specific_part, **kw)
-    register_fetch('https', fetch_https, None, prefixes=['https'])
-
-    def fetch_ftp(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'ftp:' + scheme_specific_part, **kw)
-    register_fetch('ftp', fetch_ftp, None, prefixes=['ftp'])
-
 
 # -----------------------------------------------------------------------------
 #

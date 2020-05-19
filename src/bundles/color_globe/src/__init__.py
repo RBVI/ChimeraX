@@ -16,13 +16,6 @@ from chimerax.core.toolshed import BundleAPI
 class _ColorGlobeAPI(BundleAPI):
 
     @staticmethod
-    def open_file(session, stream, **kw):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import dres
-        return dres.read_directional_resolution(session, stream, **kw)
-
-    @staticmethod
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
         class CGOpenerInfo(OpenerInfo):

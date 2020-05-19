@@ -1353,7 +1353,7 @@ class MainWindow(QMainWindow, PlainTextLog):
         selectors_menu.setToolTipsVisible(True)
         selectors_menu.aboutToShow.connect(lambda menu=selectors_menu: self._populate_selectors_menu(menu))
         from chimerax.core.commands import run
-        selectors_menu.triggered.connect(lambda name, ses=self.session, run=run: run(ses, "sel " + name.text()))
+        selectors_menu.triggered.connect(lambda name: self.select_by_mode(name.text()))
         def_selector_action = QAction("Define Selector...", self)
         select_menu.addAction(def_selector_action)
         def_selector_action.triggered.connect(self.show_define_selector_dialog)
@@ -2462,7 +2462,7 @@ class SelZoneDialog(QDialog):
         self.setLayout(layout)
 
     def zone(self, *args):
-        cmd = "select "
+        cmd = ""
         char = ':' if self.target_button.text() == "residues" else '@'
         if self.less_checkbox.isChecked():
             cmd += "sel %s< %g" % (char, self.less_spinbox.value())
@@ -2470,8 +2470,7 @@ class SelZoneDialog(QDialog):
                 cmd += ' & '
         if self.more_checkbox.isChecked():
             cmd += "sel %s> %g" % (char, self.more_spinbox.value())
-        from chimerax.core.commands import run
-        run(self.session, cmd)
+        self.session.ui.main_window.select_by_mode(cmd)
 
     def _update_button_states(self, *args):
         self.bbox.button(self.bbox.Ok).setEnabled(

@@ -16,20 +16,6 @@ from chimerax.core.toolshed import BundleAPI
 class _ReadPBondsBundle(BundleAPI):
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import readpbonds
-        return readpbonds.read_pseudobond_file(session, stream, file_name)
-
-    @staticmethod
-    def save_file(session, path, models=None, selected_only=False):
-        # 'save_file' is called by session code to save a file
-        from . import readpbonds
-        readpbonds.write_pseudobond_file(session, path, models=models,
-                                         selected_only=selected_only)
-
-    @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
