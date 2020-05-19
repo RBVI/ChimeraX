@@ -66,3 +66,6 @@ def register_color_subcommand(command_name, logger):
                        keyword=geom_args + [('axis', AxisArg)],
                        synopsis="color surfaces by distance along an axis")
         register('color height', desc, color_height, logger=logger)
+    elif command_name == 'color image':
+        from . import texture
+        texture.register_color_image_command(logger)

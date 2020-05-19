@@ -9,7 +9,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def texture(session, models, image_file = None, coords = None, colors_file = None):
+def color_image(session, models, file = None, coords = None, write_colors = None):
     '''
     Color surfaces using images read from files and specify texture coordinates
     that define how to map the image onto the surface.
@@ -20,24 +20,34 @@ def texture(session, models, image_file = None, coords = None, colors_file = Non
     ----------
     models : list of Model
         Act on these models and their child drawings.
-    image_file : string
+    file : string
         Path to image file, e.g. PNG or JPEG image.  If the value is the string "none" then
         any texture is removed from the surface.
-    coords : "sphere", "pole", "south", "vertexcolors"
+    coords : "sphere", "pole", "south", "vertexcolors" or None
         Defines how to map the image axes onto the surface.  "sphere" assigns
         texture coordinates to each surface vertex based on longitude and lattitude.
         The image x axis is longitude (texture coordinate u), and image y axis is
         lattitude (texture coordinate v).  "pole" has the north pole at the middle
         of the image and the south pole on a circle touching the image edges.
         "south" is like pole only centered on the south pole.  "vertexcolors" sets
-        unique texture coordinates for each unique vertex color.  The texture image
-        can be written to a file with the colors_file argument.
-    colors_file : file name
+        unique texture coordinates for each unique vertex color.  The corresponding
+        texture image can be written to a file with the write_colors argument.
+        None means no texture coordinates are assigned and uses existing texture
+        coordinates for the model.
+    write_colors : file name
         Write vertex color texture to the specified file name.  Only used if coords
-        is specified as "vertexcolors".
+        is specified as "vertexcolors".  This is used to write out a texture image
+        that could for example be used with an exported OBJ surface file that gives
+        texture coordinates.  This only works well if each distinct color is a
+        separate disconnected surface piece.  If a single connected surface has
+        different vertex colors the blending between two different colors will be
+        wrong in texture space because the vertex to texture coordinate mapping
+        makes no attempt to wrap the texture coordinates onto the surface.  Instead
+        each distinct color is simply assigned a unique texture coordinate without
+        regard to the spatial arrangement of colors on the surface.
     '''
     
-    rgba = None if image_file is None or image_file == 'none' else image_file_as_rgba(image_file)
+    rgba = None if file is None or file == 'none' else image_file_as_rgba(file)
     dlist = drawings(models)
 
     if coords == 'vertexcolors':
@@ -45,18 +55,18 @@ def texture(session, models, image_file = None, coords = None, colors_file = Non
         trgba = crgba if rgba is None else rgba
         for d in dlist:
             _set_texture(session, d, trgba)
-        if colors_file is not None:
+        if write_colors is not None:
             from PIL import Image
             # Flip y-axis since PIL image has row 0 at top,
             # opengl has row 0 at bottom.
             pi = Image.fromarray(crgba[::-1,:,:])
-            pi.save(colors_file)
+            pi.save(write_colors)
     else:
         for d in dlist:
             if coords is not None:
                 uv = texture_coordinates(d, coords)
                 d.texture_coordinates = uv
-            if image_file == 'none':
+            if file == 'none':
                 _remove_texture(session, d)
             elif rgba is not None:
                 _set_texture(session, d, rgba)
@@ -171,13 +181,13 @@ def _remove_texture(session, drawing):
     drawing.texture.delete_texture()
     drawing.texture = None
 
-def register_texture_command(logger):
+def register_color_image_command(logger):
     from chimerax.core.commands import CmdDesc, register, ModelsArg, OpenFileNameArg, EnumOf, SaveFileNameArg
     desc = CmdDesc(
         required = [('models', ModelsArg)],
-        keyword = [('image_file', OpenFileNameArg),
+        keyword = [('file', OpenFileNameArg),
                    ('coords', EnumOf(('sphere','pole','south','vertexcolors'))),
-                   ('colors_file', SaveFileNameArg),],
+                   ('write_colors', SaveFileNameArg),],
         synopsis = 'Color surfaces with images from files'
     )
-    register('texture', desc, texture, logger=logger)
+    register('color image', desc, color_image, logger=logger)
