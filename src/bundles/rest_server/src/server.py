@@ -62,10 +62,12 @@ class RESTServer(Task):
             self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
                                                 certfile=cert)
         self.run_increment()    # To match decrement in terminate()
-        msg = ("REST server started on host %s port %d" %
-               self.httpd.server_address)
-        self.session.ui.thread_safe(self.session.logger.info, msg)
+        host, port = self.httpd.server_address
+        msg = ("REST server started on host %s port %d" % (host, port))
         self.session.ui.thread_safe(print, msg, file=sys.__stdout__, flush=True)
+        msg += ('\nVisit http://%s:%d/cmdline.html for CLI interface' %
+               (host, port))
+        self.session.ui.thread_safe(self.session.logger.info, msg)
         self.httpd.serve_forever()
 
     def run_increment(self):

@@ -33,8 +33,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: UniProt :: :: Sequence :: :: :: https://www.uniprot.org :: :: :: UniProt sequence data</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: uniprot :: UniProt :: uniprot :: NGF_HUMAN :: true</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

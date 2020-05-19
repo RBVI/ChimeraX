@@ -32,8 +32,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: STORM :: :: Generic 3D objects :: .storm :: ::  :: :: :: Point list for STORM microscopy</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: STORM :: ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

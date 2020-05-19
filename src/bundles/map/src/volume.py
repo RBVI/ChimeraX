@@ -1,4 +1,3 @@
-
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -3682,75 +3681,6 @@ def is_multifile_save(path):
 
 # -----------------------------------------------------------------------------
 #
-def add_map_format(session, map_format, register_file_suffixes = True):
+def add_map_format(session, map_format):
   from .data import file_formats
   file_formats.append(map_format)
-  if register_file_suffixes:
-    register_map_format(session, map_format)
-  else:
-    # Prevent register_map_file_formats() from registering this format.
-    map_format._register_suffixes = False
-
-# -----------------------------------------------------------------------------
-#
-def register_map_format(session, map_format):
-    from chimerax.core import io, toolshed
-    suf = tuple('.' + s for s in map_format.suffixes)
-    save_func = save_map if map_format.writable else None
-    def open_map_format(session, path, name = None, format = map_format.name, **kw):
-      return open_map(session, path, name=name, format=format, **kw)
-    io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
-                       open_func=open_map_format, batch=True,
-                       allow_directory=map_format.allow_directory,
-                       export_func=save_func, check_path=map_format.check_path)
-
-# -----------------------------------------------------------------------------
-#
-def register_map_file_formats(session):
-    from .data.fileformats import file_formats
-    for ff in file_formats:
-      if getattr(ff, '_register_suffixes', True):
-        register_map_format(session, ff)
-
-    # Add keywords to open command for maps
-    from chimerax.core.commands import BoolArg, IntArg, StringArg, RepeatOf
-    from chimerax.core.commands.cli import add_keyword_arguments
-    open_map_args = [
-      ('vseries', BoolArg),
-      ('channel', IntArg),
-      ('verbose', BoolArg),
-      ('array_name', StringArg)
-    ]
-    add_keyword_arguments('open', dict(open_map_args))
-
-    # Add keywords to save command for maps
-    from chimerax.core.commands import BoolArg, ListOf, EnumOf, IntArg
-    from .mapargs import MapRegionArg, Int1or3Arg
-    save_map_args = [
-      ('region', MapRegionArg),
-      ('step', Int1or3Arg),
-      ('mask_zone', BoolArg),
-      ('subsamples', RepeatOf(Int1or3Arg)),
-      ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-      ('append', BoolArg),
-      ('compress', BoolArg),
-      ('compress_method', EnumOf(('zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'))),
-      ('compress_shuffle', BoolArg),
-      ('base_index', IntArg),
-    ]
-    add_keyword_arguments('save', dict(save_map_args))
-
-    # Register save map subcommand
-    from chimerax.core.commands import CmdDesc, register, SaveFileNameArg, ModelsArg
-    from chimerax.core.commands.save import SaveFileFormatsArg, save
-    from chimerax.core import toolshed
-    desc = CmdDesc(
-        required=[('filename', SaveFileNameArg)],
-        optional=[('models', ModelsArg)],
-        keyword=[('format', SaveFileFormatsArg(toolshed.VOLUME))] + save_map_args,
-        synopsis='save map'
-    )
-    register('save map', desc, save, logger=session.logger)
-
-    from . import savemap
-    savemap.register_map_save_options(session)

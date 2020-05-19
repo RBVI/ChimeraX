@@ -49,6 +49,16 @@ def register_ui_command(logger):
         synopsis = "control whether main window is shown fullscreen without titlebar")
     register('ui fullscreen', ui_fullscreen_desc, ui_fullscreen, logger=logger)
 
+    ui_tool_show_desc = CmdDesc(
+        required=[('tool_name', StringArg)],
+        synopsis="Show tool.  Start if necessary")
+    register('ui tool show', ui_tool_show_desc, ui_tool_show, logger=logger)
+
+    ui_tool_hide_desc = CmdDesc(
+        required=[('tool_name', StringArg)],
+        synopsis="Hide tool from view")
+    register('ui tool hide', ui_tool_hide_desc, ui_tool_hide, logger=logger)
+
 # -----------------------------------------------------------------------------
 #
 def ui_autostart(session, do_start, tool_name):
@@ -130,3 +140,92 @@ def ui_fullscreen(session, show):
     Show fullscreen (no titlebar) or normal mode.
     '''
     session.ui.main_window.show_fullscreen(show)
+
+# -----------------------------------------------------------------------------
+#
+def ui_tool_show(session, tool_name, _show=True):
+    '''
+    Show a tool, or start one if none is running.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
+    if not session.ui.is_gui:
+        from chimerax.core.errors import UserError
+        raise UserError("Need a GUI to show or hide tools")
+    lc_tool_name = tool_name.casefold()
+    ts = session.toolshed
+    running_tools = session.tools.list()
+
+    # First look for running tools whose display name
+    # exactly matches tool_name, then look for ones
+    # whose tool_info name exactly matches tool_name.
+    tinst = [t for t in running_tools
+             if t.display_name.casefold() == lc_tool_name]
+    if not tinst:
+        tinst = [t for t in running_tools
+                 if t.tool_name.casefold() == lc_tool_name]
+    if tinst:
+        for ti in tinst:
+            ti.display(_show)
+        return
+
+    # If showing the tool (as opposed to hiding it), look for
+    # an installed tool whose name exactly matches tool_name.
+    if _show:
+        tools = ts.find_bundle_for_tool(tool_name, prefix_okay=False)
+        if len(tools) == 1:
+            bi, name = tools[0]
+            bi.start_tool(session, name)
+            return
+        elif len(tools) > 1:
+            from chimerax.core.errors import UserError
+            raise UserError('Multiple installed tools named "%s"' % tool_name)
+        # Did not find an exact match, fall through and keep looking
+
+    # Look for running tools whose display name starts
+    # with tool_name, then look for ones whose tool_name
+    # starts with tool_name.
+    tinst = [t for t in running_tools
+             if t.display_name.casefold().startswith(lc_tool_name)]
+    if not tinst:
+        tinst = [t for t in running_tools
+                 if t.tool_name.casefold().startswith(lc_tool_name)]
+    if tinst:
+        for ti in tinst:
+            ti.display(_show)
+        return
+
+    # Look for an installed tool whose tool name starts
+    # with tool_name.
+    if _show:
+        tools = ts.find_bundle_for_tool(tool_name, prefix_okay=True)
+        if len(tools) == 1:
+            bi, name = tools[0]
+            bi.start_tool(session, name)
+            return
+        elif len(tools) > 1:
+            from chimerax.core.errors import UserError
+            raise UserError('Multiple installed tools found: %s' %
+                            commas((repr(t[1]) for t in tools), 'and'))
+        return
+
+    from chimerax.core.errors import UserError
+    # DEBUG:
+    # for t in running_tools:
+    #     print(t, repr(t.display_name), repr(t.tool_name),
+    #           repr(t.bundle_info.name))
+    raise UserError('No running or installed tool named "%s"' % tool_name)
+
+# -----------------------------------------------------------------------------
+#
+def ui_tool_hide(session, tool_name, _show=True):
+    '''
+    Hide tool.
+
+    Parameters
+    ----------
+    tool_name : string
+    '''
+    ui_tool_show(session, tool_name, _show=False)

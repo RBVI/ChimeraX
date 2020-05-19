@@ -35,9 +35,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: IHM :: :: Higher-Order Structure :: .ihm :: :: https://pdb-dev.wwpdb.org/about/ :: :: :: Integrative Hybrid Models data</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: IHM :: ihm :: true :: ensembles:Bool</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: pdbdev :: IHM :: pdbdev :: 10 :: true</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

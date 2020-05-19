@@ -33,8 +33,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: MDL MOL/SDF :: sdf :: Molecular structure :: .sdf,.mol :: :: https://en.wikipedia.org/wiki/Chemical_table_file :: :: :: SDF :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: MDL MOL/SDF :: sdf ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

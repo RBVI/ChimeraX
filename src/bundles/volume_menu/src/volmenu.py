@@ -52,7 +52,7 @@ class VolumeMenu(ToolInstance):
                 continue	# Add a hide menu entry at end.
             def callback(ses = self.session, tool_name=tool.name, vmenu = self):
                 from chimerax.core.commands import run, StringArg
-                run(ses, "toolshed show %s" % StringArg.unparse(tool_name))
+                run(ses, "ui tool show %s" % StringArg.unparse(tool_name))
             self.session.ui.main_window.add_menu_entry(['Volume'], tool.name, callback)
         self.session.ui.main_window.add_menu_entry(['Volume'], 'Hide Volume Menu', self.hide)
 

@@ -24,13 +24,6 @@ class _SignalViewerBundle(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, path):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import signals
-        return signals.read_signals(session, path)
-
-    @staticmethod
     def register_command(command_name, logger):
         # 'register_command' is lazily called when the command is referenced
         from . import signals
