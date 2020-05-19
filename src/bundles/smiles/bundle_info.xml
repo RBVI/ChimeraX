@@ -37,8 +37,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: SMILES :: smiles :: Molecular structure :: :: :: https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system :: :: :: SMILES :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: smiles :: SMILES :: smiles :: c1ccccc1 ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

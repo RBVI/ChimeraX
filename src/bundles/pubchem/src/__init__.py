@@ -16,14 +16,6 @@ from chimerax.core.toolshed import BundleAPI
 class _PubChemAPI(BundleAPI):
 
     @staticmethod
-    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None,
-            format_name=None, **kw):
-        # 'fetch_from_database' is called by session code to fetch data with give identifier
-        # returns (list of models, status message)
-        from . import pubchem
-        return pubchem.fetch_pubchem(session, identifier, ignore_cache=ignore_cache)
-
-    @staticmethod
     def run_provider(session, name, mgr, *, widget_info=None, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import FetcherInfo

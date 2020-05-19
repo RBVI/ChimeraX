@@ -426,7 +426,6 @@ class Toolshed:
                                                      self._installed_packages)
         if check_remote:
             self.reload_available(logger)
-        self.register_available_formats(logger)
         self.triggers.activate_trigger(TOOLSHED_BUNDLE_INFO_RELOADED, self)
         return changes
 
@@ -492,8 +491,8 @@ class Toolshed:
                 optional=[('unknown_arguments', WholeRestOfLine)],
                 synopsis=synopsis)
 
-            def cb(session, s=self, n=name, b=bundles, l=logger, unknown_arguments=None):
-                s._available_cmd(n, b, l)
+            def cb(session, s=self, name=name, bundles=bundles, logger=logger, unknown_arguments=None):
+                s._available_cmd(name, bundles, logger)
             try:
                 cli.register_available(name, cd, function=cb, logger=logger)
             except Exception as e:
@@ -533,70 +532,16 @@ class Toolshed:
             bundle_refs.append(ref)
         return bundle_names, bundle_refs
 
-    def register_available_formats(self, logger):
-        available = {}
-        for bi in self._get_available_bundles(logger):
-            for fi in bi.formats:
-                try:
-                    a = available[fi.name]
-                except KeyError:
-                    a = {
-                        "has_open": set(),
-                        "has_save": set(),
-                        "suffixes": set(fi.suffixes),
-                        "nicknames": set(fi.nicknames),
-                        "mime_types": set(fi.mime_types),
-                        "synopsis": fi.synopsis,
-                        "category": fi.category,
-                    }
-                    available[fi.name] = a
-                else:
-                    a["suffixes"].update(fi.suffixes)
-                    a["nicknames"].update(fi.nicknames)
-                    a["mime_types"].update(fi.mime_types)
-                    a["synopsis"] = fi.synopsis
-                    a["category"] = fi.category
-                    # TODO: use synopsis and category from newest version
-                if fi.has_open:
-                    a["has_open"].add((bi.name, bi.version))
-                if fi.has_save:
-                    a["has_save"].add((bi.name, bi.version))
-        from chimerax.core import io
-        for name, a in available.items():
-            if io.format_from_name(name) is not None:
-                # Do not register formats that are already handled
-                continue
-            try:
-                format = io.register_format(name, a["category"], a["suffixes"], a["nicknames"],
-                                            mime=a["mime_types"], synopsis=a["synopsis"])
-            except Exception as e:
-                logger.warning("Unable to register available format %s: %s" % (name, str(e)))
-            bundles = a["has_open"]
-            if bundles:
-                def format_open(session, path, name=name, ts=self, bundles=bundles):
-                    return ts._available_format(name, bundles, "Reading", session.logger)
-                format._open_func = format_open
-            bundles = a["has_save"]
-            if bundles:
-                def format_export(session, path, name=name, ts=self, bundles=bundles):
-                    return ts._available_format(name, bundles, "Writing", session.logger)
-                format._export_func = format_export
-
-    def _available_format(self, name, bundles, mode, logger):
-        from chimerax.core.commands import commas, plural_form
-        from chimerax.core.errors import UserError
-        bundle_names, bundle_refs = self._bundle_names_and_refs(bundles)
-        log_msg = "You should install %s" % commas(bundle_refs, 'or')
-        logger.info(log_msg, is_html=True)
-        status_msg = '%s "%s" format is provided by the uninstalled %s %s' % (
-           mode, name, plural_form(bundle_names, "bundle"),
-           commas(['"%s"' % b for b in bundle_names], 'and')
-        )
-        raise UserError(status_msg)
-
     def set_install_timestamp(self, per_user=False):
         _debug("set_install_timestamp")
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
+
+    def bundle_link(self, bundle_name):
+        from html import escape
+        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
+        if bundle_name.startswith("ChimeraX-"):
+            bundle_name = bundle_name[len("ChimeraX-"):]
+        return f'<a href="{self.remote_url}/apps/{app_name}">{escape(bundle_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):
         """Supported API. Return list of bundle info.
@@ -716,7 +661,7 @@ class Toolshed:
         changes = self.reload(logger, rebuild_cache=True, report=True)
 
         if not self._safe_mode:
-            # Initialize managers, notify other managers about newly 
+            # Initialize managers, notify other managers about newly
             # installed providers, and call custom init.
             # There /may/ be a problem with the order in which we call
             # these if multiple bundles were installed, but we hope for

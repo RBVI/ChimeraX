@@ -71,10 +71,6 @@ UCSF DOCK output in PDB and mol2 formats are supported.
     <ChimeraXClassifier>Command :: viewdockx :: General :: specify models as docking results </ChimeraXClassifier>
     <ChimeraXClassifier>Command :: viewdockx down :: General :: Simulate down-arrow key in ViewDockX</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: viewdockx up :: General :: Simulate up-arrow key in ViewDockX</ChimeraXClassifier>
-    <ChimeraXClassifier>DataFormat :: mol2 :: :: Molecular structure :: .mol2 :: :: :: :: :: mol2 format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: mol2 :: mol2 ::</ChimeraXClassifier>
-    <ChimeraXClassifier>DataFormat :: pdbqt :: :: Molecular structure :: .pdbqt :: :: :: :: :: pdbqt format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: pdbqt :: pdbqt ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -47,11 +47,3 @@ def fetch_eds_map(session, id, type = '2fofc', ignore_cache=False, **kw):
 #
 def fetch_edsdiff_map(session, id, ignore_cache=False, **kw):
   return fetch_eds_map(session, id, type = 'fofc', ignore_cache=False, **kw)
-
-# -----------------------------------------------------------------------------
-# Register to fetch EMDB maps with open command.
-#
-def register_eds_fetch():
-    from chimerax.core import fetch
-    fetch.register_fetch('eds', fetch_eds_map, 'ccp4', prefixes = ['eds'])
-    fetch.register_fetch('edsdiff', fetch_edsdiff_map, 'ccp4', prefixes = ['edsdiff'])

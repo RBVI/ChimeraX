@@ -34,8 +34,6 @@ for more information.</Description>
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: cellpack :: :: Molecular structure :: :: :: http://www.cellpack.org/ :: :: :: cellpack data</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: cellpack :: cellpack :: cellpack :: HIV-1_0.1.6 :: true</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -35,19 +35,6 @@ class _MyAPI(BundleAPI):
         cmd.register_command(ci)
 
     @staticmethod
-    def open_file(session, path, file_name, format_name,
-                  auto_style=True, atomic=True):
-        if format_name == "mol2":
-            from .io import open_mol2
-            return open_mol2(session, path, file_name, auto_style, atomic)
-        elif format_name == "pdbqt":
-            from .pdbqt import open_pdbqt
-            return open_pdbqt(session, path, file_name, auto_style, atomic)
-        else:
-            raise ValueError("unsupported format: %s" % format_name)
-
-
-    @staticmethod
     def get_class(class_name):
         if class_name in ["TableTool", "ChartTool", "PlotTool"]:
             from . import tool

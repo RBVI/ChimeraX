@@ -39,9 +39,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: VTK PolyData :: vtk :: Generic 3D objects :: .vtk :: :: http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf :: :: :: VTK</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: VTK PolyData :: vtk ::</ChimeraXClassifier>
-    <ChimeraXClassifier>Save :: VTK PolyData :: vtk ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

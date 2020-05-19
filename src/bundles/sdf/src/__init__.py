@@ -18,10 +18,6 @@ from chimerax.core.toolshed import BundleAPI
 class _SDF_API(BundleAPI):
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        return read_sdf(session, stream, file_name)
-
-    @staticmethod
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
         class SdfOpenerInfo(OpenerInfo):

@@ -367,20 +367,14 @@ class _RestoreManager:
 
     def log_bundles(self, session, missing_bundles, out_of_date_bundles):
 
-        def bundle_link(toolshed_url, name):
-            app_name = name.casefold().replace('-', '').replace('_', '')
-            if name.startswith("ChimeraX-"):
-                name = name[len("ChimeraX-"):]
-            return f'<a href="{toolshed_url}/apps/{app_name}">{name}</a>'
-
-        remote_url = session.toolshed.remote_url
+        bundle_link = session.toolshed.bundle_link
         msg = "<blockquote>\n" "To Restore session:<ul>\n"
         if missing_bundles:
             for name, version in missing_bundles:
-                msg += f"<li>install {bundle_link(remote_url, name)} bundle version {version} or newer</li>" "\n"
+                msg += f"<li>install {bundle_link(name)} bundle version {version} or newer</li>" "\n"
         if out_of_date_bundles:
             for name, version, bi in out_of_date_bundles:
-                msg += f"<li>update {bundle_link(remote_url, name)} bundle to version {version} or newer (have {bi.version})</li>" "\n"
+                msg += f"<li>update {bundle_link(name)} bundle to version {version} or newer (have {bi.version})</li>" "\n"
         msg += "</ul></blockquote>\n"
         session.logger.warning(msg, is_html=True, add_newline=False)
 
@@ -1015,51 +1009,16 @@ def save_x3d(session, path, transparent_background=False):
         x3d_scene.write_footer(stream, 0)
 
 
-def register_session_format(session):
-    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
-    from .commands.cli import add_keyword_arguments
+def register_misc_commands(session):
     from .commands.toolshed import register_command
     register_command(session.logger)
-    from .commands import devel as devel_cmd, open as open_cmd, save as save_cmd
+    from .commands import devel as devel_cmd
     devel_cmd.register_command(session.logger)
-    #open_cmd.register_command(session.logger)
-    from . import io, toolshed
-    io.register_format(
-        "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
-        mime="application/x-chimerax-session",
-        reference="help:user/commands/save.html",
-        open_func=open, export_func=save)
-    add_keyword_arguments('open', {'resize_window': BoolArg})
-
-    #save_cmd.register_command(session.logger)
-    desc = CmdDesc(
-        required=[('filename', SaveFileNameArg)],
-        keyword=[('version', IntArg), ('uncompressed', BoolArg)],
-        hidden=['version', 'uncompressed'],
-        synopsis='save session'
-    )
-    add_keyword_arguments('save', {'include_maps': BoolArg})
-
-    def save_session(session, filename, **kw):
-        kw['format'] = 'session'
-        from .commands.save import save
-        save(session, filename, **kw)
-    register('save session', desc, save_session, logger=session.logger)
-    add_keyword_arguments('save session', {'include_maps': BoolArg})
 
     import sys
     if sys.platform.startswith('linux'):
         from .commands.linux import register_command
         register_command(session.logger)
-
-
-def register_x3d_format():
-    from . import io, toolshed
-    io.register_format(
-        "X3D", toolshed.GENERIC3D, ".x3d", "x3d",
-        mime="model/x3d+xml",
-        reference="http://www.web3d.org/standards",
-        export_func=save_x3d)
 
 
 def common_startup(sess):
@@ -1087,8 +1046,7 @@ def common_startup(sess):
         logger=sess.logger
     )
 
-    _register_core_file_formats(sess)
-    _register_core_database_fetch()
+    register_misc_commands(sess)
 
     if not _have_graphics():
         # During build process ChimeraX is run before graphics module is installed.
@@ -1109,66 +1067,3 @@ def common_startup(sess):
 
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")
-
-
-def register_session_save_options_gui(save_dialog):
-    '''
-    Session save gui options are registered in the ui module instead of when the
-    format is registered because the ui does not exist when the format is registered.
-    '''
-    from chimerax.ui import SaveOptionsGUI
-
-    class SessionSaveOptionsGUI(SaveOptionsGUI):
-        @property
-        def format_name(self):
-            return "ChimeraX session"
-
-        def wildcard(self):
-            from chimerax.ui.open_save import export_file_filter
-            from chimerax.core import toolshed
-            return export_file_filter(toolshed.SESSION)
-
-        def make_ui(self, parent):
-            from PyQt5.QtWidgets import QFrame, QVBoxLayout, QCheckBox
-
-            container = QFrame(parent)
-
-            layout = QVBoxLayout(container)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(0)
-            container.setLayout(layout)
-
-            self._include_maps = im = QCheckBox('Include maps', container)
-            layout.addWidget(im)
-
-            return container
-
-        def save(self, session, filename):
-            import os.path
-            ext = os.path.splitext(filename)[1]
-            from chimerax.core import io
-            fmt = io.format_from_name("ChimeraX session")
-            exts = fmt.extensions
-            if exts and ext not in exts:
-                filename += exts[0]
-            from chimerax.core.commands import run, quote_path_if_necessary
-            cmd = "save session %s" % quote_path_if_necessary(filename)
-            if self._include_maps.isChecked():
-                cmd += ' includeMaps true'
-            run(session, cmd)
-
-    save_dialog.add_options_gui(SessionSaveOptionsGUI())
-
-
-def _register_core_file_formats(session):
-    register_session_format(session)
-    from . import scripting
-    scripting.register()
-    from . import image
-    image.register_image_save(session)
-    register_x3d_format()
-
-
-def _register_core_database_fetch():
-    from . import fetch
-    fetch.register_web_fetch()

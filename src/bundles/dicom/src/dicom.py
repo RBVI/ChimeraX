@@ -196,13 +196,6 @@ class DICOMMapFormat(MapFileFormat):
 def register_dicom_format(session):
     fmt = DICOMMapFormat()
 
-    # Register file suffix
-    # TODO: Do this in bundle_info.xml once it has allow_directory option.
-    suf = tuple('.' + s for s in fmt.suffixes)
-    from chimerax.core import io, toolshed
-    io.register_format(fmt.description, toolshed.VOLUME, suf, nicknames=fmt.prefixes,
-                       open_func=open_dicom, batch=fmt.batch, allow_directory=fmt.allow_directory)
-    
     # Add map grid format reader
     from chimerax.map import add_map_format
-    add_map_format(session, fmt, register_file_suffixes = False)
+    add_map_format(session, fmt)
