@@ -23,7 +23,7 @@ import sys
 import plistlib
 import datetime
 from distlib.version import NormalizedVersion as Version
-from chimerax.core import io, configfile
+from chimerax.core import configfile
 from ChimeraX_main import init
 
 configfile.only_use_defaults = True
@@ -50,6 +50,7 @@ more_info = {
 def utid(f):
     """convert ChimeraX type to its Apple Universal Type Identifier"""
     # look for a domain the fetch data
+    from chimerax.core import io
     for fetchInfo in io.fetch._fetchInfo:
         dbname = fetchInfo[0]
         homepage = fetchInfo[4]

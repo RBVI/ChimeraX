@@ -4,8 +4,8 @@
 def open_xyz(session, stream):
     """Read an XYZ file from a file-like object.
 
-    Returns the 2-tuple return value appropriate for the
-    ``chimerax.core.toolshed.BundleAPI.open_file`` method.
+    Returns the 2-tuple return value expected by the
+    "open command" manager's :py:meth:`run_provider` method.
     """
     structures = []
     line_number = 0

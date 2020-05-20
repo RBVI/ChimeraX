@@ -1363,51 +1363,6 @@ class BundleAPI:
         raise NotImplementedError("BundleAPI.register_selector")
 
     @staticmethod
-    def open_file(session, stream_or_path, optional_format_name, optional_file_name, **kw):
-        """Supported API. Called to open a file.
-
-        Second arg must be 'stream' or 'path'.  Depending on the name, either an open
-        data stream or a filesystem path will be provided.  The third and fourth
-        arguments are optional (remove ``optional_`` from their names if you provide them).
-        'format-name' will be the first nickname of the format if it has any, otherwise
-        the full format name, but all lower case.  'file_name' if the name of input file,
-        with path and compression suffix components stripped.
-
-        You shouldn't actually use 'kw' but instead use the actual keyword args that
-        your format declares that it accepts (in its bundle_info.xml file).
-
-        Returns
-        -------
-        tuple
-            The return value is a 2-tuple whose first element is a list of
-            :py:class:`~chimerax.core.models.Model` instances and second
-            element is a string containing a status message, such as the
-            number of atoms and bonds found in the open models.
-        """
-        raise NotImplementedError("BundleAPI.open_file")
-
-    @staticmethod
-    def save_file(session, stream, name, **kw):
-        """Supported API. Called to save a file.
-
-        Arguments and return values are as described for save functions in
-        :py:mod:`chimerax.core.io`.
-        The format name will be in the **format_name** keyword.
-        """
-        raise NotImplementedError("BundleAPI.save_file")
-
-    @staticmethod
-    def fetch_from_database(session, identifier, **kw):
-        """Supported API. Called to fetch an entry from a network resource.
-
-        Arguments and return values are as described for save functions in
-        :py:mod:`chimerax.core.fetch`.
-        The format name will be in the **format_name** keyword.
-        Whether a cache may be used will be in the **ignore_cache** keyword.
-        """
-        raise NotImplementedError("BundleAPI.fetch_from_database")
-
-    @staticmethod
     def initialize(session, bundle_info):
         """Supported API. Called to initialize a bundle in a session.
 

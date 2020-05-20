@@ -219,13 +219,9 @@ class Log(ToolInstance, HtmlLog):
                 self.session.ui.thread_safe(defer, self.log)
 
             def cm_save(self):
-                from chimerax.ui.open_save import export_file_filter, SaveDialog
-                from chimerax.core.io import format_from_name
-                fmt = format_from_name("HTML")
-                ext = fmt.extensions[0]
-                save_dialog = SaveDialog(self, "Save Log",
-                                         name_filter=export_file_filter(format_name="HTML"),
-                                         add_extension=ext)
+                from chimerax.ui.open_save import SaveDialog
+                fmt = session.data_formats["HTML"]
+                save_dialog = SaveDialog(session, self, "Save Log", data_formats=[fmt])
                 if not save_dialog.exec():
                     return
                 filename = save_dialog.selectedFiles()[0]

@@ -19,7 +19,7 @@ class MainSaveDialog:
         if parent is None:
             parent = session.ui.main_window
         from chimerax.ui.open_save import SaveDialog
-        dialog = SaveDialog(parent, "Save File")
+        dialog = SaveDialog(session, parent, "Save File")
         self._customize_dialog(session, dialog)
         if format is not None:
             try:
@@ -58,15 +58,11 @@ class MainSaveDialog:
 
     def _customize_dialog(self, session, dialog):
         options_panel = dialog.custom_area
-        saveable_formats = [fmt for fmt in session.save_command.save_data_formats
-            if fmt.suffixes]
-        file_filters = ["%s (%s)" % (fmt.synopsis, "*" + " *".join(fmt.suffixes))
-            for fmt in saveable_formats]
-        self._fmt_name2filter = dict(zip([fmt.name for fmt in saveable_formats],
-            file_filters))
+        saveable_formats = dialog.data_formats
+        file_filters = dialog.name_filters
+        self._fmt_name2filter = dict(zip([fmt.name for fmt in saveable_formats], file_filters))
         self._filter2fmt = dict(zip(file_filters, saveable_formats))
         file_filters.sort(key=lambda f: f.lower())
-        dialog.setNameFilters(file_filters)
         if self._settings:
             try:
                 file_filter = self._fmt_name2filter[self._settings.format_name]

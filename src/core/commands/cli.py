@@ -1102,8 +1102,8 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
         if name_filter is not None:
             dlg.setNameFilter(name_filter)
         elif accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
-            from chimerax.ui.open_save import open_file_filter
-            dlg.setNameFilter(open_file_filter(all=True))
+            from chimerax.open_command.dialog import make_qt_name_filters
+            dlg.setNameFilters(make_qt_name_filters(session)[0])
         dlg.setFileMode(dialog_mode)
         if dlg.exec():
             paths = dlg.selectedFiles()
