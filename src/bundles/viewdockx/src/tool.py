@@ -464,14 +464,14 @@ class TableTool(_BaseTool):
 
     def _cb_export(self, query):
         from chimerax.ui.open_save import SaveDialog
-        sd = SaveDialog(add_extension="mol2")
+        sd = SaveDialog(self.session, data_formats=[self.session.data_formats["mol2"]])
         if not sd.exec():
             return
         path = sd.get_path()
         if path is None:
             return
         prefix = "##########"
-        from chimerax.mol2.io import write_mol2
+        from chimerax.atomic.mol2 import write_mol2
         with open(path, "w") as outf:
             for s in self.structures:
                 with OutputCache() as sf:

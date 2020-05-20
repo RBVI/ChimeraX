@@ -21,17 +21,27 @@ TODO
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtCore import Qt
 class SaveDialog(QFileDialog):
-    def __init__(self, parent = None, *args, **kw):
-        default_suffix = kw.pop('add_extension', None)
-        name_filter = kw.pop('name_filter', None)
+    def __init__(self, session, parent = None, *args, data_formats=None, **kw):
+        if data_formats is None:
+            data_formats = [fmt for fmt in session.save_command.save_data_formats if fmt.suffixes]
+        # make some things public
+        self.data_formats = data_formats
+        self.name_filters = [session.data_formats.qt_file_filter(fmt) for fmt in data_formats]
+        if len(data_formats) == 1:
+            default_suffix = data_formats[0].suffixes[0] if data_formats[0].suffixes else None
+            name_filter = self.name_filters[0]
+        else:
+            default_suffix = name_filter = None
         super().__init__(parent, *args, **kw)
         self.setFileMode(QFileDialog.AnyFile)
         self.setAcceptMode(QFileDialog.AcceptSave)
         self.setOption(QFileDialog.DontUseNativeDialog)
+        if self.name_filters:
+            self.setNameFilters(self.name_filters)
+            if name_filter:
+                self.setNameFilter(name_filter)
         if default_suffix:
             self.setDefaultSuffix(default_suffix)
-        if name_filter:
-            self.setNameFilter(name_filter)
         self._custom_area = None
 
     @property
