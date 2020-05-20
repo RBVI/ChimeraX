@@ -9,17 +9,15 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def color_image(session, models, file = None, coords = None, write_colors = None):
+def color_image(session, surfaces, file = None, coords = None, write_colors = None):
     '''
     Color surfaces using images read from files and specify texture coordinates
     that define how to map the image onto the surface.
 
-    This is an experimental command.
-
     Parameters
     ----------
-    models : list of Model
-        Act on these models and their child drawings.
+    surfaces : list of Surface
+        Act on these surfaces and their child drawings.
     file : string
         Path to image file, e.g. PNG or JPEG image.  If the value is the string "none" then
         any texture is removed from the surface.
@@ -48,7 +46,7 @@ def color_image(session, models, file = None, coords = None, write_colors = None
     '''
     
     rgba = None if file is None or file == 'none' else image_file_as_rgba(file)
-    dlist = drawings(models)
+    dlist = drawings(surfaces)
 
     if coords == 'vertexcolors':
         crgba = _set_vertex_color_texture_coordinates(session, dlist)
@@ -182,9 +180,9 @@ def _remove_texture(session, drawing):
     drawing.texture = None
 
 def register_color_image_command(logger):
-    from chimerax.core.commands import CmdDesc, register, ModelsArg, OpenFileNameArg, EnumOf, SaveFileNameArg
+    from chimerax.core.commands import CmdDesc, register, SurfacesArg, OpenFileNameArg, EnumOf, SaveFileNameArg
     desc = CmdDesc(
-        required = [('models', ModelsArg)],
+        required = [('surfaces', SurfacesArg)],
         keyword = [('file', OpenFileNameArg),
                    ('coords', EnumOf(('sphere','pole','south','vertexcolors'))),
                    ('write_colors', SaveFileNameArg),],

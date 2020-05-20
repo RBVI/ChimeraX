@@ -142,12 +142,13 @@ cofr
 color
 =====
 .. autofunction:: chimerax.std_commands.color.color
-.. autofunction:: chimerax.surface.colorvol.color_electrostatic
-.. autofunction:: chimerax.surface.colorvol.color_sample
-.. autofunction:: chimerax.surface.colorvol.color_gradient
-.. autofunction:: chimerax.surface.colorgeom.color_radial
 .. autofunction:: chimerax.surface.colorgeom.color_cylindrical
+.. autofunction:: chimerax.surface.colorvol.color_electrostatic
+.. autofunction:: chimerax.surface.colorvol.color_gradient
 .. autofunction:: chimerax.surface.colorgeom.color_height
+.. autofunction:: chimerax.surface.texture.color_image
+.. autofunction:: chimerax.surface.colorgeom.color_radial
+.. autofunction:: chimerax.surface.colorvol.color_sample
 .. autofunction:: chimerax.surface.colorzone.color_zone
 		  
 coordset
