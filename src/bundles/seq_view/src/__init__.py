@@ -13,6 +13,8 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+# subcommand name is in bundle_info.xml, but used in various .py files also
+subcommand_name = "viewer"
 class _SeqViewerBundleAPI(BundleAPI):
 
     @staticmethod

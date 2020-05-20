@@ -195,10 +195,10 @@ def desktop_stringlist(f, tag, values):
     f.write("%s=%s;\n" % (tag, ';'.join(str_quote(v) for v in values)))
 
 
-def make_desktop(info, localized_app_name={}):
+def make_desktop(session, info, localized_app_name={}):
     if verbose:
         print("generating", info.desktop)
-    mime_types = get_mime_types()
+    mime_types = get_mime_types(session)
     with open(info.desktop, mode='wt', encoding='utf-8') as f:
         desktop_group(f, "Desktop Entry")
         desktop_string(f, "Type", "Application")
@@ -230,16 +230,16 @@ def make_desktop(info, localized_app_name={}):
     os.chmod(info.desktop, s.st_mode | 0o555)  # make executable
 
 
-def make_mime_file(name):
+def make_mime_file(session, name):
     if verbose:
         print("generating", name)
     from . import io
     mi = MimeInfo(open(name, mode='wt', encoding='utf-8'))
     with mi:
-        fmts = io.formats()
+        fmts = session.data_formats.formats
         fmts.sort(key=lambda f: f.name)
         for f in fmts:
-            extensions = f.extensions
+            extensions = f.suffixes
             mime_types = f.mime_types
             if not extensions or not mime_types:
                 continue
@@ -250,7 +250,7 @@ def make_mime_file(name):
                         mi.glob(e)
 
 
-def install_icons(info):
+def install_icons(session, info):
     if verbose:
         print("installing icons")
 
@@ -294,10 +294,14 @@ def install_icons(info):
         except OSError as e:
             print("Unable to install SVG icon: %s" % e, file=sys.stderr)
 
+    # No format actually provides an icon, and therefore session.data_formats
+    # doesn't currently support it; the below code could be revived if that
+    # situation changes
+    """
     # install icons for file formats
     from . import io
     from PIL import Image
-    for f in io.formats():
+    for f in session.data_formats.formats:
         icon = f.icon
         if icon is None:
             continue
@@ -326,6 +330,7 @@ def install_icons(info):
                 subprocess.call(cmd)
             except OSError as e:
                 print("Unable to install %s icon: %s" % (f.name, e), file=sys.stderr)
+    """
 
 
 def install_desktop_menu(desktop, system):
@@ -414,15 +419,15 @@ def generate(session, info=None, system=False):
     if not info:
         info = get_info(session, system)
     from __main__ import localized_app_name
-    make_desktop(info, localized_app_name)
-    make_mime_file(info.mime_file)
+    make_desktop(session, info, localized_app_name)
+    make_mime_file(session, info.mime_file)
 
 
 def install(session, system=False, verbose=False):
     info = get_info(session, system)
     generate(session, info, system)
     install_mime_file(info.mime_file, system)
-    install_icons(info)
+    install_icons(session, info)
     install_desktop_menu(info.desktop, info.system)
     if not system:
         install_desktop_icon(info.desktop)
@@ -442,10 +447,10 @@ def uninstall(session, system=False, verbose=False):
         os.remove(info.mime_file)
 
 
-def get_mime_types():
+def get_mime_types(session):
     from . import io
     mime_types = []
-    for f in io.formats():
+    for f in session.data_formats.formats:
         mt = f.mime_types
         if isinstance(mt, (list, tuple)):
             mime_types.extend(mt)
