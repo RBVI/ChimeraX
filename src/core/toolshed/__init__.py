@@ -535,12 +535,15 @@ class Toolshed:
         _debug("set_install_timestamp")
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
 
+    def bundle_url(self, bundle_name):
+        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
+        return f"{self.remote_url}/apps/{app_name}"
+
     def bundle_link(self, bundle_name):
         from html import escape
-        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
         if bundle_name.startswith("ChimeraX-"):
             bundle_name = bundle_name[len("ChimeraX-"):]
-        return f'<a href="{self.remote_url}/apps/{app_name}">{escape(bundle_name)}</a>'
+        return f'<a href="{self.bundle_url(bundle_name)}">{escape(bundle_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):
         """Supported API. Return list of bundle info.

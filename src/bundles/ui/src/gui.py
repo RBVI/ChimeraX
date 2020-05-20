@@ -1467,13 +1467,10 @@ class MainWindow(QMainWindow, PlainTextLog):
                         lambda arg, ses=session, run=run, tool_name=tool_name:
                         run(ses, "ui tool show %s" % StringArg.unparse(tool_name)))
                 cat_menu.addAction(tool_action)
-        def _show_toolshed(arg):
-            from chimerax.help_viewer import show_url
-            from chimerax.core import toolshed
-            show_url(session, toolshed.get_toolshed().remote_url)
         more_tools = QAction("More Tools...", self)
         more_tools.setToolTip("Open ChimeraX Toolshed in Help Viewer")
-        more_tools.triggered.connect(_show_toolshed)
+        more_tools.triggered.connect(
+            lambda arg, ses=session, run=run: run(ses, "toolshed show"))
         tools_menu.addAction(more_tools)
         # running tools will go below this...
         self._tools_menu_separator = tools_menu.addSection("Running Tools")

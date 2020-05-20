@@ -38,7 +38,7 @@ class Model(State, Drawing):
     """A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
 
-    Model subclasses can be saved session files.
+    Model subclasses can be saved in session files.
 
     Parameters
     ----------
