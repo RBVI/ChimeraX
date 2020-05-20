@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Scheme_Mgr" version="1.0" package="chimerax.scheme_mgr"
+<BundleInfo name="ChimeraX-SchemeMgr" version="1.0" package="chimerax.scheme_mgr"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

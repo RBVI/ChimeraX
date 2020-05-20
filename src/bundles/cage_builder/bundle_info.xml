@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Cage-Builder" version="1.0"
+<BundleInfo name="ChimeraX-CageBuilder" version="1.0"
 	    package="chimerax.cage_builder"
   	    minSessionVersion="1" maxSessionVersion="1">
 

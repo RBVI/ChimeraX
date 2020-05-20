@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Preset_Mgr" version="1.0" package="chimerax.preset_mgr"
+<BundleInfo name="ChimeraX-PresetMgr" version="1.0" package="chimerax.preset_mgr"
             minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->

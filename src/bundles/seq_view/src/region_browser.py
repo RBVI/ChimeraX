@@ -826,8 +826,8 @@ class RegionBrowser:
             color_structures = self.settings.scf_colors_structures
 
         seqs = self.seq_canvas.alignment.seqs
-        from chimerax.core import io
-        scf_file = io.open_filename(path)
+        from chimerax.io import open_input
+        scf_file = open_input(path, 'utf-8')
         line_num = 0
         region_info = {}
         from chimerax.core.errors import UserError

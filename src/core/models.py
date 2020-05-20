@@ -718,44 +718,6 @@ class Models(StateManager):
         for m in mremoved:
             m.delete()
 
-    def open(self, filenames, id=None, format=None, name=None, **kw):
-        from . import io, toolshed
-        session = self._session()  # resolve back reference
-        collation_okay = True
-        if isinstance(filenames, str):
-            fns = [filenames]
-        else:
-            fns = filenames
-        for fn in fns:
-            fmt = io.deduce_format(fn, has_format=format)[0]
-            if fmt and fmt.category in [toolshed.SCRIPT]:
-                collation_okay = False
-                break
-        from .logger import Collator
-        log_errors = kw.pop('log_errors', True)
-        if collation_okay:
-            descript = "files" if len(fns) > 1 else fns[0]
-            with Collator(session.logger,
-                    "Summary of feedback from opening " + descript, log_errors):
-                models, status = io.open_multiple_data(
-                    session, filenames, format=format, name=name, **kw)
-        else:
-            models, status = io.open_multiple_data(
-                session, filenames, format=format, name=name, **kw)
-        if status:
-            log = session.logger
-            log.status(status, log=True)
-        if models:
-            if len(models) > 1:
-                from . import io
-                name = io.model_name_from_path(filenames[0])
-                if len(filenames) > 1:
-                    name += '...'
-                self.add_group(models, name=name)
-            else:
-                self.add(models)
-        return models
-
 
 def descendant_models(models):
     mset = set()

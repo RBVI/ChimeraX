@@ -535,12 +535,15 @@ class Toolshed:
         _debug("set_install_timestamp")
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
 
+    def bundle_url(self, bundle_name):
+        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
+        return f"{self.remote_url}/apps/{app_name}"
+
     def bundle_link(self, bundle_name):
         from html import escape
-        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
         if bundle_name.startswith("ChimeraX-"):
             bundle_name = bundle_name[len("ChimeraX-"):]
-        return f'<a href="{self.remote_url}/apps/{app_name}">{escape(bundle_name)}</a>'
+        return f'<a href="{self.bundle_url(bundle_name)}">{escape(bundle_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):
         """Supported API. Return list of bundle info.
@@ -810,9 +813,23 @@ class Toolshed:
         # put the below kludge in to allow sessions saved before some
         # bundles got renamed to restore
         name = {
+            "ChimeraX-Atom-Search": "ChimeraX-AtomSearch",
+            "ChimeraX-Bug-Reporter": "ChimeraX-BugReporter",
+            "ChimeraX-Cage-Builder": "ChimeraX-CageBuilder",
+            "ChimeraX-Connect-Structure": "ChimeraX-ConnectStructure",
+            "ChimeraX-Dist-Monitor": "ChimeraX-DistMonitor",
+            "ChimeraX-Dist-UI": "ChimeraX-DistUI",
+            "ChimeraX-List-Info": "ChimeraX-ListInfo",
+            "ChimeraX-MD-crds": "ChimeraX-MDcrds",
+            "ChimeraX-Preset-Mgr": "ChimeraX-PresetMgr",
+            "ChimeraX-Read-Pbonds": "ChimeraX-ReadPbonds",
+            "ChimeraX-Rotamer-Lib-Mgr": "ChimeraX-RotamerLibMgr",
+            "ChimeraX-Rotamer-Libs-Dunbrack": "ChimeraX-RotamerLibsDunbrack",
+            "ChimeraX-Rotamer-Libs-Dynameomics": "ChimeraX-RotamerLibsDynameomics",
+            "ChimeraX-Rotamer-Libs-Richardson": "ChimeraX-RotamerLibsRichardson",
+            "ChimeraX-Scheme-Mgr": "ChimeraX-SchemeMgr",
             "ChimeraX-SEQ-VIEW": "ChimeraX-SeqView",
             "ChimeraX-Std-Commands": "ChimeraX-StdCommands",
-            "ChimeraX-Atom-Search": "ChimeraX-AtomSearch",
         }.get(name, name)
         lc_name = name.casefold().replace('_', '-')
         lc_names = [lc_name]
@@ -1529,13 +1546,9 @@ class BundleAPI:
 #
 # _CallBundleAPI is used to call a bundle method with the
 # correct arguments depending on the API version used by the
-# bundle.  Note that open_file, save_file, fetch_from_database,
-# and get_class are not called via this mechanism.
-# ../io.py handles the argument passing for open_file and
-# save_file using introspection.
-# ../fetch.py handles the argument passing for fetch_from_database.
+# bundle.  Note that get_class is not called via this mechanism.
 # get_class() is more of a lookup than an invocation and the
-# calling convertion should not change.
+# calling convention should not change.
 #
 class _CallBundleAPIv0:
 

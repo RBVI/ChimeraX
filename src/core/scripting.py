@@ -143,24 +143,3 @@ def open_command_script(session, path, file_name):
             os.chdir(prev_dir)
 
     return [], "executed %s" % file_name
-
-
-def register():
-    import traceback, sys
-    traceback.print_stack(file=sys.__stderr__)
-    from . import io, toolshed
-    io.register_format(
-        "Python code", toolshed.SCRIPT, (".py",), ("py",),
-        mime=('text/x-python',),
-        reference="http://www.python.org/",
-        open_func=open_python_script)
-    io.register_format(
-        "Compiled Python code", toolshed.SCRIPT, (".pyc", ".pyo"), ("pyc",),
-        mime=('application/x-python-code',),
-        reference="http://www.python.org/",
-        open_func=open_compiled_python_script)
-    io.register_format(
-        "ChimeraX commands", toolshed.SCRIPT, (".cxc",), ("cmd",),
-        mime=('text/x-chimerax', 'application/x-chimerax-code'),
-        reference="help:user/commands/usageconventions.html",
-        open_func=open_command_script)

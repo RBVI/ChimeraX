@@ -341,6 +341,24 @@ def toolshed_cache(session):
 toolshed_cache_desc = CmdDesc(synopsis='show toolshed cache location')
 
 
+def toolshed_show(session, bundle_name=None):
+    from chimerax import help_viewer
+    ts = session.toolshed
+    if bundle_name is None:
+        url = ts.remote_url
+    else:
+        bi = ts.find_bundle(bundle_name, session.logger, installed=False)
+        if bi is None:
+            from ..errors import UserError
+            raise UserError("Unknown bundle")
+        url = session.toolshed.bundle_url(bi.name)
+    help_viewer.show_url(session, url)
+
+
+toolshed_show_desc = CmdDesc(optional=[("bundle_name", StringArg)],
+                             synopsis='show the toolshed or bundle in toolshed')
+
+
 def register_command(logger):
     from chimerax.core.commands import register
 
@@ -350,3 +368,4 @@ def register_command(logger):
     register("toolshed uninstall", toolshed_uninstall_desc, toolshed_uninstall, logger=logger)
     register("toolshed url", toolshed_url_desc, toolshed_url, logger=logger)
     register("toolshed cache", toolshed_cache_desc, toolshed_cache, logger=logger)
+    register("toolshed show", toolshed_show_desc, toolshed_show, logger=logger)
