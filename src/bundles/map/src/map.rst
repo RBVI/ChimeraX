@@ -17,16 +17,13 @@ map: Density maps
 
 .. automodule:: chimerax.map.volume
     :members:
-    :special-members: __init__
     :member-order: bysource
     :show-inheritance:
 
-.. automodule:: chimerax.map.data.griddata
+.. autoclass:: chimerax.map.data.GridData
     :members:
-    :special-members: __init__
-    :show-inheritance:
 
-.. automodule:: chimerax.map.data.arraygrid
+.. autoclass:: chimerax.map.data.ArrayGridData	       
     :members:
-    :special-members: __init__
+    :exclude-members: read_matrix
     :show-inheritance:

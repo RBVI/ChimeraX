@@ -19,14 +19,24 @@
 from chimerax.core.models import Model
 class Volume(Model):
   '''
-  A Volume is a rendering of a 3-d image GridData object.  It includes
-  color, display styles including surface, mesh and grayscale, contouring levels,
+  A Volume is a Model that renders a 3-d image of a :class:`~.data.GridData` object.
+  It includes color, display styles including surface, mesh and grayscale, contouring levels,
   brightness and transparency for grayscale rendering, region bounds for display
   a subregion including single plane display, subsampled display of every Nth data
   value along each axis, outline box display.
+
+  Parameters
+  ----------
+  session : :class:`~chimerax.core.session.Session`
+      The session that the Volume will belong to.
+  data : :class:`~.data.GridData`
+      3D data array
+  region : (ijk_min, ijk_max, ijk_step)
+      Initial displayed subregion of 3D array
+  rendering_options : :class:`.RenderingOptions`
+      Appearance settings for surface and image display.
   '''
   def __init__(self, session, data, region = None, rendering_options = None):
-    '''Supported API. Create a volume model from a GridData instance.'''
     
     Model.__init__(self, data.name, session)
 
@@ -165,13 +175,16 @@ class Volume(Model):
   #
   @property
   def surfaces(self):
-    '''Supported API.  Return a list of VolumeSurface instances for this Volume.'''
+    '''Supported API.  Return a list of :class:`.VolumeSurface` instances for this Volume.'''
     return self._surfaces
   
   # ---------------------------------------------------------------------------
   #
   def add_surface(self, level, rgba = (.7,.7,.7,1), display = True):
-    '''Supported API.  Create and add a new VolumeSurface with specified contour level and color.'''
+    '''
+    Supported API.  Create and add a new :class:`.VolumeSurface` with
+    specified contour level and color.
+    '''
     ses = self.session
     s = VolumeSurface(self, level, rgba)
     s.display = display
@@ -187,7 +200,7 @@ class Volume(Model):
   #
   def remove_surfaces(self, surfaces = None):
     '''
-    Supported API.  Remove a list of VolumeSurface instances from this Volume.
+    Supported API.  Remove a list of :class:`.VolumeSurface` instances from this Volume.
     If surfaces is None then all current surfaces are removed.
     '''
     surfs = tuple(self._surfaces if surfaces is None else surfaces)
@@ -1759,6 +1772,11 @@ class Volume(Model):
 #
 from .image3d import Image3d
 class VolumeImage(Image3d):
+  '''
+  Model for displaying 3d semi-transparent images.
+  These models are children of a :class:`.Volume` model
+  and should only be created by Volume.
+  '''
   def __init__(self, volume):
 
     self._volume = v = volume
@@ -1875,6 +1893,11 @@ class VolumeImage(Image3d):
 #
 from chimerax.core.models import Surface
 class VolumeSurface(Surface):
+  '''
+  Model for displaying a contour surface of a :class:`.Volume` model.
+  These models are children of a Volume and should only be created
+  by the :func:`.Volume.add_surface` method.
+  '''
 
   def __init__(self, volume, level, rgba = (1,1,1,1), mesh = False):
     name = 'surface'
@@ -1904,6 +1927,7 @@ class VolumeSurface(Surface):
     self._use_thread = use_thread
     self.volume.redraw_needed(shape_changed = True)
   level = property(_get_level, set_level)
+  '''Threshold level for the surface. Settable.'''
 
   def _get_rgba(self):
     return tuple(c/255 for c in self.color)
@@ -2236,6 +2260,9 @@ def maps_pickable(session, pickable):
 #
 from chimerax.graphics import Pick
 class PickedMap(Pick):
+  '''
+  Returned by :func:`.Volume.first_intercept()` when a Volume is picked.
+  '''
   def __init__(self, v, distance = None, detail = ''):
     Pick.__init__(self, distance)
     self.map = v
@@ -2586,10 +2613,122 @@ class Region_List:
 # -----------------------------------------------------------------------------
 #
 class RenderingOptions:
+  '''
+  Rendering options for a :class:`.Volume` that specify details of how
+  surface and image style depictions appear.  Some options are not implemented
+  but existed in Chimera and may be implemented in the future.
 
+  Attributes
+  ----------
+  show_outline_box : False
+    Whether a outline box is shown for the displayed subregion.
+  outline_box_rgb : (1,1,1)
+    Outline box color (red, green, blue) components, range 0-1.
+  limit_voxel_count : True
+    Whether to auto-adjust step size so at most voxel_limit voxels are shown.
+  voxel_limit : 16
+    Choose step size so the region has at most this many Mvoxels.
+  color_mode : 'auto8'
+    Sets the pixel format for image style rendering color vs grayscale,
+    transparent vs opaque, and bits per color component.
+    (auto|opaque|rgba|rgb|la|l)(4|8|12|16).
+  color_modes : ('auto4', 'auto8', 'auto12', 'auto16', 'opaque4', 'opaque8', 'opaque12', 'opaque16', 'rgba4', 'rgba8', 'rgba12', 'rgba16', 'rgb4', 'rgb8', 'rgb12', 'rgb16', 'la4', 'la8', 'la12', 'la16', 'l4', 'l8', 'l12', 'l16')
+    The allowed color modes for image style rendering.  Read only.
+  colormap_on_gpu : False
+    Whether colors are computed from map values on the gpu for image style rendering.
+  colormap_size : 2048
+    If colormap_on_gpu is true, what is the size of the colormap for map values
+    that are not  8 or 16-bit data types.
+  colormap_extend_left : False
+    Whether the image coloring applies to map values less than the minimum Volume image_level.
+  colormap_extend_right : True
+    Whether the image coloring applies to map values greater than the maximum Volume image_level.
+  blend_on_gpu : False
+    Whether image rendering blends images on gpu instead of cpu.
+  projection_mode : 'auto'
+    Determines what slices are used for image rendering.
+  projection_modes : ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
+    Allowed projection modes.  Read only.
+  plane_spacing : 'min'
+    Spacing of slices for image style rendering. Values "min", "max", "mean" use
+    the grid spacing, or specific distance value can be given.
+  full_region_on_gpu : False
+    For image rendering is the entire map kept on the GPU for fast cropping.
+  bt_correction : False
+    Image rendering axis-dependent brightness and transparency correction.  Not implemented.
+  minimal_texture_memory : False
+    Whether to reuse a single texture for image rendering.  Not implemented.
+  maximum_intensity_projection : False
+    Whether to use maximum intensity projection image rendering.  If False then
+    transparent blending is used.
+  linear_interpolation : True
+    Whether image rendering linearly interpolates pixel colors.
+  dim_transparency : True
+    Whether transparent surface rendering multiplies colors
+    by opacity making more transparent voxels dimmer.
+    True uses (alpha, 1-alpha) blending while False uses (1, 1-alpha) blending.
+  dim_transparent_voxels : True
+    Whether transparent image rendering multiplies colors
+    by opacity making more transparent voxels dimmer.
+    True uses (alpha, 1-alpha) blending while False uses (1, 1-alpha) blending.
+  line_thickness : 1
+    The thickness of lines in pixels for mesh display.  Not implemented because
+    OpenGL core profile does not support line thickness.
+  smooth_lines : False
+    Whether mesh lines are rendered with anti-aliasing giving a smoother appearance.
+  mesh_lighting : True
+    Whether mesh rendering uses directional lighting.
+  two_sided_lighting : True
+    Whether the interior of surfaces and meshes have directional lighting.
+    Not implemented, always uses two-sided.
+  flip_normals : False
+    Whether negative map values have surface normals flipped.  Not implemented.
+    This only has an effect when two sided lighting is false, and that mode is not implemented.
+  subdivide_surface : False
+    Whether to split every triangle into 4 smaller triangles for surfaces and meshes.
+  subdivision_levels : 1
+    How many levels of triangle splitting to apply if subdivide surface is True.
+    A value of 1 divides triangles into 4 smaller triangles, 2 divides into 16
+    smaller triangles, N divides into 4^N smaller triangles.
+  surface_smoothing : False
+    Whether to move surface or mesh vertices to give smoother surface appearance.
+  smoothing_iterations : 2
+    How many iterations of smoothing to apply if surface smoothing is enabled.
+  smoothing_factor : .3
+    When surface smoothing each vertex is moved a fraction of the ways towards
+    the average position of the connected vertices.  This parameter is the fraction.
+  square_mesh : True
+    Whether mesh display hides diagonal mesh lines.  If true than only mesh lines
+    intersecting the xy, yz, and xz grid planes are shown.
+  cap_faces : True
+    Whether surface and mesh display covers the holes on the faces of the
+    volume box where the surface reaches the box boundaries.
+  orthoplanes_shown : (False, False, False)
+    For image style display, show 0 to 3 orthogonal planes perpendicular to x,y,z axes.
+    If any of the 3 values is True then orthoplane mode is enabled.
+  orthoplane_positions : (0,0,0)
+    The center voxel i,j,k grid index for orthoplane image rendering.
+  tilted_slab_axis : (0,0,1)
+    If image_mode is "tilted slab" then this is the axis perpendicular
+    to the displayed slab in volume xyz coordinates.
+  tilted_slab_offset : 0
+    Offset of the front face of the slab.  The front face plane is defined
+    by dot((x,y,z), tilted_slab_axis) = tilted_slab_offset
+  tilted_slab_spacing : 1
+    Spacing of planes shown in tilted slab mode in physical units.
+  tilted_slab_plane_count : 1
+    Number of planes shown in tilted slab mode.
+  image_mode : 'full region'
+    The mode for image style rendering.  Can be 'full region', 'orthoplanes',
+    'box faces', or 'tilted slab'.
+  backing_color : None
+    Color drawn behind transparent image rendering.  This blocks the view
+    of objects and the background behind the volume and can give better
+    contrast (e.g. black backing when white background color in use).
+  '''
   def __init__(self):
 
-    self.show_outline_box = True
+    self.show_outline_box = False
     self.outline_box_rgb = (1,1,1)
     self.outline_box_linewidth = 1
     self.limit_voxel_count = True           # auto-adjust step size
@@ -2628,7 +2767,7 @@ class RenderingOptions:
     self.surface_smoothing = False
     self.smoothing_iterations = 2
     self.smoothing_factor = .3
-    self.square_mesh = False
+    self.square_mesh = True
     self.cap_faces = True
     self.orthoplanes_shown = (False, False, False)
     self.orthoplane_positions = (0,0,0) # image rendering
@@ -3135,7 +3274,7 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
                           open_model = True, model_id = None, show_dialog = True):
   '''
   Supported API.
-  Create a new Volume model from a GridData instance and set its initial 
+  Create a new Volume model from a :class:`~.data.GridData` instance and set its initial 
   display style and color and add it to the session open models.
   '''
   
