@@ -34,9 +34,9 @@ class _gltfBundle(BundleAPI):
         else:
             from chimerax.save_command import SaverInfo
             class Info(SaverInfo):
-                def save(self, session, path, **kw):
+                def save(self, session, path, models=None, **kw):
                     from . import gltf
-                    gltf.write_gltf(session, path, **kw)
+                    gltf.write_gltf(session, path, models, **kw)
 
                 @property
                 def save_args(self):
