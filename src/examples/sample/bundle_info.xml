@@ -41,6 +41,18 @@ Implements command "sample count" to report number of atoms and bonds.
     <Dependency name="ChimeraX-Atomic" version=">=0.1"/>
   </Dependencies>
 
+    <!-- Register XYZ format as one of the supported input file formats -->
+  <Providers manager="data formats">
+    <Provider name="XYZ" suffixes=".xyz" category="Molecular structure"
+		reference_url="https://en.wikipedia.org/wiki/XYZ_file_format"
+		encoding="utf-8" mime_types="chemical/x-xyz" />
+  </Providers>
+
+    <!-- Inform the "open command" manager that we can open XYZ files -->
+  <Providers manager="open command">
+    <Provider name="XYZ" />
+  </Providers>
+
   <!-- Python and ChimeraX-specific classifiers
        From https://pypi.python.org/pypi?%3Aaction=list_classifiers
        Some Python classifiers are always inserted by the build process.
@@ -59,8 +71,6 @@ Implements command "sample count" to report number of atoms and bonds.
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>ChimeraX :: Tool :: Sample Tool :: General :: Log model atom and bond counts</ChimeraXClassifier>
     <ChimeraXClassifier>ChimeraX :: Command :: sample count :: General :: Log model atom and bond counts</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: DataFormat :: XYZ :: :: Molecular structure :: .xyz :: :: :: :: :: XYZ format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>ChimeraX :: Open :: XYZ :: XYZ ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
