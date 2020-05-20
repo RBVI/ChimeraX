@@ -57,7 +57,6 @@ and their code location is described with the function descriptions.
 | `movie`_ * - Record videos
 | `mseries`_ * - Display a series of models
 | `open`_ - Open data files
-| `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
 | `pwd`_ - Print working directory
 | `rainbow`_ - Color residues and chains
@@ -297,10 +296,6 @@ open
 Function defined in *chimerax.open_command.cmd*
 
 .. autofunction:: chimerax.open_command.cmd.provider_open
-
-pdbimages
-=========
-.. autofunction:: chimerax.std_commands.pdbimages.pdbimages
 
 perframe
 ========
