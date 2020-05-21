@@ -56,7 +56,7 @@ endif
 # Platform-dependent settings.  Should not need fixing.
 # For Windows, we assume Cygwin is being used.
 ifeq ($(OS),CYGWIN_NT)
-CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX.exe
+CHIMERAX_EXE = $(CHIMERAX_APP)/bin/ChimeraX-console.exe
 endif
 ifeq ($(OS),Darwin)
 CHIMERAX_EXE = $(CHIMERAX_APP)/Contents/bin/ChimeraX
