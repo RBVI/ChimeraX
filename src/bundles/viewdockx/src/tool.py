@@ -476,11 +476,11 @@ class TableTool(_BaseTool):
             for s in self.structures:
                 with OutputCache() as sf:
                     write_mol2(self.session, sf, models=[s])
-                    for item in s.viewdockx_data.items():
-                        print(prefix, "%s: %s\n" % item, end='', file=outf)
-                    print("\n", end='', file=outf)
-                    print(sf.saved_output, end='', file=outf)
-                    print("\n\n", end='', file=outf)
+                for item in s.viewdockx_data.items():
+                    print(prefix, "%s: %s\n" % item, end='', file=outf)
+                print("\n", end='', file=outf)
+                print(sf.saved_output, end='', file=outf)
+                print("\n\n", end='', file=outf)
 
     def _cb_prune(self, query):
         stars = int(query["stars"][0])

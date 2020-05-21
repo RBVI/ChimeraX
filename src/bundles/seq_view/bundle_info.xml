@@ -23,7 +23,7 @@
   </Dependencies>
 
   <Providers manager="alignments">
-	<!-- subcommand_name also used in tool.py -->
+	<!-- subcommand_name also defined in __init__.py and used in various other .py files -->
     <Provider name="seqview" synonyms="sv,view" subcommand_name="viewer" type="viewer"/>
   </Providers>
 

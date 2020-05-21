@@ -813,9 +813,23 @@ class Toolshed:
         # put the below kludge in to allow sessions saved before some
         # bundles got renamed to restore
         name = {
+            "ChimeraX-Atom-Search": "ChimeraX-AtomSearch",
+            "ChimeraX-Bug-Reporter": "ChimeraX-BugReporter",
+            "ChimeraX-Cage-Builder": "ChimeraX-CageBuilder",
+            "ChimeraX-Connect-Structure": "ChimeraX-ConnectStructure",
+            "ChimeraX-Dist-Monitor": "ChimeraX-DistMonitor",
+            "ChimeraX-Dist-UI": "ChimeraX-DistUI",
+            "ChimeraX-List-Info": "ChimeraX-ListInfo",
+            "ChimeraX-MD-crds": "ChimeraX-MDcrds",
+            "ChimeraX-Preset-Mgr": "ChimeraX-PresetMgr",
+            "ChimeraX-Read-Pbonds": "ChimeraX-ReadPbonds",
+            "ChimeraX-Rotamer-Lib-Mgr": "ChimeraX-RotamerLibMgr",
+            "ChimeraX-Rotamer-Libs-Dunbrack": "ChimeraX-RotamerLibsDunbrack",
+            "ChimeraX-Rotamer-Libs-Dynameomics": "ChimeraX-RotamerLibsDynameomics",
+            "ChimeraX-Rotamer-Libs-Richardson": "ChimeraX-RotamerLibsRichardson",
+            "ChimeraX-Scheme-Mgr": "ChimeraX-SchemeMgr",
             "ChimeraX-SEQ-VIEW": "ChimeraX-SeqView",
             "ChimeraX-Std-Commands": "ChimeraX-StdCommands",
-            "ChimeraX-Atom-Search": "ChimeraX-AtomSearch",
         }.get(name, name)
         lc_name = name.casefold().replace('_', '-')
         lc_names = [lc_name]
@@ -1532,13 +1546,9 @@ class BundleAPI:
 #
 # _CallBundleAPI is used to call a bundle method with the
 # correct arguments depending on the API version used by the
-# bundle.  Note that open_file, save_file, fetch_from_database,
-# and get_class are not called via this mechanism.
-# ../io.py handles the argument passing for open_file and
-# save_file using introspection.
-# ../fetch.py handles the argument passing for fetch_from_database.
+# bundle.  Note that get_class is not called via this mechanism.
 # get_class() is more of a lookup than an invocation and the
-# calling convertion should not change.
+# calling convention should not change.
 #
 class _CallBundleAPIv0:
 

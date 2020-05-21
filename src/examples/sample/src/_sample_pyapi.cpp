@@ -1,6 +1,8 @@
 #include <Python.h>
 #include <atomstruct/AtomicStructure.h>
 
+#include "./_sample.h"
+
 //
 // "repr" returns "repr(o)"
 //
@@ -13,10 +15,6 @@ _sample_repr(PyObject* self, PyObject* args)
 	return PyObject_Repr(value);
 }
 
-static char _sample_repr_doc[] =
-"repr(o)\n"
-"\n"
-"Return string representation of o.";
 
 //
 // "counts" returns number of atoms and bonds in a Structure
@@ -50,15 +48,12 @@ _sample_counts(PyObject* self, PyObject* args)
 	void *p = PyLong_AsVoidPtr(value);
 	Py_DECREF(value);
 
-	// Now we cast void* to our ChimeraX type
-	atomstruct::Structure *s = static_cast<atomstruct::Structure *>(p);
-	return Py_BuildValue("ii", s->num_atoms(), s->num_bonds());
+	// Now get the actual values. The function atom_and_bond_count() is defined
+	// in _sample.h
+	size_t atom_counts, bond_counts;
+	std::tie(atom_counts, bond_counts) = atom_and_bond_count(p);
+	return Py_BuildValue("ii", atom_counts, bond_counts);
 }
-
-static char _sample_counts_doc[] =
-"repr(o)\n"
-"\n"
-"Return 2-tuple of number of atoms and bonds in a structure.";
 
 
 //
@@ -76,8 +71,8 @@ static PyMethodDef _sample_methods[] = {
 //
 static struct PyModuleDef _sample_module = {
 	PyModuleDef_HEAD_INIT,
-	"_sample",				// m_name
-	"Sample support module.",		// m_doc
+	"_sample_pyapi",				// m_name
+	_sample_module_doc,		// m_doc
 	-1,					// m_size
 	_sample_methods,			// m_methods
 	NULL,					// m_reload
@@ -94,7 +89,7 @@ static struct PyModuleDef _sample_module = {
 // name "_sample"
 //
 PyMODINIT_FUNC
-PyInit__sample(void)
+PyInit__sample_pyapi(void)
 {
 	PyObject* m = PyModule_Create(&_sample_module);
 	// Sometimes you want to stick constants into the module
