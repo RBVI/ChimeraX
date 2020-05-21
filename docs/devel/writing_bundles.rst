@@ -132,9 +132,13 @@ All other contents of the bundle should be in ``src``.
     from **__init__.py** for starting the graphical
     interface.
 
-    **_sample.cpp** contains sample C++ code that
-    compiles into a Python module that defines two
-    module functions.
+    **_sample_pyapi.cpp** and **_sample_pybind11.cpp**
+    contain sample C++ code that demonstrate two
+    possible ways of binding C++ to Python.
+    Thye compile into Python modules that each define
+    two module functions. Which binding gets used at
+    runtime is determined by the ``api`` argument of
+    the ``sample`` command.
 
 
 *Building and testing the Sample Bundle using ``ChimeraX``*

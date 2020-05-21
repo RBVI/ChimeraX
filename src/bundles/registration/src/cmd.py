@@ -97,7 +97,7 @@ def _get_registration(name, email, organization, research, research_other,
     from chimerax.core.errors import UserError
     from urllib.parse import urlencode
     from urllib.request import urlopen
-    from urllib.error import HTTPError
+    from urllib.error import URLError
     from xml.dom import minidom
     from xml.parsers.expat import ExpatError
     # Required fields
@@ -122,7 +122,7 @@ def _get_registration(name, email, organization, research, research_other,
     try:
         with urlopen(RegistrationURL, urlencode(params).encode()) as f:
             text = f.read()
-    except HTTPError:
+    except URLError:
         raise UserError("Registration server unavailable.  "
                         "Please try again later.")
     try:

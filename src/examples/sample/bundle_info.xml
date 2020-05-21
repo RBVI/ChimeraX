@@ -30,10 +30,18 @@ Implements command "sample count" to report number of atoms and bonds.
   <!-- Compiled modules in bundle
        CModule gives the name of the module
        Source files are listed in one or more SourceFile elements -->
-  <CModule name="_sample">
-    <SourceFile>src/_sample.cpp</SourceFile>
+
+<!-- Module created using raw Python C API for bindings -->
+  <CModule name="_sample_pyapi">
+    <SourceFile>src/_sample_pyapi.cpp</SourceFile>
     <Library>atomstruct</Library>
   </CModule>
+
+  <!-- Module created using PyBind11 for bindings -->
+    <CModule name="_sample_pybind11">
+      <SourceFile>src/_sample_pybind11.cpp</SourceFile>
+      <Library>atomstruct</Library>
+    </CModule>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
