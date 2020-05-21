@@ -52,21 +52,28 @@ class RESTServer(Task):
             use_ssl = False
         self.httpd = HTTPServer(("localhost", port), RESTHandler)
         self.httpd.chimerax_restserver = self
-        if use_ssl:
+        if not use_ssl:
+            proto = "http"
+        else:
+            proto = "https"
             try:
                 import os.path, ssl
             except ImportError:
                 from chimerax.core.errors import LimitationError
                 raise LimitationError("SSL is not supported")
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
             cert = os.path.join(os.path.dirname(__file__), "server.pem")
-            self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
-                                                certfile=cert)
+            context.load_cert_chain(cert)
+            # self.httpd.socket = ssl.wrap_socket(self.httpd.socket,
+            #                                     certfile=cert)
+            self.httpd.socket = context.wrap_socket(self.httpd.socket,
+                                                    server_side=True)
         self.run_increment()    # To match decrement in terminate()
         host, port = self.httpd.server_address
         msg = ("REST server started on host %s port %d" % (host, port))
         self.session.ui.thread_safe(print, msg, file=sys.__stdout__, flush=True)
-        msg += ('\nVisit http://%s:%d/cmdline.html for CLI interface' %
-               (host, port))
+        msg += ('\nVisit %s://%s:%d/cmdline.html for CLI interface' %
+               (proto, host, port))
         self.session.ui.thread_safe(self.session.logger.info, msg)
         self.httpd.serve_forever()
 

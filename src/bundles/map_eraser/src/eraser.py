@@ -14,14 +14,18 @@
 # -------------------------------------------------------------------------
 #
 def volume_erase(session, volumes, center, radius, coordinate_system = None, outside = False):
+    '''Erase a volume inside or outside a sphere.'''
+    ev = []
     cscene = center.scene_coordinates(coordinate_system)
     for volume in volumes:
         cvol = volume.scene_position.inverse() * cscene
         v = volume.writable_copy()
+        ev.append(v)
         if outside:
             _zero_data_outside_sphere(v.data, cvol, radius)
         else:
             _zero_data_in_sphere(v.data, cvol, radius)
+    return ev[0] if len(ev) == 1 else ev
 
 # -----------------------------------------------------------------------------
 #

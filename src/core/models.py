@@ -83,7 +83,7 @@ class Model(State, Drawing):
         self.delete()
 
     def delete(self):
-        '''Delete this model.'''
+        '''Supported API.  Delete this model.'''
         if self._deleted:
             raise RuntimeError('Model %s was deleted twice' % self._name)
         models = self.session.models
