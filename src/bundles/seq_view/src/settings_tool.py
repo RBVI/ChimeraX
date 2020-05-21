@@ -69,7 +69,8 @@ class SettingsTool:
             if opt.attr_name.startswith('new_region'):
                 return
             if opt.attr_name.startswith('sel'):
-                regions = [self.sv.region_browser.get_region("ChimeraX selection")]
+                sel_region = self.sv.region_browser.get_region("ChimeraX selection")
+                regions = [sel_region] if sel_region else []
             else:
                 name_part = self.sv.ERROR_REGION_STRING \
                     if opt.attr_name.startswith("error_region") else self.sv.GAP_REGION_STRING
