@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-RotamerLibs-Dunbrack" version="1.0"
+<BundleInfo name="ChimeraX-RotamerLibsDunbrack" version="1.0"
             package="chimerax.atomic.rotamers.libs.dunbrack"
             minSessionVersion="1" maxSessionVersion="1">
 
@@ -19,7 +19,7 @@
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Rotamer_Lib_Mgr" version=">=1.0"/>
+    <Dependency name="ChimeraX-RotamerLibMgr" version=">=1.0"/>
   </Dependencies>
 
   <Providers>

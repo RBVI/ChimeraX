@@ -218,11 +218,10 @@ def _debug(*args, file=None, flush=True, **kw):
 # Package constants
 
 
-# Default URL of remote toolshed
-# If testing, use
-# _RemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
-# But BE SURE TO CHANGE IT BACK BEFORE COMMITTING !!!
-_RemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
+# URL of remote toolshed
+_DefaultRemoteURL = "https://cxtoolshed.rbvi.ucsf.edu"
+# URL of experimental remote toolshed
+_PreviewRemoteURL = "https://cxtoolshed-preview.rbvi.ucsf.edu"
 # Default name for toolshed cache and data directories
 _ToolshedFolder = "toolshed"
 # Defaults names for installed ChimeraX bundles
@@ -296,7 +295,7 @@ class Toolshed:
         # Initialize with defaults
         _debug("__init__", rebuild_cache, check_remote, remote_url)
         if remote_url is None:
-            self.remote_url = _RemoteURL
+            self.remote_url = _DefaultRemoteURL
         else:
             self.remote_url = remote_url
         self._safe_mode = None
@@ -536,12 +535,15 @@ class Toolshed:
         _debug("set_install_timestamp")
         self._installed_bundle_info.set_install_timestamp(per_user=per_user)
 
+    def bundle_url(self, bundle_name):
+        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
+        return f"{self.remote_url}/apps/{app_name}"
+
     def bundle_link(self, bundle_name):
         from html import escape
-        app_name = bundle_name.casefold().replace('-', '').replace('_', '')
         if bundle_name.startswith("ChimeraX-"):
             bundle_name = bundle_name[len("ChimeraX-"):]
-        return f'<a href="{self.remote_url}/apps/{app_name}">{escape(bundle_name)}</a>'
+        return f'<a href="{self.bundle_url(bundle_name)}">{escape(bundle_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):
         """Supported API. Return list of bundle info.
@@ -808,6 +810,27 @@ class Toolshed:
         else:
             container = self._get_available_bundles(logger)
         from pkg_resources import parse_version
+        # put the below kludge in to allow sessions saved before some
+        # bundles got renamed to restore
+        name = {
+            "ChimeraX-Atom-Search": "ChimeraX-AtomSearch",
+            "ChimeraX-Bug-Reporter": "ChimeraX-BugReporter",
+            "ChimeraX-Cage-Builder": "ChimeraX-CageBuilder",
+            "ChimeraX-Connect-Structure": "ChimeraX-ConnectStructure",
+            "ChimeraX-Dist-Monitor": "ChimeraX-DistMonitor",
+            "ChimeraX-Dist-UI": "ChimeraX-DistUI",
+            "ChimeraX-List-Info": "ChimeraX-ListInfo",
+            "ChimeraX-MD-crds": "ChimeraX-MDcrds",
+            "ChimeraX-Preset-Mgr": "ChimeraX-PresetMgr",
+            "ChimeraX-Read-Pbonds": "ChimeraX-ReadPbonds",
+            "ChimeraX-Rotamer-Lib-Mgr": "ChimeraX-RotamerLibMgr",
+            "ChimeraX-Rotamer-Libs-Dunbrack": "ChimeraX-RotamerLibsDunbrack",
+            "ChimeraX-Rotamer-Libs-Dynameomics": "ChimeraX-RotamerLibsDynameomics",
+            "ChimeraX-Rotamer-Libs-Richardson": "ChimeraX-RotamerLibsRichardson",
+            "ChimeraX-Scheme-Mgr": "ChimeraX-SchemeMgr",
+            "ChimeraX-SEQ-VIEW": "ChimeraX-SeqView",
+            "ChimeraX-Std-Commands": "ChimeraX-StdCommands",
+        }.get(name, name)
         lc_name = name.casefold().replace('_', '-')
         lc_names = [lc_name]
         if not lc_name.startswith("chimerax-"):
@@ -1357,51 +1380,6 @@ class BundleAPI:
         raise NotImplementedError("BundleAPI.register_selector")
 
     @staticmethod
-    def open_file(session, stream_or_path, optional_format_name, optional_file_name, **kw):
-        """Supported API. Called to open a file.
-
-        Second arg must be 'stream' or 'path'.  Depending on the name, either an open
-        data stream or a filesystem path will be provided.  The third and fourth
-        arguments are optional (remove ``optional_`` from their names if you provide them).
-        'format-name' will be the first nickname of the format if it has any, otherwise
-        the full format name, but all lower case.  'file_name' if the name of input file,
-        with path and compression suffix components stripped.
-
-        You shouldn't actually use 'kw' but instead use the actual keyword args that
-        your format declares that it accepts (in its bundle_info.xml file).
-
-        Returns
-        -------
-        tuple
-            The return value is a 2-tuple whose first element is a list of
-            :py:class:`~chimerax.core.models.Model` instances and second
-            element is a string containing a status message, such as the
-            number of atoms and bonds found in the open models.
-        """
-        raise NotImplementedError("BundleAPI.open_file")
-
-    @staticmethod
-    def save_file(session, stream, name, **kw):
-        """Supported API. Called to save a file.
-
-        Arguments and return values are as described for save functions in
-        :py:mod:`chimerax.core.io`.
-        The format name will be in the **format_name** keyword.
-        """
-        raise NotImplementedError("BundleAPI.save_file")
-
-    @staticmethod
-    def fetch_from_database(session, identifier, **kw):
-        """Supported API. Called to fetch an entry from a network resource.
-
-        Arguments and return values are as described for save functions in
-        :py:mod:`chimerax.core.fetch`.
-        The format name will be in the **format_name** keyword.
-        Whether a cache may be used will be in the **ignore_cache** keyword.
-        """
-        raise NotImplementedError("BundleAPI.fetch_from_database")
-
-    @staticmethod
     def initialize(session, bundle_info):
         """Supported API. Called to initialize a bundle in a session.
 
@@ -1568,13 +1546,9 @@ class BundleAPI:
 #
 # _CallBundleAPI is used to call a bundle method with the
 # correct arguments depending on the API version used by the
-# bundle.  Note that open_file, save_file, fetch_from_database,
-# and get_class are not called via this mechanism.
-# ../io.py handles the argument passing for open_file and
-# save_file using introspection.
-# ../fetch.py handles the argument passing for fetch_from_database.
+# bundle.  Note that get_class is not called via this mechanism.
 # get_class() is more of a lookup than an invocation and the
-# calling convertion should not change.
+# calling convention should not change.
 #
 class _CallBundleAPIv0:
 
@@ -1721,7 +1695,11 @@ def get_help_directories():
 
 
 def default_toolshed_url():
-    return _RemoteURL
+    return _DefaultRemoteURL
+
+
+def preview_toolshed_url():
+    return _PreviewRemoteURL
 
 
 def restart_action_info():

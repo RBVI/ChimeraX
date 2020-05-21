@@ -66,6 +66,7 @@
     <ChimeraXClassifier>Command :: color radial :: Surfaces :: color surface by distance from a point</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: color cylindrical :: Surfaces :: color surface by distance from an axis</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: color height :: Surfaces :: color surface by distance from a plane</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: color image :: Surfaces :: color surface using an image file</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface :: Surfaces :: create/modify surfaces</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~surface :: Surfaces :: delete surface</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: surface showPatches :: Surfaces :: show atom surface patches for existing surfaces</ChimeraXClassifier>

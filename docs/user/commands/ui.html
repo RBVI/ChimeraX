@@ -27,12 +27,25 @@ class="clRight" title="User Guide Index"/></a>
 ui, functionkey, mousemode</h3>
 
 <p>
-The <b>ui</b> command sets generic tool-interface 
-<a href="../preferences.html#other">preferences</a>
-and assigns actions to the <a href="#mousemode">mouse/touchpad</a>
-and <a href="#functionkey">function keys</a>.
+The <b>ui</b> command adjusts the user interface (UI):
 </p>
+<ul>
+<li><a href="#uiprefs">sets tool-interface preferences</a>
+<li><a href="#uishow">shows and hides</a> graphical interfaces
+<li><a href="#uiassign">assigns functions</a>
+to the <a href="#mousemode">mouse/touchpad</a>
+and <a href="#functionkey">function keys</a>
+</ul>
 
+<a name="uiprefs"></a>
+<p class="nav">
+[<a href="#top">back to top: ui</a>]
+</p>
+<h3>Tool-Interface Preferences</h3>
+<p>
+Several <b>ui</b> subcommands set generic tool-interface
+<a href="../preferences.html#other">preferences</a>.
+</p>
 <a name="autostart"></a>
 <a href="#top" class="nounder">&bull;</a>
 <b>ui autostart</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
@@ -85,6 +98,12 @@ See also:
 </p>
 </blockquote>
 
+<a name="uishow"></a>
+<p class="nav">
+[<a href="#top">back to top: ui</a>]
+</p>
+<h3>Graphical Interface Show and Hide</h3>
+
 <a name="menubar"></a>
 <a href="#top" class="nounder">&bull;</a>
 <b>ui menubar</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
@@ -101,6 +120,25 @@ Show/hide the <a href="../menu.html">ChimeraX menu</a> on Windows.
 Show/hide the <a href="../window.html">status line</a>.
 </p>
 </blockquote>
+<a name="tool"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>tool</b>&nbsp;&nbsp;show&nbsp;|&nbsp;hide&nbsp;&nbsp;<i>toolname</i>
+<blockquote>
+<p>
+The <b>tool</b> command (same as <b>ui tool</b>)
+shows or hides the user interface of the specified tool.  Example:
+</p>
+<blockquote>
+<b>tool show "Side View"</b>
+</blockquote>
+See also: <a href="../menu.html#tools"><b>Tools</b> menu</a>
+</blockquote>
+
+<a name="uiassign"></a>
+<p class="nav">
+[<a href="#top">back to top: ui</a>]
+</p>
+<h3>Function Key and Mouse Assignments</h3>
 
 <a name="functionkey"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -195,6 +233,7 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 Sensitivity changes do not apply to 
 <a href="../preferences.html#trackpad">multitouch gestures</a>, however.
 </p><p>
+<a name="mousedefaults"></a>
 Summary of mouse and trackpad default assignments:
 </p>
 <table border cellpadding="4" cellspacing="0"><tr>

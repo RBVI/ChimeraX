@@ -299,7 +299,8 @@ def volume_zone_color(volume):
 # ---------------------------------------------------------------------------
 #
 def split_volume_by_color_zone(volume):
-
+    '''Create new volumes for each color zoned region of a specified volume.'''
+    
     zc = volume_zone_color(volume)
     if zc is None:
         from chimerax.core.errors import UserError
@@ -359,9 +360,11 @@ def split_zones_by_color(volume, points, point_colors, radius):
 
 # ---------------------------------------------------------------------------
 #
-def split_volumes_by_color_zone(session, volume):
-    for v in volume:
-        split_volume_by_color_zone(v)
+def split_volumes_by_color_zone(session, volumes):
+    vlist = []
+    for v in volumes:
+        vlist.extend(split_volume_by_color_zone(v))
+    return vlist
 
 # ---------------------------------------------------------------------------
 #
@@ -369,6 +372,6 @@ def register_volume_split_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.map import MapsArg
     desc = CmdDesc(
-        required = [('volume', MapsArg)],
+        required = [('volumes', MapsArg)],
         synopsis = 'split volume by color zone')
     register('volume splitbyzone', desc, split_volumes_by_color_zone, logger=logger)

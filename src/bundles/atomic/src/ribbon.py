@@ -669,7 +669,7 @@ class RibbonsDrawing(Drawing):
         if not self.display or (exclude and exclude(self)) or self._residues is None:
             return None
         p = super().first_intercept(mxyz1, mxyz2)
-        if p is None or p.drawing is not self:
+        if p is None or (hasattr(p, 'drawing') and p.drawing() is not self):
             return None
         tranges = self._triangle_ranges
         if self._triangle_ranges_sorted is None:

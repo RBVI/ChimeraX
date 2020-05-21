@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -13,12 +13,11 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _TextureBundle(BundleAPI):
+class PDBImagesBundleAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        # 'register_command' is lazily called when the command is referenced
-        from . import texture
-        texture.register_texture_command(logger)
+        from .pdbimages import register_command
+        register_command(logger)
 
-bundle_api = _TextureBundle()
+bundle_api = PDBImagesBundleAPI()

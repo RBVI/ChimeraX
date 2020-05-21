@@ -13,7 +13,7 @@
 
 def pdbimages(session, directory = '.', subdirectories = True,
               width = 400, height = 400, supersample = 2,
-              image_suffix = '.png', exclude = ['1m4x.cif'],
+              image_suffix = '.png', exclude = [],
               log_file = None):
     '''
     Assembly images command for batch rendering mmCIF assembly images.
@@ -42,7 +42,7 @@ def pdbimages(session, directory = '.', subdirectories = True,
     run(s, 'set bg white')
     run(s, 'set silhouette false')
     run(s, 'light soft')
-    run(s, 'log warningDialog false errorDialog false')    # Avoid dialogs stopping batch rendering.
+    run(s, 'log settings warningDialog false errorDialog false')    # Avoid dialogs stopping batch rendering.
 
     mmcifs = cif_files(directory, subdirectories, exclude, image_suffix)
 
@@ -100,7 +100,7 @@ def save_images(path, width, height, supersample, image_suffix, session):
 
 def save_assembly_images(mol, width, height, supersample, image_prefix, image_suffix, session):
     s = session
-    from . import sym
+    from chimerax.std_commands import sym
     for assembly in sym.pdb_assemblies(mol):
         run(s, 'sym #%s assembly %s' % (mol.id_string, assembly.id))
         run(s, 'view')          # Zoom to fit molecules
@@ -115,7 +115,7 @@ def run(session, cmd_text):
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, StringArg, SaveFolderNameArg, IntArg, \
-        ListOf, register
+        SaveFileNameArg, ListOf, register
     desc = CmdDesc(
         optional = [('directory', SaveFolderNameArg)],
         keyword = [('width', IntArg),
@@ -123,7 +123,7 @@ def register_command(logger):
                    ('supersample', IntArg),
                    ('image_suffix', StringArg),
                    ('exclude', ListOf(StringArg)),
-                   ('log_file', StringArg)],
+                   ('log_file', SaveFileNameArg)],
         synopsis = 'Render mmCIF assembly images')
     register('pdbimages', desc, pdbimages, logger=logger)
 
