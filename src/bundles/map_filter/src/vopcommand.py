@@ -680,7 +680,8 @@ def volume_morph(session, volumes, frames = 25, start = 0, play_step = 0.04,
 def volume_new(session, name = 'new', size = (100,100,100), grid_spacing = (1.0,1.0,1.0),
             origin = (0.0,0.0,0.0), cell_angles = (90,90,90),
             value_type = None, model_id = None):
-
+    '''Create a new volume with specified bounds filled with zeros.'''
+    
     from numpy import zeros
     shape = list(size)
     shape.reverse()
@@ -1019,7 +1020,8 @@ def volume_zone(session, volumes, near_atoms, range = 3, bond_point_spacing = No
 # -----------------------------------------------------------------------------
 #
 def volume_unzone(session, volumes):
-
+    '''Stop restricting volume surface display to a zone.'''
+    
     from chimerax.surface.zone import surface_unzone
     for v in volumes:
         r = v.full_region()

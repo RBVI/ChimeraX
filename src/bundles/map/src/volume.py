@@ -25,7 +25,7 @@ class Volume(Model):
   a subregion including single plane display, subsampled display of every Nth data
   value along each axis, outline box display.
 
-  Parameters
+  Attributes
   ----------
   session : :class:`~chimerax.core.session.Session`
       The session that the Volume will belong to.
@@ -220,22 +220,54 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def set_parameters(self, **kw):
+  def set_parameters(self,
+                     surface_levels = None,
+                     surface_colors = None,
+                     transparency = None,
+                     brightness = None,
+                     image_levels = None,
+                     image_colors = None,
+                     transparency_depth = None,
+                     image_brightness_factor = None,
+                     default_rgba = None,
+                     **rendering_options):
     '''
-    Set volume display parameters.  The following keyword parameters are valid.
+    Set volume display parameters.
   
-      surface_levels
-      surface_colors              (rgb or rgba values)
-      transparency                (for surfaces)
-      brightness		  (scales surface brightness)
-      image_levels
-      image_colors                (rgb or rgba values)
-      transparency_depth
-      image_brightness_factor
-  
-      Any rendering option attribute names can also be used.
+    Parameters
+    ----------
+    surface_levels : list of float
+      Threshold levels for contour surfaces.
+    surface_colors : list of (r,g,b) or (r,g,b,a)
+      Color for each surface level, color components have 0-1 range.
+    transparency : float
+      Surface transparency, 0 = fully opaque, 1 = fully transparent.
+    brightness : float
+      Scale surface brightness by this factor.
+    image_levels : list of (float, float)
+      Pairs of (threshold, brightness) where threshold is a map value
+      and brighness ranges from 0-1.  This defines a piecewise linear
+      brightness curve for image style rendering.
+    image_colors : list of (r,g,b) or (r,g,b,a)
+      Color associated with each image level, color components have 0-1 range.
+    transparency_depth : float
+      Controls how transparent image style renderings are, range 0-1.
+      Image rendering makes opacity equal to brightness, ie. full brightness (= 1)
+      image levels are fully opaque, and 0 brightness levels are fully transparent.
+      The thickness that produces this transparency is the displayed region size
+      multiplied by the transparency depth, where the region size is the size along
+      the axis (x, y, or z) having fewest grid points.
+    image_brightness_factor : float
+      Scale image style rendering by this factor.
+    default_rgba : 4 floats
+      Initial color (red, green, blue, alpha) to use for surface and
+      image style renderings.  Color components in range 0-1.
+    rendering_options : all additional settings
+      Any RenderingOption attribute name and value can be specified
+      as a keyword option.
     '''
 
+    kw = rendering_options.copy()
     parameters = ('surface_levels',
                   'surface_colors',
                   'transparency',
@@ -246,6 +278,8 @@ class Volume(Model):
                   'transparency_depth',
                   'default_rgba',
                   )
+    loc = locals()
+    kw.update({attr:loc[attr] for attr in parameters if loc[attr] is not None})
 
     def rgb_to_rgba(color):
       if len(color) == 3:
@@ -3274,8 +3308,28 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
                           open_model = True, model_id = None, show_dialog = True):
   '''
   Supported API.
-  Create a new Volume model from a :class:`~.data.GridData` instance and set its initial 
+  Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial 
   display style and color and add it to the session open models.
+
+  Parameters
+  ----------
+  grid_data : :class:`~.data.GridData`
+    Use this GridData to create the Volume.
+  session : :class:`~chimerax.core.session.Session`
+    The session that the Volume will belong to.
+  style : 'auto', 'surface', 'mesh' or 'image'
+    The initial display style.
+  open_model : bool
+    Whether to add the Volume to the session open models.
+  model_id : tuple of integers
+    Model id for the newly created Volume.
+    It is an error if the specifid id equals the id of an existing model.
+  show_dialog : bool
+    Whether to show the Volume Viewer user interface panel.
+
+  Returns
+  -------
+  volume : the created :class:`.Volume`
   '''
   
   set_data_cache(grid_data, session)
@@ -3417,6 +3471,31 @@ def open_map(session, path, name = None, format = None, **kw):
     '''
     Supported API. Open a density map file having any of the known density map formats.
     File path can be a string or list of paths.
+
+    Parameters
+    ----------
+    session : :class:`~chimerax.core.session.Session`
+       The session that the created Volume will belong to.
+    path : string
+       File path on disk.
+    name : string or None
+       Name used when creating the Volume model.  If None,
+       then the name will be the file name.
+    format : string or None
+       Name of the file format.  The available formats can be listed
+       with ChimeraX command "open formats".  If None, then the format
+       is derived from the file suffix.
+    channel : int
+       The channel number to assign for multi-channel data.
+    vseries : bool
+       Whether to treat the open data as a time series.
+    show : bool
+       Whether the Volume should be shown or hidden initially.
+
+    Returns
+    -------
+    models : list of :class:`.Volume`
+    message : description of the opened data
     '''
     if name is None:
       from os.path import basename
@@ -3704,7 +3783,66 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
              compress = None, compress_method = None, compress_level = None, compress_shuffle = None,
              base_index = 1, **kw):
     '''
+    Supported API.
     Save a density map file having any of the known density map formats.
+
+    Parameters
+    ----------
+    session : :class:`~chimerax.core.session.Session`
+       The session containing the Volume models.
+    path : string
+       File path on disk.  For saving multiple volumes to multiple files
+       the path can contain a C-style integer format specifier like "%d" or "%03d"
+       which will have be replaced by integer values starting at parameter base_index
+       for each of the volumes specified in parameter models.
+    format_name : string or None
+       Name of the file format.  The available formats can be listed
+       with ChimeraX command "save formats".  If None, then the format
+       is derived from the file suffix.
+    models : list of :class:`.Volume`
+       Volume models to save.  Some formats allow saving multiple volumes
+       in one file and some do not.  It is an error to specify multiple
+       models if the format only supports saving one volume and the path
+       does not contain a "%d" style integer substitution.
+    region : 6 integers or None
+       Save only the subregion imin,jmin,kmin,imax,jmax,kmax.  If None
+       the current volume region is saved.
+    step : 3 integers
+       Save only subsampled data using this step.
+    mask_zone : bool
+       If only a zone is shown near atoms or markers write zeros outside
+       that zone in the saved file if this option is True, otherwise save
+       original data values outside zone.  Default True
+    base_index : int
+       When saving multiple files with a C-style integer substitution like "%d"
+       in the path this will be the first integer used.  Default 1.
+
+    ------------------------------------------------------------------------------------------------
+    Parameters below only supported by Chimera Map format (*.cmap)
+    ------------------------------------------------------------------------------------------------
+
+    subsamples : list of tuples of 3 integers or None
+       For file formats that support saving multiple subsampled copies of
+       the data , this lists the specific subsamples to save.
+       Chimera map format will automatically determine subsamples to
+       save if this is not specified.
+    chunk_shapes : list of 'xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx'
+       Axis order for laying out the data in the file.
+       Can save multiple axis orders for faster performance access
+       of data slices from disk.
+    append : bool
+       Whether to append this volume to an existing file.  Default False.
+    compress : bool
+       Whether to compress the data in the file.  Default False.
+    compress_method : string
+       Compression method to use.  Default zlib.
+       Some HDF5 compression methods are 'zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz',
+       'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'.
+    compress_level : integer 1 to 9
+       Level of compression.  Default 5.
+       Higher compression levels take longer.  Not all compression methods use level.
+    compress_shuffle : bool
+       Option to blosc compression.  Default False.
     '''
     if models is None:
         vlist = session.models.list(type = Volume)

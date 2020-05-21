@@ -44,7 +44,7 @@ class GridData:
   of the data and cached in memory.  The numeric values can be signed or unsigned
   integer of 8, 16, or 32 bits or real 32-bit or 64-bit values.
 
-  Parameters
+  Attributes
   ----------
   size : 3 integers
     The number of grid points along x,y,z axes.
@@ -233,6 +233,7 @@ class GridData:
   #
   def xyz_to_ijk(self, xyz):
     '''
+    Supported API.
     A matrix i,j,k index corresponds to a point in x,y,z space.
     This function maps the xyz point to the matrix index.
     The returned matrix index is floating point and need not be integers.
@@ -243,6 +244,7 @@ class GridData:
   #
   def ijk_to_xyz(self, ijk):
     '''
+    Supported API.
     A matrix i,j,k index corresponds to a point in x,y,z space.
     This function maps the matrix index to the xyz point.
     The index can be floating point, non-integral values.
@@ -254,6 +256,7 @@ class GridData:
   #
   def voxel_volume(self):
     '''
+    Supported API.
     Volume of one voxel including skewing.
     '''
     return self.ijk_to_xyz_transform.determinant()
@@ -262,6 +265,7 @@ class GridData:
   #
   def voxel_count(self):
     '''
+    Supported API.
     Return the total number of voxels.
     '''
     s = self.size
@@ -280,6 +284,7 @@ class GridData:
   def matrix(self, ijk_origin = (0,0,0), ijk_size = None,
              ijk_step = (1,1,1), progress = None, from_cache_only = False):
     '''
+    Supported API.
     Return a numpy array for a box shaped subregion of the data with specified
     index origin and size.  Every Nth point can be take along an axis by
     specifying ijk_step.  If step size is greater than 1 then the returned
@@ -317,6 +322,7 @@ class GridData:
   def read_matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                   ijk_step = (1,1,1), progress = None):
     '''
+    Supported API.
     Must overide this function in derived class to return a 3 dimensional
     NumPy matrix.  The returned matrix has size ijk_size and
     element ijk is accessed as m[k,j,i].  It is an error if the requested

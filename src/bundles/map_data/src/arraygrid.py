@@ -24,7 +24,7 @@ class ArrayGridData(GridData):
   '''
   Supported API.  Create a GridData from a 3-dimensional numpy array.
 
-  Parameters
+  Attributes
   ----------
   array : 3D numpy array
       Data array can be any scalar numpy type.
