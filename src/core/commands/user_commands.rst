@@ -434,6 +434,7 @@ volume
 .. autofunction:: chimerax.map.filter.vopcommand.volume_boxes
 .. autofunction:: chimerax.map.filter.vopcommand.volume_copy
 .. autofunction:: chimerax.map.filter.vopcommand.volume_cover
+.. autofunction:: chimerax.map_eraser.eraser.volume_erase
 .. autofunction:: chimerax.map.filter.vopcommand.volume_falloff
 .. autofunction:: chimerax.map.filter.vopcommand.volume_flatten
 .. autofunction:: chimerax.map.filter.vopcommand.volume_flip

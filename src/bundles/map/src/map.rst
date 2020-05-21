@@ -49,6 +49,7 @@ implement the Chimera volume subcommands (e.g. "volume resample").
  * :func:`~.volume_boxes` - extract subvolumes centered on markers
  * :func:`~.volume_copy` - copy a volume
  * :func:`~.volume_cover` - use symmetry to extend a volume
+ * :func:`~.volume_erase` - erase volume inside or outside a sphere
  * :func:`~.volume_falloff` - smooth the falloff of a masked map at its boundary
  * :func:`~.volume_flatten` - scale values to flatten map baseline
  * :func:`~.volume_flip` - reverse data planes along a specified axis
@@ -75,7 +76,7 @@ implement the Chimera volume subcommands (e.g. "volume resample").
  * :func:`~.volume_tile` - make a single-plane volume from tiled slices of another volume
  * :func:`~.volume_unbend` - unbend a map near a path formed by markers/links or atoms/bonds
  * :func:`~.volume_unroll` - unroll a cylindrical slab into a flat slab
- * :func:`~.volume_zone` - show the full extent of a map previously limited to a zone with volume zone
+ * :func:`~.volume_unzone` - show the full extent of a map previously limited to a zone with volume zone
  * :func:`~.volume_zone` - limit the display to a zone around specified atoms, or make a new map with values of zero at grid points within or beyond the zone
    
 Volume
