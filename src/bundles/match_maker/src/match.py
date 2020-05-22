@@ -263,11 +263,11 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             if not matrix_compatible(session, ref, matrix):
                 raise UserError("Reference chain (%s) not"
                     " compatible with %s similarity"
-                    " matrix" % (ref.fullName(), matrix))
+                    " matrix" % (ref.full_name, matrix))
             if not matrix_compatible(session, match, matrix):
                 raise UserError("Match chain (%s) not"
                     " compatible with %s similarity"
-                    " matrix" % (match.fullName(), matrix))
+                    " matrix" % (match.full_name, matrix))
             if match in match_chains:
                 raise UserError("Cannot match the same chain"
                     " to multiple reference chains")
