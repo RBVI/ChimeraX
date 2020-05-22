@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Registration" version="0.1" customInit="true"
+<BundleInfo name="ChimeraX-Registration" version="1.0" customInit="true"
 	    package="chimerax.registration"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -39,6 +39,7 @@ summary statistics to NIH.</Description>
     <ChimeraXClassifier>Command :: register :: Utilities :: Register ChimeraX with RBVI</ChimeraXClassifier>
     -->
     <ChimeraXClassifier>Command :: registration status :: Utilities :: Report registration status</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: registration file :: Utilities :: Report registration file location or apply registration file</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
