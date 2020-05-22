@@ -1,0 +1,144 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2020 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: remotecontrol</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: remotecontrol</h3>
+<p>
+The <b>remotecontrol</b> command allows other applications
+to send commands to an already running instance of ChimeraX.
+Either of the following methods of communication can be used:
+</p>
+<ul>
+<li><a href="#rest">REST</a> 
+<li><a href="#xmlrpc">XML-RPC</a> 
+</ul>
+
+<a name="rest"></a>
+<p class="nav">
+[<a href="#top">back to top: remotecontrol</a>]
+</p>
+<h3>REST</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>remotecontrol rest start</b>
+[&nbsp;<b>port</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>ssl</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>remotecontrol rest stop</b>
+[&nbsp;<b>quiet</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>remotecontrol rest port</b>
+</blockquote>
+<p>
+The REST method 
+(<a href="https://en.wikipedia.org/wiki/Representational_state_transfer"
+target="_blank">representational state transfer</a>)
+is used by web browsers and shell commands such as curl and wget.
+The commands are sent by http (<b>ssl false</b>, default)
+or https (<b>ssl true</b>) requests.
+The command <b>remotecontrol rest start</b>
+option allows ChimeraX to accept commands by this method. 
+The <b>port</b> number can be specified or chosen randomly; 
+integers in the range 1024-65535 are allowed, but values 49152-65535 
+are preferable because the lower numbers 
+are registered for various services and could be unavailable.
+The localhost address (IP 127.0.0.1) is reported automatically along with the
+port number in the <a href="../tools/log.html"><b>Log</b></a>
+when REST communication is started, and can be reported later
+with the command <b>remotecontrol rest port</b>. If the port
+number is 60958 (for example), a web browser can send a ChimeraX command 
+with an URL something like:
+</p>
+<blockquote>
+http://127.0.0.1:60958/run?command=open+1a0m
+</blockquote>
+<p>
+Similarly, a system shell command can be used:
+</p>
+<blockquote>
+curl http://127.0.0.1:60958/run?command=open+1a0s
+<br>
+wget http://127.0.0.1:60958/run?command=open+1grl
+</blockquote>
+<p>
+Any logging that would normally result from command execution will still occur,
+except that in the case of a web browser, the log messages
+will be shown in the browser instead of in
+the ChimeraX <a href="../tools/log.html"><b>Log</b></a>.
+The command <b>remotecontrol rest stop</b> 
+discontinues accepting commands by REST, optionally sending a notification
+to the <a href="../tools/log.html"><b>Log</b></a> (<b>quiet false</b>, default).
+</p>
+
+<a name="xmlrpc"></a>
+<p class="nav">
+[<a href="#top">back to top: remotecontrol</a>]
+</p>
+<h3>XML-RPC</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>remotecontrol xmlrpc on</b>
+[&nbsp;<b>address</b>&nbsp;&nbsp;<i>IP-address</i>&nbsp;]
+[&nbsp;<b>port</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>timeout</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>remotecontrol xmlrpc off</b>
+</blockquote>
+<p>
+The XML-RPC method (<a href="https://en.wikipedia.org/wiki/XML-RPC"
+target="_blank">extensible markup language remote procedure call</a>)
+is used by Python scripts or applications.
+The ChimeraX remote_control bundle includes a python2 script to send
+ChimeraX commands in this way:
+</p>
+<blockquote>
+<span class="nowrap">
+python2 /Applications/ChimeraX.app/Contents/lib/python3.7/site-packages/chimerax/remote_control/run.py "open 1a0m"
+</span>
+</blockquote>
+<p>
+The command <b>remotecontrol xmlrpc on</b> or
+<b>remotecontrol xmlrpc true</b> allows ChimeraX to
+receive instructions by XML-RPC, with optional specification of the
+<b>port</b> number (default <b>42184</b>). The <i>IP-address</i> should be
+that of the computer running ChimeraX (default <b>127.0.0.1</b>, localhost,
+recommended to prevent other computers from sending commands).
+This method of communication does not return log output, 
+just a true/false status of whether the command succeeded.
+The <b>timeout</b> period <i>s</i> (default <b>10.0</b> seconds)
+is how long ChimeraX should wait after trying to report that status
+to the other application.
+</p><p>
+The command <b>remotecontrol xmlrpc off</b> 
+or <b>remotecontrol xmlrpc false</b> 
+discontinues accepting commands by XML-RPC.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2020</address>
+</body></html>

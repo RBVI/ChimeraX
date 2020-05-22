@@ -499,7 +499,6 @@ class SequenceViewer(ToolInstance):
         from PyQt5.QtWidgets import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
-        from chimerax.core import io
         from chimerax.core.commands import run, quote_path_if_necessary
         fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
         fmts.sort(key=lambda fmt: fmt.name.casefold())

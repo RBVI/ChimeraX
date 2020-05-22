@@ -120,7 +120,7 @@ class FileHistory:
         fmap = {}
         if fc is not None:
             for f in fc['files']:
-                fs = FileSpec.from_state(f)
+                fs = FileSpec.from_state(self.session, f)
                 fmap[(fs.path,fs.database)] = fs
         return fmap
 
@@ -191,8 +191,15 @@ class FileSpec:
         return {k:getattr(self,k) for k in ('path', 'format', 'database', 'access_time', 'image', 'open_options')}
 
     @classmethod
-    def from_state(self, state):
-        f = FileSpec(state['path'], state['format'], database = state['database'],
+    def from_state(self, session, state):
+        format = state['format']
+        if format is not None:
+            # map old format names to those used in new open command
+            try:
+                format = session.data_formats[format].nicknames[0]
+            except KeyError:
+                pass
+        f = FileSpec(state['path'], format, database = state['database'],
                      open_options = state.get('open_options', {}))
         for k in ('access_time', 'image'):
             setattr(f, k, state[k])

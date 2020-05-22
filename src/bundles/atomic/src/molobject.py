@@ -1043,7 +1043,6 @@ class StructureSeq(Sequence):
         for part in (self.structure.name, "(%s)" % self.structure):
             rem = rem.strip()
             if rem:
-                rem = rem.strip()
                 if rem.startswith(part):
                     rem = rem[len(part):]
                     continue

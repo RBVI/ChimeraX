@@ -195,6 +195,13 @@ To build and test your bundle, execute the following command
     in the *dist* directory.  The assembled wheel is installed
     as a user bundle.
 
+Note that on Windows ``$(CHIMERAX_EXE)`` uses the
+``ChimeraX-console.exe`` executable rather than the normal
+``ChimeraX.exe``.  This is because on Windows an executable
+cannot be both a GUI and a console app.  So for running
+ChimeraX with the ``--nogui`` flag, you need to use the
+console executable.
+
 If the command completes successfully, fire up ChimeraX
 (``make test`` is a shortcut if ``make`` is available)
 and try out your command.  Warning and error messages

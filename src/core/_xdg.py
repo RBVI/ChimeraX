@@ -233,7 +233,6 @@ def make_desktop(session, info, localized_app_name={}):
 def make_mime_file(session, name):
     if verbose:
         print("generating", name)
-    from . import io
     mi = MimeInfo(open(name, mode='wt', encoding='utf-8'))
     with mi:
         fmts = session.data_formats.formats
@@ -448,7 +447,6 @@ def uninstall(session, system=False, verbose=False):
 
 
 def get_mime_types(session):
-    from . import io
     mime_types = []
     for f in session.data_formats.formats:
         mt = f.mime_types
