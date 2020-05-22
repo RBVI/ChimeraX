@@ -1013,11 +1013,6 @@ def register_misc_commands(session):
     from .commands import devel as devel_cmd
     devel_cmd.register_command(session.logger)
 
-    import sys
-    if sys.platform.startswith('linux'):
-        from .commands.linux import register_command
-        register_command(session.logger)
-
 
 def common_startup(sess):
     """Initialize session with common data containers"""

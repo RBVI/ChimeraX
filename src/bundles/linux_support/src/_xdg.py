@@ -27,7 +27,7 @@
 #   A .desktop file for the desktop icon and a .mime.types file for the
 #   MIME types are needed.  The .mime.types file can be distributed with
 #   ChimeraX, but the .desktop has to be generated during/after
-#   installation because it refers to acutal location ChimeraX is
+#   installation because it refers to actual location ChimeraX is
 #   installed.
 #
 # Protocol:
@@ -298,7 +298,6 @@ def install_icons(session, info):
     # situation changes
     """
     # install icons for file formats
-    from . import io
     from PIL import Image
     for f in session.data_formats.formats:
         icon = f.icon
@@ -473,7 +472,7 @@ def get_info(session, system, create=False):
     info.app_author = app_dirs.appauthor
     info.name = '%s-%s' % (info.app_author, info.app_name)
     version = None
-    from . import BUNDLE_NAME as CORE_BUNDLE_NAME
+    from chimerax.core import BUNDLE_NAME as CORE_BUNDLE_NAME
     import pkg_resources
     for d in pkg_resources.working_set:
         if d.project_name == CORE_BUNDLE_NAME:
