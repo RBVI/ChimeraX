@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.commands import CmdDesc
-from chimerax.core.commands import StringArg, BoolArg, EnumOf, ListOf, NoArg
+from chimerax.core.commands import StringArg, BoolArg, EnumOf, ListOf, NoArg, OpenFileNameArg
 
 ResearchAreas = ["atomic structure analysis",
                  "cryoEM",
@@ -85,11 +85,6 @@ def register(session, name, email, organization=None,
         _subscribe(session, "discussion", DiscussionURL, name, email)
     if join_announcements:
         _subscribe(session, "announcements", AnnouncementsURL, name, email)
-
-
-def registration_status(session, verbose=False):
-    from .nag import report_status
-    report_status(session.logger, verbose)
 
 
 def _get_registration(name, email, organization, research, research_other,
@@ -184,4 +179,31 @@ register_desc = CmdDesc(keyword=[("name", StringArg),
                                  ("join_announcements", BoolArg)],
                         required_arguments=["name", "email"])
 
+
+def registration_status(session, verbose=False):
+    from .nag import report_status
+    report_status(session.logger, verbose)
 registration_status_desc = CmdDesc(keyword=[("verbose", NoArg)])
+
+
+def registration_file(session, filename=None):
+    if filename is None:
+        from .nag import _registration_file
+        session.logger.info("Registration file is %s" % _registration_file())
+    else:
+        try:
+            with open(filename) as f:
+                data = f.read()
+            try:
+                start_index = data.index("<pre>\n") + 6
+                end_index = data.index("</pre>\n", start_index)
+                reg_data = data[start_index:end_index]
+            except ValueError:
+                raise IOError("no registration data found")
+        except IOError as e:
+            session.logger.error("%s: %s" % (filename, str(e)))
+        else:
+            from .nag import install
+            if install(session, reg_data):
+                session.logger.info(ThankYou, is_html=True)
+registration_file_desc = CmdDesc(optional=[("filename", OpenFileNameArg)])

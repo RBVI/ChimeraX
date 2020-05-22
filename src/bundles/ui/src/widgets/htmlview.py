@@ -172,6 +172,17 @@ class HtmlView(QWebEngineView):
         s = page.settings()
         s.setAttribute(s.LocalStorageEnabled, True)
         self.setAcceptDrops(False)
+        # as of Qt 5.6.0, the keyboard shortcut for copying text
+        # from the QWebEngineView did nothing on Mac, the below
+        # gets it to work
+        import sys
+        if sys.platform == "darwin":
+            from PyQt5.QtGui import QKeySequence
+            from PyQt5.QtWidgets import QShortcut
+            from PyQt5.QtCore import Qt
+            self.copy_sc = QShortcut(QKeySequence.Copy, self)
+            self.copy_sc.setContext(Qt.WidgetWithChildrenShortcut)
+            self.copy_sc.activated.connect( lambda: self.page().triggerAction(self.page().Copy))
 
         if self.require_native_window:
             # This is to work around ChimeraX bug #2537 where the entire
