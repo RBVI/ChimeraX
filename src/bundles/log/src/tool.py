@@ -183,16 +183,6 @@ class Log(ToolInstance, HtmlLog):
                 s = page.settings()
                 s.setAttribute(s.LocalStorageEnabled, True)
                 self.log = log
-                # as of Qt 5.6.0, the keyboard shortcut for copying text
-                # from the QWebEngineView did nothing on Mac, the below
-                # gets it to work
-                import sys
-                if sys.platform == "darwin":
-                    from PyQt5.QtGui import QKeySequence
-                    from PyQt5.QtWidgets import QShortcut
-                    self.copy_sc = QShortcut(QKeySequence.Copy, self)
-                    self.copy_sc.activated.connect(
-                        lambda: self.page().triggerAction(self.page().Copy))
                 ## The below three lines shoule be sufficent to allow the ui_area
                 ## to Handle the context menu, but apparently not for QWebView widgets,
                 ## so we define contextMenuEvent as a workaround.
