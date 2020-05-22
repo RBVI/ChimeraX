@@ -26,8 +26,25 @@ class="clRight" title="User Guide Index"/></a>
 <h3><a href="../index.html#commands">Command</a>: toolshed</h3>
 </h3>
 <p>
-Subcommands of <b>toolshed</b> can be used to
-list, install or remove bundles, and to control how the toolshed
+The <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">UCSF ChimeraX
+Toolshed</a> is a web repository of ChimeraX bundles hosted by the 
+<a href="http://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a>.
+A <b><i>bundle</i></b> is a separately installable and updatable module
+that may include tools, commands, command-line specifiers, and/or file format 
+support. Developers can sign up to add bundles, and the shared repository 
+makes it easy for users to discover and install the bundles.
+The ChimeraX Toolshed is based on the <a href="https://apps.cytoscape.org"
+target="_blank">Cytoscape App Store</a>:
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3654709/" target="_blank">
+Cytoscape app store.</a>
+Lotia S, Montojo J, Dong Y, Bader GD, Pico AR. 
+<i>Bioinformatics.</i> 2013 May 15;29(10):1350-1.
+</blockquote>
+</p><p>
+Subcommands of <b>toolshed</b> can show the toolshed website;
+list, install, or remove bundles; and control how the toolshed
 manages bundle information. 
 Typically &ldquo;the toolshed&rdquo; will be the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX
@@ -35,9 +52,6 @@ Toolshed</a> hosted by the
 <a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
 RBVI</a>, but <a href="#url"><b>toolshed url</b></a>
 allows specifying a different instance instead.
-A <b><i>bundle</i></b> is a separately installable and updatable module
-that may include tools, commands, command-line specifiers,
-and/or file format support. 
 See also: <a href="../preferences.html#toolshed"><b>Toolshed</b> preferences</a>
 </p>
 <ul>
@@ -45,6 +59,7 @@ See also: <a href="../preferences.html#toolshed"><b>Toolshed</b> preferences</a>
 <li><a href="#install"><b>toolshed install</b></a>
 <li><a href="#list"><b>toolshed list</b></a>
 <li><a href="#reload"><b>toolshed reload</b></a>
+<li><a href="#show"><b>toolshed show</b></a>
 <li><a href="#uninstall"><b>toolshed uninstall</b></a>
 <li><a href="#url"><b>toolshed url</b></a>
 </ul>
@@ -102,6 +117,13 @@ also done automatically when ChimeraX starts.
 Reloading <b>cache</b> will rebuild the remote cache and reread
 the local cache; this command is rarely used.
 Reloading <b>all</b> will rebuild and reread both caches.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="show"><b>toolshed show</b></a>
+<blockquote>
+Show the toolshed in the <a href="../tools/helpviewer.html"><b>ChimeraX
+Browser</b></a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
