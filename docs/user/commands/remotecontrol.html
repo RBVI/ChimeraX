@@ -85,9 +85,8 @@ wget http://127.0.0.1:60958/run?command=open+1grl
 </blockquote>
 <p>
 Any logging that would normally result from command execution will still occur,
-except that in the case of a web browser, the log messages
-will be shown in the browser instead of in
-the ChimeraX <a href="../tools/log.html"><b>Log</b></a>.
+but will be shown in the web browser or (for curl or wget) in the shell
+instead of in the ChimeraX <a href="../tools/log.html"><b>Log</b></a>.
 The command <b>remotecontrol rest stop</b> 
 discontinues accepting commands by REST, optionally sending a notification
 to the <a href="../tools/log.html"><b>Log</b></a> (<b>quiet false</b>, default).
@@ -112,21 +111,21 @@ to the <a href="../tools/log.html"><b>Log</b></a> (<b>quiet false</b>, default).
 The XML-RPC method (<a href="https://en.wikipedia.org/wiki/XML-RPC"
 target="_blank">extensible markup language remote procedure call</a>)
 is used by Python scripts or applications.
-The ChimeraX remote_control bundle includes a python2 script to send
-ChimeraX commands in this way:
+The command <b>remotecontrol xmlrpc on</b> or
+<b>remotecontrol xmlrpc true</b> allows ChimeraX to
+receive instructions in this way, with optional specification of the
+<b>port</b> number (default <b>42184</b>). The <i>IP-address</i> should be
+that of the computer running ChimeraX (default <b>127.0.0.1</b>, localhost,
+recommended to prevent other computers from sending commands).
+</p><p>
+The ChimeraX remote_control bundle includes an example python2 script that
+sends commands to ChimeraX using XML-RPC via port number 42184:
 </p>
 <blockquote>
 <span class="nowrap">
 python2 /Applications/ChimeraX.app/Contents/lib/python3.7/site-packages/chimerax/remote_control/run.py "open 1a0m"
 </span>
 </blockquote>
-<p>
-The command <b>remotecontrol xmlrpc on</b> or
-<b>remotecontrol xmlrpc true</b> allows ChimeraX to
-receive instructions by XML-RPC, with optional specification of the
-<b>port</b> number (default <b>42184</b>). The <i>IP-address</i> should be
-that of the computer running ChimeraX (default <b>127.0.0.1</b>, localhost,
-recommended to prevent other computers from sending commands).
 This method of communication does not return log output, 
 just a true/false status of whether the command succeeded.
 The <b>timeout</b> period <i>s</i> (default <b>10.0</b> seconds)
