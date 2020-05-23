@@ -722,11 +722,11 @@ class Bounded(Annotation):
         if self.min is not None and ((value < self.min) if self.inclusive else (value <= self.min)):
             raise AnnotationError(
                 "Must be greater than %s%s" % (
-                    self.min, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+                    "or equal to " if self.inclusive else "", self.min), len(text) - len(rest))
         if self.max is not None and ((value > self.max) if self.inclusive else (value >= self.max)):
             raise AnnotationError(
                 "Must be less than %s%s" % (
-                    self.max, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+                    "or equal to " if self.inclusive else "", self.max), len(text) - len(rest))
         return value, new_text, rest
 
     def unparse(self, value, session=None):

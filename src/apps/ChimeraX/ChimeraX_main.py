@@ -843,7 +843,7 @@ def uninstall(sess):
         if os.path.basename(exe_dir) != 'bin':
             sys.logger.error('non-standard ChimeraX installation')
             return os.EX_SOFTWARE
-        from chimerax.core import _xdg
+        from chimerax.linux import _xdg
         _xdg.uninstall(sess)
         # parent = os.path.dirname(exe_dir)
         # rm_rf_path(parent, sess)

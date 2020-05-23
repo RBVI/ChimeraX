@@ -48,7 +48,7 @@ class ChimeraxXMLRPCServer(SimpleXMLRPCServer):
       self.session = session	# ChimeraX Session object
 
       # start XML-RPC server
-      SimpleXMLRPCServer.__Init__(self, (address, port), logRequests=0)
+      SimpleXMLRPCServer.__init__(self, (address, port), logRequests=0)
       self.socket.settimeout(timeout)
       session.logger.info("xmlrpc server running at %s on port %d" % (address, port))
       
