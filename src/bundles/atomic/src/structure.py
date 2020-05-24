@@ -1796,7 +1796,9 @@ class PickedAtom(Pick):
         return self.atom.residue
     def select(self, mode = 'add'):
         select_atom(self.atom, mode)
-
+    def drawing(self):
+        return self.atom.structure
+    
 # -----------------------------------------------------------------------------
 #
 def select_atom(a, mode = 'add'):
@@ -1891,6 +1893,8 @@ class PickedBond(Pick):
         return None
     def select(self, mode = 'add'):
         select_bond(self.bond, mode)
+    def drawing(self):
+        return self.bond.structure
 
 # -----------------------------------------------------------------------------
 #
@@ -1975,6 +1979,8 @@ class PickedResidue(Pick):
             a.selected = False
         elif mode == 'toggle':
             a.selected = not a.selected.any()
+    def drawing(self):
+        return self.residue.structure
 
 # -----------------------------------------------------------------------------
 #
