@@ -19,3 +19,6 @@ save_command: Register file saving
 
 .. autoclass:: chimerax.save_command.SaverInfo
     :members:
+
+.. autoclass:: chimerax.save_command.manager.SaveManager
+    :members:

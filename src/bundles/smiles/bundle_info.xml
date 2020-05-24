@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0rc1"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-SDF" version="~=1.0"/>
@@ -37,8 +37,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: SMILES :: smiles :: Molecular structure :: :: :: https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system :: :: :: SMILES :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: smiles :: SMILES :: smiles :: c1ccccc1 ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

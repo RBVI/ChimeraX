@@ -228,6 +228,8 @@ def main():
         raise SystemExit(1)
     full_version = full_version[0].split(':', maxsplit=1)[1].strip()
     version_number, version_date = full_version.split(maxsplit=1)
+    from packaging.version import Version
+    version = Version(version_number)
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
     bin_name = app_name.lower()  # name of command in /usr/bin
@@ -238,10 +240,10 @@ def main():
         bin_name += "-daily"
     elif build == 'release':
         # release build
-        version = version_number
+        version = version.base_version
     else:
         # candiate build
-        version = f"{version_number}+rc{version_date}"
+        version = f"{version.base_version}+rc{version_date}"
     deb_name = f"{pkg_name}-{version}"  # name of .deb file
 
     # print('full_version:', repr(full_version))

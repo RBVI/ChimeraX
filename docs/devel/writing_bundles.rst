@@ -132,9 +132,13 @@ All other contents of the bundle should be in ``src``.
     from **__init__.py** for starting the graphical
     interface.
 
-    **_sample.cpp** contains sample C++ code that
-    compiles into a Python module that defines two
-    module functions.
+    **_sample_pyapi.cpp** and **_sample_pybind11.cpp**
+    contain sample C++ code that demonstrate two
+    possible ways of binding C++ to Python.
+    Thye compile into Python modules that each define
+    two module functions. Which binding gets used at
+    runtime is determined by the ``api`` argument of
+    the ``sample`` command.
 
 
 *Building and testing the Sample Bundle using ``ChimeraX``*
@@ -190,6 +194,13 @@ To build and test your bundle, execute the following command
     The files in *build* are then assembled into a wheel
     in the *dist* directory.  The assembled wheel is installed
     as a user bundle.
+
+Note that on Windows ``$(CHIMERAX_EXE)`` uses the
+``ChimeraX-console.exe`` executable rather than the normal
+``ChimeraX.exe``.  This is because on Windows an executable
+cannot be both a GUI and a console app.  So for running
+ChimeraX with the ``--nogui`` flag, you need to use the
+console executable.
 
 If the command completes successfully, fire up ChimeraX
 (``make test`` is a shortcut if ``make`` is available)

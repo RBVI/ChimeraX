@@ -180,6 +180,8 @@ def main():
         raise SystemExit(1)
     full_version = full_version[0].split(':', maxsplit=1)[1].strip()
     version_number, version_date = full_version.split(maxsplit=1)
+    from packaging.version import Version
+    version = Version(version_number)
     version_date = version_date[1:-1].replace('-', '.')
     pkg_name = f"{app_author.lower()}-{app_name.lower()}"
     bin_path = f"/usr/bin/{app_name.lower()}"  # were the symlink is place on default path
@@ -193,11 +195,11 @@ def main():
         rpm_release = 1
     elif build == 'release':
         # release build
-        version = version_number
+        version = version.base_version
         rpm_release = 1
     elif build == 'candidate':
         # release build
-        version = version_number
+        version = version.base_version
         rpm_release = f"0.{version_date}"
     rpm_name = f"{pkg_name}-{version}"  # name of .rpm file
 

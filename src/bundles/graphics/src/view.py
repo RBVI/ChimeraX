@@ -561,17 +561,25 @@ class View:
         self._render.finish_rendering()
 
     def _compute_shadowmaps(self, drawings, camera):
-
+        '''
+        Compute shadow map textures for specified drawings.
+        Does not include child drawings.
+        '''
         r = self._render
         shadow_enabled = r.shadow.use_shadow_map(camera, drawings, self._shadow_bounds)
         multishadow_enabled = r.multishadow.use_multishadow_map(drawings, self._shadow_bounds)
         return shadow_enabled, multishadow_enabled
 
     def _shadow_bounds(self, drawings):
+        '''
+        Compute bounding box for drawings, not including child drawings.
+        '''
+        # TODO: remove case drawings = None.  That is not used.
         if drawings is None:
             b = self.drawing_bounds(allow_drawing_changes = False)
             sdrawings = [self.drawing]
         else:
+            # TODO: This code is incorrectly including child drawings in bounds calculation.
             sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
             from chimerax.geometry import bounds
             b = bounds.union_bounds(d.bounds() for d in sdrawings if not getattr(d, 'skip_bounds', False))

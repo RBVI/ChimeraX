@@ -94,9 +94,10 @@ class BlastProteinJob(OpalJob):
             results = self.get_file(self.RESULTS_FILENAME)
             try:
                 p = Parser("query", self.seq, results)
-            except ValueError as e:
+            except Exception as e:
                 if self.tool:
-                    self.tool.job_failed(self, str(e))
+                    err = self.get_file("stderr.txt")
+                    self.tool.job_failed(self, err + str(e))
                 else:
                     logger.bug("BLAST output parsing error: %s" % str(e))
             else:

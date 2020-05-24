@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0rc1"/>
     <Dependency name="ChimeraX-Alignments" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
@@ -33,8 +33,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: UniProt :: :: Sequence :: :: :: https://www.uniprot.org :: :: :: UniProt sequence data</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: uniprot :: UniProt :: uniprot :: NGF_HUMAN :: true</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

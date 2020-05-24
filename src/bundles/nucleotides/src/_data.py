@@ -458,6 +458,9 @@ class NucleotideState(StateManager):
         for mol in self.structures:
             # convert _nucleotide_info from WeakKeyDictionary to dict
             info = {}
+            if mol.was_deleted:
+                # insurance, in case 'new frame' trigger doesn't happen first
+                continue
             info.update(mol._nucleotide_info)
             infos[mol] = (info, mol._ladder_params)
         if save_scene:
@@ -508,6 +511,8 @@ class NucleotideState(StateManager):
 
     def rebuild(self, trigger_name, update_loop):
         """'monitor changes' trigger handler"""
+        deleted = set(s for s in self.structures if s.was_deleted)
+        self.structures -= deleted
         if not self.structures:
             session = self._session()
             try:
@@ -601,7 +606,7 @@ _ResidueReasons = frozenset(['ring color changed', 'ribbon_display changed'])
 
 
 def _rebuild_molecule(trigger_name, mol):
-    if isinstance(mol, tuple):
+    if trigger_name == 'changes':
         mol, changes = mol
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms

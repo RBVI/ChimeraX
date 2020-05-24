@@ -31,7 +31,7 @@ def cmd_start_structure(session, method, model_info, subargs):
         model = model_info
     try:
         manager.execute_command(method, model, subargs)
-    except:
+    except BaseException:
         if isinstance(model_info, str):
             model.delete()
         raise

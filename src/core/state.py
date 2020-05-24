@@ -13,8 +13,6 @@
 
 import abc
 
-CORE_STATE_VERSION = 1  #: version of core session state data
-
 
 class RestoreError(RuntimeError):
     """Raised when session file has a problem being restored"""

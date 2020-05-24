@@ -56,6 +56,7 @@ cdef extern from "<atomstruct/tmpl/Residue.h>" namespace "tmpl":
         const vector[Atom*]& link_atoms()
         string name()
         bool pdbx_ambiguous
+        string description()
         object py_instance(bool)
 
         @staticmethod

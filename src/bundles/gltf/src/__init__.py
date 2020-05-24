@@ -24,22 +24,6 @@ class _gltfBundle(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import gltf
-        return gltf.read_gltf(session, stream, file_name)
-
-    @staticmethod
-    def save_file(session, path, models=None, center=None, size=None,
-            short_vertex_indices=False, float_colors=False, preserve_transparency=True):
-        # 'save_file' is called by session code to save a file
-        from . import gltf
-        return gltf.write_gltf(session, path, models, center=center, size=size,
-               short_vertex_indices=short_vertex_indices,
-               float_colors=float_colors, preserve_transparency=preserve_transparency)
-
-    @staticmethod
     def run_provider(session, name, mgr):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
@@ -50,9 +34,9 @@ class _gltfBundle(BundleAPI):
         else:
             from chimerax.save_command import SaverInfo
             class Info(SaverInfo):
-                def save(self, session, path, **kw):
+                def save(self, session, path, models=None, **kw):
                     from . import gltf
-                    gltf.write_gltf(session, path, **kw)
+                    gltf.write_gltf(session, path, models, **kw)
 
                 @property
                 def save_args(self):

@@ -53,7 +53,6 @@ measure convexity #1
 measure length #1
 move x 10
 palette list
-# pdbimages is a specialized command
 perframe "turn y 10; save '~/Desktop/$1.png'" frames 9 format %3d
 ~perframe
 perframe stop

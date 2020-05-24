@@ -110,7 +110,7 @@ class Collection(State):
             # presume iterable of objects of the object_class
             try:
                 pointers = numpy.array([i._c_pointer.value for i in items], cptr)
-            except:
+            except Exception:
                 t = str(type(items))
                 if isinstance(items, numpy.ndarray):
                     t += ' type %s' % str(items.dtype)
@@ -1117,8 +1117,8 @@ class Residues(Collection):
     '''Average of atom positions as a numpy length 3 array, 64-bit float values.'''
     chains = cvec_property('residue_chain', cptr, astype = _non_null_chains, read_only = True, doc =
     '''Return :class:`.Chains` for residues. Residues with no chain are omitted. Read only.''')
-    chain_ids = cvec_property('residue_chain_id', string, read_only = True, doc =
-    '''Returns a numpy array of chain IDs. Read only.''')
+    chain_ids = cvec_property('residue_chain_id', string, doc =
+    '''Returns a numpy array of chain IDs.''')
     mmcif_chain_ids = cvec_property('residue_mmcif_chain_id', string, read_only = True, doc =
     '''Returns a numpy array of chain IDs. Read only.''')
     insertion_codes = cvec_property('residue_insertion_code', string, doc =
@@ -1315,8 +1315,8 @@ class Chains(Collection):
     def __init__(self, chain_pointers):
         Collection.__init__(self, chain_pointers, molobject.Chain, Chains)
 
-    chain_ids = cvec_property('sseq_chain_id', string, read_only = True)
-    '''A numpy array of string chain ids for each chain. Read only.'''
+    chain_ids = cvec_property('sseq_chain_id', string)
+    '''A numpy array of string chain ids for each chain.'''
     structures = cvec_property('sseq_structure', pyobject, astype = AtomicStructures, read_only = True)
     '''A :class:`.StructureDatas` collection containing structures for each chain.'''
     existing_residues = cvec_property('sseq_residues', cptr, 'num_residues',

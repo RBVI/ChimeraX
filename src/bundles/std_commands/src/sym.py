@@ -416,7 +416,7 @@ class Assembly:
 def is_integer(s):
     try:
         int(s)
-    except:
+    except Exception:
         return False
     return True
 

@@ -27,13 +27,18 @@ RESTORED_MODELS = 'restored models'
 RESTORED_MODEL_TABLE = 'restored model table'
 # TODO: register Model as data event type
 
+# If any of the *STATE_VERSIONs change, then increase the (maximum) core session
+# number in setup.py.in
+MODEL_STATE_VERSION = 1
+MODELS_STATE_VERSION = 1
+
 from .state import State
 from chimerax.graphics import Drawing
 class Model(State, Drawing):
     """A Model is a :class:`.Drawing` together with an id number
     that allows it to be referenced in a typed command.
 
-    Model subclasses can be saved session files.
+    Model subclasses can be saved in session files.
 
     Parameters
     ----------
@@ -78,7 +83,7 @@ class Model(State, Drawing):
         self.delete()
 
     def delete(self):
-        '''Delete this model.'''
+        '''Supported API.  Delete this model.'''
         if self._deleted:
             raise RuntimeError('Model %s was deleted twice' % self._name)
         models = self.session.models
@@ -118,7 +123,7 @@ class Model(State, Drawing):
     def _set_id(self, val):
         if val == self._id:
             return
-        fire_trigger = self._id != None and val != None
+        fire_trigger = self._id is not None and val is not None
         self._id = val
         if fire_trigger:
             self.session.triggers.activate_trigger(MODEL_ID_CHANGED, self)
@@ -158,7 +163,7 @@ class Model(State, Drawing):
         if val == self._name:
             return
         self._name = val
-        if self._id != None:  # model actually open
+        if self._id is not None:  # model actually open
             self.session.triggers.activate_trigger(MODEL_NAME_CHANGED, self)
     name = property(_get_name, _set_name)
 
@@ -317,7 +322,6 @@ class Model(State, Drawing):
         p = self.parent
         if p is session.models.scene_root_model:
             p = None    # Don't include root as a parent since root is not saved.
-        from .state import CORE_STATE_VERSION
         data = {
             'name': self.name,
             'id': self.id,
@@ -327,7 +331,7 @@ class Model(State, Drawing):
             'allow_depth_cue': self.allow_depth_cue,
             'accept_shadow': self.accept_shadow,
             'accept_multishadow': self.accept_multishadow,
-            'version': CORE_STATE_VERSION,
+            'version': MODEL_STATE_VERSION,
         }
         if self.SESSION_SAVE_DRAWING:
             from chimerax.graphics.gsession import DrawingState
@@ -336,7 +340,7 @@ class Model(State, Drawing):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        if cls is Model and data['id'] is ():
+        if cls is Model and data['id'] == ():
             return session.models.scene_root_model
         # TODO: Could call the cls constructor here to handle a derived class,
         #       but that would require the derived constructor have the same args.
@@ -508,9 +512,8 @@ class Models(StateManager):
                 not_saved.append(model)
                 continue
             models[id] = model
-        from .state import CORE_STATE_VERSION
         data = {'models': models,
-                'version': CORE_STATE_VERSION}
+                'version': MODELS_STATE_VERSION}
         if not_saved:
             mwarn = [m for m in not_saved
                      if m.SESSION_WARN and (m.parent is None or m.parent.SESSION_SAVE)]
@@ -714,44 +717,6 @@ class Models(StateManager):
         mremoved = self.remove(models)
         for m in mremoved:
             m.delete()
-
-    def open(self, filenames, id=None, format=None, name=None, **kw):
-        from . import io, toolshed
-        session = self._session()  # resolve back reference
-        collation_okay = True
-        if isinstance(filenames, str):
-            fns = [filenames]
-        else:
-            fns = filenames
-        for fn in fns:
-            fmt = io.deduce_format(fn, has_format=format)[0]
-            if fmt and fmt.category in [toolshed.SCRIPT]:
-                collation_okay = False
-                break
-        from .logger import Collator
-        log_errors = kw.pop('log_errors', True)
-        if collation_okay:
-            descript = "files" if len(fns) > 1 else fns[0]
-            with Collator(session.logger,
-                    "Summary of feedback from opening " + descript, log_errors):
-                models, status = io.open_multiple_data(
-                    session, filenames, format=format, name=name, **kw)
-        else:
-            models, status = io.open_multiple_data(
-                session, filenames, format=format, name=name, **kw)
-        if status:
-            log = session.logger
-            log.status(status, log=True)
-        if models:
-            if len(models) > 1:
-                from . import io
-                name = io.model_name_from_path(filenames[0])
-                if len(filenames) > 1:
-                    name += '...'
-                self.add_group(models, name=name)
-            else:
-                self.add(models)
-        return models
 
 
 def descendant_models(models):

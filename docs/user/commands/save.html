@@ -61,6 +61,14 @@ appropriate suffix will be added to <i>filename</i>.
 </p><p>
 Sessions, images, and scenes include all contents, but map and atomic coordinate
 saving can be limited to specific models with the <b>models</b> option.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>, for example:
+</p>
+<blockquote>
+<b>save mutated.pdb #3</b>
+</blockquote>
+<p>
 There may be additional options, depending on the file type:
 </p>
 <ul class="none">
@@ -436,6 +444,9 @@ Further options:
 <b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Volume model(s) to save; can be omitted if only one volume model is open.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>
@@ -551,6 +562,9 @@ single command. See also: <a href="getcrd.html"><b>getcrd</b></a>,
 <b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Write only the specified models, otherwise all atomic models.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -671,6 +685,9 @@ Atomic coordinates can be saved in Sybyl Mol2 format, with options:
 Write only the specified models, otherwise all atomic models
 (except as restricted with <a href="#atoms"><b>atoms</b></a>
 and/or <a href="#skipAtoms"><b>skipAtoms</b></a>).
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
 </blockquote>
 <blockquote>
 <b>relModel</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -799,5 +816,5 @@ Whether to include any transparency of the objects.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+May 2020</address>
 </body></html>

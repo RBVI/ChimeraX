@@ -722,11 +722,11 @@ class Bounded(Annotation):
         if self.min is not None and ((value < self.min) if self.inclusive else (value <= self.min)):
             raise AnnotationError(
                 "Must be greater than %s%s" % (
-                    self.min, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+                    "or equal to " if self.inclusive else "", self.min), len(text) - len(rest))
         if self.max is not None and ((value > self.max) if self.inclusive else (value >= self.max)):
             raise AnnotationError(
                 "Must be less than %s%s" % (
-                    self.max, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+                    "or equal to " if self.inclusive else "", self.max), len(text) - len(rest))
         return value, new_text, rest
 
     def unparse(self, value, session=None):
@@ -1102,8 +1102,8 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
         if name_filter is not None:
             dlg.setNameFilter(name_filter)
         elif accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
-            from chimerax.ui.open_save import open_file_filter
-            dlg.setNameFilter(open_file_filter(all=True))
+            from chimerax.open_command.dialog import make_qt_name_filters
+            dlg.setNameFilters(make_qt_name_filters(session)[0])
         dlg.setFileMode(dialog_mode)
         if dlg.exec():
             paths = dlg.selectedFiles()
@@ -2340,53 +2340,6 @@ def _compute_available_commands(session):
     ts = toolshed.get_toolshed()
     ts.register_available_commands(session.logger)
 
-
-def add_keyword_arguments(name, kw_info, *, registry=None):
-    """Make known additional keyword argument(s) for a command
-
-    :param name: the name of the command (must not be an alias)
-    :param kw_info: { keyword: annotation }
-    """
-    return # this func slated for removal
-    if not isinstance(kw_info, dict):
-        raise ValueError("kw_info must be a dictionary")
-    cmd = Command(None, registry=registry)
-    cmd.current_text = name
-    cmd._find_command_name(no_aliases=True)
-    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
-    # check compatibility with already-registered keywords
-    for kw, arg_type in kw_info.items():
-        if kw not in cmd._ci._keyword:
-            continue
-        # since de-registration currently may not undo the arg
-        # registration, direct comparison of the registration
-        # types may compare as unequal when they are in fact
-        # the same class because it's a second instance of the
-        # same module
-        #
-        # also what's registered can be a class or an instance,
-        # but will be the same kind for both
-        reg_type = cmd._ci._keyword[kw]
-        if isinstance(arg_type, type):
-            # classes
-            reg_class = reg_type
-            arg_class = arg_type
-        else:
-            reg_class = reg_type.__class__
-            arg_class = arg_type.__class__
-        if (reg_class.__module__ != arg_class.__module__
-                or reg_class.__name__ != arg_class.__name__):
-            raise ValueError(
-                "%s-command keyword '%s' being registered with different type (%s)"
-                " than previous registration (%s)" % (
-                    name, kw, repr(arg_type), repr(cmd._ci._keyword[kw])))
-    cmd._ci._keyword.update(kw_info)
-
-    def fill_keyword_map(n):
-        kw, cnt = _user_kw_cnt(n)
-        return kw, (n, cnt)
-    cmd._ci._keyword_map.update(fill_keyword_map(n) for n in kw_info)
 
 
 class _FakeSession:

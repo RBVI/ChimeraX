@@ -390,12 +390,12 @@ See also: AtomGroup
                 f.write(p('i',self.NSET))
                 try:
                         self.ISTART = header['ISTART']
-                except:
+                except Exception:
                         self.ISTART = 0
                 f.write(p('i',self.ISTART))
                 try:
                         self.NSAVC = header['NSAVC']
-                except:
+                except Exception:
                         self.NSAVC = 0
                 f.write(p('i',self.NSAVC))
                 f.write(p('4i',0,0,0,0))
@@ -405,7 +405,7 @@ See also: AtomGroup
                 self.fixed = self.NAMNF
                 try:
                         self.DELTA = header['DELTA']
-                except:
+                except Exception:
                         self.DELTA = 0.
                 f.write(p('d',self.DELTA))
                 f.write(p('i',0)) # Why?

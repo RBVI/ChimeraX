@@ -118,10 +118,10 @@ def set_attr(session, objects, target, attr_name, attr_value, create=False):
 def attempt_set_attr(item, attr_name, value, orig_attr_name, value_string):
     try:
         setattr(item, attr_name, value)
-    except:
+    except Exception:
         try:
             setattr(item, attr_name, value_string)
-        except:
+        except Exception:
             from chimerax.core.errors import UserError
             raise UserError("Cannot set attribute '%s' to '%s'" % (orig_attr_name, value_string))
 

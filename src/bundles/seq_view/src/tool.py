@@ -81,8 +81,8 @@ class SequenceViewer(ToolInstance):
         self.seqs = seqs
         """
         self.alignment = alignment
-        # subcommand_name also in bundle_info.xml
-        alignment.attach_viewer(self, subcommand_name="viewer")
+        from . import subcommand_name
+        alignment.attach_viewer(self, subcommand_name=subcommand_name)
         from . import settings
         self.settings = settings.init(self.session)
         """
@@ -499,15 +499,15 @@ class SequenceViewer(ToolInstance):
         from PyQt5.QtWidgets import QAction
         file_menu = menu.addMenu("File")
         save_as_menu = file_menu.addMenu("Save As")
-        from chimerax.core import io
         from chimerax.core.commands import run, quote_path_if_necessary
-        for fmt in io.formats(open=False):
-            if fmt.category == "Sequence alignment":
-                action = QAction(fmt.name, save_as_menu)
-                action.triggered.connect(lambda arg, fmt=fmt:
-                    run(self.session, "save browse format %s alignment %s"
-                    % (fmt.name, quote_path_if_necessary(self.alignment.ident))))
-                save_as_menu.addAction(action)
+        fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
+        fmts.sort(key=lambda fmt: fmt.name.casefold())
+        for fmt in fmts:
+            action = QAction(fmt.name, save_as_menu)
+            action.triggered.connect(lambda arg, fmt=fmt:
+                run(self.session, "save browse format %s alignment %s"
+                % (fmt.name, quote_path_if_necessary(self.alignment.ident))))
+            save_as_menu.addAction(action)
         scf_action = QAction("Load Sequence Coloring File...", file_menu)
         scf_action.triggered.connect(lambda arg: self.load_scf_file(None))
         file_menu.addAction(scf_action)
@@ -524,7 +524,7 @@ class SequenceViewer(ToolInstance):
         structure_menu.addAction(assoc_action)
         comp_model_action = QAction("Modeller Comparative Modeling...", structure_menu)
         comp_model_action.triggered.connect(lambda arg: run(self.session,
-            "toolshed show 'Modeller Comparative'"))
+            "ui tool show 'Modeller Comparative'"))
         if not self.alignment.associations:
             comp_model_action.setEnabled(False)
         structure_menu.addAction(comp_model_action)

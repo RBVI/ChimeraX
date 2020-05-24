@@ -61,7 +61,7 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
         session.logger.status("Adding hydrogens")
         try:
             add_h_func(session, structures, template=template, in_isolation=in_isolation, **prot_schemes)
-        except:
+        except BaseException:
             session.logger.status("")
             raise
         finally:

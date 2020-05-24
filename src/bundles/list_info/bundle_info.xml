@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-List-Info" version="0.1"
+<BundleInfo name="ChimeraX-ListInfo" version="0.1"
 	    package="chimerax.list_info"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0rc1"/>
   </Dependencies>
 
   <Classifiers>

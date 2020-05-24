@@ -16,7 +16,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0rc1"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
@@ -39,9 +39,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: VTK PolyData :: vtk :: Generic 3D objects :: .vtk :: :: http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf :: :: :: VTK</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: VTK PolyData :: vtk ::</ChimeraXClassifier>
-    <ChimeraXClassifier>Save :: VTK PolyData :: vtk ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

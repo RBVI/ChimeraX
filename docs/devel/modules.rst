@@ -14,8 +14,8 @@
 
 .. _ChimeraX Python Modules:
 
-Standard Bundles and Python Modules
-===================================
+Python Modules
+==============
 
 Atomic Structures
 -----------------

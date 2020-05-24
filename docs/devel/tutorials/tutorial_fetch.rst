@@ -93,7 +93,7 @@ changed to reflect the new bundle name and documentation
 The ``Providers`` sections on lines 42 through 44 use the
 :ref:`Manager <Manager>`/:ref:`Provider <Provider>` protocol to inform
 the "open command" manager that this bundle supports fetching data from
-a database named ``homologene`` (really `HomoloGene <https://www.ncbi.nlm.nih.gov/homologene/>`_,
+a database named ``homologene`` (really `HomoloGene`_,
 but the user will type "homologene").
 
 The attributes usable with the "open command" manager (with ``type="fetch"``)

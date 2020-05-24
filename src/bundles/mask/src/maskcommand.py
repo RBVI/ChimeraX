@@ -20,7 +20,8 @@
 def mask(session, volumes, surfaces, axis = None, full_map = False,
          extend = 0, pad = 0, slab = None, sandwich = True, invert_mask = False,
          fill_overlap = False, model_id = None):
-
+    '''Create a new volume where values outside specified surfaces are set to zero.'''
+    
     if len(volumes) == 0:
         from chimerax.core.errors import UserError
         raise UserError('No volumes specified')
@@ -51,7 +52,8 @@ def ones_mask(session, surfaces, on_grid = None, spacing = None, border = 0, axi
               extend = 0, pad = 0, full_map = True,
               slab = None, sandwich = True, invert_mask = False,
               fill_overlap = False, value_type = None, model_id = None):
-
+    '''Create a volume which has value 1 inside surfaces and 0 outside.'''
+    
     if len(surfaces) == 0:
         from chimerax.core.errors import UserError
         raise UserError('No surfaces specified')

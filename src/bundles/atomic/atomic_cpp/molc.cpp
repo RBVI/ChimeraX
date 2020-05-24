@@ -2536,6 +2536,17 @@ extern "C" EXPORT void residue_chain_id(void *residues, size_t n, pyobject_t *ci
     }
 }
 
+extern "C" EXPORT void set_residue_chain_id(void *residues, size_t n, pyobject_t *cids)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            r[i]->set_chain_id(PyUnicode_AsUTF8(static_cast<PyObject *>(cids[i])));
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT bool residue_connects_to(void *residue, void *other_res)
 {
     Residue *r = static_cast<Residue *>(residue);
@@ -3188,6 +3199,17 @@ extern "C" EXPORT void sseq_chain_id(void *chains, size_t n, pyobject_t *cids)
     try {
         for (size_t i = 0; i != n; ++i)
             cids[i] = unicode_from_string(c[i]->chain_id());
+    } catch (...) {
+        molc_error();
+    }
+}
+
+extern "C" EXPORT void set_sseq_chain_id(void *chains, size_t n, pyobject_t *cids)
+{
+    StructureSeq **sseq = static_cast<StructureSeq **>(chains);
+    try {
+        for (size_t i = 0; i != n; ++i)
+            sseq[i]->set_chain_id(PyUnicode_AsUTF8(static_cast<PyObject *>(cids[i])));
     } catch (...) {
         molc_error();
     }
