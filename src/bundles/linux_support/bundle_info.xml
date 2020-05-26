@@ -1,6 +1,8 @@
 <BundleInfo name="ChimeraX-LinuxSupport" version="1.0"
-	    package="chimerax.linux"
+	    package="chimerax.linux" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
+  <!-- this is actually pure Python, but platform-specific.
+       So pretend it isn't, and only build on Linux -->
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>

@@ -42,6 +42,10 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  tape_measure test toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
 
+ifeq ($(OS),Linux)
+REST_SUDIRS += linux_support
+endif
+
 SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(REST_SUBDIRS)
 
 NO_SUBDIR_INSTALL = 1

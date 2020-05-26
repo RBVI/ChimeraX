@@ -20,7 +20,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>Tool :: Remote Control :: General :: Send commands to ChimeraX from other apps</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: remotecontrol xmlrpc :: General :: synopsis</ChimeraXClassifier>
   </Classifiers>
 
