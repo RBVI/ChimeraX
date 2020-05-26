@@ -16,7 +16,7 @@
 #
 def register_ui_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, create_alias
+    from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import BoolArg, StringArg, NoArg
 
     ui_autostart_desc = CmdDesc(
@@ -58,6 +58,13 @@ def register_ui_command(logger):
         required=[('tool_name', StringArg)],
         synopsis="Hide tool from view")
     register('ui tool hide', ui_tool_hide_desc, ui_tool_hide, logger=logger)
+
+# -----------------------------------------------------------------------------
+# Implementation of "tool" command.
+#
+def register_tool_command(logger):
+    from chimerax.core.commands import create_alias
+    create_alias('tool', 'ui tool $*', logger=logger)
 
 # -----------------------------------------------------------------------------
 #
