@@ -11,16 +11,11 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MyAPI(BundleAPI):
-
-    @staticmethod
-    def start_tool(session, tool_name):
-        from .remotecmd import remote_control
-        remote_control(session, enable=True)	# Start XMLRPC server
+class _RemoteControlBundleAPI(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
         from . import remotecmd
         remotecmd.register_remote_control_command(command_name, logger)
 
-bundle_api = _MyAPI()
+bundle_api = _RemoteControlBundleAPI()
