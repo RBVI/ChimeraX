@@ -27,7 +27,7 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  dicom dist_monitor dist_ui dssp exp_cmd file_history function_key \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats \
-	  interfaces io label linux list_info log \
+	  interfaces io label list_info log \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker md_crds \
 	  medical_toolbar meeting mlp model_series \
@@ -41,6 +41,10 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  stl storm struts surface swapaa swap_res \
 	  tape_measure test toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
+
+ifeq ($(OS),Linux)
+REST_SUDIRS += linux_support
+endif
 
 SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(REST_SUBDIRS)
 
