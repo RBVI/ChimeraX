@@ -1947,6 +1947,9 @@ class SameSize(Postcondition):
 
 
 def _check_autocomplete(word, mapping, name):
+    # Already have tool. vs toolshed, expect more in the future as external
+    # developers add commands.
+    return
     # This is a primary debugging aid for developers,
     # but it warns about existing abbreviated commands from changing
     # what command they correspond to.

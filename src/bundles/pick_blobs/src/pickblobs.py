@@ -188,11 +188,13 @@ class PickBlobs(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
-        self.settings = None
         
+    @property
+    def settings(self):
+        return pick_blobs_panel(self.session)
+
     def enable(self):
-        self.settings = s = pick_blobs_panel(self.session)
-        s.show()
+        self.settings.show()
         
     def mouse_down(self, event):
         x,y = event.position()

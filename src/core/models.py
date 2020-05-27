@@ -333,9 +333,12 @@ class Model(State, Drawing):
             'accept_multishadow': self.accept_multishadow,
             'version': MODEL_STATE_VERSION,
         }
+        if hasattr(self, 'clip_cap'):
+            data['clip_cap'] = self.clip_cap
         if self.SESSION_SAVE_DRAWING:
             from chimerax.graphics.gsession import DrawingState
-            data['drawing state'] = DrawingState.take_snapshot(self, session, flags)
+            data['drawing state'] = DrawingState.take_snapshot(self, session, flags,
+                                                               include_children = False)
         return data
 
     @classmethod
@@ -367,6 +370,9 @@ class Model(State, Drawing):
             for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
                 if attr in data:
                     setattr(d, attr, data[attr])
+
+        if 'clip_cap' in data:
+            self.clip_cap = data['clip_cap']
 
         if 'drawing state' in data:
             from chimerax.graphics.gsession import DrawingState
@@ -557,6 +563,42 @@ class Models(StateManager):
 
     def add(self, models, parent=None, minimum_id = 1, root_model = False,
             _notify=True, _need_fire_id_trigger=None, _from_session=False):
+        '''
+        Assigns id numbers to the specified models and their child models.
+        An id number is a tuple of positive integers.
+        Each model has exactly one parent (except the scene root model).
+        The id number of a parent is id number number of a child with
+        the last integer removed.  So the parent of a model with id (2,1,5)
+        would have id (2,1).
+
+        In the typical case the specified models have model.id = None and
+        model.parent = None.
+        If the parent option is not given, each of these models are given an
+        unused top level id number (tuple containing 1 integer), and child
+        models are also given id numbers to all depths.  If the parent argument
+        is specified then each model is made a child of that parent.
+
+        There are other unusual cases.  A specified model that has not been
+        added may have model.id not None.  This is a request to use this id for
+        the model. The model with the parent id must already have been added.
+        If the parent option is given and does not have the parent id, it is
+        an error.
+
+        Another unusual case is that a specified model has already been added.
+        This is a request to add the model to the specified parent, changing its
+        id as needed.  All children to all depths will also be assigned new ids.
+        If the parent option is not specified it is an error.  If the specified
+        parent is the model itself or one of its descendants it is an error.
+
+        The specified models cannot contain a model which is a descendant of
+        another specified model.  That is an error.
+
+        In all cases if the parent option is given it must be a model that has
+        already been added.
+
+        After a model has been added, model.id should not be changed except by
+        this routine, or Models.assign_id(), or Models.remove() which sets model.id = None.
+        '''
         if _need_fire_id_trigger is None:
             _need_fire_id_trigger = []
 
@@ -618,7 +660,10 @@ class Models(StateManager):
             self._initialize_camera = False
             
     def assign_id(self, model, id):
-        '''Parent model for new id must already exist.'''
+        '''
+        Change the id of an already added model.
+        The parent model for new id must already have been added.
+        '''
         mt = self._models
         del mt[model.id]
         model.id = id
