@@ -2154,7 +2154,7 @@ def selected_atoms(session):
 # -----------------------------------------------------------------------------
 #
 def selected_bonds(session, *, intra_residue=True, inter_residue=True):
-    '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
+    '''All selected bonds in all structures as a :class:`.Bonds` collection.'''
     blist = []
     for m in session.models.list(type = Structure):
         for b in m.selected_items('bonds'):
@@ -2163,7 +2163,8 @@ def selected_bonds(session, *, intra_residue=True, inter_residue=True):
                 continue
             import numpy
             atoms1, atoms2 = b.atoms
-            is_intra = numpy.equal(atoms1.residues, atoms2.residues)
+            # "atoms1.residues == atoms2.residues" returns a scalar boolean, so...
+            is_intra = atoms1.residues.pointers == atoms2.residues.pointers
             if intra_residue:
                 blist.append(b.filter(is_intra))
             if inter_residue:
