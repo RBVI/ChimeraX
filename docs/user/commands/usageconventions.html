@@ -62,19 +62,27 @@ As mentioned <a href="#multi-commands">below</a>,
 multiple commands can be combined into a single line with
 semicolon separators.
 </p><p>
+<a name="truncation"></a>
 <b>Truncation</b>
 <br>
 Command names and keywords can be truncated to unique strings,
-with rare exceptions specifically noted.
-Command names should be entered as lowercase letters, whereas keywords can be
-completely lowercase or capitalized as shown in the documentation,
-typically camelCase for compound words. 
+with rare exceptions specifically noted. However, the entire 
+command name may be needed as the &ldquo;unique string&rdquo; 
+if the name of another command (including those in bundles installed from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/"
+target="_blank">ChimeraX Toolshed</a>) starts with the same string.
 If a truncation matches multiple keywords but one is a simpler compound word,
 the simpler one is used; otherwise, an ambiguity error is raised.
 </p><p>
 Boolean (truth) values can also be truncated, with
 synonyms for <b>true</b>: <b>True</b>, <b>1</b>, and
 synonyms for <b>false</b>: <b>False</b>, <b>0</b>.
+</p><p>
+<b>Capitalization</b>
+<br>
+Command names should be entered as lowercase letters, whereas keywords can be
+completely lowercase or capitalized as shown in the documentation,
+typically camelCase for compound words. 
 </p><p>
 <b>Quotation Marks</b>
 <br>
@@ -111,7 +119,7 @@ substitutes the corresponding pathname text.
 ChimeraX command files (scripts) are plain text files 
 containing the same commands as entered into the
 <a href="../tools/cli.html"><b>Command Line Interface</b></a>.
-The filename suffix <b>.cxc</b> is recommended.
+The filename suffix <b>.cxc</b> is used for this type of file.
 Opening a ChimeraX command file in ChimeraX executes the commands.
 For command file examples, see 
 the ChimeraX <a href="http://www.rbvi.ucsf.edu/chimerax/features.html"
@@ -129,6 +137,12 @@ Lines with # as the first nonspace character and in-line text
 with # as the first nonspace character following a semicolon (;)
 are interpreted as comments and ignored.
 Blank lines are also allowed.
+<br><br>
+<li><b>Command truncation</b>:
+As discussed <a href="#truncation">above</a>, although
+command names can be truncated to unique strings, using the full
+command names is more robust against possible name conflicts with other
+commands that might be added later.
 <br><br>
 <a name="multi-commands"></a>
 <li><b>Combining commands</b>:
@@ -161,5 +175,5 @@ to overlap or run concurrently.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2019</address>
+May 2020</address>
 </body></html>
