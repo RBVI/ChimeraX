@@ -333,9 +333,12 @@ class Model(State, Drawing):
             'accept_multishadow': self.accept_multishadow,
             'version': MODEL_STATE_VERSION,
         }
+        if hasattr(self, 'clip_cap'):
+            data['clip_cap'] = self.clip_cap
         if self.SESSION_SAVE_DRAWING:
             from chimerax.graphics.gsession import DrawingState
-            data['drawing state'] = DrawingState.take_snapshot(self, session, flags)
+            data['drawing state'] = DrawingState.take_snapshot(self, session, flags,
+                                                               include_children = False)
         return data
 
     @classmethod
@@ -367,6 +370,9 @@ class Model(State, Drawing):
             for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
                 if attr in data:
                     setattr(d, attr, data[attr])
+
+        if 'clip_cap' in data:
+            self.clip_cap = data['clip_cap']
 
         if 'drawing state' in data:
             from chimerax.graphics.gsession import DrawingState
