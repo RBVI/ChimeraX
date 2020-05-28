@@ -348,7 +348,7 @@ class TriggerSet:
             trigger.activate(data)
 
     def block_trigger(self, name):
-        """Supported API. Block all handlers registered with the given name.
+        """Block all handlers registered with the given name.
 
         triggerset.block_trigger(name) => None
 
@@ -359,11 +359,11 @@ class TriggerSet:
         self._triggers[name].block()
 
     def is_trigger_blocked(self, name):
-        """Supported API. Returns whether named trigger is blocked."""
+        """Returns whether named trigger is blocked."""
         return self._triggers[name].is_blocked()
 
     def release_trigger(self, name):
-        """Supported API. Release all handlers registered with the given name.
+        """Release all handlers registered with the given name.
 
         triggerset.release_trigger(name) => None
 
