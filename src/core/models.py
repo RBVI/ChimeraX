@@ -557,39 +557,81 @@ class Models(StateManager):
 
     def add(self, models, parent=None, minimum_id = 1, root_model = False,
             _notify=True, _need_fire_id_trigger=None, _from_session=False):
+        '''
+        Assigns id numbers to the specified models and their child models.
+        An id number is a tuple of positive integers.
+        Each model has exactly one parent (except the scene root model).
+        The id number of a parent is id number number of a child with
+        the last integer removed.  So the parent of a model with id (2,1,5)
+        would have id (2,1).
+
+        In the typical case the specified models have model.id = None and
+        model.parent = None.
+        If the parent option is not given, each of these models are given an
+        unused top level id number (tuple containing 1 integer), and child
+        models are also given id numbers to all depths.  If the parent argument
+        is specified then each model is made a child of that parent.
+
+        There are other unusual cases.  A specified model that has not been
+        added may have model.id not None.  This is a request to use this id for
+        the model. The model with the parent id must already have been added.
+        If the parent option is given and does not have the parent id, it is
+        an error.
+
+        Another unusual case is that a specified model has already been added.
+        This is a request to add the model to the specified parent, changing its
+        id as needed.  All children to all depths will also be assigned new ids.
+        If the parent option is not specified it is an error.  If the specified
+        parent is the model itself or one of its descendants it is an error.
+
+        The specified models cannot contain a model which is a descendant of
+        another specified model.  That is an error.
+
+        In all cases if the parent option is given it must be a model that has
+        already been added.
+
+        After a model has been added, model.id should not be changed except by
+        this routine, or Models.assign_id(), or Models.remove() which sets model.id = None.
+
+        The root_model option allows adding a Model that has no parent.  It will
+        not be added as a child of the scene_root_model.  This is currently used
+        for 2D labels which are not part of the 3D scene, but instead are overlays
+        drawn on top of the graphics.  A root model has an id that is unique among
+        all model ids so it can be specified in user typed commands.
+        '''
         if _need_fire_id_trigger is None:
             _need_fire_id_trigger = []
 
         if len(self._models) == 0:
             self._initialize_camera = True
 
-        if parent is None and not root_model:
-            parent = self.scene_root_model
-
-        # Add models to parent
-        if parent is not None:
-            for m in models:
-                if m.parent is None or m.parent is not parent:
-                    parent.add_drawing(m)
-
-        # Handle already added models being moved to a new parent.
+        # Add models to parents and assign model ids.
         for model in models:
-            if model.id and (parent is None or model.id[:-1] != parent.id) and model.id in self._models:
-                # Model has id that is not a subid of parent, so assign new id.
-                _need_fire_id_trigger.append(model)
-                del self._models[model.id]
-                model.id = None
-                if model.parent is not None:
-                    model.parent._next_unused_id = None
+            if self.have_model(model):
+                # Model is already added and is being reparented.
+                if parent is None:
+                    raise ValueError('Attempted to add model %s to scene twice' % model)
+                if model.parent is not parent:
+                    # Model is being moved to a new parent
+                    _need_fire_id_trigger.extend(model.all_models())
+                    self._reparent_model(model, parent, minimum_id = minimum_id)
+            else:
+                # Model has not yet been added.
+                p = self._parent_for_added_model(model, parent, root_model = root_model)
+                if p:
+                    p.add_drawing(model)
 
-        # Assign new model ids
-        for model in models:
-            if model.id is None:
-                model.id = self.next_id(parent = parent, minimum_id = minimum_id)
-            self._models[model.id] = model
-            children = model.child_models()
-            if children:
-                self.add(children, parent=model, _notify=False, _need_fire_id_trigger=_need_fire_id_trigger)
+                # Set model id
+                if model.id is None:
+                    # Assign a new model id.
+                    model.id = self.next_id(parent = p, minimum_id = minimum_id)
+                self._models[model.id] = model
+
+                # Add child models
+                children = model.child_models()
+                if children:
+                    self.add(children, parent=model, _notify=False,
+                             _need_fire_id_trigger=_need_fire_id_trigger)
 
         # Notify that models were added
         if _notify:
@@ -616,9 +658,68 @@ class Models(StateManager):
 
         if _from_session:
             self._initialize_camera = False
+
+    def have_model(self, model):
+        return model.id is not None and self._models.get(model.id) is model
+    
+    def _parent_for_added_model(self, model, parent, root_model = False):
+        if root_model:
+            if parent is not None:
+                raise ValueError('Tried to add model %s as a root model but specified parent %s'
+                                 % (model, parent))
+            if model.id is not None and len(model.id) != 1:
+                raise ValueError('Tried to add model %s as a root model but id is not a single integer'
+                                 % model)
+            p = None
+        elif model.id is None:
+            p = self.scene_root_model if parent is None else parent
+        else:
+            par_id = model.id[:-1]
+            p = self._models.get(par_id) if par_id else self.scene_root_model
+            if p is None:
+                raise ValueError('Tried to add model %s but parent #%s does not exist'
+                                 % (model, '.'.join('%d'% i for i in par_id)))
+            if parent is not None and parent is not p:
+                raise ValueError('Tried to add model %s to parent %s with incompatible id'
+                                 % (model, parent))
+            if model.id in self._models:
+                raise ValueError('Tried to add model %s with the same id as another model %s'
+                                 % (model, self._models[model.id]))
+        return p
+
+    def _reparent_model(self, model, parent, minimum_id = 1):
+        # Remove old model id from table
+        mt = self._models
+        del mt[model.id]
+        p = model.parent
+        if p is not None:
+            p._next_unused_id = None
+
+        # Set new model id
+        id = self.next_id(parent = parent, minimum_id = minimum_id)
+        mt[id] = model
+        model.id = id
+
+        # Update model parent.
+        # This also removes drawing from former parent.
+        parent.add_drawing(model)
+
+        # Change child model ids.
+        for child in model.all_models():
+            if child is not model:
+                del mt[child.id]
+                child.id = id + child.id[len(id):]
+                mt[child.id] = child
             
     def assign_id(self, model, id):
         '''Parent model for new id must already exist.'''
+        cm = self._models.get(id)
+        if cm:
+            if cm is model:
+                return
+            else:
+                raise ValueError('Tried to change model %s id to one in use by %s'
+                                 % (model, cm))
         mt = self._models
         del mt[model.id]
         model.id = id
