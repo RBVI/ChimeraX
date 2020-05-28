@@ -458,6 +458,32 @@ class Toolshed:
                 self._abc_updating = False
                 from ..commands import cli
                 cli.clear_available()
+        # log newer versions of installed bundles
+        from packaging.version import Version
+        out_of_date = []
+        installed_name = None
+        installed_version = None
+        # TODO: sort abc?
+        for available in abc:
+            if available.name != installed_name:
+                bi = self.find_bundle(available.name, logger)
+                if bi is None:
+                    continue
+                installed_name = available.name
+                installed_version = Version(bi.version)
+            new_version = Version(available.version)
+            if new_version > installed_version:
+                out_of_date.append((installed_name, new_version, installed_version))
+        if out_of_date:
+            from chimerax.core.commands import plural_form
+            bundles = plural_form(out_of_date, 'bundle')
+            info = (
+                f"{plural_form(out_of_date, 'An', 'Some')} installed {bundles}"
+                f" {plural_form(out_of_date, 'is', 'are')} out of date."
+                f"  Please update the following {bundles}:<ul>")
+            for name, new_version, installed_version in out_of_date:
+                info += f"<li>{self.bundle_link(name)} to version {new_version} (currently {installed_version})"
+            logger.info(info + "</ul>", is_html=True)
 
     def init_available_from_cache(self, logger):
         from .available import AvailableBundleCache
@@ -542,8 +568,10 @@ class Toolshed:
     def bundle_link(self, bundle_name):
         from html import escape
         if bundle_name.startswith("ChimeraX-"):
-            bundle_name = bundle_name[len("ChimeraX-"):]
-        return f'<a href="{self.bundle_url(bundle_name)}">{escape(bundle_name)}</a>'
+            short_name = bundle_name[len("ChimeraX-"):]
+        else:
+            short_name = bundle_name
+        return f'<a href="{self.bundle_url(bundle_name)}">{escape(short_name)}</a>'
 
     def bundle_info(self, logger, installed=True, available=False):
         """Supported API. Return list of bundle info.
