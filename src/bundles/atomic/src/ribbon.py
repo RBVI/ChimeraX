@@ -996,7 +996,8 @@ def _wrap_helix(rlist, coords, guides, start, end):
     hc = HelixCylinder(coords[start:end])
     directions = hc.cylinder_directions()
     coords[start:end] = hc.cylinder_surface()
-    guides[start:end] = coords[start:end] + directions
+    if guides is not None:
+        guides[start:end] = coords[start:end] + directions
     if False:
         # Debugging code to display guides of secondary structure
         name = ribbons_drawing.structure_name + " helix guide " + str(start)
