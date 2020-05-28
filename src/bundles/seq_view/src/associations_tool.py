@@ -20,7 +20,7 @@ class AssociationsTool:
 
         from PyQt5.QtWidgets import QHBoxLayout
         layout = QHBoxLayout()
-        from chimerax.core.atomic.widgets import ChainListWidget
+        from chimerax.atomic.widgets import ChainListWidget
         self.chain_list = ChainListWidget(sv.session, selection_mode='single')
         self.chain_list.value_changed.connect(self._chain_changed)
         layout.addWidget(self.chain_list)
