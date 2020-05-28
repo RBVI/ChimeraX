@@ -13,7 +13,6 @@
 
 
 from . import _debug
-import re
 
 _CACHE_FILE = "available.json"
 
