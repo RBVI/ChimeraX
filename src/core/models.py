@@ -705,6 +705,11 @@ class Models(StateManager):
         parent.add_drawing(model)
 
         # Change child model ids.
+        self._update_child_ids(model)
+
+    def _update_child_ids(self, model):
+        id = model.id
+        mt = self._models
         for child in model.all_models():
             if child is not model:
                 del mt[child.id]
@@ -720,13 +725,30 @@ class Models(StateManager):
             else:
                 raise ValueError('Tried to change model %s id to one in use by %s'
                                  % (model, cm))
+
+        # Remove old id
         mt = self._models
         del mt[model.id]
+        if model.parent:
+            model.parent._next_unused_id = None
+
+        # Set new id.
         model.id = id
         mt[id] = model
-        p = mt[id[:-1]] if len(id) > 1 else self.scene_root_model
-        p._next_unused_id = None
-        self.add([model], parent = p)
+
+        # Set parent model.
+        if len(id) > 1:
+            p = mt[id[:-1]]
+        elif model.parent is None:
+            p = None 		# Root model
+        else:
+            p = self.scene_root_model
+        model.parent = p
+        if p:
+            p.add_drawing(model)
+
+        # Update child model ids.
+        self._update_child_ids(model)
 
     def have_id(self, id):
         return id in self._models
