@@ -311,9 +311,8 @@ class Layout_Parameters:
         self.helix_radius = 300			# Radius for helix layout, Angstroms
         self.helix_rise = 50			# Rise per turn for helix layout, Angstroms
 
-#        self.sphere_radius = 830		# Spiral sphere layout radius, Angstroms
-        self.sphere_radius = 430		# Spiral sphere layout radius, Angstroms
-        self.sphere_turns = 10			# Spiral sphere turns from top to botton, count.
+        self.sphere_radius = 370		# Spiral sphere layout radius, Angstroms
+        self.sphere_turns = 16			# Spiral sphere turns from top to botton, count.
 
         self.helix_loop_size = 8		# Number of nucleotides in a loop layed out as a helix
         self.helix_loop_rise = 20		# Rise in loop helix over one turn, Angstroms
@@ -428,7 +427,7 @@ class HelixCurve:
 class SphereSpiral:
     def __init__(self, radius, turns):
         self._radius = radius
-        self._turns = 2 * turns
+        self._turns = turns
     def position(self, t):
         r = self._radius
         wt = 2 * self._turns * t
@@ -469,8 +468,9 @@ def curve_segment_end(curve, t, length, tolerance = 1e-3, max_steps = 100):
         return t
     xyz0 = curve.position(t)
     v = curve.velocity(t)
+    frac = 0.5
     from chimerax.geometry import norm, inner_product
-    t1 = t + length / norm(v)
+    t1 = t + frac * length / norm(v)
     for step in range(max_steps):
         xyz1 = curve.position(t1)
         d = norm(xyz1-xyz0)
@@ -479,13 +479,16 @@ def curve_segment_end(curve, t, length, tolerance = 1e-3, max_steps = 100):
         v1 = curve.velocity(t1)
         # Want |xyz1 + v1*dt - xyz0| = length
         delta = xyz1 - xyz0
-        dt1, dt2 = quadratic_roots(inner_product(v1,v1),
-                                   2*inner_product(v1,delta),
-                                   inner_product(delta,delta) - length*length)
+        a,b,c = (inner_product(v1,v1),
+                 2*inner_product(v1,delta),
+                 inner_product(delta,delta) - length*length)
+        dt1, dt2 = quadratic_roots(a, b, c)
         if dt1 is None:
-            return None
+            # No point in tangent line is within target length.
+            # Go to closest approach
+            dt1 = dt2 = -b / 2*a
         dt_min = dt1 if abs(dt1) < abs(dt2) else dt2
-        t1 += dt_min
+        t1 += frac * dt_min
     return None
 
 # -----------------------------------------------------------------------------
