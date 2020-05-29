@@ -1,6 +1,8 @@
 <BundleInfo name="ChimeraX-LinuxSupport" version="1.0"
-	    package="chimerax.linux"
+	    package="chimerax.linux" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
+  <!-- this is actually pure Python, but platform-specific.
+       So pretend it isn't, and only build on Linux -->
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
@@ -18,7 +20,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0rc1"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
   </Dependencies>
 

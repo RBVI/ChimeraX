@@ -13,7 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
-from chimerax.core.atomic import AtomicStructure
+from chimerax.atomic import AtomicStructure
 
 _prd = None
 def prep_rotamers_dialog(session, rotamers_tool_name):

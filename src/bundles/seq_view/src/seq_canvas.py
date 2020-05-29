@@ -58,9 +58,11 @@ class SeqCanvas:
         """
         self.label_scene.setBackgroundBrush(Qt.lightGray)
         """
+        self.label_scene.setBackgroundBrush(Qt.white)
         self.label_view = QGraphicsView(self.label_scene)
         self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.main_scene = QGraphicsScene()
+        self.main_scene.setBackgroundBrush(Qt.white)
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
         from PyQt5.QtGui import QColor

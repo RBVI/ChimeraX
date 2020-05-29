@@ -77,7 +77,7 @@ class _MyAPI(BundleAPI):
                     # an Annotation subclass.  Annotation classes
                     # are used to convert user-typed text into
                     # Python values.
-                    from chimerax.core.atomic import StructuresArg
+                    from chimerax.atomic import StructuresArg
                     return { 'structures': StructuresArg }
 
         return XyzInfo()

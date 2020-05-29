@@ -344,10 +344,10 @@ class DrawingState:
                   'allow_depth_cue', 'accept_shadow', 'accept_multishadow']
 
     @staticmethod
-    def take_snapshot(drawing, session, flags):
+    def take_snapshot(drawing, session, flags, include_children = True):
         d = drawing
         data = {a:getattr(d,a) for a in DrawingState.save_attrs}
-        data['children'] = d.child_drawings()
+        data['children'] = d.child_drawings() if include_children else []
         data['version'] = DrawingState.version
         return data
 

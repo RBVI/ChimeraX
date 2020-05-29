@@ -333,9 +333,12 @@ class Model(State, Drawing):
             'accept_multishadow': self.accept_multishadow,
             'version': MODEL_STATE_VERSION,
         }
+        if hasattr(self, 'clip_cap'):
+            data['clip_cap'] = self.clip_cap
         if self.SESSION_SAVE_DRAWING:
             from chimerax.graphics.gsession import DrawingState
-            data['drawing state'] = DrawingState.take_snapshot(self, session, flags)
+            data['drawing state'] = DrawingState.take_snapshot(self, session, flags,
+                                                               include_children = False)
         return data
 
     @classmethod
@@ -367,6 +370,9 @@ class Model(State, Drawing):
             for attr in ['allow_depth_cue', 'accept_shadow', 'accept_multishadow']:
                 if attr in data:
                     setattr(d, attr, data[attr])
+
+        if 'clip_cap' in data:
+            self.clip_cap = data['clip_cap']
 
         if 'drawing state' in data:
             from chimerax.graphics.gsession import DrawingState
@@ -483,7 +489,31 @@ class Surface(Model):
     
 from .state import StateManager
 class Models(StateManager):
+    '''
+    Models manages the Model instances shown in the scene belonging to a session.
+    It makes a root model (attribute scene_root_model) that the graphics View uses
+    to render the scene.
 
+    Another major function of Models is to assign the id numbers to each Model.
+    An id number is a non-empty tuple of positive integers.  A Model can have
+    child models (m.child_models()) and usually has a parent model (m.parent).
+    The id number of a child is a tuple one longer than the parent and equals
+    the parent id except for the last integer.  For instance a model with id
+    (2,5) could have a child model with id (2,5,1).  Every model has a unique
+    id number.  The id of the scene_root_model is the empty tuple, and is not
+    used in commands as it has no number representation.
+
+    While most models are children at some depth below the scene_root_model it is
+    allowed to have other models with single integer id that have no parent.
+    This is currently used for 2D labels which are overlay drawings and are not
+    part of the 3D scene. These models are added using Models.add(models, root_model = True).
+    Their id numbers can be used by commands.
+
+    Most Model instances are added to the scene with Models.add().  In some
+    instances a Model might be created for doing a calculation and is never drawn,
+    is never added to the scene, and is never assigned an id number, so cannot
+    be referenced in user typed commands.
+    '''
     def __init__(self, session):
         import weakref
         self._session = weakref.ref(session)
