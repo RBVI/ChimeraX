@@ -31,7 +31,7 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0rc1"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
   </Dependencies>
 
