@@ -96,7 +96,7 @@ class MaestroParser:
             return None
         bonds = block.get_sub_block("m_bond")
         s = SC(self.session, auto_style=self.auto_style)
-        SC.register_attr(self.session, "viewdocx_data", "ViewDockX")
+        SC.register_attr(self.session, "viewdockx_data", "ViewDockX")
 
         residue_map = {}
         atom_map = {}

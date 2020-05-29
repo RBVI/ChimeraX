@@ -47,7 +47,7 @@ def register_volume_command(logger):
                ('name_forget', AppearanceArg(logger.session)),
                ('step', MapStepArg),
                ('region', MapRegionArg),
-               ('name_region', StringArg),
+#               ('name_region', StringArg),
                ('expand_single_plane', BoolArg),
                ('origin', Float1or3Arg),
                ('origin_index', Float1or3Arg),

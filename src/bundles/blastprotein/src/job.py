@@ -38,7 +38,7 @@ class BlastProteinJob(OpalJob):
                  tool_inst_name=None):
         from . import tool
         super().__init__(session)
-        self.seq = seq                          # string
+        self.seq = seq.replace('?', 'X')        # string
         self.atomspec = atomspec                # string (atom specifier)
         self.database = database                # string
         self.cutoff = cutoff                    # float
