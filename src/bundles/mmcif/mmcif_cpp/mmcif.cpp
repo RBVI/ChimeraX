@@ -281,6 +281,7 @@ struct ExtractMolecule: public readcif::CIFFile
     bool found_missing_poly_seq;
     map<string, bool> has_poly_seq;   // entity_id: bool
     set<ResName> empty_residue_templates;
+    set<ResName> missing_residue_templates;
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
     bool atomic;  // use AtomicStructure if true, else Structure
     bool guess_fixed_width_categories;
@@ -482,10 +483,12 @@ ExtractMolecule::find_template_residue(const ResName& name)
             return tr;
     }
     auto tr =  mmcif::find_template_residue(name);
-    if (tr == nullptr) {
-        // TODO: skip warning if already given for this molecule
+    if (tr == nullptr
+    && missing_residue_templates.find(name) == missing_residue_templates.end()) {
+        // skipped warning if already given for this molecule
         logger::warning(_logger,
             "Unable to fetch template for '", name, "': might have incorrect bonds");
+        missing_residue_templates.insert(name);
     }
     return tr;
 }
@@ -683,7 +686,8 @@ ExtractMolecule::finished_parse()
             auto tr = find_template_residue(r->name());
             if (tr == nullptr) {
                 if (model_num == first_model_num) {
-                    logger::warning(_logger, "Missing or invalid residue template for ", r->str());
+                    // Warning already given about missing template
+                    // logger::warning(_logger, "Missing or invalid residue template for ", r->str());
                     has_metal = true;   // it's okay to do extra work
                 }
                 pdb_connect::connect_residue_by_distance(r);
