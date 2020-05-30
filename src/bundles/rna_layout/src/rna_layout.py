@@ -34,6 +34,10 @@ class Circuit:
             curve = HelixCurve(params.helix_radius, params.helix_rise)
             coords = self.curve_layout(segs, params, curve)
         elif pattern == 'sphere':
+            if params.sphere_radius is None:
+                length = sum([(seg.width + seg.pad) for seg in segs], 0)
+                params.sphere_radius = r= length / (4*params.sphere_turns)
+                print ('RNA sphere radius', r)
             curve = SphereSpiral(params.sphere_radius, params.sphere_turns)
             coords = self.curve_layout(segs, params, curve)
             
@@ -311,7 +315,7 @@ class Layout_Parameters:
         self.helix_radius = 300			# Radius for helix layout, Angstroms
         self.helix_rise = 50			# Rise per turn for helix layout, Angstroms
 
-        self.sphere_radius = 370		# Spiral sphere layout radius, Angstroms
+        self.sphere_radius = None		# Spiral sphere layout radius, Angstroms
         self.sphere_turns = 16			# Spiral sphere turns from top to botton, count.
 
         self.helix_loop_size = 8		# Number of nucleotides in a loop layed out as a helix
