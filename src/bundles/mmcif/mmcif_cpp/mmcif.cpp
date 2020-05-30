@@ -482,9 +482,10 @@ ExtractMolecule::find_template_residue(const ResName& name)
         if (tr && tr->atoms_map().size() > 0)
             return tr;
     }
+    if (missing_residue_templates.find(name) != missing_residue_templates.end())
+        return nullptr;
     auto tr =  mmcif::find_template_residue(name);
-    if (tr == nullptr
-    && missing_residue_templates.find(name) == missing_residue_templates.end()) {
+    if (tr == nullptr) {
         // skipped warning if already given for this molecule
         logger::warning(_logger,
             "Unable to fetch template for '", name, "': might have incorrect bonds");
