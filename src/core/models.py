@@ -690,7 +690,8 @@ class Models(StateManager):
             self._initialize_camera = False
 
     def have_model(self, model):
-        return model.id is not None and self._models.get(model.id) is model
+        return model.id is not None and (self._models.get(model.id) is model
+                                         or model is self.scene_root_model)
     
     def _parent_for_added_model(self, model, parent, root_model = False):
         if root_model:
@@ -838,26 +839,37 @@ class Models(StateManager):
         return group
 
     def remove(self, models):
+        '''
+        Remove the specified models from the scene as well as all their
+        children to all depths.  The models are not deleted.  Their model
+        id numbers are set to None and they are removed as children from
+        parent models that are still in the scene.
+        '''
         # Also remove all child models, and remove deepest children first.
         dset = descendant_models(models)
         dset.update(models)
         mlist = list(dset)
         mlist.sort(key=lambda m: len(m.id), reverse=True)
+
+        # Call remove_from_session() methods.
         session = self._session()  # resolve back reference
         for m in mlist:
             m._added_to_session = False
             m.removed_from_session(session)
+
+        # Remove model ids
         for model in mlist:
             model_id = model.id
             if model_id is not None:
                 del self._models[model_id]
                 model.id = None
-                parent = model.parent
-                if parent is not None:
-                    parent.remove_drawing(model, delete=False)
-                    parent._next_unused_id = None
-                else:
-                    self.scene_root_model._next_unused_id = None             
+
+        # Remove models from parent if parent was not removed.
+        for model in models:
+            parent = model.parent
+            if parent is not None and self.have_model(parent):
+                parent.remove_drawing(model, delete=False)
+                parent._next_unused_id = None
 
         # it's nice to have an accurate list of current models
         # when firing this trigger, so do it last
@@ -866,7 +878,10 @@ class Models(StateManager):
         return mlist
 
     def close(self, models):
-        # Removed models include children of specified models.
+        '''
+        Remove the models from the scene as well as all child models
+        to all depths, and delete the models.
+        '''
         mremoved = self.remove(models)
         for m in mremoved:
             m.delete()
