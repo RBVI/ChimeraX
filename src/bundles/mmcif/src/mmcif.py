@@ -356,8 +356,13 @@ def fetch_mmcif_pdbj(session, pdb_id, **kw):
     return fetch_mmcif(session, pdb_id, fetch_source="pdbj", **kw)
 
 
+_nonexistant_ccd_entries = set()
+
+
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
+    if name in _nonexistant_ccd_entries:
+        return None
     from chimerax.core.fetch import fetch_file
     filename = '%s.cif' % name
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
@@ -365,6 +370,7 @@ def _get_template(session, name):
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', timeout=15)
     except (UserError, OSError):
+        _nonexistant_ccd_entries.add(name)
         return None
 
 
