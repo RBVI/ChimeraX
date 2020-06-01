@@ -882,9 +882,10 @@ class Models(StateManager):
         Remove the models from the scene as well as all child models
         to all depths, and delete the models.
         '''
-        mremoved = self.remove(models)
-        for m in mremoved:
-            m.delete()
+        self.remove(models)
+        for m in models:
+            if not m.deleted:
+                m.delete()
 
 
 def descendant_models(models):
