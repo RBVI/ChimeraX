@@ -20,6 +20,8 @@ from . import ctypes_support as convert
 # -------------------------------------------------------------------------------
 # Access functions from libmolc C library.
 #
+from chimerax.arrays import load_libarrays
+load_libarrays() 	# Load libarrrays shared library before importing libmolc.
 _atomic_c_functions = CFunctions('libmolc')
 c_property = _atomic_c_functions.c_property
 cvec_property = _atomic_c_functions.cvec_property
@@ -933,6 +935,16 @@ class Sequence(State):
         self._fire_trigger('rename', (self, old_name))
 
     def _fire_trigger(self, trig_name, arg):
+        # If no one is listening to the trigger, don't create a delayed firing of the trigger
+        # ... because ...
+        # this class has a __del__ method that can execute multiple times because the
+        # __del__ method in some cases can create a self reference.  If the only reference
+        # back to this class is the delayed trigger handler below, then as the set of
+        # trigger handlers is cleared, the __del__ can execute multiple times and the
+        # dict/set-clearing code doesn't like that and can crash
+        if not self.triggers.trigger_handlers(trig_name):
+            return
+
         # when C++ layer notifies us directly of change, delay firing trigger until
         # next 'changes' trigger to ensure that entire C++ layer is in a consistent state
         def delayed(*args, trigs=self.triggers, trig_name=trig_name, trig_arg=arg):
@@ -979,7 +991,7 @@ class StructureSeq(Sequence):
             return False
         return self.residues < other.residues
 
-    chain_id = c_property('sseq_chain_id', string, read_only = True)
+    chain_id = c_property('sseq_chain_id', string)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
     # characters read-only in StructureSeq/Chain (use bulk_set)
     characters = c_property('sequence_characters', string, doc=
@@ -1031,7 +1043,6 @@ class StructureSeq(Sequence):
         for part in (self.structure.name, "(%s)" % self.structure):
             rem = rem.strip()
             if rem:
-                rem = rem.strip()
                 if rem.startswith(part):
                     rem = rem[len(part):]
                     continue
@@ -1228,7 +1239,8 @@ class Chain(StructureSeq):
     def string(self, style=None):
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1 \
+        or not chain_str:
             struct_string = self.structure.string(style=style)
         else:
             struct_string = ""
@@ -1330,9 +1342,11 @@ class StructureData:
     num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True,
         doc = "Supported API. Number of coordinate sets in structure. Read only.")
     num_chains = c_property('structure_num_chains', size_t, read_only = True,
-        doc = "Supported API. Number of chains structure. Read only.")
+        doc = "Supported API. Number of chains in structure. Read only.")
+    num_ribbon_residues = c_property('structure_num_ribbon_residues', size_t, read_only = True,
+        doc = "Supported API. Number of residues in structure shown as ribbon. Read only.")
     num_residues = c_property('structure_num_residues', size_t, read_only = True,
-        doc = "Supported API. Number of residues structure. Read only.")
+        doc = "Supported API. Number of residues in structure. Read only.")
     residues = c_property('structure_residues', cptr, 'num_residues', astype = convert.residues,
         read_only = True, doc = "Supported API. :class:`.Residues` collection containing the"
         " residues of this structure. Read only.")
@@ -1341,6 +1355,11 @@ class StructureData:
         " :class:`.PseudobondGroup` for pseudobond groups belonging to this structure. Read only.")
     metadata = c_property('metadata', pyobject, read_only = True,
         doc = "Supported API. Dictionary with metadata. Read only.")
+    def set_metadata_entry(self, key, values):
+        """Set metadata dictionary entry"""
+        f = c_array_function('set_metadata_entry', args=(pyobject, pyobject), per_object=False)
+        s_ref = ctypes.byref(self._c_pointer)
+        f(s_ref, 1, key, values)
     pdb_version = c_property('pdb_version', int32, doc = "If this structure came from a PDB file,"
         " the major PDB version number of that file (2 or 3). Read only.")
     ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32,
@@ -1599,7 +1618,20 @@ class StructureData:
         return [(Residues(res_array), ptype) for res_array, ptype in polymers]
 
     def pseudobond_group(self, name, *, create_type = "normal"):
-        '''Supported API. Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
+        '''Supported API. Get or create a :class:`.PseudobondGroup` belonging to this structure.
+           The 'create_type' parameter controls if and how the pseudobond is created, as per:
+
+           0 (also: None)
+             If no such group exists, none is created and None is returned
+
+           1 (also: "normal")
+             A "normal" pseudobond group will be created if necessary, one where the pseudobonds
+             apply to all coordinate sets
+
+           2 (also: "per coordset")
+             A "per coordset" pseudobond group will be created if necessary, one where different
+             coordsets can have different pseudobonds
+        '''
         if isinstance(create_type, int):
             create_arg = create_type
         elif create_type is None:
@@ -1894,13 +1926,10 @@ class ChangeTracker:
                 self.total_deleted = total_deleted
         def process_changes(data):
             final_changes = {}
+            from . import molarray
             for k, v in data.items():
                 created_ptrs, mod_ptrs, reasons, tot_del = v
-                temp_ns = {}
-                # can't effectively use locals() as the third argument as per the
-                # Python 3 documentation for exec() and locals()
-                exec("from .molarray import {}s as collection".format(k), globals(), temp_ns)
-                collection = temp_ns['collection']
+                collection = getattr(molarray, k + 's')
                 fc_key = k[:-4] if k.endswith("Data") else k
                 final_changes[fc_key] = Changes(collection(created_ptrs),
                     collection(mod_ptrs), reasons, tot_del)
@@ -1967,96 +1996,6 @@ class ChangeTracker:
         raise AssertionError("Unknown class for change tracking: %s" % inst.__class__.__name__)
 
 from .cymol import Element
-
-# -----------------------------------------------------------------------------
-#
-from collections import namedtuple
-ExtrudeValue = namedtuple("ExtrudeValue", ["vertices", "normals",
-                                           "triangles", "colors",
-                                           "front_band", "back_band"])
-
-class RibbonXSection:
-    '''
-    A cross section that can extrude ribbons when given the
-    required control points, tangents, normals and colors.
-    '''
-    def __init__(self, coords=None, coords2=None, normals=None, normals2=None,
-                 faceted=False, tess=None, xs_pointer=None):
-        if xs_pointer is None:
-            f = c_function('rxsection_new',
-                           args = (ctypes.py_object,        # coords
-                                   ctypes.py_object,        # coords2
-                                   ctypes.py_object,        # normals
-                                   ctypes.py_object,        # normals2
-                                   ctypes.c_bool,           # faceted
-                                   ctypes.py_object),       # tess
-                                   ret = ctypes.c_void_p)   # pointer to C++ instance
-            xs_pointer = f(coords, coords2, normals, normals2, faceted, tess)
-        set_c_pointer(self, xs_pointer)
-
-    # cpp_pointer and deleted are "base class" methods, though for performance reasons
-    # we are placing them directly in each class rather than using a base class,
-    # and for readability by most programmers we avoid using metaclasses
-    @property
-    def cpp_pointer(self):
-        '''Value that can be passed to C++ layer to be used as pointer (Python int)'''
-        return self._c_pointer.value
-
-    @property
-    def deleted(self):
-        '''Has the C++ side been deleted?'''
-        return not hasattr(self, '_c_pointer')
-
-    def extrude(self, centers, tangents, normals, color,
-                cap_front, cap_back, offset):
-        '''Return the points, normals and triangles for a ribbon.'''
-        f = c_function('rxsection_extrude',
-                       args = (ctypes.c_void_p,     # self
-                               ctypes.py_object,    # centers
-                               ctypes.py_object,    # tangents
-                               ctypes.py_object,    # normals
-                               ctypes.py_object,    # color
-                               ctypes.c_bool,       # cap_front
-                               ctypes.c_bool,       # cap_back
-                               ctypes.c_int),       # offset
-                       ret = ctypes.py_object)      # tuple
-        t = f(self._c_pointer, centers, tangents, normals, color,
-              cap_front, cap_back, offset)
-        if t is not None:
-            t = ExtrudeValue(*t)
-        return t
-
-    def blend(self, back_band, front_band):
-        '''Return the triangles blending front and back halves of ribbon.'''
-        f = c_function('rxsection_blend',
-                       args = (ctypes.c_void_p,     # self
-                               ctypes.py_object,    # back_band
-                               ctypes.py_object),    # front_band
-                       ret = ctypes.py_object)      # tuple
-        t = f(self._c_pointer, back_band, front_band)
-        return t
-
-    def scale(self, scale):
-        '''Return new cross section scaled by 2-tuple scale.'''
-        f = c_function('rxsection_scale',
-                       args = (ctypes.c_void_p,     # self
-                               ctypes.c_float,      # x scale
-                               ctypes.c_float),     # y scale
-                       ret = ctypes.c_void_p)       # pointer to C++ instance
-        p = f(self._c_pointer, scale[0], scale[1])
-        return RibbonXSection(xs_pointer=p)
-
-    def arrow(self, scales):
-        '''Return new arrow cross section scaled by 2x2-tuple scale.'''
-        f = c_function('rxsection_arrow',
-                       args = (ctypes.c_void_p,     # self
-                               ctypes.c_float,      # wide x scale
-                               ctypes.c_float,      # wide y scale
-                               ctypes.c_float,      # narrow x scale
-                               ctypes.c_float),     # narrow y scale
-                       ret = ctypes.c_void_p)       # pointer to C++ instance
-        p = f(self._c_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
-        return RibbonXSection(xs_pointer=p)
 
 # -----------------------------------------------------------------------------
 #

@@ -161,7 +161,7 @@ def parse_triangle(fields, line, line_num):
                 continue
             try:
                 i = int(s)
-            except:
+            except Exception:
                 raise OBJError('OBJ reader could not parse face, non-integer field "%s"' % line)
             if vi is None:
                 vi = i

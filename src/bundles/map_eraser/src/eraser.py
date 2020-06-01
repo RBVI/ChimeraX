@@ -14,14 +14,18 @@
 # -------------------------------------------------------------------------
 #
 def volume_erase(session, volumes, center, radius, coordinate_system = None, outside = False):
+    '''Erase a volume inside or outside a sphere.'''
+    ev = []
     cscene = center.scene_coordinates(coordinate_system)
     for volume in volumes:
         cvol = volume.scene_position.inverse() * cscene
         v = volume.writable_copy()
+        ev.append(v)
         if outside:
             _zero_data_outside_sphere(v.data, cvol, radius)
         else:
             _zero_data_in_sphere(v.data, cvol, radius)
+    return ev[0] if len(ev) == 1 else ev
 
 # -----------------------------------------------------------------------------
 #
@@ -94,19 +98,22 @@ class MapEraser(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
-        self.settings = None
-        
+
+    @property
+    def settings(self):
+        return map_eraser_panel(self.session)
+    
     def enable(self):
-        self.settings = s = map_eraser_panel(self.session)
-        s.show()
+        self.settings.show()
         
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
 
     def mouse_drag(self, event):
         dx, dy = self.mouse_motion(event)
+        settings = self.settings
         # Compute motion in scene coords of sphere center.
-        c = self.settings.sphere_center
+        c = settings.sphere_center
         v = self.session.main_view
         s = v.pixel_size(c)
         if event.shift_down():
@@ -115,15 +122,16 @@ class MapEraser(MouseMode):
             shift = (s*dx, -s*dy, 0)
         
         dxyz = v.camera.position.transform_vector(shift)
-        self.settings.move_sphere(dxyz)
+        settings.move_sphere(dxyz)
 
     def mouse_up(self, event):
         MouseMode.mouse_up(self, event)
 
     def vr_motion(self, event):
-        c = self.settings.sphere_center
+        settings = self.settings
+        c = settings.sphere_center
         delta_xyz = event.motion*c - c
-        self.settings.move_sphere(delta_xyz)
+        settings.move_sphere(delta_xyz)
 
 # -----------------------------------------------------------------------------
 # Panel for erasing parts of map in sphere with map eraser mouse mode.
@@ -206,13 +214,16 @@ class MapEraserSettings(ToolInstance):
         layout.addWidget(ef)
         elayout = QHBoxLayout(ef)
         elayout.setContentsMargins(0,0,0,0)
-        elayout.setSpacing(50)
+        elayout.setSpacing(30)
         eb = QPushButton('Erase inside sphere', ef)
         eb.clicked.connect(self._erase_in_sphere)
         elayout.addWidget(eb)
         eo = QPushButton('Erase outside sphere', ef)
         eo.clicked.connect(self._erase_outside_sphere)
         elayout.addWidget(eo)
+        rb = QPushButton('Reduce map bounds', ef)
+        rb.clicked.connect(self._crop_map)
+        elayout.addWidget(rb)
         elayout.addStretch(1)    # Extra space at end
 
         layout.addStretch(1)    # Extra space at end
@@ -300,7 +311,7 @@ class MapEraserSettings(ToolInstance):
     def move_sphere(self, delta_xyz):
         sm = self.sphere_model
         dxyz = sm.scene_position.inverse().transform_vector(delta_xyz)	# Transform to sphere local coords.
-        from chimerax.core.geometry import translation
+        from chimerax.geometry import translation
         sm.position = sm.position * translation(dxyz)
 
     def _show_eraser_cb(self, show):
@@ -310,26 +321,47 @@ class MapEraserSettings(ToolInstance):
         self._erase()
 
     def _erase(self, outside = False):
-        from PyQt5.QtCore import Qt
-        if self._show_eraser.checkState() != Qt.Checked:
-            return
-        sm = self.sphere_model
-        center = sm.scene_position.origin()
-
-        v = self._shown_volume()
+        v, center, radius = self._eraser_region()
         if v is None:
-            self.session.logger.warning('Can only have one displayed volume when erasing')
             return
-
         c = '%.5g,%.5g,%.5g' % tuple(center)
-        cmd = 'volume erase #%s center %s radius %.5g' % (v.id_string, c, sm.radius)
+        cmd = 'volume erase #%s center %s radius %.5g' % (v.id_string, c, radius)
         if outside:
             cmd += ' outside true'
         from chimerax.core.commands import run
         run(self.session, cmd)
 
+    def _eraser_region(self):
+        from PyQt5.QtCore import Qt
+        if self._show_eraser.checkState() != Qt.Checked:
+            return None, None, None
+
+        v = self._shown_volume()
+        if v is None:
+            self.session.logger.warning('Can only have one displayed volume when erasing')
+            return None, None, None
+
+        sm = self.sphere_model
+        center = sm.scene_position.origin()
+        radius = sm.radius
+        
+        return v, center, radius
+
     def _erase_outside_sphere(self):
         self._erase(outside = True)
+
+    def _crop_map(self):
+        v, center, radius = self._eraser_region()
+        if v is None:
+            return
+        vcenter = v.scene_position.inverse() * center
+        ijk_min, ijk_max, ijk_step = v.bounding_region([vcenter], radius,
+                                                       step = 1, cubify = True)
+        region = ','.join(['%d,%d,%d' % tuple(ijk_min),
+                           '%d,%d,%d' % tuple(ijk_max)])
+        cmd = 'volume copy #%s subregion %s' % (v.id_string, region)
+        from chimerax.core.commands import run
+        run(self.session, cmd)
         
     def _shown_volume(self):
         ses = self.session
@@ -355,7 +387,7 @@ class SphereModel(Model):
         self._unit_vertices = va
         self.set_geometry(radius*va, na, ta)
         self.color = color
-        from chimerax.core.geometry import translation
+        from chimerax.geometry import translation
         self.position = translation(center)
         self._radius = radius
         session.models.add([self])

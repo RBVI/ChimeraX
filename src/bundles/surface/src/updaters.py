@@ -16,7 +16,11 @@ class SurfaceUpdaters(State):
         self._updaters.add(updater)
         
     def take_snapshot(self, session, flags):
-        data = {'updaters': tuple(self._updaters),
+        updaters = tuple(u for u in self._updaters
+                         if hasattr(u, 'surface')
+                         and u.surface is not None
+                         and not u.surface.deleted)
+        data = {'updaters': updaters,
                 'version': 1}
         return data
 

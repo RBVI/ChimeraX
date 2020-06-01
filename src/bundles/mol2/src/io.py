@@ -144,8 +144,8 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
     if status:
         status("Writing Mol2 file %s" % file_name)
 
-    from chimerax.core import io
-    f = io.open_filename(file_name, "w")
+    from chimerax import io
+    f = io.open_output(file_name, "utf-8")
 
     sort_key_func = serial_sort_key = lambda a, ri={}: write_mol2_sort_key(a, res_indices=ri)
 
@@ -195,7 +195,7 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
 
     # transform...
     if rel_model is None:
-        from chimerax.core.geometry import identity
+        from chimerax.geometry import identity
         xform = identity()
     else:
         xform = rel_model.scene_position.inverse()

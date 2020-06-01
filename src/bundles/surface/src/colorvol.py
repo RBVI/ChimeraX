@@ -11,12 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-#
-def color_sample(session, surfaces, map, palette = None, range = None,
-                 offset = 0, transparency = None, update = True):
-    '''
-    Color surfaces using a palette and interpolated map value at each surface vertex.
+_color_map_args_doc = '''
 
     surfaces : list of models
       Surfaces to color.
@@ -30,25 +25,48 @@ def color_sample(session, surfaces, map, palette = None, range = None,
       Displacement distance along surface normals for sampling map when using map option.  Default 0.
     transparency : float
       Percent transparency to use.  If not specified current transparency is preserved.
-    '''
+    update : bool
+      Whether to automatically update the surface coloring when the surface shape changes.
+'''
 
+# -----------------------------------------------------------------------------
+#
+def color_sample(session, surfaces, map, palette = None, range = None,
+                 offset = 0, transparency = None, update = True):
+    '''
+    Color surfaces using an interpolated map value at each surface vertex
+    with values mapped to colors by a color palette.
+    '''
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color sample')
+
+color_sample.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_electrostatic(session, surfaces, map, palette = None, range = None,
                         offset = 1.4, transparency = None, update = True):
+    '''
+    Color surfaces using an interpolated electrostatic potential map value
+    at each surface vertex with values mapped to colors by a color palette.
+    '''
+    
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
                         offset = offset, transparency = transparency, auto_update = update,
                         undo_name = 'color electrostatic')
     
+color_electrostatic.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
 def color_gradient(session, surfaces, map = None, palette = None, range = None,
                    offset = 0, transparency = None, update = True):
+    '''
+    Color surfaces using an map gradient norm value at each surface vertex
+    with values mapped to colors by a color palette.
+    '''
+
     if map is None:
         from chimerax.map import VolumeSurface
         if len(surfaces) != 1 or not isinstance(surfaces[0], VolumeSurface):
@@ -59,6 +77,8 @@ def color_gradient(session, surfaces, map = None, palette = None, range = None,
     _color_by_map_value(session, surfaces, map, palette = palette, range = range,
                         offset = offset, transparency = transparency, gradient = True,
                         auto_update = update, undo_name = 'color gradient')
+
+color_gradient.__doc__ += _color_map_args_doc
 
 # -----------------------------------------------------------------------------
 #
@@ -71,16 +91,13 @@ def color_surfaces_by_map_value(atoms = None, opacity = None, map = None,
         return 0
     
     for s in surfs:
-        v, all_atoms = s.vertices_for_atoms(atoms)
-        if v is not None:
-            if undo_state:
-                cprev = s.color_undo_state
-            cs = VolumeColor(s, map, palette, range, offset = offset)
-            vcolors = s.get_vertex_colors(create = True, copy = True)
-            vcolors[v] = cs.vertex_colors()[v]
-            s.set_vertex_colors_and_opacities(v, vcolors, opacity)
-            if undo_state:
-                undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
+        if undo_state:
+            cprev = s.color_undo_state
+        cs = VolumeColor(s, map, palette, range, offset = offset)
+        satoms = s.atoms if atoms is None else atoms
+        colored = s.color_atom_patches(satoms, vertex_colors = cs.vertex_colors(), opacity = opacity)
+        if undo_state and colored:
+            undo_state.add(s, 'color_undo_state', cprev, s.color_undo_state)
 
     return len(surfs)
 
@@ -150,10 +167,7 @@ class VolumeColor(State):
 
         self.set_colormap(palette, range)
         
-        if auto_recolor:
-            arv = lambda self=self: self.set_vertex_colors(report_stats = False)
-        else:
-            arv = None
+        arv = self._auto_recolor if auto_recolor else None
         surface.auto_recolor_vertices = arv
 
         if auto_recolor:
@@ -229,6 +243,15 @@ class VolumeColor(State):
         s.vertex_colors = self.vertex_colors(report_stats)
         if arv:
             s.auto_recolor_vertices = arv
+
+    # -------------------------------------------------------------------------
+    #
+    def _auto_recolor(self):
+        if self.volume.data is None:
+            # Volume has been deleted.
+            self.surface.auto_recolor_vertices = None
+            return
+        self.set_vertex_colors(report_stats = False)
         
     # -------------------------------------------------------------------------
     #

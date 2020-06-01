@@ -150,6 +150,12 @@ class _Trigger:
         self._usage_cb = usage_cb
         self._default_one_time = default_one_time
         self._remove_bad_handlers = remove_bad_handlers
+        self._profile_next_run = False
+        self._profile_params = None
+
+    def profile_next_run(self, sort_by='time', num_entries=20):
+        self._profile_next_run = True
+        self._profile_params = {'sort_by': sort_by, 'num_entries': num_entries}
 
     def add(self, handler):
         if self._locked:
@@ -172,6 +178,23 @@ class _Trigger:
                 self._usage_cb(self._name, 0)
 
     def activate(self, data):
+        if not self._profile_next_run:
+            self._activate(data)
+            return
+        import cProfile, pstats, io
+        params = self._profile_params
+        pr = cProfile.Profile()
+        pr.enable()
+        self._activate(data)
+        pr.disable()
+        s = io.StringIO()
+        ps = pstats.Stats(pr, stream=s).sort_stats(params['sort_by'])
+        ps.print_stats(params['num_entries'])
+        print('Profile for last activation of {} trigger:'.format(self._name))
+        print(s.getvalue())
+        self._profile_next_run = False
+
+    def _activate(self, data):
         if self._blocked:
             # don't raise trigger multiple times for identical
             # data
@@ -188,7 +211,7 @@ class _Trigger:
                 self._pending_del.add(handler)
             try:
                 ret = handler.invoke(data, self._remove_bad_handlers)
-            except:
+            except Exception:
                 self._locked = locked
                 raise
             if ret == DEREGISTER and handler not in self._pending_del:
@@ -325,7 +348,7 @@ class TriggerSet:
             trigger.activate(data)
 
     def block_trigger(self, name):
-        """Supported API. Block all handlers registered with the given name.
+        """Block all handlers registered with the given name.
 
         triggerset.block_trigger(name) => None
 
@@ -336,11 +359,11 @@ class TriggerSet:
         self._triggers[name].block()
 
     def is_trigger_blocked(self, name):
-        """Supported API. Returns whether named trigger is blocked."""
+        """Returns whether named trigger is blocked."""
         return self._triggers[name].is_blocked()
 
     def release_trigger(self, name):
-        """Supported API. Release all handlers registered with the given name.
+        """Release all handlers registered with the given name.
 
         triggerset.release_trigger(name) => None
 
@@ -349,6 +372,22 @@ class TriggerSet:
         block_trigger()/release_trigger() pair is executed.
         """
         self._triggers[name].release()
+
+    def profile_trigger(self, name, sort_by='time', num_entries=20):
+        """Supported API. Profile the next firing of the given trigger.
+
+        triggerset.profile_trigger(name) => None
+
+        The resulting profile information will be printed to the ChimeraX log.
+        The optional sort_by argument may be any of the arguments allowed by
+        Python's `pstats.sort_stats()` method. Typically, the most useful of
+        these are:
+
+        'calls':        call count
+        'cumulative':   cumulative time
+        'time':         internal time
+        """
+        self._triggers[name].profile_next_run(sort_by=sort_by, num_entries=num_entries)
 
     def has_trigger(self, name):
         """Supported API. Check if trigger exists."""

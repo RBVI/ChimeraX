@@ -14,16 +14,26 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
-    <Dependency name="ChimeraX-ChemGroup" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-ChemGroup" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
   </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="Sybyl Mol2" synopsis="Mol2" nicknames="mol2" category="Molecular structure"
+		suffixes=".mol2" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="Sybyl Mol2" />
+  </Providers>
 
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: Sybyl Mol2 :: mol2 :: Molecular structure :: .mol2 :: :: :: :: :: Sybyl Mol2 format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Save :: Sybyl Mol2 :: mol2 :: true :: models:Models,atoms:Atoms,anchor:Atoms,rel_model:Model,sybyl_hyd_naming:Bool,combine_models:Bool,skip_atoms:Atoms,res_num:Bool,gaff_type:Bool</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

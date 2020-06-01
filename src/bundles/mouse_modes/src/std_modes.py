@@ -230,7 +230,7 @@ def _pick_description(picks):
                 count, name = d.split(maxsplit = 1)
                 c = int(count)
                 item_counts[name] = item_counts.get(name,0) + c
-            except:
+            except Exception:
                 pdesc.append(d)
     pdesc.extend('%d %s' % (count, name) for name, count in item_counts.items())
     desc = ', '.join(pdesc)
@@ -247,6 +247,7 @@ class MoveMouseMode(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
+        self.speed = 1
         self._z_rotate = False
         self._moved = False
 
@@ -323,8 +324,9 @@ class MoveMouseMode(MouseMode):
     def _rotate(self, axis, angle):
         # Convert axis from camera to scene coordinates
         saxis = self.camera_position.transform_vector(axis)
+        angle *= self.speed
         if self._moving_atoms:
-            from chimerax.core.geometry import rotation
+            from chimerax.geometry import rotation
             self._move_atoms(rotation(saxis, angle, center = self._atoms_center()))
         else:
             self.view.rotate(saxis, angle, self.models())
@@ -348,7 +350,6 @@ class MoveMouseMode(MouseMode):
                 angle = -angle
         else:
             axis = (dy,dx,0)
-            
         return axis, angle
 
     def _restricted_axis(self):
@@ -364,10 +365,10 @@ class MoveMouseMode(MouseMode):
 
     def _translate(self, shift):
         psize = self.pixel_size()
-        s = tuple(dx*psize for dx in shift)     # Scene units
+        s = tuple(dx*psize*self.speed for dx in shift)     # Scene units
         step = self.camera_position.transform_vector(s)    # Scene coord system
         if self._moving_atoms:
-            from chimerax.core.geometry import translation
+            from chimerax.geometry import translation
             self._move_atoms(translation(step))
         else:
             self.view.translate(step, self.models())
@@ -389,7 +390,7 @@ class MoveMouseMode(MouseMode):
         else:
             scene_axis = models[0].position.transform_vector(raxis)
         axis = self.camera_position.inverse().transform_vector(scene_axis)	# Camera coords
-        from chimerax.core.geometry import normalize_vector, inner_product
+        from chimerax.geometry import normalize_vector, inner_product
         axis = normalize_vector(axis)
         rshift = -inner_product(axis, shift) * axis + shift
         return rshift
@@ -544,6 +545,33 @@ class TranslateXYSelectedModelsMouseMode(TranslateSelectedModelsMouseMode):
         self._restrict_to_plane = (0,0,1)
         self._restrict_to_axis = (0,0,1)
 
+class MovePickedModelsMouseMode(TranslateMouseMode):
+    '''
+    Mouse mode to translate picked models.
+    '''
+    name = 'move picked models'
+    icon_file = 'icons/move_h2o.png'  # TODO: Make icon witbhout selection outline
+
+    def mouse_down(self, event):
+        self._picked_models = None
+        x,y = event.position()
+        from . import picked_object
+        pick = picked_object(x, y, self.view)
+        if pick and hasattr(pick, 'drawing'):
+            m = pick.drawing()
+            from chimerax.core.models import Model
+            if isinstance(m, Model):
+                self._picked_models = [m]
+        TranslateMouseMode.mouse_down(self, event)
+
+    def mouse_up(self, event):
+        TranslateMouseMode.mouse_up(self, event)
+        self._picked_models = None
+
+    def models(self):
+        return self._picked_models
+
+
 class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     '''
     Mouse mode to translate selected atoms.
@@ -567,18 +595,22 @@ class ZoomMouseMode(MouseMode):
     '''
     name = 'zoom'
     icon_file = 'icons/zoom.png'
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        self.speed = 1
 
     def mouse_drag(self, event):        
 
         dx, dy = self.mouse_motion(event)
         psize = self.pixel_size()
-        delta_z = 3*psize*dy
+        delta_z = 3*psize*dy*self.speed
         self.zoom(delta_z, stereo_scaling = not event.alt_down())
 
     def wheel(self, event):
         d = event.wheel_value()
         psize = self.pixel_size()
-        self.zoom(100*d*psize, stereo_scaling = not event.alt_down())
+        delta_z = 100*d*psize*self.speed
+        self.zoom(delta_z, stereo_scaling = not event.alt_down())
 
     def zoom(self, delta_z, stereo_scaling = False):
         v = self.view
@@ -727,7 +759,7 @@ class ClipMouseMode(MouseMode):
         if pf is None and pb is None:
             return
 
-        from chimerax.core.graphics import SceneClipPlane, CameraClipPlane
+        from chimerax.graphics import SceneClipPlane, CameraClipPlane
         p = pf or pb
         if delta is not None:
             d = delta
@@ -741,7 +773,7 @@ class ClipMouseMode(MouseMode):
         # Check if slab thickness becomes less than zero.
         dt = -d*(front_shift+back_shift)
         if pf and pb and dt < 0:
-            from chimerax.core.geometry import inner_product
+            from chimerax.geometry import inner_product
             sep = inner_product(pb.plane_point - pf.plane_point, pf.normal)
             if sep + dt <= 0:
                 # Would make slab thickness less than zero.
@@ -856,7 +888,7 @@ class ClipRotateMouseMode(MouseMode):
     def clip_rotate(self, axis, angle):
         v = self.view
         scene_axis = v.camera.position.transform_vector(axis)
-        from chimerax.core.geometry import rotation
+        from chimerax.geometry import rotation
         r = rotation(scene_axis, angle, v.center_of_rotation)
         for p in self._planes():
             p.normal = r.transform_vector(p.normal)
@@ -865,7 +897,7 @@ class ClipRotateMouseMode(MouseMode):
     def _planes(self):
         v = self.view
         cp = v.clip_planes
-        from chimerax.core.graphics import SceneClipPlane
+        from chimerax.graphics import SceneClipPlane
         rplanes = [p for p in cp.planes() if isinstance(p, SceneClipPlane)]
         if len(rplanes) == 0:
             from chimerax.std_commands.clip import adjust_plane
@@ -905,6 +937,7 @@ def standard_mouse_mode_classes():
         ZoomMouseMode,
         TranslateSelectedModelsMouseMode,
         TranslateXYSelectedModelsMouseMode,
+        MovePickedModelsMouseMode,
         TranslateSelectedAtomsMouseMode,
         RotateSelectedModelsMouseMode,
         RotateZSelectedModelsMouseMode,

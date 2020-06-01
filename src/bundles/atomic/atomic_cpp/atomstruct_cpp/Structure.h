@@ -260,6 +260,7 @@ public:
     size_t  num_bonds() const { return bonds().size(); }
     size_t  num_hyds() const { return _num_hyds; }
     size_t  num_residues() const { return residues().size(); }
+    size_t  num_ribbon_residues() const;
     size_t  num_chains() const { return chains().size(); }
     size_t  num_coord_sets() const { return coord_sets().size(); }
     AS_PBManager&  pb_mgr() { return _pb_mgr; }

@@ -57,7 +57,6 @@ and their code location is described with the function descriptions.
 | `movie`_ * - Record videos
 | `mseries`_ * - Display a series of models
 | `open`_ - Open data files
-| `pdbimages`_ - Render PDB assembly images
 | `perframe`_ - Run a command for every rendered frame
 | `pwd`_ - Print working directory
 | `rainbow`_ - Color residues and chains
@@ -142,12 +141,13 @@ cofr
 color
 =====
 .. autofunction:: chimerax.std_commands.color.color
-.. autofunction:: chimerax.surface.colorvol.color_electrostatic
-.. autofunction:: chimerax.surface.colorvol.color_sample
-.. autofunction:: chimerax.surface.colorvol.color_gradient
-.. autofunction:: chimerax.surface.colorgeom.color_radial
 .. autofunction:: chimerax.surface.colorgeom.color_cylindrical
+.. autofunction:: chimerax.surface.colorvol.color_electrostatic
+.. autofunction:: chimerax.surface.colorvol.color_gradient
 .. autofunction:: chimerax.surface.colorgeom.color_height
+.. autofunction:: chimerax.surface.texture.color_image
+.. autofunction:: chimerax.surface.colorgeom.color_radial
+.. autofunction:: chimerax.surface.colorvol.color_sample
 .. autofunction:: chimerax.surface.colorzone.color_zone
 		  
 coordset
@@ -293,11 +293,9 @@ mseries
 
 open
 ====
-.. autofunction:: chimerax.core.commands.open.open
+Function defined in *chimerax.open_command.cmd*
 
-pdbimages
-=========
-.. autofunction:: chimerax.std_commands.pdbimages.pdbimages
+.. autofunction:: chimerax.open_command.cmd.provider_open
 
 perframe
 ========
@@ -330,7 +328,9 @@ run
 
 save
 ====
-.. autofunction:: chimerax.core.commands.save.save
+Function defined in *chimerax.save_command.cmd*
+
+.. autofunction:: chimerax.save_command.cmd.provider_save
 
 select
 ======
@@ -373,8 +373,8 @@ surface
 =======
 .. autofunction:: chimerax.surface.surfacecmds.surface
 .. autofunction:: chimerax.surface.surfacecmds.surface_close
-.. autofunction:: chimerax.surface.surfacecmds.surface_hide
-.. autofunction:: chimerax.surface.surfacecmds.surface_show
+.. autofunction:: chimerax.surface.surfacecmds.surface_hide_patches
+.. autofunction:: chimerax.surface.surfacecmds.surface_show_patches
 .. autofunction:: chimerax.surface.surfacecmds.surface_style
 .. autofunction:: chimerax.surface.surfacecmds.surface_cap
 .. autofunction:: chimerax.surface.sop.surface_dust
@@ -397,8 +397,6 @@ toolshed
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_install
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_uninstall
 .. autofunction:: chimerax.core.commands.toolshed.toolshed_url
-.. autofunction:: chimerax.core.commands.toolshed.toolshed_show
-.. autofunction:: chimerax.core.commands.toolshed.toolshed_hide
 
 transparency
 ============
@@ -411,8 +409,14 @@ turn
 ui
 ==
 .. autofunction:: chimerax.ui.cmd.ui_autostart
+  :noindex:
 .. autofunction:: chimerax.ui.cmd.ui_dockable
-.. autofunction:: chimerax.mouse_modes.cmd.ui_mousemode
+  :noindex:                  
+.. autofunction:: chimerax.mouse_modes.cmd.mousemode
+.. autofunction:: chimerax.ui.cmd.ui_tool_show
+  :noindex:                  
+.. autofunction:: chimerax.ui.cmd.ui_tool_hide
+  :noindex:                  
 
 
 view
@@ -430,7 +434,9 @@ volume
 .. autofunction:: chimerax.map.filter.vopcommand.volume_add
 .. autofunction:: chimerax.map.filter.vopcommand.volume_bin
 .. autofunction:: chimerax.map.filter.vopcommand.volume_boxes
+.. autofunction:: chimerax.map.filter.vopcommand.volume_copy
 .. autofunction:: chimerax.map.filter.vopcommand.volume_cover
+.. autofunction:: chimerax.map_eraser.eraser.volume_erase
 .. autofunction:: chimerax.map.filter.vopcommand.volume_falloff
 .. autofunction:: chimerax.map.filter.vopcommand.volume_flatten
 .. autofunction:: chimerax.map.filter.vopcommand.volume_flip
@@ -438,21 +444,26 @@ volume
 .. autofunction:: chimerax.map.filter.vopcommand.volume_gaussian
 .. autofunction:: chimerax.map.filter.vopcommand.volume_laplacian
 .. autofunction:: chimerax.map.filter.vopcommand.volume_local_correlation
+.. autofunction:: chimerax.mask.maskcommand.mask
 .. autofunction:: chimerax.map.filter.vopcommand.volume_maximum
 .. autofunction:: chimerax.map.filter.vopcommand.volume_median
 .. autofunction:: chimerax.map.filter.vopcommand.volume_minimum
 .. autofunction:: chimerax.map.filter.vopcommand.volume_morph
 .. autofunction:: chimerax.map.filter.vopcommand.volume_multiply
+.. autofunction:: chimerax.map.filter.vopcommand.volume_new
 .. autofunction:: chimerax.map.filter.vopcommand.volume_octant
+.. autofunction:: chimerax.mask.maskcommand.ones_mask
 .. autofunction:: chimerax.map.filter.vopcommand.volume_permute_axes
 .. autofunction:: chimerax.map.filter.vopcommand.volume_resample
 .. autofunction:: chimerax.map.filter.vopcommand.volume_ridges
 .. autofunction:: chimerax.map.filter.vopcommand.volume_scale
+.. autofunction:: chimerax.surface.colorzone.split_volume_by_color_zone
 .. autofunction:: chimerax.map.filter.vopcommand.volume_subtract
 .. autofunction:: chimerax.map.filter.vopcommand.volume_threshold
 .. autofunction:: chimerax.map.filter.vopcommand.volume_tile
 .. autofunction:: chimerax.map.filter.vopcommand.volume_unbend
 .. autofunction:: chimerax.map.filter.vopcommand.volume_unroll
+.. autofunction:: chimerax.map.filter.vopcommand.volume_unzone
 .. autofunction:: chimerax.map.filter.vopcommand.volume_zone
 
 vseries

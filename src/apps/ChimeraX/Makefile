@@ -100,6 +100,13 @@ ifeq ($(OS),Darwin)
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
 		$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns; \
 	fi
+
+reinstall-plist:
+	rm Info.plist
+# use Chimera executable in this pass so that we pick up registered formats (and 'session' is available)
+#	$(MAKE) Info.plist
+	$(wildcard $(TOP)/ChimeraX*.app)/Contents/bin/ChimeraX --nogui --script "mkinfo.py $(APP_NAME)" --exit || (rm Info.plist ; exit 1)
+	$(RSYNC) Info.plist $(app_prefix)/Info.plist
 endif
 endif
 
@@ -178,12 +185,11 @@ ChimeraX-icon16.png:
 YEAR = $(shell $(PYTHON_EXE) geticoninfo.py -y)
 VER = $(shell $(PYTHON_EXE) geticoninfo.py -v)
 PRODVER = $(shell $(PYTHON_EXE) geticoninfo.py -p)
-ifeq (,$(wildcard $(TOP)/last-commit))
+RELEASE =  $(shell $(PYTHON_EXE) geticoninfo.py -r)
+ifeq ($(RELEASE),prerelease)
 FLAGS = VS_FF_PRERELEASE
-else ifeq (master,$(shell awk '$$1 == "branch:" { print $$2; }' $(TOP)/last-commit))
-FLAGS = 0
 else
-FLAGS = VS_FF_PRERELEASE
+FLAGS = 0
 endif
 
 $(APP_NAME).ico: $(APP_NAME)-icon512.png

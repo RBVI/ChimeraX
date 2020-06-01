@@ -20,7 +20,8 @@
 def mask(session, volumes, surfaces, axis = None, full_map = False,
          extend = 0, pad = 0, slab = None, sandwich = True, invert_mask = False,
          fill_overlap = False, model_id = None):
-
+    '''Create a new volume where values outside specified surfaces are set to zero.'''
+    
     if len(volumes) == 0:
         from chimerax.core.errors import UserError
         raise UserError('No volumes specified')
@@ -48,9 +49,11 @@ def mask(session, volumes, surfaces, axis = None, full_map = False,
 # -----------------------------------------------------------------------------
 #
 def ones_mask(session, surfaces, on_grid = None, spacing = None, border = 0, axis = None,
-              extend = 0, pad = 0, slab = None, sandwich = True, invert_mask = False,
+              extend = 0, pad = 0, full_map = True,
+              slab = None, sandwich = True, invert_mask = False,
               fill_overlap = False, value_type = None, model_id = None):
-
+    '''Create a volume which has value 1 inside surfaces and 0 outside.'''
+    
     if len(surfaces) == 0:
         from chimerax.core.errors import UserError
         raise UserError('No surfaces specified')
@@ -72,8 +75,6 @@ def ones_mask(session, surfaces, on_grid = None, spacing = None, border = 0, axi
         v.name = on_grid.name
         v.full_matrix()[:] = 1
     volumes = [v]
-
-    full_map = False if border == 0 else True
 
     mvlist = mask(session, volumes, surfaces, axis = axis, full_map = full_map,
                   extend = extend, pad = pad, slab = slab, sandwich = sandwich,
@@ -116,7 +117,7 @@ def ones_volume(surfaces, pad, spacing, border, default_size = 100,
 # -----------------------------------------------------------------------------
 #
 def scene_bounds(models, displayed_only = True):
-    from chimerax.core.geometry import union_bounds
+    from chimerax.geometry import union_bounds
     b = union_bounds([m.bounds() for m in models])
     return b
 
@@ -128,6 +129,7 @@ def register_mask_command(logger):
     from chimerax.map import MapsArg, Float1or3Arg, MapArg, ValueTypeArg
     mask_kw = [('pad', FloatArg),
                ('extend', IntArg),
+               ('full_map', BoolArg),
                ('slab', Or(FloatArg, Float2Arg)),
                ('invert_mask', BoolArg),
                ('axis', AxisArg),
@@ -136,7 +138,7 @@ def register_mask_command(logger):
                ('model_id', ModelIdArg)]
     desc = CmdDesc(
         required = [('volumes', MapsArg)],
-        keyword = [('surfaces', SurfacesArg), ('full_map', BoolArg)] + mask_kw,
+        keyword = [('surfaces', SurfacesArg)] + mask_kw,
         required_arguments = ['surfaces'],
         synopsis = 'Mask a map to a surface'
     )

@@ -90,7 +90,7 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   &ndash; <a href="commands/atomspec.html#hierarchy">residues</a>
   in currently open structures, sorted into nonstandard residues, 
   standard nucleic acids, and standard amino acids
-  <li><b>Structure</b> 
+  <li><b>Structure</b>
     <ul>
     <li><b>Backbone</b> &ndash; biopolymer backbone atoms: peptide N, CA, C, O, 
     nucleic acid phosphoribosyl backbone, and any directly attached hydrogens 
@@ -120,8 +120,7 @@ the <a href="tools/cli.html"><b>Command Line</b></a>
   <b>Sequence...</b> <a href="findseq.html">find and select</a>
   a specified amino acid or nucleotide sequence or sequence pattern
   <li><a name="selectzone"></a>
-  <b>Zone...</b> select atoms and bonds 
-(or whole residues, if <b>Apply criteria to whole residues</b> is checked)
+  <b>Zone...</b> select <b>atoms</b> or <b>residues</b>
 within and/or beyond a specified distance from the currently selected atoms.
 If both the within (&lt;) and beyond (&gt;) options are checked, 
 both criteria must be met; for example, the atoms or residues must fall within 
@@ -160,9 +159,14 @@ level in the <a href="selection.html#cascade">selection cascade</a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
 <b>Actions</b>
 <p>
-The <b>Actions</b> menu works on the current
-<a href="selection.html">selection</a>, 
-or if nothing is selected, all applicable items.
+The <b>Actions</b> menu 
+applies to the <a href="hierarchy.html">displayed models</a> only (those with 
+&nbsp;<img class="iconbar" src="tools/ui-icons/shown.png" title="eye icon"
+alt="eye icon">&nbsp; checkboxes in the
+<a href="tools/modelpanel.html"><b>Model Panel</b></a>
+checked for themselves and any parents).
+Within those models, it works on the current
+<a href="selection.html">selection</a>, or if none, all applicable items.
 </p>
 <ul>
 <li><b>Atoms/Bonds</b> &ndash; <a href="commands/show.html"><b>show/hide</b></a>
@@ -196,25 +200,6 @@ nucleic acid base + ribose
 peptide backbone, nucleic acid phosphoribosyl backbone
   <li><b>Chain Trace Only</b>
 &ndash; hide cartoon and show chain-trace atoms: amino acid CA, nucleic acid P
-  <li><b>Cartoon</b></a>
-&ndash; <a href="commands/cartoon.html"><b>cartoon</b></a> settings;
-note showing cartoon hides backbone atoms unless 
-their simultaneous display has been enabled with 
-<a href="commands/cartoon.html#suppress"><b>cartoon suppress false</b></a>
-(see also <a href="commands/show.html"><b>show/hide</b></a>,
-<a href="commands/cartoon.html#style"><b>cartoon style</b></a>)
-    <ul>
-    <li><b>Show</b>
-    <li><b>Hide</b>
-    <li><b>Rounded Edges</b> &ndash; oval cross-section
-(for a round cross-section, use
-<a href="commands/cartoon.html#style"><b>cartoon style</b></a>
-to set width = thickness, for example: <b>cartoon style
-<a href="commands/atomspec.html#builtin">sel</a> width 1.5 thick 1.5</b>)
-    <li><b>Squared Edges</b> &ndash; rectangular cross-section
-    <li><b>Piped Edges</b> &ndash; barbell cross-section
-    <li><b>Tube Helices</b> &ndash; protein &alpha;-helices as curved cylinders
-    </ul>
   <li><b>Nucleotide Style</b>
   &ndash; <a href="commands/nucleotides.html"><b>nucleotides</b></a> settings
     <ul>
@@ -230,16 +215,120 @@ to set width = thickness, for example: <b>cartoon style
 atoms/bonds (<b>caution: irreversible</b>)
   </ul>
 <br>
-<li><b>Surface</b>
-&ndash; <a href="commands/show.html"><b>show</b></a>
-and <a href="commands/show.html"><b>hide</b></a> atomic patches (if any)
-of <a href="commands/surface.html">molecular surface</a>
+<li><b>Cartoon</b></a>
+&ndash; <a href="commands/cartoon.html"><b>cartoon</b></a> segments
+can be shown/hidden for individual residues in a biopolymer chain;
+showing cartoon hides backbone atoms unless 
+their simultaneous display has been enabled with 
+<a href="commands/cartoon.html#suppress"><b>cartoon suppress false</b></a>
   <ul>
   <li><b>Show</b>
   <li><b>Hide</b>
   </ul>
+The <a href="commands/cartoon.html#style"><b>cartoon style</b></a> settings 
+apply to whole models, except that edge shape can be set differently
+for <a href="#select">nucleic</a> and for protein 
+<a href="#select">helix, strand, and coil</a>:
+  <ul>
+  <li><b>Rounded Edges</b> &ndash; oval cross-section
+(for a round cross-section, use
+<a href="commands/cartoon.html#style"><b>cartoon style</b></a>
+to set width = thickness, for example: <b>cartoon style
+<a href="commands/atomspec.html#builtin">sel</a> width 1.5 thick 1.5</b>)
+  <li><b>Squared Edges</b> &ndash; rectangular cross-section
+  <li><b>Piped Edges</b> &ndash; barbell cross-section
+  <li><b>Tube Helices</b> &ndash; protein &alpha;-helices as curved cylinders
+  </ul>
+<br>
+<li><b>Surface</b>
+&ndash; show/hide <a href="commands/surface.html">molecular surfaces</a>;
+the <a href="commands/surface.html#style"><b>surface style</b></a>
+and <a href="commands/transparency.html"><b>transparency</b></a> options
+also apply to <a href="tools/volumeviewer.html">volume surfaces</a>
+  <ul>
+  <li><b>Show</b>
+  <li><b>Hide</b>
+  <li><b>Solid</b>
+  <li><b>Mesh</b>
+  <li><b>Dot</b>
+  <li><b>Transparency</b>
+     <ul>
+     <li><b>0%</b>
+     <li><b>10%</b>
+     <li><b>20%</b>
+     <li><b>30%</b>
+     <li><b>40%</b>
+     <li><b>50%</b>
+     <li><b>60%</b>
+     <li><b>70%</b>
+     <li><b>80%</b>
+     <li><b>90%</b>
+     <li><b>100%</b>
+     </ul>
+  </ul>
 </ul>
-
+<ul>
+<a name="actcolor"></a>
+<li><b>Color</b>
+&ndash; see also <a href="commands/color.html"><b>color</b></a>
+  <ul>
+ <li>[20 of the commonly used 
+<a href="commands/colornames.html#builtin">named colors</a>]
+  <li><b>By Heteroatom</b>
+  &ndash; use a built-in <a href="commands/colortables.html#element">
+  color-by-element scheme</a>, except leaving carbon atoms unchanged
+  <li><b>By Element</b>
+  &ndash; use a built-in <a href="commands/colortables.html#element">
+  color-by-element scheme</a>
+  <li><b>From Editor</b> &ndash; use the system color-editing tool
+  <li><b>All Options...</b> open the 
+  <a href="tools/coloractions.html"><b>Color Actions</b></a> dialog
+  for access to <a href="commands/colornames.html#builtin">all built-in 
+  named colors</a> and finer control over which types of items are colored
+  (for example, background only or cartoons only)
+  </ul>
+<br>
+<li><b>Label</b>
+&ndash; see also <a href="commands/label.html"><b>label</b></a>
+  <ul>
+  <li><b>Atom</b>
+   <ul>
+   <li><b>Name</b>
+   <li><b>Element</b>
+   <li><b>IDATM Type</b> &ndash; by <a href="atomtypes.html">atom type</a>
+   <li><b>Custom Text</b></a>
+&ndash; arbitrary text and/or values of
+<a href="attributes.html">attributes</a>, as described for the
+<a href="commands/label.html#text"><b>text</b> option of <b>label</b></a>.
+Examples:
+     <ul class="none"><b>
+     <li>hello&nbsp;world
+     <li>{0.bfactor:g}
+     </b></ul>
+    <li><b>Off</b>
+   </ul>
+  <li><b>Residue</b>
+    <ul>
+    <li><b>Name</b>
+    <li><b>Specifier</b></a> &ndash; chain ID and number
+    <li><b>Name Combo</b> &ndash; chain ID, name, and number
+    <li><b>1-Letter Code</b> &ndash; 1-letter code for standard
+    amino acid and nucleic acid residues, name for other residues
+    <li><b>1-Letter Code Combo</b> &ndash; as above plus chain ID and number
+    <li><b>Custom Text</b>
+&ndash; arbitrary text and/or values of
+<a href="attributes.html">attributes</a>, as described for the
+<a href="commands/label.html#text"><b>text</b> option of <b>label</b></a>.
+Examples:
+      <ul class="none"><b>
+      <li>wild type
+      <li>{0.chain_id}
+      <li>{0.phi:.1f},{0.psi:.1f}
+      </b></ul>
+    <li><b>Off</b>
+    </ul>
+  </ul>
+</ul>
 <a name="tools"></a>
 <a href="#top" class="nounder"><b>&larr;</b></a>
 <b>Tools</b>
@@ -248,7 +337,11 @@ The <b>Volume Data</b> category can be shown as a separate top-level
 <a href="#volume"><b>Volume</b> menu</a>.
 Active tools are listed in the bottom section and can be chosen
 to toggle their display: checked = shown, unchecked = hidden.
+The <b>More Tools</b> entry shows the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a>
+web repository of ChimeraX bundles.
 See also: 
+<a href="commands/ui.html#tool"><b>tool</b></a>,
 <a href="window.html#context-menu">context menus</a>
 <br><br>
 
@@ -257,7 +350,9 @@ See also:
 <b>Favorites</b>
 &ndash; <a href="index.html#tools">tools</a> designated as favorites 
 with the command <a href="commands/ui.html#favorite"><b>ui favorite</b></a>
-or <a href="window.html#tool-context">tool context menus</a>
+or <a href="window.html#tool-context">tool context menus</a>; 
+on some platforms, this menu also contains the 
+<a href="preferences.html"><b>Settings</b></a>
 <br><br>
 
 <a name="presets"></a>
@@ -375,5 +470,5 @@ target="_blank"><b>Tutorials</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-February 2020</address>
+May 2020</address>
 </body></html> 

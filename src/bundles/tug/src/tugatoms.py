@@ -176,7 +176,7 @@ class Puller2D:
         # Project atom onto view ray to get displacement.
         dir = x1 - x0
         da = axyz - x0
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         offset = da - (inner_product(da, dir)/inner_product(dir,dir)) * dir
         return axyz, -offset
 
@@ -324,7 +324,7 @@ class StructureTugger:
             if max_force > self._max_allowable_force:
                 raise Exception('Maximum force exceeded')
             self._log('Maximum force: %.3g' % max_force)
-        except:
+        except Exception:
                 max_force=self._max_force()
                 self._log("FAIL!!!\n")
                 self._set_simulation_coordinates()

@@ -797,17 +797,20 @@ class FloatSlider(QWidget):
         int_step = max(1, int(5000 * step / (maximum - minimum)))
         self._slider.setSingleStep(int_step)
         layout.addWidget(self._slider, 0, 0, 1, 3)
+        # for word-wrapped text, set the alignment within the label widget itself (instead of the layout)
+        # so that the label is given the full width of the layout to work with, otherwise you get unneeded
+        # line wrapping
         self._left_text = QLabel()
         self._left_text.setWordWrap(True)
         self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        layout.addWidget(self._left_text, 1, 0, alignment=Qt.AlignLeft | Qt.AlignTop)
+        layout.addWidget(self._left_text, 1, 0)
         self._value_text = QLabel()
         self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
         layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
         self._right_text = QLabel()
         self._right_text.setWordWrap(True)
         self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
-        layout.addWidget(self._right_text, 1, 2, alignment=Qt.AlignRight | Qt.AlignTop)
+        layout.addWidget(self._right_text, 1, 2)
         self._format = "%%.%df" % decimal_places
         self._slider.valueChanged.connect(self._slider_value_changed)
         self._slider.sliderReleased.connect(self._slider_released)

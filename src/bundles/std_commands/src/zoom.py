@@ -57,7 +57,7 @@ def zoom_camera(c, point, factor):
         # Perspective camera
         v = c.view_direction()
         p = c.position
-        from chimerax.core.geometry import inner_product, translation
+        from chimerax.geometry import inner_product, translation
         delta_z = inner_product(p.origin() - point, v)
         zmove = (delta_z*(1-factor)/factor) * v
         c.position = translation(zmove) * p

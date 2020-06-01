@@ -1,4 +1,3 @@
-
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 # === UCSF ChimeraX Copyright ===
@@ -20,14 +19,24 @@
 from chimerax.core.models import Model
 class Volume(Model):
   '''
-  A Volume is a rendering of a 3-d image GridData object.  It includes
-  color, display styles including surface, mesh and grayscale, contouring levels,
+  A Volume is a Model that renders a 3-d image of a :class:`~.data.GridData` object.
+  It includes color, display styles including surface, mesh and grayscale, contouring levels,
   brightness and transparency for grayscale rendering, region bounds for display
   a subregion including single plane display, subsampled display of every Nth data
   value along each axis, outline box display.
+
+  Attributes
+  ----------
+  session : :class:`~chimerax.core.session.Session`
+      The session that the Volume will belong to.
+  data : :class:`~.data.GridData`
+      3D data array
+  region : (ijk_min, ijk_max, ijk_step)
+      Initial displayed subregion of 3D array
+  rendering_options : :class:`.RenderingOptions`
+      Appearance settings for surface and image display.
   '''
   def __init__(self, session, data, region = None, rendering_options = None):
-    '''Supported API. Create a volume model from a GridData instance.'''
     
     Model.__init__(self, data.name, session)
 
@@ -166,13 +175,16 @@ class Volume(Model):
   #
   @property
   def surfaces(self):
-    '''Supported API.  Return a list of VolumeSurface instances for this Volume.'''
+    '''Supported API.  Return a list of :class:`.VolumeSurface` instances for this Volume.'''
     return self._surfaces
   
   # ---------------------------------------------------------------------------
   #
   def add_surface(self, level, rgba = (.7,.7,.7,1), display = True):
-    '''Supported API.  Create and add a new VolumeSurface with specified contour level and color.'''
+    '''
+    Supported API.  Create and add a new :class:`.VolumeSurface` with
+    specified contour level and color.
+    '''
     ses = self.session
     s = VolumeSurface(self, level, rgba)
     s.display = display
@@ -188,7 +200,7 @@ class Volume(Model):
   #
   def remove_surfaces(self, surfaces = None):
     '''
-    Supported API.  Remove a list of VolumeSurface instances from this Volume.
+    Supported API.  Remove a list of :class:`.VolumeSurface` instances from this Volume.
     If surfaces is None then all current surfaces are removed.
     '''
     surfs = tuple(self._surfaces if surfaces is None else surfaces)
@@ -208,22 +220,54 @@ class Volume(Model):
   
   # ---------------------------------------------------------------------------
   #
-  def set_parameters(self, **kw):
+  def set_parameters(self,
+                     surface_levels = None,
+                     surface_colors = None,
+                     transparency = None,
+                     brightness = None,
+                     image_levels = None,
+                     image_colors = None,
+                     transparency_depth = None,
+                     image_brightness_factor = None,
+                     default_rgba = None,
+                     **rendering_options):
     '''
-    Set volume display parameters.  The following keyword parameters are valid.
+    Set volume display parameters.
   
-      surface_levels
-      surface_colors              (rgb or rgba values)
-      transparency                (for surfaces)
-      brightness		  (scales surface brightness)
-      image_levels
-      image_colors                (rgb or rgba values)
-      transparency_depth
-      image_brightness_factor
-  
-      Any rendering option attribute names can also be used.
+    Parameters
+    ----------
+    surface_levels : list of float
+      Threshold levels for contour surfaces.
+    surface_colors : list of (r,g,b) or (r,g,b,a)
+      Color for each surface level, color components have 0-1 range.
+    transparency : float
+      Surface transparency, 0 = fully opaque, 1 = fully transparent.
+    brightness : float
+      Scale surface brightness by this factor.
+    image_levels : list of (float, float)
+      Pairs of (threshold, brightness) where threshold is a map value
+      and brighness ranges from 0-1.  This defines a piecewise linear
+      brightness curve for image style rendering.
+    image_colors : list of (r,g,b) or (r,g,b,a)
+      Color associated with each image level, color components have 0-1 range.
+    transparency_depth : float
+      Controls how transparent image style renderings are, range 0-1.
+      Image rendering makes opacity equal to brightness, ie. full brightness (= 1)
+      image levels are fully opaque, and 0 brightness levels are fully transparent.
+      The thickness that produces this transparency is the displayed region size
+      multiplied by the transparency depth, where the region size is the size along
+      the axis (x, y, or z) having fewest grid points.
+    image_brightness_factor : float
+      Scale image style rendering by this factor.
+    default_rgba : 4 floats
+      Initial color (red, green, blue, alpha) to use for surface and
+      image style renderings.  Color components in range 0-1.
+    rendering_options : all additional settings
+      Any RenderingOption attribute name and value can be specified
+      as a keyword option.
     '''
 
+    kw = rendering_options.copy()
     parameters = ('surface_levels',
                   'surface_colors',
                   'transparency',
@@ -234,6 +278,8 @@ class Volume(Model):
                   'transparency_depth',
                   'default_rgba',
                   )
+    loc = locals()
+    kw.update({attr:loc[attr] for attr in parameters if loc[attr] is not None})
 
     def rgb_to_rgba(color):
       if len(color) == 3:
@@ -497,7 +543,7 @@ class Volume(Model):
     polar = getattr(self.data, 'polar_values', False)
     if polar:
       levels = [-v,v]
-      neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+      neg_rgba = _negative_color(rgba)
       colors = [neg_rgba,rgba]
     elif binary:
       levels = [0.5]
@@ -674,6 +720,11 @@ class Volume(Model):
     if vm is None:
       s._volume_update_manager = vm = VolumeUpdateManager(s)
     vm.add(self)
+    if s.in_script:
+      # In scripts update volume drawings immediately.
+      # Script commands often depend on volume surfaces being computed immediately.
+      # For examnple, set surface level, then run volume dust.
+      self.update_drawings()
 
   # ---------------------------------------------------------------------------
   #
@@ -951,7 +1002,7 @@ class Volume(Model):
   #
   def surface_bounds(self):
     '''Surface bounds in volume coordinate system.'''
-    from chimerax.core.geometry import union_bounds
+    from chimerax.geometry import union_bounds
     return union_bounds([s.geometry_bounds() for s in self.surfaces])
       
   # ---------------------------------------------------------------------------
@@ -1001,7 +1052,7 @@ class Volume(Model):
         xyz_in, xyz_out = slice.box_line_intercepts((vxyz1, vxyz2), self.xyz_bounds())
         if xyz_in is None or xyz_out is None:
           return None
-        from chimerax.core.geometry import norm
+        from chimerax.geometry import norm
         f = norm(0.5*(xyz_in+xyz_out) - mxyz1) / norm(mxyz2 - mxyz1)
         if self.single_plane():
           # Report voxel under mouse and data value.
@@ -1014,7 +1065,7 @@ class Volume(Model):
           detail = ''
         return PickedMap(self, f, detail)
     elif self.surface_shown:
-      from chimerax.core.graphics import Drawing
+      from chimerax.graphics import Drawing
       pd = Drawing.first_intercept(self, mxyz1, mxyz2, exclude)
       if pd:
         d = pd.drawing()
@@ -1122,7 +1173,7 @@ class Volume(Model):
     va = {0:(1,0,0), 1:(0,1,0), 2:(0,0,1)}[axis]
     lv = d.ijk_to_xyz(va) - d.ijk_to_xyz((0,0,0))
     v = self.position * lv
-    from chimerax.core.geometry import normalize_vector
+    from chimerax.geometry import normalize_vector
     vn = normalize_vector(v)
     return vn
 
@@ -1249,7 +1300,7 @@ class Volume(Model):
     xi, yi, zi = data.ijk_to_xyz((io+istep, jo, ko))
     xj, yj, zj = data.ijk_to_xyz((io, jo+jstep, ko))
     xk, yk, zk = data.ijk_to_xyz((io, jo, ko+kstep))
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     tf = Place(((xi-xo, xj-xo, xk-xo, xo),
                 (yi-yo, yj-yo, yk-yo, yo),
                 (zi-zo, zj-zo, zk-zo, zo)))
@@ -1298,12 +1349,17 @@ class Volume(Model):
     return self.step_aligned_region(r)
 
   # ---------------------------------------------------------------------------
-  # Return the origin aligned to a multiple of step and size of the region and step.
+  # Return the origin aligned to a multiple of step, and size and step of the region.
+  # The origin[axis] is the smallest index equal or greater to region ijk_min[axis]
+  # that is a multiple of the step.  The end of the region is the largest index equal
+  # or less than ijk_max[axis] that is a multiple of the step, unless that index is
+  # less than the origin in which case the end equals the origin.  The returned
+  # size is always a multiple of step.
   #
   def step_aligned_region(self, region, clamp = True):
 
     ijk_min, ijk_max, ijk_step = region
-    
+
     # Samples always have indices divisible by step, so increase ijk_min if
     # needed to make it a multiple of ijk_step.
     origin = [s*((i+s-1)//s) for i,s in zip(ijk_min, ijk_step)]
@@ -1313,11 +1369,11 @@ class Volume(Model):
       if origin[a] > ijk_max[a] and ijk_min[a] <= ijk_max[a]:
         origin[a] -= ijk_step[a]
 
-    end = [s*(i+s)//s for i,s in zip(ijk_max, ijk_step)]
+    end = [max(s*(i//s),o) for i,s,o in zip(ijk_max, ijk_step, origin)]
     if clamp:
       origin = [max(i,0) for i in origin]
-      end = [min(i,lim) for i,lim in zip(end, self.data.size)]
-    size = [e-o for e,o in zip(end, origin)]
+      end = [min(i,lim-1) for i,lim in zip(end, self.data.size)]
+    size = [e-o+s for e,o,s in zip(end, origin, ijk_step)]
 
     return tuple(origin), tuple(size), tuple(ijk_step)
 
@@ -1657,7 +1713,7 @@ class Volume(Model):
       return False
     if self.image_shown:
       return 'a' in self._image.color_mode
-    from chimerax.core.graphics import Drawing
+    from chimerax.graphics import Drawing
     return Drawing.showing_transparent(self)
   
   # ---------------------------------------------------------------------------
@@ -1750,6 +1806,11 @@ class Volume(Model):
 #
 from .image3d import Image3d
 class VolumeImage(Image3d):
+  '''
+  Model for displaying 3d semi-transparent images.
+  These models are children of a :class:`.Volume` model
+  and should only be created by Volume.
+  '''
   def __init__(self, volume):
 
     self._volume = v = volume
@@ -1765,9 +1826,10 @@ class VolumeImage(Image3d):
     v.add([self])
 
     if hasattr(v, 'mask_colors'):
-      s.mask_colors = v.mask_colors
+      self.mask_colors = v.mask_colors
+      self._need_color_update()	# Adjust color mode to rgb
     if hasattr(v, 'segment_colors'):
-      s.segment_colors = v.segment_colors
+      self.segment_colors = v.segment_colors
 
   # ---------------------------------------------------------------------------
   #
@@ -1823,7 +1885,8 @@ class VolumeImage(Image3d):
     if ro.image_mode == 'tilted slab':
       thickness = ro.tilted_slab_spacing * ro.tilted_slab_plane_count
     else:
-      box_size = [x1-x0 for x0,x1 in zip(*v.xyz_bounds())]
+      ijk_min, ijk_max = v.ijk_bounds()
+      box_size = [(i1-i0)*s for i0,i1,s in zip(ijk_min, ijk_max, v.data.step)]
       thickness = min(box_size)
     return v.transparency_depth * thickness
   
@@ -1864,6 +1927,11 @@ class VolumeImage(Image3d):
 #
 from chimerax.core.models import Surface
 class VolumeSurface(Surface):
+  '''
+  Model for displaying a contour surface of a :class:`.Volume` model.
+  These models are children of a Volume and should only be created
+  by the :func:`.Volume.add_surface` method.
+  '''
 
   def __init__(self, volume, level, rgba = (1,1,1,1), mesh = False):
     name = 'surface'
@@ -1893,6 +1961,7 @@ class VolumeSurface(Surface):
     self._use_thread = use_thread
     self.volume.redraw_needed(shape_changed = True)
   level = property(_get_level, set_level)
+  '''Threshold level for the surface. Settable.'''
 
   def _get_rgba(self):
     return tuple(c/255 for c in self.color)
@@ -2223,8 +2292,11 @@ def maps_pickable(session, pickable):
 
 # -----------------------------------------------------------------------------
 #
-from chimerax.core.graphics import Pick
+from chimerax.graphics import Pick
 class PickedMap(Pick):
+  '''
+  Returned by :func:`.Volume.first_intercept()` when a Volume is picked.
+  '''
   def __init__(self, v, distance = None, detail = ''):
     Pick.__init__(self, distance)
     self.map = v
@@ -2575,10 +2647,122 @@ class Region_List:
 # -----------------------------------------------------------------------------
 #
 class RenderingOptions:
+  '''
+  Rendering options for a :class:`.Volume` that specify details of how
+  surface and image style depictions appear.  Some options are not implemented
+  but existed in Chimera and may be implemented in the future.
 
+  Attributes
+  ----------
+  show_outline_box : False
+    Whether a outline box is shown for the displayed subregion.
+  outline_box_rgb : (1,1,1)
+    Outline box color (red, green, blue) components, range 0-1.
+  limit_voxel_count : True
+    Whether to auto-adjust step size so at most voxel_limit voxels are shown.
+  voxel_limit : 16
+    Choose step size so the region has at most this many Mvoxels.
+  color_mode : 'auto8'
+    Sets the pixel format for image style rendering color vs grayscale,
+    transparent vs opaque, and bits per color component.
+    (auto|opaque|rgba|rgb|la|l)(4|8|12|16).
+  color_modes : ('auto4', 'auto8', 'auto12', 'auto16', 'opaque4', 'opaque8', 'opaque12', 'opaque16', 'rgba4', 'rgba8', 'rgba12', 'rgba16', 'rgb4', 'rgb8', 'rgb12', 'rgb16', 'la4', 'la8', 'la12', 'la16', 'l4', 'l8', 'l12', 'l16')
+    The allowed color modes for image style rendering.  Read only.
+  colormap_on_gpu : False
+    Whether colors are computed from map values on the gpu for image style rendering.
+  colormap_size : 2048
+    If colormap_on_gpu is true, what is the size of the colormap for map values
+    that are not  8 or 16-bit data types.
+  colormap_extend_left : False
+    Whether the image coloring applies to map values less than the minimum Volume image_level.
+  colormap_extend_right : True
+    Whether the image coloring applies to map values greater than the maximum Volume image_level.
+  blend_on_gpu : False
+    Whether image rendering blends images on gpu instead of cpu.
+  projection_mode : 'auto'
+    Determines what slices are used for image rendering.
+  projection_modes : ('auto', '2d-xyz', '2d-x', '2d-y', '2d-z', '3d')
+    Allowed projection modes.  Read only.
+  plane_spacing : 'min'
+    Spacing of slices for image style rendering. Values "min", "max", "mean" use
+    the grid spacing, or specific distance value can be given.
+  full_region_on_gpu : False
+    For image rendering is the entire map kept on the GPU for fast cropping.
+  bt_correction : False
+    Image rendering axis-dependent brightness and transparency correction.  Not implemented.
+  minimal_texture_memory : False
+    Whether to reuse a single texture for image rendering.  Not implemented.
+  maximum_intensity_projection : False
+    Whether to use maximum intensity projection image rendering.  If False then
+    transparent blending is used.
+  linear_interpolation : True
+    Whether image rendering linearly interpolates pixel colors.
+  dim_transparency : True
+    Whether transparent surface rendering multiplies colors
+    by opacity making more transparent voxels dimmer.
+    True uses (alpha, 1-alpha) blending while False uses (1, 1-alpha) blending.
+  dim_transparent_voxels : True
+    Whether transparent image rendering multiplies colors
+    by opacity making more transparent voxels dimmer.
+    True uses (alpha, 1-alpha) blending while False uses (1, 1-alpha) blending.
+  line_thickness : 1
+    The thickness of lines in pixels for mesh display.  Not implemented because
+    OpenGL core profile does not support line thickness.
+  smooth_lines : False
+    Whether mesh lines are rendered with anti-aliasing giving a smoother appearance.
+  mesh_lighting : True
+    Whether mesh rendering uses directional lighting.
+  two_sided_lighting : True
+    Whether the interior of surfaces and meshes have directional lighting.
+    Not implemented, always uses two-sided.
+  flip_normals : False
+    Whether negative map values have surface normals flipped.  Not implemented.
+    This only has an effect when two sided lighting is false, and that mode is not implemented.
+  subdivide_surface : False
+    Whether to split every triangle into 4 smaller triangles for surfaces and meshes.
+  subdivision_levels : 1
+    How many levels of triangle splitting to apply if subdivide surface is True.
+    A value of 1 divides triangles into 4 smaller triangles, 2 divides into 16
+    smaller triangles, N divides into 4^N smaller triangles.
+  surface_smoothing : False
+    Whether to move surface or mesh vertices to give smoother surface appearance.
+  smoothing_iterations : 2
+    How many iterations of smoothing to apply if surface smoothing is enabled.
+  smoothing_factor : .3
+    When surface smoothing each vertex is moved a fraction of the ways towards
+    the average position of the connected vertices.  This parameter is the fraction.
+  square_mesh : True
+    Whether mesh display hides diagonal mesh lines.  If true than only mesh lines
+    intersecting the xy, yz, and xz grid planes are shown.
+  cap_faces : True
+    Whether surface and mesh display covers the holes on the faces of the
+    volume box where the surface reaches the box boundaries.
+  orthoplanes_shown : (False, False, False)
+    For image style display, show 0 to 3 orthogonal planes perpendicular to x,y,z axes.
+    If any of the 3 values is True then orthoplane mode is enabled.
+  orthoplane_positions : (0,0,0)
+    The center voxel i,j,k grid index for orthoplane image rendering.
+  tilted_slab_axis : (0,0,1)
+    If image_mode is "tilted slab" then this is the axis perpendicular
+    to the displayed slab in volume xyz coordinates.
+  tilted_slab_offset : 0
+    Offset of the front face of the slab.  The front face plane is defined
+    by dot((x,y,z), tilted_slab_axis) = tilted_slab_offset
+  tilted_slab_spacing : 1
+    Spacing of planes shown in tilted slab mode in physical units.
+  tilted_slab_plane_count : 1
+    Number of planes shown in tilted slab mode.
+  image_mode : 'full region'
+    The mode for image style rendering.  Can be 'full region', 'orthoplanes',
+    'box faces', or 'tilted slab'.
+  backing_color : None
+    Color drawn behind transparent image rendering.  This blocks the view
+    of objects and the background behind the volume and can give better
+    contrast (e.g. black backing when white background color in use).
+  '''
   def __init__(self):
 
-    self.show_outline_box = True
+    self.show_outline_box = False
     self.outline_box_rgb = (1,1,1)
     self.outline_box_linewidth = 1
     self.limit_voxel_count = True           # auto-adjust step size
@@ -2593,7 +2777,7 @@ class RenderingOptions:
     self.color_mode = 'auto8'         # image rendering pixel formats
                                       #  (auto|opaque|rgba|rgb|la|l)(4|8|12|16)
     self.colormap_on_gpu = False      # image rendering with colors computed on gpu
-    self.colormap_size = 256	      # image rendering on GPU or other than 8 or 16-bit data types
+    self.colormap_size = 2048	      # image rendering on GPU or other than 8 or 16-bit data types
     self.colormap_extend_left = False
     self.colormap_extend_right = True
     self.blend_on_gpu = False	      # image rendering blend images on gpu instead of cpu
@@ -2617,7 +2801,7 @@ class RenderingOptions:
     self.surface_smoothing = False
     self.smoothing_iterations = 2
     self.smoothing_factor = .3
-    self.square_mesh = False
+    self.square_mesh = True
     self.cap_faces = True
     self.orthoplanes_shown = (False, False, False)
     self.orthoplane_positions = (0,0,0) # image rendering
@@ -2937,7 +3121,7 @@ def maximum_data_diagonal_length(data):
 
     imax, jmax, kmax = [a-1 for a in data.size]
     ijk_to_xyz = data.ijk_to_xyz
-    from chimerax.core.geometry import distance
+    from chimerax.geometry import distance
     d = max(distance(ijk_to_xyz((0,0,0)), ijk_to_xyz((imax,jmax,kmax))),
             distance(ijk_to_xyz((0,0,kmax)), ijk_to_xyz((imax,jmax,0))),
             distance(ijk_to_xyz((0,jmax,0)), ijk_to_xyz((imax,0,kmax))),
@@ -3124,8 +3308,28 @@ def volume_from_grid_data(grid_data, session, style = 'auto',
                           open_model = True, model_id = None, show_dialog = True):
   '''
   Supported API.
-  Create a new Volume model from a GridData instance and set its initial 
+  Create a new :class:`.Volume` model from a :class:`~.data.GridData` instance and set its initial 
   display style and color and add it to the session open models.
+
+  Parameters
+  ----------
+  grid_data : :class:`~.data.GridData`
+    Use this GridData to create the Volume.
+  session : :class:`~chimerax.core.session.Session`
+    The session that the Volume will belong to.
+  style : 'auto', 'surface', 'mesh' or 'image'
+    The initial display style.
+  open_model : bool
+    Whether to add the Volume to the session open models.
+  model_id : tuple of integers
+    Model id for the newly created Volume.
+    It is an error if the specifid id equals the id of an existing model.
+  show_dialog : bool
+    Whether to show the Volume Viewer user interface panel.
+
+  Returns
+  -------
+  volume : the created :class:`.Volume`
   '''
   
   set_data_cache(grid_data, session)
@@ -3234,6 +3438,17 @@ def set_initial_volume_color(v, session):
 
 # ---------------------------------------------------------------------------
 #
+def _negative_color(rgba):
+  neg_rgba = tuple([1-c for c in rgba[:3]] + [rgba[3]])
+  minc = max(neg_rgba[:3])
+  if minc == 0:
+    neg_rgba = (1,0,0,neg_rgba[3])
+  elif minc < 0.7:
+    neg_rgba = tuple(c/minc for c in neg_rgba[:3]) + (neg_rgba[3],)
+  return neg_rgba
+
+# ---------------------------------------------------------------------------
+#
 def data_already_opened(path, grid_id, session):
 
   if not path:
@@ -3256,14 +3471,38 @@ def open_map(session, path, name = None, format = None, **kw):
     '''
     Supported API. Open a density map file having any of the known density map formats.
     File path can be a string or list of paths.
+
+    Parameters
+    ----------
+    session : :class:`~chimerax.core.session.Session`
+       The session that the created Volume will belong to.
+    path : string
+       File path on disk.
+    name : string or None
+       Name used when creating the Volume model.  If None,
+       then the name will be the file name.
+    format : string or None
+       Name of the file format.  The available formats can be listed
+       with ChimeraX command "open formats".  If None, then the format
+       is derived from the file suffix.
+    channel : int
+       The channel number to assign for multi-channel data.
+    vseries : bool
+       Whether to treat the open data as a time series.
+    show : bool
+       Whether the Volume should be shown or hidden initially.
+
+    Returns
+    -------
+    models : list of :class:`.Volume`
+    message : description of the opened data
     '''
     if name is None:
       from os.path import basename
       name = basename(path if isinstance(path, str) else path[0])
 
     from . import data
-    grids = data.open_file(path, file_type = format, log = session.logger,
-                           verbose = kw.get('verbose'))
+    grids = data.open_file(path, file_type = format, log = session.logger, **kw)
 
     models = []
     msg_lines = []
@@ -3544,7 +3783,66 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
              compress = None, compress_method = None, compress_level = None, compress_shuffle = None,
              base_index = 1, **kw):
     '''
+    Supported API.
     Save a density map file having any of the known density map formats.
+
+    Parameters
+    ----------
+    session : :class:`~chimerax.core.session.Session`
+       The session containing the Volume models.
+    path : string
+       File path on disk.  For saving multiple volumes to multiple files
+       the path can contain a C-style integer format specifier like "%d" or "%03d"
+       which will have be replaced by integer values starting at parameter base_index
+       for each of the volumes specified in parameter models.
+    format_name : string or None
+       Name of the file format.  The available formats can be listed
+       with ChimeraX command "save formats".  If None, then the format
+       is derived from the file suffix.
+    models : list of :class:`.Volume`
+       Volume models to save.  Some formats allow saving multiple volumes
+       in one file and some do not.  It is an error to specify multiple
+       models if the format only supports saving one volume and the path
+       does not contain a "%d" style integer substitution.
+    region : 6 integers or None
+       Save only the subregion imin,jmin,kmin,imax,jmax,kmax.  If None
+       the current volume region is saved.
+    step : 3 integers
+       Save only subsampled data using this step.
+    mask_zone : bool
+       If only a zone is shown near atoms or markers write zeros outside
+       that zone in the saved file if this option is True, otherwise save
+       original data values outside zone.  Default True
+    base_index : int
+       When saving multiple files with a C-style integer substitution like "%d"
+       in the path this will be the first integer used.  Default 1.
+
+    ------------------------------------------------------------------------------------------------
+    Parameters below only supported by Chimera Map format (*.cmap)
+    ------------------------------------------------------------------------------------------------
+
+    subsamples : list of tuples of 3 integers or None
+       For file formats that support saving multiple subsampled copies of
+       the data , this lists the specific subsamples to save.
+       Chimera map format will automatically determine subsamples to
+       save if this is not specified.
+    chunk_shapes : list of 'xyz', 'xzy', 'yxz', 'yzx', 'zxy', 'zyx'
+       Axis order for laying out the data in the file.
+       Can save multiple axis orders for faster performance access
+       of data slices from disk.
+    append : bool
+       Whether to append this volume to an existing file.  Default False.
+    compress : bool
+       Whether to compress the data in the file.  Default False.
+    compress_method : string
+       Compression method to use.  Default zlib.
+       Some HDF5 compression methods are 'zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz',
+       'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'.
+    compress_level : integer 1 to 9
+       Level of compression.  Default 5.
+       Higher compression levels take longer.  Not all compression methods use level.
+    compress_shuffle : bool
+       Option to blosc compression.  Default False.
     '''
     if models is None:
         vlist = session.models.list(type = Volume)
@@ -3557,7 +3855,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
     else:
       vlist = [m for m in models if isinstance(m, Volume)]
       if len(vlist) == 0:
-          mstring = ' (#%s)' % ','.join(model.id_string for m in models) if models else ''
+          mstring = ' (#%s)' % ','.join(m.id_string for m in models) if models else ''
           from chimerax.core.errors import UserError
           raise UserError('Specified models are not volumes' + mstring)
 
@@ -3654,75 +3952,12 @@ class VolumeUpdateManager:
 def is_multifile_save(path):
     try:
         path % 0
-    except:
+    except Exception:
         return False
     return True
 
 # -----------------------------------------------------------------------------
 #
-def add_map_format(session, map_format, register_file_suffixes = True):
+def add_map_format(session, map_format):
   from .data import file_formats
   file_formats.append(map_format)
-  if register_file_suffixes:
-    register_map_format(session, map_format)
-  else:
-    # Prevent register_map_file_formats() from registering this format.
-    map_format._register_suffixes = False
-
-# -----------------------------------------------------------------------------
-#
-def register_map_format(session, map_format):
-    from chimerax.core import io, toolshed
-    suf = tuple('.' + s for s in map_format.suffixes)
-    save_func = save_map if map_format.writable else None
-    def open_map_format(session, path, name = None, format = map_format.name, **kw):
-      return open_map(session, path, name=name, format=format, **kw)
-    io.register_format(map_format.description, toolshed.VOLUME, suf, nicknames=map_format.prefixes,
-                       open_func=open_map_format, batch=True,
-                       allow_directory=map_format.allow_directory,
-                       export_func=save_func, check_path=map_format.check_path)
-
-# -----------------------------------------------------------------------------
-#
-def register_map_file_formats(session):
-    from .data.fileformats import file_formats
-    for ff in file_formats:
-      if getattr(ff, '_register_suffixes', True):
-        register_map_format(session, ff)
-
-    # Add keywords to open command for maps
-    from chimerax.core.commands import BoolArg, IntArg, RepeatOf
-    from chimerax.core.commands.cli import add_keyword_arguments
-    add_keyword_arguments('open', {'vseries':BoolArg, 'channel':IntArg, 'verbose':BoolArg})
-
-    # Add keywords to save command for maps
-    from chimerax.core.commands import BoolArg, ListOf, EnumOf, IntArg
-    from .mapargs import MapRegionArg, Int1or3Arg
-    save_map_args = [
-      ('region', MapRegionArg),
-      ('step', Int1or3Arg),
-      ('mask_zone', BoolArg),
-      ('subsamples', RepeatOf(Int1or3Arg)),
-      ('chunk_shapes', ListOf(EnumOf(('zyx','zxy','yxz','yzx','xzy','xyz')))),
-      ('append', BoolArg),
-      ('compress', BoolArg),
-      ('compress_method', EnumOf(('zlib', 'lzo', 'bzip2', 'blosc', 'blosc:blosclz', 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd'))),
-      ('compress_shuffle', BoolArg),
-      ('base_index', IntArg),
-    ]
-    add_keyword_arguments('save', dict(save_map_args))
-
-    # Register save map subcommand
-    from chimerax.core.commands import CmdDesc, register, SaveFileNameArg, ModelsArg
-    from chimerax.core.commands.save import SaveFileFormatsArg, save
-    from chimerax.core import toolshed
-    desc = CmdDesc(
-        required=[('filename', SaveFileNameArg)],
-        optional=[('models', ModelsArg)],
-        keyword=[('format', SaveFileFormatsArg(toolshed.VOLUME))] + save_map_args,
-        synopsis='save map'
-    )
-    register('save map', desc, save, logger=session.logger)
-
-    from . import savemap
-    savemap.register_map_save_options(session)

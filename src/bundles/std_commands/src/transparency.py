@@ -25,9 +25,8 @@ def transparency(session, objects, percent, what=None, target=None):
       a = atoms, b = bonds, p = pseudobonds, c = cartoon, r = cartoon, s = surfaces, A = all
     """
     if objects is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
-    atoms = objects.atoms
 
     from .color import get_targets
     target, _ = get_targets(target, what, 's')
@@ -36,6 +35,9 @@ def transparency(session, objects, percent, what=None, target=None):
     alpha = min(255, max(0, alpha))    # 0-255 range
 
     what = []
+
+    if 'a' in target or 's' in target:
+        atoms = objects.atoms
 
     if 'a' in target:
         # atoms
@@ -63,11 +65,11 @@ def transparency(session, objects, percent, what=None, target=None):
             what.append('%d pseudobonds' % len(bonds))
 
     if 's' in target:
-        surfs = _set_surface_transparency(atoms, objects, session, alpha)
+        surfs = _set_surface_transparency(atoms, objects.models, session, alpha)
         what.append('%d surfaces' % len(surfs))
 
     if 'c' in target or 'r' in target:
-        residues = atoms.unique_residues
+        residues = objects.residues
         c = residues.ribbon_colors
         c[:, 3] = alpha
         residues.ribbon_colors = c
@@ -79,7 +81,7 @@ def transparency(session, objects, percent, what=None, target=None):
     from chimerax.core.commands import commas
     session.logger.status('Set transparency of %s' % commas(what, 'and'))
 
-def _set_surface_transparency(atoms, objects, session, alpha):
+def _set_surface_transparency(atoms, models, session, alpha):
 
     # Handle surfaces for specified atoms
     from chimerax import atomic
@@ -116,7 +118,7 @@ def _set_surface_transparency(atoms, objects, session, alpha):
     from chimerax.map import Volume
     from chimerax.core.models import Surface
     osurfs = []
-    for s in objects.models:
+    for s in models:
         if isinstance(s, MolecularSurface):
             if not s in surfs:
                 osurfs.append(s)

@@ -36,9 +36,8 @@ def select(session, objects=None, polymer=None, residues=False, minimum_length=N
     '''
 
     if objects is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
-
 
     from chimerax.core.undo import UndoState
     undo_state = UndoState("select")
@@ -82,8 +81,8 @@ def _select_sequence(objects, sequence):
     protein_search_string = base_search_string.replace('B', '[DN]').replace('Z', '[EQ]')
     nucleic_search_string = base_search_string.replace('R', '[AG]').replace('Y', '[CTU]').replace(
         'N', '[ACGTU]')
-    orig_atoms = objects.atoms
-    for chain in orig_atoms.residues.chains.unique():
+    orig_res = objects.residues
+    for chain in orig_res.chains.unique():
         search_string = protein_search_string \
             if chain.polymer_type == Residue.PT_PROTEIN else nucleic_search_string
         try:
@@ -94,17 +93,18 @@ def _select_sequence(objects, sequence):
         for start, length in ranges:
             sel_residues.update([r for r in chain.residues[start:start+length] if r])
     residues = Residues(sel_residues)
-    atoms = residues.atoms.intersect(orig_atoms)
+    atoms = residues.intersect(orig_res).atoms
     from chimerax.core.objects import Objects
-    fobj = Objects(atoms = atoms, bonds = atoms.intra_bonds, pseudobonds = atoms.intra_pseudobonds,
-        models = atoms.structures.unique())
+    fobj = Objects(atoms = atoms, bonds = atoms.intra_bonds,
+                   pseudobonds = atoms.intra_pseudobonds,
+                   models = atoms.structures.unique())
     return fobj
     
 def select_add(session, objects=None, residues=False):
     '''Add objects to the selection.
     If objects is None everything is selected.'''
     if objects is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         objects = all_objects(session)
     from chimerax.core.undo import UndoState
     undo_state = UndoState("select add")

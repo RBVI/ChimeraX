@@ -5,7 +5,7 @@ When uploaded to the ChimeraX toolshed, the bundle
 will be displayed without the ChimeraX- prefix.
 -->
 
-<BundleInfo name="ChimeraX-Tutorial_Tool_HTML"
+<BundleInfo name="ChimeraX-TutorialToolHTML"
 	    version="0.1" package="chimerax.tut_tool_html"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -29,11 +29,11 @@ and "tutorial highlight" commands from a graphical interface.
   </Categories>
 
   <!-- Dependencies on other ChimeraX/Python packages -->
-  <!-- This example uses functionality from the Tutorial_Command bundle -->
+  <!-- This example uses functionality from the TutorialCommand bundle -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.1"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
-    <Dependency name="ChimeraX-Tutorial_Command" version=">=0.1"/>
+    <Dependency name="ChimeraX-Core" version="~=0.1"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-TutorialCommand" version="~=0.1"/>
   </Dependencies>
 
   <!-- Non-Python files that are part of package -->

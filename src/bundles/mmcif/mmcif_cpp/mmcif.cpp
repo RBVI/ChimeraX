@@ -68,11 +68,11 @@ using element::Element;
 using atomstruct::MolResId;
 using atomstruct::Coord;
 using atomstruct::Real;
-using atomstruct::PolymerType;
 
 using atomstruct::AtomName;
 using atomstruct::ChainID;
 using atomstruct::ResName;
+using atomstruct::PolymerType;
 
 namespace {
 
@@ -103,28 +103,6 @@ canonicalize_atom_name(AtomName* aname, bool* asterisks_translated)
             *asterisks_translated = true;
         }
     }
-}
-
-std::string
-residue_str(Residue* r, Residue* other = nullptr)
-{
-    std::stringstream pos_string;
-    std::string ret = r->name();
-    ret += " #";
-    pos_string << r->number();
-    ret += pos_string.str();
-    auto insertion_code = r->insertion_code();
-    if (insertion_code != ' ')
-        ret += insertion_code;
-    if (other && other->chain_id() == r->chain_id())
-        return ret;
-    auto chain_id = r->chain_id();
-    if (!chain_id.empty() && chain_id != " ") {
-        ret += ' ';
-        ret += "in chain ";
-        ret += chain_id;
-    }
-    return ret;
 }
 
 Atom* closest_atom_by_template(tmpl::Atom* ta, const tmpl::Residue* tr, const Residue* r)
@@ -303,6 +281,7 @@ struct ExtractMolecule: public readcif::CIFFile
     bool found_missing_poly_seq;
     map<string, bool> has_poly_seq;   // entity_id: bool
     set<ResName> empty_residue_templates;
+    set<ResName> missing_residue_templates;
     bool coordsets;  // use coordsets (trajectory) instead of separate models (NMR)
     bool atomic;  // use AtomicStructure if true, else Structure
     bool guess_fixed_width_categories;
@@ -499,11 +478,20 @@ const tmpl::Residue*
 ExtractMolecule::find_template_residue(const ResName& name)
 {
     if (my_templates) {
-        tmpl::Residue* tr = my_templates->find_residue(name);
+        auto tr = my_templates->find_residue(name);
         if (tr && tr->atoms_map().size() > 0)
             return tr;
     }
-    return mmcif::find_template_residue(name);
+    if (missing_residue_templates.find(name) != missing_residue_templates.end())
+        return nullptr;
+    auto tr =  mmcif::find_template_residue(name);
+    if (tr == nullptr) {
+        // skipped warning if already given for this molecule
+        logger::warning(_logger,
+            "Unable to fetch template for '", name, "': might have incorrect bonds");
+        missing_residue_templates.insert(name);
+    }
+    return tr;
 }
 
 void
@@ -524,8 +512,8 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
 
     auto tr0 = find_template_residue(r0name);
     auto tr1 = find_template_residue(r1name);
-    bool same_type = tr0 && tr1 && !tr0->description().empty()
-                     && (tr1->description() == tr0->description());
+    bool same_type = tr0 && tr1 && tr0->polymer_type() != PolymerType::PT_NONE
+                     && (tr1->polymer_type() == tr0->polymer_type());
     if (r0std && r1std && !same_type) {
         // standard residues, but of different types, so there should be an explicit bond
         if (r0->connects_to(r1))
@@ -571,7 +559,7 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
             // suppress warning for CA traces and when missing templates
             if (!gap && tr0 && tr1)
                 logger::warning(_logger, "Expected gap or ", conn_type,
-                                residue_str(r0, r1), " and ", residue_str(r1));
+                                r0->str(), " and ", r1->str());
         }
     } else if (a1 == nullptr) {
         a1 = pdb_connect::find_closest(a0, r1, nullptr, true);
@@ -580,25 +568,23 @@ ExtractMolecule::connect_polymer_pair(Residue* r0, Residue* r1, bool gap, bool n
             if (!gap && tr0 && tr1)
                 logger::warning(_logger,
                                 "Expected gap or linking atom in ",
-                                residue_str(r1, r0), " for ", residue_str(r0));
+                                r1->str(), " for ", r0->str());
         }
     }
     if (a1 == nullptr) {
-        logger::warning(_logger, "Unable to connect ", residue_str(r0, r1),
-                        " and ", residue_str(r1));
+        logger::warning(_logger, "Unable to connect ", r0->str(), " and ", r1->str());
         return;
     }
 #if 0
     if (gap && reasonable_bond_length(a0, a1)) {
-        logger::warning(_logger, "Eliding gap between ", residue_str(r0, r1), " and ", residue_str(r1));
+        logger::warning(_logger, "Eliding gap between ", r0-str(), " and ", r1->str());
         gap = false;    // bad data
     }
 #endif
     if (same_type && !gap && !reasonable_bond_length(a0, a1) && r0->connects_to(r1)) {
         if (!nstd_okay)
             logger::warning(_logger,
-                "Apparent non-polymeric linkage between ",
-                residue_str(r0, r1), " and ", residue_str(r1));
+                "Apparent non-polymeric linkage between ", r0->str(), " and ", r1->str());
         return;
     }
     if (gap || (!Bond::polymer_bond_atoms(a0, a1) && !reasonable_bond_length(a0, a1))) {
@@ -618,6 +604,8 @@ void
 ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr, int model_num)
 {
     auto& atoms = r->atoms();
+    if (atoms.size() <= 1)
+        return;
 
     // Confirm all atoms in residue are in template, if not connect by distance
     for (auto&& a: atoms) {
@@ -645,8 +633,7 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
             if (!connected) {
                 if (model_num == first_model_num)
                     logger::warning(_logger, "Atom ", a->name(),
-                                    " is not in the residue template for ",
-                                    residue_str(r));
+                                    " is not in the residue template for ", r->str());
                 pdb_connect::connect_residue_by_distance(r);
                 return;
             }
@@ -658,13 +645,21 @@ ExtractMolecule::connect_residue_by_template(Residue* r, const tmpl::Residue* tr
     //    connect up like atom in template
     for (auto&& a: atoms) {
         tmpl::Atom *ta = tr->find_atom(a->name());
+        bool found_bond = false;
+        bool has_heavy_neighbors = false;
         for (auto&& tmpl_nb: ta->neighbors()) {
+            has_heavy_neighbors |= tmpl_nb->element().number() > Element::H;
             Atom *b = r->find_atom(tmpl_nb->name());
             if (b == nullptr)
                 continue;
+            found_bond = true;
             if (!a->connects_to(b))
                 (void) a->structure()->new_bond(a, b);
         }
+        if (!found_bond && has_heavy_neighbors)
+            logger::warning(_logger, "Atom ", a->name(),
+                            " has no neighbors to form bonds with according to residue template for ",
+                            r->str());
     }
 }
 
@@ -692,7 +687,8 @@ ExtractMolecule::finished_parse()
             auto tr = find_template_residue(r->name());
             if (tr == nullptr) {
                 if (model_num == first_model_num) {
-                    logger::warning(_logger, "Missing or invalid residue template for ", residue_str(r));
+                    // Warning already given about missing template
+                    // logger::warning(_logger, "Missing or invalid residue template for ", r->str());
                     has_metal = true;   // it's okay to do extra work
                 }
                 pdb_connect::connect_residue_by_distance(r);
@@ -974,12 +970,12 @@ ExtractMolecule::parse_chem_comp()
         }
         bool is_peptide = type.find("peptide") != string::npos;
         if (is_peptide)
-            tr->description("peptide");
+            tr->polymer_type(PolymerType::PT_AMINO);
         else {
             bool is_nucleotide = type.compare(0, 3, "dna") == 0
                 || type.compare(0, 3, "rna") == 0;
             if (is_nucleotide)
-                tr->description("nucleotide");
+                tr->polymer_type(PolymerType::PT_NUCLEIC);
         }
     }
     StringVector colinfo;
@@ -1044,10 +1040,10 @@ ExtractMolecule::parse_chem_comp_bond()
     // sneak in chief and link atoms
     for (auto& ri: my_templates->residues_map()) {
         tmpl::Residue* tr = ri.second;
-        if (tr->description() == "peptide") {
+        if (tr->polymer_type() == PolymerType::PT_AMINO) {
             tr->chief(tr->find_atom("N"));
             tr->link(tr->find_atom("C"));
-        } else if (tr->description() == "nucleotide") {
+        } else if (tr->polymer_type() == PolymerType::PT_NUCLEIC) {
             tr->chief(tr->find_atom("P"));
             tr->link(tr->find_atom("O3'"));
         }
@@ -1151,6 +1147,7 @@ ExtractMolecule::parse_atom_site()
     double occupancy = DBL_MAX;   // occupancy
     double b_factor = DBL_MAX;    // B_iso_or_equiv
     int model_num = 0;            // pdbx_PDB_model_num
+    long user_position;           // auth_position if given else position
 
     if (guess_fixed_width_categories)
         set_PDBx_fixed_width_columns("atom_site");
@@ -1342,7 +1339,9 @@ ExtractMolecule::parse_atom_site()
         if (missing_position)
             position = auth_position;
         if (auth_position == INT_MAX)
-            auth_position = position;
+            user_position = position;
+        else
+            user_position = auth_position;
 
         if (cur_residue == nullptr
         || cur_entity_id != entity_id
@@ -1380,7 +1379,7 @@ ExtractMolecule::parse_atom_site()
                 }
             }
             if (make_new_residue) {
-                cur_residue = mol->new_residue(rname, cid, auth_position, ins_code);
+                cur_residue = mol->new_residue(rname, cid, user_position, ins_code);
                 cur_residue->set_mmcif_chain_id(chain_id);
             }
             cur_entity_id = entity_id;
@@ -1390,7 +1389,7 @@ ExtractMolecule::parse_atom_site()
             cur_comp_id = residue_name;
             if (has_poly_seq.find(entity_id) == has_poly_seq.end()) {
                 auto tr = find_template_residue(residue_name);
-                if (tr && !tr->description().empty()) {
+                if (tr && tr->polymer_type() != PolymerType::PT_NONE) {
                     // only save polymer residues
                     if (missing_position) {
                         if (!missing_seq_id_warning) {
@@ -2272,12 +2271,12 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
         Atom* a1 = r1->find_atom(atom_name1); 
         if (a1 == nullptr) {
             logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
-                            atom_name1, " in ", residue_str(r1));
+                            atom_name1, " in ", r1->str());
         }
         Atom* a2 = r2->find_atom(atom_name2); 
         if (a2 == nullptr) {
             logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
-                            atom_name2, " in ", residue_str(r2));
+                            atom_name2, " in ", r2->str());
         }
         if (a1 != nullptr && a2 != nullptr) {
             for (auto& cs: mol->coord_sets()) {
@@ -2334,12 +2333,12 @@ ExtractMolecule::parse_pdbx_struct_sheet_hbond()
                 Atom* a1 = r1->find_atom(atom_names[n1 % 2]);
                 if (a1 == nullptr) {
                     logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
-                                    atom_names[n1 % 2], " in ", residue_str(r1));
+                                    atom_names[n1 % 2], " in ", r1->str());
                 }
                 Atom* a2 = r2->find_atom(atom_names[n2 % 2]);
                 if (a2 == nullptr) {
                     logger::warning(_logger, "pdbx_stuct_sheet_hbond: can't find atom ",
-                                    atom_names[n2 % 2], " in ", residue_str(r2));
+                                    atom_names[n2 % 2], " in ", r2->str());
                 }
                 if (a1 != nullptr && a2 != nullptr) {
                     for (auto& cs: mol->coord_sets()) {

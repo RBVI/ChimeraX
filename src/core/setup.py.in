@@ -61,23 +61,17 @@ setup(
     packages=[
         "PKG_NAME",
         "PKG_NAME.commands",
-        "PKG_NAME.geometry",
-        "PKG_NAME.graphics",
         "PKG_NAME.toolshed",
     ],
     package_data={
         # *.pdb files are Windows debugging files
         "PKG_NAME": ["*.json", "*.PYMOD_EXT", "*.pdb"],
-        "PKG_NAME.geometry": ["*.PYMOD_EXT", "*.pdb"],
-        "PKG_NAME.graphics": ["*.txt", "*.PYMOD_EXT", "*.pdb"],
     },
     data_files=[
         (rel_inst_shlib_dir, [
             os.path.join(shlib_dir, "libappdirs.SHLIB_EXT"),
-            os.path.join(shlib_dir, "libarrays.SHLIB_EXT"),
             os.path.join(shlib_dir, "liblogger.SHLIB_EXT"),
             # WINDEBUG os.path.join(shlib_dir, "libappdirs.pdb"),
-            # WINDEBUG os.path.join(shlib_dir, "libarrays.pdb"),
             # WINDEBUG os.path.join(shlib_dir, "liblogger.pdb"),
         ]),
         (os.path.join(os.path.basename(data_dir), "idatm", "templates"),
@@ -101,6 +95,11 @@ setup(
         "Topic :: Scientific/Engineering :: Visualization",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
-        "ChimeraX :: Bundle :: Core :: 1,1 :: chimerax.core :: :: ",
+        # The maximum session version number (second number below) is the
+        # current core state version. Since there are several different
+        # core classes that are saved in sessions, it represents a
+        # aggregate version and should be increased whenever one of the
+        # various core *STATE_VERSION numbers changes.
+        "ChimeraX :: Bundle :: Core :: 1,2 :: chimerax.core :: :: ",
     ],
 )

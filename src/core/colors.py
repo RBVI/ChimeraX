@@ -23,7 +23,14 @@ from the CSS4 color draft, https://www.w3.org/TR/css-color-4/, and CSS4
 color names.
 """
 from sortedcontainers import SortedDict
-from .state import State, StateManager, CORE_STATE_VERSION
+from .state import State, StateManager
+
+# If any of the *STATE_VERSIONs change, then increase the (maximum) core session
+# number in setup.py.in
+COLOR_STATE_VERSION = 1
+USER_COLORS_STATE_VERSION = 1
+COLORMAP_STATE_VERSION = 1
+USER_COLORMAPS_STATE_VERSION = 1
 
 BuiltinColormaps = SortedDict()
 
@@ -44,7 +51,7 @@ class UserColors(SortedDict, StateManager):
                 if name not in BuiltinColors or color != BuiltinColors[name]}
         data = {
             'colors': cmap,
-            'version': CORE_STATE_VERSION,
+            'version': USER_COLORS_STATE_VERSION,
         }
         return data
 
@@ -178,7 +185,7 @@ class Color(State):
     def take_snapshot(self, session, flags):
         data = {
             'rgba': self.rgba,
-            'version': CORE_STATE_VERSION,
+            'version': COLOR_STATE_VERSION,
         }
         return data
 
@@ -191,7 +198,7 @@ class Color(State):
         return self.rgba[3] >= 1.0
 
     def __repr__(self):
-        return '%s' % repr(list(self.rgba))
+        return '%s(%s)' % (self.__class__.__name__, repr(list(self.rgba)))
 
     def uint8x4(self):
         """Return uint8x4 version color"""
@@ -219,7 +226,7 @@ class UserColormaps(SortedDict, StateManager):
     def take_snapshot(self, session, flags):
         data = {
             'colormaps': dict(self),
-            'version': CORE_STATE_VERSION,
+            'version': USER_COLORMAPS_STATE_VERSION,
         }
         return data
 
@@ -261,7 +268,7 @@ class Colormap(State):
     color_no_value : default color when no value is defined
         instance of Color.
     """
-    STATE_VERSION = 1
+
     def __init__(self, data_values, colors,
                  color_above_value_range=None,
                  color_below_value_range=None,
@@ -370,6 +377,7 @@ class Colormap(State):
             'color_above_value_range': self.color_above_value_range,
             'color_below_value_range': self.color_below_value_range,
             'color_no_value': self.color_no_value,
+            'version': COLORMAP_STATE_VERSION,
         }
         return data
 
@@ -953,7 +961,29 @@ def luminance(rgba):
     luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
     return luminance
 
+from . import configfile
+class ColorValue(configfile.Value):
+    """Class to use in settings when the setting is a Color"""
 
+    def convert_from_string(self, session, str_value):
+        from chimerax.core.commands import ColorArg
+        value, consumed, rest = ColorArg.parse(str_value, session)
+        return value
+
+    def convert_to_string(self, session, value):
+        if not isinstance(value, Color):
+            try:
+                value = Color(value)
+            except Exception as e:
+                raise ValueError("Cannot convert %s to Color instance: %s" % (repr(value), str(e)))
+        from chimerax.core.commands import ColorArg
+        str_value = ColorArg.unparse(value, session)
+        # confirm that value can be restored from disk,
+        # by converting to a string and back
+        new_value = self.convert_from_string(session, str_value)
+        if new_value != value:
+            raise ValueError('value changed while saving it')
+        return str_value
 
 def _init():
     for name in BuiltinColors:

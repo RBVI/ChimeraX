@@ -253,10 +253,10 @@ def _home_layout(session, home_tab):
             bi = session.toolshed.find_bundle(bundle_name, session.logger, installed=True)
             if not bi:
                 continue
-            pi = bi.providers.get(name, None)
+            pi = bi.providers.get('toolbar/' + name, None)
             if not pi:
                 continue
-            pi_manager, pi_kw = pi
+            pi_kw = pi
             if display_name is None:
                 display_name = pi_kw.get("display_name", None)
                 if display_name is None:

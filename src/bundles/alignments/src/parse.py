@@ -23,10 +23,10 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
         raise ValueError("No file parser installed for %s files" % format_name)
     if stream is None:
         import os.path
-        from chimerax.core.io import open_filename
         path = fname
         fname = os.path.basename(path)
-        stream = open_filename(path)
+        from chimerax import io
+        stream = io.open_input(path, 'utf-8')
     try:
         seqs, file_attrs, file_markups = ns['read'](session, stream)
     except FormatSyntaxError as err:

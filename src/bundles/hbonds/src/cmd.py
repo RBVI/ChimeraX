@@ -210,7 +210,7 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
                 for pb in pbg_pseudobonds:
                     pre_existing[pb.atoms] = pb
 
-            from chimerax.core.geometry import distance_squared
+            from chimerax.geometry import distance_squared
             for don, acc in cs_hbonds:
                 nearest = None
                 heavy_don = don
@@ -290,8 +290,8 @@ def restrict_hbonds(hbonds, atoms, restrict):
 def _file_output(file_name, output_info, naming_style):
     inter_model, intra_model, relax_constraints, \
             dist_slop, angle_slop, structures, hbond_info, cs_ids = output_info
-    from chimerax.core.io import open_filename
-    out_file = open_filename(file_name, 'w')
+    from chimerax.io import open_output
+    out_file = open_output(file_name, 'utf-8')
     if inter_model:
         out_file.write("Finding intermodel H-bonds\n")
     if intra_model:
@@ -323,7 +323,7 @@ def _file_output(file_name, output_info, naming_style):
         # figure out field widths to make things line up
         dwidth = awidth = hwidth = 0
         labels = {}
-        from chimerax.core.geometry import distance
+        from chimerax.geometry import distance
         for don, acc in hbonds:
             if cs_id is None:
                 don_coord = don.scene_coord

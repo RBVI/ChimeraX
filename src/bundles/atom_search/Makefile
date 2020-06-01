@@ -1,8 +1,9 @@
+# need to install C++ headers for subsequent builds
+BUILD_AND_INSTALL = 1
 include ../Makefile.bundle
 TOP = ../../..
 include $(TOP)/mk/config.make
 
-DEVEL_ARGS = test false
 CSRCS = search_cpp/imex.h search_cpp/search.cpp search_cpp/search.h \
 	search_cpp/ast.pyx search_cpp/ast.pxd
 CLEAN += src/*.$(PYMOD_EXT)

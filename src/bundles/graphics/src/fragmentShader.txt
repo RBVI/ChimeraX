@@ -1,0 +1,333 @@
+#version 330 core
+
+/*
+ * === UCSF ChimeraX Copyright ===
+ * Copyright 2016 Regents of the University of California.
+ * All rights reserved.  This software provided pursuant to a
+ * license agreement containing restrictions on its disclosure,
+ * duplication and use.  For details see:
+ * http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+ * This notice must be embedded in or attached to all copies,
+ * including partial copies, of the software or any revisions
+ * or derivations thereof.
+ * === UCSF ChimeraX Copyright ===
+ */
+
+/* ----------------------------------------------------------------------------
+* Shader for drawing selection outlines.
+*/
+#ifdef USE_TEXTURE_OUTLINE
+
+in vec2 tex_coord_2d;
+uniform sampler2D tex2d;
+uniform vec4 color;
+uniform vec2 step;
+out vec4 frag_color;
+
+void main (void)
+{
+  float m0 = texture(tex2d, tex_coord_2d).r;
+  if (m0 != 0)
+    discard;
+  float mn = texture(tex2d, vec2(tex_coord_2d.s+step.s, tex_coord_2d.t)).r;
+  mn = max(mn, texture(tex2d, vec2(tex_coord_2d.s-step.s, tex_coord_2d.t)).r);
+  mn = max(mn, texture(tex2d, vec2(tex_coord_2d.s, tex_coord_2d.t+step.t)).r);
+  mn = max(mn, texture(tex2d, vec2(tex_coord_2d.s, tex_coord_2d.t-step.t)).r);
+  if (mn == 0)
+    discard;
+  frag_color = color;
+}
+
+/* ----------------------------------------------------------------------------
+* Shader for drawing silhouette edges.
+*/
+#elif defined(USE_DEPTH_OUTLINE)
+
+in vec2 tex_coord_2d;
+uniform sampler2D tex2d;
+uniform vec4 color;
+uniform vec2 jump;	// depth jump and near/far ratio.
+uniform vec3 step;	// dx,dy,thickness
+out vec4 frag_color;
+
+void main (void)
+{
+  float d0 = texture(tex2d, tex_coord_2d).r;
+  float ds = d0;
+  float thickness = step.p;
+  int r = int(thickness);
+  float r2 = thickness*thickness;
+  for (int i = -r ; i <= r ; ++i)
+    for (int j = -r ; j <= r ; ++j)
+      if (i*i + j*j <= r2 && !(i == 0 && j == 0))
+        ds = min(ds, texture(tex2d, vec2(tex_coord_2d.s+i*step.s, tex_coord_2d.t+j*step.t)).r);
+  float nf = jump.t;	// Correct depth compression based on perspective near/far ratio.
+  float nf1 = 1-nf;
+  if (nf*(d0-ds) < jump.s * (1-nf1*ds) * (1-nf1*d0))
+     discard;
+  frag_color = color;
+}
+
+/* ----------------------------------------------------------------------------
+* Shader for blending textures for multichannel volume image rendering.
+*/
+#elif defined(USE_BLEND_TEXTURE_2D) || defined(USE_BLEND_TEXTURE_3D)
+
+in vec2 tex_coord_2d;
+#ifdef USE_BLEND_TEXTURE_2D
+uniform sampler2D tex2d;
+#else
+uniform sampler3D tex3d;
+uniform float tex_coord_z;
+#endif
+
+uniform vec4 color;			// modulation color
+#ifdef USE_BLEND_COLORMAP
+uniform vec2 colormap_range;		// offset and scale
+uniform sampler1D colormap;
+#endif
+out vec4 frag_color;
+
+void main (void)
+{
+#ifdef USE_BLEND_TEXTURE_2D
+#ifdef USE_BLEND_COLORMAP
+  float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
+  frag_color = texture(colormap, tvalue) * color;
+#else
+  frag_color = texture(tex2d, tex_coord_2d) * color;
+#endif
+#endif
+#ifdef USE_BLEND_TEXTURE_3D
+  vec3 tex_coord_3d = vec3(tex_coord_2d, tex_coord_z);
+#ifdef USE_BLEND_COLORMAP
+  float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
+  frag_color = texture(colormap, tvalue) * color;
+#else
+  frag_color = texture(tex3d, tex_coord_3d) * color;
+#endif
+#endif
+}
+
+
+#else
+
+/* ----------------------------------------------------------------------------
+* Shader for rendering scene with lighting.
+*/
+
+#ifdef USE_LIGHTING
+
+layout(std140) uniform lighting_block 
+{
+  vec3 key_light_direction;
+  vec3 key_light_diffuse_color;
+  vec3 key_light_specular_color;
+  float key_light_specular_exponent;
+  vec3 fill_light_direction;
+  vec3 fill_light_diffuse_color;
+  vec3 ambient_color;
+  vec3 depth_cue_color;
+};
+
+in vec3 N;
+in vec3 v;
+
+#ifdef USE_STEREO_360
+#ifdef USE_LIGHTING
+in vec3 vshadow;
+#endif
+#endif
+
+#ifdef USE_DEPTH_CUE
+uniform vec2 depth_cue_range;	// start and end camera z values
+#endif
+
+#ifdef USE_SHADOW
+in vec3 shadow_tex_coord;
+uniform sampler2DShadow shadow_map;
+#endif
+
+#ifdef USE_MULTISHADOW
+// in vec3 vscene;
+// in vec3 nscene;
+uniform sampler2DShadow multishadow_map;
+layout(std140) uniform shadow_matrix_block 
+{
+  mat4 shadow_transforms[MAX_SHADOWS];
+};
+uniform	int shadow_count;
+uniform float shadow_depth;
+#endif
+
+#endif
+
+#ifdef USE_VERTEX_COLORS
+in vec4 color;
+#else
+uniform vec4 color;
+#endif
+
+#ifdef USE_TEXTURE_2D
+in vec2 tex_coord_2d;
+uniform sampler2D tex2d;
+#endif
+
+#ifdef USE_TEXTURE_3D
+in vec3 tex_coord_3d;
+uniform sampler3D tex3d;
+#endif
+
+#ifdef USE_COLORMAP
+uniform vec2 colormap_range;		// offset and scale
+uniform sampler1D colormap;
+#endif
+
+#ifdef USE_DEPTH_TEXTURE
+uniform vec2 tex_depth_projection;	// near, far/(far-near)
+uniform vec3 tex_depth_scale;		// tex coord xscale, yscale and value zscale
+uniform sampler2D tex_depth_2d;
+#endif
+
+#ifdef USE_TEXTURE_CUBEMAP
+in vec3 tex_coord_cubemap;
+uniform samplerCube texcube;
+#endif
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+in vec3 ambient_tex_coord;
+uniform sampler3D tex3d;
+#endif
+
+out vec4 frag_color;
+
+void main (void)
+{
+#ifdef USE_DEPTH_TEXTURE
+  // Adjust depth of each fragment in rendering a texture.
+  float xscale = tex_depth_scale.x, yscale = tex_depth_scale.y, dscale = tex_depth_scale.z;
+  float zt = texture(tex_depth_2d, vec2(0.5+xscale*(tex_coord_2d.x-0.5), 0.5+yscale*(tex_coord_2d.y-0.5))).x;
+  zt = (zt == 0 ? 1 : zt);  // Depth 0 means unknown depth, change to maximum depth
+  float znear = tex_depth_projection.x, fdfmn = tex_depth_projection.y;
+  float zs = max(znear, zt*dscale);
+  gl_FragDepth = min(.99999, fdfmn * (zs - znear) / zs);
+#endif
+
+#ifdef USE_TEXTURE_2D
+#ifdef USE_COLORMAP
+  float tvalue = (texture(tex2d, tex_coord_2d).r - colormap_range.x) * colormap_range.y;
+  vec4 fcolor = texture(colormap, tvalue) * color;
+#else
+  vec4 fcolor = texture(tex2d, tex_coord_2d) * color;
+#endif
+#else
+#ifdef USE_TEXTURE_3D
+#ifdef USE_COLORMAP
+  float tvalue = (texture(tex3d, tex_coord_3d).r - colormap_range.x) * colormap_range.y;
+  vec4 fcolor = texture(colormap, tvalue) * color;
+#else
+  vec4 fcolor = texture(tex3d, tex_coord_3d) * color;
+#endif
+#else
+#ifdef USE_TEXTURE_CUBEMAP
+  vec4 fcolor = texture(texcube, tex_coord_cubemap) * color;
+#else
+#ifdef USE_ALL_WHITE
+  vec4 fcolor = vec4(1,1,1,1);
+#else
+  vec4 fcolor = color;
+#endif
+#endif
+#endif
+#endif
+
+#ifdef USE_TRANSPARENT_ONLY
+  if (fcolor.a >= 0.99)
+    discard;
+#endif
+
+#ifdef USE_OPAQUE_ONLY
+  if (fcolor.a < .99)
+    discard;
+#endif
+
+#ifdef USE_LIGHTING
+  // Unit normal, with two-sided lighting.
+  vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
+  // vec3 N1 = normalize(N);  // single-sided lighting
+
+  // Unit vector from camera to surface point.
+  vec3 v1 = normalize(v);
+
+#ifdef USE_SHADOW
+  float shadow = texture(shadow_map, shadow_tex_coord);
+#else
+  float shadow = 1;
+#endif
+
+  // diffuse color, radiated equally in all directions,
+  //   strength based on incoming light direction and surface normal.
+  vec3 Idiff = fcolor.rgb * (key_light_diffuse_color * max(-dot(N1,key_light_direction),0.0) * shadow
+                             + fill_light_diffuse_color * max(-dot(N1,fill_light_direction),0.0));
+
+  // specular color, reflection of incoming light towards the camera.
+  vec3 R = normalize(reflect(key_light_direction,N1)); 
+  vec3 Ispec = key_light_specular_color * pow(max(-dot(R,v1),0.0), key_light_specular_exponent) * shadow;
+
+#ifdef USE_MULTISHADOW
+
+  float mshadow = 0;
+  for (int i = 0 ; i < shadow_count ; ++i)
+    {
+      mat4 stf = shadow_transforms[i];
+      #ifdef USE_STEREO_360
+        vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
+      #else
+        vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
+//        vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
+      #endif
+      vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
+      float diffuse = max(-dot(N1,light_direction),0.0);
+//      float diffuse = max(-dot(nscene,light_direction),0.0);
+      mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
+    }
+  mshadow /= 0.25*shadow_count;
+  vec3 Iamb = fcolor.rgb * ambient_color * mshadow;
+
+#else
+
+  // ambient color, uniform intensity light from all surfaces.
+  vec3 Iamb = fcolor.rgb * ambient_color;
+
+#endif
+
+  // total color
+  vec3 Ifrag = Iamb + Idiff + Ispec;
+
+#ifdef USE_TEXTURE_3D_AMBIENT
+  Ifrag *= texture(tex3d, ambient_tex_coord).r;
+#endif
+
+#ifdef USE_LIGHTING
+#ifdef USE_DEPTH_CUE
+  float d = -v.z;	// Distance from eye to fragment.
+  float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
+  Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
+#endif
+#endif
+
+#else
+  vec3 Ifrag = fcolor.rgb;
+#endif
+
+  // transparency
+  float a = fcolor.a;
+#ifdef USE_LIGHTING
+  a = 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01));
+#endif
+
+  // final color
+  frag_color = vec4(Ifrag, a);
+}
+
+#endif

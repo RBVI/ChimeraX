@@ -62,8 +62,8 @@ def distance(session, atoms, *, color=None, dashes=None,
         % (a1, a2.string(relative_to=a1), pb.length))
 
 def distance_save(session, save_file_name):
-    from chimerax.core.io import open_filename
-    save_file = open_filename(save_file_name, 'w')
+    from chimerax.io import open_output
+    save_file = open_output(save_file_name, 'utf-8')
     from chimerax.atomic import Structure
     for model in session.models:
         if not isinstance(model, Structure):

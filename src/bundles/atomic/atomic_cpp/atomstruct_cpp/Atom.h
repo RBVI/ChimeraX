@@ -128,6 +128,7 @@ private:
     mutable float  _radius;
     Residue *  _residue;
     Rgba  _rgba;
+    Coord *_ribbon_coord;
     mutable Rings  _rings;
     bool  _selected = false;
     int  _serial_number;
@@ -150,6 +151,7 @@ public:
     float  bfactor(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.bfactor; }
     const Bonds&  bonds() const { return _bonds; }
     void  clear_aniso_u();
+    void  clear_ribbon_coord();
     bool  connects_to(const Atom* other) const {
         return std::find(_neighbors.begin(), _neighbors.end(), other) != _neighbors.end();
     }
@@ -180,7 +182,6 @@ public:
     Bonds::size_type  num_explicit_bonds() const; // includes missing-structure bonds
     float  occupancy() const;
     float  occupancy(char alt_loc) const { return _alt_loc_map.find(alt_loc)->second.occupancy; }
-    int  serial_number() const { return _serial_number; }
     float radius() const {
         if (_radius == 0.0) {
             auto r = default_radius();
@@ -195,11 +196,13 @@ public:
     float maximum_bond_radius(float default_radius) const;
     void  remove_bond(Bond *b);
     Residue *  residue() const { return _residue; }
+    const Coord *ribbon_coord() const { return _ribbon_coord; }
     const Rings&  rings(bool cross_residues = false, int all_size_threshold = 0,
             std::set<const Residue*>* ignore = nullptr) const;
     Coord  scene_coord() const;
     Coord  scene_coord(const CoordSet* cs) const;
     Coord  scene_coord(char alt_loc) const;
+    int  serial_number() const { return _serial_number; }
     int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
         return SESSION_NUM_INTS(version) + Rgba::session_num_ints()
             + _alt_loc_map.size() * SESSION_ALTLOC_INTS(version);
@@ -225,6 +228,7 @@ public:
     void  set_name(const AtomName& name);
     void  set_occupancy(float);
     void  set_radius(float);
+    void  set_ribbon_coord(const Point& coord);
     void  set_serial_number(int);
     std::string  str() const;
     Structure*  structure() const { return _structure; }

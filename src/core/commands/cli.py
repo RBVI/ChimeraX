@@ -90,6 +90,8 @@ as built from the command line and the command description.
 The initial ``session`` argument to a command function
 is not part of the command description.
 
+.. _Type Annotations:
+
 Type Annotations
 ----------------
 
@@ -588,8 +590,8 @@ class Aggregate(Annotation):
         return result, used, rest
 
     def unparse(self, value, session=None):
-        conj = '%s ' % self.separator
-        return conj.join(self.annotation.unparse(v) for v in value)
+        # consecutive tuples are easier to "visually parse" if no internal spaces
+        return self.separator.join(self.annotation.unparse(v) for v in value)
 
 
 class ListOf(Aggregate):
@@ -720,11 +722,11 @@ class Bounded(Annotation):
         if self.min is not None and ((value < self.min) if self.inclusive else (value <= self.min)):
             raise AnnotationError(
                 "Must be greater than %s%s" % (
-                    self.min, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+                    "or equal to " if self.inclusive else "", self.min), len(text) - len(rest))
         if self.max is not None and ((value > self.max) if self.inclusive else (value >= self.max)):
             raise AnnotationError(
                 "Must be less than %s%s" % (
-                    self.max, "or equal to " if self.inclusive else ""), len(text) - len(rest))
+                    "or equal to " if self.inclusive else "", self.max), len(text) - len(rest))
         return value, new_text, rest
 
     def unparse(self, value, session=None):
@@ -753,7 +755,7 @@ class EnumOf(Annotation):
 
     allow_truncated = True
 
-    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None):
+    def __init__(self, values, ids=None, abbreviations=None, name=None, url=None, case_sensitive = False):
         from collections.abc import Iterable
         if isinstance(values, Iterable):
             values = list(values)
@@ -786,17 +788,21 @@ class EnumOf(Annotation):
         if abbreviations is not None:
             self.allow_truncated = abbreviations
 
+        self._case_sensitive = case_sensitive
+        
     def parse(self, text, session):
         if not text:
             raise AnnotationError("Expected %s" % self.name)
         token, text, rest = next_token(text, convert=True)
-        folded = token.casefold()
+        case = self._case_sensitive
+        word = token if case  else token.casefold()
         matches = []
         for i, ident in enumerate(self.ids):
-            if ident.casefold() == folded:
+            id = ident if case else ident.casefold()
+            if id == word:
                 return self.values[i], quote_if_necessary(ident), rest
             elif self.allow_truncated:
-                if ident.casefold().startswith(folded):
+                if id.startswith(word):
                     matches.append((i, ident))
         if len(matches) == 1:
             i, ident = matches[0]
@@ -814,17 +820,21 @@ class EnumOf(Annotation):
 class DynamicEnum(Annotation):
     '''Enumerated type where enumeration values computed from a function.'''
 
-    def __init__(self, values_func, name=None, url=None, html_name=None):
+    def __init__(self, values_func, name=None, url=None, html_name=None,
+                 case_sensitive=False):
         Annotation.__init__(self, url=url)
         self.__name = name
         self.__html_name = html_name
+        self._case_sensitive = case_sensitive
         self.values_func = values_func
 
     def parse(self, text, session):
-        return EnumOf(self.values_func()).parse(text, session)
+        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        return e.parse(text, session)
 
     def unparse(self, value, session=None):
-        return EnumOf(self.values_func()).unparse(value, session)
+        e = EnumOf(self.values_func(), case_sensitive = self._case_sensitive)
+        return e.unparse(value, session)
 
     @property
     def name(self):
@@ -1092,8 +1102,8 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
         if name_filter is not None:
             dlg.setNameFilter(name_filter)
         elif accept_mode == QFileDialog.AcceptOpen and dialog_mode != QFileDialog.DirectoryOnly:
-            from chimerax.ui.open_save import open_file_filter
-            dlg.setNameFilter(open_file_filter(all=True))
+            from chimerax.open_command.dialog import make_qt_name_filters
+            dlg.setNameFilters(make_qt_name_filters(session)[0])
         dlg.setFileMode(dialog_mode)
         if dlg.exec():
             paths = dlg.selectedFiles()
@@ -1937,6 +1947,9 @@ class SameSize(Postcondition):
 
 
 def _check_autocomplete(word, mapping, name):
+    # Already have tool. vs toolshed, expect more in the future as external
+    # developers add commands.
+    return
     # This is a primary debugging aid for developers,
     # but it warns about existing abbreviated commands from changing
     # what command they correspond to.
@@ -1977,12 +1990,12 @@ class CmdDesc:
     __slots__ = [
         '_required', '_optional', '_keyword', '_keyword_map',
         '_required_arguments', '_postconditions', '_function',
-        '_hidden', 'url', 'synopsis'
+        '_hidden', 'url', 'synopsis', 'self_logging'
     ]
 
     def __init__(self, required=(), optional=(), keyword=(),
                  postconditions=(), required_arguments=(),
-                 non_keyword=(), hidden=(), url=None, synopsis=None):
+                 non_keyword=(), hidden=(), url=None, synopsis=None, self_logging=False):
         self._required = OrderedDict(required)
         self._optional = OrderedDict(optional)
         self._keyword = dict(keyword)
@@ -2001,6 +2014,7 @@ class CmdDesc:
         self._required_arguments = required_arguments
         self.url = url
         self.synopsis = synopsis
+        self.self_logging = self_logging
         self._function = None
 
     @property
@@ -2330,52 +2344,6 @@ def _compute_available_commands(session):
     ts.register_available_commands(session.logger)
 
 
-def add_keyword_arguments(name, kw_info, *, registry=None):
-    """Make known additional keyword argument(s) for a command
-
-    :param name: the name of the command (must not be an alias)
-    :param kw_info: { keyword: annotation }
-    """
-    if not isinstance(kw_info, dict):
-        raise ValueError("kw_info must be a dictionary")
-    cmd = Command(None, registry=registry)
-    cmd.current_text = name
-    cmd._find_command_name(no_aliases=True)
-    if not cmd._ci or cmd.amount_parsed != len(cmd.current_text):
-        raise ValueError("'%s' is not a command name" % name)
-    # check compatibility with already-registered keywords
-    for kw, arg_type in kw_info.items():
-        if kw not in cmd._ci._keyword:
-            continue
-        # since de-registration currently may not undo the arg
-        # registration, direct comparison of the registration
-        # types may compare as unequal when they are in fact
-        # the same class because it's a second instance of the
-        # same module
-        #
-        # also what's registered can be a class or an instance,
-        # but will be the same kind for both
-        reg_type = cmd._ci._keyword[kw]
-        if isinstance(arg_type, type):
-            # classes
-            reg_class = reg_type
-            arg_class = arg_type
-        else:
-            reg_class = reg_type.__class__
-            arg_class = arg_type.__class__
-        if (reg_class.__module__ != arg_class.__module__
-                or reg_class.__name__ != arg_class.__name__):
-            raise ValueError(
-                "%s-command keyword '%s' being registered with different type (%s)"
-                " than previous registration (%s)" % (
-                    name, kw, repr(arg_type), repr(cmd._ci._keyword[kw])))
-    cmd._ci._keyword.update(kw_info)
-
-    def fill_keyword_map(n):
-        kw, cnt = _user_kw_cnt(n)
-        return kw, (n, cnt)
-    cmd._ci._keyword_map.update(fill_keyword_map(n) for n in kw_info)
-
 
 class _FakeSession:
     pass
@@ -2611,14 +2579,14 @@ class Command:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % kw_name
+                        arg_name = '"%s"' % _user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 if kw_name in self._ci._required:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % kw_name
+                        arg_name = '"%s"' % _user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 # optional and wrong type, try as keyword
@@ -2777,9 +2745,9 @@ class Command:
         while True:
             self._find_command_name(final, used_aliases=_used_aliases)
             if self._error:
+                save_error = self._error
                 if self.registry == _command_info:
                     # See if this command is available in the toolshed
-                    save_error = self._error
                     self._error = ""
                     _compute_available_commands(session)
                     self._find_command_name(final, used_aliases=_used_aliases,
@@ -2827,7 +2795,7 @@ class Command:
 
             ci = self._ci
             kw_args = self._kw_args
-            really_log = log and _used_aliases is None
+            really_log = log and _used_aliases is None and not self._ci.self_logging
             if really_log:
                 self.log()
             cmd_text = self.current_text[self.start:self.amount_parsed]

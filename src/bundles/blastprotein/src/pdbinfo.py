@@ -105,7 +105,7 @@ def strings_to_numeric_values(o):
         for aname in getattr(o, fname+'_fields', ()):
             try:
                 setattr(o, aname, fcast(getattr(o, aname)))
-            except:
+            except Exception:
                 pass
 
 # -----------------------------------------------------------------------------

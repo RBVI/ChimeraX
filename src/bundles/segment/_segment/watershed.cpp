@@ -12,7 +12,7 @@ namespace Segment_Map
 // Arrays are 3-dimensional, last axis varies fastest.
 //
 template <class T>
-Index watershed_regions(const T *data, const int *sizes,
+Index watershed_regions(const T *data, const int64_t *sizes,
 			float threshold, Index *region_map)
 {
   int s0 = sizes[0], s1 = sizes[1], s2 = sizes[2];
@@ -88,7 +88,7 @@ Index watershed_regions(const T *data, const int *sizes,
 // ----------------------------------------------------------------------------
 //
 template <class T>
-void find_local_maxima(const T *data, const int *data_size,
+void find_local_maxima(const T *data, const int64_t *data_size,
 		       int *start_positions, int nstart)
 {
   int s0 = data_size[0], s1 = data_size[1], s2 = data_size[2];

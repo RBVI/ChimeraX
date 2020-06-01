@@ -48,8 +48,8 @@ def segmentation_colors(session, segmentations, color = None,
         seg = segmentations[0]
         if tuple(map.data.size) != tuple(seg.data.size):
             from chimerax.core.errors import UserError
-            raise UserError('segmentation colors: Volume size %s' % tuple(map.data.size) +
-                            ' does not match segmentation size %s' % tuple(seg.data.size))
+            raise UserError('segmentation colors: Volume size %d,%d,%d' % tuple(map.data.size) +
+                            ' does not match segmentation size %d,%d,%d' % tuple(seg.data.size))
 
         _color_map(map, seg, by_attribute, color, outside_color)
 
@@ -81,7 +81,7 @@ def _color_map(map, segmentation, attribute_name, color = None, outside_color = 
     ac = _attribute_colors(segmentation, attribute_name)
     zc = (255,255,255,255) if outside_color is None else outside_color
     seg_rgba = ac.segment_colors(color, zc)
-    seg_rgb = seg_rgba[:3].copy()	# Make contiguous
+    seg_rgb = seg_rgba[:,:3].copy()	# Make contiguous
     def seg_color(color_plane, region, seg=segmentation,
                   segment_rgba = seg_rgba, segment_rgb = seg_rgb):
         seg_matrix = seg.region_matrix(region)
@@ -247,21 +247,26 @@ def _which_segments(segmentation, conditions):
             logical_and(mask, group, mask)
             group[:] = 0
             group[mask] = value
+        elif condition == 'segment':
+            pass
         else:
             try:
+                seg_id = int(condition)
+            except ValueError:
+                seg_id = None
+            if seg_id is not None:
                 # One specific segment ("5")
                 attribute_name = 'segment'
-                seg_id = int(condition)
                 if group[seg_id]:
                     group[:] = 0
                     group[seg_id] = seg_id
                 else:
                     group[:] = 0
-            except:
+            else:
                 # All segments with non-zero attribute value ("neuron_id").
                 attribute_name = condition
-                mask = (group != 0)
                 av = _attribute_values(segmentation, attribute_name)
+                mask = (group != 0)
                 group[mask] = av[mask]
 
     return group, attribute_name
@@ -399,7 +404,7 @@ def _maximum_segment_id(segmentation):
     else:
         try:
             max_seg_id = seg.data.find_attribute('maximum_segment_id')
-        except:
+        except Exception:
             max_seg_id = seg.full_matrix().max()
         seg._max_segment_id = max_seg_id
 

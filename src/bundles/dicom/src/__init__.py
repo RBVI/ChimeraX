@@ -21,15 +21,13 @@ class _DICOMBundle(BundleAPI):
         from .dicom import register_dicom_format
         register_dicom_format(session)
 
-    '''
-    Not using this since bundle_info.xml DataFormat classifier cannot handle allow_directory = true.
     @staticmethod
-    def open_file(session, path):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import dicom
-        models, msg = dicom.open_dicom(session, path)
-        return models, msg
-    '''
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class DicomOpenerInfo(OpenerInfo):
+            def open(self, session, data, file_name, **kw):
+                from . import dicom
+                return dicom.open_dicom(session, data)
+        return DicomOpenerInfo()
 
 bundle_api = _DICOMBundle()

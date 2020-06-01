@@ -1,5 +1,5 @@
 <!-- vi:set shiftwidth=2 expandtab: -->
-<BundleInfo name="ChimeraX-Nucleotides" version="0.1"
+<BundleInfo name="ChimeraX-Nucleotides" version="1.0"
 	package="chimerax.atomic.nucleotides"
   	minSessionVersion="1" maxSessionVersion="1">
 
@@ -24,10 +24,11 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version=">=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version=">=1.0"/>
-    <Dependency name="ChimeraX-Surface" version=">=1.0"/>
-    <Dependency name="ChimeraX-UI" version=">=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Surface" version="~=1.0"/>
+    <Dependency name="ChimeraX-UI" version="~=1.0"/>
   </Dependencies>
 
   <DataFiles>

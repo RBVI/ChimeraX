@@ -2022,7 +2022,14 @@ clock_t start_t = clock();
                     }
                 }
                 if (!remote_sp2) {
-                    a->set_computed_idatm_type("N2");
+                    int hvys = heavys[a];
+                    if (hvys > 1)
+                        a->set_computed_idatm_type("N2");
+                    else if (hvys == 1)
+                        a->set_computed_idatm_type(is_N3plus_okay(
+                            a->neighbors()) ? "N3+" : "N3");
+                    else
+                        a->set_computed_idatm_type("N3+");
                     break;
                 }
                 // a remote sp2 atom doesn't necessarily mean Npl

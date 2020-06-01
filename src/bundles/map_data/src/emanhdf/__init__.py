@@ -12,7 +12,7 @@
 # -----------------------------------------------------------------------------
 # EMAN HDF map file reader.
 #
-def open(path):
+def open(path, array_name = None):
 
   from .eman_hdf_grid import read_eman_hdf5
-  return read_eman_hdf5(path)
+  return read_eman_hdf5(path, array_name = array_name)

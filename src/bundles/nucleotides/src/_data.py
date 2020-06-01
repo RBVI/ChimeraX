@@ -20,7 +20,7 @@ import math
 import re
 import weakref
 import numpy
-from chimerax.core.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
+from chimerax.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.state import State, StateManager, RestoreError
 from chimerax.atomic import Residues, Atoms, Sequence, Pseudobonds
@@ -458,6 +458,9 @@ class NucleotideState(StateManager):
         for mol in self.structures:
             # convert _nucleotide_info from WeakKeyDictionary to dict
             info = {}
+            if mol.was_deleted:
+                # insurance, in case 'new frame' trigger doesn't happen first
+                continue
             info.update(mol._nucleotide_info)
             infos[mol] = (info, mol._ladder_params)
         if save_scene:
@@ -508,6 +511,8 @@ class NucleotideState(StateManager):
 
     def rebuild(self, trigger_name, update_loop):
         """'monitor changes' trigger handler"""
+        deleted = set(s for s in self.structures if s.was_deleted)
+        self.structures -= deleted
         if not self.structures:
             session = self._session()
             try:
@@ -601,7 +606,7 @@ _ResidueReasons = frozenset(['ring color changed', 'ribbon_display changed'])
 
 
 def _rebuild_molecule(trigger_name, mol):
-    if isinstance(mol, tuple):
+    if trigger_name == 'changes':
         mol, changes = mol
         # check changes for reasons we're interested in
         # ie., add/delete/moving atoms
@@ -944,12 +949,12 @@ def draw_tube(nd, residue, name, params):
     c4p = residue.find_atom("C4'")
     if not c4p:
         return False
-    try:
-        c3p_coord = c3p.ribbon_coord
-        c4p_coord = c4p.ribbon_coord
-        ep1 = (c3p_coord + c4p_coord) / 2
-    except KeyError:
+    c3p_coord = c3p.ribbon_coord
+    c4p_coord = c4p.ribbon_coord
+    if c3p_coord is None or c4p_coord is None:
         ep1 = (c3p.coord + c4p.coord) / 2
+    else:
+        ep1 = (c3p_coord + c4p_coord) / 2
 
     description = '%s ribose' % residue
 
@@ -964,12 +969,12 @@ def _c3pos(residue):
     c3p = residue.find_atom("C3'")
     if not c3p or not c3p.display:
         return None
-    try:
-        if residue.ribbon_display:
-            coord = c3p.ribbon_coord
+
+    if residue.ribbon_display:
+        coord = c3p.ribbon_coord
+        if coord is not None:
             return c3p, coord
-    except KeyError:
-        pass
+
     return c3p, c3p.coord
 
 

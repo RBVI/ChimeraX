@@ -18,11 +18,14 @@ stl: STL format support
 Read and write little-endian STL binary format.
 """
 
-from chimerax.core.state import State, CORE_STATE_VERSION
+# If STL_STATE_VERSION changes, then bump the bundle's
+# (maximum) session version number.
+STL_STATE_VERSION = 1
 
 from chimerax.core.models import Surface
 class STLModel(Surface):
     clip_cap = True
+    SESSION_SAVE_DRAWING = True
 
     @property
     def num_triangles(self):
@@ -33,7 +36,7 @@ class STLModel(Surface):
         """Return information about triangle ``n``."""
         return TriangleInfo(self, n)
 
-
+from chimerax.core.state import State
 class TriangleInfo(State):
     """Information about an STL triangle."""
 
@@ -60,7 +63,7 @@ class TriangleInfo(State):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        return {'stl model': self._stl, 'triangle index': self._index, 'version':CORE_STATE_VERSION}
+        return {'stl model': self._stl, 'triangle index': self._index, 'version':STL_STATE_VERSION}
 
     @staticmethod
     def restore_snapshot(session, data):
@@ -222,7 +225,7 @@ def stl_pack(varray, tarray):
 def triangle_normal(v0,v1,v2):
 
     e10, e20 = v1 - v0, v2 - v0
-    from chimerax.core.geometry import normalize_vector, cross_product
+    from chimerax.geometry import normalize_vector, cross_product
     n = normalize_vector(cross_product(e10, e20))
     return n
 

@@ -1,0 +1,154 @@
+<html>
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2020 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: toolshed</title>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRight" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: toolshed</h3>
+</h3>
+<p>
+The <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">UCSF ChimeraX
+Toolshed</a> is a web repository of ChimeraX bundles hosted by the 
+<a href="http://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a>.
+A <b><i>bundle</i></b> is a separately installable and updatable module
+that may include tools, commands, command-line specifiers, and/or file format 
+support. Developers can sign up to add bundles, and the shared repository 
+makes it easy for users to discover and install the bundles.
+The ChimeraX Toolshed is based on the <a href="https://apps.cytoscape.org"
+target="_blank">Cytoscape App Store</a>:
+<blockquote>
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3654709/" target="_blank">
+Cytoscape app store.</a>
+Lotia S, Montojo J, Dong Y, Bader GD, Pico AR. 
+<i>Bioinformatics.</i> 2013 May 15;29(10):1350-1.
+</blockquote>
+</p><p>
+Subcommands of <b>toolshed</b> can show the toolshed website;
+list, install, or remove bundles; and control how the toolshed
+manages bundle information. 
+Typically &ldquo;the toolshed&rdquo; will be the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX
+Toolshed</a> hosted by the 
+<a href="http://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF
+RBVI</a>, but <a href="#url"><b>toolshed url</b></a>
+allows specifying a different instance instead.
+See also: <a href="../preferences.html#toolshed"><b>Toolshed</b> preferences</a>
+</p>
+<ul>
+<li><a href="#cache"><b>toolshed cache</b></a>
+<li><a href="#install"><b>toolshed install</b></a>
+<li><a href="#list"><b>toolshed list</b></a>
+<li><a href="#reload"><b>toolshed reload</b></a>
+<li><a href="#show"><b>toolshed show</b></a>
+<li><a href="#uninstall"><b>toolshed uninstall</b></a>
+<li><a href="#url"><b>toolshed url</b></a>
+</ul>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="cache"><b>toolshed cache</b></a>
+<blockquote>
+Report the location of the bundle information cache.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="install"><b>toolshed install</b></a>
+&nbsp;<i>bundle-name</i> [&nbsp;<i>version</i>&nbsp;]
+[&nbsp;<b>noDeps</b>&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Install a bundle.  If <i>bundle-name</i> is a file name,
+the file will be installed using <b>pip</b>.  If <i>bundle-name</i>
+is a name from the toolshed, the bundle will be fetched from
+the toolshed and installed, again using <b>pip</b>.  A specific
+<i>version</i> may be specified when installing from the toolshed.
+The <b>noDeps</b> option specifies whether bundle dependencies should
+be checked during installation.  If dependency checking is on (default)
+and the bundle being installed requires other bundles to run, then the
+dependent bundles will also be installed.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="list"><b>toolshed list</b></a>
+[&nbsp;<b>installed</b>&nbsp;|&nbsp;available&nbsp;|&nbsp;all [&nbsp;<b>full</b>&nbsp;]&nbsp;]
+<blockquote>
+Report bundle names and synopsis.
+If <i>bundle-type</i> is <b>installed</b>, only information
+for currently installed bundles are reported.
+If <i>bundle-type</i> is <b>available</b>, only information
+for currently uninstalled bundles are reported.
+If <i>bundle-type</i> is <b>all</b>, information
+for all bundles are reported.
+If the <b>full</b> option is specified, the full description
+and associated tools and commands are also reported for each bundle.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="reload"><b>toolshed reload</b></a>
+[&nbsp;<b>installed</b>&nbsp;|&nbsp;available&nbsp;|&nbsp;cache&nbsp;|&nbsp;all&nbsp;]
+<blockquote>
+Update bundle information cache.
+ChimeraX maintains two caches: one (<b>local</b>) for installed bundles
+and another (<b>remote</b>) for bundles available from the toolshed.
+Reloading <b>installed</b> will rebuild the local cache by rescanning
+installed Python modules, and then reread the cache to use the
+more up-to-date information.
+Reloading <b>available</b> will rebuild the remote cache by
+querying the toolshed for current information; this check is
+also done automatically when ChimeraX starts.
+Reloading <b>cache</b> will rebuild the remote cache and reread
+the local cache; this command is rarely used.
+Reloading <b>all</b> will rebuild and reread both caches.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="show"><b>toolshed show</b></a>
+<blockquote>
+Show the toolshed in the <a href="../tools/helpviewer.html"><b>ChimeraX
+Browser</b></a>.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="uninstall"><b>toolshed uninstall</b></a>
+<i>bundle-name</i>
+[&nbsp;<b>forceRemove</b>&nbsp;&nbsp;<b>false</b>&nbsp;|&nbsp;true&nbsp;]
+<blockquote>
+Uninstall the named bundle.  If <b>forceRemove</b> is false
+and other bundles require the named bundle to run, the bundle
+is not removed.  If <b>forceRemove</b> is true, the named
+bundle is always removed.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="url"><b>toolshed url</b></a>
+[&nbsp;<i>url</i>&nbsp;]
+<blockquote>
+If <i>url</i> is not specified, report the current URL for contacting the
+toolshed.
+If <i>url</i> is set, use the given URL for contacting the toolshed.
+This command is typically only used by developers with access to
+alternative ChimeraX toolsheds, such as preview or private instances.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+May 2020</address>
+</body></html>

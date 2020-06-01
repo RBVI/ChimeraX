@@ -182,7 +182,7 @@ static Vertex_Loops *boundary_loops(const IArray &tarray)
 static void boundary_edge_mask(const IArray &tarray, unsigned char *edge_mask)
 {
   Edge_Set *eset = boundary_edge_set(tarray);
-  long s0 = tarray.stride(0), s1 = tarray.stride(1);
+  int64_t s0 = tarray.stride(0), s1 = tarray.stride(1);
   int n = tarray.size(0);
   int *ta = tarray.values();
   int *t = ta;

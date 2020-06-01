@@ -45,7 +45,7 @@ def select_zone(session, near, range, find = None, extend = False, residues = Fa
         raise UserError('No atoms or surfaces specified')
 
     if find is None:
-        from chimerax.core.commands import all_objects
+        from chimerax.core.objects import all_objects
         find = all_objects(session)
 
     fa = find.atoms
@@ -86,14 +86,14 @@ def zone_items(na, ns, range, fa, fs, extend = False, residues = False):
     naxyz = na.scene_coords.astype(float32)
     # TODO: Only consider masked geometry.  Handle surface instances.
     nsxyz = [(s.vertices.astype(float32), p.matrix) for s in ns for p in s.get_scene_positions()]
-    from chimerax.core.geometry import Place
+    from chimerax.geometry import Place
     im = Place().matrix
     nxyz = [(naxyz,im)] + nsxyz
     faxyz = fa.scene_coords.astype(float32)
     fsxyz = [(s.vertices.astype(float32), p.matrix) for s in fs for p in s.get_scene_positions()]
     fxyz = [(faxyz,im)] + fsxyz
 
-    from chimerax.core.geometry import find_close_points_sets
+    from chimerax.geometry import find_close_points_sets
     i1, i2 = find_close_points_sets(nxyz, fxyz, range)
 
     sel = []

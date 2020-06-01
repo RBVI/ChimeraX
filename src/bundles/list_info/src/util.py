@@ -202,7 +202,12 @@ def closing(thing):
 
 class RESTTransaction(Task):
 
+    def __init__(self, notifier):
+        super().__init__(notifier.session)
+        self.notifier = notifier
+
     def run(self, url, msg):
+        # in new thread
         from urllib.parse import urlencode
         from urllib.request import urlopen, URLError
         full_url = "%s?%s" % (url, urlencode([("chimerax_notification", msg)]))
@@ -211,7 +216,21 @@ class RESTTransaction(Task):
                 # Discard response since we cannot handle an error anyway
                 f.read()
         except URLError:
-            pass
+            self.terminate()
+
+    def on_finish(self):
+        # in main thread
+        from chimerax.core.tasks import TERMINATED
+        if self.state == TERMINATED:
+            logger = self.session.logger
+            try:
+                Notifier.Destroy(self.notifier)
+                # If we already destroyed the notifier, the warning
+                # will not be sent again
+                logger.warning("%s notifier for %s failed; notifier removed" %
+                               (self.notifier.what, self.notifier.url))
+            except KeyError:
+                pass
 
 
 class Notifier:
@@ -261,8 +280,8 @@ class Notifier:
         if self._handler_suspended:
             return
         if self.url is not None:
-            # Notify via REST
-            RESTTransaction(self.session).run(self.url, ''.join(msgs))
+            # Notify via REST in a separate thread
+            RESTTransaction(self).start(self.url, ''.join(msgs))
         else:
             # Just regular info messages
             logger = self.session.logger

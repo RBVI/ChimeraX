@@ -34,10 +34,10 @@ void contour_surface(const Reference_Counted_Array::Array<T> &data,
 {
   // contouring calculation requires contiguous array
   // put sizes in x, y, z order
-  Index size[3] = {static_cast<Index>(data.size(2)),
-		   static_cast<Index>(data.size(1)),
-		   static_cast<Index>(data.size(0))};
-  Stride stride[3] = {data.stride(2), data.stride(1), data.stride(0)};
+  AIndex size[3] = {static_cast<AIndex>(data.size(2)),
+		    static_cast<AIndex>(data.size(1)),
+		    static_cast<AIndex>(data.size(0))};
+  GIndex stride[3] = {data.stride(2), data.stride(1), data.stride(0)};
   *cs = surface(data.values(), size, stride, threshold, cap_faces);
 }
 
@@ -66,13 +66,13 @@ static PyObject *surface_py2(PyObject *, PyObject *args, PyObject *keywds)
   Py_END_ALLOW_THREADS
 
   float *vxyz, *nxyz;
-  int *tvi;
+  VIndex *tvi;
   PyObject *vertex_xyz = python_float_array(cs->vertex_count(), 3, &vxyz);
   PyObject *normals = (return_normals ? python_float_array(cs->vertex_count(), 3, &nxyz) : NULL);
   PyObject *tv_indices = python_int_array(cs->triangle_count(), 3, &tvi);
 
   Py_BEGIN_ALLOW_THREADS
-  cs->geometry(vxyz, reinterpret_cast<Index *>(tvi));
+  cs->geometry(vxyz, reinterpret_cast<VIndex *>(tvi));
   if (return_normals)
       cs->normals(nxyz);
 
@@ -105,13 +105,13 @@ extern "C" PyObject *surface_py(PyObject *s, PyObject *args, PyObject *keywds)
 //
 static void reverse_triangle_vertex_order(IArray &triangles)
 {
-  int *ta = triangles.values();
-  int n = triangles.size(0);
-  int s0 = triangles.stride(0), s1 = triangles.stride(1);
-  for (int t = 0 ; t < n ; ++t)
+  VIndex *ta = triangles.values();
+  TIndex n = triangles.size(0);
+  TIndex s0 = triangles.stride(0), s1 = triangles.stride(1);
+  for (TIndex t = 0 ; t < n ; ++t)
     {
-      int i1 = s0*t+s1, i2 = i1 + s1;
-      int v1 = ta[i1], v2 = ta[i2];
+      TIndex i1 = s0*t+s1, i2 = i1 + s1;
+      VIndex v1 = ta[i1], v2 = ta[i2];
       ta[i1] = v2;
       ta[i2] = v1;
     }

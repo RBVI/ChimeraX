@@ -263,7 +263,7 @@ class CommandLine(ToolInstance):
                     logger.status(str(err), color="crimson")
                     from chimerax.core.logger import error_text_format
                     logger.info(error_text_format % escape(str(err)), is_html=True)
-                except:
+                except BaseException:
                     raise
         self.set_focus()
 
@@ -298,7 +298,7 @@ class CommandLine(ToolInstance):
         except UserError as err:
             self.session.logger.status("Error running startup command '%s': %s" % (cmd_text, str(err)),
                 color="crimson", log=True)
-        except:
+        except Exception:
             self._processing_command = False
             raise
         self._processing_command = False
@@ -365,8 +365,7 @@ class _HistoryDialog:
             but.clicked.connect(lambda arg, txt=but_name: self.button_clicked(txt))
             button_layout.addWidget(but)
         button_frame.setLayout(button_layout)
-        self.window.manage(placement=None)
-        self.window.shown = False
+        self.window.manage(placement=None, initially_hidden=True)
         from chimerax.core.history import FIFOHistory
         self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
         self._record_dialog = None
@@ -384,15 +383,13 @@ class _HistoryDialog:
         self.update_list()
 
     def button_clicked(self, label):
+        session = self.controller.session
         if label == self.record_label:
-            from chimerax.ui.open_save import export_file_filter, SaveDialog
-            from chimerax.core.io import open_filename, format_from_name
+            from chimerax.ui.open_save import SaveDialog
             if self._record_dialog is None:
-                fmt = format_from_name("ChimeraX commands")
-                ext = fmt.extensions[0]
-                self._record_dialog = dlg = SaveDialog(self.window.ui_area,
-                    "Save Commands", name_filter=export_file_filter(format_name="ChimeraX commands"),
-                                                       add_extension=ext)
+                fmt = session.data_formats["ChimeraX commands"]
+                self._record_dialog = dlg = SaveDialog(session, self.window.ui_area,
+                    "Save Commands", data_formats=[fmt])
                 from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QVBoxLayout, QComboBox
                 from PyQt5.QtWidgets import QCheckBox
                 from PyQt5.QtCore import Qt
@@ -430,11 +427,8 @@ class _HistoryDialog:
                 items = [self.listbox.item(i) for i in range(self.listbox.count())
                     if self.listbox.item(i).isSelected()]
                 cmds = [item.text() for item in items]
-            if self.append_checkbox.isChecked():
-                mode = 'a'
-            else:
-                mode = 'w'
-            f = open_filename(path, mode)
+            from chimerax.io import open_output
+            f = open_output(path, encoding='utf-8', append=self.append_checkbox.isChecked())
             for cmd in cmds:
                 print(cmd, file=f)
             f.close()
@@ -459,12 +453,12 @@ class _HistoryDialog:
             self.populate()
             return
         if label == "Copy":
-            clipboard = self.controller.session.ui.clipboard()
+            clipboard = session.ui.clipboard()
             clipboard.setText("\n".join([item.text() for item in self.listbox.selectedItems()]))
             return
         if label == "Help":
             from chimerax.core.commands import run
-            run(self.controller.session, 'help help:user/tools/cli.html#history')
+            run(session, 'help help:user/tools/cli.html#history')
             return
 
     def down(self, shifted):

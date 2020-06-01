@@ -9,7 +9,30 @@
 #
 def color_zone(surface, points, point_colors, distance,
                sharp_edges = False, far_color = None, auto_update = True):
+    '''
+    Color a surface according to the nearest of specified points, with a color
+    associated with each point.  Surface vertices are colored if they are within
+    the specified distance of some point.  Surface vertices farther away are colored
+    by far_color or retain their original color if no far_color is specified.
 
+    surface : Surface model
+      Surface to color.
+    points : N x 3 array of float
+      Point positions in scene coordinates.
+    point_colors : N x 4 array of uint8 RGBA values
+      RGBA color for each point.
+    distance : float
+      Maximum distance of surface to point for coloring.
+    sharp_edges : bool
+      Whether to divide surface triangles so that the boundaries between
+      surface patches near different points show sharp color transitions
+      and the boundary curves are less jagged.
+    far_color : RGBA 4-tuple 0-255 range or None
+      Color for surface vertices further than distance from all points
+    auto_update : bool
+      Whether to automatically update the surface coloring when the surface shape changes.
+    '''
+    
     zc = ZoneColor(surface, points, point_colors, distance, sharp_edges,
                    far_color = far_color)
     zc.set_vertex_colors()
@@ -43,7 +66,7 @@ def points_and_colors(atoms, bonds, bond_point_spacing = None):
 def color_surface(surf, points, point_colors, distance, far_color = None):
 
     varray = surf.vertices
-    from chimerax.core.geometry import find_closest_points
+    from chimerax.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
     from numpy import empty, uint8
@@ -127,7 +150,7 @@ def color_zone_sharp_edges(surface, points, colors, distance, far_color = None,
         if varray is va_sh and narray is na_sh and tarray is ta_sh:
             varray, narray, tarray = va_us, na_us, ta_us
         
-    from chimerax.core.geometry import find_closest_points
+    from chimerax.geometry import find_closest_points
     i1, i2, n1 = find_closest_points(varray, points, distance)
 
     ec = _edge_cuts(varray, tarray, i1, n1, points, colors, distance)
@@ -186,7 +209,7 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
         dx = x2-x1
         dp = points[p2]-points[p1]
         px = 0.5*(points[p2]+points[p1]) - x1
-        from chimerax.core.geometry import inner_product
+        from chimerax.geometry import inner_product
         f = inner_product(px, dp) / inner_product(dx, dp)
         if f <= -0.1 or f >= 1.1:
             raise ValueError('Cut fraction %.5g is out of range (0,1)' % f)
@@ -199,7 +222,7 @@ def _edge_cut_position(varray, v1, v2, p1, p2, points, colors, distance):
 # -----------------------------------------------------------------------------
 #
 def _cut_at_range(x1, x2, p, distance):
-    from chimerax.core.geometry import distance as dist
+    from chimerax.geometry import distance as dist
     d1 = dist(x1, p)
     d2 = dist(x2, p)
     f = (d1-distance)/(d1-d2)
@@ -213,7 +236,7 @@ def _cut_triangles(edge_cuts, varray, narray, tarray, carray):
     nae = []
     cae = []
     nv = len(varray)
-    from chimerax.core.geometry import normalize_vector
+    from chimerax.geometry import normalize_vector
     for v1, v2, f in edge_cuts:
         p = (1-f)*varray[v1] + f*varray[v2]
         n = normalize_vector((1-f)*narray[v1] + f*narray[v2])
@@ -276,7 +299,8 @@ def volume_zone_color(volume):
 # ---------------------------------------------------------------------------
 #
 def split_volume_by_color_zone(volume):
-
+    '''Create new volumes for each color zoned region of a specified volume.'''
+    
     zc = volume_zone_color(volume)
     if zc is None:
         from chimerax.core.errors import UserError
@@ -336,9 +360,11 @@ def split_zones_by_color(volume, points, point_colors, radius):
 
 # ---------------------------------------------------------------------------
 #
-def split_volumes_by_color_zone(session, volume):
-    for v in volume:
-        split_volume_by_color_zone(v)
+def split_volumes_by_color_zone(session, volumes):
+    vlist = []
+    for v in volumes:
+        vlist.extend(split_volume_by_color_zone(v))
+    return vlist
 
 # ---------------------------------------------------------------------------
 #
@@ -346,6 +372,6 @@ def register_volume_split_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.map import MapsArg
     desc = CmdDesc(
-        required = [('volume', MapsArg)],
+        required = [('volumes', MapsArg)],
         synopsis = 'split volume by color zone')
     register('volume splitbyzone', desc, split_volumes_by_color_zone, logger=logger)

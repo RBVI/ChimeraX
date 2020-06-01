@@ -386,6 +386,8 @@ of ``mac``.
 
     - **Manager** (one or more)
 
+.. _Manager:
+
 - **Manager**
 
   - Attribute:
@@ -400,11 +402,11 @@ of ``mac``.
     - ``init_manager`` should create and return an instance of a
       subclass of :py:class:`chimerax.core.toolshed.ProviderManager`.
       The subclass must implement at least one method:
-        ``add_provider(bundle_info, provider_name, **kw)``
+      ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager
       name matches this manager (whether the bundle with the provider
       is installed or not).  A second method:
-        ``end_providers()``
+      ``end_providers()``
       is optional.  ``end_providers`` is called after all calls
       to ``add_provider`` have been made and is useful for finishing
       manager initialization.
@@ -415,6 +417,8 @@ of ``mac``.
 
     - **name**: name of Python package to be added.
     - **folder**: folder containing source files in package.
+
+.. _Providers:
 
 - **Providers**
 
@@ -427,6 +431,8 @@ of ``mac``.
 
     - **Provider** (one or more)
 
+.. _Provider:
+
 - **Provider**
 
   - Attribute:
@@ -438,7 +444,7 @@ of ``mac``.
     - Other attributes listed in the **Provider** tag are passed
       as keyword arguments to the manager's ``add_provider`` method.
     - Bundles that supply providers should implement the method:
-        ``run_provider(session, provider_name, manager, **kw)``
+      ``run_provider(session, provider_name, manager, **kw)``
       which may be used by the manager to invoke provider functionality.
 
 - **PythonClassifier**
@@ -560,74 +566,10 @@ data formats, and selectors.
     - Bundles may provide more than one command.
 
 
-*Data Format Metadata*  **DEPRECATED**
-    **The Data Format Metadata tags below will be withdrawn in a future version of ChimeraX in favor of the more flexible and generic Manager/Provider mechanism documented above.**  Details of the manager/provider API will be provided as they become finialized.  A changeover date will be pre-announced on the chimerax-users mailing list.
-
-    ``DataFormat`` :: *format_name* :: *nicknames* :: *category* :: *suffixes* :: *mime_types* :: *url* :: *dangerous* :: *icon* :: *synopsis* :: *encoding*
-
-    - *format_name* is a string.
-    - *nicknames* is an optional comma-separated list of strings.
-      If no nickname is given, it defaults to the lowercased format_name.
-    - *category* is a toolshed category.
-    - *suffixes* is an optional comma-separated list of strings with
-      leading periods, i.e., ``.pdb``.
-    - *mime_types* is an optinal comma-separated list of strings, e.g.,
-      chemical/x-pdb.
-    - *url* is a string that has a URL that points to the data format's docmentation.
-    - *dangerous* is an optional boolean and should be ``true`` if the data
-      format is insecure -- defaults to true if a script.
-    - *icon* is an optional string containing the filename of the icon --
-      it defaults to the default icon for the category.
-    - *synopsis* is a short description of the data format.  It is here
-      because it needs to be part of the metadata available for
-      uninstalled data format, so that users can get more than just a
-      name for deciding whether they want the data format or not.
-    - *encoding* should be given for text formats and is the file encoding.
-
-    For example::
-
-      DataFormat :: PDB :: :: Molecular Structure :: .pdb, .ent :: chemical/x-pdb :: http://www.pdb.org/ :: :: :: Protein DataBank file
-      DataFormat :: mmCIF :: :: Molecular Structure :: .mmcif, .cif :: chemical/x-mmcif :: http://www.pdb.org/ :: :: :: MacroMolecular CIF
-
-    In addition to describing the format, the bundle should say how if it
-    can fetch, open or save data in that format.
-
-        ``Open`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
-
-        ``Save`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
-
-        ``Fetch`` :: *database_name* :: *format_name* :: *prefixes* :: *example_id* :: *is_default*
-
-    - *format_name* is a format previously given in a DataFormat line.
-    - *prefixes* is a comma-separated list of strings associated with the
-      (database_name, format_name).
-    - *tag* is a string is disambiguate multiple readers or writers.
-    - *is_default* is a string.  If set to ``true``, this format is
-      the default format for the database.
-    - *extra_keywords* is an optional comma-separated list of additional
-      keyword arguments.  The keyword can be followed by a colon and a
-      ChimeraX argument type without the Arg suffix.  If the argument type
-      isn't found in the :py:class:`chimerax.core.commands` module, the bundle API class is
-      searched for it.
-    - *database_name* is a string with the name of the databasea to fetch
-      the data from.
-    - *example_id* is a string with an example identifier.
-
-    For example::
-    
-      Open :: PDB :: PDB ::
-      Save :: PDB :: PDB ::
-      Fetch :: PDB :: mmcif :: pdb :: 1a0m ::
-      Fetch :: PDB :: PDB :: :: 1a0m ::
-
-    Notes:
-
-    - File operations are performed via the ``bundle_api.open_file``,
-      ``bundle_api.save_file``, and
-      ``bundle_api.fetch_from_database`` methods.
-    - The data format metadata is used to generate the macOS
-      application property list.
-    - Bundles may provide more than one data format.
+*Data Format Metadata*
+    The old ``DataFormat``, ``Open``, and ``Save`` tags have been replaced with
+    a manager/provider mechanism, as described in the `Opening/Saving/Fetching Files`_
+    section below.
 
 
 *Selector Metadata*
@@ -653,21 +595,338 @@ data formats, and selectors.
       names carefully."
 
 
-*Manager Metadata*
+.. _Opening/Saving/Fetching Files:
 
-    ``Manager`` :: *name* [:: *keyword:value*]*
+Opening/Saving/Fetching Files
+-----------------------------
 
-    - *name* is a string and may have spaces in it.
-    - *keyword:value* pairs are zero-or more manager-specific options,
-      separated by ``::``.
+For a bundle to hook into the ``open`` or ``save`` commands
+it must have a `Providers`_ section in its **bundle_info.xml**
+to provide the relevant information to the "open command" or
+"save command" manager via `Provider`_ tags.
+The bundle also typically defines the file/data format via a
+`Provider`_ tag for the "data formats" manager, though in
+some cases the data format is defined in another bundle.
 
-    For example::
-    
-      Manager :: http_scheme :: guiOnly:true
+As per normal XML, `Provider`_ attributes are strings
+(*e.g.* ``name="Chimera BILD object"``)
+and for attributes that can accept multiple values, those
+values are comma separated
+(*e.g.* ``suffixes=".bld,.bild"``).
 
-    Notes:
+.. _data format:
 
-    - Bundles may provide more than one manager.
-    - The toolshed reserved the following keywords:
-      - **guiOnly**, if present and set to ``true``, means the manager
-        should only be created if the graphical user interface is in use.
+Defining a File/Data Format
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To define a data(/file) format, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` of the tag or section should be "data formats".  The
+information supplied by the `Provider`_ tag will be all that is
+required for the format definition -- *i.e.* the data-formats manager
+will never call the :py:class:`~chimerax.core.toolshed.BundleAPI`'s
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider`
+method, so that method does not need to be customized
+for this manager.
+
+These are the possible `Provider`_ attributes:
+
+- **Mandatory** Attributes
+
+    .. _name:
+
+    *name*
+        The full official name of the format, typically omitting the word "format"
+        though, since all such names are formats.  The *name* attribute must be
+        unique across all format definitions.
+
+- **Frequently-Used** Attributes
+
+    *category*
+        The general kind of information that the format provides, used to organize
+        formats in some interfaces.  Commonly used categories are: Generic 3D objects,
+        Molecular structure, Molecular trajectory, Volume data, Image, Higher-order
+        structure, Sequence, and Command script.  The default is the catchall category
+        "General".
+
+    *encoding*
+        If the format is textual, the encoding for that text.  Binary formats should
+        omit this attribute.  The most common encoding for text formats is "utf-8".
+
+    .. _nicknames:
+
+    *nicknames*
+        A short, easy-to-type name for the format, typically used in conjunction with
+        the ``format`` keyword of the ``open``/``save`` commands.  Still needs to be verbose
+        enough to not easily conflict with nicknames of other formats.  Also typically
+        all lower case.  Default is an all-lower-case version of *name*.
+
+    *reference_url*
+        If there is a web page describing the format, the URL to that page.
+
+    *suffixes*
+        The file-name suffixes (starting with a '.') that are used by files in this
+        format.  If no suffixes are specified, then files in this format will only be
+        able to be opened/saved by supplying the ``format`` keyword to the ``open``/``save``
+        commands.  Also, formats that can only be fetched from the web frequently don't
+        specify suffixes.
+
+    *synopsis*
+        The description of the format used by user-interface widgets that list formats
+        (*e.g.* the Open-File dialog), so typically shorter than *name* but more verbose 
+        than the *nicknames*.  The first word should be capitalized unless that word is
+        mixed case (*e.g.* mmCIF).  Like *name*, *synopsis* should typically omit the
+        word "format".  Defaults to *name*.
+
+- **Infrequently-Used** Attributes
+
+    *allow_directory*
+        If this is specified as "true", then the data for this format can be organized as
+        a folder rather than a single file.  Regardless of the value of *suffixes*, such a
+        folder can only be opened/saved by providing the ``format`` keyword to the corresponding
+        command.  Specifying *allow_directory* as "true" does not preclude also possibly
+        opening this format from individual files (in which case *suffixes* would matter).
+        The default is "false".
+
+    *insecure*
+        If opening this format's data could cause arbitrary code to execute, then *insecure*
+        should be specified as "true".  Formats in the "Command script" *category* default
+        to "true" and others to "false".
+
+    *mime_types*
+        If the data for this format may be obtained by the user providing an URL to the
+        ``open`` command, and the URL might not end in one of the *suffixes* (*e.g.* it's
+        a CGI script), but the web server does provide a format-specific Content-Type header
+        for the data, then mime_types lists Content-Type header values that the server
+        or servers could possibly provide.  Only relevant to the user providing an URL, not
+        to the "fetching" of database identifiers outlined in the `Fetching Files`_ section.
+        If the data format has a `Wikipedia <https://en.wikipedia.org>`_ page, the "mime type"
+        will frequently be specified there (as "Internet media type").
+
+For example::
+
+    <Providers manager="data formats">
+        <Provider name="Sybyl Mol2" suffixes=".mol2" nicknames="mol2"
+            category="Molecular structure" synopsis="Mol2" encoding="utf-8" />
+    </Providers>
+  
+.. _open command:
+
+Opening Files
+^^^^^^^^^^^^^
+
+For your bundle to open a file, it needs to provide information to the "open command" manager
+about what data format it can open, what arguments it needs, what function to call, *etc.*.
+Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
+provided when the open-command manager calls your bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
+That call will only occur when ChimeraX tries to open the kind of data that your `Provider`_
+tag says you can open.
+
+To specify that your bundle can open a data format, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` attribute in the tag or section should be "open command".
+The other possible `Provider`_ attributes are:
+
+- **Mandatory** Attributes
+
+    *name*
+        The `name`_ of the `data format`_ you can open.  Can also be one of the format's
+        `nicknames`_ instead.
+
+- **Infrequently-Used** Attributes
+
+    *batch*
+        If your provider can open multiple files of its format as one combined model, then
+        it should specify *batch* as "true" and it will be called with a list of path names
+        instead of an open file stream.
+
+    *check_path*
+        If the user can type something other than an existing file name, and your provider
+        will expand that into a real file name or names (*e.g.* there is some kind of substitution
+        the provider does with the text), then specify *check_path* as "false" (which implies
+        *want_path*\="true", you don't have to explicitly specify that).
+
+    *type*
+        If you are providing information about opening a file rather than fetching from a
+        database, *type* should be "open", and otherwise "fetch".  Since the default value
+        for *type* is "open", providers that open files typically skip specifying *type*.
+
+    *want_path*
+        The provider is normally called with an open file stream rather than a file name,
+        which allows ChimeraX to handle compressed files automatically for you.  If your
+        file reader must be able to open/read the file itself instead, then specify *want_path*
+        as "true" and you will receive a file path instead of a stream, and attempting
+        to open a compressed version of your file type will result in an error before your
+        provider is even called.
+  
+For example::
+
+  <Providers manager="open command">
+    <Provider name="AutoDock PDBQT" want_path="true" />
+    <Provider name="Sybyl Mol2" want_path="true" />
+  </Providers>
+
+The remainder of the information the bundle provides about how to open a file comes from the
+return value of the bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
+an instance of the
+:py:class:`chimerax.open_command.OpenerInfo` class.
+The doc strings of that class discuss its methods in detail, but briefly:
+
+* You must override the :py:meth:`~chimerax.open_command.OpenerInfo.open` method to take
+  the input provided and return a (models, status message) tuple.
+
+* If your format has format-specific keywords that the ``open`` command should accept,
+  you must override the :py:meth:`~chimerax.open_command.OpenerInfo.open_args` property
+  to return a dictionary that maps **Python** keywords of your opener-function to corresponding
+  :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
+  corresponding Python values).
+
+.. _save command:
+
+Saving Files
+^^^^^^^^^^^^
+
+For your bundle to save a file, it needs to provide information to the "save command" manager
+about what data format it can save, what arguments it needs, what function to call, *etc.*.
+Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
+provided when the save-command manager calls your bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
+That call will only occur when ChimeraX tries to save the kind of data that your `Provider`_
+tag says you can save.
+
+To specify that your bundle can save a data format, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` attribute in the tag or section should be "save command".
+The other possible `Provider`_ attributes are:
+
+- **Mandatory** Attributes
+
+    *name*
+        The `name`_ of the `data format`_ you can save.  Can also be one of the format's
+        `nicknames`_ instead.
+
+- **Infrequently-Used** Attributes
+
+    *compression_okay*
+        If the data you are writing out is *already* compressed and therefore it would probably
+        be bad to compress it again (likely slower with no space savings), specifying
+        *compression_okay* as "false" will prevent the ``save`` command from allowing this
+        format to be automatically compressed (which happens when the output file name also has
+        a compression suffix, *e.g.* "my_structure.pdb.gz").
+
+For example::
+
+  <Providers manager="save command">
+    <Provider name="Sybyl Mol2" />
+  </Providers>
+
+The remainder of the information the bundle provides about how to save a file comes from the
+return value of the bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
+an instance of the
+:py:class:`chimerax.save_command.SaverInfo` class.
+The doc strings of that class discuss its methods in detail, but briefly:
+
+* You must override the :py:meth:`~chimerax.save_command.SaverInfo.save` method to take
+  the input provided and save the file.
+
+* If your format has format-specific keywords that the ``save`` command should accept,
+  you must override the :py:meth:`~chimerax.save_command.SaverInfo.save_args` property
+  to return a dictionary that maps **Python** keywords of your saver-function to corresponding
+  :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
+  corresponding Python values).
+
+* If you have format-specific options and wish to show a user interface to some or all of those
+  options in the ChimeraX Save dialog, you must override the
+  :py:meth:`~chimerax.save_command.SaverInfo.save_args_widget` method and return a widget
+  containing your interface (typically a subclass of
+  `QFrame <https://doc.qt.io/qt-5/qframe.html>`_).
+  Conversely, you must also override
+  :py:meth:`~chimerax.save_command.SaverInfo.save_args_string_from_widget`
+  that takes your widget and returns a string containing the corresponding options and
+  values that could be added to a ``save`` command.
+  
+.. _fetch command:
+
+Fetching Files
+^^^^^^^^^^^^^^
+
+For your bundle to fetch a file from a web database, it needs to provide information to the
+"open command" manager about what data format it can open, what arguments it needs,
+what function to call, *etc.*.
+Some of that info is provided as attributes in the `Provider`_ tag, but the lion's share is
+provided when the open-command manager calls your bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method.
+That call will only occur when ChimeraX tries to fetch the kind of data that your `Provider`_
+tag says you can fetch.
+
+To specify that your bundle can fetch from a database, you supply a `Provider`_ tag in the
+`Providers`_ section of your **bundle_info.xml** file.  The value of
+the ``manager`` attribute in the tag or section should be "open command".
+The other possible `Provider`_ attributes are:
+
+- **Mandatory** Attributes
+
+    *format_name*
+        The `name`_ of the `data format`_ for the data that is fetched.  Can also be one of
+        the format's `nicknames`_ instead.
+
+    *name*
+        The name of the database that the data is fetched from, typically an easily typed
+        lowercase string, since this name will be used directly in the ``open`` command
+        as either the value for the ``fromDatabase`` keyword or as the prefix in the
+        *from_database:identifier* form of fetch arguments.  So "pdb" is better then
+        "Protein Databank".
+        
+    *type*
+        *type* should be "fetch" to indicate that your bundle fetches data
+        from the web (as opposed to opening local files).  The default is "open".
+
+- **Frequently-Used** Attributes
+
+    *example_ids*
+        A list of one or more valid example identifiers for your database.  For use in
+        graphical user interfaces.
+
+    *synopsis*
+        The description of the fetcher used by user-interface widgets that list fetchers
+        (like the Fetch By ID dialog in Chimera), so typically somewhat more verbose than *name*.
+        The first word should be capitalized unless that word is mixed case (*e.g.* mmCIF).
+        Defaults to a capitalized *name* followed by the *format_name* in parentheses.
+
+- **Infrequently-Used** Attributes
+
+    *is_default*
+        If a database can be fetched from using different `data format`_\s, the one that
+        should be used when the user omits the ``format`` keyword should have *is_default*
+        as "true", and the others should have it as "false".  *is_default* defaults to "true",
+        so since most databases only have one format this attribute is in most cases omitted.
+
+For example::
+
+  <Providers manager="open command">
+    <Provider name="pubchem" type="fetch" format_name="sdf" synopsis="PubChem" example_ids="12123" />
+  </Providers>
+
+The remainder of the information the bundle provides about how to fetch from a database comes
+from the return value of the bundle's
+:py:meth:`~chimerax.core.toolshed.BundleAPI.run_provider` method, which must return
+an instance of the
+:py:class:`chimerax.open_command.FetcherInfo` class.
+The doc strings of that class discuss its methods in detail, but briefly:
+
+* You must override the :py:meth:`~chimerax.open_command.FetcherInfo.fetch` method to take
+  the input provided and return a (models, status message) tuple.
+
+* If your format has database-specific keywords that the ``open`` command should accept,
+  you must override the :py:meth:`~chimerax.open_command.FetcherInfo.fetch_args` property
+  to return a dictionary that maps **Python** keywords of your fetcher-function to corresponding
+  :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
+  corresponding Python values).  
+
+  If the `data format`_ being fetched can also be opened directly from a file (*i.e.* there's
+  an "open command" `Provider`_ with *type*\="open"), then 
+  :py:meth:`~chimerax.open_command.FetcherInfo.fetch_args` should only return keywords applicable
+  just to fetching.  The "opening" keywords will be automatically combined with those.

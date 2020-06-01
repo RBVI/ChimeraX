@@ -43,7 +43,7 @@ def remote_control(session, enable, address = '127.0.0.1', port = 42184, timeout
 from xmlrpc.server import SimpleXMLRPCServer
 class ChimeraxXMLRPCServer(SimpleXMLRPCServer):
 
-  def __init__ (self, session, address = '127.0.0.1', port = 42184, timeout = 0.01):
+  def __init__ (self, session, address = '127.0.0.1', port = 42184, timeout = 10):
 
       self.session = session	# ChimeraX Session object
 

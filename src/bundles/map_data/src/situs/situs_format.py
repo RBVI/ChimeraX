@@ -34,7 +34,7 @@ class SITUS_Density_Map:
       self.voxel_size = float(fields[0])
       self.origin = [float(x) for x in fields[1:4]]
       self.grid_size = [int(s) for s in fields[4:7]]
-    except:
+    except Exception:
       raise SyntaxError('Error parsing first line of SITUS map: voxel size, origin xyz, grid size xyz, got\n' + params)
 
     if self.voxel_size == 0:

@@ -1,0 +1,36 @@
+<BundleInfo name="ChimeraX-Shape" version="1.0"
+	    package="chimerax.shape"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Make models for geometric shapes</Synopsis>
+  <Description>Create geometric shapes like spheres, cylinders, cones, tubes, icosahedrons.</Description>
+
+  <Categories>
+    <Category name="Generic 3D objects"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+  </Dependencies>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: shape boxPath :: Surfaces :: create a box beam model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape cone :: Surfaces :: create a cone model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape cylinder :: Surfaces :: create a cylinder model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape ellipsoid :: Surfaces :: create an ellipsoid model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape icosahedron :: Surfaces :: create a icosahedron model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape rectangle :: Surfaces :: create a rectangle model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape ribbon :: Surfaces :: create a ribbon model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape sphere :: Surfaces :: create a sphere model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape triangle :: Surfaces :: create a triangle model</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: shape tube :: Surfaces :: create a tube model</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>

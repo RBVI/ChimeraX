@@ -41,7 +41,12 @@ endif
 ifeq ($(OS),Linux)
 NEED_CHRPATH=1
 NEED_P7ZIP=1
+ifndef CENTOS_DIST
 NEED_MESA=1
+endif
+ifeq ($(CENTOS_DIST),7)
+NEED_MESA=1
+endif
 # NEED_HDF5=1
 ifndef UBUNTU_DIST
 ifndef CENTOS_DIST
@@ -193,12 +198,7 @@ endif
 
 SUBDIR_APP_INSTALL = $(SUBDIRS:=.app-install)
 .PHONY: $(SUBDIR_APP_INSTALL)
-app-install: install $(SUBDIR_APP_INSTALL)
-#	# recreate $(PYSITEDIR)/easy-install.pth with actually installed eggs
-#	cd $(APP_PYSITEDIR); \
-#		(echo "import sys; sys.__plen = len(sys.path)"; \
-#		ls -d ./*egg; \
-#		echo "import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)") > easy-install.pth
+app-install: $(SUBDIR_APP_INSTALL)
 
 $(SUBDIR_APP_INSTALL):
 	$(MAKE) -C $(subst .app-install,,$@) app-install

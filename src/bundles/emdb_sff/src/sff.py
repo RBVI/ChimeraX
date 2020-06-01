@@ -22,7 +22,7 @@ def read_sff(session, path):
     Create a model that is either polygon traces or a volume index map.
     """
 
-    from sfftkrw.schema.adapter import SFFSegmentation
+    from sfftkrw import SFFSegmentation
     seg = SFFSegmentation.from_file(path)
 
     report_segmentation_info(seg)
@@ -34,12 +34,9 @@ def read_sff(session, path):
     msg = 'Read segmentation file %s' % path
     return models, msg
 
-def len_or_none(seq):
-    return 'none' if seq is None else len(seq)
-
 def report_segmentation_info(seg):
     print ('seg name', seg.name)
-    print('software', seg.software.name)
+    print('software', [software.name for software in seg.software_list])
     print('num transforms', len(seg.transforms))
     print('num segments', len(seg.segments))
     print('num lattices', len(seg.lattices))
@@ -49,12 +46,12 @@ def report_segmentation_info(seg):
         print('transform', tf.id, 'data', tf.data_array)
 
     for segment in seg.segments:
-        v = segment.volume
+        v = segment.three_d_volume
         print ('segment id', segment.id)
-        print('num meshes', len_or_none(segment.meshes))
+        print('num meshes', len(segment.mesh_list))
         print('descrip', segment.biological_annotation.name)
         print('color', segment.colour)
-        print('num shapes', len_or_none(segment.shapes))
+        print('num shapes', len(segment.shape_primitive_list))
         print('parent', segment.parent_id)
         if v is None:
             print ('no volume')
@@ -62,8 +59,8 @@ def report_segmentation_info(seg):
             print('lattice id', v.lattice_id)
             print('transform id', v.transform_id)
             print('value', v.value)
-        if segment.meshes:
-            for i,m in enumerate(segment.meshes):
+        if segment.mesh_list:
+            for i,m in enumerate(segment.mesh_list):
                 print('mesh', i+1)
                 print('nv', m.num_vertices)
                 print('npoly', m.num_polygons)
@@ -72,7 +69,7 @@ def report_segmentation_info(seg):
 def lattice_models(session, seg):
     lattice_segs = {}	# Map lattice id to dictionary mapping segment index to (descrip, color)
     for segment in seg.segments:
-        v = segment.volume
+        v = segment.three_d_volume
         if v is not None:
             lseg = lattice_segs.setdefault(v.lattice_id, {})
             if v.value is not None:
@@ -103,7 +100,7 @@ def lattice_models(session, seg):
         #  EMD 1547 segmentation has two transforms, identity and the
         #  map transform (2.8A voxel size, shift to center) but I didn't
         #  find any place where transform 1 is associated with the lattice.
-        #  Appears it should be in segment.volume.transform_id but this
+        #  Appears it should be in segment.three_d_volume.transform_id but this
         #  attribute is optional and is None in this case.
         models.append(v)
 
@@ -170,9 +167,9 @@ def mesh_models(session, seg):
     from chimerax.core.models import Surface
     from chimerax.surface import combine_geometry_vnt
     for segment in seg.segments:
-        if segment.meshes is None:
+        if segment.mesh_list is None:
             continue
-        geoms = [mesh_geometry(mesh, seg) for mesh in segment.meshes]
+        geoms = [mesh_geometry(mesh, seg) for mesh in segment.mesh_list]
         if len(geoms) == 0:
             continue
         va,na,ta = combine_geometry_vnt(geoms)
@@ -216,7 +213,7 @@ def mesh_geometry(mesh, seg):
     '''
 
     if mesh.transform_id is None:
-        from chimerax.core.geometry import Place, scale
+        from chimerax.geometry import Place, scale
 #        transform = scale((160,160,160)) * Place(seg.transforms[0].data_array)
         transform = Place(seg.transforms[0].data_array) * scale((160,160,160))
     else:
@@ -248,7 +245,7 @@ def mesh_geometry(mesh, seg):
     return va,na,ta
 
 def transform_by_id(seg, tf_id):
-    from chimerax.core.geometry import Place, scale
+    from chimerax.geometry import Place, scale
     for tf in seg.transforms:
         if tf.id == tf_id:
             return scale((160,160,160)) * Place(tf.data_array)

@@ -14,7 +14,7 @@
 from chimerax.core.errors import UserError
 
 def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None,
-        visibility=None, mid_point=None, head_style=None, frames=None):
+        visibility=None, head_style=None, frames=None):
     from inspect import getargvalues, currentframe
     args, varargs, kw, locals_dict = getargvalues(currentframe())
     cmd_kw = {}
@@ -42,8 +42,7 @@ def arrow(session, arrows=None, *, start=None, end=None, color=None, weight=None
     for a in arrows:
         _update_arrow(session, a, **cmd_kw)
 
-def arrow_create(session, start, end, *, color=None, weight=1.0,
-                 visibility=True, mid_point=None, head_style="solid"):
+def arrow_create(session, start, end, *, color=None, weight=1.0, visibility=True, head_style="solid"):
     '''Create an arrow at a fixed position in the graphics window.
 
     Parameters
@@ -61,11 +60,6 @@ def arrow_create(session, start, end, *, color=None, weight=1.0,
       Relative thickness of arrow, where 1.0 is "normal" (default) thickness.
     visibility : bool
       Whether or not to display the label.
-    mid_point : numeric two-tuple
-        If given, the arrow will be curved.  The curve will be determined by taking a straight line
-        through the 'start' and 'end' points and determining the distance from 'mid_point' to that
-        line.  The arrow will be curved by that amount to the appropriate side (and therefore may not
-        actually go through 'mid_point').
     head_style : string; "blocky", "solid", "pointy", or "pointer"
         Style of arrowhead.
     '''
@@ -84,7 +78,6 @@ def arrow_create(session, start, end, *, color=None, weight=1.0,
         'end': end,
         'weight': weight,
         'visibility': visibility,
-        'mid_point': mid_point,
         'head_style': head_style
     }
 
@@ -98,7 +91,7 @@ def arrow_create(session, start, end, *, color=None, weight=1.0,
 
 
 def arrow_change(session, arrows, *, color=None, weight=None,
-                 start=None, end=None, visibility=None, mid_point=None, head_style=None, frames=None):
+                 start=None, end=None, visibility=None, head_style=None, frames=None):
     '''Change label parameters.'''
     kw = {
         'color': color,
@@ -106,15 +99,15 @@ def arrow_change(session, arrows, *, color=None, weight=None,
         'start': start,
         'end': end,
         'visibility': visibility,
-        'mid_point': mid_point,
         'head_style': head_style,
         'frames': frames
     }
-    return [_update_arrow(session, a, **kw) for a in arrows]
+    for a in arrows:
+        _update_arrow(session, a, **kw)
 
 
 def _update_arrow(session, a, *, color=None, weight=None,
-                 start=None, end=None, visibility=None, mid_point=None, head_style=None, frames=None):
+                 start=None, end=None, visibility=None, head_style=None, frames=None):
     if head_style is not None: a.head_style = head_style
     if frames is None:
         if color is not None:
@@ -123,17 +116,13 @@ def _update_arrow(session, a, *, color=None, weight=None,
         if start is not None: a.start = start
         if end is not None: a.end = end
         if visibility is not None: a.visibility = visibility
-        if mid_point == 'none':
-            a.mid_point = None
-        elif mid_point is not None:
-            a.mid_point = mid_point
         a.update_drawing()
     else:
-        _InterpolateArrow(session, a, color, weight, start, end, visibility, mid_point, frames)
+        _InterpolateArrow(session, a, color, weight, start, end, visibility, frames)
 
 
 class _InterpolateArrow:
-    def __init__(self, session, arrow, color, weight, start, end, visibility, mid_point, frames):
+    def __init__(self, session, arrow, color, weight, start, end, visibility, frames):
         self.arrow = arrow
         from numpy import array_equal
         # even if color/background not changing, need color1/2 and bg1/2 for visibility changes
@@ -159,16 +148,6 @@ class _InterpolateArrow:
                 # need to interpolate alpha, so set it to a real color;
                 # the last frame will set it to the right final value
                 self.arrow.color = array(self.arrow.drawing.arrow_color, dtype=uint8)
-        if mid_point == 'none':
-            if arrow.mid_point is None:
-                self.interp_midpoint = False
-            else:
-                self.interp_midpoint = True
-        elif mid_point is None:
-            self.interp_midpoint = False
-        else:
-            self.interp_midpoint = True
-        self.mid_point1, self.mid_point2 = arrow.mid_point, mid_point
         self.frames = frames
         from chimerax.core.commands import motion
         motion.CallForNFrames(self.frame_cb, frames, session)
@@ -216,26 +195,6 @@ class _InterpolateArrow:
                     # becoming hidden
                     self.arrow.color[-1] = self.color1[-1] * (1 - fraction)
                 self.arrow.visibility = True
-        if self.interp_midpoint:
-            if frame == self.frames-1:
-                self.arrow.mid_point = self.mid_point2
-            else:
-                if self.mid_point2 is None:
-                    # going to straight line from curved
-                    mx1, my1 = self.mid_point1
-                    mx2 = (self.arrow.start[0] + self.arrow.end[0]) / 2
-                    my2 = (self.arrow.start[1] + self.arrow.end[1]) / 2
-                elif self.mid_point1 is None:
-                    # going from straight line to curved
-                    mx1 = (self.arrow.start[0] + self.arrow.end[0]) / 2
-                    my1 = (self.arrow.start[1] + self.arrow.end[1]) / 2
-                    mx2, my2 = self.mid_point2
-                else:
-                    # going from one curve to another
-                    mx1, my1 = self.mid_point1
-                    mx2, my2 = self.mid_point2
-                self.arrow.mid_point = ((1 - fraction) * mx1 + fraction * mx2,
-                    (1 - fraction) * my1 + fraction * my2)
         self.arrow.update_drawing()
 
 
@@ -246,13 +205,20 @@ def arrow_under_window_position(session, win_x, win_y):
     fx,fy = (win_x+.5)/w, 1-(win_y+.5)/h    # win_y is 0 at top
     lm = session_arrows(session)
     if lm is None:
-        return None
+        return None, None
+    best = None
     for arr in lm.all_arrows:
-        dx,dy = fx - arr.xpos, fy - arr.ypos
-        lw,lh = arr.drawing.size
-        if dx >=0 and dx < lw and dy >=0 and dy < lh:
-            return arr
-    return None
+        for x, y, part in [(arr.start[0], arr.start[1], "start"), (arr.end[0], arr.end[1], "end")]:
+            dist2 = (x-fx)*(x-fx) + (y-fy)*(y-fy)
+            if dist2 > 0.0025:  # 0.05 squared
+                continue
+            if best is None or dist2 < best:
+                best = dist2
+                best_arr = arr
+                best_part = part
+    if best is None:
+        return None, None
+    return best_arr, best_part
 
 
 def arrow_delete(session, arrows = None):
@@ -291,7 +257,6 @@ def register_arrow_command(logger):
             ('weight', FloatArg),
             ('visibility', BoolArg),
             ('head_style', EnumOf(("blocky", "solid", "pointy", "pointer"))),
-            #('mid_point', Or(NoneArg, Float2Arg)),
             ('frames', IntArg)],
         synopsis='Create/change a 2d arrow')
     register('2dlabels arrow', arrows_desc, arrow, logger=logger)
@@ -353,7 +318,7 @@ class Arrows(Model):
 
     def take_snapshot(self, session, flags):
         lattrs = ('name', 'color', 'weight', 'head_style',
-                  'start', 'end', 'mid_point', 'visibility')
+                  'start', 'end', 'visibility')
         lstate = tuple({attr:getattr(a, attr) for attr in lattrs}
                        for a in self.all_arrows)
         data = {'arrows state': lstate,
@@ -370,7 +335,12 @@ class Arrows(Model):
         return s
 
     def set_state_from_snapshot(self, session, data):
-        self._arrows = [Arrow(session, **ls) for ls in data['arrows state']]
+        compatible_arrows_state = []
+        for arrow_state in data['arrows state']:
+            if 'mid_point' in arrow_state:
+                del arrow_state['mid_point']
+            compatible_arrows_state.append(arrow_state)
+        self._arrows = [Arrow(session, **ls) for ls in compatible_arrows_state]
         self._named_arrows = {a.name:a for a in self._arrows if a.name}
 
 
@@ -396,7 +366,7 @@ def session_arrows(session, create=False):
 
 class Arrow:
     def __init__(self, session, name, color=None, weight=1.0, start=(0.0, 0.0), end=(1.0, 1.0),
-            mid_point=None, visibility=True, head_style="solid"):
+            visibility=True, head_style="solid"):
         self.session = session
         self.name = name
         self.color = color
@@ -404,7 +374,6 @@ class Arrow:
         self.start = start
         self.end = end
         self.visibility = visibility
-        self.mid_point = mid_point
         self.head_style = head_style
         self.drawing = d = ArrowModel(session, self)
         lb = session_arrows(session, create = True)
@@ -441,14 +410,54 @@ class ArrowModel(Model):
     def __init__(self, session, arrow):
         Model.__init__(self, arrow.name, session)
         self.arrow = arrow
-        self.window_size = None
-        self.texture_size = None
+        self._window_size = None	# Full window size in render pixels
+        self._texture_size = None	# Arrow image size in render pixels
+        self._aspect = 1		# Scale y positioning for image saving at non-screen aspect ratio
         self.needs_update = True
 
     def draw(self, renderer, draw_pass):
-        if not self.update_drawing():
-            self.resize()
+        self._update_graphics(renderer)
         Model.draw(self, renderer, draw_pass)
+
+    def _update_graphics(self, renderer):
+        '''
+        Recompute the label texture image or update its texture coordinates that
+        position it in the window based on the rendered window size.
+        When saving an image file the rendered size may differ from the on screen
+        window size.  In that case make the label size match its relative size
+        seen on screen.
+        '''
+        window_size = renderer.render_size()
+
+        # Preserve on screen label size if saving an image of different size.
+        if getattr(renderer, 'image_save', False):
+            # When saving an image match the arrow's position on screen
+            # relative to other models when image aspect ratio differs from screen.
+            sw,sh = self.session.main_view.window_size
+            w,h = window_size
+            aspect = (w*sh)/(h*sw) if h*sw > 0 else 1
+        else:
+            aspect = 1
+        if aspect != self._aspect:
+            self._aspect = aspect
+            self.needs_update = True
+
+        # Will need to reposition label if window size changes.
+        win_size_changed = (window_size != self._window_size)
+        if win_size_changed:
+            self._window_size = window_size
+            self.needs_update = True
+
+        if self.needs_update:
+            self.needs_update = False
+            self._update_arrow_image()
+
+    def _update_arrow_image(self):
+        rgba = self._arrow_image_rgba()
+        if rgba is None:
+            self.arrow.session.logger.info("Can't find font for arrow")
+        else:
+            self._set_arrow_image(rgba)
 
     @property
     def arrow_color(self):
@@ -469,19 +478,7 @@ class ArrowModel(Model):
         a.update_drawing()
     single_color = property(_get_single_color, _set_single_color)
 
-    def update_drawing(self):
-        if not self.needs_update:
-            return False
-        self.needs_update = False
-        a = self.arrow
-        rgba = self.arrow_image_rgba()
-        if rgba is None:
-            a.session.logger.info("Can't find font for arrow")
-            return True
-        self.set_arrow_image(rgba)
-        return True
-
-    def arrow_params(self, width, height):
+    def _arrow_params(self, width, height):
         scale_factor = min(width, height)
         sx, sy = self.arrow.start[0] * width, self.arrow.start[1] * height
         ex, ey = self.arrow.end[0] * width, self.arrow.end[1] * height
@@ -490,11 +487,6 @@ class ArrowModel(Model):
             return None, None
 
         half_width = scale_factor * self.STD_HALF_WIDTH * self.arrow.weight
-
-        if self.arrow.mid_point:
-            # curved arrow
-            from chimerax.core.errors import LimitationError
-            raise LimitationError("Curved arrows not implemented yet")
 
         # straight arrow
         vx, vy = ex - sx, ey - sy
@@ -545,12 +537,13 @@ class ArrowModel(Model):
         ys = [pt[1] for pt in bounding_pts]
         return min(xs), max(xs), min(ys), max(ys)
 
-    def arrow_image_rgba(self):
-    #TODO: same techniques as chimerax.core.graphics.text_image_rgba, but using QPainter's arc drawing
+    def _arrow_image_rgba(self):
+    #TODO: same techniques as chimerax.graphics.text_image_rgba, but using QPainter's arc drawing
     # plus: remainder of this file
 
-        w, h = self.arrow.session.main_view.window_size
-        shaft_info, head_start = self.arrow_params(w, h)
+        w, h = self._window_size
+        h *= self._aspect
+        shaft_info, head_start = self._arrow_params(w, h)
         if head_start is None:
             # too short to draw
             return None
@@ -567,8 +560,9 @@ class ArrowModel(Model):
 
         from PyQt5.QtGui import QImage, QPainter, QColor, QBrush, QPen
 
-        image = QImage(int((right-left))+2*self.PIXEL_MARGIN, int((top-bottom))+2*self.PIXEL_MARGIN,
-            QImage.Format_ARGB32)
+        iw = int(right-left)+2*self.PIXEL_MARGIN
+        ih = int(top-bottom)+2*self.PIXEL_MARGIN
+        image = QImage(iw, ih, QImage.Format_ARGB32)
         image.fill(QColor(0,0,0,0))    # Set background transparent
 
         with QPainter(image) as p:
@@ -583,57 +577,70 @@ class ArrowModel(Model):
                 x, y = float_xy
                 # image y axis points down
                 return (self.PIXEL_MARGIN + (x-l), self.PIXEL_MARGIN + (t-y))
+            """
             if len(shaft_geom) == 4:
                 p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in shaft_geom])
             else:
                 #TODO: draw arc
                 pass
+            """
             
             start_pos, norm = head_start
             scale_factor = min(w,h)
             half_width = scale_factor * self.STD_HALF_WIDTH * self.arrow.weight
+            head_width = 4 * half_width
+            ex, ey = self.arrow.end[0] * w, self.arrow.end[1] * h
+            head_back = (ex - norm[0] * head_width, ey - norm[1] * head_width)
+            perp = norm[1], -norm[0]
+            edge1 = (head_back[0] + head_width * perp[0], head_back[1] + head_width * perp[1])
+            edge2 = (head_back[0] - head_width * perp[0], head_back[1] - head_width * perp[1])
+            shaft_base1, shaft_base2, shaft_inside2, shaft_inside1 = shaft_geom
             if self.arrow.head_style == "solid":
-                head_width = 4 * half_width
-                ex, ey = self.arrow.end[0] * w, self.arrow.end[1] * h
-                head_back = (ex - norm[0] * head_width, ey - norm[1] * head_width)
-                perp = norm[1], -norm[0]
-                edge1 = (head_back[0] + head_width * perp[0], head_back[1] + head_width * perp[1])
-                edge2 = (head_back[0] - head_width * perp[0], head_back[1] - head_width * perp[1])
-                p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in [edge1, edge2, (ex, ey)]])
+                # need to avoid crossing the shaft so that fading looks good...
+                inner_edge1 = (head_back[0] + half_width * perp[0], head_back[1] + half_width * perp[1])
+                inner_edge2 = (head_back[0] - half_width * perp[0], head_back[1] - half_width * perp[1])
+                poly_points = [edge1, inner_edge1, shaft_base1, shaft_base2, inner_edge2, edge2, (ex, ey)]
             elif self.arrow.head_style == "blocky":
-                pass
-            #TODO: other head styles
+                flange_width = 1.5 * half_width
+                from math import sqrt
+                fw_root2 = flange_width / sqrt(2.0)
+                v1 = (fw_root2 * (-norm[0] - perp[0]), fw_root2 * (-norm[1] - perp[1]))
+                v2 = (fw_root2 * (perp[0] - norm[0]), fw_root2 * (perp[1] - norm[1]))
+                ex, ey = self.arrow.end[0] * w, self.arrow.end[1] * h
+                inner_tip = (ex - 2 * fw_root2 * norm[0], ey - 2 * fw_root2 * norm[1])
+                flange1 = edge1[0] + v1[0], edge1[1] + v1[1]
+                flange2 = edge2[0] + v2[0], edge2[1] + v2[1]
+                inner_flange1 = (inner_tip[0] + half_width * (-norm[0] + perp[0]),
+                                inner_tip[1] + half_width * (-norm[1] + perp[1]))
+                inner_flange2 = (inner_tip[0] + half_width * (-norm[0] - perp[0]),
+                                inner_tip[1] + half_width * (-norm[1] - perp[1]))
+                poly_points = [edge1, flange1, inner_flange1, shaft_base1, shaft_base2, inner_flange2,
+                    flange2, edge2, (ex, ey)]
+            elif self.arrow.head_style == "pointer":
+                poly_points = [shaft_inside1, shaft_base1, shaft_base2, shaft_inside2, (ex, ey)]
+            elif self.arrow.head_style == "pointy":
+                poly_points = [edge1, shaft_inside1, shaft_base1, shaft_base2, shaft_inside2, edge2,
+                    (ex, ey)]
+            else:
+                raise ValueError("Don't know how to draw arrowhead style '%s'" % self.arrow.head_style)
+            if poly_points:
+                p.drawPolygon(*[QPointF(*image_xy(xy)) for xy in poly_points])
 
             # Convert to numpy rgba array.
-            from chimerax.core.graphics import qimage_to_numpy
+            from chimerax.graphics import qimage_to_numpy
             rgba = qimage_to_numpy(image)
 
         return rgba
 
-    def set_arrow_image(self, rgba):
+    def _set_arrow_image(self, rgba):
         x,y = (-1 + 2*self.xpos, -1 + 2*self.ypos)    # Convert 0-1 position to -1 to 1.
-        v = self.arrow.session.main_view
-        self.window_size = w,h = v.window_size
+        y *= self._aspect
+        w,h = self._window_size
         th, tw = rgba.shape[:2]
-        self.texture_size = (tw,th)
+        self._texture_size = (tw,th)
         uw,uh = 2*tw/w, 2*th/h
-        from chimerax.core.graphics.drawing import rgba_drawing
+        from chimerax.graphics.drawing import rgba_drawing
         rgba_drawing(self, rgba, (x, y), (uw, uh), opaque = False)
-
-    @property
-    def size(self):
-        '''Arrow size as fraction of window size (0-1).'''
-        w,h = self.window_size
-        tw,th = self.texture_size
-        return (tw/w, th/h)
-
-    def resize(self):
-        a = self.arrow
-        v = a.session.main_view
-        if v.window_size != self.window_size:
-            # Window has resized so update texture drawing size
-            self.needs_update = True
-            self.window_size = v.window_size
 
     def x3d_needs(self, x3d_scene):
         from .. import x3d

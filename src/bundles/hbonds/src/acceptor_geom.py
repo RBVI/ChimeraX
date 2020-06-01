@@ -2,7 +2,7 @@
 
 """acceptor geometry testing functions"""
 
-from chimerax.core.geometry import look_at, angle, distance_squared, distance
+from chimerax.geometry import look_at, angle, distance_squared, distance
 from chimerax.atomic.bond_geom import bond_positions
 from chimerax.atomic.idatm import tetrahedral
 from . import hbond

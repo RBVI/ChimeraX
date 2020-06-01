@@ -272,7 +272,7 @@ static void tube_geometry_colors(unsigned int *colors, int n,
 extern "C"
 PyObject *tube_geometry_colors(PyObject *, PyObject *args, PyObject *keywds)
 {
-  CArray colors;
+  BArray colors;
   int ns, nc, ed1, ed2;
   FArray path, tangents, cross_section, cross_section_normals;
   const char *kwlist[] = {"colors", "segment_subdivisions", "circle_subdivisions",
@@ -348,7 +348,7 @@ static void tube_triangle_mask(bool *segmask, int n,
 extern "C"
 PyObject *tube_triangle_mask(PyObject *, PyObject *args, PyObject *keywds)
 {
-  CArray segmask;
+  BArray segmask;
   int ns, nc, ed1, ed2;
   const char *kwlist[] = {"segment_mask", "segment_subdivisions", "circle_subdivisions",
 			  "start_divisions", "end_divisions", NULL};
