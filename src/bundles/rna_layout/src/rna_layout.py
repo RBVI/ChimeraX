@@ -13,8 +13,9 @@ class Circuit:
     # circle.
     #
     # The returned coordinates are a dictionary mapping residue number to a
-    # transform (3 by 4 matrix) which takes (0,0,0) to the phosphor position
-    # and the x-axis is in the direction of the base.
+    # transform (3 by 4 matrix) which takes (0,0,0) to the N1 or N9 base atom
+    # which joins the sugar and the x-axis is approximately in the direction
+    # from phosphorous toward this base atom.
     #
     def layout(self, params, pattern = 'circle'):
 
@@ -33,6 +34,10 @@ class Circuit:
             curve = HelixCurve(params.helix_radius, params.helix_rise)
             coords = self.curve_layout(segs, params, curve)
         elif pattern == 'sphere':
+            if params.sphere_radius is None:
+                length = sum([(seg.width + seg.pad) for seg in segs], 0)
+                params.sphere_radius = r= length / (4*params.sphere_turns)
+                print ('RNA sphere radius', r)
             curve = SphereSpiral(params.sphere_radius, params.sphere_turns)
             coords = self.curve_layout(segs, params, curve)
             
@@ -44,8 +49,9 @@ class Circuit:
         p = params
 
         # Compute circle radius
-        wc = value_counts([seg.width for seg in segs if seg.width > 0] + [p.pair_width])
-        radius = polygon_radius(list(wc.items()) + [(p.loop_spacing, len(segs)+1)])
+        seg_lengths = [seg.width for seg in segs] + [seg.pad for seg in segs]  + [p.pair_width, p.loop_spacing]
+        wc = value_counts(seg_lengths)
+        radius = polygon_radius(list(wc.items()))
 
         # Layout loops and stems on a circle
         stem_angle_step = circle_angle(p.pair_width, radius)
@@ -67,6 +73,7 @@ class Circuit:
             for b, tf in seg.placements.items():
                 coords[b] = ctf * tf
             # Next position along circle.
+            gap_step = circle_angle(seg.pad, radius)
             angle += angle_step + gap_step
 
         return coords
@@ -83,15 +90,14 @@ class Circuit:
             for b, tf in seg.placements.items():
                 coords[b] = ptf * tf
             # Next position along line
-            s += seg.width + params.loop_spacing
+            s += seg.width + seg.pad
 
         return coords
 
     def curve_layout(self, segs, params, curve):
 
-        seg_lengths = [seg.width for seg in segs]
-        spacing = params.loop_spacing
-        placements = segments_on_curve(curve, seg_lengths, spacing)
+        seg_lengths = [(seg.width, seg.pad) for seg in segs]
+        placements = segments_on_curve(curve, seg_lengths)
 
         coords = {}
         from random import random
@@ -140,7 +146,7 @@ class Stem:
         for b, tf in ccoords.items():
             coords[b] = stf * tf
 
-        return [Segment(coords, p.pair_width)]
+        return [Segment(coords, p.pair_width, p.loop_spacing)]
 
 # Single strand RNA segment.
 class Loop:
@@ -156,6 +162,7 @@ class Loop:
     def helix_segments(self, params, circuit_segments):
         n = self.length
         b = self.base5p
+        spacing = params.loop_spacing
 
         # Nucleotide orientation
         from chimerax.geometry import Place
@@ -164,40 +171,50 @@ class Loop:
         helix_length = params.helix_loop_size
         if n < helix_length:
             # Make each nucleotide a segment.  Not enough nucleotides to make a helix.
-            segs = singleton_segments(b, n, r90)
+            segs = singleton_segments(b, n, spacing, r90)
         else:
+            segs = []
             nh = n // helix_length
             ne = n % helix_length
             base_index = b
-            segs = singleton_segments(base_index, ne//2, r90)
-            base_index += ne//2
-            for i in range(nh):
-                seg = self.helix_segment(base_index, helix_length,
-                                         params.loop_spacing, params.helix_loop_rise)
-                base_index += helix_length
+            start_pad = ne//2
+            if start_pad > 0:
+                segs.extend(singleton_segments(base_index, start_pad, spacing, r90))
+                base_index += start_pad
+            nleft = n - start_pad
+            while nleft >= helix_length:
+                hlen = 3*helix_length
+                if hlen > nleft: hlen = 2*helix_length
+                if hlen > nleft: hlen = helix_length
+                seg = self.helix_segment(base_index, hlen, spacing, params.helix_loop_rise)
+                base_index += hlen
                 segs.append(seg)
-            segs.extend(singleton_segments(base_index, ne-ne//2, r90))
+                nleft -= hlen
+            if nleft > 0:
+                segs.extend(singleton_segments(base_index, nleft, spacing, r90))
 
         return segs
 
     def helix_segment(self, base_index, count, spacing, rise):
         from math import pi, sin
-        angle = 2*pi / (count-1)
+        angle = 2*pi / count
         angle_deg = angle*180/pi
         radius = 0.5 * spacing / sin(angle/2)
         from chimerax.geometry import translation, rotation, Place
-        step = translation((rise/(count-1), 0, 0)) * rotation((1,0,0), angle_deg, center=(0,radius,0))
+        orient = rotation((0,1,0), 25) * rotation((1,0,0), 230)
+        step = translation((rise/count, 0, 0)) * rotation((1,0,0), angle_deg, center=(0,radius,0))
         p = Place()
         place = {}
         for i in range(count):
-            place[base_index + i] = p
+            place[base_index + i] = p * orient
             p = step * p
-        return Segment(place, rise)
+        return Segment(place, rise, pad = 0)
     
     def horseshoe_segments(self, params, circuit_segments):    
         n = self.length
         b = self.base5p
-
+        spacing = params.loop_spacing
+        
         # Nucleotide orientation
         from chimerax.geometry import Place
         r90 = Place(matrix = ((0,1,0,0),(-1,0,0,0),(0,0,1,0)))
@@ -205,13 +222,13 @@ class Loop:
         curve_length = params.min_lobe_size  # Number of nucleotides in curved part of horseshoe
         if n < curve_length:
             # Make each nucleotide a segment.  Not enough nucleotides to make a horseshoe.
-            segs = singleton_segments(b, n, r90)
+            segs = singleton_segments(b, n, spacing, r90)
         else:
             # Create as many horseshoe segments as needed.
             mxs = params.max_lobe_size
             lsp = params.lobe_spacing_for_stem_loop() if circuit_segments == 1 else params.lobe_spacing
             # Start with lsp single nucleotide segments for spacing
-            segs = singleton_segments(b, lsp, r90)
+            segs = singleton_segments(b, lsp, spacing, r90)
             nl = n-lsp  # number of remaining nucleotides
             bl = b+lsp	# first nucleotide index
             while nl >= curve_length+lsp:
@@ -221,17 +238,17 @@ class Loop:
                     ls -= 1  # Make sure have even number of nucleotides to make two sides of horseshoe
                 side_length = (ls - curve_length) // 2  # Number of nucleotides in one horsehoe side.
                 # Create horseshoe segment.
-                seg = self.horseshoe_segment(side_length, curve_length, params.loop_spacing, bl)
+                seg = self.horseshoe_segment(side_length, curve_length, spacing, bl)
                 segs.append(seg)
                 ll = 2*side_length + curve_length  # Nucleotides used by two sides and curve of horseshoe.
                 bl += ll  # Increment current nucleotide index
                 nl -= ll  # Decrement number of nucleotides remaining
                 # Add lsp single nucleotide segments for spacing
-                segs.extend(singleton_segments(bl, lsp, r90))
+                segs.extend(singleton_segments(bl, lsp, spacing, r90))
                 bl += lsp
                 nl -= lsp
             # Any leftover nucleotides with too few to make a horseshoe, make each its own segment.
-            segs.extend(singleton_segments(bl, nl, r90))
+            segs.extend(singleton_segments(bl, nl, spacing, r90))
         return segs
 
     def horseshoe_segment(self, side_length, semicircle_length, spacing, start_index):
@@ -259,19 +276,24 @@ class Loop:
         # Horseshoe side going down in y.
         for i in range(ns):
             c[b+ns+nc+i] = Place(matrix = ((-1,0,0,2*r),(0,-1,0,(ns-1-i)*ls),(0,0,1,0))) * rtf
-        return Segment(c, 2*r)
+        return Segment(c, 2*r, spacing)
 
 class Segment:
     '''
     Placements for a stretch of one or more contiguous nucleotides.
-    Width is the distance (Angstroms) between end nucleotides.
+    Width is the distance (Angstroms) between first and last nucleotides.
+    Pad is space from last nucleotide to the first of the next segment.
     '''
-    def __init__(self, placements, width):
+    def __init__(self, placements, width, pad):
         self.width = width
+        self.pad = pad
         self.placements = placements  # Map nucleotide index to Place
-
-def singleton_segments(base_index, count, placement):
-    return [Segment({base_index + i: placement}, width = 0) for i in range(count)]
+    @property
+    def count(self):
+        return len(self.placements)
+    
+def singleton_segments(base_index, count, spacing, placement):
+    return [Segment({base_index + i: placement}, width = 0, pad = spacing) for i in range(count)]
         
 class Layout_Parameters:
 
@@ -293,12 +315,10 @@ class Layout_Parameters:
         self.helix_radius = 300			# Radius for helix layout, Angstroms
         self.helix_rise = 50			# Rise per turn for helix layout, Angstroms
 
-#        self.sphere_radius = 830		# Spiral sphere layout radius, Angstroms
-        self.sphere_radius = 430		# Spiral sphere layout radius, Angstroms
-        self.sphere_turns = 10			# Spiral sphere turns from top to botton, count.
+        self.sphere_radius = None		# Spiral sphere layout radius, Angstroms
+        self.sphere_turns = 16			# Spiral sphere turns from top to botton, count.
 
-#        self.helix_loop_size = 10		# Number of nucleotides in a loop layed out as a helix
-        self.helix_loop_size = 20		# Number of nucleotides in a loop layed out as a helix
+        self.helix_loop_size = 8		# Number of nucleotides in a loop layed out as a helix
         self.helix_loop_rise = 20		# Rise in loop helix over one turn, Angstroms
 
     def lobe_spacing_for_stem_loop(self):
@@ -411,7 +431,7 @@ class HelixCurve:
 class SphereSpiral:
     def __init__(self, radius, turns):
         self._radius = radius
-        self._turns = 2 * turns
+        self._turns = turns
     def position(self, t):
         r = self._radius
         wt = 2 * self._turns * t
@@ -435,14 +455,14 @@ class SphereSpiral:
     
 # -----------------------------------------------------------------------------
 #
-def segments_on_curve(curve, seg_lengths, spacing):
+def segments_on_curve(curve, seg_lengths):
     placements = []
     t = 0
-    for length in seg_lengths:
+    for length, pad in seg_lengths:
         t1 = curve_segment_end(curve, t, length)
         p = curve_segment_placement(curve, t, t1)
         placements.append(p)
-        t = curve_segment_end(curve, t1, spacing)
+        t = curve_segment_end(curve, t1, pad)
     return placements
 
 # -----------------------------------------------------------------------------
@@ -452,8 +472,9 @@ def curve_segment_end(curve, t, length, tolerance = 1e-3, max_steps = 100):
         return t
     xyz0 = curve.position(t)
     v = curve.velocity(t)
+    frac = 0.5
     from chimerax.geometry import norm, inner_product
-    t1 = t + length / norm(v)
+    t1 = t + frac * length / norm(v)
     for step in range(max_steps):
         xyz1 = curve.position(t1)
         d = norm(xyz1-xyz0)
@@ -462,13 +483,16 @@ def curve_segment_end(curve, t, length, tolerance = 1e-3, max_steps = 100):
         v1 = curve.velocity(t1)
         # Want |xyz1 + v1*dt - xyz0| = length
         delta = xyz1 - xyz0
-        dt1, dt2 = quadratic_roots(inner_product(v1,v1),
-                                   2*inner_product(v1,delta),
-                                   inner_product(delta,delta) - length*length)
+        a,b,c = (inner_product(v1,v1),
+                 2*inner_product(v1,delta),
+                 inner_product(delta,delta) - length*length)
+        dt1, dt2 = quadratic_roots(a, b, c)
         if dt1 is None:
-            return None
+            # No point in tangent line is within target length.
+            # Go to closest approach
+            dt1 = dt2 = -b / 2*a
         dt_min = dt1 if abs(dt1) < abs(dt2) else dt2
-        t1 += dt_min
+        t1 += frac * dt_min
     return None
 
 # -----------------------------------------------------------------------------
