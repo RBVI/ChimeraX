@@ -12,6 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.tools import ToolInstance
+from chimerax.core.errors import UserError
 
 from .match import CP_SPECIFIC_SPECIFIC, CP_SPECIFIC_BEST, CP_BEST_BEST
 
@@ -106,13 +107,30 @@ class MatchMakerTool(ToolInstance):
         ss_opt = BooleanOption("Include secondary structure score", None, self._include_ss_change,
             attr_name="use_ss", settings=settings)
         self.options.add_option("Method", ss_opt)
+        self.ss_widget, ss_options = self.options.add_option_group("Method", sorting=False,
+            group_label="Secondary structure scoring")
+        ss_layout = QVBoxLayout()
+        ss_layout.addWidget(ss_options)
+        self.ss_widget.setLayout(ss_layout)
         self.compute_ss_option = BooleanOption("Compute secondary structure assignments", None, None,
             attr_name="compute_ss", settings=settings)
-        self.options.add_option("Method", self.compute_ss_option)
+        ss_options.add_option(self.compute_ss_option)
         self.ss_ratio_option = FloatOption("Sequence vs. structure score weighting", None, None,
             attr_name="ss_mixture", settings=settings, as_slider=True, left_text="Residue similarity",
-            right_text="Secondary structure", min=0.0, max=1.0, decimal_places=2)
-        self.options.add_option("Method", self.ss_ratio_option)
+            right_text="Secondary structure", min=0.0, max=1.0, decimal_places=2, ignore_wheel_event=True)
+        ss_options.add_option(self.ss_ratio_option)
+        self.ss_matrix_option = SSScoringMatrixOption("Scoring matrix", None, None,
+            attr_name='ss_scores', settings=settings)
+        ss_options.add_option(self.ss_matrix_option)
+        self.ss_helix_gap_option = IntOption("Intra-helix gap-opening penalty", None, None,
+            attr_name='helix_open', settings=settings)
+        ss_options.add_option(self.ss_helix_gap_option)
+        self.ss_strand_gap_option = IntOption("Intra-strand gap-opening penalty", None, None,
+            attr_name='strand_open', settings=settings)
+        ss_options.add_option(self.ss_strand_gap_option)
+        self.ss_other_gap_option = IntOption("Any other gap-opening penalty", None, None,
+            attr_name='other_open', settings=settings)
+        ss_options.add_option(self.ss_other_gap_option)
         self._include_ss_change(ss_opt)
 
         from PyQt5.QtWidgets import QDialogButtonBox as qbbox
@@ -134,9 +152,8 @@ class MatchMakerTool(ToolInstance):
         #run(self.session, " ".join(self.gui.get_command()))
 
     def _include_ss_change(self, opt):
+        self.ss_widget.setHidden(not opt.value)
         self.gap_open_option.enabled = not opt.value
-        self.compute_ss_option.enabled = opt.value
-        self.ss_ratio_option.enabled = opt.value
         if opt.value:
             from .settings import get_settings
             settings = get_settings(self.session)
@@ -153,7 +170,7 @@ class MatchMakerTool(ToolInstance):
         if match_widget is not None:
             self.match_stacking.setCurrentWidget(match_widget)
 
-from chimerax.ui.options import SymbolicEnumOption
+from chimerax.ui.options import SymbolicEnumOption, Option
 class ChainPairingOption(SymbolicEnumOption):
     labels = (
         "Best-aligning pair of chains between reference and match structure",
@@ -161,6 +178,65 @@ class ChainPairingOption(SymbolicEnumOption):
         "Specific chain(s) in reference structure with specific chain(s) in match structure"
     )
     values = (CP_BEST_BEST, CP_SPECIFIC_BEST, CP_SPECIFIC_SPECIFIC)
+
+class SSScoringMatrixOption(Option):
+
+    def get_value(self):
+        matrix = {}
+        for key, cell in self._cells.items():
+            if not cell.hasAcceptableInput():
+                raise UserError("Secondary structure scoring matrix entry %s contains non-numeric value"
+                    % key)
+            val = float(cell.text())
+            matrix[key] = val
+            matrix[(key[1], key[0])] = val
+        return matrix
+
+    def set_value(self, matrix):
+        for key, val in matrix.items():
+            self._cells[key].setText("%g" % val)
+
+    value = property(get_value, set_value)
+
+    def set_multiple(self):
+        pass
+
+    def _make_widget(self, **kw):
+        from PyQt5.QtWidgets import QFrame, QGridLayout, QLineEdit, QLabel
+        from PyQt5.QtGui import QDoubleValidator
+        from PyQt5.QtCore import Qt
+        self.widget = QFrame()
+        self._cells = {}
+        cell_order = ['H', 'S', 'O']
+        layout_data = [
+            [''] + cell_order,
+            ["Helix", None, "-", "-"],
+            ["Strand", None, None, "-"],
+            ["Other", None, None, None]
+        ]
+        grid = QGridLayout()
+        grid.setContentsMargins(2,2,2,2)
+        grid.setSpacing(1)
+        validator = QDoubleValidator()
+        for ri, row_data in enumerate(layout_data):
+            for ci, cell_data in enumerate(row_data):
+                if cell_data is None:
+                    cell = QLineEdit()
+                    cell.setValidator(validator)
+                    cell.setFixedWidth(30)
+                    cell.setAlignment(Qt.AlignCenter)
+                    grid.addWidget(cell, ri, ci, alignment=Qt.AlignCenter)
+                    row_letter = cell_order[ri-1]
+                    col_letter = cell_order[ci-1]
+                    self._cells[(row_letter, col_letter)] = cell
+                    self._cells[(col_letter, row_letter)] = cell
+                else:
+                    text = QLabel(cell_data)
+                    if ci == 0:
+                        grid.addWidget(text, ri, ci, alignment=Qt.AlignRight)
+                    else:
+                        grid.addWidget(text, ri, ci, alignment=Qt.AlignCenter)
+        self.widget.setLayout(grid)
 
 from PyQt5.QtWidgets import QWidget
 class ChainListsWidget(QWidget):

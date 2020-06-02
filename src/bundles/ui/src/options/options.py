@@ -779,13 +779,21 @@ class FloatSlider(QWidget):
 
     valueChanged = pyqtSignal(float)
 
-    def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, **kw):
+    def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, *,
+            ignore_wheel_event=False, **kw):
         from PyQt5.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
         super().__init__()
         layout = QGridLayout()
         layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(0)
         self.setLayout(layout)
-        self._slider = QSlider(**kw)
+        if ignore_wheel_event:
+            class Slider(QSlider):
+                def wheelEvent(self, event):
+                    event.ignore()
+        else:
+            Slider = QSlider
+        self._slider = Slider(**kw)
         self._slider.setOrientation(Qt.Horizontal)
         self._slider.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self._minimum = minimum
@@ -800,9 +808,11 @@ class FloatSlider(QWidget):
         # for word-wrapped text, set the alignment within the label widget itself (instead of the layout)
         # so that the label is given the full width of the layout to work with, otherwise you get unneeded
         # line wrapping
+        from chimerax.ui import shrink_font
         self._left_text = QLabel()
         self._left_text.setWordWrap(True)
         self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        shrink_font(self._left_text)
         layout.addWidget(self._left_text, 1, 0)
         self._value_text = QLabel()
         self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
@@ -810,6 +820,7 @@ class FloatSlider(QWidget):
         self._right_text = QLabel()
         self._right_text.setWordWrap(True)
         self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
+        shrink_font(self._right_text)
         layout.addWidget(self._right_text, 1, 2)
         self._format = "%%.%df" % decimal_places
         self._slider.valueChanged.connect(self._slider_value_changed)

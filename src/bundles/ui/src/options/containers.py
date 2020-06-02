@@ -298,7 +298,7 @@ class SettingsPanel(SettingsPanelBase):
         """Returns a container widget and an OptionsPanel; caller is responsible
            for creating a layout for the container widget and placing the
            OptionsPanel in it, along with any other desired widgets"""
-        return self.options_panel.add_option_group(group_label, sorting=True)
+        return self.options_panel.add_option_group(group_label, sorting=sorting)
 
 class CategorizedSettingsPanel(SettingsPanelBase):
     """Supported API. CategorizedSettingsPanel is a container for remember-able Options
@@ -321,7 +321,7 @@ class CategorizedSettingsPanel(SettingsPanelBase):
         """Returns a container widget and an OptionsPanel; caller is responsible
            for creating a layout for the container widget and placing the
            OptionsPanel in it, along with any other desired widgets"""
-        return self.options_panel._category_to_panel[category].add_option_group(group_label, sorting=True)
+        return self.options_panel._category_to_panel[category].add_option_group(group_label, sorting=sorting)
 
     def add_tab(self, category, panel):
         """Supported API. Same as CategorizedOptionsPanel.add_tab(...)"""
