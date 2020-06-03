@@ -430,8 +430,8 @@ class Annotation(metaclass=abc.ABCMeta):
         if name is None:
             name = cls.name
         if cls.url is None:
-            return escape(name)
-        return '<a href="%s">%s</a>' % (escape(cls.url), escape(name))
+            return escape(name, quote=False)
+        return '<a href="%s">%s</a>' % (escape(cls.url), escape(name, quote=False))
 
     def inst_html_name(self, name=None):
         # used to override html_name class method with an instance method
@@ -441,8 +441,8 @@ class Annotation(metaclass=abc.ABCMeta):
         if name is None:
             name = self.name
         if self.url is None:
-            return escape(name)
-        return '<a href="%s">%s</a>' % (escape(self.url), escape(name))
+            return escape(name, quote=False)
+        return '<a href="%s">%s</a>' % (escape(self.url), escape(name, quote=False))
 
 
 class Aggregate(Annotation):
@@ -1119,7 +1119,7 @@ def _browse_parse(text, session, item_kind, name_filter, accept_mode, dialog_mod
 
 class OpenFileNameArg(FileNameArg):
     """Annotation for a file to open"""
-    name = "name of a file to open/read"
+    name = "name of a file to open/read; a name of 'browse' will bring up a file browser"
 
     @classmethod
     def parse(cls, text, session):
@@ -1133,7 +1133,7 @@ class OpenFileNameArg(FileNameArg):
 
 class OpenFileNamesArg(Annotation):
     """Annotation for opening one or more files"""
-    name = "file names to open"
+    name = "file names to open; a name of 'browse' will bring up a file browser"
     # name_filter should be a string compatible with QFileDialog.setNameFilter(),
     # or None (which means all ChimeraX-openable types)
     name_filter = None
@@ -1159,7 +1159,7 @@ class OpenFileNamesArg(Annotation):
 
 class SaveFileNameArg(FileNameArg):
     """Annotation for a file to save"""
-    name = "name of a file to save/write"
+    name = "name of a file to save/write; a name of 'browse' will bring up a file browser"
 
     @classmethod
     def parse(cls, text, session):
@@ -1173,7 +1173,7 @@ class SaveFileNameArg(FileNameArg):
 
 class OpenFolderNameArg(FileNameArg):
     """Annotation for a folder to open from"""
-    name = "name of a folder to open/read"
+    name = "name of a folder to open/read; a name of 'browse' will bring up a file browser"
 
     @classmethod
     def parse(cls, text, session):
@@ -1187,7 +1187,7 @@ class OpenFolderNameArg(FileNameArg):
 
 class SaveFolderNameArg(FileNameArg):
     """Annotation for a folder to save to"""
-    name = "name of a folder to save/write"
+    name = "name of a folder to save/write; a name of 'browse' will bring up a file browser"
 
     @classmethod
     def parse(cls, text, session):
@@ -2938,16 +2938,17 @@ def command_url(name, no_aliases=False, *, registry=None):
         return _get_help_url(name.split())
 
 
-def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False):
+def usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True, show_hidden=False,  *,
+        registry=None):
     try:
-        text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden)
+        text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden, registry=registry)
     except ValueError as e:
         _compute_available_commands(session)
         if _available_commands is None:
             raise e
         try:
             text = _usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
-                          registry=_available_commands)
+                          registry=_available_commands if registry is None else registry)
         except ValueError:
             raise e
     return text
@@ -3068,16 +3069,16 @@ def can_be_empty_arg(arg):
 
 
 def html_usage(session, name, no_aliases=False, show_subcommands=5, expand_alias=True,
-               show_hidden=False):
+               show_hidden=False, *, registry=None):
     try:
-        text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden)
+        text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden, registry=registry)
     except ValueError as e:
         _compute_available_commands(session)
         if _available_commands is None:
             raise e
         try:
             text = _html_usage(name, no_aliases, show_subcommands, expand_alias, show_hidden,
-                               registry=_available_commands)
+                               registry=_available_commands if registry is None else registry)
         except ValueError:
             raise e
     return text

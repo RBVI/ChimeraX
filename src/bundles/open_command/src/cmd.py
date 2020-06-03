@@ -74,18 +74,12 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         for fn in file_names] + [StringArg.unparse(token) for token in tokens])
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
-    def format_names(ses=session):
-        fmt_names = set([ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ])
-        for db_name in ses.open_command.database_names:
-            for fmt_name in ses.open_command.database_info(db_name).keys():
-                fmt_names.add(ses.data_formats[fmt_name].nicknames[0])
-        return fmt_names
 
     def database_names(mgr=mgr):
         return mgr.database_names
 
     keywords = {
-        'format': DynamicEnum(format_names),
+        'format': DynamicEnum(lambda ses=session:format_names(ses)),
         'from_database': DynamicEnum(database_names),
         'ignore_cache': BoolArg,
         'name': StringArg
@@ -96,9 +90,11 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
                 " same name" % keyword)
         keywords[keyword] = annotation
     desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
-        synopsis="unnecessary")
+        synopsis="read and display data")
     register("open", desc, provider_open, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
+    from chimerax.core.commands.cli import _usage
+    print(_usage('open', registry=registry))
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
         name=None, _return_status=False, _add_models=True, log_errors=True, **provider_kw):
@@ -394,6 +390,133 @@ class FileInfo:
                 raise UserError("Unrecognized file suffix '%s'" % ext)
             raise UserError("'%s' has no suffix" % file_name)
 
+def _usage_setup(session):
+    if session.ui.is_gui:
+        get_name = lambda arg: arg.html_name()
+        cmd_fmt = "<b>%s</b>"
+        arg_fmt = "<i>%s</i>"
+        end_of_main_syntax = "<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&mdash; <i>%s</i>\n"
+        arg_syntax_append = "<br>\n&nbsp;&nbsp;%s"
+        arg_syntax_join = "<br>\n&nbsp;&nbsp;"
+        kw_fmt = ' <nobr>[<b>%s</b> <i>%s</i>]</nobr>'
+    else:
+        get_name = lambda arg: arg.name
+        cmd_fmt = "%s"
+        arg_fmt = "%s"
+        end_of_main_syntax = " -- %s"
+        arg_syntax_append = "\n%s"
+        arg_syntax_join = "\n"
+        kw_fmt = ' [%s _%s_]'
+    return get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt
+
+def user_kw(kw_name):
+    """Return user version of a Python keyword argument name."""
+    words = kw_name.split('_')
+    return words[0] + ''.join([x.capitalize() for x in words[1:]])
+
+def cmd_usage_open(session):
+    '''Report the generic syntax for the 'open' command'''
+
+    arg_syntax = []
+    get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt = \
+        _usage_setup(session)
+    syntax = cmd_fmt % "open"
+
+    syntax += ' ' + arg_fmt % "names"
+    arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
+    for kw_name, arg in [('format', DynamicEnum(lambda ses=session: format_names(ses))),
+            ('fromDatabase', DynamicEnum(lambda ses=session: ses.open_command.database_names)),
+            ('name', StringArg)]:
+        if isinstance(arg, type):
+            # class, not instance
+            syntax += kw_fmt % (kw_name, get_name(arg))
+        else:
+            syntax += kw_fmt % (kw_name, kw_name)
+            arg_syntax.append("%s: %s" % (arg_fmt % kw_name, get_name(arg)))
+
+    format_desc = "format/database-specific arguments"
+    syntax += ' [%s]' % (arg_fmt % format_desc)
+    arg_syntax.append("%s: %s" % (arg_fmt % format_desc, "format- or database-specific arguments;"
+        " to see their syntax use '%s %s' or '%s %s' commands respectively, where %s and %s are as per"
+        " the above" % (cmd_fmt % "usage open format", arg_fmt % "format", cmd_fmt % "usage open database",
+        arg_fmt % "database", arg_fmt % "format", arg_fmt % "database")))
+
+    syntax += end_of_main_syntax % "read and display data"
+
+    syntax += arg_syntax_append % arg_syntax_join.join(arg_syntax)
+
+    session.logger.info(syntax, is_html=session.ui.is_gui)
+
+def cmd_usage_open_format(session, format):
+    '''Report the syntax for the 'open' command for a partilar format'''
+
+    arg_syntax = []
+    get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt = \
+        _usage_setup(session)
+    syntax = cmd_fmt % "open"
+
+    syntax += ' ' + arg_fmt % "names"
+    arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
+
+    from .manager import NoOpenerError
+    try:
+        provider_args = session.open_command.open_args(session.data_formats[format])
+    except NoOpenerError:
+        raise UserError("'%s' is a database format type; use the command 'usage open database' with the"
+            " corresponding database type instead" % format)
+    for py_kw_name, arg in provider_args.items():
+        kw_name = user_kw(py_kw_name)
+        if isinstance(arg, type):
+            # class, not instance
+            syntax += kw_fmt % (kw_name, get_name(arg))
+        else:
+            syntax += kw_fmt % (kw_name, kw_name)
+            arg_syntax.append("%s: %s" % (arg_fmt % kw_name, get_name(arg)))
+
+    syntax += end_of_main_syntax % "read and display data"
+
+    syntax += arg_syntax_append % arg_syntax_join.join(arg_syntax)
+
+    session.logger.info(syntax, is_html=session.ui.is_gui)
+
+def cmd_usage_open_database(session, database):
+    '''Report the syntax for the 'open' command for a partilar database fetch'''
+
+    arg_syntax = []
+    get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt = \
+        _usage_setup(session)
+    syntax = cmd_fmt % "open"
+
+    syntax += ' ' + arg_fmt % "names"
+    arg_syntax.append("%s: %s" % (arg_fmt % "names", get_name(OpenFileNamesArg)))
+
+    mgr = session.open_command
+    args = { 'ignoreCache': BoolArg }
+    args.update(mgr.fetch_args(database))
+    defaults = [format_name for format_name, provider_info in mgr.database_info(database).items()
+        if provider_info.is_default]
+    if len(defaults) == 1:
+        from .manager import NoOpenerError
+        try:
+            args.update(session.open_command.open_args(session.data_formats[defaults[0]]))
+        except NoOpenerError:
+            pass
+
+    for py_kw_name, arg in args.items():
+        kw_name = user_kw(py_kw_name)
+        if isinstance(arg, type):
+            # class, not instance
+            syntax += kw_fmt % (kw_name, get_name(arg))
+        else:
+            syntax += kw_fmt % (kw_name, kw_name)
+            arg_syntax.append("%s: %s" % (arg_fmt % kw_name, get_name(arg)))
+
+    syntax += end_of_main_syntax % "read and display data"
+
+    syntax += arg_syntax_append % arg_syntax_join.join(arg_syntax)
+
+    session.logger.info(syntax, is_html=session.ui.is_gui)
+
 def cmd_open_formats(session):
     '''Report file formats, suffixes and databases that the open command knows about.'''
     if session.ui.is_gui:
@@ -450,11 +573,29 @@ def cmd_open_formats(session):
         msg = '\n'.join(lines)
         session.logger.info(msg, is_html=True)
 
+def format_names(session):
+    fmt_names = set([ fmt.nicknames[0] for fmt in session.open_command.open_data_formats ])
+    for db_name in session.open_command.database_names:
+        for fmt_name in session.open_command.database_info(db_name).keys():
+            fmt_names.add(session.data_formats[fmt_name].nicknames[0])
+    return fmt_names
 
 def register_command(command_name, logger):
     register('open', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
         ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files",
         self_logging=True), cmd_open, logger=logger)
+
+    uo_desc = CmdDesc(synopsis='show generic "open" command syntax')
+    register('usage open', uo_desc, cmd_usage_open, logger=logger)
+
+    uof_desc = CmdDesc(required=[('format', DynamicEnum(lambda ses=logger.session: format_names(ses)))],
+        synopsis='show "open" command syntax for a specific file format')
+    register('usage open format', uof_desc, cmd_usage_open_format, logger=logger)
+
+    uod_desc = CmdDesc(
+        required=[('database', DynamicEnum(lambda ses=logger.session: ses.open_command.database_names))],
+        synopsis='show "open" command syntax for a specific database fetch')
+    register('usage open database', uod_desc, cmd_usage_open_database, logger=logger)
 
     of_desc = CmdDesc(synopsis='report formats that can be opened')
     register('open formats', of_desc, cmd_open_formats, logger=logger)

@@ -38,6 +38,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: open :: General :: Open/fetch data files</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: usage open :: General :: Show syntax of 'open' command</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
