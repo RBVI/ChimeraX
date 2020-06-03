@@ -10,7 +10,7 @@
   <Description>Create RNA models from secondary structure information.</Description>
 
   <DataFiles>
-    <DataFile>rna-templates.pdb</DataFile>
+    <DataFile>rna_templates_6pj6.cif</DataFile>
   </DataFiles>
 
   <Categories>
@@ -18,7 +18,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.0rc1"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
   </Dependencies>
 
@@ -26,10 +26,6 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: rna path :: Structure Editing :: make RNA marker model</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: rna model :: Structure Editing :: make RNA atomic model</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: rna minimize :: Structure Editing :: energy minimize an RNA atomic model</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: rna smooth :: Structure Editing :: smooth an RNA marker model path</ChimeraXClassifier>
-    <ChimeraXClassifier>Command :: rna duplex :: Structure Editing :: make a duplex DNA or RNA atomic model</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: rna model :: Structure Editing :: make RNA atomic model</ChimeraXClassifier>
   </Classifiers>
 

@@ -15,19 +15,25 @@
 # -----------------------------------------------------------------------------
 #
 def rna_path(session, pairs, length = None,
-             pattern = 'line', radius = 2, random_branch_tilt = 0,
+             pattern = 'circle', loop_pattern = 'helix',
+             marker_radius = 2, random_branch_tilt = 0,
              loop_color = (102,154,230,255), stem_color = (255,255,0,255),
              name = 'RNA path'):
 
     plist = parse_pairs(pairs)
-    from .rna_layout import pair_map, rna_path, color_path
+    from .rna_layout import pair_map, rna_path, color_path, LayoutParameters
     pair_map = pair_map(plist)
+
     if length is None:
         length = max(pair_map.keys())
+
+    layout_parameters = LayoutParameters(loop_pattern = loop_pattern,
+                                         branch_tilt = random_branch_tilt)
+
     mset, coords = rna_path(session, length, pair_map,
                             pattern = pattern,
-                            marker_radius = radius,
-                            random_branch_tilt = random_branch_tilt,
+                            marker_radius = marker_radius,
+                            layout_parameters = layout_parameters,
                             name = name)
     color_path(mset.atoms, pair_map, loop_color, stem_color)
     session.models.add([mset])
@@ -70,15 +76,18 @@ def parse_pairs_string(pairs):
 #
 def rna_model(session, sequence, path = None, start_sequence = 1,
               length = None, pairs = None,
-              pattern = 'line', random_branch_tilt = 0,
+              pattern = 'line', loop_pattern = 'helix', random_branch_tilt = 0,
               loop_color = (102,154,230,255), stem_color = (255,255,0,255),
-              name = 'RNA'):
+              p_color = (255,165,0,255), name = 'RNA'):
 
     from . import rna_layout as RL
     import os.path
     seq_path = os.path.expanduser(sequence)
     seq = RL.read_fasta(seq_path) if os.path.exists(seq_path) else sequence
     seq = seq[start_sequence-1:]
+
+    layout_parameters = RL.LayoutParameters(loop_pattern = loop_pattern,
+                                            branch_tilt = random_branch_tilt)
 
     if path is None:
         if pairs is None:
@@ -90,7 +99,7 @@ def rna_model(session, sequence, path = None, start_sequence = 1,
         pair_map = RL.pair_map(plist)
         base_placements = RL.rna_path(session, length, pair_map,
                                       pattern = pattern,
-                                      random_branch_tilt = random_branch_tilt,
+                                      layout_parameters = layout_parameters,
                                       name = None)
     else:
         mpath = [m for m in atoms_to_markers(path)
@@ -105,7 +114,7 @@ def rna_model(session, sequence, path = None, start_sequence = 1,
                         for m in mpath if 'paired_with' in m.extra_attributes)
 
     mol = RL.rna_atomic_model(session, seq, base_placements, name)
-    RL.color_stems_and_loops(mol, pair_map, loop_color, stem_color)
+    RL.color_stems_and_loops(mol, pair_map, loop_color, stem_color, p_color)
 
     return mol
 
@@ -162,11 +171,14 @@ def register_rna_layout_command(logger):
     from chimerax.atomic import AtomsArg, StructureArg
 
     PatternArg = EnumOf(('line', 'circle', 'helix', 'sphere'))
+    LoopPatternArg = EnumOf(('helix', 'horseshoe'))
+    
     # Make RNA marker model
     path_desc = CmdDesc(required = [('pairs', StringArg)],
                         optional = [('length', PositiveIntArg)],
                         keyword = [('pattern', PatternArg),
-                                   ('radius', FloatArg),
+                                   ('loop_pattern', LoopPatternArg),
+                                   ('marker_radius', FloatArg),
                                    ('random_branch_tilt', FloatArg),
                                    ('loop_color', Color8Arg),
                                    ('stem_color', Color8Arg),
@@ -181,12 +193,17 @@ def register_rna_layout_command(logger):
                                    ('length', PositiveIntArg),
                                    ('pairs', StringArg),
                                    ('pattern', PatternArg),
+                                   ('loop_pattern', LoopPatternArg),
                                    ('random_branch_tilt', FloatArg),
                                    ('loop_color', Color8Arg),
                                    ('stem_color', Color8Arg),
+                                   ('p_color', Color8Arg),
                                    ('name', StringArg)],
                         synopsis = 'create an RNA atomic model')
     register('rna model', model_desc, rna_model, logger=logger)
+
+    '''
+    Unported commands.
 
     # Energy minimize RNA atomic model
     minimize_desc = CmdDesc(required = [('molecule', StructureArg)],
@@ -216,3 +233,4 @@ def register_rna_layout_command(logger):
                           synopsis = 'make a duplex DNA or RNA atomic model')
     register('rna duplex', duplex_desc, rna_duplex, logger=logger)
 
+    '''
