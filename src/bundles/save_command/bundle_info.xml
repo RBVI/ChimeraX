@@ -37,6 +37,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: save :: General :: Save data files</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: usage save :: General :: Show 'save' command syntax</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
