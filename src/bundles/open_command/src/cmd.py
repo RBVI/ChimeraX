@@ -409,10 +409,7 @@ def _usage_setup(session):
         kw_fmt = ' [%s _%s_]'
     return get_name, cmd_fmt, arg_fmt, end_of_main_syntax, arg_syntax_append, arg_syntax_join, kw_fmt
 
-def user_kw(kw_name):
-    """Return user version of a Python keyword argument name."""
-    words = kw_name.split('_')
-    return words[0] + ''.join([x.capitalize() for x in words[1:]])
+from chimerax.core.commands.cli import user_kw
 
 def cmd_usage_open(session):
     '''Report the generic syntax for the 'open' command'''

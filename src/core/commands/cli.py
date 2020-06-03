@@ -325,7 +325,7 @@ def dq_repr(obj):
     return ''.join(result)
 
 
-def _user_kw(kw_name):
+def user_kw(kw_name):
     """Return user version of a keyword argument name."""
     words = kw_name.split('_')
     return words[0] + ''.join([x.capitalize() for x in words[1:]])
@@ -2541,7 +2541,7 @@ class Command:
                     # alias argument position
                     required = "%s required" % ordinal(kw_name)
                 else:
-                    required = 'required "%s"' % _user_kw(kw_name)
+                    required = 'required "%s"' % user_kw(kw_name)
                 self._error = 'Missing %s positional argument' % required
             text = self._skip_white_space(text)
             if kw_name in self._ci._optional and self._start_of_keywords(text):
@@ -2579,14 +2579,14 @@ class Command:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % _user_kw(kw_name)
+                        arg_name = '"%s"' % user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 if kw_name in self._ci._required:
                     if isinstance(kw_name, int):
                         arg_name = ordinal(kw_name)
                     else:
-                        arg_name = '"%s"' % _user_kw(kw_name)
+                        arg_name = '"%s"' % user_kw(kw_name)
                     self._error = 'Missing or invalid %s argument: %s' % (arg_name, err)
                     return None, None
                 # optional and wrong type, try as keyword
@@ -2612,7 +2612,7 @@ class Command:
             return True
         if tmp[0].isalpha():
             # Don't change case of what user types.  Fixes "show O".
-            tmp = _user_kw(tmp)
+            tmp = user_kw(tmp)
             if (any(kw.startswith(tmp) for kw in self._ci._keyword_map) or
                     any(kw.casefold().startswith(tmp) for kw in self._ci._keyword_map)):
                 return True
@@ -2640,7 +2640,7 @@ class Command:
             if not word or word == ';':
                 break
 
-            arg_name = _user_kw(word)
+            arg_name = user_kw(word)
             if arg_name not in self._ci._keyword_map:
                 self.completion_prefix = word
                 kw_map = self._ci._keyword_map
@@ -2689,7 +2689,7 @@ class Command:
             kw_name = self._ci._keyword_map[arg_name][0]
             anno = self._ci._keyword[kw_name]
             if not text and anno != NoArg:
-                self._error = 'Missing "%s" keyword\'s argument' % _user_kw(kw_name)
+                self._error = 'Missing "%s" keyword\'s argument' % user_kw(kw_name)
                 break
 
             self.completion_prefix = ''
@@ -2704,7 +2704,7 @@ class Command:
                         self._kw_args[kwn] = [value]
                 else:
                     if kwn in self._kw_args:
-                        self._error = 'Repeated keyword argument "%s"' % _user_kw(kw_name)
+                        self._error = 'Repeated keyword argument "%s"' % user_kw(kw_name)
                         return
                     self._kw_args[kwn] = value
                 prev_annos = (anno, None)
@@ -2712,7 +2712,7 @@ class Command:
                 if isinstance(err, AnnotationError) and err.offset is not None:
                     self.amount_parsed += err.offset
                 self._error = 'Invalid "%s" argument: %s' % (
-                    _user_kw(kw_name), err)
+                    user_kw(kw_name), err)
                 return
             m = _whitespace.match(text)
             start = m.end()
@@ -2982,7 +2982,7 @@ def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
         syntax = cmd.command_name
         for arg_name in ci._required:
             arg = ci._required[arg_name]
-            arg_name = _user_kw(arg_name)
+            arg_name = user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -2994,7 +2994,7 @@ def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and arg_name in ci._hidden:
                 continue
             arg = ci._optional[arg_name]
-            arg_name = _user_kw(arg_name)
+            arg_name = user_kw(arg_name)
             type = arg.name
             if can_be_empty_arg(arg):
                 syntax += ' [%s]' % arg_name
@@ -3007,7 +3007,7 @@ def _usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
                 continue
             arg_type = ci._keyword[arg_name]
-            uarg_name = _user_kw(arg_name)
+            uarg_name = user_kw(arg_name)
             if arg_type is NoArg:
                 syntax += ' [%s]' % uarg_name
                 continue
@@ -3116,7 +3116,7 @@ def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
                 ci.url, escape(cmd.command_name))
         for arg_name in ci._required:
             arg_type = ci._required[arg_name]
-            arg_name = _user_kw(arg_name)
+            arg_name = user_kw(arg_name)
             if arg_type.url is not None:
                 arg_name = arg_type.html_name(arg_name)
             else:
@@ -3132,7 +3132,7 @@ def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and arg_name in ci._hidden:
                 continue
             arg_type = ci._optional[arg_name]
-            arg_name = escape(_user_kw(arg_name))
+            arg_name = escape(user_kw(arg_name))
             if arg_type.url is not None:
                 arg_name = arg_type.html_name(arg_name)
             else:
@@ -3149,7 +3149,7 @@ def _html_usage(name, no_aliases=False, show_subcommands=5, expand_alias=True,
             if not show_hidden and (arg_name in ci._hidden or arg_name in ci._optional):
                 continue
             arg_type = ci._keyword[arg_name]
-            uarg_name = escape(_user_kw(arg_name))
+            uarg_name = escape(user_kw(arg_name))
             if arg_type is NoArg:
                 type_info = ""
             elif isinstance(arg_type, type):
