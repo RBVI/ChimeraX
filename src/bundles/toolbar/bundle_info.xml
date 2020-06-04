@@ -1,6 +1,6 @@
 <!-- vi:set shiftwidth=2: -->
 <BundleInfo name="ChimeraX-Toolbar"
-	    version="0.1" package="chimerax.toolbar"
+	    version="1.0" package="chimerax.toolbar"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

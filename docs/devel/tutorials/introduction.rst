@@ -57,6 +57,18 @@ for supplying a compatible compilation environment,
 e.g., installing Visual Studio 2015 on Microsoft Windows.
 
 
+Pro Tip
+=======
+One the handiest things to know is that if you want
+your code to do something that a command already does,
+instead of figuring out the equivalent Python call you
+can just run the command.  For instance, the code to
+run the command ``color red`` is::
+
+    from chimerax.core.commands import run
+    run(session, "color red")
+
+
 What is a ChimeraX Bundle?
 ==========================
 
