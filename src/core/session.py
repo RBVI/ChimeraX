@@ -257,7 +257,7 @@ class _SaveManager:
             if key not in self.processed:
                 try:
                     self.processed[key] = self.process(obj, parents)
-                except ValueError as e:
+                except Exception as e:
                     raise ValueError("error processing: %s: %s" % (_obj_stack(parents, obj), e))
                 self.graph[key] = self._found_objs
 
