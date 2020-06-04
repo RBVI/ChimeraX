@@ -359,9 +359,10 @@ Residue::str() const
     std::stringstream num_string;
     std::string ret = _name;
     ret += ' ';
-    if (_chain_id != " ") {
+    auto cid = chain_id();
+    if (cid != " ") {
         ret += '/';
-        ret += _chain_id;
+        ret += cid;
     }
     ret += ':';
     num_string << _number;
