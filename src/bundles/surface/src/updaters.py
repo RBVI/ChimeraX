@@ -5,9 +5,9 @@ class SurfaceUpdaters(State):
     '''
     Keep track of the surface auto update routines so they can be saved in sessions.
     '''
-    def __init__(self):
+    def __init__(self, updaters = []):
         from weakref import WeakSet
-        self._updaters = WeakSet()
+        self._updaters = WeakSet(updaters)
 
     def add(self, updater):
         '''
@@ -26,8 +26,7 @@ class SurfaceUpdaters(State):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        # Actual updaters are added when each is restored.
-        return SurfaceUpdaters()
+        return SurfaceUpdaters(data['updaters'])
 
     def clear(self):
         self._updaters.clear()
