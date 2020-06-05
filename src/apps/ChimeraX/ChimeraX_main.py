@@ -472,15 +472,6 @@ def init(argv, event_loop=True):
 
     if opts.uninstall:
         return uninstall(sess)
-
-    # Put geometry in core for backwards compatibility.
-    # TODO: Remove this for ChimeraX 1.0.
-    try:
-        from chimerax import geometry
-        from sys import modules
-        modules['chimerax.core.geometry'] = geometry
-    except ImportError:
-        pass	# When building geometry may not yet exist
         
     # initialize qt
     if opts.gui:
