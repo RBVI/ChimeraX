@@ -509,12 +509,14 @@ class Structure(Model, StructureData):
     def fill_small_ring(self, atoms, offset, color):
         # 3-, 4-, and 5- membered rings
         from chimerax.geometry import fill_small_ring
+        from .shapedrawing import AtomicShapeInfo
         vertices, normals, triangles = fill_small_ring(atoms.coords, offset)
-        return (vertices, normals, triangles, color, atoms, None)
+        return AtomicShapeInfo(vertices, normals, triangles, color, atoms)
 
     def fill_6ring(self, atoms, offset, color):
         # 6-membered rings
         from chimerax.geometry import fill_6ring
+        from .shapedrawing import AtomicShapeInfo
         # Picking the "best" orientation to show chair/boat configuration is hard
         # so choose anchor the ring using atom nomenclature.
         # Find index of atom with lowest element with lowest number (C1 < C6).
@@ -542,7 +544,7 @@ class Structure(Model, StructureData):
             anchor_element = e
             anchor_name = a.name
         vertices, normals, triangles = fill_6ring(atoms.coords, offset, anchor)
-        return (vertices, normals, triangles, color, atoms, None)
+        return AtomicShapeInfo(vertices, normals, triangles, color, atoms)
 
     def _create_ribbon_graphics(self):
         ribbons_drawing = self._ribbons_drawing
