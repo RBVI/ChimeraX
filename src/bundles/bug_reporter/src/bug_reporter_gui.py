@@ -1,4 +1,4 @@
-# vim: set expandtab ts=4 sw=4:
+# vim: set expandtab shiftwidth=4:
 
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
@@ -54,9 +54,9 @@ class BugReporter(ToolInstance):
         intro = '''
         <center><h1>Report a Bug</h1></center>
         <p>Thank you for using our feedback system.
-	  Feedback is greatly appreciated and plays a crucial role
-	  in the development of ChimeraX.</p>
-	  <p><b>Note</b>:
+      Feedback is greatly appreciated and plays a crucial role
+      in the development of ChimeraX.</p>
+      <p><b>Note</b>:
           We do not automatically collect any personal information or the data
           you were working with when the problem occurred.  Providing your e-mail address is optional,
           but will allow us to inform you of a fix or to ask questions, if needed.
@@ -114,6 +114,9 @@ class BugReporter(ToolInstance):
             info += _win32_info()
         elif sys.platform == 'linux':
             info += _linux_info()
+        elif sys.platform == 'darwin':
+            info += _darwin_info()
+        info += _qt_info(session)
         gi.setText(info)
         layout.addWidget(gi, row, 2)
         row += 1
@@ -203,7 +206,7 @@ class BugReporter(ToolInstance):
 
         entry_values = self.entry_values()
 
-	# Include log contents in description
+        # Include log contents in description
         if self.include_log.isChecked():
             from chimerax.log.cmd import get_singleton
             log = get_singleton(self._ses)
@@ -317,15 +320,14 @@ class BugReporter(ToolInstance):
                      'OpenGL renderer: ' + r.opengl_renderer(),
                      'OpenGL vendor: ' + r.opengl_vendor()]
             r.done_current()
-        except:
+        except Exception:
             lines = ['OpenGL version: unknown',
                      'Could not make opengl context current']
         return '\n'.join(lines)
 
     def chimerax_version(self):
-        from chimerax.core import buildinfo
-        from chimerax import app_dirs as ad
-        return '%s (%s)' % (ad.version, buildinfo.date.split()[0])
+        from chimerax.core.buildinfo import version, date
+        return '%s (%s)' % (version, date)
 
     def entry_values(self):
         values = {
@@ -378,14 +380,14 @@ CPU: {pi.NumberOfLogicalProcessors} {pi.Name}"
 
 
 def _linux_info():
+    import distro
+    import platform
+    import subprocess
+    count = 0
+    model_name = ""
+    cache_size = ""
     try:
-        import distro
-        import platform
-        import subprocess
         with open("/proc/cpuinfo", encoding='utf-8') as f:
-            count = 0
-            model_name = ""
-            cache_size = ""
             for line in f.readlines():
                 if not model_name and line.startswith("model name"):
                     info = line.split(':', 1)
@@ -397,42 +399,108 @@ def _linux_info():
                     info = line.split(':', 1)
                     if len(info) > 1:
                         cache_size = info[1].strip()
+    except Exception:
+        pass
+    if not model_name:
+        model_name = "unknown"
+    if not cache_size:
+        cache_size = "unknown"
+
+    memory_info = ""
+    try:
+        output = subprocess.check_output(
+            ["free", "-h"],
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            encoding="UTF-8",
+            env={
+                "LANG": "en_US.UTF-8",
+                "PATH": "/sbin:/usr/sbin:/bin:/usr/bin",
+            })
+        lines = output.rstrip().split('\n')
+        for line in lines:
+            memory_info += f"\t{line}\n"
+    except Exception:
         try:
-            output = subprocess.check_output(
-                ["lspci", "-nnk"],
-                stdin=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                encoding="UTF-8",
-                env={
-                    "LANG": "en_US.UTF-8",
-                    "PATH": "/sbin:/usr/sbin:/bin:/usr/bin",
-                })
-            lines = iter(output.split('\n'))
-            for line in lines:
-                if "VGA compatible" in line:
-                    break
-            graphics_info = '\n'.join([line, next(lines), next(lines)])
-        except Exception as e:
-            graphics_info = "   Unknown"
-        dmi_prefix = "/sys/devices/virtual/dmi/id/"
-        try:
-            vendor = open(dmi_prefix + "sys_vendor", encoding='utf-8').read().strip()
+            with open("/proc/meminfo", encoding='utf-8') as f:
+                for line in f.readlines():
+                    if line.startswith("Mem"):
+                        memory_info += f"\t{line}"
         except Exception:
-            vendor = "Unknown"
-        try:
-            product = open(dmi_prefix + "product_name", encoding='utf-8').read().strip()
-        except Exception:
-            product = "Unknown"
-        info = f"""
+            memory_info = "\tunknown"
+
+    try:
+        output = subprocess.check_output(
+            ["lspci", "-nnk"],
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            encoding="UTF-8",
+            env={
+                "LANG": "en_US.UTF-8",
+                "PATH": "/sbin:/usr/sbin:/bin:/usr/bin",
+            })
+        lines = iter(output.split('\n'))
+        for line in lines:
+            if "VGA compatible" in line:
+                break
+        graphics_info = '\t\n'.join([line, next(lines), next(lines)])
+    except Exception as e:
+        graphics_info = "unknown"
+
+    dmi_prefix = "/sys/devices/virtual/dmi/id/"
+    try:
+        vendor = open(dmi_prefix + "sys_vendor", encoding='utf-8').read().strip()
+    except Exception:
+        vendor = "unknown"
+
+    try:
+        product = open(dmi_prefix + "product_name", encoding='utf-8').read().strip()
+    except Exception:
+        product = "unknown"
+
+    info = f"""
 Manufacturer: {vendor}
 Model: {product}
 OS: {' '.join(distro.linux_distribution())}
 Architecture: {' '.join(platform.architecture())}
 CPU: {count} {model_name}
 Cache Size: {cache_size}
+Memory:
+{memory_info}
 Graphics:
 \t{graphics_info}
 """
-        return info
-    except Exception as e:
+    return info
+
+
+def _darwin_info():
+    import subprocess
+    try:
+        output = subprocess.check_output([
+                "system_profiler",
+                "-detailLevel", "mini",
+                "SPHardwareDataType",
+                "SPSoftwareDataType",
+                "SPDisplaysDataType",
+            ],
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            encoding="UTF-8",
+            env={
+                "LANG": "en_US.UTF-8",
+                "PATH": "/sbin:/usr/sbin:/bin:/usr/bin",
+            })
+        return output
+    except Exception:
         return ""
+
+
+def _qt_info(session):
+    if not session.ui.is_gui:
+        return ""
+    from PyQt5 import QtCore as Qt
+    return (
+        f"PyQt version: {Qt.PYQT_VERSION_STR}\n"
+        f"Compiled Qt version: {Qt.QT_VERSION_STR}\n"
+        f"Runtime Qt version: {Qt.qVersion()}\n"
+    )

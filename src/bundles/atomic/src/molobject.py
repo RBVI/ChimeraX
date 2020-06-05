@@ -20,6 +20,8 @@ from . import ctypes_support as convert
 # -------------------------------------------------------------------------------
 # Access functions from libmolc C library.
 #
+from chimerax.arrays import load_libarrays
+load_libarrays() 	# Load libarrrays shared library before importing libmolc.
 _atomic_c_functions = CFunctions('libmolc')
 c_property = _atomic_c_functions.c_property
 cvec_property = _atomic_c_functions.cvec_property
@@ -989,7 +991,7 @@ class StructureSeq(Sequence):
             return False
         return self.residues < other.residues
 
-    chain_id = c_property('sseq_chain_id', string, read_only = True)
+    chain_id = c_property('sseq_chain_id', string)
     '''Chain identifier. Limited to 4 characters. Read only string.'''
     # characters read-only in StructureSeq/Chain (use bulk_set)
     characters = c_property('sequence_characters', string, doc=
@@ -1041,7 +1043,6 @@ class StructureSeq(Sequence):
         for part in (self.structure.name, "(%s)" % self.structure):
             rem = rem.strip()
             if rem:
-                rem = rem.strip()
                 if rem.startswith(part):
                     rem = rem[len(part):]
                     continue
@@ -1238,7 +1239,8 @@ class Chain(StructureSeq):
     def string(self, style=None):
         chain_str = '/' + self.chain_id if not self.chain_id.isspace() else ""
         from .structure import Structure
-        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1:
+        if len([s for s in self.structure.session.models.list() if isinstance(s, Structure)]) > 1 \
+        or not chain_str:
             struct_string = self.structure.string(style=style)
         else:
             struct_string = ""
@@ -1340,9 +1342,11 @@ class StructureData:
     num_coordsets = c_property('structure_num_coordsets', size_t, read_only = True,
         doc = "Supported API. Number of coordinate sets in structure. Read only.")
     num_chains = c_property('structure_num_chains', size_t, read_only = True,
-        doc = "Supported API. Number of chains structure. Read only.")
+        doc = "Supported API. Number of chains in structure. Read only.")
+    num_ribbon_residues = c_property('structure_num_ribbon_residues', size_t, read_only = True,
+        doc = "Supported API. Number of residues in structure shown as ribbon. Read only.")
     num_residues = c_property('structure_num_residues', size_t, read_only = True,
-        doc = "Supported API. Number of residues structure. Read only.")
+        doc = "Supported API. Number of residues in structure. Read only.")
     residues = c_property('structure_residues', cptr, 'num_residues', astype = convert.residues,
         read_only = True, doc = "Supported API. :class:`.Residues` collection containing the"
         " residues of this structure. Read only.")
@@ -1351,6 +1355,11 @@ class StructureData:
         " :class:`.PseudobondGroup` for pseudobond groups belonging to this structure. Read only.")
     metadata = c_property('metadata', pyobject, read_only = True,
         doc = "Supported API. Dictionary with metadata. Read only.")
+    def set_metadata_entry(self, key, values):
+        """Set metadata dictionary entry"""
+        f = c_array_function('set_metadata_entry', args=(pyobject, pyobject), per_object=False)
+        s_ref = ctypes.byref(self._c_pointer)
+        f(s_ref, 1, key, values)
     pdb_version = c_property('pdb_version', int32, doc = "If this structure came from a PDB file,"
         " the major PDB version number of that file (2 or 3). Read only.")
     ribbon_tether_scale = c_property('structure_ribbon_tether_scale', float32,
@@ -1609,7 +1618,20 @@ class StructureData:
         return [(Residues(res_array), ptype) for res_array, ptype in polymers]
 
     def pseudobond_group(self, name, *, create_type = "normal"):
-        '''Supported API. Get or create a :class:`.PseudobondGroup` belonging to this structure.'''
+        '''Supported API. Get or create a :class:`.PseudobondGroup` belonging to this structure.
+           The 'create_type' parameter controls if and how the pseudobond is created, as per:
+
+           0 (also: None)
+             If no such group exists, none is created and None is returned
+
+           1 (also: "normal")
+             A "normal" pseudobond group will be created if necessary, one where the pseudobonds
+             apply to all coordinate sets
+
+           2 (also: "per coordset")
+             A "per coordset" pseudobond group will be created if necessary, one where different
+             coordsets can have different pseudobonds
+        '''
         if isinstance(create_type, int):
             create_arg = create_type
         elif create_type is None:

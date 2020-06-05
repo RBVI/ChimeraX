@@ -13,7 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
-from chimerax.core.atomic import AtomicStructure
+from chimerax.atomic import AtomicStructure
 
 _prd = None
 def prep_rotamers_dialog(session, rotamers_tool_name):
@@ -40,24 +40,10 @@ class PrepRotamersDialog(ToolInstance):
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(QLabel("Show rotamers for selected residues..."), alignment=Qt.AlignCenter)
 
-        installed_lib_names = set(session.rotamers.library_names(installed_only=True))
-        all_lib_names = session.rotamers.library_names(installed_only=False)
-        all_lib_names.sort()
-        if not all_lib_names:
-            raise AssertionError("No rotamers libraries available?!?")
-        from chimerax.ui.options import SymbolicEnumOption, EnumOption, OptionsPanel
-        class RotLibOption(SymbolicEnumOption):
-            labels = [(session.rotamers.library(lib_name).display_name if lib_name in installed_lib_names
-                else "%s [not installed]" % lib_name) for lib_name in all_lib_names]
-            values = all_lib_names
-        from .settings import get_settings
-        settings = get_settings(session)
-        if settings.library in all_lib_names:
-            def_lib = settings.library
-        else:
-            def_lib = installed_lib_names[0] if installed_lib_names else all_lib_names[0]
-        self.rot_lib_option = RotLibOption("Rotamer library", def_lib, self._lib_change_cb)
+        self.rot_lib_option = session.rotamers.library_name_option()("Rotamer library", None,
+            self._lib_change_cb)
 
+        from chimerax.ui.options import EnumOption, OptionsPanel
         self.rot_lib = session.rotamers.library(self.rot_lib_option.value)
         res_name_list = self.lib_res_list()
         class ResTypeOption(EnumOption):
@@ -83,7 +69,8 @@ class PrepRotamersDialog(ToolInstance):
         self._update_rot_description()
 
         self.citation_widgets = {}
-        cw = self.citation_widgets[def_lib] = self.citation_widgets['showing'] = self._make_citation_widget()
+        cw = self.citation_widgets[self.rot_lib_option.value] = self.citation_widgets['showing'] \
+            = self._make_citation_widget()
         if cw:
             layout.addWidget(cw, alignment=Qt.AlignCenter)
 
@@ -117,14 +104,13 @@ class PrepRotamersDialog(ToolInstance):
             if confirm == "no":
                 return
         res_type = self.res_type_option.value
-        from chimerax.core.commands import run, quote_if_necessary as quote
+        from chimerax.core.commands import run, StringArg
         from chimerax.atomic.rotamers import NoResidueRotamersError
+        lib_name = StringArg.unparse(self.rot_lib_option.value)
         try:
-            run(self.session, "swapaa interactive sel %s lib %s" % (res_type,
-                quote(self.rot_lib.display_name)))
+            run(self.session, "swapaa interactive sel %s rotLib %s" % (res_type, lib_name))
         except NoResidueRotamersError:
-            lib_name = self.rot_lib_option.value
-            run(self.session, "swapaa sel %s lib %s" % (res_type, lib_name))
+            run(self.session, "swapaa sel %s rotLib %s" % (res_type, lib_name))
 
     def lib_res_list(self):
         res_name_list = list(self.rot_lib.residue_names) + ["ALA", "GLY"]
@@ -197,10 +183,10 @@ class RotamerDialog(ToolInstance):
             # being called directly rather than during session restore
             self.finalize_init(*args)
 
-    def finalize_init(self, mgr, res_type, lib_display_name, *, table_info=None):
+    def finalize_init(self, mgr, res_type, rot_lib, *, table_info=None):
         self.mgr = mgr
         self.res_type = res_type
-        self.lib_display_name = lib_display_name
+        self.rot_lib = rot_lib
 
         self.subdialogs = {}
         from collections import OrderedDict
@@ -224,6 +210,7 @@ class RotamerDialog(ToolInstance):
         from PyQt5.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
+        lib_display_name = self.session.rotamers.library(rot_lib).display_name
         layout.addWidget(QLabel("%s %s rotamers" % (lib_display_name, res_type)))
         column_disp_widget = QWidget()
         class RotamerTable(ItemTable):
@@ -310,18 +297,24 @@ class RotamerDialog(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst.finalize_init(data['mgr'], data['res_type'], data['lib_display_name'],
-            table_info=data['table info'])
+        lib_display_name = data['lib_display_name']
+        for lib_name in session.rotamers.library_names(installed_only=True):
+            lib = session.rotamers.library(lib_name)
+            if lib.display_name == lib_display_name:
+                break
+        else:
+            raise RuntimeError("Cannot restore Rotamers tool because %s rotamer library is not installed"
+                % lib_display_name)
+        inst.finalize_init(data['mgr'], data['res_type'], lib_name, table_info=data['table info'])
         return inst
 
     def take_snapshot(self, session, flags):
         import sys
-        print("take_snapshot for", self, file=sys.__stderr__)
         data = {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'mgr': self.mgr,
             'res_type': self.res_type,
-            'lib_display_name': self.lib_display_name,
+            'lib_display_name': session.rotamers.library(self.rot_lib).display_name,
             'table info': (self.table.session_info(), [(col_type, c.title, c.data_fetch, c.display_format)
                 for col_type, c in self.opt_columns.items()])
         }
@@ -337,10 +330,11 @@ class RotamerDialog(ToolInstance):
                     " add a column to the table.")
         rot_nums = [r.id[-1] for r in rots]
         from chimerax.core.commands import run
-        cmd = "swapaa %s %s criteria %s" % (
+        cmd = "swapaa %s %s criteria %s rotLib %s" % (
             self.mgr.base_residue.string(style="command"),
             self.res_type,
             ",".join(["%d" % rn for rn in rot_nums]),
+            self.rot_lib,
         )
         if self.retain_side_chain:
             cmd += " retain %s" % str(self.retain_side_chain.isChecked()).lower()

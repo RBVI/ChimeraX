@@ -24,8 +24,10 @@ def log(session, thumbnail = False, text = None, html = None, width = 100, heigh
 
     Parameters
     ----------
-    save_path : string
-      Save log contents as html to a file.
+    text : string
+       Text to show in the log.
+    html : bool
+       Indicate if the text is HTML text.
     thumbnail : bool
       Place a thumbnail image of the current graphics in the log.
     height : int
@@ -48,9 +50,9 @@ def log(session, thumbnail = False, text = None, html = None, width = 100, heigh
             log.log(log.LEVEL_INFO, text + '\n', (None, False), False)
         if html:
             log.log(log.LEVEL_INFO, html, (None, False), True)
-        if not warning_dialog is None:
+        if warning_dialog is not None:
             log.warning_shows_dialog = warning_dialog
-        if not error_dialog is None:
+        if error_dialog is not None:
             log.error_shows_dialog = error_dialog
     else:
         log = session.logger
@@ -60,9 +62,9 @@ def log(session, thumbnail = False, text = None, html = None, width = 100, heigh
             log.info(text)
         if html:
             log.info(html, is_html=True)
-        if not warning_dialog is None:
+        if warning_dialog is not None:
             pass
-        if not error_dialog is None:
+        if error_dialog is not None:
             pass
 
 def log_show(session):

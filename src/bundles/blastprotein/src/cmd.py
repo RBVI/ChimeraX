@@ -16,8 +16,8 @@ from chimerax.core.commands import StringArg, BoolArg, FloatArg, IntArg, EnumOf,
 from chimerax.seqalign import AlignSeqPairArg
 
 DBs = ["pdb", "nr"]
-Matrices = ["BLOSUM45", "BLOSUM62", "BLOSUM80", "BLOSUM90", "BLOSUM100",
-            "PAM30", "PAM70"]
+Matrices = ["BLOSUM45", "BLOSUM50", "BLOSUM62", "BLOSUM80", "BLOSUM90",
+            "PAM30", "PAM70", "PAM250", "IDENTITY"]
 
 # Use camel-case variable names for displaying keywords in help/usage
 

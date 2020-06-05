@@ -62,7 +62,7 @@ def set(session, bg_color=None,
     if subdivision is not None:
         had_arg = True
         from .graphics import graphics_quality
-        graphics_quality(session, subdivision = subdivision)
+        graphics_quality(session, quality = subdivision)
     if max_frame_rate is not None:
         had_arg = True
         from .graphics import graphics_rate

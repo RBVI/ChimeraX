@@ -63,11 +63,14 @@ Opening a Structure and Surveying Its Parts</h3>
 <p>
 Start ChimeraX.
 If you want to use the click-to-execute links in this tutorial, view this
-page in the <a href="../tools/helpviewer.html"><b>ChimeraX Browser</b></a>
-(use the <a href="../commands/open.html"><b>open</b></a> command in ChimeraX
-with the URL of this page). All of the click-to-execute links in this
+page in the <a href="../tools/helpviewer.html"><b>ChimeraX Browser</b></a>.
+One way to do so is by entering the ChimeraX command:
+<blockquote>
+<i>Command</i>:&nbsp;<b><a href="cxcmd:open help:user/tutorials/binding-sites.html">open help:user/tutorials/binding-sites.html</a></b>
+</blockquote>
+All of the click-to-execute links in this
 tutorial are indented and appear after &ldquo;<i>Command</i>:&rdquo;
-Other links may be simply informative.
+Other links are simply informative and can be clicked or not, as you prefer.
 </p><p>
 ChimeraX can fetch a structure directly from the
 <a href="http://www.rcsb.org" target="_blank">Protein Data Bank</a> (PDB)
@@ -95,7 +98,7 @@ In the <b>Chain information</b> table, try clicking the chain IDs
 (<b>A</b>, <i>etc.</i>); see that the corresponding
 part of the structure becomes <a href="../selection.html">selected</a>
 in the graphics window, as indicated with green outlines.  
-The structure includes four copies of the protein as chains A, B, C, and D.
+The structure includes four copies of the kinase as chains A, B, C, and D.
 </p>
 <blockquote style="background-color:#f0f0f0; margin:15px; 
 border:solid black 1px; padding:5px">
@@ -114,10 +117,11 @@ click the residue name <b>STI</b> (imatinib)
 to see where it is in the structure.
 In this context, &ldquo;nonstandard&rdquo; means residues other than water
 and the types of amino acids and nucleic acids typically found in biomolecules. 
-Imatinib inhibits protein kinases that are overactive in certain cancers.
+Imatinib is a kinase inhibitor, and each copy of the kinase
+has its own imatinib binding site.
 </p><p>
 In the <b>2hyy mmCIF Assemblies</b> table, click <b>1</b> to generate
-&ldquo;assembly 1,&rdquo; a single copy of the complex.
+&ldquo;assembly 1,&rdquo; a single copy of the protein-ligand complex.
 As can be seen in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>,
 this opens the assembly as model 2 and hides the original structure (model 1,
 <img class="iconbar" src="../tools/ui-icons/shown.png"
@@ -269,7 +273,8 @@ color list</a></b>
 </blockquote>
 <p>
 (A more organized
-<a href="../commands/colornames.html#builtin">table</a> is also available.)
+<a href="../commands/colornames.html#builtin"
+target="_blank">table</a> is also available.)
 </p>
 
 <a name="hbonds"></a>
@@ -301,8 +306,9 @@ Focus the view on the selection and hide all other atoms:
 </blockquote>
 <p>
 Use the <b><a href="../tools/hbonds.html">H-Bonds</a></b> tool
-(menu: <b>Tools... Structure Analysis... H-Bonds</b>) with the
-following options checked:
+(menu: <b>Tools... Structure Analysis... H-Bonds</b>). 
+Keep the default settings, except turn on (check)
+the following if they are not already:
 <ul>
 <li><b>Reveal atoms of H-bonding residues</b> &ndash;
 the &ldquo;pseudobonds&rdquo; representing the H-bonds are only
@@ -314,7 +320,6 @@ currently <a href="../selection.html">selected</a> atoms
 <li><b>Log</b> &ndash; show information about each H-bond in
 the <a href="../tools/log.html"><b>Log</b></a>
 </ul>
-...leaving all other settings as default.
 Make sure that the imatinib residue is still selected, then run the calculation
 by clicking <b>Apply</b> or <b>OK</b> (the difference between those two
 is that <b>OK</b> closes the dialog).
@@ -350,20 +355,21 @@ same time as the ribbon with command:
 Now you can see two backbone nitrogen atoms donating H-bonds to imatinib,
 and a backbone carbonyl oxygen accepting an H-bond from imatinib.
 The backbone atoms can still be shown and hidden individually,
-and most backbone atoms are still hidden. 
+and most backbone atoms are still hidden.
 The backbone atoms of these specific residues were displayed 
 by the <b>Reveal atoms...</b> option in the H-bonds calculation.
 </p><p>
 Use the <b><a href="../tools/clashes.html">Contacts</a></b> tool
-(menu: <b>Tools... Structure Analysis... Contacts</b>) with the
-following options checked:
+(menu: <b>Tools... Structure Analysis... Contacts</b>).
+Keep the default settings, except turn on (check)
+the following if they are not already:
 <ul>
 <li><b>Limit by selection: with at least one end selected</b>
 <li><b>Reveal atoms of interacting residues</b>
 <li><b>Log</b>
 </ul>
-Also turn off (uncheck) <b>Display as pseudobonds</b>,
-but leave all other settings as default. Make sure that the imatinib residue
+...and turn off (uncheck) <b>Display as pseudobonds</b>,
+Make sure that the imatinib residue
 is selected as described <a href="#hbonds">above</a>, 
 then click <b>Apply</b> or <b>OK</b>.
 </p><p>
@@ -584,7 +590,7 @@ width="250px">
 <p>
 An alternative to calculating the MLP is to use a constant lookup value for 
 each type of amino acid residue. 
-A ChimeraX script to assign Kyte-Doolittle hydrophobicity values
+A ChimeraX command script to assign Kyte-Doolittle hydrophobicity values
 and color the protein surface from <b>dodger blue</b> for the most
 hydrophilic through <b>white</b> to <b>orange red</b> for the most hydrophobic
 <table border cellpadding="4" cellspacing="0"
@@ -595,7 +601,9 @@ style="display:inline-block; vertical-align:middle"><tr>
 </tr></table>
 is provided here:
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/user/kyte-doolittle_hydrophobicity.cxc">kyte-doolittle_hydrophobicity.cxc</a>. 
-This script can be used to define a 
+Saving the file as plain text and opening it in ChimeraX 
+will execute the commands on any proteins being viewed at the time.
+The script can also be used to define a 
 <a href="../preferences.html#startup">custom preset</a> in ChimeraX
 similar to the preset that was built into Chimera.
 (Of course, a different coloring scheme could be used, including the
@@ -731,7 +739,8 @@ The remaining commands in this section are just examples of display settings
 that might be useful for figures. 
 </p><p>
 Make the acetylcholine sticks fatter, change the DNA ribbon 
-to a round cross-section, and show nucleotide sidechains as ellipsoids:
+to a round cross-section, and show nucleotide sidechains as stubs (broken
+ladder rungs):
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:size :ach stickrad .7">size :ach stickrad .7</a></b>
@@ -788,5 +797,5 @@ To quit from ChimeraX, just close its main window or use a command:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2020</address>
+May 2020</address>
 </body></html>

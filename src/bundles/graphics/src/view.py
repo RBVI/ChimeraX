@@ -437,6 +437,11 @@ class View:
         else:
             c = camera
 
+        # Set flag that image save is in progress for Drawing.draw() routines
+        # to adjust sizes of rendered objects with sizes in pixels to preserve
+        # the on-screen sizes.  This is used for 2d label sizing.
+        r.image_save = True
+            
         if supersample is None:
             self.draw(c, drawings, swap_buffers = False)
             rgba = r.frame_buffer_image(w, h)
@@ -458,6 +463,8 @@ class View:
         r.pop_framebuffer()
         fb.delete()
 
+        delattr(r, 'image_save')
+        
         ncomp = 4 if transparent_background else 3
         from PIL import Image
         # Flip y-axis since PIL image has row 0 at top,
@@ -499,7 +506,7 @@ class View:
         elif w is not None:
             # Choose height to match window aspect ratio.
             return (w, (vh * w) // vw)
-        elif height is not None:
+        elif h is not None:
             # Choose width to match window aspect ratio.
             return ((vw * h) // vh, h)
         return (vw, vh)
@@ -554,17 +561,25 @@ class View:
         self._render.finish_rendering()
 
     def _compute_shadowmaps(self, drawings, camera):
-
+        '''
+        Compute shadow map textures for specified drawings.
+        Does not include child drawings.
+        '''
         r = self._render
         shadow_enabled = r.shadow.use_shadow_map(camera, drawings, self._shadow_bounds)
         multishadow_enabled = r.multishadow.use_multishadow_map(drawings, self._shadow_bounds)
         return shadow_enabled, multishadow_enabled
 
     def _shadow_bounds(self, drawings):
+        '''
+        Compute bounding box for drawings, not including child drawings.
+        '''
+        # TODO: remove case drawings = None.  That is not used.
         if drawings is None:
             b = self.drawing_bounds(allow_drawing_changes = False)
             sdrawings = [self.drawing]
         else:
+            # TODO: This code is incorrectly including child drawings in bounds calculation.
             sdrawings = [d for d in drawings if getattr(d, 'casts_shadows', True)]
             from chimerax.geometry import bounds
             b = bounds.union_bounds(d.bounds() for d in sdrawings if not getattr(d, 'skip_bounds', False))

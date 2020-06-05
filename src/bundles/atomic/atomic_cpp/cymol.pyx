@@ -231,10 +231,9 @@ cdef class CyAtom:
         " displayed as a cartoon, return coordinates on the cartoon.  Otherwise,"
         " return the actual atomic coordinates."
         if not self.visible and self.residue.ribbon_display:
-            try:
-                return self.ribbon_coord
-            except KeyError:
-                pass
+            c = self.ribbon_coord
+            if c is not None:
+                return c
         return self.coord
 
     @property
@@ -932,9 +931,14 @@ cdef class CyResidue:
 
     @property
     def chain_id(self):
-        "Supported API. PDB chain identifier. Limited to 4 characters. Read only string."
+        "Supported API. PDB chain identifier. Limited to 4 characters."
         if self._deleted: raise RuntimeError("Residue already deleted")
         return self.cpp_res.chain_id().decode()
+
+    @chain_id.setter
+    def chain_id(self, new_chain_id):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        self.cpp_res.set_chain_id(new_chain_id.encode())
 
     chi_info = {
         'ARG': [("N", "CA", "CB", "CG"),
@@ -1098,6 +1102,24 @@ cdef class CyResidue:
         self.cpp_res.set_is_strand(val)
 
     @property
+    def label_one_letter_code(self):
+        """
+        The code that Actions->Label->Residues uses, which can actually be just the residue name
+        (i.e. more that one letter) for non-polymers
+        """
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        code = self.one_letter_code
+        if code is None:
+            code = self.name
+        return code
+
+    @property
+    def label_specifier(self):
+        "The specifier that Actions->Label->Residues uses, which never includes the model ID"
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        return self.string(omit_structure=True, style="command")
+
+    @property
     def mmcif_chain_id(self):
         "mmCIF chain identifier. Limited to 4 characters. Read only string."
         if self._deleted: raise RuntimeError("Residue already deleted")
@@ -1175,6 +1197,10 @@ cdef class CyResidue:
         except IndexError:
             return
         _set_angle(self.session, prev_c, prev_c.bonds[i], val, cur_omega, "omega")
+
+    @property
+    def one_letter_code(self):
+        return self.get_one_letter_code()
 
     @property
     def phi(self):
@@ -1486,6 +1512,19 @@ cdef class CyResidue:
                 return None
         return chi_atoms
 
+    def get_one_letter_code(self, *, non_polymeric_returns=None):
+        """
+        In this context, 'non_polymeric' means residues that are incapable of being in a polymer
+        and therefore a singleton amino or nucleic acid is not 'non_polymeric' despite not being in
+        an actual polymer.
+        """
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        from chimerax.atomic import Sequence
+        code = Sequence.rname3to1(self.name)
+        if code == 'X' and self.polymer_type == self.PT_NONE:
+            return non_polymeric_returns
+        return code
+
     # Cython kind of has trouble with a C++ class variable that is a map of maps, and where the key
     # type of the nested map is a varidic template; so ideal_chirality is exposed via ctypes instead
 
@@ -1511,7 +1550,7 @@ cdef class CyResidue:
         "Supported API.  Remove the atom from this residue."
         self.cpp_res.remove_atom(atom.cpp_atom)
 
-    def string(self, residue_only = False, omit_structure = False, style = None):
+    def string(self, *, residue_only = False, omit_structure = False, style = None):
         "Supported API.  Get text representation of Residue"
         if style == None:
             from .settings import settings

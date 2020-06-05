@@ -81,7 +81,7 @@ def _color_map(map, segmentation, attribute_name, color = None, outside_color = 
     ac = _attribute_colors(segmentation, attribute_name)
     zc = (255,255,255,255) if outside_color is None else outside_color
     seg_rgba = ac.segment_colors(color, zc)
-    seg_rgb = seg_rgba[:3].copy()	# Make contiguous
+    seg_rgb = seg_rgba[:,:3].copy()	# Make contiguous
     def seg_color(color_plane, region, seg=segmentation,
                   segment_rgba = seg_rgba, segment_rgb = seg_rgb):
         seg_matrix = seg.region_matrix(region)
@@ -404,7 +404,7 @@ def _maximum_segment_id(segmentation):
     else:
         try:
             max_seg_id = seg.data.find_attribute('maximum_segment_id')
-        except:
+        except Exception:
             max_seg_id = seg.full_matrix().max()
         seg._max_segment_id = max_seg_id
 

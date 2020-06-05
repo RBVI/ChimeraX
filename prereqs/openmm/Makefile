@@ -4,7 +4,7 @@ include $(TOP)/mk/config.make
 
 # Using OpenMM builds from https://anaconda.org/omnia/openmm/files
 PYVER = py37_cuda101_rc_1
-VERSION = 7.4.0
+VERSION = 7.4.1
 ifeq ($(OS),Darwin)
 PLATFORM = mac
 endif
@@ -45,6 +45,9 @@ endif
 app-install: install
 	$(RSYNC) $(OPENMM_LIB_INSTALL)/* $(app_shlibdir)
 	$(RSYNC) $(PYSITEDIR)/simtk $(APP_PYSITEDIR)
+ifeq ($(OS),Windows)
+	cd $(app_shlibdir); mv OpenMM*.lib libs/
+endif
 
 $(SOURCE):
 	-mkdir $(SOURCE)

@@ -108,54 +108,6 @@ class OpenManager(ProviderManager):
 
     def end_providers(self):
         self.triggers.activate_trigger("open command changed", self)
-        if True:
-            return
-        # volume formats register during bundle initialization, so delay checking
-        def check_fmts(*args, self=self):
-            in_common = []
-            old_only = []
-            toolshed_only = ["RMF"]
-            from chimerax.core.io import _file_formats
-            for old in _file_formats.keys():
-                if old.endswith(" image"):
-                    key = old[:-6]
-                elif old == "StereoLithography":
-                    key = "STL"
-                elif old == "Schrodinger Maestro":
-                    key = "Maestro"
-                elif "Python" in old:
-                    key = old[:-5]
-                    if key.startswith("Compiled"):
-                        key = 'c' + key[1:]
-                elif old in toolshed_only:
-                    continue
-                else:
-                    key = old
-                try:
-                    in_common.append(self.session.data_formats[key])
-                except KeyError:
-                    for nick in _file_formats[old].nicknames:
-                        try:
-                            in_common.append(self.session.data_formats[nick])
-                        except KeyError:
-                            continue
-                        else:
-                            break
-                    else:
-                        #print("old only:", old)
-                        old_only.append(old)
-            #for df in self.session.data_formats:
-            #    print("new:", df.name)
-            print("%d data formats in common, %d new only, %d old only, %d toolshed only"
-                %(len(in_common), len(self.session.data_formats) - len(in_common),
-                len(old_only), len(toolshed_only)))
-            if len(in_common) != len(self.session.data_formats):
-                print("new only:", ", ".join([fmt.name for fmt in
-                    self.session.data_formats if fmt not in in_common]))
-                return
-            from random import choice
-            print("Port format", choice(list(old_only)))
-        self.session.ui.triggers.add_handler('ready', check_fmts)
 
     def fetch_args(self, database_name, *, format_name=None):
         try:
@@ -167,9 +119,24 @@ class OpenManager(ProviderManager):
             try:
                 provider_info = db_formats[format_name]
             except KeyError:
-                raise NoOpenerError("Format '%s' not supported for database '%s'."
-                    "  Supported formats are: %s" % (format_name, database_name,
-                    commas([dbf for dbf in db_formats])))
+                # for backwards compatibility, try the nicknames of the format
+                try:
+                    df = self.session.data_formats[format_name]
+                except KeyError:
+                    nicks = []
+                else:
+                    nicks = df.nicknames + df.name
+                for nick in nicks:
+                    try:
+                        provider_info = db_formats[nick]
+                        format_name = nick
+                    except KeyError:
+                        continue
+                    break
+                else:
+                    raise NoOpenerError("Format '%s' not supported for database '%s'."
+                        "  Supported formats are: %s" % (format_name, database_name,
+                        commas([dbf for dbf in db_formats])))
         else:
             for format_name, provider_info in db_formats.items():
                 if provider_info.is_default:
@@ -199,7 +166,7 @@ class OpenManager(ProviderManager):
     @property
     def open_data_formats(self):
         """
-        The names of data formats for which an opener function has been registered.
+        The data formats for which an opener function has been registered.
         """
         return list(self._openers.keys())
 

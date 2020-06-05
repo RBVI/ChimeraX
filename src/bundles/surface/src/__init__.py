@@ -31,9 +31,10 @@ from .cap import update_clip_caps, remove_clip_caps
 from .topology import check_surface_topology
 from .colorgeom import color_radial, color_cylindrical, color_height
 from .colorvol import color_sample, color_electrostatic, color_gradient, color_surfaces_by_map_value
-from .combine import combine_geometry_vnt, combine_geometry_xvnt, combine_geometry_vtp
+from .combine import combine_geometry_vnt, combine_geometry_vntc
+from .combine import combine_geometry_xvnt, combine_geometry_vtp
 from .combine import combine_geometry_xvntctp, combine_geometry_vte
-from .surfacecmds import surface, surface_hide
+from .surfacecmds import surface, surface_show_patches, surface_hide_patches
 from .sop import surface_zone
 
 from chimerax.core.toolshed import BundleAPI
@@ -66,13 +67,6 @@ class _SurfaceBundle(BundleAPI):
             surfacecmds.register_command(logger)
             from . import check
             check.register_command(logger)
-
-    @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import collada
-        return collada.read_collada_surfaces(session, stream, file_name)
 
     @staticmethod
     def get_class(class_name):

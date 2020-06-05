@@ -318,7 +318,7 @@ class VolumeViewer(ToolInstance):
         self.redisplay_in_progress = True
         try:
           self.show_using_dialog_settings(self.active_volume)
-        except:
+        except Exception:
           # Need this to avoid disabling automatic volume redisplay when
           # user cancels file read cancel or out of memory exception raised.
           self.redisplay_in_progress = False
@@ -2095,6 +2095,8 @@ class Histogram_Pane:
 
     v = self.volume
     if v:
+        from chimerax.core.commands import log_equivalent_command
+        log_equivalent_command(v.session, 'close #%s' % v.id_string)
         self.dialog.session.models.close([v])
 
   # ---------------------------------------------------------------------------
@@ -4950,7 +4952,7 @@ def integer_variable_value(v, default = None):
 
   try:
     return int(v.get())
-  except:
+  except Exception:
     return default
   
 # -----------------------------------------------------------------------------
@@ -4962,7 +4964,7 @@ def integer_variable_values(v, default = None):
   for field in fields:
     try:
       value = int(field)
-    except:
+    except Exception:
       value = default
     values.append(value)
   return values
@@ -4979,7 +4981,7 @@ def string_to_float(v, default = None):
 
   try:
     return float(v)
-  except:
+  except Exception:
     return default
     
 # -----------------------------------------------------------------------------

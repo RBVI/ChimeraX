@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-RestServer" version="0.1"
+<BundleInfo name="ChimeraX-RestServer" version="1.0"
 	    package="chimerax.rest_server" customInit="true"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -24,7 +24,7 @@ and the generated output is returned as the response.
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

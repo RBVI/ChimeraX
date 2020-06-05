@@ -13,6 +13,7 @@ Basic Usage
     Print tag for Python packages with compiled code, *e.g.*, **py3-none-any**
 """
 
+
 def tag(pure):
     """Return the tag part of a wheel filename for this version of Python.
 
@@ -53,8 +54,10 @@ def tag(pure):
         return name.replace('-', '_').replace('.', '_')
     return "%s-%s-%s" % (fix_name(impl), fix_name(abi), fix_name(platform))
 
+
 if "__main__" in __name__:
-    import sys, getopt
+    import sys
+    import getopt
     pure = False
     opts, args = getopt.getopt(sys.argv[1:], "p")
     for opt, val in opts:

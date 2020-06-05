@@ -37,6 +37,7 @@ in the <a href="../tools/markers.html"><b>Markers</b></a> tab of the
 <img class="iconbar" src="../marker-icons.png">
 </p><p>
 See also:
+<a href="hkcage.html"><b>hkcage</b></a>,
 the <b>tape measure</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html#tape" title="Mouse Modes for Right Button...">
 <img class="icon" border=1 src="../tools/mouse-icons/tape.png"></a>
@@ -66,6 +67,9 @@ marker delete #2:3
 </b></blockquote>
 
 <a name="create"></a>
+<a name="link"></a>
+<a name="segment"></a>
+<a name="fromMesh"></a>
 <p class="nav">
 [<a href="#top">back to top: marker</a>]
 </p>
@@ -73,8 +77,8 @@ marker delete #2:3
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>marker</b>
-&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>
-&nbsp;<a href="pointspec.html#vector"><i>point-spec</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>&nbsp;
+<b>position</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
@@ -87,20 +91,27 @@ marker delete #2:3
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>marker segment</b>
-&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>
-&nbsp;<a href="pointspec.html#vector"><i>point-spec1</i></a>&nbsp;
-<b>toPosition</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>point-spec2</i></a>&nbsp;
+&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>&nbsp;
+<b>position</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec1</i></a>&nbsp;
+<b>toPosition</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec2</i></a>&nbsp;
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>label</b>&nbsp;&nbsp;<i>label-text</i>&nbsp;]
 [&nbsp;<b>labelHeight</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
 [&nbsp;<b>labelColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>marker fromMesh</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
+[&nbsp;<b>edgeRadius</b>&nbsp;&nbsp;<i>stick-radius</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>markers</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>marker-model</i></a>&nbsp;]
 </blockquote>
 <p>
 The <b>marker</b> command creates a new marker.
-The <a href="atomspec.html#othermodels"><i>marker-model</i></a>
-and <i>point-spec</i> arguments are required.
+The <a href="atomspec.html#othermodels"><i>marker-model</i></a> and 
+<a href="pointspec.html#point"><i>point-spec</i></a> arguments are required.
 The marker can be added to an existing marker model or added as a new model,
 and each marker has its own residue number, assigned starting with 1.
 The resulting model ID and residue numbers can be used to
@@ -115,10 +126,10 @@ and the word <b>sel</b>. Model numbers are shown in the
 and residue numbers in the identifiers that pop up when the cursor is
 paused over an item in the <a href="../window.html">main window</a>.
 </p><p>
-A <a href="pointspec.html#vector"><i>point-spec</i></a> can be given as
+A <a href="pointspec.html#point"><i>point-spec</i></a> can be given as
 <i>x,y,z</i> (three values separated by commas only),
 an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
-standard <a href="pointspec.html#vector">point specifications</a>;
+standard <a href="pointspec.html#point">point specifications</a>;
 <i>x,y,z</i> values are interpreted in 
 <a href="view.html#scenecoords">scene coordinates</a>
 unless a different <b>coordinateSystem</b> (reference model number) is given.
@@ -138,6 +149,18 @@ The default <b>labelHeight</b> is <b>1.0</b> &Aring; and the default
 <b>white</b> or <b>black</b> depending on
 the <a href="set.html#bgColor">window background color</a>).
 See also: <a href="label.html"><b>label</b></a>
+</p><p>
+The <b>marker fromMesh</b> command creates markers and links (shown as sticks)
+from a surface mesh, which can only be shown as lines.
+The <b>edgeRadius</b> option sets stick radius (default <b>1.0</b> 
+in physical distance units). The <b>color</b> default is the same as
+the surface model, where each marker gets the corresponding vertex color
+and each link (stick) is assigned the average color of its two endpoints.
+The <b>markers</b> option allows adding the new markers and links 
+to an existing marker model.
+See also: <a href="hkcage.html"><b>hkcage</b></a>,
+<a href="shape.html"><b>shape</b></a>,
+<a href="volume.html"><b>volume</b></a>
 </p>
 
 <a name="change"></a>
@@ -149,7 +172,7 @@ See also: <a href="label.html"><b>label</b></a>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>marker change</b>
 &nbsp;<a href="atomspec.html"><i>marker-spec</i></a>&nbsp;
-[&nbsp;<b>position</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>point-spec</i></a>&nbsp;]
+[&nbsp;<b>position</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
 [&nbsp;<b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]

@@ -19,9 +19,23 @@
     <Category name="Graphics"/>
   </Categories>
 
+  <CModule name="_graphics">
+    <SourceFile>_graphics/blend_rgba.cpp</SourceFile>
+    <SourceFile>_graphics/count.cpp</SourceFile>
+    <SourceFile>_graphics/graphics.cpp</SourceFile>
+    <SourceFile>_graphics/linux_swap_interval.cpp</SourceFile>
+    <SourceFile>_graphics/mac_swap_interval.cpp</SourceFile>
+    <SourceFile>_graphics/mesh_edges.cpp</SourceFile>
+    <Library>arrays</Library>
+    <Library platform="windows">opengl32.lib</Library>
+    <Library platform="linux">GL</Library>
+    <Framework>OpenGL</Framework>
+  </CModule>
+
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.92"/>
-    <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Geometry" build="true" version="~=1.0"/>
   </Dependencies>
 
   <Classifiers>

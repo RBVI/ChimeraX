@@ -169,7 +169,7 @@ class OpenGLContext:
         # Check if opengl version is adequate.
         try:
             self._check_context_version(qc.format())
-        except:
+        except Exception:
             self._contexts[mode] = False
             raise	# OpenGLVersionError
 
@@ -449,7 +449,7 @@ class Render:
                 i = 1 if wait else 0
                 success = wglSwapIntervalEXT(i)
                 return True if success else False
-            except:
+            except Exception:
                 return False
         elif platform == 'darwin':
             sync = 1 if wait else 0
@@ -531,6 +531,8 @@ class Render:
         return max_size
 
     def framebuffer_rgba_bits(self):
+        # This is only valid for default framebuffer.
+        # Need to use GL_COLOR_ATTACHMENT0 for offscreen framebuffers.
         return tuple(GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
                                                               GL.GL_BACK_LEFT, attr)
                      for attr in (GL.GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE,
@@ -539,6 +541,8 @@ class Render:
                                   GL.GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE))
 
     def framebuffer_depth_bits(self):
+        # This is only valid for default framebuffer.
+        # Need to use GL_DEPTH_ATTACHMENT for offscreen framebuffers.
         return GL.glGetFramebufferAttachmentParameteriv(GL.GL_DRAW_FRAMEBUFFER,
                                                         GL.GL_DEPTH,
                                                         GL.GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE)
@@ -730,7 +734,9 @@ class Render:
         if (p is not None and
             not p.capabilities & self.SHADER_TEXTURE_OUTLINE and
             not p.capabilities & self.SHADER_DEPTH_OUTLINE):
-            p.set_matrix('model_view_matrix', mv.opengl_matrix())
+            if (p.capabilities & self.SHADER_LIGHTING or
+                not p.capabilities & self.SHADER_STEREO_360):
+                p.set_matrix('model_view_matrix', mv.opengl_matrix())
 #            if (self.SHADER_CLIP_PLANES | self.SHADER_MULTISHADOW) & p.capabilities:
             if self.SHADER_CLIP_PLANES & p.capabilities:
                 cmm = self.current_model_matrix
@@ -1042,6 +1048,11 @@ class Render:
                            vendor.startswith((b'AMD', b'ATI')))
 
         #
+        # Outline drawing uses glBlitFramebuffer() to copy the depth buffer and
+        # that fails if the default framebuffer depth attachment is not 24 bits
+        # and the outlining depth is 24 bits.  In this case render offscreen so
+        # both the render and outline framebuffers have 24-bit depth buffers.
+        #
         # On macOS 10.14.5 with Radeon Pro Vega 20 or 16 graphics selection outlines
         # are fragmented if rendering is to the default framebuffer.  The problem
         # appears to be that copying the default framebuffer depth to the offscreen
@@ -1049,8 +1060,9 @@ class Render:
         # in this case.  ChimeraX bug #2216.
         #
         self.outline.offscreen_outline_needed = (
-            sys.platform.startswith('darwin') and
-            self.opengl_renderer().startswith('AMD Radeon Pro Vega'))
+            self.framebuffer_depth_bits() != 24 or
+            (sys.platform.startswith('darwin') and
+             self.opengl_renderer().startswith('AMD Radeon Pro Vega')))
         
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
@@ -1298,6 +1310,10 @@ class Shadow:
             self._shadow_map_framebuffer = None
     
     def use_shadow_map(self, camera, drawings, shadow_bounds):
+        '''
+        Compute shadow map textures for specified drawings.
+        Does not include child drawings.
+        '''
         r = self._render
         lp = r.lighting
         if not lp.shadows:
@@ -1311,6 +1327,8 @@ class Shadow:
             light_direction = camera.position.transform_vector(kl)
 
         # Compute drawing bounds so shadow map can cover all drawings.
+        # TODO: Shadow bounds should exclude completely transparent drawings
+        #       if transparent do not cast shadows.
         center, radius, sdrawings = shadow_bounds(drawings)
         if center is None or radius == 0:
             return False

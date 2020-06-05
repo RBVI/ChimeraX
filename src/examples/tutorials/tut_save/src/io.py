@@ -4,8 +4,8 @@
 def open_xyz(session, stream):
     """Read an XYZ file from a file-like object.
 
-    Returns the 2-tuple return value appropriate for the
-    ``chimerax.core.toolshed.BundleAPI.open_file`` method.
+    Returns the 2-tuple return value expected by the
+    "open command" manager's :py:meth:`run_provider` method.
     """
     structures = []
     line_number = 0
@@ -106,35 +106,31 @@ def _read_block(session, stream, line_number):
     return s, line_number
 
 
-def save_xyz(session, path, models=None):
+def save_xyz(session, path, structures=None):
     """Write an XYZ file from given models, or all models if None.
     """
-    # Convert path into file-like object
-    from chimerax.core import io
-    f = io.open_filename(path, "w")
+    # Open path with proper encoding; 'open_output' automatically
+    # handles compression if the file name also has a compression
+    # suffix (e.g. .gz)
+    from chimerax.io import open_output
+    f = open_output(path, session.data_formats['XYZ'].encoding)
 
     # If no models were given, use all atomic structures
-    if models is None:
+    if structures is None:
         from chimerax.atomic import AtomicStructure
-        models = session.models.list(type=AtomicStructure)
-    structures = []
+        structures = session.models.list(type=AtomicStructure)
     num_atoms = 0
 
-    # Loop through models and print atoms, skipping non-atomic structures
-    for s in models:
-        # If structure has no atoms, it cannot be saved in XYZ format
-        try:
-            # We get the list of atoms and transformed atomic coordinates
-            # as arrays so that we can limit the number of accesses to
-            # molecular data, which is slower than accessing arrays directly
-            atoms = s.atoms
-            coords = atoms.scene_coords
-        except AttributeError:
-            continue
-        structures.append(s)
+    # Loop through structures and print atoms
+    for s in structures:
+        # We get the list of atoms and transformed atomic coordinates
+        # as arrays so that we can limit the number of accesses to
+        # molecular data, which is slower than accessing arrays directly
+        atoms = s.atoms
+        coords = atoms.scene_coords
 
         # First line for a structure is the number of atoms
-        print(str(len(atoms)), file=f)
+        print(str(s.num_atoms), file=f)
         # Second line is a comment
         print(getattr(s, "name", "unnamed"), file=f)
         # One line per atom thereafter
@@ -142,7 +138,8 @@ def save_xyz(session, path, models=None):
             a = atoms[i]
             c = coords[i]
             print("%s %.3f %.3f %.3f" % (a.element, c[0], c[1], c[2]), file=f)
-        num_atoms += len(atoms)
+        num_atoms += s.num_atoms
+    f.close()
 
     # Notify user that file was saved
     session.logger.status("Saved XYZ file containing %d structures (%d atoms)"

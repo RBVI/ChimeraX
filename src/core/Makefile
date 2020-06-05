@@ -13,7 +13,7 @@ TOP = ../..
 include $(TOP)/mk/config.make
 
 NO_SUBDIR_TEST=1
-SUBDIRS	+= appdirs_cpp _appdirs arrays_cpp \
+SUBDIRS	+= appdirs_cpp _appdirs \
 	   chutil_cpp commands \
 	   ioutil_cpp logger_cpp \
 	   pysupport_cpp toolshed
@@ -25,7 +25,6 @@ endif
 include $(TOP)/mk/subdir.make
 
 BUNDLE_NAME = ChimeraX-Core
-BUNDLE_VERSION = 0.93
 PKG_NAME = chimerax.core
 
 PKG_PATH = $(shell echo $(PKG_NAME) | sed 's,\.,/,'g)
@@ -40,12 +39,13 @@ datadir := $(shell cygpath -m '$(datadir)' | sed 's,/,\\\\\\\\,g')
 endif
 WHL_BNDL_NAME = $(subst -,_,$(BUNDLE_NAME))
 
+BUNDLE_VERSION = 1.0
+BUNDLE_VERSION := $(shell $(PYTHON_EXE) mkbuildinfo -v $(BUILD_TOP) $(BUNDLE_VERSION) $(BUILD_TYPE))
+
 GENSRCS = buildinfo.py
 PYSRCS = $(filter-out setup.py,$(wildcard *.py)) $(GENSRCS)
 WHEEL = dist/$(WHL_BNDL_NAME)-$(BUNDLE_VERSION)-cp$(PYVER_NODOT)-cp$(PYVER_NODOT)m-$(BIN_PLATFORM).whl
 DATA = colorbrewer.json
-
-.FORCE: wheel
 
 all: $(PYOBJS)
 
@@ -58,6 +58,7 @@ install: dir all
 app-install: wheel
 	$(APP_BOOTSTRAP_PIP) install -U $(WHEEL)
 
+.PHONY: wheel
 wheel: setup.py
 	rm -f $(WHEEL)
 	$(PYTHON_EXE) setup.py --no-user-cfg bdist_wheel --plat-name $(BIN_PLATFORM)
@@ -86,6 +87,7 @@ SETUP_SED_ARGS += -e 's,\# WINDEBUG,,'
 endif
 endif
 
+.PHONY: setup.py
 setup.py: setup.py.in _serialize.cpp Makefile
 	sed $(SETUP_SED_ARGS) < setup.py.in > setup.py
 
@@ -103,7 +105,7 @@ pylint:
 .PHONY: buildinfo.py
 buildinfo.py: buildinfo.py.in mkbuildinfo
 	rm -f buildinfo.py
-	$(PYTHON_EXE) mkbuildinfo $(BUILD_TOP) $(BUNDLE_VERSION) > buildinfo.py || (rm buildinfo.py ; exit 1)
+	$(PYTHON_EXE) mkbuildinfo -b $(BUILD_TOP) $(BUNDLE_VERSION) || (rm buildinfo.py ; exit 1)
 
 _serialize.cpp: _serialize.pyx
 	$(CYTHON_EXE) --cplus _serialize.pyx

@@ -41,12 +41,103 @@ def _process_chain_kw(session, list_func=None, trigger_info=None, **kw):
         kw['list_func'] = chain_list
     if trigger_info is None:
         from .triggers import get_triggers
-        kw['trigger_info'] = [ (get_triggers(), 'changes') ]
+        from chimerax.core.models import ADD_MODELS
+        kw['trigger_info'] = [ (get_triggers(), 'changes'), (session.triggers, ADD_MODELS) ]
     return kw
 
 class ChainListWidget(ItemListWidget):
-    def __init__(self, session, **kw):
-        super().__init__(**_process_chain_kw(session, **kw))
+    def __init__(self, session, *, group_identical=True, **kw):
+        self._session = session
+        self._group_identical = group_identical and kw.get('selection_mode', None) != 'single'
+        processed_kw = _process_chain_kw(session, **kw)
+        self._raw_list_func = processed_kw['list_func']
+        self._requested_item_text_func = processed_kw.get('item_text_func', None)
+        processed_kw['list_func'] = self._list_func
+        processed_kw['item_text_func'] = self._item_text_func
+        super().__init__(**processed_kw)
+
+    @property
+    def group_identical(self):
+        return self._group_identical
+
+    @group_identical.setter
+    def group_identical(self, group):
+        if group != self._group_identical:
+            self._group_identical = group
+            prev_sel = self.get_value()
+            self.refresh()
+            if group:
+                # was individual chains
+                next_sel = set()
+                for chain in prev_sel:
+                    for chains in self.value_map.keys():
+                        if chain in chains:
+                            next_sel.add(tuple(chains))
+                            break
+            else:
+                # was groups of chains
+                next_sel = []
+                for chains in prev_sel:
+                    next_sel.extend(chains)
+            self.set_value(next_sel)
+
+    @property
+    def value(self):
+        if self.group_identical:
+            return [chain for chains in self.get_value() for chain in chains]
+        return self.get_value()
+
+    @value.setter
+    def value(self, val):
+        if self.group_identical:
+            from chimerax.core.errors import LimitationError
+            raise LimitationError("Cannot set grouped Chain list")
+        self.set_value(val)
+
+    @property
+    def grouped_value(self):
+        if self.group_identical:
+            return self.get_value()
+        chains = self.get_value()
+        if not chains:
+            return chains
+        return [[chain] for chain in chains]
+
+    def _list_func(self):
+        simple_list = self._raw_list_func()
+        if not self.group_identical:
+            return simple_list
+        groups = {}
+        for chain in simple_list:
+            groups.setdefault(chain.characters, []).append(chain)
+        grouped_list = list(groups.values())
+        grouped_list.sort(key=lambda x: x[0])
+        # since the returned values will be used as dictionary keys, need to return tuples
+        return [tuple(chains) for chains in grouped_list]
+
+    def _item_text_func(self, item):
+        if self._requested_item_text_func:
+            if self.group_identical:
+                return "; ".join([self._requested_item_text_func(chain) for chain in item])
+            return self._requested_item_text_func(item)
+        if self.group_identical:
+            chains = item
+        else:
+            chains = [item]
+        cur_structure = None
+        specs = ""
+        descriptions = []
+        for chain in chains:
+            if chain.structure == cur_structure:
+                specs += ',' + chain.chain_id
+            else:
+                specs += chain.string()
+                cur_structure = chain.structure
+            if chain.description and chain.description not in descriptions:
+                descriptions.append(chain.description)
+        if descriptions:
+            return specs + ": " + "; ".join(descriptions)
+        return specs
 
 class ChainMenuButton(ItemMenuButton):
     def __init__(self, session, **kw):

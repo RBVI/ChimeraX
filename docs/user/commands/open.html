@@ -30,9 +30,6 @@ class="clRight" title="User Guide Index"/></a>
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
-<!--
-&nbsp;<a href="#options2"><i>general-options</i></a>&nbsp;
--->
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>: <br><b>open formats</b>
 </h3>
@@ -108,7 +105,7 @@ The command <b>open formats</b> command lists the possible formats and
 <table border cellpadding="4" cellspacing="0">
 <tr>
 <td align="center" style="background-color:#cccccc"><b>format</b></td>
-<td align="center" style="background-color:#cccccc"><b><i>format-name</i></b></td>
+<td align="center" style="background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
 <td align="center" style="background-color:#cccccc"><b>suffix</b></td>
 <td align="center" style="background-color:#cccccc"><b>description</b></td>
 </tr><tr>
@@ -366,7 +363,7 @@ target="_blank">OME</a> TIFF</td>
 <td align="center"><b>images</b></td>
 <td align="center">.tif, .tiff<br>.png<br>.pgm</td>
 <td align="center"><a name="image-stacks">image stack</a>
-<br>(grayscale image series in multiple files or a single multipage file,
+<br>(grayscale or RGB image series in multiple files or a single multipage file,
 in formats supported by
 <a href="http://www.pythonware.com/products/pil/" target="_blank">PIL</a>);
 see <a href="#image-wildcards">image stack wildcards</a>
@@ -486,7 +483,7 @@ target="_blank">STORM (STochastic Optical Reconstruction Microscopy)</a>
 <td align="center">super-resolution microscopy data
 (<a href="../formats/storm.html">details...</a>)</td>
 </tr><tr>
-<td align="center"><a href="https://www.biochem.mpg.de/tom"
+<td align="center"><a href="https://www.biochem.mpg.de/6348566/tom_e"
 target="_blank">TOM toolbox</a> map</td>
 <td align="center"><b>tom_em</b></td>
 <td align="center">.em</td>
@@ -635,7 +632,7 @@ target="_blank">Stockholm</a></td>
 <a href="../preferences.html#window"><b>Window</b> preferences</a> and
 <a href="../preferences.html#log"><b>Log</b> preferences</a></td>
 </tr><tr>
-<td align="center"><a href="https://pdb-dev.wwpdb.org/about/"
+<td align="center"><a href="https://github.com/ihmwg/IHM-dictionary"
 target="_blank">IHM (Integrative Hybrid Model)</a>
 </td>
 <td align="center"><b>ihm</b></td>
@@ -687,19 +684,7 @@ hypertext to render in the
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#vseries"><b>vseries</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#resizeWindow"><b>resizeWindow</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
-<!--
-[&nbsp;<b>channel</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>alignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>atomic</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>combineSymAtoms</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>ensembles</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>newTab</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
--->
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
-<!--
-&nbsp;<a href="#options2"><i>general-options</i></a>&nbsp;
--->
 </blockquote>
 <p>
 The <i>filename</i> is generally a pathname to a local file, 
@@ -724,7 +709,8 @@ for the filename brings up a file browser window for choosing the
 name and location interactively. 
 </p><p>
 The file format can be indicated with either the <i>filename</i> suffix or
-the <b>format</b> option (where <i>format-name</i> can be truncated).
+the <b>format</b> option
+(where <a href="#file-table"><i>format-name</i></a> can be truncated).
 Certain formats can be read when compressed (.gz, .bz2, or .xz, see
 <a href="#compressed">details</a>).
 </p><p>
@@ -986,26 +972,21 @@ is only available for this format. See also:
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>open</b> &nbsp;<i>URL</i>&nbsp;
-<!--
-[&nbsp;<b>dataFormat</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
--->
+[&nbsp;<b>dataFormat</b>&nbsp;&nbsp;<a href="#file-table"><i>format-name</i></a>&nbsp;]
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#vseries"><b>vseries</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#resizeWindow"><b>resizeWindow</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
-<!--
-&nbsp;<a href="#options2"><i>general-options</i></a>&nbsp;
--->
 </blockquote>
 <p>
 Uniform Resource Locators (URLs) starting with
 <b>http:</b>, <b>https:</b>, and <b>ftp:</b> are handled.
 File types and command options are the same as described 
 <a href="#local">above</a> for local files.
-The file type can be indicated
-by <a href="#file-table">suffix</a> or by MIME type.
-<!-- ...suffix, MIME type, or the <b>dataFormat</b> option. -->
+The file type can be indicated by <a href="#file-table">suffix</a>
+or the <b>dataFormat</b> option 
+(where <a href="#file-table"><i>format-name</i></a> can be truncated).
 </p><p>
 Web-fetched data other than those handled by the
 <a href="../tools/helpviewer.html">ChimeraX browser</a>
@@ -1028,9 +1009,6 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#options"><i>options</i></a>&nbsp;
-<!--
-&nbsp;<a href="#options2"><i>general-options</i></a>
--->
 </blockquote>
 <p>
 Atomic structures, density maps, and protein sequences can be fetched directly
@@ -1069,7 +1047,7 @@ See also:
 or web service</b></td>
 <td align="center" style="background-color:#cccccc"><b><i>source</i></b></td>
 <td align="center" style="background-color:#cccccc"><b>description</b></td>
-<td align="center" style="background-color:#cccccc"><b><i>format-name</i></b></td>
+<td align="center" style="background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
 </tr><tr>
 <td align="center"><a href="http://www.rcsb.org/"
 target="_blank">RCSB Protein Data Bank</a></td>
@@ -1103,6 +1081,14 @@ Data Bank Japan (PDBj)</a></td>
 <td align="center"><b>pdbj</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b></td>
+</tr><tr>
+<td align="center"><a href="http://www.wwpdb.org/data/ccd"
+target="_blank">PDB Chemical Component Dictionary (CCD)</a>
+</td>
+<td align="center"><b>ccd</b></td>
+<td align="center">idealized structure of PDB chemical component 
+(residue type)</td>
+<td align="center"><b>ccd</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.ebi.ac.uk/pdbe/eds/"
 target="_blank">PDBe Electron Density Server (EDS)</a>
@@ -1187,70 +1173,6 @@ target="_blank">UniProt</a></td>
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)</td>
 <td align="center"><b>uniprot</b></td>
 </tr></table>
-
-<!--
-<a name="options2"></a>
-<p class="nav">
-[<a href="#top">back to top: open</a>]
-</p>
-<h3>General Options</h3>
-<blockquote>
-<b>name</b>&nbsp;&nbsp;<i>model-name</i>
-<br>
-The name of the model (shown in the <b>Model Panel</b>) will be generated 
-automatically from the input <i>filename</i> or database <i>identifier</i>
-unless another name is given with the <b>name</b> option.
-If <i>model-name</i> contains spaces, it should be enclosed in quotation marks.
-Model number is also assigned automatically, starting with the lowest available
-number. Model name and number can be changed with the
-<a href="rename.html"><b>rename</b></a> command.
-</blockquote>
-<blockquote>
-<a name="logInfo"></a>
-<b>logInfo</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
-<br>
-Whether to show available <a href="../modelinfo.html">model information</a>
-(other than structure title) in the <a href="../tools/log.html"><b>Log</b></a>.
-See also: <a href="log.html#metadata"><b>log metadata</b></a>
-</blockquote>
-<blockquote>
-<b>autoStyle</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
-<br>
-Setting <b>autoStyle</b> to <b>false</b> bypasses 
-<a href="../autostyle.html">automatic styling</a>, <i>i.e.</i>,
-automatically adjusting the appearance of a newly opened atomic model
-based on its contents.
-Bypassing this calculation shows all atoms as white spheres, and may be 
-useful in rare cases where generating the rule-based representation is slow
-(such as drawing cartoons for very large numbers of models) or 
-when chemical perception is inappropriate (such as for a SAXS bead model). 
-See also: <a href="../markers.html">markers and links</a>
-</blockquote>
-<blockquote>
-<b>autoAssociate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
-<br>
-Whether structure-chain sequences should be compared to sequences in 
-<b>Multalign Viewer</b> and automatically associated if the number of
-mismatches is no more than 1/10 the number of residues in the structure chain.
-Unlike the other options of <b>open</b>, this sets a state that persists 
-within the ChimeraX session unless explicitly changed. 
-The initial setting is <b>true</b>.
-<p>
-For automatic association, the sequence and structure files
-can be opened in either order.
-Gaps in the structure sequence relative to the sequence in the alignment file 
-can only occur where residues are missing from the structure (for example, 
-a flexible loop with insufficient density to determine coordinates).
-Associations are reported in the <a href="../window.html">status line</a>
-and the <a href="../tools/log.html"><b>Log</b></a>.
-A structure (even if it has multiple chains) cannot be associated with more
-than one sequence, but a single sequence can be associated with
-more than one structure.
-If more than one sequence matches a given structure chain,
-the single best-matching sequence is associated. 
-</p>
-</blockquote>
--->
 
 <a name="image-wildcards"></a>
 <p class="nav">
@@ -1392,5 +1314,5 @@ only arrays with the specified <i>name</i>. Example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2020</address>
+June 2020</address>
 </body></html>

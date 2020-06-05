@@ -183,16 +183,6 @@ class Log(ToolInstance, HtmlLog):
                 s = page.settings()
                 s.setAttribute(s.LocalStorageEnabled, True)
                 self.log = log
-                # as of Qt 5.6.0, the keyboard shortcut for copying text
-                # from the QWebEngineView did nothing on Mac, the below
-                # gets it to work
-                import sys
-                if sys.platform == "darwin":
-                    from PyQt5.QtGui import QKeySequence
-                    from PyQt5.QtWidgets import QShortcut
-                    self.copy_sc = QShortcut(QKeySequence.Copy, self)
-                    self.copy_sc.activated.connect(
-                        lambda: self.page().triggerAction(self.page().Copy))
                 ## The below three lines shoule be sufficent to allow the ui_area
                 ## to Handle the context menu, but apparently not for QWebView widgets,
                 ## so we define contextMenuEvent as a workaround.
@@ -219,13 +209,9 @@ class Log(ToolInstance, HtmlLog):
                 self.session.ui.thread_safe(defer, self.log)
 
             def cm_save(self):
-                from chimerax.ui.open_save import export_file_filter, SaveDialog
-                from chimerax.core.io import format_from_name
-                fmt = format_from_name("HTML")
-                ext = fmt.extensions[0]
-                save_dialog = SaveDialog(self, "Save Log",
-                                         name_filter=export_file_filter(format_name="HTML"),
-                                         add_extension=ext)
+                from chimerax.ui.open_save import SaveDialog
+                fmt = session.data_formats["HTML"]
+                save_dialog = SaveDialog(session, self, "Save Log", data_formats=[fmt])
                 if not save_dialog.exec():
                     return
                 filename = save_dialog.selectedFiles()[0]
@@ -385,13 +371,18 @@ class Log(ToolInstance, HtmlLog):
         import lxml.html
         html = lxml.html.fromstring(self.page_source)
         for node in html.find_class("cxcmd"):
+            cxcmd_as_doc = False
             for child in node:
-                if (child.tag != 'div' or child.attrib.get('class', None)
-                        not in (None, 'cxcmd_as_cmd')):
+                cls = child.attrib.get('class', None)
+                if cls == 'cxcmd_as_doc':
+                    cxcmd_as_doc = True
                     node.remove(child)
                     continue
-                child.text = '> '
-                break
+                if cls == 'cxcmd_as_cmd':
+                    child.text = '> '
+                    break
+            if not cxcmd_as_doc:
+                node.text = '> '
         src = lxml.html.tostring(html, encoding='unicode')
         return h.handle(src)
 

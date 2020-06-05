@@ -274,3 +274,5 @@ def morph_maps(volumes, play_steps, play_start, play_step, play_direction,
     im.play(play_start, fmin, fmax, play_step, None, play_direction, play_steps)
   else:
     im.interpolate(play_start)
+
+  return im

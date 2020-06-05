@@ -61,6 +61,8 @@ different sets of items:
 <li><a href="#zone"><b>Coloring by Zone</b></a>
 &ndash; color surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
+<li><a href="#image"><b>Coloring from Image File</b></a>
+&ndash; paste an image from a file onto a surface; perform texture mapping
 </ul>
 <p>
 See also: <a href="transparency.html"><b>transparency</b></a>,
@@ -68,7 +70,9 @@ See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
+<a href="../tools/coloractions.html"><b>Color Actions</b></a>,
 <a href="../tools/basicactions.html"><b>Basic Actions</b></a>,
+the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="colornames.html">color specification</a>,
 <a href="palettes.html">palettes</a>
@@ -708,6 +712,64 @@ For coloring by segmentation region,
 see <a href="segmentation.html"><b>segmentation</b></a>.
 </p>
 
+<a name="image"></a>
+<p class="nav">
+[<a href="#top">back to top: color</a>]
+</p>
+<h3>Coloring from Image File</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>color</b> &nbsp;<b>image</b>
+&nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
+[&nbsp;<b>file</b>&nbsp;&nbsp;none&nbsp;|&nbsp;<i>input-image-file</i></a>&nbsp;[&nbsp;<b>modulate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]]
+[&nbsp;<b>coords</b></a>&nbsp;&nbsp;pole&nbsp;|&nbsp;south&nbsp;|&nbsp;sphere&nbsp;|&nbsp;vertexcolors&nbsp;]
+[&nbsp;<b>writeColors</b>&nbsp;&nbsp;<i>output-image-file</i>&nbsp;]
+</blockquote>
+<p>
+Coloring by <b>image</b> applies to surfaces only. In this technique, 
+also known as <a href="https://en.wikipedia.org/wiki/Texture_mapping" 
+target="_blank">texture mapping</a>, surface vertices are associated with
+U,V coordinates that map to the X,Y coordinates in an image.
+The <b>file</b> option specifies an image from a file to paste 
+onto the surface (<a href="save.html#imgformats">image format</a> 
+indicated by the filename suffix), or <b>none</b>,
+<!-- needed before doing any other type of coloring -->
+which clears any previous image coloring. Omitting the <b>file</b> option 
+keeps using the previously specified image, if any, for texture mapping.
+The <b>modulate</b> option indicates whether the image in the file should
+modulate rather than replace the current surface coloring (default <b>false</b>,
+replace the current coloring).
+</p><p>
+An image is rectangular, with XY coordinates (0,0) at the lower left corner
+and (1,1) at the top right. 
+The <b>coords</b> setting indicates how UV coordinates should be assigned
+to surface vertices:
+</p>
+<ul>
+<li><b>pole</b>
+&ndash; surface north pole at the middle of the image (U,V = 0.5,0.5)
+and the south pole on a circle touching the image edges
+<li><b>south</b>
+&ndash; as above, except reversing north and south
+<li><b>sphere</b>
+&ndash; UV coordinates are the latitude and longitude of a vertex
+on a sphere centered at 0,0,0 in the surface model coordinate system
+<li><b>vertexcolors</b>
+&ndash; UV coordinates are determined from the existing vertex colors,
+a unique U,V pair for each color; this would be used without specifying 
+an input image.
+The <b>writeColors</b> option can then be used to save the corresponding 
+XY image file (with <a href="save.html#imgformats">format</a>
+indicated by the filename suffix).
+This allows saving texture coloring for import into other programs
+that do not use vertex colors directly, and is most useful for 
+surfaces with a handful of distinct colors rather than many color gradations.
+</ul>
+<p>
+If the <b>coords</b> option is not used, UV coordinates are not assigned 
+(for example, to allow using Python to assign them in some other way).
+</p>
+
 <a name="palette-options"></a>
 <p class="nav">
 [<a href="#top">back to top: color</a>]
@@ -980,5 +1042,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2020</address>
+May 2020</address>
 </body></html>

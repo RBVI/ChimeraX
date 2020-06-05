@@ -610,7 +610,7 @@ def find_hbonds(session, structures, *, inter_model=True, intra_model=True, dono
                                 % (acc_atom, e))
                             bad_connectivities += 1
                             continue
-                        except:
+                        except Exception:
                             print("donor:", donor_atom, " acceptor:", acc_atom)
                             raise
                         if verbose:

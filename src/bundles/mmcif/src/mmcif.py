@@ -18,6 +18,7 @@ mmcif: mmCIF format support
 Read mmCIF files.
 """
 
+import sys
 from chimerax.core.errors import UserError
 
 _builtin_open = open
@@ -36,6 +37,7 @@ _additional_categories = (
     "struct",
     "citation",
     "citation_author",
+    "citation_editor",
     "chem_comp",
     "exptl",
     "refine",
@@ -162,8 +164,10 @@ def _get_formatted_metadata(model, session, *, verbose=False):
     # non-standard residues
     html += model.get_formatted_res_info(standalone=False)
 
+    metadata = model.metadata  # get once from C++ layer
+
     # source
-    nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"])
+    nat, gen = get_mmcif_tables_from_metadata(model, ["entity_src_nat", "entity_src_gen"], metadata=metadata)
     if nat:
         html += _process_src(nat, "Source%s (natural)", [
             'common_name', 'pdbx_organism_scientific',
@@ -178,7 +182,7 @@ def _get_formatted_metadata(model, session, *, verbose=False):
                 'host_org_species', 'pdbx_host_org_ncbi_taxonomy_id'])
 
     # experimental method; resolution
-    experiment = get_mmcif_tables_from_metadata(model, ["exptl"])[0]
+    experiment = get_mmcif_tables_from_metadata(model, ["exptl"], metadata=metadata)[0]
     if experiment:
         method = substitute_none_for_unspecified(experiment.fields(
             ['method'], allow_missing_fields=True)[0])[0]
@@ -188,17 +192,17 @@ def _get_formatted_metadata(model, session, *, verbose=False):
             html += '   <td>%s</td>\n' % process_chem_name(method, sentences=True)
             html += '  </tr>\n'
     res = None
-    reflections = get_mmcif_tables_from_metadata(model, ["reflns"])[0]
+    reflections = get_mmcif_tables_from_metadata(model, ["reflns"], metadata=metadata)[0]
     if reflections:
         res = substitute_none_for_unspecified(reflections.fields(
             ['d_resolution_high'], allow_missing_fields=True)[0])[0]
     if res is None:
-        refine = get_mmcif_tables_from_metadata(model, ["refine"])[0]
+        refine = get_mmcif_tables_from_metadata(model, ["refine"], metadata=metadata)[0]
         if refine:
             res = substitute_none_for_unspecified(refine.fields(
                 ['ls_d_res_high'], allow_missing_fields=True)[0])[0]
     if res is None:
-        em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"])[0]
+        em = get_mmcif_tables_from_metadata(model, ["em_3d_reconstruction"], metadata=metadata)[0]
         if em:
             res = substitute_none_for_unspecified(em.fields(
                 ['resolution'], allow_missing_fields=True)[0])[0]
@@ -324,8 +328,8 @@ def fetch_mmcif(
                 raise UserError("Invalid mmCIF identifier")
 
     session.logger.status("Opening mmCIF %s" % (pdb_id,))
-    models, status = session.open_command.open_data(filename, format='mmcif',
-        name=pdb_id, **kw)
+    models, status = session.open_command.open_data(
+        filename, format='mmcif', name=pdb_id, **kw)
     if structure_factors:
         sf_file = fetch_cif.fetch_structure_factors(
             session, pdb_id, fetch_source=fetch_source, ignore_cache=ignore_cache)
@@ -361,9 +365,6 @@ def _get_template(session, name):
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', timeout=15)
     except (UserError, OSError):
-        session.logger.warning(
-            "Unable to fetch template for '%s': might be missing bonds"
-            % name)
         return None
 
 
@@ -499,6 +500,209 @@ def citations(model, only=None):
     return citations
 
 
+def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=None):
+    """Add citation to model's mmCIF metadata
+
+    Parameters
+    ----------
+    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
+        The model.
+    citation_id : string
+        The citation identifier.
+    info : dictionary
+        Information about citation
+    authors : sequence
+        Optional sequence of the authors.
+    editors : sequence
+        Optional sequence of book or book chapter editors.
+    metadata : optional metadata dictonary
+        Allow reuse of existing metadata dictionary.
+
+    Update the mmCIF 'citation', 'citation_author', and 'citation_editor' tables
+    with the given informaiton.  If the `citation_id` is already present in the
+    citation table, then nothing is done.
+
+    The `info` dictionary is for the relevant data items from the mmCIF citation category,
+    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/citation.html
+    except for the citation `id` which is given as an argument to this function.
+    The capitalization should match that in the mmCIF dictionary.
+    In particular, the following data items are supported:
+        'title', 'journal_abbrev', 'journal_volume', 'year',
+        'page_first', 'page_last', 'journal_issue',
+        'pdbx_database_id_PubMed', 'pdbx_database_id_DOI'
+    """
+    tables = _add_citation(model, citation_id, info, authors, editors, metadata=metadata)
+
+    # update metadata
+    for table in tables:
+        if table is not None:
+            table._set_metadata(model, metadata=metadata)
+
+
+def _add_citation(model, citation_id, info, authors=(), editors=(),
+                  *, metadata=None, return_existing=False):
+    # do bulk of add_citation's work, but just return revised tables
+    # and don't update metadata
+    from chimerax.core.utils import flattened
+    # get existing category tables
+    citation, citation_author, citation_editor = get_mmcif_tables_from_metadata(
+        model, ['citation', 'citation_author', 'citation_editor'], metadata=metadata)
+
+    citation_id = str(citation_id)
+
+    if citation is not None and citation.field_has('id', citation_id):
+        if return_existing:
+            return citation, citation_author, citation_editor
+        return None, None, None
+
+    # construct new table entries
+    new_authors = CIFTable(
+        "citation_author", (
+            'citation_id', 'name', 'ordinal'
+        ),
+        flattened((citation_id, str(author), str(i))
+                  for author, i in zip(authors, range(1, sys.maxsize))))
+    new_editors = CIFTable(
+        "citation_editor", (
+            'citation_id', 'name', 'ordinal'
+        ),
+        flattened((citation_id, str(editor), str(i))
+                  for editor, i in zip(editors, range(1, sys.maxsize))))
+    possible_items = [
+        # default data item ordering with correct capitalization
+        'id', 'title', 'journal_abbrev', 'journal_volume',
+        'page_first', 'page_last', 'journal_issue', 'year',
+        'country',
+        'book_id_ISBN',
+        'book_title',
+        'book_publisher',
+        'book_publisher_city',
+        'pdbx_database_id_PubMed', 'pdbx_database_id_DOI'
+        'journal_id_ISSN',
+        'journal_id_CSD',
+        'journal_id_ASTM',
+        'abstract_id_CAS',
+        'database_id_CSD',
+    ]
+    citation_items = ['id']
+    citation_data = [citation_id]
+    cinfo = {k.casefold(): (k, str(v)) for k, v in info.items()}
+    if 'id' in cinfo:
+        del cinfo['id']
+    for i in possible_items:
+        ci = i.casefold()
+        if ci not in cinfo:
+            continue
+        citation_items.append(i)
+        citation_data.append(cinfo[ci][1])
+        del cinfo[ci]
+    for k, v in cinfo.values():
+        citation_items.append(k)
+        citation_data.append(v)
+    new_citation = CIFTable("citation", citation_items, citation_data)
+
+    # combine tables
+    if new_authors.num_rows() > 0:
+        if citation_author is None:
+            citation_author = new_authors
+        else:
+            citation_author.extend(new_authors)
+    if new_editors.num_rows() > 0:
+        if citation_editor is None:
+            citation_editor = new_editors
+        else:
+            citation_editor.extend(new_editors)
+    if new_citation.num_rows() > 0:
+        if citation is None:
+            citation = new_citation
+        else:
+            citation.extend(new_citation)
+
+    # return revised tables
+    return (citation, citation_author, citation_editor)
+
+
+def add_software(model, name, info, *, metadata=None):
+    """Add citation to model's mmCIF metadata
+
+    Parameters
+    ----------
+    model : instance of a :py:class:`~chimerax.atomic.AtomicStructure`
+        The model.
+    info : dictionary
+        Information about software
+    metadata : optional metadata dictonary
+        Allow reuse of existing metadata dictionary.
+
+    Update the mmCIF 'software' table with the given informaiton.  If the `name` is
+    already present in the software table, then nothing is done.
+
+    The `info` dictionary is for the relevant data items from the mmCIF softare category,
+    http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v40.dic/Categories/software.html
+    except for the `name`, which is given as an argument to the function, and `pdbx_ordinal`,
+    which is computed.  The capitalization should match that in the mmCIF dictionary.
+    In particular, the following data items are supported:
+        'name', 'version', 'location', 'classification',
+        'os', 'type', 'citation_id'
+    """
+    software = _add_software(model, name, info, metadata=metadata)
+
+    # update metadata
+    if software is not None:
+        software._set_metadata(model)
+
+
+def _add_software(model, name, info, *, metadata=None, return_existing=False):
+    # do bulk of add_software's work, but just return revised tables
+    # and don't update metadata
+    software, = get_mmcif_tables_from_metadata(model, ['software'], metadata=metadata)
+
+    if software is not None and software.field_has('name', name):
+        if return_existing:
+            return software
+        return None
+
+    # construct new table entries
+    possible_items = [
+        'name', 'version', 'location', 'classification',
+        'os', 'type', 'citation_id', 'pdbx_ordinal'
+    ]
+    software_items = ['name']
+    software_data = [name]
+    if software is None:
+        max_ordinal = 0
+    else:
+        ordinals = software.fields(['pdbx_ordinal'])
+        max_ordinal = max(0, *(int(x[0]) if x[0].isdigit() else 0 for x in ordinals))
+    cinfo = {k.casefold(): (k, v) for k, v in info.items()}
+    if 'name' in cinfo:
+        del cinfo['name']
+    if 'pdbx_ordinal' in cinfo:
+        del cinfo['pdbx_ordinal']
+    cinfo['pdbx_ordinal'] = ('pdbx_ordinal', str(max_ordinal + 1))
+    for i in possible_items:
+        ci = i.casefold()
+        if ci not in cinfo:
+            continue
+        software_items.append(i)
+        software_data.append(cinfo[ci][1])
+        del cinfo[ci]
+    for k, v in cinfo.values():
+        software_items.append(k)
+        software_data.append(v)
+    new_software = CIFTable("software", software_items, software_data)
+
+    # combine tables
+    if new_software.num_rows() > 0:
+        if software is None:
+            software = new_software
+        else:
+            software.extend(new_software)
+
+    # return revised table
+    return software
+
+
 def get_cif_tables(filename, table_names, *, all_data_blocks=False):
     """Supported API. Extract CIF tables from a file
 
@@ -545,7 +749,7 @@ def get_cif_tables(filename, table_names, *, all_data_blocks=False):
     return result
 
 
-def get_mmcif_tables_from_metadata(model, table_names):
+def get_mmcif_tables_from_metadata(model, table_names, *, metadata=None):
     """Supported API. Extract mmCIF tables from previously read metadata
 
     Parameters
@@ -554,19 +758,22 @@ def get_mmcif_tables_from_metadata(model, table_names):
         The model.
     table_names : list of str
         A list of mmCIF category names.
+    metadata : optional metadata dictonary
+        Allow reuse of existing metadata dictionary.
     """
-    try:
-        raw_tables = model.metadata
-    except AttributeError:
-        raise ValueError("Expected a structure")
+    if metadata is None:
+        try:
+            metadata = model.metadata
+        except AttributeError:
+            raise ValueError("Expected a structure")
     tlist = []
     for n in table_names:
         n = n.casefold()
-        if n not in raw_tables or (n + ' data') not in raw_tables:
+        if n not in metadata or (n + ' data') not in metadata:
             tlist.append(None)
         else:
-            info = raw_tables[n]
-            values = raw_tables[n + ' data']
+            info = metadata[n]
+            values = metadata[n + ' data']
             tlist.append(CIFTable(info[0], info[1:], values))
     return tlist
 
@@ -609,6 +816,16 @@ class CIFTable:
             num_rows = len(self._data) / num_columns
         return "CIFTable(%s, %s, ...[%dx%d])" % (
             self.table_name, self._tags, num_rows, num_columns)
+
+    def _set_metadata(self, model, metadata=None):
+        from chimerax.atomic.structure import Structure as StructureClass
+        assert isinstance(model, StructureClass)
+        tag_line = [self.table_name] + self._tags
+        if metadata:
+            metadata[self.table_name] = tag_line
+            metadata[self.table_name + " data"] = self._data
+        model.set_metadata_entry(self.table_name, tag_line)
+        model.set_metadata_entry(self.table_name + " data", self._data)
 
     def mapping(self, key_names, value_names, foreach_names=None):
         """Supported API. Return a dictionary for subset of the table
@@ -795,7 +1012,6 @@ class CIFTable:
             return
         assert len(self._data) % n == 0
         if file is None:
-            import sys
             file = sys.stdout
         if n == len(self._data):
             for t, v in zip(self._tags, self._data):
@@ -808,7 +1024,6 @@ class CIFTable:
                 for i in range(0, len(self._data), n):
                     print(' '.join(quote(x) for x in self._data[i:i + n]), file=file)
             else:
-                import sys
                 bad_fixed_width = False
                 data = [quote(x) for x in self._data]
                 columns = [data[i::n] for i in range(n)]
@@ -838,3 +1053,39 @@ class CIFTable:
 def get_mmcif_tables(filename, table_names):
     """Deprecated API.  Use get_cif_tables() instead."""
     return get_cif_tables(filename, table_names)
+
+
+def fetch_ccd(session, ccd_id, ignore_cache=False):
+    """Get structure for CCD component"""
+    from .. import AtomicStructure
+    # TODO: support ignore_cache
+    from itertools import chain
+    ccd_id = ccd_id.upper()  # all current CCD entries are in uppercase
+    try:
+        ccd = find_template_residue(session, ccd_id)
+    except ValueError:
+        raise UserError("Unknown CCD ligand name")
+    ccd_atoms = ccd.atoms
+    ccd_bonds = set()
+    for a in ccd_atoms:
+        ccd_bonds.update(a.bonds)
+
+    new_structure = AtomicStructure(session, name=ccd_id)
+    new_residue = new_structure.new_residue(ccd_id, 'A', 1)
+    new_atoms = {}
+    for a in ccd_atoms:
+        new_atom = new_structure.new_atom(a.name, a.element)
+        new_atom.coord = a.coord
+        new_atoms[a] = new_atom
+        new_residue.add_atom(new_atom)
+
+    for b in ccd_bonds:
+        atoms = b.atoms
+        new_a0 = new_atoms[atoms[0]]
+        new_a1 = new_atoms[atoms[1]]
+        new_structure.new_bond(new_a0, new_a1)
+
+    from chimerax.atomic.pdb import process_chem_name
+    new_structure.html_title = process_chem_name(ccd.description)
+
+    return [new_structure], f"Opened CCD {ccd_id}"

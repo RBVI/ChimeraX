@@ -22,8 +22,11 @@ EPSILON = 1e-6
 from .molobject import StructureData
 TETHER_CYLINDER = StructureData.TETHER_CYLINDER
 
-from numpy import array, zeros, ones, empty, float32, float64, dot, concatenate, any, linspace, newaxis, inner, cross, mean
+from numpy import array, zeros, ones, empty, float32, float64, uint8
+from numpy import dot, concatenate, any, linspace, newaxis, inner, cross, mean
 from numpy.linalg import norm
+
+from . import _ribbons
 
 def _make_ribbon_graphics(structure, ribbons_drawing):
     '''Update ribbons drawing.'''
@@ -41,13 +44,28 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
     if timing:
         poltime = time()-t0
 
-    rangestime = xstime = smootime = tubetime = pathtime = spltime = interptime = geotime = drtime = tethertime = 0
+    rangestime = xstime = smootime = tubetime = pathtime = spltime = interptime = geotime = tethertime = 0
     global coeftime, normaltime
     coeftime = normaltime = 0
+
+    # Ribbon quality. Number of band per residue.
+    lod = structure._level_of_detail
+    segment_divisions = lod.ribbon_fixed_divisions
+    if segment_divisions is None:
+        nres = structure.num_ribbon_residues
+        segment_divisions = lod.ribbon_divisions(nres)
+
+    # Accumulate ribbon information for all polymer chains.
+    geometry = TriangleAccumulator()
+    polyres = []
+    roffset = 0
+    tethered_atoms = []
+    backbone_atoms = []
+
     for rlist, ptype in polymers:
         # Always call get_polymer_spline to make sure hide bits are
-        # properly set when ribbons are completely undisplayed
-        any_display, atoms, coords, guides = rlist.get_polymer_spline()
+        # properly unset when ribbons are completely undisplayed
+        any_display, atoms, coords, guides = _get_polymer_spline(rlist)
         if not any_display:
             continue
 
@@ -102,14 +120,12 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             smootime += time()-t0
             t0 = time()
 
-        # Create tube helices, one new RibbonDrawing for each helix.
-        geometry = TriangleAccumulator()
+        # Create tube helices.
         if arc_helix:
             ribbon_adjusts = residues.ribbon_adjusts
-            xsection = xs_mgr.xs_helix_tube
             for start, end in helix_ranges:
                 if displays[start:end].any():
-                    centers = _arc_helix_geometry(coords, xsection, displays, start, end, geometry)
+                    centers = _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry)
                     # Adjust coords so non-tube half of helix ends joins center of cylinder
                     coords[start:end] = centers
 
@@ -123,7 +139,6 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         if timing:
             t1 = time()
         orients = structure.ribbon_orients(residues)
-        segment_divisions = structure._level_of_detail.ribbon_divisions
         flip_normals = _ribbon_flip_normals(structure, is_helix)
         ribbon = Ribbon(coords, guides, orients, flip_normals, smooth_twist, segment_divisions,
                         structure.spline_normals)
@@ -148,40 +163,50 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             geotime += time() - t0
             t0 = time()
 
-        # Create ribbon drawing
-        if not geometry.empty():
-            name = structure.name + " " + str(residues[0]) + " ribbons"
-            rp = RibbonDrawing(name, residues, geometry.triangle_ranges)
-#            rp.display_style = rp.Mesh
-            ribbons_drawing.add_ribbon_drawing(rp)
-
-            # Set drawing geometry
-            va, na, ta = geometry.vertex_normal_triangle_arrays()
-            rp.set_geometry(va, na, ta)
-            rp.update_colors()
-
-        if timing:
-            drtime += time() - t0
-            t0 = time()
-
-        # Cache position of backbone atoms on ribbon.
-        # Get list of tethered atoms, and create tether cone drawing.
-        min_tether_offset = structure.bond_radius
-        tethers_drawing, backbone_atoms = \
-            _ribbon_tethers(ribbon, residues, ribbons_drawing,
-                            min_tether_offset,
-                            structure.ribbon_tether_scale,
-                            structure.ribbon_tether_sides,
-                            structure.ribbon_tether_shape)
-        ribbons_drawing.add_tethers(tethers_drawing, backbone_atoms)
-
+        # Get list of tethered atoms and attachment position to ribbon.
+        if structure.ribbon_tether_scale > 0:
+            min_tether_offset = structure.bond_radius
+            t_atoms, b_atoms = _ribbon_tethers(ribbon, residues, min_tether_offset)
+            if t_atoms:
+                tethered_atoms.append(t_atoms)
+            if b_atoms:
+                backbone_atoms.append(b_atoms)
+                
         if timing:
             tethertime += time()-t0
         
-        # Create spine if necessary
-#        if structure.ribbon_show_spine:
-#            spine_colors, spine_xyz1, spine_xyz2 = spine
-#            _ss_spine_display(ribbons_drawing, spine_colors, spine_xyz1, spine_xyz2)
+        polyres.append(residues)
+
+        roffset += len(residues)
+        geometry.set_range_offset(roffset)
+
+    if timing:
+        t0 = time()
+        
+    # Set ribbon drawing geometry, colors, residue triangle ranges, and tethers
+    if not geometry.empty():
+        # Set drawing geometry
+        va, na, ta = geometry.vertex_normal_triangle_arrays()
+        ribbons_drawing.set_geometry(va, na, ta)
+        # ribbons_drawing.display_style = rp.Mesh
+
+        # Remember triangle ranges for each residue.
+        from . import concatenate, Residues
+        residues = concatenate(polyres, Residues)
+        ribbons_drawing.set_triangle_ranges(residues, geometry.triangle_ranges)
+
+        # Set colors
+        ribbons_drawing.update_ribbon_colors()
+
+        # Make tethers
+        ribbons_drawing.set_tethers(tethered_atoms, backbone_atoms,
+                                    structure.ribbon_tether_shape,
+                                    structure.ribbon_tether_scale,
+                                    structure.ribbon_tether_sides)
+
+    if timing:
+        drtime = time() - t0
+        t0 = time()
 
     if timing:
         nres = sum(structure.residues.ribbon_displays)
@@ -191,6 +216,19 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
                  pathtime, spltime, coeftime, normaltime, interptime,
                  geotime, drtime, tethertime))
 
+
+def _get_polymer_spline(residues):
+    '''Return a tuple of spline center and guide coordinates for a
+    polymer chain.  Residues in the chain that do not have a center
+    atom will have their display bit turned off.  Center coordinates
+    are returned as a numpy array.  Guide coordinates are only returned
+    if all spline atoms have matching guide atoms; otherwise, None is
+    returned for guide coordinates.'''
+    any_display, atom_pointers, centers, guides = _ribbons.get_polymer_spline(residues.pointers)
+    from chimerax.atomic import Atoms
+    atoms = None if atom_pointers is None else Atoms(atom_pointers)
+    return any_display, atoms, centers, guides
+    
 def _ribbon_flip_normals(structure, is_helix):
     nres = len(is_helix)
     if structure.ribbon_mode_helix == structure.RIBBON_MODE_DEFAULT:
@@ -393,8 +431,8 @@ def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry):
     centers, tangents, normals = path
     xsf = [xs._xs_pointer for xs in xs_front]
     xsb = [xs._xs_pointer for xs in xs_back]
-    from ._ribbons import ribbon_extrusions
-    ribbon_extrusions(centers, tangents, normals, ranges, num_res, xsf, xsb, geometry._geom_cpp)
+    _ribbons.ribbon_extrusions(centers, tangents, normals, ranges,
+                               num_res, xsf, xsb, geometry._geom_cpp)
     
 # Compute triangle geometry for ribbon.
 # Only certain ranges of residues are considered, since not all
@@ -442,31 +480,28 @@ def _ribbon_geometry_unused(path, ranges, num_res, xs_front, xs_back, geometry):
 class TriangleAccumulator:
     '''Accumulate triangles from segments of a ribbon.'''
     def __init__(self):
-        from ._ribbons import geometry_new
-        self._geom_cpp = geometry_new()
+        self._geom_cpp = _ribbons.geometry_new()
 
     def __del__(self):
-        from ._ribbons import geometry_delete
-        geometry_delete(self._geom_cpp)
+        _ribbons.geometry_delete(self._geom_cpp)
         self._geom_cpp = None
             
     def empty(self):
-        from ._ribbons import geometry_empty
-        return geometry_empty(self._geom_cpp)
+        return _ribbons.geometry_empty(self._geom_cpp)
 
     def add_range(self, residue_index):
-        from ._ribbons import geometry_add_range
-        geometry_add_range(self._geom_cpp, residue_index)
+        _ribbons.geometry_add_range(self._geom_cpp, residue_index)
+
+    def set_range_offset(self, roffset):
+        _ribbons.geometry_set_range_offset(self._geom_cpp, roffset)
 
     def vertex_normal_triangle_arrays(self):
-        from ._ribbons import geometry_arrays
-        return geometry_arrays(self._geom_cpp)
+        return _ribbons.geometry_arrays(self._geom_cpp)
 
     @property
     def triangle_ranges(self):
-        from ._ribbons import geometry_ranges
-        return geometry_ranges(self._geom_cpp)
-
+        return _ribbons.geometry_ranges(self._geom_cpp)
+        
 class TriangleAccumulator1:
     '''Accumulate triangles from segments of a ribbon.'''
     def __init__(self):
@@ -478,6 +513,7 @@ class TriangleAccumulator1:
         self._normal_list = []
         self._triangle_list = []
         self._triangle_ranges = []	# List of 5-tuples (residue_index, tstart, tend, vstart, vend)
+        self._residue_base = 0
 
     def empty(self):
         return len(self._triangle_list) == 0
@@ -503,10 +539,13 @@ class TriangleAccumulator1:
         ts,te,vs,ve = self._t_start, self._t_end, self._v_start, self._v_end
         if te == ts and ve == vs:
             return
-        self._triangle_ranges.append((residue_index, ts, te, vs, ve))
+        self._triangle_ranges.append((self._residue_base + residue_index, ts, te, vs, ve))
         self._t_start = te
         self._v_start = ve
 
+    def set_range_offset(self, residue_base):
+        self._residue_base = residue_base
+        
     def vertex_normal_triangle_arrays(self):
         if self._vertex_list:
             va = concatenate(self._vertex_list)
@@ -529,15 +568,17 @@ class RibbonsDrawing(Drawing):
     def __init__(self, name, structure_name):
         Drawing.__init__(self, name)
         self.structure_name = structure_name
-        self._backbone_atoms = []               # List of Atoms for updating atom hide state
-        self._ribbon_drawings = []		# List of RibbonDrawing
-        self._tether_drawings = []		# List of TethersDrawing
-
+        self._tethers_drawing = None		# TethersDrawing
+        self._triangle_ranges = None
+        self._triangle_ranges_sorted = None	# Sorted ranges for first_intercept() calc
+        self._residues = None			# Residues used with _triangle_ranges
+        
     def clear(self):
+        self.set_geometry(None, None, None)
         self.remove_all_drawings()
-        self._backbone_atoms.clear()
-        self._ribbon_drawings.clear()
-        self._tether_drawings.clear()
+        self._tethers_drawing = None
+        self._triangle_ranges = None
+        self._residues = None
 
     def compute_ribbons(self, structure):
         if timing:
@@ -546,113 +587,49 @@ class RibbonsDrawing(Drawing):
         if timing:
             t1 = time()
             print ('compute_ribbons(): %.4g' % (t1-t0))
-    
-    def update_ribbon_colors(self, structure):
+
+    def set_triangle_ranges(self, residues, triangle_ranges):
+        self._residues = residues
+        self._triangle_ranges = triangle_ranges
+        self._triangle_ranges_sorted = None
+        
+    def update_ribbon_colors(self):
+        res = self._residues
+        if res is None:
+            return
+
         if timing:
             t0 = time()
+            
+        vc = self.vertex_colors
+        if vc is None:
+            vc = empty((len(self.vertices),4), uint8)
 
-        for d in self._ribbon_drawings:
-            d.update_colors()
+        _ribbons.ribbon_vertex_colors(res.pointers, self._triangle_ranges, vc)
+#        rcolor = res.ribbon_colors
+#        for i,ts,te,vs,ve in self._triangle_ranges:
+#            vc[vs:ve,:] = rcolor[i]
+
+        self.vertex_colors = vc
 
         if timing:
             t1 = time()
             print ('update_ribbon_colors(): %.4g' % (t1-t0))
         
-    def update_ribbon_highlight(self, structure):
-        for d in self._ribbon_drawings:
-            d.update_selection_highlight()
-
-    def add_ribbon_drawing(self, ribbon_drawing):
-        self._ribbon_drawings.append(ribbon_drawing)
-        self.add_drawing(ribbon_drawing)
-        
-    def add_tethers(self, tether_drawing, backbone_atoms):
-        if tether_drawing is not None:
-            self._tether_drawings.append(tether_drawing)
-        self._backbone_atoms.append(backbone_atoms)
-        
-    def update_tethers(self, structure):
-        if timing:
-            t0 = time()
-
-        for ba in self._backbone_atoms:
-            ba.update_ribbon_backbone_atom_visibility()
-
-        for td in self._tether_drawings:
-            td.update_tethers(structure)
-
-        if timing:
-            t1 = time()
-            print ('update_tethers(): %.4g' % (t1-t0))
-
-class TethersDrawing(Drawing):
-    def __init__(self, name, tethered_atoms, spline_coords,
-                 tether_shape, tether_scale, tether_sides):
-
-        self._tethered_atoms = tethered_atoms
-        self._spline_coords = spline_coords     # Tether attachment points on ribbon
-        self._tether_shape = tether_shape
-        self._tether_scale = tether_scale
-        
-        Drawing.__init__(self, name)
-        self.skip_bounds = True   # Don't include in bounds calculation. Optimization.
-        self.no_cofr = True	# Don't use for finding center of rotation. Optimization.
-        self.pickable = False	# Don't allow mouse picking.
-        from chimerax import surface
-        if tether_shape == TETHER_CYLINDER:
-            va, na, ta = surface.cylinder_geometry(nc=tether_sides, nz=2, caps=False)
+    def update_ribbon_highlight(self):
+        res = self._residues
+        if res is None:
+            return
+        rsel = res.selected
+        if rsel.any():
+            sel_tranges = [(ts,te) for i,ts,te,vs,ve in self._triangle_ranges if rsel[i]]
         else:
-            # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
-            va, na, ta = surface.cone_geometry(nc=tether_sides, caps=False, points_up=False)
-        self.set_geometry(va, na, ta)
-
-    def update_tethers(self, structure):
-        tatoms = self._tethered_atoms
-        xyz1 = self._spline_coords
-        xyz2 = tatoms.coords
-        radii = structure._atom_display_radii(tatoms) * self._tether_scale
-        self.positions = _tether_placements(xyz1, xyz2, radii, self._tether_shape)
-        self.display_positions = tatoms.visibles & tatoms.residues.ribbon_displays
-        colors = tatoms.colors
-        from numpy import around
-        colors[:,3] = around(colors[:,3] * structure.ribbon_tether_opacity).astype(int)
-        self.colors = colors
-
-# -----------------------------------------------------------------------------
-#
-def _tether_placements(xyz0, xyz1, radius, shape):
-    from .molobject import StructureData
-    from .structure import _bond_cylinder_placements
-    c0,c1 = (xyz1,xyz0) if shape == StructureData.TETHER_REVERSE_CONE else (xyz0,xyz1)
-    return _bond_cylinder_placements(c0, c1, radius)
-                        
-class RibbonDrawing(Drawing):
-    def __init__(self, name, residues, triangle_ranges):
-        Drawing.__init__(self, name)
-        self._residues = residues
-        # List of (i,ts,te,ve,vs) triangle an vertex ranges for residue i.
-        self._triangle_ranges = triangle_ranges
-        self._t_start = None	# Sorted range triangle starts used for first_intercept() calc
-
-    @property
-    def num_residues(self):
-        return len(self._residues)
-
-    def update_colors(self):
-        vc = self.get_vertex_colors(create = True)
-        rcolor = self._residues.ribbon_colors
-        for i,ts,te,vs,ve in self._triangle_ranges:
-            vc[vs:ve,:] = rcolor[i]
-        self.vertex_colors = vc
-
-    def update_selection_highlight(self):
-        rsel = self._residues.selected
-        sel_tranges = [(ts,te) for i,ts,te,vs,ve in self._triangle_ranges if rsel[i]]
+            sel_tranges = []
         if sel_tranges:
             tmask = self.highlighted_triangles_mask
             if tmask is None:
                 from numpy import bool
-                tmask = zeros((self.number_of_triangles(),), bool)
+                tmask = zeros((len(self.triangles),), bool)
             else:
                 tmask[:] = False
             for s,e in sel_tranges:
@@ -660,22 +637,49 @@ class RibbonDrawing(Drawing):
         else:
             tmask = None
         self.highlighted_triangles_mask = tmask
+        
+    def set_tethers(self, tethered_atoms, backbone_atoms,
+                    tether_shape, tether_scale, tether_sides):
+        if len(tethered_atoms) == 0:
+            return
+        
+        name = self.structure_name + " ribbon tethers"
+        from . import concatenate, Atoms
+        t_atoms = concatenate(tethered_atoms, Atoms)
+        b_atoms = concatenate(backbone_atoms, Atoms)
+            
+        tether_drawing = TethersDrawing(name, t_atoms, b_atoms,
+                                        tether_shape, tether_scale, tether_sides)
+        self.add_drawing(tether_drawing)
+        self._tethers_drawing = tether_drawing
+
+    def update_tethers(self, structure):
+        if timing:
+            t0 = time()
+
+        td = self._tethers_drawing
+        if td:
+            td.update_tethers(structure)
+
+        if timing:
+            t1 = time()
+            print ('update_tethers(): %.4g' % (t1-t0))
 
     def first_intercept(self, mxyz1, mxyz2, exclude=None):
-        if not self.display or (exclude and exclude(self)):
+        if not self.display or (exclude and exclude(self)) or self._residues is None:
             return None
         p = super().first_intercept(mxyz1, mxyz2)
-        if p is None:
+        if p is None or (hasattr(p, 'drawing') and p.drawing() is not self):
             return None
         tranges = self._triangle_ranges
-        if self._t_start is None:
+        if self._triangle_ranges_sorted is None:
             # Sort by triangle start for bisect_right() search
             from numpy import argsort
             order = argsort(tranges[:,1])
             tranges[:] = tranges[order]
-            self._t_start = tranges[:,1]
+            self._triangle_ranges_sorted = tranges[:,1]
         from bisect import bisect_right
-        n = bisect_right(self._t_start, p.triangle_number)
+        n = bisect_right(self._triangle_ranges_sorted, p.triangle_number)
         if n > 0:
             r = self._residues[tranges[n-1][0]]
             from .structure import PickedResidue
@@ -683,7 +687,7 @@ class RibbonDrawing(Drawing):
         return None
 
     def planes_pick(self, planes, exclude=None):
-        if not self.display:
+        if not self.display or self._residues is None:
             return []
         if exclude is not None and exclude(self):
             return []
@@ -701,57 +705,81 @@ class RibbonDrawing(Drawing):
                     picks.append(PickedResidues(rc))
         return picks
 
-def _ribbon_update_spine(c, centers, normals, spine):
-    xyz1 = centers + normals
-    xyz2 = centers - normals
-    color = empty((len(xyz1), 4), int)
-    color[:] = c
-    if len(spine) == 0:
-        spine.extend((color, xyz1, xyz2))
-    else:
-        # TODO: Fix O(N^2) accumulation
-        spine[0] = concatenate([spine[0], color])
-        spine[1] = concatenate([spine[1], xyz1])
-        spine[2] = concatenate([spine[2], xyz2])
+class TethersDrawing(Drawing):
+    def __init__(self, name, tethered_atoms, backbone_atoms,
+                 tether_shape, tether_scale, tether_sides):
 
-def _ribbon_tethers(ribbon, residues, drawing,
-                    min_tether_offset, tether_scale, tether_sides, tether_shape):
+        self._tethered_atoms = tethered_atoms
+        self._backbone_atoms = backbone_atoms
 
+        self._tether_shape = tether_shape
+        self._tether_scale = tether_scale
+        self._tether_sides = tether_sides
+        
+        Drawing.__init__(self, name)
+        self.skip_bounds = True   # Don't include in bounds calculation. Optimization.
+        self.no_cofr = True	# Don't use for finding center of rotation. Optimization.
+        self.pickable = False	# Don't allow mouse picking.
+
+        if tether_shape == TETHER_CYLINDER:
+            from chimerax.surface import cylinder_geometry
+            va, na, ta = cylinder_geometry(nc=tether_sides, nz=2, caps=False)
+        else:
+            # Assume it's either TETHER_CONE or TETHER_REVERSE_CONE
+            from chimerax.surface import cone_geometry
+            va, na, ta = cone_geometry(nc=tether_sides, caps=False, points_up=False)
+        self.set_geometry(va, na, ta)
+
+    def update_tethers(self, structure):
+
+        # Make backbone atoms as hidden unless it has a visible connecting atom.
+        # For instance, hide CA atom unless CB atom is shown.
+        self._backbone_atoms.update_ribbon_backbone_atom_visibility()
+
+        # Set tether graphics for currently shown tether atoms.
+        tatoms = self._tethered_atoms
+        xyz1 = tatoms.ribbon_coords
+        xyz2 = tatoms.coords
+        radii = structure._atom_display_radii(tatoms) * self._tether_scale
+        self.positions = _tether_placements(xyz1, xyz2, radii, self._tether_shape)
+        self.display_positions = tatoms.visibles & tatoms.residues.ribbon_displays
+        colors = tatoms.colors
+        from numpy import around
+        colors[:,3] = around(colors[:,3] * structure.ribbon_tether_opacity).astype(int)
+        self.colors = colors
+
+# -----------------------------------------------------------------------------
+#
+def _tether_placements(xyz0, xyz1, radius, shape):
+    from .molobject import StructureData
+    from .structure import _bond_cylinder_placements
+    c0,c1 = (xyz1,xyz0) if shape == StructureData.TETHER_REVERSE_CONE else (xyz0,xyz1)
+    return _bond_cylinder_placements(c0, c1, radius)
+
+def _ribbon_tethers(ribbon, residues, min_tether_offset):
     # Find position of backbone atoms on ribbon for drawing tethers
-    t_atoms, t_positions = _tether_positions(residues, ribbon.segment_coefficients)
-    
-    # Create tether drawing
-    tether_drawing = None
-    if tether_scale > 0:
-        offsets = t_atoms.coords - t_positions
-        tethered = norm(offsets, axis=1) > min_tether_offset
-        if any(tethered):
-            name = drawing.structure_name + " ribbon tethers"
-            tethered_atoms = t_atoms.filter(tethered)
-            tethered_positions = t_positions[tethered]
-            tether_drawing = TethersDrawing(name, tethered_atoms, tethered_positions,
-                                            tether_shape, tether_scale, tether_sides)
-            drawing.add_drawing(tether_drawing)
+    t_atoms = _set_tether_positions(residues, ribbon.segment_coefficients)
+    offsets = t_atoms.coords - t_atoms.ribbon_coords
+    tethered = norm(offsets, axis=1) > min_tether_offset
+    tethered_atoms = t_atoms.filter(tethered) if any(tethered) else None
+    return tethered_atoms, t_atoms
 
-    return tether_drawing, t_atoms
-
-def _tether_positions(residues, coef):
-    from ._ribbons import atom_tether_positions
-    atom_pointers, positions = atom_tether_positions(residues.pointers, coef)
+def _set_tether_positions(residues, coef):
+    # This _ribbons call sets atom.ribbon_coord to the position for each tethered atom.
+    atom_pointers = _ribbons.set_atom_tether_positions(residues.pointers, coef)
     from . import Atoms
     atoms = Atoms(atom_pointers)
-    return atoms, positions
+    return atoms
 
-def _tether_positions_unused(residues, coef):
+def _set_tether_positions_unused(residues, coef):
     nt_atoms, nt_positions = _atom_spline_positions(residues, _NonTetherPositions, coef)
     nt_atoms.ribbon_coords = nt_positions
     t_atoms, t_positions = _atom_spline_positions(residues, _TetherPositions, coef)
     t_atoms.ribbon_coords = t_positions
-    return t_atoms, t_positions
+    return t_atoms
 
 def _atom_spline_positions(residues, atom_offset_map, spline_coef):
-    from ._ribbons import atom_spline_positions
-    atom_pointers, positions = atom_spline_positions(residues.pointers, atom_offset_map, spline_coef)
+    atom_pointers, positions = _ribbons.atom_spline_positions(residues.pointers, atom_offset_map, spline_coef)
     from . import Atoms
     atoms = Atoms(atom_pointers)
     return atoms, positions
@@ -922,7 +950,7 @@ def _smooth_helix(rlist, coords, guides, ribbon_adjusts, start, end):
     # the same relative place as before
     #   guides[start:end] = new_coords + delta_guides
 
-def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
+def _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry):
     '''Compute triangulation for one tube helix.'''
 
     from .sse import HelixCylinder
@@ -940,6 +968,7 @@ def _arc_helix_geometry(coords, xsection, displays, start, end, geometry):
     n = _interleave_vectors(inormals, normals)
     np = len(c)
     
+    xsection = xs_mgr.xs_helix_tube(radius)
     for r in range(start, end):
         if displays[r]:
             i = 2*(r-start)
@@ -967,7 +996,8 @@ def _wrap_helix(rlist, coords, guides, start, end):
     hc = HelixCylinder(coords[start:end])
     directions = hc.cylinder_directions()
     coords[start:end] = hc.cylinder_surface()
-    guides[start:end] = coords[start:end] + directions
+    if guides is not None:
+        guides[start:end] = coords[start:end] + directions
     if False:
         # Debugging code to display guides of secondary structure
         name = ribbons_drawing.structure_name + " helix guide " + str(start)
@@ -1350,7 +1380,7 @@ class Ribbon:
         # and fractional part the position in the segment.
         return _spline_positions(tlist, self.coeff)
     
-from ._ribbons import cubic_spline as _natural_cubic_spline_coefficients
+_natural_cubic_spline_coefficients = _ribbons.cubic_spline
 def _natural_cubic_spline_coefficients_unused(coords):
     # Extend ends
     ne = len(coords) + 2
@@ -1406,7 +1436,7 @@ def tridiagonal(a, b, c, d):
         xc[i] = (d[i] - c[i] * xc[i + 1]) / b[i]
     return xc
 
-from ._ribbons import path_plane_normals as _path_plane_normals
+_path_plane_normals = _ribbons.path_plane_normals
 
 def _path_plane_normals_unused(coords, tangents):
     '''
@@ -1503,7 +1533,7 @@ def _next_nonzero_vector(start, normals):
             return i
     return len(normals)
 
-from ._ribbons import path_guide_normals as _compute_normals_from_guides
+_compute_normals_from_guides = _ribbons.path_guide_normals
 def _compute_normals_from_guides_unused(coords, guides, tangents):
     n = guides - coords
     normals = zeros((len(coords), 3), float)
@@ -1575,23 +1605,22 @@ def _path_plane_tests():
         coords[i] = (cos(i), sin(i), i)
     _print_results('All curved')
     
-from ._ribbons import spline_path as _spline_path
+_spline_path = _ribbons.spline_path
 def _spline_path_unused(coeffs, start_normals, flip_normals, twist, ndiv):
     lead = _spline_path_lead_segment(coeffs[0], start_normals[0], ndiv//2)
     geom = [ lead ]
 
     nseg = len(coeffs)
     end_normal = None
-    from ._ribbons import parallel_transport, smooth_twist
     for seg in range(nseg):
         coords, tangents = _spline_segment_path(coeffs[seg], 0, 1, ndiv+1)
         start_normal = start_normals[seg] if end_normal is None else end_normal
-        normals = parallel_transport(tangents, start_normal)
+        normals = _ribbons.parallel_transport(tangents, start_normal)
         if twist[seg]:
             end_normal = start_normals[seg + 1]
             if flip_normals[seg] and _need_normal_flip(normals[-1], end_normal, tangents[-1]):
                 end_normal = -end_normal
-            smooth_twist(tangents, normals, end_normal)
+            _ribbons.smooth_twist(tangents, normals, end_normal)
         spath = (coords[:-1], tangents[:-1], normals[:-1])
         geom.append(spath)
 
@@ -1605,15 +1634,13 @@ def _spline_path_unused(coeffs, start_normals, flip_normals, twist, ndiv):
 def _spline_path_lead_segment(coeffs, normal, n):
     coords, tangents = _spline_segment_path(coeffs, -0.3, 0, n+1)
     # Parallel transport normal backwards
-    from ._ribbons import parallel_transport
-    normals = parallel_transport(tangents[::-1], normal)[::-1]
+    normals = _ribbons.parallel_transport(tangents[::-1], normal)[::-1]
     # Don't include right end point.
     return coords[:-1], tangents[:-1], normals[:-1]
 
 def _spline_path_trail_segment(coeffs, normal, n):
     coords, tangents = _spline_segment_path(coeffs, 1, 1.3, n)
-    from ._ribbons import parallel_transport
-    normals = parallel_transport(tangents, normal)
+    normals = _ribbons.parallel_transport(tangents, normal)
     return coords, tangents, normals
 
 # Decide whether to flip the spline segment end normal so that it aligns better with
@@ -1622,8 +1649,7 @@ def _need_normal_flip(transported_normal, end_normal, tangent):
 
     # If twist is greater than 90 degrees, turn the opposite
     # direction.  (Assumes that ribbons are symmetric.)
-    from ._ribbons import dihedral_angle
-    a = dihedral_angle(transported_normal, end_normal, tangent)
+    a = _ribbons.dihedral_angle(transported_normal, end_normal, tangent)
     from math import pi
     # flip = (abs(a) > 0.5 * pi)
     flip = (abs(a) > 0.6 * pi)	# Not sure why this is not pi / 2.
@@ -1687,7 +1713,7 @@ class XSectionManager(State):
         self.scale_sheet_arrow = ((2.0, 0.2), (0.2, 0.2))
         self.scale_coil = (0.2, 0.2)
         self.scale_nucleic = (0.2, 1.0)
-        self.tube_radius = 2.0
+        self.tube_radius = None		# If None each helix calculates its own radius
         self.style_helix = self.STYLE_ROUND
         self.style_sheet = self.STYLE_SQUARE
         self.style_coil = self.STYLE_ROUND
@@ -1958,13 +1984,16 @@ class XSectionManager(State):
             self._xs_helix_arrow = base.arrow(self.scale_helix_arrow)
         return self._xs_helix_arrow
 
-    @property
-    def xs_helix_tube(self):
-        if self._xs_helix_tube is None:
-            r = self.tube_radius
+    def xs_helix_tube(self, radius):
+        r = self.tube_radius
+        if r is None:
+            r = radius
+        xs = self._xs_helix_tube
+        if xs is None or xs.radius != r:
             scale = (r,r)
-            self._xs_helix_tube = self._make_xs(self.STYLE_ROUND, scale)
-        return self._xs_helix_tube
+            self._xs_helix_tube = xs = self._make_xs(self.STYLE_ROUND, scale)
+            xs.radius = r
+        return xs
 
     @property
     def xs_sheet(self):
@@ -2093,27 +2122,28 @@ class RibbonXSection:
                                                 ('normals',normals), ('normals2',normals2),
                                                 ('faceted',faceted), ('tess',tess))
                   if value is not None}
-            from ._ribbons import rxsection_new
-            xs_pointer = rxsection_new(**kw)
+            xs_pointer = _ribbons.rxsection_new(**kw)
         self._xs_pointer = xs_pointer
 
+    def __del__(self):
+        _ribbons.rxsection_delete(self._xs_pointer)
+        self._xs_pointer = None
+    
     def extrude(self, centers, tangents, normals,
                 cap_front, cap_back, geometry):
         '''Return the points, normals and triangles for a ribbon.'''
-        from ._ribbons import rxsection_extrude
-        rxsection_extrude(self._xs_pointer, centers, tangents, normals,
-                          cap_front, cap_back, geometry._geom_cpp)
+        _ribbons.rxsection_extrude(self._xs_pointer, centers, tangents, normals,
+                                   cap_front, cap_back, geometry._geom_cpp)
 
     def scale(self, scale):
         '''Return new cross section scaled by 2-tuple scale.'''
-        from ._ribbons import rxsection_scale
-        p = rxsection_scale(self._xs_pointer, scale[0], scale[1])
+        p = _ribbons.rxsection_scale(self._xs_pointer, scale[0], scale[1])
         return RibbonXSection(xs_pointer=p)
 
     def arrow(self, scales):
         '''Return new arrow cross section scaled by 2x2-tuple scale.'''
-        from ._ribbons import rxsection_arrow
-        p = rxsection_arrow(self._xs_pointer, scales[0][0], scales[0][1], scales[1][0], scales[1][1])
+        p = _ribbons.rxsection_arrow(self._xs_pointer, scales[0][0], scales[0][1],
+                                     scales[1][0], scales[1][1])
         return RibbonXSection(xs_pointer=p)
 
 def _xsection_round(scale, sides, faceted = False):
@@ -2202,7 +2232,7 @@ def normalize_vector_array(a):
     n = a / d[:, numpy.newaxis]
     return n
 
-from ._ribbons import cubic_path as _spline_segment_path
+_spline_segment_path = _ribbons.cubic_path
 
 def _spline_segment_path_unused(coeffs, tmin, tmax, num_points):
     # coeffs is a 3x4 array of float.

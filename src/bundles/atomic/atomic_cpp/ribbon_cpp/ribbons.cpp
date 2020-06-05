@@ -44,7 +44,9 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("atom_spline_positions"), (PyCFunction)atom_spline_positions,
    METH_VARARGS|METH_KEYWORDS, NULL},
-  {const_cast<char*>("atom_tether_positions"), (PyCFunction)atom_tether_positions,
+  {const_cast<char*>("set_atom_tether_positions"), (PyCFunction)set_atom_tether_positions,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("get_polymer_spline"), (PyCFunction)get_polymer_spline,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   /* xsection.h */
@@ -66,11 +68,15 @@ static struct PyMethodDef ribbons_cpp_methods[] =
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("geometry_add_range"), (PyCFunction)geometry_add_range,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("geometry_set_range_offset"), (PyCFunction)geometry_set_range_offset,
+   METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("geometry_ranges"), (PyCFunction)geometry_ranges,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("geometry_empty"), (PyCFunction)geometry_empty,
    METH_VARARGS|METH_KEYWORDS, NULL},
   {const_cast<char*>("geometry_arrays"), (PyCFunction)geometry_arrays,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("ribbon_vertex_colors"), (PyCFunction)ribbon_vertex_colors,
    METH_VARARGS|METH_KEYWORDS, NULL},
 
   {NULL, NULL, 0, NULL}

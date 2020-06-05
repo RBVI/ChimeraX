@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Maestro" version="1.5"
+<BundleInfo name="ChimeraX-Maestro" version="1.6"
 	    package="chimerax.maestro"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
     <Dependency name="ChimeraX-ChemGroup" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
@@ -33,8 +33,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: Schrodinger Maestro :: mae :: Molecular structure :: .mae,.maegz :: :: :: :: :: Schrodinger Maestro format :: utf-8</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: Schrodinger Maestro :: mae ::</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

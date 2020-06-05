@@ -519,19 +519,30 @@ class IHMModel(Model):
     # Note ensemble models are AtomicStructure models, not SphereModel.
     #
     def load_sphere_model_ensembles(self, smodels):
+        def _all_samples():  # iterate over all ensembles and subsamples
+            for ensemble in self.system.ensembles:
+                mg = ensemble.model_group
+                yield ensemble, mg
+                for subsample in ensemble.subsamples:
+                    yield subsample, subsample.model_group or mg
         emodels = []
-        for ensemble in self.system.ensembles:
-            gid = ensemble.model_group._id
-            finfo = self.file_info(ensemble.file)
+        for sample, model_group in _all_samples():
+            # Can't match without a model group ID
+            if model_group is None:
+                continue
+            gid = model_group._id
+            if sample.file is None:
+                continue
+            finfo = self.file_info(sample.file)
             if finfo is None:
                 continue
             fname = finfo.file_name
-#            print("looked up", ensemble.file, "got", fname)
+#            print("looked up", sample.file, "got", fname)
             if fname.endswith('.dcd'):
                 gsm = [sm for sm in smodels if sm.ihm_group_id == gid]
                 if len(gsm) != 1:
                     continue  # Don't have exactly one sphere model for this group id
-                sm = gsm[0].copy(name = ensemble.name)
+                sm = gsm[0].copy(name = sample.name)
                 dcd_path = finfo.path(self.session)
                 from chimerax.atomic.md_crds.read_coords import read_coords
                 read_coords(self.session, dcd_path, sm, format_name = 'dcd', replace=True)
@@ -541,7 +552,7 @@ class IHMModel(Model):
                 if fstream is None:
                     continue
                 from chimerax.atomic.pdb import open_pdb
-                mlist,msg = open_pdb(self.session, fstream, ensemble.name,
+                mlist,msg = open_pdb(self.session, fstream, sample.name,
                                      auto_style = False, coordsets = True)
                 sm = mlist[0]
             sm.ihm_group_id = gid

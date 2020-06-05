@@ -318,10 +318,10 @@ class MRC_Data:
     try:
       usyms = [parse_symop(s[80*i:80*(i+1)].decode('utf-8').replace(' ', ''))
                for i in range(nsym)]
-    except:
+    except Exception:
       try:
         msg = 'Unable to parse symmetry operators of %s\n%s\n' % (self.name, s)
-      except:
+      except Exception:
         # Garbage in sym operator data can't be interpreted as text.
         msg = 'Unable to parse symmetry operators of %s\n' % (self.name,)
       print(msg)

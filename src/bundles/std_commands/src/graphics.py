@@ -71,7 +71,7 @@ def graphics_rate(session, report_frame_rate = None,
         msg = ('Maximum framerate %.3g' % rate)
         session.logger.status(msg, log = True)
 
-def graphics_quality(session, subdivision = None,
+def graphics_quality(session, quality = None, subdivision = None,
                      atom_triangles = None, bond_triangles = None,
                      total_atom_triangles = None, total_bond_triangles = None,
                      ribbon_divisions = None, ribbon_sides = None, color_depth = None):
@@ -80,13 +80,16 @@ def graphics_quality(session, subdivision = None,
 
     Parameters
     ----------
-    subdivision : float
+    quality : float
         Controls the rendering quality of spheres and cylinders for drawing atoms and bonds.
-        Default value is 1, higher values give smoother spheres and cylinders.
-    atom_triangles : integer
+        Default value is 1, higher values give smoother spheres and cylinders by increasing
+        the maximum number of triangles rendered by the quality factor.
+    subdivision : float
+        Deprecated.  Same as quality.
+    atom_triangles : integer or "default"
         Number of triangles for drawing an atom sphere, minimum 4.
         If 0, then automatically compute number of triangles.
-    bond_triangles : integer
+    bond_triangles : integer or "default"
         Number of triangles for drawing an atom sphere, minimum 12.
         If 0, then automatically compute number of triangles.
     total_atom_triangles : integer
@@ -95,8 +98,9 @@ def graphics_quality(session, subdivision = None,
     total_bond_triangles : integer
         Target number of triangles for all shown bonds when automatically
         triangles per bond.
-    ribbon_divisions : integer
-        Number of segments to use for one residue of a ribbon, minimum 2 (default 20).
+    ribbon_divisions : integer or "default"
+        Number of segments to use for one residue of a ribbon, minimum 2.
+        If default then automatically determine value (20 for less than 20,000 residues).
     ribbon_sides : integer
         Number of segments to use around circumference of ribbon, minimum 4 (default 12).
     color_depth : 8 or 16
@@ -104,24 +108,25 @@ def graphics_quality(session, subdivision = None,
         If 16 is specified then offscreen rendering is used since it is not easy or
         possible to switch on-screen framebuffer depth.
     '''
-    from chimerax.atomic.structure import structure_graphics_updater
+    from chimerax.atomic import structure_graphics_updater
     gu = structure_graphics_updater(session)
     lod = gu.level_of_detail
     change = False
     from chimerax.core.errors import UserError
     if subdivision is not None:
-        from chimerax import atomic
-        atomic.structure_graphics_updater(session).set_subdivision(subdivision)
+        quality = subdivision
+    if quality is not None:
+        gu.set_quality(quality)
         change = True
     if atom_triangles is not None:
-        if atom_triangles != 0 and atom_triangles < 4:
+        if isinstance(atom_triangles, int) and atom_triangles != 0 and atom_triangles < 4:
             raise UserError('Minimum number of atom triangles is 4')
-        lod.atom_fixed_triangles = atom_triangles if atom_triangles > 0 else None
+        lod.atom_fixed_triangles =  None if atom_triangles in ('default', 0) else atom_triangles
         change = True
     if bond_triangles is not None:
-        if bond_triangles != 0 and bond_triangles < 12:
+        if isinstance(bond_triangles, int) and bond_triangles != 0 and bond_triangles < 12:
             raise UserError('Minimum number of bond triangles is 12')
-        lod.bond_fixed_triangles = bond_triangles if bond_triangles > 0 else None
+        lod.bond_fixed_triangles = None if bond_triangles in ('default', 0) else bond_triangles
         change = True
     if total_atom_triangles is not None:
         lod.total_atom_triangles = total_atom_triangles
@@ -130,9 +135,10 @@ def graphics_quality(session, subdivision = None,
         lod.total_bond_triangles = total_bond_triangles
         change = True
     if ribbon_divisions is not None:
-        if ribbon_divisions < 2:
+        if isinstance(ribbon_divisions, int) and ribbon_divisions < 2:
             raise UserError('Minimum number of ribbon divisions is 2')
-        lod.ribbon_divisions = ribbon_divisions
+        div = None if ribbon_divisions in (0, 'default') else ribbon_divisions
+        gu.set_ribbon_divisions(div)
         change = True
     if ribbon_sides is not None:
         if ribbon_sides < 4:
@@ -155,8 +161,12 @@ def graphics_quality(session, subdivision = None,
         gu.update_level_of_detail()
     else:
         na = gu.num_atoms_shown
-        msg = ('Subdivision %.3g, atom triangles %d, bond triangles %d, ribbon divisions %d' %
-               (lod.quality, lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na), lod.ribbon_divisions))
+        msg = ('Quality %.3g, atom triangles %d, bond triangles %d' %
+               (lod.quality, lod.atom_sphere_triangles(na), lod.bond_cylinder_triangles(na)))
+        div = [lod.ribbon_divisions(s.num_ribbon_residues) for s in gu.structures]
+        dmin, dmax = min(div), max(div)
+        drange = '%d-%d' % (dmin, dmax) if dmin < dmax else '%d' % dmin
+        msg += ', ribbon divisions %s' % drange
         session.logger.status(msg, log = True)
 
 def graphics_silhouettes(session, enable=None, width=None, color=None, depth_jump=None):
@@ -239,7 +249,7 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, ColorArg, TopModelsArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, FloatArg, BoolArg, ColorArg, TopModelsArg, Or, EnumOf
 
     desc = CmdDesc(
         keyword=[('background_color', ColorArg),
@@ -258,16 +268,19 @@ def register_command(logger):
     )
     register('graphics rate', desc, graphics_rate, logger=logger)
 
+    IntOrDefaultArg = Or(EnumOf(['default']), IntArg)
     desc = CmdDesc(
+        optional = [('quality', FloatArg)],
         keyword=[('subdivision', FloatArg),
-                 ('atom_triangles', IntArg),
-                 ('bond_triangles', IntArg),
+                 ('atom_triangles', IntOrDefaultArg),
+                 ('bond_triangles', IntOrDefaultArg),
                  ('total_atom_triangles', IntArg),
                  ('total_bond_triangles', IntArg),
-                 ('ribbon_divisions', IntArg),
+                 ('ribbon_divisions', IntOrDefaultArg),
                  ('ribbon_sides', IntArg),
                  ('color_depth', IntArg),
                  ],
+        hidden = ['subdivision'], # Deprecated in favor of quality
         synopsis='Set graphics quality parameters'
     )
     register('graphics quality', desc, graphics_quality, logger=logger)

@@ -49,7 +49,7 @@ class MaestroParser:
             if block0.get_attribute("s_m_m2io_version") != "2.0.0":
                 raise ValueError("Maestro version mismatch")
             #print "Maestro v2.0.0 file recognized"
-        except:
+        except Exception:
             raise UserError("%s: not a v2.0.0 Maestro file" % path)
 
         # Convert all subsequent blocks named "f_m_ct" to molecules
@@ -96,7 +96,7 @@ class MaestroParser:
             return None
         bonds = block.get_sub_block("m_bond")
         s = SC(self.session, auto_style=self.auto_style)
-        SC.register_attr(self.session, "viewdocx_data", "ViewDockX")
+        SC.register_attr(self.session, "viewdockx_data", "ViewDockX")
 
         residue_map = {}
         atom_map = {}

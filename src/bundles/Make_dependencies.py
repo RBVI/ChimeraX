@@ -28,6 +28,9 @@ def make_dependencies(dir_path, output_name):
         bundle2dirname[bundle_name] = dir_name
         dependencies[dir_name] = deps = []
         for e in doc.getElementsByTagName("Dependency"):
+            build_dep = e.getAttribute("build")
+            if not build_dep or build_dep.lower() == "false":
+                continue
             dep_name = e.getAttribute("name")
             deps.append(dep_name)
 
@@ -38,11 +41,11 @@ def make_dependencies(dir_path, output_name):
             dep_dirs = []
             for dep in dependencies[dir_name]:
                 try:
-                    dep_dirs.append(bundle2dirname[dep] + ".install")
+                    dep_dirs.append(bundle2dirname[dep] + ".build")
                 except KeyError:
                     missing.add(dep)
             if dep_dirs:
-                print("%s.install: %s" % (dir_name, ' '.join(dep_dirs)), file=f)
+                print("%s.build: %s" % (dir_name, ' '.join(dep_dirs)), file=f)
 
     # Report any bundle dependencies that is not found
     missing.discard("ChimeraX-Core")
@@ -51,6 +54,7 @@ def make_dependencies(dir_path, output_name):
     missing.discard("SpeechRecognition")
     missing.discard("netifaces")
     missing.discard("pyrealsense2")
+    missing.discard("sfftk-rw")
     if missing:
         print("Missing bundles:")
         for dep in sorted(missing):

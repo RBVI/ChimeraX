@@ -11,6 +11,7 @@
 *.orig
 *.rej
 # python generated
+*.lprof
 *.pyc
 *.pyo
 # OS generated
@@ -51,7 +52,6 @@ src/bundles/atomic/src/cytmpl.pyx
 src/bundles/atom_search/search_cpp/ast.cpp
 src/bundles/atom_search/src/include/
 src/bundles/atom_search/src/ast.pyx
-src/bundles/chem_group/bundle_info.xml
 src/bundles/chem_group/src/__init__.py
 src/bundles/md_crds/gromacs/xdrfile-1.1b/
 src/bundles/meeting/src/server.pem

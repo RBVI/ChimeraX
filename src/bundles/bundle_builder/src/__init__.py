@@ -11,4 +11,4 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .bundle_builder import BundleBuilder
+from .bundle_builder import BundleBuilder  # noqa

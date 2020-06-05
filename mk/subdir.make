@@ -54,3 +54,13 @@ $(SUBDIR_SYNC):
 else
 sync:
 endif
+
+ifdef SUBDIR_BUILD
+SUBDIR_BUILD = $(SUBDIRS:=.build)
+.PHONY: $(SUBDIR_BUILD)
+build: $(SUBDIR_BUILD)
+$(SUBDIR_BUILD):
+	$(MAKE) -C $(subst .build,,$@) build
+else
+build:
+endif

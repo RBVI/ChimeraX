@@ -16,16 +16,22 @@ SUBDIRS	+= atomstruct_cpp element_cpp pyinstance_cpp ribbon_cpp
 
 include $(TOP)/mk/subdir.make
 
+ifdef WIN32
+ARRAYS_DIR = '$(shell cygpath -m '$(APP_PYSITEDIR)/chimerax/arrays')'
+else
+ARRAYS_DIR = $(APP_PYSITEDIR)/chimerax/arrays
+endif
+
 LIBNAME = molc
 
 SRCS	= molc.cpp
 OBJS	= $(SRCS:.cpp=.$(OBJ_EXT))
 HDRS 	= 
-INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -Iinclude
+INCS	+= $(PYTHON_INCLUDE_DIRS) $(NUMPY_INC) -Iinclude -I$(ARRAYS_DIR)/include
 ifeq ($(WIN32),msvc)
-LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
+LIBS	+= /LIBPATH:lib libatomstruct.lib libelement.lib libpyinstance.lib /LIBPATH:$(ARRAYS_DIR)/lib libarrays.lib liblogger.lib libappdirs.lib $(PYTHON_LIB)
 else
-LIBS	+= -Llib -latomstruct -lelement -lpyinstance -larrays -llogger -lappdirs $(PYTHON_LIB)
+LIBS	+= -Llib -latomstruct -lelement -lpyinstance -L$(ARRAYS_DIR)/lib -larrays -llogger -lappdirs $(PYTHON_LIB)
 ifeq ($(OS),Linux)
 LDFLAGS += -Wl,-rpath,\$${ORIGIN}/lib:\$${ORIGIN}/../../../.. -Wl,--as-needed
 endif
@@ -50,7 +56,7 @@ cymol.$(PYMOD_EXT): $(SHLIB) cymol.pyx include/atomstruct/Atom.h include/atomstr
 	mv chimerax/atomic/cymol.cp*.$(PYMOD_EXT) cymol.$(PYMOD_EXT)
 	rmdir -p chimerax/atomic
 
-cytmpl.$(PYMOD_EXT): $(SHLIB) cytmpl.pyx
+cytmpl.$(PYMOD_EXT): $(SHLIB) cytmpl.pyx cymol.$(PYMOD_EXT)
 	LDFLAGS="-L." $(PYTHON_EXE) setup-cytmpl.py build_ext -i
 	mv chimerax/atomic/cytmpl.cp*.$(PYMOD_EXT) cytmpl.$(PYMOD_EXT)
 	rmdir -p chimerax/atomic

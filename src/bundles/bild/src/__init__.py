@@ -25,13 +25,6 @@ class _MyAPI(BundleAPI):
         return None
 
     @staticmethod
-    def open_file(session, stream, file_name):
-        # 'open_file' is called by session code to open a file
-        # returns (list of models, status message)
-        from . import bild
-        return bild.read_bild(session, stream, file_name)
-
-    @staticmethod
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
         class BildOpenerInfo(OpenerInfo):

@@ -14,7 +14,7 @@
  */
 
 #include <arrays/pythonarray.h>		// use parse_uint8_n_array()
-#include <arrays/rcarray.h>		// use CArray
+#include <arrays/rcarray.h>		// use BArray
 
 // ----------------------------------------------------------------------------
 //
@@ -33,7 +33,7 @@ extern "C" PyObject *
 count_value(PyObject *, PyObject *args, PyObject *keywds)
 {
   int v;
-  CArray a;
+  BArray a;
   const char *kwlist[] = {"array", "value", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&i"),
 				   (char **)kwlist,
@@ -41,6 +41,6 @@ count_value(PyObject *, PyObject *args, PyObject *keywds)
 				   &v))
     return NULL;
 
-  int c = count_value((unsigned char *)a.values(), a.size(), a.stride(0), (unsigned char)v);
+  int c = count_value(a.values(), a.size(), a.stride(0), (unsigned char)v);
   return PyLong_FromLong(c);
 }

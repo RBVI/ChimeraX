@@ -22,8 +22,19 @@ class OpenFileNamesArgNoRepeat(OpenFileNamesArg):
     allow_repeat = False
 
 import os.path
-def likely_pdb_id(text):
-    return not os.path.exists(text) and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+def likely_pdb_id(text, format_name):
+    return not exists_locally(text, format_name) \
+        and len(text) == 4 and text[0].isdigit() and text[1:].isalnum()
+
+def exists_locally(text, format):
+    # does that name exist on the file system, and if it does but has no suffix, is there a format?
+    # [trying to avoid directories named for PDB ID codes from fouling up "open pdb-code"]
+    import os.path
+    if not os.path.exists(text):
+        return False
+    if '.' in text or format:
+        return True
+    return False
 
 def cmd_open(session, file_names, rest_of_line, *, log=True):
     tokens = []
@@ -60,11 +71,15 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
                 raise LimitationError(str(e))
 
     provider_cmd_text = "open " + " ".join([FileNameArg.unparse(fn)
-        for fn in file_names] + tokens)
+        for fn in file_names] + [StringArg.unparse(token) for token in tokens])
     # register a private 'open' command that handles the provider's keywords
     registry = RegisteredCommandInfo()
     def format_names(ses=session):
-        return [ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ]
+        fmt_names = set([ fmt.nicknames[0] for fmt in ses.open_command.open_data_formats ])
+        for db_name in ses.open_command.database_names:
+            for fmt_name in ses.open_command.database_info(db_name).keys():
+                fmt_names.add(ses.data_formats[fmt_name].nicknames[0])
+        return fmt_names
 
     def database_names(mgr=mgr):
         return mgr.database_names
@@ -82,11 +97,11 @@ def cmd_open(session, file_names, rest_of_line, *, log=True):
         keywords[keyword] = annotation
     desc = CmdDesc(required=[('names', OpenFileNamesArg)], keyword=keywords.items(),
         synopsis="unnecessary")
-    register("open2", desc, provider_open, registry=registry)
+    register("open", desc, provider_open, registry=registry)
     Command(session, registry=registry).run(provider_cmd_text, log=log)
 
 def provider_open(session, names, format=None, from_database=None, ignore_cache=False,
-        name=None, _return_status=False, _add_models=True, **provider_kw):
+        name=None, _return_status=False, _add_models=True, log_errors=True, **provider_kw):
     mgr = session.open_command
     # since the "file names" may be globs, need to preprocess them...
     fetches, file_names = fetches_vs_files(mgr, names, format, from_database)
@@ -108,8 +123,9 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             for ident, database_name, format_name in fetches:
                 if format_name is None:
                     format_name = default_format_name
-                models, status = collated_open(session, True, ident, database_name,
-                    fetcher_info.fetch, (session, ident, format_name, ignore_cache), provider_kw)
+                models, status = collated_open(session, database_name, ident,
+                    session.data_formats[format_name], _add_models, log_errors, fetcher_info.fetch,
+                    (session, ident, format_name, ignore_cache), provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
@@ -119,8 +135,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             if provider_info.batch:
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
                     for fi in file_infos]
-                models, status = collated_open(session, False, paths, data_format,
-                    opener_info.open, (session, paths, name), provider_kw)
+                models, status = collated_open(session, None, paths, data_format, _add_models, log_errors,
+                opener_info.open, (session, paths, name), provider_kw)
                 if status:
                     statuses.append(status)
                 if models:
@@ -131,8 +147,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                         data = _get_path(mgr, fi.file_name, provider_info.check_path)
                     else:
                         data = _get_stream(mgr, fi.file_name, data_format.encoding)
-                    models, status = collated_open(session, False, [data], data_format,
-                        opener_info.open, (session, data,
+                    models, status = collated_open(session, None, [data], data_format, _add_models,
+                        log_errors, opener_info.open, (session, data,
                         name or model_name_from_path(fi.file_name)), provider_kw)
                     if status:
                         statuses.append(status)
@@ -146,8 +162,8 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
                 data = _get_path(mgr, fi.file_name, provider_info.check_path)
             else:
                 data = _get_stream(mgr, fi.file_name, fi.data_format.encoding)
-            models, status = collated_open(session, False, [data], data_format, opener_info.open,
-                (session, data, name or model_name_from_path(fi.file_name)), provider_kw)
+            models, status = collated_open(session, None, [data], fi.data_format, _add_models, log_errors,
+                opener_info.open, (session, data, name or model_name_from_path(fi.file_name)), provider_kw)
             if status:
                 statuses.append(status)
             if models:
@@ -156,8 +172,9 @@ def provider_open(session, names, format=None, from_database=None, ignore_cache=
             fetcher_info, default_format_name = _fetch_info(mgr, database_name, format)
             if format_name is None:
                 format_name = default_format_name
-            models, status = collated_open(session, True, ident, database_name,
-                fetcher_info.fetch, (session, ident, format_name, ignore_cache), provider_kw)
+            models, status = collated_open(session, database_name, ident, session.data_formats[format_name],
+                _add_models, log_errors, fetcher_info.fetch, (session, ident, format_name, ignore_cache),
+                provider_kw)
             if status:
                 statuses.append(status)
             if models:
@@ -227,9 +244,8 @@ def _get_stream(mgr, file_name, encoding):
 def fetches_vs_files(mgr, names, format_name, database_name):
     fetches = []
     files = []
-    from os.path import exists
     for name in names:
-        if not database_name and exists(name):
+        if not database_name and exists_locally(name, format_name):
             files.append(name)
         else:
             f = fetch_info(mgr, name, format_name, database_name)
@@ -253,29 +269,40 @@ def expand_path(file_name):
     return file_names
 
 def fetch_info(mgr, file_arg, format_name, database_name):
-    from os.path import exists
-    if not database_name and exists(file_arg):
+    if not database_name and exists_locally(file_arg, format_name):
         return None
     if ':' in file_arg:
         db_name, ident = file_arg.split(':', maxsplit=1)
     elif database_name:
         db_name = database_name
         ident = file_arg
-    elif likely_pdb_id(file_arg):
+    elif likely_pdb_id(file_arg, format_name):
         db_name = "pdb"
         ident = file_arg
     else:
         return None
     from .manager import NoOpenerError
     try:
-        db_formats = mgr.database_info(db_name).keys()
+        db_formats = list(mgr.database_info(db_name).keys())
     except NoOpenerError as e:
         raise LimitationError(str(e))
-    if format_name and format_name not in [dbf for dbf in db_formats]:
-        from chimerax.core.commands import commas
-        raise UserError("Format '%s' not supported for database '%s'.  Supported"
-            " formats are: %s" % (format_name, db_name,
-            commas([dbf for dbf in db_formats])))
+    if format_name and format_name not in db_formats:
+        # for backwards compatibiity, accept formal format name or nicknames
+        try:
+            df = mgr.session.data_formats[format_name]
+        except KeyError:
+            nicks = []
+        else:
+            nicks = df.nicknames + [df.name]
+        for nick in nicks:
+            if nick in db_formats:
+                format_name = nick
+                break
+        else:
+            from chimerax.core.commands import commas
+            raise UserError("Format '%s' not supported for database '%s'.  Supported"
+                " formats are: %s" % (format_name, db_name,
+                commas([dbf for dbf in db_formats])))
     return (ident, db_name, format_name)
 
 def name_and_group_models(models, name_arg, path_info):
@@ -330,17 +357,28 @@ def file_format(session, file_name, format_name):
     except NoFormatError as e:
         return None
 
-def collated_open(session, is_fetch, data, data_format, func, func_args, func_kw):
-    collation_okay = is_fetch or data_format.category != session.data_formats.CAT_SCRIPT
-    if collation_okay:
-        from chimerax.core.logger import Collator
-        if is_fetch:
-            description = "Summary of feedback from opening %s fetched from %s" % (data,
-                data_format)
+def collated_open(session, database_name, data, data_format, main_opener, log_errors,
+        func, func_args, func_kw):
+    is_script = data_format.category == session.data_formats.CAT_SCRIPT
+    if is_script:
+        with session.in_script:
+            return func(*func_args, **func_kw)
+    from chimerax.core.logger import Collator
+    if database_name:
+        description = "Summary of feedback from opening %s fetched from %s" % (data, database_name)
+    else:
+        if len(data) > 1:
+            opened_text = "files"
         else:
-            description = "Summary of feedback from opening %s" % (
-                "files" if len(data) > 1 else data[0])
-        with Collator(session.logger, description, True):
+            if isinstance(data[0], str):
+                opened_text = data[0]
+            elif hasattr(data[0], 'name'):
+                opened_text = data[0].name
+            else:
+                opened_text = "input"
+        description = "Summary of feedback from opening %s" % opened_text
+    if main_opener and data_format.category != session.data_formats.CAT_SESSION:
+        with Collator(session.logger, description, log_errors):
             return func(*func_args, **func_kw)
     return func(*func_args, **func_kw)
 
@@ -356,8 +394,67 @@ class FileInfo:
                 raise UserError("Unrecognized file suffix '%s'" % ext)
             raise UserError("'%s' has no suffix" % file_name)
 
+def cmd_open_formats(session):
+    '''Report file formats, suffixes and databases that the open command knows about.'''
+    if session.ui.is_gui:
+        lines = ['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>File format<th>Short name(s)<th>Suffixes']
+    else:
+        session.logger.info('File format, Short name(s), Suffixes:')
+    from chimerax.core.commands import commas
+    formats = session.open_command.open_data_formats
+    formats.sort(key = lambda f: f.name.lower())
+    for f in formats:
+        if session.ui.is_gui:
+            from html import escape
+            if f.reference_url:
+                descrip = '<a href="%s">%s</a>' % (f.reference_url, escape(f.synopsis))
+            else:
+                descrip = escape(f.synopsis)
+            lines.append('<tr><td>%s<td>%s<td>%s' % (descrip,
+                escape(commas(f.nicknames)), escape(', '.join(f.suffixes))))
+        else:
+            session.logger.info('    %s: %s: %s' % (f.synopsis,
+                commas(f.nicknames), ', '.join(f.suffixes)))
+    if session.ui.is_gui:
+        lines.append('</table>')
+        lines.append('<p></p>')
+
+    if session.ui.is_gui:
+        lines.extend(['<table border=1 cellspacing=0 cellpadding=2>', '<tr><th>Database<th>Formats'])
+    else:
+        session.logger.info('\nDatabase, Formats:')
+    database_names = session.open_command.database_names
+    database_names.sort(key=lambda dbn: dbn.lower())
+    for db_name in database_names:
+        db_info = session.open_command.database_info(db_name)
+        if 'web fetch' in db_info.keys() or db_name == 'help':
+            continue
+        for fmt_name, fetcher_info in db_info.items():
+            if fetcher_info.is_default:
+                default_name = session.data_formats[fmt_name].nicknames[0]
+                break
+        else:
+            continue
+        format_names = [session.data_formats[fmt_name].nicknames[0] for fmt_name in db_info.keys()]
+        format_names.sort()
+        format_names.remove(default_name)
+        format_names.insert(0, default_name)
+        if not session.ui.is_gui:
+            session.logger.info('    %s: %s' % (db_name, ', '.join(format_names)))
+            continue
+        line = '<tr><td>%s<td>%s' % (db_name, ', '.join(format_names))
+        lines.append(line)
+
+    if session.ui.is_gui:
+        lines.append('</table>')
+        msg = '\n'.join(lines)
+        session.logger.info(msg, is_html=True)
+
 
 def register_command(command_name, logger):
-    register('open2', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
+    register('open', CmdDesc(required=[('file_names', OpenFileNamesArgNoRepeat),
         ('rest_of_line', RestOfLine)], synopsis="Open/fetch data files",
         self_logging=True), cmd_open, logger=logger)
+
+    of_desc = CmdDesc(synopsis='report formats that can be opened')
+    register('open formats', of_desc, cmd_open_formats, logger=logger)

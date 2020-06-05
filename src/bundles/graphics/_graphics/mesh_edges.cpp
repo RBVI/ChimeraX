@@ -30,12 +30,12 @@ namespace Map_Cpp
 // are only listed once.
 //
 static IArray calculate_masked_edges(const IArray &triangles,
-				     const CArray &tmask, const CArray &emask)
+				     const BArray &tmask, const BArray &emask)
 {
   std::set< std::pair<int,int> > edges;
 
-  char *show_t = (tmask.size() > 0 ? tmask.values() : NULL);
-  char *show_e = (emask.size() > 0 ? emask.values() : NULL);
+  unsigned char *show_t = (tmask.size() > 0 ? tmask.values() : NULL);
+  unsigned char *show_e = (emask.size() > 0 ? emask.values() : NULL);
   int n = triangles.size(0);
   int *tarray = triangles.values();
   for (int k = 0 ; k < n ; ++k, tarray += 3)
@@ -72,7 +72,7 @@ extern "C" PyObject *
 masked_edges(PyObject *, PyObject *args, PyObject *keywds)
 {
   IArray triangles;
-  CArray tmask, emask;
+  BArray tmask, emask;
   const char *kwlist[] = {"triangles", "triangle_mask", "edge_mask", NULL};
   if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|O&O&"),
 				   (char **)kwlist,

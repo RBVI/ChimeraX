@@ -155,7 +155,12 @@ def get_package_for_lib(lib, pkg_type):
             output = subprocess.check_output(
                 ['/usr/bin/dpkg', '-S', lib], stderr=subprocess.DEVNULL, encoding='utf-8')
         except subprocess.CalledProcessError:
-            return
+            lib = os.path.realpath(lib)
+            try:
+                output = subprocess.check_output(
+                    ['/usr/bin/dpkg', '-S', lib], stderr=subprocess.DEVNULL, encoding='utf-8')
+            except subprocess.CalledProcessError:
+                return
         output = output.strip()
         return output.split(None, 1)[0].split(':', 1)[0]
     if pkg_type == 'rpm':
@@ -187,6 +192,21 @@ def packages_needed_by(packages, pkg_type):
                 if not line or line.startswith('/') or ' ' in line or '(' in line:
                     continue
                 needed = needed_by.setdefault(line, [])
+                needed.append(pkg)
+    elif pkg_type == 'deb':
+        for pkg in packages:
+            try:
+                output = subprocess.check_output(
+                    ['/usr/bin/apt-cache', 'depends', pkg],
+                    stderr=subprocess.DEVNULL, encoding='utf-8')
+            except subprocess.CalledProcessError:
+                continue
+            for line in output.split('\n'):
+                line = line.strip()
+                if not line.startswith('Depends:'):
+                    continue
+                other = line.split()[-1]
+                needed = needed_by.setdefault(other, [])
                 needed.append(pkg)
     return needed_by
 
@@ -243,9 +263,11 @@ def main(directory, pkg_type):
     skipped = []
     needed_by = packages_needed_by(packages, pkg_type)
     for name in sorted(packages):
-        if name in needed_by and any(pkg in packages for pkg in needed_by[name]):
-            skipped.append(name)
-            continue
+        if pkg_type != 'deb':
+            # debian has circular dependencies that messes this up
+            if name in needed_by and any(pkg in packages for pkg in needed_by[name]):
+                skipped.append(name)
+                continue
         ver = extract_version(package_versions[name])
         print(f'   "{name}": "{ver}",')
     #

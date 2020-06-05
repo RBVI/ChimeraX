@@ -1,8 +1,8 @@
 CHIMERAX_APP = $(realpath $(wildcard ../../../ChimeraX*.app))
-SEGGER_SRC = seggerx_2020_03_13.tar.gz
+SEGGER_SRC = seggerx_2020_05_18.tar.gz
 
-app-install install: seggerx
-	cd seggerx/Segger && make install
+install app-install: seggerx
+	$(MAKE) -C seggerx/Segger install
 
 seggerx: $(SEGGER_SRC)
 	tar xf $(SEGGER_SRC)
@@ -12,11 +12,14 @@ tarball:
 	gzip seggerx.tar
 	mv seggerx.tar.gz seggerx_$(shell date +"%Y_%m_%d").tar.gz
 
-sync:
+build: seggerx
+	$(MAKE) -C seggerx/Segger build
 
-test:
+sync: seggerx
+	$(MAKE) -C seggerx/Segger sync
 
-sync:
+test: seggerx
+	$(MAKE) -C seggerx/Segger test
 
 clean:
 	rm -rf seggerx

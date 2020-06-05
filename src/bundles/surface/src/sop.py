@@ -296,6 +296,9 @@ def surface_dust(session, surfaces, metric = 'size', size = 5, update = True):
 # -----------------------------------------------------------------------------
 #
 def surface_undust(session, surfaces):
+    '''
+    Redisplay the entire surface on which surface_dust() was used.
+    '''
     from chimerax.surface import dust
     for s in surfaces:
         dust.unhide_dust(s)
@@ -421,6 +424,9 @@ def surface_zone(session, surfaces, near_atoms = None, distance = 2,
 # -----------------------------------------------------------------------------
 #
 def surface_unzone(session, surfaces):
+    '''
+    Redisplay the entire surface on which surface_zone() was used.
+    '''
     from chimerax.surface import zone
     for s in surfaces:
         zone.surface_unzone(s)

@@ -177,30 +177,6 @@ def fetch_pdb_pdbe(session, pdb_id, **kw):
 def fetch_pdb_pdbj(session, pdb_id, **kw):
     return fetch_pdb(session, pdb_id, fetch_source="pdbj", **kw)
 
-def register_pdb_format():
-    from chimerax.core import io
-    from chimerax.atomic import structure
-    io.register_format(
-        "PDB", structure.CATEGORY, (".pdb", ".pdb1", ".ent", ".pqr"), ("pdb",),
-        mime=("chemical/x-pdb", "chemical/x-spdbv"),
-        reference="http://wwpdb.org/docs.html#format",
-        open_func=open_pdb, export_func=save_pdb)
-    from chimerax.core.commands import BoolArg, ModelsArg, ModelArg, IntArg, EnumOf
-    from chimerax.core.commands.cli import add_keyword_arguments
-    add_keyword_arguments('open', {'coordsets':BoolArg, 'auto_style':BoolArg,
-                                   'atomic': BoolArg, 'max_models':IntArg, 'log_info':BoolArg})
-    add_keyword_arguments('save', {'models':ModelsArg, 'selected_only':BoolArg,
-        'displayed_only':BoolArg, 'all_coordsets':BoolArg, 'pqr':BoolArg,
-        'rel_model':ModelArg, 'serial_numbering': EnumOf(("amber", "h36"))})
-
-def register_pdb_fetch():
-    from chimerax.core import fetch
-    fetch.register_fetch('pdb', fetch_pdb, 'pdb', prefixes = [])
-    fetch.register_fetch('pdbe', fetch_pdb_pdbe, 'pdb', prefixes = [])
-    # PDBj is unreliable for PDB format, mmCIF seemed okay - CH 2dec16
-    # fetch.register_fetch('pdbj', fetch_pdb_pdbj, 'pdb', prefixes = [])
-
-
 def collate_records_text(records, multiple_results=False):
     if multiple_results:
         collation = []
@@ -268,8 +244,10 @@ def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
                     process_chem_name(name))
                 if syns:
                     text += " (%s)" % process_chem_name(syns)
-            else:
+            elif syns:
                 text += process_chem_name(syns)
+            else:
+                text += "(no full residue name provided)"
             return text
         if standalone:
             from chimerax.core.logger import html_table_params

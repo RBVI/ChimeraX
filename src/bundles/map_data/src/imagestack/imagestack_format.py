@@ -177,6 +177,10 @@ def image_count(image, max = None):
       frame += 1
   except EOFError:
     image.seek(0)
+  except ValueError as e:
+    # PIL 7.1.1 raised this error on large single plane image.
+    if 'read of closed file' not in str(e):
+      raise
   return frame
 
 # -----------------------------------------------------------------------------

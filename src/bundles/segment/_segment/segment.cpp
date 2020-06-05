@@ -24,7 +24,7 @@ namespace Segment_Cpp
 
 // ----------------------------------------------------------------------------
 //
-static struct PyMethodDef segment_cpp_methods[] =
+static struct PyMethodDef segment_methods[] =
 {
 
   /* pysegment.h */
@@ -320,12 +320,12 @@ struct module_state {
 
 #define GETSTATE(m) ((struct module_state*)PyModule_GetState(m))
 
-static int segment_cpp_traverse(PyObject *m, visitproc visit, void *arg) {
+static int segment_traverse(PyObject *m, visitproc visit, void *arg) {
     Py_VISIT(GETSTATE(m)->error);
     return 0;
 }
 
-static int segment_cpp_clear(PyObject *m) {
+static int segment_clear(PyObject *m) {
     Py_CLEAR(GETSTATE(m)->error);
     return 0;
 }
@@ -333,13 +333,13 @@ static int segment_cpp_clear(PyObject *m) {
 
 static struct PyModuleDef moduledef = {
         PyModuleDef_HEAD_INIT,
-        "segment_cpp",
+        "_segment",
         NULL,
         sizeof(struct module_state),
-        segment_cpp_methods,
+        segment_methods,
         NULL,
-        segment_cpp_traverse,
-        segment_cpp_clear,
+        segment_traverse,
+        segment_clear,
         NULL
 };
 
@@ -355,7 +355,7 @@ PyInit__segment(void)
       return NULL;
     struct module_state *st = GETSTATE(module);
 
-    st->error = PyErr_NewException("segment_cpp.Error", NULL, NULL);
+    st->error = PyErr_NewException("_segment.Error", NULL, NULL);
     if (st->error == NULL) {
         Py_DECREF(module);
         return NULL;

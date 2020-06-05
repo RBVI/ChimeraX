@@ -17,6 +17,10 @@ from chimerax.core.state import State
 from .molobject import StructureData
 from chimerax.graphics import Drawing, Pick
 
+# If STRUCTURE_STATE_VERSION changes, then bump the bundle's
+# (maximum) session version number.
+STRUCTURE_STATE_VERSION = 1
+
 CATEGORY = toolshed.STRUCTURE
 
 class Structure(Model, StructureData):
@@ -159,8 +163,7 @@ class Structure(Model, StructureData):
                 'attr-reg manager': session.attr_registration}
         for attr_name in self._session_attrs.keys():
             data[attr_name] = getattr(self, attr_name)
-        from chimerax.core.state import CORE_STATE_VERSION
-        data['version'] = CORE_STATE_VERSION
+        data['version'] = STRUCTURE_STATE_VERSION
         return data
 
     @staticmethod
@@ -303,7 +306,6 @@ class Structure(Model, StructureData):
 
         # Update graphics
         self._graphics_changed = 0
-        self._graphics_updater.need_update()
         s = (gc & self._SHAPE_CHANGE)
         if gc & (self._COLOR_CHANGE | self._RIBBON_CHANGE) or s:
             self._update_ribbon_tethers()
@@ -561,10 +563,10 @@ class Structure(Model, StructureData):
             return
         
         if changes & (self._SELECT_CHANGE | self._RIBBON_CHANGE):
-            rd.update_ribbon_highlight(self)
+            rd.update_ribbon_highlight()
 
         if changes & self._COLOR_CHANGE and not (changes & self._RIBBON_CHANGE):
-            rd.update_ribbon_colors(self)
+            rd.update_ribbon_colors()
 
     def _update_ribbon_tethers(self):
         rd = self._ribbons_drawing
@@ -601,9 +603,8 @@ class Structure(Model, StructureData):
         when there are multiple positions.  Includes atoms and ribbons.
         '''
         ad = self._atoms_drawing
-        drawings = [ad]
-        from .ribbon import RibbonDrawing
-        drawings.extend(rd for rd in self.child_drawings() if isinstance(rd, RibbonDrawing))
+        rd = self._ribbons_drawing
+        drawings = [ad, rd]
         from chimerax.geometry import union_bounds
         b = union_bounds([d.bounds() for d in drawings if d is not None])
         return b
@@ -696,6 +697,21 @@ class Structure(Model, StructureData):
             bonds = self.bonds
             if bonds.num_selected > 0:
                 return [bonds.filter(bonds.selected)]
+        elif itype == 'residues':
+            from .molarray import concatenate, Atoms
+            atoms, bonds = self.atoms, self.bonds
+            sel_atoms = []
+            if atoms.num_selected > 0:
+                sel_atoms.append(atoms.filter(atoms.selected))
+            if bonds.num_selected > 0:
+                sel_bonds = bonds.filter(bonds.selected)
+                import numpy
+                atoms1, atoms2 = sel_bonds.atoms
+                is_intra = numpy.equal(atoms1.residues, atoms2.residues)
+                sel_atoms.extend(sel_bonds.filter(is_intra).atoms)
+            if sel_atoms:
+                from . import concatenate
+                return [concatenate(sel_atoms, remove_duplicates=True).unique_residues]
         return []
 
     def clear_selection(self):
@@ -815,8 +831,13 @@ class Structure(Model, StructureData):
         import numpy
         for attr in attrs:
             choose = attr.attr_matcher()
-            s = numpy.vectorize(choose)(objects)
-            selected = numpy.logical_and(selected, s)
+            if len(objects) == 1:
+                # numpy.vectorize produces the wrong size in this case
+                selected = numpy.array(selected)
+                selected[0] = selected[0] and choose(objects[0])
+            else:
+                s = numpy.vectorize(choose)(objects)
+                selected = numpy.logical_and(selected, s)
         return selected
 
 
@@ -835,8 +856,12 @@ class Structure(Model, StructureData):
                 choose_id = part.res_id_matcher()
                 if choose_id:
                     s = numpy.vectorize(choose_id)(res_numbers, res_ics)
-                    selected = numpy.logical_or(selected, s)
-                else:
+                    if s.any():
+                        selected = numpy.logical_or(selected, s)
+                    else:
+                        choose_id = None
+                        # Try using input as name instead of number
+                if not choose_id:
                     choose_type = part.string_matcher(False)
                     s = numpy.vectorize(choose_type)(res_names)
                     selected = numpy.logical_or(selected, s)
@@ -1503,15 +1528,18 @@ class StructureGraphicsChangeManager:
         self._structures_array = None		# StructureDatas object
         self.num_atoms_shown = 0
         self.level_of_detail = LevelOfDetail()
-        self._last_ribbon_divisions = 20
         from chimerax.core.models import MODEL_DISPLAY_CHANGED
         self._display_handler = t.add_handler(MODEL_DISPLAY_CHANGED, self._model_display_changed)
-        self._need_update = False
+        self._model_display_change = False
 
     def __del__(self):
         self.session.triggers.remove_handler(self._handler)
         self.session.triggers.remove_handler(self._display_handler)
 
+    @property
+    def structures(self):
+        return self._structures
+    
     def add_structure(self, s):
         self._structures.add(s)
         self._structures_array = None
@@ -1521,27 +1549,29 @@ class StructureGraphicsChangeManager:
         self._structures.remove(s)
         self._structures_array = None
 
-    def need_update(self):
-        self._need_update = True
-
     def _model_display_changed(self, tname, model):
         if isinstance(model, Structure) or _has_structure_descendant(model):
-            self._need_update = True
+            self._model_display_change = True
 
     def _update_graphics_if_needed(self, *_):
         s = self._array()
         gc = s._graphics_changeds	# Includes pseudobond group changes.
-        if gc.any() or self._need_update:
+        if self._model_display_change or gc.any():
+            # Update graphics for each changed structure
             for i in gc.nonzero()[0]:
                 s[i]._update_graphics_if_needed()
 
-            # Update level of detail
-            n = sum(m.num_atoms_visible * m.num_displayed_positions
-                    for m in s if m.visible)
-            if n > 0 and n != self.num_atoms_shown:
-                self.num_atoms_shown = n
-                self.update_level_of_detail()
-            self._need_update = False
+            # Update level of detail if number of atoms shown changed.
+            if self._model_display_change or (gc & StructureData._SHAPE_CHANGE).any():
+                n = sum(m.num_atoms_visible * m.num_displayed_positions
+                        for m in s if m.visible)
+                if n > 0 and n != self.num_atoms_shown:
+                    self.num_atoms_shown = n
+                    self.update_level_of_detail()
+
+            self._model_display_change = False
+
+            # Fire selection changed trigger.
             if (gc & StructureData._SELECT_CHANGE).any():
                 from chimerax.core.selection import SELECTION_CHANGED
                 self.session.triggers.activate_trigger(SELECTION_CHANGED, None)
@@ -1549,17 +1579,17 @@ class StructureGraphicsChangeManager:
 
     def update_level_of_detail(self):
         n = self.num_atoms_shown
-
-        lod = self.level_of_detail
-        ribbon_changed = (lod.ribbon_divisions != self._last_ribbon_divisions)
-        if ribbon_changed:
-            self._last_ribbon_divisions = lod.ribbon_divisions
-
         for m in self._structures:
             if m.display:
                 m._update_level_of_detail(n)
-                if ribbon_changed:
-                    m._graphics_changed |= m._RIBBON_CHANGE
+
+    def set_ribbon_divisions(self, divisions):
+        self.level_of_detail.ribbon_fixed_divisions = divisions
+        self._update_ribbons()
+
+    def _update_ribbons(self):
+        for m in self._structures:
+            m._graphics_changed |= m._RIBBON_CHANGE
 
     def _array(self):
         sa = self._structures_array
@@ -1568,12 +1598,14 @@ class StructureGraphicsChangeManager:
             self._structures_array = sa = StructureDatas(object_pointers(self._structures))
         return sa
 
-    def set_subdivision(self, subdivision):
+    def set_quality(self, quality):
         lod = self.level_of_detail
-        lod.quality = subdivision
+        lod.quality = quality
         lod.atom_fixed_triangles = None
         lod.bond_fixed_triangles = None
+        lod.ribbon_fixed_divisions = None
         self.update_level_of_detail()
+        self._update_ribbons()
 
 # -----------------------------------------------------------------------------
 #
@@ -1599,6 +1631,7 @@ class LevelOfDetail(State):
         # else:
         self.quality = 1
 
+        # Number of triangles used for an atom sphere.
         self._atom_min_triangles = 10
         self._atom_max_triangles = 2000
         self._atom_default_triangles = 200
@@ -1607,6 +1640,7 @@ class LevelOfDetail(State):
         self.atom_fixed_triangles = None	# If not None use fixed number of triangles
         self._sphere_geometries = {}	# Map ntri to (va,na,ta)
 
+        # Number of triangles used for a bond cylinder.
         self._bond_min_triangles = 24
         self._bond_max_triangles = 160
         self._bond_default_triangles = 60
@@ -1614,8 +1648,12 @@ class LevelOfDetail(State):
         self.bond_fixed_triangles = None	# If not None use fixed number of triangles
         self._cylinder_geometries = {}	# Map ntri to (va,na,ta)
 
-        self.ribbon_divisions = 20
-
+        # Number of bands between two residues along the length of a ribbon.
+        self._ribbon_min_divisions = 2
+        self._ribbon_max_divisions = 20
+        self._ribbon_residue_count_best = 20000	# Use max divisions for fewer residues
+        self.ribbon_fixed_divisions = None
+        
     def take_snapshot(self, session, flags):
         return {'quality': self.quality,
                 'version': 1}
@@ -1711,6 +1749,19 @@ class LevelOfDetail(State):
         ntri = 4*(ntri//4)	# Require multiple of 4
         return ntri
 
+    def ribbon_divisions(self, num_residues):
+        div = self.ribbon_fixed_divisions
+        if div is not None:
+            return div
+        f = num_residues / self._ribbon_residue_count_best
+        dmin, dmax = self._ribbon_min_divisions, self._ribbon_max_divisions
+        div = int(self.quality * (dmax if f <= 1 else dmax / f))
+        if div < dmin:
+            div = dmin
+        elif div > dmax:
+            div = dmax
+        return div
+    
 # -----------------------------------------------------------------------------
 #
 from chimerax.core.selection import SelectionPromotion
@@ -2102,12 +2153,22 @@ def selected_atoms(session):
 
 # -----------------------------------------------------------------------------
 #
-def selected_bonds(session):
-    '''All selected bonds in all structures as an :class:`.Bonds` collection.'''
+def selected_bonds(session, *, intra_residue=True, inter_residue=True):
+    '''All selected bonds in all structures as a :class:`.Bonds` collection.'''
     blist = []
     for m in session.models.list(type = Structure):
         for b in m.selected_items('bonds'):
-            blist.append(b)
+            if inter_residue and intra_residue:
+                blist.append(b)
+                continue
+            import numpy
+            atoms1, atoms2 = b.atoms
+            # "atoms1.residues == atoms2.residues" returns a scalar boolean, so...
+            is_intra = atoms1.residues.pointers == atoms2.residues.pointers
+            if intra_residue:
+                blist.append(b.filter(is_intra))
+            if inter_residue:
+                blist.append(b.filter(numpy.logical_not(is_intra)))
     from .molarray import concatenate, Bonds
     bonds = concatenate(blist, Bonds)
     return bonds
@@ -2117,7 +2178,8 @@ def selected_bonds(session):
 def selected_residues(session):
     '''All selected residues in all structures as an :class:`.Residues` collection.'''
     from .molarray import concatenate, Atoms
-    sel_atoms = concatenate((selected_atoms(session),) + selected_bonds(session).atoms, Atoms)
+    sel_atoms = concatenate((selected_atoms(session),)
+        + selected_bonds(session, inter_residue=False).atoms, Atoms)
     return sel_atoms.residues.unique()
 
 # -----------------------------------------------------------------------------

@@ -32,12 +32,16 @@ Session data, ie., data that is archived, uses the :py:class:`State` and
 """
 
 from .state import RestoreError, State, StateManager, copy_state, dereference_state
-from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, commas, plural_form
+from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register, plural_form
 from .errors import UserError
 
 _builtin_open = open
 #: session file suffix
 SESSION_SUFFIX = ".cxs"
+
+# If any of the *STATE_VERSIONs change, then increase the (maximum) core session
+# number in setup.py.in
+ALIAS_STATE_VERSION = 1
 
 # List of type objects that are in bundle "builtins"
 BUILTIN_TYPES = frozenset((bool, bytearray, bytes, complex, dict, frozenset, int, float, list, range, set, slice, str, tuple))
@@ -253,7 +257,7 @@ class _SaveManager:
             if key not in self.processed:
                 try:
                     self.processed[key] = self.process(obj, parents)
-                except ValueError as e:
+                except Exception as e:
                     raise ValueError("error processing: %s: %s" % (_obj_stack(parents, obj), e))
                 self.graph[key] = self._found_objs
 
@@ -318,28 +322,37 @@ class _RestoreManager:
         self.bundle_infos.clear()
 
     def check_bundles(self, session, bundle_infos):
+        from . import BUNDLE_NAME
         missing_bundles = []
         out_of_date_bundles = []
+        need_core_version = None
         for bundle_name, (bundle_version, bundle_state_version) in bundle_infos.items():
-            # put the below kludge in to allow sessions saved before the seq_view
-            # bundle name change to restore; remove on or after 1.0 release
             bi = session.toolshed.find_bundle(bundle_name, session.logger)
             if bi is None:
-                missing_bundles.append(bundle_name)
+                missing_bundles.append((bundle_name, bundle_version))
                 continue
             # check if installed bundles can restore data
             if bundle_state_version not in bi.session_versions:
-                out_of_date_bundles.append(bi)
+                if bi.name == BUNDLE_NAME:
+                    need_core_version = bundle_version
+                else:
+                    out_of_date_bundles.append((bundle_name, bundle_version, bi))
+        if need_core_version is not None:
+            DOWNLOAD_URL = "https://www.rbvi.ucsf.edu/chimerax/download.html"
+            session.logger.info(
+                f'<blockquote>Get a new version of ChimeraX from <a href="{DOWNLOAD_URL}">'
+                f'{DOWNLOAD_URL}</a>.</blockquote>',
+                is_html=True)
+            raise UserError(f"your version of ChimeraX is too old, install version {need_core_version} or newer")
         if missing_bundles or out_of_date_bundles:
-            msg = "Unable to restore all of session"
+            msg = ""
             if missing_bundles:
-                msg += "; missing %s: %s" % (
-                    plural_form(missing_bundles, 'bundle'),
-                    commas(missing_bundles, 'and'))
+                msg += "need to install missing " + plural_form(missing_bundles, 'bundle')
             if out_of_date_bundles:
-                msg += "; out of date %s: %s" % (
-                    plural_form(out_of_date_bundles, 'bundle'),
-                    commas(out_of_date_bundles, 'and'))
+                if missing_bundles:
+                    msg += " and "
+                msg += "need to update " + plural_form(out_of_date_bundles, 'bundle')
+            self.log_bundles(session, missing_bundles, out_of_date_bundles)
             raise UserError(msg)
         self.bundle_infos = bundle_infos
 
@@ -350,10 +363,21 @@ class _RestoreManager:
     def add_reference(self, name, obj):
         _UniqueName.add(name.uid, obj)
 
+    def log_bundles(self, session, missing_bundles, out_of_date_bundles):
+
+        bundle_link = session.toolshed.bundle_link
+        msg = "<blockquote>\n" "To Restore session:<ul>\n"
+        if missing_bundles:
+            for name, version in missing_bundles:
+                msg += f"<li>install {bundle_link(name)} bundle version {version} or newer</li>" "\n"
+        if out_of_date_bundles:
+            for name, version, bi in out_of_date_bundles:
+                msg += f"<li>update {bundle_link(name)} bundle to version {version} or newer (have {bi.version})</li>" "\n"
+        msg += "</ul></blockquote>\n"
+        session.logger.warning(msg, is_html=True, add_newline=False)
+
 
 class UserAliases(StateManager):
-
-    ALIAS_STATE_VERSION = 1
 
     def reset_state(self, session):
         """Reset state to data-less state"""
@@ -368,7 +392,7 @@ class UserAliases(StateManager):
             aliases[name] = expand_alias(name)
         data = {
             'aliases': aliases,
-            'version': self.ALIAS_STATE_VERSION,
+            'version': ALIAS_STATE_VERSION,
         }
         return data
 
@@ -462,8 +486,10 @@ class Session:
         """Reset session to data-less state"""
         self.metadata.clear()
         self.session_file_path = None
-        for tag in self._state_containers:
-            container = self._state_containers[tag]
+        for tag in list(self._state_containers):
+            container = self._state_containers.get(tag, None)
+            if container is None:
+                continue
             sm = self.snapshot_methods(container, base_type=StateManager)
             if sm:
                 sm.reset_state(container, self)
@@ -541,12 +567,12 @@ class Session:
         self.triggers.activate_trigger("begin save session", self)
         try:
             if version == 1:
-                raise UserError("Version 1 session files are no longer supported")
+                raise UserError("Version 1 formatted session files are no longer supported")
             elif version == 2:
-                raise UserError("Version 2 session files are no longer supported")
+                raise UserError("Version 2 formatted session files are no longer supported")
             else:
                 if version != 3:
-                    raise UserError("Only version 3 session files are supported")
+                    raise UserError("Only version 3 formatted session files are supported")
                 stream.write(b'# ChimeraX Session version 3\n')
                 stream = serialize.msgpack_serialize_stream(stream)
                 fserialize = serialize.msgpack_serialize
@@ -588,8 +614,8 @@ class Session:
         if use_pickle:
             version = serialize.pickle_deserialize(stream)
             if version != 1:
-                raise UserError('Not a ChimeraX session file')
-            raise UserError("Session file format version 1 detected.  Convert using UCSF ChimeraX 0.8")
+                raise UserError('not a ChimeraX session file')
+            raise UserError("session file format version 1 detected.  Convert using UCSF ChimeraX 0.8")
         else:
             line = stream.readline(256)   # limit line length to avoid DOS
             tokens = line.split()
@@ -597,16 +623,16 @@ class Session:
                 raise RuntimeError('Not a ChimeraX session file')
             version = int(tokens[4])
             if version == 2:
-                raise UserError("Session file format version 2 detected.  DO NOT USE.  Recreate session from scratch, and then save.")
+                raise UserError("session file format version 2 detected.  DO NOT USE.  Recreate session from scratch, and then save.")
             elif version == 3:
                 stream = serialize.msgpack_deserialize_stream(stream)
             else:
                 raise UserError(
-                    "Need newer version of ChimeraX to restore session")
+                    "need newer version of ChimeraX to restore session")
             fdeserialize = serialize.msgpack_deserialize
         metadata = fdeserialize(stream)
         if metadata is None:
-            raise UserError("Corrupt session file (missing metadata)")
+            raise UserError("corrupt session file (missing metadata)")
         metadata['session_version'] = version
         if metadata_only:
             self.metadata.update(metadata)
@@ -672,13 +698,15 @@ class Session:
             self.restore_options.clear()
             mgr.cleanup()
 
+
 def _have_graphics():
     # During build process ChimeraX is run before graphics module is installed.
     try:
-        import chimerax.graphics
+        import chimerax.graphics  # noqa
     except ImportError:
         return False
     return True
+
 
 class InScriptFlag:
 
@@ -906,7 +934,10 @@ def open(session, path, resize_window=None):
     # TODO: active trigger to allow user to stop overwritting
     # current session
     session.session_file_path = path
-    session.restore(stream, path=path, resize_window=resize_window)
+    try:
+        session.restore(stream, path=path, resize_window=resize_window)
+    except UserError as ue:
+        raise UserError(f"Unable to restore session: {ue}")
     return [], "opened ChimeraX session"
 
 
@@ -976,51 +1007,11 @@ def save_x3d(session, path, transparent_background=False):
         x3d_scene.write_footer(stream, 0)
 
 
-def register_session_format(session):
-    from .commands import CmdDesc, register, SaveFileNameArg, IntArg, BoolArg
-    from .commands.cli import add_keyword_arguments
+def register_misc_commands(session):
     from .commands.toolshed import register_command
     register_command(session.logger)
-    from .commands import devel as devel_cmd, open as open_cmd, save as save_cmd
+    from .commands import devel as devel_cmd
     devel_cmd.register_command(session.logger)
-    open_cmd.register_command(session.logger)
-    from . import io, toolshed
-    io.register_format(
-        "ChimeraX session", toolshed.SESSION, SESSION_SUFFIX, ("session",),
-        mime="application/x-chimerax-session",
-        reference="help:user/commands/save.html",
-        open_func=open, export_func=save)
-    add_keyword_arguments('open', {'resize_window': BoolArg})
-
-    save_cmd.register_command(session.logger)
-    desc = CmdDesc(
-        required=[('filename', SaveFileNameArg)],
-        keyword=[('version', IntArg), ('uncompressed', BoolArg)],
-        hidden=['version', 'uncompressed'],
-        synopsis='save session'
-    )
-    add_keyword_arguments('save', {'include_maps': BoolArg})
-
-    def save_session(session, filename, **kw):
-        kw['format'] = 'session'
-        from .commands.save import save
-        save(session, filename, **kw)
-    register('save session', desc, save_session, logger=session.logger)
-    add_keyword_arguments('save session', {'include_maps': BoolArg})
-
-    import sys
-    if sys.platform.startswith('linux'):
-        from .commands.linux import register_command
-        register_command(session.logger)
-
-
-def register_x3d_format():
-    from . import io, toolshed
-    io.register_format(
-        "X3D", toolshed.GENERIC3D, ".x3d", "x3d",
-        mime="model/x3d+xml",
-        reference="http://www.web3d.org/standards",
-        export_func=save_x3d)
 
 
 def common_startup(sess):
@@ -1048,11 +1039,10 @@ def common_startup(sess):
         logger=sess.logger
     )
 
-    _register_core_file_formats(sess)
-    _register_core_database_fetch()
+    register_misc_commands(sess)
 
     if not _have_graphics():
-        # During build process ChimeraX is run before graphics module is installed.        
+        # During build process ChimeraX is run before graphics module is installed.
         return
 
     from .selection import Selection
@@ -1070,66 +1060,3 @@ def common_startup(sess):
 
 def _gen_exception(session):
     raise RuntimeError("Generated exception for testing purposes")
-
-
-def register_session_save_options_gui(save_dialog):
-    '''
-    Session save gui options are registered in the ui module instead of when the
-    format is registered because the ui does not exist when the format is registered.
-    '''
-    from chimerax.ui import SaveOptionsGUI
-
-    class SessionSaveOptionsGUI(SaveOptionsGUI):
-        @property
-        def format_name(self):
-            return "ChimeraX session"
-
-        def wildcard(self):
-            from chimerax.ui.open_save import export_file_filter
-            from chimerax.core import toolshed
-            return export_file_filter(toolshed.SESSION)
-
-        def make_ui(self, parent):
-            from PyQt5.QtWidgets import QFrame, QVBoxLayout, QCheckBox
-
-            container = QFrame(parent)
-
-            layout = QVBoxLayout(container)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(0)
-            container.setLayout(layout)
-
-            self._include_maps = im = QCheckBox('Include maps', container)
-            layout.addWidget(im)
-
-            return container
-
-        def save(self, session, filename):
-            import os.path
-            ext = os.path.splitext(filename)[1]
-            from chimerax.core import io
-            fmt = io.format_from_name("ChimeraX session")
-            exts = fmt.extensions
-            if exts and ext not in exts:
-                filename += exts[0]
-            from chimerax.core.commands import run, quote_path_if_necessary
-            cmd = "save session %s" % quote_path_if_necessary(filename)
-            if self._include_maps.isChecked():
-                cmd += ' includeMaps true'
-            run(session, cmd)
-
-    save_dialog.add_options_gui(SessionSaveOptionsGUI())
-
-
-def _register_core_file_formats(session):
-    register_session_format(session)
-    from . import scripting
-    scripting.register()
-    from . import image
-    image.register_image_save(session)
-    register_x3d_format()
-
-
-def _register_core_database_fetch():
-    from . import fetch
-    fetch.register_web_fetch()

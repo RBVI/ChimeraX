@@ -386,6 +386,8 @@ of ``mac``.
 
     - **Manager** (one or more)
 
+.. _Manager:
+
 - **Manager**
 
   - Attribute:
@@ -400,11 +402,11 @@ of ``mac``.
     - ``init_manager`` should create and return an instance of a
       subclass of :py:class:`chimerax.core.toolshed.ProviderManager`.
       The subclass must implement at least one method:
-        ``add_provider(bundle_info, provider_name, **kw)``
+      ``add_provider(bundle_info, provider_name, **kw)``
       which is called once for each **Provider** tag whose manager
       name matches this manager (whether the bundle with the provider
       is installed or not).  A second method:
-        ``end_providers()``
+      ``end_providers()``
       is optional.  ``end_providers`` is called after all calls
       to ``add_provider`` have been made and is useful for finishing
       manager initialization.
@@ -442,7 +444,7 @@ of ``mac``.
     - Other attributes listed in the **Provider** tag are passed
       as keyword arguments to the manager's ``add_provider`` method.
     - Bundles that supply providers should implement the method:
-        ``run_provider(session, provider_name, manager, **kw)``
+      ``run_provider(session, provider_name, manager, **kw)``
       which may be used by the manager to invoke provider functionality.
 
 - **PythonClassifier**
@@ -568,74 +570,6 @@ data formats, and selectors.
     The old ``DataFormat``, ``Open``, and ``Save`` tags have been replaced with
     a manager/provider mechanism, as described in the `Opening/Saving/Fetching Files`_
     section below.
-
-    **The Data Format Metadata tags below will be withdrawn in a future version of ChimeraX in favor of the more flexible and generic Manager/Provider mechanism documented above.**  Details of the manager/provider API will be provided as they become finialized.  A changeover date will be pre-announced on the chimerax-users mailing list.
-
-    ``DataFormat`` :: *format_name* :: *nicknames* :: *category* :: *suffixes* :: *mime_types* :: *url* :: *dangerous* :: *icon* :: *synopsis* :: *encoding*
-
-    - *format_name* is a string.
-    - *nicknames* is an optional comma-separated list of strings.
-      If no nickname is given, it defaults to the lowercased format_name.
-    - *category* is a toolshed category.
-    - *suffixes* is an optional comma-separated list of strings with
-      leading periods, i.e., ``.pdb``.
-    - *mime_types* is an optinal comma-separated list of strings, e.g.,
-      chemical/x-pdb.
-    - *url* is a string that has a URL that points to the data format's docmentation.
-    - *dangerous* is an optional boolean and should be ``true`` if the data
-      format is insecure -- defaults to true if a script.
-    - *icon* is an optional string containing the filename of the icon --
-      it defaults to the default icon for the category.
-    - *synopsis* is a short description of the data format.  It is here
-      because it needs to be part of the metadata available for
-      uninstalled data format, so that users can get more than just a
-      name for deciding whether they want the data format or not.
-    - *encoding* should be given for text formats and is the file encoding.
-
-    For example::
-
-      DataFormat :: PDB :: :: Molecular Structure :: .pdb, .ent :: chemical/x-pdb :: http://www.pdb.org/ :: :: :: Protein DataBank file
-      DataFormat :: mmCIF :: :: Molecular Structure :: .mmcif, .cif :: chemical/x-mmcif :: http://www.pdb.org/ :: :: :: MacroMolecular CIF
-
-    In addition to describing the format, the bundle should say how if it
-    can fetch, open or save data in that format.
-
-        ``Open`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
-
-        ``Save`` :: *format_name* :: *tag* :: *is_default* :: *extra_keywords*
-
-        ``Fetch`` :: *database_name* :: *format_name* :: *prefixes* :: *example_id* :: *is_default*
-
-    - *format_name* is a format previously given in a DataFormat line.
-    - *prefixes* is a comma-separated list of strings associated with the
-      (database_name, format_name).
-    - *tag* is a string is disambiguate multiple readers or writers.
-    - *is_default* is a string.  If set to ``true``, this format is
-      the default format for the database.
-    - *extra_keywords* is an optional comma-separated list of additional
-      keyword arguments.  The keyword can be followed by a colon and a
-      ChimeraX argument type without the Arg suffix.  If the argument type
-      isn't found in the :py:class:`chimerax.core.commands` module, the bundle API class is
-      searched for it.
-    - *database_name* is a string with the name of the databasea to fetch
-      the data from.
-    - *example_id* is a string with an example identifier.
-
-    For example::
-    
-      Open :: PDB :: PDB ::
-      Save :: PDB :: PDB ::
-      Fetch :: PDB :: mmcif :: pdb :: 1a0m ::
-      Fetch :: PDB :: PDB :: :: 1a0m ::
-
-    Notes:
-
-    - File operations are performed via the ``bundle_api.open_file``,
-      ``bundle_api.save_file``, and
-      ``bundle_api.fetch_from_database`` methods.
-    - The data format metadata is used to generate the macOS
-      application property list.
-    - Bundles may provide more than one data format.
 
 
 *Selector Metadata*
@@ -766,6 +700,8 @@ These are the possible `Provider`_ attributes:
         for the data, then mime_types lists Content-Type header values that the server
         or servers could possibly provide.  Only relevant to the user providing an URL, not
         to the "fetching" of database identifiers outlined in the `Fetching Files`_ section.
+        If the data format has a `Wikipedia <https://en.wikipedia.org>`_ page, the "mime type"
+        will frequently be specified there (as "Internet media type").
 
 For example::
 
@@ -774,6 +710,8 @@ For example::
             category="Molecular structure" synopsis="Mol2" encoding="utf-8" />
     </Providers>
   
+.. _open command:
+
 Opening Files
 ^^^^^^^^^^^^^
 
@@ -845,6 +783,8 @@ The doc strings of that class discuss its methods in detail, but briefly:
   :ref:`Annotation <Type Annotations>` subclasses (such classes convert user-typed text into
   corresponding Python values).
 
+.. _save command:
+
 Saving Files
 ^^^^^^^^^^^^
 
@@ -908,6 +848,8 @@ The doc strings of that class discuss its methods in detail, but briefly:
   that takes your widget and returns a string containing the corresponding options and
   values that could be added to a ``save`` command.
   
+.. _fetch command:
+
 Fetching Files
 ^^^^^^^^^^^^^^
 

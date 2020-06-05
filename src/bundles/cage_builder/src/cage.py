@@ -135,7 +135,7 @@ class Polygon:
         if self.marker_set is None:
             msets = cage_marker_sets(session)
             if msets:
-                marker_set = msets[0]
+                self.marker_set = msets[0]
             else:
                 initial_view = session.models.empty()
                 self.marker_set = Cage(session)
@@ -794,7 +794,7 @@ def parse_placements(name, marker_set):
 
     try:
         n = int(ns)
-    except:
+    except Exception:
         from chimerax.core.errors import UserError
         raise UserError('Symmetry placement must be "p" or "pn" followed by an integer, got "%s"' % name)
 

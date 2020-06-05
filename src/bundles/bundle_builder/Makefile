@@ -49,6 +49,10 @@ install app-install: $(WHEEL)
 sync:
 	rsync -av dist/*.whl $(TOP)/build/sync/python-only
 
+build: install
+	# unlike normal bundles, install as well
+	$(MAKE) sync
+
 test:
 	for t in $(wildcard test*.cxc) $(wildcard test*.py);\
 		do $(CHIMERAX_EXE) --exit --nogui $$t;\

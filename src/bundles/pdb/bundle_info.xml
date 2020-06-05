@@ -43,8 +43,9 @@
   </CModule>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
-    <Dependency name="ChimeraX-Atomic" version="~=1.0"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+    <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
+    <Dependency name="ChimeraX-Atomic" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>
@@ -52,7 +53,8 @@
 
   <Providers manager="data formats">
     <Provider name="PDB" category="Molecular structure" suffixes=".pdb,.pdb1,.ent,.pqr"
-		encoding="utf-8" reference_url="http://www.wwpdb.org/documentation/file-format" />
+        mime_types="chemical/x-pdb,chemical/x-spdbv" encoding="utf-8"
+		reference_url="http://www.wwpdb.org/documentation/file-format" />
   </Providers>
 
   <Providers manager="open command">
@@ -69,11 +71,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    <ChimeraXClassifier>DataFormat :: PDB :: :: Molecular structure :: .pdb,.pdb1,.ent,.pqr :: :: http://www.wwpdb.org/documentation/file-format :: :: :: Protein Databank Format (PDB)</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: pdb :: PDB :: :: 1a0m ::</ChimeraXClassifier>
-    <ChimeraXClassifier>Fetch :: pdbe :: PDB :: :: 1a0m ::</ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: PDB :: PDB :: false :: coordsets:Bool,auto_style:Bool,atomic:Bool,max_models:Int,log_info:Bool,combine_sym_atoms:Bool,structure_factors:Bool,over_sampling:Float</ChimeraXClassifier>
-    <ChimeraXClassifier>Save :: PDB :: PDB :: false :: models:Models,selected_only:Bool,displayed_only:Bool,all_coordsets:Bool,pqr:Bool,rel_model:Model,serial_numbering:SerialNumbering</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

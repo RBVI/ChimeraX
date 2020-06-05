@@ -99,8 +99,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
     :param update: if true, then existing file is okay if newer than web version
     :param check_certificates: if true
     :returns: None if an existing file, otherwise the content type
-    :raises urllib.request.URLError or EOFError if unsuccessful
-
+    :raises urllib.request.URLError or EOFError: if unsuccessful
 
     If 'update' and the filename already exists, fetch the HTTP headers for
     the URL and check the last modified date to see if there is a newer
@@ -169,7 +168,7 @@ def retrieve_url(url, filename, *, logger=None, uncompress=False,
         if logger:
             logger.status('%s fetched' % name, secondary=True, blank_after=5)
         return ct
-    except:
+    except Exception:
         if os.path.exists(filename):
             os.remove(filename)
         if logger:
@@ -288,88 +287,6 @@ def html_user_agent(app_dirs):
 
 # -----------------------------------------------------------------------------
 #
-def fetch_web(session, url, ignore_cache=False, new_tab=False, **kw):
-    # TODO: deal with content encoding for text formats
-    # TODO: how would "ignore_cache" work?
-    import os
-    from urllib import parse
-    from . import io
-    cache_dir = os.path.expanduser(os.path.join('~', 'Downloads'))
-    o = parse.urlparse(url)
-    path = parse.unquote(o.path)
-    basename = os.path.basename(path)
-    nominal_format, basename, compression_ext = io.deduce_format(basename, no_raise=True)
-    if nominal_format is None or (nominal_format is not None and nominal_format.name == 'HTML'):
-        # Let the help viewer fetch it's own files
-        try:
-            import chimerax.help_viewer as browser
-        except ImportError:
-            from .errors import UserError
-            raise UserError('Help viewer is not installed')
-        browser.show_url(session, url, new_tab=new_tab)
-        return [], "Opened %r in browser" % url
-    base, ext = os.path.splitext(basename)
-    filename = os.path.join(cache_dir, '%s%s' % (base, ext))
-    count = 0
-    while os.path.exists(filename):
-        count += 1
-        filename = os.path.join(cache_dir, '%s(%d)%s' % (base, count, ext))
-    uncompress = compression_ext is not None
-    content_type = retrieve_url(url, filename, logger=session.logger, uncompress=uncompress)
-    session.logger.info('Downloaded %s to %s' % (basename, filename))
-    mime_format = None
-    if 'format' in kw:
-        format_name = kw['format']
-        del kw['format']
-        mime_format = io.format_from_name(format_name)
-    if mime_format is None:
-        for mime_format in io.formats():
-            if content_type in mime_format.mime_types:
-                break
-        else:
-            if content_type != 'application/octet-stream':
-                session.logger.info('Unrecognized mime type: %s' % content_type)
-            mime_format = nominal_format
-    if mime_format is None:
-        from .errors import UserError
-        raise UserError('Unable to deduce format of %s' % url)
-    if mime_format != nominal_format:
-        session.logger.info('mime type (%s), does not match file name extension (%s)' % (content_type, ext))
-        new_ext = mime_format.extensions[0]
-        new_filename = os.path.join(cache_dir, '%s%s' % (base, new_ext))
-        count = 0
-        while os.path.exists(new_filename):
-            count += 1
-            new_filename = os.path.join(cache_dir, '%s(%d)%s' % (base, count, new_ext))
-        session.logger.info('renaming "%s" to "%s"' % (filename, new_filename))
-        os.rename(filename, new_filename)
-        nominal_format = mime_format
-        filename = new_filename
-    return io.open_data(session, filename, format=nominal_format.name, **kw)
-
-
-# -----------------------------------------------------------------------------
-#
-def register_web_fetch():
-    from .commands import BoolArg
-    from .commands.cli import add_keyword_arguments
-    add_keyword_arguments("open", {'new_tab': BoolArg})
-
-    def fetch_http(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'http:' + scheme_specific_part, **kw)
-    register_fetch('http', fetch_http, None, prefixes=['http'])
-
-    def fetch_https(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'https:' + scheme_specific_part, **kw)
-    register_fetch('https', fetch_https, None, prefixes=['https'])
-
-    def fetch_ftp(session, scheme_specific_part, **kw):
-        return fetch_web(session, 'ftp:' + scheme_specific_part, **kw)
-    register_fetch('ftp', fetch_ftp, None, prefixes=['ftp'])
-
-
-# -----------------------------------------------------------------------------
-#
 def _convert_to_timestamp(date):
     # covert HTTP date to POSIX timestamp
     from email.utils import parsedate_to_datetime
@@ -377,125 +294,3 @@ def _convert_to_timestamp(date):
         return parsedate_to_datetime(date).timestamp()
     except TypeError:
         return None
-
-
-# -----------------------------------------------------------------------------
-#
-def register_fetch(database_name, fetch_function, file_format,
-                   prefixes=(), is_default_format=False, example_id=None):
-    d = fetch_databases()
-    df = d.get(database_name, None)
-    if df is None:
-        d[database_name] = df = DatabaseFetch(database_name, file_format)
-    df.add_format(file_format, fetch_function)
-    if is_default_format:
-        df.default_format = file_format
-    if example_id:
-        df.example_id = example_id
-    for p in prefixes:
-        df.prefix_format[p] = file_format
-
-
-# -----------------------------------------------------------------------------
-#
-def deregister_fetch(database_name, file_format, prefixes=()):
-    d = fetch_databases()
-    try:
-        df = d[database_name]
-    except KeyError:
-        return
-    df.remove_format(file_format)
-    if not df.fetch_function:
-        # No more fetch options, just delete
-        del d[database_name]
-    else:
-        # Still have options, get rid of what we registered
-        if df.default_format == file_format:
-            df.default_format = None
-        for p in prefixes:
-            del df.prefix_format[p]
-
-
-# -----------------------------------------------------------------------------
-#
-def fetch_databases():
-    return _database_fetches
-
-
-# -----------------------------------------------------------------------------
-#
-def database_formats(from_database):
-    return fetch_databases()[from_database].fetch_function.keys()
-
-
-# -----------------------------------------------------------------------------
-#
-def fetch_from_database(session, from_database, id, format=None, name=None, ignore_cache=False, **kw):
-    d = fetch_databases()
-    df = d[from_database]
-    from .logger import Collator
-    with Collator(session.logger, "Summary of feedback from opening %s fetched from %s" % (id, from_database)):
-        models, status = df.fetch(session, id, format=format, ignore_cache=ignore_cache, **kw)
-    if name is not None:
-        for m in models:
-            m.name = name
-    return models, status
-
-
-# -----------------------------------------------------------------------------
-#
-def fetch_from_prefix(prefix):
-    d = fetch_databases()
-    for db in d.values():
-        if prefix in db.prefix_format:
-            return db.database_name, db.prefix_format[prefix]
-    return None, None
-
-
-# -----------------------------------------------------------------------------
-#
-def prefixes():
-    d = fetch_databases()
-    return sum((tuple(db.prefix_format.keys()) for db in d.values()), ())
-
-
-# -----------------------------------------------------------------------------
-#
-class DatabaseFetch:
-
-    def __init__(self, database_name, default_format=False, example_id=None):
-        self.database_name = database_name
-        self.default_format = default_format
-        self.fetch_function = {}		# Map format to fetch function
-        self.prefix_format = {}
-
-    def add_format(self, format_name, fetch_function):
-        # fetch_function() takes session and database id arguments, returns model list.
-        from . import io
-        f = io.format_from_name(format_name)
-        if f is None:
-            self.fetch_function[format_name] = fetch_function
-        else:
-            self.fetch_function[f.name] = fetch_function
-            for name in f.nicknames:
-                self.fetch_function[name] = fetch_function
-
-    def remove_format(self, format_name):
-        from . import io
-        f = io.format_from_name(format_name)
-        if f is None:
-            try:
-                del self.fetch_function[format_name]
-            except KeyError:
-                pass
-        else:
-            for name in f.nicknames:
-                try:
-                    del self.fetch_function[name]
-                except KeyError:
-                    pass
-
-    def fetch(self, session, database_id, format=None, ignore_cache=False, **kw):
-        f = self.default_format if format is None else format
-        fetch = self.fetch_function[f]
-        return fetch(session, database_id, ignore_cache=ignore_cache, **kw)

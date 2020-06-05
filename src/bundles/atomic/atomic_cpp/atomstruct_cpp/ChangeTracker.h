@@ -50,7 +50,7 @@ public:
     std::set<std::string>   reasons;
     long  num_deleted = 0;
 
-    bool  changed() const { return !(created.empty() && modified.empty() && num_deleted==0); }
+    bool  changed() const { return !(created.empty() && modified.empty() && reasons.empty() && num_deleted==0); }
     void  clear() { created.clear(); modified.clear(); reasons.clear(); num_deleted=0; }
 };
 
@@ -157,7 +157,11 @@ public:
             return;
         if (_structure_okay(s)) {
             auto& s_changes = _structure_type_changes[s][_ptr_to_type(ptr)];
-            if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
+            if (ptr == nullptr) {
+                // If ptr is null the object is not included in the modified list.
+                // This is to improve speed with large structures, see ticket #3000.
+                s_changes.reasons.insert(reason);
+            } else if (s_changes.created.find(static_cast<const void*>(ptr)) == s_changes.created.end()) {
                 // newly created objects don't also go in modified set
                 s_changes.modified.insert(ptr);
                 s_changes.reasons.insert(reason);

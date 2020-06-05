@@ -230,7 +230,7 @@ def _pick_description(picks):
                 count, name = d.split(maxsplit = 1)
                 c = int(count)
                 item_counts[name] = item_counts.get(name,0) + c
-            except:
+            except Exception:
                 pdesc.append(d)
     pdesc.extend('%d %s' % (count, name) for name, count in item_counts.items())
     desc = ', '.join(pdesc)
@@ -247,6 +247,7 @@ class MoveMouseMode(MouseMode):
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
+        self.speed = 1
         self._z_rotate = False
         self._moved = False
 
@@ -323,6 +324,7 @@ class MoveMouseMode(MouseMode):
     def _rotate(self, axis, angle):
         # Convert axis from camera to scene coordinates
         saxis = self.camera_position.transform_vector(axis)
+        angle *= self.speed
         if self._moving_atoms:
             from chimerax.geometry import rotation
             self._move_atoms(rotation(saxis, angle, center = self._atoms_center()))
@@ -348,7 +350,6 @@ class MoveMouseMode(MouseMode):
                 angle = -angle
         else:
             axis = (dy,dx,0)
-            
         return axis, angle
 
     def _restricted_axis(self):
@@ -364,7 +365,7 @@ class MoveMouseMode(MouseMode):
 
     def _translate(self, shift):
         psize = self.pixel_size()
-        s = tuple(dx*psize for dx in shift)     # Scene units
+        s = tuple(dx*psize*self.speed for dx in shift)     # Scene units
         step = self.camera_position.transform_vector(s)    # Scene coord system
         if self._moving_atoms:
             from chimerax.geometry import translation
@@ -567,18 +568,22 @@ class ZoomMouseMode(MouseMode):
     '''
     name = 'zoom'
     icon_file = 'icons/zoom.png'
+    def __init__(self, session):
+        MouseMode.__init__(self, session)
+        self.speed = 1
 
     def mouse_drag(self, event):        
 
         dx, dy = self.mouse_motion(event)
         psize = self.pixel_size()
-        delta_z = 3*psize*dy
+        delta_z = 3*psize*dy*self.speed
         self.zoom(delta_z, stereo_scaling = not event.alt_down())
 
     def wheel(self, event):
         d = event.wheel_value()
         psize = self.pixel_size()
-        self.zoom(100*d*psize, stereo_scaling = not event.alt_down())
+        delta_z = 100*d*psize*self.speed
+        self.zoom(delta_z, stereo_scaling = not event.alt_down())
 
     def zoom(self, delta_z, stereo_scaling = False):
         v = self.view

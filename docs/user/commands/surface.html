@@ -36,20 +36,21 @@ class="clRight" title="User Guide Index"/></a>
 &nbsp;<a href="#options"><i>other-options</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
+<br><b>surface</b> (&nbsp;<b>hidePatches</b>&nbsp;|&nbsp;<b>showPatches</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>surface</b> (&nbsp;<b>hide</b>&nbsp;|&nbsp;<b>show</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
-&nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>
+<br><b>surface</b> (&nbsp;<b>hidePatches</b>&nbsp;|&nbsp;<b>showPatches</b>&nbsp;|&nbsp;<b>close</b>&nbsp;)
+&nbsp;<a href="atomspec.html#othermodels"><i>molsurf-model</i></a>
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>surface style</b>
+<br><a href="#style"><b>surface style</b></a>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model</i></a>&nbsp;
 (&nbsp;<b>solid</b>&nbsp;|&nbsp;<b>mesh</b>&nbsp;|&nbsp;<b>dot</b>&nbsp;)
 </h3>
 <p>
-The <b>surface</b> command creates and displays <b><i>molecular surfaces</i></b>,
+The <b>surface</b> command creates and displays
+<b><i>molecular surfaces</i></b>,
 either atomically detailed solvent-excluded surfaces (default) or
 lower-resolution Gaussian surfaces.
 See also:
@@ -61,6 +62,7 @@ See also:
 <a href="sym.html"><b>sym</b></a>,
 <a href="volume.html"><b>volume</b></a>,
 <a href="volume.html#vop"><b>volume</b> operations</a>,
+<a href="../menu.html#actions"><b>Actions</b> menu</a>,
 <a href="colortables.html#autocolors">chain colors</a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
@@ -116,16 +118,18 @@ will show/hide their patches within the context of
 the entire chain; for example, no patches will be shown
 for atoms that are completely buried inside the chain.
 </p><p>
-The <b>surface show</b> command applies to <i>pre-existing</i> surfaces only,
-whereas <b>surface</b> (without <b>show</b>) creates a new surface as needed.
+The <b>surface showPatches</b> command applies to
+<i>pre-existing</i> surfaces only, whereas <b>surface</b>
+(without <b>showPatches</b>) creates a new molecular surface as needed.
 <!-- still unclear to me exactly what this entails -->
 However, if the intent is to switch between surface types (SES and GS)
 or to create a new surface with default parameters, 
 closing an existing surface first is recommended, otherwise
 some of its settings may be retained.
-The <b>surface close</b> command removes the surface models specified directly,
-or all surface models that enclose any of the specified atoms.
-The command <b>~surface</b> is the same as <b>surface hide</b>.
+The <b>surface close</b> command removes the molecular surface models 
+specified directly by model number,
+or all molecular surface models that enclose any of the specified atoms.
+The command <b>~surface</b> is the same as <b>surface hidePatches</b>.
 </p><p>
 Surface display style (solid, mesh, or dot) can be adjusted with
 <a href="#style"><b>surface style</b></a>.
@@ -160,6 +164,7 @@ Surface display style (solid, mesh, or dot) can be adjusted with
 [&nbsp;<b>probeRadius</b>&nbsp;&nbsp;<i>rad</i>&nbsp;]
 [&nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;[&nbsp;<b>level</b>&nbsp;<i>l</i>&nbsp;]]
 [&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>sharpBoundaries</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>visiblePatches</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 </blockquote>
@@ -235,6 +240,10 @@ for an SES, <b>0.1<i>r</i></b> (one-tenth the resolution)
 for a Gaussian surface.
 A smaller spacing gives a smoother, more finely triangulated surface,
 but uses more memory.
+<li>The <b>update</b> option (default <b>true</b>) indicates
+whether to update the surface automatically when its shape changes,
+such as from atom movements during
+<a href="../trajectories.html">trajectory</a> playback.
 </ul>
 <p>
 The default values apply to the initial creation of a surface,
@@ -348,7 +357,11 @@ and HEM residues in model 1
 <p>
 The representation of a surface model can be <b>solid</b>,
 <b>mesh</b>, or <b>dot</b>.
-See also: <a href="transparency.html"><b>transparency</b></a>
+This applies to surface models in general, including
+<a href="../tools/volumeviewer.html">volume</a> isosurfaces.
+See also:
+<a href="volume.html"><b>volume</b></a>,
+<a href="transparency.html"><b>transparency</b></a>
 </p>
 
 <a name="sop"></a>
@@ -504,5 +517,5 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2020</address>
+April 2020</address>
 </body></html>
