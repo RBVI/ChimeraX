@@ -23,8 +23,7 @@ import numpy
 from chimerax.geometry import Place, translation, scale, distance, distance_squared, z_align, Plane, normalize_vector
 from chimerax.surface import box_geometry, sphere_geometry2, cylinder_geometry
 from chimerax.core.state import State, StateManager, RestoreError
-from chimerax.atomic import Residues, Atoms, Sequence, Pseudobonds
-from chimerax.atomic.shapedrawing import AtomicShapeInfo
+from chimerax.atomic import Residues, Atoms, Sequence, Pseudobonds, AtomicShapeDrawing, AtomicShapeInfo
 nucleic3to1 = Sequence.nucleic3to1
 
 _SQRT2 = math.sqrt(2)
@@ -566,7 +565,6 @@ def _make_nuc_drawing(nuc, mol, create=True, recreate=False):
     #   creates mol._nucleotide_info for per-residue information
     #   creates mol._ladder_params for ladder parameters
     #   creates mol._nucleotides_drawing for the drawing
-    from chimerax.atomic import AtomicShapeDrawing
     try:
         # expect this to succeed most of the time
         if recreate:
