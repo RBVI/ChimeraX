@@ -14,6 +14,12 @@
 import numpy
 from chimerax.graphics import Drawing, Pick
 from chimerax.core.state import State
+from collections import namedtuple
+
+AtomicShapeInfo = namedtuple(
+    "AtomicShapeInfo",
+    ("vertices", "normals", "triangles", "color", "atoms", "description"),
+    defaults=(None, None))
 
 
 class AtomicShapeDrawing(Drawing, State):
@@ -239,7 +245,7 @@ class AtomicShapeDrawing(Drawing, State):
 
         Parameters
         ----------
-        shape_info: sequence of 6-tuples of :py:method:`add_shape` arguments
+        shape_info: sequence of :py:class:`AtomicShapeInfo`
 
         There must be no initial geometry.
         """
@@ -253,7 +259,8 @@ class AtomicShapeDrawing(Drawing, State):
         num_vertices = 0
         num_triangles = 0
         has_atoms = False
-        for i, (vertices, normals, triangles, color, atoms, description) in enumerate(shape_info):
+        for i, info in enumerate(shape_info):
+            vertices, normals, triangles, color, atoms, description = info
             all_vertices[i] = vertices
             all_normals[i] = normals
             all_triangles[i] = triangles + num_vertices
