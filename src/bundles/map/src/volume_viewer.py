@@ -2754,7 +2754,7 @@ class Histogram_Pane:
     markers = self.surface_thresholds.markers
     for m in markers:
         level, color = m.xy[0], m.rgba
-        if not hasattr(m, 'volume_surface'):
+        if not hasattr(m, 'volume_surface') or m.volume_surface.deleted:
             m.volume_surface = v.add_surface(level, color)
             surf_levels_changed = surf_colors_changed = True
         else:
