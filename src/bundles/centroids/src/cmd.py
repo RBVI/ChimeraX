@@ -13,7 +13,7 @@
 
 from . import centroid
 
-def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None):
+def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", color=None, radius=2.0):
     """Wrapper to be called by command line.
 
        Use chimerax.centroids.centroid for other programming applications.
@@ -39,6 +39,7 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     else:
         from chimerax.atomic.colors import element_color
         a.color = element_color(a.element.number)
+    a.radius = radius
     if len(structures) > 1:
         session.models.add([s])
     else:
@@ -48,11 +49,12 @@ def cmd_centroid(session, atoms=None, *, mass_weighting=False, name="centroid", 
     return a
 
 def register_command(command_name, logger):
-    from chimerax.core.commands \
-        import CmdDesc, register, BoolArg, ColorArg, Or, StringArg, EmptyArg
+    from chimerax.core.commands import CmdDesc, register, BoolArg, ColorArg, Or, StringArg, EmptyArg, \
+        FloatArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(required=[('atoms', Or(AtomsArg,EmptyArg))],
-        keyword = [('mass_weighting', BoolArg), ('name', StringArg), ('color', ColorArg),],
+        keyword = [('mass_weighting', BoolArg), ('name', StringArg), ('color', ColorArg),
+            ('radius', FloatArg)],
         synopsis = 'Show centroid'
     )
     register('define centroid', desc, cmd_centroid, logger=logger)
