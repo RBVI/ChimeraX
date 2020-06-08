@@ -160,8 +160,8 @@ def vr_button(session, button, mode, hand = None):
 # -----------------------------------------------------------------------------
 #
 def vr_room_camera(session, enable = True, field_of_view = None, width = None,
-                   background_color = None, tracker = None,
-                   save_position = None, save_tracker_mount = None):
+                   background_color = None, show_hands = None, show_panels = None,
+                   save_position = None, tracker = None, save_tracker_mount = None):
     '''
     Mirror using fixed camera in room separate from VR headset view.
 
@@ -178,10 +178,14 @@ def vr_room_camera(session, enable = True, field_of_view = None, width = None,
       Width of room camera screen shown in VR in meters.  Default 1.
     background_color : Color
       Color of background in room camera rendering.  Default is dark gray.
-    tracker : bool
-      Whether to set the camera position from a Vive tracker device.  Default False.
+    show_hands : bool or "toggle"
+      Whether to show hand cones in room camera view.
+    show_panels : bool or "toggle"
+      Whether to show gui panels in room camera view.
     save_position : bool
       If true save the current camera room position for future sessions.
+    tracker : bool
+      Whether to set the camera position from a Vive tracker device.  Default False.
     save_tracker_mount : bool
       If true save the current relative camera position in tracker coordinates
       for future sessions.
@@ -205,6 +209,10 @@ def vr_room_camera(session, enable = True, field_of_view = None, width = None,
         rc._camera_model.set_size(width)
     if background_color is not None:
         rc._background_color = background_color.rgba
+    if show_hands is not None:
+        rc.show_hands = (not rc.show_hands) if show_hands == 'toggle' else show_hands
+    if show_panels is not None:
+        rc.show_gui_panels = (not rc.show_gui_panels) if show_panels == 'toggle' else show_panels
     if tracker is not None:
         rc.use_tracker(tracker)
     if save_position:
@@ -243,12 +251,15 @@ def register_vr_command(logger):
     create_alias('device vr button', 'vr button $*', logger=logger,
                  url='help:user/commands/device.html#vr-button')
 
+    ToggleArg = Or(EnumOf(['toggle']), BoolArg)
     desc = CmdDesc(optional = [('enable', BoolArg)],
                    keyword = [('field_of_view', FloatArg),
                               ('width', FloatArg),
                               ('background_color', ColorArg),
-                              ('tracker', BoolArg),
+                              ('show_hands', ToggleArg),
+                              ('show_panels', ToggleArg),
                               ('save_position', BoolArg),
+                              ('tracker', BoolArg),
                               ('save_tracker_mount', BoolArg)],
                    synopsis = 'Control VR room camera',
                    url = 'help:user/commands/device.html#vr-roomCamera')
@@ -531,6 +542,10 @@ class SteamVRCamera(Camera, StateManager):
             rc.close(self.render)
             self._room_camera = None
         return rc
+
+    @property
+    def room_camera(self):
+        return self._room_camera
 
     @property
     def have_room_camera(self):
@@ -1048,6 +1063,9 @@ class RoomCamera:
         self._field_of_view = 90	# Degrees.  Horizontal.
         self._background_color = (.1,.1,.1,1)	# RGBA, float 0-1
         self._settings = None		# Saved preferences, room position.
+        self.is_rendering = False	# Allows hand, gui, and screen models to hide themselves
+        self.show_hands = True		# Whether to show hand cones in room camera view
+        self.show_gui_panels = True	# Whether to show VR gui panel in room camera view
 
         # Depiction of camera in VR scene.
         render.make_current()	# Texture is allocated when framebuffer created.
@@ -1169,8 +1187,9 @@ class RoomCamera:
         # Set paramters for mixed reality blending.
         render.mix_video = True  # For making mixed reality videos
 
-        # Don't render camera model in desktop camera view.
-        self.enable_draw = False
+        # Allow hand, gui, and screen models to detect if room
+        # camera is rendering so they can hide themselves.
+        self.is_rendering = True
         
         # Make background contrast with room background so vr user can see boundary.
         render.set_background_color(self._background_color)
@@ -1179,13 +1198,8 @@ class RoomCamera:
         # Turn off mixed reality blending.
         render.mix_video = False
 
-        # Reenable camera model rendering for VR eye views.
-        self.enable_draw = True
-
-    def enable_draw(self, enable):
-        cm = self._camera_model
-        if cm:
-            cm.enable_draw = enable
+        # Reenable hand, gui and screen rendering for non-room-camera views.
+        self.is_rendering = False
 
     def framebuffer(self, render):
         rfb = render.default_framebuffer()
@@ -1224,7 +1238,6 @@ class RoomCameraModel(Model):
 
     def __init__(self, name, session, texture, room_to_scene, width = 1):
         '''Width in meters.'''
-        self.enable_draw = True
         self._last_room_to_scene = room_to_scene
         self._width = width
 
@@ -1274,15 +1287,27 @@ class RoomCameraModel(Model):
         return vertices, normals, texcoords, triangles
 
     def draw(self, renderer, draw_pass):
-        if self.enable_draw:
-            # TODO: Graphics is drawn in opaque draw pass because self.opaque_texture is True
-            # but the texture may have transparent alpha values.  The drawing code uses alpha
-            # blending even in the opaque pass so we need to turn it off here.  Maybe draw pass
-            # code should be disabling alpha blending.
-            renderer.enable_blending(False)
-            Model.draw(self, renderer, draw_pass)
-            renderer.enable_blending(True)
-            
+        if self._hide_camera():
+            return
+        # TODO: Graphics is drawn in opaque draw pass because self.opaque_texture is True
+        # but the texture may have transparent alpha values.  The drawing code uses alpha
+        # blending even in the opaque pass so we need to turn it off here.  Maybe draw pass
+        # code should be disabling alpha blending.
+        renderer.enable_blending(False)
+        Model.draw(self, renderer, draw_pass)
+        renderer.enable_blending(True)
+
+    def _hide_camera(self):
+        '''
+        Returns true if the room camera is currently being rendered.
+        This is used to suppress screen drawing so it does not block the view.
+        '''
+        c = self.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            return rc and rc.is_rendering
+        return False
+    
     def update_scene_position(self, new_rts):
         old_rts = self._last_room_to_scene
         self._last_room_to_scene = new_rts
@@ -1809,7 +1834,8 @@ class Panel:
         self._panel_thickness = 0.01	# meters
 
         # Drawing that renders this panel.
-        self._panel_drawing = self._create_panel_drawing(drawing_parent)
+        self._panel_drawing = d = PanelDrawing()
+        drawing_parent.add_drawing(d)
 
     @property
     def widget(self):
@@ -1819,16 +1845,6 @@ class Panel:
         except Exception:
             w = None	# Widget was deleted.
         return w
-
-    def _create_panel_drawing(self, drawing_parent):
-        from chimerax.graphics import Drawing
-        d = Drawing('VR UI panel')
-        d.color = (255,255,255,255)
-        d.use_lighting = False
-        d.casts_shadows = False
-        # d.skip_bounds = True	# Clips if far from models.
-        drawing_parent.add_drawing(d)
-        return d
 
     def _get_center(self):
         pd = self._panel_drawing
@@ -2294,6 +2310,31 @@ class Panel:
                 return p
         return None
 
+from chimerax.graphics import Drawing
+class PanelDrawing(Drawing):
+    '''Draws a single gui panel as a textured rectangle.'''
+    def __init__(self, name = 'VR UI panel'):
+        Drawing.__init__(self, name)
+        self.color = (255,255,255,255)
+        self.use_lighting = False
+        self.casts_shadows = False
+        # self.skip_bounds = True	# Clips if far from models.
+
+    def draw(self, renderer, draw_pass):
+        if not self._hide_panel():
+            Model.draw(self, renderer, draw_pass)
+
+    def _hide_panel(self):
+        '''
+        Returns true if the room camera is currently being rendered
+        and the GUI panels are to be hidden.
+        '''
+        c = self.parent.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            return rc and rc.is_rendering and not rc.show_gui_panels
+        return False
+
 def _ancestor_widgets(w):
     alist = []
     p = w
@@ -2731,6 +2772,22 @@ class HandModel(Model):
         
     def _set_button_icon(self, button, icon_path):
         self._buttons.set_button_icon(button, icon_path)
+
+    def draw(self, renderer, draw_pass):
+        if not self._hide_hand():
+            Model.draw(self, renderer, draw_pass)
+
+    def _hide_hand(self):
+        '''
+        Returns true if the room camera is currently being rendered
+        and the hand models are to be hidden.
+        '''
+        c = self.session.main_view.camera
+        if isinstance(c, SteamVRCamera):
+            rc = c.room_camera
+            hide = (rc and rc.is_rendering and not rc.show_hands)
+            return hide
+        return False
 
 class HandButtons:
     def __init__(self, controller_type = 'htc vive'):
