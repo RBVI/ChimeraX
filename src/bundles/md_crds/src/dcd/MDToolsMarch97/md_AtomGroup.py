@@ -178,9 +178,9 @@ See also: Atom, Molecule, 'angles'
 			if a.name not in backbone: t(a)
 	def phipsi(self,units=angledefault):
 		try: phi = angle(self.prev['C'],self['N'],self['CA'],self['C'],units)
-		except: phi = None
+		except Exception: phi = None
 		try: psi = angle(self['N'],self['CA'],self['C'],self.next['N'],units)
-		except: psi = None
+		except Exception: psi = None
 		return (phi,psi)
 	def __repr__(self):
 		return '< Residue '+self.name+' with '\

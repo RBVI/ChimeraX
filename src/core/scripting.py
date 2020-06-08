@@ -66,10 +66,8 @@ def _exec_python(session, code, argv=None):
 def open_python_script(session, stream, file_name, argv=None):
     """Execute Python script in a ChimeraX context
 
-    This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
-    :py:func:`~chimerax.core.io.open_data` API for files whose names end
-    with **.py**.  Each script is opened in an uniquely named importable
-    sandbox (see timeit example above).  And the current ChimeraX session
+    Each script is opened in a uniquely named importable sandbox
+    (see timeit example above).  And the current ChimeraX session
     is available as a global variable named **session**.
 
     Parameters
@@ -90,11 +88,9 @@ def open_python_script(session, stream, file_name, argv=None):
 def open_compiled_python_script(session, stream, file_name, argv=None):
     """Execute compiled Python script in a ChimeraX context
 
-    This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
-    :py:func:`~chimerax.core.io.open_data` API for files whose names end
-    with **.pyc**, or **.pyo**.  Each script is opened in an uniquely
-    named importable sandbox (see timeit example above).  And the current
-    ChimeraX session is available as a global variable named **session**.
+    Each script is opened in a uniquely named importable sandbox
+    (see timeit example above).  And the current ChimeraX session
+    is available as a global variable named **session**.
 
     Parameters
     ----------
@@ -120,10 +116,6 @@ def open_command_script(session, path, file_name):
     The current directory is changed to the file directory before the commands
     are executed and restored to the previous current directory after the
     commands are executed.
-
-    This function is invoked via ChimeraX's :py:mod:`~chimerax.core.io`
-    :py:func:`~chimerax.core.io.open_data` API for files whose names end
-    with **.cxc**.
 
     Parameters
     ----------
@@ -151,22 +143,3 @@ def open_command_script(session, path, file_name):
             os.chdir(prev_dir)
 
     return [], "executed %s" % file_name
-
-
-def register():
-    from . import io, toolshed
-    io.register_format(
-        "Python code", toolshed.SCRIPT, (".py",), ("py",),
-        mime=('text/x-python',),
-        reference="http://www.python.org/",
-        open_func=open_python_script)
-    io.register_format(
-        "Compiled Python code", toolshed.SCRIPT, (".pyc", ".pyo"), ("pyc",),
-        mime=('application/x-python-code',),
-        reference="http://www.python.org/",
-        open_func=open_compiled_python_script)
-    io.register_format(
-        "ChimeraX commands", toolshed.SCRIPT, (".cxc",), ("cmd",),
-        mime=('text/x-chimerax', 'application/x-chimerax-code'),
-        reference="help:user/commands/usageconventions.html",
-        open_func=open_command_script)

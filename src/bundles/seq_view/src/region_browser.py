@@ -826,8 +826,8 @@ class RegionBrowser:
             color_structures = self.settings.scf_colors_structures
 
         seqs = self.seq_canvas.alignment.seqs
-        from chimerax.core import io
-        scf_file = io.open_filename(path)
+        from chimerax.io import open_input
+        scf_file = open_input(path, 'utf-8')
         line_num = 0
         region_info = {}
         from chimerax.core.errors import UserError
@@ -857,11 +857,11 @@ class RegionBrowser:
                 else:
                     seq1 -= 1
                     seq2 -= 1
-            except:
+            except Exception:
                 try:
                     pos, seq, r, g, b = [int(x) for x in line.split()]
                     pos1 = pos2 = pos
-                except:
+                except Exception:
                     scf_file.close()
                     raise UserError("Bad format for line %d of %s [not 5 or 7 integers]"
                         % (line_num, path))

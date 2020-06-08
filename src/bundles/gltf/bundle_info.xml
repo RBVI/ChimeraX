@@ -14,7 +14,7 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=0.9"/>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
@@ -36,10 +36,6 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
-    
-    <ChimeraXClassifier>DataFormat :: glTF :: gltf :: Generic 3D objects :: .glb :: :: https://github.com/KhronosGroup/glTF :: :: :: Surface format used in 3D modeling </ChimeraXClassifier>
-    <ChimeraXClassifier>Open :: glTF :: gltf ::</ChimeraXClassifier>
-    <ChimeraXClassifier>Save :: glTF :: gltf :: true :: models:Models,center:Float3,size:Float,short_vertex_indices:Bool,float_colors:Bool,preserve_transparency:Bool</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

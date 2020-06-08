@@ -23,10 +23,11 @@ class OpenerProviderInfo:
         self.batch = batch
 
 class FetcherProviderInfo:
-    def __init__(self, bundle_info, is_default, example_ids):
+    def __init__(self, bundle_info, is_default, example_ids, synopsis):
         self.bundle_info = bundle_info
         self.is_default = is_default
         self.example_ids = example_ids
+        self.synopsis = synopsis
 
 from chimerax.core.toolshed import ProviderManager
 class OpenManager(ProviderManager):
@@ -42,7 +43,7 @@ class OpenManager(ProviderManager):
 
     def add_provider(self, bundle_info, name, *, type="open", want_path=False,
             check_path=True, batch=False, format_name=None,
-            is_default=True, example_ids=None, **kw):
+            is_default=True, synopsis=None, example_ids=None, **kw):
         logger = self.session.logger
 
         bundle_name = _readable_bundle_name(bundle_info)
@@ -86,8 +87,10 @@ class OpenManager(ProviderManager):
                 example_ids = ",".split(example_ids)
             else:
                 example_ids = []
+            if synopsis is None:
+                synopsis = "%s (%s)" % (name.capitalize(), format_name)
             self._fetchers.setdefault(name, {})[format_name] = FetcherProviderInfo(
-                bundle_info, is_default, example_ids)
+                bundle_info, is_default, example_ids, synopsis)
             if is_default and len([fmt for fmt, info in self._fetchers[name].items()
                     if info.is_default]) > 1:
                 logger.warning("Multiple default formats declared for database fetch"
@@ -166,7 +169,7 @@ class OpenManager(ProviderManager):
     @property
     def open_data_formats(self):
         """
-        The names of data formats for which an opener function has been registered.
+        The data formats for which an opener function has been registered.
         """
         return list(self._openers.keys())
 

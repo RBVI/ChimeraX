@@ -201,7 +201,7 @@ def help(name=None):
 	else:
 		try:
 			help(eval(name))
-		except:
+		except Exception:
 			print('Evaluates to',repr(name)+'.')
 
 

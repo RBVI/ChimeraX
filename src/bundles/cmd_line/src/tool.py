@@ -228,7 +228,7 @@ class CommandLine(ToolInstance):
     def execute(self):
         from contextlib import contextmanager
         @contextmanager
-        def processing_command(line_edit, cmd_text):
+        def processing_command(line_edit, cmd_text, command_worked):
             line_edit.blockSignals(True)
             self._processing_command = True
             # as per the docs for contextmanager, the yield needs
@@ -239,7 +239,8 @@ class CommandLine(ToolInstance):
             finally:
                 line_edit.blockSignals(False)
                 line_edit.setText(cmd_text)
-                line_edit.selectAll()
+                if command_worked[0]:
+                    line_edit.selectAll()
                 self._processing_command = False
         session = self.session
         logger = session.logger
@@ -251,11 +252,16 @@ class CommandLine(ToolInstance):
         for cmd_text in text.split("\n"):
             if not cmd_text:
                 continue
-            with processing_command(self.text.lineEdit(), cmd_text):
+            # don't select the text if the command failed, so that
+            # an accidental keypress won't erase the command, which
+            # probably needs to be edited to work
+            command_worked = [False]
+            with processing_command(self.text.lineEdit(), cmd_text, command_worked):
                 try:
                     self._just_typed_command = cmd_text
                     cmd = Command(session)
                     cmd.run(cmd_text)
+                    command_worked[0] = True
                 except SystemExit:
                     # TODO: somehow quit application
                     raise
@@ -263,7 +269,7 @@ class CommandLine(ToolInstance):
                     logger.status(str(err), color="crimson")
                     from chimerax.core.logger import error_text_format
                     logger.info(error_text_format % escape(str(err)), is_html=True)
-                except:
+                except BaseException:
                     raise
         self.set_focus()
 
@@ -298,7 +304,7 @@ class CommandLine(ToolInstance):
         except UserError as err:
             self.session.logger.status("Error running startup command '%s': %s" % (cmd_text, str(err)),
                 color="crimson", log=True)
-        except:
+        except Exception:
             self._processing_command = False
             raise
         self._processing_command = False
@@ -383,15 +389,13 @@ class _HistoryDialog:
         self.update_list()
 
     def button_clicked(self, label):
+        session = self.controller.session
         if label == self.record_label:
-            from chimerax.ui.open_save import export_file_filter, SaveDialog
-            from chimerax.core.io import open_filename, format_from_name
+            from chimerax.ui.open_save import SaveDialog
             if self._record_dialog is None:
-                fmt = format_from_name("ChimeraX commands")
-                ext = fmt.extensions[0]
-                self._record_dialog = dlg = SaveDialog(self.window.ui_area,
-                    "Save Commands", name_filter=export_file_filter(format_name="ChimeraX commands"),
-                                                       add_extension=ext)
+                fmt = session.data_formats["ChimeraX commands"]
+                self._record_dialog = dlg = SaveDialog(session, self.window.ui_area,
+                    "Save Commands", data_formats=[fmt])
                 from PyQt5.QtWidgets import QFrame, QLabel, QHBoxLayout, QVBoxLayout, QComboBox
                 from PyQt5.QtWidgets import QCheckBox
                 from PyQt5.QtCore import Qt
@@ -429,11 +433,8 @@ class _HistoryDialog:
                 items = [self.listbox.item(i) for i in range(self.listbox.count())
                     if self.listbox.item(i).isSelected()]
                 cmds = [item.text() for item in items]
-            if self.append_checkbox.isChecked():
-                mode = 'a'
-            else:
-                mode = 'w'
-            f = open_filename(path, mode)
+            from chimerax.io import open_output
+            f = open_output(path, encoding='utf-8', append=self.append_checkbox.isChecked())
             for cmd in cmds:
                 print(cmd, file=f)
             f.close()
@@ -458,12 +459,12 @@ class _HistoryDialog:
             self.populate()
             return
         if label == "Copy":
-            clipboard = self.controller.session.ui.clipboard()
+            clipboard = session.ui.clipboard()
             clipboard.setText("\n".join([item.text() for item in self.listbox.selectedItems()]))
             return
         if label == "Help":
             from chimerax.core.commands import run
-            run(self.controller.session, 'help help:user/tools/cli.html#history')
+            run(session, 'help help:user/tools/cli.html#history')
             return
 
     def down(self, shifted):

@@ -108,7 +108,7 @@ class GLCall:
                                  % (self.name, self._calltrace, str(args), str(self.args)))
         try:
             result = self.function(*args, **self.keywords)
-        except:
+        except Exception:
             arg_types = ', '.join(str(type(a)) for a in self.args)
             print('Error executing opengl call %s %s, arg types %s' % (self._calltrace, self.name, arg_types))
             raise

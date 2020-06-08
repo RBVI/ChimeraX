@@ -230,7 +230,7 @@ def _pick_description(picks):
                 count, name = d.split(maxsplit = 1)
                 c = int(count)
                 item_counts[name] = item_counts.get(name,0) + c
-            except:
+            except Exception:
                 pdesc.append(d)
     pdesc.extend('%d %s' % (count, name) for name, count in item_counts.items())
     desc = ', '.join(pdesc)
@@ -544,6 +544,33 @@ class TranslateXYSelectedModelsMouseMode(TranslateSelectedModelsMouseMode):
         TranslateSelectedModelsMouseMode.__init__(self, session)
         self._restrict_to_plane = (0,0,1)
         self._restrict_to_axis = (0,0,1)
+
+class MovePickedModelsMouseMode(TranslateMouseMode):
+    '''
+    Mouse mode to translate picked models.
+    '''
+    name = 'move picked models'
+    icon_file = 'icons/move_h2o.png'  # TODO: Make icon witbhout selection outline
+
+    def mouse_down(self, event):
+        self._picked_models = None
+        x,y = event.position()
+        from . import picked_object
+        pick = picked_object(x, y, self.view)
+        if pick and hasattr(pick, 'drawing'):
+            m = pick.drawing()
+            from chimerax.core.models import Model
+            if isinstance(m, Model):
+                self._picked_models = [m]
+        TranslateMouseMode.mouse_down(self, event)
+
+    def mouse_up(self, event):
+        TranslateMouseMode.mouse_up(self, event)
+        self._picked_models = None
+
+    def models(self):
+        return self._picked_models
+
 
 class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     '''
@@ -910,6 +937,7 @@ def standard_mouse_mode_classes():
         ZoomMouseMode,
         TranslateSelectedModelsMouseMode,
         TranslateXYSelectedModelsMouseMode,
+        MovePickedModelsMouseMode,
         TranslateSelectedAtomsMouseMode,
         RotateSelectedModelsMouseMode,
         RotateZSelectedModelsMouseMode,

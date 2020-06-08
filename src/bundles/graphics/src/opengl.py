@@ -169,7 +169,7 @@ class OpenGLContext:
         # Check if opengl version is adequate.
         try:
             self._check_context_version(qc.format())
-        except:
+        except Exception:
             self._contexts[mode] = False
             raise	# OpenGLVersionError
 
@@ -449,7 +449,7 @@ class Render:
                 i = 1 if wait else 0
                 success = wglSwapIntervalEXT(i)
                 return True if success else False
-            except:
+            except Exception:
                 return False
         elif platform == 'darwin':
             sync = 1 if wait else 0
@@ -734,7 +734,9 @@ class Render:
         if (p is not None and
             not p.capabilities & self.SHADER_TEXTURE_OUTLINE and
             not p.capabilities & self.SHADER_DEPTH_OUTLINE):
-            p.set_matrix('model_view_matrix', mv.opengl_matrix())
+            if (p.capabilities & self.SHADER_LIGHTING or
+                not p.capabilities & self.SHADER_STEREO_360):
+                p.set_matrix('model_view_matrix', mv.opengl_matrix())
 #            if (self.SHADER_CLIP_PLANES | self.SHADER_MULTISHADOW) & p.capabilities:
             if self.SHADER_CLIP_PLANES & p.capabilities:
                 cmm = self.current_model_matrix
@@ -1308,6 +1310,10 @@ class Shadow:
             self._shadow_map_framebuffer = None
     
     def use_shadow_map(self, camera, drawings, shadow_bounds):
+        '''
+        Compute shadow map textures for specified drawings.
+        Does not include child drawings.
+        '''
         r = self._render
         lp = r.lighting
         if not lp.shadows:
@@ -1321,6 +1327,8 @@ class Shadow:
             light_direction = camera.position.transform_vector(kl)
 
         # Compute drawing bounds so shadow map can cover all drawings.
+        # TODO: Shadow bounds should exclude completely transparent drawings
+        #       if transparent do not cast shadows.
         center, radius, sdrawings = shadow_bounds(drawings)
         if center is None or radius == 0:
             return False

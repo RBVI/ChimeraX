@@ -5,20 +5,18 @@
 UCSF ChimeraX Non-Commercial Software License Agreement
 -------------------------------------------------------
 
-This license agreement ("License"), effective today,
-is made by and between you ("Licensee") and The Regents
-of the University of California, a California corporation having
-its statewide administrative offices at 1111 Franklin Street,
-Oakland, California 94607-5200 ("The Regents"), acting
-through its Office of Innovation, Technology & Alliances, University
-of California San Francisco ("UCSF"), 3333 California
-Street, Suite S-11, San Francisco, California 94143, and concerns
-certain software known as "UCSF ChimeraX," a system of
-integrated software tools for interactive visualization and analysis
-of molecular structures and related data, developed by the Resource
-for Biocomputing, Visualization and Informatics ("RBVI")
-at UCSF for research purposes and includes executable code, source
-code, and documentation ("Software").
+This license agreement ("License"), effective today, is made by and
+between you ("Licensee") and The Regents of the University of California,
+a California corporation having its statewide administrative offices at
+1111 Franklin Street, Oakland, California  94607-5200 ("The Regents"),
+acting through its Office of Technology Management, University of
+California San Francisco ("UCSF"), 600 16th Street, Suite S272, San
+Francisco, California 94143, and concerns certain software known as
+"UCSF ChimeraX," a system of integrated software tools for interactive
+visualization and analysis of molecular structures and related data,
+developed by the Resource for Biocomputing, Visualization and
+Informatics ("RBVI") at UCSF for research purposes and includes
+executable code, source code, and documentation ("Software").
 
 1. **General.** A non-exclusive, nontransferable, perpetual license
    is granted to the Licensee to install and use the Software for
@@ -94,7 +92,22 @@ code, and documentation ("Software").
    OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-7. **Termination.** This License is effective until terminated by
+7. **Indemnification.** To the extent permitted by law, Licensee shall
+   indemnify, defend with counsel acceptable to The Regents, and hold
+   harmless The Regents and the developers of the Software, their successors,
+   agents, officers, and employees against any and all claims, liability,
+   cost, damage, deficiency, loss, or obligation, of any kind or nature
+   (including, without limitation, reasonable attorney’s fees and other
+   costs and expenses of defense), including without limitation any cause
+   of action relating to product liability, any incidental or consequential
+   damage either direct or indirect, whether incurred, made or suffered by
+   Licensee or any third party obtaining access to the Software through
+   Licensee, in connection with and to the extent arising out of, the
+   Licensee’s furnishing, performance, possession or use of the Software
+   or in connection with the Licensee’s exercise of its rights under this
+   License. This provision shall survive termination of this License.
+
+8. **Termination.** This License is effective until terminated by
    either party. Licensee's rights under this License will terminate
    automatically without notice from The Regents if Licensee fails to
    comply with any term(s) of this License. Licensee may terminate the
@@ -104,23 +117,32 @@ code, and documentation ("Software").
    all copies, full or partial, of the Software, including any
    modifications or derivative works, and associated documentation.
 
-8. **Governing Law and General Provisions.** This License shall be
-   governed by the laws of the State of California, excluding the
-   application of its conflicts of law rules. This License shall not
-   be governed by the United Nations Convention on Contracts for the
-   International Sale of Goods, the application of which is expressly
-   excluded. If any provisions of this License are held invalid or
-   unenforceable for any reason, the remaining provisions shall remain
-   in full force and effect. This License is binding upon any heirs
-   and assigns of the Licensee. The License granted to Licensee hereunder
-   may not be assigned or transferred to any other person or entity
-   without the express consent of The Regents. This License constitutes
-   the entire agreement between the parties with respect to the use
-   of the Software licensed hereunder and supersedes all other previous
-   or contemporaneous agreements or understandings between the parties,
-   whether verbal or written, concerning the subject matter. Any
-   translation of this License is done for local requirements and in
-   the event of a dispute between the English and any non-English
-   versions, the English version of this License shall govern.
+9. **Use of Names and Trademarks.**  Nothing contained in this License
+   will be construed as conferring any right to either party to use in
+   advertising, publicity, or other promotional activities any name, trade
+   name, trademark, or other designation of the other party (including a
+   contraction, abbreviation or simulation of any of the foregoing). The use
+   by the Licensee of the name "The Regents of the University of California"
+   or the name of any campus of the University of California in advertising,
+   publicity or other promotional activities is expressly prohibited.
 
-.. footer:: Revised 19 August 2016
+10. **Governing Law and General Provisions.** This License shall be
+    governed by the laws of the State of California, excluding the
+    application of its conflicts of law rules. This License shall not
+    be governed by the United Nations Convention on Contracts for the
+    International Sale of Goods, the application of which is expressly
+    excluded. If any provisions of this License are held invalid or
+    unenforceable for any reason, the remaining provisions shall remain
+    in full force and effect. This License is binding upon any heirs
+    and assigns of the Licensee. The License granted to Licensee hereunder
+    may not be assigned or transferred to any other person or entity
+    without the express consent of The Regents. This License constitutes
+    the entire agreement between the parties with respect to the use
+    of the Software licensed hereunder and supersedes all other previous
+    or contemporaneous agreements or understandings between the parties,
+    whether verbal or written, concerning the subject matter. Any
+    translation of this License is done for local requirements and in
+    the event of a dispute between the English and any non-English
+    versions, the English version of this License shall govern.
+
+.. footer:: Revised 5 May 2020

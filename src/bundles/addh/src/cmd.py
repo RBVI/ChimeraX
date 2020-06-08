@@ -61,7 +61,7 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=3
         session.logger.status("Adding hydrogens")
         try:
             add_h_func(session, structures, template=template, in_isolation=in_isolation, **prot_schemes)
-        except:
+        except BaseException:
             session.logger.status("")
             raise
         finally:
@@ -987,14 +987,15 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
             h_name = "".join([x for x in h_name if x.isalnum()])
 
     if pdb_version == 2:
-        if total_hydrogens > 1 or find_atom(h_name):
+        # glycosylated asparagines should use the un-glycosylated names
+        if total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
             while find_atom("%d%s" % (h_num, h_name)):
                 h_num += 1
             h_name = "%d%s" % (h_num, h_name)
     elif h_name[-1] == "'" and len(h_name) + (total_hydrogens-1) <= 4:
         while find_atom(h_name):
             h_name += "'"
-    elif total_hydrogens > 1 or find_atom(h_name):
+    elif total_hydrogens > 1 or find_atom(h_name) or (res_name == "ASN" and atom.name == "ND2"):
         # amino acids number their CH2 hyds as 2/3 rather than 1/2
         if atom.residue.principal_atom and total_hydrogens == 2 and len(
                 [nb for nb in atom.neighbors if nb.element.number > 1]) == 2:

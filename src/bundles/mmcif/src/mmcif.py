@@ -356,8 +356,13 @@ def fetch_mmcif_pdbj(session, pdb_id, **kw):
     return fetch_mmcif(session, pdb_id, fetch_source="pdbj", **kw)
 
 
+_nonexistant_ccd_entries = set()
+
+
 def _get_template(session, name):
     """Get Chemical Component Dictionary (CCD) entry"""
+    if name in _nonexistant_ccd_entries:
+        return None
     from chimerax.core.fetch import fetch_file
     filename = '%s.cif' % name
     url = "http://ligand-expo.rcsb.org/reports/%s/%s/%s.cif" % (name[0], name,
@@ -365,9 +370,7 @@ def _get_template(session, name):
     try:
         return fetch_file(session, url, 'CCD %s' % name, filename, 'CCD', timeout=15)
     except (UserError, OSError):
-        session.logger.warning(
-            "Unable to fetch template for '%s': might be missing bonds"
-            % name)
+        _nonexistant_ccd_entries.add(name)
         return None
 
 
@@ -542,7 +545,8 @@ def add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=N
             table._set_metadata(model, metadata=metadata)
 
 
-def _add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=None):
+def _add_citation(model, citation_id, info, authors=(), editors=(),
+                  *, metadata=None, return_existing=False):
     # do bulk of add_citation's work, but just return revised tables
     # and don't update metadata
     from chimerax.core.utils import flattened
@@ -553,6 +557,8 @@ def _add_citation(model, citation_id, info, authors=(), editors=(), *, metadata=
     citation_id = str(citation_id)
 
     if citation is not None and citation.field_has('id', citation_id):
+        if return_existing:
+            return citation, citation_author, citation_editor
         return None, None, None
 
     # construct new table entries
@@ -652,12 +658,14 @@ def add_software(model, name, info, *, metadata=None):
         software._set_metadata(model)
 
 
-def _add_software(model, name, info, *, metadata=None):
+def _add_software(model, name, info, *, metadata=None, return_existing=False):
     # do bulk of add_software's work, but just return revised tables
     # and don't update metadata
     software, = get_mmcif_tables_from_metadata(model, ['software'], metadata=metadata)
 
     if software is not None and software.field_has('name', name):
+        if return_existing:
+            return software
         return None
 
     # construct new table entries
@@ -1051,3 +1059,39 @@ class CIFTable:
 def get_mmcif_tables(filename, table_names):
     """Deprecated API.  Use get_cif_tables() instead."""
     return get_cif_tables(filename, table_names)
+
+
+def fetch_ccd(session, ccd_id, ignore_cache=False):
+    """Get structure for CCD component"""
+    from .. import AtomicStructure
+    # TODO: support ignore_cache
+    from itertools import chain
+    ccd_id = ccd_id.upper()  # all current CCD entries are in uppercase
+    try:
+        ccd = find_template_residue(session, ccd_id)
+    except ValueError:
+        raise UserError("Unknown CCD ligand name")
+    ccd_atoms = ccd.atoms
+    ccd_bonds = set()
+    for a in ccd_atoms:
+        ccd_bonds.update(a.bonds)
+
+    new_structure = AtomicStructure(session, name=ccd_id)
+    new_residue = new_structure.new_residue(ccd_id, 'A', 1)
+    new_atoms = {}
+    for a in ccd_atoms:
+        new_atom = new_structure.new_atom(a.name, a.element)
+        new_atom.coord = a.coord
+        new_atoms[a] = new_atom
+        new_residue.add_atom(new_atom)
+
+    for b in ccd_bonds:
+        atoms = b.atoms
+        new_a0 = new_atoms[atoms[0]]
+        new_a1 = new_atoms[atoms[1]]
+        new_structure.new_bond(new_a0, new_a1)
+
+    from chimerax.atomic.pdb import process_chem_name
+    new_structure.html_title = process_chem_name(ccd.description)
+
+    return [new_structure], f"Opened CCD {ccd_id}"

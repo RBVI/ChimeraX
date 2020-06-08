@@ -39,8 +39,12 @@ REST_SUBDIRS = addh align_algs alignment_hdrs alignments arrays atom_search atom
 	  shell shortcuts show_attr sideview sim_matrices smiles \
 	  smooth_lines spacenavigator std_commands \
 	  stl storm struts surface swapaa swap_res \
-	  tape_measure test texture toolbar tug ui uniprot \
+	  tape_measure test toolbar tug ui uniprot \
 	  viewdockx vive volume_menu vtk wavefront_obj webservices zone
+
+ifeq ($(OS),Linux)
+REST_SUBDIRS += linux_support
+endif
 
 SUBDIRS = $(BUNDLE_BUILDER_SUBDIR) $(REST_SUBDIRS)
 
@@ -67,6 +71,9 @@ endif
 
 clean:
 	rm -rf __pycache__ Makefile.dependencies
+ifneq (,$(wildcard $(SYNC_DIR)))
+	cd $(SYNC_DIR) && rm */*.whl
+endif
 
 #
 # Build Time Dependencies

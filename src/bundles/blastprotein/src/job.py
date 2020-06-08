@@ -38,7 +38,7 @@ class BlastProteinJob(OpalJob):
                  tool_inst_name=None):
         from . import tool
         super().__init__(session)
-        self.seq = seq                          # string
+        self.seq = seq.replace('?', 'X')        # string
         self.atomspec = atomspec                # string (atom specifier)
         self.database = database                # string
         self.cutoff = cutoff                    # float
@@ -94,9 +94,10 @@ class BlastProteinJob(OpalJob):
             results = self.get_file(self.RESULTS_FILENAME)
             try:
                 p = Parser("query", self.seq, results)
-            except ValueError as e:
+            except Exception as e:
                 if self.tool:
-                    self.tool.job_failed(self, str(e))
+                    err = self.get_file("stderr.txt")
+                    self.tool.job_failed(self, err + str(e))
                 else:
                     logger.bug("BLAST output parsing error: %s" % str(e))
             else:

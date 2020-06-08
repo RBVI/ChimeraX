@@ -119,7 +119,7 @@ class VolumeDefaultSettings:
       import psutil
       m = psutil.virtual_memory()
       msize = m.total
-    except:
+    except Exception:
       msize = 2**32
     csize = msize//2
     csize_mb = csize/(2**20)

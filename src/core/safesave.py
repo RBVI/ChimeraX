@@ -93,7 +93,18 @@ class SaveFile:
             return
 
         try:
-            os.replace(self._tmp_filename, self.name)
+            try:
+                os.replace(self._tmp_filename, self.name)
+            except PermissionError as e:
+                import sys, time
+                if sys.platform.startswith("win") and e.winerror == 32:
+                    # Windows can have the file open from another process
+                    # for some reason (virus scan?), so wait a little and
+                    # try again
+                    time.sleep(0.5)
+                    os.replace(self._tmp_filename, self.name)
+                else:
+                    raise
         except Exception:
             os.remove(self._tmp_filename)
             raise
@@ -199,7 +210,7 @@ if __name__ == '__main__':
                 f.write('A')
                 f.flush()
                 raise RuntimeError("fail")
-        except:
+        except Exception:
             pass
             # print('successfully failed')
         assert(not os.path.exists(testfile + '.tmp'))

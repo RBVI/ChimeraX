@@ -100,6 +100,13 @@ ifeq ($(OS),Darwin)
 		$(RSYNC) Info.plist $(app_prefix)/Info.plist; \
 		$(RSYNC) chimerax-icon.icns $(app_prefix)/Resources/chimerax-icon.icns; \
 	fi
+
+reinstall-plist:
+	rm Info.plist
+# use Chimera executable in this pass so that we pick up registered formats (and 'session' is available)
+#	$(MAKE) Info.plist
+	$(wildcard $(TOP)/ChimeraX*.app)/Contents/bin/ChimeraX --nogui --script "mkinfo.py $(APP_NAME)" --exit || (rm Info.plist ; exit 1)
+	$(RSYNC) Info.plist $(app_prefix)/Info.plist
 endif
 endif
 

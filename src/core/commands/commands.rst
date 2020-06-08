@@ -18,6 +18,7 @@ commands: Register user commands
 .. automodule:: chimerax.core.commands.cli
     :members:
     :show-inheritance:
+    :noindex: html_name
 
 .. automodule:: chimerax.core.commands.atomspec
     :members:

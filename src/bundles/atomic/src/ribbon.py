@@ -64,7 +64,9 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
 
     for rlist, ptype in polymers:
         # Always call get_polymer_spline to make sure hide bits are
-        # properly unset when ribbons are completely undisplayed
+        # properly unset when ribbons are completely undisplayed.
+        # Guides are O amino acid positions or C1' nucleic acid positions
+        # but will be None if any of those atoms are missing.
         any_display, atoms, coords, guides = _get_polymer_spline(rlist)
         if not any_display:
             continue
@@ -669,7 +671,7 @@ class RibbonsDrawing(Drawing):
         if not self.display or (exclude and exclude(self)) or self._residues is None:
             return None
         p = super().first_intercept(mxyz1, mxyz2)
-        if p is None:
+        if p is None or (hasattr(p, 'drawing') and p.drawing() is not self):
             return None
         tranges = self._triangle_ranges
         if self._triangle_ranges_sorted is None:
@@ -996,7 +998,8 @@ def _wrap_helix(rlist, coords, guides, start, end):
     hc = HelixCylinder(coords[start:end])
     directions = hc.cylinder_directions()
     coords[start:end] = hc.cylinder_surface()
-    guides[start:end] = coords[start:end] + directions
+    if guides is not None:
+        guides[start:end] = coords[start:end] + directions
     if False:
         # Debugging code to display guides of secondary structure
         name = ribbons_drawing.structure_name + " helix guide " + str(start)

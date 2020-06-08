@@ -41,10 +41,3 @@ def fetch_ihm(session, id, ignore_cache=False, **kw):
   	name = name, **kw)
     
   return models, status
-
-# -----------------------------------------------------------------------------
-# Register to fetch IHM entries with open command.
-#
-def register_ihm_fetch():
-    from chimerax.core import fetch
-    fetch.register_fetch('pdbdev', fetch_ihm, 'ihm', prefixes = ['ihm'])

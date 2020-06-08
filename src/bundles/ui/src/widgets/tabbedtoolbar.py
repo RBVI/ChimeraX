@@ -430,13 +430,30 @@ class TabbedToolbar(QTabWidget):
         section = self._get_section(tab_title, section_title, create=False)
         if section is None:
             return
+        self._hide_toolbar_rollover(tab_title) # Work around ChimeraX bug #3152
         section.add_button_highlight(button_title, redo=redo)
 
     def remove_button_highlight(self, tab_title, section_title, button_title, *, redo=True):
         section = self._get_section(tab_title, section_title, create=False)
         if section is None:
             return
+        self._hide_toolbar_rollover(tab_title) # Work around ChimeraX bug #3152
         section.remove_button_highlight(button_title, redo=redo)
+
+    def _hide_toolbar_rollover(self, tab_title):
+        # Hack to hide toolbar rollover menu if it is shown.
+        # Needed to work around ChimeraX bug #3152.
+        tab_info = self._buttons.get(tab_title)
+        if tab_info:
+            toolbar = tab_info.get("__toolbar__", None)
+            if toolbar:
+                for w in toolbar.children():
+                    if isinstance(w, QToolButton):
+                        menu = w.menu()
+                        if menu and menu.isVisible():
+                            menu.hide()
+                            return True
+        return False
 
     def set_highlight_color(self, qcolor):
         if qcolor == self._highlight_color:

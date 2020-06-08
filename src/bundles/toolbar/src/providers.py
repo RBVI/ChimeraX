@@ -35,7 +35,7 @@ _providers = {
     "Exit": "exit",
     "Undo": "undo",
     "Redo": "redo",
-    "Side view": "tool show 'Side View'"
+    "Side view": "ui tool show 'Side View'"
 }
 
 

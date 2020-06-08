@@ -21,13 +21,39 @@ from . import GridData
 # Origin and step parameters are in x, y, z order.
 #
 class ArrayGridData(GridData):
-  
-  def __init__(self, array, origin = (0,0,0), step = (1,1,1),
+  '''
+  Supported API.  Create a GridData from a 3-dimensional numpy array.
+
+  Attributes
+  ----------
+  array : 3D numpy array
+      Data array can be any scalar numpy type.
+  origin : 3 floats
+      Position of grid index (0,0,0) in physical coordinates (x,y,z) (usually Angstroms).
+      Default (0,0,0).
+  step : 3 floats
+      Grid plane spacing along x,y,z axes.  Default (1,1,1)
+  cell_angles : 3 floats
+      Cell angles for skewed crystallography maps.
+      Angles (alpha,beta,gamma) between yz, xz, and xy axes in degrees.
+      Default (90,90,90).
+  rotation : 3x3 matrix
+      Rotation matrix in physical coordinates. Default ((1,0,0),(0,1,0),(0,0,1))
+  symmetries : :class:`~.chimerax.geometry.Places` or None
+      Symmetry transformations that map the to itself in physical coordinates.
+      Default None means no symmetries.
+  name : string
+      Descriptive name.  Default ''
+  '''
+
+  def __init__(self,
+               array,
+               origin = (0,0,0),
+               step = (1,1,1),
                cell_angles = (90,90,90),
                rotation = ((1,0,0),(0,1,0),(0,0,1)),
                symmetries = (),
                name = ''):
-      '''Supported API.  The array argument is a numpy 3-dimensional array.'''
       
       self.array = array
       

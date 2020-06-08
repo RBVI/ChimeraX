@@ -16,14 +16,6 @@ from chimerax.core.toolshed import BundleAPI
 class _SmilesAPI(BundleAPI):
 
     @staticmethod
-    def fetch_from_database(session, identifier, ignore_cache=False, database_name=None,
-            format_name=None, **kw):
-        # 'fetch_from_database' is called by session code to fetch data with the given identifier;
-        # returns (list of models, status message)
-        from . import smiles
-        return smiles.fetch_smiles(session, identifier, ignore_cache=ignore_cache)
-
-    @staticmethod
     def run_provider(session, name, mgr, *, widget_info=None, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import FetcherInfo

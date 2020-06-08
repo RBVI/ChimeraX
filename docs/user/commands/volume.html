@@ -483,7 +483,8 @@ regardless of which are specified:
   <a href="#top" class="nounder">&bull;</a>
   <b>dataCacheSize</b> &nbsp;<i>size</i>
   <br>Set how much memory in Mb should be dedicated to volume data 
-  (default <b>512</b>). A cache can improve performance, since accessing 
+  (default is half the physical memory in the computer). 
+  A cache can improve performance, since accessing 
   cached data is faster than reading it from disk. 
   The least recently displayed data values are purged to maintain the specified
   <i>size</i>. The data cache only accounts for approximately 1/3 to 1/2
@@ -499,10 +500,9 @@ regardless of which are specified:
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <b>region</b> &nbsp;all | <i>name</i> | <i>i1,j1,k1,i2,j2,k2</i>
-  <br>Show the full data set (specified with <b>all</b>), 
-  or the data region previously <a href="#name">assigned</a>
-  <i>name</i>, or the data region with grid indices 
+  <b>region</b> &nbsp;all | <i>i1,j1,k1,i2,j2,k2</i>
+  <br>Show the full data set (specified with <b>all</b>)
+  or the data region with grid indices 
   <i>i1&ndash;i2</i> along the X axis,
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.  
@@ -514,11 +514,13 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
 <img class="icon" border=1 src="../tools/mouse-icons/crop.png"></a>
 </blockquote>
+<!-- not supported
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="name"><b>nameRegion</b> &nbsp;<i>name</i></a>
   <br>Assign <i>name</i> to the currently displayed region.
 </blockquote>
+-->
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="origin"><b>origin</b> &nbsp;<i>x,y,z</i></a>
@@ -1425,7 +1427,7 @@ or make a new map with values of zero at grid points within or beyond the zone
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 [&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -1470,17 +1472,12 @@ Note resampling causes some loss in resolution
   (separated by commas but not spaces), they
   are used along the X, Y, and Z axes, respectively.
   <li><b>gridSubregion</b> &ndash; whether to use the full extents 
-  of <i>gridmap</i> (<b>all</b>, default) or a specified subregion.
-  A subregion can be specified by:
-   <ul>
-   <li> <i>name</i> previously assigned
-   with the <a href="#dimensions"><b>nameRegion</b> option of <b>volume</b></a>
-   <li> grid indices
+  of <i>gridmap</i> (<b>all</b>, default) or subregion specified by:
+  grid indices
    <i>i1&ndash;i2</i> along the X axis,
    <i>j1&ndash;j2</i> along the Y axis, and
    <i>k1&ndash;k2</i> along the Z axis.
    Grid indices must be integers separated by commas but not spaces.
-   </ul>
   </ul>
 The <i>value-type</i> defaults to the current type
 of the <b>onGrid</b> map (if any), otherwise the first in <i>volume-spec</i>,
@@ -1540,7 +1537,7 @@ Marker/atom size can be changed with the
 <a href="#vop" class="nounder">&bull;</a>
 <a name="copy"><b>volume copy</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
-[&nbsp;<a href="#vop-options"><b>subregion</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b></a>&nbsp;]
+[&nbsp;<a href="#vop-options"><b>subregion</b></a>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b></a>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>step</b></a>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <blockquote>
@@ -1661,7 +1658,7 @@ Thanks to Greg Pintilie for the initial implementation.
 <a href="#vop" class="nounder">&bull;</a>
 <a name="flatten"><b>volume flatten</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>method</b>&nbsp;&nbsp;<b>multiply</b>&nbsp;|&nbsp;divide&nbsp;]
-[&nbsp;<b>fitregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>fitregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 If the <b>method</b> is <b>multiply</b> (default),
@@ -1678,16 +1675,11 @@ the a,b,c,d coefficients uses only the data values in the specified region,
 while the scaling operation applies to the entire map or the part specified
 with <a href="#vop-options"><b>subregion</b></a>.
 The <b>fitregion</b> can be the full extents of the data (<b>all</b>, default)
-or a subregion specified by:
-  <ul>
-  <li> <i>name</i> previously assigned
-  with the <a href="#dimensions"><b>nameRegion</b> option of <b>volume</b></a>
-  <li> grid indices
-  <i>i1&ndash;i2</i> along the X axis,
-  <i>j1&ndash;j2</i> along the Y axis, and
-  <i>k1&ndash;k2</i> along the Z axis.
-  Grid indices must be integers separated by commas but not spaces.
-  </ul>
+or a subregion specified by grid indices
+<i>i1&ndash;i2</i> along the X axis,
+<i>j1&ndash;j2</i> along the Y axis, and
+<i>k1&ndash;k2</i> along the Z axis.
+Grid indices must be integers separated by commas but not spaces.
 </blockquote>
 
 <a href="#vop" class="nounder">&bull;</a>
@@ -1865,7 +1857,7 @@ See also:
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 [&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -1901,7 +1893,7 @@ perform (default <b>1</b>).
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 [&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -1973,7 +1965,7 @@ See also:
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 [&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -2136,7 +2128,7 @@ target="_top"><b>Volume Tracer</b></a>
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 [&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -2221,7 +2213,7 @@ See also: <a href="../tools/segment.html"><b>Segment Map</b></a>
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
 [&nbsp;<b>boundingGrid</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>gridStep</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
-[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>name</i>&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
+[&nbsp;<b>gridSubregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 [&nbsp;<b>hideMaps</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -2442,24 +2434,13 @@ the <b>zone</b> <a href="ui.html#mousemode">mouse mode</a>
 </blockquote>
 <blockquote>
   <a name="subregion"><b>subregion</b>
-  &nbsp;<i>name</i> | <i>i1,j1,k1,i2,j2,k2</i> | <b>all</b></a>
+  &nbsp;<i>i1,j1,k1,i2,j2,k2</i> | <b>all</b></a>
   <br>Whether to use the full extents of the data (<b>all</b>, default)
-  or a specified subregion.
-  A subregion can be specified by:
-  <ul>
-   <li> <i>name</i> previously assigned
-   with the <a href="#dimensions"><b>nameRegion</b> option of <b>volume</b></a>
-<!--
-   or <a href="../../ContributedSoftware/volumeviewer/framevolumeviewer.html"
-   target="_top"><b>Volume Viewer</b></a>
-   (see <a href="../../ContributedSoftware/volumeviewer/volumeviewer.html#named"><b>Named regions</b></a>)
--->
-  <li> grid indices
+  or a subregion specified by grid indices
   <i>i1&ndash;i2</i> along the X axis,
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.
   Grid indices must be integers separated by commas but not spaces.
-  </ul>
 </blockquote>
 <blockquote>
   <b>inPlace</b> true&nbsp;|&nbsp;<b>false</b>
@@ -2592,5 +2573,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2020</address>
+June 2020</address>
 </body></html>

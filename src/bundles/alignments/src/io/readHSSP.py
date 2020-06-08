@@ -65,7 +65,7 @@ def read(session, f):
             if line.lstrip().lower().startswith('seqno'):
                 try:
                     align_start_index = line.index('.')
-                except:
+                except Exception:
                     raise FormatSyntaxError("No indication of alignment starting column "
                         "('.' character) in SeqNo line in ALIGNMENTS section")
                 continue
