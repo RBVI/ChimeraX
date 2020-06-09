@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-AlignmentMatrices" version="1.0"
+<BundleInfo name="ChimeraX-AlignmentMatrices" version="1.0.1"
 	    package="chimerax.seqalign.sim_matrices"
   	    minSessionVersion="1" maxSessionVersion="1">
 
