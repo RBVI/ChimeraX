@@ -500,20 +500,21 @@ def _add_surface(surface):
 
     # Check if request model id is already being used.
     model_id = surface.id
-    if model_id and models.have_id(model_id):
-        from chimerax.core.errors import UserError
-        id_string = '.'.join('%d'%i for i in model_id)
-        raise UserError('Model id #%s already in use' % id_string)
+    if model_id:
+        if models.have_id(model_id):
+            from chimerax.core.errors import UserError
+            id_string = '.'.join('%d'%i for i in model_id)
+            raise UserError('Model id #%s already in use' % id_string)
 
-    # If parent models don't exist create grouping models.
-    p = None
-    for i in range(1,len(model_id)):
-        if not models.have_id(model_id[:i]):
-            from chimerax.core.models import Model
-            m = Model('shape', session)
-            m.id = model_id[:i]
-            models.add([m], parent = p)
-            p = m
+        # If parent models don't exist create grouping models.
+        p = None
+        for i in range(1,len(model_id)):
+            if not models.have_id(model_id[:i]):
+                from chimerax.core.models import Model
+                m = Model('shape', session)
+                m.id = model_id[:i]
+                models.add([m], parent = p)
+                p = m
 
     # Add surface.
     models.add([surface])
