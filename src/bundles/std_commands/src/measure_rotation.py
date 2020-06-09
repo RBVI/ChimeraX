@@ -43,8 +43,11 @@ def measure_rotation(session, model, to_model,
     if show_slabs:
         b = to_model.bounds()
         if b:
+            slength = b.width() if length is None else length
+            swidth = 0.5*slength if width is None else width
+            sthickness = 0.025 * slength if thickness is None else thickness
             _show_slabs(session, tf, color, color2, b.center(),
-                        length, width, thickness, to_model)
+                        slength, swidth, sthickness, to_model)
 
     return transform
 
@@ -107,9 +110,13 @@ def _show_slabs(session, tf, color, to_color, center,
 def _transform_schematic(session, transform, center, from_rgba, to_rgba,
                          length, width, thickness):
 
-    varray, narray, tarray = _transform_square(transform, center, length, width, thickness)
-    if varray is None:
-        return None             # No rotation.
+    axis, rot_center, angle_deg, shift = transform.axis_center_angle_shift()
+
+    # Align rot_center at same position along axis as center.
+    from chimerax.geometry import inner_product
+    rot_center += inner_product(center - rot_center, axis) * axis
+    width_axis = center - rot_center
+    varray, narray, tarray = _axis_square(axis, rot_center, width_axis, length, width, thickness)
 
     from chimerax.core.models import Model, Surface
 
@@ -118,8 +125,10 @@ def _transform_schematic(session, transform, center, from_rgba, to_rgba,
     s1.color = from_rgba
 
     s2 = Surface('slab 2', session)
-    varray2 = transform * varray
-    narray2 = transform.transform_vectors(narray)
+    from chimerax.geometry import rotation, translation
+    rot2 = translation(shift*axis) * rotation(axis, angle_deg, center = rot_center)
+    varray2 = rot2 * varray
+    narray2 = rot2.transform_vectors(narray)
     s2.set_geometry(varray2, narray2, tarray)
     s2.color = to_rgba
     
@@ -130,33 +139,15 @@ def _transform_schematic(session, transform, center, from_rgba, to_rgba,
 
 # -----------------------------------------------------------------------------
 #
-def _transform_square(transform, center, length, width, thickness):
+def _axis_square(axis, center, width_axis, length, width, thickness):
 
-    axis, angle_deg = transform.rotation_axis_and_angle()
-    trans = transform.translation()
-    from chimerax.geometry import inner_product, cross_product, norm
-    t1 = trans - axis * inner_product(trans, axis)
-    t2 = cross_product(axis, t1)
-
-    from math import pi, sin, cos
-    angle = angle_deg * pi / 180
-    sa, ca = sin(angle), cos(angle)
-    if 1-ca == 0:
-        return None     # No rotation
-    axis_offset = t1*.5 + t2*(.5*sa/(1-ca))
-    cd = center - axis_offset
-    sq1 = cd - axis * inner_product(cd, axis)
-    h1 = 2*sq1 if width is None else (width/norm(sq1)-1)*sq1
-    sq2 = axis*norm(sq1)*2
-    h2 = sq2 if length is None else (0.5*length/norm(sq2))*sq2 
-    dz = cross_product(sq1, axis) * .05 # Thickness vector
-    if thickness is not None:
-        dz *= 0.5*thickness/norm(dz)
-    c = center
-    corners = [c - sq1 - h2 - dz, c + h1 - h2 - dz,
-               c + h1 + h2 - dz, c - sq1 + h2 - dz,
-               c - sq1 - h2 + dz, c + h1 - h2 + dz,
-               c + h1 + h2 + dz, c - sq1 + h2 + dz]
+    l2 = 0.5 * length
+    t2 = 0.5 * thickness
+    box = [(0,-t2,-l2), (width,-t2,-l2), (width,t2,-l2), (0,t2,-l2),
+           (0,-t2,l2), (width,-t2,l2), (width,t2,l2), (0,t2,l2)]
+    from chimerax.geometry import orthonormal_frame
+    f = orthonormal_frame(axis, xdir = width_axis, origin = center)
+    corners = f*box
     va,na,ta = _box_geometry(corners)
     return va,na,ta
 
