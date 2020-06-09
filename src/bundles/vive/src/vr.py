@@ -101,7 +101,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
 # -----------------------------------------------------------------------------
 # Assign VR hand controller buttons
 #
-def vr_button(session, button, mode = None, hand = None):
+def vr_button(session, button, mode = None, hand = None, command = None):
     '''
     Assign VR hand controller buttons
 
@@ -111,10 +111,13 @@ def vr_button(session, button, mode = None, hand = None):
       Name of button to assign.  Buttons A/B are for Oculus controllers and imply hand = 'right',
       and X/Y imply hand = 'left'
     mode : HandMode instance or 'default'
-      VR hand mode to assign to button.  If no mode is specified then report the current mode.
+      VR hand mode to assign to button.  If mode is None then report the current mode.
     hand : 'left', 'right', None
       Which hand controller to assign.  If None then assign button on both hand controllers.
       If button is A, B, X, or Y then hand is ignored since A/B implies right and X/Y implies left.
+    command : string
+      Assign the button press to execute this command string.  Mode should be None or an error
+      is raised.
     '''
 
     c = vr_camera(session)
@@ -151,10 +154,18 @@ def vr_button(session, button, mode = None, hand = None):
     }
     openvr_buttons = openvr_button_ids[button]
 
+    if command is not None:
+        if mode is not None:
+            from chimerax.core.errors import UserError
+            raise UserError('vr button: Cannot specify both mode and command.')
+        mode = RunCommandMode(session, command)
+        
+    report_modes = (mode is None and command is None)
+    
     mode_names = []
     for hc in hclist:
         for button_id in openvr_buttons:
-            if mode is None:
+            if report_modes:
                 if hc.on:
                     bname = button_names[button_id] if button == 'all' else button
                     bmode = hc.current_hand_mode(button_id)
@@ -165,7 +176,7 @@ def vr_button(session, button, mode = None, hand = None):
             else:
                 hc.set_hand_mode(button_id, mode)
 
-    if mode is None:
+    if report_modes:
         modes = ('\n' + '\n'.join(mode_names)) if len(mode_names) > 1 else ', '.join(mode_names)
         msg = 'Current VR button modes: ' + modes
         session.logger.info(msg)
@@ -257,7 +268,8 @@ def register_vr_command(logger):
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
     desc = CmdDesc(required = [('button', button_name)],
                    optional = [('mode', VRModeArg(logger.session))],
-                   keyword = [('hand', EnumOf(('left', 'right')))],
+                   keyword = [('hand', EnumOf(('left', 'right'))),
+                              ('command', StringArg)],
                    synopsis = 'Assign VR hand controller buttons',
                    url = 'help:user/commands/device.html#vr-button')
     register('vr button', desc, vr_button, logger=logger)
@@ -3450,6 +3462,31 @@ class MouseMode(HandMode):
         if self.uses_thumbstick():
             self._mouse_mode.vr_thumbstick(hand_thumbstick_event)
 
+class RunCommandMode(HandMode):
+    name = 'command'
+    update_ui_on_release = True
+    def __init__(self, session, command):
+        self._session = session
+        self._command = command
+        self.name = 'command "%s"' % command
+    @property
+    def icon_path(self):
+        return RunCommandMode.icon_location()
+    @staticmethod
+    def icon_location():
+        from os.path import join, dirname
+        return join(dirname(__file__), 'command_icon.png')
+    def pressed(self, hand_event):
+        from chimerax.core.errors import UserError
+        from chimerax.core.commands import run
+        try:
+            run(self._session, self._command)
+        except UserError as e:
+            self._session.logger.warning(str(e))
+        except Exception as e:
+            from traceback import format_exc
+            self._session.logger.bug(format_exc())
+            
 vr_hand_modes = (ShowUIMode, MoveSceneMode, ZoomMode, RecenterMode, NoneMode)
 
 def hand_mode_names(session):
