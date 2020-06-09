@@ -101,7 +101,7 @@ def vr(session, enable = None, room_position = None, mirror = None,
 # -----------------------------------------------------------------------------
 # Assign VR hand controller buttons
 #
-def vr_button(session, button, mode, hand = None):
+def vr_button(session, button, mode = None, hand = None):
     '''
     Assign VR hand controller buttons
 
@@ -111,7 +111,7 @@ def vr_button(session, button, mode, hand = None):
       Name of button to assign.  Buttons A/B are for Oculus controllers and imply hand = 'right',
       and X/Y imply hand = 'left'
     mode : HandMode instance or 'default'
-      VR hand mode to assign to button.
+      VR hand mode to assign to button.  If no mode is specified then report the current mode.
     hand : 'left', 'right', None
       Which hand controller to assign.  If None then assign button on both hand controllers.
       If button is A, B, X, or Y then hand is ignored since A/B implies right and X/Y implies left.
@@ -135,8 +135,9 @@ def vr_button(session, button, mode, hand = None):
         k_EButton_SteamVR_Trigger as trigger, \
         k_EButton_SteamVR_Touchpad as touchpad, \
         k_EButton_A as a
-    
-    openvr_buttons = {
+    button_names = { grip: 'grip', menu: 'menu', trigger: 'trigger', touchpad: 'thumbstick', a: 'a' }
+
+    openvr_button_ids = {
         'grip': [grip],
         'menu': [menu],
         'trigger': [trigger],
@@ -148,15 +149,27 @@ def vr_button(session, button, mode, hand = None):
         'Y': [menu],
         'all': [grip, menu, trigger, touchpad, a],
     }
-    openvr_buttons = openvr_buttons[button]
+    openvr_buttons = openvr_button_ids[button]
 
+    mode_names = []
     for hc in hclist:
-        for button in openvr_buttons:
-            if mode == 'default':
-                hc.set_default_hand_mode(button)
+        for button_id in openvr_buttons:
+            if mode is None:
+                if hc.on:
+                    bname = button_names[button_id] if button == 'all' else button
+                    bmode = hc.current_hand_mode(button_id)
+                    mname = (bmode.name if bmode else 'none')
+                    mode_names.append('%s %s = %s' % (hc.left_or_right, bname, mname))
+            elif mode == 'default':
+                hc.set_default_hand_mode(button_id)
             else:
-                hc.set_hand_mode(button, mode)
+                hc.set_hand_mode(button_id, mode)
 
+    if mode is None:
+        modes = ('\n' + '\n'.join(mode_names)) if len(mode_names) > 1 else ', '.join(mode_names)
+        msg = 'Current VR button modes: ' + modes
+        session.logger.info(msg)
+        
 # -----------------------------------------------------------------------------
 #
 def vr_room_camera(session, enable = True, field_of_view = None, width = None,
@@ -242,8 +255,8 @@ def register_vr_command(logger):
                  url='help:user/commands/device.html#vr')
 
     button_name = EnumOf(('trigger', 'grip', 'touchpad', 'thumbstick', 'menu', 'A', 'B', 'X', 'Y', 'all'))
-    desc = CmdDesc(required = [('button', button_name),
-                               ('mode', VRModeArg(logger.session))],
+    desc = CmdDesc(required = [('button', button_name)],
+                   optional = [('mode', VRModeArg(logger.session))],
                    keyword = [('hand', EnumOf(('left', 'right')))],
                    synopsis = 'Assign VR hand controller buttons',
                    url = 'help:user/commands/device.html#vr-button')
@@ -2589,7 +2602,10 @@ class HandController:
         if mode.update_ui_on_release:
             f = mode.update_ui_delay_frames
             self._camera.user_interface.redraw_ui(delay_frames = f)
-        
+
+    def current_hand_mode(self, button):
+        return self._modes.get(button)
+    
     def set_hand_mode(self, button, hand_mode):
         self._modes[button] = hand_mode
         hm = self.hand_model
