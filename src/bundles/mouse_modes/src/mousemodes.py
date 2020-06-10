@@ -374,24 +374,40 @@ class MouseModes:
                 self._trackpad_bindings.append(b)
                 mode.enable()
 
-    def bind_standard_mouse_modes(self, buttons = ('left', 'middle', 'right', 'wheel', 'pause')):
+    def bind_standard_mouse_modes(self,
+                                  buttons = ('left', 'middle', 'right', 'wheel', 'pause'),
+                                  trackpad = ('two finger swipe', 'twist', 'pinch',
+                                              'three finger swipe', 'four finger swipe')):
+
         '''
         Bind the standard mouse modes: left = rotate, ctrl-left = select, middle = translate,
         right = zoom, wheel = zoom, pause = identify object.
         '''
-        standard_modes = (
-            ('left', [], 'two finger swipe', [], 'rotate'),
-            (None, [], 'twist', [], 'rotate'),
-            ('left', ['control'], None, [], 'select'),
-            ('middle', [], 'three finger swipe', [], 'translate'),
-            ('right', [], None, [], 'translate'),
-            ('wheel', [], 'pinch', [], 'zoom'),
-            ('pause', [], None, [], 'identify object'),
-            (None, [], 'four finger swipe', [], 'swipe as scroll')
+        standard_button_modes = (
+            ('left', [], 'rotate'),
+            ('left', ['control'], 'select'),
+            ('middle', [], 'translate'),
+            ('right', [], 'translate'),
+            ('wheel', [], 'zoom'),
+            ('pause', [], 'identify object'),
             )
+        
         mmap = {m.name:m for m in self.modes}
-        for button, modifiers, trackpad_action, trackpad_modifiers, mode_name in standard_modes:
-            self.bind_mouse_mode(button, modifiers, mmap[mode_name], trackpad_action, trackpad_modifiers)
+        for button, modifiers, mode_name in standard_button_modes:
+            if button in buttons:
+                self.bind_mouse_mode(button, modifiers, mmap[mode_name])
+
+        standard_trackpad_modes = (
+            ('two finger swipe', [], 'rotate'),
+            ('twist', [], 'rotate'),
+            ('pinch', [], 'zoom'),
+            ('three finger swipe', [], 'translate'),
+            ('four finger swipe', [], 'swipe as scroll')
+            )
+                
+        for trackpad_action, modifiers, mode_name in standard_trackpad_modes:
+            self.bind_mouse_mode(trackpad_action=trackpad_action,
+                                 trackpad_modifiers=modifiers, mode=mmap[mode_name])
 
     def add_mode(self, mode):
         '''Supported API. Add a MouseMode instance to the list of available modes.'''
