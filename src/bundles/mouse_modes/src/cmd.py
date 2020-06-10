@@ -35,7 +35,8 @@ def register_mousemode_command(logger):
         url="help:user/commands/ui.html#mousemode"
     )
     register('mousemode', desc, mousemode, logger=logger)
-    create_alias('ui mousemode', 'mousemode $*', logger=logger)
+    create_alias('ui mousemode', 'mousemode $*', logger=logger,
+                 url="help:user/commands/ui.html#mousemode")
 
     desc = CmdDesc(
         optional = [('mode', mode_arg)],
@@ -44,7 +45,8 @@ def register_mousemode_command(logger):
         url="help:user/commands/ui.html#mousemode"
     )
     register('mousemode setting', desc, mousemode_setting, logger=logger)
-    create_alias('ui mousemode setting', 'mousemode setting $*', logger=logger)
+    create_alias('ui mousemode setting', 'mousemode setting $*', logger=logger,
+                 url="help:user/commands/ui.html#mousemode")
 
 # -----------------------------------------------------------------------------
 #
